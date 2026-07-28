@@ -1,0 +1,88 @@
+# CopaLibre stores source and documentation with LF line endings on every platform.
+* text=auto eol=lf
+
+# Explicit text formats
+.gitattributes text eol=lf
+.gitignore text eol=lf
+.editorconfig text eol=lf
+*.md text eol=lf diff=markdown
+*.mdx text eol=lf
+*.txt text eol=lf
+*.rst text eol=lf
+*.adoc text eol=lf
+LICENSE text eol=lf
+NOTICE* text eol=lf
+COPYING* text eol=lf
+
+# Application source and configuration
+*.js text eol=lf
+*.cjs text eol=lf
+*.mjs text eol=lf
+*.jsx text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.json text eol=lf
+*.jsonc text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.toml text eol=lf
+*.ini text eol=lf
+*.conf text eol=lf
+*.css text eol=lf
+*.scss text eol=lf
+*.html text eol=lf
+*.xml text eol=lf
+*.svg text eol=lf
+*.graphql text eol=lf
+*.gql text eol=lf
+*.sql text eol=lf
+*.sh text eol=lf
+Dockerfile text eol=lf
+Dockerfile.* text eol=lf
+*.dockerfile text eol=lf
+
+# Keep package-manager metadata readable and stable across platforms.
+package.json text eol=lf
+pnpm-lock.yaml text eol=lf
+package-lock.json text eol=lf
+yarn.lock text eol=lf
+.yarnrc.yml text eol=lf
+.yarn/releases/** text eol=lf
+.yarn/plugins/** text eol=lf
+.yarn/patches/** text eol=lf
+
+# Windows scripts are the sole CRLF exception.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary assets and release artifacts must never be line-ending normalized or diffed.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.avif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.tgz binary
+*.bz2 binary
+*.7z binary
+*.tar binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.eot binary
+*.mp3 binary
+*.ogg binary
+*.wav binary
+*.flac binary
+*.mp4 binary
+*.webm binary
+*.mov binary
+*.avi binary
+*.wasm binary
+*.jar binary
