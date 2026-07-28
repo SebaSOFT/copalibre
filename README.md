@@ -77,8 +77,8 @@ Every selected format needs a clear state model, deterministic fixture generatio
 
 ## What CopaLibre is not
 
-- It is **not** a clone, fork, visual imitation, or compatibility promise for Toornament or any other tournament platform.
-- It will not copy competitor source code, proprietary UI, branding, icons, screenshots, help text, assets, or undocumented implementation details.
+- It is **not** a clone, fork, visual imitation, or compatibility promise for any existing tournament-management platform.
+- It will not copy third-party source code, proprietary UI, branding, icons, screenshots, help text, assets, or undocumented implementation details.
 - It is not currently a payments, ticketing, prize-distribution, advertising, sponsorship-marketplace, streaming-hosting, or global discovery product.
 - It is not ready for production use.
 
@@ -169,12 +169,6 @@ The repository will grow its documentation alongside the design. Before implemen
 - contribution, code-of-conduct, security, and release policies.
 
 Until those documents exist, please use GitHub Issues and Discussions for questions, design proposals, and feedback. Do not begin implementation work from an assumption or from competitor behavior alone.
-
-## Open-source research influences
-
-The README structure follows useful patterns observed in mature open-source products: a clear promise and status signal, feature/domain map, self-hosting posture, documentation and contribution routes, and explicit licensing.
-
-Examples reviewed for this initial structure include [Nextcloud](https://github.com/nextcloud/server), [OpenProject](https://github.com/opf/openproject), [Plane](https://github.com/makeplane/plane), [Rocket.Chat](https://github.com/RocketChat/Rocket.Chat), [Mattermost](https://github.com/mattermost/mattermost), [ERPNext](https://github.com/frappe/erpnext), [Appwrite](https://github.com/appwrite/appwrite), [Supabase](https://github.com/supabase/supabase), [Outline](https://github.com/outline/outline), and [Actual](https://github.com/actualbudget/actual). Tournament-domain README references were also reviewed: [TMX](https://github.com/CourtHive/TMX) and [osu! tournament manager](https://github.com/kibotrel/osu-tournament-manager).
 
 ## License
 
