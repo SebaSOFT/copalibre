@@ -78,7 +78,7 @@ describe('participant-or-staff actor requirement', () => {
           category: 'negative',
           permittedSegmentTypes: ['half'],
           actorRequirement: 'participant-or-staff',
-          payloadSchema: [],
+          payloadSchema: { type: 'object', properties: {} },
         },
       ],
     });

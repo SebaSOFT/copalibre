@@ -789,6 +789,7 @@ __metadata:
   resolution: "@copalibre/domain@workspace:packages/domain"
   dependencies:
     "@types/jest": "npm:^30.0.0"
+    ajv: "npm:^8.20.0"
     jest: "npm:^30.4.2"
     ts-jest: "npm:^29.4.12"
     uuid: "npm:^11"
@@ -3346,7 +3347,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ajv@npm:^8.0.0, ajv@npm:^8.12.0, ajv@npm:^8.17.1":
+"ajv@npm:^8.0.0, ajv@npm:^8.12.0, ajv@npm:^8.17.1, ajv@npm:^8.20.0":
   version: 8.20.0
   resolution: "ajv@npm:8.20.0"
   dependencies:

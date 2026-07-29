@@ -10,13 +10,13 @@ export type EventCategory = 'positive' | 'negative' | 'neutral';
 
 export type ActorRequirement = 'none' | 'side' | 'participant' | 'participant-or-staff';
 
-/** Minimal payload schema — the domain stays dependency-free. */
-export interface PayloadFieldSpec {
-  readonly name: string;
-  readonly type: 'string' | 'number' | 'boolean' | 'enum';
-  readonly required: boolean;
-  readonly enumValues?: readonly string[];
-}
+/**
+ * Event payload schemas are standard JSON Schema documents (validated with
+ * ajv at recording time). JSON Schema — not zod or a custom format — because
+ * event definitions live inside versioned JSON DisciplineDescriptors, so the
+ * schema language itself must be serializable data.
+ */
+export type PayloadJsonSchema = Readonly<Record<string, unknown>>;
 
 /** An explicit, configured effect. Never inferred from category. */
 export type EventEffect =
@@ -37,7 +37,12 @@ export interface EventDefinition {
   /** Segment types (by name) during which this event may be recorded. */
   readonly permittedSegmentTypes: readonly string[];
   readonly actorRequirement: ActorRequirement;
-  readonly payloadSchema: readonly PayloadFieldSpec[];
+  /**
+   * JSON Schema for the event's payload. `additionalProperties: false` is
+   * applied by the event log when the schema does not state it, so undeclared
+   * fields can never sneak into the audit-relevant event record.
+   */
+  readonly payloadSchema: PayloadJsonSchema;
   /** Explicit effects; empty/omitted means recording it changes nothing derived. */
   readonly effects?: readonly EventEffect[];
   /** Presentation metadata for consoles/public surfaces — never behavior. */

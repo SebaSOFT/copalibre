@@ -23,10 +23,14 @@ export function fixtureDescriptor(overrides?: Partial<DisciplineDescriptor>): Di
         category: 'positive',
         permittedSegmentTypes: ['half', 'overtime'],
         actorRequirement: 'participant',
-        payloadSchema: [
-          { name: 'distanceMeters', type: 'number', required: false },
-          { name: 'zone', type: 'enum', required: true, enumValues: ['inner', 'outer'] },
-        ],
+        payloadSchema: {
+          type: 'object',
+          properties: {
+            distanceMeters: { type: 'number' },
+            zone: { enum: ['inner', 'outer'] },
+          },
+          required: ['zone'],
+        },
         effects: [{ kind: 'score', side: 'actor', delta: 1 }],
       },
       {
@@ -35,7 +39,11 @@ export function fixtureDescriptor(overrides?: Partial<DisciplineDescriptor>): Di
         category: 'negative',
         permittedSegmentTypes: ['half'],
         actorRequirement: 'participant',
-        payloadSchema: [{ name: 'reason', type: 'string', required: true }],
+        payloadSchema: {
+          type: 'object',
+          properties: { reason: { type: 'string' } },
+          required: ['reason'],
+        },
         // Deliberately NO effects: category must never imply one.
       },
       {
@@ -44,7 +52,7 @@ export function fixtureDescriptor(overrides?: Partial<DisciplineDescriptor>): Di
         category: 'neutral',
         permittedSegmentTypes: ['half', 'overtime'],
         actorRequirement: 'none',
-        payloadSchema: [],
+        payloadSchema: { type: 'object', properties: {} },
       },
     ],
     statistics: [{ code: 'strikes', label: 'Strikes', aggregation: 'sum' }],

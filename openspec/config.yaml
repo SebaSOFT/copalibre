@@ -69,6 +69,14 @@ context: |
       tenant-vs-organization naming, camelCase token-path leaks), design.md must label it
       explicitly as an open gate this change resolves or explicitly defers - never resolve it
       silently without a stated rationale.
+    - Never hand-roll a general-purpose utility when a well-known, well-implemented, actively
+      maintained package without active CVEs exists (owner decision 2026-07-29, after replacing a
+      hand-rolled UUIDv7 generator with uuid@11). Hand-rolling is justified only for genuine domain
+      logic (product rules/contracts) or trivial one-liners. Prefer dual CJS/ESM-published versions
+      (the Jest transform is CommonJS). Known applications - identifiers: uuid; payload/schema
+      validation: JSON Schema + ajv (schemas inside versioned JSON descriptors must be serializable,
+      so not zod); CSV (phase 0019): papaparse or csv-parse, never hand-parse; SSE client parsing
+      (phase 0010): eventsource-parser; JWT/JWKS (phase 0005): jose; OpenAPI: @nestjs/swagger.
 
 # Per-artifact rules (optional)
 rules:

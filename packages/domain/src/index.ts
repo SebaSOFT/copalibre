@@ -30,7 +30,7 @@ export type {
 export type {
   EventCategory,
   ActorRequirement,
-  PayloadFieldSpec,
+  PayloadJsonSchema,
   EventEffect,
   EventDefinition,
 } from './descriptors/event-definition';

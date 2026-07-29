@@ -139,3 +139,29 @@ describe('effectsOf', () => {
     }
   });
 });
+
+describe('invalid payload schema in a descriptor', () => {
+  it('rejects recording with a typed error instead of throwing', () => {
+    const base = fixtureDescriptor();
+    const descriptor = fixtureDescriptor({
+      eventDefinitions: [
+        ...base.eventDefinitions,
+        {
+          code: 'broken',
+          label: 'Broken Schema',
+          category: 'neutral',
+          permittedSegmentTypes: ['half'],
+          actorRequirement: 'none',
+          // type must be a string/array in JSON Schema — 42 is invalid.
+          payloadSchema: { type: 42 as unknown as string },
+        },
+      ],
+    });
+    const log = new EventLog(descriptor);
+    const result = log.record(strikeInput({ definitionCode: 'broken', payload: {} }));
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.message).toContain('invalid payload JSON Schema');
+    }
+  });
+});

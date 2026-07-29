@@ -1,8 +1,9 @@
+import { Ajv, type ValidateFunction } from 'ajv';
 import type { DisciplineDescriptor } from '../descriptors/discipline-descriptor';
 import type {
   EventDefinition,
   EventEffect,
-  PayloadFieldSpec,
+  PayloadJsonSchema,
 } from '../descriptors/event-definition';
 import type { Segment } from '../aggregates/competition';
 import { EventValidationError } from '../errors';
@@ -39,6 +40,8 @@ export interface RecordEventInput {
 
 export class EventLog {
   private readonly events: RecordedEvent[] = [];
+  private readonly ajv = new Ajv({ allErrors: false, coerceTypes: false });
+  private readonly validators = new Map<string, ValidateFunction>();
 
   constructor(private readonly descriptor: DisciplineDescriptor) {}
 
@@ -68,7 +71,7 @@ export class EventLog {
     if (actorError) return err(actorError);
 
     const payload = input.payload ?? {};
-    const payloadError = validatePayload(definition.payloadSchema, payload, definition.code);
+    const payloadError = this.validatePayload(definition, payload);
     if (payloadError) return err(payloadError);
 
     const event: RecordedEvent = Object.freeze({
@@ -88,6 +91,39 @@ export class EventLog {
 
   list(): readonly RecordedEvent[] {
     return [...this.events];
+  }
+
+  private validatePayload(
+    definition: EventDefinition,
+    payload: Readonly<Record<string, unknown>>,
+  ): EventValidationError | undefined {
+    let validate = this.validators.get(definition.code);
+    if (!validate) {
+      try {
+        validate = this.ajv.compile(withClosedProperties(definition.payloadSchema));
+      } catch (cause) {
+        return new EventValidationError(
+          `Event "${definition.code}" declares an invalid payload JSON Schema`,
+          { definitionCode: definition.code, cause: String(cause) },
+        );
+      }
+      this.validators.set(definition.code, validate);
+    }
+
+    if (!validate(payload)) {
+      const [firstError] = validate.errors ?? [];
+      const field =
+        firstError?.instancePath.replace(/^\//, '').replaceAll('/', '.') ||
+        (firstError?.params as Record<string, unknown> | undefined)?.missingProperty ||
+        (firstError?.params as Record<string, unknown> | undefined)?.additionalProperty;
+      return new EventValidationError(
+        `Event "${definition.code}" payload does not satisfy its schema: ${
+          firstError?.message ?? 'validation failed'
+        }`,
+        { definitionCode: definition.code, field, errors: validate.errors ?? undefined },
+      );
+    }
+    return undefined;
   }
 }
 
@@ -114,43 +150,13 @@ function validateActor(
   }
 }
 
-function validatePayload(
-  schema: readonly PayloadFieldSpec[],
-  payload: Readonly<Record<string, unknown>>,
-  definitionCode: string,
-): EventValidationError | undefined {
-  for (const field of schema) {
-    const value = payload[field.name];
-    if (value === undefined) {
-      if (field.required) {
-        return new EventValidationError(
-          `Event "${definitionCode}" payload is missing required field "${field.name}"`,
-          { definitionCode, field: field.name },
-        );
-      }
-      continue;
-    }
-    const valid =
-      field.type === 'enum'
-        ? typeof value === 'string' && (field.enumValues ?? []).includes(value)
-        : typeof value === field.type;
-    if (!valid) {
-      return new EventValidationError(
-        `Event "${definitionCode}" payload field "${field.name}" does not satisfy its schema (${field.type})`,
-        { definitionCode, field: field.name, expected: field.type, received: typeof value },
-      );
-    }
+function withClosedProperties(schema: PayloadJsonSchema): PayloadJsonSchema {
+  // Undeclared payload fields must never reach the audit-relevant event
+  // record, so object schemas are closed unless the author says otherwise.
+  if (schema.type === 'object' && schema.additionalProperties === undefined) {
+    return { ...schema, additionalProperties: false };
   }
-  const declared = new Set(schema.map((f) => f.name));
-  for (const key of Object.keys(payload)) {
-    if (!declared.has(key)) {
-      return new EventValidationError(
-        `Event "${definitionCode}" payload has undeclared field "${key}"`,
-        { definitionCode, field: key },
-      );
-    }
-  }
-  return undefined;
+  return schema;
 }
 
 /**
