@@ -9,8 +9,8 @@ module.exports = {
     '^.+\\.tsx?$': [
       'ts-jest',
       {
-        isolatedModules: true,
         tsconfig: {
+          isolatedModules: true,
           module: 'commonjs',
           target: 'ES2023',
           esModuleInterop: true,
