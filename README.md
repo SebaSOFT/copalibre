@@ -50,13 +50,13 @@ The first product focus is a trustworthy **self-hosted live-operations system**,
 
 CopaLibre is being designed around these initial discipline families. They are planning inputs, not a claim that every format is already supported.
 
-| Discipline family | Candidate disciplines | Competition concerns to model |
-| --- | --- | --- |
-| Team field and court sports | Football, futsal, volleyball, basketball | Rosters, substitutions, periods, fixtures, home/away, points tables, tie rules, venues, referee workflows |
-| Esports | Rocket League, VALORANT, League of Legends, Fortnite, Warzone, PUBG | Team or player entrants, best-of series, maps/games, score aggregation, FFA placement, lobbies, evidence and dispute workflows |
-| Combat sports | Karate and other martial arts, boxing | Categories, divisions, weigh-ins or eligibility requirements, bouts, judges, decision methods, medal progression |
-| Racket sports | Tennis | Singles/doubles, draws, seeds, sets, courts, score entry, ranking and event formats |
-| Mind sports | Chess | Individual entrants, Swiss and round-robin pairing, colour assignment, results, standings, rating inputs such as Elo |
+| Discipline family           | Candidate disciplines                                               | Competition concerns to model                                                                                                  |
+| --------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Team field and court sports | Football, futsal, volleyball, basketball                            | Rosters, substitutions, periods, fixtures, home/away, points tables, tie rules, venues, referee workflows                      |
+| Esports                     | Rocket League, VALORANT, League of Legends, Fortnite, Warzone, PUBG | Team or player entrants, best-of series, maps/games, score aggregation, FFA placement, lobbies, evidence and dispute workflows |
+| Combat sports               | Karate and other martial arts, boxing                               | Categories, divisions, weigh-ins or eligibility requirements, bouts, judges, decision methods, medal progression               |
+| Racket sports               | Tennis                                                              | Singles/doubles, draws, seeds, sets, courts, score entry, ranking and event formats                                            |
+| Mind sports                 | Chess                                                               | Individual entrants, Swiss and round-robin pairing, colour assignment, results, standings, rating inputs such as Elo           |
 
 ### Format selection is a design track
 
@@ -96,7 +96,7 @@ The intended visual language combines the pace and hierarchy of live sports cove
 - focused operator surfaces that reduce noise when staff must act quickly;
 - sport- and discipline-aware presentation without hard-coding one sport's visual language into the platform.
 
-Design research inputs include ESPN-style sports broadcasting and the competitive UI language seen in Rocket League, VALORANT, and *THE FINALS*. The following references are inspiration for information hierarchy, motion, atmosphere, and presentation—not assets or layouts to reproduce:
+Design research inputs include ESPN-style sports broadcasting and the competitive UI language seen in Rocket League, VALORANT, and _THE FINALS_. The following references are inspiration for information hierarchy, motion, atmosphere, and presentation—not assets or layouts to reproduce:
 
 - [Gaming Streaming Website UI/UX Design](https://www.behance.net/gallery/249140375/Gaming-Streaming-Website-UIUX-Design?tracking_source=search_projects%7Cesports%2Bui&l=3)
 - [Generación F — ESPN](https://www.behance.net/gallery/185628925/Generacion-F-ESPN)
@@ -121,30 +121,30 @@ No provider-specific deployment is committed yet.
 
 The design baseline currently evaluates these capabilities:
 
-| Area | Planned outcome |
-| --- | --- |
-| Organization and access | Clubs, leagues, federations, projects, scoped roles, and auditable permissions |
-| Tournament authoring | Competition metadata, discipline configuration, ruleset versions, registrations, and visibility policy |
-| Entrants | Individuals, teams, rosters, clubs, eligibility, check-in, seeds, and placements |
-| Competition engine | Stages, groups, rounds, fixtures, brackets, standings, schedules, results, advancement, and discipline-aware calculation |
-| Live operations | Official match control, result authority, correction workflows, disputes where selected, and operational queues |
-| Public coverage | Tournament overview, schedules, structures, matches, participants, results, standings, rules, and shareable public pages |
-| Data ownership | Reviewed imports, stable identifiers, exports, backup, restore, and portable deployment |
-| Auditability | Versioned configuration, actor/time/reason history, explainable standings, and correction impact traces |
+| Area                    | Planned outcome                                                                                                          |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Organization and access | Clubs, leagues, federations, projects, scoped roles, and auditable permissions                                           |
+| Tournament authoring    | Competition metadata, discipline configuration, ruleset versions, registrations, and visibility policy                   |
+| Entrants                | Individuals, teams, rosters, clubs, eligibility, check-in, seeds, and placements                                         |
+| Competition engine      | Stages, groups, rounds, fixtures, brackets, standings, schedules, results, advancement, and discipline-aware calculation |
+| Live operations         | Official match control, result authority, correction workflows, disputes where selected, and operational queues          |
+| Public coverage         | Tournament overview, schedules, structures, matches, participants, results, standings, rules, and shareable public pages |
+| Data ownership          | Reviewed imports, stable identifiers, exports, backup, restore, and portable deployment                                  |
+| Auditability            | Versioned configuration, actor/time/reason history, explainable standings, and correction impact traces                  |
 
 ## Project status
 
-| Area | Status |
-| --- | --- |
-| Product identity | Defined: **CopaLibre** |
-| License | Defined: **GNU Affero General Public License v3.0** |
-| Product direction | In design |
-| Discipline and format catalogue | Under evaluation |
-| Domain model and state machine | Planned |
-| Architecture and deployment contract | Planned |
-| Visual system | Research and direction established; design system pending |
-| Application code | Not started |
-| Production deployment | Not started |
+| Area                                 | Status                                                    |
+| ------------------------------------ | --------------------------------------------------------- |
+| Product identity                     | Defined: **CopaLibre**                                    |
+| License                              | Defined: **GNU Affero General Public License v3.0**       |
+| Product direction                    | In design                                                 |
+| Discipline and format catalogue      | Under evaluation                                          |
+| Domain model and state machine       | Planned                                                   |
+| Architecture and deployment contract | Planned                                                   |
+| Visual system                        | Research and direction established; design system pending |
+| Application code                     | Not started                                               |
+| Production deployment                | Not started                                               |
 
 ## Roadmap
 
