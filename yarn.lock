@@ -787,6 +787,10 @@ __metadata:
 "@copalibre/domain@workspace:packages/domain":
   version: 0.0.0-use.local
   resolution: "@copalibre/domain@workspace:packages/domain"
+  dependencies:
+    "@types/jest": "npm:^30.0.0"
+    jest: "npm:^30.4.2"
+    ts-jest: "npm:^29.4.12"
   languageName: unknown
   linkType: soft
 
