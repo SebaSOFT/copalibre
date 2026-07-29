@@ -1,0 +1,79 @@
+name: CI
+
+# Pipeline established by change 0001-bootstrap-monorepo-toolchain.
+# Later phases extend this file per their tasks.md (unit/integration/e2e/build/
+# deploy-smoke-test jobs land with the phases that first have something to run).
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  install:
+    name: Install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # corepack must be enabled before setup-node: its yarn-cache probe invokes the
+      # global yarn, which errors on the packageManager pin if it's still Yarn 1.x.
+      - run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+      - run: yarn install --immutable
+
+  lint:
+    name: Lint (zero warnings)
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - uses: actions/checkout@v4
+      # corepack must be enabled before setup-node: its yarn-cache probe invokes the
+      # global yarn, which errors on the packageManager pin if it's still Yarn 1.x.
+      - run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+      - run: yarn install --immutable
+      - run: yarn lint
+      - run: yarn format:check
+
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - uses: actions/checkout@v4
+      # corepack must be enabled before setup-node: its yarn-cache probe invokes the
+      # global yarn, which errors on the packageManager pin if it's still Yarn 1.x.
+      - run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+      - run: yarn install --immutable
+      - run: yarn typecheck
+
+  license-scan:
+    name: License scan
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - uses: actions/checkout@v4
+      # corepack must be enabled before setup-node: its yarn-cache probe invokes the
+      # global yarn, which errors on the packageManager pin if it's still Yarn 1.x.
+      - run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+      - run: yarn install --immutable
+      - run: yarn license:check

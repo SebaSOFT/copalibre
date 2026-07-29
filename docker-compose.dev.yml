@@ -1,0 +1,23 @@
+# Development-only stateful dependencies (task 7.1 of 0001-bootstrap-monorepo-toolchain).
+# Application containers are deliberately absent until phase 0021-deployment-docker-compose-cli.
+# PostgreSQL major version is pinned here; phase 0004-persistence-postgres-outbox-audit owns
+# any future bump decision.
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: copalibre
+      POSTGRES_PASSWORD: copalibre_dev_only
+      POSTGRES_DB: copalibre
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U copalibre -d copalibre']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  postgres-data:

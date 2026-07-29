@@ -1,0 +1,9 @@
+node_modules/
+dist/
+coverage/
+.astro/
+.yarn/
+yarn.lock
+playwright-report/
+test-results/
+openspec/

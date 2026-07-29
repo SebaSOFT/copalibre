@@ -1,0 +1,6 @@
+/**
+ * Placeholder module for @copalibre/contracts.
+ * Real implementation arrives in its dedicated roadmap phase
+ * (see openspec/changes/README.md).
+ */
+export const PACKAGE_NAME = '@copalibre/contracts';
