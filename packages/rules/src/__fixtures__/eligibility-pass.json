@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "reason": "roster meets the configured minimum",
+  "guardNode": {
+    "kind": "guard",
+    "id": "roster-size-guard",
+    "label": "Guard roster-size-guard",
+    "outcome": "pass",
+    "values": {
+      "reason": "roster meets the configured minimum",
+      "grantedBy": "grant-eligibility"
+    },
+    "detail": "Granted by rule action \"grant-eligibility\": roster meets the configured minimum"
+  }
+}

@@ -784,7 +784,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@copalibre/domain@workspace:packages/domain":
+"@copalibre/domain@workspace:^, @copalibre/domain@workspace:packages/domain":
   version: 0.0.0-use.local
   resolution: "@copalibre/domain@workspace:packages/domain"
   dependencies:
@@ -829,6 +829,12 @@ __metadata:
 "@copalibre/rules@workspace:packages/rules":
   version: 0.0.0-use.local
   resolution: "@copalibre/rules@workspace:packages/rules"
+  dependencies:
+    "@copalibre/domain": "workspace:^"
+    "@sebasoft/neuron-js": "npm:0.5.2"
+    "@types/jest": "npm:^30.0.0"
+    jest: "npm:^30.4.2"
+    ts-jest: "npm:^29.4.12"
   languageName: unknown
   linkType: soft
 
@@ -2441,6 +2447,13 @@ __metadata:
     rollup:
       optional: true
   checksum: 10c0/ccc2cbd3a05df642df60ab05ffb81b2e564bd945e2a118bb8a474ea75b941033c8f44273133d4865643cca1492d0c80b14de1281f74779a64285a80fc3a194d8
+  languageName: node
+  linkType: hard
+
+"@sebasoft/neuron-js@npm:0.5.2":
+  version: 0.5.2
+  resolution: "@sebasoft/neuron-js@npm:0.5.2"
+  checksum: 10c0/59a321a4e7d38b0fe4127fc9b524a62a185ecd23b6f472a76d54b7864b3c9823633beae28550e1555658cd0c6c06e8a463735b04d317e3413b2e5a94b400c127
   languageName: node
   linkType: hard
 
