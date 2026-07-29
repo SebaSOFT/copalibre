@@ -97,3 +97,7 @@ Desktop.ini
 .worktrees/
 .tmp/
 tmp/
+
+# Local AI-assistant tooling and archived OpenSpec changes stay out of the repo
+.claude/
+openspec/changes/archive/
