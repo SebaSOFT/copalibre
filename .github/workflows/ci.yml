@@ -20,11 +20,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # corepack must be enabled before setup-node: its yarn-cache probe invokes the
+      # global yarn, which errors on the packageManager pin if it's still Yarn 1.x.
+      - run: corepack enable
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: yarn
-      - run: corepack enable
       - run: yarn install --immutable
 
   lint:
@@ -33,11 +35,13 @@ jobs:
     needs: install
     steps:
       - uses: actions/checkout@v4
+      # corepack must be enabled before setup-node: its yarn-cache probe invokes the
+      # global yarn, which errors on the packageManager pin if it's still Yarn 1.x.
+      - run: corepack enable
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: yarn
-      - run: corepack enable
       - run: yarn install --immutable
       - run: yarn lint
       - run: yarn format:check
@@ -48,11 +52,13 @@ jobs:
     needs: install
     steps:
       - uses: actions/checkout@v4
+      # corepack must be enabled before setup-node: its yarn-cache probe invokes the
+      # global yarn, which errors on the packageManager pin if it's still Yarn 1.x.
+      - run: corepack enable
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: yarn
-      - run: corepack enable
       - run: yarn install --immutable
       - run: yarn typecheck
 
@@ -62,10 +68,12 @@ jobs:
     needs: install
     steps:
       - uses: actions/checkout@v4
+      # corepack must be enabled before setup-node: its yarn-cache probe invokes the
+      # global yarn, which errors on the packageManager pin if it's still Yarn 1.x.
+      - run: corepack enable
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: yarn
-      - run: corepack enable
       - run: yarn install --immutable
       - run: yarn license:check
