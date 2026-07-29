@@ -98,6 +98,6 @@ Desktop.ini
 .tmp/
 tmp/
 
-# Local AI-assistant tooling and archived OpenSpec changes stay out of the repo
+# Local AI-assistant tooling and OpenSpec planning artifacts stay out of the repo
 .claude/
-openspec/changes/archive/
+openspec/changes/
