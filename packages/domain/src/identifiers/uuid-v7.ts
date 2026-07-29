@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto';
+import { v7 as generateUuidV7 } from 'uuid';
 import { InvalidUuidError } from '../errors';
 import { err, ok, type Result } from '../result';
 
@@ -7,42 +7,21 @@ import { err, ok, type Result } from '../result';
  * variant 10xx. The canonical hex form sorts lexicographically by creation
  * time, which is why CopaLibre mandates v7 (never v4 or ULID) for every
  * persistent identifier — see chaos-vault naming-conventions decision.
+ *
+ * Generation is delegated to the standard `uuid` package (RFC 9562 v7 with
+ * monotonic ordering, isomorphic Node/browser); this value object owns what
+ * is CopaLibre domain logic: strict v7-only validation, comparison, and the
+ * embedded-timestamp accessor.
  */
 const UUID_V7_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
-
-// Monotonic state guaranteeing strict ordering for identifiers generated in
-// the same process, even within one millisecond (RFC 9562 §6.2, method 1:
-// dedicated counter in rand_a).
-let lastTimestampMs = -1;
-let counter = 0;
 
 export class UuidV7 {
   private constructor(readonly value: string) {}
 
-  static generate(nowMs: number = Date.now()): UuidV7 {
-    let ts = nowMs;
-    if (ts <= lastTimestampMs) {
-      ts = lastTimestampMs;
-      counter += 1;
-      if (counter > 0xfff) {
-        // 12-bit counter exhausted within one ms: borrow the next millisecond.
-        ts += 1;
-        counter = 0;
-      }
-    } else {
-      counter = 0;
-    }
-    lastTimestampMs = ts;
-
-    const tsHex = ts.toString(16).padStart(12, '0');
-    const counterHex = counter.toString(16).padStart(3, '0');
-    const rand = randomBytes(8);
-    // Variant bits 10xx on the first nibble of the final group of 62 random bits.
-    const variantNibble = (8 + ((rand[0] ?? 0) & 0x03)).toString(16);
-    const randHex = rand.toString('hex').slice(1, 16);
-
-    const raw = `${tsHex.slice(0, 8)}-${tsHex.slice(8)}-7${counterHex}-${variantNibble}${randHex.slice(0, 3)}-${randHex.slice(3)}`;
-    return new UuidV7(raw);
+  // No caller-supplied clock: uuid's monotonic ordering guarantee only holds
+  // for plain v7() calls sharing the library's internal sequence state.
+  static generate(): UuidV7 {
+    return new UuidV7(generateUuidV7());
   }
 
   static create(input: string): Result<UuidV7, InvalidUuidError> {

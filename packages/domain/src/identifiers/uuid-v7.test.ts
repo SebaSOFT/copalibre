@@ -16,10 +16,11 @@ describe('UuidV7', () => {
   });
 
   it('remains ordered when generated within the same millisecond', () => {
-    const frozenNow = Date.now();
-    const a = UuidV7.generate(frozenNow);
-    const b = UuidV7.generate(frozenNow);
-    const c = UuidV7.generate(frozenNow);
+    // Back-to-back generation lands many identifiers in the same millisecond;
+    // the uuid library's internal sequence keeps them strictly ordered.
+    const a = UuidV7.generate();
+    const b = UuidV7.generate();
+    const c = UuidV7.generate();
     expect(a.compare(b)).toBe(-1);
     expect(b.compare(c)).toBe(-1);
   });
