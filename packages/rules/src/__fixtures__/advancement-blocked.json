@@ -1,0 +1,15 @@
+{
+  "passed": false,
+  "reason": "no-rule-granted",
+  "guardNode": {
+    "kind": "guard",
+    "id": "stage-complete-guard",
+    "label": "Guard stage-complete-guard",
+    "outcome": "fail",
+    "values": {
+      "reason": "no-rule-granted",
+      "grantedBy": null
+    },
+    "detail": "Denied: no-rule-granted"
+  }
+}

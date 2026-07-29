@@ -95,9 +95,17 @@ jobs:
           cache: yarn
       - run: yarn install --immutable
       - run: yarn workspace @copalibre/domain test:coverage
+      # Golden-fixture suite included; any fixture mismatch fails the PR (0003).
+      - run: yarn workspace @copalibre/rules test:coverage
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: coverage-domain
           path: packages/domain/coverage
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-rules
+          path: packages/rules/coverage
           retention-days: 14

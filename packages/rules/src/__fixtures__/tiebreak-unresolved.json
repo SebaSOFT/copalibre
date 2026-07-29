@@ -1,0 +1,47 @@
+{
+  "rankedGroups": [["alfa", "bravo"], ["charlie"]],
+  "fullyResolved": false,
+  "trace": [
+    {
+      "kind": "comparator",
+      "id": "points",
+      "label": "Rule 1 (Points)",
+      "outcome": "partially-resolved",
+      "values": {
+        "alfa": 9,
+        "bravo": 9,
+        "charlie": 7
+      },
+      "detail": "Tie not fully resolved by Points; proceed to next comparator"
+    },
+    {
+      "kind": "comparator",
+      "id": "goals-conceded",
+      "label": "Rule 2 (Goals Conceded)",
+      "outcome": "tied-proceed",
+      "values": {
+        "alfa": 3,
+        "bravo": 3
+      },
+      "detail": "Tie not fully resolved by Goals Conceded; proceed to next comparator"
+    },
+    {
+      "kind": "comparator",
+      "id": "discipline-tier",
+      "label": "Rule 3 (Discipline Tier)",
+      "outcome": "tied-proceed",
+      "values": {
+        "alfa": null,
+        "bravo": null
+      },
+      "detail": "Tie not fully resolved by Discipline Tier; proceed to next comparator"
+    },
+    {
+      "kind": "comparator",
+      "id": "pipeline-exhausted",
+      "label": "Pipeline exhausted",
+      "outcome": "unresolved-tie",
+      "detail": "Every declared comparator was evaluated and a tie survives"
+    }
+  ]
+}
