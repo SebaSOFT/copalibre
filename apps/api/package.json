@@ -5,14 +5,30 @@
   "license": "AGPL-3.0-only",
   "scripts": {
     "build": "tsc --build",
-    "start": "node dist/main.js"
+    "start": "node dist/main.js",
+    "openapi:generate": "tsc --build && node dist/openapi/generate.js",
+    "test": "jest --config jest.config.cjs",
+    "test:coverage": "jest --config jest.config.cjs --coverage",
+    "test:integration": "jest --config jest.integration.config.cjs --runInBand"
   },
   "dependencies": {
+    "@copalibre/domain": "workspace:^",
     "@copalibre/persistence": "workspace:^",
     "@nestjs/common": "^11.1.28",
     "@nestjs/core": "^11.1.28",
     "@nestjs/platform-fastify": "^11.1.28",
+    "@nestjs/swagger": "^11.4.6",
+    "jose": "^5",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@nestjs/testing": "^11.1.28",
+    "@types/jest": "^30.0.0",
+    "@types/supertest": "^7.2.1",
+    "jest": "^30.4.2",
+    "supertest": "^7.2.2",
+    "ts-jest": "^29.4.12",
+    "typescript": "^5"
   }
 }

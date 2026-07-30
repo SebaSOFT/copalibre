@@ -1,0 +1,89 @@
+import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { NestFactory } from '@nestjs/core';
+import { FastifyAdapter } from '@nestjs/platform-fastify';
+import { DATABASE } from '../database.token';
+import type { OpenAPIObject } from '@nestjs/swagger';
+import { HealthController } from '../health.controller';
+import { OrganizationsController } from '../controllers/organizations.controller';
+import { TournamentsController } from '../controllers/tournaments.controller';
+import { TokenVerifier } from '../auth/token-verifier';
+import { buildOpenApiDocument, OPENAPI_VERSION } from './document';
+import { collectRoutePlanes } from './collect-planes';
+import { lintOpenApiContract } from './contract-lint';
+import { detectBreakingChanges } from './breaking-change';
+import { Module } from '@nestjs/common';
+
+/**
+ * Generates, lints, and breaking-change-checks the OpenAPI artifact.
+ *
+ * Runs against a module with stubbed infrastructure: generation must never need
+ * a database or a reachable identity provider, so CI can produce the artifact
+ * without provisioning either.
+ */
+const CONTROLLERS = [HealthController, OrganizationsController, TournamentsController] as const;
+
+@Module({
+  controllers: [...CONTROLLERS],
+  providers: [
+    { provide: DATABASE, useValue: {} },
+    { provide: TokenVerifier, useValue: {} },
+  ],
+})
+class OpenApiModule {}
+
+const ARTIFACT_PATH = join(__dirname, '../../../../packages/contracts/openapi/v1.json');
+
+async function main(): Promise<void> {
+  // Fastify adapter, matching production; generation needs no listening server.
+  const app = await NestFactory.create(OpenApiModule, new FastifyAdapter(), {
+    logger: ['error', 'warn'],
+  });
+  const document = buildOpenApiDocument(app);
+  await app.close();
+
+  const planes = collectRoutePlanes(CONTROLLERS);
+
+  const findings = lintOpenApiContract(document, planes);
+  if (findings.length > 0) {
+    for (const finding of findings) {
+      process.stderr.write(
+        `contract-lint ${finding.rule}: ${finding.route}\n  ${finding.message}\n`,
+      );
+    }
+    process.stderr.write(`\ncontract-lint failed with ${findings.length} finding(s)\n`);
+    process.exitCode = 1;
+    return;
+  }
+
+  if (existsSync(ARTIFACT_PATH)) {
+    const previous = JSON.parse(readFileSync(ARTIFACT_PATH, 'utf8')) as OpenAPIObject;
+    const breaking = detectBreakingChanges(previous, document);
+    if (breaking.length > 0 && !process.argv.includes('--accept-breaking')) {
+      for (const change of breaking) {
+        process.stderr.write(
+          `breaking-change ${change.kind}: ${change.location}\n  ${change.detail}\n`,
+        );
+      }
+      process.stderr.write(
+        `\n${breaking.length} breaking change(s) against the published artifact.\n` +
+          'Bump OPENAPI_VERSION and re-run with --accept-breaking if this is intentional.\n',
+      );
+      process.exitCode = 1;
+      return;
+    }
+  }
+
+  mkdirSync(dirname(ARTIFACT_PATH), { recursive: true });
+  writeFileSync(ARTIFACT_PATH, `${JSON.stringify(document, null, 2)}\n`);
+  const routeCount = Object.keys(document.paths ?? {}).length;
+  process.stdout.write(
+    `openapi ${OPENAPI_VERSION}: ${routeCount} path(s), contract-lint clean -> ${ARTIFACT_PATH}\n`,
+  );
+}
+
+main().catch((error: unknown) => {
+  process.stderr.write(`openapi generation failed: ${String(error)}\n`);
+  if (error instanceof Error && error.stack) process.stderr.write(`${error.stack}\n`);
+  process.exitCode = 1;
+});
