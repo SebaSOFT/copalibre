@@ -23,27 +23,65 @@ const emptyContext: ExecutionContext = { messages: [], state: { present: 5, name
 
 describe('vocabulary parameter edge behavior', () => {
   it('state-number falls back to defaultValue, then null', () => {
-    const missing = new StateNumberParameter('p', 'state-number', 'op1', 'absent.path', {}, 7);
+    const missing = new StateNumberParameter(
+      'p',
+      'state-number',
+      'op1',
+      null,
+      { path: 'absent.path' },
+      7,
+    );
     expect(missing.getValue(emptyContext)).toBe(7);
-    const noDefault = new StateNumberParameter('p', 'state-number', 'op1', 'absent.path', {});
+    const noDefault = new StateNumberParameter('p', 'state-number', 'op1', null, {
+      path: 'absent.path',
+    });
     expect(noDefault.getValue(emptyContext)).toBeNull();
-    const nonString = new StateNumberParameter('p', 'state-number', 'op1', null, {});
-    expect(nonString.getValue(emptyContext)).toBeNull();
+    // No options.path at all: nothing to read, falls back to null.
+    const noPath = new StateNumberParameter('p', 'state-number', 'op1', null, {});
+    expect(noPath.getValue(emptyContext)).toBeNull();
+    // options.path present but not a string: rejected, not coerced.
+    const badPath = new StateNumberParameter('p', 'state-number', 'op1', null, { path: 42 });
+    expect(badPath.getValue(emptyContext)).toBeNull();
   });
 
   it('state-string reads strings and falls back like state-number', () => {
-    const found = new StateStringParameter('p', 'state-string', 'op1', 'name', {});
+    const found = new StateStringParameter('p', 'state-string', 'op1', null, { path: 'name' });
     expect(found.getValue(emptyContext)).toBe('x');
     expect(found.execute(emptyContext).isSuccessful()).toBe(true);
-    const missing = new StateStringParameter('p', 'state-string', 'op1', 'absent', {}, 'dft');
+    const missing = new StateStringParameter(
+      'p',
+      'state-string',
+      'op1',
+      null,
+      { path: 'absent' },
+      'dft',
+    );
     expect(missing.getValue(emptyContext)).toBe('dft');
   });
 
   it('state-number execute wraps getValue in a successful result', () => {
-    const param = new StateNumberParameter('p', 'state-number', 'op1', 'present', {});
+    const param = new StateNumberParameter('p', 'state-number', 'op1', null, {
+      path: 'present',
+    });
     const result = param.execute(emptyContext);
     expect(result.isSuccessful()).toBe(true);
     expect(result.value).toBe(5);
+  });
+
+  it('keeps options.path in the serialized parameter so the audit trail shows it', () => {
+    // The reason the dot-path lives in `options` rather than a private field:
+    // AbstractParameter.toJSON() serializes options, so an auditor reading a
+    // stored explanation can still see WHICH fact the decision consumed.
+    const param = new StateNumberParameter('p1', 'state-number', 'op1', null, {
+      path: 'facts.rosterSize',
+    });
+    expect(param.toJSON()).toEqual({
+      id: 'p1',
+      type: 'state-number',
+      name: 'op1',
+      value: null,
+      options: { path: 'facts.rosterSize' },
+    });
   });
 
   it('set-guard-outcome fails execution on missing/invalid parameters', () => {

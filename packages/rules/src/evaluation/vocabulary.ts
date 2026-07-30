@@ -1,5 +1,6 @@
 import {
   AbstractAction,
+  AbstractParameter,
   ExecutionResult,
   MessageType,
   type ExecutionContext,
@@ -22,60 +23,48 @@ function readStatePath(context: ExecutionContext, path: string): unknown {
 }
 
 /**
- * Reads a number from the evaluation state by dot-path.
+ * A state-reading parameter's dot-path lives in `options.path`, never in
+ * `value`.
  *
- * These stay standalone classes rather than AbstractParameter subclasses (the
- * same shape upstream's own eligibility example uses): a state-reading
- * parameter holds a dot-path STRING in `value` but produces a number, while
- * `AbstractParameter<T>` ties both to one generic. Subclassing it as
- * `AbstractParameter<number>` type-checks yet silently breaks — `this.value`
- * narrows to `number | null`, turning the path lookup into dead code — so the
- * explicit `execute` below stays ours to provide. (neuron-js 0.6.1 added
- * `execute` to AbstractParameter, closing the separate IElementInstance gap;
- * that helps parameters whose stored and produced types match, not these.)
+ * `ParameterInterface<TValue>` ties the stored `value` and the produced
+ * `getValue()` to one generic, so a parameter that stores a path string but
+ * produces a number cannot express itself through `value` — subclassing as
+ * `AbstractParameter<number>` type-checks while silently breaking, because
+ * `this.value` narrows to `number | null` and the path lookup becomes dead
+ * code. Keeping the path in `options` sidesteps that entirely and is the better
+ * authoring contract anyway: in operator-authored rule JSON, `value` always
+ * means "a literal" and `options.path` always means "read this from state",
+ * instead of `value` meaning two different things depending on the type.
+ *
+ * The base class then supplies `execute` (neuron-js 0.6.1) and `toJSON`, and
+ * because `toJSON` serializes `options`, the path stays visible in the
+ * explanation trace — which the audit surfaces need.
  */
-export class StateNumberParameter {
+function readPathOption(options: unknown): string | undefined {
+  if (typeof options !== 'object' || options === null) return undefined;
+  const path = (options as Record<string, unknown>).path;
+  return typeof path === 'string' ? path : undefined;
+}
+
+/** Reads a number from the evaluation state at `options.path`. */
+export class StateNumberParameter extends AbstractParameter<number> {
   static readonly TYPE = 'state-number';
 
-  constructor(
-    readonly id: string,
-    readonly type: string,
-    readonly name: string,
-    readonly value: string | null,
-    readonly options: Record<string, unknown>,
-    readonly defaultValue?: number,
-  ) {}
-
   getValue(context: ExecutionContext): number | null {
-    const value = typeof this.value === 'string' ? readStatePath(context, this.value) : null;
+    const path = readPathOption(this.options);
+    const value = path === undefined ? undefined : readStatePath(context, path);
     return typeof value === 'number' ? value : (this.defaultValue ?? null);
-  }
-
-  execute(context: ExecutionContext): ExecutionResult<number | null> {
-    return new ExecutionResult(true, context, this.getValue(context));
   }
 }
 
-/** Reads a string from the evaluation state by dot-path. */
-export class StateStringParameter {
+/** Reads a string from the evaluation state at `options.path`. */
+export class StateStringParameter extends AbstractParameter<string> {
   static readonly TYPE = 'state-string';
 
-  constructor(
-    readonly id: string,
-    readonly type: string,
-    readonly name: string,
-    readonly value: string | null,
-    readonly options: Record<string, unknown>,
-    readonly defaultValue?: string,
-  ) {}
-
   getValue(context: ExecutionContext): string | null {
-    const value = typeof this.value === 'string' ? readStatePath(context, this.value) : null;
+    const path = readPathOption(this.options);
+    const value = path === undefined ? undefined : readStatePath(context, path);
     return typeof value === 'string' ? value : (this.defaultValue ?? null);
-  }
-
-  execute(context: ExecutionContext): ExecutionResult<string | null> {
-    return new ExecutionResult(true, context, this.getValue(context));
   }
 }
 
@@ -120,12 +109,12 @@ export function registerCopalibreVocabulary(registry: RulesRegistry): RulesRegis
   registry.registerParameter(
     StateNumberParameter.TYPE,
     StateNumberParameter,
-    'Numeric fact read from evaluation state by dot-path',
+    'Numeric fact read from evaluation state at options.path (dot-path)',
   );
   registry.registerParameter(
     StateStringParameter.TYPE,
     StateStringParameter,
-    'String fact read from evaluation state by dot-path',
+    'String fact read from evaluation state at options.path (dot-path)',
   );
   registry.registerAction(
     SetGuardOutcomeAction.TYPE,
