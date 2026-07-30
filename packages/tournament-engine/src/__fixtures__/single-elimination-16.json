@@ -1,0 +1,17 @@
+[
+  "SE-R1-M1 e1 vs e16",
+  "SE-R1-M2 e8 vs e9",
+  "SE-R1-M3 e4 vs e13",
+  "SE-R1-M4 e5 vs e12",
+  "SE-R1-M5 e2 vs e15",
+  "SE-R1-M6 e7 vs e10",
+  "SE-R1-M7 e3 vs e14",
+  "SE-R1-M8 e6 vs e11",
+  "SE-R2-M1 W(SE-R1-M1) vs W(SE-R1-M2)",
+  "SE-R2-M2 W(SE-R1-M3) vs W(SE-R1-M4)",
+  "SE-R2-M3 W(SE-R1-M5) vs W(SE-R1-M6)",
+  "SE-R2-M4 W(SE-R1-M7) vs W(SE-R1-M8)",
+  "SE-R3-M1 W(SE-R2-M1) vs W(SE-R2-M2)",
+  "SE-R3-M2 W(SE-R2-M3) vs W(SE-R2-M4)",
+  "SE-R4-M1 W(SE-R3-M1) vs W(SE-R3-M2)"
+]

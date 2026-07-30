@@ -1,0 +1,83 @@
+{
+  "rows": [
+    {
+      "entrantId": "e3",
+      "played": 3,
+      "won": 2,
+      "drawn": 0,
+      "lost": 1,
+      "scoreFor": 7,
+      "scoreAgainst": 3,
+      "scoreDifference": 4,
+      "points": 6,
+      "rank": 1,
+      "sharedRank": false
+    },
+    {
+      "entrantId": "e1",
+      "played": 3,
+      "won": 2,
+      "drawn": 0,
+      "lost": 1,
+      "scoreFor": 3,
+      "scoreAgainst": 3,
+      "scoreDifference": 0,
+      "points": 6,
+      "rank": 2,
+      "sharedRank": false
+    },
+    {
+      "entrantId": "e2",
+      "played": 3,
+      "won": 1,
+      "drawn": 1,
+      "lost": 1,
+      "scoreFor": 3,
+      "scoreAgainst": 4,
+      "scoreDifference": -1,
+      "points": 4,
+      "rank": 3,
+      "sharedRank": false
+    },
+    {
+      "entrantId": "e4",
+      "played": 3,
+      "won": 0,
+      "drawn": 1,
+      "lost": 2,
+      "scoreFor": 2,
+      "scoreAgainst": 5,
+      "scoreDifference": -3,
+      "points": 1,
+      "rank": 4,
+      "sharedRank": false
+    }
+  ],
+  "trace": [
+    {
+      "kind": "comparator",
+      "id": "points",
+      "label": "Rule 1 (Points)",
+      "outcome": "partially-resolved",
+      "values": {
+        "e1": 6,
+        "e4": 1,
+        "e2": 4,
+        "e3": 6
+      },
+      "detail": "Tie not fully resolved by Points; proceed to next comparator"
+    },
+    {
+      "kind": "comparator",
+      "id": "score-difference",
+      "label": "Rule 2 (Score Difference)",
+      "outcome": "resolved",
+      "values": {
+        "e1": 0,
+        "e3": 4
+      },
+      "detail": "Score Difference resolved the tie"
+    }
+  ],
+  "fullyResolved": true
+}

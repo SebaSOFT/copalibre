@@ -1,0 +1,17 @@
+[
+  "WB-R1-M1 e1 vs BYE",
+  "WB-R1-M2 e4 vs e5",
+  "WB-R1-M3 e2 vs BYE",
+  "WB-R1-M4 e3 vs e6",
+  "WB-R2-M1 W(WB-R1-M1) vs W(WB-R1-M2)",
+  "WB-R2-M2 W(WB-R1-M3) vs W(WB-R1-M4)",
+  "WB-R3-M1 W(WB-R2-M1) vs W(WB-R2-M2)",
+  "LB-R1-M1 L(WB-R1-M1) vs L(WB-R1-M2)",
+  "LB-R1-M2 L(WB-R1-M3) vs L(WB-R1-M4)",
+  "LB-R2-M1 W(LB-R1-M1) vs L(WB-R2-M2)",
+  "LB-R2-M2 W(LB-R1-M2) vs L(WB-R2-M1)",
+  "LB-R3-M1 W(LB-R2-M1) vs W(LB-R2-M2)",
+  "LB-R4-M1 W(LB-R3-M1) vs L(WB-R3-M1)",
+  "GF-R1-M1 W(WB-R3-M1) vs W(LB-R4-M1)",
+  "GF-R2-M1 W(GF-R1-M1) vs L(GF-R1-M1) [bracket-reset]"
+]

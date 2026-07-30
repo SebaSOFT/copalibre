@@ -851,7 +851,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@copalibre/rules@workspace:packages/rules":
+"@copalibre/rules@workspace:^, @copalibre/rules@workspace:packages/rules":
   version: 0.0.0-use.local
   resolution: "@copalibre/rules@workspace:packages/rules"
   dependencies:
@@ -872,6 +872,20 @@ __metadata:
     "@nestjs/platform-fastify": "npm:^11.1.28"
     reflect-metadata: "npm:^0.2.2"
     rxjs: "npm:^7.8.2"
+  languageName: unknown
+  linkType: soft
+
+"@copalibre/tournament-engine@workspace:packages/tournament-engine":
+  version: 0.0.0-use.local
+  resolution: "@copalibre/tournament-engine@workspace:packages/tournament-engine"
+  dependencies:
+    "@copalibre/domain": "workspace:^"
+    "@copalibre/persistence": "workspace:^"
+    "@copalibre/rules": "workspace:^"
+    "@types/jest": "npm:^30.0.0"
+    jest: "npm:^30.4.2"
+    ts-jest: "npm:^29.4.12"
+    typescript: "npm:^5"
   languageName: unknown
   linkType: soft
 

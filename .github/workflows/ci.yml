@@ -101,6 +101,8 @@ jobs:
       # Golden-fixture suite included; any fixture mismatch fails the PR (0003).
       - run: yarn workspace @copalibre/rules test:coverage
       - run: yarn workspace @copalibre/api test:coverage
+      # Includes the golden-fixture regression set (0007).
+      - run: yarn workspace @copalibre/tournament-engine test:coverage
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -118,6 +120,12 @@ jobs:
         with:
           name: coverage-api
           path: apps/api/coverage
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-tournament-engine
+          path: packages/tournament-engine/coverage
           retention-days: 14
 
   # Added by 0004-persistence-postgres-outbox-audit: real PostgreSQL, no mocks.
@@ -156,6 +164,7 @@ jobs:
       - run: yarn workspace @copalibre/persistence test:integration
       # Guard/policy/controller suite through the real HTTP stack (0005).
       - run: yarn workspace @copalibre/api test:integration
+      - run: yarn workspace @copalibre/tournament-engine test:integration
 
   # Added by 0005-api-auth-jwt-openapi-contract. Regenerates the artifact from
   # the decorated controllers, fails on drift from the committed copy, then runs
