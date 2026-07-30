@@ -94,6 +94,9 @@ jobs:
           node-version: 24
           cache: yarn
       - run: yarn install --immutable
+      # --passWithNoTests makes "zero tests discovered" look identical to success,
+      # which a broken Jest/ESM config would otherwise hide (0006).
+      - run: yarn test:verify-discovery
       - run: yarn workspace @copalibre/domain test:coverage
       # Golden-fixture suite included; any fixture mismatch fails the PR (0003).
       - run: yarn workspace @copalibre/rules test:coverage
