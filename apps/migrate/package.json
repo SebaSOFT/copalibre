@@ -5,6 +5,12 @@
   "license": "AGPL-3.0-only",
   "scripts": {
     "build": "tsc --build",
-    "start": "node dist/main.js"
+    "start": "tsc --build && node dist/main.js"
+  },
+  "dependencies": {
+    "@copalibre/persistence": "workspace:^"
+  },
+  "devDependencies": {
+    "typescript": "^5"
   }
 }
