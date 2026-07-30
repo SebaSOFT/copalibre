@@ -46,9 +46,12 @@ describe('snake_case row → camelCase domain mapping', () => {
       alias: 'copa-verano',
       name: 'Copa Verano',
       descriptor_id: 'd-1',
-      descriptor_version: 3,
+      descriptor_version: '3.0.0',
       ruleset_id: null,
       status: 'draft',
+      started_at: null,
+      profile_id: null,
+      profile_version: null,
       created_at: CREATED,
     };
     expect(toTournament(row)).toEqual({
@@ -56,7 +59,7 @@ describe('snake_case row → camelCase domain mapping', () => {
       organizationId: 'org-1',
       alias: 'copa-verano',
       name: 'Copa Verano',
-      disciplineRef: { descriptorId: 'd-1', version: 3 },
+      disciplineRef: { descriptorId: 'd-1', version: '3.0.0' },
       rulesetId: undefined,
       status: 'draft',
     });
@@ -235,9 +238,12 @@ describe('mapping edge cases', () => {
       alias: 'copa-con-reglas',
       name: 'Copa Con Reglas',
       descriptor_id: 'd-1',
-      descriptor_version: 2,
+      descriptor_version: '2.0.0',
       ruleset_id: 'rs-1',
       status: 'published',
+      started_at: null,
+      profile_id: null,
+      profile_version: null,
       created_at: CREATED,
     };
     expect(toTournament(row).rulesetId).toBe('rs-1');

@@ -29,7 +29,8 @@ export const initialSchema: Migration = {
     await db.schema
       .createTable('discipline_descriptors')
       .addColumn('descriptor_id', 'uuid', (col) => col.notNull())
-      .addColumn('version', 'integer', (col) => col.notNull())
+      // Semver text: a release identifier, not a compatibility contract.
+      .addColumn('version', 'text', (col) => col.notNull())
       .addColumn('name', 'text', (col) => col.notNull())
       .addColumn('document', 'jsonb', (col) => col.notNull())
       .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
@@ -45,9 +46,12 @@ export const initialSchema: Migration = {
       .addColumn('alias', 'text', (col) => col.notNull())
       .addColumn('name', 'text', (col) => col.notNull())
       .addColumn('descriptor_id', 'uuid', (col) => col.notNull())
-      .addColumn('descriptor_version', 'integer', (col) => col.notNull())
+      .addColumn('descriptor_version', 'text', (col) => col.notNull())
       .addColumn('ruleset_id', 'uuid')
       .addColumn('status', 'text', (col) => col.notNull())
+      .addColumn('started_at', 'timestamptz')
+      .addColumn('profile_id', 'uuid')
+      .addColumn('profile_version', 'text')
       .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
       .addUniqueConstraint('tournaments_org_alias_unique', ['organization_id', 'alias'])
       .execute();
@@ -60,7 +64,7 @@ export const initialSchema: Migration = {
       )
       .addColumn('version', 'integer', (col) => col.notNull())
       .addColumn('descriptor_id', 'uuid', (col) => col.notNull())
-      .addColumn('descriptor_version', 'integer', (col) => col.notNull())
+      .addColumn('descriptor_version', 'text', (col) => col.notNull())
       .addColumn('overrides', 'jsonb', (col) => col.notNull())
       .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
       .addPrimaryKeyConstraint('tournament_rulesets_pk', ['ruleset_id', 'version'])
@@ -244,6 +248,49 @@ export const initialSchema: Migration = {
       .execute();
 
     await db.schema
+      .createTable('tournament_profiles')
+      .addColumn('profile_id', 'uuid', (col) => col.notNull())
+      .addColumn('version', 'text', (col) => col.notNull())
+      .addColumn('name', 'text', (col) => col.notNull())
+      .addColumn('document', 'jsonb', (col) => col.notNull())
+      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addPrimaryKeyConstraint('tournament_profiles_pk', ['profile_id', 'version'])
+      .execute();
+
+    // Compiled configuration is persisted rather than recomputed on read, so a
+    // finished competition survives deletion of the modules that produced it.
+    await db.schema
+      .createTable('compiled_rulesets')
+      .addColumn('compiled_ruleset_id', 'uuid', (col) => col.primaryKey())
+      .addColumn('tournament_id', 'uuid', (col) =>
+        col.notNull().references('tournaments.tournament_id'),
+      )
+      .addColumn('stage_id', 'uuid', (col) => col.references('stages.stage_id'))
+      .addColumn('descriptor_id', 'uuid', (col) => col.notNull())
+      .addColumn('descriptor_version', 'text', (col) => col.notNull())
+      .addColumn('profile_id', 'uuid')
+      .addColumn('profile_version', 'text')
+      .addColumn('config', 'jsonb', (col) => col.notNull())
+      .addColumn('binding', 'jsonb')
+      .addColumn('compiled_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .execute();
+
+    await db.schema
+      .createTable('materialised_standings')
+      .addColumn('standings_id', 'uuid', (col) => col.primaryKey())
+      .addColumn('tournament_id', 'uuid', (col) =>
+        col.notNull().references('tournaments.tournament_id'),
+      )
+      .addColumn('stage_id', 'uuid', (col) => col.notNull().references('stages.stage_id'))
+      .addColumn('match_id', 'uuid', (col) => col.notNull().references('matches.match_id'))
+      .addColumn('rows', 'jsonb', (col) => col.notNull())
+      .addColumn('trace', 'jsonb', (col) => col.notNull())
+      .addColumn('fully_resolved', 'boolean', (col) => col.notNull())
+      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addUniqueConstraint('materialised_standings_match_unique', ['match_id'])
+      .execute();
+
+    await db.schema
       .createTable('schema_version')
       .addColumn('version', 'text', (col) => col.primaryKey())
       .addColumn('applied_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
@@ -254,6 +301,9 @@ export const initialSchema: Migration = {
     // Reverse dependency order.
     for (const table of [
       'schema_version',
+      'materialised_standings',
+      'compiled_rulesets',
+      'tournament_profiles',
       'projection_versions',
       'event_cursors',
       'outbox_events',

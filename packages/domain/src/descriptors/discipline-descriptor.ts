@@ -1,3 +1,4 @@
+import type { Attribution } from './attribution.js';
 import type { EventDefinition } from './event-definition.js';
 import type { ConfigFieldPolicies, RulesetConfig } from './override-policy.js';
 
@@ -59,8 +60,16 @@ export interface ScoringInputDefinition {
 
 export interface DisciplineDescriptor {
   readonly descriptorId: string;
-  readonly version: number;
+  /**
+   * Semver. Identifies a release, not a compatibility contract: profiles
+   * declare capabilities rather than version ranges, so a new discipline
+   * version never invalidates a profile
+   * (0008-extensible-module-foundation).
+   */
+  readonly version: string;
   readonly name: string;
+  /** Who authored this discipline, where it came from, under what licence. */
+  readonly attribution: Attribution;
   readonly participantTypes: readonly ParticipantType[];
   readonly rosterConstraints: RosterConstraints;
   readonly segmentTypes: readonly SegmentTypeDefinition[];
@@ -70,6 +79,13 @@ export interface DisciplineDescriptor {
   readonly availableFormats: readonly TournamentFormat[];
   /** Stable identifiers of notification-rule capabilities the discipline permits. */
   readonly notificationRuleCapabilities: readonly string[];
+  /**
+   * How a match is won. Declared by the discipline; a tournament profile may
+   * replace it only where `fieldPolicies['winCondition']` permits, so a timed
+   * race can become a competition race where the discipline allows and cannot
+   * where it does not.
+   */
+  readonly winCondition: string;
   /** Presentation hints for editors/consoles — never behavior. */
   readonly uiMetadata?: Readonly<Record<string, unknown>>;
   /** The configuration tree overrides act on. */

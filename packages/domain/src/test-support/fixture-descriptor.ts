@@ -8,8 +8,13 @@ import type { DisciplineDescriptor } from '../descriptors/discipline-descriptor.
 export function fixtureDescriptor(overrides?: Partial<DisciplineDescriptor>): DisciplineDescriptor {
   return {
     descriptorId: '01890000-0000-7000-8000-000000000001',
-    version: 3,
+    version: '3.0.0',
     name: 'Orbital Field',
+    attribution: {
+      author: 'CopaLibre test fixtures',
+      licence: 'AGPL-3.0-only',
+      sourceUrl: 'https://github.com/SebaSOFT/copalibre',
+    },
     participantTypes: ['team'],
     rosterConstraints: { minPlayers: 5, maxPlayers: 9, maxSubstitutes: 4 },
     segmentTypes: [
@@ -58,6 +63,7 @@ export function fixtureDescriptor(overrides?: Partial<DisciplineDescriptor>): Di
     statistics: [{ code: 'strikes', label: 'Strikes', aggregation: 'sum' }],
     scoringInputs: [{ code: 'score', label: 'Score', source: 'event-derived' }],
     availableFormats: ['round-robin', 'single-elimination'],
+    winCondition: 'higher-score-wins',
     notificationRuleCapabilities: ['threshold-count'],
     defaults: {
       scoring: { pointsPerWin: 3, pointsPerDraw: 1 },

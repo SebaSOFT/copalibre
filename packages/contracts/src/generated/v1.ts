@@ -230,8 +230,11 @@ export interface components {
              * @description DisciplineDescriptor identifier
              */
             descriptorId: string;
-            /** @description Pinned descriptor version; rulesets never track "latest" */
-            descriptorVersion: number;
+            /**
+             * @description Pinned descriptor version (semver). Rulesets never track "latest": the version a tournament starts on is frozen.
+             * @example 1.2.0
+             */
+            descriptorVersion: string;
         };
     };
     responses: never;

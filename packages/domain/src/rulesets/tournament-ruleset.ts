@@ -3,7 +3,8 @@ import type { OverrideSet } from '../descriptors/override-policy.js';
 /** Pins one exact descriptor version — rulesets never track "latest". */
 export interface DescriptorRef {
   readonly descriptorId: string;
-  readonly version: number;
+  /** Semver string; see DisciplineDescriptor.version. */
+  readonly version: string;
 }
 
 /**

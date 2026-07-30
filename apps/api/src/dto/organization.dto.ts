@@ -56,8 +56,12 @@ export class CreateTournamentRequest {
   @ApiProperty({ format: 'uuid', description: 'DisciplineDescriptor identifier' })
   descriptorId!: string;
 
-  @ApiProperty({ description: 'Pinned descriptor version; rulesets never track "latest"' })
-  descriptorVersion!: number;
+  @ApiProperty({
+    description:
+      'Pinned descriptor version (semver). Rulesets never track "latest": the version a tournament starts on is frozen.',
+    example: '1.2.0',
+  })
+  descriptorVersion!: string;
 }
 
 export class ProblemResponse {

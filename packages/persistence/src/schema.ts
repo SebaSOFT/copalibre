@@ -29,7 +29,8 @@ export interface ClubsTable {
 
 export interface DisciplineDescriptorsTable {
   descriptor_id: string;
-  version: number;
+  /** Semver text, not an integer: see 0008-extensible-module-foundation. */
+  version: string;
   name: string;
   /** Full DisciplineDescriptor JSON document (domain-validated). */
   document: JSONColumnType<Record<string, unknown>>;
@@ -39,9 +40,10 @@ export interface DisciplineDescriptorsTable {
 export interface TournamentRulesetsTable {
   ruleset_id: string;
   tournament_id: string;
+  /** Ruleset revisions stay integer: internal, not a published artifact. */
   version: number;
   descriptor_id: string;
-  descriptor_version: number;
+  descriptor_version: string;
   overrides: JSONColumnType<Record<string, unknown>>;
   created_at: Timestamp;
 }
@@ -61,9 +63,13 @@ export interface TournamentsTable {
   alias: string;
   name: string;
   descriptor_id: string;
-  descriptor_version: number;
+  descriptor_version: string;
   ruleset_id: string | null;
   status: string;
+  /** Set when the tournament starts; module versions freeze from then on. */
+  started_at: Timestamp | null;
+  profile_id: string | null;
+  profile_version: string | null;
   created_at: Timestamp;
 }
 
@@ -201,6 +207,46 @@ export interface ProjectionVersionsTable {
   updated_at: Timestamp;
 }
 
+export interface TournamentProfilesTable {
+  profile_id: string;
+  /** Semver text. */
+  version: string;
+  name: string;
+  /** Full TournamentProfile JSON document. */
+  document: JSONColumnType<Record<string, unknown>>;
+  created_at: Timestamp;
+}
+
+/**
+ * Compiled effective ruleset plus its resolved capability binding, persisted so
+ * a finished competition is readable with the modules that produced it deleted.
+ */
+export interface CompiledRulesetsTable {
+  compiled_ruleset_id: string;
+  tournament_id: string;
+  stage_id: string | null;
+  descriptor_id: string;
+  descriptor_version: string;
+  profile_id: string | null;
+  profile_version: string | null;
+  config: JSONColumnType<Record<string, unknown>>;
+  binding: JSONColumnType<Record<string, unknown>> | null;
+  compiled_at: Timestamp;
+}
+
+/** Materialised standings written as each match is finalised. */
+export interface MaterialisedStandingsTable {
+  standings_id: string;
+  tournament_id: string;
+  stage_id: string;
+  /** Match whose finalisation produced this snapshot. */
+  match_id: string;
+  rows: JSONColumnType<readonly Record<string, unknown>[]>;
+  trace: JSONColumnType<readonly Record<string, unknown>[]>;
+  fully_resolved: boolean;
+  created_at: Timestamp;
+}
+
 export interface SchemaVersionTable {
   version: string;
   applied_at: Timestamp;
@@ -224,6 +270,9 @@ export interface Database {
   match_events: MatchEventsTable;
   audit_log: AuditLogTable;
   outbox_events: OutboxEventsTable;
+  tournament_profiles: TournamentProfilesTable;
+  compiled_rulesets: CompiledRulesetsTable;
+  materialised_standings: MaterialisedStandingsTable;
   event_cursors: EventCursorsTable;
   projection_versions: ProjectionVersionsTable;
   schema_version: SchemaVersionTable;
