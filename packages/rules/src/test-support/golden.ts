@@ -9,7 +9,7 @@ import { join } from 'node:path';
  * Update fixtures intentionally with: UPDATE_GOLDEN=1 yarn workspace
  * @copalibre/rules test
  */
-const FIXTURES_DIR = join(__dirname, '..', '__fixtures__');
+const FIXTURES_DIR = join(import.meta.dirname, '..', '__fixtures__');
 
 export function expectGolden(name: string, actual: unknown): void {
   // Round-trip first: golden fixtures are also the serializability proof.

@@ -1,12 +1,14 @@
+import type { Kysely } from 'kysely';
+// kysely 0.29 moved the migration API to its own subpath; nodenext resolution
+// can see it, which the previous commonjs/node setup could not.
 import {
   Migrator,
-  type Kysely,
   type Migration,
   type MigrationProvider,
   type MigrationResultSet,
-} from 'kysely';
-import type { Database } from '../schema';
-import { initialSchema } from './0001-initial-schema';
+} from 'kysely/migration';
+import type { Database } from '../schema.js';
+import { initialSchema } from './0001-initial-schema.js';
 
 /**
  * Migrations are explicit, ordered, and code-defined (no filesystem scanning),

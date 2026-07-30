@@ -1,22 +1,27 @@
+const esmExtensionMapper = require('./jest.esm-mapper.cjs');
+
 /**
- * Shared Jest preset for every apps/* and packages/* workspace (task 6.1 of
- * 0001-bootstrap-monorepo-toolchain). Workspaces extend it via require() in
- * their own jest.config.cjs.
+ * Shared Jest preset, ES module mode. Node needs --experimental-vm-modules for
+ * ESM tests; every workspace's test script passes it (see 0006-esm-module-migration).
  */
 module.exports = {
   testEnvironment: 'node',
+  extensionsToTreatAsEsm: ['.ts'],
+  moduleNameMapper: { ...esmExtensionMapper },
   transform: {
     '^.+\\.tsx?$': [
       'ts-jest',
       {
+        useESM: true,
         tsconfig: {
-          isolatedModules: true,
-          module: 'commonjs',
+          module: 'nodenext',
+          moduleResolution: 'nodenext',
           target: 'ES2023',
           esModuleInterop: true,
           experimentalDecorators: true,
           emitDecoratorMetadata: true,
           strict: true,
+          isolatedModules: true,
         },
       },
     ],

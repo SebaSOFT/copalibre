@@ -1,4 +1,4 @@
-import type { TournamentFormat } from '../descriptors/discipline-descriptor';
+import type { TournamentFormat } from '../descriptors/discipline-descriptor.js';
 
 /**
  * Stage, Fixture, Match, and Segment. Stage/round/match numbers are scoped

@@ -1,6 +1,6 @@
-import type { ConfigFieldPolicies } from '../descriptors/override-policy';
-import { MutationBlockedError } from '../errors';
-import { err, ok, type Result } from '../result';
+import type { ConfigFieldPolicies } from '../descriptors/override-policy.js';
+import { MutationBlockedError } from '../errors.js';
+import { err, ok, type Result } from '../result.js';
 
 /** A fixture (and any result on it) a rebuild would invalidate. */
 export interface FixtureRef {

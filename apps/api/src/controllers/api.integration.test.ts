@@ -3,15 +3,15 @@ import { APP_GUARD, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
 import { OrganizationRepository, withTransaction, type Database } from '@copalibre/persistence';
-import { createMigratedDatabase } from '../../../../packages/persistence/src/test-support/scratch-database';
+import { createMigratedDatabase } from '../../../../packages/persistence/src/test-support/scratch-database.js';
 import type { Kysely } from 'kysely';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import type { AuthenticatedSubject } from '../auth/request-context';
-import { TokenVerifier } from '../auth/token-verifier';
-import { DATABASE } from '../database.token';
-import { HealthController } from '../health.controller';
-import { OrganizationsController } from './organizations.controller';
-import { TournamentsController } from './tournaments.controller';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
+import type { AuthenticatedSubject } from '../auth/request-context.js';
+import { TokenVerifier } from '../auth/token-verifier.js';
+import { DATABASE } from '../database.token.js';
+import { HealthController } from '../health.controller.js';
+import { OrganizationsController } from './organizations.controller.js';
+import { TournamentsController } from './tournaments.controller.js';
 
 /**
  * End-to-end through the real HTTP stack (Fastify + guard + policy +

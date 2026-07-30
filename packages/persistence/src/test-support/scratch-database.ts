@@ -1,9 +1,9 @@
 import { Kysely, sql } from 'kysely';
 import { Pool } from 'pg';
 import { PostgresDialect } from 'kysely';
-import { createDatabase } from '../database';
-import { migrateToLatest } from '../migrations';
-import type { Database } from '../schema';
+import { createDatabase } from '../database.js';
+import { migrateToLatest } from '../migrations/index.js';
+import type { Database } from '../schema.js';
 
 /**
  * Integration-test harness: each suite provisions its own scratch database on

@@ -1,10 +1,10 @@
 import type { DisciplineDescriptor, RecordedEvent } from '@copalibre/domain';
-import { expectGolden } from '../test-support/golden';
+import { expectGolden } from '../test-support/golden.js';
 import {
   dedupeNotifications,
   evaluateNotificationRule,
   type NotificationRule,
-} from './notification-rules';
+} from './notification-rules.js';
 
 const descriptor = {
   descriptorId: 'd-1',

@@ -1,9 +1,9 @@
-import { expectGolden } from '../test-support/golden';
+import { expectGolden } from '../test-support/golden.js';
 import {
   resolveTiebreak,
   type TiebreakPipeline,
   type TiebreakParameterDefinition,
-} from './pipeline';
+} from './pipeline.js';
 
 const points: TiebreakParameterDefinition = {
   id: 'points',

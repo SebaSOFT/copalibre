@@ -1,6 +1,6 @@
 import { Kysely, PostgresDialect } from 'kysely';
 import { Pool } from 'pg';
-import type { Database } from './schema';
+import type { Database } from './schema.js';
 
 export interface DatabaseConfig {
   /** postgres://user:pass@host:port/db — always via env, never hardcoded. */

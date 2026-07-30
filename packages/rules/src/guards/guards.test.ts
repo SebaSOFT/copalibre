@@ -1,8 +1,8 @@
-import { roundTripsAsJson } from '../trace/explanation-trace';
-import { registerCopalibreVocabulary } from '../evaluation/vocabulary';
-import { RulesRegistry, type RuleScript } from '../registry/rules-registry';
-import { evaluateAdvancement, evaluateEligibility } from './guards';
-import { expectGolden } from '../test-support/golden';
+import { roundTripsAsJson } from '../trace/explanation-trace.js';
+import { registerCopalibreVocabulary } from '../evaluation/vocabulary.js';
+import { RulesRegistry, type RuleScript } from '../registry/rules-registry.js';
+import { evaluateAdvancement, evaluateEligibility } from './guards.js';
+import { expectGolden } from '../test-support/golden.js';
 
 function freshRegistry(): RulesRegistry {
   return registerCopalibreVocabulary(new RulesRegistry());

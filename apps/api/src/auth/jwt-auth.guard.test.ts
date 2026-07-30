@@ -1,9 +1,11 @@
+// Under ESM, Jest's `jest` object is not a global; it must be imported.
+import { jest } from '@jest/globals';
 import { ForbiddenException, UnauthorizedException, type ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { extractBearerToken, JwtAuthGuard } from './jwt-auth.guard';
-import type { AuthenticatedSubject, RequestWithSubject } from './request-context';
-import { SECURITY_PLANE_KEY, type SecurityPlane } from './security-plane';
-import type { TokenVerifier } from './token-verifier';
+import { extractBearerToken, JwtAuthGuard } from './jwt-auth.guard.js';
+import type { AuthenticatedSubject, RequestWithSubject } from './request-context.js';
+import { SECURITY_PLANE_KEY, type SecurityPlane } from './security-plane.js';
+import type { TokenVerifier } from './token-verifier.js';
 
 function contextFor(
   request: RequestWithSubject,
@@ -24,11 +26,15 @@ function contextFor(
 }
 
 function verifierReturning(subject: AuthenticatedSubject): TokenVerifier {
-  return { verify: jest.fn().mockResolvedValue(subject) } as unknown as TokenVerifier;
+  const verify = jest.fn<(token: string) => Promise<AuthenticatedSubject>>();
+  verify.mockResolvedValue(subject);
+  return { verify } as unknown as TokenVerifier;
 }
 
 function rejectingVerifier(): TokenVerifier {
-  return { verify: jest.fn().mockRejectedValue(new Error('nope')) } as unknown as TokenVerifier;
+  const verify = jest.fn<(token: string) => Promise<AuthenticatedSubject>>();
+  verify.mockRejectedValue(new Error('nope'));
+  return { verify } as unknown as TokenVerifier;
 }
 
 const controlSubject: AuthenticatedSubject = {

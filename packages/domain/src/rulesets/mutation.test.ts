@@ -1,6 +1,6 @@
-import { MutationBlockedError } from '../errors';
-import { fixtureDescriptor } from '../test-support/fixture-descriptor';
-import { evaluateMutation, type FixtureRef } from './mutation';
+import { MutationBlockedError } from '../errors.js';
+import { fixtureDescriptor } from '../test-support/fixture-descriptor.js';
+import { evaluateMutation, type FixtureRef } from './mutation.js';
 
 const policies = fixtureDescriptor().fieldPolicies;
 

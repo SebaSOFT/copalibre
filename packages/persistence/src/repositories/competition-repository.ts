@@ -8,12 +8,12 @@ import type {
   TournamentFormat,
 } from '@copalibre/domain';
 import type { Kysely } from 'kysely';
-import { InvariantViolationError, NotFoundError } from '../errors';
-import { newId } from '../ids';
-import { toIsoString, toMatch, toRecordedEvent, toSegment, toStage } from '../mapping';
-import type { Database } from '../schema';
-import type { UnitOfWork } from '../transaction';
-import type { AuditContext } from './participant-repository';
+import { InvariantViolationError, NotFoundError } from '../errors.js';
+import { newId } from '../ids.js';
+import { toIsoString, toMatch, toRecordedEvent, toSegment, toStage } from '../mapping.js';
+import type { Database } from '../schema.js';
+import type { UnitOfWork } from '../transaction.js';
+import type { AuditContext } from './participant-repository.js';
 
 /**
  * Stage/Fixture/Match/Segment plus the append-only match-event log.

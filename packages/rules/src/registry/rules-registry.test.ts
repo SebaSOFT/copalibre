@@ -1,6 +1,6 @@
-import type { RuleScript } from './rules-registry';
-import { RulesRegistry } from './rules-registry';
-import { registerCopalibreVocabulary } from '../evaluation/vocabulary';
+import type { RuleScript } from './rules-registry.js';
+import { RulesRegistry } from './rules-registry.js';
+import { registerCopalibreVocabulary } from '../evaluation/vocabulary.js';
 
 function scriptWith(partial: {
   ruleType?: string;

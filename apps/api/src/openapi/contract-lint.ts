@@ -3,7 +3,7 @@ import {
   PLANE_REQUIRED_SCOPES,
   planeRequiresAuthentication,
   type SecurityPlane,
-} from '../auth/security-plane';
+} from '../auth/security-plane.js';
 
 /**
  * Contract lint. The design's mitigation for "generated artifact could

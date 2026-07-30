@@ -1,4 +1,4 @@
-import type { DisciplineDescriptor } from '../descriptors/discipline-descriptor';
+import type { DisciplineDescriptor } from '../descriptors/discipline-descriptor.js';
 
 /**
  * A fictional two-sided field-sport descriptor exercising every policy kind,

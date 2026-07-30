@@ -6,10 +6,10 @@ import {
   type ExecutionContext,
 } from '@sebasoft/neuron-js';
 import { err, ok, type Result } from '@copalibre/domain';
-import { GuardEvaluationError, ScriptValidationError } from '../errors';
-import type { RulesRegistry, RuleScript } from '../registry/rules-registry';
-import type { EvaluationRecord, TraceNode } from '../trace/explanation-trace';
-import type { GuardState } from './vocabulary';
+import { GuardEvaluationError, ScriptValidationError } from '../errors.js';
+import type { RulesRegistry, RuleScript } from '../registry/rules-registry.js';
+import type { EvaluationRecord, TraceNode } from '../trace/explanation-trace.js';
+import type { GuardState } from './vocabulary.js';
 
 /**
  * Shared evaluation harness for eligibility and advancement guards, following

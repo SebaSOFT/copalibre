@@ -1,4 +1,4 @@
-import type { TraceNode } from '../trace/explanation-trace';
+import type { TraceNode } from '../trace/explanation-trace.js';
 
 /**
  * Tiebreak comparator pipeline, per the tournament-engine decision record's

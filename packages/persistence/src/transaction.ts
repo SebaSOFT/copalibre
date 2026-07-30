@@ -1,6 +1,6 @@
 import type { Kysely, Transaction } from 'kysely';
-import { newId } from './ids';
-import type { Database } from './schema';
+import { newId } from './ids.js';
+import type { Database } from './schema.js';
 
 /**
  * The single transaction boundary. "Write domain mutation, audit record, and

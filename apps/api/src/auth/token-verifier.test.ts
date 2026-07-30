@@ -1,13 +1,17 @@
-import { SignJWT, exportJWK, generateKeyPair, type JWK, type KeyLike } from 'jose';
+import { SignJWT, exportJWK, generateKeyPair, type JWK } from 'jose';
 import { createLocalJWKSet } from 'jose';
-import { authConfigFromEnv, DEFAULT_CLOCK_TOLERANCE_SECONDS, type AuthConfig } from './auth-config';
-import { TokenVerifier, TokenVerificationError } from './token-verifier';
+import {
+  authConfigFromEnv,
+  DEFAULT_CLOCK_TOLERANCE_SECONDS,
+  type AuthConfig,
+} from './auth-config.js';
+import { TokenVerifier, TokenVerificationError } from './token-verifier.js';
 
 const ISSUER = 'https://id.example.test/';
 const AUDIENCE = 'copalibre-api';
 
 interface KeyMaterial {
-  readonly privateKey: KeyLike;
+  readonly privateKey: CryptoKey;
   readonly publicJwk: JWK;
   readonly kid: string;
 }

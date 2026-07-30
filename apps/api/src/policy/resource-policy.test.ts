@@ -1,5 +1,5 @@
 import { ForbiddenException } from '@nestjs/common';
-import type { AuthenticatedSubject } from '../auth/request-context';
+import type { AuthenticatedSubject } from '../auth/request-context.js';
 import {
   enforcePolicy,
   evaluateAdminControl,
@@ -7,7 +7,7 @@ import {
   evaluateIntegration,
   evaluatePolicy,
   evaluatePublicRead,
-} from './resource-policy';
+} from './resource-policy.js';
 
 function subject(overrides?: Partial<AuthenticatedSubject>): AuthenticatedSubject {
   return {
@@ -220,7 +220,7 @@ describe('enforcePolicy', () => {
 
 describe('hasScope helper', () => {
   it('reports scope presence and absence', async () => {
-    const { hasScope } = await import('../auth/request-context');
+    const { hasScope } = await import('../auth/request-context.js');
     const s = subject({ scopes: ['a', 'b'] });
     expect(hasScope(s, 'a')).toBe(true);
     expect(hasScope(s, 'c')).toBe(false);

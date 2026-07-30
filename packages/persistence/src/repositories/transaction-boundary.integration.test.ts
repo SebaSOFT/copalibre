@@ -1,9 +1,9 @@
-import { withTransaction } from '../transaction';
-import { AuditReader } from '../audit';
-import { OutboxReader } from '../outbox';
-import { OrganizationRepository } from './organization-repository';
-import { InvariantViolationError } from '../errors';
-import { createMigratedDatabase, type ScratchDatabase } from '../test-support/scratch-database';
+import { withTransaction } from '../transaction.js';
+import { AuditReader } from '../audit.js';
+import { OutboxReader } from '../outbox.js';
+import { OrganizationRepository } from './organization-repository.js';
+import { InvariantViolationError } from '../errors.js';
+import { createMigratedDatabase, type ScratchDatabase } from '../test-support/scratch-database.js';
 
 /**
  * The core guarantee of this phase: domain mutation, audit record, and outbox

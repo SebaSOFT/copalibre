@@ -1,4 +1,4 @@
-import { InvariantViolationError, NotFoundError, SchemaVersionMismatchError } from './errors';
+import { InvariantViolationError, NotFoundError, SchemaVersionMismatchError } from './errors.js';
 
 describe('persistence errors', () => {
   it.each([

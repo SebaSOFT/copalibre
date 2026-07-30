@@ -3,9 +3,24 @@
 Established by change `0001-bootstrap-monorepo-toolchain`; every later phase adds suites
 inside these conventions instead of inventing new ones.
 
+## ES modules
+
+Every workspace is a native ES module (`0006-esm-module-migration`), which imposes two rules on
+test code:
+
+- **Relative imports carry `.js`**, matching the source: `import { x } from './x.js'`. Jest maps
+  those back to the `.ts` sources via the shared mapper in `jest.esm-mapper.cjs`. A per-workspace
+  config that defines its own `moduleNameMapper` must spread that mapper in rather than replace it.
+- **`jest` is not a global.** Files using the mocking API must `import { jest } from '@jest/globals'`.
+
+Jest's ESM mode needs `--experimental-vm-modules`, so every test script invokes Jest through
+`node --experimental-vm-modules`. Because `--passWithNoTests` makes "discovered nothing" look
+identical to success, `yarn test:verify-discovery` asserts a floor on discovered test files and runs
+in CI ahead of the suites.
+
 ## Unit tests (Jest)
 
-- Runner: Jest via `ts-jest`, configured by root `jest.config.js` fanning out to each
+- Runner: Jest via `ts-jest` in ESM mode, configured by root `jest.config.js` fanning out to each
   workspace's `jest.config.cjs`, which extends `jest.config.base.cjs`.
 - Location: colocated with source — `src/**/*.test.ts` (or `.test.tsx` for React).
 - Run: `yarn test` (all workspaces) or `yarn workspace @copalibre/<name> run jest`.

@@ -1,5 +1,5 @@
 import { UuidV7 } from '@copalibre/domain';
-import { newId } from './ids';
+import { newId } from './ids.js';
 
 describe('newId', () => {
   it('generates a valid UUIDv7 (version nibble 7, variant 10xx)', () => {

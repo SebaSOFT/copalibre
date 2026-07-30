@@ -4,17 +4,17 @@ import { Module, type INestApplication } from '@nestjs/common';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
 import type { OpenAPIObject } from '@nestjs/swagger';
-import { TokenVerifier } from '../auth/token-verifier';
-import { DATABASE } from '../database.token';
-import { HealthController } from '../health.controller';
-import { OrganizationsController } from '../controllers/organizations.controller';
-import { TournamentsController } from '../controllers/tournaments.controller';
-import { buildOpenApiDocument } from './document';
-import { collectRoutePlanes } from './collect-planes';
-import { lintOpenApiContract } from './contract-lint';
+import { TokenVerifier } from '../auth/token-verifier.js';
+import { DATABASE } from '../database.token.js';
+import { HealthController } from '../health.controller.js';
+import { OrganizationsController } from '../controllers/organizations.controller.js';
+import { TournamentsController } from '../controllers/tournaments.controller.js';
+import { buildOpenApiDocument } from './document.js';
+import { collectRoutePlanes } from './collect-planes.js';
+import { lintOpenApiContract } from './contract-lint.js';
 
 const CONTROLLERS = [HealthController, OrganizationsController, TournamentsController] as const;
-const ARTIFACT_PATH = join(__dirname, '../../../../packages/contracts/openapi/v1.json');
+const ARTIFACT_PATH = join(import.meta.dirname, '../../../../packages/contracts/openapi/v1.json');
 
 /**
  * The committed artifact must match what the decorated controllers produce.

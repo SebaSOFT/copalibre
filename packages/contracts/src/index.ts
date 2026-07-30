@@ -9,9 +9,9 @@
  *   yarn workspace @copalibre/contracts run generate     # types from spec
  */
 
-export type { paths, components, operations } from './generated/v1';
+export type { paths, components, operations } from './generated/v1.js';
 
-import type { components, paths } from './generated/v1';
+import type { components, paths } from './generated/v1.js';
 
 /** Convenience aliases so callers don't index into `components` by hand. */
 export type OrganizationResponse = components['schemas']['OrganizationResponse'];

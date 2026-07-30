@@ -1,19 +1,19 @@
 import { AbstractCondition, ExecutionResult, type ExecutionContext } from '@sebasoft/neuron-js';
 import type { DisciplineDescriptor, RecordedEvent } from '@copalibre/domain';
-import { GuardEvaluationError, NotificationRuleError, ScriptValidationError } from './errors';
-import { evaluateGuard } from './evaluation/guard-evaluator';
+import { GuardEvaluationError, NotificationRuleError, ScriptValidationError } from './errors.js';
+import { evaluateGuard } from './evaluation/guard-evaluator.js';
 import {
   registerCopalibreVocabulary,
   SetGuardOutcomeAction,
   StateNumberParameter,
   StateStringParameter,
-} from './evaluation/vocabulary';
+} from './evaluation/vocabulary.js';
 import {
   evaluateNotificationRule,
   type NotificationRule,
-} from './notifications/notification-rules';
-import { RulesRegistry, type RuleScript } from './registry/rules-registry';
-import { resolveTiebreak } from './tiebreak/pipeline';
+} from './notifications/notification-rules.js';
+import { RulesRegistry, type RuleScript } from './registry/rules-registry.js';
+import { resolveTiebreak } from './tiebreak/pipeline.js';
 
 function freshRegistry(): RulesRegistry {
   return registerCopalibreVocabulary(new RulesRegistry());

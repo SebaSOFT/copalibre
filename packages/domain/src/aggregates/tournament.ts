@@ -1,4 +1,4 @@
-import type { DescriptorRef } from '../rulesets/tournament-ruleset';
+import type { DescriptorRef } from '../rulesets/tournament-ruleset.js';
 
 export type TournamentStatus = 'draft' | 'published';
 

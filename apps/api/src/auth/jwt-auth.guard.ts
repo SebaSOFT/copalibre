@@ -11,9 +11,9 @@ import {
   planeRequiresAuthentication,
   SECURITY_PLANE_KEY,
   type SecurityPlane,
-} from './security-plane';
-import type { RequestWithSubject } from './request-context';
-import { TokenVerifier } from './token-verifier';
+} from './security-plane.js';
+import type { RequestWithSubject } from './request-context.js';
+import { TokenVerifier } from './token-verifier.js';
 
 /**
  * Authentication only: is this token valid, and does the subject hold the coarse

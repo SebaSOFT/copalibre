@@ -22,7 +22,7 @@ import type {
   StagesTable,
   TeamsTable,
   TournamentsTable,
-} from './schema';
+} from './schema.js';
 
 /**
  * camelCase domain ↔ snake_case column mapping, explicit per aggregate. No

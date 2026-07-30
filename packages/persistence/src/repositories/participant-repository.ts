@@ -1,10 +1,10 @@
 import { Alias, type Entrant, type Participant, type Roster, type Team } from '@copalibre/domain';
 import type { Kysely } from 'kysely';
-import { InvariantViolationError } from '../errors';
-import { newId } from '../ids';
-import { toEntrant, toParticipant, toRoster, toTeam } from '../mapping';
-import type { Database } from '../schema';
-import type { UnitOfWork } from '../transaction';
+import { InvariantViolationError } from '../errors.js';
+import { newId } from '../ids.js';
+import { toEntrant, toParticipant, toRoster, toTeam } from '../mapping.js';
+import type { Database } from '../schema.js';
+import type { UnitOfWork } from '../transaction.js';
 
 export interface AuditContext {
   readonly organizationId: string;

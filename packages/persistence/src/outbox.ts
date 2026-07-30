@@ -1,6 +1,6 @@
 import type { Kysely } from 'kysely';
-import { toIsoString } from './mapping';
-import type { Database } from './schema';
+import { toIsoString } from './mapping.js';
+import type { Database } from './schema.js';
 
 /**
  * Read side of the transactional outbox. Writes go through

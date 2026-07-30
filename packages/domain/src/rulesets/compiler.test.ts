@@ -1,7 +1,7 @@
-import type { FieldPolicy, MergeStrategyName } from '../descriptors/override-policy';
-import { fixtureDescriptor } from '../test-support/fixture-descriptor';
-import { compileEffectiveRuleset } from './compiler';
-import type { StageConfiguration, TournamentRuleset } from './tournament-ruleset';
+import type { FieldPolicy, MergeStrategyName } from '../descriptors/override-policy.js';
+import { fixtureDescriptor } from '../test-support/fixture-descriptor.js';
+import { compileEffectiveRuleset } from './compiler.js';
+import type { StageConfiguration, TournamentRuleset } from './tournament-ruleset.js';
 
 function ruleset(overrides: Record<string, unknown>): TournamentRuleset {
   return {

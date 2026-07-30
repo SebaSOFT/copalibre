@@ -7,7 +7,7 @@ import {
   type ScriptInterface,
 } from '@sebasoft/neuron-js';
 import { err, ok, type DisciplineDescriptor, type Result } from '@copalibre/domain';
-import { UnregisteredElementError } from '../errors';
+import { UnregisteredElementError } from '../errors.js';
 
 /**
  * The typed registry of permitted rule vocabulary. A DisciplineDescriptor (a

@@ -1,4 +1,5 @@
-import { sql, type Kysely, type Migration } from 'kysely';
+import { sql, type Kysely } from 'kysely';
+import type { Migration } from 'kysely/migration';
 
 /**
  * Initial schema: every table from the architecture doc's "Stateful core and

@@ -1,5 +1,5 @@
-import { InvalidUuidError } from '../errors';
-import { UuidV7 } from './uuid-v7';
+import { InvalidUuidError } from '../errors.js';
+import { UuidV7 } from './uuid-v7.js';
 
 describe('UuidV7', () => {
   it('generates identifiers matching the RFC 9562 v7 shape', () => {

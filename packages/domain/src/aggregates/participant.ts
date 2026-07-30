@@ -1,4 +1,4 @@
-import type { ParticipantType } from '../descriptors/discipline-descriptor';
+import type { ParticipantType } from '../descriptors/discipline-descriptor.js';
 
 export interface Participant {
   readonly participantId: string;
