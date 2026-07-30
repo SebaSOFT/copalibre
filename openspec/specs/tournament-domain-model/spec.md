@@ -74,3 +74,48 @@ the UUIDv7 identifier.
 - **WHEN** an organization alias and a tournament alias are compared
 - **THEN** the domain enforces organization aliases as globally unique per installation and tournament aliases as unique only within their organization
 
+### Requirement: Attribution on publishable artifacts
+`DisciplineDescriptor` and `TournamentProfile` SHALL each carry an attribution block naming the
+author, the source URL, and the licence.
+
+#### Scenario: A third-party module states its licence
+- **WHEN** a discipline authored outside the project is inspected
+- **THEN** its author, source URL and licence are readable from the artifact itself
+
+### Requirement: Semantic versioning of publishable artifacts
+Discipline and profile versions SHALL be semantic versions, identifying a release rather than
+expressing a compatibility contract.
+
+#### Scenario: Version ordering is well defined
+- **WHEN** two versions of one discipline are compared
+- **THEN** precedence follows semantic-version ordering
+
+### Requirement: Win condition is discipline-declared and override-governed
+The win condition SHALL be a discipline-declared configurable field whose override permission
+determines whether a tournament profile may replace it.
+
+#### Scenario: A profile replaces an overridable win condition
+- **WHEN** a discipline marks its win condition `replaced` and a profile substitutes timed scoring
+- **THEN** the compiled ruleset carries the profile's win condition
+
+#### Scenario: A locked win condition cannot be replaced
+- **WHEN** a discipline marks its win condition `forbidden` and a profile attempts to replace it
+- **THEN** compilation fails identifying the offending field
+
+### Requirement: Started tournaments freeze their modules
+A tournament SHALL have a `started` status, entered through a validated transition, after which its
+discipline and profile versions cannot change.
+
+#### Scenario: Starting the first match starts the tournament
+- **WHEN** the first match of a tournament begins
+- **THEN** the tournament status becomes `started`
+
+#### Scenario: The start transition validates its preconditions
+- **WHEN** a tournament is started with unsatisfied required capabilities and no explicit override
+- **THEN** the transition is refused, naming the unsatisfied requirements
+
+#### Scenario: A module version change is refused after start
+- **WHEN** a caller attempts to change the discipline or profile version of a started tournament
+- **THEN** the change is refused as `blocked_after_results`, directing the caller to the audited
+  correction workflow
+

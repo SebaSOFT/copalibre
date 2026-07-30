@@ -60,3 +60,16 @@ schema; all reads and writes go through typed repositories.
 - **WHEN** a repository is asked to persist a domain aggregate that fails a phase-2 invariant
 - **THEN** the write is rejected before any row is inserted or updated
 
+### Requirement: Profiles, bindings and materialised results are stored
+The schema SHALL persist tournament profiles, resolved capability bindings, compiled effective
+rulesets, and per-match materialised outcomes and standings.
+
+#### Scenario: A compiled snapshot survives its source
+- **WHEN** a compiled ruleset is written and the descriptor row it was compiled from is deleted
+- **THEN** the compiled ruleset remains readable and complete
+
+#### Scenario: Materialised standings are written within the finalising transaction
+- **WHEN** a match is finalised
+- **THEN** its outcome, the recomputed standings, the audit record and the outbox event commit together
+  or roll back together
+

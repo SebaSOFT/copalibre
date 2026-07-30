@@ -79,3 +79,16 @@ explanation trace suitable for direct UI rendering.
 - **WHEN** an explanation trace is serialized to JSON and deserialized
 - **THEN** the deserialized trace is equal to the original trace
 
+### Requirement: Tiebreak parameters resolve through a capability binding
+A tiebreak parameter referencing a capability name SHALL be evaluated against the discipline code
+that the compiled binding resolved it to.
+
+#### Scenario: The same profile ranks two different disciplines
+- **WHEN** one profile's pipeline is evaluated against two disciplines whose primary scoring codes differ
+- **THEN** each evaluation reads that discipline's own code, and each explanation trace names the
+  resolved code
+
+#### Scenario: An overridden unsatisfied requirement is visible in the trace
+- **WHEN** a required capability was unsatisfied and explicitly overridden by an operator
+- **THEN** the explanation trace records that the comparator was skipped and why
+
