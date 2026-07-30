@@ -24,12 +24,15 @@ function readStatePath(context: ExecutionContext, path: string): unknown {
 /**
  * Reads a number from the evaluation state by dot-path.
  *
- * These parameter classes are standalone (not AbstractParameter subclasses,
- * mirroring the upstream eligibility example) because their `value` field is
- * the dot-path STRING while the produced value is a number/string —
- * AbstractParameter<T> conflates both under one generic. The explicit
- * `execute` satisfies neuron-js 0.5.2's IElementInstance requirement on
- * ParameterConstructor (an upstream typing wrinkle worth reporting).
+ * These stay standalone classes rather than AbstractParameter subclasses (the
+ * same shape upstream's own eligibility example uses): a state-reading
+ * parameter holds a dot-path STRING in `value` but produces a number, while
+ * `AbstractParameter<T>` ties both to one generic. Subclassing it as
+ * `AbstractParameter<number>` type-checks yet silently breaks — `this.value`
+ * narrows to `number | null`, turning the path lookup into dead code — so the
+ * explicit `execute` below stays ours to provide. (neuron-js 0.6.1 added
+ * `execute` to AbstractParameter, closing the separate IElementInstance gap;
+ * that helps parameters whose stored and produced types match, not these.)
  */
 export class StateNumberParameter {
   static readonly TYPE = 'state-number';
