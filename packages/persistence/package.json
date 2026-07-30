@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@copalibre/domain": "workspace:^",
-    "kysely": "^0.28",
+    "kysely": "^0.29",
     "pg": "^8.22.0"
   },
   "devDependencies": {
