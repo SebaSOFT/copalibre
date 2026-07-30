@@ -4,450 +4,450 @@
  */
 
 export interface paths {
-  '/health': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Liveness probe
+         * @description Reports the process role and release version. Deliberately public and dependency-free so it stays answerable during a dependency outage.
+         */
+        get: operations["HealthController_health"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * Liveness probe
-     * @description Reports the process role and release version. Deliberately public and dependency-free so it stays answerable during a dependency outage.
-     */
-    get: operations['HealthController_health'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/ready': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Readiness probe
+         * @description Fails with 503 when the database schema does not match the version this release expects, so an operator who skipped "copalibre migrate" gets a failing probe instead of a half-working API.
+         */
+        get: operations["HealthController_ready"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * Readiness probe
-     * @description Fails with 503 when the database schema does not match the version this release expects, so an operator who skipped "copalibre migrate" gets a failing probe instead of a half-working API.
-     */
-    get: operations['HealthController_ready'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/organizations/{alias}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/organizations/{alias}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read an organization by alias
+         * @description Public projection; returns only published organization data.
+         */
+        get: operations["OrganizationsController_findByAlias"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * Read an organization by alias
-     * @description Public projection; returns only published organization data.
-     */
-    get: operations['OrganizationsController_findByAlias'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/organizations': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/organizations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create an organization
+         * @description Requires the copalibre.control scope. The alias is validated by the domain layer and must be lowercase kebab-case, unique per installation.
+         */
+        post: operations["OrganizationsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /**
-     * Create an organization
-     * @description Requires the copalibre.control scope. The alias is validated by the domain layer and must be lowercase kebab-case, unique per installation.
-     */
-    post: operations['OrganizationsController_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/organizations/{organizationAlias}/tournaments/{tournamentAlias}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read a tournament by its organization-scoped alias
+         * @description A tournament alias is unique only within its organization, so both aliases are required.
+         */
+        get: operations["TournamentsController_findByScopedAlias"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * Read a tournament by its organization-scoped alias
-     * @description A tournament alias is unique only within its organization, so both aliases are required.
-     */
-    get: operations['TournamentsController_findByScopedAlias'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/organizations/{organizationAlias}/tournaments': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/organizations/{organizationAlias}/tournaments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a tournament in draft status
+         * @description Requires the copalibre.control scope and a token scoped to the target organization.
+         */
+        post: operations["TournamentsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /**
-     * Create a tournament in draft status
-     * @description Requires the copalibre.control scope and a token scoped to the target organization.
-     */
-    post: operations['TournamentsController_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/organizations/{organizationAlias}/tournaments/{tournamentAlias}/publish': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish a tournament
+         * @description Transitions draft to published. Audited with previous and resulting state; publishing is not destructive, so no confirmation flag is required.
+         */
+        post: operations["TournamentsController_publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /**
-     * Publish a tournament
-     * @description Transitions draft to published. Audited with previous and resulting state; publishing is not destructive, so no confirmation flag is required.
-     */
-    post: operations['TournamentsController_publish'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
-  schemas: {
-    HealthResponse: {
-      /**
-       * @description Process role this instance is running as
-       * @enum {string}
-       */
-      role: 'api' | 'events' | 'worker' | 'scheduler' | 'migrate' | 'doctor';
-      /** @example 0.0.0 */
-      version: string;
+    schemas: {
+        HealthResponse: {
+            /**
+             * @description Process role this instance is running as
+             * @enum {string}
+             */
+            role: "api" | "events" | "worker" | "scheduler" | "migrate" | "doctor";
+            /** @example 0.0.0 */
+            version: string;
+        };
+        ReadinessResponse: {
+            /**
+             * @description Process role this instance is running as
+             * @enum {string}
+             */
+            role: "api" | "events" | "worker" | "scheduler" | "migrate" | "doctor";
+            /** @example 0.0.0 */
+            version: string;
+            /**
+             * @description Applied database schema version this release requires
+             * @example 0001-initial-schema
+             */
+            schemaVersion: string;
+        };
+        OrganizationResponse: {
+            /**
+             * Format: uuid
+             * @description UUIDv7 identifier
+             */
+            organizationId: string;
+            /**
+             * @description Human-readable, URL-safe alias; globally unique per installation
+             * @example liga-orbital
+             */
+            alias: string;
+            /** @example Liga Orbital */
+            name: string;
+        };
+        CreateOrganizationRequest: {
+            /**
+             * @description Lowercase kebab-case alias, unique per installation
+             * @example liga-orbital
+             */
+            alias: string;
+            /** @example Liga Orbital */
+            name: string;
+        };
+        ProblemResponse: {
+            /** @example 403 */
+            statusCode: number;
+            /** @example subject may only act on their own records */
+            message: string;
+        };
+        TournamentResponse: {
+            /** Format: uuid */
+            tournamentId: string;
+            /** Format: uuid */
+            organizationId: string;
+            /**
+             * @description Alias, unique within its organization
+             * @example copa-verano
+             */
+            alias: string;
+            /** @example Copa Verano */
+            name: string;
+            /** @enum {string} */
+            status: "draft" | "published";
+            /**
+             * Format: uuid
+             * @description Active ruleset version, when one exists
+             */
+            rulesetId?: string;
+        };
+        CreateTournamentRequest: {
+            /** @example copa-verano */
+            alias: string;
+            /** @example Copa Verano */
+            name: string;
+            /**
+             * Format: uuid
+             * @description DisciplineDescriptor identifier
+             */
+            descriptorId: string;
+            /** @description Pinned descriptor version; rulesets never track "latest" */
+            descriptorVersion: number;
+        };
     };
-    ReadinessResponse: {
-      /**
-       * @description Process role this instance is running as
-       * @enum {string}
-       */
-      role: 'api' | 'events' | 'worker' | 'scheduler' | 'migrate' | 'doctor';
-      /** @example 0.0.0 */
-      version: string;
-      /**
-       * @description Applied database schema version this release requires
-       * @example 0001-initial-schema
-       */
-      schemaVersion: string;
-    };
-    OrganizationResponse: {
-      /**
-       * Format: uuid
-       * @description UUIDv7 identifier
-       */
-      organizationId: string;
-      /**
-       * @description Human-readable, URL-safe alias; globally unique per installation
-       * @example liga-orbital
-       */
-      alias: string;
-      /** @example Liga Orbital */
-      name: string;
-    };
-    CreateOrganizationRequest: {
-      /**
-       * @description Lowercase kebab-case alias, unique per installation
-       * @example liga-orbital
-       */
-      alias: string;
-      /** @example Liga Orbital */
-      name: string;
-    };
-    ProblemResponse: {
-      /** @example 403 */
-      statusCode: number;
-      /** @example subject may only act on their own records */
-      message: string;
-    };
-    TournamentResponse: {
-      /** Format: uuid */
-      tournamentId: string;
-      /** Format: uuid */
-      organizationId: string;
-      /**
-       * @description Alias, unique within its organization
-       * @example copa-verano
-       */
-      alias: string;
-      /** @example Copa Verano */
-      name: string;
-      /** @enum {string} */
-      status: 'draft' | 'published';
-      /**
-       * Format: uuid
-       * @description Active ruleset version, when one exists
-       */
-      rulesetId?: string;
-    };
-    CreateTournamentRequest: {
-      /** @example copa-verano */
-      alias: string;
-      /** @example Copa Verano */
-      name: string;
-      /**
-       * Format: uuid
-       * @description DisciplineDescriptor identifier
-       */
-      descriptorId: string;
-      /** @description Pinned descriptor version; rulesets never track "latest" */
-      descriptorVersion: number;
-    };
-  };
-  responses: never;
-  parameters: never;
-  requestBodies: never;
-  headers: never;
-  pathItems: never;
+    responses: never;
+    parameters: never;
+    requestBodies: never;
+    headers: never;
+    pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
-  HealthController_health: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    HealthController_health: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthResponse"];
+                };
+            };
+        };
     };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
+    HealthController_ready: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-        content: {
-          'application/json': components['schemas']['HealthResponse'];
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadinessResponse"];
+                };
+            };
+            /** @description Schema version mismatch or unmigrated database */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
-      };
     };
-  };
-  HealthController_ready: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    OrganizationsController_findByAlias: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                alias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationResponse"];
+                };
+            };
+        };
     };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
+    OrganizationsController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-        content: {
-          'application/json': components['schemas']['ReadinessResponse'];
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateOrganizationRequest"];
+            };
         };
-      };
-      /** @description Schema version mismatch or unmigrated database */
-      503: {
-        headers: {
-          [name: string]: unknown;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationResponse"];
+                };
+            };
+            /** @description Missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            /** @description Token lacks the required scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
         };
-        content?: never;
-      };
     };
-  };
-  OrganizationsController_findByAlias: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        alias: string;
-      };
-      cookie?: never;
+    TournamentsController_findByScopedAlias: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TournamentResponse"];
+                };
+            };
+        };
     };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
+    TournamentsController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+            };
+            cookie?: never;
         };
-        content: {
-          'application/json': components['schemas']['OrganizationResponse'];
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateTournamentRequest"];
+            };
         };
-      };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TournamentResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
     };
-  };
-  OrganizationsController_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    TournamentsController_publish: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TournamentResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
     };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CreateOrganizationRequest'];
-      };
-    };
-    responses: {
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['OrganizationResponse'];
-        };
-      };
-      /** @description Missing or invalid bearer token */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ProblemResponse'];
-        };
-      };
-      /** @description Token lacks the required scope */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ProblemResponse'];
-        };
-      };
-    };
-  };
-  TournamentsController_findByScopedAlias: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        organizationAlias: string;
-        tournamentAlias: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['TournamentResponse'];
-        };
-      };
-    };
-  };
-  TournamentsController_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        organizationAlias: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CreateTournamentRequest'];
-      };
-    };
-    responses: {
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['TournamentResponse'];
-        };
-      };
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ProblemResponse'];
-        };
-      };
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ProblemResponse'];
-        };
-      };
-    };
-  };
-  TournamentsController_publish: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        organizationAlias: string;
-        tournamentAlias: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['TournamentResponse'];
-        };
-      };
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ProblemResponse'];
-        };
-      };
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ProblemResponse'];
-        };
-      };
-    };
-  };
 }

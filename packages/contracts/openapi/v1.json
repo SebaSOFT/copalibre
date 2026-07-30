@@ -19,7 +19,9 @@
           }
         },
         "summary": "Liveness probe",
-        "tags": ["operations"]
+        "tags": [
+          "operations"
+        ]
       }
     },
     "/ready": {
@@ -43,7 +45,9 @@
           }
         },
         "summary": "Readiness probe",
-        "tags": ["operations"]
+        "tags": [
+          "operations"
+        ]
       }
     },
     "/organizations/{alias}": {
@@ -73,7 +77,9 @@
           }
         },
         "summary": "Read an organization by alias",
-        "tags": ["organizations"]
+        "tags": [
+          "organizations"
+        ]
       }
     },
     "/organizations": {
@@ -129,7 +135,9 @@
           }
         ],
         "summary": "Create an organization",
-        "tags": ["organizations"]
+        "tags": [
+          "organizations"
+        ]
       }
     },
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}": {
@@ -167,7 +175,9 @@
           }
         },
         "summary": "Read a tournament by its organization-scoped alias",
-        "tags": ["tournaments"]
+        "tags": [
+          "tournaments"
+        ]
       }
     },
     "/organizations/{organizationAlias}/tournaments": {
@@ -232,7 +242,9 @@
           }
         ],
         "summary": "Create a tournament in draft status",
-        "tags": ["tournaments"]
+        "tags": [
+          "tournaments"
+        ]
       }
     },
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/publish": {
@@ -295,7 +307,9 @@
           }
         ],
         "summary": "Publish a tournament",
-        "tags": ["tournaments"]
+        "tags": [
+          "tournaments"
+        ]
       }
     }
   },
@@ -322,7 +336,14 @@
         "properties": {
           "role": {
             "type": "string",
-            "enum": ["api", "events", "worker", "scheduler", "migrate", "doctor"],
+            "enum": [
+              "api",
+              "events",
+              "worker",
+              "scheduler",
+              "migrate",
+              "doctor"
+            ],
             "description": "Process role this instance is running as"
           },
           "version": {
@@ -330,14 +351,24 @@
             "example": "0.0.0"
           }
         },
-        "required": ["role", "version"]
+        "required": [
+          "role",
+          "version"
+        ]
       },
       "ReadinessResponse": {
         "type": "object",
         "properties": {
           "role": {
             "type": "string",
-            "enum": ["api", "events", "worker", "scheduler", "migrate", "doctor"],
+            "enum": [
+              "api",
+              "events",
+              "worker",
+              "scheduler",
+              "migrate",
+              "doctor"
+            ],
             "description": "Process role this instance is running as"
           },
           "version": {
@@ -350,7 +381,11 @@
             "description": "Applied database schema version this release requires"
           }
         },
-        "required": ["role", "version", "schemaVersion"]
+        "required": [
+          "role",
+          "version",
+          "schemaVersion"
+        ]
       },
       "OrganizationResponse": {
         "type": "object",
@@ -370,7 +405,11 @@
             "example": "Liga Orbital"
           }
         },
-        "required": ["organizationId", "alias", "name"]
+        "required": [
+          "organizationId",
+          "alias",
+          "name"
+        ]
       },
       "CreateOrganizationRequest": {
         "type": "object",
@@ -385,7 +424,10 @@
             "example": "Liga Orbital"
           }
         },
-        "required": ["alias", "name"]
+        "required": [
+          "alias",
+          "name"
+        ]
       },
       "ProblemResponse": {
         "type": "object",
@@ -399,7 +441,10 @@
             "example": "subject may only act on their own records"
           }
         },
-        "required": ["statusCode", "message"]
+        "required": [
+          "statusCode",
+          "message"
+        ]
       },
       "TournamentResponse": {
         "type": "object",
@@ -423,7 +468,10 @@
           },
           "status": {
             "type": "string",
-            "enum": ["draft", "published"]
+            "enum": [
+              "draft",
+              "published"
+            ]
           },
           "rulesetId": {
             "type": "string",
@@ -431,7 +479,13 @@
             "description": "Active ruleset version, when one exists"
           }
         },
-        "required": ["tournamentId", "organizationId", "alias", "name", "status"]
+        "required": [
+          "tournamentId",
+          "organizationId",
+          "alias",
+          "name",
+          "status"
+        ]
       },
       "CreateTournamentRequest": {
         "type": "object",
@@ -454,7 +508,12 @@
             "description": "Pinned descriptor version; rulesets never track \"latest\""
           }
         },
-        "required": ["alias", "name", "descriptorId", "descriptorVersion"]
+        "required": [
+          "alias",
+          "name",
+          "descriptorId",
+          "descriptorVersion"
+        ]
       }
     }
   }
