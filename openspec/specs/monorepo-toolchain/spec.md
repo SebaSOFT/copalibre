@@ -9,7 +9,8 @@ behavior, never re-derive toolchain setup.
 The repository SHALL provide a Yarn workspace containing `apps/api`, `apps/events`, `apps/worker`,
 `apps/scheduler`, `apps/migrate`, `apps/doctor`, `apps/web`, and `packages/domain`, `packages/rules`,
 `packages/persistence`, `packages/contracts`, `packages/design-tokens`, `packages/routing`, matching
-the layout in `copalibre-platform-architecture.md`.
+the layout in `copalibre-platform-architecture.md`. Every workspace SHALL declare
+`"type": "module"` and be resolved with TypeScript's `nodenext` module resolution.
 
 #### Scenario: Fresh clone installs cleanly
 - **WHEN** a developer clones the repository and runs `yarn install --immutable`
@@ -19,15 +20,25 @@ the layout in `copalibre-platform-architecture.md`.
 - **WHEN** `yarn workspaces list` is run
 - **THEN** it lists every `apps/*` and `packages/*` workspace declared above, each with a valid `package.json`
 
+#### Scenario: Every workspace is an ES module
+- **WHEN** each `apps/*` and `packages/*` `package.json` is inspected
+- **THEN** it declares `"type": "module"`
+
 ### Requirement: TypeScript project references
 Every `apps/*` and `packages/*` workspace SHALL be wired into a root TypeScript project-reference
 graph so a change in a `packages/*` source file is picked up by `apps/*` type-checking without a
-publish step.
+publish step. Relative imports SHALL carry explicit file extensions, as Node's ES module resolver
+requires.
 
 #### Scenario: Cross-package type change is caught
 - **WHEN** a type exported from `packages/domain` is changed incompatibly
 - **AND** `yarn typecheck` is run at the repo root
 - **THEN** type-checking fails in any `apps/*` workspace that consumes the changed type
+
+#### Scenario: A relative import missing its extension fails type-checking
+- **WHEN** a relative import is written without a `.js` extension
+- **AND** `yarn typecheck` is run
+- **THEN** type-checking fails, rather than deferring the failure to a runtime `ERR_MODULE_NOT_FOUND`
 
 ### Requirement: Zero-warnings lint gate
 The repository SHALL enforce an ESLint + Prettier gate across TypeScript, Astro, and React/TSX
@@ -43,12 +54,16 @@ sources with zero tolerated warnings, matching the policy documented for `sebaso
 
 ### Requirement: Base test runner configuration
 The repository SHALL provide a root Jest configuration usable by every `apps/*` and `packages/*`
-workspace, and a root Playwright configuration targeting `apps/web`, even before any test files
-exist.
+workspace, running in ES module mode, and a root Playwright configuration targeting `apps/web`, even
+before any test files exist.
 
 #### Scenario: Empty test suite does not fail CI
-- **WHEN** `yarn test` is run against the scaffolded repository with no test files yet written
+- **WHEN** `yarn test` is run against a workspace with no test files
 - **THEN** the command reports zero tests found and exits zero (not an error)
+
+#### Scenario: ES module test files execute
+- **WHEN** a test file imports application source using an explicit `.js` specifier
+- **THEN** Jest resolves it to the corresponding TypeScript source and the suite runs
 
 ### Requirement: Continuous integration on pull requests
 The repository SHALL run a GitHub Actions workflow on every pull request that installs dependencies
@@ -70,4 +85,18 @@ container to exist yet.
 #### Scenario: Database starts standalone
 - **WHEN** a developer runs `docker compose -f docker-compose.dev.yml up postgres`
 - **THEN** a PostgreSQL instance becomes reachable on the documented local port
+
+### Requirement: Dependencies are not constrained to dual-published packages
+The toolchain SHALL be able to consume ESM-only packages, so dependency selection is decided on merit
+rather than on module format.
+
+#### Scenario: An ESM-only dependency is usable
+- **WHEN** a workspace depends on a package published as ESM-only
+- **AND** `yarn typecheck`, `yarn test`, and the workspace's runtime entrypoint are run
+- **THEN** all succeed without a bundler, a transpilation shim, or a downgrade to an older major
+
+#### Scenario: Runtime entrypoints boot under ESM
+- **WHEN** the OpenAPI generator (which boots NestJS with the Fastify adapter) and `apps/migrate` are run
+- **THEN** both execute successfully, proving decorators, dependency injection, and
+  `reflect-metadata` work under the ES module system
 

@@ -1,0 +1,9 @@
+[
+  "WB-R1-M1 e1 vs e4",
+  "WB-R1-M2 e2 vs e3",
+  "WB-R2-M1 W(WB-R1-M1) vs W(WB-R1-M2)",
+  "LB-R1-M1 L(WB-R1-M1) vs L(WB-R1-M2)",
+  "LB-R2-M1 W(LB-R1-M1) vs L(WB-R2-M1)",
+  "GF-R1-M1 W(WB-R2-M1) vs W(LB-R2-M1)",
+  "GF-R2-M1 W(GF-R1-M1) vs L(GF-R1-M1) [bracket-reset]"
+]
