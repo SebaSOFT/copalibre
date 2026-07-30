@@ -15,8 +15,9 @@ const AUDIT = { actor: 'user:organizer-1', authorizationContext: 'scope:tourname
 function descriptor(): DisciplineDescriptor {
   return {
     descriptorId: newId(),
-    version: 1,
+    version: '1.0.0',
     name: 'Orbital Field',
+    attribution: { author: 'CopaLibre tests', licence: 'AGPL-3.0-only' },
     participantTypes: ['team'],
     rosterConstraints: { minPlayers: 5, maxPlayers: 9 },
     segmentTypes: [{ name: 'half', label: 'Half', timed: true }],
@@ -34,6 +35,7 @@ function descriptor(): DisciplineDescriptor {
     statistics: [],
     scoringInputs: [],
     availableFormats: ['round-robin'],
+    winCondition: 'higher-score-wins',
     notificationRuleCapabilities: [],
     defaults: { scoring: { pointsPerWin: 3 }, tiebreakers: ['points'] },
     fieldPolicies: {
@@ -136,7 +138,7 @@ describe('repositories (integration)', () => {
       scoring: { pointsPerWin: 2 },
       tiebreakers: ['points', 'goal-difference'],
     });
-    expect(effective.compiledFrom.descriptorVersion).toBe(1);
+    expect(effective.compiledFrom.descriptorVersion).toBe('1.0.0');
   });
 
   it('refuses a forbidden override without writing a ruleset row', async () => {

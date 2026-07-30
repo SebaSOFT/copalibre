@@ -119,7 +119,7 @@ describe('merge shape mismatches per strategy', () => {
       rulesetId: 'rs-1',
       tournamentId: 't-1',
       version: 1,
-      descriptorRef: { descriptorId: 'd', version: 3 },
+      descriptorRef: { descriptorId: 'd', version: '3.0.0' },
       overrides: { noteTemplates: 'not-a-list' },
     });
     expect(result.ok).toBe(false);
@@ -133,7 +133,7 @@ describe('merge shape mismatches per strategy', () => {
       rulesetId: 'rs-1',
       tournamentId: 't-1',
       version: 1,
-      descriptorRef: { descriptorId: 'd', version: 3 },
+      descriptorRef: { descriptorId: 'd', version: '3.0.0' },
       overrides: { segments: ['not', 'an', 'object'] },
     });
     expect(result.ok).toBe(false);
@@ -157,7 +157,7 @@ describe('merge shape mismatches per strategy', () => {
       rulesetId: 'rs-1',
       tournamentId: 't-1',
       version: 1,
-      descriptorRef: { descriptorId: 'd', version: 3 },
+      descriptorRef: { descriptorId: 'd', version: '3.0.0' },
       overrides: { 'broadcast.overlay.theme': 'dark' },
     });
     expect(result.ok).toBe(true);

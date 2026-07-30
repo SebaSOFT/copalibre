@@ -22,8 +22,9 @@ const AUDIT = { actor: 'user:organizer-1', authorizationContext: 'scope:tourname
 function descriptor(): DisciplineDescriptor {
   return {
     descriptorId: newId(),
-    version: 1,
+    version: '1.0.0',
     name: 'Orbital Field',
+    attribution: { author: 'CopaLibre tests', licence: 'AGPL-3.0-only' },
     participantTypes: ['team'],
     rosterConstraints: { minPlayers: 1, maxPlayers: 9 },
     segmentTypes: [{ name: 'half', label: 'Half', timed: true }],
@@ -31,6 +32,7 @@ function descriptor(): DisciplineDescriptor {
     statistics: [],
     scoringInputs: [],
     availableFormats: ['single-elimination'],
+    winCondition: 'higher-score-wins',
     notificationRuleCapabilities: [],
     defaults: { scoring: { pointsPerWin: 3 } },
     fieldPolicies: {

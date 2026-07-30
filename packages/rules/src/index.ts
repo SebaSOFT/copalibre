@@ -42,6 +42,13 @@ export {
 } from './guards/guards.js';
 
 export {
+  bindTiebreakPipeline,
+  overriddenGaps,
+  type BoundTiebreakParameter,
+  type BoundTiebreakPipeline,
+  type CapabilityTiebreakParameter,
+} from './tiebreak/binding.js';
+export {
   resolveTiebreak,
   type ComparisonDirection,
   type MissingValueBehavior,

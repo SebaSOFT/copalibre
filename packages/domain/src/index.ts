@@ -16,6 +16,11 @@ export {
 } from './errors.js';
 
 export { UuidV7 } from './identifiers/uuid-v7.js';
+export {
+  SemanticVersion,
+  latestVersion,
+  InvalidSemanticVersionError,
+} from './identifiers/semantic-version.js';
 export { Alias, type AliasScope } from './identifiers/alias.js';
 
 export type {
@@ -27,6 +32,29 @@ export type {
   RulesetConfig,
   OverrideSet,
 } from './descriptors/override-policy.js';
+export type { Attribution } from './descriptors/attribution.js';
+export {
+  CANONICAL_STATISTICS,
+  resolveRequirement,
+  codeFor,
+  type CanonicalStatistic,
+  type CapabilityRequirement,
+  type ResolvedCapability,
+  type CapabilityBinding,
+} from './capabilities/capability.js';
+export {
+  bindCapabilities,
+  declaredCodes,
+  UnsatisfiedCapabilityError,
+  type BindOptions,
+} from './capabilities/binder.js';
+export type {
+  TournamentProfile,
+  ProfileStage,
+  ProfileTiebreak,
+} from './profiles/tournament-profile.js';
+export { compileProfile, effectiveWinCondition } from './profiles/compile-profile.js';
+
 export type {
   EventCategory,
   ActorRequirement,
@@ -60,7 +88,14 @@ export {
 } from './rulesets/mutation.js';
 
 export type { Organization, Club } from './aggregates/organization.js';
-export type { Tournament, TournamentStatus } from './aggregates/tournament.js';
+export { hasStarted, type Tournament, type TournamentStatus } from './aggregates/tournament.js';
+export {
+  validateStart,
+  canChangeModuleVersion,
+  StartValidationError,
+  ModuleFrozenError,
+  type StartPreconditions,
+} from './aggregates/tournament-start.js';
 export type {
   Participant,
   Team,
@@ -85,3 +120,10 @@ export {
   type RecordedEvent,
   type RecordEventInput,
 } from './events/event-log.js';
+
+/**
+ * Test fixtures, exported so downstream packages can build realistic cases
+ * against real descriptor/profile shapes instead of re-inventing them.
+ */
+export { fixtureDescriptor } from './test-support/fixture-descriptor.js';
+export { fixtureProfile } from './test-support/fixture-profile.js';

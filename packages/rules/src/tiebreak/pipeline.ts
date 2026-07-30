@@ -16,6 +16,13 @@ export type MissingValueBehavior = 'treat-as-worst' | 'treat-as-zero' | 'invalid
 export interface TiebreakParameterDefinition {
   /** Stable identifier, e.g. "points", "score-difference", "head-to-head". */
   readonly id: string;
+  /**
+   * Set when this comparator came from a capability that the binding could not
+   * resolve. Evaluation still runs (and degrades per `missingValue`), but the
+   * trace records why it discriminated nothing — otherwise an operator reading
+   * an archived standing would see a comparator that silently did nothing.
+   */
+  readonly unboundCapability?: string;
   readonly label: string;
   readonly valueType: 'number' | 'ordered-value';
   readonly direction: ComparisonDirection;
@@ -90,9 +97,12 @@ export function resolveTiebreak(
           ? 'partially-resolved'
           : 'tied-proceed',
       values: observed,
-      detail: resolvedAll
-        ? `${parameter.label} resolved the tie`
-        : `Tie not fully resolved by ${parameter.label}; proceed to next comparator`,
+      detail: parameter.unboundCapability
+        ? `Capability "${parameter.unboundCapability}" is not provided by this discipline; ` +
+          `comparator discriminated nothing (${parameter.missingValue})`
+        : resolvedAll
+          ? `${parameter.label} resolved the tie`
+          : `Tie not fully resolved by ${parameter.label}; proceed to next comparator`,
     });
 
     if (resolvedAll) break;

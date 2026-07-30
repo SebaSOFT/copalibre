@@ -1,9 +1,10 @@
+import type { CapabilityBinding } from '../capabilities/capability.js';
 import type { RulesetConfig } from '../descriptors/override-policy.js';
 
 /** Every configuration version a MatchRuleset was compiled from. */
 export interface CompilationProvenance {
   readonly descriptorId: string;
-  readonly descriptorVersion: number;
+  readonly descriptorVersion: string;
   readonly rulesetId?: string;
   readonly rulesetVersion?: number;
   readonly stageConfigurationId?: string;
@@ -19,4 +20,10 @@ export interface MatchRuleset {
   readonly compiledFrom: CompilationProvenance;
   readonly config: RulesetConfig;
   readonly compiledAt: string;
+  /**
+   * Capability resolutions, present when compiled from a tournament profile.
+   * Frozen here so an archived competition keeps its bindings and can be read
+   * with the modules that produced it deleted.
+   */
+  readonly binding?: CapabilityBinding;
 }

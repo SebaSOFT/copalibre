@@ -39,8 +39,18 @@ export class TournamentResponse {
   @ApiProperty({ example: 'Copa Verano' })
   name!: string;
 
-  @ApiProperty({ enum: ['draft', 'published'] })
-  status!: 'draft' | 'published';
+  @ApiProperty({
+    enum: ['draft', 'published', 'started', 'finished'],
+    description:
+      "Once started, the tournament's discipline and profile versions are frozen and its results are materialised.",
+  })
+  status!: 'draft' | 'published' | 'started' | 'finished';
+
+  @ApiPropertyOptional({
+    format: 'date-time',
+    description: 'When the first match began, marking the module freeze.',
+  })
+  startedAt?: string;
 
   @ApiPropertyOptional({ format: 'uuid', description: 'Active ruleset version, when one exists' })
   rulesetId?: string;
@@ -56,8 +66,12 @@ export class CreateTournamentRequest {
   @ApiProperty({ format: 'uuid', description: 'DisciplineDescriptor identifier' })
   descriptorId!: string;
 
-  @ApiProperty({ description: 'Pinned descriptor version; rulesets never track "latest"' })
-  descriptorVersion!: number;
+  @ApiProperty({
+    description:
+      'Pinned descriptor version (semver). Rulesets never track "latest": the version a tournament starts on is frozen.',
+    example: '1.2.0',
+  })
+  descriptorVersion!: string;
 }
 
 export class ProblemResponse {

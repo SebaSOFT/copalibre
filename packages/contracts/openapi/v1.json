@@ -316,7 +316,7 @@
   "info": {
     "title": "CopaLibre API",
     "description": "Self-hosted tournament management API.\n\nAuthentication is JWT Bearer, validated against the operator-selected\nidentity provider’s JWKS. Browsers use Authorization Code + PKCE and\nhold the access token in memory only — never localStorage. A token\npassed as a query parameter is ignored, because URLs leak into proxy\nlogs, browser history, metrics, traces and screenshots.\n\nEvery route declares one security plane: public-read,\nauthenticated-interaction, admin-control, or integration.\nauthenticated-interaction and admin-control share this same bearer\ntransport and differ only in authorization policy.",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "contact": {}
   },
   "tags": [],
@@ -470,8 +470,16 @@
             "type": "string",
             "enum": [
               "draft",
-              "published"
-            ]
+              "published",
+              "started",
+              "finished"
+            ],
+            "description": "Once started, the tournament's discipline and profile versions are frozen and its results are materialised."
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the first match began, marking the module freeze."
           },
           "rulesetId": {
             "type": "string",
@@ -504,8 +512,9 @@
             "description": "DisciplineDescriptor identifier"
           },
           "descriptorVersion": {
-            "type": "number",
-            "description": "Pinned descriptor version; rulesets never track \"latest\""
+            "type": "string",
+            "description": "Pinned descriptor version (semver). Rulesets never track \"latest\": the version a tournament starts on is frozen.",
+            "example": "1.2.0"
           }
         },
         "required": [

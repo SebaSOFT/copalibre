@@ -78,7 +78,7 @@ export class TournamentRepository {
 
   async findDescriptor(
     descriptorId: string,
-    version: number,
+    version: string,
   ): Promise<DisciplineDescriptor | undefined> {
     const row = await this.db
       .selectFrom('discipline_descriptors')

@@ -161,6 +161,8 @@ jobs:
       - run: yarn install --immutable
       # Proves the one controlled migration entrypoint works before any test runs.
       - run: yarn workspace @copalibre/migrate run start
+      # Includes the competition-record suite: a finished tournament must stay
+      # readable after the modules that produced it are deleted (0008).
       - run: yarn workspace @copalibre/persistence test:integration
       # Guard/policy/controller suite through the real HTTP stack (0005).
       - run: yarn workspace @copalibre/api test:integration

@@ -7,7 +7,14 @@ import type { OpenAPIObject } from '@nestjs/swagger';
  * cannot drift from the implementation, then contract-linted and
  * breaking-change-checked in CI before phase 0020 serves it via Scalar.
  */
-export const OPENAPI_VERSION = '1.0.0';
+/**
+ * Bumped to 2.0.0 by 0008-extensible-module-foundation: `descriptorVersion`
+ * changed from an integer to a semver string, which the breaking-change check
+ * correctly flagged as incompatible for existing callers. No client consumes
+ * the API yet (phase 0015 is the first), so nothing needs migrating — but the
+ * version reflects the contract change rather than hiding it.
+ */
+export const OPENAPI_VERSION = '2.0.0';
 
 export function buildOpenApiDocument(app: INestApplication): OpenAPIObject {
   const config = new DocumentBuilder()

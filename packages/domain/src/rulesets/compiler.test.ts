@@ -8,7 +8,7 @@ function ruleset(overrides: Record<string, unknown>): TournamentRuleset {
     rulesetId: 'rs-1',
     tournamentId: 't-1',
     version: 7,
-    descriptorRef: { descriptorId: 'd-1', version: 3 },
+    descriptorRef: { descriptorId: 'd-1', version: '3.0.0' },
     overrides,
   };
 }
@@ -29,7 +29,7 @@ describe('compileEffectiveRuleset', () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.value.config).toEqual(fixtureDescriptor().defaults);
-      expect(result.value.compiledFrom.descriptorVersion).toBe(3);
+      expect(result.value.compiledFrom.descriptorVersion).toBe('3.0.0');
       expect(result.value.compiledFrom.rulesetId).toBeUndefined();
     }
   });
@@ -194,7 +194,7 @@ describe('compileEffectiveRuleset', () => {
     if (result.ok) {
       expect(result.value.compiledFrom).toEqual({
         descriptorId: '01890000-0000-7000-8000-000000000001',
-        descriptorVersion: 3,
+        descriptorVersion: '3.0.0',
         rulesetId: 'rs-1',
         rulesetVersion: 7,
         stageConfigurationId: 'sc-1',
