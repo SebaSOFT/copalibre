@@ -1,9 +1,9 @@
 import { Controller, Get, Post } from '@nestjs/common';
 import type { OpenAPIObject } from '@nestjs/swagger';
-import { SecurityPlaneTag } from '../auth/security-plane';
-import { detectBreakingChanges } from './breaking-change';
-import { collectRoutePlanes } from './collect-planes';
-import { lintOpenApiContract, type RoutePlanes } from './contract-lint';
+import { SecurityPlaneTag } from '../auth/security-plane.js';
+import { detectBreakingChanges } from './breaking-change.js';
+import { collectRoutePlanes } from './collect-planes.js';
+import { lintOpenApiContract, type RoutePlanes } from './contract-lint.js';
 
 /**
  * Fixtures are hand-built OpenAPI fragments, so they are typed loosely here and

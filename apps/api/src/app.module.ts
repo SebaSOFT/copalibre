@@ -1,11 +1,11 @@
 import { Module, type Provider } from '@nestjs/common';
 import type { Kysely } from 'kysely';
-import { DATABASE } from './database.token';
-import { HealthController } from './health.controller';
-import { OrganizationsController } from './controllers/organizations.controller';
-import { TournamentsController } from './controllers/tournaments.controller';
-import { authConfigFromEnv } from './auth/auth-config';
-import { TokenVerifier } from './auth/token-verifier';
+import { DATABASE } from './database.token.js';
+import { HealthController } from './health.controller.js';
+import { OrganizationsController } from './controllers/organizations.controller.js';
+import { TournamentsController } from './controllers/tournaments.controller.js';
+import { authConfigFromEnv } from './auth/auth-config.js';
+import { TokenVerifier } from './auth/token-verifier.js';
 import { createDatabase, databaseConfigFromEnv, type Database } from '@copalibre/persistence';
 
 /**

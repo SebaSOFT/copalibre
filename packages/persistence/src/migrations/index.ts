@@ -5,8 +5,8 @@ import {
   type MigrationProvider,
   type MigrationResultSet,
 } from 'kysely';
-import type { Database } from '../schema';
-import { initialSchema } from './0001-initial-schema';
+import type { Database } from '../schema.js';
+import { initialSchema } from './0001-initial-schema.js';
 
 /**
  * Migrations are explicit, ordered, and code-defined (no filesystem scanning),

@@ -1,4 +1,4 @@
-import { databaseConfigFromEnv } from './database';
+import { databaseConfigFromEnv } from './database.js';
 
 describe('databaseConfigFromEnv', () => {
   it('reads DATABASE_URL', () => {
@@ -13,14 +13,14 @@ describe('databaseConfigFromEnv', () => {
 
 describe('createDatabase', () => {
   it('builds a Kysely instance with the default pool size', async () => {
-    const { createDatabase } = await import('./database');
+    const { createDatabase } = await import('./database.js');
     const db = createDatabase({ connectionString: 'postgres://u:p@127.0.0.1:1/db' });
     expect(typeof db.selectFrom).toBe('function');
     await db.destroy();
   });
 
   it('honors an explicit maxConnections', async () => {
-    const { createDatabase } = await import('./database');
+    const { createDatabase } = await import('./database.js');
     const db = createDatabase({
       connectionString: 'postgres://u:p@127.0.0.1:1/db',
       maxConnections: 3,

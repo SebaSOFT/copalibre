@@ -1,5 +1,5 @@
 import type { DisciplineDescriptor, RecordedEvent } from '@copalibre/domain';
-import type { EvaluationRecord, TraceNode } from '../trace/explanation-trace';
+import type { EvaluationRecord, TraceNode } from '../trace/explanation-trace.js';
 
 /**
  * Event-triggered notification rules, per the tournament-engine decision

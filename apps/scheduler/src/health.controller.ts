@@ -1,5 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
-import { ROLE, VERSION } from './role';
+import { ROLE, VERSION } from './role.js';
 
 @Controller('health')
 export class HealthController {

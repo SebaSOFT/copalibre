@@ -1,13 +1,13 @@
 import { Ajv, type ValidateFunction } from 'ajv';
-import type { DisciplineDescriptor } from '../descriptors/discipline-descriptor';
+import type { DisciplineDescriptor } from '../descriptors/discipline-descriptor.js';
 import type {
   EventDefinition,
   EventEffect,
   PayloadJsonSchema,
-} from '../descriptors/event-definition';
-import type { Segment } from '../aggregates/competition';
-import { EventValidationError } from '../errors';
-import { err, ok, type Result } from '../result';
+} from '../descriptors/event-definition.js';
+import type { Segment } from '../aggregates/competition.js';
+import { EventValidationError } from '../errors.js';
+import { err, ok, type Result } from '../result.js';
 
 /**
  * A recorded match event is a timestamped domain fact. The event log is the

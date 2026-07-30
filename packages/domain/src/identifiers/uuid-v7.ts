@@ -1,6 +1,6 @@
 import { v7 as generateUuidV7 } from 'uuid';
-import { InvalidUuidError } from '../errors';
-import { err, ok, type Result } from '../result';
+import { InvalidUuidError } from '../errors.js';
+import { err, ok, type Result } from '../result.js';
 
 /**
  * RFC 9562 UUID version 7: 48-bit unix-ms timestamp, version nibble 7,

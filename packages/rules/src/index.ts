@@ -12,14 +12,14 @@ export {
   ScriptValidationError,
   GuardEvaluationError,
   NotificationRuleError,
-} from './errors';
+} from './errors.js';
 
 export {
   RulesRegistry,
   type ElementKind,
   type RegistryEntry,
   type RuleScript,
-} from './registry/rules-registry';
+} from './registry/rules-registry.js';
 
 export {
   registerCopalibreVocabulary,
@@ -27,15 +27,19 @@ export {
   StateStringParameter,
   SetGuardOutcomeAction,
   type GuardState,
-} from './evaluation/vocabulary';
+} from './evaluation/vocabulary.js';
 
-export { evaluateGuard, type GuardDecision, type GuardInput } from './evaluation/guard-evaluator';
+export {
+  evaluateGuard,
+  type GuardDecision,
+  type GuardInput,
+} from './evaluation/guard-evaluator.js';
 export {
   evaluateEligibility,
   evaluateAdvancement,
   type EligibilityFacts,
   type AdvancementFacts,
-} from './guards/guards';
+} from './guards/guards.js';
 
 export {
   resolveTiebreak,
@@ -45,7 +49,7 @@ export {
   type TiebreakPipeline,
   type EntrantValues,
   type TiebreakResolution,
-} from './tiebreak/pipeline';
+} from './tiebreak/pipeline.js';
 
 export {
   evaluateNotificationRule,
@@ -58,6 +62,10 @@ export {
   type NotificationRule,
   type NotificationInstance,
   type NotificationEvaluation,
-} from './notifications/notification-rules';
+} from './notifications/notification-rules.js';
 
-export { roundTripsAsJson, type TraceNode, type EvaluationRecord } from './trace/explanation-trace';
+export {
+  roundTripsAsJson,
+  type TraceNode,
+  type EvaluationRecord,
+} from './trace/explanation-trace.js';

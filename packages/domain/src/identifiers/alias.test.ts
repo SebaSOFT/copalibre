@@ -1,6 +1,6 @@
-import { InvalidAliasError } from '../errors';
-import { unwrap } from '../result';
-import { Alias } from './alias';
+import { InvalidAliasError } from '../errors.js';
+import { unwrap } from '../result.js';
+import { Alias } from './alias.js';
 
 describe('Alias', () => {
   it.each(['copa-verano-2026', 'liga1', 'a', 'x-9-y'])('accepts kebab-case "%s"', (value) => {

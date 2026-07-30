@@ -1,5 +1,5 @@
-import { InvalidAliasError } from '../errors';
-import { err, ok, type Result } from '../result';
+import { InvalidAliasError } from '../errors.js';
+import { err, ok, type Result } from '../result.js';
 
 /**
  * CopaLibre's term for a human-readable, URL-safe path identifier is "alias"

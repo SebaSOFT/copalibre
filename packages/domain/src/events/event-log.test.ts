@@ -1,7 +1,7 @@
-import type { Segment } from '../aggregates/competition';
-import { EventValidationError } from '../errors';
-import { fixtureDescriptor } from '../test-support/fixture-descriptor';
-import { EventLog, effectsOf, type RecordEventInput } from './event-log';
+import type { Segment } from '../aggregates/competition.js';
+import { EventValidationError } from '../errors.js';
+import { fixtureDescriptor } from '../test-support/fixture-descriptor.js';
+import { EventLog, effectsOf, type RecordEventInput } from './event-log.js';
 
 const half: Segment = {
   segmentId: 'seg-1',

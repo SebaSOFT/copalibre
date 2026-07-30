@@ -1,4 +1,4 @@
-import type { RulesetConfig } from '../descriptors/override-policy';
+import type { RulesetConfig } from '../descriptors/override-policy.js';
 
 /** Every configuration version a MatchRuleset was compiled from. */
 export interface CompilationProvenance {

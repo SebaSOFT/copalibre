@@ -1,9 +1,9 @@
-import type { DisciplineDescriptor } from '../descriptors/discipline-descriptor';
-import type { MergeStrategyName, OverrideSet } from '../descriptors/override-policy';
-import { RulesetCompilationError, type PolicyViolation } from '../errors';
-import { err, ok, type Result } from '../result';
-import type { MatchRuleset } from './match-ruleset';
-import type { StageConfiguration, TournamentRuleset } from './tournament-ruleset';
+import type { DisciplineDescriptor } from '../descriptors/discipline-descriptor.js';
+import type { MergeStrategyName, OverrideSet } from '../descriptors/override-policy.js';
+import { RulesetCompilationError, type PolicyViolation } from '../errors.js';
+import { err, ok, type Result } from '../result.js';
+import type { MatchRuleset } from './match-ruleset.js';
+import type { StageConfiguration, TournamentRuleset } from './tournament-ruleset.js';
 
 /**
  * Compiles DisciplineDescriptor defaults + the permitted override chain into

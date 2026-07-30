@@ -1,6 +1,6 @@
 import { ForbiddenException } from '@nestjs/common';
-import type { AuthenticatedSubject } from '../auth/request-context';
-import type { SecurityPlane } from '../auth/security-plane';
+import type { AuthenticatedSubject } from '../auth/request-context.js';
+import type { SecurityPlane } from '../auth/security-plane.js';
 
 /**
  * Authorization: may this subject act on THIS resource? Separate from the guard

@@ -5,7 +5,7 @@ import {
   MessageType,
   type ExecutionContext,
 } from '@sebasoft/neuron-js';
-import type { RulesRegistry } from '../registry/rules-registry';
+import type { RulesRegistry } from '../registry/rules-registry.js';
 
 /**
  * CopaLibre's vetted Neuron-JS vocabulary. Discipline/rule documents may

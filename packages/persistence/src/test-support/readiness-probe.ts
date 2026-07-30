@@ -1,5 +1,9 @@
-import { createDatabase } from '../database';
-import { EXPECTED_SCHEMA_VERSION, isSchemaReady, readAppliedSchemaVersion } from '../migrations';
+import { createDatabase } from '../database.js';
+import {
+  EXPECTED_SCHEMA_VERSION,
+  isSchemaReady,
+  readAppliedSchemaVersion,
+} from '../migrations/index.js';
 
 /**
  * Mirrors what `apps/api`'s readiness endpoint does, using only this package's

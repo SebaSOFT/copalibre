@@ -1,5 +1,5 @@
-import type { EventDefinition } from './event-definition';
-import type { ConfigFieldPolicies, RulesetConfig } from './override-policy';
+import type { EventDefinition } from './event-definition.js';
+import type { ConfigFieldPolicies, RulesetConfig } from './override-policy.js';
 
 /**
  * Reusable, versioned profile for a sport, esports title, or competition

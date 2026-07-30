@@ -4,7 +4,7 @@
  * (architecture rule: "domain and rules do not import Nest or Fastify").
  */
 
-export { ok, err, unwrap, type Result } from './result';
+export { ok, err, unwrap, type Result } from './result.js';
 export {
   DomainError,
   InvalidUuidError,
@@ -13,10 +13,10 @@ export {
   EventValidationError,
   MutationBlockedError,
   type PolicyViolation,
-} from './errors';
+} from './errors.js';
 
-export { UuidV7 } from './identifiers/uuid-v7';
-export { Alias, type AliasScope } from './identifiers/alias';
+export { UuidV7 } from './identifiers/uuid-v7.js';
+export { Alias, type AliasScope } from './identifiers/alias.js';
 
 export type {
   MergeStrategyName,
@@ -26,14 +26,14 @@ export type {
   ConfigFieldPolicies,
   RulesetConfig,
   OverrideSet,
-} from './descriptors/override-policy';
+} from './descriptors/override-policy.js';
 export type {
   EventCategory,
   ActorRequirement,
   PayloadJsonSchema,
   EventEffect,
   EventDefinition,
-} from './descriptors/event-definition';
+} from './descriptors/event-definition.js';
 export {
   MVP_FORMATS,
   type ParticipantType,
@@ -43,24 +43,24 @@ export {
   type StatisticDefinition,
   type ScoringInputDefinition,
   type DisciplineDescriptor,
-} from './descriptors/discipline-descriptor';
+} from './descriptors/discipline-descriptor.js';
 
 export type {
   DescriptorRef,
   TournamentRuleset,
   StageConfiguration,
-} from './rulesets/tournament-ruleset';
-export type { CompilationProvenance, MatchRuleset } from './rulesets/match-ruleset';
-export { compileEffectiveRuleset } from './rulesets/compiler';
+} from './rulesets/tournament-ruleset.js';
+export type { CompilationProvenance, MatchRuleset } from './rulesets/match-ruleset.js';
+export { compileEffectiveRuleset } from './rulesets/compiler.js';
 export {
   evaluateMutation,
   type FixtureRef,
   type MutationContext,
   type MutationDecision,
-} from './rulesets/mutation';
+} from './rulesets/mutation.js';
 
-export type { Organization, Club } from './aggregates/organization';
-export type { Tournament, TournamentStatus } from './aggregates/tournament';
+export type { Organization, Club } from './aggregates/organization.js';
+export type { Tournament, TournamentStatus } from './aggregates/tournament.js';
 export type {
   Participant,
   Team,
@@ -68,7 +68,7 @@ export type {
   Roster,
   EntrantStatus,
   Entrant,
-} from './aggregates/participant';
+} from './aggregates/participant.js';
 export type {
   Stage,
   Fixture,
@@ -77,6 +77,11 @@ export type {
   MatchResult,
   Match,
   Segment,
-} from './aggregates/competition';
+} from './aggregates/competition.js';
 
-export { EventLog, effectsOf, type RecordedEvent, type RecordEventInput } from './events/event-log';
+export {
+  EventLog,
+  effectsOf,
+  type RecordedEvent,
+  type RecordEventInput,
+} from './events/event-log.js';

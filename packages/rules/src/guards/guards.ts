@@ -1,7 +1,7 @@
 import type { MatchRuleset, Participant, RecordedEvent, Result, Roster } from '@copalibre/domain';
-import type { GuardEvaluationError, ScriptValidationError } from '../errors';
-import { evaluateGuard, type GuardDecision } from '../evaluation/guard-evaluator';
-import type { RulesRegistry, RuleScript } from '../registry/rules-registry';
+import type { GuardEvaluationError, ScriptValidationError } from '../errors.js';
+import { evaluateGuard, type GuardDecision } from '../evaluation/guard-evaluator.js';
+import type { RulesRegistry, RuleScript } from '../registry/rules-registry.js';
 
 /**
  * Typed guard entry points. Both delegate to the shared harness; they differ

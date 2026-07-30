@@ -9,11 +9,11 @@ import {
   type TournamentRuleset,
 } from '@copalibre/domain';
 import type { Kysely } from 'kysely';
-import { InvariantViolationError, NotFoundError } from '../errors';
-import { newId } from '../ids';
-import { toTournament } from '../mapping';
-import type { Database } from '../schema';
-import type { UnitOfWork } from '../transaction';
+import { InvariantViolationError, NotFoundError } from '../errors.js';
+import { newId } from '../ids.js';
+import { toTournament } from '../mapping.js';
+import type { Database } from '../schema.js';
+import type { UnitOfWork } from '../transaction.js';
 
 export interface CreateTournamentInput {
   readonly organizationId: string;

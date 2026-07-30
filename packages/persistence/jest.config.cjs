@@ -1,4 +1,5 @@
 const base = require('../../jest.config.base.cjs');
+const esmExtensionMapper = require('../../jest.esm-mapper.cjs');
 
 module.exports = {
   ...base,
@@ -7,6 +8,7 @@ module.exports = {
   // jest.integration.config.cjs (real Postgres) via `yarn test:integration`.
   testPathIgnorePatterns: ['/node_modules/', '\\.integration\\.test\\.ts$'],
   moduleNameMapper: {
+    ...esmExtensionMapper,
     '^@copalibre/domain$': '<rootDir>/../domain/src/index.ts',
   },
   /**

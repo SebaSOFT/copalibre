@@ -5,10 +5,10 @@ import {
   ApiServiceUnavailableResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { SecurityPlaneTag } from './auth/security-plane';
-import { HealthResponse, ReadinessResponse } from './dto/health.dto';
-import { checkReadiness } from './readiness';
-import { ROLE, VERSION } from './role';
+import { SecurityPlaneTag } from './auth/security-plane.js';
+import { HealthResponse, ReadinessResponse } from './dto/health.dto.js';
+import { checkReadiness } from './readiness.js';
+import { ROLE, VERSION } from './role.js';
 
 @ApiTags('operations')
 @Controller()

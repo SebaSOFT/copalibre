@@ -1,6 +1,6 @@
 import { createRemoteJWKSet, jwtVerify, type JWTPayload, type JWTVerifyGetKey } from 'jose';
-import { ALLOWED_ALGORITHMS, type AuthConfig } from './auth-config';
-import type { AuthenticatedSubject } from './request-context';
+import { ALLOWED_ALGORITHMS, type AuthConfig } from './auth-config.js';
+import type { AuthenticatedSubject } from './request-context.js';
 
 /**
  * Verifies access tokens against the identity provider's JWKS.

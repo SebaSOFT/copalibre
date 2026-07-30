@@ -2,16 +2,16 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
-import { DATABASE } from '../database.token';
+import { DATABASE } from '../database.token.js';
 import type { OpenAPIObject } from '@nestjs/swagger';
-import { HealthController } from '../health.controller';
-import { OrganizationsController } from '../controllers/organizations.controller';
-import { TournamentsController } from '../controllers/tournaments.controller';
-import { TokenVerifier } from '../auth/token-verifier';
-import { buildOpenApiDocument, OPENAPI_VERSION } from './document';
-import { collectRoutePlanes } from './collect-planes';
-import { lintOpenApiContract } from './contract-lint';
-import { detectBreakingChanges } from './breaking-change';
+import { HealthController } from '../health.controller.js';
+import { OrganizationsController } from '../controllers/organizations.controller.js';
+import { TournamentsController } from '../controllers/tournaments.controller.js';
+import { TokenVerifier } from '../auth/token-verifier.js';
+import { buildOpenApiDocument, OPENAPI_VERSION } from './document.js';
+import { collectRoutePlanes } from './collect-planes.js';
+import { lintOpenApiContract } from './contract-lint.js';
+import { detectBreakingChanges } from './breaking-change.js';
 import { Module } from '@nestjs/common';
 
 /**
@@ -32,7 +32,7 @@ const CONTROLLERS = [HealthController, OrganizationsController, TournamentsContr
 })
 class OpenApiModule {}
 
-const ARTIFACT_PATH = join(__dirname, '../../../../packages/contracts/openapi/v1.json');
+const ARTIFACT_PATH = join(import.meta.dirname, '../../../../packages/contracts/openapi/v1.json');
 
 async function main(): Promise<void> {
   // Fastify adapter, matching production; generation needs no listening server.

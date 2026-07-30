@@ -1,4 +1,4 @@
-import type { OverrideSet } from '../descriptors/override-policy';
+import type { OverrideSet } from '../descriptors/override-policy.js';
 
 /** Pins one exact descriptor version — rulesets never track "latest". */
 export interface DescriptorRef {

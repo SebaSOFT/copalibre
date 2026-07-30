@@ -1,10 +1,10 @@
-import { MVP_FORMATS } from './descriptors/discipline-descriptor';
-import { EventLog } from './events/event-log';
-import { Alias } from './identifiers/alias';
-import { UuidV7 } from './identifiers/uuid-v7';
-import { compileEffectiveRuleset } from './rulesets/compiler';
-import { err, ok, unwrap } from './result';
-import { fixtureDescriptor } from './test-support/fixture-descriptor';
+import { MVP_FORMATS } from './descriptors/discipline-descriptor.js';
+import { EventLog } from './events/event-log.js';
+import { Alias } from './identifiers/alias.js';
+import { UuidV7 } from './identifiers/uuid-v7.js';
+import { compileEffectiveRuleset } from './rulesets/compiler.js';
+import { err, ok, unwrap } from './result.js';
+import { fixtureDescriptor } from './test-support/fixture-descriptor.js';
 
 describe('MVP format catalogue', () => {
   it('advertises exactly the six formats from the tournament-engine decision', () => {

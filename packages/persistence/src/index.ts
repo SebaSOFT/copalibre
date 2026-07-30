@@ -5,18 +5,23 @@
  * audit writes, and outbox writes are explicit, per the architecture doc.
  */
 
-export type { Database } from './schema';
-export { createDatabase, databaseConfigFromEnv, type DatabaseConfig } from './database';
-export { newId } from './ids';
+export type { Database } from './schema.js';
+export { createDatabase, databaseConfigFromEnv, type DatabaseConfig } from './database.js';
+export { newId } from './ids.js';
 
 export {
   PersistenceError,
   InvariantViolationError,
   SchemaVersionMismatchError,
   NotFoundError,
-} from './errors';
+} from './errors.js';
 
-export { withTransaction, type UnitOfWork, type AuditEntry, type OutboxEvent } from './transaction';
+export {
+  withTransaction,
+  type UnitOfWork,
+  type AuditEntry,
+  type OutboxEvent,
+} from './transaction.js';
 
 export {
   MIGRATIONS,
@@ -26,22 +31,22 @@ export {
   migrateDownOneStep,
   readAppliedSchemaVersion,
   isSchemaReady,
-} from './migrations';
+} from './migrations/index.js';
 
-export { AuditReader, type AuditRecord } from './audit';
-export { OutboxReader, type OutboxRecord } from './outbox';
+export { AuditReader, type AuditRecord } from './audit.js';
+export { OutboxReader, type OutboxRecord } from './outbox.js';
 
 export {
   OrganizationRepository,
   type CreateOrganizationInput,
-} from './repositories/organization-repository';
+} from './repositories/organization-repository.js';
 export {
   TournamentRepository,
   type CreateTournamentInput,
   type CreateRulesetInput,
-} from './repositories/tournament-repository';
-export { ParticipantRepository, type AuditContext } from './repositories/participant-repository';
-export { CompetitionRepository } from './repositories/competition-repository';
+} from './repositories/tournament-repository.js';
+export { ParticipantRepository, type AuditContext } from './repositories/participant-repository.js';
+export { CompetitionRepository } from './repositories/competition-repository.js';
 
 export {
   toOrganization,
@@ -55,4 +60,4 @@ export {
   toSegment,
   toRecordedEvent,
   toIsoString,
-} from './mapping';
+} from './mapping.js';

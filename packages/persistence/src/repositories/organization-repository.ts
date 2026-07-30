@@ -1,10 +1,10 @@
 import { Alias, type Organization } from '@copalibre/domain';
 import type { Kysely } from 'kysely';
-import { newId } from '../ids';
-import { toOrganization } from '../mapping';
-import type { Database } from '../schema';
-import type { UnitOfWork } from '../transaction';
-import { InvariantViolationError } from '../errors';
+import { newId } from '../ids.js';
+import { toOrganization } from '../mapping.js';
+import type { Database } from '../schema.js';
+import type { UnitOfWork } from '../transaction.js';
+import { InvariantViolationError } from '../errors.js';
 
 export interface CreateOrganizationInput {
   readonly alias: string;

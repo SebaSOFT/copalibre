@@ -1,8 +1,16 @@
-import type { INestApplication } from '@nestjs/common';
-import { PATH_METADATA, METHOD_METADATA } from '@nestjs/common/constants';
-import { RequestMethod } from '@nestjs/common';
-import { SECURITY_PLANE_KEY, type SecurityPlane } from '../auth/security-plane';
-import type { RoutePlanes } from './contract-lint';
+import { RequestMethod, type INestApplication } from '@nestjs/common';
+
+/**
+ * Nest publishes these as `@nestjs/common/constants`, a subpath its package.json
+ * does not declare in an exports map, so Node's ES module resolver cannot see
+ * it. The values are part of Nest's decorator contract and stable across the
+ * 11.x line, so they are declared here rather than reaching into package
+ * internals (0006-esm-module-migration).
+ */
+const PATH_METADATA = 'path';
+const METHOD_METADATA = 'method';
+import { SECURITY_PLANE_KEY, type SecurityPlane } from '../auth/security-plane.js';
+import type { RoutePlanes } from './contract-lint.js';
 
 /**
  * Reads each route's declared security plane straight off the controller

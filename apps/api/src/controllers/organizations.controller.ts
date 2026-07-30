@@ -10,15 +10,15 @@ import {
 } from '@nestjs/swagger';
 import { OrganizationRepository, withTransaction, type Database } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
-import type { RequestWithSubject } from '../auth/request-context';
-import { SecurityPlaneTag } from '../auth/security-plane';
+import type { RequestWithSubject } from '../auth/request-context.js';
+import { SecurityPlaneTag } from '../auth/security-plane.js';
 import {
   CreateOrganizationRequest,
   OrganizationResponse,
   ProblemResponse,
-} from '../dto/organization.dto';
-import { enforcePolicy } from '../policy/resource-policy';
-import { DATABASE } from '../database.token';
+} from '../dto/organization.dto.js';
+import { enforcePolicy } from '../policy/resource-policy.js';
+import { DATABASE } from '../database.token.js';
 
 /**
  * Thin pass-through to phase 0004's repositories — no tournament business logic

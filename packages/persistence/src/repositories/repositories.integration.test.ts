@@ -1,14 +1,14 @@
 import type { DisciplineDescriptor, MatchResult } from '@copalibre/domain';
-import { AuditReader } from '../audit';
-import { InvariantViolationError, NotFoundError } from '../errors';
-import { newId } from '../ids';
-import { OutboxReader } from '../outbox';
-import { createMigratedDatabase, type ScratchDatabase } from '../test-support/scratch-database';
-import { withTransaction } from '../transaction';
-import { CompetitionRepository } from './competition-repository';
-import { OrganizationRepository } from './organization-repository';
-import { ParticipantRepository } from './participant-repository';
-import { TournamentRepository } from './tournament-repository';
+import { AuditReader } from '../audit.js';
+import { InvariantViolationError, NotFoundError } from '../errors.js';
+import { newId } from '../ids.js';
+import { OutboxReader } from '../outbox.js';
+import { createMigratedDatabase, type ScratchDatabase } from '../test-support/scratch-database.js';
+import { withTransaction } from '../transaction.js';
+import { CompetitionRepository } from './competition-repository.js';
+import { OrganizationRepository } from './organization-repository.js';
+import { ParticipantRepository } from './participant-repository.js';
+import { TournamentRepository } from './tournament-repository.js';
 
 const AUDIT = { actor: 'user:organizer-1', authorizationContext: 'scope:tournament.write' };
 

@@ -1,11 +1,11 @@
-import { checkReadinessAgainst } from '../test-support/readiness-probe';
-import { createScratchDatabase, type ScratchDatabase } from '../test-support/scratch-database';
+import { checkReadinessAgainst } from '../test-support/readiness-probe.js';
+import { createScratchDatabase, type ScratchDatabase } from '../test-support/scratch-database.js';
 import {
   EXPECTED_SCHEMA_VERSION,
   migrateDownOneStep,
   migrateToLatest,
   readAppliedSchemaVersion,
-} from './index';
+} from './index.js';
 
 describe('migrations (integration)', () => {
   let scratch: ScratchDatabase;
