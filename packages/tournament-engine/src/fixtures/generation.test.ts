@@ -1,6 +1,7 @@
 import { InvalidEntrantsError, UnsupportedFormatError } from '../errors.js';
 import { expectGolden, summarise } from '../test-support/golden.js';
 import type { TournamentFormat } from '@copalibre/domain';
+import { isDuelMatch, type DuelMatch } from '../types.js';
 import { generateFixtures, nextPowerOfTwo, seedSlotOrder } from './index.js';
 
 const entrants = (n: number) =>
@@ -10,6 +11,17 @@ function graph(format: TournamentFormat, n: number, homeAndAway = false) {
   const result = generateFixtures({ format, entrants: entrants(n), homeAndAway });
   if (!result.ok) throw result.error;
   return result.value;
+}
+
+/**
+ * Every MVP format is a duel format, so the narrowing is an assertion as much
+ * as a convenience: a generator emitting a placement match here is a defect.
+ */
+function duels(format: TournamentFormat, n: number, homeAndAway = false): readonly DuelMatch[] {
+  const { matches } = graph(format, n, homeAndAway);
+  const duelMatches = matches.filter(isDuelMatch);
+  expect(duelMatches).toHaveLength(matches.length);
+  return duelMatches;
 }
 
 describe('format guard', () => {
@@ -119,8 +131,8 @@ describe('single elimination', () => {
   });
 
   it('gives byes to the top seeds', () => {
-    const byeOpponents = graph('single-elimination', 5)
-      .matches.filter((m) => m.slotB.kind === 'bye' || m.slotA.kind === 'bye')
+    const byeOpponents = duels('single-elimination', 5)
+      .filter((m) => m.slotB.kind === 'bye' || m.slotA.kind === 'bye')
       .map((m) => (m.slotA.kind === 'entrant' ? m.slotA.seed : (m.slotB as { seed: number }).seed));
     // 5 entrants in an 8-slot bracket: seeds 1, 2 and 3 receive byes.
     expect(byeOpponents.sort((a, b) => a - b)).toEqual([1, 2, 3]);
@@ -154,9 +166,7 @@ describe('double elimination', () => {
   });
 
   it('generates the grand final and a conditional bracket reset', () => {
-    const finals = graph('double-elimination', 8).matches.filter(
-      (m) => m.bracket === 'grand-final',
-    );
+    const finals = duels('double-elimination', 8).filter((m) => m.bracket === 'grand-final');
     expect(finals).toHaveLength(2);
     expect(finals[0]?.conditional).toBeUndefined();
     expect(finals[1]?.conditional).toBe('bracket-reset');
@@ -164,7 +174,7 @@ describe('double elimination', () => {
 
   it('never emits a match with no possible participant on either side', () => {
     for (const n of [4, 5, 6, 8, 11, 16]) {
-      const { matches } = graph('double-elimination', n);
+      const matches = duels('double-elimination', n);
       const byId = new Map(matches.map((m) => [m.id, m]));
       const empty = (
         slot: (typeof matches)[number]['slotA'],
@@ -187,7 +197,7 @@ describe('double elimination', () => {
 
   it('references only matches that exist', () => {
     for (const n of [4, 5, 8, 11, 16]) {
-      const { matches } = graph('double-elimination', n);
+      const matches = duels('double-elimination', n);
       const ids = new Set(matches.map((m) => m.id));
       const dangling = matches
         .flatMap((m) => [m.slotA, m.slotB])
@@ -211,8 +221,8 @@ describe('round robin and league', () => {
   });
 
   it.each([4, 5, 6, 7, 8])('has every pair meet exactly once for %i entrants', (n) => {
-    const pairs = graph('round-robin', n)
-      .matches.filter((m) => m.slotA.kind === 'entrant' && m.slotB.kind === 'entrant')
+    const pairs = duels('round-robin', n)
+      .filter((m) => m.slotA.kind === 'entrant' && m.slotB.kind === 'entrant')
       .map((m) =>
         [(m.slotA as { entrantId: string }).entrantId, (m.slotB as { entrantId: string }).entrantId]
           .sort()
@@ -223,8 +233,8 @@ describe('round robin and league', () => {
   });
 
   it('gives every entrant exactly one bye with an odd field', () => {
-    const byeHolders = graph('round-robin', 5)
-      .matches.filter((m) => m.slotA.kind === 'bye' || m.slotB.kind === 'bye')
+    const byeHolders = duels('round-robin', 5)
+      .filter((m) => m.slotA.kind === 'bye' || m.slotB.kind === 'bye')
       .map((m) =>
         m.slotA.kind === 'entrant'
           ? m.slotA.entrantId
@@ -234,7 +244,7 @@ describe('round robin and league', () => {
   });
 
   it('plays each pairing twice with sides reversed in home-and-away', () => {
-    const { matches } = graph('round-robin-home-away', 4);
+    const matches = duels('round-robin-home-away', 4);
     expect(matches).toHaveLength(12);
     const firstLeg = matches.slice(0, 6);
     const secondLeg = matches.slice(6);

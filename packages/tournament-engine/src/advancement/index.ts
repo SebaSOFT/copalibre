@@ -1,5 +1,6 @@
 import type { RecordedOutcome } from '@copalibre/domain';
-import type { FixtureGraph, GeneratedMatch, SlotSource } from '../types.js';
+import { PlacementAdvancementError } from '../errors.js';
+import { isDuelMatch, type DuelMatch, type FixtureGraph, type SlotSource } from '../types.js';
 
 /**
  * Advancement is *computed from structure*, never stored as a mutated pointer.
@@ -8,6 +9,11 @@ import type { FixtureGraph, GeneratedMatch, SlotSource } from '../types.js';
  * walking `winner-of`/`loser-of` edges. That is what lets the correction workflow
  * (phase 0009) replay advancement deterministically after a result is superseded,
  * instead of unwinding imperative writes.
+ *
+ * Only duel matches take part: a placement match produces an ordering, not a
+ * winner, and qualification out of it is by stage standings across every heat —
+ * never by position within one. Resolution therefore never traverses a
+ * placement match, and a graph that routes one into a slot is malformed.
  */
 
 export type ResolvedSlot =
@@ -32,7 +38,9 @@ export function resolveAdvancement(
   graph: FixtureGraph,
   outcomes: readonly RecordedOutcome[],
 ): readonly ResolvedMatch[] {
-  const byId = new Map(graph.matches.map((match) => [match.id, match]));
+  assertNoPlacementEdges(graph);
+  const duels = graph.matches.filter(isDuelMatch);
+  const byId = new Map(duels.map((match) => [match.id, match]));
   const outcomeById = new Map(outcomes.map((outcome) => [outcome.matchId, outcome]));
   const cache = new Map<string, ResolvedMatch>();
 
@@ -62,7 +70,7 @@ export function resolveAdvancement(
       : { state: 'pending' };
   };
 
-  const resolveMatch = (match: GeneratedMatch, stack: ReadonlySet<string>): ResolvedMatch => {
+  const resolveMatch = (match: DuelMatch, stack: ReadonlySet<string>): ResolvedMatch => {
     const cached = cache.get(match.id);
     if (cached) return cached;
 
@@ -92,7 +100,35 @@ export function resolveAdvancement(
     return resolved;
   };
 
-  return graph.matches.map((match) => resolveMatch(match, new Set()));
+  return duels.map((match) => resolveMatch(match, new Set()));
+}
+
+/**
+ * A slot sourcing from a placement match is a generation defect, not operator
+ * input: it would silently resolve to `empty` and quietly drop an entrant from
+ * the bracket. Fail loudly at the boundary instead.
+ */
+function assertNoPlacementEdges(graph: FixtureGraph): void {
+  const placementIds = new Set(
+    graph.matches.filter((match) => match.shape === 'placement').map((match) => match.id),
+  );
+  if (placementIds.size === 0) return;
+
+  for (const match of graph.matches) {
+    if (!isDuelMatch(match)) continue;
+    for (const slot of [match.slotA, match.slotB]) {
+      if (
+        (slot.kind === 'winner-of' || slot.kind === 'loser-of') &&
+        placementIds.has(slot.matchId)
+      ) {
+        throw new PlacementAdvancementError(
+          `Match "${match.id}" sources a slot from placement match "${slot.matchId}"; ` +
+            'placement results feed stage standings, never another match',
+          { matchId: match.id, sourceMatchId: slot.matchId },
+        );
+      }
+    }
+  }
 }
 
 function bothEmpty(resolved: ResolvedMatch): boolean {

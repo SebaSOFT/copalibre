@@ -1,4 +1,4 @@
-import type { GeneratedMatch, SlotSource } from '../types.js';
+import type { DuelMatch, SlotSource } from '../types.js';
 
 /**
  * Removes phantom matches created by bye padding.
@@ -13,7 +13,7 @@ import type { GeneratedMatch, SlotSource } from '../types.js';
  * never hold a participant on *either* side are dropped, and references to their
  * winner become byes so downstream slots stay resolvable.
  */
-export function pruneEmptyMatches(matches: readonly GeneratedMatch[]): readonly GeneratedMatch[] {
+export function pruneEmptyMatches(matches: readonly DuelMatch[]): readonly DuelMatch[] {
   const byId = new Map(matches.map((match) => [match.id, match]));
   const emptiness = new Map<string, boolean>();
 

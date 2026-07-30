@@ -10,7 +10,6 @@ import { createMigratedDatabase } from '../../persistence/src/test-support/scrat
 import { generateFixtures } from './fixtures/index.js';
 import { classifyEngineMutation } from './mutation/index.js';
 import { resolveAdvancement } from './advancement/index.js';
-import type { EntrantAccounting, PointsRules } from './standings/index.js';
 import type { RecordedOutcome } from '@copalibre/domain';
 
 /**
@@ -220,9 +219,9 @@ describe('tournament engine (integration)', () => {
         matchId: match.matchId,
         result: {
           sides: [
-          { entrantId: 'e1', score: 1 },
-          { entrantId: 'e2', score: 0 },
-        ],
+            { entrantId: 'e1', score: 1 },
+            { entrantId: 'e2', score: 0 },
+          ],
           winnerEntrantId: 'e1',
           recordedAt: '2026-07-30T12:30:00.000Z',
         },

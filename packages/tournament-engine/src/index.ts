@@ -6,12 +6,21 @@
 export type {
   BracketKind,
   SlotSource,
+  GeneratedMatchBase,
+  DuelMatch,
+  PlacementMatch,
   GeneratedMatch,
   FixtureGraph,
   SeededEntrant,
   GenerateFixturesInput,
 } from './types.js';
-export { EngineError, UnsupportedFormatError, InvalidEntrantsError } from './errors.js';
+export { isDuelMatch, isPlacementMatch, slotsOf } from './types.js';
+export {
+  EngineError,
+  UnsupportedFormatError,
+  InvalidEntrantsError,
+  PlacementAdvancementError,
+} from './errors.js';
 export { assertSupportedFormat, isEliminationFormat, isRoundRobinFormat } from './formats.js';
 export {
   generateFixtures,

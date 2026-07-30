@@ -94,7 +94,9 @@ describe('compileProfile', () => {
 
 describe('effectiveWinCondition', () => {
   it('uses the discipline value when the profile does not override', () => {
-    expect(effectiveWinCondition(flexible(), fixtureProfile())).toEqual({ rule: 'higher-score-wins' });
+    expect(effectiveWinCondition(flexible(), fixtureProfile())).toEqual(
+      fixtureDescriptor().winCondition,
+    );
   });
 
   it('uses the profile value where permitted — timed race over competition race', () => {
@@ -112,10 +114,10 @@ describe('effectiveWinCondition', () => {
         locked(),
         fixtureProfile({ winConditionOverride: { rule: 'lowest-elapsed-time-wins' } }),
       ),
-    ).toEqual({ rule: 'higher-score-wins' });
+    ).toEqual(fixtureDescriptor().winCondition);
   });
 
   it('uses the discipline value when no profile is supplied', () => {
-    expect(effectiveWinCondition(flexible())).toEqual({ rule: 'higher-score-wins' });
+    expect(effectiveWinCondition(flexible())).toEqual(fixtureDescriptor().winCondition);
   });
 });

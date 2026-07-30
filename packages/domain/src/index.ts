@@ -11,6 +11,8 @@ export {
   InvalidAliasError,
   RulesetCompilationError,
   EventValidationError,
+  DescriptorValidationError,
+  OutcomeValidationError,
   MutationBlockedError,
   type PolicyViolation,
 } from './errors.js';
@@ -71,7 +73,15 @@ export {
   type StatisticDefinition,
   type ScoringInputDefinition,
   type DisciplineDescriptor,
+  type RuleScript,
 } from './descriptors/discipline-descriptor.js';
+export {
+  validateDisciplineDescriptorDocument,
+  DISCIPLINE_DESCRIPTOR_SCHEMA,
+  RECORDED_OUTCOME_SCHEMA,
+  RULE_SCRIPT_SCHEMA,
+  type JsonSchemaDocument,
+} from './descriptors/descriptor-schema.js';
 
 export type {
   DescriptorRef,
@@ -114,7 +124,13 @@ export type {
   Segment,
 } from './aggregates/competition.js';
 
-export { type OutcomeSide, type RecordedOutcome } from './standings/index.js';
+export {
+  validateRecordedOutcome,
+  declaredStatisticsSchema,
+  type OutcomeSide,
+  type RecordedOutcome,
+  type OutcomeValidationOptions,
+} from './standings/index.js';
 
 export {
   EventLog,

@@ -63,7 +63,30 @@ export function fixtureDescriptor(overrides?: Partial<DisciplineDescriptor>): Di
     statistics: [{ code: 'strikes', label: 'Strikes', aggregation: 'sum' }],
     scoringInputs: [{ code: 'score', label: 'Score', source: 'event-derived' }],
     availableFormats: ['round-robin', 'single-elimination'],
-    winCondition: { rule: 'higher-score-wins' },
+    // A rule script since 0009: the highest strike count at full time takes the
+    // match. No target, so the match closes on completion rather than on a side
+    // reaching a number — the shape a timed field sport needs.
+    winCondition: {
+      id: 'orbital-field-win-condition',
+      rules: [
+        {
+          id: 'higher-strike-count-wins',
+          type: 'simple_rule',
+          options: {},
+          conditions: [],
+          actions: [
+            {
+              id: 'close-match',
+              type: 'winMatch',
+              options: {},
+              params: [
+                { id: 'unit', name: 'unit', type: 'simple_string', value: 'strikes', options: {} },
+              ],
+            },
+          ],
+        },
+      ],
+    },
     notificationRuleCapabilities: ['threshold-count'],
     defaults: {
       scoring: { pointsPerWin: 3, pointsPerDraw: 1 },

@@ -1,6 +1,6 @@
 import { generateFixtures } from '../fixtures/index.js';
 import type { RecordedOutcome } from '@copalibre/domain';
-import type { FixtureGraph } from '../types.js';
+import { slotsOf, type FixtureGraph } from '../types.js';
 import { playableMatches, resolveAdvancement } from './index.js';
 
 const entrants = (n: number) =>
@@ -53,7 +53,7 @@ describe('resolveAdvancement', () => {
     const byeMatches = resolved.filter((match) => match.decidedByBye).map((m) => m.matchId);
     // Any slot fed by `loser-of` a bye match must resolve to empty, never an entrant.
     for (const match of g.matches) {
-      for (const slot of [match.slotA, match.slotB]) {
+      for (const slot of slotsOf(match)) {
         if (slot.kind === 'loser-of' && byeMatches.includes(slot.matchId)) {
           const target = resolved.find((r) => r.matchId === match.id);
           const side = target?.slotA === undefined ? undefined : target;

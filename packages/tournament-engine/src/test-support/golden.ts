@@ -24,14 +24,20 @@ export function expectGolden(name: string, actual: unknown): void {
   expect(serialized).toEqual(JSON.parse(readFileSync(file, 'utf8')));
 }
 
-/** Compact, diff-friendly view of a fixture graph. */
+/**
+ * Compact, diff-friendly view of a fixture graph. Duels render as "A vs B" and
+ * placement matches as a slot list, so the committed fixtures keep the phase-7
+ * text for every existing bracket and no golden churns on the shape split.
+ */
 export function summarise(
   matches: readonly {
     id: string;
+    shape?: string;
     bracket: string;
     round: number;
-    slotA: unknown;
-    slotB: unknown;
+    slotA?: unknown;
+    slotB?: unknown;
+    slots?: readonly unknown[];
     conditional?: string;
   }[],
 ): readonly string[] {
@@ -41,8 +47,9 @@ export function summarise(
     if (s.kind === 'bye') return 'BYE';
     return `${s.kind === 'winner-of' ? 'W' : 'L'}(${s.matchId})`;
   };
-  return matches.map(
-    (m) =>
-      `${m.id} ${show(m.slotA)} vs ${show(m.slotB)}${m.conditional ? ` [${m.conditional}]` : ''}`,
+  return matches.map((m) =>
+    m.shape === 'placement'
+      ? `${m.id} [${(m.slots ?? []).map(show).join(', ')}]`
+      : `${m.id} ${show(m.slotA)} vs ${show(m.slotB)}${m.conditional ? ` [${m.conditional}]` : ''}`,
   );
 }

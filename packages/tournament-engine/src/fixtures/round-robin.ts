@@ -1,4 +1,4 @@
-import type { GeneratedMatch, SeededEntrant, SlotSource } from '../types.js';
+import type { DuelMatch, SeededEntrant, SlotSource } from '../types.js';
 
 /**
  * Round robin via the circle method: fix one entrant, rotate the rest. With an
@@ -11,14 +11,14 @@ import type { GeneratedMatch, SeededEntrant, SlotSource } from '../types.js';
 export function buildRoundRobin(
   entrants: readonly SeededEntrant[],
   options?: { readonly homeAndAway?: boolean; readonly idPrefix?: string },
-): readonly GeneratedMatch[] {
+): readonly DuelMatch[] {
   const prefix = options?.idPrefix ?? 'RR';
   const slots: (SeededEntrant | null)[] = [...entrants].sort((a, b) => a.seed - b.seed);
   if (slots.length % 2 === 1) slots.push(null); // rotating bye
 
   const half = slots.length / 2;
   const roundCount = slots.length - 1;
-  const matches: GeneratedMatch[] = [];
+  const matches: DuelMatch[] = [];
 
   let rotation = [...slots];
   for (let round = 1; round <= roundCount; round += 1) {
@@ -59,7 +59,7 @@ function makeMatch(
   home: SeededEntrant | null,
   away: SeededEntrant | null,
   options: { readonly swap: boolean },
-): GeneratedMatch {
+): DuelMatch {
   const homeSlot: SlotSource = home
     ? { kind: 'entrant', entrantId: home.entrantId, seed: home.seed }
     : { kind: 'bye' };
@@ -69,6 +69,7 @@ function makeMatch(
   const [slotA, slotB] = options.swap ? [awaySlot, homeSlot] : [homeSlot, awaySlot];
   return {
     id: `${prefix}-R${round}-M${position}`,
+    shape: 'duel',
     bracket: 'round-robin',
     round,
     position,
