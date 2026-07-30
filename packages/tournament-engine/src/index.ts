@@ -28,7 +28,6 @@ export {
   toEntrantValues,
   entrantsInGraph,
   DEFAULT_POINTS,
-  type RecordedOutcome,
   type PointsRules,
   type EntrantAccounting,
   type StandingsRow,

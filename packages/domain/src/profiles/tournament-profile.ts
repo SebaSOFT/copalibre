@@ -1,6 +1,7 @@
 import type { CapabilityRequirement } from '../capabilities/capability.js';
 import type { Attribution } from '../descriptors/attribution.js';
 import type { OverrideSet } from '../descriptors/override-policy.js';
+import type { RuleScript } from '../descriptors/discipline-descriptor.js';
 import type { TournamentFormat } from '../descriptors/discipline-descriptor.js';
 
 /**
@@ -49,5 +50,5 @@ export interface TournamentProfile {
    * policy marks its own win condition overridable (timed race vs competition
    * race). Absent means the discipline's win condition stands.
    */
-  readonly winConditionOverride?: string;
+  readonly winConditionOverride?: RuleScript;
 }

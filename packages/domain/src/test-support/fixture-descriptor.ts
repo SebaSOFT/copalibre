@@ -63,7 +63,7 @@ export function fixtureDescriptor(overrides?: Partial<DisciplineDescriptor>): Di
     statistics: [{ code: 'strikes', label: 'Strikes', aggregation: 'sum' }],
     scoringInputs: [{ code: 'score', label: 'Score', source: 'event-derived' }],
     availableFormats: ['round-robin', 'single-elimination'],
-    winCondition: 'higher-score-wins',
+    winCondition: { rule: 'higher-score-wins' },
     notificationRuleCapabilities: ['threshold-count'],
     defaults: {
       scoring: { pointsPerWin: 3, pointsPerDraw: 1 },

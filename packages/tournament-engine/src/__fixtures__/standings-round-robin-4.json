@@ -6,10 +6,12 @@
       "won": 2,
       "drawn": 0,
       "lost": 1,
-      "scoreFor": 7,
-      "scoreAgainst": 3,
-      "scoreDifference": 4,
       "points": 6,
+      "statistics": {
+        "score-for": 7,
+        "score-against": 3,
+        "score-difference": 4
+      },
       "rank": 1,
       "sharedRank": false
     },
@@ -19,10 +21,12 @@
       "won": 2,
       "drawn": 0,
       "lost": 1,
-      "scoreFor": 3,
-      "scoreAgainst": 3,
-      "scoreDifference": 0,
       "points": 6,
+      "statistics": {
+        "score-for": 3,
+        "score-against": 3,
+        "score-difference": 0
+      },
       "rank": 2,
       "sharedRank": false
     },
@@ -32,10 +36,12 @@
       "won": 1,
       "drawn": 1,
       "lost": 1,
-      "scoreFor": 3,
-      "scoreAgainst": 4,
-      "scoreDifference": -1,
       "points": 4,
+      "statistics": {
+        "score-for": 3,
+        "score-against": 4,
+        "score-difference": -1
+      },
       "rank": 3,
       "sharedRank": false
     },
@@ -45,10 +51,12 @@
       "won": 0,
       "drawn": 1,
       "lost": 2,
-      "scoreFor": 2,
-      "scoreAgainst": 5,
-      "scoreDifference": -3,
       "points": 1,
+      "statistics": {
+        "score-for": 2,
+        "score-against": 5,
+        "score-difference": -3
+      },
       "rank": 4,
       "sharedRank": false
     }

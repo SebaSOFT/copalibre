@@ -1,6 +1,7 @@
 import type { EntrantValues, TiebreakPipeline, TraceNode } from '@copalibre/rules';
 import { resolveTiebreak } from '@copalibre/rules';
 import type { GeneratedMatch } from '../types.js';
+import type { DisciplineDescriptor, RecordedOutcome } from '@copalibre/domain';
 
 /**
  * Standings assembly. This module computes *accounting parameters* only and
@@ -8,13 +9,6 @@ import type { GeneratedMatch } from '../types.js';
  * A5 screen (phase 0017) renders is the trace produced by the pipeline that
  * actually ran — not a parallel ranking implementation that could drift from it.
  */
-
-export interface RecordedOutcome {
-  readonly matchId: string;
-  /** Absent for a draw. */
-  readonly winnerEntrantId?: string;
-  readonly scores: readonly { readonly entrantId: string; readonly score: number }[];
-}
 
 export interface PointsRules {
   readonly win: number;
@@ -30,10 +24,8 @@ export interface EntrantAccounting {
   readonly won: number;
   readonly drawn: number;
   readonly lost: number;
-  readonly scoreFor: number;
-  readonly scoreAgainst: number;
-  readonly scoreDifference: number;
   readonly points: number;
+  readonly statistics: Readonly<Record<string, number>>;
 }
 
 export interface StandingsRow extends EntrantAccounting {
@@ -51,65 +43,95 @@ export interface Standings {
 
 /** Per-entrant accounting derived from recorded outcomes. */
 export function computeAccounting(
+  descriptor: DisciplineDescriptor,
   entrantIds: readonly string[],
   outcomes: readonly RecordedOutcome[],
   points: PointsRules = DEFAULT_POINTS,
 ): readonly EntrantAccounting[] {
-  const base = new Map<
+  const accumulators = new Map<
     string,
     {
       played: number;
       won: number;
       drawn: number;
       lost: number;
-      scoreFor: number;
-      scoreAgainst: number;
+      stats: Record<string, { sum: number; count: number; max: number; min: number }>;
     }
-  >(
-    entrantIds.map((id) => [
-      id,
-      { played: 0, won: 0, drawn: 0, lost: 0, scoreFor: 0, scoreAgainst: 0 },
-    ]),
-  );
+  >();
+
+  for (const id of entrantIds) {
+    const stats: Record<string, { sum: number; count: number; max: number; min: number }> = {};
+    for (const stat of descriptor.statistics) {
+      stats[stat.code] = { sum: 0, count: 0, max: -Infinity, min: Infinity };
+    }
+    accumulators.set(id, { played: 0, won: 0, drawn: 0, lost: 0, stats });
+  }
 
   for (const outcome of outcomes) {
-    // Only two-sided outcomes contribute; a bye is not a played match.
-    const sides = outcome.scores.filter((side) => base.has(side.entrantId));
-    if (sides.length !== 2) continue;
-    const [first, second] = sides as [
-      { entrantId: string; score: number },
-      { entrantId: string; score: number },
-    ];
+    if (outcome.sides.length < 2) continue;
+    const sides = outcome.sides.filter((side) => accumulators.has(side.entrantId));
+    
+    for (const side of sides) {
+      const acc = accumulators.get(side.entrantId);
+      if (!acc) continue;
+      acc.played += 1;
+      
+      if (outcome.winnerEntrantId === undefined) acc.drawn += 1;
+      else if (outcome.winnerEntrantId === side.entrantId) acc.won += 1;
+      else acc.lost += 1;
 
-    for (const [side, opponent] of [
-      [first, second],
-      [second, first],
-    ] as const) {
-      const row = base.get(side.entrantId);
-      if (!row) continue;
-      row.played += 1;
-      row.scoreFor += side.score;
-      row.scoreAgainst += opponent.score;
-      if (outcome.winnerEntrantId === undefined) row.drawn += 1;
-      else if (outcome.winnerEntrantId === side.entrantId) row.won += 1;
-      else row.lost += 1;
+      for (const stat of descriptor.statistics) {
+        const val = side.statistics[stat.code];
+        if (typeof val === 'number') {
+          const statAcc = acc.stats[stat.code];
+          if (statAcc) {
+            statAcc.sum += val;
+            statAcc.count += 1;
+            statAcc.max = Math.max(statAcc.max, val);
+            statAcc.min = Math.min(statAcc.min, val);
+          }
+        }
+      }
     }
   }
 
   return entrantIds.map((entrantId) => {
-    const row = base.get(entrantId) ?? {
-      played: 0,
-      won: 0,
-      drawn: 0,
-      lost: 0,
-      scoreFor: 0,
-      scoreAgainst: 0,
-    };
+    const acc = accumulators.get(entrantId)!;
+    const statistics: Record<string, number> = {};
+    
+    for (const stat of descriptor.statistics) {
+      const statAcc = acc.stats[stat.code]!;
+      if (statAcc.count === 0) {
+        statistics[stat.code] = 0;
+        continue;
+      }
+      switch (stat.aggregation) {
+        case 'sum':
+          statistics[stat.code] = statAcc.sum;
+          break;
+        case 'count':
+          statistics[stat.code] = statAcc.count;
+          break;
+        case 'max':
+          statistics[stat.code] = statAcc.max;
+          break;
+        case 'min':
+          statistics[stat.code] = statAcc.min;
+          break;
+        case 'average':
+          statistics[stat.code] = statAcc.sum / statAcc.count;
+          break;
+      }
+    }
+    
     return {
       entrantId,
-      ...row,
-      scoreDifference: row.scoreFor - row.scoreAgainst,
-      points: row.won * points.win + row.drawn * points.draw + row.lost * points.loss,
+      played: acc.played,
+      won: acc.won,
+      drawn: acc.drawn,
+      lost: acc.lost,
+      points: acc.won * points.win + acc.drawn * points.draw + acc.lost * points.loss,
+      statistics,
     };
   });
 }
@@ -125,21 +147,20 @@ export function toEntrantValues(accounting: readonly EntrantAccounting[]): Entra
         won: row.won,
         drawn: row.drawn,
         lost: row.lost,
-        'score-for': row.scoreFor,
-        'score-against': row.scoreAgainst,
-        'score-difference': row.scoreDifference,
+        ...row.statistics,
       },
     ]),
   );
 }
 
 export function computeStandings(
+  descriptor: DisciplineDescriptor,
   entrantIds: readonly string[],
   outcomes: readonly RecordedOutcome[],
   pipeline: TiebreakPipeline,
   points: PointsRules = DEFAULT_POINTS,
 ): Standings {
-  const accounting = computeAccounting(entrantIds, outcomes, points);
+  const accounting = computeAccounting(descriptor, entrantIds, outcomes, points);
   const byId = new Map(accounting.map((row) => [row.entrantId, row]));
   const resolution = resolveTiebreak(pipeline, entrantIds, toEntrantValues(accounting));
 

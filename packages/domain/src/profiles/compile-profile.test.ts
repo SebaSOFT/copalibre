@@ -64,7 +64,7 @@ describe('compileProfile', () => {
   it('accepts a win-condition override the discipline permits', () => {
     const compiled = compileProfile(
       flexible(),
-      fixtureProfile({ winConditionOverride: 'lowest-elapsed-time-wins' }),
+      fixtureProfile({ winConditionOverride: { rule: 'lowest-elapsed-time-wins' } }),
     );
     expect(compiled.ok).toBe(true);
   });
@@ -72,7 +72,7 @@ describe('compileProfile', () => {
   it('rejects a win-condition override the discipline forbids', () => {
     const compiled = compileProfile(
       locked(),
-      fixtureProfile({ winConditionOverride: 'lowest-elapsed-time-wins' }),
+      fixtureProfile({ winConditionOverride: { rule: 'lowest-elapsed-time-wins' } }),
     );
     expect(compiled.ok).toBe(false);
     if (!compiled.ok && 'violations' in compiled.error) {
@@ -86,7 +86,7 @@ describe('compileProfile', () => {
   it('rejects an override when the discipline declares no policy for it', () => {
     const compiled = compileProfile(
       fixtureDescriptor(scoring),
-      fixtureProfile({ winConditionOverride: 'lowest-elapsed-time-wins' }),
+      fixtureProfile({ winConditionOverride: { rule: 'lowest-elapsed-time-wins' } }),
     );
     expect(compiled.ok).toBe(false);
   });
@@ -94,28 +94,28 @@ describe('compileProfile', () => {
 
 describe('effectiveWinCondition', () => {
   it('uses the discipline value when the profile does not override', () => {
-    expect(effectiveWinCondition(flexible(), fixtureProfile())).toBe('higher-score-wins');
+    expect(effectiveWinCondition(flexible(), fixtureProfile())).toEqual({ rule: 'higher-score-wins' });
   });
 
   it('uses the profile value where permitted — timed race over competition race', () => {
     expect(
       effectiveWinCondition(
         flexible(),
-        fixtureProfile({ winConditionOverride: 'lowest-elapsed-time-wins' }),
+        fixtureProfile({ winConditionOverride: { rule: 'lowest-elapsed-time-wins' } }),
       ),
-    ).toBe('lowest-elapsed-time-wins');
+    ).toEqual({ rule: 'lowest-elapsed-time-wins' });
   });
 
   it('keeps the discipline value where the override is forbidden', () => {
     expect(
       effectiveWinCondition(
         locked(),
-        fixtureProfile({ winConditionOverride: 'lowest-elapsed-time-wins' }),
+        fixtureProfile({ winConditionOverride: { rule: 'lowest-elapsed-time-wins' } }),
       ),
-    ).toBe('higher-score-wins');
+    ).toEqual({ rule: 'higher-score-wins' });
   });
 
   it('uses the discipline value when no profile is supplied', () => {
-    expect(effectiveWinCondition(flexible())).toBe('higher-score-wins');
+    expect(effectiveWinCondition(flexible())).toEqual({ rule: 'higher-score-wins' });
   });
 });

@@ -1,4 +1,4 @@
-import type { RecordedOutcome } from '../standings/index.js';
+import type { RecordedOutcome } from '@copalibre/domain';
 import type { FixtureGraph, GeneratedMatch, SlotSource } from '../types.js';
 
 /**

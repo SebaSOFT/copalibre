@@ -35,7 +35,7 @@ function descriptor(): DisciplineDescriptor {
     statistics: [],
     scoringInputs: [],
     availableFormats: ['round-robin'],
-    winCondition: 'higher-score-wins',
+    winCondition: { rule: 'higher-score-wins' },
     notificationRuleCapabilities: [],
     defaults: { scoring: { pointsPerWin: 3 }, tiebreakers: ['points'] },
     fieldPolicies: {

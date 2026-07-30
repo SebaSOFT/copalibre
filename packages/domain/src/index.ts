@@ -114,6 +114,8 @@ export type {
   Segment,
 } from './aggregates/competition.js';
 
+export { type OutcomeSide, type RecordedOutcome } from './standings/index.js';
+
 export {
   EventLog,
   effectsOf,

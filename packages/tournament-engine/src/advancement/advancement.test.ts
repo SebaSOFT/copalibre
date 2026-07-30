@@ -1,5 +1,5 @@
 import { generateFixtures } from '../fixtures/index.js';
-import type { RecordedOutcome } from '../standings/index.js';
+import type { RecordedOutcome } from '@copalibre/domain';
 import type { FixtureGraph } from '../types.js';
 import { playableMatches, resolveAdvancement } from './index.js';
 
@@ -15,9 +15,9 @@ function graph(format: Parameters<typeof generateFixtures>[0]['format'], n: numb
 const win = (matchId: string, winner: string, loser: string): RecordedOutcome => ({
   matchId,
   winnerEntrantId: winner,
-  scores: [
-    { entrantId: winner, score: 1 },
-    { entrantId: loser, score: 0 },
+  sides: [
+    { entrantId: winner, statistics: { score: 1 } },
+    { entrantId: loser, statistics: { score: 0 } },
   ],
 });
 

@@ -10,7 +10,8 @@ import { createMigratedDatabase } from '../../persistence/src/test-support/scrat
 import { generateFixtures } from './fixtures/index.js';
 import { classifyEngineMutation } from './mutation/index.js';
 import { resolveAdvancement } from './advancement/index.js';
-import type { RecordedOutcome } from './standings/index.js';
+import type { EntrantAccounting, PointsRules } from './standings/index.js';
+import type { RecordedOutcome } from '@copalibre/domain';
 
 /**
  * End-to-end: generate a fixture graph, persist it through phase 0004's
@@ -32,7 +33,7 @@ function descriptor(): DisciplineDescriptor {
     statistics: [],
     scoringInputs: [],
     availableFormats: ['single-elimination'],
-    winCondition: 'higher-score-wins',
+    winCondition: { rule: 'higher-score-wins' },
     notificationRuleCapabilities: [],
     defaults: { scoring: { pointsPerWin: 3 } },
     fieldPolicies: {
@@ -163,9 +164,9 @@ describe('tournament engine (integration)', () => {
       {
         matchId: 'SE-R1-M1',
         winnerEntrantId: 'entrant-1',
-        scores: (stored?.result?.sides ?? []).map((side) => ({
+        sides: (stored?.result?.sides ?? []).map((side) => ({
           entrantId: side.entrantId,
-          score: side.score,
+          statistics: { score: side.score },
         })),
       },
     ];
@@ -219,9 +220,9 @@ describe('tournament engine (integration)', () => {
         matchId: match.matchId,
         result: {
           sides: [
-            { entrantId: 'e1', score: 1 },
-            { entrantId: 'e2', score: 0 },
-          ],
+          { entrantId: 'e1', score: 1 },
+          { entrantId: 'e2', score: 0 },
+        ],
           winnerEntrantId: 'e1',
           recordedAt: '2026-07-30T12:30:00.000Z',
         },
