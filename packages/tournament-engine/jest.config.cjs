@@ -12,6 +12,13 @@ module.exports = {
     '^@copalibre/domain$': '<rootDir>/../domain/src/index.ts',
     '^@copalibre/rules$': '<rootDir>/../rules/src/index.ts',
   },
-  collectCoverageFrom: ['src/**/*.ts', '!src/index.ts', '!src/test-support/**'],
+  collectCoverageFrom: [
+    'src/**/*.ts',
+    '!src/index.ts',
+    '!src/test-support/**',
+    // Integration specs run under jest.integration.config.cjs; counting them
+    // here measures a file this config deliberately never executes.
+    '!src/**/*.integration.test.ts',
+  ],
   coverageThreshold: { global: { lines: 90, branches: 85, functions: 90, statements: 90 } },
 };
