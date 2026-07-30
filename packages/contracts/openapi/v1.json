@@ -470,8 +470,16 @@
             "type": "string",
             "enum": [
               "draft",
-              "published"
-            ]
+              "published",
+              "started",
+              "finished"
+            ],
+            "description": "Once started, the tournament's discipline and profile versions are frozen and its results are materialised."
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the first match began, marking the module freeze."
           },
           "rulesetId": {
             "type": "string",

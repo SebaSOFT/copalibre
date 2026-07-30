@@ -88,7 +88,14 @@ export {
 } from './rulesets/mutation.js';
 
 export type { Organization, Club } from './aggregates/organization.js';
-export type { Tournament, TournamentStatus } from './aggregates/tournament.js';
+export { hasStarted, type Tournament, type TournamentStatus } from './aggregates/tournament.js';
+export {
+  validateStart,
+  canChangeModuleVersion,
+  StartValidationError,
+  ModuleFrozenError,
+  type StartPreconditions,
+} from './aggregates/tournament-start.js';
 export type {
   Participant,
   Team,

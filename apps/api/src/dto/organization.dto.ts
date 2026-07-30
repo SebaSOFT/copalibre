@@ -39,8 +39,18 @@ export class TournamentResponse {
   @ApiProperty({ example: 'Copa Verano' })
   name!: string;
 
-  @ApiProperty({ enum: ['draft', 'published'] })
-  status!: 'draft' | 'published';
+  @ApiProperty({
+    enum: ['draft', 'published', 'started', 'finished'],
+    description:
+      "Once started, the tournament's discipline and profile versions are frozen and its results are materialised.",
+  })
+  status!: 'draft' | 'published' | 'started' | 'finished';
+
+  @ApiPropertyOptional({
+    format: 'date-time',
+    description: 'When the first match began, marking the module freeze.',
+  })
+  startedAt?: string;
 
   @ApiPropertyOptional({ format: 'uuid', description: 'Active ruleset version, when one exists' })
   rulesetId?: string;

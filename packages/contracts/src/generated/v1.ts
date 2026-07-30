@@ -212,8 +212,16 @@ export interface components {
             alias: string;
             /** @example Copa Verano */
             name: string;
-            /** @enum {string} */
-            status: "draft" | "published";
+            /**
+             * @description Once started, the tournament's discipline and profile versions are frozen and its results are materialised.
+             * @enum {string}
+             */
+            status: "draft" | "published" | "started" | "finished";
+            /**
+             * Format: date-time
+             * @description When the first match began, marking the module freeze.
+             */
+            startedAt?: string;
             /**
              * Format: uuid
              * @description Active ruleset version, when one exists

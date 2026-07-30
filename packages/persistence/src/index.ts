@@ -47,6 +47,16 @@ export {
 } from './repositories/tournament-repository.js';
 export { ParticipantRepository, type AuditContext } from './repositories/participant-repository.js';
 export { CompetitionRepository } from './repositories/competition-repository.js';
+export {
+  CompetitionRecordRepository,
+  type StoredCompiledRuleset,
+  type StandingsSnapshot,
+  type StoredStandings,
+} from './repositories/competition-record-repository.js';
+export {
+  TournamentProfileRepository,
+  type StoredProfile,
+} from './repositories/tournament-profile-repository.js';
 
 export {
   toOrganization,
