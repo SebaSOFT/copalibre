@@ -76,3 +76,35 @@ export {
   type TraceNode,
   type EvaluationRecord,
 } from './trace/explanation-trace.js';
+
+export {
+  registerWinConditionVocabulary,
+  RequireMarginAction,
+  WinSegmentAction,
+  WinMatchAction,
+  type WinConditionState,
+  type WinConditionDecisionRecord,
+} from './win-condition/actions.js';
+/**
+ * Re-exported from the domain, where the event definitions live: the discipline
+ * declares them, this package emits and evaluates them.
+ */
+export { segmentThresholdEventDefinitions } from '@copalibre/domain';
+export {
+  evaluateWinCondition,
+  toRecordedEvents,
+  asRuleScript,
+  type WinConditionDecision,
+  type WinConditionInput,
+  type WinConditionOutput,
+  type ThresholdEventOptions,
+} from './win-condition/evaluator.js';
+export {
+  SEGMENT_THRESHOLD_KINDS,
+  type MatchProgress,
+  type SegmentProgress,
+  type SegmentOutcome,
+  type SegmentDecision,
+  type SegmentThresholdEvent,
+  type SegmentThresholdKind,
+} from './win-condition/types.js';

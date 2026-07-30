@@ -1,4 +1,4 @@
-import type { DisciplineDescriptor } from '@copalibre/domain';
+import { winConditionScript, type DisciplineDescriptor } from '@copalibre/domain';
 import {
   CompetitionRepository,
   newId,
@@ -32,7 +32,7 @@ function descriptor(): DisciplineDescriptor {
     statistics: [],
     scoringInputs: [],
     availableFormats: ['single-elimination'],
-    winCondition: { rule: 'higher-score-wins' },
+    winCondition: winConditionScript('higher-score-wins', { unit: 'score' }),
     notificationRuleCapabilities: [],
     defaults: { scoring: { pointsPerWin: 3 } },
     fieldPolicies: {

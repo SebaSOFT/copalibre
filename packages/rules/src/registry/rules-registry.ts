@@ -129,7 +129,9 @@ export class RulesRegistry {
 
   /**
    * Rejects a DisciplineDescriptor referencing an unregistered notification
-   * capability. Phase 0002's descriptor validation calls into this.
+   * capability or win-condition action. Phase 0002's descriptor validation
+   * calls into this; since 0009 the win condition is a script, so a module
+   * that invents an action is refused here rather than failing at match time.
    */
   validateDescriptorReferences(
     descriptor: DisciplineDescriptor,
@@ -143,6 +145,21 @@ export class RulesRegistry {
           ),
         );
       }
+    }
+
+    // A missing or malformed win condition is the descriptor schema's business
+    // (@copalibre/domain); this pass only vets the vocabulary it references.
+    const winCondition = this.validateScriptReferences(
+      (descriptor.winCondition ?? { id: '', rules: [] }) as unknown as RuleScriptView,
+    );
+    if (!winCondition.ok) {
+      return err(
+        new UnregisteredElementError(
+          `Descriptor "${descriptor.name}" win condition ${lowerFirst(winCondition.error.message)}. ` +
+            'The rule vocabulary is core-owned: a new action requires a core release.',
+          { ...winCondition.error.details, descriptorId: descriptor.descriptorId },
+        ),
+      );
     }
     return ok(true);
   }
@@ -173,4 +190,8 @@ export class RulesRegistry {
 
 function keyOf(kind: ElementKind, type: string): string {
   return `${kind}:${type}`;
+}
+
+function lowerFirst(message: string): string {
+  return message.charAt(0).toLowerCase() + message.slice(1);
 }

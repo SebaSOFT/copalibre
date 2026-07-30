@@ -76,6 +76,20 @@ export {
   type RuleScript,
 } from './descriptors/discipline-descriptor.js';
 export {
+  segmentThresholdEventDefinitions,
+  SEGMENT_THRESHOLD_EVENT_CODES,
+  type SegmentThresholdEventCode,
+} from './descriptors/segment-threshold-events.js';
+export {
+  footballDescriptor,
+  tennisDescriptor,
+  bestOfFiveWinCondition,
+  seededDescriptors,
+  winConditionScript,
+  type SegmentRuleSpec,
+  type MatchRuleSpec,
+} from './modules/index.js';
+export {
   validateDisciplineDescriptorDocument,
   DISCIPLINE_DESCRIPTOR_SCHEMA,
   RECORDED_OUTCOME_SCHEMA,

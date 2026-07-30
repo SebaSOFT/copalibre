@@ -1,4 +1,4 @@
-import type { DisciplineDescriptor, MatchResult } from '@copalibre/domain';
+import { winConditionScript, type DisciplineDescriptor, type MatchResult } from '@copalibre/domain';
 import { AuditReader } from '../audit.js';
 import { InvariantViolationError, NotFoundError } from '../errors.js';
 import { newId } from '../ids.js';
@@ -35,7 +35,7 @@ function descriptor(): DisciplineDescriptor {
     statistics: [],
     scoringInputs: [],
     availableFormats: ['round-robin'],
-    winCondition: { rule: 'higher-score-wins' },
+    winCondition: winConditionScript('higher-score-wins', { unit: 'score' }),
     notificationRuleCapabilities: [],
     defaults: { scoring: { pointsPerWin: 3 }, tiebreakers: ['points'] },
     fieldPolicies: {
