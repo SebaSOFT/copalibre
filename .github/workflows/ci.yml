@@ -109,3 +109,38 @@ jobs:
           name: coverage-rules
           path: packages/rules/coverage
           retention-days: 14
+
+  # Added by 0004-persistence-postgres-outbox-audit: real PostgreSQL, no mocks.
+  integration-tests:
+    name: Integration tests
+    runs-on: ubuntu-latest
+    needs: install
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: copalibre
+          POSTGRES_PASSWORD: copalibre_ci_only
+          POSTGRES_DB: copalibre
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U copalibre -d copalibre"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://copalibre:copalibre_ci_only@localhost:5432/copalibre
+    steps:
+      - uses: actions/checkout@v4
+      # corepack must be enabled before setup-node: its yarn-cache probe invokes the
+      # global yarn, which errors on the packageManager pin if it's still Yarn 1.x.
+      - run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+      - run: yarn install --immutable
+      # Proves the one controlled migration entrypoint works before any test runs.
+      - run: yarn workspace @copalibre/migrate run start
+      - run: yarn workspace @copalibre/persistence test:integration
