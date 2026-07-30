@@ -144,8 +144,8 @@ describe('tournament engine (integration)', () => {
         matchId: match.matchId,
         result: {
           sides: [
-            { entrantId: 'entrant-1', score: 2 },
-            { entrantId: 'entrant-4', score: 0 },
+            { entrantId: 'entrant-1', statistics: { score: 2 } },
+            { entrantId: 'entrant-4', statistics: { score: 0 } },
           ],
           winnerEntrantId: 'entrant-1',
           recordedAt: '2026-07-30T12:00:00.000Z',
@@ -163,10 +163,7 @@ describe('tournament engine (integration)', () => {
       {
         matchId: 'SE-R1-M1',
         winnerEntrantId: 'entrant-1',
-        sides: (stored?.result?.sides ?? []).map((side) => ({
-          entrantId: side.entrantId,
-          statistics: { score: side.score },
-        })),
+        sides: stored?.result?.sides ?? [],
       },
     ];
     const resolved = resolveAdvancement(generated.value, outcomes);
@@ -219,8 +216,8 @@ describe('tournament engine (integration)', () => {
         matchId: match.matchId,
         result: {
           sides: [
-            { entrantId: 'e1', score: 1 },
-            { entrantId: 'e2', score: 0 },
+            { entrantId: 'e1', statistics: { score: 1 } },
+            { entrantId: 'e2', statistics: { score: 0 } },
           ],
           winnerEntrantId: 'e1',
           recordedAt: '2026-07-30T12:30:00.000Z',
@@ -249,8 +246,8 @@ describe('tournament engine (integration)', () => {
           matchId: match.matchId,
           result: {
             sides: [
-              { entrantId: 'e1', score: 0 },
-              { entrantId: 'e2', score: 9 },
+              { entrantId: 'e1', statistics: { score: 0 } },
+              { entrantId: 'e2', statistics: { score: 9 } },
             ],
             winnerEntrantId: 'e2',
             recordedAt: '2026-07-30T12:45:00.000Z',

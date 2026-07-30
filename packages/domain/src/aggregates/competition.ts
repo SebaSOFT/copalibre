@@ -1,3 +1,4 @@
+import type { OutcomeSide } from '../standings/outcome.js';
 import type { TournamentFormat } from '../descriptors/discipline-descriptor.js';
 
 /**
@@ -29,14 +30,21 @@ export interface Fixture {
 
 export type MatchStatus = 'scheduled' | 'in-progress' | 'finalized';
 
-export interface MatchSideScore {
-  readonly entrantId: string;
-  readonly score: number;
-}
+/**
+ * One side of a stored result. Since 0009 it carries the statistic values the
+ * discipline declared rather than a single scalar, and the codes are stored
+ * verbatim: a finished tournament's standings stay readable after the module
+ * version that defined them is retired.
+ */
+export type MatchSideScore = OutcomeSide;
 
-/** A calculated outcome. Only the audited correction workflow may supersede it. */
+/**
+ * A calculated outcome. Only the audited correction workflow may supersede it.
+ * Any number of sides — a duel and an eight-lane heat are the same document.
+ */
 export interface MatchResult {
   readonly sides: readonly MatchSideScore[];
+  /** Duel matches only; a placement result orders its sides instead. */
   readonly winnerEntrantId?: string;
   readonly recordedAt: string;
 }

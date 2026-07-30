@@ -18,13 +18,26 @@ export interface PointsRules {
 
 export const DEFAULT_POINTS: PointsRules = { win: 3, draw: 1, loss: 0 };
 
+/**
+ * The statistics the engine can derive from a duel outcome — *if* the bound
+ * discipline declares them. A discipline that never names `points` gets no
+ * `points` value, which is the whole point of 0009: the vocabulary is the
+ * module's, and the engine may only fill in codes the module asked for.
+ *
+ * `played` is deliberately absent: a statistic declared with `count`
+ * aggregation already counts the outcomes its entrant appeared in, whatever
+ * the discipline calls it (`played`, `heats`, `rounds`).
+ */
+export const DERIVABLE_STATISTICS = {
+  wins: 'wins',
+  draws: 'draws',
+  losses: 'losses',
+  points: 'points',
+} as const;
+
 export interface EntrantAccounting {
   readonly entrantId: string;
-  readonly played: number;
-  readonly won: number;
-  readonly drawn: number;
-  readonly lost: number;
-  readonly points: number;
+  /** Exactly the statistics the descriptor declares — no more, no fewer. */
   readonly statistics: Readonly<Record<string, number>>;
 }
 
@@ -49,10 +62,6 @@ interface StatisticAccumulator {
 }
 
 interface EntrantAccumulator {
-  played: number;
-  won: number;
-  drawn: number;
-  lost: number;
   stats: Record<string, StatisticAccumulator>;
 }
 
@@ -83,16 +92,22 @@ export function computeAccounting(
     for (const side of outcome.sides) {
       const acc = accumulators.get(side.entrantId);
       if (!acc) continue;
-      acc.played += 1;
-
-      if (outcome.winnerEntrantId === undefined) acc.drawn += 1;
-      else if (outcome.winnerEntrantId === side.entrantId) acc.won += 1;
-      else acc.lost += 1;
+      const values = {
+        ...derivedFor(descriptor, outcome, side.entrantId, points),
+        ...side.statistics,
+      };
 
       for (const stat of descriptor.statistics) {
-        const value = side.statistics[stat.code];
         const statAcc = acc.stats[stat.code];
-        if (typeof value !== 'number' || !statAcc) continue;
+        if (!statAcc) continue;
+
+        const value = values[stat.code];
+        if (typeof value !== 'number') {
+          // A `count` statistic counts appearances — "played" is the canonical
+          // case — so it accrues whether or not the recorder wrote a value.
+          if (stat.aggregation === 'count') statAcc.count += 1;
+          continue;
+        }
         statAcc.sum += value;
         statAcc.count += 1;
         statAcc.max = Math.max(statAcc.max, value);
@@ -110,16 +125,37 @@ export function computeAccounting(
       statistics[stat.code] = statAcc ? fold(stat.aggregation, statAcc) : 0;
     }
 
-    return {
-      entrantId,
-      played: acc.played,
-      won: acc.won,
-      drawn: acc.drawn,
-      lost: acc.lost,
-      points: acc.won * points.win + acc.drawn * points.draw + acc.lost * points.loss,
-      statistics,
-    };
+    return { entrantId, statistics };
   });
+}
+
+/**
+ * Win/draw/loss bookkeeping the engine can compute from the outcome itself.
+ *
+ * Only codes the descriptor declares are produced, and a value the recorder
+ * already supplied always wins: a discipline whose win condition awards points
+ * its own way records them, and the engine does not second-guess it.
+ */
+function derivedFor(
+  descriptor: DisciplineDescriptor,
+  outcome: RecordedOutcome,
+  entrantId: string,
+  points: PointsRules,
+): Record<string, number> {
+  const won = outcome.winnerEntrantId === entrantId;
+  const drawn = outcome.winnerEntrantId === undefined;
+  const declared = new Set(descriptor.statistics.map((statistic) => statistic.code));
+  const derived: Record<string, number> = {};
+
+  if (declared.has(DERIVABLE_STATISTICS.wins)) derived[DERIVABLE_STATISTICS.wins] = won ? 1 : 0;
+  if (declared.has(DERIVABLE_STATISTICS.draws)) derived[DERIVABLE_STATISTICS.draws] = drawn ? 1 : 0;
+  if (declared.has(DERIVABLE_STATISTICS.losses)) {
+    derived[DERIVABLE_STATISTICS.losses] = !won && !drawn ? 1 : 0;
+  }
+  if (declared.has(DERIVABLE_STATISTICS.points)) {
+    derived[DERIVABLE_STATISTICS.points] = won ? points.win : drawn ? points.draw : points.loss;
+  }
+  return derived;
 }
 
 function emptyAccumulator(descriptor: DisciplineDescriptor): EntrantAccumulator {
@@ -127,7 +163,7 @@ function emptyAccumulator(descriptor: DisciplineDescriptor): EntrantAccumulator 
   for (const stat of descriptor.statistics) {
     stats[stat.code] = { sum: 0, count: 0, max: -Infinity, min: Infinity };
   }
-  return { played: 0, won: 0, drawn: 0, lost: 0, stats };
+  return { stats };
 }
 
 /**
@@ -152,21 +188,14 @@ function fold(aggregation: StatisticDefinition['aggregation'], acc: StatisticAcc
   }
 }
 
-/** Accounting reshaped into the `EntrantValues` the comparator pipeline reads. */
+/**
+ * Accounting reshaped into the `EntrantValues` the comparator pipeline reads.
+ * A comparator asking for a code the discipline never declared reads nothing
+ * and degrades through its own `missingValue` policy — it is not silently
+ * handed an engine-invented zero.
+ */
 export function toEntrantValues(accounting: readonly EntrantAccounting[]): EntrantValues {
-  return Object.fromEntries(
-    accounting.map((row) => [
-      row.entrantId,
-      {
-        points: row.points,
-        played: row.played,
-        won: row.won,
-        drawn: row.drawn,
-        lost: row.lost,
-        ...row.statistics,
-      },
-    ]),
-  );
+  return Object.fromEntries(accounting.map((row) => [row.entrantId, { ...row.statistics }]));
 }
 
 export function computeStandings(

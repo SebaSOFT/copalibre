@@ -142,8 +142,8 @@ describe('competition record (integration)', () => {
         matchId: match.matchId,
         result: {
           sides: [
-            { entrantId: 'e1', score: 2 },
-            { entrantId: 'e2', score: 1 },
+            { entrantId: 'e1', statistics: { score: 2 } },
+            { entrantId: 'e2', statistics: { score: 1 } },
           ],
           winnerEntrantId: 'e1',
           recordedAt: '2026-07-30T13:00:00.000Z',
