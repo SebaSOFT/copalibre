@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@copalibre/domain": "workspace:^",
-    "@sebasoft/neuron-js": "0.5.2"
+    "@sebasoft/neuron-js": "0.6.1"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
