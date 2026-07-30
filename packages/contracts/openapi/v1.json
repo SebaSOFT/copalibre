@@ -1,0 +1,520 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/health": {
+      "get": {
+        "description": "Reports the process role and release version. Deliberately public and dependency-free so it stays answerable during a dependency outage.",
+        "operationId": "HealthController_health",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Liveness probe",
+        "tags": [
+          "operations"
+        ]
+      }
+    },
+    "/ready": {
+      "get": {
+        "description": "Fails with 503 when the database schema does not match the version this release expects, so an operator who skipped \"copalibre migrate\" gets a failing probe instead of a half-working API.",
+        "operationId": "HealthController_ready",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Schema version mismatch or unmigrated database"
+          }
+        },
+        "summary": "Readiness probe",
+        "tags": [
+          "operations"
+        ]
+      }
+    },
+    "/organizations/{alias}": {
+      "get": {
+        "description": "Public projection; returns only published organization data.",
+        "operationId": "OrganizationsController_findByAlias",
+        "parameters": [
+          {
+            "name": "alias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Read an organization by alias",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations": {
+      "post": {
+        "description": "Requires the copalibre.control scope. The alias is validated by the domain layer and must be lowercase kebab-case, unique per installation.",
+        "operationId": "OrganizationsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrganizationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token lacks the required scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create an organization",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}": {
+      "get": {
+        "description": "A tournament alias is unique only within its organization, so both aliases are required.",
+        "operationId": "TournamentsController_findByScopedAlias",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TournamentResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Read a tournament by its organization-scoped alias",
+        "tags": [
+          "tournaments"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments": {
+      "post": {
+        "description": "Requires the copalibre.control scope and a token scoped to the target organization.",
+        "operationId": "TournamentsController_create",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTournamentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TournamentResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a tournament in draft status",
+        "tags": [
+          "tournaments"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/publish": {
+      "post": {
+        "description": "Transitions draft to published. Audited with previous and resulting state; publishing is not destructive, so no confirmation flag is required.",
+        "operationId": "TournamentsController_publish",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TournamentResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Publish a tournament",
+        "tags": [
+          "tournaments"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "CopaLibre API",
+    "description": "Self-hosted tournament management API.\n\nAuthentication is JWT Bearer, validated against the operator-selected\nidentity provider’s JWKS. Browsers use Authorization Code + PKCE and\nhold the access token in memory only — never localStorage. A token\npassed as a query parameter is ignored, because URLs leak into proxy\nlogs, browser history, metrics, traces and screenshots.\n\nEvery route declares one security plane: public-read,\nauthenticated-interaction, admin-control, or integration.\nauthenticated-interaction and admin-control share this same bearer\ntransport and differ only in authorization policy.",
+    "version": "1.0.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http",
+        "description": "Short-lived access token. Strict stateless mode is the default: no refresh credential is persisted, so a reload reauthenticates."
+      }
+    },
+    "schemas": {
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "api",
+              "events",
+              "worker",
+              "scheduler",
+              "migrate",
+              "doctor"
+            ],
+            "description": "Process role this instance is running as"
+          },
+          "version": {
+            "type": "string",
+            "example": "0.0.0"
+          }
+        },
+        "required": [
+          "role",
+          "version"
+        ]
+      },
+      "ReadinessResponse": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "api",
+              "events",
+              "worker",
+              "scheduler",
+              "migrate",
+              "doctor"
+            ],
+            "description": "Process role this instance is running as"
+          },
+          "version": {
+            "type": "string",
+            "example": "0.0.0"
+          },
+          "schemaVersion": {
+            "type": "string",
+            "example": "0001-initial-schema",
+            "description": "Applied database schema version this release requires"
+          }
+        },
+        "required": [
+          "role",
+          "version",
+          "schemaVersion"
+        ]
+      },
+      "OrganizationResponse": {
+        "type": "object",
+        "properties": {
+          "organizationId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUIDv7 identifier"
+          },
+          "alias": {
+            "type": "string",
+            "description": "Human-readable, URL-safe alias; globally unique per installation",
+            "example": "liga-orbital"
+          },
+          "name": {
+            "type": "string",
+            "example": "Liga Orbital"
+          }
+        },
+        "required": [
+          "organizationId",
+          "alias",
+          "name"
+        ]
+      },
+      "CreateOrganizationRequest": {
+        "type": "object",
+        "properties": {
+          "alias": {
+            "type": "string",
+            "description": "Lowercase kebab-case alias, unique per installation",
+            "example": "liga-orbital"
+          },
+          "name": {
+            "type": "string",
+            "example": "Liga Orbital"
+          }
+        },
+        "required": [
+          "alias",
+          "name"
+        ]
+      },
+      "ProblemResponse": {
+        "type": "object",
+        "properties": {
+          "statusCode": {
+            "type": "number",
+            "example": 403
+          },
+          "message": {
+            "type": "string",
+            "example": "subject may only act on their own records"
+          }
+        },
+        "required": [
+          "statusCode",
+          "message"
+        ]
+      },
+      "TournamentResponse": {
+        "type": "object",
+        "properties": {
+          "tournamentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "organizationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "alias": {
+            "type": "string",
+            "description": "Alias, unique within its organization",
+            "example": "copa-verano"
+          },
+          "name": {
+            "type": "string",
+            "example": "Copa Verano"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "published"
+            ]
+          },
+          "rulesetId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Active ruleset version, when one exists"
+          }
+        },
+        "required": [
+          "tournamentId",
+          "organizationId",
+          "alias",
+          "name",
+          "status"
+        ]
+      },
+      "CreateTournamentRequest": {
+        "type": "object",
+        "properties": {
+          "alias": {
+            "type": "string",
+            "example": "copa-verano"
+          },
+          "name": {
+            "type": "string",
+            "example": "Copa Verano"
+          },
+          "descriptorId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "DisciplineDescriptor identifier"
+          },
+          "descriptorVersion": {
+            "type": "number",
+            "description": "Pinned descriptor version; rulesets never track \"latest\""
+          }
+        },
+        "required": [
+          "alias",
+          "name",
+          "descriptorId",
+          "descriptorVersion"
+        ]
+      }
+    }
+  }
+}

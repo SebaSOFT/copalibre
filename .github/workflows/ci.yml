@@ -97,6 +97,7 @@ jobs:
       - run: yarn workspace @copalibre/domain test:coverage
       # Golden-fixture suite included; any fixture mismatch fails the PR (0003).
       - run: yarn workspace @copalibre/rules test:coverage
+      - run: yarn workspace @copalibre/api test:coverage
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -108,6 +109,12 @@ jobs:
         with:
           name: coverage-rules
           path: packages/rules/coverage
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-api
+          path: apps/api/coverage
           retention-days: 14
 
   # Added by 0004-persistence-postgres-outbox-audit: real PostgreSQL, no mocks.
@@ -144,3 +151,38 @@ jobs:
       # Proves the one controlled migration entrypoint works before any test runs.
       - run: yarn workspace @copalibre/migrate run start
       - run: yarn workspace @copalibre/persistence test:integration
+      # Guard/policy/controller suite through the real HTTP stack (0005).
+      - run: yarn workspace @copalibre/api test:integration
+
+  # Added by 0005-api-auth-jwt-openapi-contract. Regenerates the artifact from
+  # the decorated controllers, fails on drift from the committed copy, then runs
+  # contract-lint and the breaking-change check.
+  openapi-contract:
+    name: OpenAPI contract
+    runs-on: ubuntu-latest
+    needs: [install, typecheck]
+    steps:
+      - uses: actions/checkout@v4
+      # corepack must be enabled before setup-node: its yarn-cache probe invokes the
+      # global yarn, which errors on the packageManager pin if it's still Yarn 1.x.
+      - run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+      - run: yarn install --immutable
+      # Contract-lint and breaking-change checks run inside this script; it exits
+      # non-zero on any finding.
+      - run: yarn workspace @copalibre/api run openapi:generate
+      - run: yarn workspace @copalibre/contracts run generate
+      # Drift guard: the committed artifact and generated client types must match
+      # what the controllers currently declare.
+      - name: Fail on uncommitted contract changes
+        run: |
+          if ! git diff --exit-code -- packages/contracts; then
+            echo "::error::The OpenAPI artifact or generated types are stale. Run:"
+            echo "::error::  yarn workspace @copalibre/api run openapi:generate"
+            echo "::error::  yarn workspace @copalibre/contracts run generate"
+            echo "::error::then commit packages/contracts."
+            exit 1
+          fi
