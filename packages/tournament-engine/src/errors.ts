@@ -22,6 +22,16 @@ export class InvalidEntrantsError extends EngineError {
 }
 
 /**
+ * Seed allocation could not produce a complete, unambiguous order: a missing
+ * weighting attribute, a partial manual placement, a cut naming an entrant this
+ * stage does not hold. Thrown rather than returned — every case is a
+ * configuration defect the operator must fix before a draw can run at all.
+ */
+export class AllocationError extends EngineError {
+  readonly code = 'SEED_ALLOCATION_INVALID';
+}
+
+/**
  * A fixture graph routed a placement match into another match's slot. Placement
  * results feed stage standings only (0009), so this is a malformed graph rather
  * than a rejectable input — it is thrown, not returned.

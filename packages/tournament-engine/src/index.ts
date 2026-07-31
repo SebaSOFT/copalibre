@@ -19,8 +19,15 @@ export {
   EngineError,
   UnsupportedFormatError,
   InvalidEntrantsError,
+  AllocationError,
   PlacementAdvancementError,
 } from './errors.js';
+export {
+  allocateSeeds,
+  type AllocationEntrant,
+  type AllocationInput,
+  type AllocationOutcome,
+} from './allocation/index.js';
 export { assertSupportedFormat, isEliminationFormat, isRoundRobinFormat } from './formats.js';
 export {
   generateFixtures,

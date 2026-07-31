@@ -5,6 +5,8 @@ import {
   type EntrantAttribute,
   type Participant,
   type Roster,
+  type SeedPlacement,
+  type StageAllocation,
   type Team,
 } from '@copalibre/domain';
 import type { Kysely } from 'kysely';
@@ -286,6 +288,64 @@ export class ParticipantRepository {
     });
 
     return [...input.attributes];
+  }
+
+  /**
+   * Applies a computed seed order, recording the mode that produced it.
+   *
+   * The engine decides the order and this writes it, so the audit trail answers
+   * "why is this club on seed 3" with the rule that placed it — a manual
+   * placement names the operator who chose it, and a weighted one names the
+   * attribute it ranked on. A bracket dispute is otherwise unanswerable.
+   */
+  async setEntrantSeeds(
+    uow: UnitOfWork,
+    input: {
+      readonly tournamentId: string;
+      readonly placements: readonly SeedPlacement[];
+      readonly allocation: StageAllocation;
+    } & AuditContext,
+  ): Promise<readonly Entrant[]> {
+    const known = await this.listEntrants(input.tournamentId);
+    const byId = new Map(known.map((entrant) => [entrant.entrantId, entrant]));
+
+    for (const placement of input.placements) {
+      if (!byId.has(placement.entrantId)) {
+        throw new InvariantViolationError(
+          `Entrant ${placement.entrantId} is not registered in tournament ${input.tournamentId}`,
+          { entrantId: placement.entrantId, tournamentId: input.tournamentId },
+        );
+      }
+    }
+
+    const updated: Entrant[] = [];
+    for (const placement of input.placements) {
+      const row = await uow.tx
+        .updateTable('entrants')
+        .set({ seed: placement.seed })
+        .where('entrant_id', '=', placement.entrantId)
+        .returningAll()
+        .executeTakeFirstOrThrow();
+      updated.push(toEntrant(row));
+    }
+
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'tournament',
+      entityId: input.tournamentId,
+      action: 'entrants.seeded',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      previousState: {
+        seeds: known.map((entrant) => ({
+          entrantId: entrant.entrantId,
+          seed: entrant.seed ?? null,
+        })),
+      },
+      resultingState: { allocation: { ...input.allocation }, seeds: [...input.placements] },
+    });
+
+    return updated;
   }
 
   async listEntrantAttributes(entrantId: string): Promise<readonly EntrantAttribute[]> {

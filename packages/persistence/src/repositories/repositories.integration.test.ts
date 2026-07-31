@@ -568,6 +568,52 @@ describe('entrant attributes (integration)', () => {
     ).rejects.toBeInstanceOf(InvariantViolationError);
   });
 
+  it('applies a seed order and records the mode that produced it', async () => {
+    const { tournament, entrant } = await seedEntrant('copa-siembra');
+
+    const applied = await withTransaction(scratch.db, (uow) =>
+      participants.setEntrantSeeds(uow, {
+        tournamentId: tournament.tournamentId,
+        placements: [{ entrantId: entrant.entrantId, seed: 1 }],
+        allocation: { mode: 'weighted', attributeKey: 'ranking', direction: 'lower-first' },
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+    expect(applied[0]?.seed).toBe(1);
+
+    const audit = await new AuditReader(scratch.db).historyFor(
+      'tournament',
+      tournament.tournamentId,
+    );
+    const seeding = audit.find((entry) => entry.action === 'entrants.seeded');
+    // The trail answers "why is this club on seed 1", not just "it is".
+    expect(seeding?.resultingState).toMatchObject({
+      allocation: { mode: 'weighted', attributeKey: 'ranking' },
+      seeds: [{ entrantId: entrant.entrantId, seed: 1 }],
+    });
+    expect(seeding?.previousState).toMatchObject({
+      seeds: [{ entrantId: entrant.entrantId, seed: null }],
+    });
+  });
+
+  it('refuses to seed an entrant registered in another tournament', async () => {
+    const { tournament } = await seedEntrant('copa-ajena');
+    const other = await seedEntrant('copa-vecina');
+
+    await expect(
+      withTransaction(scratch.db, (uow) =>
+        participants.setEntrantSeeds(uow, {
+          tournamentId: tournament.tournamentId,
+          placements: [{ entrantId: other.entrant.entrantId, seed: 1 }],
+          allocation: { mode: 'manual' },
+          organizationId,
+          ...AUDIT,
+        }),
+      ),
+    ).rejects.toBeInstanceOf(InvariantViolationError);
+  });
+
   it('refuses a numeric attribute carrying a string, rolling the transaction back', async () => {
     const { entrant } = await seedEntrant('copa-invalida');
 
