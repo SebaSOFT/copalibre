@@ -1,28 +1,25 @@
 import { type ExecutionContext } from '@sebasoft/neuron-js';
-import {
-  ExpressionNumberParameter,
-  ExpressionStringParameter,
-  StateNumberParameter,
-  StateStringParameter,
-} from './vocabulary.js';
+import { NumberParameter, StringParameter } from './vocabulary.js';
 
 /**
- * The four CopaLibre parameters, each in both modes: a fixed value, and an
- * expression declared in `options.expression`.
+ * Two parameters, two modes. The value holds what the author wrote and
+ * `options.expression` says how to read it, so flipping the mode moves nothing.
  */
 
 const context: ExecutionContext = {
   messages: [],
-  state: { score: { home: 5, away: 2 }, entrant: { status: 'withdrawn' } },
+  state: { score: { home: 5, away: 2 }, entrant: { status: 'withdrawn' }, segment: { number: 2 } },
 };
 
 function contextOf(state: Record<string, unknown> = {}): ExecutionContext {
   return { messages: [], state };
 }
 
-describe('simple_number in both modes', () => {
+const EXPRESSION = { expression: true };
+
+describe('simple_number', () => {
   const build = (value: unknown, options: Record<string, unknown>, fallback?: number) =>
-    new ExpressionNumberParameter('p1', 'simple_number', 'op1', value as number, options, fallback);
+    new NumberParameter('p1', 'simple_number', 'op1', value as number, options, fallback);
 
   it('reads a literal, including one spelled as text', () => {
     expect(build(3, {}).getValue(context)).toBe(3);
@@ -35,22 +32,32 @@ describe('simple_number in both modes', () => {
     expect(build('abc', {}).getValue(context)).toBeNull();
   });
 
-  it('resolves an expression to a number', () => {
-    expect(build(null, { expression: '{{ score.home - score.away }}' }).getValue(context)).toBe(3);
+  it('computes a value the core never published', () => {
+    expect(build('{{ score.home - score.away }}', EXPRESSION).getValue(context)).toBe(3);
+  });
+
+  it('reads a plain path, which is the degenerate expression', () => {
+    expect(build('{{ score.home }}', EXPRESSION).getValue(context)).toBe(5);
   });
 
   it('is null when the expression resolves to text, rather than coercing it', () => {
-    expect(build(null, { expression: 'Group {{ score.home }}' }).getValue(context)).toBeNull();
+    expect(build('Group {{ score.home }}', EXPRESSION).getValue(context)).toBeNull();
   });
 
   it('is null when the expression cannot answer', () => {
-    expect(build(null, { expression: '{{ score.margin }}' }).getValue(context)).toBeNull();
+    expect(build('{{ score.margin }}', EXPRESSION).getValue(context)).toBeNull();
+  });
+
+  it('reads its braces literally when the mode is not declared', () => {
+    // Refused at validation, but the runtime is still defined: the field says
+    // it is a literal, so it is treated as one rather than quietly evaluated.
+    expect(build('{{ score.home }}', {}).getValue(context)).toBeNull();
   });
 });
 
-describe('simple_string in both modes', () => {
+describe('simple_string', () => {
   const build = (value: unknown, options: Record<string, unknown>, fallback?: string) =>
-    new ExpressionStringParameter('p1', 'simple_string', 'op1', value as string, options, fallback);
+    new StringParameter('p1', 'simple_string', 'reason', value as string, options, fallback);
 
   it('reads a literal and its fallback', () => {
     expect(build('final', {}).getValue(context)).toBe('final');
@@ -58,56 +65,32 @@ describe('simple_string in both modes', () => {
     expect(build(null, {}).getValue(context)).toBeNull();
   });
 
-  it('resolves an expression, rendering a number as its text', () => {
-    expect(build(null, { expression: 'Home {{ score.home }}' }).getValue(context)).toBe('Home 5');
-    expect(build(null, { expression: '{{ score.home }}' }).getValue(context)).toBe('5');
-  });
-});
-
-describe('state-number in both modes', () => {
-  const build = (options: Record<string, unknown>, fallback?: number) =>
-    new StateNumberParameter('p1', 'state-number', 'op1', null, options, fallback);
-
-  it('reads the state at options.path', () => {
-    expect(build({ path: 'score.home' }).getValue(context)).toBe(5);
-  });
-
-  it('falls back when the path is absent, missing, or holds something else', () => {
-    expect(build({ path: 'score.margin' }, 0).getValue(context)).toBe(0);
-    expect(build({}).getValue(context)).toBeNull();
-    expect(build({ path: 'entrant.status' }).getValue(context)).toBeNull();
-  });
-
-  it('prefers an expression when one is declared', () => {
+  it('interpolates literal text and expressions into one message', () => {
     expect(
-      build({ path: 'score.home', expression: '{{ score.home - score.away }}' }).getValue(context),
-    ).toBe(3);
+      build(
+        'Period {{ segment.number }}: home leads by {{ score.home - score.away }}',
+        EXPRESSION,
+      ).getValue(context),
+    ).toBe('Period 2: home leads by 3');
   });
 
-  it('is null when the declared expression resolves to text', () => {
-    expect(build({ expression: 'x{{ score.home }}' }).getValue(context)).toBeNull();
-  });
-});
-
-describe('state-string in both modes', () => {
-  const build = (options: Record<string, unknown>, fallback?: string) =>
-    new StateStringParameter('p1', 'state-string', 'op1', null, options, fallback);
-
-  it('reads the state at options.path', () => {
-    expect(build({ path: 'entrant.status' }).getValue(context)).toBe('withdrawn');
+  it('renders a whole-field expression as its text', () => {
+    expect(build('{{ score.home }}', EXPRESSION).getValue(context)).toBe('5');
+    expect(build('{{ upper(entrant.status) }}', EXPRESSION).getValue(context)).toBe('WITHDRAWN');
   });
 
-  it('falls back when the path is absent or holds something else', () => {
-    expect(build({ path: 'entrant.note' }, 'none').getValue(context)).toBe('none');
-    expect(build({ path: 'score.home' }).getValue(context)).toBeNull();
-    expect(build({}).getValue(context)).toBeNull();
+  it('is null when a whole-field expression cannot answer', () => {
+    expect(build('{{ entrant.status }}', EXPRESSION).getValue(contextOf())).toBeNull();
   });
 
-  it('resolves an expression, including one over an empty context', () => {
-    expect(build({ expression: '{{ upper(entrant.status) }}' }).getValue(context)).toBe(
-      'WITHDRAWN',
+  it('renders an unanswerable expression inside a message as nothing', () => {
+    expect(build('Status: {{ entrant.status }}', EXPRESSION).getValue(contextOf())).toBe(
+      'Status: ',
     );
-    expect(build({ expression: '{{ entrant.status }}' }).getValue(contextOf())).toBeNull();
+  });
+
+  it('keeps its braces as text when the mode is not declared', () => {
+    expect(build('{{ score.home }}', {}).getValue(context)).toBe('{{ score.home }}');
   });
 });
 
@@ -115,22 +98,30 @@ describe('the expression record', () => {
   it('is written once per resolution, whichever parameter resolved it', () => {
     const recording = contextOf({ score: { home: 5, away: 2 } });
 
-    new ExpressionNumberParameter('p1', 'simple_number', 'op1', null, {
-      expression: '{{ score.home - score.away }}',
-    }).getValue(recording);
-    new StateStringParameter('p2', 'state-string', 'reason', null, {
-      expression: 'by {{ score.home - score.away }}',
-    }).getValue(recording);
+    new NumberParameter(
+      'p1',
+      'simple_number',
+      'op1',
+      '{{ score.home - score.away }}',
+      EXPRESSION,
+    ).getValue(recording);
+    new StringParameter(
+      'p2',
+      'simple_string',
+      'reason',
+      'by {{ score.home - score.away }}',
+      EXPRESSION,
+    ).getValue(recording);
 
     expect(recording.messages).toHaveLength(2);
-    expect(recording.messages[0]?.text).toContain('op1');
+    expect(recording.messages[0]?.text).toContain('op1: {{ score.home - score.away }} → 3');
     expect(recording.messages[1]?.text).toContain('reason: by');
   });
 
   it('is not written at all for a parameter in fixed mode', () => {
     const recording = contextOf({});
 
-    new ExpressionNumberParameter('p1', 'simple_number', 'op1', 3, {}).getValue(recording);
+    new NumberParameter('p1', 'simple_number', 'op1', 3, {}).getValue(recording);
 
     expect(recording.messages).toHaveLength(0);
   });

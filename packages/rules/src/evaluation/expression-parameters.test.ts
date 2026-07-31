@@ -36,8 +36,8 @@ function marginGuard(
                 id: 'p1',
                 name: 'op1',
                 type: 'simple_number',
-                value: null,
-                options: { expression },
+                value: expression,
+                options: { expression: true },
               },
               { id: 'p2', name: 'comp', type: 'comparator', value: '>', options: {} },
               { id: 'p3', name: 'op2', type: 'simple_number', value: margin, options: {} },
@@ -55,8 +55,8 @@ function marginGuard(
                 id: 'p5',
                 name: 'reason',
                 type: 'simple_string',
-                value: null,
-                options: { expression: 'Home leads by {{ score.home - score.away }}' },
+                value: 'Home leads by {{ score.home - score.away }}',
+                options: { expression: true },
               },
             ],
           },
@@ -169,6 +169,39 @@ describe('the registry vets an expression at installation', () => {
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.error.message).toContain(named);
+  });
+
+  it('refuses braces in a field that did not declare the mode, rather than printing them', () => {
+    const script = marginGuard('{{ score.home - score.away }}', 2);
+    const parameter = script.rules[0]?.conditions?.[0]?.params?.[0] as unknown as {
+      options: Record<string, unknown>;
+    };
+    parameter.options = {};
+
+    const result = registry().validateScriptReferences(script);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.message).toContain('not in expression mode');
+  });
+
+  it('refuses expression mode over a value that is not the expression source', () => {
+    const script = marginGuard('{{ score.home - score.away }}', 2);
+    const parameter = script.rules[0]?.conditions?.[0]?.params?.[0] as unknown as {
+      value: unknown;
+    };
+    parameter.value = 42;
+
+    const result = registry().validateScriptReferences(script);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.message).toContain('must be the expression source');
+  });
+
+  it('no longer knows the state-reading types the expression replaced', () => {
+    expect(registry().has('parameter', 'state-number')).toBe(false);
+    expect(registry().has('parameter', 'state-string')).toBe(false);
   });
 
   it('refuses it through the guard evaluator too, which vets before executing', () => {

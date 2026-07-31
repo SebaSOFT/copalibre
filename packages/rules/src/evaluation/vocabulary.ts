@@ -6,7 +6,7 @@ import {
   type ExecutionContext,
 } from '@sebasoft/neuron-js';
 import type { RulesRegistry } from '../registry/rules-registry.js';
-import { expressionOf, resolveParameterExpression } from '../expressions/expression.js';
+import { isExpressionMode, resolveParameterExpression } from '../expressions/expression.js';
 import { registerCopalibreConditions } from './conditions.js';
 
 /**
@@ -15,117 +15,80 @@ import { registerCopalibreConditions } from './conditions.js';
  * application code — never inside a descriptor.
  */
 
-function readStatePath(context: ExecutionContext, path: string): unknown {
-  return path.split('.').reduce<unknown>((current, segment) => {
-    if (current && typeof current === 'object' && segment in current) {
-      return (current as Record<string, unknown>)[segment];
-    }
-    return undefined;
-  }, context.state);
-}
-
 /**
- * A state-reading parameter's dot-path lives in `options.path`, never in
- * `value`.
+ * Two parameters, two modes (0013).
  *
- * `ParameterInterface<TValue>` ties the stored `value` and the produced
- * `getValue()` to one generic, so a parameter that stores a path string but
- * produces a number cannot express itself through `value` — subclassing as
- * `AbstractParameter<number>` type-checks while silently breaking, because
- * `this.value` narrows to `number | null` and the path lookup becomes dead
- * code. Keeping the path in `options` sidesteps that entirely and is the better
- * authoring contract anyway: in operator-authored rule JSON, `value` always
- * means "a literal" and `options.path` always means "read this from state",
- * instead of `value` meaning two different things depending on the type.
+ * A field holds what the author wrote, in `value`, and `options.expression`
+ * says how to read it: a literal, or an expression over the context. Flipping
+ * the mode leaves the text where it is and leaves the element's `type`
+ * untouched — `type` is precisely what the registry vets and what a module may
+ * not invent.
  *
- * The base class then supplies `execute` (neuron-js 0.6.1) and `toJSON`, and
- * because `toJSON` serializes `options`, the path stays visible in the
- * explanation trace — which the audit surfaces need.
- */
-function readPathOption(options: unknown): string | undefined {
-  if (typeof options !== 'object' || options === null) return undefined;
-  const path = (options as Record<string, unknown>).path;
-  return typeof path === 'string' ? path : undefined;
-}
-
-/**
- * Expression mode, on every parameter (0013).
- *
- * `options.expression` holds `{{ score.home - score.away }}`; the parameter's
- * registered `type` is untouched, because `type` is precisely what the registry
- * vets and what a module may not invent. An author toggling a field from fixed
- * to expression changes the value, never the identity of the element.
+ * This replaced the `state-number`/`state-string` pair 0003 introduced for
+ * reading a dot-path out of the evaluation state. A path read is the degenerate
+ * expression — `{{ facts.rosterSize }}` says exactly what
+ * `state-number{path: 'facts.rosterSize'}` said — so keeping both would mean
+ * two spellings of one idea and two places to look for "where does this value
+ * come from". 0003's rule that `value` means a literal is what made a second
+ * parameter type necessary; with the mode declared, one field carries both and
+ * the rule is no longer paying for itself.
  *
  * A whole-field expression resolves to its typed value and a mixed field to a
  * string, so a number parameter in expression mode is still a number when the
  * expression is one — and no value at all when the expression cannot answer,
  * which is what the consuming condition's missing-value behaviour is for.
+ *
+ * Registration is a map assignment, so these replace Neuron's built-ins for
+ * this registry's Neuron and nothing else. Fixed-value behaviour is preserved
+ * exactly: a script that never declares the mode cannot tell the difference.
  */
 function expressionValue(
-  parameter: { readonly name: string; readonly options: unknown },
+  parameter: {
+    readonly name: string;
+    readonly value: unknown;
+    readonly options: unknown;
+  },
   context: ExecutionContext,
 ): unknown {
-  const source = expressionOf(parameter.options);
-  return source === undefined
-    ? undefined
-    : resolveParameterExpression(parameter.name, source, context);
-}
-
-/** Reads a number from the evaluation state at `options.path`, or an expression. */
-export class StateNumberParameter extends AbstractParameter<number> {
-  static readonly TYPE = 'state-number';
-
-  getValue(context: ExecutionContext): number | null {
-    const computed = expressionValue(this, context);
-    if (computed !== undefined) return typeof computed === 'number' ? computed : null;
-
-    const path = readPathOption(this.options);
-    const value = path === undefined ? undefined : readStatePath(context, path);
-    return typeof value === 'number' ? value : (this.defaultValue ?? null);
-  }
-}
-
-/** Reads a string from the evaluation state at `options.path`, or an expression. */
-export class StateStringParameter extends AbstractParameter<string> {
-  static readonly TYPE = 'state-string';
-
-  getValue(context: ExecutionContext): string | null {
-    const computed = expressionValue(this, context);
-    if (computed !== undefined) return typeof computed === 'string' ? computed : String(computed);
-
-    const path = readPathOption(this.options);
-    const value = path === undefined ? undefined : readStatePath(context, path);
-    return typeof value === 'string' ? value : (this.defaultValue ?? null);
-  }
+  if (!isExpressionMode(parameter.options)) return undefined;
+  return typeof parameter.value === 'string'
+    ? resolveParameterExpression(parameter.name, parameter.value, context)
+    : undefined;
 }
 
 /**
- * Neuron's literal parameters, re-registered so they too accept an expression.
+ * A literal number, or the number an expression resolves to.
  *
- * Registration is a map assignment, so these replace the built-ins for this
- * registry's Neuron and nothing else. Their fixed-value behaviour is preserved
- * exactly: a script that never mentions `options.expression` cannot tell the
- * difference.
+ * The stored value is `number | string` because in expression mode it is the
+ * source text — the honest widening 0003 avoided by inventing a second type.
+ * `getValue` still narrows to a number, so every caller keeps the guarantee it
+ * had.
  */
-export class ExpressionNumberParameter extends AbstractParameter<number> {
+export class NumberParameter extends AbstractParameter<number | string> {
   static readonly TYPE = 'simple_number';
 
   getValue(context: ExecutionContext): number | null {
     const computed = expressionValue(this, context);
-    if (computed !== undefined) return typeof computed === 'number' ? computed : null;
+    if (isExpressionMode(this.options)) return typeof computed === 'number' ? computed : null;
 
-    if (this.value === null) return this.defaultValue ?? null;
+    if (this.value === null) {
+      // The fallback is a number even where the stored value may be text.
+      return typeof this.defaultValue === 'number' ? this.defaultValue : null;
+    }
     const parsed = Number(this.value);
     return Number.isNaN(parsed) ? null : parsed;
   }
 }
 
-export class ExpressionStringParameter extends AbstractParameter<string> {
+/** A literal string, or the text an expression resolves to. */
+export class StringParameter extends AbstractParameter<string> {
   static readonly TYPE = 'simple_string';
 
   getValue(context: ExecutionContext): string | null {
     const computed = expressionValue(this, context);
-    if (computed !== undefined) return typeof computed === 'string' ? computed : String(computed);
+    if (isExpressionMode(this.options)) {
+      return computed === undefined ? null : String(computed);
+    }
 
     return this.value ?? this.defaultValue ?? null;
   }
@@ -171,24 +134,14 @@ export class SetGuardOutcomeAction extends AbstractAction {
 export function registerCopalibreVocabulary(registry: RulesRegistry): RulesRegistry {
   registerCopalibreConditions(registry);
   registry.registerParameter(
-    StateNumberParameter.TYPE,
-    StateNumberParameter,
-    'Numeric fact read from evaluation state at options.path (dot-path)',
+    NumberParameter.TYPE,
+    NumberParameter,
+    'Literal number, or the number an expression resolves to when options.expression is true',
   );
   registry.registerParameter(
-    StateStringParameter.TYPE,
-    StateStringParameter,
-    'String fact read from evaluation state at options.path (dot-path)',
-  );
-  registry.registerParameter(
-    ExpressionNumberParameter.TYPE,
-    ExpressionNumberParameter,
-    'Literal number, or the number an options.expression resolves to',
-  );
-  registry.registerParameter(
-    ExpressionStringParameter.TYPE,
-    ExpressionStringParameter,
-    'Literal string, or the text an options.expression resolves to',
+    StringParameter.TYPE,
+    StringParameter,
+    'Literal string, or the text an expression resolves to when options.expression is true',
   );
   registry.registerAction(
     SetGuardOutcomeAction.TYPE,

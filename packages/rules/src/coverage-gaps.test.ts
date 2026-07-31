@@ -3,10 +3,10 @@ import type { DisciplineDescriptor, RecordedEvent } from '@copalibre/domain';
 import { GuardEvaluationError, NotificationRuleError, ScriptValidationError } from './errors.js';
 import { evaluateGuard } from './evaluation/guard-evaluator.js';
 import {
+  NumberParameter,
   registerCopalibreVocabulary,
   SetGuardOutcomeAction,
-  StateNumberParameter,
-  StateStringParameter,
+  StringParameter,
 } from './evaluation/vocabulary.js';
 import {
   evaluateNotificationRule,
@@ -22,65 +22,61 @@ function freshRegistry(): RulesRegistry {
 const emptyContext: ExecutionContext = { messages: [], state: { present: 5, name: 'x' } };
 
 describe('vocabulary parameter edge behavior', () => {
-  it('state-number falls back to defaultValue, then null', () => {
-    const missing = new StateNumberParameter(
+  it('a number in expression mode is null when the expression cannot answer', () => {
+    const missing = new NumberParameter('p', 'simple_number', 'op1', '{{ absent.path }}', {
+      expression: true,
+    });
+    expect(missing.getValue(emptyContext)).toBeNull();
+    // A defaultValue does not rescue an expression: the field said to compute,
+    // and the computation produced nothing.
+    const withDefault = new NumberParameter(
       'p',
-      'state-number',
+      'simple_number',
       'op1',
-      null,
-      { path: 'absent.path' },
+      '{{ absent.path }}',
+      { expression: true },
       7,
     );
-    expect(missing.getValue(emptyContext)).toBe(7);
-    const noDefault = new StateNumberParameter('p', 'state-number', 'op1', null, {
-      path: 'absent.path',
-    });
-    expect(noDefault.getValue(emptyContext)).toBeNull();
-    // No options.path at all: nothing to read, falls back to null.
-    const noPath = new StateNumberParameter('p', 'state-number', 'op1', null, {});
-    expect(noPath.getValue(emptyContext)).toBeNull();
-    // options.path present but not a string: rejected, not coerced.
-    const badPath = new StateNumberParameter('p', 'state-number', 'op1', null, { path: 42 });
-    expect(badPath.getValue(emptyContext)).toBeNull();
+    expect(withDefault.getValue(emptyContext)).toBeNull();
+    // Expression mode declared over a value that is not text: nothing to parse.
+    const notText = new NumberParameter('p', 'simple_number', 'op1', 42, { expression: true });
+    expect(notText.getValue(emptyContext)).toBeNull();
   });
 
-  it('state-string reads strings and falls back like state-number', () => {
-    const found = new StateStringParameter('p', 'state-string', 'op1', null, { path: 'name' });
+  it('a string in expression mode reads the state and falls back to null', () => {
+    const found = new StringParameter('p', 'simple_string', 'op1', '{{ name }}', {
+      expression: true,
+    });
     expect(found.getValue(emptyContext)).toBe('x');
     expect(found.execute(emptyContext).isSuccessful()).toBe(true);
-    const missing = new StateStringParameter(
-      'p',
-      'state-string',
-      'op1',
-      null,
-      { path: 'absent' },
-      'dft',
-    );
-    expect(missing.getValue(emptyContext)).toBe('dft');
+    const missing = new StringParameter('p', 'simple_string', 'op1', '{{ absent }}', {
+      expression: true,
+    });
+    expect(missing.getValue(emptyContext)).toBeNull();
   });
 
-  it('state-number execute wraps getValue in a successful result', () => {
-    const param = new StateNumberParameter('p', 'state-number', 'op1', null, {
-      path: 'present',
+  it('execute wraps getValue in a successful result', () => {
+    const param = new NumberParameter('p', 'simple_number', 'op1', '{{ present }}', {
+      expression: true,
     });
     const result = param.execute(emptyContext);
     expect(result.isSuccessful()).toBe(true);
     expect(result.value).toBe(5);
   });
 
-  it('keeps options.path in the serialized parameter so the audit trail shows it', () => {
-    // The reason the dot-path lives in `options` rather than a private field:
-    // AbstractParameter.toJSON() serializes options, so an auditor reading a
-    // stored explanation can still see WHICH fact the decision consumed.
-    const param = new StateNumberParameter('p1', 'state-number', 'op1', null, {
-      path: 'facts.rosterSize',
+  it('keeps the expression in the serialized parameter so the audit trail shows it', () => {
+    // AbstractParameter.toJSON() serializes value and options, so an auditor
+    // reading a stored explanation still sees WHICH fact the decision consumed
+    // and that it was computed rather than typed.
+    const param = new NumberParameter('p1', 'simple_number', 'op1', '{{ facts.rosterSize }}', {
+      expression: true,
     });
     expect(param.toJSON()).toEqual({
       id: 'p1',
-      type: 'state-number',
+      type: 'simple_number',
       name: 'op1',
-      value: null,
-      options: { path: 'facts.rosterSize' },
+      value: '{{ facts.rosterSize }}',
+      options: { expression: true },
     });
   });
 

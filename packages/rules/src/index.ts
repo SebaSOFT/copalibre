@@ -23,21 +23,20 @@ export {
 
 export {
   registerCopalibreVocabulary,
-  StateNumberParameter,
-  StateStringParameter,
-  ExpressionNumberParameter,
-  ExpressionStringParameter,
+  NumberParameter,
+  StringParameter,
   SetGuardOutcomeAction,
   type GuardState,
 } from './evaluation/vocabulary.js';
 
 export {
   validateExpression,
+  validateParameterDeclaration,
   evaluateExpression,
   resolveExpressionField,
   splitTemplate,
   expressionResolutions,
-  expressionOf,
+  isExpressionMode,
   type TemplateSegment,
 } from './expressions/expression.js';
 export {

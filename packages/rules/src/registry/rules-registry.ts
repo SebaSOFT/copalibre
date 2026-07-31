@@ -8,7 +8,7 @@ import {
 } from '@sebasoft/neuron-js';
 import { err, ok, type DisciplineDescriptor, type Result } from '@copalibre/domain';
 import { ScriptValidationError, UnregisteredElementError } from '../errors.js';
-import { expressionOf, splitTemplate, validateExpression } from '../expressions/expression.js';
+import { validateParameterDeclaration } from '../expressions/expression.js';
 
 /**
  * The typed registry of permitted rule vocabulary. A DisciplineDescriptor (a
@@ -48,7 +48,12 @@ export type RuleScript = ScriptInterface;
 /** Minimal structural view used for registry reference-walking. */
 interface ScriptElementRef {
   readonly type?: string;
-  readonly params?: readonly { readonly type?: string; readonly options?: unknown }[];
+  readonly params?: readonly {
+    readonly type?: string;
+    readonly name?: string;
+    readonly value?: unknown;
+    readonly options?: unknown;
+  }[];
 }
 interface RuleScriptView {
   readonly id: string;
@@ -188,7 +193,7 @@ export class RulesRegistry {
       const offender =
         this.check(kind, element.type) ??
         element.params
-          ?.map((param) => this.check('parameter', param.type) ?? checkExpression(param.options))
+          ?.map((param) => this.check('parameter', param.type) ?? checkExpression(param))
           .find((error) => error !== undefined);
       if (offender) return offender;
     }
@@ -200,21 +205,18 @@ function keyOf(kind: ElementKind, type: string): string {
   return `${kind}:${type}`;
 }
 
-/**
- * Vets every `{{ }}` an expression-mode parameter declares. Each segment is
- * parsed and walked on its own, so an error names the offending expression
- * rather than the whole field.
- */
-function checkExpression(options: unknown): ScriptValidationError | undefined {
-  const source = expressionOf(options);
-  if (source === undefined) return undefined;
-
-  for (const segment of splitTemplate(source)) {
-    if (segment.kind !== 'expression') continue;
-    const validation = validateExpression(segment.source);
-    if (!validation.ok) return validation.error;
-  }
-  return undefined;
+/** Vets a parameter's mode and, in expression mode, every `{{ }}` it declares. */
+function checkExpression(parameter: {
+  readonly name?: string;
+  readonly value?: unknown;
+  readonly options?: unknown;
+}): ScriptValidationError | undefined {
+  const validation = validateParameterDeclaration(
+    parameter.name ?? 'unnamed',
+    parameter.value,
+    parameter.options,
+  );
+  return validation.ok ? undefined : validation.error;
 }
 
 function lowerFirst(message: string): string {

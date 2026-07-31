@@ -35,10 +35,13 @@ function params(...specs: readonly ParamSpec[]): ParameterInterface[] {
 }
 
 const literal = (name: string, type: string, value: unknown): ParamSpec => ({ name, type, value });
+
+/** Reading a path is the degenerate expression, so state reads look like this. */
 const fromState = (name: string, type: string, path: string): ParamSpec => ({
   name,
-  type,
-  options: { path },
+  type: type === 'state-number' ? 'simple_number' : 'simple_string',
+  value: `{{ ${path} }}`,
+  options: { expression: true },
 });
 
 describe('compare_two_strings', () => {

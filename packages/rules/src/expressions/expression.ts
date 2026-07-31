@@ -369,9 +369,57 @@ export function expressionResolutions(context: ExecutionContext): readonly strin
     .map((message) => message.text.slice(EXPRESSION_MESSAGE_PREFIX.length));
 }
 
-/** The expression source declared on a parameter, when it is in expression mode. */
-export function expressionOf(options: unknown): string | undefined {
-  if (typeof options !== 'object' || options === null) return undefined;
-  const expression = (options as Record<string, unknown>).expression;
-  return typeof expression === 'string' && expression.trim() !== '' ? expression : undefined;
+/**
+ * Whether a parameter declares its `value` to be an expression.
+ *
+ * The mode is a boolean and the source stays in `value`, so a field holds what
+ * its author wrote and toggling the mode does not move the text — the n8n
+ * behaviour, and the reason there is no second field to disagree with the
+ * first.
+ */
+export function isExpressionMode(options: unknown): boolean {
+  if (typeof options !== 'object' || options === null) return false;
+  return (options as Record<string, unknown>).expression === true;
+}
+
+/**
+ * Vets a parameter's declaration before anything evaluates it.
+ *
+ * Two shapes are refused for the same reason — a field must say plainly which
+ * mode it is in. An expression whose source is not text has nothing to parse,
+ * and a literal carrying `{{ }}` is almost always a forgotten toggle, which
+ * would otherwise render its own source into a message an operator reads.
+ */
+export function validateParameterDeclaration(
+  name: string,
+  value: unknown,
+  options: unknown,
+): Result<true, ScriptValidationError> {
+  if (!isExpressionMode(options)) {
+    return typeof value === 'string' && value.includes('{{')
+      ? err(
+          new ScriptValidationError(
+            `Parameter "${name}" holds "{{ }}" but is not in expression mode; ` +
+              'declare options.expression to evaluate it, or remove the braces to mean them literally',
+            { parameter: name },
+          ),
+        )
+      : ok(true);
+  }
+
+  if (typeof value !== 'string') {
+    return err(
+      new ScriptValidationError(
+        `Parameter "${name}" is in expression mode, so its value must be the expression source`,
+        { parameter: name },
+      ),
+    );
+  }
+
+  for (const segment of splitTemplate(value)) {
+    if (segment.kind !== 'expression') continue;
+    const validation = validateExpression(segment.source);
+    if (!validation.ok) return validation;
+  }
+  return ok(true);
 }
