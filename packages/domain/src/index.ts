@@ -103,6 +103,30 @@ export type {
   StageConfiguration,
 } from './rulesets/tournament-ruleset.js';
 export type { CompilationProvenance, MatchRuleset } from './rulesets/match-ruleset.js';
+export {
+  validateConstraint,
+  roundNumberFor,
+  CONSTRAINT_HOOK_POINTS,
+  IMPLEMENTED_HOOK_POINTS,
+  DrawConstraintError,
+  type ConstraintHookPoint,
+  type DrawConstraint,
+  type SeparationConstraint,
+  type DistributionConstraint,
+  type ScriptConstraint,
+} from './rulesets/draw-constraints.js';
+export {
+  validateAllocation,
+  assertSlotCount,
+  ALLOCATION_MODES,
+  StageAllocationError,
+  type StageAllocation,
+  type AutomaticAllocation,
+  type ManualAllocation,
+  type WeightedAllocation,
+  type SeedDirection,
+  type SeedPlacement,
+} from './rulesets/stage-allocation.js';
 export { compileEffectiveRuleset } from './rulesets/compiler.js';
 export {
   evaluateMutation,
@@ -113,6 +137,15 @@ export {
 
 export type { Organization, Club } from './aggregates/organization.js';
 export { hasStarted, type Tournament, type TournamentStatus } from './aggregates/tournament.js';
+export {
+  validateStageCompletion,
+  validateNextStage,
+  StageCompletionError,
+  StageNotReadyError,
+  type StageStatus,
+  type StageCompletionPreconditions,
+  type NextStagePreconditions,
+} from './aggregates/stage-completion.js';
 export {
   validateStart,
   canChangeModuleVersion,
@@ -128,6 +161,16 @@ export type {
   EntrantStatus,
   Entrant,
 } from './aggregates/participant.js';
+export {
+  validateAttributes,
+  assertWeightingComplete,
+  attributeValue,
+  numericAttribute,
+  categoricalAttribute,
+  EntrantAttributeError,
+  type EntrantAttribute,
+  type EntrantAttributes,
+} from './aggregates/entrant-attribute.js';
 export type {
   Stage,
   Fixture,

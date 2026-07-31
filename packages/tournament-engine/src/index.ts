@@ -19,8 +19,46 @@ export {
   EngineError,
   UnsupportedFormatError,
   InvalidEntrantsError,
+  AllocationError,
+  QualificationError,
+  DrawError,
   PlacementAdvancementError,
 } from './errors.js';
+export {
+  previewStageTransition,
+  type StageTransitionInput,
+  type StageTransitionPreview,
+} from './transition/index.js';
+export {
+  runDraw,
+  inspectDraw,
+  type DrawRequest,
+  type DrawOutcome,
+  type DrawShape,
+  type ScriptConstraintEvaluator,
+} from './draw/index.js';
+export {
+  evaluateConstraints,
+  meetingRound,
+  type ConstrainedEntrant,
+  type DrawAssignment,
+  type ConstraintViolation,
+  type ConstraintEvaluation,
+} from './constraints/index.js';
+export {
+  evaluateQualification,
+  applyCutResolution,
+  type QualificationInput,
+  type QualificationOutcome,
+  type ContestedCut,
+  type CutResolution,
+} from './qualification/index.js';
+export {
+  allocateSeeds,
+  type AllocationEntrant,
+  type AllocationInput,
+  type AllocationOutcome,
+} from './allocation/index.js';
 export { assertSupportedFormat, isEliminationFormat, isRoundRobinFormat } from './formats.js';
 export {
   generateFixtures,

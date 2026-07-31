@@ -22,6 +22,33 @@ export class InvalidEntrantsError extends EngineError {
 }
 
 /**
+ * Seed allocation could not produce a complete, unambiguous order: a missing
+ * weighting attribute, a partial manual placement, a cut naming an entrant this
+ * stage does not hold. Thrown rather than returned — every case is a
+ * configuration defect the operator must fix before a draw can run at all.
+ */
+export class AllocationError extends EngineError {
+  readonly code = 'SEED_ALLOCATION_INVALID';
+}
+
+/**
+ * A qualification cut cannot be evaluated or resolved as asked: advancing more
+ * entrants than the stage holds, or a resolution that does not order exactly
+ * the contested entrants.
+ */
+export class QualificationError extends EngineError {
+  readonly code = 'QUALIFICATION_CUT_INVALID';
+}
+
+/**
+ * A draw cannot proceed as declared: a malformed constraint, an unknown round
+ * name, or a constraint set no assignment can satisfy.
+ */
+export class DrawError extends EngineError {
+  readonly code = 'DRAW_INVALID';
+}
+
+/**
  * A fixture graph routed a placement match into another match's slot. Placement
  * results feed stage standings only (0009), so this is a malformed graph rather
  * than a rejectable input — it is thrown, not returned.

@@ -1,4 +1,5 @@
 import type { OverrideSet } from '../descriptors/override-policy.js';
+import type { StageAllocation } from './stage-allocation.js';
 
 /** Pins one exact descriptor version — rulesets never track "latest". */
 export interface DescriptorRef {
@@ -26,4 +27,10 @@ export interface StageConfiguration {
   readonly version: number;
   readonly rulesetId: string;
   readonly overrides: OverrideSet;
+  /**
+   * Where this stage's seed order comes from (0010). Absent means the caller
+   * supplies the order, which is phase 7's original contract and remains valid
+   * for a single-stage tournament.
+   */
+  readonly allocation?: StageAllocation;
 }

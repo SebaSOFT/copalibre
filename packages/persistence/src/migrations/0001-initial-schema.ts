@@ -140,6 +140,25 @@ export const initialSchema: Migration = {
       .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
       .execute();
 
+    // Operator knowledge the results cannot supply: a ranking, a region, an
+    // association. Scoped to the entrant within one tournament (0010), and the
+    // value is split by kind so weighted seeding can order in SQL and a
+    // categorical value can never be sorted as a number by accident.
+    await db.schema
+      .createTable('entrant_attributes')
+      .addColumn('entrant_attribute_id', 'uuid', (col) => col.primaryKey())
+      .addColumn('entrant_id', 'uuid', (col) => col.notNull().references('entrants.entrant_id'))
+      .addColumn('tournament_id', 'uuid', (col) =>
+        col.notNull().references('tournaments.tournament_id'),
+      )
+      .addColumn('key', 'text', (col) => col.notNull())
+      .addColumn('kind', 'text', (col) => col.notNull())
+      .addColumn('value_text', 'text')
+      .addColumn('value_numeric', 'double precision')
+      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addUniqueConstraint('entrant_attributes_entrant_key_unique', ['entrant_id', 'key'])
+      .execute();
+
     await db.schema
       .createTable('fixtures')
       .addColumn('fixture_id', 'uuid', (col) => col.primaryKey())
@@ -312,6 +331,7 @@ export const initialSchema: Migration = {
       'segments',
       'matches',
       'fixtures',
+      'entrant_attributes',
       'entrants',
       'rosters',
       'teams',

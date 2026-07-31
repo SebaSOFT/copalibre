@@ -130,3 +130,79 @@ describe('resolveTiebreak', () => {
     expect(resolution.trace).toHaveLength(0);
   });
 });
+
+describe('the ratio comparator', () => {
+  const kd: TiebreakParameterDefinition = {
+    id: 'kd',
+    label: 'K/D',
+    ratio: { numerator: 'frags', denominator: 'deaths', zeroDenominator: 'numerator-only' },
+    valueType: 'number',
+    direction: 'higher_wins',
+    missingValue: 'treat-as-worst',
+    source: 'calculated',
+  };
+  const ratioPipeline: TiebreakPipeline = { id: 'kd-only', version: 1, parameters: [kd] };
+
+  it('divides the two declared statistics rather than reading its own id', () => {
+    const resolution = resolveTiebreak(ratioPipeline, ['volume', 'precise'], {
+      volume: { frags: 40, deaths: 40 },
+      precise: { frags: 20, deaths: 5 },
+    });
+
+    expect(resolution.rankedGroups).toEqual([['precise'], ['volume']]);
+    // The trace shows the computed ratio, not the raw inputs: an operator
+    // comparing 4 against 1 needs to see those numbers.
+    expect(resolution.trace[0]?.values).toEqual({ precise: 4, volume: 1 });
+  });
+
+  it('ranks on the numerator alone when the denominator is zero and that is declared', () => {
+    const resolution = resolveTiebreak(ratioPipeline, ['flawless', 'steady'], {
+      flawless: { frags: 12, deaths: 0 },
+      steady: { frags: 30, deaths: 10 },
+    });
+
+    expect(resolution.rankedGroups).toEqual([['flawless'], ['steady']]);
+  });
+
+  it('treats a zero denominator as absent where the discipline declares that', () => {
+    const resolution = resolveTiebreak(
+      {
+        ...ratioPipeline,
+        parameters: [
+          {
+            ...kd,
+            ratio: { numerator: 'frags', denominator: 'deaths', zeroDenominator: 'treat-as-worst' },
+          },
+        ],
+      },
+      ['flawless', 'steady'],
+      { flawless: { frags: 12, deaths: 0 }, steady: { frags: 30, deaths: 10 } },
+    );
+
+    expect(resolution.rankedGroups).toEqual([['steady'], ['flawless']]);
+    expect(resolution.trace[0]?.values).toMatchObject({ flawless: null });
+  });
+
+  it.each([
+    ['the numerator', { frags: undefined, deaths: 5 }],
+    ['the denominator', { frags: 5, deaths: undefined }],
+    ['a non-numeric operand', { frags: 'many', deaths: 5 }],
+  ])('reads as absent when %s was never recorded', (_case, values) => {
+    const resolution = resolveTiebreak(ratioPipeline, ['partial', 'complete'], {
+      partial: values as Record<string, unknown>,
+      complete: { frags: 1, deaths: 10 },
+    });
+
+    expect(resolution.rankedGroups).toEqual([['complete'], ['partial']]);
+  });
+
+  it('leaves equal ratios tied for the next comparator', () => {
+    const resolution = resolveTiebreak(ratioPipeline, ['alfa', 'bravo'], {
+      alfa: { frags: 10, deaths: 5 },
+      bravo: { frags: 20, deaths: 10 },
+    });
+
+    expect(resolution.fullyResolved).toBe(false);
+    expect(resolution.rankedGroups).toEqual([['alfa', 'bravo']]);
+  });
+});

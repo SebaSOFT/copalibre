@@ -1,0 +1,56 @@
+{
+  "automatic": [
+    {
+      "entrantId": "desamparados",
+      "seed": 1
+    },
+    {
+      "entrantId": "union",
+      "seed": 2
+    },
+    {
+      "entrantId": "peñarol",
+      "seed": 3
+    },
+    {
+      "entrantId": "sanmartin",
+      "seed": 4
+    }
+  ],
+  "weighted": [
+    {
+      "entrantId": "sanmartin",
+      "seed": 1
+    },
+    {
+      "entrantId": "peñarol",
+      "seed": 2
+    },
+    {
+      "entrantId": "union",
+      "seed": 3
+    },
+    {
+      "entrantId": "desamparados",
+      "seed": 4
+    }
+  ],
+  "manual": [
+    {
+      "entrantId": "sanmartin",
+      "seed": 1
+    },
+    {
+      "entrantId": "union",
+      "seed": 2
+    },
+    {
+      "entrantId": "peñarol",
+      "seed": 3
+    },
+    {
+      "entrantId": "desamparados",
+      "seed": 4
+    }
+  ]
+}

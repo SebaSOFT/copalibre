@@ -108,6 +108,19 @@ export interface EntrantsTable {
   created_at: Timestamp;
 }
 
+export interface EntrantAttributesTable {
+  entrant_attribute_id: string;
+  entrant_id: string;
+  tournament_id: string;
+  key: string;
+  kind: string;
+  /** Populated for a categorical attribute; null for a numeric one. */
+  value_text: string | null;
+  /** Populated for a numeric attribute; null for a categorical one. */
+  value_numeric: number | null;
+  created_at: Timestamp;
+}
+
 export interface StagesTable {
   stage_id: string;
   tournament_id: string;
@@ -263,6 +276,7 @@ export interface Database {
   teams: TeamsTable;
   rosters: RostersTable;
   entrants: EntrantsTable;
+  entrant_attributes: EntrantAttributesTable;
   stages: StagesTable;
   fixtures: FixturesTable;
   matches: MatchesTable;

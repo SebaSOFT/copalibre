@@ -5,7 +5,7 @@ import type { TraceNode } from '../trace/explanation-trace.js';
  * "Scoring and tiebreakers": an ordered sequence of declared, auditable
  * accounting parameters evaluated "in sequence until it resolves the tie".
  * Definitions are serializable data (versioned configuration); evaluation is
- * deterministic and produces the trace phase 0016 renders.
+ * deterministic and produces the trace phase 0017 renders.
  */
 
 export type ComparisonDirection =
@@ -13,9 +13,31 @@ export type ComparisonDirection =
 
 export type MissingValueBehavior = 'treat-as-worst' | 'treat-as-zero' | 'invalid';
 
+/**
+ * A comparator computed from two statistics rather than read from one: K/D
+ * ratio, points per game, goals per match. Declared because the ratio is not a
+ * recorded statistic — 0009 keeps derived values out of accounting deliberately,
+ * so they are expressed here, where the comparator machinery already lives.
+ */
+export interface RatioDefinition {
+  readonly numerator: string;
+  readonly denominator: string;
+  /**
+   * What a zero denominator means. A player with zero deaths does not have an
+   * infinite K/D, and the two honest answers are "rank on frags alone at this
+   * tier" or "this is not a comparable value". Declared, never assumed.
+   */
+  readonly zeroDenominator: 'numerator-only' | 'treat-as-worst';
+}
+
 export interface TiebreakParameterDefinition {
   /** Stable identifier, e.g. "points", "score-difference", "head-to-head". */
   readonly id: string;
+  /**
+   * When present, the comparator divides these two values instead of reading
+   * `id` from the entrant's values.
+   */
+  readonly ratio?: RatioDefinition;
   /**
    * Set when this comparator came from a capability that the binding could not
    * resolve. Evaluation still runs (and degrades per `missingValue`), but the
@@ -129,7 +151,9 @@ function splitByParameter(
   observed: Record<string, unknown>,
 ): (readonly string[])[] {
   const scored = group.map((entrantId) => {
-    const raw = values[entrantId]?.[parameter.id];
+    const raw = parameter.ratio
+      ? ratioValue(values[entrantId] ?? {}, parameter.ratio)
+      : values[entrantId]?.[parameter.id];
     observed[entrantId] = raw === undefined ? null : raw;
     return { entrantId, sortKey: sortKeyFor(raw, parameter) };
   });
@@ -148,6 +172,25 @@ function splitByParameter(
     }
   }
   return result;
+}
+
+/**
+ * Computes a declared ratio. A missing input is `undefined` rather than zero:
+ * "no frags recorded" and "zero frags" are different claims, and the
+ * comparator's own `missingValue` policy decides what absence means.
+ */
+function ratioValue(
+  entrantValues: Readonly<Record<string, unknown>>,
+  ratio: RatioDefinition,
+): number | undefined {
+  const numerator = entrantValues[ratio.numerator];
+  const denominator = entrantValues[ratio.denominator];
+  if (typeof numerator !== 'number' || typeof denominator !== 'number') return undefined;
+
+  if (denominator === 0) {
+    return ratio.zeroDenominator === 'numerator-only' ? numerator : undefined;
+  }
+  return numerator / denominator;
 }
 
 /** Higher sort key = better placement, regardless of direction semantics. */

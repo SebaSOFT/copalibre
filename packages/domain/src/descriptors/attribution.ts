@@ -5,7 +5,7 @@
  * rather than in an external index.
  *
  * No checksum: integrity of a downloaded module belongs to the distribution
- * layer (0030-community-module-distribution), not to the domain model.
+ * layer (0034-community-module-distribution), not to the domain model.
  */
 export interface Attribution {
   /** Person or organisation credited as the author. */

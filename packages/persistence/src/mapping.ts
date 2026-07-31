@@ -1,5 +1,6 @@
 import type {
   Entrant,
+  EntrantAttribute,
   Match,
   Organization,
   Participant,
@@ -12,6 +13,7 @@ import type {
 } from '@copalibre/domain';
 import type { Selectable } from 'kysely';
 import type {
+  EntrantAttributesTable,
   EntrantsTable,
   MatchEventsTable,
   MatchesTable,
@@ -39,6 +41,7 @@ export type TeamRow = Selectable<TeamsTable>;
 export type RosterRow = Selectable<RostersTable>;
 export type EntrantRow = Selectable<EntrantsTable>;
 export type StageRow = Selectable<StagesTable>;
+export type EntrantAttributeRow = Selectable<EntrantAttributesTable>;
 export type MatchRow = Selectable<MatchesTable>;
 export type SegmentRow = Selectable<SegmentsTable>;
 export type MatchEventRow = Selectable<MatchEventsTable>;
@@ -104,6 +107,12 @@ export function toEntrant(row: EntrantRow): Entrant {
     seed: row.seed ?? undefined,
     status: row.status as Entrant['status'],
   };
+}
+
+export function toEntrantAttribute(row: EntrantAttributeRow): EntrantAttribute {
+  return row.kind === 'numeric'
+    ? { key: row.key, kind: 'numeric', value: Number(row.value_numeric) }
+    : { key: row.key, kind: 'categorical', value: String(row.value_text) };
 }
 
 export function toStage(row: StageRow): Stage {

@@ -161,3 +161,47 @@ describe('overriddenGaps', () => {
     expect(overriddenGaps(bindingFor(bare, true))).toEqual(['primary-scoring']);
   });
 });
+
+describe('binding a ratio comparator', () => {
+  const ratioParameter = {
+    capability: 'primary-scoring',
+    label: 'K/D',
+    direction: 'higher_wins' as const,
+    missingValue: 'treat-as-worst' as const,
+    ratio: {
+      numeratorCapability: 'primary-scoring',
+      denominatorCapability: 'defensive-record',
+      zeroDenominator: 'numerator-only' as const,
+    },
+  };
+
+  it('resolves both operands through the same binding', () => {
+    const bound = bindTiebreakPipeline(
+      { id: 'kd', version: 1, parameters: [ratioParameter] },
+      bindingFor(football()),
+    );
+
+    expect(bound.parameters[0]?.ratio).toEqual({
+      numerator: 'goals-for',
+      denominator: 'goals-against',
+      zeroDenominator: 'numerator-only',
+    });
+    expect(bound.parameters[0]?.bound).toBe(true);
+  });
+
+  it('reads as unbound when one operand resolves and the other does not', () => {
+    // A ratio with only half its inputs is not half a comparator; it is none.
+    const oneSided = fixtureDescriptor({
+      statistics: [{ code: 'goals-for', label: 'Goals For', aggregation: 'sum' }],
+      scoringInputs: [],
+    });
+    const bound = bindTiebreakPipeline(
+      { id: 'kd', version: 1, parameters: [ratioParameter] },
+      bindingFor(oneSided, true),
+    );
+
+    expect(bound.parameters[0]?.ratio).toBeUndefined();
+    expect(bound.parameters[0]?.bound).toBe(false);
+    expect(bound.parameters[0]?.unboundCapability).toBe('primary-scoring');
+  });
+});
