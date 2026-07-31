@@ -1,4 +1,4 @@
-import type { DisciplineDescriptor, MatchResult } from '@copalibre/domain';
+import { winConditionScript, type DisciplineDescriptor, type MatchResult } from '@copalibre/domain';
 import { AuditReader } from '../audit.js';
 import { InvariantViolationError, NotFoundError } from '../errors.js';
 import { newId } from '../ids.js';
@@ -35,7 +35,7 @@ function descriptor(): DisciplineDescriptor {
     statistics: [],
     scoringInputs: [],
     availableFormats: ['round-robin'],
-    winCondition: 'higher-score-wins',
+    winCondition: winConditionScript('higher-score-wins', { unit: 'score' }),
     notificationRuleCapabilities: [],
     defaults: { scoring: { pointsPerWin: 3 }, tiebreakers: ['points'] },
     fieldPolicies: {
@@ -221,7 +221,7 @@ describe('repositories (integration)', () => {
     });
 
     const result: MatchResult = {
-      sides: [{ entrantId, score: 3 }],
+      sides: [{ entrantId, statistics: { score: 3 } }],
       winnerEntrantId: entrantId,
       recordedAt: '2026-07-29T14:00:00.000Z',
     };
@@ -230,14 +230,14 @@ describe('repositories (integration)', () => {
       competition.recordResult(uow, { matchId, result, organizationId, ...AUDIT }),
     );
     expect(finalized.status).toBe('finalized');
-    expect(finalized.result?.sides).toEqual([{ entrantId, score: 3 }]);
+    expect(finalized.result?.sides).toEqual([{ entrantId, statistics: { score: 3 } }]);
 
     // Second attempt: the no-overwrite product contract.
     await expect(
       withTransaction(scratch.db, (uow) =>
         competition.recordResult(uow, {
           matchId,
-          result: { ...result, sides: [{ entrantId, score: 99 }] },
+          result: { ...result, sides: [{ entrantId, statistics: { score: 99 } }] },
           organizationId,
           ...AUDIT,
         }),
@@ -246,7 +246,7 @@ describe('repositories (integration)', () => {
 
     // The stored result is unchanged.
     await expect(competition.findMatch(matchId)).resolves.toMatchObject({
-      result: { sides: [{ entrantId, score: 3 }] },
+      result: { sides: [{ entrantId, statistics: { score: 3 } }] },
     });
 
     const audit = await new AuditReader(scratch.db).historyFor('match', matchId);

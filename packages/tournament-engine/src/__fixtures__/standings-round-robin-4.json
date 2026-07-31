@@ -2,53 +2,61 @@
   "rows": [
     {
       "entrantId": "e3",
-      "played": 3,
-      "won": 2,
-      "drawn": 0,
-      "lost": 1,
-      "scoreFor": 7,
-      "scoreAgainst": 3,
-      "scoreDifference": 4,
-      "points": 6,
+      "statistics": {
+        "score-for": 7,
+        "score-against": 3,
+        "score-difference": 4,
+        "points": 6,
+        "wins": 2,
+        "draws": 0,
+        "losses": 1,
+        "played": 3
+      },
       "rank": 1,
       "sharedRank": false
     },
     {
       "entrantId": "e1",
-      "played": 3,
-      "won": 2,
-      "drawn": 0,
-      "lost": 1,
-      "scoreFor": 3,
-      "scoreAgainst": 3,
-      "scoreDifference": 0,
-      "points": 6,
+      "statistics": {
+        "score-for": 3,
+        "score-against": 3,
+        "score-difference": 0,
+        "points": 6,
+        "wins": 2,
+        "draws": 0,
+        "losses": 1,
+        "played": 3
+      },
       "rank": 2,
       "sharedRank": false
     },
     {
       "entrantId": "e2",
-      "played": 3,
-      "won": 1,
-      "drawn": 1,
-      "lost": 1,
-      "scoreFor": 3,
-      "scoreAgainst": 4,
-      "scoreDifference": -1,
-      "points": 4,
+      "statistics": {
+        "score-for": 3,
+        "score-against": 4,
+        "score-difference": -1,
+        "points": 4,
+        "wins": 1,
+        "draws": 1,
+        "losses": 1,
+        "played": 3
+      },
       "rank": 3,
       "sharedRank": false
     },
     {
       "entrantId": "e4",
-      "played": 3,
-      "won": 0,
-      "drawn": 1,
-      "lost": 2,
-      "scoreFor": 2,
-      "scoreAgainst": 5,
-      "scoreDifference": -3,
-      "points": 1,
+      "statistics": {
+        "score-for": 2,
+        "score-against": 5,
+        "score-difference": -3,
+        "points": 1,
+        "wins": 0,
+        "draws": 1,
+        "losses": 2,
+        "played": 3
+      },
       "rank": 4,
       "sharedRank": false
     }

@@ -19,7 +19,7 @@ export type SlotSource =
   | { readonly kind: 'winner-of'; readonly matchId: string }
   | { readonly kind: 'loser-of'; readonly matchId: string };
 
-export interface GeneratedMatch {
+export interface GeneratedMatchBase {
   /** Deterministic, human-readable: `WB-R2-M1`, `LB-R3-M2`, `GF-R1-M1`, `RR-R1-M1`. */
   readonly id: string;
   readonly bracket: BracketKind;
@@ -27,6 +27,11 @@ export interface GeneratedMatch {
   readonly round: number;
   /** 1-based position within the round. */
   readonly position: number;
+}
+
+/** Two sides, a winner and a loser — the only shape advancement edges apply to. */
+export interface DuelMatch extends GeneratedMatchBase {
+  readonly shape: 'duel';
   readonly slotA: SlotSource;
   readonly slotB: SlotSource;
   /** For round-robin home/away, which side is at home. Absent when not applicable. */
@@ -36,6 +41,38 @@ export interface GeneratedMatch {
    * played solely when the losers-bracket champion wins the first grand final.
    */
   readonly conditional?: 'bracket-reset';
+}
+
+/**
+ * N sides producing an ordering, not a winner: an FFA lobby, a swimming heat,
+ * an athletics final. It feeds stage standings and nothing else — qualification
+ * is by result across all heats, so "winner of heat 3" is not a thing a slot
+ * may source from (0009 design, "Placement matches carry no advancement edges").
+ */
+export interface PlacementMatch extends GeneratedMatchBase {
+  readonly shape: 'placement';
+  readonly slots: readonly SlotSource[];
+}
+
+/**
+ * Discriminated rather than a uniform `slots` array of length two: an FFA heat
+ * has no winner and no home side, so `winner-of` and `homeSlot` would be
+ * meaningless against it. The union makes the compiler enumerate every site
+ * that must decide, instead of deferring an impossible arity to runtime.
+ */
+export type GeneratedMatch = DuelMatch | PlacementMatch;
+
+export function isDuelMatch(match: GeneratedMatch): match is DuelMatch {
+  return match.shape === 'duel';
+}
+
+export function isPlacementMatch(match: GeneratedMatch): match is PlacementMatch {
+  return match.shape === 'placement';
+}
+
+/** Every slot a match sources from, in order, whatever its shape. */
+export function slotsOf(match: GeneratedMatch): readonly SlotSource[] {
+  return match.shape === 'duel' ? [match.slotA, match.slotB] : match.slots;
 }
 
 export interface FixtureGraph {

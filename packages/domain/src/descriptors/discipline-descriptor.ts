@@ -8,6 +8,8 @@ import type { ConfigFieldPolicies, RulesetConfig } from './override-policy.js';
  * DisciplineDescriptor → TournamentRuleset → StageConfiguration → MatchRuleset.
  */
 
+export type RuleScript = Record<string, unknown>;
+
 export type ParticipantType = 'individual' | 'team';
 
 /**
@@ -85,7 +87,7 @@ export interface DisciplineDescriptor {
    * race can become a competition race where the discipline allows and cannot
    * where it does not.
    */
-  readonly winCondition: string;
+  readonly winCondition: RuleScript;
   /** Presentation hints for editors/consoles — never behavior. */
   readonly uiMetadata?: Readonly<Record<string, unknown>>;
   /** The configuration tree overrides act on. */

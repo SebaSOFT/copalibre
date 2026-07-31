@@ -1,6 +1,16 @@
 import { generateFixtures } from '../fixtures/index.js';
-import type { RecordedOutcome } from '../standings/index.js';
-import type { FixtureGraph } from '../types.js';
+import type { RecordedOutcome } from '@copalibre/domain';
+import { PlacementAdvancementError } from '../errors.js';
+import { entrantsInGraph } from '../standings/index.js';
+import {
+  isDuelMatch,
+  isPlacementMatch,
+  slotsOf,
+  type DuelMatch,
+  type FixtureGraph,
+  type PlacementMatch,
+  type SlotSource,
+} from '../types.js';
 import { playableMatches, resolveAdvancement } from './index.js';
 
 const entrants = (n: number) =>
@@ -15,9 +25,9 @@ function graph(format: Parameters<typeof generateFixtures>[0]['format'], n: numb
 const win = (matchId: string, winner: string, loser: string): RecordedOutcome => ({
   matchId,
   winnerEntrantId: winner,
-  scores: [
-    { entrantId: winner, score: 1 },
-    { entrantId: loser, score: 0 },
+  sides: [
+    { entrantId: winner, statistics: { score: 1 } },
+    { entrantId: loser, statistics: { score: 0 } },
   ],
 });
 
@@ -53,7 +63,7 @@ describe('resolveAdvancement', () => {
     const byeMatches = resolved.filter((match) => match.decidedByBye).map((m) => m.matchId);
     // Any slot fed by `loser-of` a bye match must resolve to empty, never an entrant.
     for (const match of g.matches) {
-      for (const slot of [match.slotA, match.slotB]) {
+      for (const slot of slotsOf(match)) {
         if (slot.kind === 'loser-of' && byeMatches.includes(slot.matchId)) {
           const target = resolved.find((r) => r.matchId === match.id);
           const side = target?.slotA === undefined ? undefined : target;
@@ -152,5 +162,70 @@ describe('playableMatches', () => {
     // playable immediately — no bye match is ever listed, but a match a bye has
     // already filled is.
     expect(playableMatches(g, [])).toEqual(['SE-R1-M2', 'SE-R2-M2']);
+  });
+});
+
+describe('placement matches', () => {
+  /** An FFA heat alongside a duel bracket: the heat feeds standings only. */
+  const withHeat = (heatSlots: readonly SlotSource[] = []): FixtureGraph => {
+    const base = graph('single-elimination', 4);
+    return {
+      ...base,
+      matches: [
+        ...base.matches,
+        {
+          id: 'FFA-R1-M1',
+          shape: 'placement',
+          bracket: 'round-robin',
+          round: 1,
+          position: 1,
+          slots:
+            heatSlots.length > 0
+              ? heatSlots
+              : [
+                  { kind: 'entrant', entrantId: 'e5', seed: 5 },
+                  { kind: 'entrant', entrantId: 'e6', seed: 6 },
+                  { kind: 'entrant', entrantId: 'e7', seed: 7 },
+                ],
+        },
+      ],
+    };
+  };
+
+  it('resolves the duels and never traverses the heat', () => {
+    const resolved = resolveAdvancement(withHeat(), []);
+    expect(resolved.map((match) => match.matchId)).not.toContain('FFA-R1-M1');
+    expect(resolved).toHaveLength(3);
+  });
+
+  it('refuses a graph routing a placement result into a bracket slot', () => {
+    const base = withHeat();
+    const malformed: FixtureGraph = {
+      ...base,
+      matches: base.matches.map((match) =>
+        match.id === 'SE-R2-M1' && match.shape === 'duel'
+          ? { ...match, slotA: { kind: 'winner-of', matchId: 'FFA-R1-M1' } }
+          : match,
+      ),
+    };
+
+    expect(() => resolveAdvancement(malformed, [])).toThrow(PlacementAdvancementError);
+    expect(() => resolveAdvancement(malformed, [])).toThrow(/stage standings/);
+  });
+
+  it('lists every slot of either shape', () => {
+    const [duel, heat] = [
+      withHeat().matches[0] as DuelMatch,
+      withHeat().matches.at(-1) as PlacementMatch,
+    ];
+    expect(slotsOf(duel)).toHaveLength(2);
+    expect(slotsOf(heat)).toHaveLength(3);
+    expect(isDuelMatch(duel)).toBe(true);
+    expect(isPlacementMatch(heat)).toBe(true);
+    expect(isPlacementMatch(duel)).toBe(false);
+  });
+
+  it("collects a heat's entrants into the stage table", () => {
+    expect(entrantsInGraph(withHeat().matches)).toEqual(['e1', 'e4', 'e2', 'e3', 'e5', 'e6', 'e7']);
   });
 });

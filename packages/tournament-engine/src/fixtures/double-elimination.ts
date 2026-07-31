@@ -1,4 +1,4 @@
-import type { GeneratedMatch, SeededEntrant, SlotSource } from '../types.js';
+import type { DuelMatch, SeededEntrant, SlotSource } from '../types.js';
 import { pruneEmptyMatches } from './prune.js';
 import { buildEliminationTree, nextPowerOfTwo } from './single-elimination.js';
 
@@ -24,7 +24,7 @@ import { buildEliminationTree, nextPowerOfTwo } from './single-elimination.js';
  */
 
 export interface DoubleEliminationGraph {
-  readonly matches: readonly GeneratedMatch[];
+  readonly matches: readonly DuelMatch[];
   readonly winnersFinalId: string;
   readonly losersFinalId: string;
   readonly grandFinalId: string;
@@ -34,10 +34,10 @@ export interface DoubleEliminationGraph {
 export function buildDoubleElimination(entrants: readonly SeededEntrant[]): DoubleEliminationGraph {
   const size = nextPowerOfTwo(entrants.length);
   const winners = buildEliminationTree(entrants, 'WB', 'winners');
-  const matches: GeneratedMatch[] = [...winners.matches];
+  const matches: DuelMatch[] = [...winners.matches];
 
   const wbRounds = winners.roundCount;
-  const losersMatches: GeneratedMatch[] = [];
+  const losersMatches: DuelMatch[] = [];
 
   // Losers of each winners-bracket round, in bracket order, as they drop in.
   const dropsByWbRound = new Map<number, SlotSource[]>();
@@ -78,8 +78,9 @@ export function buildDoubleElimination(entrants: readonly SeededEntrant[]): Doub
       pairs = pairUp(survivors);
     }
 
-    const created: GeneratedMatch[] = pairs.map(([slotA, slotB], index) => ({
+    const created: DuelMatch[] = pairs.map(([slotA, slotB], index) => ({
       id: `LB-R${lbRound}-M${index + 1}`,
+      shape: 'duel' as const,
       bracket: 'losers' as const,
       round: lbRound,
       position: index + 1,
@@ -102,6 +103,7 @@ export function buildDoubleElimination(entrants: readonly SeededEntrant[]): Doub
   const grandFinalId = 'GF-R1-M1';
   matches.push({
     id: grandFinalId,
+    shape: 'duel',
     bracket: 'grand-final',
     round: 1,
     position: 1,
@@ -115,6 +117,7 @@ export function buildDoubleElimination(entrants: readonly SeededEntrant[]): Doub
   const bracketResetId = 'GF-R2-M1';
   matches.push({
     id: bracketResetId,
+    shape: 'duel',
     bracket: 'grand-final',
     round: 2,
     position: 1,

@@ -20,3 +20,12 @@ export class UnsupportedFormatError extends EngineError {
 export class InvalidEntrantsError extends EngineError {
   readonly code = 'INVALID_ENTRANTS';
 }
+
+/**
+ * A fixture graph routed a placement match into another match's slot. Placement
+ * results feed stage standings only (0009), so this is a malformed graph rather
+ * than a rejectable input — it is thrown, not returned.
+ */
+export class PlacementAdvancementError extends EngineError {
+  readonly code = 'PLACEMENT_HAS_NO_ADVANCEMENT_EDGE';
+}

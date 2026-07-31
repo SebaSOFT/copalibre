@@ -3,7 +3,7 @@ import {
   type BindOptions,
   type UnsatisfiedCapabilityError,
 } from '../capabilities/binder.js';
-import type { DisciplineDescriptor } from '../descriptors/discipline-descriptor.js';
+import type { DisciplineDescriptor, RuleScript } from '../descriptors/discipline-descriptor.js';
 import { RulesetCompilationError, type PolicyViolation } from '../errors.js';
 import { err, ok, type Result } from '../result.js';
 import { compileEffectiveRuleset } from '../rulesets/compiler.js';
@@ -74,7 +74,7 @@ function checkWinConditionOverride(
 export function effectiveWinCondition(
   descriptor: DisciplineDescriptor,
   profile?: TournamentProfile,
-): string {
+): RuleScript {
   if (!profile?.winConditionOverride) return descriptor.winCondition;
   const policy = descriptor.fieldPolicies.winCondition;
   return policy?.permission.kind === 'replaced' || policy?.permission.kind === 'merged'

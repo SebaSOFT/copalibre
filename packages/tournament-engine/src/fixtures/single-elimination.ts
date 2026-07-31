@@ -1,4 +1,4 @@
-import type { BracketKind, GeneratedMatch, SeededEntrant, SlotSource } from '../types.js';
+import type { BracketKind, DuelMatch, SeededEntrant, SlotSource } from '../types.js';
 
 /**
  * Standard single-elimination seeding and bracket construction.
@@ -30,7 +30,7 @@ export function nextPowerOfTwo(n: number): number {
 }
 
 export interface EliminationTree {
-  readonly matches: readonly GeneratedMatch[];
+  readonly matches: readonly DuelMatch[];
   /** Match id producing the champion. */
   readonly finalMatchId: string;
   readonly roundCount: number;
@@ -58,7 +58,7 @@ export function buildEliminationTree(
       : { kind: 'bye' };
   });
 
-  const matches: GeneratedMatch[] = [];
+  const matches: DuelMatch[] = [];
   const roundCount = Math.max(1, Math.log2(size));
 
   let slots: readonly SlotSource[] = firstRoundSlots;
@@ -69,7 +69,7 @@ export function buildEliminationTree(
       const slotB = slots[index + 1] as SlotSource;
       const position = index / 2 + 1;
       const id = `${idPrefix}-R${round}-M${position}`;
-      matches.push({ id, bracket, round, position, slotA, slotB });
+      matches.push({ id, shape: 'duel', bracket, round, position, slotA, slotB });
       nextSlots.push({ kind: 'winner-of', matchId: id });
     }
     slots = nextSlots;

@@ -99,9 +99,11 @@ jobs:
       - run: yarn test:verify-discovery
       - run: yarn workspace @copalibre/domain test:coverage
       # Golden-fixture suite included; any fixture mismatch fails the PR (0003).
+      # Covers the win-condition registry, evaluator and trace fixture (0009).
       - run: yarn workspace @copalibre/rules test:coverage
       - run: yarn workspace @copalibre/api test:coverage
-      # Includes the golden-fixture regression set (0007).
+      # Includes the golden-fixture regression set (0007) and the
+      # discipline-driven accounting and tennis regression suites (0009).
       - run: yarn workspace @copalibre/tournament-engine test:coverage
       - uses: actions/upload-artifact@v4
         if: always()
@@ -166,6 +168,8 @@ jobs:
       - run: yarn workspace @copalibre/persistence test:integration
       # Guard/policy/controller suite through the real HTTP stack (0005).
       - run: yarn workspace @copalibre/api test:integration
+      # Includes the N-sided result, retired-module and segment-threshold
+      # notification suites (0009).
       - run: yarn workspace @copalibre/tournament-engine test:integration
 
   # Added by 0005-api-auth-jwt-openapi-contract. Regenerates the artifact from

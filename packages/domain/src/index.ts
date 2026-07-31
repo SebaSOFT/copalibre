@@ -11,6 +11,8 @@ export {
   InvalidAliasError,
   RulesetCompilationError,
   EventValidationError,
+  DescriptorValidationError,
+  OutcomeValidationError,
   MutationBlockedError,
   type PolicyViolation,
 } from './errors.js';
@@ -71,7 +73,29 @@ export {
   type StatisticDefinition,
   type ScoringInputDefinition,
   type DisciplineDescriptor,
+  type RuleScript,
 } from './descriptors/discipline-descriptor.js';
+export {
+  segmentThresholdEventDefinitions,
+  SEGMENT_THRESHOLD_EVENT_CODES,
+  type SegmentThresholdEventCode,
+} from './descriptors/segment-threshold-events.js';
+export {
+  footballDescriptor,
+  tennisDescriptor,
+  bestOfFiveWinCondition,
+  seededDescriptors,
+  winConditionScript,
+  type SegmentRuleSpec,
+  type MatchRuleSpec,
+} from './modules/index.js';
+export {
+  validateDisciplineDescriptorDocument,
+  DISCIPLINE_DESCRIPTOR_SCHEMA,
+  RECORDED_OUTCOME_SCHEMA,
+  RULE_SCRIPT_SCHEMA,
+  type JsonSchemaDocument,
+} from './descriptors/descriptor-schema.js';
 
 export type {
   DescriptorRef,
@@ -113,6 +137,14 @@ export type {
   Match,
   Segment,
 } from './aggregates/competition.js';
+
+export {
+  validateRecordedOutcome,
+  declaredStatisticsSchema,
+  type OutcomeSide,
+  type RecordedOutcome,
+  type OutcomeValidationOptions,
+} from './standings/index.js';
 
 export {
   EventLog,

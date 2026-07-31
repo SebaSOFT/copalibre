@@ -1,4 +1,4 @@
-import type { DisciplineDescriptor } from '@copalibre/domain';
+import { winConditionScript, type DisciplineDescriptor } from '@copalibre/domain';
 import {
   CompetitionRepository,
   newId,
@@ -10,7 +10,7 @@ import { createMigratedDatabase } from '../../persistence/src/test-support/scrat
 import { generateFixtures } from './fixtures/index.js';
 import { classifyEngineMutation } from './mutation/index.js';
 import { resolveAdvancement } from './advancement/index.js';
-import type { RecordedOutcome } from './standings/index.js';
+import type { RecordedOutcome } from '@copalibre/domain';
 
 /**
  * End-to-end: generate a fixture graph, persist it through phase 0004's
@@ -32,7 +32,7 @@ function descriptor(): DisciplineDescriptor {
     statistics: [],
     scoringInputs: [],
     availableFormats: ['single-elimination'],
-    winCondition: 'higher-score-wins',
+    winCondition: winConditionScript('higher-score-wins', { unit: 'score' }),
     notificationRuleCapabilities: [],
     defaults: { scoring: { pointsPerWin: 3 } },
     fieldPolicies: {
@@ -144,8 +144,8 @@ describe('tournament engine (integration)', () => {
         matchId: match.matchId,
         result: {
           sides: [
-            { entrantId: 'entrant-1', score: 2 },
-            { entrantId: 'entrant-4', score: 0 },
+            { entrantId: 'entrant-1', statistics: { score: 2 } },
+            { entrantId: 'entrant-4', statistics: { score: 0 } },
           ],
           winnerEntrantId: 'entrant-1',
           recordedAt: '2026-07-30T12:00:00.000Z',
@@ -163,10 +163,7 @@ describe('tournament engine (integration)', () => {
       {
         matchId: 'SE-R1-M1',
         winnerEntrantId: 'entrant-1',
-        scores: (stored?.result?.sides ?? []).map((side) => ({
-          entrantId: side.entrantId,
-          score: side.score,
-        })),
+        sides: stored?.result?.sides ?? [],
       },
     ];
     const resolved = resolveAdvancement(generated.value, outcomes);
@@ -219,8 +216,8 @@ describe('tournament engine (integration)', () => {
         matchId: match.matchId,
         result: {
           sides: [
-            { entrantId: 'e1', score: 1 },
-            { entrantId: 'e2', score: 0 },
+            { entrantId: 'e1', statistics: { score: 1 } },
+            { entrantId: 'e2', statistics: { score: 0 } },
           ],
           winnerEntrantId: 'e1',
           recordedAt: '2026-07-30T12:30:00.000Z',
@@ -249,8 +246,8 @@ describe('tournament engine (integration)', () => {
           matchId: match.matchId,
           result: {
             sides: [
-              { entrantId: 'e1', score: 0 },
-              { entrantId: 'e2', score: 9 },
+              { entrantId: 'e1', statistics: { score: 0 } },
+              { entrantId: 'e2', statistics: { score: 9 } },
             ],
             winnerEntrantId: 'e2',
             recordedAt: '2026-07-30T12:45:00.000Z',
