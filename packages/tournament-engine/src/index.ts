@@ -82,6 +82,7 @@ export {
 } from './standings/index.js';
 export {
   resolveAdvancement,
+  unlockedByFinalization,
   playableMatches,
   type ResolvedSlot,
   type ResolvedMatch,

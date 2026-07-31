@@ -1,5 +1,10 @@
 import type { RecordedEvent } from '../events/event-log.js';
-import { applyMatchCommand, runningTimers, type MatchCommand } from './match-operations.js';
+import {
+  applyMatchCommand,
+  runningTimers,
+  validateLineup,
+  type MatchCommand,
+} from './match-operations.js';
 
 const codes = {
   starts: { 'blue-card': 120, 'major-penalty': 300 },
@@ -161,5 +166,40 @@ describe('runningTimers', () => {
     const earlier = event({ sequence: 1, participantId: 'p-1' });
 
     expect(runningTimers([later, earlier], codes, NOON + 45_000)).toHaveLength(0);
+  });
+});
+
+describe('validateLineup', () => {
+  const roster = ['p-1', 'p-2', 'p-3', 'p-4', 'p-5'];
+  const constraint = { minPlayers: 2, maxPlayers: 4 };
+  const selection = { matchId: 'm-1', entrantId: 'entrant-atlas', participantIds: ['p-1', 'p-2'] };
+
+  it('accepts a lineup drawn from the active roster', () => {
+    expect(validateLineup(selection, roster, constraint).ok).toBe(true);
+  });
+
+  it('refuses someone who is not on the roster now', () => {
+    const result = validateLineup(
+      { ...selection, participantIds: ['p-1', 'p-transferred'] },
+      roster,
+      constraint,
+    );
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.message).toContain('active roster');
+  });
+
+  it('refuses the same person named twice', () => {
+    expect(
+      validateLineup({ ...selection, participantIds: ['p-1', 'p-1'] }, roster, constraint).ok,
+    ).toBe(false);
+  });
+
+  it.each([
+    ['too few', ['p-1']],
+    ['too many', ['p-1', 'p-2', 'p-3', 'p-4', 'p-5']],
+  ])('refuses a lineup with %s players for the discipline', (_label, participantIds) => {
+    expect(validateLineup({ ...selection, participantIds }, roster, constraint).ok).toBe(false);
   });
 });

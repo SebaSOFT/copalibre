@@ -167,3 +167,59 @@ function remainingOf(timer: RunningTimer, now: number): number {
 function timerKey(event: RecordedEvent): string {
   return event.participantId ?? event.side ?? event.matchId;
 }
+
+/**
+ * A lineup: who takes the field for one entrant in one match (0014).
+ *
+ * It is checked against the roster that is active *now*, not against the people
+ * a team once had — a player transferred out last week cannot appear on today's
+ * sheet, and the check is the only thing standing between that and a protest.
+ */
+export interface LineupSelection {
+  readonly matchId: string;
+  readonly entrantId: string;
+  readonly participantIds: readonly string[];
+}
+
+export interface RosterConstraint {
+  readonly minPlayers: number;
+  readonly maxPlayers: number;
+}
+
+export function validateLineup(
+  selection: LineupSelection,
+  eligibleParticipantIds: readonly string[],
+  constraint: RosterConstraint,
+): Result<LineupSelection, MatchOperationError> {
+  const unique = new Set(selection.participantIds);
+  if (unique.size !== selection.participantIds.length) {
+    return err(
+      new MatchOperationError('A lineup names the same person twice', {
+        matchId: selection.matchId,
+        entrantId: selection.entrantId,
+      }),
+    );
+  }
+
+  const eligible = new Set(eligibleParticipantIds);
+  const outsider = selection.participantIds.find((participantId) => !eligible.has(participantId));
+  if (outsider) {
+    return err(
+      new MatchOperationError(
+        `"${outsider}" is not on this entrant's active roster and may not take the field`,
+        { matchId: selection.matchId, entrantId: selection.entrantId, participantId: outsider },
+      ),
+    );
+  }
+
+  if (unique.size < constraint.minPlayers || unique.size > constraint.maxPlayers) {
+    return err(
+      new MatchOperationError(
+        `The discipline needs between ${constraint.minPlayers} and ${constraint.maxPlayers} players; this lineup names ${unique.size}`,
+        { matchId: selection.matchId, entrantId: selection.entrantId, named: unique.size },
+      ),
+    );
+  }
+
+  return ok(selection);
+}

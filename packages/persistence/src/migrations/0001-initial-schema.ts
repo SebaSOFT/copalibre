@@ -262,6 +262,19 @@ export const initialSchema: Migration = {
       .addUniqueConstraint('match_events_match_sequence_unique', ['match_id', 'sequence'])
       .execute();
 
+    // Who takes the field (0014). One row per entrant per match, replaced when
+    // the lineup changes and audited every time — a lineup is state an operator
+    // edits before kick-off, not an event stream, but who changed it and when
+    // is exactly what a protest asks about.
+    await db.schema
+      .createTable('match_lineups')
+      .addColumn('match_id', 'uuid', (col) => col.notNull().references('matches.match_id'))
+      .addColumn('entrant_id', 'uuid', (col) => col.notNull())
+      .addColumn('participant_ids', 'jsonb', (col) => col.notNull())
+      .addColumn('updated_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addPrimaryKeyConstraint('match_lineups_pk', ['match_id', 'entrant_id'])
+      .execute();
+
     // Who may operate a match (0014). The scope is one of two columns and
     // exactly one is set: a grant names a match or a stage, and a stage grant
     // resolves downward so a referee appointed to a matchday is one row rather
@@ -413,6 +426,7 @@ export const initialSchema: Migration = {
       'outbox_events',
       'audit_log',
       'match_assignments',
+      'match_lineups',
       'match_events',
       'segments',
       'matches',

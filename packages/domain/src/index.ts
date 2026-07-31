@@ -134,6 +134,9 @@ export {
 export {
   applyMatchCommand,
   runningTimers,
+  validateLineup,
+  type LineupSelection,
+  type RosterConstraint,
   MatchOperationError,
   type MatchCommand,
   type MatchTransition,

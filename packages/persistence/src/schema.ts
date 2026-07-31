@@ -207,6 +207,14 @@ export interface MatchEventsTable {
   created_at: Timestamp;
 }
 
+/** Who takes the field for one entrant in one match (0014). */
+export interface MatchLineupsTable {
+  match_id: string;
+  entrant_id: string;
+  participant_ids: JSONColumnType<readonly string[]>;
+  updated_at: Timestamp;
+}
+
 /**
  * A match-operating appointment (0014). Exactly one of `match_id`/`stage_id` is
  * set, enforced by a check constraint: a grant covers what it names, and a
@@ -336,6 +344,7 @@ export interface Database {
   segments: SegmentsTable;
   match_events: MatchEventsTable;
   match_assignments: MatchAssignmentsTable;
+  match_lineups: MatchLineupsTable;
   audit_log: AuditLogTable;
   outbox_events: OutboxEventsTable;
   tournament_profiles: TournamentProfilesTable;
