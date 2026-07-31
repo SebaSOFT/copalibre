@@ -13,10 +13,16 @@ export type RuleScript = Record<string, unknown>;
 export type ParticipantType = 'individual' | 'team';
 
 /**
- * The six MVP formats. "The engine must not advertise or simulate support for
- * formats outside this list." (tournament-engine decision record.)
+ * The formats the engine supports. The decision record's "must not advertise or
+ * simulate support for formats outside this list" still holds — the list simply
+ * grew, and it grew because the duel-only constraint was always about
+ * *advancement* rather than about competition
+ * (0011-placement-stage-format).
  */
-export type TournamentFormat =
+export type TournamentFormat = DuelFormat | PlacementFormat;
+
+/** Formats whose matches join exactly two sides and carry advancement edges. */
+export type DuelFormat =
   | 'single-elimination'
   | 'double-elimination'
   | 'round-robin'
@@ -24,7 +30,14 @@ export type TournamentFormat =
   | 'round-robin-single-leg'
   | 'round-robin-home-away';
 
-export const MVP_FORMATS: readonly TournamentFormat[] = [
+/**
+ * Formats whose matches produce an ordering rather than a winner. They feed the
+ * stage table and never another match: qualification is by result across every
+ * heat, so winning a slow heat qualifies nobody.
+ */
+export type PlacementFormat = 'free-for-all' | 'heats';
+
+export const DUEL_FORMATS: readonly DuelFormat[] = [
   'single-elimination',
   'double-elimination',
   'round-robin',
@@ -32,6 +45,24 @@ export const MVP_FORMATS: readonly TournamentFormat[] = [
   'round-robin-single-leg',
   'round-robin-home-away',
 ];
+
+export const PLACEMENT_FORMATS: readonly PlacementFormat[] = ['free-for-all', 'heats'];
+
+export const SUPPORTED_FORMATS: readonly TournamentFormat[] = [
+  ...DUEL_FORMATS,
+  ...PLACEMENT_FORMATS,
+];
+
+/**
+ * @deprecated Read `DUEL_FORMATS` or `SUPPORTED_FORMATS` for what is meant. Kept
+ * as the name the earlier phases wrote, now that "MVP" no longer distinguishes
+ * anything.
+ */
+export const MVP_FORMATS: readonly TournamentFormat[] = DUEL_FORMATS;
+
+export function isPlacementFormat(format: TournamentFormat): format is PlacementFormat {
+  return (PLACEMENT_FORMATS as readonly string[]).includes(format);
+}
 
 export interface RosterConstraints {
   readonly minPlayers: number;
@@ -52,6 +83,21 @@ export interface StatisticDefinition {
   readonly code: string;
   readonly label: string;
   readonly aggregation: 'sum' | 'count' | 'max' | 'min' | 'average';
+}
+
+/**
+ * A finishing position and what it is worth.
+ *
+ * Battle-royale scoring is conventionally placement points plus performance
+ * points. The performance half is discipline-specific and already covered —
+ * `frags` is a declared statistic that 0009's accounting aggregates. The
+ * placement half is structural: every placement discipline needs a mapping from
+ * finishing position to points, and none of them expresses it differently.
+ */
+export interface PlacementPoints {
+  /** 1-based finishing position. */
+  readonly placement: number;
+  readonly points: number;
 }
 
 export interface ScoringInputDefinition {
@@ -78,6 +124,18 @@ export interface DisciplineDescriptor {
   readonly eventDefinitions: readonly EventDefinition[];
   readonly statistics: readonly StatisticDefinition[];
   readonly scoringInputs: readonly ScoringInputDefinition[];
+  /**
+   * Points awarded by finishing position in a placement match, and the code the
+   * award is recorded under. Absent for a discipline that never places
+   * (0011-placement-stage-format).
+   */
+  readonly placementScoring?: {
+    /** The declared statistic the points are recorded as. */
+    readonly statisticCode: string;
+    readonly table: readonly PlacementPoints[];
+    /** Points for a position the table does not name. Defaults to 0. */
+    readonly beyondTable?: number;
+  };
   readonly availableFormats: readonly TournamentFormat[];
   /** Stable identifiers of notification-rule capabilities the discipline permits. */
   readonly notificationRuleCapabilities: readonly string[];

@@ -1,4 +1,5 @@
 import type { TournamentFormat } from '@copalibre/domain';
+import type { PlacementOptions } from './fixtures/placement.js';
 
 /**
  * Fixture-graph model shared by every format.
@@ -9,7 +10,7 @@ import type { TournamentFormat } from '@copalibre/domain';
  * superseded instead of unwinding imperative writes.
  */
 
-export type BracketKind = 'winners' | 'losers' | 'grand-final' | 'round-robin';
+export type BracketKind = 'winners' | 'losers' | 'grand-final' | 'round-robin' | 'placement';
 
 /** Where a match's participant comes from. */
 export type SlotSource =
@@ -98,4 +99,6 @@ export interface GenerateFixturesInput {
   readonly entrants: readonly SeededEntrant[];
   /** Round-robin only: generate a second leg with sides reversed. */
   readonly homeAndAway?: boolean;
+  /** Placement formats only: rounds, lobby size, and the draw that fills them. */
+  readonly placement?: PlacementOptions;
 }

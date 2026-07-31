@@ -101,7 +101,7 @@ export function runDraw(request: DrawRequest): DrawOutcome {
       if (request.shape.kind === 'bracket' && [...taken.values()].includes(position)) continue;
       if (
         request.shape.kind === 'groups' &&
-        capacityUsed(taken, position) >= groupCapacity(order.length, request.shape.count)
+        capacityUsed(taken, position) >= groupCapacity(order.length, request.shape.count, position)
       ) {
         continue;
       }
@@ -287,8 +287,15 @@ function capacityUsed(taken: ReadonlyMap<string, number>, position: number): num
   return used;
 }
 
-function groupCapacity(entrants: number, groups: number): number {
-  return Math.ceil(entrants / groups);
+/**
+ * Balanced sizes, not merely capped ones: with 10 entrants over 3 groups the
+ * answer is 4-3-3, never 4-4-2. A cap alone permits the lopsided arrangement,
+ * and a group draw that produces one has not drawn groups. The remainder goes
+ * to the lowest-numbered groups, which keeps the sizes deterministic.
+ */
+function groupCapacity(entrants: number, groups: number, position: number): number {
+  const base = Math.floor(entrants / groups);
+  return position <= entrants % groups ? base + 1 : base;
 }
 
 /**

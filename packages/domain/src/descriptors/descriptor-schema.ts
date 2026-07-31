@@ -237,7 +237,33 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
           'league',
           'round-robin-single-leg',
           'round-robin-home-away',
+          'free-for-all',
+          'heats',
         ],
+      },
+    },
+    // Structural, not discipline-specific: every placement discipline needs a
+    // position-to-points mapping and none of them expresses it differently.
+    placementScoring: {
+      type: 'object',
+      required: ['statisticCode', 'table'],
+      additionalProperties: false,
+      properties: {
+        statisticCode: { type: 'string', minLength: 1 },
+        beyondTable: { type: 'number' },
+        table: {
+          type: 'array',
+          minItems: 1,
+          items: {
+            type: 'object',
+            required: ['placement', 'points'],
+            additionalProperties: false,
+            properties: {
+              placement: { type: 'integer', minimum: 1 },
+              points: { type: 'number' },
+            },
+          },
+        },
       },
     },
     notificationRuleCapabilities: { type: 'array', items: { type: 'string', minLength: 1 } },
