@@ -138,6 +138,15 @@ export {
 export type { Organization, Club } from './aggregates/organization.js';
 export { hasStarted, type Tournament, type TournamentStatus } from './aggregates/tournament.js';
 export {
+  validateStageCompletion,
+  validateNextStage,
+  StageCompletionError,
+  StageNotReadyError,
+  type StageStatus,
+  type StageCompletionPreconditions,
+  type NextStagePreconditions,
+} from './aggregates/stage-completion.js';
+export {
   validateStart,
   canChangeModuleVersion,
   StartValidationError,

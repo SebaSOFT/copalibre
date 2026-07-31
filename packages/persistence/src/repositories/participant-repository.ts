@@ -238,12 +238,20 @@ export class ParticipantRepository {
       readonly attributes: readonly EntrantAttribute[];
     } & AuditContext,
   ): Promise<readonly EntrantAttribute[]> {
-    const entrant = await this.findEntrant(input.entrantId);
-    if (!entrant) {
+    // Read through the caller's transaction, not the pool: an entrant
+    // registered earlier in this same unit of work is not visible outside it,
+    // and refusing to attribute one would be a lie about what exists.
+    const row = await uow.tx
+      .selectFrom('entrants')
+      .selectAll()
+      .where('entrant_id', '=', input.entrantId)
+      .executeTakeFirst();
+    if (!row) {
       throw new InvariantViolationError(`Entrant ${input.entrantId} does not exist`, {
         entrantId: input.entrantId,
       });
     }
+    const entrant = toEntrant(row);
 
     const validated = validateAttributes({
       entrantId: input.entrantId,
@@ -251,7 +259,13 @@ export class ParticipantRepository {
     });
     if (!validated.ok) throw validated.error;
 
-    const previous = await this.listEntrantAttributes(input.entrantId);
+    const previousRows = await uow.tx
+      .selectFrom('entrant_attributes')
+      .selectAll()
+      .where('entrant_id', '=', input.entrantId)
+      .orderBy('key')
+      .execute();
+    const previous = previousRows.map(toEntrantAttribute);
 
     await uow.tx
       .deleteFrom('entrant_attributes')
@@ -306,7 +320,13 @@ export class ParticipantRepository {
       readonly allocation: StageAllocation;
     } & AuditContext,
   ): Promise<readonly Entrant[]> {
-    const known = await this.listEntrants(input.tournamentId);
+    const knownRows = await uow.tx
+      .selectFrom('entrants')
+      .selectAll()
+      .where('tournament_id', '=', input.tournamentId)
+      .orderBy('created_at')
+      .execute();
+    const known = knownRows.map(toEntrant);
     const byId = new Map(known.map((entrant) => [entrant.entrantId, entrant]));
 
     for (const placement of input.placements) {
@@ -366,7 +386,8 @@ export class ParticipantRepository {
       .selectFrom('entrant_attributes')
       .selectAll()
       .where('tournament_id', '=', tournamentId)
-      .orderBy(['entrant_id', 'key'])
+      .orderBy('entrant_id')
+      .orderBy('key')
       .execute();
 
     const byEntrant = new Map<string, EntrantAttribute[]>();

@@ -25,6 +25,11 @@ export {
   PlacementAdvancementError,
 } from './errors.js';
 export {
+  previewStageTransition,
+  type StageTransitionInput,
+  type StageTransitionPreview,
+} from './transition/index.js';
+export {
   runDraw,
   inspectDraw,
   type DrawRequest,
