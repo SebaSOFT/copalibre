@@ -22,7 +22,20 @@ export interface RecordedEvent {
   readonly occurredAt: string;
   /** Monotonic per-match ordering, assigned by the log. */
   readonly sequence: number;
-  readonly side?: 'home' | 'away';
+  /**
+   * The entrant this event belongs to, named the way `OutcomeSide` names one.
+   *
+   * It was `'home' | 'away'` until this correction, which is the positional
+   * fiction 0009 removed from results and 0013 refused to reintroduce in the
+   * hook context, where being at home is a property *of a side*. Two slots
+   * cannot say which of an eight-lane heat's entrants a card belongs to, and a
+   * discipline where nobody is at home had to pick one anyway.
+   *
+   * Absent means the event belongs to the match rather than to any one entrant
+   * — a segment start, a weather stoppage.
+   */
+  readonly side?: string;
+  /** The person, when the discipline requires one. Always inside `side`. */
   readonly participantId?: string;
   readonly payload: Readonly<Record<string, unknown>>;
 }
@@ -33,9 +46,17 @@ export interface RecordEventInput {
   readonly segment: Segment;
   readonly definitionCode: string;
   readonly occurredAt: string;
-  readonly side?: 'home' | 'away';
+  /** The entrant this event belongs to. */
+  readonly side?: string;
   readonly participantId?: string;
   readonly payload?: Readonly<Record<string, unknown>>;
+  /**
+   * The entrants contesting this match. When given, a recorded side must be one
+   * of them — an event attributed to an entrant that is not playing is a
+   * recording mistake, and the log is the last place able to catch it before it
+   * becomes a fact.
+   */
+  readonly entrantIds?: readonly string[];
 }
 
 export class EventLog {
@@ -131,6 +152,10 @@ function validateActor(
   definition: EventDefinition,
   input: RecordEventInput,
 ): EventValidationError | undefined {
+  // Whoever is named must be playing, whatever the definition demands.
+  const unknown = unknownEntrant(definition, input);
+  if (unknown) return unknown;
+
   switch (definition.actorRequirement) {
     case 'none':
       return undefined;
@@ -148,6 +173,24 @@ function validateActor(
             definitionCode: definition.code,
           });
   }
+}
+
+/** Refuses a side the match is not being played by, when the caller says who is. */
+function unknownEntrant(
+  definition: EventDefinition,
+  input: RecordEventInput,
+): EventValidationError | undefined {
+  if (input.side === undefined || input.entrantIds === undefined) return undefined;
+  return input.entrantIds.includes(input.side)
+    ? undefined
+    : new EventValidationError(
+        `Event "${definition.code}" names entrant "${input.side}", which is not contesting this match`,
+        {
+          definitionCode: definition.code,
+          side: input.side,
+          entrantIds: [...input.entrantIds],
+        },
+      );
 }
 
 function withClosedProperties(schema: PayloadJsonSchema): PayloadJsonSchema {

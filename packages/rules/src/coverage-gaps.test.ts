@@ -187,7 +187,7 @@ describe('notification comparator and scope variants', () => {
       definitionCode: 'infraction',
       occurredAt: `2026-07-29T12:00:${String(sequence).padStart(2, '0')}.000Z`,
       sequence,
-      side: 'home',
+      side: 'entrant-atlas',
       payload: {},
       ...overrides,
     };

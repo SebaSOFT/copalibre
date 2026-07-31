@@ -316,7 +316,7 @@ describe('repositories (integration)', () => {
             segmentId,
             definitionCode: 'strike',
             occurredAt: new Date().toISOString(),
-            side: 'home',
+            side: 'entrant-atlas',
             participantId,
             payload: { zone },
           },

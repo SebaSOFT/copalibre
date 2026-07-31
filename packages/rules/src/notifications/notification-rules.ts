@@ -196,6 +196,8 @@ function scopeKeyFor(scope: NotificationScope, event: RecordedEvent): string {
     case 'segment':
       return `segment:${event.segmentId}`;
     case 'side':
+      // The entrant, so a per-side counter reads the same in a duel and in an
+      // eight-lane heat.
       return `match:${event.matchId}/side:${event.side ?? 'unknown'}`;
     case 'participant':
       return `participant:${event.participantId ?? 'unknown'}`;
