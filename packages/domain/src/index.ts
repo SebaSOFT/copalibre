@@ -66,6 +66,12 @@ export type {
 } from './descriptors/event-definition.js';
 export {
   MVP_FORMATS,
+  DUEL_FORMATS,
+  PLACEMENT_FORMATS,
+  SUPPORTED_FORMATS,
+  isPlacementFormat,
+  type DuelFormat,
+  type PlacementFormat,
   type ParticipantType,
   type TournamentFormat,
   type RosterConstraints,

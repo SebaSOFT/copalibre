@@ -108,7 +108,7 @@ export function resolveAdvancement(
  * input: it would silently resolve to `empty` and quietly drop an entrant from
  * the bracket. Fail loudly at the boundary instead.
  */
-function assertNoPlacementEdges(graph: FixtureGraph): void {
+export function assertNoPlacementEdges(graph: FixtureGraph): void {
   const placementIds = new Set(
     graph.matches.filter((match) => match.shape === 'placement').map((match) => match.id),
   );

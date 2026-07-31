@@ -1,15 +1,18 @@
 import type { TournamentFormat } from '@copalibre/domain';
 import { err, ok, type Result } from '@copalibre/domain';
 import { InvalidEntrantsError, UnsupportedFormatError } from '../errors.js';
+import { assertNoPlacementEdges } from '../advancement/index.js';
 import { assertSupportedFormat } from '../formats.js';
 import type { FixtureGraph, GenerateFixturesInput, GeneratedMatch } from '../types.js';
 import { buildDoubleElimination } from './double-elimination.js';
+import { buildPlacementStage } from './placement.js';
 import { buildRoundRobin } from './round-robin.js';
 import { buildEliminationTree } from './single-elimination.js';
 
 export { buildEliminationTree, seedSlotOrder, nextPowerOfTwo } from './single-elimination.js';
 export { buildDoubleElimination } from './double-elimination.js';
 export { buildRoundRobin } from './round-robin.js';
+export { buildPlacementStage, roundSeed, type PlacementOptions } from './placement.js';
 export { pruneEmptyMatches } from './prune.js';
 
 /**
@@ -27,6 +30,15 @@ export function generateFixtures(
   if (invalid) return err(invalid);
 
   const matches = buildFor(format.value, input);
+  // Generation-time counterpart of the resolution-time check: a placement match
+  // must never be another match's slot source, and the cheapest place to prove
+  // that is where the graph is built.
+  assertNoPlacementEdges({
+    format: format.value,
+    entrantCount: input.entrants.length,
+    matches,
+    rounds: [],
+  });
   return ok({
     format: format.value,
     entrantCount: input.entrants.length,
@@ -54,6 +66,11 @@ function buildFor(
       return buildRoundRobin(input.entrants, { idPrefix: 'LG' });
     case 'round-robin-home-away':
       return buildRoundRobin(input.entrants, { homeAndAway: true });
+    case 'free-for-all':
+    case 'heats':
+      // Placement stages carry no advancement edges, so nothing downstream
+      // reads them as a slot source — see assertNoPlacementEdges.
+      return buildPlacementStage(format, input.entrants, input.placement);
   }
 }
 

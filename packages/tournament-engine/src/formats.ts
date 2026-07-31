@@ -1,4 +1,4 @@
-import { MVP_FORMATS, type TournamentFormat } from '@copalibre/domain';
+import { isPlacementFormat, SUPPORTED_FORMATS, type TournamentFormat } from '@copalibre/domain';
 import { err, ok, type Result } from '@copalibre/domain';
 import { UnsupportedFormatError } from './errors.js';
 
@@ -6,17 +6,18 @@ import { UnsupportedFormatError } from './errors.js';
  * Format allowlist. "The engine must not advertise or simulate support for
  * formats outside this list" (tournament-engine decision record), so this runs
  * at ruleset-configuration time — before generation, and before persistence.
+ * The list grew in 0011 with the two placement formats; the rule did not.
  */
 export function assertSupportedFormat(
   format: string,
 ): Result<TournamentFormat, UnsupportedFormatError> {
-  if ((MVP_FORMATS as readonly string[]).includes(format)) {
+  if ((SUPPORTED_FORMATS as readonly string[]).includes(format)) {
     return ok(format as TournamentFormat);
   }
   return err(
     new UnsupportedFormatError(
-      `Format "${format}" is not supported. The engine supports exactly: ${MVP_FORMATS.join(', ')}.`,
-      { format, supported: MVP_FORMATS },
+      `Format "${format}" is not supported. The engine supports exactly: ${SUPPORTED_FORMATS.join(', ')}.`,
+      { format, supported: SUPPORTED_FORMATS },
     ),
   );
 }
@@ -26,7 +27,11 @@ export function isEliminationFormat(format: TournamentFormat): boolean {
   return format === 'single-elimination' || format === 'double-elimination';
 }
 
-/** Formats where every entrant plays a fixed set of fixtures up front. */
+/**
+ * Formats where every entrant plays a fixed set of fixtures up front. Placement
+ * formats qualify: their rounds are generated at once, they simply produce an
+ * ordering rather than a winner.
+ */
 export function isRoundRobinFormat(format: TournamentFormat): boolean {
-  return !isEliminationFormat(format);
+  return !isEliminationFormat(format) && !isPlacementFormat(format);
 }

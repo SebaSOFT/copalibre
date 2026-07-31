@@ -13,10 +13,16 @@ export type RuleScript = Record<string, unknown>;
 export type ParticipantType = 'individual' | 'team';
 
 /**
- * The six MVP formats. "The engine must not advertise or simulate support for
- * formats outside this list." (tournament-engine decision record.)
+ * The formats the engine supports. The decision record's "must not advertise or
+ * simulate support for formats outside this list" still holds — the list simply
+ * grew, and it grew because the duel-only constraint was always about
+ * *advancement* rather than about competition
+ * (0011-placement-stage-format).
  */
-export type TournamentFormat =
+export type TournamentFormat = DuelFormat | PlacementFormat;
+
+/** Formats whose matches join exactly two sides and carry advancement edges. */
+export type DuelFormat =
   | 'single-elimination'
   | 'double-elimination'
   | 'round-robin'
@@ -24,7 +30,14 @@ export type TournamentFormat =
   | 'round-robin-single-leg'
   | 'round-robin-home-away';
 
-export const MVP_FORMATS: readonly TournamentFormat[] = [
+/**
+ * Formats whose matches produce an ordering rather than a winner. They feed the
+ * stage table and never another match: qualification is by result across every
+ * heat, so winning a slow heat qualifies nobody.
+ */
+export type PlacementFormat = 'free-for-all' | 'heats';
+
+export const DUEL_FORMATS: readonly DuelFormat[] = [
   'single-elimination',
   'double-elimination',
   'round-robin',
@@ -32,6 +45,24 @@ export const MVP_FORMATS: readonly TournamentFormat[] = [
   'round-robin-single-leg',
   'round-robin-home-away',
 ];
+
+export const PLACEMENT_FORMATS: readonly PlacementFormat[] = ['free-for-all', 'heats'];
+
+export const SUPPORTED_FORMATS: readonly TournamentFormat[] = [
+  ...DUEL_FORMATS,
+  ...PLACEMENT_FORMATS,
+];
+
+/**
+ * @deprecated Read `DUEL_FORMATS` or `SUPPORTED_FORMATS` for what is meant. Kept
+ * as the name the earlier phases wrote, now that "MVP" no longer distinguishes
+ * anything.
+ */
+export const MVP_FORMATS: readonly TournamentFormat[] = DUEL_FORMATS;
+
+export function isPlacementFormat(format: TournamentFormat): format is PlacementFormat {
+  return (PLACEMENT_FORMATS as readonly string[]).includes(format);
+}
 
 export interface RosterConstraints {
   readonly minPlayers: number;
