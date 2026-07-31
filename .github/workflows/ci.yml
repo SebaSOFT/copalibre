@@ -102,7 +102,12 @@ jobs:
       - run: yarn workspace @copalibre/domain test:coverage
       # Golden-fixture suite included; any fixture mismatch fails the PR (0003).
       # Covers the win-condition registry, evaluator and trace fixture (0009),
-      # and the constraint action registry and ratio comparator (0010).
+      # and the constraint action registry and ratio comparator (0010). Since
+      # 0013 it also carries the hook surface, the four new conditions, the
+      # expression whitelist and function registry, the declared effects, and
+      # the hook-evaluation trace golden — which is part of the determinism
+      # guard alongside the draw and allocation goldens: a replay that stops
+      # reproducing its draws moves that fixture and fails the PR.
       - run: yarn workspace @copalibre/rules test:coverage
       - run: yarn workspace @copalibre/api test:coverage
       # Includes the golden-fixture regression set (0007), the discipline-driven
@@ -177,7 +182,10 @@ jobs:
       # Guard/policy/controller suite through the real HTTP stack (0005).
       - run: yarn workspace @copalibre/api test:integration
       # Includes the N-sided result, retired-module and segment-threshold
-      # notification suites (0009), and the full stage-transition suite (0010).
+      # notification suites (0009), the full stage-transition suite (0010), and
+      # the declared-effect suite (0013): one identity across two evaluations,
+      # a timer whose remaining time derives from one stored record, and effects
+      # that never reach the outbox when the transaction rolls back.
       - run: yarn workspace @copalibre/tournament-engine test:integration
 
   # Added by 0005-api-auth-jwt-openapi-contract. Regenerates the artifact from

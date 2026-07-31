@@ -7,6 +7,7 @@ import {
 } from '@sebasoft/neuron-js';
 import { err, ok, type Result } from '@copalibre/domain';
 import { GuardEvaluationError, ScriptValidationError } from '../errors.js';
+import { expressionResolutions } from '../expressions/expression.js';
 import type { RulesRegistry, RuleScript } from '../registry/rules-registry.js';
 import type { EvaluationRecord, TraceNode } from '../trace/explanation-trace.js';
 import type { GuardState } from './vocabulary.js';
@@ -27,8 +28,13 @@ export interface GuardDecision {
 export interface GuardInput {
   readonly script: RuleScript;
   readonly ruleVersion: { readonly id: string; readonly version: number };
-  /** Structured facts placed under context.state (participant, roster, events…). */
-  readonly facts: Readonly<Record<string, unknown>>;
+  /**
+   * What the guard may read, placed at the root of `context.state`
+   * (participant, roster, events…). Called `context` because that is what the
+   * hook surface publishes and what a script author reads — one word for one
+   * thing (0013).
+   */
+  readonly context: Readonly<Record<string, unknown>>;
 }
 
 export function evaluateGuard(
@@ -52,7 +58,7 @@ export function evaluateGuard(
   const defaultDeny: GuardState = { outcome: 'fail', reason: 'no-rule-granted' };
   const context: ExecutionContext = {
     messages: [],
-    state: { ...structuredClone(input.facts), guard: defaultDeny },
+    state: { ...structuredClone(input.context), guard: defaultDeny },
   };
 
   const contextValidation = validateExecutionContext(context);
@@ -78,6 +84,7 @@ export function evaluateGuard(
 
   const guard = (result.context.state as { guard?: GuardState }).guard ?? defaultDeny;
   const explanation = explainExecution({ script: input.script, result });
+  const resolutions = expressionResolutions(result.context);
 
   const trace: TraceNode[] = [
     {
@@ -98,6 +105,19 @@ export function evaluateGuard(
           outcome: 'explained',
           values: { explanation: explanation as unknown },
         },
+        // What each expression-mode parameter computed, so an auditor reading
+        // "this rule fired on a margin of 3" sees the 3 without re-running it.
+        ...(resolutions.length === 0
+          ? []
+          : [
+              {
+                kind: 'condition' as const,
+                id: `${input.script.id}-expressions`,
+                label: 'Expressions resolved during this evaluation',
+                outcome: 'explained',
+                values: { resolutions },
+              },
+            ]),
       ],
     },
   ];
@@ -108,7 +128,7 @@ export function evaluateGuard(
     record: {
       engine: 'copalibre-rules',
       ruleVersion: input.ruleVersion,
-      inputFacts: input.facts,
+      inputFacts: input.context,
       output: guard,
       trace,
     },

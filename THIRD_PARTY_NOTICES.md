@@ -13,7 +13,7 @@ project's license policy requires (see chaos-vault:
 - A dependency with any other license fails CI and requires a manual review before adoption;
   record the outcome in this file.
 - When shadcn/ui-style component source or Radix-derived code is copied into this repository
-  (starting at phase `0014-control-web-shell-and-org-dashboard`), each copied file's origin and
+  (starting at phase `0020-control-web-shell-and-org-dashboard`), each copied file's origin and
   its MIT copyright notice MUST be recorded in the "Vendored source" section below.
 - Proprietary shadcn registries, paid blocks, or third-party templates require a separate
   license review before use — none are approved today.
@@ -41,5 +41,5 @@ distribution obligation requires, which keeps the gate simple and CI-stable.
 
 ## Vendored source
 
-_None yet. First entries arrive with phase `0014-control-web-shell-and-org-dashboard`
+_None yet. First entries arrive with phase `0020-control-web-shell-and-org-dashboard`
 (copied shadcn/ui-style components and their Radix dependencies)._

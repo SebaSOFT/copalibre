@@ -125,6 +125,22 @@ export {
   type ScriptConstraint,
 } from './rulesets/draw-constraints.js';
 export {
+  SCRIPT_HOOKS,
+  SCRIPT_HOOK_IDS,
+  ENVIRONMENT_CONTEXT_PATHS,
+  findScriptHook,
+  resolveHookAttachment,
+  publishedContextPaths,
+  publishesPath,
+  assertDataOnlyContext,
+  ScriptHookError,
+  type ScriptHook,
+  type ScriptHookId,
+  type HookAttachment,
+  type HookEvaluation,
+  type HookPolarity,
+} from './rulesets/script-hooks.js';
+export {
   validateAllocation,
   assertSlotCount,
   ALLOCATION_MODES,

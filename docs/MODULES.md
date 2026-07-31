@@ -75,4 +75,4 @@ community-authored and can be retracted.
 ## Distribution
 
 Packaging, `copalibre module add`, asset handling and the module-repository CI are
-`0030-community-module-distribution`. This document covers the model those build on.
+`0034-community-module-distribution`. This document covers the model those build on.

@@ -1,6 +1,7 @@
 import type { RuleScript } from '../descriptors/discipline-descriptor.js';
 import { DomainError } from '../errors.js';
 import { err, ok, type Result } from '../result.js';
+import { findScriptHook, resolveHookAttachment, type ScriptHookId } from './script-hooks.js';
 
 /**
  * What an operator may impose on a draw (0010-stage-qualification-and-seeding).
@@ -10,12 +11,14 @@ import { err, ok, type Result } from '../result.js';
  * the rest*. Neither is expressible as an ordering — they are constraints over
  * attributes the operator knows and the system does not.
  *
- * Constraints attach to named **hook points** rather than being a seeding-only
- * feature, so phase 12's scheduling conflicts and the eligibility guards can
- * attach to this surface instead of each growing a private one. This phase
- * defines the taxonomy and implements the `draw.*` and `seed.*` hooks.
+ * Constraints attach to named **hook points**, which 0013 promoted out of this
+ * file into `script-hooks.ts` once four evaluations shared them. The
+ * identifiers are unchanged, so every constraint declared before that move
+ * validates and evaluates exactly as it did; what remains here is what is
+ * genuinely draw-specific.
  */
 
+/** The hooks a draw constraint may attach to, in the order 0010 declared them. */
 export const CONSTRAINT_HOOK_POINTS = [
   /** Placing an entrant into a group. */
   'draw.assign-group',
@@ -29,16 +32,16 @@ export const CONSTRAINT_HOOK_POINTS = [
   'entrant.eligibility',
   /** Qualification-cut admissibility. */
   'stage.advance',
-] as const;
+] as const satisfies readonly ScriptHookId[];
 
 export type ConstraintHookPoint = (typeof CONSTRAINT_HOOK_POINTS)[number];
 
-/** Hooks this phase evaluates; the rest are declared here and used later. */
-export const IMPLEMENTED_HOOK_POINTS: readonly ConstraintHookPoint[] = [
-  'draw.assign-group',
-  'draw.pair-round',
-  'seed.order',
-];
+/**
+ * Hooks something evaluates today, read from the taxonomy rather than listed
+ * again here — two lists of the same fact drift.
+ */
+export const IMPLEMENTED_HOOK_POINTS: readonly ConstraintHookPoint[] =
+  CONSTRAINT_HOOK_POINTS.filter((hook) => findScriptHook(hook)?.evaluation.status === 'evaluated');
 
 /**
  * Entrants sharing an attribute value must be kept apart — in different groups,
@@ -97,7 +100,11 @@ export function validateConstraint(
     );
   }
 
-  if (constraint.kind !== 'script' && !IMPLEMENTED_HOOK_POINTS.includes(constraint.hook)) {
+  // A script may attach where nothing evaluates it yet — it is reported inert
+  // and runs when its phase lands. A declarative constraint may not: it claims
+  // the draw already honours it.
+  const attachment = resolveHookAttachment(constraint.hook);
+  if (attachment.ok && attachment.value.inert && constraint.kind !== 'script') {
     return err(
       new DrawConstraintError(
         `Hook point "${constraint.hook}" is declared but not evaluated yet; ` +

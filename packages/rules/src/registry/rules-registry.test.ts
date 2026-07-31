@@ -48,7 +48,7 @@ describe('RulesRegistry', () => {
   it('permits documented built-ins and registered CopaLibre vocabulary', () => {
     const registry = registerCopalibreVocabulary(new RulesRegistry());
     expect(registry.validateScriptReferences(scriptWith({})).ok).toBe(true);
-    expect(registry.has('parameter', 'state-number')).toBe(true);
+    expect(registry.has('parameter', 'simple_number')).toBe(true);
     expect(registry.has('action', 'set-guard-outcome')).toBe(true);
     expect(registry.has('rule', 'simple_rule')).toBe(true);
   });
@@ -101,6 +101,8 @@ describe('RulesRegistry', () => {
   it('lists every registered entry for auditing/UI surfaces', () => {
     const registry = registerCopalibreVocabulary(new RulesRegistry());
     const types = registry.list().map((entry) => entry.type);
-    expect(types).toEqual(expect.arrayContaining(['simple_rule', 'state-number', 'state-string']));
+    expect(types).toEqual(
+      expect.arrayContaining(['simple_rule', 'simple_number', 'simple_string', 'value_exists']),
+    );
   });
 });
