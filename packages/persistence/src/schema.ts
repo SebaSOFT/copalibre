@@ -141,6 +141,40 @@ export interface FixturesTable {
   created_at: Timestamp;
 }
 
+export interface VenuesTable {
+  venue_id: string;
+  organization_id: string;
+  alias: string;
+  name: string;
+  concurrent_capacity: number;
+  address: string | null;
+  created_at: Timestamp;
+}
+
+export interface OfficialsTable {
+  official_id: string;
+  organization_id: string;
+  display_name: string;
+  roles: JSONColumnType<readonly string[]>;
+  created_at: Timestamp;
+}
+
+export interface FixtureSchedulesTable {
+  fixture_schedule_id: string;
+  fixture_id: string;
+  venue_id: string | null;
+  /** Epoch milliseconds. Read back as a string by pg's bigint mapping. */
+  starts_at: string;
+  duration_minutes: number;
+  published: boolean;
+  created_at: Timestamp;
+}
+
+export interface FixtureScheduleOfficialsTable {
+  fixture_schedule_id: string;
+  official_id: string;
+}
+
 export interface MatchesTable {
   match_id: string;
   fixture_id: string;
@@ -277,6 +311,10 @@ export interface Database {
   rosters: RostersTable;
   entrants: EntrantsTable;
   entrant_attributes: EntrantAttributesTable;
+  venues: VenuesTable;
+  officials: OfficialsTable;
+  fixture_schedules: FixtureSchedulesTable;
+  fixture_schedule_officials: FixtureScheduleOfficialsTable;
   stages: StagesTable;
   fixtures: FixturesTable;
   matches: MatchesTable;

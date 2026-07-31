@@ -2,6 +2,9 @@ import type {
   Entrant,
   EntrantAttribute,
   Match,
+  Official,
+  ResourceAssignment,
+  Venue,
   Organization,
   Participant,
   RecordedEvent,
@@ -15,6 +18,9 @@ import type { Selectable } from 'kysely';
 import type {
   EntrantAttributesTable,
   EntrantsTable,
+  FixtureSchedulesTable,
+  OfficialsTable,
+  VenuesTable,
   MatchEventsTable,
   MatchesTable,
   OrganizationsTable,
@@ -42,6 +48,12 @@ export type RosterRow = Selectable<RostersTable>;
 export type EntrantRow = Selectable<EntrantsTable>;
 export type StageRow = Selectable<StagesTable>;
 export type EntrantAttributeRow = Selectable<EntrantAttributesTable>;
+export type VenueRow = Selectable<VenuesTable>;
+export type OfficialRow = Selectable<OfficialsTable>;
+type ScheduleRow = Pick<
+  Selectable<FixtureSchedulesTable>,
+  'fixture_id' | 'venue_id' | 'starts_at' | 'duration_minutes'
+>;
 export type MatchRow = Selectable<MatchesTable>;
 export type SegmentRow = Selectable<SegmentsTable>;
 export type MatchEventRow = Selectable<MatchEventsTable>;
@@ -113,6 +125,43 @@ export function toEntrantAttribute(row: EntrantAttributeRow): EntrantAttribute {
   return row.kind === 'numeric'
     ? { key: row.key, kind: 'numeric', value: Number(row.value_numeric) }
     : { key: row.key, kind: 'categorical', value: String(row.value_text) };
+}
+
+export function toVenue(row: VenueRow): Venue {
+  return {
+    venueId: row.venue_id,
+    organizationId: row.organization_id,
+    alias: row.alias,
+    name: row.name,
+    concurrentCapacity: row.concurrent_capacity,
+    ...(row.address === null ? {} : { address: row.address }),
+  };
+}
+
+export function toOfficial(row: OfficialRow): Official {
+  return {
+    officialId: row.official_id,
+    organizationId: row.organization_id,
+    displayName: row.display_name,
+    roles: row.roles as Official['roles'],
+  };
+}
+
+/**
+ * `starts_at` is a bigint, which pg hands back as a string to avoid losing
+ * precision. Converting here keeps that a storage detail: the domain has only
+ * ever seen an epoch number.
+ */
+export function toResourceAssignment(
+  row: ScheduleRow,
+  officialIds: readonly string[],
+): ResourceAssignment {
+  return {
+    fixtureId: row.fixture_id,
+    window: { startsAt: Number(row.starts_at), durationMinutes: row.duration_minutes },
+    ...(row.venue_id === null ? {} : { venueId: row.venue_id }),
+    ...(officialIds.length === 0 ? {} : { officialIds }),
+  };
 }
 
 export function toStage(row: StageRow): Stage {
