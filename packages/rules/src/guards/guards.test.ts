@@ -235,3 +235,58 @@ describe('evaluateAdvancement', () => {
     }
   });
 });
+
+describe('guard execution failures', () => {
+  it('reports a failed action rather than silently granting', () => {
+    // `set-guard-outcome` needs an outcome and a reason; without them the action
+    // fails, and a default-deny guard must surface that as an error rather than
+    // let the seeded denial pass for a considered decision.
+    const malformed = {
+      id: 'incomplete-grant',
+      rules: [
+        {
+          id: 'grant',
+          type: 'simple_rule',
+          options: {},
+          conditions: [],
+          actions: [
+            { id: 'grant-eligibility', type: 'set-guard-outcome', options: {}, params: [] },
+          ],
+        },
+      ],
+    } as unknown as RuleScript;
+
+    const result = evaluateEligibility(
+      freshRegistry(),
+      malformed,
+      { id: 'incomplete-grant', version: 1 },
+      {},
+    );
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe('GUARD_EVALUATION_FAILED');
+    expect(result.error.details?.messages).toEqual(
+      expect.arrayContaining([expect.stringContaining('set-guard-outcome requires')]),
+    );
+  });
+
+  it('denies by default when a script grants nothing', () => {
+    const inert = {
+      id: 'inert-guard',
+      rules: [],
+    } as unknown as RuleScript;
+
+    const result = evaluateAdvancement(
+      freshRegistry(),
+      inert,
+      { id: 'inert-guard', version: 1 },
+      {},
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.passed).toBe(false);
+    expect(result.value.reason).toBe('no-rule-granted');
+  });
+});

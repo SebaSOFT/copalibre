@@ -41,6 +41,14 @@ export class QualificationError extends EngineError {
 }
 
 /**
+ * A draw cannot proceed as declared: a malformed constraint, an unknown round
+ * name, or a constraint set no assignment can satisfy.
+ */
+export class DrawError extends EngineError {
+  readonly code = 'DRAW_INVALID';
+}
+
+/**
  * A fixture graph routed a placement match into another match's slot. Placement
  * results feed stage standings only (0009), so this is a malformed graph rather
  * than a rejectable input — it is thrown, not returned.

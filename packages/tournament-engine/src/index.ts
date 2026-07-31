@@ -21,8 +21,17 @@ export {
   InvalidEntrantsError,
   AllocationError,
   QualificationError,
+  DrawError,
   PlacementAdvancementError,
 } from './errors.js';
+export {
+  evaluateConstraints,
+  meetingRound,
+  type ConstrainedEntrant,
+  type DrawAssignment,
+  type ConstraintViolation,
+  type ConstraintEvaluation,
+} from './constraints/index.js';
 export {
   evaluateQualification,
   applyCutResolution,

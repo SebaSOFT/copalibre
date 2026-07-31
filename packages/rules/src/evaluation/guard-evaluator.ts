@@ -68,7 +68,10 @@ export function evaluateGuard(
   if (!result.isSuccessful()) {
     return err(
       new GuardEvaluationError('Guard script execution failed', {
-        messages: result.context.messages.map((message) => message.text),
+        // Both logs: the runtime's own failure messages carry why an action
+        // refused, while the context log carries what ran before it. An error
+        // holding neither is one an operator cannot act on.
+        messages: [...result.messages, ...result.context.messages.map((message) => message.text)],
       }),
     );
   }

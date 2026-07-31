@@ -104,6 +104,18 @@ export type {
 } from './rulesets/tournament-ruleset.js';
 export type { CompilationProvenance, MatchRuleset } from './rulesets/match-ruleset.js';
 export {
+  validateConstraint,
+  roundNumberFor,
+  CONSTRAINT_HOOK_POINTS,
+  IMPLEMENTED_HOOK_POINTS,
+  DrawConstraintError,
+  type ConstraintHookPoint,
+  type DrawConstraint,
+  type SeparationConstraint,
+  type DistributionConstraint,
+  type ScriptConstraint,
+} from './rulesets/draw-constraints.js';
+export {
   validateAllocation,
   assertSlotCount,
   ALLOCATION_MODES,
