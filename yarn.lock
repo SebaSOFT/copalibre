@@ -861,6 +861,7 @@ __metadata:
     "@sebasoft/neuron-js": "npm:0.6.1"
     "@types/jest": "npm:^30.0.0"
     jest: "npm:^30.4.2"
+    jsep: "npm:^1.4.0"
     ts-jest: "npm:^29.4.12"
   languageName: unknown
   linkType: soft
@@ -7262,6 +7263,13 @@ __metadata:
   bin:
     js-yaml: bin/js-yaml.js
   checksum: 10c0/058b30473d6915ca5b4feb11e2f7d4d97242f98d00a798ed48dd90b46b7c640398afe9128c5db22c5300f8c6528fe2a174b9a93f351a70ebc28c6203938d8bff
+  languageName: node
+  linkType: hard
+
+"jsep@npm:^1.4.0":
+  version: 1.4.0
+  resolution: "jsep@npm:1.4.0"
+  checksum: 10c0/fe60adf47e050e22eadced42514a51a15a3cf0e2d147896584486acd8ee670fc16641101b9aeb81f4aaba382043d29744b7aac41171e8106515b14f27e0c7116
   languageName: node
   linkType: hard
 

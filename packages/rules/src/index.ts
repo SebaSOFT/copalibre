@@ -25,12 +25,30 @@ export {
   registerCopalibreVocabulary,
   StateNumberParameter,
   StateStringParameter,
+  ExpressionNumberParameter,
+  ExpressionStringParameter,
   SetGuardOutcomeAction,
   type GuardState,
 } from './evaluation/vocabulary.js';
 
 export {
+  validateExpression,
+  evaluateExpression,
+  resolveExpressionField,
+  splitTemplate,
+  expressionResolutions,
+  expressionOf,
+  type TemplateSegment,
+} from './expressions/expression.js';
+export {
+  EXPRESSION_FUNCTION_NAMES,
+  isExpressionFunction,
+  type ExpressionValue,
+} from './expressions/functions.js';
+
+export {
   registerCopalibreConditions,
+  CompareTwoNumbersCondition,
   CompareTwoStringsCondition,
   ValueInSetCondition,
   ValueExistsCondition,

@@ -7,7 +7,8 @@ import {
   type ScriptInterface,
 } from '@sebasoft/neuron-js';
 import { err, ok, type DisciplineDescriptor, type Result } from '@copalibre/domain';
-import { UnregisteredElementError } from '../errors.js';
+import { ScriptValidationError, UnregisteredElementError } from '../errors.js';
+import { expressionOf, splitTemplate, validateExpression } from '../expressions/expression.js';
 
 /**
  * The typed registry of permitted rule vocabulary. A DisciplineDescriptor (a
@@ -47,7 +48,7 @@ export type RuleScript = ScriptInterface;
 /** Minimal structural view used for registry reference-walking. */
 interface ScriptElementRef {
   readonly type?: string;
-  readonly params?: readonly { readonly type?: string }[];
+  readonly params?: readonly { readonly type?: string; readonly options?: unknown }[];
 }
 interface RuleScriptView {
   readonly id: string;
@@ -110,11 +111,18 @@ export class RulesRegistry {
   }
 
   /**
-   * Rejects any script referencing an element type outside this registry —
-   * run before every evaluation and whenever a descriptor/rule document is
-   * saved.
+   * Rejects any script referencing an element type outside this registry, or
+   * carrying an expression that reaches beyond reading, arithmetic and the
+   * registered functions — run before every evaluation and whenever a
+   * descriptor/rule document is saved.
+   *
+   * An expression is refused *here*, at the same moment as an unregistered
+   * action, because both are the same question: what a module composes must be
+   * vetted at installation rather than discovered at match time.
    */
-  validateScriptReferences(script: RuleScriptView): Result<true, UnregisteredElementError> {
+  validateScriptReferences(
+    script: RuleScriptView,
+  ): Result<true, UnregisteredElementError | ScriptValidationError> {
     // Defensive: operator-authored JSON may be malformed; structural validity
     // is Neuron-JS validateScript's job, reference vetting is ours.
     for (const rule of Array.isArray(script.rules) ? script.rules : []) {
@@ -175,12 +183,12 @@ export class RulesRegistry {
   private checkAll(
     kind: 'condition' | 'action',
     elements?: readonly ScriptElementRef[],
-  ): UnregisteredElementError | undefined {
+  ): UnregisteredElementError | ScriptValidationError | undefined {
     for (const element of elements ?? []) {
       const offender =
         this.check(kind, element.type) ??
         element.params
-          ?.map((param) => this.check('parameter', param.type))
+          ?.map((param) => this.check('parameter', param.type) ?? checkExpression(param.options))
           .find((error) => error !== undefined);
       if (offender) return offender;
     }
@@ -190,6 +198,23 @@ export class RulesRegistry {
 
 function keyOf(kind: ElementKind, type: string): string {
   return `${kind}:${type}`;
+}
+
+/**
+ * Vets every `{{ }}` an expression-mode parameter declares. Each segment is
+ * parsed and walked on its own, so an error names the offending expression
+ * rather than the whole field.
+ */
+function checkExpression(options: unknown): ScriptValidationError | undefined {
+  const source = expressionOf(options);
+  if (source === undefined) return undefined;
+
+  for (const segment of splitTemplate(source)) {
+    if (segment.kind !== 'expression') continue;
+    const validation = validateExpression(segment.source);
+    if (!validation.ok) return validation.error;
+  }
+  return undefined;
 }
 
 function lowerFirst(message: string): string {

@@ -6,6 +6,7 @@ import {
   type ExecutionContext,
 } from '@sebasoft/neuron-js';
 import type { RulesRegistry } from '../registry/rules-registry.js';
+import { expressionOf, resolveParameterExpression } from '../expressions/expression.js';
 import { registerCopalibreConditions } from './conditions.js';
 
 /**
@@ -47,25 +48,86 @@ function readPathOption(options: unknown): string | undefined {
   return typeof path === 'string' ? path : undefined;
 }
 
-/** Reads a number from the evaluation state at `options.path`. */
+/**
+ * Expression mode, on every parameter (0013).
+ *
+ * `options.expression` holds `{{ score.home - score.away }}`; the parameter's
+ * registered `type` is untouched, because `type` is precisely what the registry
+ * vets and what a module may not invent. An author toggling a field from fixed
+ * to expression changes the value, never the identity of the element.
+ *
+ * A whole-field expression resolves to its typed value and a mixed field to a
+ * string, so a number parameter in expression mode is still a number when the
+ * expression is one — and no value at all when the expression cannot answer,
+ * which is what the consuming condition's missing-value behaviour is for.
+ */
+function expressionValue(
+  parameter: { readonly name: string; readonly options: unknown },
+  context: ExecutionContext,
+): unknown {
+  const source = expressionOf(parameter.options);
+  return source === undefined
+    ? undefined
+    : resolveParameterExpression(parameter.name, source, context);
+}
+
+/** Reads a number from the evaluation state at `options.path`, or an expression. */
 export class StateNumberParameter extends AbstractParameter<number> {
   static readonly TYPE = 'state-number';
 
   getValue(context: ExecutionContext): number | null {
+    const computed = expressionValue(this, context);
+    if (computed !== undefined) return typeof computed === 'number' ? computed : null;
+
     const path = readPathOption(this.options);
     const value = path === undefined ? undefined : readStatePath(context, path);
     return typeof value === 'number' ? value : (this.defaultValue ?? null);
   }
 }
 
-/** Reads a string from the evaluation state at `options.path`. */
+/** Reads a string from the evaluation state at `options.path`, or an expression. */
 export class StateStringParameter extends AbstractParameter<string> {
   static readonly TYPE = 'state-string';
 
   getValue(context: ExecutionContext): string | null {
+    const computed = expressionValue(this, context);
+    if (computed !== undefined) return typeof computed === 'string' ? computed : String(computed);
+
     const path = readPathOption(this.options);
     const value = path === undefined ? undefined : readStatePath(context, path);
     return typeof value === 'string' ? value : (this.defaultValue ?? null);
+  }
+}
+
+/**
+ * Neuron's literal parameters, re-registered so they too accept an expression.
+ *
+ * Registration is a map assignment, so these replace the built-ins for this
+ * registry's Neuron and nothing else. Their fixed-value behaviour is preserved
+ * exactly: a script that never mentions `options.expression` cannot tell the
+ * difference.
+ */
+export class ExpressionNumberParameter extends AbstractParameter<number> {
+  static readonly TYPE = 'simple_number';
+
+  getValue(context: ExecutionContext): number | null {
+    const computed = expressionValue(this, context);
+    if (computed !== undefined) return typeof computed === 'number' ? computed : null;
+
+    if (this.value === null) return this.defaultValue ?? null;
+    const parsed = Number(this.value);
+    return Number.isNaN(parsed) ? null : parsed;
+  }
+}
+
+export class ExpressionStringParameter extends AbstractParameter<string> {
+  static readonly TYPE = 'simple_string';
+
+  getValue(context: ExecutionContext): string | null {
+    const computed = expressionValue(this, context);
+    if (computed !== undefined) return typeof computed === 'string' ? computed : String(computed);
+
+    return this.value ?? this.defaultValue ?? null;
   }
 }
 
@@ -117,6 +179,16 @@ export function registerCopalibreVocabulary(registry: RulesRegistry): RulesRegis
     StateStringParameter.TYPE,
     StateStringParameter,
     'String fact read from evaluation state at options.path (dot-path)',
+  );
+  registry.registerParameter(
+    ExpressionNumberParameter.TYPE,
+    ExpressionNumberParameter,
+    'Literal number, or the number an options.expression resolves to',
+  );
+  registry.registerParameter(
+    ExpressionStringParameter.TYPE,
+    ExpressionStringParameter,
+    'Literal string, or the text an options.expression resolves to',
   );
   registry.registerAction(
     SetGuardOutcomeAction.TYPE,

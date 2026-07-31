@@ -12,7 +12,8 @@
   },
   "dependencies": {
     "@copalibre/domain": "workspace:^",
-    "@sebasoft/neuron-js": "0.6.1"
+    "@sebasoft/neuron-js": "0.6.1",
+    "jsep": "^1.4.0"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

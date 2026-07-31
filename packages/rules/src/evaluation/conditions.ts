@@ -22,13 +22,16 @@ import type { RulesRegistry } from '../registry/rules-registry.js';
  */
 
 /** How a condition answers when the value it compares is not there. */
-type MissingBehaviour = 'false' | 'true';
+type MissingBehaviour = 'false' | 'true' | 'error';
 
 interface CopalibreConditionOptions extends ConditionOptions {
   /**
-   * What an absent operand means for this condition. Default `false`:
-   * a comparison against a fact nobody recorded has not been met. An author who
-   * means the opposite says so, per condition, rather than the engine guessing.
+   * What an absent operand means for this condition. `false` for the four
+   * conditions this change adds: a comparison against a fact nobody recorded
+   * has not been met, and an expression that cannot answer should degrade
+   * rather than abort the script. `error` keeps Neuron's original strictness,
+   * and is the default only for `compare_two_numbers`, whose scripts were
+   * written under it.
    */
   readonly onMissing?: MissingBehaviour;
   readonly caseSensitive?: boolean;
@@ -40,6 +43,20 @@ interface CopalibreConditionOptions extends ConditionOptions {
 
 function missingVerdict(options: CopalibreConditionOptions): boolean {
   return options.onMissing === 'true';
+}
+
+/**
+ * The answer for an operand that is not there: an `ExecutionResult` carrying
+ * the declared verdict, or a failed one where the element declared `error`.
+ */
+function missingResult(
+  options: CopalibreConditionOptions,
+  context: ExecutionContext,
+  explanation: string,
+): ExecutionResult<boolean> {
+  return options.onMissing === 'error'
+    ? new ExecutionResult(false, context, false, [explanation])
+    : new ExecutionResult(true, context, missingVerdict(options), [explanation]);
 }
 
 /** Walks a dot-path over the evaluation state, absent and null kept distinct. */
@@ -101,9 +118,11 @@ export class CompareTwoStringsCondition extends AbstractCondition<CopalibreCondi
     const op1 = this.params.get('op1')?.getValue(context);
     const op2 = this.params.get('op2')?.getValue(context);
     if (typeof op1 !== 'string' || typeof op2 !== 'string') {
-      return new ExecutionResult(true, context, missingVerdict(this.options), [
+      return missingResult(
+        this.options,
+        context,
         'compare_two_strings: an operand is not a string; applying the declared missing-value behaviour',
-      ]);
+      );
     }
 
     const caseSensitive = this.options.caseSensitive !== false;
@@ -111,6 +130,51 @@ export class CompareTwoStringsCondition extends AbstractCondition<CopalibreCondi
     const right = caseSensitive ? op2 : op2.toLowerCase();
 
     return new ExecutionResult(true, context, compareOrdered(left, comparator, right));
+  }
+}
+
+/**
+ * The numeric comparison, re-registered under Neuron's own identifier so it can
+ * answer the question expression mode raised: what happens when an operand is
+ * not there.
+ *
+ * Neuron's built-in treats a null operand as an execution failure, which aborts
+ * the script — reasonable when every operand was a literal or a published fact,
+ * and wrong once a parameter can compute one, because an expression over a path
+ * the hook did not publish should degrade rather than throw. So the behaviour
+ * becomes declared, and the **default is Neuron's**: `error`. Every script
+ * written before this change keeps the semantics it was written under, and an
+ * author who wants degradation says `onMissing`.
+ *
+ * The comparison itself is unchanged, including comparing two strings when both
+ * operands are strings — the built-in did that, and a script may rely on it.
+ */
+export class CompareTwoNumbersCondition extends AbstractCondition<CopalibreConditionOptions> {
+  static readonly TYPE = 'compare_two_numbers';
+
+  execute(context: ExecutionContext): ExecutionResult<boolean> {
+    const comparator = this.params.get('comp')?.getValue(context);
+    const op1 = this.params.get('op1')?.getValue(context);
+    const op2 = this.params.get('op2')?.getValue(context);
+
+    if (!isOrderingComparator(comparator)) {
+      return new ExecutionResult(false, context, false, [
+        `compare_two_numbers requires a comp parameter, one of ${ORDERING_COMPARATORS.join(' ')}`,
+      ]);
+    }
+
+    if (typeof op1 === 'number' && typeof op2 === 'number') {
+      return new ExecutionResult(true, context, compareOrdered(op1, comparator, op2));
+    }
+    if (typeof op1 === 'string' && typeof op2 === 'string') {
+      return new ExecutionResult(true, context, compareOrdered(op1, comparator, op2));
+    }
+
+    return missingResult(
+      { ...this.options, onMissing: this.options.onMissing ?? 'error' },
+      context,
+      'compare_two_numbers: an operand is missing; applying the declared missing-value behaviour',
+    );
   }
 }
 
@@ -133,9 +197,11 @@ export class ValueInSetCondition extends AbstractCondition<CopalibreConditionOpt
 
     const value = this.params.get('value')?.getValue(context);
     if (value === undefined || value === null) {
-      return new ExecutionResult(true, context, missingVerdict(this.options), [
+      return missingResult(
+        this.options,
+        context,
         'value_in_set: nothing to test; applying the declared missing-value behaviour',
-      ]);
+      );
     }
 
     const caseSensitive = this.options.caseSensitive !== false;
@@ -210,9 +276,11 @@ export class CompareTwoInstantsCondition extends AbstractCondition<CopalibreCond
     const op1 = toEpochMilliseconds(this.params.get('op1')?.getValue(context));
     const op2 = toEpochMilliseconds(this.params.get('op2')?.getValue(context));
     if (op1 === undefined || op2 === undefined) {
-      return new ExecutionResult(true, context, missingVerdict(this.options), [
+      return missingResult(
+        this.options,
+        context,
         'compare_two_instants: an operand is not an instant; applying the declared missing-value behaviour',
-      ]);
+      );
     }
 
     return new ExecutionResult(true, context, compareOrdered(op1, comparator, op2));
@@ -228,6 +296,11 @@ function toEpochMilliseconds(value: unknown): number | undefined {
 
 /** Registers the four into a registry (idempotent per registry). */
 export function registerCopalibreConditions(registry: RulesRegistry): RulesRegistry {
+  registry.registerCondition(
+    CompareTwoNumbersCondition.TYPE,
+    CompareTwoNumbersCondition,
+    'Compares two numbers (or two strings); options.onMissing declares what an absent operand means',
+  );
   registry.registerCondition(
     CompareTwoStringsCondition.TYPE,
     CompareTwoStringsCondition,

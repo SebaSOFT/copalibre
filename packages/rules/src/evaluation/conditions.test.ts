@@ -3,6 +3,7 @@ import { RulesRegistry } from '../registry/rules-registry.js';
 import { registerCopalibreVocabulary } from './vocabulary.js';
 import {
   CompareTwoInstantsCondition,
+  CompareTwoNumbersCondition,
   CompareTwoStringsCondition,
   ValueExistsCondition,
   ValueInSetCondition,
@@ -304,6 +305,78 @@ describe('compare_two_instants', () => {
       CompareTwoInstantsCondition.TYPE,
       params(literal('op1', 'simple_string', '2026-07-31T12:00:00.000Z')),
       {},
+      registry().getNeuron(),
+    );
+
+    expect(condition.execute(contextOf({})).isSuccessful()).toBe(false);
+  });
+});
+
+describe('compare_two_numbers, re-registered', () => {
+  const build = (op1: unknown, op2: unknown, options = {}) =>
+    new CompareTwoNumbersCondition(
+      'c1',
+      CompareTwoNumbersCondition.TYPE,
+      params(
+        literal('op1', 'simple_number', op1),
+        literal('comp', 'comparator', '>'),
+        literal('op2', 'simple_number', op2),
+      ),
+      options,
+      registry().getNeuron(),
+    );
+
+  it('compares numbers as it always did', () => {
+    expect(build(5, 2).execute(contextOf({})).value).toBe(true);
+    expect(build(2, 5).execute(contextOf({})).value).toBe(false);
+  });
+
+  it('still compares two strings, which the built-in also did', () => {
+    const condition = new CompareTwoNumbersCondition(
+      'c1',
+      CompareTwoNumbersCondition.TYPE,
+      params(
+        literal('op1', 'simple_string', 'b'),
+        literal('comp', 'comparator', '>'),
+        literal('op2', 'simple_string', 'a'),
+      ),
+      {},
+      registry().getNeuron(),
+    );
+
+    expect(condition.execute(contextOf({})).value).toBe(true);
+  });
+
+  it('fails on a missing operand by default, exactly as before this change', () => {
+    expect(build(null, 2).execute(contextOf({})).isSuccessful()).toBe(false);
+  });
+
+  it('degrades instead when the element declares it', () => {
+    expect(build(null, 2, { onMissing: 'false' }).execute(contextOf({})).isSuccessful()).toBe(true);
+    expect(build(null, 2, { onMissing: 'false' }).execute(contextOf({})).value).toBe(false);
+    expect(build(null, 2, { onMissing: 'true' }).execute(contextOf({})).value).toBe(true);
+  });
+
+  it('refuses a declaration with no comparator', () => {
+    const condition = new CompareTwoNumbersCondition(
+      'c1',
+      CompareTwoNumbersCondition.TYPE,
+      params(literal('op1', 'simple_number', 5)),
+      {},
+      registry().getNeuron(),
+    );
+
+    expect(condition.execute(contextOf({})).isSuccessful()).toBe(false);
+  });
+});
+
+describe('the declared missing-value behaviour', () => {
+  it('can abort the rule instead of answering, on any of the four', () => {
+    const condition = new ValueInSetCondition(
+      'c1',
+      ValueInSetCondition.TYPE,
+      params(fromState('value', 'state-string', 'event.definitionCode')),
+      { values: ['red-card'], onMissing: 'error' },
       registry().getNeuron(),
     );
 

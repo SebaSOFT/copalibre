@@ -1,4 +1,5 @@
 import type { DisciplineDescriptor, RecordedEvent } from '@copalibre/domain';
+import { splitTemplate } from '../expressions/expression.js';
 import type { EvaluationRecord, TraceNode } from '../trace/explanation-trace.js';
 
 /**
@@ -225,10 +226,18 @@ function meets(
   }
 }
 
-// Trivial {{key}} substitution — deliberately not a template library: no
-// logic, no partials, no escaping needs (console-only strings).
+/**
+ * `{{key}}` substitution over the firing's own values, split by the same
+ * splitter the expression parameters use (0013) so a message is not a second
+ * little language. A key nobody published keeps its placeholder, which is how
+ * an operator sees that a template names something the rule does not carry.
+ */
 function renderTemplate(template: string, values: Readonly<Record<string, unknown>>): string {
-  return template.replace(/\{\{(\w+)\}\}/g, (_match, key: string) =>
-    key in values ? String(values[key]) : `{{${key}}}`,
-  );
+  return splitTemplate(template)
+    .map((segment) => {
+      if (segment.kind === 'literal') return segment.text;
+      const key = segment.source;
+      return key in values ? String(values[key]) : `{{${key}}}`;
+    })
+    .join('');
 }
