@@ -180,6 +180,29 @@ export {
   type EntrantAttribute,
   type EntrantAttributes,
 } from './aggregates/entrant-attribute.js';
+export {
+  endsAt,
+  overlaps,
+  gapMinutes,
+  validateWindow,
+  validateVenue,
+  validateOfficial,
+  ResourceError,
+  type Venue,
+  type Official,
+  type OfficialRole,
+  type TimeWindow,
+  type ResourceAssignment,
+} from './aggregates/resource.js';
+export {
+  detectConflicts,
+  describeWindow,
+  ScheduleConflictError,
+  type ConflictKind,
+  type ScheduleConflict,
+  type ScheduleContext,
+  type RestRule,
+} from './aggregates/schedule-conflict.js';
 export type {
   Stage,
   Fixture,
