@@ -103,3 +103,59 @@ export class FinalizeRequest {
   @ApiPropertyOptional({ format: 'uuid', description: 'Duel matches only' })
   winnerEntrantId?: string;
 }
+
+export class CorrectionRequestDto {
+  @ApiProperty({ description: 'Why the result is being corrected, in the operator’s words' })
+  reason!: string;
+
+  @ApiProperty({ type: [Object], description: 'The replacement result, one entry per side' })
+  sides!: {
+    entrantId: string;
+    statistics: Record<string, number>;
+    placement?: number;
+  }[];
+
+  @ApiPropertyOptional({ format: 'uuid' })
+  winnerEntrantId?: string;
+}
+
+export class BlockedPropagationDto {
+  @ApiProperty({ format: 'uuid' })
+  stageId!: string;
+
+  @ApiProperty({ description: 'Why nothing downstream was rebuilt' })
+  reason!: string;
+}
+
+export class CorrectionPreviewResponse {
+  @ApiProperty({ type: [String], description: 'Entrants whose recorded numbers move' })
+  changedEntrantIds!: string[];
+
+  @ApiPropertyOptional({
+    type: BlockedPropagationDto,
+    description: 'Present when a started downstream stage is deliberately not rebuilt',
+  })
+  blockedPropagation?: BlockedPropagationDto;
+}
+
+export class CorrectionEntryDto {
+  @ApiProperty()
+  occurredAt!: string;
+
+  @ApiProperty()
+  actor!: string;
+
+  @ApiProperty()
+  reason!: string;
+
+  @ApiProperty({ type: Object, description: 'What the result was' })
+  priorState!: Record<string, unknown>;
+
+  @ApiProperty({ type: Object, description: 'What it became' })
+  resultingState!: Record<string, unknown>;
+}
+
+export class CorrectionHistoryResponse {
+  @ApiProperty({ type: [CorrectionEntryDto], description: 'Oldest first — the chain, in order' })
+  corrections!: CorrectionEntryDto[];
+}

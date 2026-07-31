@@ -745,6 +745,233 @@
           "match-control"
         ]
       }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/corrections/preview": {
+      "post": {
+        "description": "Reports whose numbers move and whether a started downstream stage blocks the rebuild — from the same function the commit uses, so a preview cannot promise what the commit refuses.",
+        "operationId": "MatchControlController_previewCorrection",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "matchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorrectionRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorrectionPreviewResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Dry-run a correction",
+        "tags": [
+          "match-control"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/corrections": {
+      "post": {
+        "description": "The only write path over a finalized outcome. The prior result, the replacement, the actor and the reason are kept together, and a started downstream stage is not rebuilt behind anyone’s back.",
+        "operationId": "MatchControlController_correct",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "matchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorrectionRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorrectionPreviewResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Supersede a result",
+        "tags": [
+          "match-control"
+        ]
+      },
+      "get": {
+        "description": "Every prior state in order, with the actor and reason each time — the chain, not the latest link.",
+        "operationId": "MatchControlController_history",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "matchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorrectionHistoryResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read what this result has been",
+        "tags": [
+          "match-control"
+        ]
+      }
     }
   },
   "info": {
@@ -1243,6 +1470,114 @@
           "definitionCode",
           "sequence",
           "notifications"
+        ]
+      },
+      "CorrectionRequestDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "description": "Why the result is being corrected, in the operator’s words"
+          },
+          "sides": {
+            "description": "The replacement result, one entry per side",
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "winnerEntrantId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "reason",
+          "sides"
+        ]
+      },
+      "BlockedPropagationDto": {
+        "type": "object",
+        "properties": {
+          "stageId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why nothing downstream was rebuilt"
+          }
+        },
+        "required": [
+          "stageId",
+          "reason"
+        ]
+      },
+      "CorrectionPreviewResponse": {
+        "type": "object",
+        "properties": {
+          "changedEntrantIds": {
+            "description": "Entrants whose recorded numbers move",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "blockedPropagation": {
+            "description": "Present when a started downstream stage is deliberately not rebuilt",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BlockedPropagationDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "changedEntrantIds"
+        ]
+      },
+      "CorrectionEntryDto": {
+        "type": "object",
+        "properties": {
+          "occurredAt": {
+            "type": "string"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "priorState": {
+            "type": "object",
+            "description": "What the result was"
+          },
+          "resultingState": {
+            "type": "object",
+            "description": "What it became"
+          }
+        },
+        "required": [
+          "occurredAt",
+          "actor",
+          "reason",
+          "priorState",
+          "resultingState"
+        ]
+      },
+      "CorrectionHistoryResponse": {
+        "type": "object",
+        "properties": {
+          "corrections": {
+            "description": "Oldest first — the chain, in order",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CorrectionEntryDto"
+            }
+          }
+        },
+        "required": [
+          "corrections"
         ]
       }
     }

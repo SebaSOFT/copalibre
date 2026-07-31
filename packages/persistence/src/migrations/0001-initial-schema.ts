@@ -412,6 +412,7 @@ export const initialSchema: Migration = {
       'event_cursors',
       'outbox_events',
       'audit_log',
+      'match_assignments',
       'match_events',
       'segments',
       'matches',

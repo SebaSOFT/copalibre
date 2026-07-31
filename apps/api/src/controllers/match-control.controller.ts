@@ -20,6 +20,7 @@ import {
 import {
   applyMatchCommand,
   EventLog,
+  planCorrection,
   runningTimers,
   type DisciplineDescriptor,
   type MatchCommand,
@@ -32,6 +33,7 @@ import {
   notificationRulesFrom,
 } from '@copalibre/rules';
 import {
+  AuditReader,
   CompetitionRecordRepository,
   CompetitionRepository,
   MatchAssignmentRepository,
@@ -43,6 +45,9 @@ import type { Kysely } from 'kysely';
 import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
 import {
+  CorrectionHistoryResponse,
+  CorrectionPreviewResponse,
+  CorrectionRequestDto,
   FinalizeRequest,
   MatchStateResponse,
   RecordEventRequest,
@@ -318,6 +323,175 @@ export class MatchControlController {
       ...(recorded.participantId === undefined ? {} : { participantId: recorded.participantId }),
       notifications,
     };
+  }
+
+  @Post('corrections/preview')
+  @SecurityPlaneTag('admin-control')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Dry-run a correction',
+    description:
+      'Reports whose numbers move and whether a started downstream stage blocks the rebuild — ' +
+      'from the same function the commit uses, so a preview cannot promise what the commit refuses.',
+  })
+  @ApiOkResponse({ type: CorrectionPreviewResponse })
+  @ApiUnauthorizedResponse({ type: ProblemResponse })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  async previewCorrection(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('matchId') matchId: string,
+    @Body() body: CorrectionRequestDto,
+    @Req() request: RequestWithSubject,
+  ): Promise<CorrectionPreviewResponse> {
+    const { plan } = await this.planCorrectionFor(
+      organizationAlias,
+      tournamentAlias,
+      matchId,
+      body,
+      request,
+    );
+
+    return {
+      changedEntrantIds: [...plan.changedEntrantIds],
+      ...(plan.blockedPropagation ? { blockedPropagation: { ...plan.blockedPropagation } } : {}),
+    };
+  }
+
+  @Post('corrections')
+  @SecurityPlaneTag('admin-control')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Supersede a result',
+    description:
+      'The only write path over a finalized outcome. The prior result, the replacement, the actor ' +
+      'and the reason are kept together, and a started downstream stage is not rebuilt behind ' +
+      'anyone’s back.',
+  })
+  @ApiOkResponse({ type: CorrectionPreviewResponse })
+  @ApiUnauthorizedResponse({ type: ProblemResponse })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  async correct(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('matchId') matchId: string,
+    @Body() body: CorrectionRequestDto,
+    @Req() request: RequestWithSubject,
+  ): Promise<CorrectionPreviewResponse> {
+    const { plan, organizationId, granted } = await this.planCorrectionFor(
+      organizationAlias,
+      tournamentAlias,
+      matchId,
+      body,
+      request,
+    );
+
+    await withTransaction(this.db, (uow) =>
+      new CompetitionRepository(this.db).supersedeResult(uow, {
+        matchId,
+        result: plan.replacement,
+        reason: plan.reason,
+        ...(plan.blockedPropagation ? { blockedPropagation: plan.blockedPropagation } : {}),
+        organizationId,
+        actor: request.subject?.subjectId ?? 'unknown',
+        authorizationContext: `capability:${granted.capability} via ${granted.grantedBy}`,
+      }),
+    );
+
+    return {
+      changedEntrantIds: [...plan.changedEntrantIds],
+      ...(plan.blockedPropagation ? { blockedPropagation: { ...plan.blockedPropagation } } : {}),
+    };
+  }
+
+  @Get('corrections')
+  @SecurityPlaneTag('admin-control')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Read what this result has been',
+    description:
+      'Every prior state in order, with the actor and reason each time — the chain, not the latest link.',
+  })
+  @ApiOkResponse({ type: CorrectionHistoryResponse })
+  @ApiUnauthorizedResponse({ type: ProblemResponse })
+  async history(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('matchId') matchId: string,
+  ): Promise<CorrectionHistoryResponse> {
+    await this.resolveTournament(organizationAlias, tournamentAlias);
+    const entries = await new AuditReader(this.db).historyFor('match', matchId);
+
+    return {
+      corrections: entries
+        .filter((entry) => entry.action === 'match.result-superseded')
+        .map((entry) => ({
+          occurredAt: entry.occurredAt,
+          actor: entry.actor,
+          reason: entry.reason ?? '',
+          priorState: entry.previousState ?? {},
+          resultingState: entry.resultingState ?? {},
+        })),
+    };
+  }
+
+  /**
+   * One planning path for the preview and the commit.
+   *
+   * Splitting them is how a preview starts promising something the commit
+   * refuses — the lesson 0012 wrote down for scheduling, and a correction has
+   * more at stake than a schedule.
+   */
+  private async planCorrectionFor(
+    organizationAlias: string,
+    tournamentAlias: string,
+    matchId: string,
+    body: CorrectionRequestDto,
+    request: RequestWithSubject,
+  ) {
+    const tournament = await this.resolveTournament(organizationAlias, tournamentAlias);
+    const competition = new CompetitionRepository(this.db);
+    const match = await competition.findMatch(matchId);
+    if (!match) throw new NotFoundException(`No match "${matchId}"`);
+
+    const stageId = await this.stageOf(matchId);
+    const granted = enforceMatchCommand({
+      plane: 'admin-control',
+      subject: request.subject,
+      resource: { organizationId: tournament.organizationId },
+      assignments: await new MatchAssignmentRepository(this.db).forSubject({
+        organizationId: tournament.organizationId,
+        subjectId: request.subject?.subjectId ?? '',
+        matchId,
+        stageId,
+      }),
+      // Correcting a result is finalization's authority, not event entry's.
+      capability: 'match.finalize',
+      match: { organizationId: tournament.organizationId, matchId, stageId },
+    });
+
+    const downstream = await competition.nextStageState(tournament.tournamentId, stageId);
+    const planned = planCorrection(
+      {
+        matchId,
+        reason: body.reason,
+        actor: request.subject?.subjectId ?? 'unknown',
+        replacement: {
+          sides: body.sides.map((side) => ({
+            entrantId: side.entrantId,
+            statistics: side.statistics,
+            ...(side.placement === undefined ? {} : { placement: side.placement }),
+          })),
+          ...(body.winnerEntrantId === undefined ? {} : { winnerEntrantId: body.winnerEntrantId }),
+          recordedAt: new Date().toISOString(),
+        },
+      },
+      match.result,
+      downstream,
+    );
+
+    if (!planned.ok) throw new BadRequestException(planned.error.message);
+    return { plan: planned.value, organizationId: tournament.organizationId, granted };
   }
 
   private async resolveTournament(organizationAlias: string, tournamentAlias: string) {

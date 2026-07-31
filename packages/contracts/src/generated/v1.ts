@@ -248,6 +248,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/corrections/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Dry-run a correction
+         * @description Reports whose numbers move and whether a started downstream stage blocks the rebuild — from the same function the commit uses, so a preview cannot promise what the commit refuses.
+         */
+        post: operations["MatchControlController_previewCorrection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/corrections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read what this result has been
+         * @description Every prior state in order, with the actor and reason each time — the chain, not the latest link.
+         */
+        get: operations["MatchControlController_history"];
+        put?: never;
+        /**
+         * Supersede a result
+         * @description The only write path over a finalized outcome. The prior result, the replacement, the actor and the reason are kept together, and a started downstream stage is not rebuilt behind anyone’s back.
+         */
+        post: operations["MatchControlController_correct"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -468,6 +512,39 @@ export interface components {
             participantId?: string;
             /** @description Identity keys of notifications this event declared, deduplicated on delivery */
             notifications: string[];
+        };
+        CorrectionRequestDto: {
+            /** @description Why the result is being corrected, in the operator’s words */
+            reason: string;
+            /** @description The replacement result, one entry per side */
+            sides: Record<string, never>[];
+            /** Format: uuid */
+            winnerEntrantId?: string;
+        };
+        BlockedPropagationDto: {
+            /** Format: uuid */
+            stageId: string;
+            /** @description Why nothing downstream was rebuilt */
+            reason: string;
+        };
+        CorrectionPreviewResponse: {
+            /** @description Entrants whose recorded numbers move */
+            changedEntrantIds: string[];
+            /** @description Present when a started downstream stage is deliberately not rebuilt */
+            blockedPropagation?: components["schemas"]["BlockedPropagationDto"];
+        };
+        CorrectionEntryDto: {
+            occurredAt: string;
+            actor: string;
+            reason: string;
+            /** @description What the result was */
+            priorState: Record<string, never>;
+            /** @description What it became */
+            resultingState: Record<string, never>;
+        };
+        CorrectionHistoryResponse: {
+            /** @description Oldest first — the chain, in order */
+            corrections: components["schemas"]["CorrectionEntryDto"][];
         };
     };
     responses: never;
@@ -885,6 +962,123 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RecordedEventResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    MatchControlController_previewCorrection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                matchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CorrectionRequestDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CorrectionPreviewResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    MatchControlController_history: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                matchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CorrectionHistoryResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    MatchControlController_correct: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                matchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CorrectionRequestDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CorrectionPreviewResponse"];
                 };
             };
             401: {

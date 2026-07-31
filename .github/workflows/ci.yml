@@ -175,11 +175,15 @@ jobs:
       # Proves the one controlled migration entrypoint works before any test runs.
       - run: yarn workspace @copalibre/migrate run start
       # Includes the competition-record suite — a finished tournament must stay
-      # readable after the modules that produced it are deleted (0008) — and the
+      # readable after the modules that produced it are deleted (0008) — the
       # scheduling suite (0012), where atomic publication and in-transaction
-      # conflict detection can only be proven against a real database.
+      # conflict detection can only be proven against a real database, and the
+      # match-operations suite (0014): a finalized result that refuses to be
+      # overwritten, a correction that keeps what it replaced and why, and a
+      # started downstream stage that is not rebuilt behind anyone's back.
       - run: yarn workspace @copalibre/persistence test:integration
-      # Guard/policy/controller suite through the real HTTP stack (0005).
+      # Guard/policy/controller suite through the real HTTP stack (0005),
+      # including match-scoped authorization (0014).
       - run: yarn workspace @copalibre/api test:integration
       # Includes the N-sided result, retired-module and segment-threshold
       # notification suites (0009), the full stage-transition suite (0010), and

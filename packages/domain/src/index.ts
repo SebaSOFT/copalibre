@@ -125,6 +125,13 @@ export {
   type ScriptConstraint,
 } from './rulesets/draw-constraints.js';
 export {
+  planCorrection,
+  CorrectionError,
+  type CorrectionRequest,
+  type CorrectionPlan,
+  type DownstreamState,
+} from './aggregates/result-correction.js';
+export {
   applyMatchCommand,
   runningTimers,
   MatchOperationError,

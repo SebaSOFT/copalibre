@@ -241,6 +241,71 @@ export class CompetitionRepository {
   }
 
   /**
+   * Supersedes a result, keeping the one it replaced (0014).
+   *
+   * The only write path over a finalized outcome, and it is not an update in
+   * the ordinary sense: the audit row carries the prior state, the replacement
+   * and the operator's reason, so the chain of what a result has been stays
+   * readable in order. `recordResult` still refuses a match that has one, which
+   * is what leaves this as the single door.
+   */
+  async supersedeResult(
+    uow: UnitOfWork,
+    input: {
+      readonly matchId: string;
+      readonly result: MatchResult;
+      readonly reason: string;
+      readonly blockedPropagation?: { readonly stageId: string; readonly reason: string };
+    } & AuditContext,
+  ): Promise<Match> {
+    const existing = await this.findMatch(input.matchId);
+    if (!existing?.result) {
+      throw new InvariantViolationError(`Match ${input.matchId} has no result to supersede`, {
+        matchId: input.matchId,
+      });
+    }
+
+    const row = await uow.tx
+      .updateTable('matches')
+      .set({ result: JSON.stringify(input.result) })
+      .where('match_id', '=', input.matchId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const match = toMatch(row);
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'match',
+      entityId: input.matchId,
+      action: 'match.result-superseded',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      previousState: { ...existing.result },
+      resultingState: { ...input.result },
+      reason: input.reason,
+    });
+
+    await uow.publishEvent({
+      organizationId: input.organizationId,
+      stream: `match:${input.matchId}`,
+      entityId: input.matchId,
+      eventType: 'result.superseded',
+      projectionVersion: 1,
+      payload: {
+        matchId: input.matchId,
+        reason: input.reason,
+        // Named in the event so a downstream consumer does not have to infer
+        // that a rebuild was deliberately withheld.
+        ...(input.blockedPropagation
+          ? { blockedPropagation: { ...input.blockedPropagation } }
+          : {}),
+      },
+    });
+
+    return match;
+  }
+
+  /**
    * The notification identities already published for a match (0014).
    *
    * Threshold rules are a fold over the whole log, so recomputation after every
@@ -262,6 +327,49 @@ export class CompetitionRepository {
       if (typeof key === 'string') keys.add(key);
     }
     return keys;
+  }
+
+  /**
+   * The stage after this one, and whether it has started (0014).
+   *
+   * "Started" is read as *any match in it has been played or is being played*,
+   * because that is what makes a rebuild destructive: a bracket nobody has
+   * touched can be redrawn, and one that has been played cannot.
+   */
+  async nextStageState(
+    tournamentId: string,
+    stageId: string,
+  ): Promise<
+    | {
+        readonly stageId: string;
+        readonly started: boolean;
+        readonly qualifiedEntrantIds: readonly string[];
+      }
+    | undefined
+  > {
+    const stages = await this.listStages(tournamentId);
+    const current = stages.find((stage) => stage.stageId === stageId);
+    const next = stages.find((stage) => stage.number === (current?.number ?? 0) + 1);
+    if (!next) return undefined;
+
+    const rows = await this.db
+      .selectFrom('matches')
+      .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
+      .select(['matches.status', 'fixtures.home_entrant_id', 'fixtures.away_entrant_id'])
+      .where('fixtures.stage_id', '=', next.stageId)
+      .execute();
+
+    const qualified = new Set<string>();
+    for (const row of rows) {
+      if (row.home_entrant_id) qualified.add(row.home_entrant_id);
+      if (row.away_entrant_id) qualified.add(row.away_entrant_id);
+    }
+
+    return {
+      stageId: next.stageId,
+      started: rows.some((row) => row.status !== 'scheduled'),
+      qualifiedEntrantIds: [...qualified],
+    };
   }
 
   /** The stage a match belongs to, which is what scopes an appointment (0014). */
