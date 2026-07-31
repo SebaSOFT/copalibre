@@ -352,3 +352,22 @@ describe('breaking-change edge cases', () => {
     expect(detectBreakingChanges(before, after)).toEqual([]);
   });
 });
+
+describe('the generator serves what the app serves', () => {
+  it('lists every controller AppModule registers', async () => {
+    // The generator keeps its own controller list so it can run without a
+    // database. A controller present in the app and absent there would serve
+    // traffic the published contract never mentions, and nothing else would
+    // notice — this is the thing that notices.
+    const { AppModule } = await import('../app.module.js');
+    const { OPENAPI_CONTROLLERS } = await import('./generate-controllers.js');
+
+    const registered = (Reflect.getMetadata('controllers', AppModule) ?? []) as {
+      readonly name: string;
+    }[];
+
+    expect(registered.map((controller) => controller.name).sort()).toEqual(
+      OPENAPI_CONTROLLERS.map((controller) => controller.name).sort(),
+    );
+  });
+});

@@ -144,6 +144,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageId}/schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read a stage's published schedule
+         * @description Instants are epoch milliseconds; rendering them for a person is the surface's job.
+         */
+        get: operations["SchedulesController_read"];
+        put?: never;
+        /**
+         * Publish a schedule batch
+         * @description All or nothing: one conflicting assignment rejects the batch, so no partially-applied schedule is ever visible. Conflicts are reported the way the preview reports them.
+         */
+        post: operations["SchedulesController_publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageId}/schedule/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Dry-run a schedule batch
+         * @description Runs the identical conflict detection the commit runs, against the identical state, and reports instead of writing — including which already-published fixtures the batch would move.
+         */
+        post: operations["SchedulesController_preview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -243,6 +287,69 @@ export interface components {
              * @example 1.2.0
              */
             descriptorVersion: string;
+        };
+        TimeWindowDto: {
+            /**
+             * @description Start of the reserved window, epoch milliseconds
+             * @example 1785333600000
+             */
+            startsAt: number;
+            /**
+             * @description How long the resource is reserved — not how long the match takes
+             * @example 90
+             */
+            durationMinutes: number;
+        };
+        ScheduleAssignmentDto: {
+            /** Format: uuid */
+            fixtureId: string;
+            window: components["schemas"]["TimeWindowDto"];
+            /**
+             * Format: uuid
+             * @description Venue hosting the fixture
+             */
+            venueId?: string;
+            /** @description Officials assigned to the fixture */
+            officialIds?: string[];
+        };
+        ScheduleResponse: {
+            assignments: components["schemas"]["ScheduleAssignmentDto"][];
+        };
+        RestRuleDto: {
+            /**
+             * @description Minimum minutes between an entrant's consecutive fixtures
+             * @example 45
+             */
+            minimumMinutes: number;
+        };
+        ScheduleRequest: {
+            assignments: components["schemas"]["ScheduleAssignmentDto"][];
+            restRule?: components["schemas"]["RestRuleDto"];
+        };
+        ScheduleConflictDto: {
+            /**
+             * @description Which rule the schedule breaks
+             * @enum {string}
+             */
+            kind: "venue-double-booked" | "official-double-booked" | "rest-rule";
+            /** Format: uuid */
+            fixtureId: string;
+            /**
+             * Format: uuid
+             * @description The fixture it clashes with
+             */
+            conflictsWithFixtureId: string;
+            /** @description Venue, official or entrant the clash is about */
+            resourceId: string;
+            /** @description Human-readable explanation an operator can act on */
+            detail: string;
+        };
+        SchedulePreviewResponse: {
+            /** @description Whether the batch would publish as it stands */
+            committable: boolean;
+            conflicts: components["schemas"]["ScheduleConflictDto"][];
+            /** @description Already-published fixtures this batch would move */
+            affectedPublishedFixtures: string[];
         };
     };
     responses: never;
@@ -441,6 +548,115 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TournamentResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    SchedulesController_read: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                stageId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScheduleResponse"];
+                };
+            };
+        };
+    };
+    SchedulesController_publish: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                stageId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScheduleRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScheduleResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    SchedulesController_preview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                stageId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScheduleRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchedulePreviewResponse"];
                 };
             };
             401: {

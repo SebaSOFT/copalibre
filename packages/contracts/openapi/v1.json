@@ -311,6 +311,218 @@
           "tournaments"
         ]
       }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageId}/schedule": {
+      "get": {
+        "description": "Instants are epoch milliseconds; rendering them for a person is the surface's job.",
+        "operationId": "SchedulesController_read",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Read a stage's published schedule",
+        "tags": [
+          "schedules"
+        ]
+      },
+      "post": {
+        "description": "All or nothing: one conflicting assignment rejects the batch, so no partially-applied schedule is ever visible. Conflicts are reported the way the preview reports them.",
+        "operationId": "SchedulesController_publish",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Publish a schedule batch",
+        "tags": [
+          "schedules"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageId}/schedule/preview": {
+      "post": {
+        "description": "Runs the identical conflict detection the commit runs, against the identical state, and reports instead of writing — including which already-published fixtures the batch would move.",
+        "operationId": "SchedulesController_preview",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchedulePreviewResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Dry-run a schedule batch",
+        "tags": [
+          "schedules"
+        ]
+      }
     }
   },
   "info": {
@@ -522,6 +734,164 @@
           "name",
           "descriptorId",
           "descriptorVersion"
+        ]
+      },
+      "TimeWindowDto": {
+        "type": "object",
+        "properties": {
+          "startsAt": {
+            "type": "number",
+            "description": "Start of the reserved window, epoch milliseconds",
+            "example": 1785333600000
+          },
+          "durationMinutes": {
+            "type": "number",
+            "description": "How long the resource is reserved — not how long the match takes",
+            "example": 90
+          }
+        },
+        "required": [
+          "startsAt",
+          "durationMinutes"
+        ]
+      },
+      "ScheduleAssignmentDto": {
+        "type": "object",
+        "properties": {
+          "fixtureId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "window": {
+            "$ref": "#/components/schemas/TimeWindowDto"
+          },
+          "venueId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Venue hosting the fixture"
+          },
+          "officialIds": {
+            "description": "Officials assigned to the fixture",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "required": [
+          "fixtureId",
+          "window"
+        ]
+      },
+      "ScheduleResponse": {
+        "type": "object",
+        "properties": {
+          "assignments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScheduleAssignmentDto"
+            }
+          }
+        },
+        "required": [
+          "assignments"
+        ]
+      },
+      "RestRuleDto": {
+        "type": "object",
+        "properties": {
+          "minimumMinutes": {
+            "type": "number",
+            "description": "Minimum minutes between an entrant's consecutive fixtures",
+            "example": 45
+          }
+        },
+        "required": [
+          "minimumMinutes"
+        ]
+      },
+      "ScheduleRequest": {
+        "type": "object",
+        "properties": {
+          "assignments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScheduleAssignmentDto"
+            }
+          },
+          "restRule": {
+            "$ref": "#/components/schemas/RestRuleDto"
+          }
+        },
+        "required": [
+          "assignments"
+        ]
+      },
+      "ScheduleConflictDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "venue-double-booked",
+              "official-double-booked",
+              "rest-rule"
+            ],
+            "description": "Which rule the schedule breaks"
+          },
+          "fixtureId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "conflictsWithFixtureId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The fixture it clashes with"
+          },
+          "resourceId": {
+            "type": "string",
+            "description": "Venue, official or entrant the clash is about"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Human-readable explanation an operator can act on"
+          }
+        },
+        "required": [
+          "kind",
+          "fixtureId",
+          "conflictsWithFixtureId",
+          "resourceId",
+          "detail"
+        ]
+      },
+      "SchedulePreviewResponse": {
+        "type": "object",
+        "properties": {
+          "committable": {
+            "type": "boolean",
+            "description": "Whether the batch would publish as it stands"
+          },
+          "conflicts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScheduleConflictDto"
+            }
+          },
+          "affectedPublishedFixtures": {
+            "description": "Already-published fixtures this batch would move",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "required": [
+          "committable",
+          "conflicts",
+          "affectedPublishedFixtures"
         ]
       }
     }

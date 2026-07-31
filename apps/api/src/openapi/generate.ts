@@ -4,9 +4,7 @@ import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
 import { DATABASE } from '../database.token.js';
 import type { OpenAPIObject } from '@nestjs/swagger';
-import { HealthController } from '../health.controller.js';
-import { OrganizationsController } from '../controllers/organizations.controller.js';
-import { TournamentsController } from '../controllers/tournaments.controller.js';
+import { OPENAPI_CONTROLLERS } from './generate-controllers.js';
 import { TokenVerifier } from '../auth/token-verifier.js';
 import { buildOpenApiDocument, OPENAPI_VERSION } from './document.js';
 import { collectRoutePlanes } from './collect-planes.js';
@@ -21,7 +19,7 @@ import { Module } from '@nestjs/common';
  * a database or a reachable identity provider, so CI can produce the artifact
  * without provisioning either.
  */
-const CONTROLLERS = [HealthController, OrganizationsController, TournamentsController] as const;
+const CONTROLLERS = OPENAPI_CONTROLLERS;
 
 @Module({
   controllers: [...CONTROLLERS],

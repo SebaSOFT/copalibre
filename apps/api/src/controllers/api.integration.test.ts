@@ -11,6 +11,7 @@ import { TokenVerifier } from '../auth/token-verifier.js';
 import { DATABASE } from '../database.token.js';
 import { HealthController } from '../health.controller.js';
 import { OrganizationsController } from './organizations.controller.js';
+import { SchedulesController } from './schedules.controller.js';
 import { TournamentsController } from './tournaments.controller.js';
 
 /**
@@ -62,7 +63,12 @@ describe('api routes (integration)', () => {
     scratch = await createMigratedDatabase('api');
 
     @Module({
-      controllers: [HealthController, OrganizationsController, TournamentsController],
+      controllers: [
+        HealthController,
+        OrganizationsController,
+        TournamentsController,
+        SchedulesController,
+      ],
       providers: [
         { provide: DATABASE, useValue: scratch.db },
         { provide: TokenVerifier, useValue: new FakeTokenVerifier(() => organizationId) },
@@ -228,6 +234,56 @@ describe('api routes (integration)', () => {
         url: '/organizations/liga-orbital/tournaments/no-such-copa',
       });
       expect(response.statusCode).toBe(404);
+    });
+  });
+
+  describe('scheduling routes', () => {
+    const scheduleUrl = (stageId: string, suffix = '') =>
+      `/organizations/liga-orbital/tournaments/no-such-copa/stages/${stageId}/schedule${suffix}`;
+
+    it('404s a schedule under a tournament that does not exist', async () => {
+      const response = await request({ method: 'GET', url: scheduleUrl('stage-1') });
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('refuses a preview without a token, because a dry run still reads the draft', async () => {
+      const response = await request({
+        method: 'POST',
+        url: scheduleUrl('stage-1', '/preview'),
+        payload: { assignments: [] },
+      });
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('refuses a publish without a token', async () => {
+      const response = await request({
+        method: 'POST',
+        url: scheduleUrl('stage-1'),
+        payload: { assignments: [] },
+      });
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('refuses a publish from an organizer of another organization', async () => {
+      const response = await request({
+        method: 'POST',
+        url: scheduleUrl('stage-1'),
+        token: 'organizer-org2',
+        payload: { assignments: [] },
+      });
+      // 404 here: the tournament alias does not exist, and the caller learns
+      // nothing about another organization's data either way.
+      expect([403, 404]).toContain(response.statusCode);
+    });
+
+    it('refuses a participant token on the control plane', async () => {
+      const response = await request({
+        method: 'POST',
+        url: scheduleUrl('stage-1', '/preview'),
+        token: 'participant-org1',
+        payload: { assignments: [] },
+      });
+      expect([403, 404]).toContain(response.statusCode);
     });
   });
 });
