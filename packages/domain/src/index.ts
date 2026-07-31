@@ -195,6 +195,10 @@ export {
   type ResourceAssignment,
 } from './aggregates/resource.js';
 export {
+  classifyScheduleMutation,
+  type ScheduleMutationContext,
+} from './aggregates/schedule-mutation.js';
+export {
   detectConflicts,
   describeWindow,
   ScheduleConflictError,

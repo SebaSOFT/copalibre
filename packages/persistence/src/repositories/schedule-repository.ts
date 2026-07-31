@@ -172,6 +172,13 @@ export class ScheduleRepository {
       });
     }
 
+    // Detection reads, then writes — and two concurrent publishes could both
+    // read "no conflict" and both write, which is write skew and exactly how a
+    // venue ends up double-booked despite a check that ran. Locking the
+    // contested rows first serialises publishes that touch the same resource
+    // and leaves publishes that touch different ones fully parallel.
+    await this.lockResources(uow, input.assignments);
+
     const context = await this.contextFor(input.stageId, input.restRule, uow);
     const conflicts = detectConflicts(input.assignments, context);
     if (conflicts.length > 0) {
@@ -232,6 +239,48 @@ export class ScheduleRepository {
     });
 
     return input.assignments;
+  }
+
+  /**
+   * Locks every venue and official the batch touches, in id order.
+   *
+   * Ordering is what keeps two batches sharing two resources from deadlocking:
+   * both take them in the same sequence, so one waits rather than each holding
+   * what the other needs.
+   */
+  private async lockResources(
+    uow: UnitOfWork,
+    assignments: readonly ResourceAssignment[],
+  ): Promise<void> {
+    const venueIds = [
+      ...new Set(
+        assignments
+          .map((assignment) => assignment.venueId)
+          .filter((venueId): venueId is string => venueId !== undefined),
+      ),
+    ].sort();
+    const officialIds = [
+      ...new Set(assignments.flatMap((assignment) => assignment.officialIds ?? [])),
+    ].sort();
+
+    if (venueIds.length > 0) {
+      await uow.tx
+        .selectFrom('venues')
+        .select('venue_id')
+        .where('venue_id', 'in', venueIds)
+        .orderBy('venue_id')
+        .forUpdate()
+        .execute();
+    }
+    if (officialIds.length > 0) {
+      await uow.tx
+        .selectFrom('officials')
+        .select('official_id')
+        .where('official_id', 'in', officialIds)
+        .orderBy('official_id')
+        .forUpdate()
+        .execute();
+    }
   }
 
   async listSchedule(stageId: string): Promise<readonly ResourceAssignment[]> {

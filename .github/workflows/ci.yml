@@ -97,6 +97,8 @@ jobs:
       # --passWithNoTests makes "zero tests discovered" look identical to success,
       # which a broken Jest/ESM config would otherwise hide (0006).
       - run: yarn test:verify-discovery
+      # Covers the scheduling conflict detection and mutation classification
+      # (0012), which are pure domain logic; the SQL side runs in integration.
       - run: yarn workspace @copalibre/domain test:coverage
       # Golden-fixture suite included; any fixture mismatch fails the PR (0003).
       # Covers the win-condition registry, evaluator and trace fixture (0009),
@@ -167,8 +169,10 @@ jobs:
       - run: yarn install --immutable
       # Proves the one controlled migration entrypoint works before any test runs.
       - run: yarn workspace @copalibre/migrate run start
-      # Includes the competition-record suite: a finished tournament must stay
-      # readable after the modules that produced it are deleted (0008).
+      # Includes the competition-record suite — a finished tournament must stay
+      # readable after the modules that produced it are deleted (0008) — and the
+      # scheduling suite (0012), where atomic publication and in-transaction
+      # conflict detection can only be proven against a real database.
       - run: yarn workspace @copalibre/persistence test:integration
       # Guard/policy/controller suite through the real HTTP stack (0005).
       - run: yarn workspace @copalibre/api test:integration

@@ -1,4 +1,5 @@
 import {
+  classifyScheduleMutation,
   winConditionScript,
   type DisciplineDescriptor,
   type ResourceAssignment,
@@ -383,6 +384,163 @@ describe('scheduling (integration)', () => {
 
     expect(preview.committable).toBe(true);
     expect(preview.affectedPublishedFixtures).toEqual([fixtureId]);
+  });
+
+  it('blocks rescheduling a match that has been played, and points at the correction workflow', async () => {
+    const { stage, fixtures, venue } = await seedStage('copa-jugada');
+    const competition = new CompetitionRepository(scratch.db);
+    const fixtureId = fixtures[0]?.fixtureId ?? '';
+
+    await withTransaction(scratch.db, (uow) =>
+      schedules.publishSchedule(uow, {
+        stageId: stage.stageId,
+        assignments: [{ fixtureId, window: window(0), venueId: venue.venueId }],
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+
+    // Play it: a match with a result has a time and a place as a fact.
+    const match = await withTransaction(scratch.db, (uow) =>
+      competition.createMatch(uow, { fixtureId, number: 1, organizationId, ...AUDIT }),
+    );
+    await withTransaction(scratch.db, (uow) =>
+      competition.recordResult(uow, {
+        matchId: match.matchId,
+        result: {
+          sides: [{ entrantId: 'e1', statistics: { goals: 2 } }],
+          recordedAt: '2026-08-01T16:00:00.000Z',
+        },
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+
+    const played = await competition.findMatch(match.matchId);
+    const decision = classifyScheduleMutation({
+      published: true,
+      matchConcluded: played?.result !== undefined,
+    });
+
+    expect(decision.ok).toBe(false);
+    if (decision.ok) return;
+    expect(decision.error.message).toContain('audited correction workflow');
+
+    // And the stored schedule is untouched by the attempt.
+    const stored = await schedules.listSchedule(stage.stageId);
+    expect(stored[0]?.window.startsAt).toBe(window(0).startsAt);
+  });
+
+  it('classifies an unpublished edit as safe and a published one as a rebuild', async () => {
+    const { stage, fixtures, venue } = await seedStage('copa-clasificacion');
+    const fixtureId = fixtures[0]?.fixtureId ?? '';
+
+    // Nothing published yet.
+    const beforePublish = await schedules.previewSchedule({
+      stageId: stage.stageId,
+      assignments: [{ fixtureId, window: window(0), venueId: venue.venueId }],
+    });
+    expect(
+      classifyScheduleMutation({ published: beforePublish.affectedPublishedFixtures.length > 0 })
+        .ok,
+    ).toBe(true);
+    expect(beforePublish.affectedPublishedFixtures).toEqual([]);
+
+    await withTransaction(scratch.db, (uow) =>
+      schedules.publishSchedule(uow, {
+        stageId: stage.stageId,
+        assignments: [{ fixtureId, window: window(0), venueId: venue.venueId }],
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+
+    const afterPublish = await schedules.previewSchedule({
+      stageId: stage.stageId,
+      assignments: [{ fixtureId, window: window(120), venueId: venue.venueId }],
+    });
+    const decision = classifyScheduleMutation({
+      published: afterPublish.affectedPublishedFixtures.length > 0,
+      affectedPublishedFixtures: afterPublish.affectedPublishedFixtures.map((id) => ({
+        fixtureId: id,
+        stageId: stage.stageId,
+        hasResult: false,
+      })),
+    });
+
+    expect(decision.ok).toBe(true);
+    if (!decision.ok) return;
+    expect(decision.value).toMatchObject({
+      mutationClass: 'requires_rebuild',
+      invalidates: [{ fixtureId }],
+    });
+  });
+
+  it('lets exactly one of two concurrent publishes win the same slot', async () => {
+    const { stage, fixtures, venue } = await seedStage('copa-concurrente');
+
+    // Two operators, two connections, one court, overlapping windows. Without
+    // the row lock both would read "no conflict" and both would write.
+    const publish = (fixtureId: string, startMinutes: number) =>
+      withTransaction(scratch.db, (uow) =>
+        schedules.publishSchedule(uow, {
+          stageId: stage.stageId,
+          assignments: [{ fixtureId, window: window(startMinutes), venueId: venue.venueId }],
+          organizationId,
+          ...AUDIT,
+        }),
+      );
+
+    const results = await Promise.allSettled([
+      publish(fixtures[0]?.fixtureId ?? '', 0),
+      publish(fixtures[1]?.fixtureId ?? '', 30),
+    ]);
+
+    expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+    expect(results.filter((result) => result.status === 'rejected')).toHaveLength(1);
+
+    // And the database holds the winner alone, not both and not neither.
+    await expect(schedules.listSchedule(stage.stageId)).resolves.toHaveLength(1);
+  });
+
+  it('runs publishes touching different venues in parallel', async () => {
+    const { stage, fixtures, venue } = await seedStage('copa-paralela');
+    const second = await withTransaction(scratch.db, (uow) =>
+      schedules.createVenue(uow, {
+        organizationId,
+        alias: 'court-paralela-2',
+        name: 'Cancha 2',
+        concurrentCapacity: 1,
+        ...AUDIT,
+      }),
+    );
+
+    // Same instant, different courts: nothing contends, so both commit.
+    const results = await Promise.allSettled([
+      withTransaction(scratch.db, (uow) =>
+        schedules.publishSchedule(uow, {
+          stageId: stage.stageId,
+          assignments: [
+            { fixtureId: fixtures[0]?.fixtureId ?? '', window: window(0), venueId: venue.venueId },
+          ],
+          organizationId,
+          ...AUDIT,
+        }),
+      ),
+      withTransaction(scratch.db, (uow) =>
+        schedules.publishSchedule(uow, {
+          stageId: stage.stageId,
+          assignments: [
+            { fixtureId: fixtures[1]?.fixtureId ?? '', window: window(0), venueId: second.venueId },
+          ],
+          organizationId,
+          ...AUDIT,
+        }),
+      ),
+    ]);
+
+    expect(results.every((result) => result.status === 'fulfilled')).toBe(true);
+    await expect(schedules.listSchedule(stage.stageId)).resolves.toHaveLength(2);
   });
 
   it('refuses an empty batch rather than publishing nothing quietly', async () => {
