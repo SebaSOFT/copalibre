@@ -1,7 +1,9 @@
 import type {
   Fixture,
   Match,
+  MatchCommand,
   MatchResult,
+  MatchStatus,
   RecordedEvent,
   Segment,
   Stage,
@@ -158,6 +160,105 @@ export class CompetitionRepository {
       resultingState: { ...match },
     });
     return match;
+  }
+
+  /**
+   * Moves a match through the states `applyMatchCommand` permits (0014).
+   *
+   * The transition itself was decided in the domain; this writes it and says
+   * who was allowed to. A finalized match is refused here as well as there,
+   * because an invariant enforced in one layer is enforced only until someone
+   * calls the other one.
+   */
+  async applyCommand(
+    uow: UnitOfWork,
+    input: {
+      readonly matchId: string;
+      readonly command: MatchCommand;
+      readonly status: MatchStatus;
+      /** The appointment that authorised it, for the audit row. */
+      readonly grantedBy: string;
+    } & AuditContext,
+  ): Promise<Match> {
+    const existing = await this.findMatch(input.matchId);
+    if (!existing) {
+      throw new NotFoundError(`Match ${input.matchId} does not exist`, { matchId: input.matchId });
+    }
+    if (existing.status === 'finalized') {
+      throw new InvariantViolationError(
+        `Match ${input.matchId} is finalized; use the audited correction workflow`,
+        { matchId: input.matchId },
+      );
+    }
+
+    const row = await uow.tx
+      .updateTable('matches')
+      .set({ status: input.status })
+      .where('match_id', '=', input.matchId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const match = toMatch(row);
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'match',
+      entityId: input.matchId,
+      action: `match.${input.command}`,
+      actor: input.actor,
+      authorizationContext: `${input.authorizationContext} via ${input.grantedBy}`,
+      previousState: { ...existing },
+      resultingState: { ...match },
+    });
+    return match;
+  }
+
+  /** Starts, pauses or completes a segment; the clock is derived from this. */
+  async setSegmentState(
+    uow: UnitOfWork,
+    input: {
+      readonly segmentId: string;
+      readonly state: Segment['state'];
+    } & AuditContext,
+  ): Promise<Segment> {
+    const row = await uow.tx
+      .updateTable('segments')
+      .set({ state: input.state })
+      .where('segment_id', '=', input.segmentId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const segment = toSegment(row);
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'segment',
+      entityId: input.segmentId,
+      action: `segment.${input.state}`,
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      resultingState: { ...segment },
+    });
+    return segment;
+  }
+
+  /** The stage a match belongs to, which is what scopes an appointment (0014). */
+  async stageOfMatch(matchId: string): Promise<string | undefined> {
+    const row = await this.db
+      .selectFrom('matches')
+      .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
+      .select('fixtures.stage_id')
+      .where('matches.match_id', '=', matchId)
+      .executeTakeFirst();
+    return row?.stage_id;
+  }
+
+  async listSegments(matchId: string): Promise<readonly Segment[]> {
+    const rows = await this.db
+      .selectFrom('segments')
+      .selectAll()
+      .where('match_id', '=', matchId)
+      .orderBy('number')
+      .execute();
+    return rows.map(toSegment);
   }
 
   async createSegment(

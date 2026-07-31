@@ -125,6 +125,15 @@ export {
   type ScriptConstraint,
 } from './rulesets/draw-constraints.js';
 export {
+  applyMatchCommand,
+  runningTimers,
+  MatchOperationError,
+  type MatchCommand,
+  type MatchTransition,
+  type RunningTimer,
+  type TimerEventCodes,
+} from './aggregates/match-operations.js';
+export {
   authorizeMatchCommand,
   validateAssignment,
   isMatchCapability,
