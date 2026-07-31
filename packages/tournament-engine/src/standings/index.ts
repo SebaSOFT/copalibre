@@ -6,7 +6,7 @@ import type { DisciplineDescriptor, RecordedOutcome, StatisticDefinition } from 
 /**
  * Standings assembly. This module computes *accounting parameters* only and
  * delegates every comparison to `@copalibre/rules`, so the explanation trace the
- * A5 screen (phase 0017) renders is the trace produced by the pipeline that
+ * A5 screen (phase 0018) renders is the trace produced by the pipeline that
  * actually ran — not a parallel ranking implementation that could drift from it.
  */
 

@@ -16,7 +16,7 @@ export interface ReadinessReport {
 /**
  * Refuses to report ready against an unmigrated or stale database, so an
  * operator who skips `copalibre migrate` gets a failing readiness probe instead
- * of a half-working API (phase 0004 design decision, not deferred to phase 0021).
+ * of a half-working API (phase 0004 design decision, not deferred to phase 0022).
  */
 export async function checkReadiness(connectionString?: string): Promise<ReadinessReport> {
   const config = connectionString ? { connectionString } : databaseConfigFromEnv();

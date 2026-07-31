@@ -79,7 +79,7 @@ export interface FixtureGraph {
   readonly format: TournamentFormat;
   readonly entrantCount: number;
   readonly matches: readonly GeneratedMatch[];
-  /** Rounds per bracket, for UI layout (phase 0017 renders from this). */
+  /** Rounds per bracket, for UI layout (phase 0018 renders from this). */
   readonly rounds: readonly {
     readonly bracket: BracketKind;
     readonly round: number;

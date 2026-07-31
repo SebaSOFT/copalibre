@@ -5,7 +5,7 @@ import type { TraceNode } from '../trace/explanation-trace.js';
  * "Scoring and tiebreakers": an ordered sequence of declared, auditable
  * accounting parameters evaluated "in sequence until it resolves the tie".
  * Definitions are serializable data (versioned configuration); evaluation is
- * deterministic and produces the trace phase 0016 renders.
+ * deterministic and produces the trace phase 0017 renders.
  */
 
 export type ComparisonDirection =
