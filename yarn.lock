@@ -862,7 +862,9 @@ __metadata:
     "@types/jest": "npm:^30.0.0"
     jest: "npm:^30.4.2"
     jsep: "npm:^1.4.0"
+    pure-rand: "npm:^8.4.2"
     ts-jest: "npm:^29.4.12"
+    uuid: "npm:^14.0.1"
   languageName: unknown
   linkType: soft
 
@@ -10974,7 +10976,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"uuid@npm:^14":
+"uuid@npm:^14, uuid@npm:^14.0.1":
   version: 14.0.1
   resolution: "uuid@npm:14.0.1"
   bin:

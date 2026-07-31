@@ -6,6 +6,7 @@ import {
   type ExecutionContext,
 } from '@sebasoft/neuron-js';
 import type { RulesRegistry } from '../registry/rules-registry.js';
+import { registerDeclaredEffectActions } from '../effects/actions.js';
 import { isExpressionMode, resolveParameterExpression } from '../expressions/expression.js';
 import { registerCopalibreConditions } from './conditions.js';
 
@@ -133,6 +134,7 @@ export class SetGuardOutcomeAction extends AbstractAction {
 /** Registers the CopaLibre vocabulary into a registry (idempotent per registry). */
 export function registerCopalibreVocabulary(registry: RulesRegistry): RulesRegistry {
   registerCopalibreConditions(registry);
+  registerDeclaredEffectActions(registry);
   registry.registerParameter(
     NumberParameter.TYPE,
     NumberParameter,

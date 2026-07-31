@@ -398,6 +398,60 @@ export function expressionResolutions(context: ExecutionContext): readonly Expre
 }
 
 /**
+ * Every context path an expression reads.
+ *
+ * This is what makes "refuse a script reading a path the hook does not publish"
+ * answerable at validation: the paths come out of the AST, which also covers
+ * the ones buried inside arithmetic and function arguments — something a
+ * declared `path` option could never see.
+ */
+export function pathsIn(source: string): readonly string[] {
+  const paths: string[] = [];
+
+  const visit = (node: jsep.Expression): void => {
+    switch (node.type) {
+      case 'Identifier':
+      case 'MemberExpression': {
+        const path = pathOf(node);
+        if (path !== undefined) paths.push(path);
+        return;
+      }
+      case 'UnaryExpression':
+        visit((node as unknown as jsep.UnaryExpression).argument);
+        return;
+      case 'BinaryExpression': {
+        const binary = node as unknown as jsep.BinaryExpression;
+        visit(binary.left);
+        visit(binary.right);
+        return;
+      }
+      case 'CallExpression': {
+        for (const argument of (node as unknown as jsep.CallExpression).arguments) visit(argument);
+        return;
+      }
+      default:
+        return;
+    }
+  };
+
+  for (const segment of splitTemplate(source)) {
+    if (segment.kind !== 'expression') continue;
+    try {
+      visit(jsep(segment.source));
+    } catch {
+      continue;
+    }
+  }
+  return paths;
+}
+
+/** The paths a parameter reads, which is nothing unless it is an expression. */
+export function pathsRead(value: unknown, options: unknown): readonly string[] {
+  if (!isExpressionMode(options) || typeof value !== 'string') return [];
+  return pathsIn(value);
+}
+
+/**
  * Whether a parameter declares its `value` to be an expression.
  *
  * The mode is a boolean and the source stays in `value`, so a field holds what

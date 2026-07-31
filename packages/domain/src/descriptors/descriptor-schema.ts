@@ -76,6 +76,14 @@ export const RULE_SCRIPT_SCHEMA: JsonSchemaDocument = Object.freeze({
         { $ref: '#/definitions/element' },
         {
           type: 'object',
+          // Both arrays are required because Neuron's `validateScript` demands
+          // them: a rule omitting one passed installation and failed at
+          // evaluation, which is the worst place to learn it (0013). The schema
+          // tightens rather than the loader normalising, because a normalised
+          // document differs from the submitted one and module identity is a
+          // signature-adjacent concern in 0034. An empty array is fine — it
+          // means "no conditions", which is a rule that always fires.
+          required: ['conditions', 'actions'],
           properties: {
             conditions: { type: 'array', items: { $ref: '#/definitions/paramsOwner' } },
             actions: { type: 'array', items: { $ref: '#/definitions/paramsOwner' } },

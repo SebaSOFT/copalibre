@@ -114,6 +114,33 @@ describe('discipline descriptor schema', () => {
       expect(result.ok).toBe(true);
     });
 
+    it.each([
+      ['conditions', { id: 'r1', type: 'simple_rule', options: {}, actions: [] }],
+      ['omits actions', { id: 'r1', type: 'simple_rule', options: {}, conditions: [] }],
+    ])('rejects at installation a rule that omits %s', (_label, rule) => {
+      // Neuron's validateScript demands both arrays. Accepting the document and
+      // failing at evaluation would let a module install and break during a
+      // match, which is the worst place to find out (0013).
+      const result = validateDisciplineDescriptorDocument(
+        asDocument({ winCondition: { id: 'half-declared', rules: [rule] } }),
+      );
+
+      expect(result.ok).toBe(false);
+    });
+
+    it('accepts empty arrays, which mean "always" and "changes nothing"', () => {
+      const result = validateDisciplineDescriptorDocument(
+        asDocument({
+          winCondition: {
+            id: 'degenerate',
+            rules: [{ id: 'r1', type: 'simple_rule', options: {}, conditions: [], actions: [] }],
+          },
+        }),
+      );
+
+      expect(result.ok).toBe(true);
+    });
+
     it('rejects a malformed rule inside an otherwise valid script', () => {
       const result = validateDisciplineDescriptorDocument(
         asDocument({

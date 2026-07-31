@@ -36,6 +36,8 @@ export {
   resolveExpressionField,
   splitTemplate,
   expressionResolutions,
+  pathsIn,
+  pathsRead,
   type ExpressionResolution,
   isExpressionMode,
   type TemplateSegment,
@@ -45,6 +47,32 @@ export {
   isExpressionFunction,
   type ExpressionValue,
 } from './expressions/functions.js';
+
+export {
+  registerDeclaredEffectActions,
+  NotifyAction,
+  StartTimerAction,
+  StopTimerAction,
+} from './effects/actions.js';
+export {
+  effectIdentityKey,
+  declaredEffect,
+  toNotificationInstance,
+  toDeclaredTimer,
+  remainingSeconds,
+  EFFECTS_STATE_KEY,
+  type DeclaredEffect,
+  type DeclaredEffectKind,
+  type DeclaredTimer,
+  type EffectDraft,
+  type EffectOrigin,
+} from './effects/declared-effects.js';
+export {
+  evaluateAtHook,
+  drawRecords,
+  type HookDecision,
+  type HookEvaluationInput,
+} from './evaluation/hook-evaluator.js';
 
 export {
   registerCopalibreConditions,
