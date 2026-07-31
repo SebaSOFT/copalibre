@@ -6,14 +6,14 @@ import { Test } from '@nestjs/testing';
 import type { OpenAPIObject } from '@nestjs/swagger';
 import { TokenVerifier } from '../auth/token-verifier.js';
 import { DATABASE } from '../database.token.js';
-import { HealthController } from '../health.controller.js';
-import { OrganizationsController } from '../controllers/organizations.controller.js';
-import { TournamentsController } from '../controllers/tournaments.controller.js';
+import { OPENAPI_CONTROLLERS } from './generate-controllers.js';
 import { buildOpenApiDocument } from './document.js';
 import { collectRoutePlanes } from './collect-planes.js';
 import { lintOpenApiContract } from './contract-lint.js';
 
-const CONTROLLERS = [HealthController, OrganizationsController, TournamentsController] as const;
+// One source for the generator, its guard and this test: three lists drifting
+// apart is how a served route goes missing from the published contract.
+const CONTROLLERS = OPENAPI_CONTROLLERS;
 const ARTIFACT_PATH = join(import.meta.dirname, '../../../../packages/contracts/openapi/v1.json');
 
 /**

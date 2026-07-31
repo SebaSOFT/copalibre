@@ -170,6 +170,63 @@ export const initialSchema: Migration = {
       .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
       .execute();
 
+    // Schedulable resources (0012). A venue's concurrent capacity is what makes
+    // a three-court club one venue rather than three, and it is the number the
+    // double-booking check compares against.
+    await db.schema
+      .createTable('venues')
+      .addColumn('venue_id', 'uuid', (col) => col.primaryKey())
+      .addColumn('organization_id', 'uuid', (col) =>
+        col.notNull().references('organizations.organization_id'),
+      )
+      .addColumn('alias', 'text', (col) => col.notNull())
+      .addColumn('name', 'text', (col) => col.notNull())
+      .addColumn('concurrent_capacity', 'integer', (col) => col.notNull().defaultTo(1))
+      .addColumn('address', 'text')
+      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addUniqueConstraint('venues_organization_alias_unique', ['organization_id', 'alias'])
+      .execute();
+
+    await db.schema
+      .createTable('officials')
+      .addColumn('official_id', 'uuid', (col) => col.primaryKey())
+      .addColumn('organization_id', 'uuid', (col) =>
+        col.notNull().references('organizations.organization_id'),
+      )
+      .addColumn('display_name', 'text', (col) => col.notNull())
+      .addColumn('roles', 'jsonb', (col) => col.notNull())
+      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .execute();
+
+    // One row per scheduled fixture. `starts_at` is epoch milliseconds rather
+    // than a timestamptz: a schedule is compared and published, never rendered
+    // here, and an epoch is the one representation that means the same thing to
+    // every surface (0013's context decision, applied to storage).
+    await db.schema
+      .createTable('fixture_schedules')
+      .addColumn('fixture_schedule_id', 'uuid', (col) => col.primaryKey())
+      .addColumn('fixture_id', 'uuid', (col) =>
+        col.notNull().unique().references('fixtures.fixture_id'),
+      )
+      .addColumn('venue_id', 'uuid', (col) => col.references('venues.venue_id'))
+      .addColumn('starts_at', 'bigint', (col) => col.notNull())
+      .addColumn('duration_minutes', 'integer', (col) => col.notNull())
+      .addColumn('published', 'boolean', (col) => col.notNull().defaultTo(false))
+      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .execute();
+
+    await db.schema
+      .createTable('fixture_schedule_officials')
+      .addColumn('fixture_schedule_id', 'uuid', (col) =>
+        col.notNull().references('fixture_schedules.fixture_schedule_id').onDelete('cascade'),
+      )
+      .addColumn('official_id', 'uuid', (col) => col.notNull().references('officials.official_id'))
+      .addPrimaryKeyConstraint('fixture_schedule_officials_pk', [
+        'fixture_schedule_id',
+        'official_id',
+      ])
+      .execute();
+
     await db.schema
       .createTable('matches')
       .addColumn('match_id', 'uuid', (col) => col.primaryKey())
@@ -330,6 +387,10 @@ export const initialSchema: Migration = {
       'match_events',
       'segments',
       'matches',
+      'fixture_schedule_officials',
+      'fixture_schedules',
+      'officials',
+      'venues',
       'fixtures',
       'entrant_attributes',
       'entrants',

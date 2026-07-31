@@ -2,6 +2,9 @@ import {
   toEntrant,
   toIsoString,
   toMatch,
+  toOfficial,
+  toResourceAssignment,
+  toVenue,
   toOrganization,
   toParticipant,
   toRecordedEvent,
@@ -17,7 +20,9 @@ import {
   type ParticipantRow,
   type RosterRow,
   type SegmentRow,
+  type OfficialRow,
   type StageRow,
+  type VenueRow,
   type TeamRow,
   type TournamentRow,
 } from './mapping.js';
@@ -260,5 +265,91 @@ describe('mapping edge cases', () => {
       created_at: CREATED,
     };
     expect(toStage(row).stageConfigurationId).toBe('sc-1');
+  });
+});
+
+describe('scheduling rows', () => {
+  it('maps a venue, dropping an absent address rather than carrying a null', () => {
+    const row: VenueRow = {
+      venue_id: 'v-1',
+      organization_id: 'org-1',
+      alias: 'club-central',
+      name: 'Club Central',
+      concurrent_capacity: 3,
+      address: null,
+      created_at: CREATED,
+    };
+
+    expect(toVenue(row)).toEqual({
+      venueId: 'v-1',
+      organizationId: 'org-1',
+      alias: 'club-central',
+      name: 'Club Central',
+      concurrentCapacity: 3,
+    });
+  });
+
+  it('keeps an address the operator supplied', () => {
+    const row: VenueRow = {
+      venue_id: 'v-2',
+      organization_id: 'org-1',
+      alias: 'polideportivo',
+      name: 'Polideportivo',
+      concurrent_capacity: 1,
+      address: 'Av. Libertador 1200',
+      created_at: CREATED,
+    };
+
+    expect(toVenue(row).address).toBe('Av. Libertador 1200');
+  });
+
+  it('maps an official with the roles they may be assigned to', () => {
+    const row: OfficialRow = {
+      official_id: 'o-1',
+      organization_id: 'org-1',
+      display_name: 'Ana Gómez',
+      roles: ['referee', 'table-official'] as never,
+      created_at: CREATED,
+    };
+
+    expect(toOfficial(row)).toEqual({
+      officialId: 'o-1',
+      organizationId: 'org-1',
+      displayName: 'Ana Gómez',
+      roles: ['referee', 'table-official'],
+    });
+  });
+
+  it('converts a bigint epoch back to a number, which is a storage detail', () => {
+    // pg hands a bigint back as a string to avoid losing precision; the domain
+    // has only ever seen an epoch number.
+    const assignment = toResourceAssignment(
+      {
+        fixture_id: 'f-1',
+        venue_id: 'v-1',
+        starts_at: '1785333600000',
+        duration_minutes: 90,
+      },
+      ['o-1'],
+    );
+
+    expect(assignment).toEqual({
+      fixtureId: 'f-1',
+      window: { startsAt: 1785333600000, durationMinutes: 90 },
+      venueId: 'v-1',
+      officialIds: ['o-1'],
+    });
+  });
+
+  it('omits a venue and officials that were never assigned', () => {
+    const assignment = toResourceAssignment(
+      { fixture_id: 'f-2', venue_id: null, starts_at: '1785333600000', duration_minutes: 60 },
+      [],
+    );
+
+    expect(assignment).toEqual({
+      fixtureId: 'f-2',
+      window: { startsAt: 1785333600000, durationMinutes: 60 },
+    });
   });
 });
