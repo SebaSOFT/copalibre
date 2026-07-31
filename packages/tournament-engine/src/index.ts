@@ -25,6 +25,14 @@ export {
   PlacementAdvancementError,
 } from './errors.js';
 export {
+  runDraw,
+  inspectDraw,
+  type DrawRequest,
+  type DrawOutcome,
+  type DrawShape,
+  type ScriptConstraintEvaluator,
+} from './draw/index.js';
+export {
   evaluateConstraints,
   meetingRound,
   type ConstrainedEntrant,
