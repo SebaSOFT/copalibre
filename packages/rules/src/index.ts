@@ -53,6 +53,7 @@ export {
   type ComparisonDirection,
   type MissingValueBehavior,
   type TiebreakParameterDefinition,
+  type RatioDefinition,
   type TiebreakPipeline,
   type EntrantValues,
   type TiebreakResolution,

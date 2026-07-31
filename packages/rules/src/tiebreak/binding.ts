@@ -36,6 +36,16 @@ export interface CapabilityTiebreakParameter {
   readonly missingValue: TiebreakParameterDefinition['missingValue'];
   readonly valueType?: TiebreakParameterDefinition['valueType'];
   readonly source?: TiebreakParameterDefinition['source'];
+  /**
+   * A ratio comparator names two capabilities, both resolved through the same
+   * binding — so "K/D" spans a shooter calling them `frags`/`deaths` and one
+   * calling them `kills`/`downs` without the profile knowing either.
+   */
+  readonly ratio?: {
+    readonly numeratorCapability: string;
+    readonly denominatorCapability: string;
+    readonly zeroDenominator: 'numerator-only' | 'treat-as-worst';
+  };
 }
 
 export function bindTiebreakPipeline(
@@ -51,6 +61,10 @@ export function bindTiebreakPipeline(
     version: pipeline.version,
     parameters: pipeline.parameters.map((parameter) => {
       const resolved = codeFor(binding, parameter.capability);
+      const ratio = bindRatio(parameter, binding);
+      // A ratio whose operands did not both resolve is as inert as an unbound
+      // single-value comparator, and must read that way in the trace.
+      const bound = parameter.ratio ? ratio !== undefined : resolved !== undefined;
       return {
         // An unbound comparator keeps a stable, obviously-unresolvable id so it
         // reads as "nothing satisfied this" rather than colliding with a real code.
@@ -60,12 +74,24 @@ export function bindTiebreakPipeline(
         direction: parameter.direction,
         missingValue: parameter.missingValue,
         source: parameter.source ?? 'calculated',
-        ...(resolved === undefined ? { unboundCapability: parameter.capability } : {}),
+        ...(ratio ? { ratio } : {}),
+        ...(bound ? {} : { unboundCapability: parameter.capability }),
         capability: parameter.capability,
-        bound: resolved !== undefined,
+        bound,
       };
     }),
   };
+}
+
+function bindRatio(
+  parameter: CapabilityTiebreakParameter,
+  binding: CapabilityBinding,
+): TiebreakParameterDefinition['ratio'] {
+  if (!parameter.ratio) return undefined;
+  const numerator = codeFor(binding, parameter.ratio.numeratorCapability);
+  const denominator = codeFor(binding, parameter.ratio.denominatorCapability);
+  if (numerator === undefined || denominator === undefined) return undefined;
+  return { numerator, denominator, zeroDenominator: parameter.ratio.zeroDenominator };
 }
 
 /**

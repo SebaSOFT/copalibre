@@ -32,6 +32,15 @@ export class AllocationError extends EngineError {
 }
 
 /**
+ * A qualification cut cannot be evaluated or resolved as asked: advancing more
+ * entrants than the stage holds, or a resolution that does not order exactly
+ * the contested entrants.
+ */
+export class QualificationError extends EngineError {
+  readonly code = 'QUALIFICATION_CUT_INVALID';
+}
+
+/**
  * A fixture graph routed a placement match into another match's slot. Placement
  * results feed stage standings only (0009), so this is a malformed graph rather
  * than a rejectable input — it is thrown, not returned.

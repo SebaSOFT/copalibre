@@ -20,8 +20,17 @@ export {
   UnsupportedFormatError,
   InvalidEntrantsError,
   AllocationError,
+  QualificationError,
   PlacementAdvancementError,
 } from './errors.js';
+export {
+  evaluateQualification,
+  applyCutResolution,
+  type QualificationInput,
+  type QualificationOutcome,
+  type ContestedCut,
+  type CutResolution,
+} from './qualification/index.js';
 export {
   allocateSeeds,
   type AllocationEntrant,
