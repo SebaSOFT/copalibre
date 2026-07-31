@@ -170,7 +170,7 @@ describe('effectsOf', () => {
     expect(recorded.ok).toBe(true);
     if (recorded.ok) {
       expect(effectsOf(descriptor, recorded.value)).toEqual([
-        { kind: 'score', side: 'actor', delta: 1 },
+        { kind: 'score', awardTo: 'actor', delta: 1 },
       ]);
     }
   });

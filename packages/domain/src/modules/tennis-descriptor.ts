@@ -46,7 +46,7 @@ export function tennisDescriptor(overrides?: Partial<DisciplineDescriptor>): Dis
           type: 'object',
           properties: { ace: { type: 'boolean' }, doubleFault: { type: 'boolean' } },
         },
-        effects: [{ kind: 'score', side: 'actor', delta: 1 }],
+        effects: [{ kind: 'score', awardTo: 'actor', delta: 1 }],
       },
       {
         code: 'game-won',
