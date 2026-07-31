@@ -252,3 +252,35 @@ describe('a placement stage in the fixture graph', () => {
     expectGolden('placement-heats-12', summarise(heats.value.matches));
   });
 });
+
+describe('the duel formats are untouched by this phase', () => {
+  /** The ids the pre-existing goldens were generated with. */
+  const duelEntrants = (n: number): SeededEntrant[] =>
+    Array.from({ length: n }, (_unused, index) => ({
+      entrantId: `e${index + 1}`,
+      seed: index + 1,
+    }));
+
+  it.each([
+    ['single-elimination', 8],
+    ['double-elimination', 8],
+    ['round-robin', 6],
+    ['league', 6],
+  ] as const)('%s still matches its golden bracket for %i entrants', (format, count) => {
+    const graph = generateFixtures({ format, entrants: duelEntrants(count) });
+    if (!graph.ok) throw graph.error;
+
+    // The goldens predate this phase; widening the format allowlist and
+    // balancing group capacity must not have moved a single duel fixture.
+    const name = format === 'league' ? 'league-6' : `${format}-${count}`;
+    expectGolden(name, summarise(graph.value.matches));
+  });
+
+  it('produces no placement match in any duel format', () => {
+    for (const format of ['single-elimination', 'double-elimination', 'round-robin'] as const) {
+      const graph = generateFixtures({ format, entrants: entrants(8) });
+      if (!graph.ok) throw graph.error;
+      expect(graph.value.matches.some(isPlacementMatch)).toBe(false);
+    }
+  });
+});

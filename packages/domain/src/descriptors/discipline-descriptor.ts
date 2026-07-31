@@ -85,6 +85,21 @@ export interface StatisticDefinition {
   readonly aggregation: 'sum' | 'count' | 'max' | 'min' | 'average';
 }
 
+/**
+ * A finishing position and what it is worth.
+ *
+ * Battle-royale scoring is conventionally placement points plus performance
+ * points. The performance half is discipline-specific and already covered —
+ * `frags` is a declared statistic that 0009's accounting aggregates. The
+ * placement half is structural: every placement discipline needs a mapping from
+ * finishing position to points, and none of them expresses it differently.
+ */
+export interface PlacementPoints {
+  /** 1-based finishing position. */
+  readonly placement: number;
+  readonly points: number;
+}
+
 export interface ScoringInputDefinition {
   readonly code: string;
   readonly label: string;
@@ -109,6 +124,18 @@ export interface DisciplineDescriptor {
   readonly eventDefinitions: readonly EventDefinition[];
   readonly statistics: readonly StatisticDefinition[];
   readonly scoringInputs: readonly ScoringInputDefinition[];
+  /**
+   * Points awarded by finishing position in a placement match, and the code the
+   * award is recorded under. Absent for a discipline that never places
+   * (0011-placement-stage-format).
+   */
+  readonly placementScoring?: {
+    /** The declared statistic the points are recorded as. */
+    readonly statisticCode: string;
+    readonly table: readonly PlacementPoints[];
+    /** Points for a position the table does not name. Defaults to 0. */
+    readonly beyondTable?: number;
+  };
   readonly availableFormats: readonly TournamentFormat[];
   /** Stable identifiers of notification-rule capabilities the discipline permits. */
   readonly notificationRuleCapabilities: readonly string[];

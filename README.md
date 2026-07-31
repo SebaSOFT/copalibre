@@ -62,16 +62,21 @@ CopaLibre is being designed around these initial discipline families. They are p
 
 CopaLibre will not treat all sports as bracket variants. The format catalogue must be selected after mapping discipline requirements and edge cases.
 
-The candidate set under evaluation includes:
+Supported today:
 
 - single and double elimination;
-- round robin and league play;
-- single-leg and home-and-away leagues;
-- group stage plus playoffs;
+- round robin and league play, single-leg and home-and-away;
+- free-for-all and heats — placement stages that produce an ordering rather than a winner, feeding
+  the stage table instead of another match;
+- group stage plus playoffs, through qualification cuts and constrained, reproducible draws;
+- seeded draws with separation and distribution constraints over operator-supplied entrant
+  attributes.
+
+Still under evaluation:
+
 - Swiss systems;
-- free-for-all and placement-based stages;
-- seeded draws, pools, divisions, weight classes, and qualification stages;
-- individual and team competition models.
+- pools, divisions and weight classes as first-class structures;
+- individual and team competition models beyond what the entrant model already covers.
 
 Every selected format needs a clear state model, deterministic fixture generation, testable advancement rules, and an auditable correction policy before it becomes a product commitment.
 

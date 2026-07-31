@@ -77,6 +77,7 @@ export {
   type RosterConstraints,
   type SegmentTypeDefinition,
   type StatisticDefinition,
+  type PlacementPoints,
   type ScoringInputDefinition,
   type DisciplineDescriptor,
   type RuleScript,
@@ -89,6 +90,8 @@ export {
 export {
   footballDescriptor,
   tennisDescriptor,
+  battleRoyaleDescriptor,
+  swimmingDescriptor,
   bestOfFiveWinCondition,
   seededDescriptors,
   winConditionScript,
@@ -189,6 +192,9 @@ export type {
 
 export {
   validateRecordedOutcome,
+  applyPlacementScoring,
+  validatePlacementTable,
+  pointsFor,
   declaredStatisticsSchema,
   type OutcomeSide,
   type RecordedOutcome,
