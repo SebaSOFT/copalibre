@@ -109,7 +109,7 @@ describe('guard evaluator error paths', () => {
     const result = evaluateGuard(registry, {
       script: invalid,
       ruleVersion: { id: 'broken', version: 1 },
-      facts: {},
+      context: {},
     });
     expect(result.ok).toBe(false);
     if (!result.ok) {
@@ -145,7 +145,7 @@ describe('guard evaluator error paths', () => {
     const result = evaluateGuard(registry, {
       script,
       ruleVersion: { id: 'exploder', version: 1 },
-      facts: {},
+      context: {},
     });
     expect(result.ok).toBe(false);
     if (!result.ok) {

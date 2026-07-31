@@ -72,7 +72,7 @@ describe('scripted draw constraints', () => {
     const result = evaluateScriptedConstraint(registry(), {
       script: associationCap,
       ruleVersion: version,
-      facts: { maxPerAssociation: 2, offenders: '' },
+      context: { maxPerAssociation: 2, offenders: '' },
     });
 
     expect(result.ok).toBe(true);
@@ -86,7 +86,7 @@ describe('scripted draw constraints', () => {
     const result = evaluateScriptedConstraint(registry(), {
       script: associationCap,
       ruleVersion: version,
-      facts: { maxPerAssociation: 3, offenders: 'sanmartin,desamparados,union' },
+      context: { maxPerAssociation: 3, offenders: 'sanmartin,desamparados,union' },
     });
 
     expect(result.ok).toBe(true);
@@ -131,7 +131,7 @@ describe('scripted draw constraints', () => {
     const result = evaluateScriptedConstraint(registry(), {
       script,
       ruleVersion: { id: 'always-checks', version: 1 },
-      facts: {},
+      context: {},
     });
 
     expect(result.ok).toBe(true);
@@ -146,7 +146,7 @@ describe('scripted draw constraints', () => {
     const result = evaluateScriptedConstraint(registry(), {
       script: associationCap,
       ruleVersion: version,
-      facts: { maxPerAssociation: 4, offenders: 'boca,river' },
+      context: { maxPerAssociation: 4, offenders: 'boca,river' },
     });
 
     expect(result.ok).toBe(true);
@@ -178,7 +178,7 @@ describe('scripted draw constraints', () => {
     const result = evaluateScriptedConstraint(registry(), {
       script,
       ruleVersion: { id: 'invented', version: 1 },
-      facts: {},
+      context: {},
     });
 
     expect(result.ok).toBe(false);
@@ -190,7 +190,7 @@ describe('scripted draw constraints', () => {
     const result = evaluateScriptedConstraint(registry(), {
       script: { id: '', rules: [] } as unknown as RuleScript,
       ruleVersion: { id: 'broken', version: 1 },
-      facts: {},
+      context: {},
     });
 
     expect(result.ok).toBe(false);
@@ -214,7 +214,7 @@ describe('scripted draw constraints', () => {
       evaluateScriptedConstraint(registry(), {
         script,
         ruleVersion: { id: 'silent-approval', version: 1 },
-        facts: {},
+        context: {},
       }).ok,
     ).toBe(false);
   });
@@ -252,7 +252,7 @@ describe('scripted draw constraints', () => {
     const result = evaluateScriptedConstraint(registry(), {
       script,
       ruleVersion: { id: 'numeric-ids', version: 1 },
-      facts: {},
+      context: {},
     });
 
     expect(result.ok).toBe(true);
@@ -290,7 +290,7 @@ describe('scripted draw constraints', () => {
     const result = evaluateScriptedConstraint(registry(), {
       script,
       ruleVersion: { id: 'two-checks', version: 1 },
-      facts: {},
+      context: {},
     });
 
     expect(result.ok).toBe(true);
@@ -316,7 +316,7 @@ describe('scripted draw constraints', () => {
     const result = evaluateScriptedConstraint(registry(), {
       script,
       ruleVersion: { id: 'silent-rejection', version: 1 },
-      facts: {},
+      context: {},
     });
 
     expect(result.ok).toBe(false);

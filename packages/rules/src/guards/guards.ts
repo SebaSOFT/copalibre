@@ -24,7 +24,7 @@ export function evaluateEligibility(
   ruleVersion: { readonly id: string; readonly version: number },
   facts: EligibilityFacts,
 ): Result<GuardDecision, ScriptValidationError | GuardEvaluationError> {
-  return evaluateGuard(registry, { script, ruleVersion, facts });
+  return evaluateGuard(registry, { script, ruleVersion, context: facts });
 }
 
 export interface AdvancementFacts {
@@ -43,5 +43,5 @@ export function evaluateAdvancement(
   ruleVersion: { readonly id: string; readonly version: number },
   facts: AdvancementFacts,
 ): Result<GuardDecision, ScriptValidationError | GuardEvaluationError> {
-  return evaluateGuard(registry, { script, ruleVersion, facts });
+  return evaluateGuard(registry, { script, ruleVersion, context: facts });
 }

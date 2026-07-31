@@ -31,10 +31,11 @@ export interface ScriptedConstraintInput {
   readonly script: RuleScript;
   readonly ruleVersion: { readonly id: string; readonly version: number };
   /**
-   * The proposed assignment as facts: entrants, their attributes, and where
-   * this draw would put them. Placed under `state.draw`.
+   * The proposed assignment: entrants, their attributes, and where this draw
+   * would put them. Placed under `state.draw`, and named `context` for the
+   * same reason the guard's is (0013).
    */
-  readonly facts: Readonly<Record<string, unknown>>;
+  readonly context: Readonly<Record<string, unknown>>;
 }
 
 export function evaluateScriptedConstraint(
@@ -57,7 +58,7 @@ export function evaluateScriptedConstraint(
 
   const context: ExecutionContext = {
     messages: [],
-    state: { draw: structuredClone(input.facts), constraint: EMPTY_CONSTRAINT_STATE },
+    state: { draw: structuredClone(input.context), constraint: EMPTY_CONSTRAINT_STATE },
   };
 
   const contextValidation = validateExecutionContext(context);
@@ -91,7 +92,7 @@ export function evaluateScriptedConstraint(
     record: {
       engine: 'copalibre-rules',
       ruleVersion: input.ruleVersion,
-      inputFacts: input.facts,
+      inputFacts: input.context,
       output: { satisfied },
       trace: traceOf(input.script.id, satisfied, state.findings),
     },

@@ -27,8 +27,13 @@ export interface GuardDecision {
 export interface GuardInput {
   readonly script: RuleScript;
   readonly ruleVersion: { readonly id: string; readonly version: number };
-  /** Structured facts placed under context.state (participant, roster, events…). */
-  readonly facts: Readonly<Record<string, unknown>>;
+  /**
+   * What the guard may read, placed at the root of `context.state`
+   * (participant, roster, events…). Called `context` because that is what the
+   * hook surface publishes and what a script author reads — one word for one
+   * thing (0013).
+   */
+  readonly context: Readonly<Record<string, unknown>>;
 }
 
 export function evaluateGuard(
@@ -52,7 +57,7 @@ export function evaluateGuard(
   const defaultDeny: GuardState = { outcome: 'fail', reason: 'no-rule-granted' };
   const context: ExecutionContext = {
     messages: [],
-    state: { ...structuredClone(input.facts), guard: defaultDeny },
+    state: { ...structuredClone(input.context), guard: defaultDeny },
   };
 
   const contextValidation = validateExecutionContext(context);
@@ -108,7 +113,7 @@ export function evaluateGuard(
     record: {
       engine: 'copalibre-rules',
       ruleVersion: input.ruleVersion,
-      inputFacts: input.facts,
+      inputFacts: input.context,
       output: guard,
       trace,
     },
