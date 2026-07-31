@@ -128,6 +128,16 @@ export type {
   EntrantStatus,
   Entrant,
 } from './aggregates/participant.js';
+export {
+  validateAttributes,
+  assertWeightingComplete,
+  attributeValue,
+  numericAttribute,
+  categoricalAttribute,
+  EntrantAttributeError,
+  type EntrantAttribute,
+  type EntrantAttributes,
+} from './aggregates/entrant-attribute.js';
 export type {
   Stage,
   Fixture,

@@ -407,3 +407,181 @@ describe('repositories (integration)', () => {
     ).rejects.toBeInstanceOf(InvariantViolationError);
   });
 });
+
+describe('entrant attributes (integration)', () => {
+  let scratch: ScratchDatabase;
+  let organizationId = '';
+  let participants: ParticipantRepository;
+
+  beforeAll(async () => {
+    scratch = await createMigratedDatabase('attributes');
+    participants = new ParticipantRepository(scratch.db);
+    const organization = await withTransaction(scratch.db, (uow) =>
+      new OrganizationRepository(scratch.db).create(uow, {
+        alias: 'liga-atributos',
+        name: 'Liga Atributos',
+        ...AUDIT,
+      }),
+    );
+    organizationId = organization.organizationId;
+  });
+
+  afterAll(async () => {
+    await scratch?.drop();
+  });
+
+  async function seedEntrant(alias: string) {
+    const tournaments = new TournamentRepository(scratch.db);
+    return withTransaction(scratch.db, async (uow) => {
+      const disciplineDescriptor = descriptor();
+      await tournaments.saveDescriptor(uow, disciplineDescriptor, { organizationId, ...AUDIT });
+      const tournament = await tournaments.create(uow, {
+        organizationId,
+        alias,
+        name: alias,
+        descriptor: disciplineDescriptor,
+        ...AUDIT,
+      });
+      const team = await participants.createTeam(uow, {
+        organizationId,
+        name: `Club ${alias}`,
+        ...AUDIT,
+      });
+      const entrant = await participants.registerEntrant(uow, {
+        tournamentId: tournament.tournamentId,
+        entrantRef: { kind: 'team', teamId: team.teamId },
+        organizationId,
+        ...AUDIT,
+      });
+      return { tournament, entrant };
+    });
+  }
+
+  it('stores a numeric and a categorical attribute and reads them back typed', async () => {
+    const { entrant } = await seedEntrant('copa-atributos');
+
+    await withTransaction(scratch.db, (uow) =>
+      participants.setEntrantAttributes(uow, {
+        entrantId: entrant.entrantId,
+        attributes: [
+          { key: 'ranking', value: 12, kind: 'numeric' },
+          { key: 'region', value: 'san-juan', kind: 'categorical' },
+        ],
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+
+    // Ordered by key, and each value comes back as the type it was stored under
+    // — a ranking must never resurface as the string "12".
+    await expect(participants.listEntrantAttributes(entrant.entrantId)).resolves.toEqual([
+      { key: 'ranking', value: 12, kind: 'numeric' },
+      { key: 'region', value: 'san-juan', kind: 'categorical' },
+    ]);
+  });
+
+  it('replaces the whole set rather than merging, and audits before and after', async () => {
+    const { entrant } = await seedEntrant('copa-correccion');
+
+    await withTransaction(scratch.db, (uow) =>
+      participants.setEntrantAttributes(uow, {
+        entrantId: entrant.entrantId,
+        attributes: [{ key: 'region', value: 'san-jaun', kind: 'categorical' }],
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+    await withTransaction(scratch.db, (uow) =>
+      participants.setEntrantAttributes(uow, {
+        entrantId: entrant.entrantId,
+        attributes: [{ key: 'region', value: 'san-juan', kind: 'categorical' }],
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+
+    await expect(participants.listEntrantAttributes(entrant.entrantId)).resolves.toEqual([
+      { key: 'region', value: 'san-juan', kind: 'categorical' },
+    ]);
+
+    const audit = await new AuditReader(scratch.db).historyFor('entrant', entrant.entrantId);
+    const corrections = audit.filter((entry) => entry.action === 'entrant.attributes-set');
+    expect(corrections).toHaveLength(2);
+    expect(corrections[1]?.previousState).toEqual({
+      attributes: [{ key: 'region', value: 'san-jaun', kind: 'categorical' }],
+    });
+    expect(corrections[1]?.resultingState).toEqual({
+      attributes: [{ key: 'region', value: 'san-juan', kind: 'categorical' }],
+    });
+  });
+
+  it('clears every attribute when given an empty set', async () => {
+    const { entrant } = await seedEntrant('copa-vacia');
+
+    await withTransaction(scratch.db, (uow) =>
+      participants.setEntrantAttributes(uow, {
+        entrantId: entrant.entrantId,
+        attributes: [{ key: 'ranking', value: 4, kind: 'numeric' }],
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+    await withTransaction(scratch.db, (uow) =>
+      participants.setEntrantAttributes(uow, {
+        entrantId: entrant.entrantId,
+        attributes: [],
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+
+    await expect(participants.listEntrantAttributes(entrant.entrantId)).resolves.toEqual([]);
+  });
+
+  it('groups a tournament’s attributes by entrant', async () => {
+    const { tournament, entrant } = await seedEntrant('copa-agrupada');
+    await withTransaction(scratch.db, (uow) =>
+      participants.setEntrantAttributes(uow, {
+        entrantId: entrant.entrantId,
+        attributes: [{ key: 'ranking', value: 1, kind: 'numeric' }],
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+
+    const byEntrant = await participants.listTournamentAttributes(tournament.tournamentId);
+    expect(byEntrant.get(entrant.entrantId)).toEqual([
+      { key: 'ranking', value: 1, kind: 'numeric' },
+    ]);
+  });
+
+  it('refuses attributes for an entrant that does not exist', async () => {
+    await expect(
+      withTransaction(scratch.db, (uow) =>
+        participants.setEntrantAttributes(uow, {
+          entrantId: newId(),
+          attributes: [],
+          organizationId,
+          ...AUDIT,
+        }),
+      ),
+    ).rejects.toBeInstanceOf(InvariantViolationError);
+  });
+
+  it('refuses a numeric attribute carrying a string, rolling the transaction back', async () => {
+    const { entrant } = await seedEntrant('copa-invalida');
+
+    await expect(
+      withTransaction(scratch.db, (uow) =>
+        participants.setEntrantAttributes(uow, {
+          entrantId: entrant.entrantId,
+          attributes: [{ key: 'ranking', value: 'primero', kind: 'numeric' }],
+          organizationId,
+          ...AUDIT,
+        }),
+      ),
+    ).rejects.toThrow(/numeric/);
+
+    await expect(participants.listEntrantAttributes(entrant.entrantId)).resolves.toEqual([]);
+  });
+});
