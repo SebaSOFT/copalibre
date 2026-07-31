@@ -318,6 +318,12 @@ export class ParticipantRepository {
       readonly tournamentId: string;
       readonly placements: readonly SeedPlacement[];
       readonly allocation: StageAllocation;
+      /**
+       * Seed of the draw that produced this order, when one did. Recorded so
+       * the draw can be replayed and audited — a draw nobody can reproduce is a
+       * draw nobody can check.
+       */
+      readonly drawSeed?: number;
     } & AuditContext,
   ): Promise<readonly Entrant[]> {
     const knownRows = await uow.tx
@@ -362,7 +368,11 @@ export class ParticipantRepository {
           seed: entrant.seed ?? null,
         })),
       },
-      resultingState: { allocation: { ...input.allocation }, seeds: [...input.placements] },
+      resultingState: {
+        allocation: { ...input.allocation },
+        seeds: [...input.placements],
+        ...(input.drawSeed === undefined ? {} : { drawSeed: input.drawSeed }),
+      },
     });
 
     return updated;

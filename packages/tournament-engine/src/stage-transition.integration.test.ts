@@ -7,6 +7,7 @@ import {
 } from '@copalibre/domain';
 import type { TiebreakPipeline } from '@copalibre/rules';
 import {
+  AuditReader,
   CompetitionRecordRepository,
   CompetitionRepository,
   newId,
@@ -308,5 +309,30 @@ describe('stage transition (integration)', () => {
     // the final — the attributes came from the database, not from the test.
     expect(drawn.assignment.slots).toBeDefined();
     expect(runDraw(request).assignment).toEqual(drawn.assignment);
+
+    // The seed is persisted with the order it produced, so the draw is
+    // replayable from the record rather than from this test's variables.
+    const tournamentId = entrants[0]?.entrant.tournamentId ?? '';
+    await withTransaction(scratch.db, (uow) =>
+      participants.setEntrantSeeds(uow, {
+        tournamentId,
+        placements: Object.entries(drawn.assignment.slots ?? {}).map(([entrantId, seed]) => ({
+          entrantId,
+          seed,
+        })),
+        allocation: { mode: 'manual' },
+        drawSeed: drawn.seed,
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+
+    const audit = await new AuditReader(scratch.db).historyFor('tournament', tournamentId);
+    const recorded = audit.find((entry) => entry.action === 'entrants.seeded');
+    const replayedSeed = (recorded?.resultingState as { drawSeed?: number } | undefined)?.drawSeed;
+    expect(replayedSeed).toBe(20260731);
+
+    const replayed = runDraw({ ...request, seed: replayedSeed as number });
+    expect(replayed.assignment).toEqual(drawn.assignment);
   });
 });

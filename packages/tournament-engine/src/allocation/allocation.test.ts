@@ -234,6 +234,32 @@ describe('allocation trace', () => {
   });
 });
 
+describe('golden seed orders', () => {
+  /** One fixture per mode: a change to any of them has to be deliberate. */
+  it('locks the order each mode produces from the same field', () => {
+    const orders = {
+      automatic: allocateSeeds({
+        allocation: { mode: 'automatic' },
+        entrants: field,
+        qualified: ['desamparados', 'union', 'peñarol', 'sanmartin'],
+      }).seeds,
+      weighted: allocateSeeds({ allocation: weighted, entrants: field }).seeds,
+      manual: allocateSeeds({
+        allocation: { mode: 'manual' },
+        entrants: field,
+        placements: [
+          { entrantId: 'union', seed: 2 },
+          { entrantId: 'sanmartin', seed: 1 },
+          { entrantId: 'desamparados', seed: 4 },
+          { entrantId: 'peñarol', seed: 3 },
+        ],
+      }).seeds,
+    };
+
+    expectGolden('allocation-modes-4', orders);
+  });
+});
+
 describe('allocation feeding fixture generation', () => {
   it('produces a bracket the ranking explains', () => {
     const { seeds } = allocateSeeds({ allocation: weighted, entrants: field });
