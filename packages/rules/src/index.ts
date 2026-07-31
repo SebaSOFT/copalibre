@@ -36,6 +36,7 @@ export {
   resolveExpressionField,
   splitTemplate,
   expressionResolutions,
+  type ExpressionResolution,
   isExpressionMode,
   type TemplateSegment,
 } from './expressions/expression.js';

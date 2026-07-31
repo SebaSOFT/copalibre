@@ -105,7 +105,7 @@ describe('a parameter in expression mode', () => {
     expect(decision.value.reason).toBe('Home leads by 3');
   });
 
-  it('records the source and the resolved value in the trace', () => {
+  it('records the source beside the resolved value, as the console will show them', () => {
     const decision = evaluateGuard(registry(), {
       script: marginGuard('{{ score.home - score.away }}', 2),
       ruleVersion: version,
@@ -117,8 +117,15 @@ describe('a parameter in expression mode', () => {
     const expressions = decision.value.record.trace[0]?.children?.find(
       (child) => child.id === 'margin-guard-expressions',
     );
-    expect(JSON.stringify(expressions?.values)).toContain('score.home - score.away');
-    expect(JSON.stringify(expressions?.values)).toContain('→ 3');
+
+    expect(expressions?.values?.resolutions).toEqual([
+      { parameter: 'op1', source: '{{ score.home - score.away }}', value: 3 },
+      {
+        parameter: 'reason',
+        source: 'Home leads by {{ score.home - score.away }}',
+        value: 'Home leads by 3',
+      },
+    ]);
   });
 
   it('leaves the parameter type untouched, so the registry vets it exactly as before', () => {

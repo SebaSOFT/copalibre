@@ -1,4 +1,5 @@
 import { type ExecutionContext } from '@sebasoft/neuron-js';
+import { expressionResolutions } from '../expressions/expression.js';
 import { NumberParameter, StringParameter } from './vocabulary.js';
 
 /**
@@ -114,8 +115,10 @@ describe('the expression record', () => {
     ).getValue(recording);
 
     expect(recording.messages).toHaveLength(2);
-    expect(recording.messages[0]?.text).toContain('op1: {{ score.home - score.away }} → 3');
-    expect(recording.messages[1]?.text).toContain('reason: by');
+    expect(expressionResolutions(recording)).toEqual([
+      { parameter: 'op1', source: '{{ score.home - score.away }}', value: 3 },
+      { parameter: 'reason', source: 'by {{ score.home - score.away }}', value: 'by 3' },
+    ]);
   });
 
   it('is not written at all for a parameter in fixed mode', () => {

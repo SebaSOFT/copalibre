@@ -153,19 +153,40 @@ describe('field resolution', () => {
 });
 
 describe('the trace', () => {
-  it('records the expression source and what it resolved to', () => {
+  it('records the expression beside what it resolved to, as two fields', () => {
     const context = contextOf({ score: { home: 5, away: 2 } });
 
     resolveParameterExpression('op1', '{{ score.home - score.away }}', context);
 
-    expect(expressionResolutions(context)).toEqual(['op1: {{ score.home - score.away }} → 3']);
+    // Two fields, so a surface can show the value and reveal the source on
+    // hover without parsing a sentence apart.
+    expect(expressionResolutions(context)).toEqual([
+      { parameter: 'op1', source: '{{ score.home - score.away }}', value: 3 },
+    ]);
   });
 
-  it('says so when an expression could not answer', () => {
+  it('records a null value when an expression could not answer', () => {
     const context = contextOf({});
 
     resolveParameterExpression('op1', '{{ score.home }}', context);
 
-    expect(expressionResolutions(context)[0]).toContain('no value');
+    expect(expressionResolutions(context)[0]?.value).toBeNull();
+  });
+
+  it('survives an action rebuilding the context, which every fired rule does', () => {
+    const context = contextOf({ score: { home: 5, away: 2 } });
+    resolveParameterExpression('op1', '{{ score.home }}', context);
+
+    const rebuilt = { ...context, messages: [...context.messages], state: { ...context.state } };
+
+    expect(expressionResolutions(rebuilt)).toHaveLength(1);
+  });
+
+  it('skips an unreadable entry rather than breaking the decision it describes', () => {
+    const context = contextOf({});
+    context.messages.push({ type: 'debug', text: 'expression {not json' } as never);
+    resolveParameterExpression('op1', '{{ 1 + 1 }}', context);
+
+    expect(expressionResolutions(context)).toHaveLength(1);
   });
 });

@@ -19,9 +19,9 @@ import {
  * thought of.
  *
  * So every parameter gains two modes, the way n8n gives every field a
- * fixed/expression toggle — fixed in `value`, expression in
- * `options.expression`. Nothing joins the registry: the parameter keeps its
- * identifier and its vetting, and the expression is data inside `options`.
+ * fixed/expression toggle: the author's text stays in `value` and
+ * `options.expression` says how to read it. Nothing joins the registry — the
+ * parameter keeps its identifier and its vetting, and the mode is data.
  *
  * `jsep` parses and the walker below interprets. Parsing with an established
  * library and interpreting with our own walker is what keeps this *data*:
@@ -58,10 +58,18 @@ const REFUSAL_REASONS: Readonly<Record<string, string>> = {
   AssignmentExpression: 'an expression computes; it never assigns',
 };
 
+/**
+ * One resolution, as the trace records it.
+ *
+ * The source is kept beside the value because a surface shows the resolved
+ * value and reveals the arithmetic behind it on demand — `3`, with
+ * `{{ score.home - score.away }}` on hover (0023). Two fields, so the surface
+ * never has to parse a sentence back apart.
+ */
 export interface ExpressionResolution {
-  readonly value: ExpressionValue;
-  /** The source, kept so the trace shows the arithmetic that produced a decision. */
+  readonly parameter: string;
   readonly source: string;
+  readonly value: ExpressionValue | null;
 }
 
 /**
@@ -348,25 +356,45 @@ export function resolveParameterExpression(
   context: ExecutionContext,
 ): ExpressionValue {
   const value = resolveExpressionField(source, context);
+  const resolution: ExpressionResolution = {
+    parameter: elementName,
+    source,
+    // `undefined` disappears through JSON; "could not answer" must not.
+    value: value ?? null,
+  };
   context.messages.push({
     type: MessageType.DEBUG,
-    text:
-      `${EXPRESSION_MESSAGE_PREFIX}${elementName}: ${source} → ` +
-      `${value === undefined ? 'no value' : String(value)}`,
+    text: `${EXPRESSION_MESSAGE_PREFIX}${JSON.stringify(resolution)}`,
   });
   return value;
 }
 
 export const EXPRESSION_MESSAGE_PREFIX = 'expression ';
 
-/** The expression resolutions an evaluation performed, in the order it did. */
-export function expressionResolutions(context: ExecutionContext): readonly string[] {
-  return context.messages
-    .filter(
-      (message) =>
-        message.type === MessageType.DEBUG && message.text.startsWith(EXPRESSION_MESSAGE_PREFIX),
-    )
-    .map((message) => message.text.slice(EXPRESSION_MESSAGE_PREFIX.length));
+/**
+ * The expression resolutions an evaluation performed, in the order it did.
+ *
+ * They travel as JSON inside the execution log rather than in a side channel,
+ * because an action rebuilds the context (`{...context, messages: [...]}`) and
+ * anything keyed to the original object would be lost at the first rule that
+ * fires. A malformed entry is skipped rather than throwing: a trace is
+ * evidence, and evidence that cannot be read must not break the decision it
+ * describes.
+ */
+export function expressionResolutions(context: ExecutionContext): readonly ExpressionResolution[] {
+  const resolutions: ExpressionResolution[] = [];
+  for (const message of context.messages) {
+    if (message.type !== MessageType.DEBUG) continue;
+    if (!message.text.startsWith(EXPRESSION_MESSAGE_PREFIX)) continue;
+    try {
+      resolutions.push(
+        JSON.parse(message.text.slice(EXPRESSION_MESSAGE_PREFIX.length)) as ExpressionResolution,
+      );
+    } catch {
+      continue;
+    }
+  }
+  return resolutions;
 }
 
 /**
