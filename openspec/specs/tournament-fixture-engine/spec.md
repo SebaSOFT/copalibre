@@ -91,3 +91,24 @@ exactly two sides.
 - **WHEN** the tennis group fixture that previously produced an unresolved three-way tie is replayed
 - **THEN** the standings resolve the group and the explanation trace shows each comparator reading a
   real value rather than degrading through `missingValue`
+
+### Requirement: The engine supports placement stage formats alongside the duel formats
+Stage format generation SHALL accept the two placement formats in addition to the six duel formats,
+and SHALL keep the duel formats' generation behaviour unchanged.
+
+#### Scenario: Duel format generation is unaffected
+- **WHEN** each of the six duel formats is generated after this phase
+- **THEN** the existing golden fixtures for those formats match byte for byte
+
+#### Scenario: A mixed-format tournament generates both stage kinds
+- **WHEN** a tournament declares a heats stage followed by a double-elimination stage
+- **THEN** the first stage generates placement matches, the second generates duel matches with intact
+  advancement edges, and the second is populated from the first through the qualification contract
+
+### Requirement: Advertised format support matches implemented format support
+The engine SHALL NOT advertise a stage format it cannot generate.
+
+#### Scenario: The format list is authoritative
+- **WHEN** the supported-format list is queried
+- **THEN** it contains exactly the formats the engine generates, and every entry has generation
+  coverage in the test suite
