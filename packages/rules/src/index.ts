@@ -30,6 +30,14 @@ export {
 } from './evaluation/vocabulary.js';
 
 export {
+  registerCopalibreConditions,
+  CompareTwoStringsCondition,
+  ValueInSetCondition,
+  ValueExistsCondition,
+  CompareTwoInstantsCondition,
+} from './evaluation/conditions.js';
+
+export {
   evaluateGuard,
   type GuardDecision,
   type GuardInput,
