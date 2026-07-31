@@ -112,3 +112,33 @@ tiebreak-trace contract, naming which action closed the segment or match and on 
 #### Scenario: A closed match explains itself
 - **WHEN** a match closes under a margin-gated win condition
 - **THEN** the trace names the satisfied threshold, the margin applied, and the values compared
+
+### Requirement: The constraint action registry is owned by the core
+The rules engine SHALL provide constraint actions as a vetted registry that a submitted module cannot
+extend, consistent with the win-condition registry boundary.
+
+#### Scenario: A constraint script composes registry actions
+- **WHEN** a constraint script composes only registry actions
+- **THEN** it validates and evaluates without a core release
+
+### Requirement: Comparators may express a ratio of two statistics
+A comparator SHALL be declarable over a numerator and a denominator statistic, with explicit declared
+behaviour when the denominator is zero.
+
+#### Scenario: A ratio comparator ranks entrants
+- **WHEN** a comparator declares `frags` over `deaths` and entrants have differing totals of both
+- **THEN** entrants are ordered by the ratio and the trace names both statistics and the computed
+  value
+
+#### Scenario: Zero denominator follows the declared rule
+- **WHEN** an entrant's denominator statistic is zero
+- **THEN** the declared zero-denominator behaviour applies and the trace records that it applied,
+  rather than producing an infinite or undefined value
+
+### Requirement: Constraint evaluation is explainable
+Evaluating a constraint SHALL produce a trace consistent with the existing tiebreak-trace contract,
+naming the constraint and the entrants and attribute values involved.
+
+#### Scenario: A rejected placement explains itself
+- **WHEN** the draw rejects a candidate placement because of a constraint
+- **THEN** the trace names the constraint, the attribute value, and the entrants that conflicted
