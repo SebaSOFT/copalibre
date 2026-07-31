@@ -125,6 +125,19 @@ export {
   type ScriptConstraint,
 } from './rulesets/draw-constraints.js';
 export {
+  authorizeMatchCommand,
+  validateAssignment,
+  isMatchCapability,
+  MATCH_CAPABILITIES,
+  CAPABILITY_TEMPLATES,
+  MatchAuthorityError,
+  type MatchCapability,
+  type MatchAssignment,
+  type AuthorityScope,
+  type AuthorityDecision,
+  type MatchContext,
+} from './aggregates/match-authority.js';
+export {
   SCRIPT_HOOKS,
   SCRIPT_HOOK_IDS,
   ENVIRONMENT_CONTEXT_PATHS,

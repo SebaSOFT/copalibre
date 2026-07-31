@@ -1,6 +1,7 @@
 import { ForbiddenException } from '@nestjs/common';
 import type { AuthenticatedSubject } from '../auth/request-context.js';
 import {
+  enforceMatchCommand,
   enforcePolicy,
   evaluateAdminControl,
   evaluateAuthenticatedInteraction,
@@ -224,5 +225,56 @@ describe('hasScope helper', () => {
     const s = subject({ scopes: ['a', 'b'] });
     expect(hasScope(s, 'a')).toBe(true);
     expect(hasScope(s, 'c')).toBe(false);
+  });
+});
+
+describe('enforceMatchCommand', () => {
+  const match = { organizationId: 'org-1', matchId: 'm-1', stageId: 'st-1' } as const;
+  const official: AuthenticatedSubject = {
+    subjectId: 'user:referee-1',
+    organizationId: 'org-1',
+    scopes: [],
+  };
+  const appointment = {
+    assignmentId: 'a-1',
+    organizationId: 'org-1',
+    subjectId: 'user:referee-1',
+    scope: { kind: 'match', matchId: 'm-1' },
+    capabilities: ['match.record-event'],
+  } as const;
+
+  function attempt(overrides: Record<string, unknown> = {}) {
+    return () =>
+      enforceMatchCommand({
+        plane: 'admin-control',
+        subject: official,
+        resource: { organizationId: 'org-1' },
+        assignments: [appointment],
+        capability: 'match.record-event',
+        match,
+        ...overrides,
+      });
+  }
+
+  it('allows a command the appointment names, and reports which one granted it', () => {
+    expect(attempt()()).toEqual({ capability: 'match.record-event', grantedBy: 'a-1' });
+  });
+
+  it('refuses a capability the appointment does not name', () => {
+    expect(attempt({ capability: 'match.finalize' })).toThrow(ForbiddenException);
+  });
+
+  it('refuses another match, so an appointment cannot leak across the fixture list', () => {
+    expect(attempt({ match: { ...match, matchId: 'm-2' } })).toThrow(ForbiddenException);
+  });
+
+  it('refuses an organizer who was never appointed, whatever their org role', () => {
+    expect(attempt({ assignments: [] })).toThrow(ForbiddenException);
+  });
+
+  it('refuses before the capability check when the subject is not in the organization', () => {
+    expect(attempt({ subject: { ...official, organizationId: 'org-2' } })).toThrow(
+      ForbiddenException,
+    );
   });
 });
