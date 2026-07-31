@@ -119,3 +119,32 @@ discipline and profile versions cannot change.
 - **THEN** the change is refused as `blocked_after_results`, directing the caller to the audited
   correction workflow
 
+### Requirement: The outcome type carries per-side statistics
+`RecordedOutcome` SHALL model a side as an entrant with a map of declared statistic values and an
+optional placement, and SHALL permit any number of sides.
+
+#### Scenario: A duel outcome and a placement outcome use one type
+- **WHEN** a two-sided football result and an eight-sided heat result are both recorded
+- **THEN** both are expressible as the same outcome type without a discipline-specific variant
+
+### Requirement: A stored result is readable without its discipline module
+The persisted result SHALL retain the statistic codes it was recorded under, so standings remain
+readable after the discipline module version that defined them is retired.
+
+#### Scenario: A retired module does not break a finished tournament
+- **WHEN** the discipline descriptor version a finished tournament used is deleted
+- **THEN** the tournament's stored outcomes and materialised standings still resolve and render
+
+### Requirement: The win condition is a script, not an enumerated string
+`DisciplineDescriptor.winCondition` SHALL be a rule script, and a tournament profile SHALL be able
+to replace it only where the descriptor's field policy permits.
+
+#### Scenario: A profile overrides a permitted win condition
+- **WHEN** a discipline permits overriding its win condition and a profile substitutes a timed-race
+  condition for a competition-race condition
+- **THEN** the compiled ruleset carries the profile's condition and records the override in the
+  audit trail
+
+#### Scenario: A profile cannot override a locked win condition
+- **WHEN** a profile attempts to replace a win condition whose field policy forbids override
+- **THEN** compilation fails identifying the locked path

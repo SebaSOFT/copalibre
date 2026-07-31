@@ -64,3 +64,30 @@ enforce that classification.
 - **WHEN** an operator attempts to change a tournament's format after at least one match result has been recorded
 - **THEN** the engine rejects the change as `blocked_after_results`, directing the operator to the audited correction workflow instead
 
+### Requirement: Generated matches distinguish duel from placement shape
+The fixture graph SHALL represent a match as either a duel of exactly two slots or a placement match
+of N slots, and the distinction SHALL be explicit in the type rather than inferred from slot count.
+
+#### Scenario: A duel match keeps its advancement edges
+- **WHEN** a single-elimination bracket is generated
+- **THEN** every generated match is of duel shape and carries the `winner-of`/`loser-of` edges that
+  advancement resolves
+
+#### Scenario: A placement match carries no advancement edge
+- **WHEN** a placement match is generated
+- **THEN** no other match declares a slot sourced from its winner or loser, and advancement
+  resolution does not traverse it
+
+### Requirement: Accounting is free of discipline assumptions
+Standings accounting SHALL NOT hardcode any statistic name and SHALL NOT require a match to have
+exactly two sides.
+
+#### Scenario: A discipline unlike football is accounted correctly
+- **WHEN** standings are computed for a discipline declaring only `frags`, `deaths` and
+  `placement-points`
+- **THEN** those three statistics are aggregated and no football-shaped statistic is emitted
+
+#### Scenario: A regression fixture proves the previous defect is gone
+- **WHEN** the tennis group fixture that previously produced an unresolved three-way tie is replayed
+- **THEN** the standings resolve the group and the explanation trace shows each comparator reading a
+  real value rather than degrading through `missingValue`

@@ -92,3 +92,23 @@ that the compiled binding resolved it to.
 - **WHEN** a required capability was unsatisfied and explicitly overridden by an operator
 - **THEN** the explanation trace records that the comparator was skipped and why
 
+### Requirement: The win-condition action registry is owned by the core
+The rules engine SHALL provide the win-condition actions (`winSegment`, `winMatch`, `requireMargin`)
+as a vetted registry, and a submitted module SHALL NOT be able to introduce a new action.
+
+#### Scenario: A module composes existing actions
+- **WHEN** a discipline module's win-condition script composes `winSegment`, `requireMargin` and
+  `winMatch`
+- **THEN** the script validates and compiles without a core release
+
+#### Scenario: Vocabulary extension requires a core release
+- **WHEN** a module declares an action name absent from the registry
+- **THEN** validation rejects the module and states that new actions require a core release
+
+### Requirement: Win-condition evaluation is explainable
+Evaluating a win condition SHALL produce an explanation trace consistent with the existing
+tiebreak-trace contract, naming which action closed the segment or match and on what values.
+
+#### Scenario: A closed match explains itself
+- **WHEN** a match closes under a margin-gated win condition
+- **THEN** the trace names the satisfied threshold, the margin applied, and the values compared
