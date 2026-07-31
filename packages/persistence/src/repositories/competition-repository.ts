@@ -240,6 +240,30 @@ export class CompetitionRepository {
     return segment;
   }
 
+  /**
+   * The notification identities already published for a match (0014).
+   *
+   * Threshold rules are a fold over the whole log, so recomputation after every
+   * event re-derives every earlier crossing. Publishing only what is new is
+   * what keeps a reconnect from raising an alert twice — delivery deduplicates
+   * on the same key afterwards, which is the second line rather than the first.
+   */
+  async publishedNotificationKeys(matchId: string): Promise<ReadonlySet<string>> {
+    const rows = await this.db
+      .selectFrom('outbox_events')
+      .select('payload')
+      .where('entity_id', '=', matchId)
+      .where('event_type', '=', 'notification.raised')
+      .execute();
+
+    const keys = new Set<string>();
+    for (const row of rows) {
+      const key = (row.payload as { identityKey?: unknown }).identityKey;
+      if (typeof key === 'string') keys.add(key);
+    }
+    return keys;
+  }
+
   /** The stage a match belongs to, which is what scopes an appointment (0014). */
   async stageOfMatch(matchId: string): Promise<string | undefined> {
     const row = await this.db

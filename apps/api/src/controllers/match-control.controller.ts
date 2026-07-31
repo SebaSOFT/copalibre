@@ -27,6 +27,12 @@ import {
   type RunningTimer,
 } from '@copalibre/domain';
 import {
+  dedupeNotifications,
+  evaluateNotificationRule,
+  notificationRulesFrom,
+} from '@copalibre/rules';
+import {
+  CompetitionRecordRepository,
   CompetitionRepository,
   MatchAssignmentRepository,
   TournamentRepository,
@@ -259,17 +265,50 @@ export class MatchControlController {
       throw new BadRequestException(validated.error.message);
     }
 
-    // The log assigns the sequence inside the transaction, so two officials
-    // recording at once cannot both take the same one.
-    const recorded = await withTransaction(this.db, async (uow) =>
-      competition.appendEvent(uow, {
-        event: validated.value,
-        sequence: await competition.nextEventSequence(matchId),
+    const ruleset = await new CompetitionRecordRepository(this.db).findCompiledRuleset(
+      tournament.tournamentId,
+    );
+    const rules = notificationRulesFrom(ruleset?.config);
+    const alreadyRaised = await competition.publishedNotificationKeys(matchId);
+
+    // One transaction: the event, the alerts it crossed, and the outbox rows a
+    // relay will deliver. Evaluating afterwards would leave a window where the
+    // fact exists and the alert it should have raised does not.
+    const { recorded, notifications } = await withTransaction(this.db, async (uow) => {
+      const audit = {
         organizationId: tournament.organizationId,
         actor: request.subject?.subjectId ?? 'unknown',
         authorizationContext: `capability:${granted.capability} via ${granted.grantedBy}`,
-      }),
-    );
+      };
+
+      const appended = await competition.appendEvent(uow, {
+        event: validated.value,
+        // The sequence is taken inside the transaction, so two officials
+        // recording at once cannot both claim the same one.
+        sequence: await competition.nextEventSequence(matchId),
+        ...audit,
+      });
+
+      const log = [...(await competition.listEvents(matchId)), appended];
+      const raised: string[] = [];
+
+      for (const rule of rules) {
+        const evaluation = evaluateNotificationRule(rule, descriptor, log);
+        for (const instance of dedupeNotifications(alreadyRaised, evaluation.instances)) {
+          await uow.publishEvent({
+            organizationId: tournament.organizationId,
+            stream: `match:${matchId}`,
+            entityId: matchId,
+            eventType: 'notification.raised',
+            projectionVersion: 1,
+            payload: { ...instance, contextValues: { ...instance.contextValues } },
+          });
+          raised.push(instance.identityKey);
+        }
+      }
+
+      return { recorded: appended, notifications: raised };
+    });
 
     return {
       eventId: recorded.eventId,
@@ -277,7 +316,7 @@ export class MatchControlController {
       sequence: recorded.sequence,
       ...(recorded.side === undefined ? {} : { side: recorded.side }),
       ...(recorded.participantId === undefined ? {} : { participantId: recorded.participantId }),
-      notifications: [],
+      notifications,
     };
   }
 

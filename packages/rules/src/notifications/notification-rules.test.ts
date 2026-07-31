@@ -3,6 +3,7 @@ import { expectGolden } from '../test-support/golden.js';
 import {
   dedupeNotifications,
   evaluateNotificationRule,
+  notificationRulesFrom,
   type NotificationRule,
 } from './notification-rules.js';
 
@@ -163,5 +164,44 @@ describe('evaluateNotificationRule', () => {
       output: [`team-infraction-threshold@v3|match:m-1/side:${HOME}|firing:1`],
     });
     expect(evaluation.record.trace[0]).toMatchObject({ kind: 'threshold', outcome: 'fired' });
+  });
+});
+
+describe('notificationRulesFrom', () => {
+  const rule = {
+    id: 'team-infraction-threshold',
+    version: 3,
+    scope: 'side',
+    predicate: { definitionCodes: ['infraction'] },
+    aggregation: { kind: 'count' },
+    threshold: { comparator: '>=', value: 3 },
+    semantics: { kind: 'threshold-crossing' },
+    action: {
+      severity: 'warning',
+      titleTemplate: 'Infraction limit reached',
+      messageTemplate: '{{aggregate}} infractions',
+      targetRole: 'table-official',
+    },
+  };
+
+  it('reads the rules a compiled ruleset configures', () => {
+    expect(notificationRulesFrom({ notificationRules: [rule] })).toEqual([rule]);
+  });
+
+  it.each([
+    ['no config at all', undefined],
+    ['a config that is not an object', 'notificationRules'],
+    ['a config declaring none', {}],
+    ['a declaration that is not a list', { notificationRules: {} }],
+  ])('reads nothing from %s', (_label, config) => {
+    expect(notificationRulesFrom(config)).toEqual([]);
+  });
+
+  it('skips a malformed rule rather than stopping the match being operated', () => {
+    const config = {
+      notificationRules: [rule, { id: 'half-written', version: 1 }, null, 'nonsense'],
+    };
+
+    expect(notificationRulesFrom(config)).toEqual([rule]);
   });
 });

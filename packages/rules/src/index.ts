@@ -116,6 +116,7 @@ export {
 export {
   evaluateNotificationRule,
   dedupeNotifications,
+  notificationRulesFrom,
   type NotificationScope,
   type NotificationPredicate,
   type NotificationAggregation,
