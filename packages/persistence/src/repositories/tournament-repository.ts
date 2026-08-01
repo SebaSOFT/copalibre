@@ -361,6 +361,29 @@ export class TournamentRepository {
     return row ? toTournament(row) : undefined;
   }
 
+  async findLatestRuleset(tournamentId: string): Promise<TournamentRuleset | undefined> {
+    const row = await this.db
+      .selectFrom('tournament_rulesets')
+      .selectAll()
+      .where('tournament_id', '=', tournamentId)
+      .orderBy('version', 'desc')
+      .limit(1)
+      .executeTakeFirst();
+
+    return row
+      ? {
+          rulesetId: row.ruleset_id,
+          tournamentId: row.tournament_id,
+          version: row.version,
+          descriptorRef: {
+            descriptorId: row.descriptor_id,
+            version: row.descriptor_version,
+          },
+          overrides: row.overrides as Record<string, unknown>,
+        }
+      : undefined;
+  }
+
   private async latestRulesetVersion(tournamentId: string): Promise<number> {
     const row = await this.db
       .selectFrom('tournament_rulesets')

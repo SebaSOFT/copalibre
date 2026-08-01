@@ -88,12 +88,24 @@ export function footballDescriptor(
     // sides draw. Cup ties override this where the field policy permits.
     winCondition: winConditionScript('football-win-condition', { unit: 'goals' }),
     defaults: {
+      format: 'round-robin',
+      registration: { publicOpen: false, requiresCheckIn: false },
       scoring: { pointsPerWin: 3, pointsPerDraw: 1, pointsPerLoss: 0 },
       tiebreakers: ['points', 'score-difference', 'goals-for'],
       segments: { regulationCount: 2, overtimeEnabled: false },
       venuePolicy: { neutralGround: false },
     },
     fieldPolicies: {
+      format: { permission: { kind: 'replaced' }, mutationClass: 'blocked_after_results' },
+      'registration.publicOpen': { permission: { kind: 'replaced' }, mutationClass: 'safe' },
+      'registration.requiresCheckIn': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'requires_rebuild',
+      },
+      'registration.checkInClosesAt': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'requires_rebuild',
+      },
       'scoring.pointsPerWin': {
         permission: { kind: 'replaced' },
         mutationClass: 'blocked_after_results',

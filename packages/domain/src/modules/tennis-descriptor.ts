@@ -90,6 +90,8 @@ export function tennisDescriptor(overrides?: Partial<DisciplineDescriptor>): Dis
       },
     ]),
     defaults: {
+      format: 'round-robin',
+      registration: { publicOpen: false, requiresCheckIn: false },
       scoring: { pointsPerWin: 2, pointsPerDraw: 0, pointsPerLoss: 0 },
       // Cascades matches → sets → games, which is exactly the three-way tie the
       // pre-0009 accounting could not break.
@@ -97,6 +99,16 @@ export function tennisDescriptor(overrides?: Partial<DisciplineDescriptor>): Dis
       segments: { bestOf: 3, tiebreakInFinalSet: true },
     },
     fieldPolicies: {
+      format: { permission: { kind: 'replaced' }, mutationClass: 'blocked_after_results' },
+      'registration.publicOpen': { permission: { kind: 'replaced' }, mutationClass: 'safe' },
+      'registration.requiresCheckIn': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'requires_rebuild',
+      },
+      'registration.checkInClosesAt': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'requires_rebuild',
+      },
       'scoring.pointsPerWin': {
         permission: { kind: 'replaced' },
         mutationClass: 'blocked_after_results',

@@ -113,12 +113,16 @@ export function toCreateRequest(state: WizardState): {
   readonly name: string;
   readonly descriptorId: string;
   readonly descriptorVersion: string;
+  readonly format: string;
+  readonly publicRegistration: boolean;
+  readonly requiresCheckIn: boolean;
 } {
   if (
     state.alias === undefined ||
     state.name === undefined ||
     state.descriptorId === undefined ||
-    state.descriptorVersion === undefined
+    state.descriptorVersion === undefined ||
+    state.format === undefined
   ) {
     throw new Error('The wizard is not complete');
   }
@@ -127,5 +131,8 @@ export function toCreateRequest(state: WizardState): {
     name: state.name,
     descriptorId: state.descriptorId,
     descriptorVersion: state.descriptorVersion,
+    format: state.format,
+    publicRegistration: state.publicRegistration,
+    requiresCheckIn: state.requiresCheckIn,
   };
 }

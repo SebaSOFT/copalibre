@@ -4,6 +4,7 @@ import {
   ConflictException,
   Controller,
   Get,
+  HttpCode,
   Inject,
   NotFoundException,
   Param,
@@ -87,6 +88,7 @@ export class RegistrationsController {
   }
 
   @Post(':entrantId/review')
+  @HttpCode(200)
   @SecurityPlaneTag('admin-control')
   @ApiBearerAuth()
   @ApiOperation({
@@ -131,6 +133,7 @@ export class RegistrationsController {
   }
 
   @Post('bulk-review')
+  @HttpCode(200)
   @SecurityPlaneTag('admin-control')
   @ApiBearerAuth()
   @ApiOperation({
@@ -173,6 +176,7 @@ export class RegistrationsController {
   }
 
   @Post(':entrantId/roster')
+  @HttpCode(200)
   @SecurityPlaneTag('admin-control')
   @ApiBearerAuth()
   @ApiOperation({
@@ -196,7 +200,7 @@ export class RegistrationsController {
       throw new NotFoundException(`No registration ${entrantId} in this tournament`);
     }
 
-    const window = await this.checkInWindow();
+    const window = await this.checkInWindow(tournament.tournamentId);
     const editable = rosterEditable(window, entrant.status, new Date().toISOString());
     if (!editable.ok) throw new ConflictException(editable.error.message);
 
@@ -215,8 +219,14 @@ export class RegistrationsController {
    * check-in, so nothing locks — which is the correct default for a system that
    * only enforces what the organizer configured.
    */
-  private async checkInWindow(): Promise<CheckInWindow> {
-    return { requiresCheckIn: false };
+  private async checkInWindow(tournamentId: string): Promise<CheckInWindow> {
+    const ruleset = await new TournamentRepository(this.db).findLatestRuleset(tournamentId);
+    return {
+      requiresCheckIn: ruleset?.overrides['registration.requiresCheckIn'] === true,
+      ...(typeof ruleset?.overrides['registration.checkInClosesAt'] === 'string'
+        ? { closesAt: ruleset.overrides['registration.checkInClosesAt'] }
+        : {}),
+    };
   }
 
   private async resolve(

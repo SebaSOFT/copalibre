@@ -215,6 +215,48 @@ describe('api routes (integration)', () => {
       });
       expect(response.statusCode).toBe(400);
     });
+
+    it('creates a tournament ruleset pinned to the selected descriptor version', async () => {
+      const tournaments = new TournamentRepository(scratch.db);
+      const descriptor = footballDescriptor();
+      await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        tournaments.saveDescriptor(uow, descriptor, {
+          organizationId,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        }),
+      );
+
+      const response = await request({
+        method: 'POST',
+        url: '/organizations/liga-orbital/tournaments',
+        token: 'organizer-org1',
+        payload: {
+          alias: 'copa-versionada',
+          name: 'Copa Versionada',
+          descriptorId: descriptor.descriptorId,
+          descriptorVersion: descriptor.version,
+          format: 'round-robin',
+          publicRegistration: true,
+          requiresCheckIn: true,
+        },
+      });
+
+      expect(response.statusCode).toBe(201);
+      expect(response.json().rulesetId).toBeDefined();
+
+      const created = await tournaments.findByScopedAlias('liga-orbital', 'copa-versionada');
+      const ruleset = await tournaments.findLatestRuleset(created?.tournamentId ?? '');
+      expect(ruleset?.descriptorRef).toEqual({
+        descriptorId: descriptor.descriptorId,
+        version: descriptor.version,
+      });
+      expect(ruleset?.overrides).toMatchObject({
+        format: 'round-robin',
+        'registration.publicOpen': true,
+        'registration.requiresCheckIn': true,
+      });
+    });
   });
 
   describe('token transport rules', () => {
@@ -357,6 +399,73 @@ describe('api routes (integration)', () => {
       expect(histories[0]?.map((one) => one.action)).toContain('entrant.accepted');
       expect(histories[1]?.map((one) => one.action)).toContain('entrant.accepted');
       expect(histories[2]?.map((one) => one.action)).not.toContain('entrant.accepted');
+    });
+
+    it('rejects a stale roster edit after check-in closes for a checked-in entrant', async () => {
+      const tournaments = new TournamentRepository(scratch.db);
+      const enrollment = new EnrollmentRepository(scratch.db);
+      const descriptor = footballDescriptor();
+
+      const seeded = await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+        await tournaments.saveDescriptor(uow, descriptor, {
+          organizationId,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+        const tournament = await tournaments.create(uow, {
+          organizationId,
+          alias: 'copa-check-in',
+          name: 'Copa Check In',
+          descriptor,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+        await tournaments.createRuleset(uow, {
+          tournamentId: tournament.tournamentId,
+          organizationId,
+          descriptor,
+          overrides: {
+            format: 'round-robin',
+            'registration.requiresCheckIn': true,
+            'registration.checkInClosesAt': '2000-01-01T00:00:00.000Z',
+          },
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+        const team = await enrollment.createTeam(uow, {
+          organizationId,
+          name: 'Independiente',
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+        return enrollment.registerEntrant(uow, {
+          organizationId,
+          tournamentId: tournament.tournamentId,
+          entrantRef: { kind: 'team', teamId: team.teamId },
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+      });
+
+      await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        enrollment.setEntrantStatus(uow, {
+          entrantId: seeded.entrantId,
+          status: 'checked-in',
+          organizationId,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        }),
+      );
+
+      const response = await request({
+        method: 'POST',
+        url: `/organizations/liga-orbital/tournaments/copa-check-in/registrations/${seeded.entrantId}/roster`,
+        token: 'organizer-org1',
+        payload: { personIds: [] },
+      });
+
+      expect(response.statusCode).toBe(409);
+      expect(response.json().message).toContain('Check-in has closed');
     });
   });
 

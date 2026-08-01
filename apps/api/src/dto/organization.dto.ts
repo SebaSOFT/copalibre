@@ -72,6 +72,25 @@ export class CreateTournamentRequest {
     example: '1.2.0',
   })
   descriptorVersion!: string;
+
+  @ApiProperty({ example: 'round-robin' })
+  format!: string;
+
+  @ApiProperty({
+    description: 'Whether anonymous/public registration intake is open for this tournament.',
+  })
+  publicRegistration!: boolean;
+
+  @ApiProperty({
+    description: 'Whether accepted entrants must check in before eligibility is locked.',
+  })
+  requiresCheckIn!: boolean;
+
+  @ApiPropertyOptional({
+    format: 'date-time',
+    description: 'Optional instant when checked-in rosters stop being editable.',
+  })
+  checkInClosesAt?: string;
 }
 
 export class ProblemResponse {

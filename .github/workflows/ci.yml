@@ -222,6 +222,23 @@ jobs:
       - run: yarn workspace @copalibre/design-tokens build:tokens
       - run: yarn workspace @copalibre/web verify:build
 
+  # Added by 0023: operator flows are client-side islands backed by the control
+  # API. Playwright runs the production web build and mocks those API calls so
+  # wizard submission and registration decisions fail here if route wiring drifts.
+  e2e-tests:
+    name: E2E tests
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - uses: actions/checkout@v4
+      - run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+      - run: yarn install --immutable
+      - run: yarn test:e2e
+
   # Added by 0019: CopaLibre and sebasoft.app must look unrelated, and a brand
   # review months later is not a control. The scan runs against generated
   # output, where a forbidden value arriving through any path shows up.

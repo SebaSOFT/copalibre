@@ -312,6 +312,271 @@
         ]
       }
     },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations": {
+      "get": {
+        "description": "Scoped to the named tournament; another tournament’s entrants are never included.",
+        "operationId": "RegistrationsController_list",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RegistrationResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List a tournament’s registrations",
+        "tags": [
+          "registrations"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/{entrantId}/review": {
+      "post": {
+        "description": "Audited individually with prior and resulting state.",
+        "operationId": "RegistrationsController_review",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entrantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewRegistrationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistrationResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Accept, refuse or withdraw one registration",
+        "tags": [
+          "registrations"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/bulk-review": {
+      "post": {
+        "description": "One audit row per registration, never one for the batch: \"approved 40\" does not answer \"why is this team in the draw\".",
+        "operationId": "RegistrationsController_bulkReview",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkReviewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkReviewResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Review several registrations",
+        "tags": [
+          "registrations"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/{entrantId}/roster": {
+      "post": {
+        "description": "Refused once check-in has closed for a checked-in entrant, whatever a stale console still offers.",
+        "operationId": "RegistrationsController_editRoster",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entrantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistrationResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Edit a registration’s roster",
+        "tags": [
+          "registrations"
+        ]
+      }
+    },
+    "/disciplines": {
+      "get": {
+        "description": "The wizard filters formats from this response. A client-side list disagrees with the installation the day a module is added.",
+        "operationId": "DisciplinesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DisciplineSummaryResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "List installed disciplines and the formats they support",
+        "tags": [
+          "disciplines"
+        ]
+      }
+    },
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageId}/schedule": {
       "get": {
         "description": "Instants are epoch milliseconds; rendering them for a person is the surface's job.",
@@ -977,7 +1242,7 @@
   "info": {
     "title": "CopaLibre API",
     "description": "Self-hosted tournament management API.\n\nAuthentication is JWT Bearer, validated against the operator-selected\nidentity provider’s JWKS. Browsers use Authorization Code + PKCE and\nhold the access token in memory only — never localStorage. A token\npassed as a query parameter is ignored, because URLs leak into proxy\nlogs, browser history, metrics, traces and screenshots.\n\nEvery route declares one security plane: public-read,\nauthenticated-interaction, admin-control, or integration.\nauthenticated-interaction and admin-control share this same bearer\ntransport and differ only in authorization policy.",
-    "version": "2.0.0",
+    "version": "3.0.0",
     "contact": {}
   },
   "tags": [],
@@ -1176,13 +1441,172 @@
             "type": "string",
             "description": "Pinned descriptor version (semver). Rulesets never track \"latest\": the version a tournament starts on is frozen.",
             "example": "1.2.0"
+          },
+          "format": {
+            "type": "string",
+            "example": "round-robin"
+          },
+          "publicRegistration": {
+            "type": "boolean",
+            "description": "Whether anonymous/public registration intake is open for this tournament."
+          },
+          "requiresCheckIn": {
+            "type": "boolean",
+            "description": "Whether accepted entrants must check in before eligibility is locked."
+          },
+          "checkInClosesAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Optional instant when checked-in rosters stop being editable."
           }
         },
         "required": [
           "alias",
           "name",
           "descriptorId",
-          "descriptorVersion"
+          "descriptorVersion",
+          "format",
+          "publicRegistration",
+          "requiresCheckIn"
+        ]
+      },
+      "RegistrationResponse": {
+        "type": "object",
+        "properties": {
+          "entrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tournamentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "accepted",
+              "refused",
+              "withdrawn",
+              "checked-in"
+            ]
+          },
+          "teamId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "personId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "entrantId",
+          "tournamentId",
+          "status"
+        ]
+      },
+      "ReviewRegistrationRequest": {
+        "type": "object",
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "accepted",
+              "refused",
+              "withdrawn"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "description": "Recorded on the audit row. A refusal an entrant cannot be told about is one they will ask about."
+          }
+        },
+        "required": [
+          "decision"
+        ]
+      },
+      "BulkReviewRequest": {
+        "type": "object",
+        "properties": {
+          "entrantIds": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "format": "uuid"
+            }
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "accepted",
+              "refused",
+              "withdrawn"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "entrantIds",
+          "decision"
+        ]
+      },
+      "BulkReviewResponse": {
+        "type": "object",
+        "properties": {
+          "applied": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegistrationResponse"
+            }
+          },
+          "refused": {
+            "description": "Registrations left untouched, each with the reason — never silently skipped.",
+            "type": "array",
+            "items": {
+              "type": "array"
+            }
+          }
+        },
+        "required": [
+          "applied",
+          "refused"
+        ]
+      },
+      "DisciplineSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "descriptorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "string",
+            "example": "1.2.0"
+          },
+          "name": {
+            "type": "string",
+            "example": "Fútbol 11"
+          },
+          "supportedFormats": {
+            "description": "Formats this discipline declares it supports. The client filters from this list rather than from its own copy — a hardcoded list is a list that disagrees with the module the day one is added.",
+            "example": [
+              "single-elimination",
+              "round-robin"
+            ],
+            "type": "array",
+            "items": {
+              "type": "array"
+            }
+          }
+        },
+        "required": [
+          "descriptorId",
+          "version",
+          "name",
+          "supportedFormats"
         ]
       },
       "TimeWindowDto": {

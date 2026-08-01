@@ -30,6 +30,9 @@ describe('the tournament setup wizard screen', () => {
         name: 'Copa Verano',
         descriptorId: '01890000-0000-7000-8000-000000000001',
         descriptorVersion: '1.2.0',
+        format: 'single-elimination',
+        publicRegistration: false,
+        requiresCheckIn: false,
       },
     ]);
   });

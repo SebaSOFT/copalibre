@@ -1,7 +1,5 @@
 ---
-import { ControlShell } from '../../../../control/components/ControlShell.tsx';
-import { TournamentSetupWizard } from '../../../../control/components/TournamentSetupWizard.tsx';
-import { sampleDisciplines } from '../../../../control/lib/sample.ts';
+import { TournamentAuthoringControlRoute } from '../../../../control/components/ControlRoutes.tsx';
 import '@copalibre/design-tokens/generated/copalibre.css';
 
 export function getStaticPaths() {
@@ -21,9 +19,7 @@ const alias = organization ?? 'liga-mendocina';
     <title>Crear torneo — {alias}</title>
   </head>
   <body>
-    <ControlShell client:only="react" organizationAlias={alias}>
-      <TournamentSetupWizard disciplines={sampleDisciplines()} />
-    </ControlShell>
+    <TournamentAuthoringControlRoute client:only="react" organizationAlias={alias} />
     <noscript>El panel de control necesita JavaScript. Las páginas públicas no.</noscript>
   </body>
 </html>

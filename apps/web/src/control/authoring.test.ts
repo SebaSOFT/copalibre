@@ -21,6 +21,7 @@ import {
   visibleRows,
   type RegistrationRow,
 } from './lib/review.js';
+import { mutationFeedback } from './lib/mutation-feedback.js';
 
 const DISCIPLINES: readonly DisciplineOption[] = [
   {
@@ -100,6 +101,9 @@ describe('the wizard gates each step', () => {
         name: 'Copa Verano',
         descriptorId: 'd-football',
         descriptorVersion: '1.2.0',
+        format: 'round-robin',
+        publicRegistration: true,
+        requiresCheckIn: true,
       }),
     );
 
@@ -108,6 +112,9 @@ describe('the wizard gates each step', () => {
       name: 'Copa Verano',
       descriptorId: 'd-football',
       descriptorVersion: '1.2.0',
+      format: 'round-robin',
+      publicRegistration: true,
+      requiresCheckIn: true,
     });
   });
 
@@ -187,5 +194,36 @@ describe('the eligibility lock, as the console shows it', () => {
     expect(
       rosterActionsEnabled({ requiresCheckIn: true, status: 'checked-in', now: '2030-01-01' }),
     ).toBe(true);
+  });
+});
+
+describe('mutation-classification feedback', () => {
+  it('blocks result-sensitive edits once results exist', () => {
+    expect(
+      mutationFeedback({
+        mutationClass: 'blocked_after_results',
+        hasRecordedResults: true,
+      }),
+    ).toEqual({
+      kind: 'blocked',
+      message:
+        'Este cambio ya no se puede aplicar desde edición normal: usá el flujo de corrección auditada.',
+    });
+  });
+
+  it('warns for rebuild edits and stays silent for safe edits', () => {
+    expect(
+      mutationFeedback({
+        mutationClass: 'requires_rebuild',
+        hasRecordedResults: false,
+        invalidatedFixtureCount: 3,
+      }),
+    ).toEqual({
+      kind: 'warning',
+      message: 'Este cambio requiere regenerar 3 fixtures.',
+    });
+    expect(mutationFeedback({ mutationClass: 'safe', hasRecordedResults: true })).toEqual({
+      kind: 'none',
+    });
   });
 });

@@ -144,6 +144,106 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List a tournament’s registrations
+         * @description Scoped to the named tournament; another tournament’s entrants are never included.
+         */
+        get: operations["RegistrationsController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/{entrantId}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept, refuse or withdraw one registration
+         * @description Audited individually with prior and resulting state.
+         */
+        post: operations["RegistrationsController_review"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/bulk-review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Review several registrations
+         * @description One audit row per registration, never one for the batch: "approved 40" does not answer "why is this team in the draw".
+         */
+        post: operations["RegistrationsController_bulkReview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/{entrantId}/roster": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Edit a registration’s roster
+         * @description Refused once check-in has closed for a checked-in entrant, whatever a stale console still offers.
+         */
+        post: operations["RegistrationsController_editRoster"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/disciplines": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List installed disciplines and the formats they support
+         * @description The wizard filters formats from this response. A client-side list disagrees with the installation the day a module is added.
+         */
+        get: operations["DisciplinesController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageId}/schedule": {
         parameters: {
             query?: never;
@@ -391,6 +491,62 @@ export interface components {
              * @example 1.2.0
              */
             descriptorVersion: string;
+            /** @example round-robin */
+            format: string;
+            /** @description Whether anonymous/public registration intake is open for this tournament. */
+            publicRegistration: boolean;
+            /** @description Whether accepted entrants must check in before eligibility is locked. */
+            requiresCheckIn: boolean;
+            /**
+             * Format: date-time
+             * @description Optional instant when checked-in rosters stop being editable.
+             */
+            checkInClosesAt?: string;
+        };
+        RegistrationResponse: {
+            /** Format: uuid */
+            entrantId: string;
+            /** Format: uuid */
+            tournamentId: string;
+            /** @enum {string} */
+            status: "pending" | "accepted" | "refused" | "withdrawn" | "checked-in";
+            /** Format: uuid */
+            teamId?: string;
+            /** Format: uuid */
+            personId?: string;
+        };
+        ReviewRegistrationRequest: {
+            /** @enum {string} */
+            decision: "accepted" | "refused" | "withdrawn";
+            /** @description Recorded on the audit row. A refusal an entrant cannot be told about is one they will ask about. */
+            reason?: string;
+        };
+        BulkReviewRequest: {
+            entrantIds: unknown[][];
+            /** @enum {string} */
+            decision: "accepted" | "refused" | "withdrawn";
+            reason?: string;
+        };
+        BulkReviewResponse: {
+            applied: components["schemas"]["RegistrationResponse"][];
+            /** @description Registrations left untouched, each with the reason — never silently skipped. */
+            refused: unknown[][];
+        };
+        DisciplineSummaryResponse: {
+            /** Format: uuid */
+            descriptorId: string;
+            /** @example 1.2.0 */
+            version: string;
+            /** @example Fútbol 11 */
+            name: string;
+            /**
+             * @description Formats this discipline declares it supports. The client filters from this list rather than from its own copy — a hardcoded list is a list that disagrees with the module the day one is added.
+             * @example [
+             *       "single-elimination",
+             *       "round-robin"
+             *     ]
+             */
+            supportedFormats: unknown[][];
         };
         TimeWindowDto: {
             /**
@@ -759,6 +915,139 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    RegistrationsController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistrationResponse"][];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    RegistrationsController_review: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                entrantId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewRegistrationRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistrationResponse"];
+                };
+            };
+        };
+    };
+    RegistrationsController_bulkReview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkReviewRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkReviewResponse"];
+                };
+            };
+        };
+    };
+    RegistrationsController_editRoster: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                entrantId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistrationResponse"];
+                };
+            };
+        };
+    };
+    DisciplinesController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DisciplineSummaryResponse"][];
                 };
             };
         };

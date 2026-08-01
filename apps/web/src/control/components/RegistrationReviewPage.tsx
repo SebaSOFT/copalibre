@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Button } from './ui/button.js';
+import type { BulkReviewRequest, ReviewRegistrationRequest } from '../lib/api-client.js';
 import {
   LOCK_EXPLANATION,
   initialReview,
@@ -41,11 +42,18 @@ export function RegistrationReviewPage({
   tournamentName,
   rows,
   now,
+  onBulkReview,
+  onReview,
 }: {
   readonly organizationAlias: string;
   readonly tournamentName: string;
   readonly rows: readonly ReviewRegistrationRow[];
   readonly now: string;
+  readonly onBulkReview?: (request: BulkReviewRequest) => Promise<void> | void;
+  readonly onReview?: (
+    entrantId: string,
+    request: ReviewRegistrationRequest,
+  ) => Promise<void> | void;
 }): React.JSX.Element {
   const [state, setState] = useState(() => initialReview(10));
   const visible = visibleRows(rows, state) as readonly ReviewRegistrationRow[];
@@ -78,11 +86,19 @@ export function RegistrationReviewPage({
               </option>
             ))}
           </select>
-          <Button disabled={state.selected.length === 0} type="button" variant="secondary">
+          <Button
+            disabled={state.selected.length === 0}
+            onClick={() =>
+              void onBulkReview?.({ entrantIds: state.selected, decision: 'accepted' })
+            }
+            type="button"
+            variant="secondary"
+          >
             Aprobar
           </Button>
           <Button
             disabled={state.selected.length === 0}
+            onClick={() => void onBulkReview?.({ entrantIds: state.selected, decision: 'refused' })}
             type="button"
             variant="destructive-outline"
           >
@@ -141,7 +157,16 @@ export function RegistrationReviewPage({
                   <Button disabled={!rosterEnabled} type="button" variant="secondary">
                     Editar roster
                   </Button>
-                  <Button type="button" variant="destructive-outline">
+                  <Button
+                    onClick={() =>
+                      void onReview?.(row.entrantId, {
+                        decision: 'withdrawn',
+                        reason: 'Revoked from registration review',
+                      })
+                    }
+                    type="button"
+                    variant="destructive-outline"
+                  >
                     Revocar
                   </Button>
                 </div>
