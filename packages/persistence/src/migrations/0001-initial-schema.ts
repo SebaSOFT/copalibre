@@ -365,12 +365,70 @@ export const initialSchema: Migration = {
       .addColumn('payload', 'jsonb', (col) => col.notNull())
       .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
       .addColumn('consumed_at', 'timestamptz')
+      // Claim and retry state (0017), on the row rather than in a queue table:
+      // the row is the unit of work, and a second table would let the two
+      // disagree about whether something was done.
+      .addColumn('claimed_by', 'text')
+      .addColumn('claimed_until', 'timestamptz')
+      .addColumn('attempts', 'integer', (col) => col.notNull().defaultTo(0))
+      .addColumn('next_attempt_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addColumn('dead_lettered_at', 'timestamptz')
+      .addColumn('failures', 'jsonb', (col) => col.notNull().defaultTo(sql`'[]'::jsonb`))
       .execute();
     // Phase 0009's relay poll: oldest unconsumed first.
     await db.schema
       .createIndex('outbox_events_poll_idx')
       .on('outbox_events')
       .columns(['created_at', 'consumed_at'])
+      .execute();
+
+    // The claim query's own index (0017): unconsumed, not dead-lettered, due
+    // now, oldest first.
+    await db.schema
+      .createIndex('outbox_events_claim_idx')
+      .on('outbox_events')
+      .columns(['consumed_at', 'dead_lettered_at', 'next_attempt_at', 'created_at'])
+      .execute();
+
+    // What a consumer has already applied (0017). The key is the row's own id:
+    // the producer already generated a UUIDv7, and hashing a payload to
+    // rediscover an identity that exists is work with a worse failure mode.
+    await db.schema
+      .createTable('processed_markers')
+      .addColumn('consumer', 'text', (col) => col.notNull())
+      .addColumn('event_id', 'uuid', (col) => col.notNull().references('outbox_events.event_id'))
+      .addColumn('processed_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      // Two consumers may each process one row once; one consumer may not
+      // process it twice. That is the whole guarantee, stated as a constraint.
+      .addPrimaryKeyConstraint('processed_markers_pk', ['consumer', 'event_id'])
+      .execute();
+
+    // One logical scheduler, elected by holding a row (0017).
+    await db.schema
+      .createTable('scheduler_leases')
+      .addColumn('lease_name', 'text', (col) => col.primaryKey())
+      .addColumn('holder', 'text', (col) => col.notNull())
+      .addColumn('expires_at', 'timestamptz', (col) => col.notNull())
+      .addColumn('acquired_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addColumn('renewed_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      // Bumped on every handoff, so a replica that was away long enough to lose
+      // the lease can tell it was replaced instead of assuming it still holds it.
+      .addColumn('fencing_token', 'bigint', (col) => col.notNull().defaultTo(1))
+      .execute();
+
+    await db.schema
+      .createTable('scheduled_jobs')
+      .addColumn('job_name', 'text', (col) => col.primaryKey())
+      .addColumn('organization_id', 'uuid', (col) =>
+        col.references('organizations.organization_id'),
+      )
+      .addColumn('event_type', 'text', (col) => col.notNull())
+      .addColumn('payload', 'jsonb', (col) => col.notNull())
+      .addColumn('interval_seconds', 'integer', (col) => col.notNull())
+      .addColumn('last_enqueued_at', 'timestamptz')
+      .addColumn('enabled', 'boolean', (col) => col.notNull().defaultTo(true))
+      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addCheckConstraint('scheduled_jobs_interval', sql`interval_seconds > 0`)
       .execute();
 
     await db.schema
@@ -545,6 +603,9 @@ export const initialSchema: Migration = {
     for (const table of [
       'schema_version',
       'tag_facts',
+      'scheduled_jobs',
+      'scheduler_leases',
+      'processed_markers',
       'statistic_adjustments',
       'statistic_totals',
       'materialised_standings',

@@ -124,6 +124,13 @@ jobs:
       # Since 0016 it carries the fold: figures on both axes from one pass, and
       # an average recomputed from its samples rather than averaged again.
       - run: yarn workspace @copalibre/tournament-engine test:coverage
+      # The durable job substrate (0017): the backoff curve, the dispatcher and
+      # the relay pass are pure, and a retry schedule that quietly stops growing
+      # is the kind of regression only arithmetic tests catch.
+      - run: yarn workspace @copalibre/worker test:coverage
+      # The lease arithmetic, which is the dangerous part of one-logical-
+      # scheduler: renewing too late is how two replicas both believe they hold it.
+      - run: yarn workspace @copalibre/scheduler test:coverage
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -147,6 +154,18 @@ jobs:
         with:
           name: coverage-tournament-engine
           path: packages/tournament-engine/coverage
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-worker
+          path: apps/worker/coverage
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-scheduler
+          path: apps/scheduler/coverage
           retention-days: 14
 
   # Added by 0004-persistence-postgres-outbox-audit: real PostgreSQL, no mocks.
@@ -205,6 +224,15 @@ jobs:
       # a timer whose remaining time derives from one stored record, and effects
       # that never reach the outbox when the transaction rolls back.
       - run: yarn workspace @copalibre/tournament-engine test:integration
+      # The relay against real PostgreSQL (0017): `for update skip locked`, a
+      # claim that expires after a worker dies, an idempotency marker that makes
+      # a redelivery a no-op, and a dead letter that keeps its whole failure
+      # history. Also the loop 0016 left open — a finalization arriving here is
+      # what writes the folded figures.
+      - run: yarn workspace @copalibre/worker test:integration
+      # Three replicas racing for one lease, and a periodic job that is enqueued
+      # once per interval rather than up to three times.
+      - run: yarn workspace @copalibre/scheduler test:integration
 
   # Added by 0005-api-auth-jwt-openapi-contract. Regenerates the artifact from
   # the decorated controllers, fails on drift from the committed copy, then runs

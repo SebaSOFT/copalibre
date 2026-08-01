@@ -873,15 +873,23 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@copalibre/scheduler@workspace:apps/scheduler"
   dependencies:
+    "@copalibre/domain": "workspace:^"
+    "@copalibre/persistence": "workspace:^"
     "@nestjs/common": "npm:^11.1.28"
     "@nestjs/core": "npm:^11.1.28"
     "@nestjs/platform-fastify": "npm:^11.1.28"
+    "@nestjs/testing": "npm:^11.1.28"
+    "@types/jest": "npm:^30.0.0"
+    jest: "npm:^30.4.2"
+    kysely: "npm:^0.29"
     reflect-metadata: "npm:^0.2.2"
     rxjs: "npm:^7.8.2"
+    ts-jest: "npm:^29.4.12"
+    typescript: "npm:^5"
   languageName: unknown
   linkType: soft
 
-"@copalibre/tournament-engine@workspace:packages/tournament-engine":
+"@copalibre/tournament-engine@workspace:^, @copalibre/tournament-engine@workspace:packages/tournament-engine":
   version: 0.0.0-use.local
   resolution: "@copalibre/tournament-engine@workspace:packages/tournament-engine"
   dependencies:
@@ -914,11 +922,20 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@copalibre/worker@workspace:apps/worker"
   dependencies:
+    "@copalibre/domain": "workspace:^"
+    "@copalibre/persistence": "workspace:^"
+    "@copalibre/tournament-engine": "workspace:^"
     "@nestjs/common": "npm:^11.1.28"
     "@nestjs/core": "npm:^11.1.28"
     "@nestjs/platform-fastify": "npm:^11.1.28"
+    "@nestjs/testing": "npm:^11.1.28"
+    "@types/jest": "npm:^30.0.0"
+    jest: "npm:^30.4.2"
+    kysely: "npm:^0.29"
     reflect-metadata: "npm:^0.2.2"
     rxjs: "npm:^7.8.2"
+    ts-jest: "npm:^29.4.12"
+    typescript: "npm:^5"
   languageName: unknown
   linkType: soft
 
