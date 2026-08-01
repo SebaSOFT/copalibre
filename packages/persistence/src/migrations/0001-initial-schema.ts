@@ -139,6 +139,10 @@ export const initialSchema: Migration = {
       )
       .addColumn('club_id', 'uuid', (col) => col.references('clubs.club_id'))
       .addColumn('name', 'text', (col) => col.notNull())
+      // The discipline the side plays (0015), so a club's football and futsal
+      // teams are distinguishable. No FK: a discipline is a module that may be
+      // retired, and a finished competition stays readable without it (0008).
+      .addColumn('discipline_id', 'uuid')
       .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
       .execute();
 

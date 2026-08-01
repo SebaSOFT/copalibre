@@ -103,6 +103,8 @@ export interface TeamsTable {
   organization_id: string;
   club_id: string | null;
   name: string;
+  /** The discipline this side plays (0015); null on teams predating it. */
+  discipline_id: string | null;
   created_at: Timestamp;
 }
 

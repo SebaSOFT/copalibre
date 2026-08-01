@@ -1,5 +1,6 @@
 import {
   isDuplicateMembership,
+  squadOfDiscipline,
   normaliseNaturalKey,
   sameNaturalKey,
   validatePerson,
@@ -103,5 +104,35 @@ describe('one person, several memberships', () => {
     const coaching = player({ playerId: 'pl-2', teamId: 'tm-2', role: 'coach' });
 
     expect(isDuplicateMembership(playing, coaching)).toBe(false);
+  });
+});
+
+describe('a squad belongs to a discipline', () => {
+  const teams = [
+    { teamId: 'tm-football', disciplineId: 'd-football' },
+    { teamId: 'tm-futsal', disciplineId: 'd-futsal' },
+    { teamId: 'tm-legacy' },
+  ];
+  const players = [
+    player({ playerId: 'pl-1', teamId: 'tm-football' }),
+    player({ playerId: 'pl-2', teamId: 'tm-futsal' }),
+    player({ playerId: 'pl-3', teamId: 'tm-legacy' }),
+  ];
+
+  it('selects the side that plays the discipline in question', () => {
+    expect(squadOfDiscipline(players, teams, 'd-football').map((p) => p.playerId)).toEqual([
+      'pl-1',
+    ]);
+    expect(squadOfDiscipline(players, teams, 'd-futsal').map((p) => p.playerId)).toEqual(['pl-2']);
+  });
+
+  it('leaves out a team that names no discipline, rather than guessing which it plays', () => {
+    expect(squadOfDiscipline(players, teams, 'd-football')).not.toContainEqual(
+      expect.objectContaining({ teamId: 'tm-legacy' }),
+    );
+  });
+
+  it('is empty for a discipline this club fields nobody in', () => {
+    expect(squadOfDiscipline(players, teams, 'd-handball')).toEqual([]);
   });
 });

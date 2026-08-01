@@ -111,3 +111,22 @@ export function validatePerson(person: Person): Result<Person, PersonError> {
 export function isDuplicateMembership(left: Player, right: Player): boolean {
   return left.personId === right.personId && left.teamId === right.teamId;
 }
+
+/**
+ * The squad a discipline's constraint applies to (0015).
+ *
+ * A club fielding a football and a futsal side has two teams, and "between five
+ * and eleven players" is a claim about one of them. Selecting by discipline is
+ * what stops a constraint being checked against the wrong squad — which, before
+ * teams named their discipline, was not even expressible as a mistake.
+ */
+export function squadOfDiscipline(
+  players: readonly Player[],
+  teams: readonly { readonly teamId: string; readonly disciplineId?: string }[],
+  disciplineId: string,
+): readonly Player[] {
+  const ofDiscipline = new Set(
+    teams.filter((team) => team.disciplineId === disciplineId).map((team) => team.teamId),
+  );
+  return players.filter((player) => ofDiscipline.has(player.teamId));
+}

@@ -129,6 +129,7 @@ export {
   normaliseNaturalKey,
   sameNaturalKey,
   isDuplicateMembership,
+  squadOfDiscipline,
   PersonError,
   type Person,
   type Player,

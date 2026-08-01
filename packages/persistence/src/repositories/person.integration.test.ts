@@ -2,6 +2,7 @@ import { InvariantViolationError } from '../errors.js';
 import { withTransaction } from '../transaction.js';
 import { OrganizationRepository } from './organization-repository.js';
 import { EnrollmentRepository } from './enrollment-repository.js';
+import { squadOfDiscipline } from '@copalibre/domain';
 import { PersonRepository } from './person-repository.js';
 import { createMigratedDatabase, type ScratchDatabase } from '../test-support/scratch-database.js';
 
@@ -11,6 +12,10 @@ import { createMigratedDatabase, type ScratchDatabase } from '../test-support/sc
  */
 
 const AUDIT = { actor: 'user:registrar-1', authorizationContext: 'scope:participant.write' };
+
+/** Two disciplines one club fields sides in. */
+const FOOTBALL = '11111111-1111-4111-8111-111111111111';
+const FUTSAL = '22222222-2222-4222-8222-222222222222';
 
 describe('people and their memberships (integration)', () => {
   let scratch: ScratchDatabase;
@@ -32,9 +37,14 @@ describe('people and their memberships (integration)', () => {
     await scratch?.drop();
   });
 
-  async function team(name: string) {
+  async function team(name: string, disciplineId?: string) {
     return withTransaction(scratch.db, (uow) =>
-      new EnrollmentRepository(scratch.db).createTeam(uow, { organizationId, name, ...AUDIT }),
+      new EnrollmentRepository(scratch.db).createTeam(uow, {
+        organizationId,
+        name,
+        ...(disciplineId === undefined ? {} : { disciplineId }),
+        ...AUDIT,
+      }),
     );
   }
 
@@ -183,6 +193,45 @@ describe('people and their memberships (integration)', () => {
         }),
       ),
     ).rejects.toBeInstanceOf(InvariantViolationError);
+  });
+
+  it('tells a club’s two sides apart by the discipline each plays', async () => {
+    const people = new PersonRepository(scratch.db);
+    const football = await team('Murialdo Fútbol A', FOOTBALL);
+    const futsal = await team('Murialdo Futsal A', FUTSAL);
+
+    const { person } = await withTransaction(scratch.db, (uow) =>
+      people.register(uow, {
+        organizationId,
+        displayName: 'Facundo Lana',
+        naturalKey: { kind: 'dni', value: '67.890.123' },
+        ...AUDIT,
+      }),
+    );
+    await withTransaction(scratch.db, async (uow) => {
+      for (const side of [football, futsal]) {
+        await people.enlist(uow, {
+          personId: person.personId,
+          teamId: side.teamId,
+          role: 'player',
+          organizationId,
+          ...AUDIT,
+        });
+      }
+    });
+
+    const teams = [football, futsal];
+    const memberships = await people.playersOf(person.personId);
+
+    // A roster constraint is a claim about one side. Before a team named its
+    // discipline, checking it against the wrong squad was not even expressible
+    // as a mistake.
+    expect(squadOfDiscipline(memberships, teams, FOOTBALL).map((p) => p.teamId)).toEqual([
+      football.teamId,
+    ]);
+    expect(squadOfDiscipline(memberships, teams, FUTSAL).map((p) => p.teamId)).toEqual([
+      futsal.teamId,
+    ]);
   });
 
   it('keeps the document out of the audit trail', async () => {

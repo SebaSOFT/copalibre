@@ -72,6 +72,7 @@ describe('snake_case row → camelCase domain mapping', () => {
       organization_id: 'org-1',
       club_id: null,
       name: 'Equipo Uno',
+      discipline_id: null,
       created_at: CREATED,
     };
     expect(toTeam(team).clubId).toBeUndefined();

@@ -28,6 +28,7 @@ export class EnrollmentRepository {
       readonly organizationId: string;
       readonly clubId?: string;
       readonly name: string;
+      readonly disciplineId?: string;
     } & Omit<AuditContext, 'organizationId'>,
   ): Promise<Team> {
     const teamId = newId();
@@ -37,6 +38,7 @@ export class EnrollmentRepository {
         team_id: teamId,
         organization_id: input.organizationId,
         club_id: input.clubId ?? null,
+        discipline_id: input.disciplineId ?? null,
         name: input.name,
         created_at: new Date(),
       })

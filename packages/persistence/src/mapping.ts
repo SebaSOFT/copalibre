@@ -81,6 +81,7 @@ export function toTeam(row: TeamRow): Team {
     organizationId: row.organization_id,
     clubId: row.club_id ?? undefined,
     name: row.name,
+    disciplineId: row.discipline_id ?? undefined,
   };
 }
 
