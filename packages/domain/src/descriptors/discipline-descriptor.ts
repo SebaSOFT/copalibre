@@ -1,5 +1,6 @@
 import type { Attribution } from './attribution.js';
 import type { EventDefinition } from './event-definition.js';
+import type { StatisticCollector } from '../statistics/collector.js';
 import type { ConfigFieldPolicies, RulesetConfig } from './override-policy.js';
 
 /**
@@ -123,6 +124,13 @@ export interface DisciplineDescriptor {
   readonly segmentTypes: readonly SegmentTypeDefinition[];
   readonly eventDefinitions: readonly EventDefinition[];
   readonly statistics: readonly StatisticDefinition[];
+  /**
+   * Declared aggregations over the competition and actor hierarchies (0016).
+   * Absent on a descriptor written before collectors existed, which stays valid:
+   * a discipline that declares none simply answers no statistic question beyond
+   * what a result records.
+   */
+  readonly collectors?: readonly StatisticCollector[];
   readonly scoringInputs: readonly ScoringInputDefinition[];
   /**
    * Points awarded by finishing position in a placement match, and the code the

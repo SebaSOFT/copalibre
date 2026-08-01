@@ -274,6 +274,7 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
         },
       },
     },
+    collectors: { type: 'array', items: { $ref: '#/definitions/collector' } },
     notificationRuleCapabilities: { type: 'array', items: { type: 'string', minLength: 1 } },
     winCondition: { $ref: RULE_SCRIPT_SCHEMA_ID },
     uiMetadata: { type: 'object' },
@@ -281,6 +282,99 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
     fieldPolicies: { type: 'object' },
   },
   definitions: {
+    /**
+     * A collector (0016). The structure is checked here; whether it names an
+     * event this discipline defines, or a collector it declares, is a question
+     * about the whole document and lives in `validateCollectors`.
+     */
+    collector: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['code', 'label', 'source', 'measure', 'granularity'],
+      properties: {
+        code: { type: 'string', minLength: 1 },
+        label: { type: 'string', minLength: 1 },
+        source: {
+          type: 'object',
+          required: ['kind'],
+          oneOf: [
+            {
+              additionalProperties: false,
+              required: ['kind'],
+              properties: {
+                kind: { const: 'event' },
+                definitionCodes: { type: 'array', items: { type: 'string', minLength: 1 } },
+                categories: {
+                  type: 'array',
+                  items: { enum: ['positive', 'negative', 'neutral'] },
+                },
+              },
+            },
+            {
+              additionalProperties: false,
+              required: ['kind', 'statisticCode'],
+              properties: {
+                kind: { const: 'statistic' },
+                statisticCode: { type: 'string', minLength: 1 },
+              },
+            },
+            {
+              additionalProperties: false,
+              required: ['kind', 'code'],
+              properties: { kind: { const: 'collector' }, code: { type: 'string', minLength: 1 } },
+            },
+            {
+              additionalProperties: false,
+              required: ['kind'],
+              properties: {
+                kind: { const: 'participation' },
+                roles: { type: 'array', items: { type: 'string', minLength: 1 } },
+              },
+            },
+          ],
+        },
+        measure: {
+          type: 'object',
+          required: ['kind'],
+          oneOf: [
+            {
+              additionalProperties: false,
+              required: ['kind'],
+              properties: { kind: { const: 'count' } },
+            },
+            {
+              additionalProperties: false,
+              required: ['kind', 'field'],
+              properties: {
+                kind: { enum: ['sum', 'max', 'min', 'average'] },
+                field: { type: 'string', minLength: 1 },
+              },
+            },
+          ],
+        },
+        granularity: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['actor', 'competition'],
+          properties: {
+            actor: { enum: ['person', 'player', 'team', 'club'] },
+            competition: {
+              enum: ['event', 'segment', 'match', 'stage', 'season', 'tournament', 'organization'],
+            },
+          },
+        },
+        rollsUpTo: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            actor: { enum: ['person', 'player', 'team', 'club'] },
+            competition: {
+              enum: ['event', 'segment', 'match', 'stage', 'season', 'tournament', 'organization'],
+            },
+          },
+        },
+      },
+    },
     /**
      * An effect was `{ type: 'object' }` until 0014 — anything at all installed,
      * and the TypeScript union describing it was a claim the gate never
@@ -328,6 +422,15 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
           properties: {
             kind: { const: 'match-state' },
             transition: { type: 'string', minLength: 1 },
+          },
+        },
+        {
+          additionalProperties: false,
+          required: ['kind', 'tagCode', 'action'],
+          properties: {
+            kind: { const: 'tag' },
+            tagCode: { type: 'string', minLength: 1 },
+            action: { enum: ['applied', 'lifted'] },
           },
         },
       ],

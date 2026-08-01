@@ -125,6 +125,50 @@ export {
   type ScriptConstraint,
 } from './rulesets/draw-constraints.js';
 export {
+  validateCollectors,
+  readableAt,
+  CollectorError,
+  type StatisticCollector,
+  type CollectorSource,
+  type CollectorMeasure,
+  type CollectorGranularity,
+  type CollectorVocabulary,
+  type ValidatedCollectors,
+  type InertCollector,
+} from './statistics/collector.js';
+export {
+  COMPETITION_GRANULARITIES,
+  ACTOR_GRANULARITIES,
+  GRANULARITY_SOURCES,
+  isCompetitionGranularity,
+  isActorGranularity,
+  granularitiesAbove,
+  isCoarser,
+  actorOfEntrant,
+  requireGranularities,
+  HierarchyError,
+  type CompetitionGranularity,
+  type ActorGranularity,
+  type ResolvedActor,
+} from './statistics/hierarchies.js';
+export {
+  validateTagDeclaration,
+  checkTagApplication,
+  tagScopeFor,
+  tagsAt,
+  TagError,
+  type TagDeclaration,
+  type TagLifetime,
+  type TagFact,
+  type AppliedTag,
+  type TagReadContext,
+} from './statistics/tags.js';
+export {
+  checkAdjustment,
+  AdjustmentError,
+  type StatisticAdjustment,
+} from './statistics/adjustment.js';
+export {
   validatePerson,
   normaliseNaturalKey,
   sameNaturalKey,
@@ -287,6 +331,7 @@ export {
   pointsFor,
   declaredStatisticsSchema,
   type OutcomeSide,
+  type OutcomeContributor,
   type RecordedOutcome,
   type OutcomeValidationOptions,
 } from './standings/index.js';

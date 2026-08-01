@@ -12,7 +12,7 @@ import {
 } from './declared-effects.js';
 
 /**
- * The three effectful actions (0013-scripting-hook-surface).
+ * The effectful actions (0013-scripting-hook-surface, extended by 0016).
  *
  * Each one **declares** an effect and performs none. The contract is enforced
  * by shape rather than by discipline: an action appends a draft to the
@@ -177,7 +177,128 @@ export class StopTimerAction extends AbstractAction {
   }
 }
 
-/** Registers the three declaring actions (idempotent per registry). */
+/**
+ * Declares a statistic adjustment (0016).
+ *
+ * A script may move a total the collectors do not produce on their own — a
+ * bonus point, a deduction, a figure a discipline computes from something no
+ * event carries. It declares the movement; the fold applies it like any other
+ * recorded fact, so replaying the match reproduces the number instead of
+ * incrementing it a second time.
+ */
+export class AdjustStatisticAction extends AbstractAction {
+  static readonly TYPE = 'adjustStatistic';
+
+  execute(context: ExecutionContext): ExecutionResult<DeclaredEffectKind | null> {
+    const cause = causeOf(context);
+    if (!cause) {
+      return new ExecutionResult(false, context, null, [
+        'adjustStatistic requires the evaluation to publish what it is about (context.cause)',
+      ]);
+    }
+
+    const collectorCode = text(context, this, 'collectorCode');
+    const actorGranularity = text(context, this, 'actorGranularity');
+    const actorId = text(context, this, 'actorId');
+    const delta = this.params.get('delta')?.getValue(context);
+
+    if (
+      collectorCode === undefined ||
+      actorGranularity === undefined ||
+      actorId === undefined ||
+      typeof delta !== 'number' ||
+      !Number.isFinite(delta)
+    ) {
+      return new ExecutionResult(false, context, null, [
+        'adjustStatistic requires collectorCode, actorGranularity, actorId and a numeric delta',
+      ]);
+    }
+
+    return appendDraft(
+      context,
+      {
+        kind: 'statistic-adjustment',
+        actionId: this.id,
+        payload: {
+          collectorCode,
+          actorGranularity,
+          actorId,
+          delta,
+          // Without a reason the fold still applies it, but nobody can say why
+          // the number moved — so the rule's own words are the default.
+          reason: text(context, this, 'reason'),
+        },
+      },
+      `Declared ${delta >= 0 ? '+' : ''}${delta} on "${collectorCode}" for ${actorGranularity} ${actorId}`,
+    );
+  }
+}
+
+/**
+ * Declares a tag (0016).
+ *
+ * It labels and enforces nothing: a script may mark a player suspended, and the
+ * organizer still decides whether they take the field. That is the whole
+ * contract — CopaLibre keeps the integrity of its records and what this
+ * organizer configured, and never what a sport usually requires.
+ */
+export class ApplyTagAction extends AbstractAction {
+  static readonly TYPE = 'applyTag';
+
+  execute(context: ExecutionContext): ExecutionResult<DeclaredEffectKind | null> {
+    const cause = causeOf(context);
+    if (!cause) {
+      return new ExecutionResult(false, context, null, [
+        'applyTag requires the evaluation to publish what it is about (context.cause)',
+      ]);
+    }
+
+    const code = text(context, this, 'code');
+    const actorGranularity = text(context, this, 'actorGranularity');
+    const actorId = text(context, this, 'actorId');
+    const competitionGranularity = text(context, this, 'competitionGranularity');
+    const competitionId = text(context, this, 'competitionId');
+
+    if (
+      code === undefined ||
+      actorGranularity === undefined ||
+      actorId === undefined ||
+      competitionGranularity === undefined ||
+      competitionId === undefined
+    ) {
+      return new ExecutionResult(false, context, null, [
+        'applyTag requires code, actorGranularity, actorId, competitionGranularity and competitionId',
+      ]);
+    }
+
+    const action = text(context, this, 'action') ?? 'applied';
+    if (action !== 'applied' && action !== 'lifted') {
+      return new ExecutionResult(false, context, null, [
+        'applyTag action is "applied" or "lifted"; a tag is never deleted',
+      ]);
+    }
+
+    return appendDraft(
+      context,
+      {
+        kind: 'tag',
+        actionId: this.id,
+        payload: {
+          code,
+          action,
+          actorGranularity,
+          actorId,
+          competitionGranularity,
+          competitionId,
+          reason: text(context, this, 'reason'),
+        },
+      },
+      `Declared tag "${code}" ${action} for ${actorGranularity} ${actorId}`,
+    );
+  }
+}
+
+/** Registers the declaring actions (idempotent per registry). */
 export function registerDeclaredEffectActions(registry: RulesRegistry): RulesRegistry {
   registry.registerAction(
     NotifyAction.TYPE,
@@ -193,6 +314,16 @@ export function registerDeclaredEffectActions(registry: RulesRegistry): RulesReg
     StopTimerAction.TYPE,
     StopTimerAction,
     'Declares a timer stopping at the causing event',
+  );
+  registry.registerAction(
+    AdjustStatisticAction.TYPE,
+    AdjustStatisticAction,
+    'Declares a statistic adjustment the fold applies as a fact, so a replay reproduces it',
+  );
+  registry.registerAction(
+    ApplyTagAction.TYPE,
+    ApplyTagAction,
+    'Declares a tag. It labels; it refuses nothing — the organizer decides what carrying it means',
   );
   return registry;
 }

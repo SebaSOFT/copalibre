@@ -49,16 +49,27 @@ export {
 } from './expressions/functions.js';
 
 export {
+  evaluateCollectorThreshold,
+  thresholdReadable,
+  type CollectorThresholdRule,
+  type CollectorThresholdInput,
+  type ThresholdWindow,
+} from './notifications/collector-thresholds.js';
+export {
   registerDeclaredEffectActions,
   NotifyAction,
   StartTimerAction,
   StopTimerAction,
+  AdjustStatisticAction,
+  ApplyTagAction,
 } from './effects/actions.js';
 export {
   effectIdentityKey,
   declaredEffect,
   toNotificationInstance,
   toDeclaredTimer,
+  toStatisticAdjustment,
+  toTagFact,
   remainingSeconds,
   EFFECTS_STATE_KEY,
   type DeclaredEffect,

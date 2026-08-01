@@ -4,6 +4,8 @@ import {
   remainingSeconds,
   toDeclaredTimer,
   toNotificationInstance,
+  toStatisticAdjustment,
+  toTagFact,
   type DeclaredEffect,
   type EffectOrigin,
 } from './declared-effects.js';
@@ -141,5 +143,166 @@ describe('remainingSeconds', () => {
     // A clock read before the causing instant is a caller's problem, not a
     // reason to invent a number: the arithmetic is stated and stays honest.
     expect(remainingSeconds(timer, 999_000)).toBe(61);
+  });
+});
+
+describe('toStatisticAdjustment', () => {
+  const adjustment = effect({
+    kind: 'statistic-adjustment',
+    payload: {
+      collectorCode: 'points',
+      actorGranularity: 'team',
+      actorId: 'tm-1',
+      delta: -3,
+      reason: 'Fielded an unregistered player',
+    },
+  });
+
+  it('reads a well-formed declaration, naming the script as the actor', () => {
+    expect(toStatisticAdjustment(adjustment)).toEqual({
+      collectorCode: 'points',
+      actorGranularity: 'team',
+      actorId: 'tm-1',
+      delta: -3,
+      reason: 'Fielded an unregistered player',
+      // "A rule did it" is an answer only when the rule can be pointed at.
+      actor: 'script:lead-alert',
+    });
+  });
+
+  it('names the rule when the declaration carries no reason of its own', () => {
+    const bare = toStatisticAdjustment(
+      effect({
+        kind: 'statistic-adjustment',
+        payload: { collectorCode: 'points', actorGranularity: 'team', actorId: 'tm-1', delta: 1 },
+      }),
+    );
+
+    expect(bare?.reason).toContain('lead-alert/comfortable-lead');
+  });
+
+  it('is nothing for another kind of effect', () => {
+    expect(toStatisticAdjustment(effect())).toBeUndefined();
+  });
+
+  it.each([
+    ['no collector', { actorGranularity: 'team', actorId: 'tm-1', delta: 1 }],
+    [
+      'an unpublished granularity',
+      { collectorCode: 'p', actorGranularity: 'referee', actorId: 'a', delta: 1 },
+    ],
+    ['no subject', { collectorCode: 'p', actorGranularity: 'team', delta: 1 }],
+    ['a text delta', { collectorCode: 'p', actorGranularity: 'team', actorId: 'a', delta: '1' }],
+    [
+      'an infinite delta',
+      { collectorCode: 'p', actorGranularity: 'team', actorId: 'a', delta: Number.NaN },
+    ],
+  ])('is nothing for a declaration with %s', (_label, payload) => {
+    expect(
+      toStatisticAdjustment(effect({ kind: 'statistic-adjustment', payload })),
+    ).toBeUndefined();
+  });
+});
+
+describe('toTagFact', () => {
+  const tag = effect({
+    kind: 'tag',
+    payload: {
+      code: 'suspended',
+      action: 'applied',
+      actorGranularity: 'person',
+      actorId: 'pe-1',
+      competitionGranularity: 'season',
+      competitionId: 'se-1',
+      reason: 'Doble amarilla',
+    },
+  });
+
+  it("reads a well-formed declaration at the causing event's instant", () => {
+    expect(toTagFact(tag, '2026-08-01T20:00:00.000Z')).toEqual({
+      code: 'suspended',
+      action: 'applied',
+      actorGranularity: 'person',
+      actorId: 'pe-1',
+      competitionGranularity: 'season',
+      competitionId: 'se-1',
+      actor: 'script:lead-alert',
+      reason: 'Doble amarilla',
+      // Never the clock: a replay must reproduce when the label was applied,
+      // not stamp it with the moment of the replay.
+      at: '2026-08-01T20:00:00.000Z',
+    });
+  });
+
+  it('is nothing for another kind of effect', () => {
+    expect(toTagFact(effect(), '2026-08-01T20:00:00.000Z')).toBeUndefined();
+  });
+
+  it.each([
+    [
+      'no code',
+      {
+        action: 'applied',
+        actorGranularity: 'person',
+        actorId: 'a',
+        competitionGranularity: 'season',
+        competitionId: 's',
+      },
+    ],
+    [
+      'a deletion instead of a lifting',
+      {
+        code: 'c',
+        action: 'deleted',
+        actorGranularity: 'person',
+        actorId: 'a',
+        competitionGranularity: 'season',
+        competitionId: 's',
+      },
+    ],
+    [
+      'an unpublished actor granularity',
+      {
+        code: 'c',
+        action: 'applied',
+        actorGranularity: 'referee',
+        actorId: 'a',
+        competitionGranularity: 'season',
+        competitionId: 's',
+      },
+    ],
+    [
+      'an unpublished scope',
+      {
+        code: 'c',
+        action: 'applied',
+        actorGranularity: 'person',
+        actorId: 'a',
+        competitionGranularity: 'fortnight',
+        competitionId: 's',
+      },
+    ],
+    [
+      'no subject',
+      {
+        code: 'c',
+        action: 'applied',
+        actorGranularity: 'person',
+        competitionGranularity: 'season',
+        competitionId: 's',
+      },
+    ],
+    [
+      'no scope',
+      {
+        code: 'c',
+        action: 'applied',
+        actorGranularity: 'person',
+        actorId: 'a',
+        competitionGranularity: 'season',
+      },
+    ],
+  ])('is nothing for a declaration with %s', (_label, payload) => {
+    expect(toTagFact(effect({ kind: 'tag', payload }), '2026-08-01T20:00:00.000Z')).toBeUndefined();
   });
 });

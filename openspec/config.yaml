@@ -111,3 +111,9 @@ operations:
   archive:
     guidance:
       - Summarize the archive outcome before finishing
+      - Commit the resulting openspec/specs promotion on the NEXT change branch, as its first
+        commit, rather than pushing it to develop or opening a pull request for it alone. develop is
+        protected, and a PR carrying only a spec promotion is review overhead for something nobody
+        argues with — riding along puts it in front of a reviewer already reading that area (owner,
+        2026-08-01). Keep the "docs(openspec)- promote NNNN specs into the accepted baseline" message
+        so the history still reads as a distinct act.
