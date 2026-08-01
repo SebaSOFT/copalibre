@@ -460,3 +460,140 @@ describe('contributors', () => {
     expect(contributorsOf(figures, 'person')).toEqual([]);
   });
 });
+
+describe('what accumulates together, and what accumulates nowhere', () => {
+  it('adds two event codes named by one collector', () => {
+    // "En césped se acumulan las verdes y las amarillas": one collector, two
+    // codes, one number — and no code decides that on its own.
+    const figures = fold({
+      collectors: [
+        collector({
+          code: 'cards',
+          source: { kind: 'event', definitionCodes: ['green', 'yellow'] },
+        }),
+      ],
+      events: [
+        event({ sequence: 1, definitionCode: 'green', personId: 'pe-1' }),
+        event({ sequence: 2, definitionCode: 'yellow', personId: 'pe-1' }),
+      ],
+    });
+
+    expect(figures[0]?.value).toBe(2);
+  });
+
+  it('accumulates a code no collector names nowhere at all', () => {
+    // "En hockey sobre patín las amarillas no se acumulan si hay azules": the
+    // discipline says so by not declaring a collector over them.
+    const figures = fold({
+      collectors: [
+        collector({ code: 'blue', source: { kind: 'event', definitionCodes: ['blue'] } }),
+      ],
+      events: [
+        event({ sequence: 1, definitionCode: 'yellow', personId: 'pe-1' }),
+        event({ sequence: 2, definitionCode: 'blue', personId: 'pe-1' }),
+      ],
+    });
+
+    expect(figures).toHaveLength(1);
+    expect(figures[0]?.collectorCode).toBe('blue');
+  });
+});
+
+describe('a finer figure and a coarser one coexist', () => {
+  it('keeps one row per period and derives the match figure from them', () => {
+    const perPeriod = fold({
+      collectors: [collector({ granularity: { actor: 'team', competition: 'segment' } })],
+      events: [event({ sequence: 1, side: 'en-atlas' }), event({ sequence: 2, side: 'en-atlas' })],
+    });
+
+    const perMatch = aggregateTo(
+      perPeriod,
+      { kind: 'count' },
+      { competition: 'match' },
+      {
+        competitionAt: () => 'm-1',
+      },
+    );
+
+    // "Restarts each period" is one row per period, never a lost count: the
+    // finer rows survive and the coarser one is their sum.
+    expect(perPeriod[0]?.competitionGranularity).toBe('segment');
+    expect(perMatch[0]?.value).toBe(2);
+    expect(perPeriod).toHaveLength(1);
+  });
+
+  it('reports the sums of the granularity below at each step of the actor axis', () => {
+    const perPerson = fold({
+      events: [
+        event({ sequence: 1, side: 'en-atlas', personId: 'pe-1' }),
+        event({ sequence: 2, side: 'en-atlas', personId: 'pe-2' }),
+      ],
+    });
+
+    const toTeam = aggregateTo(
+      perPerson,
+      { kind: 'count' },
+      { actor: 'team' },
+      {
+        actorAt: () => 'tm-atlas',
+      },
+    );
+    const toClub = aggregateTo(
+      toTeam,
+      { kind: 'count' },
+      { actor: 'club' },
+      {
+        actorAt: () => 'cl-atlas',
+      },
+    );
+
+    expect(perPerson).toHaveLength(2);
+    expect(toTeam[0]?.value).toBe(2);
+    expect(toClub[0]?.value).toBe(2);
+  });
+});
+
+describe('a declared delta and a hand adjustment both reproduce on a replay', () => {
+  const definitions = [
+    {
+      code: 'goal',
+      label: 'Gol',
+      category: 'scoring',
+      actorRequirement: 'optional',
+      payloadSchema: { type: 'object' },
+      effects: [{ kind: 'statistic', statisticCode: 'points', delta: 3 }],
+    },
+  ] as unknown as readonly EventDefinition[];
+
+  const input = {
+    collectors: [
+      collector({
+        code: 'points',
+        source: { kind: 'statistic', statisticCode: 'points' },
+        granularity: { actor: 'team', competition: 'match' },
+      }),
+    ],
+    definitions,
+    events: [event({ sequence: 1, side: 'en-atlas' })],
+    adjustments: [
+      {
+        collectorCode: 'points',
+        actorGranularity: 'team' as const,
+        actorId: 'tm-atlas',
+        delta: -1,
+        reason: 'Punto descontado por informe',
+        actor: 'user:table-official-1',
+      },
+    ],
+  };
+
+  it('moves the total by both, and gives the same answer folded twice', () => {
+    const first = fold(input);
+    const second = fold(input);
+
+    expect(first[0]?.value).toBe(2);
+    // Neither is an increment against a stored number, so recomputation is the
+    // mechanism rather than the thing that would erase them.
+    expect(second).toEqual(first);
+  });
+});

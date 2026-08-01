@@ -1,3 +1,4 @@
+import { validateLineup } from '../aggregates/match-operations.js';
 import {
   checkTagApplication,
   tagsAt,
@@ -221,6 +222,24 @@ describe('a tag refuses nothing', () => {
       'tagsAt',
       'validateTagDeclaration',
     ]);
+  });
+
+  it('does not block a lineup naming a suspended person', () => {
+    const standing = tagsAt([declaration()], [fact()]);
+    expect(standing[0]?.actorId).toBe('pe-1');
+
+    const checked = validateLineup(
+      { matchId: 'm-1', entrantId: 'en-1', personIds: ['pe-1', 'pe-2'] },
+      ['pe-1', 'pe-2'],
+      { minPlayers: 1, maxPlayers: 5 },
+    );
+
+    // The suspension is real, readable and carries a reason — and the lineup is
+    // still accepted. If this player must not take the field, the organizer
+    // keeps them out; CopaLibre does not.
+    expect(checked.ok).toBe(true);
+    if (!checked.ok) return;
+    expect(checked.value.findings).toEqual([]);
   });
 
   it('lets a tagged person stand in a standing tag list without any refusal being available', () => {

@@ -292,6 +292,93 @@ describe('statistic totals (integration)', () => {
     expect(averaged[0]?.value).toBeCloseTo(2.8, 5);
   });
 
+  it("spans a person's totals across two tournaments of one organization", async () => {
+    const statistics = new StatisticRepository(scratch.db);
+    const other = newId();
+    const first = await playableMatch('org-a');
+    const second = await playableMatch('org-b');
+
+    // A person nothing else in this suite touched, so the two tournaments are
+    // the only thing the sum can come from.
+    const traveller = 'pe-traveller';
+
+    await project(
+      first,
+      [
+        figure({
+          actorId: traveller,
+          competitionGranularity: 'tournament',
+          competitionId: tournamentId,
+          value: 4,
+          samples: 4,
+        }),
+      ],
+      'match.finalized',
+    );
+    await project(
+      second,
+      [
+        figure({
+          actorId: traveller,
+          competitionGranularity: 'tournament',
+          competitionId: other,
+          value: 3,
+          samples: 3,
+        }),
+      ],
+      'match.finalized',
+    );
+
+    const perTournament = await statistics.readTotals(
+      {
+        organizationId,
+        collectorCode: 'goals',
+        actorGranularity: 'person',
+        competitionGranularity: 'tournament',
+        actorId: traveller,
+      },
+      { kind: 'count' },
+    );
+
+    // Two tournaments, one human, one organization: the person axis and the
+    // competition axis are independent, which is what makes "his goals for this
+    // club" answerable without parsing a tournament's name.
+    expect(perTournament).toHaveLength(2);
+    expect(perTournament.reduce((total, row) => total + row.value, 0)).toBe(7);
+  });
+
+  it("spans a club's totals through the teams that played them", async () => {
+    const statistics = new StatisticRepository(scratch.db);
+    const first = await playableMatch('club-a');
+    const second = await playableMatch('club-b');
+    const clubFigure = {
+      actorGranularity: 'club' as const,
+      actorId: 'cl-atlas',
+      competitionGranularity: 'organization' as const,
+      competitionId: organizationId,
+    };
+
+    // Two teams of one club, folded at club granularity: the rows meet on the
+    // organization, which is the only place a club's whole record lives.
+    await project(first, [figure({ ...clubFigure, value: 2, samples: 2 })], 'match.finalized');
+    await project(second, [figure({ ...clubFigure, value: 5, samples: 5 })], 'match.finalized');
+
+    const perClub = await statistics.readTotals(
+      {
+        organizationId,
+        collectorCode: 'goals',
+        actorGranularity: 'club',
+        competitionGranularity: 'organization',
+        competitionId: organizationId,
+      },
+      { kind: 'count' },
+    );
+
+    expect(perClub).toEqual([
+      { actorId: 'cl-atlas', competitionId: organizationId, value: 7, samples: 7 },
+    ]);
+  });
+
   it('ignores an event it does not project, rather than clearing a match', async () => {
     const matchId = await playableMatch('unrelated');
     const statistics = new StatisticRepository(scratch.db);
