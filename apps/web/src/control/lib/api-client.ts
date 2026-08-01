@@ -150,7 +150,34 @@ async function requestJson<T>(
   });
 
   if (!response.ok) {
-    throw new Error(`Request failed with ${response.status}`);
+    // The status is the least useful part. A 409 here carries "check-in has
+    // closed…" or "this entrant withdrew…", which is exactly what the operator
+    // has to be told — discarding it leaves them reading a number.
+    throw new ControlApiError(response.status, await reasonOf(response));
   }
   return (await response.json()) as T;
+}
+
+export class ControlApiError extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'ControlApiError';
+  }
+}
+
+async function reasonOf(response: Response): Promise<string> {
+  try {
+    const body: unknown = await response.json();
+    if (typeof body === 'object' && body !== null && 'message' in body) {
+      const message = (body as { message?: unknown }).message;
+      if (typeof message === 'string' && message.length > 0) return message;
+      if (Array.isArray(message) && typeof message[0] === 'string') return message[0];
+    }
+  } catch {
+    // A body that is not JSON tells us nothing; the status still does.
+  }
+  return `La solicitud falló con ${response.status}`;
 }

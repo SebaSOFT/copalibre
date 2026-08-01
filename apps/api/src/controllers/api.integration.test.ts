@@ -369,10 +369,12 @@ describe('api routes (integration)', () => {
         token: 'organizer-org1',
       });
       expect(listBefore.statusCode).toBe(200);
-      expect(listBefore.json().map((one: { entrantId: string }) => one.entrantId).sort()).toEqual([
-        seeded.first.entrantId,
-        seeded.second.entrantId,
-      ]);
+      expect(
+        listBefore
+          .json()
+          .map((one: { entrantId: string }) => one.entrantId)
+          .sort(),
+      ).toEqual([seeded.first.entrantId, seeded.second.entrantId]);
 
       const bulk = await request({
         method: 'POST',
@@ -385,10 +387,12 @@ describe('api routes (integration)', () => {
         },
       });
       expect(bulk.statusCode).toBe(200);
-      expect(bulk.json().applied.map((one: { entrantId: string }) => one.entrantId).sort()).toEqual([
-        seeded.first.entrantId,
-        seeded.second.entrantId,
-      ]);
+      expect(
+        bulk
+          .json()
+          .applied.map((one: { entrantId: string }) => one.entrantId)
+          .sort(),
+      ).toEqual([seeded.first.entrantId, seeded.second.entrantId]);
 
       const audit = new AuditReader(scratch.db);
       const histories = await Promise.all([

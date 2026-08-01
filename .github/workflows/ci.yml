@@ -237,6 +237,14 @@ jobs:
           node-version: 24
           cache: yarn
       - run: yarn install --immutable
+      # The Astro build imports built packages and generated tokens; a fresh
+      # checkout has neither, and Playwright's webServer reports the failure as
+      # "the server did not start" rather than as the missing dist it is.
+      - run: yarn workspace @copalibre/routing build
+      - run: yarn workspace @copalibre/realtime build
+      - run: yarn workspace @copalibre/design-tokens build:tokens
+      # The runner image ships no Playwright browser.
+      - run: yarn playwright install --with-deps chromium
       - run: yarn test:e2e
 
   # Added by 0019: CopaLibre and sebasoft.app must look unrelated, and a brand

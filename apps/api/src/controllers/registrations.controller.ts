@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   ConflictException,
+  NotImplementedException,
   Controller,
   Get,
   HttpCode,
@@ -208,16 +209,22 @@ export class RegistrationsController {
       throw new BadRequestException('A roster edit names the people on it');
     }
 
-    return toResponse(entrant);
+    // The lock above is this phase's contract and it is enforced. Persisting the
+    // roster itself belongs to the phase that owns entrant rosters, and
+    // answering 200 without writing anything would tell a console its edit
+    // landed — a worse failure than saying plainly that it did not.
+    throw new NotImplementedException(
+      'Roster editing is not implemented yet; check-in enforcement is, and this request passed it',
+    );
   }
 
   /**
-   * The check-in window, read from tournament state.
+   * The check-in window, read from the tournament's latest ruleset.
    *
-   * Absent for now: the window is authored by this phase's wizard and stored
-   * with the ruleset, which `0024` persists. Until then no tournament requires
-   * check-in, so nothing locks — which is the correct default for a system that
-   * only enforces what the organizer configured.
+   * The wizard writes `registration.requiresCheckIn` and
+   * `registration.checkInClosesAt` as overrides when the tournament is created.
+   * A tournament that declared neither never locks, which is the correct
+   * default for a system that enforces only what the organizer configured.
    */
   private async checkInWindow(tournamentId: string): Promise<CheckInWindow> {
     const ruleset = await new TournamentRepository(this.db).findLatestRuleset(tournamentId);
