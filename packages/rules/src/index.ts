@@ -53,12 +53,14 @@ export {
   NotifyAction,
   StartTimerAction,
   StopTimerAction,
+  AdjustStatisticAction,
 } from './effects/actions.js';
 export {
   effectIdentityKey,
   declaredEffect,
   toNotificationInstance,
   toDeclaredTimer,
+  toStatisticAdjustment,
   remainingSeconds,
   EFFECTS_STATE_KEY,
   type DeclaredEffect,

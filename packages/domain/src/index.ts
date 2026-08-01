@@ -152,6 +152,11 @@ export {
   type ResolvedActor,
 } from './statistics/hierarchies.js';
 export {
+  checkAdjustment,
+  AdjustmentError,
+  type StatisticAdjustment,
+} from './statistics/adjustment.js';
+export {
   validatePerson,
   normaliseNaturalKey,
   sameNaturalKey,
@@ -314,6 +319,7 @@ export {
   pointsFor,
   declaredStatisticsSchema,
   type OutcomeSide,
+  type OutcomeContributor,
   type RecordedOutcome,
   type OutcomeValidationOptions,
 } from './standings/index.js';

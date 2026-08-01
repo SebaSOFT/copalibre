@@ -4,6 +4,7 @@ import {
   remainingSeconds,
   toDeclaredTimer,
   toNotificationInstance,
+  toStatisticAdjustment,
   type DeclaredEffect,
   type EffectOrigin,
 } from './declared-effects.js';
@@ -141,5 +142,63 @@ describe('remainingSeconds', () => {
     // A clock read before the causing instant is a caller's problem, not a
     // reason to invent a number: the arithmetic is stated and stays honest.
     expect(remainingSeconds(timer, 999_000)).toBe(61);
+  });
+});
+
+describe('toStatisticAdjustment', () => {
+  const adjustment = effect({
+    kind: 'statistic-adjustment',
+    payload: {
+      collectorCode: 'points',
+      actorGranularity: 'team',
+      actorId: 'tm-1',
+      delta: -3,
+      reason: 'Fielded an unregistered player',
+    },
+  });
+
+  it('reads a well-formed declaration, naming the script as the actor', () => {
+    expect(toStatisticAdjustment(adjustment)).toEqual({
+      collectorCode: 'points',
+      actorGranularity: 'team',
+      actorId: 'tm-1',
+      delta: -3,
+      reason: 'Fielded an unregistered player',
+      // "A rule did it" is an answer only when the rule can be pointed at.
+      actor: 'script:lead-alert',
+    });
+  });
+
+  it('names the rule when the declaration carries no reason of its own', () => {
+    const bare = toStatisticAdjustment(
+      effect({
+        kind: 'statistic-adjustment',
+        payload: { collectorCode: 'points', actorGranularity: 'team', actorId: 'tm-1', delta: 1 },
+      }),
+    );
+
+    expect(bare?.reason).toContain('lead-alert/comfortable-lead');
+  });
+
+  it('is nothing for another kind of effect', () => {
+    expect(toStatisticAdjustment(effect())).toBeUndefined();
+  });
+
+  it.each([
+    ['no collector', { actorGranularity: 'team', actorId: 'tm-1', delta: 1 }],
+    [
+      'an unpublished granularity',
+      { collectorCode: 'p', actorGranularity: 'referee', actorId: 'a', delta: 1 },
+    ],
+    ['no subject', { collectorCode: 'p', actorGranularity: 'team', delta: 1 }],
+    ['a text delta', { collectorCode: 'p', actorGranularity: 'team', actorId: 'a', delta: '1' }],
+    [
+      'an infinite delta',
+      { collectorCode: 'p', actorGranularity: 'team', actorId: 'a', delta: Number.NaN },
+    ],
+  ])('is nothing for a declaration with %s', (_label, payload) => {
+    expect(
+      toStatisticAdjustment(effect({ kind: 'statistic-adjustment', payload })),
+    ).toBeUndefined();
   });
 });

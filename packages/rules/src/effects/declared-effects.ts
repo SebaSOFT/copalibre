@@ -1,3 +1,4 @@
+import { isActorGranularity, type StatisticAdjustment } from '@copalibre/domain';
 import type { NotificationInstance } from '../notifications/notification-rules.js';
 
 /**
@@ -22,7 +23,8 @@ import type { NotificationInstance } from '../notifications/notification-rules.j
  * recalculation.
  */
 
-export type DeclaredEffectKind = 'notification' | 'timer-start' | 'timer-stop';
+export type DeclaredEffectKind =
+  'notification' | 'timer-start' | 'timer-stop' | 'statistic-adjustment';
 
 /**
  * What produced an effect. Named rather than implied, so an effect is traceable
@@ -140,4 +142,35 @@ export function remainingSeconds(timer: DeclaredTimer, now: number): number {
 
 function asText(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined;
+}
+
+/**
+ * The adjustment a `statistic-adjustment` effect carries, or nothing if
+ * malformed.
+ *
+ * The script is named as the actor, because "who moved this number" must have
+ * an answer, and "a rule did" is only an answer when the rule can be pointed
+ * at. The identity key rides along as the reason's provenance so a re-evaluation
+ * of the same event recognises the adjustment it already declared instead of
+ * declaring a second one.
+ */
+export function toStatisticAdjustment(effect: DeclaredEffect): StatisticAdjustment | undefined {
+  if (effect.kind !== 'statistic-adjustment') return undefined;
+
+  const { collectorCode, actorGranularity, actorId, delta, reason } = effect.payload;
+  if (typeof collectorCode !== 'string' || collectorCode === '') return undefined;
+  if (typeof actorId !== 'string' || actorId === '') return undefined;
+  if (typeof delta !== 'number' || !Number.isFinite(delta)) return undefined;
+  if (typeof actorGranularity !== 'string' || !isActorGranularity(actorGranularity)) {
+    return undefined;
+  }
+
+  return {
+    collectorCode,
+    actorGranularity,
+    actorId,
+    delta,
+    reason: asText(reason) ?? `Declared by ${effect.origin.scriptId}/${effect.origin.ruleId}`,
+    actor: `script:${effect.origin.scriptId}`,
+  };
 }

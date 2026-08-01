@@ -81,6 +81,16 @@ export {
   type Standings,
 } from './standings/index.js';
 export {
+  foldStatistics,
+  aggregateTo,
+  contributorsOf,
+  type CollectedFigure,
+  type FigureKey,
+  type ActorContext,
+  type CompetitionContext,
+  type StatisticAdjustment,
+} from './statistics/fold.js';
+export {
   resolveAdvancement,
   unlockedByFinalization,
   playableMatches,

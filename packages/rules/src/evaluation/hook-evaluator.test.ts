@@ -125,6 +125,100 @@ const timerScript = {
   ],
 } as unknown as RuleScript;
 
+/** Deducts points without touching a total: it declares, the fold applies. */
+const deductionScript = {
+  id: 'discipline',
+  rules: [
+    {
+      id: 'unregistered-player',
+      type: 'simple_rule',
+      options: {},
+      conditions: [],
+      actions: [
+        {
+          id: 'deduct',
+          type: 'adjustStatistic',
+          options: {},
+          params: [
+            {
+              id: 'p1',
+              name: 'collectorCode',
+              type: 'simple_string',
+              value: 'points',
+              options: {},
+            },
+            {
+              id: 'p2',
+              name: 'actorGranularity',
+              type: 'simple_string',
+              value: 'team',
+              options: {},
+            },
+            { id: 'p3', name: 'actorId', type: 'simple_string', value: 'tm-1', options: {} },
+            { id: 'p4', name: 'delta', type: 'simple_number', value: -3, options: {} },
+            {
+              id: 'p5',
+              name: 'reason',
+              type: 'simple_string',
+              value: 'Fielded an unregistered player',
+              options: {},
+            },
+          ],
+        },
+      ],
+    },
+  ],
+} as unknown as RuleScript;
+
+describe('adjustStatistic declares a movement and performs none', () => {
+  it('produces an adjustment carrying its subject, delta and reason', () => {
+    const decision = evaluateAtHook(registry(), input({ script: deductionScript }));
+
+    expect(decision.ok).toBe(true);
+    if (!decision.ok) return;
+    expect(decision.value.effects[0]).toMatchObject({
+      kind: 'statistic-adjustment',
+      payload: {
+        collectorCode: 'points',
+        actorGranularity: 'team',
+        actorId: 'tm-1',
+        delta: -3,
+        reason: 'Fielded an unregistered player',
+      },
+    });
+  });
+
+  it('keeps one identity across re-evaluation, so a replay does not deduct twice', () => {
+    const first = evaluateAtHook(registry(), input({ script: deductionScript }));
+    const second = evaluateAtHook(registry(), input({ script: deductionScript }));
+
+    expect(first.ok && second.ok).toBe(true);
+    if (!first.ok || !second.ok) return;
+    expect(first.value.effects[0]?.identityKey).toBe(second.value.effects[0]?.identityKey);
+  });
+
+  it('fails the evaluation when the subject is missing, rather than moving an unnamed total', () => {
+    const incomplete = {
+      id: 'discipline',
+      rules: [
+        {
+          id: 'unregistered-player',
+          type: 'simple_rule',
+          options: {},
+          conditions: [],
+          actions: [{ id: 'deduct', type: 'adjustStatistic', options: {}, params: [] }],
+        },
+      ],
+    } as unknown as RuleScript;
+
+    const decision = evaluateAtHook(registry(), input({ script: incomplete }));
+
+    // Nothing partially declared survives: the evaluation fails whole, which is
+    // the only outcome that cannot leave half a deduction behind.
+    expect(decision.ok).toBe(false);
+  });
+});
+
 describe('polarity decides what silence means', () => {
   it('an empty script passes at a permissive hook, having forbidden nothing', () => {
     const decision = evaluateAtHook(registry(), input());
