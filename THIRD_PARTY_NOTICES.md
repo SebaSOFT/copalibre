@@ -1,45 +1,41 @@
 # Third-party notices
 
-CopaLibre is licensed under **AGPL-3.0-only** (see `LICENSE`). It incorporates and depends on
-third-party open-source software under permissive licenses. This file is the inventory the
-project's license policy requires (see chaos-vault:
-`20-knowledge-domains/copalibre-platform-architecture.md`, § "License and AGPL policy").
+CopaLibre is AGPL-3.0-only. Components copied into this repository keep their
+original licence and notice; this file records what was copied, from where, and
+at what version.
 
-## Policy
+Copied rather than depended on because the control app owns its interaction
+surface: a UI dependency that changes behaviour in a minor release changes an
+operator's console mid-tournament. Owning the file makes an upgrade a decision.
 
-- Production dependencies MUST carry a license on the reviewed allowlist enforced by
-  `yarn license:check` in CI: `MIT`, `Apache-2.0`, `BSD-2-Clause`, `BSD-3-Clause`, `ISC`,
-  plus the individually reviewed additions listed below.
-- A dependency with any other license fails CI and requires a manual review before adoption;
-  record the outcome in this file.
-- When shadcn/ui-style component source or Radix-derived code is copied into this repository
-  (starting at phase `0022-control-web-shell-and-org-dashboard`), each copied file's origin and
-  its MIT copyright notice MUST be recorded in the "Vendored source" section below.
-- Proprietary shadcn registries, paid blocks, or third-party templates require a separate
-  license review before use — none are approved today.
+## `apps/web/src/control/components/ui/`
 
-## Reviewed allowlist additions
+| File         | Source             | Version | Licence |
+| ------------ | ------------------ | ------- | ------- |
+| `button.tsx` | shadcn/ui `button` | 2.3.0   | MIT     |
+| `card.tsx`   | shadcn/ui `card`   | 2.3.0   | MIT     |
+| `badge.tsx`  | shadcn/ui `badge`  | 2.3.0   | MIT     |
 
-These SPDX identifiers were reviewed and added to the allowlist because they are permissive,
-GPL-compatible, and appear only in transitive dependencies:
+### MIT License (shadcn/ui)
 
-| SPDX ID                                   | Rationale                                                                                      |
-| ----------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `0BSD`                                    | Public-domain-equivalent permissive license                                                    |
-| `BlueOak-1.0.0`                           | Permissive; common in modern JS tooling                                                        |
-| `CC0-1.0`                                 | Public-domain dedication                                                                       |
-| `CC-BY-4.0`                               | Attribution-only; data files (e.g. caniuse-lite)                                               |
-| `Unlicense`                               | Public-domain dedication                                                                       |
-| `Python-2.0`                              | Permissive; appears via argparse                                                               |
-| `MPL-2.0`                                 | File-level copyleft with explicit GPL-family compatibility; lightningcss (Astro build tooling) |
-| `LGPL-3.0-or-later`                       | AGPL-compatible; sharp's libvips binary (Astro image service)                                  |
-| `CC-BY-3.0`                               | Attribution-only; SPDX data files inside the license scanner itself                            |
-| `(MIT OR CC0-1.0)`, `(MIT AND CC-BY-3.0)` | Dual/combined expressions of already-allowed licenses                                          |
+```
+Copyright (c) 2023 shadcn
 
-The scan runs across the full dependency tree (dev and production) — stricter than the
-distribution obligation requires, which keeps the gate simple and CI-stable.
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-## Vendored source
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-_None yet. First entries arrive with phase `0022-control-web-shell-and-org-dashboard`
-(copied shadcn/ui-style components and their Radix dependencies)._
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```

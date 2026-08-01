@@ -192,6 +192,14 @@ jobs:
           path: apps/events/coverage
           retention-days: 14
 
+  # Added by 0022: a copied component is how an MIT notice quietly disappears.
+  third-party-notices:
+    name: Third-party notices
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: node scripts/check-third-party-notices.mjs
+
   # Added by 0020: the public site is built and its output inspected — the page
   # must be complete without JavaScript, and the sitemap must not advertise an
   # operator or venue route.
