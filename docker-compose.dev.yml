@@ -1,5 +1,5 @@
 # Development-only stateful dependencies (task 7.1 of 0001-bootstrap-monorepo-toolchain).
-# Application containers are deliberately absent until phase 0021-deployment-docker-compose-cli.
+# Application containers are deliberately absent until phase 0030-deployment-docker-compose-cli.
 # PostgreSQL major version is pinned here; phase 0004-persistence-postgres-outbox-audit owns
 # any future bump decision.
 services:

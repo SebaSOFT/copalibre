@@ -65,7 +65,7 @@ describe('competition record (integration)', () => {
         descriptor,
         ...AUDIT,
       });
-      const stage = await competition.createStage(uow, {
+      const stage = await competition.createStageInTournament(uow, {
         tournamentId: tournament.tournamentId,
         number: 1,
         name: 'League',

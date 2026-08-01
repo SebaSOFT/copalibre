@@ -34,7 +34,7 @@ import { createMigratedDatabase } from '../../persistence/src/test-support/scrat
  * transactions, its timer keeps the clock it was declared with, and neither
  * reaches the outbox unless the transaction that produced it commits.
  *
- * Delivery itself is not this phase's — `0015-worker-scheduler-async-jobs`
+ * Delivery itself is not this phase's — `0017-worker-scheduler-async-jobs`
  * relays the outbox. What is proven here is the contract delivery will rely on.
  */
 
@@ -278,7 +278,7 @@ describe('finalization and advancement (integration)', () => {
   async function storedMatch(label: string) {
     const competition = new CompetitionRepository(scratch.db);
     return withTransaction(scratch.db, async (uow) => {
-      const stage = await competition.createStage(uow, {
+      const stage = await competition.createStageInTournament(uow, {
         tournamentId,
         number: stageNumber++,
         name: label,

@@ -125,6 +125,26 @@ export {
   type ScriptConstraint,
 } from './rulesets/draw-constraints.js';
 export {
+  validatePerson,
+  normaliseNaturalKey,
+  sameNaturalKey,
+  isDuplicateMembership,
+  squadOfDiscipline,
+  PersonError,
+  type Person,
+  type Player,
+  type PlayerRole,
+  type NaturalKey,
+} from './aggregates/person.js';
+export {
+  validateSeason,
+  competitionName,
+  isImplicitSeason,
+  SeasonError,
+  IMPLICIT_SEASON_NAME,
+  type Season,
+} from './aggregates/season.js';
+export {
   planCorrection,
   CorrectionError,
   type CorrectionRequest,
@@ -212,14 +232,7 @@ export {
   ModuleFrozenError,
   type StartPreconditions,
 } from './aggregates/tournament-start.js';
-export type {
-  Participant,
-  Team,
-  RosterMember,
-  Roster,
-  EntrantStatus,
-  Entrant,
-} from './aggregates/participant.js';
+export type { Team, EntrantStatus, Entrant } from './aggregates/participant.js';
 export {
   validateAttributes,
   assertWeightingComplete,

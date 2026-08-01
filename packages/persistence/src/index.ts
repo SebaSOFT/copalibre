@@ -45,10 +45,11 @@ export {
   type CreateTournamentInput,
   type CreateRulesetInput,
 } from './repositories/tournament-repository.js';
-export { ParticipantRepository, type AuditContext } from './repositories/participant-repository.js';
+export { EnrollmentRepository, type AuditContext } from './repositories/enrollment-repository.js';
 export { CompetitionRepository } from './repositories/competition-repository.js';
 export { ScheduleRepository, type SchedulePreview } from './repositories/schedule-repository.js';
 export { MatchAssignmentRepository } from './repositories/match-assignment-repository.js';
+export { PersonRepository } from './repositories/person-repository.js';
 /** Re-exported so an API layer can tell a caller's conflict from a fault. */
 export { ScheduleConflictError } from '@copalibre/domain';
 export {
@@ -65,9 +66,7 @@ export {
 export {
   toOrganization,
   toTournament,
-  toParticipant,
   toTeam,
-  toRoster,
   toEntrant,
   toStage,
   toMatch,

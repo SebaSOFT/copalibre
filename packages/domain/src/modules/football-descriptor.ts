@@ -37,7 +37,7 @@ export function footballDescriptor(
         label: 'Goal',
         category: 'positive',
         permittedSegmentTypes: segmentTypes,
-        actorRequirement: 'participant',
+        actorRequirement: 'person',
         payloadSchema: {
           type: 'object',
           properties: { assistedBy: { type: 'string' }, penalty: { type: 'boolean' } },
@@ -52,7 +52,7 @@ export function footballDescriptor(
         label: 'Yellow card',
         category: 'negative',
         permittedSegmentTypes: segmentTypes,
-        actorRequirement: 'participant',
+        actorRequirement: 'person',
         payloadSchema: { type: 'object', properties: { reason: { type: 'string' } } },
       },
       {
@@ -60,7 +60,7 @@ export function footballDescriptor(
         label: 'Red card',
         category: 'negative',
         permittedSegmentTypes: segmentTypes,
-        actorRequirement: 'participant',
+        actorRequirement: 'person',
         payloadSchema: { type: 'object', properties: { reason: { type: 'string' } } },
       },
       ...segmentThresholdEventDefinitions(segmentTypes),

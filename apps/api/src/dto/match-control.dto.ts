@@ -30,7 +30,7 @@ export class RunningTimerDto {
   side?: string;
 
   @ApiPropertyOptional({ format: 'uuid' })
-  participantId?: string;
+  personId?: string;
 
   @ApiProperty({ description: 'Epoch milliseconds of the causing event' })
   startedAt!: number;
@@ -59,7 +59,7 @@ export class RecordEventRequest {
   side?: string;
 
   @ApiPropertyOptional({ format: 'uuid', description: 'The person, when the discipline needs one' })
-  participantId?: string;
+  personId?: string;
 
   @ApiPropertyOptional({ type: Object, description: 'Payload validated against the definition' })
   payload?: Record<string, unknown>;
@@ -79,7 +79,7 @@ export class RecordedEventResponse {
   side?: string;
 
   @ApiPropertyOptional({ format: 'uuid' })
-  participantId?: string;
+  personId?: string;
 
   @ApiProperty({
     type: [String],

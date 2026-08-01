@@ -12,7 +12,7 @@ import {
   CompetitionRepository,
   newId,
   OrganizationRepository,
-  ParticipantRepository,
+  EnrollmentRepository,
   TournamentRepository,
   withTransaction,
 } from '@copalibre/persistence';
@@ -91,7 +91,7 @@ describe('stage transition (integration)', () => {
   async function seedGroupStage(alias: string) {
     const tournaments = new TournamentRepository(scratch.db);
     const competition = new CompetitionRepository(scratch.db);
-    const participants = new ParticipantRepository(scratch.db);
+    const participants = new EnrollmentRepository(scratch.db);
     const descriptor = league();
 
     return withTransaction(scratch.db, async (uow) => {
@@ -103,7 +103,7 @@ describe('stage transition (integration)', () => {
         descriptor,
         ...AUDIT,
       });
-      const stage = await competition.createStage(uow, {
+      const stage = await competition.createStageInTournament(uow, {
         tournamentId: tournament.tournamentId,
         number: 1,
         name: 'Group',
@@ -165,7 +165,7 @@ describe('stage transition (integration)', () => {
     const { tournament, stage, descriptor, entrants, match } =
       await seedGroupStage('copa-transicion');
     const records = new CompetitionRecordRepository(scratch.db);
-    const participants = new ParticipantRepository(scratch.db);
+    const participants = new EnrollmentRepository(scratch.db);
 
     const ids = entrants.map((entry) => entry.entrant.entrantId);
     const graph = generateFixtures({
@@ -233,15 +233,16 @@ describe('stage transition (integration)', () => {
     // Nothing was written by the preview: no fixtures, no seeds, no standings.
     const stagesBefore = await scratch.db
       .selectFrom('stages')
+      .innerJoin('seasons', 'seasons.season_id', 'stages.season_id')
       .select((eb) => eb.fn.countAll<string>().as('count'))
-      .where('tournament_id', '=', tournament.tournamentId)
+      .where('seasons.tournament_id', '=', tournament.tournamentId)
       .executeTakeFirstOrThrow();
     expect(stagesBefore.count).toBe('1');
     await expect(records.latestStandings(stage.stageId)).resolves.toBeUndefined();
 
     // Committing is the caller's audited write, and only now does state change.
     const nextStage = await withTransaction(scratch.db, async (uow) => {
-      const created = await new CompetitionRepository(scratch.db).createStage(uow, {
+      const created = await new CompetitionRepository(scratch.db).createStageInTournament(uow, {
         tournamentId: tournament.tournamentId,
         number: 2,
         name: 'Playoff',
@@ -280,7 +281,7 @@ describe('stage transition (integration)', () => {
 
   it('draws the next stage under a separation constraint, reproducibly', async () => {
     const { entrants } = await seedGroupStage('copa-sorteo');
-    const participants = new ParticipantRepository(scratch.db);
+    const participants = new EnrollmentRepository(scratch.db);
 
     const attributes = await participants.listTournamentAttributes(
       entrants[0]?.entrant.tournamentId ?? '',

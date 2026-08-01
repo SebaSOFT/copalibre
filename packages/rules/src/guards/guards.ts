@@ -1,4 +1,4 @@
-import type { MatchRuleset, Participant, RecordedEvent, Result, Roster } from '@copalibre/domain';
+import type { MatchRuleset, Person, Player, RecordedEvent, Result } from '@copalibre/domain';
 import type { GuardEvaluationError, ScriptValidationError } from '../errors.js';
 import { evaluateGuard, type GuardDecision } from '../evaluation/guard-evaluator.js';
 import type { RulesRegistry, RuleScript } from '../registry/rules-registry.js';
@@ -10,8 +10,9 @@ import type { RulesRegistry, RuleScript } from '../registry/rules-registry.js';
  */
 
 export interface EligibilityFacts {
-  readonly participant?: Participant;
-  readonly roster?: Roster;
+  readonly person?: Person;
+  /** The team's squad: the memberships pointing at it. */
+  readonly squad?: readonly Player[];
   readonly lineup?: readonly string[];
   /** Effective configuration the eligibility rules read constraints from. */
   readonly rulesetConfig?: Readonly<Record<string, unknown>>;

@@ -36,7 +36,7 @@ export interface RecordedEvent {
    */
   readonly side?: string;
   /** The person, when the discipline requires one. Always inside `side`. */
-  readonly participantId?: string;
+  readonly personId?: string;
   readonly payload: Readonly<Record<string, unknown>>;
 }
 
@@ -48,7 +48,7 @@ export interface RecordEventInput {
   readonly occurredAt: string;
   /** The entrant this event belongs to. */
   readonly side?: string;
-  readonly participantId?: string;
+  readonly personId?: string;
   readonly payload?: Readonly<Record<string, unknown>>;
   /**
    * The entrants contesting this match. When given, a recorded side must be one
@@ -103,7 +103,7 @@ export class EventLog {
       occurredAt: input.occurredAt,
       sequence: this.events.length + 1,
       side: input.side,
-      participantId: input.participantId,
+      personId: input.personId,
       payload: Object.freeze({ ...payload }),
     });
     this.events.push(event);
@@ -165,9 +165,9 @@ function validateActor(
         : new EventValidationError(`Event "${definition.code}" requires a side`, {
             definitionCode: definition.code,
           });
-    case 'participant':
-    case 'participant-or-staff':
-      return input.participantId
+    case 'person':
+    case 'person-or-staff':
+      return input.personId
         ? undefined
         : new EventValidationError(`Event "${definition.code}" requires a participant`, {
             definitionCode: definition.code,

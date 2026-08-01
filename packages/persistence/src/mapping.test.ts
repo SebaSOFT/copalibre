@@ -6,9 +6,7 @@ import {
   toResourceAssignment,
   toVenue,
   toOrganization,
-  toParticipant,
   toRecordedEvent,
-  toRoster,
   toSegment,
   toStage,
   toTeam,
@@ -17,8 +15,6 @@ import {
   type MatchEventRow,
   type MatchRow,
   type OrganizationRow,
-  type ParticipantRow,
-  type RosterRow,
   type SegmentRow,
   type OfficialRow,
   type StageRow,
@@ -71,34 +67,15 @@ describe('snake_case row → camelCase domain mapping', () => {
   });
 
   it('maps nullable columns to undefined, never null', () => {
-    const participant: ParticipantRow = {
-      participant_id: 'p-1',
-      organization_id: 'org-1',
-      alias: null,
-      display_name: 'Jugador Uno',
-      participant_type: 'individual',
-      created_at: CREATED,
-    };
-    expect(toParticipant(participant).alias).toBeUndefined();
-
     const team: TeamRow = {
       team_id: 'tm-1',
       organization_id: 'org-1',
       club_id: null,
       name: 'Equipo Uno',
+      discipline_id: null,
       created_at: CREATED,
     };
     expect(toTeam(team).clubId).toBeUndefined();
-  });
-
-  it('maps a roster row preserving member documents', () => {
-    const row: RosterRow = {
-      roster_id: 'r-1',
-      team_id: 'tm-1',
-      members: [{ participantId: 'p-1', role: 'player' }] as never,
-      created_at: CREATED,
-    };
-    expect(toRoster(row).members).toEqual([{ participantId: 'p-1', role: 'player' }]);
   });
 
   it('maps an entrant row into the discriminated entrantRef union', () => {
@@ -106,7 +83,7 @@ describe('snake_case row → camelCase domain mapping', () => {
       entrant_id: 'e-1',
       tournament_id: 't-1',
       entrant_kind: 'team',
-      participant_id: null,
+      person_id: null,
       team_id: 'tm-1',
       seed: 4,
       status: 'accepted',
@@ -116,20 +93,20 @@ describe('snake_case row → camelCase domain mapping', () => {
 
     const soloEntrant: EntrantRow = {
       ...teamEntrant,
-      entrant_kind: 'participant',
-      participant_id: 'p-1',
+      entrant_kind: 'person',
+      person_id: 'p-1',
       team_id: null,
       seed: null,
     };
     const mapped = toEntrant(soloEntrant);
-    expect(mapped.entrantRef).toEqual({ kind: 'participant', participantId: 'p-1' });
+    expect(mapped.entrantRef).toEqual({ kind: 'person', personId: 'p-1' });
     expect(mapped.seed).toBeUndefined();
   });
 
   it('maps a stage row', () => {
     const row: StageRow = {
       stage_id: 's-1',
-      tournament_id: 't-1',
+      season_id: 's-1',
       number: 1,
       name: 'Group Stage',
       format: 'round-robin',
@@ -138,7 +115,7 @@ describe('snake_case row → camelCase domain mapping', () => {
     };
     expect(toStage(row)).toEqual({
       stageId: 's-1',
-      tournamentId: 't-1',
+      seasonId: 's-1',
       number: 1,
       name: 'Group Stage',
       format: 'round-robin',
@@ -189,7 +166,7 @@ describe('snake_case row → camelCase domain mapping', () => {
       occurred_at: CREATED,
       sequence: 1,
       side: 'entrant-atlas',
-      participant_id: 'p-1',
+      person_id: 'p-1',
       payload: { zone: 'inner' } as never,
       created_at: CREATED,
     };
@@ -201,7 +178,7 @@ describe('snake_case row → camelCase domain mapping', () => {
       occurredAt: '2026-07-29T12:00:00.000Z',
       sequence: 1,
       side: 'entrant-atlas',
-      participantId: 'p-1',
+      personId: 'p-1',
       payload: { zone: 'inner' },
     });
   });
@@ -227,13 +204,13 @@ describe('mapping edge cases', () => {
       occurred_at: CREATED,
       sequence: 2,
       side: null,
-      participant_id: null,
+      person_id: null,
       payload: {} as never,
       created_at: CREATED,
     };
     const mapped = toRecordedEvent(row);
     expect(mapped.side).toBeUndefined();
-    expect(mapped.participantId).toBeUndefined();
+    expect(mapped.personId).toBeUndefined();
   });
 
   it('maps a tournament that already has a ruleset attached', () => {
@@ -257,7 +234,7 @@ describe('mapping edge cases', () => {
   it('maps a stage that already has a configuration attached', () => {
     const row: StageRow = {
       stage_id: 's-2',
-      tournament_id: 't-1',
+      season_id: 's-1',
       number: 2,
       name: 'Playoffs',
       format: 'single-elimination',

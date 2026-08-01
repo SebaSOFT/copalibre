@@ -1,10 +1,7 @@
 import {
-  Alias,
   validateAttributes,
   type Entrant,
   type EntrantAttribute,
-  type Participant,
-  type Roster,
   type SeedPlacement,
   type StageAllocation,
   type Team,
@@ -12,7 +9,7 @@ import {
 import type { Kysely } from 'kysely';
 import { InvariantViolationError } from '../errors.js';
 import { newId } from '../ids.js';
-import { toEntrant, toEntrantAttribute, toParticipant, toRoster, toTeam } from '../mapping.js';
+import { toEntrant, toEntrantAttribute, toTeam } from '../mapping.js';
 import type { Database } from '../schema.js';
 import type { UnitOfWork } from '../transaction.js';
 
@@ -22,51 +19,8 @@ export interface AuditContext {
   readonly authorizationContext: string;
 }
 
-export class ParticipantRepository {
+export class EnrollmentRepository {
   constructor(private readonly db: Kysely<Database>) {}
-
-  async createParticipant(
-    uow: UnitOfWork,
-    input: {
-      readonly organizationId: string;
-      readonly alias?: string;
-      readonly displayName: string;
-      readonly type: Participant['type'];
-    } & Omit<AuditContext, 'organizationId'>,
-  ): Promise<Participant> {
-    if (input.alias !== undefined) {
-      const alias = Alias.create('participant', input.alias);
-      if (!alias.ok) {
-        throw new InvariantViolationError(alias.error.message, { alias: input.alias });
-      }
-    }
-
-    const participantId = newId();
-    const row = await uow.tx
-      .insertInto('participants')
-      .values({
-        participant_id: participantId,
-        organization_id: input.organizationId,
-        alias: input.alias ?? null,
-        display_name: input.displayName,
-        participant_type: input.type,
-        created_at: new Date(),
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
-
-    const participant = toParticipant(row);
-    await uow.recordAudit({
-      organizationId: input.organizationId,
-      entityType: 'participant',
-      entityId: participantId,
-      action: 'participant.created',
-      actor: input.actor,
-      authorizationContext: input.authorizationContext,
-      resultingState: { ...participant },
-    });
-    return participant;
-  }
 
   async createTeam(
     uow: UnitOfWork,
@@ -74,6 +28,7 @@ export class ParticipantRepository {
       readonly organizationId: string;
       readonly clubId?: string;
       readonly name: string;
+      readonly disciplineId?: string;
     } & Omit<AuditContext, 'organizationId'>,
   ): Promise<Team> {
     const teamId = newId();
@@ -83,6 +38,7 @@ export class ParticipantRepository {
         team_id: teamId,
         organization_id: input.organizationId,
         club_id: input.clubId ?? null,
+        discipline_id: input.disciplineId ?? null,
         name: input.name,
         created_at: new Date(),
       })
@@ -102,35 +58,6 @@ export class ParticipantRepository {
     return team;
   }
 
-  async saveRoster(
-    uow: UnitOfWork,
-    input: { readonly teamId: string; readonly members: Roster['members'] } & AuditContext,
-  ): Promise<Roster> {
-    const rosterId = newId();
-    const row = await uow.tx
-      .insertInto('rosters')
-      .values({
-        roster_id: rosterId,
-        team_id: input.teamId,
-        members: JSON.stringify(input.members),
-        created_at: new Date(),
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
-
-    const roster = toRoster(row);
-    await uow.recordAudit({
-      organizationId: input.organizationId,
-      entityType: 'roster',
-      entityId: rosterId,
-      action: 'roster.saved',
-      actor: input.actor,
-      authorizationContext: input.authorizationContext,
-      resultingState: { rosterId, memberCount: input.members.length },
-    });
-    return roster;
-  }
-
   /** Registration intake. Status transitions are audited individually. */
   async registerEntrant(
     uow: UnitOfWork,
@@ -147,8 +74,7 @@ export class ParticipantRepository {
         entrant_id: entrantId,
         tournament_id: input.tournamentId,
         entrant_kind: input.entrantRef.kind,
-        participant_id:
-          input.entrantRef.kind === 'participant' ? input.entrantRef.participantId : null,
+        person_id: input.entrantRef.kind === 'person' ? input.entrantRef.personId : null,
         team_id: input.entrantRef.kind === 'team' ? input.entrantRef.teamId : null,
         seed: input.seed ?? null,
         status: 'pending',

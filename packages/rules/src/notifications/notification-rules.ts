@@ -11,7 +11,7 @@ import type { EvaluationRecord, TraceNode } from '../trace/explanation-trace.js'
  * same threshold crossing."
  */
 
-export type NotificationScope = 'match' | 'segment' | 'side' | 'participant';
+export type NotificationScope = 'match' | 'segment' | 'side' | 'person';
 
 export interface NotificationPredicate {
   readonly definitionCodes?: readonly string[];
@@ -125,7 +125,7 @@ export function evaluateNotificationRule(
         threshold: rule.threshold.value,
         eventId: event.eventId,
         side: event.side ?? null,
-        participantId: event.participantId ?? null,
+        personId: event.personId ?? null,
       };
       instances.push({
         identityKey: `${rule.id}@v${rule.version}|${scopeKey}|firing:${tracker.firings}`,
@@ -199,8 +199,8 @@ function scopeKeyFor(scope: NotificationScope, event: RecordedEvent): string {
       // The entrant, so a per-side counter reads the same in a duel and in an
       // eight-lane heat.
       return `match:${event.matchId}/side:${event.side ?? 'unknown'}`;
-    case 'participant':
-      return `participant:${event.participantId ?? 'unknown'}`;
+    case 'person':
+      return `person:${event.personId ?? 'unknown'}`;
   }
 }
 

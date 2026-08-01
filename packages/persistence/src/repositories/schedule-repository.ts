@@ -15,7 +15,7 @@ import { newId } from '../ids.js';
 import { toOfficial, toResourceAssignment, toVenue } from '../mapping.js';
 import type { Database } from '../schema.js';
 import type { UnitOfWork } from '../transaction.js';
-import type { AuditContext } from './participant-repository.js';
+import type { AuditContext } from './enrollment-repository.js';
 
 /**
  * Scheduling reads and writes.

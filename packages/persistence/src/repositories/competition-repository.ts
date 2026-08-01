@@ -1,3 +1,4 @@
+import { IMPLICIT_SEASON_NAME, validateSeason } from '@copalibre/domain';
 import type {
   Fixture,
   Match,
@@ -5,6 +6,7 @@ import type {
   MatchResult,
   MatchStatus,
   RecordedEvent,
+  Season,
   Segment,
   Stage,
   TournamentFormat,
@@ -15,7 +17,7 @@ import { newId } from '../ids.js';
 import { toIsoString, toMatch, toRecordedEvent, toSegment, toStage } from '../mapping.js';
 import type { Database } from '../schema.js';
 import type { UnitOfWork } from '../transaction.js';
-import type { AuditContext } from './participant-repository.js';
+import type { AuditContext } from './enrollment-repository.js';
 
 /**
  * Stage/Fixture/Match/Segment plus the append-only match-event log.
@@ -29,10 +31,111 @@ import type { AuditContext } from './participant-repository.js';
 export class CompetitionRepository {
   constructor(private readonly db: Kysely<Database>) {}
 
-  async createStage(
+  /**
+   * One running of a tournament (0015). Every tournament has at least one, so
+   * no reader ever meets a stage without an edition.
+   */
+  async createSeason(
     uow: UnitOfWork,
     input: {
       readonly tournamentId: string;
+      readonly name: string;
+      readonly ordinal: number;
+    } & AuditContext,
+  ): Promise<Season> {
+    const season: Season = {
+      seasonId: newId(),
+      tournamentId: input.tournamentId,
+      name: input.name,
+      ordinal: input.ordinal,
+    };
+    const valid = validateSeason(season);
+    if (!valid.ok) throw new InvariantViolationError(valid.error.message, valid.error.details);
+
+    await uow.tx
+      .insertInto('seasons')
+      .values({
+        season_id: season.seasonId,
+        tournament_id: season.tournamentId,
+        name: season.name,
+        ordinal: season.ordinal,
+        created_at: new Date(),
+      })
+      .execute();
+
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'season',
+      entityId: season.seasonId,
+      action: 'season.created',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      resultingState: { ...season },
+    });
+    return season;
+  }
+
+  /** The edition a tournament is on, creating the implicit first one if needed. */
+  async currentSeason(
+    uow: UnitOfWork,
+    input: { readonly tournamentId: string } & AuditContext,
+  ): Promise<Season> {
+    const existing = await this.listSeasons(input.tournamentId);
+    const latest = existing.at(-1);
+    if (latest) return latest;
+
+    return this.createSeason(uow, {
+      ...input,
+      name: IMPLICIT_SEASON_NAME,
+      ordinal: 1,
+    });
+  }
+
+  async listSeasons(tournamentId: string): Promise<readonly Season[]> {
+    const rows = await this.db
+      .selectFrom('seasons')
+      .selectAll()
+      .where('tournament_id', '=', tournamentId)
+      .orderBy('ordinal')
+      .execute();
+    return rows.map((row) => ({
+      seasonId: row.season_id,
+      tournamentId: row.tournament_id,
+      name: row.name,
+      ordinal: row.ordinal,
+    }));
+  }
+
+  /**
+   * A stage in a competition that has one edition (0015).
+   *
+   * Not a shortcut around the season: it *resolves* the tournament's current
+   * edition, creating the implicit one the first time. A caller that runs a
+   * competition every year names the season itself; a caller that will only
+   * ever run it once should not have to invent a name for that fact.
+   */
+  async createStageInTournament(
+    uow: UnitOfWork,
+    input: {
+      readonly tournamentId: string;
+      readonly number: number;
+      readonly name: string;
+      readonly format: TournamentFormat;
+    } & AuditContext,
+  ): Promise<Stage> {
+    const season = await this.currentSeason(uow, {
+      tournamentId: input.tournamentId,
+      organizationId: input.organizationId,
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+    });
+    return this.createStage(uow, { ...input, seasonId: season.seasonId });
+  }
+
+  async createStage(
+    uow: UnitOfWork,
+    input: {
+      readonly seasonId: string;
       readonly number: number;
       readonly name: string;
       readonly format: TournamentFormat;
@@ -43,7 +146,7 @@ export class CompetitionRepository {
       .insertInto('stages')
       .values({
         stage_id: stageId,
-        tournament_id: input.tournamentId,
+        season_id: input.seasonId,
         number: input.number,
         name: input.name,
         format: input.format,
@@ -451,7 +554,7 @@ export class CompetitionRepository {
         occurred_at: new Date(event.occurredAt),
         sequence: input.sequence,
         side: event.side ?? null,
-        participant_id: event.participantId ?? null,
+        person_id: event.personId ?? null,
         payload: JSON.stringify(event.payload),
         created_at: new Date(),
       })
@@ -567,13 +670,37 @@ export class CompetitionRepository {
     return row ? toMatch(row) : undefined;
   }
 
-  async listStages(tournamentId: string): Promise<readonly Stage[]> {
+  /** The stages of one edition, in order. */
+  async listStages(seasonId: string): Promise<readonly Stage[]> {
     const rows = await this.db
       .selectFrom('stages')
       .selectAll()
-      .where('tournament_id', '=', tournamentId)
+      .where('season_id', '=', seasonId)
       .orderBy('number')
       .execute();
     return rows.map(toStage);
+  }
+
+  /** Every stage a tournament has ever played, across its editions. */
+  async listStagesOfTournament(tournamentId: string): Promise<readonly Stage[]> {
+    const rows = await this.db
+      .selectFrom('stages')
+      .innerJoin('seasons', 'seasons.season_id', 'stages.season_id')
+      .selectAll('stages')
+      .where('seasons.tournament_id', '=', tournamentId)
+      .orderBy('seasons.ordinal')
+      .orderBy('stages.number')
+      .execute();
+    return rows.map(toStage);
+  }
+
+  /** The edition a stage belongs to, which is what scopes "the next stage". */
+  async seasonOfStage(stageId: string): Promise<string | undefined> {
+    const row = await this.db
+      .selectFrom('stages')
+      .select('season_id')
+      .where('stage_id', '=', stageId)
+      .executeTakeFirst();
+    return row?.season_id;
   }
 }

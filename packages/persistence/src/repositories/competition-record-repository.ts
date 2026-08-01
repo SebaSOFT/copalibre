@@ -5,7 +5,7 @@ import { newId } from '../ids.js';
 import { toIsoString } from '../mapping.js';
 import type { Database } from '../schema.js';
 import type { UnitOfWork } from '../transaction.js';
-import type { AuditContext } from './participant-repository.js';
+import type { AuditContext } from './enrollment-repository.js';
 
 /**
  * The durable record of a competition, independent of the modules that produced

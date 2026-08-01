@@ -70,18 +70,31 @@ export const initialSchema: Migration = {
       .addPrimaryKeyConstraint('tournament_rulesets_pk', ['ruleset_id', 'version'])
       .execute();
 
+    // A season is one running of a tournament (0015). Stages hang off the
+    // edition rather than off the competition that repeats, so "what did we
+    // play in 2025" is a relation and not a substring of a name.
     await db.schema
-      .createTable('stages')
-      .addColumn('stage_id', 'uuid', (col) => col.primaryKey())
+      .createTable('seasons')
+      .addColumn('season_id', 'uuid', (col) => col.primaryKey())
       .addColumn('tournament_id', 'uuid', (col) =>
         col.notNull().references('tournaments.tournament_id'),
       )
+      .addColumn('name', 'text', (col) => col.notNull())
+      .addColumn('ordinal', 'integer', (col) => col.notNull())
+      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addUniqueConstraint('seasons_tournament_ordinal_unique', ['tournament_id', 'ordinal'])
+      .execute();
+
+    await db.schema
+      .createTable('stages')
+      .addColumn('stage_id', 'uuid', (col) => col.primaryKey())
+      .addColumn('season_id', 'uuid', (col) => col.notNull().references('seasons.season_id'))
       .addColumn('number', 'integer', (col) => col.notNull())
       .addColumn('name', 'text', (col) => col.notNull())
       .addColumn('format', 'text', (col) => col.notNull())
       .addColumn('stage_configuration_id', 'uuid')
       .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
-      .addUniqueConstraint('stages_tournament_number_unique', ['tournament_id', 'number'])
+      .addUniqueConstraint('stages_season_number_unique', ['season_id', 'number'])
       .execute();
 
     await db.schema
@@ -95,16 +108,27 @@ export const initialSchema: Migration = {
       .addPrimaryKeyConstraint('stage_configurations_pk', ['stage_configuration_id', 'version'])
       .execute();
 
+    // The human, and their membership in a team (0015). Uniqueness is on the
+    // normalised key, scoped to the organization that holds it — two spellings
+    // of one document are one person, and recognising that is what stops an
+    // import creating a second.
     await db.schema
-      .createTable('participants')
-      .addColumn('participant_id', 'uuid', (col) => col.primaryKey())
+      .createTable('persons')
+      .addColumn('person_id', 'uuid', (col) => col.primaryKey())
       .addColumn('organization_id', 'uuid', (col) =>
         col.notNull().references('organizations.organization_id'),
       )
       .addColumn('alias', 'text')
       .addColumn('display_name', 'text', (col) => col.notNull())
-      .addColumn('participant_type', 'text', (col) => col.notNull())
+      .addColumn('natural_key_kind', 'text')
+      .addColumn('natural_key_value', 'text')
+      .addColumn('natural_key_normalised', 'text')
       .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addUniqueConstraint('persons_organization_natural_key_unique', [
+        'organization_id',
+        'natural_key_kind',
+        'natural_key_normalised',
+      ])
       .execute();
 
     await db.schema
@@ -115,15 +139,22 @@ export const initialSchema: Migration = {
       )
       .addColumn('club_id', 'uuid', (col) => col.references('clubs.club_id'))
       .addColumn('name', 'text', (col) => col.notNull())
+      // The discipline the side plays (0015), so a club's football and futsal
+      // teams are distinguishable. No FK: a discipline is a module that may be
+      // retired, and a finished competition stays readable without it (0008).
+      .addColumn('discipline_id', 'uuid')
       .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
       .execute();
 
     await db.schema
-      .createTable('rosters')
-      .addColumn('roster_id', 'uuid', (col) => col.primaryKey())
+      .createTable('players')
+      .addColumn('player_id', 'uuid', (col) => col.primaryKey())
+      .addColumn('person_id', 'uuid', (col) => col.notNull().references('persons.person_id'))
       .addColumn('team_id', 'uuid', (col) => col.notNull().references('teams.team_id'))
-      .addColumn('members', 'jsonb', (col) => col.notNull())
+      .addColumn('role', 'text', (col) => col.notNull())
       .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      // One membership per person per team; several teams per person is the point.
+      .addUniqueConstraint('players_person_team_unique', ['person_id', 'team_id'])
       .execute();
 
     await db.schema
@@ -133,7 +164,7 @@ export const initialSchema: Migration = {
         col.notNull().references('tournaments.tournament_id'),
       )
       .addColumn('entrant_kind', 'text', (col) => col.notNull())
-      .addColumn('participant_id', 'uuid', (col) => col.references('participants.participant_id'))
+      .addColumn('person_id', 'uuid', (col) => col.references('persons.person_id'))
       .addColumn('team_id', 'uuid', (col) => col.references('teams.team_id'))
       .addColumn('seed', 'integer')
       .addColumn('status', 'text', (col) => col.notNull())
@@ -256,7 +287,7 @@ export const initialSchema: Migration = {
       .addColumn('occurred_at', 'timestamptz', (col) => col.notNull())
       .addColumn('sequence', 'integer', (col) => col.notNull())
       .addColumn('side', 'text')
-      .addColumn('participant_id', 'uuid')
+      .addColumn('person_id', 'uuid')
       .addColumn('payload', 'jsonb', (col) => col.notNull())
       .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
       .addUniqueConstraint('match_events_match_sequence_unique', ['match_id', 'sequence'])
@@ -270,7 +301,7 @@ export const initialSchema: Migration = {
       .createTable('match_lineups')
       .addColumn('match_id', 'uuid', (col) => col.notNull().references('matches.match_id'))
       .addColumn('entrant_id', 'uuid', (col) => col.notNull())
-      .addColumn('participant_ids', 'jsonb', (col) => col.notNull())
+      .addColumn('person_ids', 'jsonb', (col) => col.notNull())
       .addColumn('updated_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
       .addPrimaryKeyConstraint('match_lineups_pk', ['match_id', 'entrant_id'])
       .execute();
@@ -437,11 +468,12 @@ export const initialSchema: Migration = {
       'fixtures',
       'entrant_attributes',
       'entrants',
-      'rosters',
+      'players',
       'teams',
-      'participants',
+      'persons',
       'stage_configurations',
       'stages',
+      'seasons',
       'tournament_rulesets',
       'tournaments',
       'discipline_descriptors',

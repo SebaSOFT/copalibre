@@ -199,7 +199,7 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
           label: { type: 'string', minLength: 1 },
           category: { enum: ['positive', 'negative', 'neutral'] },
           permittedSegmentTypes: { type: 'array', items: { type: 'string', minLength: 1 } },
-          actorRequirement: { enum: ['none', 'side', 'participant', 'participant-or-staff'] },
+          actorRequirement: { enum: ['none', 'side', 'person', 'person-or-staff'] },
           payloadSchema: { type: 'object' },
           effects: { type: 'array', items: { $ref: '#/definitions/eventEffect' } },
         },

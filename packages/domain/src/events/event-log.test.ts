@@ -20,7 +20,7 @@ function strikeInput(overrides?: Partial<RecordEventInput>): RecordEventInput {
     segment: half,
     definitionCode: 'strike',
     occurredAt: '2026-07-29T12:00:00.000Z',
-    participantId: 'p-9',
+    personId: 'p-9',
     payload: { zone: 'inner' },
     ...overrides,
   };
@@ -140,14 +140,14 @@ describe('EventLog', () => {
 
   it('rejects a missing actor when the definition requires one', () => {
     const log = new EventLog(fixtureDescriptor());
-    const result = log.record(strikeInput({ participantId: undefined }));
+    const result = log.record(strikeInput({ personId: undefined }));
     expect(result.ok).toBe(false);
   });
 
   it('accepts an actorless event when the definition requires none', () => {
     const log = new EventLog(fixtureDescriptor());
     const result = log.record(
-      strikeInput({ definitionCode: 'pause', participantId: undefined, payload: {} }),
+      strikeInput({ definitionCode: 'pause', personId: undefined, payload: {} }),
     );
     expect(result.ok).toBe(true);
   });

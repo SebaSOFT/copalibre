@@ -82,7 +82,7 @@ describe('applyMatchCommand', () => {
 
 describe('runningTimers', () => {
   it('derives what is left from the causing event, at each read', () => {
-    const events = [event({ sequence: 1, participantId: 'p-1' })];
+    const events = [event({ sequence: 1, personId: 'p-1' })];
 
     expect(runningTimers(events, codes, NOON)[0]?.remainingSeconds).toBe(120);
     expect(runningTimers(events, codes, NOON + 30_000)[0]?.remainingSeconds).toBe(90);
@@ -90,13 +90,13 @@ describe('runningTimers', () => {
   });
 
   it('drops a timer that has run out, because expiry is arithmetic', () => {
-    const events = [event({ sequence: 1, participantId: 'p-1' })];
+    const events = [event({ sequence: 1, personId: 'p-1' })];
 
     expect(runningTimers(events, codes, NOON + 120_000)).toHaveLength(0);
   });
 
   it('reads the same twice, because nothing was decremented in between', () => {
-    const events = [event({ sequence: 1, participantId: 'p-1' })];
+    const events = [event({ sequence: 1, personId: 'p-1' })];
 
     expect(runningTimers(events, codes, NOON + 30_000)).toEqual(
       runningTimers(events, codes, NOON + 30_000),
@@ -105,9 +105,9 @@ describe('runningTimers', () => {
 
   it('runs one timer per person, at any arity', () => {
     const events = [
-      event({ sequence: 1, participantId: 'p-1', side: 'entrant-atlas' }),
-      event({ sequence: 2, participantId: 'p-2', side: 'entrant-boca' }),
-      event({ sequence: 3, participantId: 'p-3', side: 'entrant-river' }),
+      event({ sequence: 1, personId: 'p-1', side: 'entrant-atlas' }),
+      event({ sequence: 2, personId: 'p-2', side: 'entrant-boca' }),
+      event({ sequence: 3, personId: 'p-3', side: 'entrant-river' }),
     ];
 
     expect(runningTimers(events, codes, NOON + 10_000)).toHaveLength(3);
@@ -115,10 +115,10 @@ describe('runningTimers', () => {
 
   it('replaces a person’s timer rather than stacking it', () => {
     const events = [
-      event({ sequence: 1, participantId: 'p-1' }),
+      event({ sequence: 1, personId: 'p-1' }),
       event({
         sequence: 2,
-        participantId: 'p-1',
+        personId: 'p-1',
         definitionCode: 'major-penalty',
         occurredAt: '2026-07-31T12:00:30.000Z',
       }),
@@ -132,10 +132,10 @@ describe('runningTimers', () => {
 
   it('ends one early when the discipline says an event ends it', () => {
     const events = [
-      event({ sequence: 1, participantId: 'p-1' }),
+      event({ sequence: 1, personId: 'p-1' }),
       event({
         sequence: 2,
-        participantId: 'p-1',
+        personId: 'p-1',
         definitionCode: 'power-play-goal',
         occurredAt: '2026-07-31T12:00:40.000Z',
       }),
@@ -145,13 +145,13 @@ describe('runningTimers', () => {
   });
 
   it('ignores an event the discipline does not treat as a timer', () => {
-    const events = [event({ sequence: 1, definitionCode: 'goal', participantId: 'p-1' })];
+    const events = [event({ sequence: 1, definitionCode: 'goal', personId: 'p-1' })];
 
     expect(runningTimers(events, codes, NOON)).toHaveLength(0);
   });
 
   it('ignores an event whose instant cannot be read, rather than starting a timer at zero', () => {
-    const events = [event({ sequence: 1, participantId: 'p-1', occurredAt: 'sometime' })];
+    const events = [event({ sequence: 1, personId: 'p-1', occurredAt: 'sometime' })];
 
     expect(runningTimers(events, codes, NOON)).toHaveLength(0);
   });
@@ -159,11 +159,11 @@ describe('runningTimers', () => {
   it('folds in log order, whatever order the rows arrive in', () => {
     const later = event({
       sequence: 2,
-      participantId: 'p-1',
+      personId: 'p-1',
       definitionCode: 'power-play-goal',
       occurredAt: '2026-07-31T12:00:40.000Z',
     });
-    const earlier = event({ sequence: 1, participantId: 'p-1' });
+    const earlier = event({ sequence: 1, personId: 'p-1' });
 
     expect(runningTimers([later, earlier], codes, NOON + 45_000)).toHaveLength(0);
   });
@@ -172,10 +172,10 @@ describe('runningTimers', () => {
 describe('validateLineup', () => {
   const roster = ['p-1', 'p-2', 'p-3', 'p-4', 'p-5'];
   const constraint = { minPlayers: 2, maxPlayers: 4 };
-  const selection = { matchId: 'm-1', entrantId: 'entrant-atlas', participantIds: ['p-1', 'p-2'] };
+  const selection = { matchId: 'm-1', entrantId: 'entrant-atlas', personIds: ['p-1', 'p-2'] };
 
-  function check(participantIds: readonly string[]) {
-    const result = validateLineup({ ...selection, participantIds }, roster, constraint);
+  function check(personIds: readonly string[]) {
+    const result = validateLineup({ ...selection, personIds }, roster, constraint);
     if (!result.ok) throw result.error;
     return result.value;
   }
@@ -188,10 +188,10 @@ describe('validateLineup', () => {
     const checked = check(['p-1', 'p-transferred']);
 
     expect(checked.findings).toEqual([
-      expect.objectContaining({ kind: 'off-roster', participantId: 'p-transferred' }),
+      expect.objectContaining({ kind: 'off-roster', personId: 'p-transferred' }),
     ]);
     // The organizer signs the sheet; CopaLibre says what it noticed.
-    expect(checked.selection.participantIds).toContain('p-transferred');
+    expect(checked.selection.personIds).toContain('p-transferred');
   });
 
   it.each([
@@ -212,11 +212,7 @@ describe('validateLineup', () => {
 
   it('refuses the same person named twice, because that sheet contradicts itself', () => {
     // Not a rule a competition might relax: no federation wants it recorded.
-    const result = validateLineup(
-      { ...selection, participantIds: ['p-1', 'p-1'] },
-      roster,
-      constraint,
-    );
+    const result = validateLineup({ ...selection, personIds: ['p-1', 'p-1'] }, roster, constraint);
 
     expect(result.ok).toBe(false);
   });

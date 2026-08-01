@@ -99,6 +99,9 @@ jobs:
       - run: yarn test:verify-discovery
       # Covers the scheduling conflict detection and mutation classification
       # (0012), which are pure domain logic; the SQL side runs in integration.
+      # Since 0015 it also carries seasons, the person/player split and the
+      # natural-key normalisation that decides whether two spellings of one
+      # document are one human.
       - run: yarn workspace @copalibre/domain test:coverage
       # Golden-fixture suite included; any fixture mismatch fails the PR (0003).
       # Covers the win-condition registry, evaluator and trace fixture (0009),
@@ -180,7 +183,10 @@ jobs:
       # conflict detection can only be proven against a real database, and the
       # match-operations suite (0014): a finalized result that refuses to be
       # overwritten, a correction that keeps what it replaced and why, and a
-      # started downstream stage that is not rebuilt behind anyone's back.
+      # started downstream stage that is not rebuilt behind anyone's back. The
+      # person suite (0015) proves the rest against real constraints: one human
+      # recognised across two spellings, holding a membership per team, and a
+      # document that never reaches the audit trail.
       - run: yarn workspace @copalibre/persistence test:integration
       # Guard/policy/controller suite through the real HTTP stack (0005),
       # including match-scoped authorization (0014).

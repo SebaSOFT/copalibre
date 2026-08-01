@@ -16,7 +16,7 @@
         "threshold": 3,
         "eventId": "e-4",
         "side": "entrant-atlas",
-        "participantId": null
+        "personId": null
       }
     }
   ],
@@ -42,7 +42,7 @@
           "threshold": 3,
           "eventId": "e-4",
           "side": "entrant-atlas",
-          "participantId": null
+          "personId": null
         },
         "detail": "Aggregate 3 >= 3 at event e-4"
       }

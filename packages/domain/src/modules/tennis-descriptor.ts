@@ -41,7 +41,7 @@ export function tennisDescriptor(overrides?: Partial<DisciplineDescriptor>): Dis
         label: 'Point',
         category: 'positive',
         permittedSegmentTypes: segmentTypes,
-        actorRequirement: 'participant',
+        actorRequirement: 'person',
         payloadSchema: {
           type: 'object',
           properties: { ace: { type: 'boolean' }, doubleFault: { type: 'boolean' } },
@@ -53,7 +53,7 @@ export function tennisDescriptor(overrides?: Partial<DisciplineDescriptor>): Dis
         label: 'Game won',
         category: 'positive',
         permittedSegmentTypes: segmentTypes,
-        actorRequirement: 'participant',
+        actorRequirement: 'person',
         payloadSchema: { type: 'object', properties: { toLove: { type: 'boolean' } } },
         effects: [{ kind: 'statistic', statisticCode: 'games-won', delta: 1 }],
       },

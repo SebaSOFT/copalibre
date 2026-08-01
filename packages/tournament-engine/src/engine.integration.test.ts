@@ -78,7 +78,7 @@ describe('tournament engine (integration)', () => {
         descriptor: disciplineDescriptor,
         ...AUDIT,
       });
-      const stage = await competition.createStage(uow, {
+      const stage = await competition.createStageInTournament(uow, {
         tournamentId: tournament.tournamentId,
         number: 1,
         name: 'Main Draw',

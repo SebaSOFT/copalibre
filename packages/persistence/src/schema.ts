@@ -73,12 +73,28 @@ export interface TournamentsTable {
   created_at: Timestamp;
 }
 
-export interface ParticipantsTable {
-  participant_id: string;
+/**
+ * The human (0015). `natural_key_normalised` is what uniqueness is enforced on
+ * — `12.345.678` and `12345678` are one document, and the column that decides
+ * has to agree.
+ */
+export interface PersonsTable {
+  person_id: string;
   organization_id: string;
   alias: string | null;
   display_name: string;
-  participant_type: string;
+  natural_key_kind: string | null;
+  natural_key_value: string | null;
+  natural_key_normalised: string | null;
+  created_at: Timestamp;
+}
+
+/** One person's membership in one team (0015). Several per person, one per team. */
+export interface PlayersTable {
+  player_id: string;
+  person_id: string;
+  team_id: string;
+  role: string;
   created_at: Timestamp;
 }
 
@@ -87,13 +103,8 @@ export interface TeamsTable {
   organization_id: string;
   club_id: string | null;
   name: string;
-  created_at: Timestamp;
-}
-
-export interface RostersTable {
-  roster_id: string;
-  team_id: string;
-  members: JSONColumnType<readonly Record<string, unknown>[]>;
+  /** The discipline this side plays (0015); null on teams predating it. */
+  discipline_id: string | null;
   created_at: Timestamp;
 }
 
@@ -101,7 +112,7 @@ export interface EntrantsTable {
   entrant_id: string;
   tournament_id: string;
   entrant_kind: string;
-  participant_id: string | null;
+  person_id: string | null;
   team_id: string | null;
   seed: number | null;
   status: string;
@@ -121,9 +132,18 @@ export interface EntrantAttributesTable {
   created_at: Timestamp;
 }
 
+/** One running of a tournament (0015). Every tournament has at least one. */
+export interface SeasonsTable {
+  season_id: string;
+  tournament_id: string;
+  name: string;
+  ordinal: number;
+  created_at: Timestamp;
+}
+
 export interface StagesTable {
   stage_id: string;
-  tournament_id: string;
+  season_id: string;
   number: number;
   name: string;
   format: string;
@@ -202,7 +222,7 @@ export interface MatchEventsTable {
   occurred_at: Timestamp;
   sequence: number;
   side: string | null;
-  participant_id: string | null;
+  person_id: string | null;
   payload: JSONColumnType<Record<string, unknown>>;
   created_at: Timestamp;
 }
@@ -211,7 +231,7 @@ export interface MatchEventsTable {
 export interface MatchLineupsTable {
   match_id: string;
   entrant_id: string;
-  participant_ids: JSONColumnType<readonly string[]>;
+  person_ids: JSONColumnType<readonly string[]>;
   updated_at: Timestamp;
 }
 
@@ -329,15 +349,16 @@ export interface Database {
   tournament_rulesets: TournamentRulesetsTable;
   stage_configurations: StageConfigurationsTable;
   tournaments: TournamentsTable;
-  participants: ParticipantsTable;
+  persons: PersonsTable;
+  players: PlayersTable;
   teams: TeamsTable;
-  rosters: RostersTable;
   entrants: EntrantsTable;
   entrant_attributes: EntrantAttributesTable;
   venues: VenuesTable;
   officials: OfficialsTable;
   fixture_schedules: FixtureSchedulesTable;
   fixture_schedule_officials: FixtureScheduleOfficialsTable;
+  seasons: SeasonsTable;
   stages: StagesTable;
   fixtures: FixturesTable;
   matches: MatchesTable;

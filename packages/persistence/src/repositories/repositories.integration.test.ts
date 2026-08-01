@@ -6,8 +6,9 @@ import { OutboxReader } from '../outbox.js';
 import { createMigratedDatabase, type ScratchDatabase } from '../test-support/scratch-database.js';
 import { withTransaction } from '../transaction.js';
 import { CompetitionRepository } from './competition-repository.js';
+import { PersonRepository } from './person-repository.js';
 import { OrganizationRepository } from './organization-repository.js';
-import { ParticipantRepository } from './participant-repository.js';
+import { EnrollmentRepository } from './enrollment-repository.js';
 import { TournamentRepository } from './tournament-repository.js';
 
 const AUDIT = { actor: 'user:organizer-1', authorizationContext: 'scope:tournament.write' };
@@ -27,7 +28,7 @@ function descriptor(): DisciplineDescriptor {
         label: 'Strike',
         category: 'positive',
         permittedSegmentTypes: ['half'],
-        actorRequirement: 'participant',
+        actorRequirement: 'person',
         payloadSchema: { type: 'object', properties: {} },
         effects: [{ kind: 'score', awardTo: 'actor', delta: 1 }],
       },
@@ -59,7 +60,7 @@ describe('repositories (integration)', () => {
   let scratch: ScratchDatabase;
   let organizations: OrganizationRepository;
   let tournaments: TournamentRepository;
-  let participants: ParticipantRepository;
+  let participants: EnrollmentRepository;
   let competition: CompetitionRepository;
   let organizationId: string;
 
@@ -67,7 +68,7 @@ describe('repositories (integration)', () => {
     scratch = await createMigratedDatabase('repos');
     organizations = new OrganizationRepository(scratch.db);
     tournaments = new TournamentRepository(scratch.db);
-    participants = new ParticipantRepository(scratch.db);
+    participants = new EnrollmentRepository(scratch.db);
     competition = new CompetitionRepository(scratch.db);
 
     const organization = await withTransaction(scratch.db, (uow) =>
@@ -196,7 +197,7 @@ describe('repositories (integration)', () => {
         organizationId,
         ...AUDIT,
       });
-      const stage = await competition.createStage(uow, {
+      const stage = await competition.createStageInTournament(uow, {
         tournamentId: tournament.tournamentId,
         number: 1,
         name: 'Group Stage',
@@ -256,7 +257,7 @@ describe('repositories (integration)', () => {
 
   it('appends match events in sequence and exposes them in order', async () => {
     const disciplineDescriptor = descriptor();
-    const { matchId, segmentId, participantId } = await withTransaction(scratch.db, async (uow) => {
+    const { matchId, segmentId, personId } = await withTransaction(scratch.db, async (uow) => {
       await tournaments.saveDescriptor(uow, disciplineDescriptor, { organizationId, ...AUDIT });
       const tournament = await tournaments.create(uow, {
         organizationId,
@@ -265,7 +266,7 @@ describe('repositories (integration)', () => {
         descriptor: disciplineDescriptor,
         ...AUDIT,
       });
-      const stage = await competition.createStage(uow, {
+      const stage = await competition.createStageInTournament(uow, {
         tournamentId: tournament.tournamentId,
         number: 1,
         name: 'Stage',
@@ -293,16 +294,15 @@ describe('repositories (integration)', () => {
         organizationId,
         ...AUDIT,
       });
-      const player = await participants.createParticipant(uow, {
+      const { person: player } = await new PersonRepository(scratch.db).register(uow, {
         organizationId,
         displayName: 'Atacante Uno',
-        type: 'individual',
         ...AUDIT,
       });
       return {
         matchId: match.matchId,
         segmentId: segment.segmentId,
-        participantId: player.participantId,
+        personId: player.personId,
       };
     });
 
@@ -317,7 +317,7 @@ describe('repositories (integration)', () => {
             definitionCode: 'strike',
             occurredAt: new Date().toISOString(),
             side: 'entrant-atlas',
-            participantId,
+            personId,
             payload: { zone },
           },
           sequence,
@@ -347,15 +347,14 @@ describe('repositories (integration)', () => {
         descriptor: disciplineDescriptor,
         ...AUDIT,
       });
-      const participant = await participants.createParticipant(uow, {
+      const { person: participant } = await new PersonRepository(scratch.db).register(uow, {
         organizationId,
         displayName: 'Jugador Uno',
-        type: 'individual',
         ...AUDIT,
       });
       const entrant = await participants.registerEntrant(uow, {
         tournamentId: tournament.tournamentId,
-        entrantRef: { kind: 'participant', participantId: participant.participantId },
+        entrantRef: { kind: 'person', personId: participant.personId },
         organizationId,
         ...AUDIT,
       });
@@ -411,11 +410,11 @@ describe('repositories (integration)', () => {
 describe('entrant attributes (integration)', () => {
   let scratch: ScratchDatabase;
   let organizationId = '';
-  let participants: ParticipantRepository;
+  let participants: EnrollmentRepository;
 
   beforeAll(async () => {
     scratch = await createMigratedDatabase('attributes');
-    participants = new ParticipantRepository(scratch.db);
+    participants = new EnrollmentRepository(scratch.db);
     const organization = await withTransaction(scratch.db, (uow) =>
       new OrganizationRepository(scratch.db).create(uow, {
         alias: 'liga-atributos',
