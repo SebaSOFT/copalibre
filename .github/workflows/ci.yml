@@ -134,6 +134,11 @@ jobs:
       # JWT verification, extracted from apps/api in 0018 so apps/events could
       # reuse it rather than grow a second answer to "is this token valid".
       - run: yarn workspace @copalibre/auth test:coverage
+      # The URL builder (0020): one place that knows what a thing is called on
+      # every surface, and the alias redirect that keeps a printed URL working.
+      - run: yarn workspace @copalibre/routing test:coverage
+      # The public overview's view model (0020).
+      - run: yarn workspace @copalibre/web test:coverage
       # One token source generated into CSS and Tailwind (0019); the tests are
       # what stop the two outputs drifting apart.
       - run: yarn workspace @copalibre/design-tokens test:coverage
@@ -186,6 +191,25 @@ jobs:
           name: coverage-events
           path: apps/events/coverage
           retention-days: 14
+
+  # Added by 0020: the public site is built and its output inspected — the page
+  # must be complete without JavaScript, and the sitemap must not advertise an
+  # operator or venue route.
+  public-web-build:
+    name: Public web build
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - uses: actions/checkout@v4
+      - run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+      - run: yarn install --immutable
+      # The tokens the pages import are generated, not committed.
+      - run: yarn workspace @copalibre/design-tokens build:tokens
+      - run: yarn workspace @copalibre/web verify:build
 
   # Added by 0019: CopaLibre and sebasoft.app must look unrelated, and a brand
   # review months later is not a control. The scan runs against generated

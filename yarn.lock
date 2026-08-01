@@ -800,7 +800,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@copalibre/design-tokens@workspace:packages/design-tokens":
+"@copalibre/design-tokens@workspace:^, @copalibre/design-tokens@workspace:packages/design-tokens":
   version: 0.0.0-use.local
   resolution: "@copalibre/design-tokens@workspace:packages/design-tokens"
   dependencies:
@@ -869,6 +869,7 @@ __metadata:
   resolution: "@copalibre/persistence@workspace:packages/persistence"
   dependencies:
     "@copalibre/domain": "workspace:^"
+    "@copalibre/routing": "workspace:^"
     "@types/jest": "npm:^30.0.0"
     "@types/pg": "npm:^8.20.0"
     jest: "npm:^30.4.2"
@@ -889,9 +890,14 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@copalibre/routing@workspace:packages/routing":
+"@copalibre/routing@workspace:^, @copalibre/routing@workspace:packages/routing":
   version: 0.0.0-use.local
   resolution: "@copalibre/routing@workspace:packages/routing"
+  dependencies:
+    "@types/jest": "npm:^30.0.0"
+    jest: "npm:^30.4.2"
+    ts-jest: "npm:^29.4.12"
+    typescript: "npm:^5"
   languageName: unknown
   linkType: soft
 
@@ -951,11 +957,17 @@ __metadata:
   dependencies:
     "@astrojs/check": "npm:^0.9.10"
     "@astrojs/react": "npm:^6.0.2"
+    "@copalibre/design-tokens": "workspace:^"
+    "@copalibre/routing": "workspace:^"
+    "@types/jest": "npm:^30.0.0"
     "@types/react": "npm:^19.2.17"
     "@types/react-dom": "npm:^19.2.3"
     astro: "npm:^7.1.5"
+    jest: "npm:^30.4.2"
     react: "npm:^19.2.8"
     react-dom: "npm:^19.2.8"
+    ts-jest: "npm:^29.4.12"
+    typescript: "npm:^5"
   languageName: unknown
   linkType: soft
 

@@ -472,6 +472,23 @@ export interface TagFactsTable {
   created_at: Timestamp;
 }
 
+/**
+ * Aliases a resource used to answer to (0020).
+ *
+ * Scoped to the organization: two organizations may both have used `apertura`,
+ * and resolving one's old alias to the other's tournament hands a spectator
+ * somebody else's competition.
+ */
+export interface AliasRedirectsTable {
+  redirect_id: string;
+  organization_id: string;
+  /** `tournament` or `organization`; the alias namespace this rename is in. */
+  scope: string;
+  old_alias: string;
+  new_alias: string;
+  created_at: Timestamp;
+}
+
 export interface SchemaVersionTable {
   version: string;
   applied_at: Timestamp;
@@ -514,5 +531,6 @@ export interface Database {
   statistic_totals: StatisticTotalsTable;
   statistic_adjustments: StatisticAdjustmentsTable;
   tag_facts: TagFactsTable;
+  alias_redirects: AliasRedirectsTable;
   schema_version: SchemaVersionTable;
 }

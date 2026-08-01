@@ -1,0 +1,41 @@
+---
+import '@copalibre/design-tokens/generated/copalibre.css';
+
+interface Props {
+  readonly title: string;
+  readonly description?: string;
+  readonly canonicalPath: string;
+  /** Set on anything that is not a public canonical route. */
+  readonly noindex?: boolean;
+}
+
+const { title, description, canonicalPath, noindex = false } = Astro.props;
+const site = Astro.site?.toString().replace(/\/$/, '') ?? '';
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    {description && <meta name="description" content={description} />}
+    <link rel="canonical" href={`${site}${canonicalPath}`} />
+    {/* Defence in depth: a non-public route that somehow renders says so itself. */}
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+  </head>
+  <body>
+    <a class="cl-focusable" href="#main">Saltar al contenido</a>
+    <header>
+      <nav aria-label="Principal">
+        <a href="/">CopaLibre</a>
+      </nav>
+    </header>
+    <main id="main">
+      <slot />
+    </main>
+    <footer>
+      <p>Publicado con CopaLibre — AGPL-3.0</p>
+    </footer>
+  </body>
+</html>

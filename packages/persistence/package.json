@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@copalibre/domain": "workspace:^",
+    "@copalibre/routing": "workspace:^",
     "kysely": "^0.29",
     "pg": "^8.22.0"
   },

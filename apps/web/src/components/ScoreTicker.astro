@@ -1,0 +1,35 @@
+---
+import { STATE_LABEL, shortLabel, type OverviewModel } from '../lib/overview.ts';
+
+interface Props {
+  readonly model: OverviewModel;
+}
+const { model } = Astro.props;
+---
+
+{
+  /*
+  Rendered server-side and complete. A ticker that needs JavaScript to say the
+  score is a ticker that says nothing on a venue TV behind a hotel proxy.
+*/
+}
+<section aria-labelledby="ticker-heading">
+  <h2 id="ticker-heading">Partidos</h2>
+  {model.matches.length === 0 && <p>Todavía no hay partidos programados.</p>}
+  <ul>
+    {
+      model.matches.map((match) => (
+        <li
+          class={`cl-card cl-card--${match.state === 'final' ? 'positive' : match.state === 'disputed' ? 'destructive' : match.state}`}
+        >
+          <span class="cl-badge">{STATE_LABEL[match.state]}</span>
+          <span>{shortLabel(match.home)}</span>
+          <span class="cl-stat-tile__value">{match.home.score ?? '—'}</span>
+          <span>{shortLabel(match.away)}</span>
+          <span class="cl-stat-tile__value">{match.away.score ?? '—'}</span>
+          <time datetime={match.startsAt}>{match.startsAt}</time>
+        </li>
+      ))
+    }
+  </ul>
+</section>
