@@ -291,6 +291,15 @@ export {
 } from './aggregates/tournament-start.js';
 export type { Team, EntrantStatus, Entrant } from './aggregates/participant.js';
 export {
+  rosterEditable,
+  canDecide,
+  statusFor,
+  planBulkReview,
+  RegistrationError,
+  type ReviewDecision,
+  type CheckInWindow,
+} from './aggregates/registration-review.js';
+export {
   validateAttributes,
   assertWeightingComplete,
   attributeValue,

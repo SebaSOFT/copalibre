@@ -89,6 +89,37 @@ export class TournamentRepository {
     return row ? (row.document as unknown as DisciplineDescriptor) : undefined;
   }
 
+  /**
+   * Every installed discipline, newest version of each (0023).
+   *
+   * The wizard reads its options from here rather than from a list in the
+   * client: a hardcoded list is a list that disagrees with the installation the
+   * day somebody adds a module.
+   */
+  async listDescriptors(): Promise<
+    readonly {
+      readonly descriptorId: string;
+      readonly version: string;
+      readonly document: DisciplineDescriptor;
+    }[]
+  > {
+    const rows = await this.db
+      .selectFrom('discipline_descriptors')
+      .select(['descriptor_id', 'version', 'document'])
+      .orderBy('descriptor_id')
+      .orderBy('version', 'desc')
+      .execute();
+
+    const newest = new Map<string, (typeof rows)[number]>();
+    for (const row of rows) if (!newest.has(row.descriptor_id)) newest.set(row.descriptor_id, row);
+
+    return [...newest.values()].map((row) => ({
+      descriptorId: row.descriptor_id,
+      version: row.version,
+      document: row.document as unknown as DisciplineDescriptor,
+    }));
+  }
+
   async create(uow: UnitOfWork, input: CreateTournamentInput): Promise<Tournament> {
     const alias = Alias.create('tournament', input.alias);
     if (!alias.ok) {
