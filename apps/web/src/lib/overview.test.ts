@@ -17,8 +17,8 @@ describe('the overview model', () => {
   });
 
   it('omits the season entirely when a tournament has never named one', () => {
-    const { seasonName, ...withoutSeason } = sampleOverview('liga-mendocina', 'apertura-2026');
-    const built = buildOverview(withoutSeason);
+    const sample = sampleOverview('liga-mendocina', 'apertura-2026');
+    const built = buildOverview({ ...sample, seasonName: undefined });
 
     expect('seasonName' in built).toBe(false);
     expect(displayName(built)).toBe('Torneo Apertura');
