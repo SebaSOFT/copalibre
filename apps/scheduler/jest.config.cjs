@@ -8,6 +8,7 @@ module.exports = {
   moduleNameMapper: {
     ...esmExtensionMapper,
     '^@copalibre/domain$': '<rootDir>/../../packages/domain/src/index.ts',
+    '^@copalibre/routing$': '<rootDir>/../../packages/routing/src/index.ts',
     '^@copalibre/persistence$': '<rootDir>/../../packages/persistence/src/index.ts',
   },
   // The lease arithmetic, which is the dangerous part. The service loop and the

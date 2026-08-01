@@ -207,7 +207,9 @@ jobs:
           node-version: 24
           cache: yarn
       - run: yarn install --immutable
-      # The tokens the pages import are generated, not committed.
+      # The pages import built packages and generated tokens; neither is
+      # committed, so a fresh checkout has to make both.
+      - run: yarn workspace @copalibre/routing build
       - run: yarn workspace @copalibre/design-tokens build:tokens
       - run: yarn workspace @copalibre/web verify:build
 

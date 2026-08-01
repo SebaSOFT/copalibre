@@ -9,6 +9,7 @@ module.exports = {
     ...esmExtensionMapper,
     '^@copalibre/auth$': '<rootDir>/../../packages/auth/src/index.ts',
     '^@copalibre/domain$': '<rootDir>/../../packages/domain/src/index.ts',
+    '^@copalibre/routing$': '<rootDir>/../../packages/routing/src/index.ts',
     '^@copalibre/persistence$': '<rootDir>/../../packages/persistence/src/index.ts',
     '^@copalibre/realtime$': '<rootDir>/../../packages/realtime/src/index.ts',
   },
