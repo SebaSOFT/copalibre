@@ -114,7 +114,7 @@ export interface ResolvedActor {
  *
  * A recorded fact names the entrant that produced it; a profile asks about the
  * person or the club. This is the one place the two hierarchies meet, and it is
- * a lookup rather than a level precisely so neither axis has to know about
+ * a lookup rather than a granularity precisely so neither axis has to know about
  * enrollment.
  */
 export function actorOfEntrant(entrant: Pick<Entrant, 'entrantRef'>): ResolvedActor {
