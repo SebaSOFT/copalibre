@@ -75,13 +75,15 @@ export default tseslint.config(
 
   // Config files run in Node (CommonJS) without type info.
   {
-    files: ['**/*.config.js', '**/*.config.mjs', '**/*.cjs', 'jest.*.js'],
+    files: ['**/*.config.js', '**/*.config.mjs', '**/*.cjs', 'jest.*.js', '**/scripts/**/*.mjs'],
     languageOptions: {
       globals: {
         module: 'writable',
         require: 'readonly',
         process: 'readonly',
         __dirname: 'readonly',
+        URL: 'readonly',
+        console: 'readonly',
       },
     },
     rules: {

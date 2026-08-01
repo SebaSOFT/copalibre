@@ -9,6 +9,7 @@ import { CompetitionRepository } from './competition-repository.js';
 import { PersonRepository } from './person-repository.js';
 import { OrganizationRepository } from './organization-repository.js';
 import { EnrollmentRepository } from './enrollment-repository.js';
+import { AliasRepository } from './alias-repository.js';
 import { TournamentRepository } from './tournament-repository.js';
 
 const AUDIT = { actor: 'user:organizer-1', authorizationContext: 'scope:tournament.write' };
@@ -830,5 +831,94 @@ describe('short labels (integration)', () => {
     );
 
     expect(cleared.abbreviation).toBeUndefined();
+  });
+});
+
+describe('alias redirects (integration)', () => {
+  let scratch: ScratchDatabase;
+  let organizationId: string;
+  let otherOrganizationId: string;
+
+  const AUDIT = { actor: 'user:admin', authorizationContext: 'scope:organization.write' };
+
+  beforeAll(async () => {
+    scratch = await createMigratedDatabase('alias-redirects');
+    const organizations = new OrganizationRepository(scratch.db);
+    const [first, second] = await Promise.all([
+      withTransaction(scratch.db, (uow) =>
+        organizations.create(uow, { alias: 'liga-uno', name: 'Liga Uno', ...AUDIT }),
+      ),
+      withTransaction(scratch.db, (uow) =>
+        organizations.create(uow, { alias: 'liga-dos', name: 'Liga Dos', ...AUDIT }),
+      ),
+    ]);
+    organizationId = first.organizationId;
+    otherOrganizationId = second.organizationId;
+
+    for (const [orgId, alias] of [
+      [organizationId, 'clausura-2026'],
+      [otherOrganizationId, 'otra-cosa'],
+    ] as const) {
+      await scratch.db
+        .insertInto('tournaments')
+        .values({
+          tournament_id: newId(),
+          organization_id: orgId,
+          alias,
+          name: alias,
+          descriptor_id: newId(),
+          descriptor_version: '1.0.0',
+          ruleset_id: null,
+          status: 'draft',
+          started_at: null,
+          profile_id: null,
+          profile_version: null,
+          created_at: new Date(),
+        })
+        .execute();
+    }
+  });
+
+  afterAll(async () => {
+    await scratch?.drop();
+  });
+
+  it('redirects a renamed alias to the canonical one', async () => {
+    const aliases = new AliasRepository(scratch.db);
+    await withTransaction(scratch.db, (uow) =>
+      aliases.recordRename(uow, {
+        organizationId,
+        scope: 'tournament',
+        oldAlias: 'apertura-2026',
+        newAlias: 'clausura-2026',
+        ...AUDIT,
+      }),
+    );
+
+    expect(await aliases.resolveTournamentAlias(organizationId, 'apertura-2026')).toEqual({
+      kind: 'redirect',
+      to: 'clausura-2026',
+      status: 301,
+    });
+    expect(await aliases.resolveTournamentAlias(organizationId, 'clausura-2026')).toEqual({
+      kind: 'current',
+    });
+  });
+
+  it('never resolves one organization’s old alias inside another', async () => {
+    const aliases = new AliasRepository(scratch.db);
+
+    // Crossing them would hand a spectator somebody else's competition.
+    expect(await aliases.resolveTournamentAlias(otherOrganizationId, 'apertura-2026')).toEqual({
+      kind: 'unknown',
+    });
+  });
+
+  it('reports an alias nobody ever had as unknown, not as a near match', async () => {
+    const aliases = new AliasRepository(scratch.db);
+
+    expect(await aliases.resolveTournamentAlias(organizationId, 'clausura-2027')).toEqual({
+      kind: 'unknown',
+    });
   });
 });

@@ -603,6 +603,24 @@ export const initialSchema: Migration = {
       .columns(['organization_id', 'actor_granularity', 'actor_id', 'code'])
       .execute();
 
+    // Renamed aliases (0020). A renamed tournament whose old URL 404s is a
+    // poster, a message thread and a federation page all pointing at nothing.
+    await db.schema
+      .createTable('alias_redirects')
+      .addColumn('redirect_id', 'uuid', (col) => col.primaryKey())
+      .addColumn('organization_id', 'uuid', (col) =>
+        col.notNull().references('organizations.organization_id'),
+      )
+      .addColumn('scope', 'text', (col) => col.notNull())
+      .addColumn('old_alias', 'text', (col) => col.notNull())
+      .addColumn('new_alias', 'text', (col) => col.notNull())
+      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      // One answer per old alias within an organization and scope; two would
+      // make the redirect depend on read order.
+      .addUniqueConstraint('alias_redirects_unique', ['organization_id', 'scope', 'old_alias'])
+      .addCheckConstraint('alias_redirects_not_self', sql`old_alias <> new_alias`)
+      .execute();
+
     await db.schema
       .createTable('schema_version')
       .addColumn('version', 'text', (col) => col.primaryKey())
@@ -614,6 +632,7 @@ export const initialSchema: Migration = {
     // Reverse dependency order.
     for (const table of [
       'schema_version',
+      'alias_redirects',
       'tag_facts',
       'scheduled_jobs',
       'scheduler_leases',

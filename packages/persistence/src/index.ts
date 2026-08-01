@@ -59,6 +59,7 @@ export {
   type ProjectionOutcome,
 } from './projections/statistic-projection.js';
 export { TagRepository, type TagQuery } from './repositories/tag-repository.js';
+export { AliasRepository, type AliasScopeName } from './repositories/alias-repository.js';
 export {
   OutboxRelay,
   type ClaimedJob,

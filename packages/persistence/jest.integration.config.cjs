@@ -8,6 +8,7 @@ module.exports = {
   ...base,
   displayName: 'persistence-integration',
   moduleNameMapper: {
+    '^@copalibre/routing$': '<rootDir>/../../packages/routing/src/index.ts',
     ...esmExtensionMapper,
     '^@copalibre/domain$': '<rootDir>/../domain/src/index.ts',
   },

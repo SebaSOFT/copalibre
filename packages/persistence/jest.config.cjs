@@ -8,6 +8,7 @@ module.exports = {
   // jest.integration.config.cjs (real Postgres) via `yarn test:integration`.
   testPathIgnorePatterns: ['/node_modules/', '\\.integration\\.test\\.ts$'],
   moduleNameMapper: {
+    '^@copalibre/routing$': '<rootDir>/../../packages/routing/src/index.ts',
     ...esmExtensionMapper,
     '^@copalibre/domain$': '<rootDir>/../domain/src/index.ts',
   },

@@ -1,6 +1,20 @@
 /**
- * Placeholder module for @copalibre/routing.
- * Real implementation arrives in its dedicated roadmap phase
- * (see openspec/changes/README.md).
+ * @copalibre/routing — one place that knows what a thing's URL is, on every
+ * surface (0020).
  */
-export const PACKAGE_NAME = '@copalibre/routing';
+
+export {
+  publicPath,
+  homePath,
+  controlPath,
+  tvPath,
+  publicStreamPath,
+  viewQuery,
+  validateRouteInput,
+  RouteError,
+  PRIMARY_LOCALE,
+  type RouteInput,
+  type ViewMode,
+} from './paths.js';
+export { resolveAlias, type AliasRedirect, type AliasResolution } from './redirects.js';
+export { buildSitemap, buildRobots, type SitemapEntry } from './discovery.js';
