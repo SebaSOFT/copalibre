@@ -148,3 +148,17 @@ to replace it only where the descriptor's field policy permits.
 #### Scenario: A profile cannot override a locked win condition
 - **WHEN** a profile attempts to replace a win condition whose field policy forbids override
 - **THEN** compilation fails identifying the locked path
+
+### Requirement: A submitted rule script is validated against what the runtime demands
+The descriptor schema SHALL accept only rule scripts the evaluation runtime can execute, so a module
+cannot pass installation and fail when a rule is first reached.
+
+#### Scenario: A rule omitting its condition or action list is refused at installation
+- **WHEN** a submitted module declares a rule without a `conditions` or `actions` array
+- **THEN** installation fails naming the rule, rather than accepting the module and failing at
+  evaluation time
+
+#### Scenario: An empty list is accepted, because it means something
+- **WHEN** a submitted module declares a rule with an empty `conditions` array
+- **THEN** it installs, and the rule fires unconditionally as specified
+

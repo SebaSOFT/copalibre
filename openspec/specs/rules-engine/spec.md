@@ -142,3 +142,122 @@ naming the constraint and the entrants and attribute values involved.
 #### Scenario: A rejected placement explains itself
 - **WHEN** the draw rejects a candidate placement because of a constraint
 - **THEN** the trace names the constraint, the attribute value, and the entrants that conflicted
+
+### Requirement: Conditions cover more than arithmetic
+The registry SHALL provide conditions for string comparison, set membership, value existence and
+time comparison, so a rule can test context values that are not numbers.
+
+#### Scenario: A rule tests a categorical value
+- **WHEN** a rule asks whether an entrant's status equals a named value
+- **THEN** the condition evaluates without expressing the comparison as a number
+
+#### Scenario: A rule tests membership of a declared set
+- **WHEN** a rule asks whether a recorded event's code is one of several disqualifying codes
+- **THEN** the condition evaluates true for any member of the set and false otherwise
+
+#### Scenario: A rule distinguishes absent from zero
+- **WHEN** a rule asks whether a fact was recorded at all
+- **THEN** an absent value and a value of zero produce different answers
+
+#### Scenario: A rule compares instants
+- **WHEN** a rule asks whether one recorded instant falls before another
+- **THEN** the comparison is evaluated on the instants, not on their string forms
+
+### Requirement: Any parameter is either a fixed value or an expression
+Every parameter SHALL accept either a fixed value or an expression over the context, and
+switching between the two SHALL NOT change the parameter's registered type.
+
+#### Scenario: A rule compares a computed value without the core publishing it
+- **WHEN** a rule needs the difference between two sides' scores
+- **THEN** a numeric parameter in expression mode produces it, and an ordinary numeric condition
+  compares it, without a core release to publish that difference in the context
+
+#### Scenario: A whole-field expression keeps its type, a mixed one becomes a string
+- **WHEN** a parameter holds one expression and nothing else
+- **THEN** it resolves to the typed value, usable directly as a numeric operand
+- **AND WHEN** a parameter mixes literal text with expressions
+- **THEN** it resolves to a string, usable directly as a message
+
+#### Scenario: Switching a field to an expression leaves the vetted vocabulary untouched
+- **WHEN** an author changes a parameter from a fixed value to an expression
+- **THEN** the parameter's type identifier is unchanged, and the registry vets it exactly as before
+
+#### Scenario: A field must say plainly which mode it is in
+- **WHEN** a parameter holds `{{ }}` without declaring expression mode, or declares expression mode
+  over a value that is not text
+- **THEN** it is refused at validation naming what to fix, rather than rendering its own source into a
+  message an operator reads
+
+#### Scenario: An expression reaching beyond reading, arithmetic and registered functions is refused
+- **WHEN** a submitted expression contains a comparison, a conditional, an assignment, or a call to a
+  function the registry does not provide
+- **THEN** validation rejects it naming what is not permitted, rather than evaluating it
+
+#### Scenario: A registered function computes what no fact publishes
+- **WHEN** an expression calls a registered function over the context
+- **THEN** it resolves, and a module cannot introduce a function of its own to call
+
+#### Scenario: An expression cannot read the wall clock
+- **WHEN** a rule needs to reason about time
+- **THEN** it reads the sampled instant from the context, and no function returns the current time —
+  so a replayed evaluation produces the identical result
+
+#### Scenario: Elapsed time needs no zone
+- **WHEN** a rule asks how long ago something happened
+- **THEN** the answer follows from arithmetic over epochs, with no zone involved
+
+#### Scenario: A local calendar question states its zone
+- **WHEN** a rule asks which day or hour an instant falls on
+- **THEN** the zone is passed explicitly as context data, so the same instant yields the same answer
+  regardless of where the evaluation runs
+
+#### Scenario: Rendering an instant for a person is not the engine's job
+- **WHEN** a message needs a human-readable date
+- **THEN** the engine supplies the instant and the surface renders it, because a formatted date
+  varies by viewer while a rule's output must not
+
+#### Scenario: An undefined mathematical result yields no value rather than an infinity
+- **WHEN** an expression takes a logarithm of zero, or an average of nothing
+- **THEN** it produces no value, and the consuming condition applies its declared missing-value
+  behaviour instead of ranking an infinity first
+
+#### Scenario: An expression over an absent fact degrades rather than throwing
+- **WHEN** an expression reads a context path the hook did not publish
+- **THEN** it produces no value, and the condition consuming it applies its declared missing-value
+  behaviour
+
+#### Scenario: A message states the values that produced it
+- **WHEN** a notification declares its message as a template over the context
+- **THEN** the delivered message carries those values, and the trace records the template alongside
+  the result
+
+### Requirement: Effectful actions are idempotent by construction
+The registry SHALL provide actions declaring a notification and starting or stopping a timer, and
+each SHALL record a declared effect with a stable identity rather than performing the effect.
+
+#### Scenario: A notification action yields the same instance shape as a notification rule
+- **WHEN** a script declares a notification and a threshold rule fires one
+- **THEN** both produce a notification instance carrying an identity key, and delivery treats them
+  identically
+
+#### Scenario: A declared effect names what caused it
+- **WHEN** a declared notification or timer is inspected
+- **THEN** it names the hook, the script and the rule that produced it, so the effect is traceable
+  to a decision rather than appearing from nowhere
+
+#### Scenario: A timer's remaining time is derived, never stored as a countdown
+- **WHEN** a declared timer is read at two different instants
+- **THEN** the remaining time follows from its start instant and duration at each read
+
+### Requirement: Degenerate scripts behave as specified
+Evaluation SHALL define the outcome of a script with no rules, a rule with no conditions and a rule
+with no actions, and SHALL apply the guard exception consistently.
+
+#### Scenario: Absence of rules is not absence of an answer
+- **WHEN** any evaluation receives a script with no rules
+- **THEN** it produces its declared default — permissive everywhere except a guard, which denies
+
+#### Scenario: An unconditional rule is a valid way to express "always"
+- **WHEN** a rule declares an empty condition list
+- **THEN** its actions run, and the trace records that it fired unconditionally
+
