@@ -8,6 +8,7 @@ module.exports = {
   displayName: 'api-integration',
   moduleNameMapper: {
     ...esmExtensionMapper,
+    '^@copalibre/auth$': '<rootDir>/../../packages/auth/src/index.ts',
     '^@copalibre/domain$': '<rootDir>/../../packages/domain/src/index.ts',
     '^@copalibre/persistence$': '<rootDir>/../../packages/persistence/src/index.ts',
   },
