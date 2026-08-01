@@ -5,11 +5,12 @@ Makes the recorded result model belong to the discipline rather than to the engi
 the statistics its discipline declares, for any number of sides, and declares in a script how it is
 won — so a nested-scoring discipline (tennis) and a non-duel discipline (battle royale, swimming)
 are both expressible without engine changes.
-
 ## Requirements
 ### Requirement: A result records the statistics the discipline declares
 A recorded outcome SHALL carry, per side, values keyed by the statistic codes the bound discipline
-declares, rather than a single fixed score.
+declares, rather than a single fixed score. A discipline MAY additionally declare **collectors**,
+which aggregate recorded facts over the competition and actor hierarchies without changing what a
+result records.
 
 #### Scenario: A discipline scoring at several levels records all of them
 - **WHEN** a tennis match is recorded in which one side won 2 sets to 1 and 18 games to 14
@@ -19,6 +20,11 @@ declares, rather than a single fixed score.
 #### Scenario: A statistic the discipline does not declare is rejected
 - **WHEN** a result is submitted carrying a statistic code the bound discipline does not declare
 - **THEN** the submission is rejected identifying the unknown code, rather than being silently stored
+
+#### Scenario: Declaring a collector changes nothing a result records
+- **WHEN** a discipline adds a collector to a descriptor
+- **THEN** the shape of a recorded outcome is unchanged, and results written before the collector
+  existed remain valid
 
 ### Requirement: Standings aggregate by the declared aggregation mode
 Accounting SHALL fold each declared statistic across an entrant's outcomes using that statistic's own
@@ -68,3 +74,4 @@ subscribe to, without a mechanism dedicated to any one discipline.
 - **WHEN** a side reaches a state one scoring unit away from satisfying the match win condition
 - **THEN** a segment-threshold event is emitted carrying which side and which threshold, and an
   existing notification rule can trigger on it
+

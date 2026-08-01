@@ -60,6 +60,20 @@ export {
 } from './projections/statistic-projection.js';
 export { TagRepository, type TagQuery } from './repositories/tag-repository.js';
 export {
+  OutboxRelay,
+  type ClaimedJob,
+  type JobFailure,
+  type DeadLetter,
+  type RelayMetrics,
+} from './relay/outbox-relay.js';
+export { SchedulerLeaseStore, type Lease } from './relay/scheduler-lease.js';
+export { ProjectionStore, type ProjectionVersion } from './relay/projection-store.js';
+export {
+  ScheduledJobStore,
+  SYSTEM_ORGANIZATION,
+  type ScheduledJob,
+} from './relay/scheduled-jobs.js';
+export {
   StatisticRepository,
   type StoredFigure,
   type TotalsQuery,

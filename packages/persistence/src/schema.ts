@@ -269,6 +269,13 @@ export interface AuditLogTable {
  * tier (phase 0010) emits in camelCase — the mapping lives here, per the
  * architecture doc's SSE contract section.
  */
+/**
+ * Durable claim and retry state on an outbox row (0017).
+ *
+ * On the row rather than in a separate queue table: the row *is* the unit of
+ * work, and a second table would let the two disagree about whether something
+ * was done — which is the one thing an outbox exists to prevent.
+ */
 export interface OutboxEventsTable {
   event_id: string;
   organization_id: string;
@@ -279,6 +286,59 @@ export interface OutboxEventsTable {
   payload: JSONColumnType<Record<string, unknown>>;
   created_at: Timestamp;
   consumed_at: Timestamp | null;
+  /** Who holds the claim, and until when; both null when unclaimed. */
+  claimed_by: ColumnType<string | null, string | null | undefined, string | null>;
+  claimed_until: ColumnType<Date | null, Date | string | null | undefined, Date | string | null>;
+  attempts: ColumnType<number, number | undefined, number>;
+  /** When this row may next be claimed; the backoff, made durable. */
+  next_attempt_at: ColumnType<Date, Date | string | undefined, Date | string>;
+  /** Set when retries are exhausted. A dead letter is inspected, never dropped. */
+  dead_lettered_at: ColumnType<Date | null, Date | string | null | undefined, Date | string | null>;
+  /** Every failure, oldest first: what failed, when, on which attempt. */
+  failures: ColumnType<readonly Record<string, unknown>[], string | undefined, string>;
+}
+
+/**
+ * What a consumer has already applied (0017).
+ *
+ * The idempotency key is the outbox row's own id — a UUIDv7 the producer
+ * already generated — rather than a hash of the payload. Two consumers may each
+ * process the same row once, which is why the consumer is part of the key.
+ */
+export interface ProcessedMarkersTable {
+  consumer: string;
+  event_id: string;
+  processed_at: ColumnType<Date, Date | string | undefined, Date | string>;
+}
+
+/**
+ * The single logical scheduler, elected by holding a row (0017).
+ *
+ * A lease rather than a leader-election service: a second coordination system
+ * to decide which replica runs a cron loop is a lot of machinery for a question
+ * PostgreSQL can already answer transactionally.
+ */
+export interface SchedulerLeasesTable {
+  lease_name: string;
+  holder: string;
+  /** Wall-clock expiry. A holder that stops renewing loses it without asking. */
+  expires_at: Timestamp;
+  acquired_at: ColumnType<Date, Date | string | undefined, Date | string>;
+  renewed_at: ColumnType<Date, Date | string | undefined, Date | string>;
+  /** Bumped on every handoff, so a stale holder can tell it was replaced. */
+  fencing_token: ColumnType<number, number | undefined, number>;
+}
+
+/** A recurring job a later phase registered; the scheduler only enqueues. */
+export interface ScheduledJobsTable {
+  job_name: string;
+  organization_id: string | null;
+  event_type: string;
+  payload: JSONColumnType<Record<string, unknown>>;
+  interval_seconds: number;
+  last_enqueued_at: ColumnType<Date | null, Date | string | null | undefined, Date | string | null>;
+  enabled: ColumnType<boolean, boolean | undefined, boolean>;
+  created_at: ColumnType<Date, Date | string | undefined, Date | string>;
 }
 
 export interface EventCursorsTable {
@@ -442,6 +502,9 @@ export interface Database {
   materialised_standings: MaterialisedStandingsTable;
   event_cursors: EventCursorsTable;
   projection_versions: ProjectionVersionsTable;
+  processed_markers: ProcessedMarkersTable;
+  scheduler_leases: SchedulerLeasesTable;
+  scheduled_jobs: ScheduledJobsTable;
   statistic_totals: StatisticTotalsTable;
   statistic_adjustments: StatisticAdjustmentsTable;
   tag_facts: TagFactsTable;
