@@ -77,7 +77,7 @@ describe('participant-or-staff actor requirement', () => {
           label: 'Bench Warning',
           category: 'negative',
           permittedSegmentTypes: ['half'],
-          actorRequirement: 'participant-or-staff',
+          actorRequirement: 'person-or-staff',
           payloadSchema: { type: 'object', properties: {} },
         },
       ],
@@ -96,7 +96,7 @@ describe('participant-or-staff actor requirement', () => {
       segment,
       definitionCode: 'bench-warning',
       occurredAt: '2026-07-29T12:00:00.000Z',
-      participantId: 'coach-1',
+      personId: 'coach-1',
     });
     expect(withActor.ok).toBe(true);
     const withoutActor = log.record({

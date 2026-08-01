@@ -45,7 +45,7 @@ export {
   type CreateTournamentInput,
   type CreateRulesetInput,
 } from './repositories/tournament-repository.js';
-export { ParticipantRepository, type AuditContext } from './repositories/participant-repository.js';
+export { EnrollmentRepository, type AuditContext } from './repositories/enrollment-repository.js';
 export { CompetitionRepository } from './repositories/competition-repository.js';
 export { ScheduleRepository, type SchedulePreview } from './repositories/schedule-repository.js';
 export { MatchAssignmentRepository } from './repositories/match-assignment-repository.js';
@@ -66,9 +66,7 @@ export {
 export {
   toOrganization,
   toTournament,
-  toParticipant,
   toTeam,
-  toRoster,
   toEntrant,
   toStage,
   toMatch,

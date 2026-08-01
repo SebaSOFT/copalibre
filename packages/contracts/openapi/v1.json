@@ -1419,7 +1419,7 @@
             "format": "uuid",
             "description": "The entrant it belongs to — an id, never \"home\"/\"away\""
           },
-          "participantId": {
+          "personId": {
             "type": "string",
             "format": "uuid",
             "description": "The person, when the discipline needs one"
@@ -1453,7 +1453,7 @@
             "type": "string",
             "format": "uuid"
           },
-          "participantId": {
+          "personId": {
             "type": "string",
             "format": "uuid"
           },

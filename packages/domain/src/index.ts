@@ -231,14 +231,7 @@ export {
   ModuleFrozenError,
   type StartPreconditions,
 } from './aggregates/tournament-start.js';
-export type {
-  Participant,
-  Team,
-  RosterMember,
-  Roster,
-  EntrantStatus,
-  Entrant,
-} from './aggregates/participant.js';
+export type { Team, EntrantStatus, Entrant } from './aggregates/participant.js';
 export {
   validateAttributes,
   assertWeightingComplete,

@@ -12,7 +12,7 @@ import {
   CompetitionRepository,
   newId,
   OrganizationRepository,
-  ParticipantRepository,
+  EnrollmentRepository,
   TournamentRepository,
   withTransaction,
 } from '@copalibre/persistence';
@@ -91,7 +91,7 @@ describe('stage transition (integration)', () => {
   async function seedGroupStage(alias: string) {
     const tournaments = new TournamentRepository(scratch.db);
     const competition = new CompetitionRepository(scratch.db);
-    const participants = new ParticipantRepository(scratch.db);
+    const participants = new EnrollmentRepository(scratch.db);
     const descriptor = league();
 
     return withTransaction(scratch.db, async (uow) => {
@@ -165,7 +165,7 @@ describe('stage transition (integration)', () => {
     const { tournament, stage, descriptor, entrants, match } =
       await seedGroupStage('copa-transicion');
     const records = new CompetitionRecordRepository(scratch.db);
-    const participants = new ParticipantRepository(scratch.db);
+    const participants = new EnrollmentRepository(scratch.db);
 
     const ids = entrants.map((entry) => entry.entrant.entrantId);
     const graph = generateFixtures({
@@ -281,7 +281,7 @@ describe('stage transition (integration)', () => {
 
   it('draws the next stage under a separation constraint, reproducibly', async () => {
     const { entrants } = await seedGroupStage('copa-sorteo');
-    const participants = new ParticipantRepository(scratch.db);
+    const participants = new EnrollmentRepository(scratch.db);
 
     const attributes = await participants.listTournamentAttributes(
       entrants[0]?.entrant.tournamentId ?? '',

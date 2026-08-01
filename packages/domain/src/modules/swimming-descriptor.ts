@@ -38,7 +38,7 @@ export function swimmingDescriptor(
         label: 'Finish',
         category: 'neutral',
         permittedSegmentTypes: segmentTypes,
-        actorRequirement: 'participant',
+        actorRequirement: 'person',
         payloadSchema: {
           type: 'object',
           properties: { centiseconds: { type: 'number' }, lane: { type: 'number' } },
@@ -50,7 +50,7 @@ export function swimmingDescriptor(
         label: 'False start',
         category: 'negative',
         permittedSegmentTypes: segmentTypes,
-        actorRequirement: 'participant',
+        actorRequirement: 'person',
         payloadSchema: { type: 'object', properties: {} },
       },
       ...segmentThresholdEventDefinitions(segmentTypes),

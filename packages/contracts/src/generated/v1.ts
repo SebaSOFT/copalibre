@@ -496,7 +496,7 @@ export interface components {
              * Format: uuid
              * @description The person, when the discipline needs one
              */
-            participantId?: string;
+            personId?: string;
             /** @description Payload validated against the definition */
             payload?: Record<string, never>;
         };
@@ -509,7 +509,7 @@ export interface components {
             /** Format: uuid */
             side?: string;
             /** Format: uuid */
-            participantId?: string;
+            personId?: string;
             /** @description Identity keys of notifications this event declared, deduplicated on delivery */
             notifications: string[];
         };

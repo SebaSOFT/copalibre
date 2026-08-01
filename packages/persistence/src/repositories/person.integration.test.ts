@@ -1,7 +1,7 @@
 import { InvariantViolationError } from '../errors.js';
 import { withTransaction } from '../transaction.js';
 import { OrganizationRepository } from './organization-repository.js';
-import { ParticipantRepository } from './participant-repository.js';
+import { EnrollmentRepository } from './enrollment-repository.js';
 import { PersonRepository } from './person-repository.js';
 import { createMigratedDatabase, type ScratchDatabase } from '../test-support/scratch-database.js';
 
@@ -34,7 +34,7 @@ describe('people and their memberships (integration)', () => {
 
   async function team(name: string) {
     return withTransaction(scratch.db, (uow) =>
-      new ParticipantRepository(scratch.db).createTeam(uow, { organizationId, name, ...AUDIT }),
+      new EnrollmentRepository(scratch.db).createTeam(uow, { organizationId, name, ...AUDIT }),
     );
   }
 

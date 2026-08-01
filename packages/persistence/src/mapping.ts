@@ -6,9 +6,7 @@ import type {
   ResourceAssignment,
   Venue,
   Organization,
-  Participant,
   RecordedEvent,
-  Roster,
   Segment,
   Stage,
   Team,
@@ -24,8 +22,6 @@ import type {
   MatchEventsTable,
   MatchesTable,
   OrganizationsTable,
-  ParticipantsTable,
-  RostersTable,
   SegmentsTable,
   StagesTable,
   TeamsTable,
@@ -42,9 +38,7 @@ import type {
  */
 export type OrganizationRow = Selectable<OrganizationsTable>;
 export type TournamentRow = Selectable<TournamentsTable>;
-export type ParticipantRow = Selectable<ParticipantsTable>;
 export type TeamRow = Selectable<TeamsTable>;
-export type RosterRow = Selectable<RostersTable>;
 export type EntrantRow = Selectable<EntrantsTable>;
 export type StageRow = Selectable<StagesTable>;
 export type EntrantAttributeRow = Selectable<EntrantAttributesTable>;
@@ -81,30 +75,12 @@ export function toTournament(row: TournamentRow): Tournament {
   };
 }
 
-export function toParticipant(row: ParticipantRow): Participant {
-  return {
-    participantId: row.participant_id,
-    organizationId: row.organization_id,
-    alias: row.alias ?? undefined,
-    displayName: row.display_name,
-    type: row.participant_type as Participant['type'],
-  };
-}
-
 export function toTeam(row: TeamRow): Team {
   return {
     teamId: row.team_id,
     organizationId: row.organization_id,
     clubId: row.club_id ?? undefined,
     name: row.name,
-  };
-}
-
-export function toRoster(row: RosterRow): Roster {
-  return {
-    rosterId: row.roster_id,
-    teamId: row.team_id,
-    members: row.members as unknown as Roster['members'],
   };
 }
 
@@ -115,7 +91,7 @@ export function toEntrant(row: EntrantRow): Entrant {
     entrantRef:
       row.entrant_kind === 'team'
         ? { kind: 'team', teamId: row.team_id as string }
-        : { kind: 'participant', participantId: row.participant_id as string },
+        : { kind: 'person', personId: row.person_id as string },
     seed: row.seed ?? undefined,
     status: row.status as Entrant['status'],
   };
@@ -206,7 +182,7 @@ export function toRecordedEvent(row: MatchEventRow): RecordedEvent {
     // The column was always `text`; since the side is an entrant id there is
     // nothing left to narrow it to.
     side: row.side ?? undefined,
-    participantId: row.participant_id ?? undefined,
+    personId: row.person_id ?? undefined,
     payload: row.payload as Record<string, unknown>,
   };
 }

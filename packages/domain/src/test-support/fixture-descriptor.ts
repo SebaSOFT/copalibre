@@ -27,7 +27,7 @@ export function fixtureDescriptor(overrides?: Partial<DisciplineDescriptor>): Di
         label: 'Strike',
         category: 'positive',
         permittedSegmentTypes: ['half', 'overtime'],
-        actorRequirement: 'participant',
+        actorRequirement: 'person',
         payloadSchema: {
           type: 'object',
           properties: {
@@ -43,7 +43,7 @@ export function fixtureDescriptor(overrides?: Partial<DisciplineDescriptor>): Di
         label: 'Caution',
         category: 'negative',
         permittedSegmentTypes: ['half'],
-        actorRequirement: 'participant',
+        actorRequirement: 'person',
         payloadSchema: {
           type: 'object',
           properties: { reason: { type: 'string' } },

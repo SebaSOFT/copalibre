@@ -2,7 +2,7 @@ import type { TournamentProfile } from '@copalibre/domain';
 import type { Kysely } from 'kysely';
 import type { Database } from '../schema.js';
 import type { UnitOfWork } from '../transaction.js';
-import type { AuditContext } from './participant-repository.js';
+import type { AuditContext } from './enrollment-repository.js';
 
 export interface StoredProfile {
   readonly profileId: string;

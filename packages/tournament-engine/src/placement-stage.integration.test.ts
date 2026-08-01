@@ -11,7 +11,7 @@ import {
   CompetitionRepository,
   newId,
   OrganizationRepository,
-  ParticipantRepository,
+  EnrollmentRepository,
   TournamentRepository,
   withTransaction,
 } from '@copalibre/persistence';
@@ -74,7 +74,7 @@ describe('placement stages (integration)', () => {
   async function seedStage(alias: string, descriptor: DisciplineDescriptor, entrantCount: number) {
     const tournaments = new TournamentRepository(scratch.db);
     const competition = new CompetitionRepository(scratch.db);
-    const participants = new ParticipantRepository(scratch.db);
+    const participants = new EnrollmentRepository(scratch.db);
 
     return withTransaction(scratch.db, async (uow) => {
       await tournaments.saveDescriptor(uow, descriptor, { organizationId, ...AUDIT });

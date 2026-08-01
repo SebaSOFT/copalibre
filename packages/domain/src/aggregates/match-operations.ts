@@ -96,7 +96,7 @@ export interface RunningTimer {
   /** The entrant the penalty is served by, when the discipline says so. */
   readonly side?: string;
   /** The person, when the discipline attributes it to one. */
-  readonly participantId?: string;
+  readonly personId?: string;
   /** Epoch milliseconds of the causing event. */
   readonly startedAt: number;
   readonly durationSeconds: number;
@@ -142,7 +142,7 @@ export function runningTimers(
     running.set(key, {
       timerId: event.eventId,
       side: event.side,
-      participantId: event.participantId,
+      personId: event.personId,
       startedAt,
       durationSeconds,
       remainingSeconds: 0,
@@ -165,7 +165,7 @@ function remainingOf(timer: RunningTimer, now: number): number {
  * than stacking, which is what "he is already serving one" means at the table.
  */
 function timerKey(event: RecordedEvent): string {
-  return event.participantId ?? event.side ?? event.matchId;
+  return event.personId ?? event.side ?? event.matchId;
 }
 
 /**
@@ -185,7 +185,7 @@ function timerKey(event: RecordedEvent): string {
 export interface LineupSelection {
   readonly matchId: string;
   readonly entrantId: string;
-  readonly participantIds: readonly string[];
+  readonly personIds: readonly string[];
 }
 
 export interface RosterConstraint {
@@ -197,7 +197,7 @@ export interface RosterConstraint {
 export interface LineupFinding {
   readonly kind: 'off-roster' | 'below-minimum' | 'above-maximum';
   readonly detail: string;
-  readonly participantId?: string;
+  readonly personId?: string;
 }
 
 export interface CheckedLineup {
@@ -211,8 +211,8 @@ export function validateLineup(
   eligibleParticipantIds: readonly string[],
   constraint: RosterConstraint,
 ): Result<CheckedLineup, MatchOperationError> {
-  const unique = new Set(selection.participantIds);
-  if (unique.size !== selection.participantIds.length) {
+  const unique = new Set(selection.personIds);
+  if (unique.size !== selection.personIds.length) {
     return err(
       new MatchOperationError('A lineup names the same person twice', {
         matchId: selection.matchId,
@@ -224,12 +224,12 @@ export function validateLineup(
   const findings: LineupFinding[] = [];
 
   const eligible = new Set(eligibleParticipantIds);
-  for (const participantId of selection.participantIds) {
-    if (!eligible.has(participantId)) {
+  for (const personId of selection.personIds) {
+    if (!eligible.has(personId)) {
       findings.push({
         kind: 'off-roster',
-        participantId,
-        detail: `"${participantId}" is not on this entrant's active roster`,
+        personId,
+        detail: `"${personId}" is not on this entrant's active roster`,
       });
     }
   }

@@ -224,13 +224,13 @@ describe('notification comparator and scope variants', () => {
     const perScope = (scope: NotificationRule['scope']): string => {
       const rule: NotificationRule = { ...base, scope, threshold: { comparator: '>=', value: 1 } };
       const evaluation = evaluateNotificationRule(rule, descriptor, [
-        event(1, { participantId: 'p-1' }),
+        event(1, { personId: 'p-1' }),
       ]);
       return evaluation.instances[0]?.scopeKey ?? 'none';
     };
     expect(perScope('match')).toBe('match:m-1');
     expect(perScope('segment')).toBe('segment:seg-1');
-    expect(perScope('participant')).toBe('participant:p-1');
+    expect(perScope('person')).toBe('person:p-1');
   });
 
   it('sum aggregation ignores non-numeric payload values', () => {

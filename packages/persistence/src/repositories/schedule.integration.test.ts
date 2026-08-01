@@ -12,7 +12,7 @@ import { createMigratedDatabase, type ScratchDatabase } from '../test-support/sc
 import { withTransaction } from '../transaction.js';
 import { CompetitionRepository } from './competition-repository.js';
 import { OrganizationRepository } from './organization-repository.js';
-import { ParticipantRepository } from './participant-repository.js';
+import { EnrollmentRepository } from './enrollment-repository.js';
 import { ScheduleRepository } from './schedule-repository.js';
 import { TournamentRepository } from './tournament-repository.js';
 
@@ -75,7 +75,7 @@ describe('scheduling (integration)', () => {
   async function seedStage(alias: string, concurrentCapacity = 1) {
     const tournaments = new TournamentRepository(scratch.db);
     const competition = new CompetitionRepository(scratch.db);
-    const participants = new ParticipantRepository(scratch.db);
+    const participants = new EnrollmentRepository(scratch.db);
 
     return withTransaction(scratch.db, async (uow) => {
       const disciplineDescriptor = descriptor();

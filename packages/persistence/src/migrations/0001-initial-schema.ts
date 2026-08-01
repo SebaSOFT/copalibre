@@ -108,18 +108,6 @@ export const initialSchema: Migration = {
       .addPrimaryKeyConstraint('stage_configurations_pk', ['stage_configuration_id', 'version'])
       .execute();
 
-    await db.schema
-      .createTable('participants')
-      .addColumn('participant_id', 'uuid', (col) => col.primaryKey())
-      .addColumn('organization_id', 'uuid', (col) =>
-        col.notNull().references('organizations.organization_id'),
-      )
-      .addColumn('alias', 'text')
-      .addColumn('display_name', 'text', (col) => col.notNull())
-      .addColumn('participant_type', 'text', (col) => col.notNull())
-      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
-      .execute();
-
     // The human, and their membership in a team (0015). Uniqueness is on the
     // normalised key, scoped to the organization that holds it — two spellings
     // of one document are one person, and recognising that is what stops an
@@ -166,21 +154,13 @@ export const initialSchema: Migration = {
       .execute();
 
     await db.schema
-      .createTable('rosters')
-      .addColumn('roster_id', 'uuid', (col) => col.primaryKey())
-      .addColumn('team_id', 'uuid', (col) => col.notNull().references('teams.team_id'))
-      .addColumn('members', 'jsonb', (col) => col.notNull())
-      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
-      .execute();
-
-    await db.schema
       .createTable('entrants')
       .addColumn('entrant_id', 'uuid', (col) => col.primaryKey())
       .addColumn('tournament_id', 'uuid', (col) =>
         col.notNull().references('tournaments.tournament_id'),
       )
       .addColumn('entrant_kind', 'text', (col) => col.notNull())
-      .addColumn('participant_id', 'uuid', (col) => col.references('participants.participant_id'))
+      .addColumn('person_id', 'uuid', (col) => col.references('persons.person_id'))
       .addColumn('team_id', 'uuid', (col) => col.references('teams.team_id'))
       .addColumn('seed', 'integer')
       .addColumn('status', 'text', (col) => col.notNull())
@@ -303,7 +283,7 @@ export const initialSchema: Migration = {
       .addColumn('occurred_at', 'timestamptz', (col) => col.notNull())
       .addColumn('sequence', 'integer', (col) => col.notNull())
       .addColumn('side', 'text')
-      .addColumn('participant_id', 'uuid')
+      .addColumn('person_id', 'uuid')
       .addColumn('payload', 'jsonb', (col) => col.notNull())
       .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
       .addUniqueConstraint('match_events_match_sequence_unique', ['match_id', 'sequence'])
@@ -317,7 +297,7 @@ export const initialSchema: Migration = {
       .createTable('match_lineups')
       .addColumn('match_id', 'uuid', (col) => col.notNull().references('matches.match_id'))
       .addColumn('entrant_id', 'uuid', (col) => col.notNull())
-      .addColumn('participant_ids', 'jsonb', (col) => col.notNull())
+      .addColumn('person_ids', 'jsonb', (col) => col.notNull())
       .addColumn('updated_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
       .addPrimaryKeyConstraint('match_lineups_pk', ['match_id', 'entrant_id'])
       .execute();
@@ -484,10 +464,8 @@ export const initialSchema: Migration = {
       'fixtures',
       'entrant_attributes',
       'entrants',
-      'rosters',
       'players',
       'teams',
-      'participants',
       'persons',
       'stage_configurations',
       'stages',

@@ -8,7 +8,7 @@
 
 export type EventCategory = 'positive' | 'negative' | 'neutral';
 
-export type ActorRequirement = 'none' | 'side' | 'participant' | 'participant-or-staff';
+export type ActorRequirement = 'none' | 'side' | 'person' | 'person-or-staff';
 
 /**
  * Event payload schemas are standard JSON Schema documents (validated with

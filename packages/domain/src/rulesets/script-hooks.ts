@@ -143,7 +143,7 @@ const EVENT_CONTEXT_PATHS = [
   'event.definitionCode',
   'event.category',
   'event.side',
-  'event.participantId',
+  'event.personId',
   'event.recordedAt',
   'event.payload.*',
 ] as const;

@@ -17,7 +17,7 @@ import { newId } from '../ids.js';
 import { toIsoString, toMatch, toRecordedEvent, toSegment, toStage } from '../mapping.js';
 import type { Database } from '../schema.js';
 import type { UnitOfWork } from '../transaction.js';
-import type { AuditContext } from './participant-repository.js';
+import type { AuditContext } from './enrollment-repository.js';
 
 /**
  * Stage/Fixture/Match/Segment plus the append-only match-event log.
@@ -554,7 +554,7 @@ export class CompetitionRepository {
         occurred_at: new Date(event.occurredAt),
         sequence: input.sequence,
         side: event.side ?? null,
-        participant_id: event.participantId ?? null,
+        person_id: event.personId ?? null,
         payload: JSON.stringify(event.payload),
         created_at: new Date(),
       })

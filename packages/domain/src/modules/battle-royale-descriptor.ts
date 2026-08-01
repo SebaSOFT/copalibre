@@ -37,7 +37,7 @@ export function battleRoyaleDescriptor(
         label: 'Elimination',
         category: 'positive',
         permittedSegmentTypes: segmentTypes,
-        actorRequirement: 'participant',
+        actorRequirement: 'person',
         payloadSchema: {
           type: 'object',
           properties: { weapon: { type: 'string' }, distanceMeters: { type: 'number' } },
@@ -49,7 +49,7 @@ export function battleRoyaleDescriptor(
         label: 'Downed',
         category: 'negative',
         permittedSegmentTypes: segmentTypes,
-        actorRequirement: 'participant',
+        actorRequirement: 'person',
         payloadSchema: { type: 'object', properties: {} },
         effects: [{ kind: 'statistic', statisticCode: 'deaths', delta: 1 }],
       },

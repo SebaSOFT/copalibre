@@ -73,15 +73,6 @@ export interface TournamentsTable {
   created_at: Timestamp;
 }
 
-export interface ParticipantsTable {
-  participant_id: string;
-  organization_id: string;
-  alias: string | null;
-  display_name: string;
-  participant_type: string;
-  created_at: Timestamp;
-}
-
 /**
  * The human (0015). `natural_key_normalised` is what uniqueness is enforced on
  * — `12.345.678` and `12345678` are one document, and the column that decides
@@ -115,18 +106,11 @@ export interface TeamsTable {
   created_at: Timestamp;
 }
 
-export interface RostersTable {
-  roster_id: string;
-  team_id: string;
-  members: JSONColumnType<readonly Record<string, unknown>[]>;
-  created_at: Timestamp;
-}
-
 export interface EntrantsTable {
   entrant_id: string;
   tournament_id: string;
   entrant_kind: string;
-  participant_id: string | null;
+  person_id: string | null;
   team_id: string | null;
   seed: number | null;
   status: string;
@@ -236,7 +220,7 @@ export interface MatchEventsTable {
   occurred_at: Timestamp;
   sequence: number;
   side: string | null;
-  participant_id: string | null;
+  person_id: string | null;
   payload: JSONColumnType<Record<string, unknown>>;
   created_at: Timestamp;
 }
@@ -245,7 +229,7 @@ export interface MatchEventsTable {
 export interface MatchLineupsTable {
   match_id: string;
   entrant_id: string;
-  participant_ids: JSONColumnType<readonly string[]>;
+  person_ids: JSONColumnType<readonly string[]>;
   updated_at: Timestamp;
 }
 
@@ -363,11 +347,9 @@ export interface Database {
   tournament_rulesets: TournamentRulesetsTable;
   stage_configurations: StageConfigurationsTable;
   tournaments: TournamentsTable;
-  participants: ParticipantsTable;
   persons: PersonsTable;
   players: PlayersTable;
   teams: TeamsTable;
-  rosters: RostersTable;
   entrants: EntrantsTable;
   entrant_attributes: EntrantAttributesTable;
   venues: VenuesTable;

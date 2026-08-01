@@ -263,7 +263,7 @@ export class MatchControlController {
       definitionCode: body.definitionCode,
       occurredAt: new Date(body.occurredAt).toISOString(),
       ...(body.side === undefined ? {} : { side: body.side }),
-      ...(body.participantId === undefined ? {} : { participantId: body.participantId }),
+      ...(body.personId === undefined ? {} : { personId: body.personId }),
       ...(body.payload === undefined ? {} : { payload: body.payload }),
     });
     if (!validated.ok) {
@@ -320,7 +320,7 @@ export class MatchControlController {
       definitionCode: recorded.definitionCode,
       sequence: recorded.sequence,
       ...(recorded.side === undefined ? {} : { side: recorded.side }),
-      ...(recorded.participantId === undefined ? {} : { participantId: recorded.participantId }),
+      ...(recorded.personId === undefined ? {} : { personId: recorded.personId }),
       notifications,
     };
   }
@@ -556,7 +556,7 @@ function toTimerDto(timer: RunningTimer) {
   return {
     timerId: timer.timerId,
     ...(timer.side === undefined ? {} : { side: timer.side }),
-    ...(timer.participantId === undefined ? {} : { participantId: timer.participantId }),
+    ...(timer.personId === undefined ? {} : { personId: timer.personId }),
     startedAt: timer.startedAt,
     durationSeconds: timer.durationSeconds,
     remainingSeconds: timer.remainingSeconds,
