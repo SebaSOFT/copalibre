@@ -16,6 +16,14 @@ describe('the overview model', () => {
     expect(displayName({ ...model, seasonName: undefined })).toBe('Torneo Apertura');
   });
 
+  it('omits the season entirely when a tournament has never named one', () => {
+    const { seasonName, ...withoutSeason } = sampleOverview('liga-mendocina', 'apertura-2026');
+    const built = buildOverview(withoutSeason);
+
+    expect('seasonName' in built).toBe(false);
+    expect(displayName(built)).toBe('Torneo Apertura');
+  });
+
   it('counts what is live, so the badge carries a number and not just a colour', () => {
     expect(model.liveCount).toBe(1);
   });
@@ -30,6 +38,17 @@ describe('the overview model', () => {
     // Never a truncation invented here (0037).
     expect(shortLabel({ name: 'Talleres de Mendoza', abbreviation: 'TLL A' })).toBe('TLL A');
     expect(shortLabel({ name: 'Club Atlético San Martín' })).toBe('Club Atlético San Martín');
+  });
+
+  it('reports zero live when nothing is live', () => {
+    const quiet = buildOverview({
+      ...sampleOverview('liga-mendocina', 'apertura-2026'),
+      matches: [],
+      standings: [],
+    });
+
+    expect(quiet.liveCount).toBe(0);
+    expect(quiet.matches).toEqual([]);
   });
 
   it('refuses to build a model for a raw identifier', () => {
