@@ -34,7 +34,7 @@ import { createMigratedDatabase } from '../../persistence/src/test-support/scrat
  * transactions, its timer keeps the clock it was declared with, and neither
  * reaches the outbox unless the transaction that produced it commits.
  *
- * Delivery itself is not this phase's — `0015-worker-scheduler-async-jobs`
+ * Delivery itself is not this phase's — `0017-worker-scheduler-async-jobs`
  * relays the outbox. What is proven here is the contract delivery will rely on.
  */
 
