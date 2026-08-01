@@ -70,18 +70,31 @@ export const initialSchema: Migration = {
       .addPrimaryKeyConstraint('tournament_rulesets_pk', ['ruleset_id', 'version'])
       .execute();
 
+    // A season is one running of a tournament (0015). Stages hang off the
+    // edition rather than off the competition that repeats, so "what did we
+    // play in 2025" is a relation and not a substring of a name.
     await db.schema
-      .createTable('stages')
-      .addColumn('stage_id', 'uuid', (col) => col.primaryKey())
+      .createTable('seasons')
+      .addColumn('season_id', 'uuid', (col) => col.primaryKey())
       .addColumn('tournament_id', 'uuid', (col) =>
         col.notNull().references('tournaments.tournament_id'),
       )
+      .addColumn('name', 'text', (col) => col.notNull())
+      .addColumn('ordinal', 'integer', (col) => col.notNull())
+      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addUniqueConstraint('seasons_tournament_ordinal_unique', ['tournament_id', 'ordinal'])
+      .execute();
+
+    await db.schema
+      .createTable('stages')
+      .addColumn('stage_id', 'uuid', (col) => col.primaryKey())
+      .addColumn('season_id', 'uuid', (col) => col.notNull().references('seasons.season_id'))
       .addColumn('number', 'integer', (col) => col.notNull())
       .addColumn('name', 'text', (col) => col.notNull())
       .addColumn('format', 'text', (col) => col.notNull())
       .addColumn('stage_configuration_id', 'uuid')
       .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
-      .addUniqueConstraint('stages_tournament_number_unique', ['tournament_id', 'number'])
+      .addUniqueConstraint('stages_season_number_unique', ['season_id', 'number'])
       .execute();
 
     await db.schema
@@ -442,6 +455,7 @@ export const initialSchema: Migration = {
       'participants',
       'stage_configurations',
       'stages',
+      'seasons',
       'tournament_rulesets',
       'tournaments',
       'discipline_descriptors',

@@ -103,7 +103,7 @@ describe('stage transition (integration)', () => {
         descriptor,
         ...AUDIT,
       });
-      const stage = await competition.createStage(uow, {
+      const stage = await competition.createStageInTournament(uow, {
         tournamentId: tournament.tournamentId,
         number: 1,
         name: 'Group',
@@ -233,15 +233,16 @@ describe('stage transition (integration)', () => {
     // Nothing was written by the preview: no fixtures, no seeds, no standings.
     const stagesBefore = await scratch.db
       .selectFrom('stages')
+      .innerJoin('seasons', 'seasons.season_id', 'stages.season_id')
       .select((eb) => eb.fn.countAll<string>().as('count'))
-      .where('tournament_id', '=', tournament.tournamentId)
+      .where('seasons.tournament_id', '=', tournament.tournamentId)
       .executeTakeFirstOrThrow();
     expect(stagesBefore.count).toBe('1');
     await expect(records.latestStandings(stage.stageId)).resolves.toBeUndefined();
 
     // Committing is the caller's audited write, and only now does state change.
     const nextStage = await withTransaction(scratch.db, async (uow) => {
-      const created = await new CompetitionRepository(scratch.db).createStage(uow, {
+      const created = await new CompetitionRepository(scratch.db).createStageInTournament(uow, {
         tournamentId: tournament.tournamentId,
         number: 2,
         name: 'Playoff',

@@ -196,7 +196,7 @@ describe('repositories (integration)', () => {
         organizationId,
         ...AUDIT,
       });
-      const stage = await competition.createStage(uow, {
+      const stage = await competition.createStageInTournament(uow, {
         tournamentId: tournament.tournamentId,
         number: 1,
         name: 'Group Stage',
@@ -265,7 +265,7 @@ describe('repositories (integration)', () => {
         descriptor: disciplineDescriptor,
         ...AUDIT,
       });
-      const stage = await competition.createStage(uow, {
+      const stage = await competition.createStageInTournament(uow, {
         tournamentId: tournament.tournamentId,
         number: 1,
         name: 'Stage',

@@ -129,7 +129,7 @@ describe('snake_case row → camelCase domain mapping', () => {
   it('maps a stage row', () => {
     const row: StageRow = {
       stage_id: 's-1',
-      tournament_id: 't-1',
+      season_id: 's-1',
       number: 1,
       name: 'Group Stage',
       format: 'round-robin',
@@ -138,7 +138,7 @@ describe('snake_case row → camelCase domain mapping', () => {
     };
     expect(toStage(row)).toEqual({
       stageId: 's-1',
-      tournamentId: 't-1',
+      seasonId: 's-1',
       number: 1,
       name: 'Group Stage',
       format: 'round-robin',
@@ -257,7 +257,7 @@ describe('mapping edge cases', () => {
   it('maps a stage that already has a configuration attached', () => {
     const row: StageRow = {
       stage_id: 's-2',
-      tournament_id: 't-1',
+      season_id: 's-1',
       number: 2,
       name: 'Playoffs',
       format: 'single-elimination',

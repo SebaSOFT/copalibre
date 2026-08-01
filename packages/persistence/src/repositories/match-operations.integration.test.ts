@@ -71,7 +71,7 @@ describe('match operations (integration)', () => {
         .onConflict((conflict) => conflict.doNothing())
         .execute();
 
-      const stage = await competition.createStage(uow, {
+      const stage = await competition.createStageInTournament(uow, {
         tournamentId,
         number: stageNumber++,
         name: `Stage ${label}`,

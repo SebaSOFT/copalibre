@@ -167,7 +167,7 @@ export function toResourceAssignment(
 export function toStage(row: StageRow): Stage {
   return {
     stageId: row.stage_id,
-    tournamentId: row.tournament_id,
+    seasonId: row.season_id,
     number: row.number,
     name: row.name,
     format: row.format as Stage['format'],

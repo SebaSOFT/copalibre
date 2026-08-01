@@ -125,6 +125,14 @@ export {
   type ScriptConstraint,
 } from './rulesets/draw-constraints.js';
 export {
+  validateSeason,
+  competitionName,
+  isImplicitSeason,
+  SeasonError,
+  IMPLICIT_SEASON_NAME,
+  type Season,
+} from './aggregates/season.js';
+export {
   planCorrection,
   CorrectionError,
   type CorrectionRequest,

@@ -278,7 +278,7 @@ describe('finalization and advancement (integration)', () => {
   async function storedMatch(label: string) {
     const competition = new CompetitionRepository(scratch.db);
     return withTransaction(scratch.db, async (uow) => {
-      const stage = await competition.createStage(uow, {
+      const stage = await competition.createStageInTournament(uow, {
         tournamentId,
         number: stageNumber++,
         name: label,

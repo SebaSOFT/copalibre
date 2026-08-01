@@ -121,9 +121,18 @@ export interface EntrantAttributesTable {
   created_at: Timestamp;
 }
 
+/** One running of a tournament (0015). Every tournament has at least one. */
+export interface SeasonsTable {
+  season_id: string;
+  tournament_id: string;
+  name: string;
+  ordinal: number;
+  created_at: Timestamp;
+}
+
 export interface StagesTable {
   stage_id: string;
-  tournament_id: string;
+  season_id: string;
   number: number;
   name: string;
   format: string;
@@ -338,6 +347,7 @@ export interface Database {
   officials: OfficialsTable;
   fixture_schedules: FixtureSchedulesTable;
   fixture_schedule_officials: FixtureScheduleOfficialsTable;
+  seasons: SeasonsTable;
   stages: StagesTable;
   fixtures: FixturesTable;
   matches: MatchesTable;
