@@ -134,6 +134,9 @@ jobs:
       # JWT verification, extracted from apps/api in 0018 so apps/events could
       # reuse it rather than grow a second answer to "is this token valid".
       - run: yarn workspace @copalibre/auth test:coverage
+      # One token source generated into CSS and Tailwind (0019); the tests are
+      # what stop the two outputs drifting apart.
+      - run: yarn workspace @copalibre/design-tokens test:coverage
       # The SSE wire contract and the client both web surfaces share (0018).
       # The encoder and the parser are two halves of one format, and the test
       # that reads back what the encoder wrote is what keeps them halves.
@@ -183,6 +186,23 @@ jobs:
           name: coverage-events
           path: apps/events/coverage
           retention-days: 14
+
+  # Added by 0019: CopaLibre and sebasoft.app must look unrelated, and a brand
+  # review months later is not a control. The scan runs against generated
+  # output, where a forbidden value arriving through any path shows up.
+  forbidden-token-scan:
+    name: Forbidden token scan
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - uses: actions/checkout@v4
+      - run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+      - run: yarn install --immutable
+      - run: yarn workspace @copalibre/design-tokens scan:forbidden
 
   # Added by 0004-persistence-postgres-outbox-audit: real PostgreSQL, no mocks.
   integration-tests:
