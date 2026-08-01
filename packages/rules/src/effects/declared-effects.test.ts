@@ -5,6 +5,7 @@ import {
   toDeclaredTimer,
   toNotificationInstance,
   toStatisticAdjustment,
+  toTagFact,
   type DeclaredEffect,
   type EffectOrigin,
 } from './declared-effects.js';
@@ -200,5 +201,108 @@ describe('toStatisticAdjustment', () => {
     expect(
       toStatisticAdjustment(effect({ kind: 'statistic-adjustment', payload })),
     ).toBeUndefined();
+  });
+});
+
+describe('toTagFact', () => {
+  const tag = effect({
+    kind: 'tag',
+    payload: {
+      code: 'suspended',
+      action: 'applied',
+      actorGranularity: 'person',
+      actorId: 'pe-1',
+      competitionGranularity: 'season',
+      competitionId: 'se-1',
+      reason: 'Doble amarilla',
+    },
+  });
+
+  it("reads a well-formed declaration at the causing event's instant", () => {
+    expect(toTagFact(tag, '2026-08-01T20:00:00.000Z')).toEqual({
+      code: 'suspended',
+      action: 'applied',
+      actorGranularity: 'person',
+      actorId: 'pe-1',
+      competitionGranularity: 'season',
+      competitionId: 'se-1',
+      actor: 'script:lead-alert',
+      reason: 'Doble amarilla',
+      // Never the clock: a replay must reproduce when the label was applied,
+      // not stamp it with the moment of the replay.
+      at: '2026-08-01T20:00:00.000Z',
+    });
+  });
+
+  it('is nothing for another kind of effect', () => {
+    expect(toTagFact(effect(), '2026-08-01T20:00:00.000Z')).toBeUndefined();
+  });
+
+  it.each([
+    [
+      'no code',
+      {
+        action: 'applied',
+        actorGranularity: 'person',
+        actorId: 'a',
+        competitionGranularity: 'season',
+        competitionId: 's',
+      },
+    ],
+    [
+      'a deletion instead of a lifting',
+      {
+        code: 'c',
+        action: 'deleted',
+        actorGranularity: 'person',
+        actorId: 'a',
+        competitionGranularity: 'season',
+        competitionId: 's',
+      },
+    ],
+    [
+      'an unpublished actor granularity',
+      {
+        code: 'c',
+        action: 'applied',
+        actorGranularity: 'referee',
+        actorId: 'a',
+        competitionGranularity: 'season',
+        competitionId: 's',
+      },
+    ],
+    [
+      'an unpublished scope',
+      {
+        code: 'c',
+        action: 'applied',
+        actorGranularity: 'person',
+        actorId: 'a',
+        competitionGranularity: 'fortnight',
+        competitionId: 's',
+      },
+    ],
+    [
+      'no subject',
+      {
+        code: 'c',
+        action: 'applied',
+        actorGranularity: 'person',
+        competitionGranularity: 'season',
+        competitionId: 's',
+      },
+    ],
+    [
+      'no scope',
+      {
+        code: 'c',
+        action: 'applied',
+        actorGranularity: 'person',
+        actorId: 'a',
+        competitionGranularity: 'season',
+      },
+    ],
+  ])('is nothing for a declaration with %s', (_label, payload) => {
+    expect(toTagFact(effect({ kind: 'tag', payload }), '2026-08-01T20:00:00.000Z')).toBeUndefined();
   });
 });

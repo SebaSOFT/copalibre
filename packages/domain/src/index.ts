@@ -152,6 +152,17 @@ export {
   type ResolvedActor,
 } from './statistics/hierarchies.js';
 export {
+  validateTagDeclaration,
+  checkTagApplication,
+  tagsAt,
+  TagError,
+  type TagDeclaration,
+  type TagLifetime,
+  type TagFact,
+  type AppliedTag,
+  type TagReadContext,
+} from './statistics/tags.js';
+export {
   checkAdjustment,
   AdjustmentError,
   type StatisticAdjustment,

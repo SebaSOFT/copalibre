@@ -41,7 +41,17 @@ export type EventEffect =
       readonly durationSeconds: number;
       readonly affects: 'actor' | 'side';
     }
-  | { readonly kind: 'match-state'; readonly transition: string };
+  | { readonly kind: 'match-state'; readonly transition: string }
+  /**
+   * Labels the actor, or removes a label (0016). A discipline that wants "an
+   * expulsion marks the player" says so here rather than in code — and the tag
+   * still refuses nothing: the organizer decides what carrying it means.
+   */
+  | {
+      readonly kind: 'tag';
+      readonly tagCode: string;
+      readonly action: 'applied' | 'lifted';
+    };
 
 export interface EventDefinition {
   /** Stable identifier within the discipline, e.g. "goal", "yellow-card". */

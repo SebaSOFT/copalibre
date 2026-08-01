@@ -1,3 +1,4 @@
+import { tagsAt, type TagDeclaration, type TagFact } from '@copalibre/domain';
 import { AuditReader } from '../audit.js';
 import { InvariantViolationError } from '../errors.js';
 import { newId } from '../ids.js';
@@ -6,6 +7,7 @@ import { withTransaction } from '../transaction.js';
 import { CompetitionRepository } from './competition-repository.js';
 import { OrganizationRepository } from './organization-repository.js';
 import { StatisticRepository, type StoredFigure } from './statistic-repository.js';
+import { TagRepository } from './tag-repository.js';
 import { createMigratedDatabase, type ScratchDatabase } from '../test-support/scratch-database.js';
 
 /**
@@ -438,5 +440,130 @@ describe('adjustments (integration)', () => {
         }),
       ),
     ).rejects.toBeInstanceOf(InvariantViolationError);
+  });
+});
+
+describe('tags (integration)', () => {
+  let scratch: ScratchDatabase;
+  let organizationId: string;
+
+  const suspended: TagDeclaration = {
+    code: 'suspended',
+    label: 'Suspendido',
+    appliesTo: ['person'],
+    exclusive: true,
+  };
+
+  function fact(overrides: Partial<TagFact> = {}): TagFact {
+    return {
+      code: 'suspended',
+      action: 'applied',
+      actorGranularity: 'person',
+      actorId: 'pe-1',
+      competitionGranularity: 'season',
+      competitionId: 'se-1',
+      actor: 'user:tribunal-1',
+      reason: 'Expulsión con informe',
+      at: '2026-08-01T20:00:00.000Z',
+      ...overrides,
+    };
+  }
+
+  beforeAll(async () => {
+    scratch = await createMigratedDatabase('tags');
+    const organization = await withTransaction(scratch.db, (uow) =>
+      new OrganizationRepository(scratch.db).create(uow, {
+        alias: 'liga-sanjuanina',
+        name: 'Liga Sanjuanina',
+        ...AUDIT,
+      }),
+    );
+    organizationId = organization.organizationId;
+  });
+
+  afterAll(async () => {
+    await scratch?.drop();
+  });
+
+  it('survives storage, reads as applying, and applies once when re-evaluated', async () => {
+    const tags = new TagRepository(scratch.db);
+    const applied = fact({ actorId: 'pe-storage', actor: 'script:discipline' });
+
+    await withTransaction(scratch.db, (uow) =>
+      tags.record(uow, { organizationId, fact: applied, ...AUDIT }),
+    );
+
+    const facts = await tags.factsFor({ organizationId, actorId: 'pe-storage' });
+    const standing = tagsAt([suspended], facts);
+
+    expect(standing).toHaveLength(1);
+    expect(standing[0]?.appliedBy).toBe('script:discipline');
+    // Evaluating the same facts again gives one tag, not two: the read is a
+    // fold, so re-reading cannot accumulate.
+    expect(tagsAt([suspended], [...facts, ...facts])).toHaveLength(1);
+  });
+
+  it('lifts by recording a second fact, keeping the first readable', async () => {
+    const tags = new TagRepository(scratch.db);
+    const subject = 'pe-lifted';
+
+    await withTransaction(scratch.db, async (uow) => {
+      await tags.record(uow, { organizationId, fact: fact({ actorId: subject }), ...AUDIT });
+      await tags.record(uow, {
+        organizationId,
+        fact: fact({
+          actorId: subject,
+          action: 'lifted',
+          at: '2026-08-05T20:00:00.000Z',
+          reason: 'Apelación aceptada',
+        }),
+        ...AUDIT,
+      });
+    });
+
+    const facts = await tags.factsFor({ organizationId, actorId: subject });
+
+    expect(tagsAt([suspended], facts)).toEqual([]);
+    // Nothing was deleted, so "was he suspended when that match was played?"
+    // stays answerable.
+    expect(facts.map((one) => one.action)).toEqual(['applied', 'lifted']);
+    expect(facts[1]?.reason).toBe('Apelación aceptada');
+  });
+
+  it('filters by subject and by scope', async () => {
+    const tags = new TagRepository(scratch.db);
+
+    await withTransaction(scratch.db, async (uow) => {
+      await tags.record(uow, {
+        organizationId,
+        fact: fact({ actorId: 'pe-scoped', competitionId: 'se-2' }),
+        ...AUDIT,
+      });
+    });
+
+    const inScope = await tags.factsFor({
+      organizationId,
+      competitionGranularity: 'season',
+      competitionId: 'se-2',
+    });
+    const elsewhere = await tags.factsFor({
+      organizationId,
+      competitionGranularity: 'season',
+      competitionId: 'se-3',
+    });
+
+    expect(inScope.map((one) => one.actorId)).toEqual(['pe-scoped']);
+    expect(elsewhere).toEqual([]);
+  });
+
+  it('exposes no way to refuse anything on account of a tag', () => {
+    const tags = new TagRepository(scratch.db);
+    const surface = Object.getOwnPropertyNames(Object.getPrototypeOf(tags)).filter(
+      (name) => name !== 'constructor',
+    );
+
+    // Record and read. A console that wants a suspended player kept out asks the
+    // organizer; this repository has nothing to offer it.
+    expect(surface.sort()).toEqual(['factsFor', 'record']);
   });
 });

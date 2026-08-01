@@ -234,6 +234,70 @@ export class AdjustStatisticAction extends AbstractAction {
   }
 }
 
+/**
+ * Declares a tag (0016).
+ *
+ * It labels and enforces nothing: a script may mark a player suspended, and the
+ * organizer still decides whether they take the field. That is the whole
+ * contract — CopaLibre keeps the integrity of its records and what this
+ * organizer configured, and never what a sport usually requires.
+ */
+export class ApplyTagAction extends AbstractAction {
+  static readonly TYPE = 'applyTag';
+
+  execute(context: ExecutionContext): ExecutionResult<DeclaredEffectKind | null> {
+    const cause = causeOf(context);
+    if (!cause) {
+      return new ExecutionResult(false, context, null, [
+        'applyTag requires the evaluation to publish what it is about (context.cause)',
+      ]);
+    }
+
+    const code = text(context, this, 'code');
+    const actorGranularity = text(context, this, 'actorGranularity');
+    const actorId = text(context, this, 'actorId');
+    const competitionGranularity = text(context, this, 'competitionGranularity');
+    const competitionId = text(context, this, 'competitionId');
+
+    if (
+      code === undefined ||
+      actorGranularity === undefined ||
+      actorId === undefined ||
+      competitionGranularity === undefined ||
+      competitionId === undefined
+    ) {
+      return new ExecutionResult(false, context, null, [
+        'applyTag requires code, actorGranularity, actorId, competitionGranularity and competitionId',
+      ]);
+    }
+
+    const action = text(context, this, 'action') ?? 'applied';
+    if (action !== 'applied' && action !== 'lifted') {
+      return new ExecutionResult(false, context, null, [
+        'applyTag action is "applied" or "lifted"; a tag is never deleted',
+      ]);
+    }
+
+    return appendDraft(
+      context,
+      {
+        kind: 'tag',
+        actionId: this.id,
+        payload: {
+          code,
+          action,
+          actorGranularity,
+          actorId,
+          competitionGranularity,
+          competitionId,
+          reason: text(context, this, 'reason'),
+        },
+      },
+      `Declared tag "${code}" ${action} for ${actorGranularity} ${actorId}`,
+    );
+  }
+}
+
 /** Registers the declaring actions (idempotent per registry). */
 export function registerDeclaredEffectActions(registry: RulesRegistry): RulesRegistry {
   registry.registerAction(
@@ -255,6 +319,11 @@ export function registerDeclaredEffectActions(registry: RulesRegistry): RulesReg
     AdjustStatisticAction.TYPE,
     AdjustStatisticAction,
     'Declares a statistic adjustment the fold applies as a fact, so a replay reproduces it',
+  );
+  registry.registerAction(
+    ApplyTagAction.TYPE,
+    ApplyTagAction,
+    'Declares a tag. It labels; it refuses nothing — the organizer decides what carrying it means',
   );
   return registry;
 }

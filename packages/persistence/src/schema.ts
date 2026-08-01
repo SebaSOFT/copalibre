@@ -381,6 +381,31 @@ export interface StatisticAdjustmentsTable {
   created_at: Timestamp;
 }
 
+/**
+ * Application and lifting of a tag, both recorded (0016).
+ *
+ * There is no update and no delete: "was he suspended when that match was
+ * played?" is a question a protest asks months later, and a row that was
+ * removed cannot answer it. Whether a tag applies *now* is derived from these
+ * rows at read.
+ */
+export interface TagFactsTable {
+  fact_id: string;
+  organization_id: string;
+  code: string;
+  /** `applied` or `lifted`; never `deleted`. */
+  action: string;
+  actor_granularity: string;
+  actor_id: string;
+  competition_granularity: string;
+  competition_id: string;
+  /** Who decided: `user:<id>`, `script:<id>` or `event:<id>`. */
+  actor: string;
+  reason: string;
+  occurred_at: Timestamp;
+  created_at: Timestamp;
+}
+
 export interface SchemaVersionTable {
   version: string;
   applied_at: Timestamp;
@@ -419,5 +444,6 @@ export interface Database {
   projection_versions: ProjectionVersionsTable;
   statistic_totals: StatisticTotalsTable;
   statistic_adjustments: StatisticAdjustmentsTable;
+  tag_facts: TagFactsTable;
   schema_version: SchemaVersionTable;
 }

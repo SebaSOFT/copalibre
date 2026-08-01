@@ -424,6 +424,15 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
             transition: { type: 'string', minLength: 1 },
           },
         },
+        {
+          additionalProperties: false,
+          required: ['kind', 'tagCode', 'action'],
+          properties: {
+            kind: { const: 'tag' },
+            tagCode: { type: 'string', minLength: 1 },
+            action: { enum: ['applied', 'lifted'] },
+          },
+        },
       ],
     },
   },

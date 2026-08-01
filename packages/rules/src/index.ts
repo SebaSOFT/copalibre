@@ -61,6 +61,7 @@ export {
   StartTimerAction,
   StopTimerAction,
   AdjustStatisticAction,
+  ApplyTagAction,
 } from './effects/actions.js';
 export {
   effectIdentityKey,
@@ -68,6 +69,7 @@ export {
   toNotificationInstance,
   toDeclaredTimer,
   toStatisticAdjustment,
+  toTagFact,
   remainingSeconds,
   EFFECTS_STATE_KEY,
   type DeclaredEffect,

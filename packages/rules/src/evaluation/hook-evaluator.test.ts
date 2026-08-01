@@ -219,6 +219,68 @@ describe('adjustStatistic declares a movement and performs none', () => {
   });
 });
 
+/** Labels a player and refuses nothing, which is the whole contract. */
+const tagScript = {
+  id: 'discipline',
+  rules: [
+    {
+      id: 'double-yellow',
+      type: 'simple_rule',
+      options: {},
+      conditions: [],
+      actions: [
+        {
+          id: 'mark',
+          type: 'applyTag',
+          options: {},
+          params: [
+            { id: 'p1', name: 'code', type: 'simple_string', value: 'suspended', options: {} },
+            {
+              id: 'p2',
+              name: 'actorGranularity',
+              type: 'simple_string',
+              value: 'person',
+              options: {},
+            },
+            { id: 'p3', name: 'actorId', type: 'simple_string', value: 'pe-1', options: {} },
+            {
+              id: 'p4',
+              name: 'competitionGranularity',
+              type: 'simple_string',
+              value: 'season',
+              options: {},
+            },
+            { id: 'p5', name: 'competitionId', type: 'simple_string', value: 'se-1', options: {} },
+          ],
+        },
+      ],
+    },
+  ],
+} as unknown as RuleScript;
+
+describe('applyTag labels and refuses nothing', () => {
+  it('declares an application defaulting to applied', () => {
+    const decision = evaluateAtHook(registry(), input({ script: tagScript }));
+
+    expect(decision.ok).toBe(true);
+    if (!decision.ok) return;
+    expect(decision.value.effects[0]).toMatchObject({
+      kind: 'tag',
+      payload: { code: 'suspended', action: 'applied', actorId: 'pe-1' },
+    });
+  });
+
+  it('produces no decision that could block anything: the effect is the whole output', () => {
+    const decision = evaluateAtHook(registry(), input({ script: tagScript }));
+
+    expect(decision.ok).toBe(true);
+    if (!decision.ok) return;
+    // A tag is not a guard. The hook passes, and what the label means is the
+    // organizer's call.
+    expect(decision.value.outcome).toBe('pass');
+  });
+});
+
 describe('polarity decides what silence means', () => {
   it('an empty script passes at a permissive hook, having forbidden nothing', () => {
     const decision = evaluateAtHook(registry(), input());

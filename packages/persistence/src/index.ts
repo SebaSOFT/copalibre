@@ -58,6 +58,7 @@ export {
   type Refold,
   type ProjectionOutcome,
 } from './projections/statistic-projection.js';
+export { TagRepository, type TagQuery } from './repositories/tag-repository.js';
 export {
   StatisticRepository,
   type StoredFigure,

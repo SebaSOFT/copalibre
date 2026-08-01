@@ -90,6 +90,7 @@ export {
   type CompetitionContext,
   type StatisticAdjustment,
 } from './statistics/fold.js';
+export { tagFactsFrom, type TagEventInput } from './statistics/tags.js';
 export {
   resolveAdvancement,
   unlockedByFinalization,

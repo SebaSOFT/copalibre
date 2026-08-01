@@ -504,6 +504,35 @@ export const initialSchema: Migration = {
       .columns(['match_id'])
       .execute();
 
+    // Tags (0016): applied and lifted, both recorded, neither ever removed.
+    // Whether one applies now is derived from these rows — a stored flag would
+    // need a job to expire it, and the day the job does not run is the day a
+    // cleared player reads as suspended.
+    await db.schema
+      .createTable('tag_facts')
+      .addColumn('fact_id', 'uuid', (col) => col.primaryKey())
+      .addColumn('organization_id', 'uuid', (col) =>
+        col.notNull().references('organizations.organization_id'),
+      )
+      .addColumn('code', 'text', (col) => col.notNull())
+      .addColumn('action', 'text', (col) => col.notNull())
+      .addColumn('actor_granularity', 'text', (col) => col.notNull())
+      .addColumn('actor_id', 'text', (col) => col.notNull())
+      .addColumn('competition_granularity', 'text', (col) => col.notNull())
+      .addColumn('competition_id', 'text', (col) => col.notNull())
+      .addColumn('actor', 'text', (col) => col.notNull())
+      .addColumn('reason', 'text', (col) => col.notNull())
+      .addColumn('occurred_at', 'timestamptz', (col) => col.notNull())
+      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addCheckConstraint('tag_facts_action', sql`action in ('applied', 'lifted')`)
+      .execute();
+
+    await db.schema
+      .createIndex('tag_facts_subject_idx')
+      .on('tag_facts')
+      .columns(['organization_id', 'actor_granularity', 'actor_id', 'code'])
+      .execute();
+
     await db.schema
       .createTable('schema_version')
       .addColumn('version', 'text', (col) => col.primaryKey())
@@ -515,6 +544,7 @@ export const initialSchema: Migration = {
     // Reverse dependency order.
     for (const table of [
       'schema_version',
+      'tag_facts',
       'statistic_adjustments',
       'statistic_totals',
       'materialised_standings',
