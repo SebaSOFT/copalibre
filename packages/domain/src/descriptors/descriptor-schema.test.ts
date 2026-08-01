@@ -192,6 +192,80 @@ describe('discipline descriptor schema', () => {
     });
   });
 
+  describe('declared collectors', () => {
+    function withCollector(collector: unknown) {
+      return validateDisciplineDescriptorDocument(asDocument({ collectors: [collector] }));
+    }
+
+    const goals = {
+      code: 'goals',
+      label: 'Goles',
+      source: { kind: 'event', definitionCodes: ['strike'] },
+      measure: { kind: 'count' },
+      granularity: { actor: 'person', competition: 'match' },
+    };
+
+    it('accepts a descriptor declaring none, so every module written before them stays valid', () => {
+      expect(validateDisciplineDescriptorDocument(asDocument()).ok).toBe(true);
+    });
+
+    it('accepts a collector over an event, per person per match', () => {
+      expect(withCollector(goals).ok).toBe(true);
+    });
+
+    it('accepts each source kind', () => {
+      for (const source of [
+        { kind: 'event', categories: ['negative'] },
+        { kind: 'statistic', statisticCode: 'strikes' },
+        { kind: 'collector', code: 'goals' },
+        { kind: 'participation', roles: ['player'] },
+      ]) {
+        expect(withCollector({ ...goals, source }).ok).toBe(true);
+      }
+    });
+
+    it('accepts a ceiling, and a measure over a field', () => {
+      expect(
+        withCollector({
+          ...goals,
+          measure: { kind: 'average', field: 'distanceMeters' },
+          rollsUpTo: { competition: 'season' },
+        }).ok,
+      ).toBe(true);
+    });
+
+    it.each([
+      [
+        'an unpublished actor granularity',
+        { ...goals, granularity: { actor: 'referee', competition: 'match' } },
+      ],
+      [
+        'an unpublished competition granularity',
+        { ...goals, granularity: { actor: 'person', competition: 'fortnight' } },
+      ],
+      [
+        'the entrant as a granularity',
+        { ...goals, granularity: { actor: 'entrant', competition: 'match' } },
+      ],
+      ['a measure over no field', { ...goals, measure: { kind: 'average' } }],
+      ['an unknown measure', { ...goals, measure: { kind: 'median', field: 'x' } }],
+      ['an unknown source kind', { ...goals, source: { kind: 'telepathy' } }],
+      [
+        'no granularity at all',
+        { code: 'c', label: 'C', source: goals.source, measure: goals.measure },
+      ],
+      ['an undeclared member', { ...goals, resetOn: 'season' }],
+    ])('rejects %s', (_label, collector) => {
+      expect(withCollector(collector).ok).toBe(false);
+    });
+
+    it('rejects the reset field the first draft carried, since the granularity is the frequency', () => {
+      // A reset loses information; a figure kept per period and summed upward
+      // loses none, and that is what the granularity already says.
+      expect(withCollector({ ...goals, resetOn: 'segment' }).ok).toBe(false);
+    });
+  });
+
   it('rejects a format outside the MVP list', () => {
     const result = validateDisciplineDescriptorDocument(
       asDocument({ availableFormats: ['swiss'] }),

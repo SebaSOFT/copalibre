@@ -125,6 +125,18 @@ export {
   type ScriptConstraint,
 } from './rulesets/draw-constraints.js';
 export {
+  validateCollectors,
+  readableAt,
+  CollectorError,
+  type StatisticCollector,
+  type CollectorSource,
+  type CollectorMeasure,
+  type CollectorGranularity,
+  type CollectorVocabulary,
+  type ValidatedCollectors,
+  type InertCollector,
+} from './statistics/collector.js';
+export {
   COMPETITION_GRANULARITIES,
   ACTOR_GRANULARITIES,
   GRANULARITY_SOURCES,
