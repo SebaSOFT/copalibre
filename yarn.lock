@@ -758,6 +758,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@copalibre/api@workspace:apps/api"
   dependencies:
+    "@copalibre/auth": "workspace:^"
     "@copalibre/domain": "workspace:^"
     "@copalibre/persistence": "workspace:^"
     "@copalibre/rules": "workspace:^"
@@ -773,6 +774,18 @@ __metadata:
     reflect-metadata: "npm:^0.2.2"
     rxjs: "npm:^7.8.2"
     supertest: "npm:^7.2.2"
+    ts-jest: "npm:^29.4.12"
+    typescript: "npm:^5"
+  languageName: unknown
+  linkType: soft
+
+"@copalibre/auth@workspace:^, @copalibre/auth@workspace:packages/auth":
+  version: 0.0.0-use.local
+  resolution: "@copalibre/auth@workspace:packages/auth"
+  dependencies:
+    "@types/jest": "npm:^30.0.0"
+    jest: "npm:^30.4.2"
+    jose: "npm:^6"
     ts-jest: "npm:^29.4.12"
     typescript: "npm:^5"
   languageName: unknown
@@ -817,11 +830,23 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@copalibre/events@workspace:apps/events"
   dependencies:
+    "@copalibre/auth": "workspace:^"
+    "@copalibre/persistence": "workspace:^"
+    "@copalibre/realtime": "workspace:^"
     "@nestjs/common": "npm:^11.1.28"
     "@nestjs/core": "npm:^11.1.28"
     "@nestjs/platform-fastify": "npm:^11.1.28"
+    "@nestjs/testing": "npm:^11.1.28"
+    "@types/jest": "npm:^30.0.0"
+    "@types/supertest": "npm:^7.2.1"
+    jest: "npm:^30.4.2"
+    jose: "npm:^6"
+    kysely: "npm:^0.29"
     reflect-metadata: "npm:^0.2.2"
     rxjs: "npm:^7.8.2"
+    supertest: "npm:^7.2.2"
+    ts-jest: "npm:^29.4.12"
+    typescript: "npm:^5"
   languageName: unknown
   linkType: soft
 
@@ -845,6 +870,17 @@ __metadata:
     kysely: "npm:^0.29"
     pg: "npm:^8.22.0"
     ts-jest: "npm:^29.4.12"
+  languageName: unknown
+  linkType: soft
+
+"@copalibre/realtime@workspace:^, @copalibre/realtime@workspace:packages/realtime":
+  version: 0.0.0-use.local
+  resolution: "@copalibre/realtime@workspace:packages/realtime"
+  dependencies:
+    "@types/jest": "npm:^30.0.0"
+    jest: "npm:^30.4.2"
+    ts-jest: "npm:^29.4.12"
+    typescript: "npm:^5"
   languageName: unknown
   linkType: soft
 

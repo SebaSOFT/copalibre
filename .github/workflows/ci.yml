@@ -131,6 +131,16 @@ jobs:
       # The lease arithmetic, which is the dangerous part of one-logical-
       # scheduler: renewing too late is how two replicas both believe they hold it.
       - run: yarn workspace @copalibre/scheduler test:coverage
+      # JWT verification, extracted from apps/api in 0018 so apps/events could
+      # reuse it rather than grow a second answer to "is this token valid".
+      - run: yarn workspace @copalibre/auth test:coverage
+      # The SSE wire contract and the client both web surfaces share (0018).
+      # The encoder and the parser are two halves of one format, and the test
+      # that reads back what the encoder wrote is what keeps them halves.
+      - run: yarn workspace @copalibre/realtime test:coverage
+      # The stream services: replay resolution, public sanitisation, connection
+      # limits, and the guard that refuses a token in a query string.
+      - run: yarn workspace @copalibre/events test:coverage
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -166,6 +176,12 @@ jobs:
         with:
           name: coverage-scheduler
           path: apps/scheduler/coverage
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-events
+          path: apps/events/coverage
           retention-days: 14
 
   # Added by 0004-persistence-postgres-outbox-audit: real PostgreSQL, no mocks.
@@ -233,6 +249,11 @@ jobs:
       # Three replicas racing for one lease, and a periodic job that is enqueued
       # once per interval rather than up to three times.
       - run: yarn workspace @copalibre/scheduler test:integration
+      # The streams through the real HTTP stack (0018): the headers an SSE
+      # response sets, a public path that needs no credential at all, a token in
+      # a query string refused, and a cursor outside the replay window told to
+      # fetch a projection instead of being replayed a partial one.
+      - run: yarn workspace @copalibre/events test:integration
 
   # Added by 0005-api-auth-jwt-openapi-contract. Regenerates the artifact from
   # the decorated controllers, fails on drift from the committed copy, then runs
