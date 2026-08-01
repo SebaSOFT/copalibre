@@ -49,6 +49,13 @@ export {
 } from './expressions/functions.js';
 
 export {
+  evaluateCollectorThreshold,
+  thresholdReadable,
+  type CollectorThresholdRule,
+  type CollectorThresholdInput,
+  type ThresholdWindow,
+} from './notifications/collector-thresholds.js';
+export {
   registerDeclaredEffectActions,
   NotifyAction,
   StartTimerAction,

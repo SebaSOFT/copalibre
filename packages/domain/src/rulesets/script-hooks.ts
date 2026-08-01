@@ -148,6 +148,27 @@ const EVENT_CONTEXT_PATHS = [
   'event.payload.*',
 ] as const;
 
+/**
+ * Running totals for the declared collectors (0016), keyed by collector code.
+ *
+ * Published so a rule reasons about "the fifth yellow" without fetching
+ * anything: a script has no I/O, and a threshold that had to be told its own
+ * total would push the fetch into every caller — which is how two callers end
+ * up disagreeing about what the total was.
+ *
+ * `total` is the figure at the collector's own granularity for the actor the
+ * event names. `sinceLastConsequence` is the same count restricted to what has
+ * accumulated since the rule last recorded one, which is how "five cards and
+ * then start again" is a window on the rule rather than a reset of the
+ * collector: the career total stays whole and independent of the disciplinary
+ * history.
+ */
+const COLLECTOR_CONTEXT_PATHS = [
+  'collectors.*.total',
+  'collectors.*.samples',
+  'collectors.*.sinceLastConsequence',
+] as const;
+
 const STAGE_LIFECYCLE_CONTEXT_PATHS = [
   'stage.id',
   'stage.status',
@@ -278,6 +299,7 @@ const HOOK_DEFINITIONS = {
       ...MATCH_CONTEXT_PATHS,
       ...SEGMENT_CONTEXT_PATHS,
       ...EVENT_CONTEXT_PATHS,
+      ...COLLECTOR_CONTEXT_PATHS,
       ...ENVIRONMENT_CONTEXT_PATHS,
     ],
     polarity: 'permissive',
@@ -383,10 +405,15 @@ export function publishesPath(hook: ScriptHook, path: string): boolean {
 function matches(published: readonly string[], requested: readonly string[]): boolean {
   for (let index = 0; index < published.length; index += 1) {
     const expected = published[index];
-    if (expected === '*') return true;
+    // A trailing `*` publishes a subtree; one in the middle stands for a single
+    // key nobody can enumerate in advance — a collector code — and what follows
+    // it still has to match, so `collectors.*.total` publishes the total and not
+    // whatever else a caller decides to hang there.
+    if (expected === '*' && index === published.length - 1) return true;
 
     const actual = requested[index];
     if (actual === undefined) return false;
+    if (expected === '*') continue;
     if (expected === 'N') {
       if (!/^\d+$/.test(actual)) return false;
       continue;

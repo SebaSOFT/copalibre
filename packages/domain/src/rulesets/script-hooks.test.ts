@@ -156,6 +156,18 @@ describe('the published context', () => {
     expect(publishesPath(hook, 'draw.entrants.3.region')).toBe(true);
   });
 
+  it('publishes a running total per collector, so a threshold fetches nothing', () => {
+    const hook = findScriptHook('event.recorded');
+    if (!hook) throw new Error('event.recorded is not published');
+
+    expect(publishesPath(hook, 'collectors.yellow-cards.total')).toBe(true);
+    expect(publishesPath(hook, 'collectors.yellow-cards.sinceLastConsequence')).toBe(true);
+    // A wildcard standing for a code publishes what follows it and no more: the
+    // context is a contract, and a subtree here would let any caller hang
+    // anything off a collector and call it published.
+    expect(publishesPath(hook, 'collectors.yellow-cards.whatever')).toBe(false);
+  });
+
   it('publishes the evaluation instant and the zone a calendar rule needs, as data', () => {
     expect(publishedContextPaths('match.started')).toEqual(
       expect.arrayContaining(['match.startedAt', 'now', 'tournament.timeZone']),
