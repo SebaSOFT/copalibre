@@ -14,6 +14,10 @@ const score = seriesScore(series);
   role="img"
   aria-label={`Serie al mejor de ${series.bestOf}: ${score.home} a ${score.away}`}
 >
-  {segments.map((segment) => <span class={`cl-series__segment cl-series__segment--${segment} cl-chamfer`}></span>)}
+  {
+    segments.map((segment) => (
+      <span class={`cl-series__segment cl-series__segment--${segment} cl-chamfer`} />
+    ))
+  }
 </div>
 <p>{score.home} — {score.away}</p>

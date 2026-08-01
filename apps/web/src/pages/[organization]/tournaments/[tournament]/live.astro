@@ -38,7 +38,11 @@ const series = { bestOf: 5, results: ['home', 'away', 'home'] as const, inProgre
       dashboard.matches.map((match) => (
         <article class="cl-card cl-chamfer">
           <StateBadge state={match.state} />
-          {match.sides.map((side) => (<p>{side.abbreviation ?? side.name} {side.score}</p>))}
+          {match.sides.map((side) => (
+            <p>
+              {side.abbreviation ?? side.name} {side.score}
+            </p>
+          ))}
         </article>
       ))
     }
@@ -49,18 +53,34 @@ const series = { bestOf: 5, results: ['home', 'away', 'home'] as const, inProgre
 
   <h2>Próximos</h2>
   <ul>
-    {model.matches.filter((match) => match.state === 'upcoming').map((match) => (
-      <li>{match.home.name} vs {match.away.name} — <time datetime={match.startsAt}>{match.startsAt}</time></li>
-    ))}
+    {
+      model.matches
+        .filter((match) => match.state === 'upcoming')
+        .map((match) => (
+          <li>
+            {match.home.name} vs {match.away.name} —{' '}
+            <time datetime={match.startsAt}>{match.startsAt}</time>
+          </li>
+        ))
+    }
   </ul>
 
   <h2>Líderes</h2>
   <table>
-    <thead><tr><th scope="col">#</th><th scope="col">Equipo</th><th scope="col">Pts</th></tr></thead>
+    <thead><tr><th scope="col">#</th><th scope="col">Equipo</th><th scope="col">Pts</th></tr></thead
+    >
     <tbody>
-      {model.standings.map((row) => (
-        <tr><td>{row.position}</td><td>{row.abbreviation ?? row.name}</td><td>{row.points}</td></tr>
-      ))}
+      {
+        model.standings.map((row) => (
+          <tr>
+            <>
+              <td>{row.position}</td>
+              <td>{row.abbreviation ?? row.name}</td>
+              <td>{row.points}</td>
+            </>
+          </tr>
+        ))
+      }
     </tbody>
   </table>
 
