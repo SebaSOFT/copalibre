@@ -154,6 +154,7 @@ export {
 export {
   validateTagDeclaration,
   checkTagApplication,
+  tagScopeFor,
   tagsAt,
   TagError,
   type TagDeclaration,

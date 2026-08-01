@@ -49,6 +49,16 @@ export interface TagDeclaration {
   /** Which competition granularities it may be scoped to; absent means any. */
   readonly scopedTo?: readonly CompetitionGranularity[];
   /**
+   * Where a fact produced from an event is scoped, when the discipline has an
+   * opinion — "a red card suspends for the season" is a rule of the sport as
+   * often as it is a rule of the tournament.
+   *
+   * A tournament may still say otherwise, and its choice wins: CopaLibre
+   * enforces what *this* organizer configured, and a friendly that suspends for
+   * one match is not a discipline getting it wrong.
+   */
+  readonly producedAt?: CompetitionGranularity;
+  /**
    * Whether a second application may stand alongside the first. Exclusive tags
    * are states, not counters: "suspended" twice over is one suspension, and
    * treating it as two invents a lifting that nobody performed.
@@ -118,7 +128,10 @@ export function validateTagDeclaration(
     );
   }
 
-  const unknownScope = (declaration.scopedTo ?? []).find((one) => !isCompetitionGranularity(one));
+  const unknownScope = [
+    ...(declaration.scopedTo ?? []),
+    ...(declaration.producedAt === undefined ? [] : [declaration.producedAt]),
+  ].find((one) => !isCompetitionGranularity(one));
   if (unknownScope) {
     return err(
       new TagError(
@@ -129,7 +142,35 @@ export function validateTagDeclaration(
     );
   }
 
+  if (
+    declaration.producedAt !== undefined &&
+    declaration.scopedTo &&
+    !declaration.scopedTo.includes(declaration.producedAt)
+  ) {
+    return err(
+      new TagError(
+        `Tag "${declaration.code}" produces facts at ${declaration.producedAt}, which is not ` +
+          `among the granularities it may be scoped to (${declaration.scopedTo.join(', ')})`,
+        { code: declaration.code, granularity: declaration.producedAt },
+      ),
+    );
+  }
+
   return ok(declaration);
+}
+
+/**
+ * Where a fact produced from an event belongs.
+ *
+ * The tournament's choice wins over the discipline's, and neither is invented:
+ * with nothing declared on either side there is no scope, and picking one would
+ * file a suspension in a competition nobody named.
+ */
+export function tagScopeFor(
+  declaration: TagDeclaration,
+  configured?: CompetitionGranularity,
+): CompetitionGranularity | undefined {
+  return configured ?? declaration.producedAt;
 }
 
 /**

@@ -146,10 +146,34 @@ describe('a discipline can label from a recorded event', () => {
     ).toEqual([]);
   });
 
-  it('scopes to whatever competition granularity the caller declares', () => {
+  it('scopes to whatever competition granularity the tournament configured', () => {
     expect(facts({ scope: 'tournament' })[0]).toMatchObject({
       competitionGranularity: 'tournament',
       competitionId: 't-1',
     });
+  });
+
+  it("falls back to the discipline's declaration when the tournament configured none", () => {
+    const seasonal: TagDeclaration = { ...suspended, producedAt: 'season' };
+
+    expect(facts({ declarations: [seasonal], scope: undefined })[0]).toMatchObject({
+      competitionGranularity: 'season',
+      competitionId: 'se-1',
+    });
+  });
+
+  it('lets the tournament overrule the discipline, because it is what this organizer configured', () => {
+    const seasonal: TagDeclaration = { ...suspended, producedAt: 'season' };
+
+    expect(facts({ declarations: [seasonal], scope: 'match' })[0]).toMatchObject({
+      competitionGranularity: 'match',
+      competitionId: 'm-1',
+    });
+  });
+
+  it('produces nothing when neither side named a scope', () => {
+    // Filing a suspension in a competition nobody named is worse than not
+    // producing the fact: somebody would have to argue it out of the record.
+    expect(facts({ scope: undefined })).toEqual([]);
   });
 });

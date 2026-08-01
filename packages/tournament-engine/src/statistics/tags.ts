@@ -1,3 +1,4 @@
+import { tagScopeFor } from '@copalibre/domain';
 import type {
   ActorGranularity,
   CompetitionGranularity,
@@ -26,8 +27,16 @@ export interface TagEventInput {
   readonly definitions: readonly EventDefinition[];
   readonly actorOf: (entrantId: string) => ActorContext | undefined;
   readonly context: CompetitionContext;
-  /** Where a tag produced here is scoped; a discipline's choice, per tournament. */
-  readonly scope: CompetitionGranularity;
+  /**
+   * Where facts produced here are scoped, when the tournament has configured it.
+   *
+   * Optional because the discipline may have declared it instead: "a red card
+   * suspends for the season" is a rule of the sport as often as a rule of the
+   * tournament. When both say something, this wins — it is what *this*
+   * organizer configured. When neither does, no fact is produced rather than
+   * one filed in a competition nobody named.
+   */
+  readonly scope?: CompetitionGranularity;
 }
 
 export function tagFactsFrom(input: TagEventInput): readonly TagFact[] {
@@ -51,6 +60,9 @@ export function tagFactsFrom(input: TagEventInput): readonly TagFact[] {
       const granularity = declaration.appliesTo[0];
       if (granularity === undefined) continue;
 
+      const scope = tagScopeFor(declaration, input.scope);
+      if (scope === undefined) continue;
+
       const actorId = actorIdAt({ ...actor, personId: personId ?? '' }, granularity);
       if (actorId === undefined || actorId === '') continue;
 
@@ -59,8 +71,8 @@ export function tagFactsFrom(input: TagEventInput): readonly TagFact[] {
         action: effect.action,
         actorGranularity: granularity,
         actorId,
-        competitionGranularity: input.scope,
-        competitionId: competitionIdAt(input.scope, input.context),
+        competitionGranularity: scope,
+        competitionId: competitionIdAt(scope, input.context),
         // The discipline decided this, through an event somebody recorded — so
         // the trail names both rather than an anonymous "system".
         actor: `event:${event.eventId}`,

@@ -1,6 +1,7 @@
 import { validateLineup } from '../aggregates/match-operations.js';
 import {
   checkTagApplication,
+  tagScopeFor,
   tagsAt,
   validateTagDeclaration,
   type TagDeclaration,
@@ -52,6 +53,47 @@ describe('a tag is declared like a collector', () => {
 
   it('refuses a tag nothing could carry', () => {
     expect(validateTagDeclaration(declaration({ appliesTo: [] })).ok).toBe(false);
+  });
+});
+
+describe('where a produced fact is scoped', () => {
+  it("takes the discipline's declaration when the tournament configured nothing", () => {
+    // "A red card suspends for the season" is a rule of the sport as often as a
+    // rule of the tournament.
+    expect(tagScopeFor(declaration({ producedAt: 'season' }))).toBe('season');
+  });
+
+  it("takes the tournament's configuration over the discipline's", () => {
+    // A friendly that suspends for one match is not a discipline getting it
+    // wrong: CopaLibre enforces what this organizer configured.
+    expect(tagScopeFor(declaration({ producedAt: 'season' }), 'match')).toBe('match');
+  });
+
+  it('is nothing when neither said anything, rather than picking one', () => {
+    expect(tagScopeFor(declaration())).toBeUndefined();
+  });
+
+  it('refuses a production granularity outside the scopes it declares', () => {
+    const result = validateTagDeclaration(
+      declaration({ scopedTo: ['season'], producedAt: 'match' }),
+    );
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.message).toContain('not');
+  });
+
+  it('accepts a production granularity among them', () => {
+    expect(
+      validateTagDeclaration(declaration({ scopedTo: ['season', 'match'], producedAt: 'match' }))
+        .ok,
+    ).toBe(true);
+  });
+
+  it('refuses a production granularity nothing publishes', () => {
+    expect(validateTagDeclaration(declaration({ producedAt: 'fortnight' as never })).ok).toBe(
+      false,
+    );
   });
 });
 
