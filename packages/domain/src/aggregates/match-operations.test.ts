@@ -174,32 +174,50 @@ describe('validateLineup', () => {
   const constraint = { minPlayers: 2, maxPlayers: 4 };
   const selection = { matchId: 'm-1', entrantId: 'entrant-atlas', participantIds: ['p-1', 'p-2'] };
 
-  it('accepts a lineup drawn from the active roster', () => {
-    expect(validateLineup(selection, roster, constraint).ok).toBe(true);
+  function check(participantIds: readonly string[]) {
+    const result = validateLineup({ ...selection, participantIds }, roster, constraint);
+    if (!result.ok) throw result.error;
+    return result.value;
+  }
+
+  it('accepts a lineup drawn from the active roster, with nothing to say about it', () => {
+    expect(check(['p-1', 'p-2']).findings).toEqual([]);
   });
 
-  it('refuses someone who is not on the roster now', () => {
+  it('reports someone who is not on the roster, and does not refuse the sheet', () => {
+    const checked = check(['p-1', 'p-transferred']);
+
+    expect(checked.findings).toEqual([
+      expect.objectContaining({ kind: 'off-roster', participantId: 'p-transferred' }),
+    ]);
+    // The organizer signs the sheet; CopaLibre says what it noticed.
+    expect(checked.selection.participantIds).toContain('p-transferred');
+  });
+
+  it.each([
+    ['below', ['p-1'], 'below-minimum'],
+    ['above', ['p-1', 'p-2', 'p-3', 'p-4', 'p-5'], 'above-maximum'],
+  ])('reports a lineup %s what the discipline expects, without blocking it', (_l, ids, kind) => {
+    expect(check(ids).findings).toEqual([expect.objectContaining({ kind })]);
+  });
+
+  it('reports every finding at once, rather than the first one it met', () => {
+    const checked = check(['p-transferred']);
+
+    expect(checked.findings.map((finding) => finding.kind)).toEqual([
+      'off-roster',
+      'below-minimum',
+    ]);
+  });
+
+  it('refuses the same person named twice, because that sheet contradicts itself', () => {
+    // Not a rule a competition might relax: no federation wants it recorded.
     const result = validateLineup(
-      { ...selection, participantIds: ['p-1', 'p-transferred'] },
+      { ...selection, participantIds: ['p-1', 'p-1'] },
       roster,
       constraint,
     );
 
     expect(result.ok).toBe(false);
-    if (result.ok) return;
-    expect(result.error.message).toContain('active roster');
-  });
-
-  it('refuses the same person named twice', () => {
-    expect(
-      validateLineup({ ...selection, participantIds: ['p-1', 'p-1'] }, roster, constraint).ok,
-    ).toBe(false);
-  });
-
-  it.each([
-    ['too few', ['p-1']],
-    ['too many', ['p-1', 'p-2', 'p-3', 'p-4', 'p-5']],
-  ])('refuses a lineup with %s players for the discipline', (_label, participantIds) => {
-    expect(validateLineup({ ...selection, participantIds }, roster, constraint).ok).toBe(false);
   });
 });

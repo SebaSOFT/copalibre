@@ -171,9 +171,16 @@ function timerKey(event: RecordedEvent): string {
 /**
  * A lineup: who takes the field for one entrant in one match (0014).
  *
- * It is checked against the roster that is active *now*, not against the people
- * a team once had — a player transferred out last week cannot appear on today's
- * sheet, and the check is the only thing standing between that and a protest.
+ * **It refuses a lineup that is incoherent, and reports everything else.**
+ * CopaLibre enforces the integrity of its own records and what this organizer
+ * configured; it does not enforce what a sport usually requires. A discipline
+ * saying "between five and eleven players" is a norm, and the first under-12
+ * friendly played four-a-side would be refused by a system that treated it as
+ * law — so it is reported, and the organizer decides whether to sign the sheet.
+ *
+ * Naming the same person twice is different in kind: it is not a rule anyone
+ * might relax, it is a sheet that contradicts itself, and no competition
+ * anywhere wants it recorded.
  */
 export interface LineupSelection {
   readonly matchId: string;
@@ -186,11 +193,24 @@ export interface RosterConstraint {
   readonly maxPlayers: number;
 }
 
+/** Something worth an operator's attention, which is not the same as a refusal. */
+export interface LineupFinding {
+  readonly kind: 'off-roster' | 'below-minimum' | 'above-maximum';
+  readonly detail: string;
+  readonly participantId?: string;
+}
+
+export interface CheckedLineup {
+  readonly selection: LineupSelection;
+  /** Empty when nothing is worth saying; never a reason the lineup was blocked. */
+  readonly findings: readonly LineupFinding[];
+}
+
 export function validateLineup(
   selection: LineupSelection,
   eligibleParticipantIds: readonly string[],
   constraint: RosterConstraint,
-): Result<LineupSelection, MatchOperationError> {
+): Result<CheckedLineup, MatchOperationError> {
   const unique = new Set(selection.participantIds);
   if (unique.size !== selection.participantIds.length) {
     return err(
@@ -201,25 +221,31 @@ export function validateLineup(
     );
   }
 
+  const findings: LineupFinding[] = [];
+
   const eligible = new Set(eligibleParticipantIds);
-  const outsider = selection.participantIds.find((participantId) => !eligible.has(participantId));
-  if (outsider) {
-    return err(
-      new MatchOperationError(
-        `"${outsider}" is not on this entrant's active roster and may not take the field`,
-        { matchId: selection.matchId, entrantId: selection.entrantId, participantId: outsider },
-      ),
-    );
+  for (const participantId of selection.participantIds) {
+    if (!eligible.has(participantId)) {
+      findings.push({
+        kind: 'off-roster',
+        participantId,
+        detail: `"${participantId}" is not on this entrant's active roster`,
+      });
+    }
   }
 
-  if (unique.size < constraint.minPlayers || unique.size > constraint.maxPlayers) {
-    return err(
-      new MatchOperationError(
-        `The discipline needs between ${constraint.minPlayers} and ${constraint.maxPlayers} players; this lineup names ${unique.size}`,
-        { matchId: selection.matchId, entrantId: selection.entrantId, named: unique.size },
-      ),
-    );
+  if (unique.size < constraint.minPlayers) {
+    findings.push({
+      kind: 'below-minimum',
+      detail: `The discipline expects at least ${constraint.minPlayers} players; this lineup names ${unique.size}`,
+    });
+  }
+  if (unique.size > constraint.maxPlayers) {
+    findings.push({
+      kind: 'above-maximum',
+      detail: `The discipline expects at most ${constraint.maxPlayers} players; this lineup names ${unique.size}`,
+    });
   }
 
-  return ok(selection);
+  return ok({ selection, findings });
 }

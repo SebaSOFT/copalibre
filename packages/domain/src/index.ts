@@ -136,6 +136,8 @@ export {
   runningTimers,
   validateLineup,
   type LineupSelection,
+  type LineupFinding,
+  type CheckedLineup,
   type RosterConstraint,
   MatchOperationError,
   type MatchCommand,
