@@ -102,3 +102,6 @@ tmp/
 .claude/
 openspec/changes/
 packages/design-tokens/generated/
+
+# CodeGraph index: derived from the source, rebuilt by `codegraph init`.
+.codegraph/
