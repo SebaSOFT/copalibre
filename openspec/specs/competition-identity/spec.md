@@ -58,3 +58,52 @@ and a roster constraint applies to the right one.
 - **WHEN** a club registers a football team and a futsal team
 - **THEN** the two are distinguishable, and each is bound by its own discipline's roster constraints
 
+### Requirement: A club and a team carry a short label for constrained surfaces
+A club SHALL be able to carry an abbreviation of uppercase letters, digits and single interior
+spaces, and a team SHALL be able to override its club's, so a bracket cell, a scoreboard and a
+broadcast lower third show the same short name rather than each truncating the full one differently.
+
+The abbreviation SHALL NOT be derived from the name, and SHALL NOT be substituted when absent.
+
+#### Scenario: A long name gets the short label its organizer chose
+- **WHEN** a club named "Casa de Italia" is given the abbreviation "C I"
+- **THEN** every constrained surface shows "C I", and nothing derived it from the name
+
+#### Scenario: Two sides of one club are distinguishable
+- **WHEN** "Talleres de Mendoza" enters two teams in one tournament
+- **THEN** each team may carry its own abbreviation, "TLL A" and "TLL B", overriding the club's
+
+#### Scenario: A team without one falls through to its club
+- **WHEN** a team carries no abbreviation and its club carries "TLL"
+- **THEN** the team reads as "TLL"
+
+#### Scenario: Absent everywhere stays absent
+- **WHEN** neither a team nor its club carries an abbreviation
+- **THEN** the read reports none, and what a surface shows instead is that surface's decision
+
+#### Scenario: A malformed abbreviation is refused before it is stored
+- **WHEN** an abbreviation carries lowercase letters, punctuation, or a double space
+- **THEN** it is refused with the reason stated, and no row is written
+
+#### Scenario: A collision is reported and nothing is refused
+- **WHEN** two teams in one competition carry the same abbreviation
+- **THEN** it is reported as a finding for the organizer, and neither team is prevented from
+  competing
+
+### Requirement: A club is reachable by a path identifier that may be suggested
+A club SHALL be able to carry an alias, unique within its organization, and the system SHALL be able
+to suggest one from the club's name — which the abbreviation is deliberately never derived from,
+because an alias is a transformation and an abbreviation is a choice.
+
+#### Scenario: An alias is suggested from the name
+- **WHEN** a club named "Club Atlético San Martín" is created without an alias
+- **THEN** it is given `club-atletico-san-martin`, folded and lowercased with no judgement applied
+
+#### Scenario: A second club of the same name is offered a suffix
+- **WHEN** an organization already has a club whose alias is `talleres-de-mendoza`
+- **THEN** a second club of that name is offered `talleres-de-mendoza-2` rather than refused
+
+#### Scenario: What the organizer typed wins over what would be suggested
+- **WHEN** an organizer supplies an alias
+- **THEN** it is validated and stored as given, and nothing is suggested over it
+
