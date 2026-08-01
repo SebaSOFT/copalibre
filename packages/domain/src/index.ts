@@ -24,6 +24,19 @@ export {
   InvalidSemanticVersionError,
 } from './identifiers/semantic-version.js';
 export { Alias, type AliasScope } from './identifiers/alias.js';
+export { suggestAlias, suggestAvailableAlias, isSuggestable } from './identifiers/suggest-alias.js';
+export {
+  Abbreviation,
+  isAbbreviation,
+  InvalidAbbreviationError,
+  MAX_ABBREVIATION_LENGTH,
+} from './identifiers/abbreviation.js';
+export {
+  abbreviationOf,
+  labelCollisions,
+  type LabelledSide,
+  type LabelCollision,
+} from './aggregates/short-labels.js';
 
 export type {
   MergeStrategyName,

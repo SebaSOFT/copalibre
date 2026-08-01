@@ -1,5 +1,9 @@
 import {
+  Abbreviation,
+  Alias,
+  suggestAvailableAlias,
   validateAttributes,
+  type Club,
   type Entrant,
   type EntrantAttribute,
   type SeedPlacement,
@@ -9,7 +13,7 @@ import {
 import type { Kysely } from 'kysely';
 import { InvariantViolationError } from '../errors.js';
 import { newId } from '../ids.js';
-import { toEntrant, toEntrantAttribute, toTeam } from '../mapping.js';
+import { toClub, toEntrant, toEntrantAttribute, toTeam } from '../mapping.js';
 import type { Database } from '../schema.js';
 import type { UnitOfWork } from '../transaction.js';
 
@@ -22,6 +26,129 @@ export interface AuditContext {
 export class EnrollmentRepository {
   constructor(private readonly db: Kysely<Database>) {}
 
+  /**
+   * Creates a club (0037).
+   *
+   * The table has existed since `0004` with nothing to write to it — clubs
+   * arrived through imports and fixtures. It gets a write path now because the
+   * abbreviation has to be settable somewhere, and validated before any SQL runs
+   * rather than by a check constraint that can only say "no".
+   */
+  async createClub(
+    uow: UnitOfWork,
+    input: {
+      readonly organizationId: string;
+      readonly name: string;
+      readonly alias?: string;
+      readonly abbreviation?: string;
+    } & Omit<AuditContext, 'organizationId'>,
+  ): Promise<Club> {
+    assertAbbreviation(input.abbreviation);
+
+    // A given alias is validated; an absent one is suggested from the name and
+    // disambiguated against what this organization already uses. Two clubs
+    // named "Talleres" is ordinary, and making the second one's organizer
+    // invent a suffix by hand is not.
+    const alias = input.alias ?? (await this.suggestClubAlias(input.organizationId, input.name));
+    assertAlias(alias);
+
+    const clubId = newId();
+    const row = await uow.tx
+      .insertInto('clubs')
+      .values({
+        club_id: clubId,
+        organization_id: input.organizationId,
+        alias: alias ?? null,
+        name: input.name,
+        abbreviation: input.abbreviation ?? null,
+        created_at: new Date(),
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const club = toClub(row);
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'club',
+      entityId: clubId,
+      action: 'club.created',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      resultingState: { ...club },
+    });
+    return club;
+  }
+
+  /**
+   * The alias this organization would give a club of this name.
+   *
+   * Exposed so a console can show it in the form *before* anything is created —
+   * a suggestion the organizer never sees is a derivation, and this capability
+   * derives a URL, not a name.
+   */
+  async suggestClubAlias(organizationId: string, name: string): Promise<string | undefined> {
+    const rows = await this.db
+      .selectFrom('clubs')
+      .select('alias')
+      .where('organization_id', '=', organizationId)
+      .where('alias', 'is not', null)
+      .execute();
+
+    return suggestAvailableAlias(
+      name,
+      rows.flatMap((row) => (row.alias === null ? [] : [row.alias])),
+    );
+  }
+
+  /** Renames a club or changes its short label, keeping what it was. */
+  async updateClub(
+    uow: UnitOfWork,
+    input: {
+      readonly clubId: string;
+      readonly organizationId: string;
+      readonly name?: string;
+      readonly alias?: string;
+      readonly abbreviation?: string | null;
+    } & Omit<AuditContext, 'organizationId'>,
+  ): Promise<Club> {
+    if (input.abbreviation !== null) assertAbbreviation(input.abbreviation);
+    assertAlias(input.alias);
+
+    const previous = await this.findClub(input.clubId);
+    const row = await uow.tx
+      .updateTable('clubs')
+      .set({
+        ...(input.name === undefined ? {} : { name: input.name }),
+        ...(input.alias === undefined ? {} : { alias: input.alias }),
+        ...(input.abbreviation === undefined ? {} : { abbreviation: input.abbreviation }),
+      })
+      .where('club_id', '=', input.clubId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const club = toClub(row);
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'club',
+      entityId: input.clubId,
+      action: 'club.updated',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      ...(previous === undefined ? {} : { previousState: { ...previous } }),
+      resultingState: { ...club },
+    });
+    return club;
+  }
+
+  async findClub(clubId: string): Promise<Club | undefined> {
+    const row = await this.db
+      .selectFrom('clubs')
+      .selectAll()
+      .where('club_id', '=', clubId)
+      .executeTakeFirst();
+    return row ? toClub(row) : undefined;
+  }
+
   async createTeam(
     uow: UnitOfWork,
     input: {
@@ -29,8 +156,11 @@ export class EnrollmentRepository {
       readonly clubId?: string;
       readonly name: string;
       readonly disciplineId?: string;
+      readonly abbreviation?: string;
     } & Omit<AuditContext, 'organizationId'>,
   ): Promise<Team> {
+    assertAbbreviation(input.abbreviation);
+
     const teamId = newId();
     const row = await uow.tx
       .insertInto('teams')
@@ -40,6 +170,7 @@ export class EnrollmentRepository {
         club_id: input.clubId ?? null,
         discipline_id: input.disciplineId ?? null,
         name: input.name,
+        abbreviation: input.abbreviation ?? null,
         created_at: new Date(),
       })
       .returningAll()
@@ -56,6 +187,56 @@ export class EnrollmentRepository {
       resultingState: { ...team },
     });
     return team;
+  }
+
+  /**
+   * Changes a team's short label. Separate from creation because two sides of
+   * one club usually get theirs when the second one enters — at which point the
+   * first is already playing.
+   */
+  async updateTeam(
+    uow: UnitOfWork,
+    input: {
+      readonly teamId: string;
+      readonly organizationId: string;
+      readonly name?: string;
+      readonly abbreviation?: string | null;
+    } & Omit<AuditContext, 'organizationId'>,
+  ): Promise<Team> {
+    if (input.abbreviation !== null) assertAbbreviation(input.abbreviation);
+
+    const previous = await this.findTeam(input.teamId);
+    const row = await uow.tx
+      .updateTable('teams')
+      .set({
+        ...(input.name === undefined ? {} : { name: input.name }),
+        ...(input.abbreviation === undefined ? {} : { abbreviation: input.abbreviation }),
+      })
+      .where('team_id', '=', input.teamId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const team = toTeam(row);
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'team',
+      entityId: input.teamId,
+      action: 'team.updated',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      ...(previous === undefined ? {} : { previousState: { ...previous } }),
+      resultingState: { ...team },
+    });
+    return team;
+  }
+
+  async findTeam(teamId: string): Promise<Team | undefined> {
+    const row = await this.db
+      .selectFrom('teams')
+      .selectAll()
+      .where('team_id', '=', teamId)
+      .executeTakeFirst();
+    return row ? toTeam(row) : undefined;
   }
 
   /** Registration intake. Status transitions are audited individually. */
@@ -352,5 +533,29 @@ export class EnrollmentRepository {
       .orderBy('created_at')
       .execute();
     return rows.map(toEntrant);
+  }
+}
+
+/**
+ * Refuses a malformed abbreviation before any SQL runs.
+ *
+ * A check constraint could enforce the shape, and its error would say
+ * `violates check constraint "teams_abbreviation"`. The organizer needs to know
+ * that lowercase is not allowed and why, which is what the value object says.
+ */
+function assertAbbreviation(value: string | undefined): void {
+  if (value === undefined) return;
+  const abbreviation = Abbreviation.create(value);
+  if (!abbreviation.ok) {
+    throw new InvariantViolationError(abbreviation.error.message, { abbreviation: value });
+  }
+}
+
+/** Refuses a malformed alias with the reason, rather than with a unique-index error. */
+function assertAlias(value: string | undefined): void {
+  if (value === undefined) return;
+  const alias = Alias.create('participant', value);
+  if (!alias.ok) {
+    throw new InvariantViolationError(alias.error.message, { alias: value });
   }
 }

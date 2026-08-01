@@ -96,6 +96,7 @@ export {
   toOrganization,
   toTournament,
   toTeam,
+  toClub,
   toEntrant,
   toStage,
   toMatch,

@@ -1,4 +1,5 @@
 import type {
+  Club,
   Entrant,
   EntrantAttribute,
   Match,
@@ -14,6 +15,7 @@ import type {
 } from '@copalibre/domain';
 import type { Selectable } from 'kysely';
 import type {
+  ClubsTable,
   EntrantAttributesTable,
   EntrantsTable,
   FixtureSchedulesTable,
@@ -82,6 +84,19 @@ export function toTeam(row: TeamRow): Team {
     clubId: row.club_id ?? undefined,
     name: row.name,
     disciplineId: row.discipline_id ?? undefined,
+    abbreviation: row.abbreviation ?? undefined,
+  };
+}
+
+export type ClubRow = Selectable<ClubsTable>;
+
+export function toClub(row: ClubRow): Club {
+  return {
+    clubId: row.club_id,
+    organizationId: row.organization_id,
+    alias: row.alias ?? undefined,
+    name: row.name,
+    abbreviation: row.abbreviation ?? undefined,
   };
 }
 

@@ -10,6 +10,8 @@ import {
   toSegment,
   toStage,
   toTeam,
+  toClub,
+  type ClubRow,
   toTournament,
   type EntrantRow,
   type MatchEventRow,
@@ -73,9 +75,31 @@ describe('snake_case row → camelCase domain mapping', () => {
       club_id: null,
       name: 'Equipo Uno',
       discipline_id: null,
+      abbreviation: null,
       created_at: CREATED,
     };
     expect(toTeam(team).clubId).toBeUndefined();
+    expect(toTeam(team).abbreviation).toBeUndefined();
+  });
+
+  it('maps a club row, carrying the short label when it has one', () => {
+    const club: ClubRow = {
+      club_id: 'cl-1',
+      organization_id: 'org-1',
+      alias: 'casa-de-italia',
+      name: 'Casa de Italia',
+      abbreviation: 'C I',
+      created_at: CREATED,
+    };
+
+    expect(toClub(club)).toEqual({
+      clubId: 'cl-1',
+      organizationId: 'org-1',
+      alias: 'casa-de-italia',
+      name: 'Casa de Italia',
+      abbreviation: 'C I',
+    });
+    expect(toClub({ ...club, abbreviation: null }).abbreviation).toBeUndefined();
   });
 
   it('maps an entrant row into the discriminated entrantRef union', () => {
