@@ -2,7 +2,15 @@ import { Module, type INestApplication } from '@nestjs/common';
 import { APP_GUARD, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
-import { OrganizationRepository, withTransaction, type Database } from '@copalibre/persistence';
+import { footballDescriptor } from '@copalibre/domain';
+import {
+  AuditReader,
+  EnrollmentRepository,
+  OrganizationRepository,
+  TournamentRepository,
+  withTransaction,
+  type Database,
+} from '@copalibre/persistence';
 import { createMigratedDatabase } from '../../../../packages/persistence/src/test-support/scratch-database.js';
 import type { Kysely } from 'kysely';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
@@ -11,6 +19,7 @@ import { TokenVerifier } from '../auth/token-verifier.js';
 import { DATABASE } from '../database.token.js';
 import { HealthController } from '../health.controller.js';
 import { OrganizationsController } from './organizations.controller.js';
+import { DisciplinesController, RegistrationsController } from './registrations.controller.js';
 import { SchedulesController } from './schedules.controller.js';
 import { TournamentsController } from './tournaments.controller.js';
 
@@ -68,6 +77,8 @@ describe('api routes (integration)', () => {
         OrganizationsController,
         TournamentsController,
         SchedulesController,
+        RegistrationsController,
+        DisciplinesController,
       ],
       providers: [
         { provide: DATABASE, useValue: scratch.db },
@@ -234,6 +245,118 @@ describe('api routes (integration)', () => {
         url: '/organizations/liga-orbital/tournaments/no-such-copa',
       });
       expect(response.statusCode).toBe(404);
+    });
+  });
+
+  describe('registration review routes', () => {
+    it('lists only this tournament registrations, and bulk review audits every entrant touched', async () => {
+      const tournaments = new TournamentRepository(scratch.db);
+      const enrollment = new EnrollmentRepository(scratch.db);
+      const descriptor = footballDescriptor();
+
+      const seeded = await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+        await tournaments.saveDescriptor(uow, descriptor, {
+          organizationId,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+        const primary = await tournaments.create(uow, {
+          organizationId,
+          alias: 'copa-registros',
+          name: 'Copa Registros',
+          descriptor,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+        const other = await tournaments.create(uow, {
+          organizationId,
+          alias: 'copa-ajena-local',
+          name: 'Copa Ajena Local',
+          descriptor,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+        const teams = await Promise.all([
+          enrollment.createTeam(uow, {
+            organizationId,
+            name: 'Talleres Azul',
+            actor: 'user:seed',
+            authorizationContext: 'seed',
+          }),
+          enrollment.createTeam(uow, {
+            organizationId,
+            name: 'Casa de Italia',
+            actor: 'user:seed',
+            authorizationContext: 'seed',
+          }),
+          enrollment.createTeam(uow, {
+            organizationId,
+            name: 'San Martín',
+            actor: 'user:seed',
+            authorizationContext: 'seed',
+          }),
+        ]);
+        const first = await enrollment.registerEntrant(uow, {
+          organizationId,
+          tournamentId: primary.tournamentId,
+          entrantRef: { kind: 'team', teamId: teams[0]?.teamId ?? '' },
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+        const second = await enrollment.registerEntrant(uow, {
+          organizationId,
+          tournamentId: primary.tournamentId,
+          entrantRef: { kind: 'team', teamId: teams[1]?.teamId ?? '' },
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+        const outsider = await enrollment.registerEntrant(uow, {
+          organizationId,
+          tournamentId: other.tournamentId,
+          entrantRef: { kind: 'team', teamId: teams[2]?.teamId ?? '' },
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+
+        return { first, second, outsider };
+      });
+
+      const listBefore = await request({
+        method: 'GET',
+        url: '/organizations/liga-orbital/tournaments/copa-registros/registrations',
+        token: 'organizer-org1',
+      });
+      expect(listBefore.statusCode).toBe(200);
+      expect(listBefore.json().map((one: { entrantId: string }) => one.entrantId).sort()).toEqual([
+        seeded.first.entrantId,
+        seeded.second.entrantId,
+      ]);
+
+      const bulk = await request({
+        method: 'POST',
+        url: '/organizations/liga-orbital/tournaments/copa-registros/registrations/bulk-review',
+        token: 'organizer-org1',
+        payload: {
+          entrantIds: [seeded.first.entrantId, seeded.second.entrantId, seeded.outsider.entrantId],
+          decision: 'accepted',
+          reason: 'Documentación completa',
+        },
+      });
+      expect(bulk.statusCode).toBe(200);
+      expect(bulk.json().applied.map((one: { entrantId: string }) => one.entrantId).sort()).toEqual([
+        seeded.first.entrantId,
+        seeded.second.entrantId,
+      ]);
+
+      const audit = new AuditReader(scratch.db);
+      const histories = await Promise.all([
+        audit.historyFor('entrant', seeded.first.entrantId),
+        audit.historyFor('entrant', seeded.second.entrantId),
+        audit.historyFor('entrant', seeded.outsider.entrantId),
+      ]);
+      expect(histories[0]?.map((one) => one.action)).toContain('entrant.accepted');
+      expect(histories[1]?.map((one) => one.action)).toContain('entrant.accepted');
+      expect(histories[2]?.map((one) => one.action)).not.toContain('entrant.accepted');
     });
   });
 

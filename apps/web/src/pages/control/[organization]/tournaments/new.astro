@@ -1,0 +1,29 @@
+---
+import { ControlShell } from '../../../../control/components/ControlShell.tsx';
+import { TournamentSetupWizard } from '../../../../control/components/TournamentSetupWizard.tsx';
+import { sampleDisciplines } from '../../../../control/lib/sample.ts';
+import '@copalibre/design-tokens/generated/copalibre.css';
+
+export function getStaticPaths() {
+  return [{ params: { organization: 'liga-mendocina' } }];
+}
+
+const { organization } = Astro.params;
+const alias = organization ?? 'liga-mendocina';
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Crear torneo — {alias}</title>
+  </head>
+  <body>
+    <ControlShell client:only="react" organizationAlias={alias}>
+      <TournamentSetupWizard disciplines={sampleDisciplines()} />
+    </ControlShell>
+    <noscript>El panel de control necesita JavaScript. Las páginas públicas no.</noscript>
+  </body>
+</html>

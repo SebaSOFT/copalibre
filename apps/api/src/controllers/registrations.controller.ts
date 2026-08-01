@@ -196,7 +196,7 @@ export class RegistrationsController {
       throw new NotFoundException(`No registration ${entrantId} in this tournament`);
     }
 
-    const window = await this.checkInWindow(tournament.tournamentId);
+    const window = await this.checkInWindow();
     const editable = rosterEditable(window, entrant.status, new Date().toISOString());
     if (!editable.ok) throw new ConflictException(editable.error.message);
 
@@ -215,7 +215,7 @@ export class RegistrationsController {
    * check-in, so nothing locks — which is the correct default for a system that
    * only enforces what the organizer configured.
    */
-  private async checkInWindow(_tournamentId: string): Promise<CheckInWindow> {
+  private async checkInWindow(): Promise<CheckInWindow> {
     return { requiresCheckIn: false };
   }
 

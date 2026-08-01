@@ -1,0 +1,35 @@
+---
+import { ControlShell } from '../../../../../control/components/ControlShell.tsx';
+import { RegistrationReviewPage } from '../../../../../control/components/RegistrationReviewPage.tsx';
+import { sampleRegistrations } from '../../../../../control/lib/sample.ts';
+import '@copalibre/design-tokens/generated/copalibre.css';
+
+export function getStaticPaths() {
+  return [{ params: { organization: 'liga-mendocina', tournament: 'apertura-2026' } }];
+}
+
+const { organization, tournament } = Astro.params;
+const alias = organization ?? 'liga-mendocina';
+const tournamentAlias = tournament ?? 'apertura-2026';
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Inscripciones — {tournamentAlias}</title>
+  </head>
+  <body>
+    <ControlShell client:only="react" organizationAlias={alias}>
+      <RegistrationReviewPage
+        organizationAlias={alias}
+        tournamentName={tournamentAlias}
+        rows={sampleRegistrations()}
+        now="2026-08-01T19:00:00.000Z"
+      />
+    </ControlShell>
+    <noscript>El panel de control necesita JavaScript. Las páginas públicas no.</noscript>
+  </body>
+</html>
