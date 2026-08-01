@@ -255,16 +255,21 @@ describe('mutation feedback', () => {
   });
 
   it('warns with a count when a rebuild is required', () => {
-    expect(
-      mutationFeedback({
-        mutationClass: 'requires_rebuild',
-        hasRecordedResults: false,
-        invalidatedFixtureCount: 1,
-      }).message,
-    ).toContain('1 fixture');
-    expect(
-      mutationFeedback({ mutationClass: 'requires_rebuild', hasRecordedResults: false }).message,
-    ).toContain('regenerar estructura');
+    const counted = mutationFeedback({
+      mutationClass: 'requires_rebuild',
+      hasRecordedResults: false,
+      invalidatedFixtureCount: 1,
+    });
+    const uncounted = mutationFeedback({
+      mutationClass: 'requires_rebuild',
+      hasRecordedResults: false,
+    });
+
+    expect(counted.kind).toBe('warning');
+    expect(uncounted.kind).toBe('warning');
+    if (counted.kind === 'none' || uncounted.kind === 'none') return;
+    expect(counted.message).toContain('1 fixture');
+    expect(uncounted.message).toContain('regenerar estructura');
   });
 
   it('says nothing about a safe change', () => {
