@@ -1,0 +1,30 @@
+---
+import MatchNode from './MatchNode.astro';
+import { toRounds, type BracketMatch } from '../lib/bracket.ts';
+
+interface Props {
+  readonly matches: readonly BracketMatch[];
+}
+const rounds = toRounds(Astro.props.matches);
+---
+
+{
+  /*
+  Rounds, not a tree. A tree only describes single elimination; the losers'
+  bracket takes entrants from two places and the grand final may be replayed.
+*/
+}
+<div class="cl-bracket">
+  {
+    rounds.map((round) => (
+      <section aria-label={`${round.branch} — ronda ${round.roundNumber}`}>
+        <h3>
+          {round.branch} · Ronda {round.roundNumber}
+        </h3>
+        {round.matches.map((match) => (
+          <MatchNode match={match} />
+        ))}
+      </section>
+    ))
+  }
+</div>

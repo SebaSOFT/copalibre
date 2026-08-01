@@ -6,6 +6,7 @@ module.exports = {
   displayName: 'web',
   moduleNameMapper: {
     ...esmExtensionMapper,
+    '^@copalibre/realtime$': '<rootDir>/../../packages/realtime/src/index.ts',
     '^@copalibre/routing$': '<rootDir>/../../packages/routing/src/index.ts',
   },
   // The view model and the route list; the .astro templates are covered by the

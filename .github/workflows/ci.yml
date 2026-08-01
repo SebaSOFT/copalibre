@@ -210,6 +210,7 @@ jobs:
       # The pages import built packages and generated tokens; neither is
       # committed, so a fresh checkout has to make both.
       - run: yarn workspace @copalibre/routing build
+      - run: yarn workspace @copalibre/realtime build
       - run: yarn workspace @copalibre/design-tokens build:tokens
       - run: yarn workspace @copalibre/web verify:build
 

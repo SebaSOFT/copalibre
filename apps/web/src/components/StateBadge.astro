@@ -1,0 +1,15 @@
+---
+import { presentState, type ResultState } from '../lib/result-state.ts';
+
+interface Props {
+  readonly state: ResultState;
+}
+const { state } = Astro.props;
+const presentation = presentState(state);
+---
+
+{/* Colour, icon and word together — a template cannot ask for just the colour. */}
+<span class={`cl-badge ${presentation.className}`}>
+  <span aria-hidden="true">{presentation.icon}</span>
+  <span>{presentation.label}</span>
+</span>

@@ -1,0 +1,18 @@
+---
+import { resultLegend } from '../lib/result-state.ts';
+---
+
+{/* Shown once per page: the colours mean nothing on their own. */}
+<section aria-labelledby="legend-heading">
+  <h2 id="legend-heading">Referencias</h2>
+  <ul>
+    {
+      resultLegend().map((state) => (
+        <li class={`cl-badge ${state.className}`}>
+          <span aria-hidden="true">{state.icon}</span>
+          <span>{state.label}</span>
+        </li>
+      ))
+    }
+  </ul>
+</section>

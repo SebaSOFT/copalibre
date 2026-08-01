@@ -1,0 +1,25 @@
+---
+import StateBadge from './StateBadge.astro';
+import { toNode, type BracketMatch } from '../lib/bracket.ts';
+
+interface Props {
+  readonly match: BracketMatch;
+}
+const node = toNode(Astro.props.match);
+---
+
+<article class="cl-card cl-chamfer" data-match={node.matchNumber}>
+  <StateBadge state={node.state} />
+  <ol>
+    {
+      node.slots.map((slot) => (
+        <li class={slot.pending ? 'cl-slot--pending' : 'cl-slot'}>
+          {/* Named, never blank: a blank cell reads as a bug, "Ganador del 3"
+              tells a spectator what has to happen first. */}
+          <span>{slot.label}</span>
+          <span class="cl-stat-tile__value">{slot.score ?? '—'}</span>
+        </li>
+      ))
+    }
+  </ol>
+</article>

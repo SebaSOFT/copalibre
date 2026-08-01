@@ -37,7 +37,10 @@ export default tseslint.config(
       'react/react-in-jsx-scope': 'off',
     },
     settings: {
-      react: { version: 'detect' },
+      // Pinned rather than detected: eslint-plugin-react's detection calls an
+      // ESLint 9 context API that ESLint 10 removed, and it only fires once a
+      // .tsx file exists — which 0021 is the first phase to add.
+      react: { version: '19.2' },
     },
   },
 
