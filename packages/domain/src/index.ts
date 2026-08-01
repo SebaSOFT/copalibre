@@ -125,6 +125,17 @@ export {
   type ScriptConstraint,
 } from './rulesets/draw-constraints.js';
 export {
+  validatePerson,
+  normaliseNaturalKey,
+  sameNaturalKey,
+  isDuplicateMembership,
+  PersonError,
+  type Person,
+  type Player,
+  type PlayerRole,
+  type NaturalKey,
+} from './aggregates/person.js';
+export {
   validateSeason,
   competitionName,
   isImplicitSeason,

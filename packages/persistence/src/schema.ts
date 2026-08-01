@@ -82,6 +82,31 @@ export interface ParticipantsTable {
   created_at: Timestamp;
 }
 
+/**
+ * The human (0015). `natural_key_normalised` is what uniqueness is enforced on
+ * — `12.345.678` and `12345678` are one document, and the column that decides
+ * has to agree.
+ */
+export interface PersonsTable {
+  person_id: string;
+  organization_id: string;
+  alias: string | null;
+  display_name: string;
+  natural_key_kind: string | null;
+  natural_key_value: string | null;
+  natural_key_normalised: string | null;
+  created_at: Timestamp;
+}
+
+/** One person's membership in one team (0015). Several per person, one per team. */
+export interface PlayersTable {
+  player_id: string;
+  person_id: string;
+  team_id: string;
+  role: string;
+  created_at: Timestamp;
+}
+
 export interface TeamsTable {
   team_id: string;
   organization_id: string;
@@ -339,6 +364,8 @@ export interface Database {
   stage_configurations: StageConfigurationsTable;
   tournaments: TournamentsTable;
   participants: ParticipantsTable;
+  persons: PersonsTable;
+  players: PlayersTable;
   teams: TeamsTable;
   rosters: RostersTable;
   entrants: EntrantsTable;

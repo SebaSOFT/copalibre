@@ -120,6 +120,29 @@ export const initialSchema: Migration = {
       .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
       .execute();
 
+    // The human, and their membership in a team (0015). Uniqueness is on the
+    // normalised key, scoped to the organization that holds it — two spellings
+    // of one document are one person, and recognising that is what stops an
+    // import creating a second.
+    await db.schema
+      .createTable('persons')
+      .addColumn('person_id', 'uuid', (col) => col.primaryKey())
+      .addColumn('organization_id', 'uuid', (col) =>
+        col.notNull().references('organizations.organization_id'),
+      )
+      .addColumn('alias', 'text')
+      .addColumn('display_name', 'text', (col) => col.notNull())
+      .addColumn('natural_key_kind', 'text')
+      .addColumn('natural_key_value', 'text')
+      .addColumn('natural_key_normalised', 'text')
+      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addUniqueConstraint('persons_organization_natural_key_unique', [
+        'organization_id',
+        'natural_key_kind',
+        'natural_key_normalised',
+      ])
+      .execute();
+
     await db.schema
       .createTable('teams')
       .addColumn('team_id', 'uuid', (col) => col.primaryKey())
@@ -129,6 +152,17 @@ export const initialSchema: Migration = {
       .addColumn('club_id', 'uuid', (col) => col.references('clubs.club_id'))
       .addColumn('name', 'text', (col) => col.notNull())
       .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .execute();
+
+    await db.schema
+      .createTable('players')
+      .addColumn('player_id', 'uuid', (col) => col.primaryKey())
+      .addColumn('person_id', 'uuid', (col) => col.notNull().references('persons.person_id'))
+      .addColumn('team_id', 'uuid', (col) => col.notNull().references('teams.team_id'))
+      .addColumn('role', 'text', (col) => col.notNull())
+      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      // One membership per person per team; several teams per person is the point.
+      .addUniqueConstraint('players_person_team_unique', ['person_id', 'team_id'])
       .execute();
 
     await db.schema
@@ -451,8 +485,10 @@ export const initialSchema: Migration = {
       'entrant_attributes',
       'entrants',
       'rosters',
+      'players',
       'teams',
       'participants',
+      'persons',
       'stage_configurations',
       'stages',
       'seasons',
