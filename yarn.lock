@@ -958,6 +958,7 @@ __metadata:
     "@astrojs/check": "npm:^0.9.10"
     "@astrojs/react": "npm:^6.0.2"
     "@copalibre/design-tokens": "workspace:^"
+    "@copalibre/realtime": "workspace:^"
     "@copalibre/routing": "workspace:^"
     "@types/jest": "npm:^30.0.0"
     "@types/react": "npm:^19.2.17"

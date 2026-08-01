@@ -1,0 +1,19 @@
+---
+import { seriesScore, seriesSegments, type SeriesInput } from '../lib/series.ts';
+
+interface Props {
+  readonly series: SeriesInput;
+}
+const { series } = Astro.props;
+const segments = seriesSegments(series);
+const score = seriesScore(series);
+---
+
+<div
+  class="cl-series"
+  role="img"
+  aria-label={`Serie al mejor de ${series.bestOf}: ${score.home} a ${score.away}`}
+>
+  {segments.map((segment) => <span class={`cl-series__segment cl-series__segment--${segment} cl-chamfer`}></span>)}
+</div>
+<p>{score.home} — {score.away}</p>

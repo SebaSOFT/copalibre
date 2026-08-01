@@ -29,6 +29,18 @@ check(
   overview.indexOf('Saltar al contenido') < overview.indexOf('<main'),
 );
 
+// B2 and B3 (0021): both must be right before any script runs.
+const live = read('liga-mendocina/tournaments/apertura-2026/live/index.html');
+check('the live page carries a score server-side', live.includes('TLL A'));
+check('the live page labels its state', live.includes('EN VIVO'));
+check('the live page shows the legend', live.includes('Referencias'));
+
+const bracket = read('liga-mendocina/tournaments/apertura-2026/stages/1/index.html');
+check('the bracket names an unresolved slot', bracket.includes('Ganador del'));
+check('the grand final reads as pending', bracket.includes('A DEFINIR'));
+// No discipline-specific widget belongs on a shared template.
+check('the bracket has no minimap', !/minimap/i.test(bracket));
+
 const robots = read('robots.txt');
 check('robots disallows /control/', robots.includes('Disallow: /control/'));
 check('robots disallows /tv/', robots.includes('Disallow: /tv/'));
@@ -45,4 +57,4 @@ if (failures.length > 0) {
   process.stderr.write(`Built output failed:\n${failures.map((f) => `  - ${f}`).join('\n')}\n`);
   process.exit(1);
 }
-process.stdout.write(`Built output verified: ${11 - failures.length} checks passed.\n`);
+process.stdout.write(`Built output verified: ${17 - failures.length} checks passed.\n`);
