@@ -201,7 +201,7 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
           permittedSegmentTypes: { type: 'array', items: { type: 'string', minLength: 1 } },
           actorRequirement: { enum: ['none', 'side', 'participant', 'participant-or-staff'] },
           payloadSchema: { type: 'object' },
-          effects: { type: 'array', items: { type: 'object' } },
+          effects: { type: 'array', items: { $ref: '#/definitions/eventEffect' } },
         },
       },
     },
@@ -279,6 +279,59 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
     uiMetadata: { type: 'object' },
     defaults: { type: 'object' },
     fieldPolicies: { type: 'object' },
+  },
+  definitions: {
+    /**
+     * An effect was `{ type: 'object' }` until 0014 — anything at all installed,
+     * and the TypeScript union describing it was a claim the gate never
+     * checked. A module could ship `{ kind: 'score', side: 'opponent' }`, pass
+     * installation, and mean nothing at match time. Each kind now states its
+     * own members and refuses the rest.
+     */
+    eventEffect: {
+      type: 'object',
+      required: ['kind'],
+      oneOf: [
+        {
+          additionalProperties: false,
+          required: ['kind', 'awardTo', 'delta'],
+          properties: {
+            kind: { const: 'score' },
+            // "the opponent" is undefined in a heat; "every other side" is what
+            // the duel case always meant.
+            awardTo: { enum: ['actor', 'every-other-side'] },
+            delta: { type: 'number' },
+          },
+        },
+        {
+          additionalProperties: false,
+          required: ['kind', 'statisticCode', 'delta'],
+          properties: {
+            kind: { const: 'statistic' },
+            statisticCode: { type: 'string', minLength: 1 },
+            delta: { type: 'number' },
+          },
+        },
+        {
+          additionalProperties: false,
+          required: ['kind', 'durationSeconds', 'affects'],
+          properties: {
+            kind: { const: 'timed-penalty' },
+            durationSeconds: { type: 'number', exclusiveMinimum: 0 },
+            /** The person who caused it, or the entrant they belong to. */
+            affects: { enum: ['actor', 'side'] },
+          },
+        },
+        {
+          additionalProperties: false,
+          required: ['kind', 'transition'],
+          properties: {
+            kind: { const: 'match-state' },
+            transition: { type: 'string', minLength: 1 },
+          },
+        },
+      ],
+    },
   },
 });
 

@@ -203,7 +203,9 @@ export function toRecordedEvent(row: MatchEventRow): RecordedEvent {
     definitionCode: row.definition_code,
     occurredAt: toIsoString(row.occurred_at),
     sequence: row.sequence,
-    side: (row.side as RecordedEvent['side']) ?? undefined,
+    // The column was always `text`; since the side is an entrant id there is
+    // nothing left to narrow it to.
+    side: row.side ?? undefined,
     participantId: row.participant_id ?? undefined,
     payload: row.payload as Record<string, unknown>,
   };

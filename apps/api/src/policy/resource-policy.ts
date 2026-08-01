@@ -1,4 +1,11 @@
 import { ForbiddenException } from '@nestjs/common';
+import {
+  authorizeMatchCommand,
+  type AuthorityDecision,
+  type MatchAssignment,
+  type MatchCapability,
+  type MatchContext,
+} from '@copalibre/domain';
 import type { AuthenticatedSubject } from '../auth/request-context.js';
 import type { SecurityPlane } from '../auth/security-plane.js';
 
@@ -132,4 +139,41 @@ export function enforcePolicy(request: PolicyRequest): void {
   if (!decision.allowed) {
     throw new ForbiddenException(decision.reason);
   }
+}
+
+/**
+ * Operating a match is a second question, asked after the first (0014).
+ *
+ * Organization scope says the subject belongs here; it never says they are the
+ * one standing at *this* table. So a match command passes the org check and
+ * then a capability check over the appointments that cover this match — and
+ * being an organizer grants neither, deliberately: the decision record asks for
+ * these to be separate permissions rather than a consequence of a role.
+ */
+export function enforceMatchCommand(
+  request: PolicyRequest & {
+    readonly assignments: readonly MatchAssignment[];
+    readonly capability: MatchCapability;
+    readonly match: MatchContext;
+  },
+): AuthorityDecision {
+  enforcePolicy(request);
+
+  const subjectId = request.subject?.subjectId;
+  if (!subjectId) {
+    throw new ForbiddenException('match commands require a verified subject');
+  }
+
+  const authorized = authorizeMatchCommand(request.assignments, {
+    subjectId,
+    capability: request.capability,
+    match: request.match,
+  });
+  if (!authorized.ok) {
+    throw new ForbiddenException(authorized.error.message);
+  }
+
+  // Returned so the caller can record *which* appointment allowed the command:
+  // an audit row saying only "allowed" cannot answer a disputed result.
+  return authorized.value;
 }

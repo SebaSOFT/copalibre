@@ -152,3 +152,36 @@ export function playableMatches(
     )
     .map((match) => match.matchId);
 }
+
+/**
+ * The matches a finalization unlocked **inside one stage** (0014).
+ *
+ * Advancement is computed from structure, so "unlocking" is not a write: it is
+ * the difference between what was playable before an outcome existed and what
+ * is playable after. Reporting that difference is what lets finalization tell a
+ * console, a projection or a scheduler which fixture just became real, without
+ * anybody storing a pointer that a correction would then have to unwind.
+ *
+ * **It never crosses a stage boundary, and that is deliberate** (owner's call,
+ * 2026-07-31). Within a bracket the edges are structural: the winner of this
+ * semi-final plays that final, and no one decides it. Between stages there is a
+ * decision — the cut, and a seeding that may be drawn, weighted or set by hand —
+ * so a finished stage makes the *transition available*, never taken.
+ * `previewStageTransition` (0010) stays the only path across, with an operator
+ * committing it.
+ */
+export function unlockedByFinalization(
+  graph: FixtureGraph,
+  outcomesBefore: readonly RecordedOutcome[],
+  finalized: RecordedOutcome,
+): readonly string[] {
+  const before = new Set(
+    resolveAdvancement(graph, outcomesBefore)
+      .filter((match) => match.playable)
+      .map((match) => match.matchId),
+  );
+
+  return resolveAdvancement(graph, [...outcomesBefore, finalized])
+    .filter((match) => match.playable && !before.has(match.matchId))
+    .map((match) => match.matchId);
+}

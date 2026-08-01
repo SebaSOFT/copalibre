@@ -26,6 +26,54 @@ function strikeInput(overrides?: Partial<RecordEventInput>): RecordEventInput {
   };
 }
 
+describe('a side is an entrant', () => {
+  const entrantIds = ['entrant-atlas', 'entrant-boca', 'entrant-river', 'entrant-union'];
+
+  it('records the entrant the event belongs to, at any arity', () => {
+    const log = new EventLog(fixtureDescriptor());
+
+    for (const [index, side] of entrantIds.entries()) {
+      const result = log.record(strikeInput({ eventId: `e-${index}`, side, entrantIds }));
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.value.side).toBe(side);
+    }
+
+    // Four sides, four distinct attributions: what `'home' | 'away'` could not
+    // say about a heat, and had to invent about neutral ground.
+    expect(new Set(log.list().map((event) => event.side)).size).toBe(4);
+  });
+
+  it('refuses an entrant that is not contesting the match', () => {
+    const log = new EventLog(fixtureDescriptor());
+
+    const result = log.record(strikeInput({ side: 'entrant-visiting-ghost', entrantIds }));
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.message).toContain('not contesting this match');
+    expect(result.error.details).toMatchObject({ side: 'entrant-visiting-ghost' });
+  });
+
+  it('accepts any side when the caller does not say who is playing', () => {
+    // The log validates what it is told; a caller that withholds the lineup
+    // gets no lineup check, rather than a guess.
+    const log = new EventLog(fixtureDescriptor());
+
+    expect(log.record(strikeInput({ side: 'entrant-atlas' })).ok).toBe(true);
+  });
+
+  it('leaves the side absent for an event that belongs to the match', () => {
+    const log = new EventLog(fixtureDescriptor());
+
+    const result = log.record(strikeInput({ side: undefined, entrantIds }));
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.side).toBeUndefined();
+  });
+});
+
 describe('EventLog', () => {
   it('records a valid event and assigns a monotonic sequence', () => {
     const log = new EventLog(fixtureDescriptor());
@@ -122,7 +170,7 @@ describe('effectsOf', () => {
     expect(recorded.ok).toBe(true);
     if (recorded.ok) {
       expect(effectsOf(descriptor, recorded.value)).toEqual([
-        { kind: 'score', side: 'actor', delta: 1 },
+        { kind: 'score', awardTo: 'actor', delta: 1 },
       ]);
     }
   });

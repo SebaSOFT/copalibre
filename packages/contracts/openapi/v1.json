@@ -523,6 +523,455 @@
           "schedules"
         ]
       }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}": {
+      "get": {
+        "description": "Timers are derived from the event log at read time — nothing stores a countdown, so two surfaces reading the same match agree by construction.",
+        "operationId": "MatchControlController_state",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "matchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchStateResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Read a match’s live state",
+        "tags": [
+          "match-control"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/commands/{command}": {
+      "post": {
+        "description": "Pausing stops the clock, not the competition: a paused match is still in progress. Finalizing needs its own capability — recording events never implies declaring a result.",
+        "operationId": "MatchControlController_command",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "matchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "command",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FinalizeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchStateResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Start, pause, resume or finalize",
+        "tags": [
+          "match-control"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/events": {
+      "post": {
+        "description": "Validated against the discipline’s own event definitions: permitted segment, required actor, and a payload matching the declared schema. A side is an entrant id.",
+        "operationId": "MatchControlController_recordEvent",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "matchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordEventRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordedEventResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Record a discipline event",
+        "tags": [
+          "match-control"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/corrections/preview": {
+      "post": {
+        "description": "Reports whose numbers move and whether a started downstream stage blocks the rebuild — from the same function the commit uses, so a preview cannot promise what the commit refuses.",
+        "operationId": "MatchControlController_previewCorrection",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "matchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorrectionRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorrectionPreviewResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Dry-run a correction",
+        "tags": [
+          "match-control"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/corrections": {
+      "post": {
+        "description": "The only write path over a finalized outcome. The prior result, the replacement, the actor and the reason are kept together, and a started downstream stage is not rebuilt behind anyone’s back.",
+        "operationId": "MatchControlController_correct",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "matchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorrectionRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorrectionPreviewResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Supersede a result",
+        "tags": [
+          "match-control"
+        ]
+      },
+      "get": {
+        "description": "Every prior state in order, with the actor and reason each time — the chain, not the latest link.",
+        "operationId": "MatchControlController_history",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "matchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorrectionHistoryResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read what this result has been",
+        "tags": [
+          "match-control"
+        ]
+      }
     }
   },
   "info": {
@@ -892,6 +1341,243 @@
           "committable",
           "conflicts",
           "affectedPublishedFixtures"
+        ]
+      },
+      "MatchStateResponse": {
+        "type": "object",
+        "properties": {
+          "matchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "scheduled",
+              "in-progress",
+              "finalized"
+            ]
+          },
+          "clockRunning": {
+            "type": "boolean",
+            "description": "Whether the active segment’s clock is running"
+          },
+          "runningTimers": {
+            "description": "Timers still running, by event id",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "matchId",
+          "status",
+          "clockRunning",
+          "runningTimers"
+        ]
+      },
+      "FinalizeRequest": {
+        "type": "object",
+        "properties": {
+          "sides": {
+            "description": "One entry per side: entrant id, its declared statistics, and placement for a heat",
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "winnerEntrantId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Duel matches only"
+          }
+        },
+        "required": [
+          "sides"
+        ]
+      },
+      "RecordEventRequest": {
+        "type": "object",
+        "properties": {
+          "definitionCode": {
+            "type": "string",
+            "description": "Event definition code the discipline declares",
+            "example": "goal"
+          },
+          "segmentId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Segment the event happened in"
+          },
+          "occurredAt": {
+            "type": "number",
+            "description": "When it happened, epoch milliseconds"
+          },
+          "side": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The entrant it belongs to — an id, never \"home\"/\"away\""
+          },
+          "participantId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The person, when the discipline needs one"
+          },
+          "payload": {
+            "type": "object",
+            "description": "Payload validated against the definition"
+          }
+        },
+        "required": [
+          "definitionCode",
+          "segmentId",
+          "occurredAt"
+        ]
+      },
+      "RecordedEventResponse": {
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "definitionCode": {
+            "type": "string"
+          },
+          "sequence": {
+            "type": "number",
+            "description": "Monotonic per-match ordering assigned by the log"
+          },
+          "side": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "participantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "notifications": {
+            "description": "Identity keys of notifications this event declared, deduplicated on delivery",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "eventId",
+          "definitionCode",
+          "sequence",
+          "notifications"
+        ]
+      },
+      "CorrectionRequestDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "description": "Why the result is being corrected, in the operator’s words"
+          },
+          "sides": {
+            "description": "The replacement result, one entry per side",
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "winnerEntrantId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "reason",
+          "sides"
+        ]
+      },
+      "BlockedPropagationDto": {
+        "type": "object",
+        "properties": {
+          "stageId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why nothing downstream was rebuilt"
+          }
+        },
+        "required": [
+          "stageId",
+          "reason"
+        ]
+      },
+      "CorrectionPreviewResponse": {
+        "type": "object",
+        "properties": {
+          "changedEntrantIds": {
+            "description": "Entrants whose recorded numbers move",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "blockedPropagation": {
+            "description": "Present when a started downstream stage is deliberately not rebuilt",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BlockedPropagationDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "changedEntrantIds"
+        ]
+      },
+      "CorrectionEntryDto": {
+        "type": "object",
+        "properties": {
+          "occurredAt": {
+            "type": "string"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "priorState": {
+            "type": "object",
+            "description": "What the result was"
+          },
+          "resultingState": {
+            "type": "object",
+            "description": "What it became"
+          }
+        },
+        "required": [
+          "occurredAt",
+          "actor",
+          "reason",
+          "priorState",
+          "resultingState"
+        ]
+      },
+      "CorrectionHistoryResponse": {
+        "type": "object",
+        "properties": {
+          "corrections": {
+            "description": "Oldest first — the chain, in order",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CorrectionEntryDto"
+            }
+          }
+        },
+        "required": [
+          "corrections"
         ]
       }
     }

@@ -125,6 +125,40 @@ export {
   type ScriptConstraint,
 } from './rulesets/draw-constraints.js';
 export {
+  planCorrection,
+  CorrectionError,
+  type CorrectionRequest,
+  type CorrectionPlan,
+  type DownstreamState,
+} from './aggregates/result-correction.js';
+export {
+  applyMatchCommand,
+  runningTimers,
+  validateLineup,
+  type LineupSelection,
+  type LineupFinding,
+  type CheckedLineup,
+  type RosterConstraint,
+  MatchOperationError,
+  type MatchCommand,
+  type MatchTransition,
+  type RunningTimer,
+  type TimerEventCodes,
+} from './aggregates/match-operations.js';
+export {
+  authorizeMatchCommand,
+  validateAssignment,
+  isMatchCapability,
+  MATCH_CAPABILITIES,
+  CAPABILITY_TEMPLATES,
+  MatchAuthorityError,
+  type MatchCapability,
+  type MatchAssignment,
+  type AuthorityScope,
+  type AuthorityDecision,
+  type MatchContext,
+} from './aggregates/match-authority.js';
+export {
   SCRIPT_HOOKS,
   SCRIPT_HOOK_IDS,
   ENVIRONMENT_CONTEXT_PATHS,

@@ -1,21 +1,21 @@
 {
   "instances": [
     {
-      "identityKey": "team-infraction-threshold@v3|match:m-1/side:home|firing:1",
+      "identityKey": "team-infraction-threshold@v3|match:m-1/side:entrant-atlas|firing:1",
       "ruleId": "team-infraction-threshold",
       "ruleVersion": 3,
-      "scopeKey": "match:m-1/side:home",
+      "scopeKey": "match:m-1/side:entrant-atlas",
       "severity": "warning",
       "title": "Infraction limit reached",
-      "message": "3 infractions for home — free hit for the opponent",
+      "message": "3 infractions for entrant-atlas — free hit for the opponent",
       "targetRole": "table-official",
       "triggeredByEventId": "e-4",
       "contextValues": {
-        "scopeKey": "match:m-1/side:home",
+        "scopeKey": "match:m-1/side:entrant-atlas",
         "aggregate": 3,
         "threshold": 3,
         "eventId": "e-4",
-        "side": "home",
+        "side": "entrant-atlas",
         "participantId": null
       }
     }
@@ -29,7 +29,7 @@
     "inputFacts": {
       "eventCount": 5
     },
-    "output": ["team-infraction-threshold@v3|match:m-1/side:home|firing:1"],
+    "output": ["team-infraction-threshold@v3|match:m-1/side:entrant-atlas|firing:1"],
     "trace": [
       {
         "kind": "threshold",
@@ -37,11 +37,11 @@
         "label": "Notification team-infraction-threshold",
         "outcome": "fired",
         "values": {
-          "scopeKey": "match:m-1/side:home",
+          "scopeKey": "match:m-1/side:entrant-atlas",
           "aggregate": 3,
           "threshold": 3,
           "eventId": "e-4",
-          "side": "home",
+          "side": "entrant-atlas",
           "participantId": null
         },
         "detail": "Aggregate 3 >= 3 at event e-4"

@@ -262,6 +262,47 @@ export const initialSchema: Migration = {
       .addUniqueConstraint('match_events_match_sequence_unique', ['match_id', 'sequence'])
       .execute();
 
+    // Who takes the field (0014). One row per entrant per match, replaced when
+    // the lineup changes and audited every time — a lineup is state an operator
+    // edits before kick-off, not an event stream, but who changed it and when
+    // is exactly what a protest asks about.
+    await db.schema
+      .createTable('match_lineups')
+      .addColumn('match_id', 'uuid', (col) => col.notNull().references('matches.match_id'))
+      .addColumn('entrant_id', 'uuid', (col) => col.notNull())
+      .addColumn('participant_ids', 'jsonb', (col) => col.notNull())
+      .addColumn('updated_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addPrimaryKeyConstraint('match_lineups_pk', ['match_id', 'entrant_id'])
+      .execute();
+
+    // Who may operate a match (0014). The scope is one of two columns and
+    // exactly one is set: a grant names a match or a stage, and a stage grant
+    // resolves downward so a referee appointed to a matchday is one row rather
+    // than one per fixture. Nothing here names a role — a role is what a console
+    // offers when creating the row, and what it granted is in `capabilities`.
+    await db.schema
+      .createTable('match_assignments')
+      .addColumn('assignment_id', 'uuid', (col) => col.primaryKey())
+      .addColumn('organization_id', 'uuid', (col) =>
+        col.notNull().references('organizations.organization_id'),
+      )
+      .addColumn('subject_id', 'text', (col) => col.notNull())
+      .addColumn('match_id', 'uuid', (col) => col.references('matches.match_id'))
+      .addColumn('stage_id', 'uuid', (col) => col.references('stages.stage_id'))
+      .addColumn('capabilities', 'jsonb', (col) => col.notNull())
+      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addCheckConstraint(
+        'match_assignments_one_scope',
+        sql`(match_id is null) <> (stage_id is null)`,
+      )
+      .execute();
+
+    await db.schema
+      .createIndex('match_assignments_subject_idx')
+      .on('match_assignments')
+      .columns(['organization_id', 'subject_id'])
+      .execute();
+
     await db.schema
       .createTable('audit_log')
       .addColumn('audit_id', 'uuid', (col) => col.primaryKey())
@@ -384,6 +425,8 @@ export const initialSchema: Migration = {
       'event_cursors',
       'outbox_events',
       'audit_log',
+      'match_assignments',
+      'match_lineups',
       'match_events',
       'segments',
       'matches',

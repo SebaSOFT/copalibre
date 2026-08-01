@@ -48,6 +48,7 @@ export {
 export { ParticipantRepository, type AuditContext } from './repositories/participant-repository.js';
 export { CompetitionRepository } from './repositories/competition-repository.js';
 export { ScheduleRepository, type SchedulePreview } from './repositories/schedule-repository.js';
+export { MatchAssignmentRepository } from './repositories/match-assignment-repository.js';
 /** Re-exported so an API layer can tell a caller's conflict from a fault. */
 export { ScheduleConflictError } from '@copalibre/domain';
 export {

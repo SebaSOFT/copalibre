@@ -36,7 +36,7 @@ export function fixtureDescriptor(overrides?: Partial<DisciplineDescriptor>): Di
           },
           required: ['zone'],
         },
-        effects: [{ kind: 'score', side: 'actor', delta: 1 }],
+        effects: [{ kind: 'score', awardTo: 'actor', delta: 1 }],
       },
       {
         code: 'caution',

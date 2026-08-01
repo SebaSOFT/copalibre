@@ -11,7 +11,7 @@ import {
   type PlacementMatch,
   type SlotSource,
 } from '../types.js';
-import { playableMatches, resolveAdvancement } from './index.js';
+import { playableMatches, resolveAdvancement, unlockedByFinalization } from './index.js';
 
 const entrants = (n: number) =>
   Array.from({ length: n }, (_, index) => ({ entrantId: `e${index + 1}`, seed: index + 1 }));
@@ -227,5 +227,60 @@ describe('placement matches', () => {
 
   it("collects a heat's entrants into the stage table", () => {
     expect(entrantsInGraph(withHeat().matches)).toEqual(['e1', 'e4', 'e2', 'e3', 'e5', 'e6', 'e7']);
+  });
+});
+
+describe('unlockedByFinalization', () => {
+  it('reports the next match a knockout result makes playable', () => {
+    const bracket = graph('single-elimination', 4);
+    const [first, second] = bracket.matches.filter(isDuelMatch).filter((m) => m.round === 1);
+    if (!first || !second) throw new Error('the bracket lost its first round');
+
+    // One semi-final decided: the final still waits for the other.
+    const afterFirst = unlockedByFinalization(bracket, [], win(first.id, 'e1', 'e4'));
+    expect(afterFirst).toEqual([]);
+
+    const afterSecond = unlockedByFinalization(
+      bracket,
+      [win(first.id, 'e1', 'e4')],
+      win(second.id, 'e2', 'e3'),
+    );
+    const final = bracket.matches.filter(isDuelMatch).find((m) => m.round === 2);
+    expect(afterSecond).toEqual([final?.id]);
+  });
+
+  it('unlocks nothing in a format whose matches never depend on each other', () => {
+    const league = graph('round-robin', 4);
+    const [match] = league.matches.filter(isDuelMatch);
+    if (!match) throw new Error('the league lost its fixtures');
+
+    // Every fixture was playable from the start, so a result unlocks none.
+    expect(unlockedByFinalization(league, [], win(match.id, 'e1', 'e2'))).toEqual([]);
+  });
+
+  it.each(['single-elimination', 'double-elimination'] as const)(
+    'never reports a match that was already playable, in %s',
+    (format) => {
+      const bracket = graph(format, 4);
+      const [first] = bracket.matches.filter(isDuelMatch).filter((m) => m.round === 1);
+      if (!first) throw new Error('the bracket lost its first round');
+
+      const unlocked = unlockedByFinalization(bracket, [], win(first.id, 'e1', 'e4'));
+
+      expect(unlocked).not.toContain(first.id);
+    },
+  );
+
+  it('is a difference and not a write: asking twice gives the same answer', () => {
+    const bracket = graph('single-elimination', 4);
+    const duels = bracket.matches.filter(isDuelMatch).filter((m) => m.round === 1);
+    const [first, second] = duels;
+    if (!first || !second) throw new Error('the bracket lost its first round');
+
+    const outcomes = [win(first.id, 'e1', 'e4')];
+    const once = unlockedByFinalization(bracket, outcomes, win(second.id, 'e2', 'e3'));
+    const again = unlockedByFinalization(bracket, outcomes, win(second.id, 'e2', 'e3'));
+
+    expect(once).toEqual(again);
   });
 });

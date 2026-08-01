@@ -55,6 +55,15 @@ context: |
       (iss/aud/sub/org/scp/iat/exp/jti), exempt from this casing rule.
     - Any config-mutating feature must classify its mutations as safe / requires_rebuild /
       blocked_after_results.
+    - CopaLibre enforces two things and no third: the integrity of its own records, and what THIS
+      organizer explicitly configured. It never enforces what a sport "usually" requires. A player
+      with too many red cards carries a tag; the organizer keeps them off the sheet, and CopaLibre
+      does not refuse the lineup. State the difference in every proposal that adds a check: a refusal
+      is for a record that would be incoherent (a result overwritten, an event naming an entrant that
+      is not playing, a venue in two places), or for a rule the organizer configured themselves.
+      Everything a federation might do differently is labelled and reported, never blocked — a system
+      that decides on their behalf is wrong for the first competition whose rules differ, and that
+      competition always exists (owner, 2026-07-31).
     - No feature may allow direct overwrite of a calculated result - only the audited
       correction/supersession workflow (actor, timestamp, reason, prior state, resulting state,
       recalculation preview, blocked propagation into an already-started downstream stage).

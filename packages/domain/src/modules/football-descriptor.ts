@@ -43,7 +43,7 @@ export function footballDescriptor(
           properties: { assistedBy: { type: 'string' }, penalty: { type: 'boolean' } },
         },
         effects: [
-          { kind: 'score', side: 'actor', delta: 1 },
+          { kind: 'score', awardTo: 'actor', delta: 1 },
           { kind: 'statistic', statisticCode: 'goals-for', delta: 1 },
         ],
       },

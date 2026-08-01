@@ -196,6 +196,8 @@ function scopeKeyFor(scope: NotificationScope, event: RecordedEvent): string {
     case 'segment':
       return `segment:${event.segmentId}`;
     case 'side':
+      // The entrant, so a per-side counter reads the same in a duel and in an
+      // eight-lane heat.
       return `match:${event.matchId}/side:${event.side ?? 'unknown'}`;
     case 'participant':
       return `participant:${event.participantId ?? 'unknown'}`;
@@ -240,4 +242,35 @@ function renderTemplate(template: string, values: Readonly<Record<string, unknow
       return key in values ? String(values[key]) : `{{${key}}}`;
     })
     .join('');
+}
+
+/**
+ * The notification rules a compiled ruleset configures (0014).
+ *
+ * They live in the ruleset's open config rather than in a column, because what
+ * a discipline alerts on is discipline configuration — and a malformed entry is
+ * skipped rather than throwing, since one bad rule must not stop a match from
+ * being operated.
+ */
+export function notificationRulesFrom(config: unknown): readonly NotificationRule[] {
+  if (typeof config !== 'object' || config === null) return [];
+  const declared = (config as { notificationRules?: unknown }).notificationRules;
+  if (!Array.isArray(declared)) return [];
+
+  return declared.filter(isNotificationRule);
+}
+
+function isNotificationRule(candidate: unknown): candidate is NotificationRule {
+  if (typeof candidate !== 'object' || candidate === null) return false;
+  const rule = candidate as Partial<NotificationRule>;
+  return (
+    typeof rule.id === 'string' &&
+    typeof rule.version === 'number' &&
+    typeof rule.scope === 'string' &&
+    typeof rule.predicate === 'object' &&
+    typeof rule.aggregation === 'object' &&
+    typeof rule.threshold === 'object' &&
+    typeof rule.semantics === 'object' &&
+    typeof rule.action === 'object'
+  );
 }

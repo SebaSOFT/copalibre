@@ -154,6 +154,44 @@ describe('discipline descriptor schema', () => {
     });
   });
 
+  describe('declared effects', () => {
+    function withEffect(effect: unknown) {
+      const base = fixtureDescriptor();
+      const [first, ...rest] = base.eventDefinitions;
+      return validateDisciplineDescriptorDocument(
+        asDocument({ eventDefinitions: [{ ...first, effects: [effect] }, ...rest] }),
+      );
+    }
+
+    it('accepts each declared kind', () => {
+      expect(withEffect({ kind: 'score', awardTo: 'actor', delta: 1 }).ok).toBe(true);
+      expect(withEffect({ kind: 'score', awardTo: 'every-other-side', delta: 1 }).ok).toBe(true);
+      expect(withEffect({ kind: 'statistic', statisticCode: 'fouls', delta: 1 }).ok).toBe(true);
+      expect(withEffect({ kind: 'timed-penalty', durationSeconds: 120, affects: 'actor' }).ok).toBe(
+        true,
+      );
+      expect(withEffect({ kind: 'match-state', transition: 'finished' }).ok).toBe(true);
+    });
+
+    it('rejects the duel-only spelling a module could ship before this phase', () => {
+      // `side: 'opponent'` installed happily while the schema said "an object":
+      // in a heat it names nobody, and the engine would have had to guess.
+      expect(withEffect({ kind: 'score', side: 'opponent', delta: 1 }).ok).toBe(false);
+    });
+
+    it.each([
+      ['an unknown kind', { kind: 'summon-var', delta: 1 }],
+      ['a score with no recipient', { kind: 'score', delta: 1 }],
+      ['a score awarding to nobody named', { kind: 'score', awardTo: 'referee', delta: 1 }],
+      ['a statistic naming no code', { kind: 'statistic', delta: 1 }],
+      ['a penalty of no duration', { kind: 'timed-penalty', durationSeconds: 0, affects: 'side' }],
+      ['a transition of no name', { kind: 'match-state', transition: '' }],
+      ['an effect carrying an undeclared member', { kind: 'match-state', transition: 'x', y: 1 }],
+    ])('rejects %s', (_label, effect) => {
+      expect(withEffect(effect).ok).toBe(false);
+    });
+  });
+
   it('rejects a format outside the MVP list', () => {
     const result = validateDisciplineDescriptorDocument(
       asDocument({ availableFormats: ['swiss'] }),

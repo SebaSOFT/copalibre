@@ -188,7 +188,7 @@ describe('snake_case row → camelCase domain mapping', () => {
       definition_code: 'strike',
       occurred_at: CREATED,
       sequence: 1,
-      side: 'home',
+      side: 'entrant-atlas',
       participant_id: 'p-1',
       payload: { zone: 'inner' } as never,
       created_at: CREATED,
@@ -200,7 +200,7 @@ describe('snake_case row → camelCase domain mapping', () => {
       definitionCode: 'strike',
       occurredAt: '2026-07-29T12:00:00.000Z',
       sequence: 1,
-      side: 'home',
+      side: 'entrant-atlas',
       participantId: 'p-1',
       payload: { zone: 'inner' },
     });

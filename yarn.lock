@@ -760,6 +760,7 @@ __metadata:
   dependencies:
     "@copalibre/domain": "workspace:^"
     "@copalibre/persistence": "workspace:^"
+    "@copalibre/rules": "workspace:^"
     "@nestjs/common": "npm:^11.1.28"
     "@nestjs/core": "npm:^11.1.28"
     "@nestjs/platform-fastify": "npm:^11.1.28"
