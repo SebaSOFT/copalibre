@@ -7,6 +7,7 @@ module.exports = {
   testPathIgnorePatterns: ['/node_modules/', '\\.integration\\.test\\.ts$'],
   moduleNameMapper: {
     ...esmExtensionMapper,
+    '^@copalibre/auth$': '<rootDir>/../../packages/auth/src/index.ts',
     '^@copalibre/domain$': '<rootDir>/../../packages/domain/src/index.ts',
     '^@copalibre/persistence$': '<rootDir>/../../packages/persistence/src/index.ts',
     '^@copalibre/rules$': '<rootDir>/../../packages/rules/src/index.ts',

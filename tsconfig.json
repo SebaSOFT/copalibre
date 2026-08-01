@@ -2,6 +2,9 @@
   "files": [],
   "references": [
     {
+      "path": "packages/auth/tsconfig.json"
+    },
+    {
       "path": "packages/domain/tsconfig.json"
     },
     {
@@ -21,6 +24,9 @@
     },
     {
       "path": "packages/tournament-engine/tsconfig.json"
+    },
+    {
+      "path": "packages/realtime/tsconfig.json"
     },
     {
       "path": "apps/api/tsconfig.json"

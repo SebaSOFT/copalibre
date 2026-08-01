@@ -12,6 +12,7 @@
     "test:integration": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.integration.config.cjs --runInBand"
   },
   "dependencies": {
+    "@copalibre/auth": "workspace:^",
     "@copalibre/domain": "workspace:^",
     "@copalibre/persistence": "workspace:^",
     "@copalibre/rules": "workspace:^",

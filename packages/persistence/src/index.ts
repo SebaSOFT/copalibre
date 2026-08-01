@@ -69,6 +69,13 @@ export {
 export { SchedulerLeaseStore, type Lease } from './relay/scheduler-lease.js';
 export { ProjectionStore, type ProjectionVersion } from './relay/projection-store.js';
 export {
+  EventStreamReader,
+  DEFAULT_REPLAY_WINDOW,
+  type StreamQuery,
+  type ReplayResolution,
+  type ReplayWindow,
+} from './relay/event-stream.js';
+export {
   ScheduledJobStore,
   SYSTEM_ORGANIZATION,
   type ScheduledJob,
