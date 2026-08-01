@@ -1,0 +1,25 @@
+---
+import { TournamentAuthoringControlRoute } from '../../../../control/components/ControlRoutes.tsx';
+import '@copalibre/design-tokens/generated/copalibre.css';
+
+export function getStaticPaths() {
+  return [{ params: { organization: 'liga-mendocina' } }];
+}
+
+const { organization } = Astro.params;
+const alias = organization ?? 'liga-mendocina';
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Crear torneo — {alias}</title>
+  </head>
+  <body>
+    <TournamentAuthoringControlRoute client:only="react" organizationAlias={alias} />
+    <noscript>El panel de control necesita JavaScript. Las páginas públicas no.</noscript>
+  </body>
+</html>

@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
   Inject,
   NotFoundException,
   Param,
@@ -24,6 +25,7 @@ import {
   withTransaction,
   type Database,
 } from '@copalibre/persistence';
+import { SUPPORTED_FORMATS } from '@copalibre/domain';
 import type { Kysely } from 'kysely';
 import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
@@ -110,19 +112,46 @@ export class TournamentsController {
       );
     }
 
-    return withTransaction(this.db, (uow) =>
-      tournaments.create(uow, {
+    const available = new Set<string>(descriptor.availableFormats);
+    if (
+      !(SUPPORTED_FORMATS as readonly string[]).includes(body.format) ||
+      !available.has(body.format)
+    ) {
+      throw new BadRequestException(
+        `Discipline descriptor ${body.descriptorId}@${body.descriptorVersion} does not support ${body.format}`,
+      );
+    }
+
+    return withTransaction(this.db, async (uow) => {
+      const tournament = await tournaments.create(uow, {
         organizationId: organization.organizationId,
         alias: body.alias,
         name: body.name,
         descriptor,
         actor: `user:${subject?.subjectId ?? 'unknown'}`,
         authorizationContext: (subject?.scopes ?? []).join(' '),
-      }),
-    );
+      });
+      const { ruleset } = await tournaments.createRuleset(uow, {
+        tournamentId: tournament.tournamentId,
+        organizationId: organization.organizationId,
+        descriptor,
+        overrides: {
+          format: body.format,
+          'registration.publicOpen': body.publicRegistration,
+          'registration.requiresCheckIn': body.requiresCheckIn,
+          ...(body.checkInClosesAt === undefined
+            ? {}
+            : { 'registration.checkInClosesAt': body.checkInClosesAt }),
+        },
+        actor: `user:${subject?.subjectId ?? 'unknown'}`,
+        authorizationContext: (subject?.scopes ?? []).join(' '),
+      });
+      return { ...tournament, rulesetId: ruleset.rulesetId };
+    });
   }
 
   @Post(':tournamentAlias/publish')
+  @HttpCode(200)
   @SecurityPlaneTag('admin-control')
   @ApiBearerAuth()
   @ApiOperation({

@@ -69,11 +69,23 @@ export function swimmingDescriptor(
     // points-for-position table would quietly reintroduce the wrong contract.
     winCondition: winConditionScript('fastest-time', { unit: 'best-time' }),
     defaults: {
+      format: 'heats',
+      registration: { publicOpen: false, requiresCheckIn: false },
       scoring: { pointsPerWin: 0, pointsPerDraw: 0, pointsPerLoss: 0 },
       tiebreakers: ['best-time'],
       segments: { lanesPerHeat: 8 },
     },
     fieldPolicies: {
+      format: { permission: { kind: 'replaced' }, mutationClass: 'blocked_after_results' },
+      'registration.publicOpen': { permission: { kind: 'replaced' }, mutationClass: 'safe' },
+      'registration.requiresCheckIn': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'requires_rebuild',
+      },
+      'registration.checkInClosesAt': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'requires_rebuild',
+      },
       tiebreakers: {
         permission: { kind: 'merged', strategy: 'union-list' },
         mutationClass: 'requires_rebuild',

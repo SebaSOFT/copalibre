@@ -1,0 +1,106 @@
+import { DomainError } from '../errors.js';
+import { err, ok, type Result } from '../result.js';
+import type { EntrantStatus } from './participant.js';
+
+/**
+ * Reviewing registrations, and when a roster stops being editable (0023).
+ *
+ * The decision lives here rather than in the console because the console is a
+ * *hint*: a tab left open through the check-in deadline still has yesterday's
+ * buttons enabled, and the only useful place to refuse is the one the request
+ * actually reaches.
+ */
+
+export type ReviewDecision = 'accepted' | 'refused' | 'withdrawn';
+
+export class RegistrationError extends DomainError {
+  readonly code = 'REGISTRATION_INVALID';
+}
+
+export interface CheckInWindow {
+  /** ISO instants; absent means the organizer set no window at all. */
+  readonly opensAt?: string;
+  readonly closesAt?: string;
+  readonly requiresCheckIn: boolean;
+}
+
+/**
+ * Whether the roster of a checked-in entrant may still change.
+ *
+ * Two conditions, both required: the tournament asks for check-in, and the
+ * window has closed. A tournament that never asked for check-in never locks —
+ * CopaLibre enforces what *this* organizer configured, not what a competition
+ * usually does.
+ */
+export function rosterEditable(
+  window: CheckInWindow,
+  status: EntrantStatus,
+  now: string,
+): Result<true, RegistrationError> {
+  if (!window.requiresCheckIn) return ok(true);
+  if (status !== 'checked-in') return ok(true);
+  if (window.closesAt === undefined || now < window.closesAt) return ok(true);
+
+  return err(
+    new RegistrationError(
+      'Check-in has closed for this entrant; the roster it was checked in with is the one that plays',
+      { closesAt: window.closesAt, status },
+    ),
+  );
+}
+
+/**
+ * Whether a decision may be recorded against a registration in this state.
+ *
+ * Re-deciding is allowed — an organizer who refused by mistake must be able to
+ * accept — but a withdrawal is the entrant's word, and overriding it from the
+ * console would put somebody in a competition they left.
+ */
+export function canDecide(
+  current: EntrantStatus,
+  decision: ReviewDecision,
+): Result<ReviewDecision, RegistrationError> {
+  if (current === 'withdrawn' && decision !== 'withdrawn') {
+    return err(
+      new RegistrationError('This entrant withdrew; only they can undo that', {
+        current,
+        decision,
+      }),
+    );
+  }
+  return ok(decision);
+}
+
+/** The status a decision produces. */
+export function statusFor(decision: ReviewDecision): EntrantStatus {
+  return decision;
+}
+
+/**
+ * A bulk action is a list of single decisions.
+ *
+ * Deliberately not one statement: each registration gets its own audit row with
+ * its own before and after, because "approved 40" is not an answer to "why is
+ * this team in the draw".
+ */
+export function planBulkReview(
+  entrants: readonly { readonly entrantId: string; readonly status: EntrantStatus }[],
+  selected: readonly string[],
+  decision: ReviewDecision,
+): {
+  readonly apply: readonly { readonly entrantId: string; readonly decision: ReviewDecision }[];
+  readonly refused: readonly { readonly entrantId: string; readonly reason: string }[];
+} {
+  const chosen = new Set(selected);
+  const apply: { entrantId: string; decision: ReviewDecision }[] = [];
+  const refused: { entrantId: string; reason: string }[] = [];
+
+  for (const entrant of entrants) {
+    if (!chosen.has(entrant.entrantId)) continue;
+    const allowed = canDecide(entrant.status, decision);
+    if (allowed.ok) apply.push({ entrantId: entrant.entrantId, decision });
+    else refused.push({ entrantId: entrant.entrantId, reason: allowed.error.message });
+  }
+
+  return { apply, refused };
+}

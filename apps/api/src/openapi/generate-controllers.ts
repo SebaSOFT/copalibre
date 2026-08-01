@@ -1,6 +1,10 @@
 import { HealthController } from '../health.controller.js';
 import { MatchControlController } from '../controllers/match-control.controller.js';
 import { OrganizationsController } from '../controllers/organizations.controller.js';
+import {
+  DisciplinesController,
+  RegistrationsController,
+} from '../controllers/registrations.controller.js';
 import { SchedulesController } from '../controllers/schedules.controller.js';
 import { TournamentsController } from '../controllers/tournaments.controller.js';
 
@@ -16,6 +20,8 @@ export const OPENAPI_CONTROLLERS = [
   HealthController,
   OrganizationsController,
   TournamentsController,
+  RegistrationsController,
+  DisciplinesController,
   SchedulesController,
   MatchControlController,
 ] as const;

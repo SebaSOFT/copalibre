@@ -6,6 +6,10 @@ import { MatchControlController } from './controllers/match-control.controller.j
 import { OrganizationsController } from './controllers/organizations.controller.js';
 import { SchedulesController } from './controllers/schedules.controller.js';
 import { TournamentsController } from './controllers/tournaments.controller.js';
+import {
+  DisciplinesController,
+  RegistrationsController,
+} from './controllers/registrations.controller.js';
 import { authConfigFromEnv } from './auth/auth-config.js';
 import { TokenVerifier } from './auth/token-verifier.js';
 import { createDatabase, databaseConfigFromEnv, type Database } from '@copalibre/persistence';
@@ -32,6 +36,8 @@ const providers: Provider[] = [
     TournamentsController,
     SchedulesController,
     MatchControlController,
+    RegistrationsController,
+    DisciplinesController,
   ],
   providers,
 })

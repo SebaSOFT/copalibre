@@ -1,10 +1,7 @@
-import { webcrypto } from 'node:crypto';
-import { TextDecoder, TextEncoder } from 'node:util';
 import { render, screen } from '@testing-library/react';
 
 // jsdom ships neither SubtleCrypto nor the text encoders; the browser has both
 // and Node exposes the same APIs.
-Object.defineProperty(globalThis, 'crypto', { value: webcrypto, configurable: true });
 Object.defineProperty(globalThis, 'TextEncoder', { value: TextEncoder, configurable: true });
 Object.defineProperty(globalThis, 'TextDecoder', { value: TextDecoder, configurable: true });
 import { createPkcePair, authorizationUrl, verifyCallbackState } from './session/pkce.js';

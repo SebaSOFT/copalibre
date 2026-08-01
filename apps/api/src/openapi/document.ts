@@ -13,8 +13,13 @@ import type { OpenAPIObject } from '@nestjs/swagger';
  * correctly flagged as incompatible for existing callers. No client consumes
  * the API yet (phase 0016 is the first), so nothing needs migrating — but the
  * version reflects the contract change rather than hiding it.
+ *
+ * Bumped to 3.0.0 by 0023-tournament-authoring-and-registration-review:
+ * tournament creation now writes the initial ruleset, so `format`,
+ * `publicRegistration`, and `requiresCheckIn` are required request fields
+ * instead of implied UI state.
  */
-export const OPENAPI_VERSION = '2.0.0';
+export const OPENAPI_VERSION = '3.0.0';
 
 export function buildOpenApiDocument(app: INestApplication): OpenAPIObject {
   const config = new DocumentBuilder()
