@@ -125,6 +125,21 @@ export {
   type ScriptConstraint,
 } from './rulesets/draw-constraints.js';
 export {
+  COMPETITION_LEVELS,
+  ACTOR_LEVELS,
+  LEVEL_SOURCES,
+  isCompetitionLevel,
+  isActorLevel,
+  levelsAbove,
+  isAbove,
+  actorOfEntrant,
+  requireLevels,
+  HierarchyError,
+  type CompetitionLevel,
+  type ActorLevel,
+  type ResolvedActor,
+} from './statistics/hierarchies.js';
+export {
   validatePerson,
   normaliseNaturalKey,
   sameNaturalKey,
