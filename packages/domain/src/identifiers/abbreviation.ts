@@ -29,11 +29,12 @@ import { err, ok, type Result } from '../result.js';
 const ABBREVIATION_PATTERN = /^[A-Z0-9]+( [A-Z0-9]+)*$/;
 
 /**
- * Eight characters. Long enough for "TLL A" and a digit-suffixed side, short
- * enough that a "short label" cannot quietly become a second name — which is
- * what a generous limit turns it into.
+ * Ten characters (owner, 2026-08-01). Long enough for a club prefix and a side
+ * marker with room to spare, short enough that a "short label" cannot quietly
+ * become a second name — which is what a generous limit turns it into, leaving
+ * the surface that had no room still with no room.
  */
-export const MAX_ABBREVIATION_LENGTH = 8;
+export const MAX_ABBREVIATION_LENGTH = 10;
 
 export class InvalidAbbreviationError extends DomainError {
   readonly code = 'ABBREVIATION_INVALID';

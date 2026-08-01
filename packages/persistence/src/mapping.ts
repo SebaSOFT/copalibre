@@ -94,6 +94,7 @@ export function toClub(row: ClubRow): Club {
   return {
     clubId: row.club_id,
     organizationId: row.organization_id,
+    alias: row.alias ?? undefined,
     name: row.name,
     abbreviation: row.abbreviation ?? undefined,
   };

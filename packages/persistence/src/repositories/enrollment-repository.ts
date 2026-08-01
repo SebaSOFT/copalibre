@@ -1,5 +1,7 @@
 import {
   Abbreviation,
+  Alias,
+  suggestAvailableAlias,
   validateAttributes,
   type Club,
   type Entrant,
@@ -37,10 +39,18 @@ export class EnrollmentRepository {
     input: {
       readonly organizationId: string;
       readonly name: string;
+      readonly alias?: string;
       readonly abbreviation?: string;
     } & Omit<AuditContext, 'organizationId'>,
   ): Promise<Club> {
     assertAbbreviation(input.abbreviation);
+
+    // A given alias is validated; an absent one is suggested from the name and
+    // disambiguated against what this organization already uses. Two clubs
+    // named "Talleres" is ordinary, and making the second one's organizer
+    // invent a suffix by hand is not.
+    const alias = input.alias ?? (await this.suggestClubAlias(input.organizationId, input.name));
+    assertAlias(alias);
 
     const clubId = newId();
     const row = await uow.tx
@@ -48,6 +58,7 @@ export class EnrollmentRepository {
       .values({
         club_id: clubId,
         organization_id: input.organizationId,
+        alias: alias ?? null,
         name: input.name,
         abbreviation: input.abbreviation ?? null,
         created_at: new Date(),
@@ -68,6 +79,27 @@ export class EnrollmentRepository {
     return club;
   }
 
+  /**
+   * The alias this organization would give a club of this name.
+   *
+   * Exposed so a console can show it in the form *before* anything is created —
+   * a suggestion the organizer never sees is a derivation, and this capability
+   * derives a URL, not a name.
+   */
+  async suggestClubAlias(organizationId: string, name: string): Promise<string | undefined> {
+    const rows = await this.db
+      .selectFrom('clubs')
+      .select('alias')
+      .where('organization_id', '=', organizationId)
+      .where('alias', 'is not', null)
+      .execute();
+
+    return suggestAvailableAlias(
+      name,
+      rows.flatMap((row) => (row.alias === null ? [] : [row.alias])),
+    );
+  }
+
   /** Renames a club or changes its short label, keeping what it was. */
   async updateClub(
     uow: UnitOfWork,
@@ -75,16 +107,19 @@ export class EnrollmentRepository {
       readonly clubId: string;
       readonly organizationId: string;
       readonly name?: string;
+      readonly alias?: string;
       readonly abbreviation?: string | null;
     } & Omit<AuditContext, 'organizationId'>,
   ): Promise<Club> {
     if (input.abbreviation !== null) assertAbbreviation(input.abbreviation);
+    assertAlias(input.alias);
 
     const previous = await this.findClub(input.clubId);
     const row = await uow.tx
       .updateTable('clubs')
       .set({
         ...(input.name === undefined ? {} : { name: input.name }),
+        ...(input.alias === undefined ? {} : { alias: input.alias }),
         ...(input.abbreviation === undefined ? {} : { abbreviation: input.abbreviation }),
       })
       .where('club_id', '=', input.clubId)
@@ -513,5 +548,14 @@ function assertAbbreviation(value: string | undefined): void {
   const abbreviation = Abbreviation.create(value);
   if (!abbreviation.ok) {
     throw new InvariantViolationError(abbreviation.error.message, { abbreviation: value });
+  }
+}
+
+/** Refuses a malformed alias with the reason, rather than with a unique-index error. */
+function assertAlias(value: string | undefined): void {
+  if (value === undefined) return;
+  const alias = Alias.create('participant', value);
+  if (!alias.ok) {
+    throw new InvariantViolationError(alias.error.message, { alias: value });
   }
 }

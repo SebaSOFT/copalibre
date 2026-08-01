@@ -682,6 +682,67 @@ describe('short labels (integration)', () => {
     expect((await participants.findTeam(team.teamId))?.abbreviation).toBe('TLL A');
   });
 
+  it('suggests an alias from the name when none is given', async () => {
+    const participants = new EnrollmentRepository(scratch.db);
+
+    const club = await withTransaction(scratch.db, (uow) =>
+      participants.createClub(uow, {
+        organizationId,
+        name: 'Club Atlético San Martín',
+        ...AUDIT_CONTEXT,
+      }),
+    );
+
+    // Derived, unlike the abbreviation: there is no judgement in lowercasing
+    // and folding accents, and nobody reads a URL from the stands.
+    expect(club.alias).toBe('club-atletico-san-martin');
+  });
+
+  it('disambiguates a second club of the same name instead of refusing it', async () => {
+    const participants = new EnrollmentRepository(scratch.db);
+
+    const second = await withTransaction(scratch.db, (uow) =>
+      participants.createClub(uow, {
+        organizationId,
+        name: 'Talleres de Mendoza',
+        ...AUDIT_CONTEXT,
+      }),
+    );
+
+    // "Talleres de Mendoza" already exists from the round-trip test above.
+    expect(second.alias).toBe('talleres-de-mendoza-2');
+  });
+
+  it('keeps the alias the organizer typed over the one it would suggest', async () => {
+    const participants = new EnrollmentRepository(scratch.db);
+
+    const club = await withTransaction(scratch.db, (uow) =>
+      participants.createClub(uow, {
+        organizationId,
+        name: 'Casa de Italia',
+        alias: 'casa-italia',
+        ...AUDIT_CONTEXT,
+      }),
+    );
+
+    expect(club.alias).toBe('casa-italia');
+  });
+
+  it('refuses an alias that is not one, before any row is written', async () => {
+    const participants = new EnrollmentRepository(scratch.db);
+
+    await expect(
+      withTransaction(scratch.db, (uow) =>
+        participants.createClub(uow, {
+          organizationId,
+          name: 'Club Mayúsculas',
+          alias: 'Casa De Italia',
+          ...AUDIT_CONTEXT,
+        }),
+      ),
+    ).rejects.toBeInstanceOf(InvariantViolationError);
+  });
+
   it('leaves the label absent rather than inventing one', async () => {
     const participants = new EnrollmentRepository(scratch.db);
 
@@ -704,7 +765,7 @@ describe('short labels (integration)', () => {
       withTransaction(scratch.db, (uow) =>
         participants.createClub(uow, {
           organizationId,
-          name: 'Casa de Italia',
+          name: 'Club Sigla Rota',
           abbreviation: 'Casa d.',
           ...AUDIT_CONTEXT,
         }),
@@ -714,7 +775,7 @@ describe('short labels (integration)', () => {
     const rows = await scratch.db
       .selectFrom('clubs')
       .selectAll()
-      .where('name', '=', 'Casa de Italia')
+      .where('name', '=', 'Club Sigla Rota')
       .execute();
     expect(rows).toEqual([]);
   });

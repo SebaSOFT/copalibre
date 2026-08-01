@@ -13,6 +13,13 @@ export interface Organization {
 export interface Club {
   readonly clubId: string;
   readonly organizationId: string;
+  /**
+   * Path identifier, unique within the organization (0037). Unlike the
+   * abbreviation it may be **suggested** from the name: an alias is a
+   * transformation with no judgement in it, and nobody reads a URL from the
+   * stands.
+   */
+  readonly alias?: string;
   readonly name: string;
   /**
    * The short label a constrained surface shows (0037), e.g. `C I` for "Casa de

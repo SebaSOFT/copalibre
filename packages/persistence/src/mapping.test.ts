@@ -86,6 +86,7 @@ describe('snake_case row → camelCase domain mapping', () => {
     const club: ClubRow = {
       club_id: 'cl-1',
       organization_id: 'org-1',
+      alias: 'casa-de-italia',
       name: 'Casa de Italia',
       abbreviation: 'C I',
       created_at: CREATED,
@@ -94,6 +95,7 @@ describe('snake_case row → camelCase domain mapping', () => {
     expect(toClub(club)).toEqual({
       clubId: 'cl-1',
       organizationId: 'org-1',
+      alias: 'casa-de-italia',
       name: 'Casa de Italia',
       abbreviation: 'C I',
     });

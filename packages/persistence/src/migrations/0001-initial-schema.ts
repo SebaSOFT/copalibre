@@ -22,12 +22,17 @@ export const initialSchema: Migration = {
       .addColumn('organization_id', 'uuid', (col) =>
         col.notNull().references('organizations.organization_id'),
       )
+      // Path identifier (0037), unique within the organization. Suggestible
+      // from the name, unlike the abbreviation: a transformation with no
+      // judgement in it, and nobody reads a URL from the stands.
+      .addColumn('alias', 'text')
       .addColumn('name', 'text', (col) => col.notNull())
       // The short label a bracket cell or a scoreboard shows (0037). Nullable
       // and never derived: an abbreviation nobody chose is one nobody can
       // explain when the club asks about it.
       .addColumn('abbreviation', 'text')
       .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addUniqueConstraint('clubs_organization_alias_unique', ['organization_id', 'alias'])
       .execute();
 
     await db.schema

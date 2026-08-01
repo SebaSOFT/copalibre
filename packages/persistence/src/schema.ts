@@ -23,6 +23,8 @@ export interface OrganizationsTable {
 export interface ClubsTable {
   club_id: string;
   organization_id: string;
+  /** Path identifier, unique within the organization (0037). */
+  alias: string | null;
   name: string;
   /** Short label for constrained surfaces (0037); `C I` for "Casa de Italia". */
   abbreviation: string | null;
