@@ -125,18 +125,18 @@ export {
   type ScriptConstraint,
 } from './rulesets/draw-constraints.js';
 export {
-  COMPETITION_LEVELS,
-  ACTOR_LEVELS,
-  LEVEL_SOURCES,
-  isCompetitionLevel,
-  isActorLevel,
-  levelsAbove,
-  isAbove,
+  COMPETITION_GRANULARITIES,
+  ACTOR_GRANULARITIES,
+  GRANULARITY_SOURCES,
+  isCompetitionGranularity,
+  isActorGranularity,
+  granularitiesAbove,
+  isCoarser,
   actorOfEntrant,
-  requireLevels,
+  requireGranularities,
   HierarchyError,
-  type CompetitionLevel,
-  type ActorLevel,
+  type CompetitionGranularity,
+  type ActorGranularity,
   type ResolvedActor,
 } from './statistics/hierarchies.js';
 export {
