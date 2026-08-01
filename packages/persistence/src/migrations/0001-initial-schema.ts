@@ -23,6 +23,10 @@ export const initialSchema: Migration = {
         col.notNull().references('organizations.organization_id'),
       )
       .addColumn('name', 'text', (col) => col.notNull())
+      // The short label a bracket cell or a scoreboard shows (0037). Nullable
+      // and never derived: an abbreviation nobody chose is one nobody can
+      // explain when the club asks about it.
+      .addColumn('abbreviation', 'text')
       .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
       .execute();
 
@@ -143,6 +147,9 @@ export const initialSchema: Migration = {
       // teams are distinguishable. No FK: a discipline is a module that may be
       // retired, and a finished competition stays readable without it (0008).
       .addColumn('discipline_id', 'uuid')
+      // Overrides the club's (0037), which is how two sides of one club are
+      // told apart on a board with room for five characters.
+      .addColumn('abbreviation', 'text')
       .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
       .execute();
 

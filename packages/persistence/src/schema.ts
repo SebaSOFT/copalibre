@@ -24,6 +24,8 @@ export interface ClubsTable {
   club_id: string;
   organization_id: string;
   name: string;
+  /** Short label for constrained surfaces (0037); `C I` for "Casa de Italia". */
+  abbreviation: string | null;
   created_at: Timestamp;
 }
 
@@ -105,6 +107,8 @@ export interface TeamsTable {
   name: string;
   /** The discipline this side plays (0015); null on teams predating it. */
   discipline_id: string | null;
+  /** Overrides the club's short label (0037): `TLL A` beside `TLL B`. */
+  abbreviation: string | null;
   created_at: Timestamp;
 }
 

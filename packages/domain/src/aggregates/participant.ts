@@ -24,6 +24,14 @@ export interface Team {
    * Absent on a team registered before the discipline was asked for.
    */
   readonly disciplineId?: string;
+  /**
+   * Overrides the club's short label (0037).
+   *
+   * One club fields two sides in one tournament, and `TLL A` / `TLL B` is the
+   * only thing telling a spectator which one is on the court. Absent means the
+   * club's answers for it.
+   */
+  readonly abbreviation?: string;
 }
 
 export type EntrantStatus = 'pending' | 'accepted' | 'refused' | 'withdrawn' | 'checked-in';

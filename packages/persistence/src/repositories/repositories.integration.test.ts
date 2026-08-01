@@ -630,3 +630,144 @@ describe('entrant attributes (integration)', () => {
     await expect(participants.listEntrantAttributes(entrant.entrantId)).resolves.toEqual([]);
   });
 });
+
+describe('short labels (integration)', () => {
+  let scratch: ScratchDatabase;
+  let organizationId: string;
+
+  const AUDIT_CONTEXT = {
+    actor: 'user:registrar-1',
+    authorizationContext: 'scope:participant.write',
+  };
+
+  beforeAll(async () => {
+    scratch = await createMigratedDatabase('short-labels');
+    const organization = await withTransaction(scratch.db, (uow) =>
+      new OrganizationRepository(scratch.db).create(uow, {
+        alias: 'liga-mendocina',
+        name: 'Liga Mendocina',
+        ...AUDIT_CONTEXT,
+      }),
+    );
+    organizationId = organization.organizationId;
+  });
+
+  afterAll(async () => {
+    await scratch?.drop();
+  });
+
+  it('round-trips a club and a team abbreviation', async () => {
+    const participants = new EnrollmentRepository(scratch.db);
+
+    const { club, team } = await withTransaction(scratch.db, async (uow) => {
+      const created = await participants.createClub(uow, {
+        organizationId,
+        name: 'Talleres de Mendoza',
+        abbreviation: 'TLL',
+        ...AUDIT_CONTEXT,
+      });
+      const side = await participants.createTeam(uow, {
+        organizationId,
+        clubId: created.clubId,
+        name: "Talleres 'A'",
+        abbreviation: 'TLL A',
+        ...AUDIT_CONTEXT,
+      });
+      return { club: created, team: side };
+    });
+
+    expect((await participants.findClub(club.clubId))?.abbreviation).toBe('TLL');
+    // The override survives storage, which is what makes two sides of one club
+    // distinguishable on a board with room for five characters.
+    expect((await participants.findTeam(team.teamId))?.abbreviation).toBe('TLL A');
+  });
+
+  it('leaves the label absent rather than inventing one', async () => {
+    const participants = new EnrollmentRepository(scratch.db);
+
+    const club = await withTransaction(scratch.db, (uow) =>
+      participants.createClub(uow, {
+        organizationId,
+        name: 'Club Sin Sigla',
+        ...AUDIT_CONTEXT,
+      }),
+    );
+
+    expect(club.abbreviation).toBeUndefined();
+    expect((await participants.findClub(club.clubId))?.abbreviation).toBeUndefined();
+  });
+
+  it('refuses a malformed abbreviation before any row is written', async () => {
+    const participants = new EnrollmentRepository(scratch.db);
+
+    await expect(
+      withTransaction(scratch.db, (uow) =>
+        participants.createClub(uow, {
+          organizationId,
+          name: 'Casa de Italia',
+          abbreviation: 'Casa d.',
+          ...AUDIT_CONTEXT,
+        }),
+      ),
+    ).rejects.toBeInstanceOf(InvariantViolationError);
+
+    const rows = await scratch.db
+      .selectFrom('clubs')
+      .selectAll()
+      .where('name', '=', 'Casa de Italia')
+      .execute();
+    expect(rows).toEqual([]);
+  });
+
+  it('audits a change of label, keeping what it was', async () => {
+    const participants = new EnrollmentRepository(scratch.db);
+
+    const team = await withTransaction(scratch.db, (uow) =>
+      participants.createTeam(uow, {
+        organizationId,
+        name: "Talleres 'B'",
+        abbreviation: 'TLL B',
+        ...AUDIT_CONTEXT,
+      }),
+    );
+
+    await withTransaction(scratch.db, (uow) =>
+      participants.updateTeam(uow, {
+        teamId: team.teamId,
+        organizationId,
+        abbreviation: 'TAL B',
+        ...AUDIT_CONTEXT,
+      }),
+    );
+
+    const history = await new AuditReader(scratch.db).historyFor('team', team.teamId);
+
+    expect((await participants.findTeam(team.teamId))?.abbreviation).toBe('TAL B');
+    expect(history.map((entry) => entry.action)).toEqual(['team.created', 'team.updated']);
+    expect(history[1]?.previousState).toMatchObject({ abbreviation: 'TLL B' });
+  });
+
+  it('clears a label when the organizer asks, without deleting the team', async () => {
+    const participants = new EnrollmentRepository(scratch.db);
+
+    const team = await withTransaction(scratch.db, (uow) =>
+      participants.createTeam(uow, {
+        organizationId,
+        name: 'Equipo Temporal',
+        abbreviation: 'TMP',
+        ...AUDIT_CONTEXT,
+      }),
+    );
+
+    const cleared = await withTransaction(scratch.db, (uow) =>
+      participants.updateTeam(uow, {
+        teamId: team.teamId,
+        organizationId,
+        abbreviation: null,
+        ...AUDIT_CONTEXT,
+      }),
+    );
+
+    expect(cleared.abbreviation).toBeUndefined();
+  });
+});
