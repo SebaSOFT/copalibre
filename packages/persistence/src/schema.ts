@@ -337,6 +337,50 @@ export interface MaterialisedStandingsTable {
   created_at: Timestamp;
 }
 
+/**
+ * One folded figure, kept at the granularity its collector declares and
+ * attributed to the match it was folded from (0016).
+ *
+ * The match is part of the key rather than metadata: a total that cannot be
+ * traced to the facts that produced it cannot be recomputed when one of them is
+ * corrected, and the correction path is the reason this table exists at all.
+ * Coarser figures — a season, a club — are the aggregate of these rows at read,
+ * never a second row that could drift from them.
+ */
+export interface StatisticTotalsTable {
+  organization_id: string;
+  collector_code: string;
+  actor_granularity: string;
+  actor_id: string;
+  competition_granularity: string;
+  competition_id: string;
+  /** The match whose finalisation produced this row. */
+  source_match_id: string;
+  value: number;
+  /** How many facts produced the value; what an average is recomputed from. */
+  samples: number;
+  projection_version: number;
+  updated_at: Timestamp;
+}
+
+/**
+ * A number moved by hand or by a script's declaration, recorded as a fact
+ * (0016). Folded like any other fact, so a replay reproduces the total.
+ */
+export interface StatisticAdjustmentsTable {
+  adjustment_id: string;
+  organization_id: string;
+  /** Where the facts it belongs with are; a fold is always of a match. */
+  match_id: string;
+  collector_code: string;
+  actor_granularity: string;
+  actor_id: string;
+  delta: number;
+  reason: string;
+  actor: string;
+  created_at: Timestamp;
+}
+
 export interface SchemaVersionTable {
   version: string;
   applied_at: Timestamp;
@@ -373,5 +417,7 @@ export interface Database {
   materialised_standings: MaterialisedStandingsTable;
   event_cursors: EventCursorsTable;
   projection_versions: ProjectionVersionsTable;
+  statistic_totals: StatisticTotalsTable;
+  statistic_adjustments: StatisticAdjustmentsTable;
   schema_version: SchemaVersionTable;
 }

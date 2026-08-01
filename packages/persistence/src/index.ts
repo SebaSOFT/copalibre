@@ -50,6 +50,20 @@ export { CompetitionRepository } from './repositories/competition-repository.js'
 export { ScheduleRepository, type SchedulePreview } from './repositories/schedule-repository.js';
 export { MatchAssignmentRepository } from './repositories/match-assignment-repository.js';
 export { PersonRepository } from './repositories/person-repository.js';
+export {
+  StatisticProjection,
+  PROJECTED_EVENT_TYPES,
+  type ProjectionEvent,
+  type ProjectedEventType,
+  type Refold,
+  type ProjectionOutcome,
+} from './projections/statistic-projection.js';
+export {
+  StatisticRepository,
+  type StoredFigure,
+  type TotalsQuery,
+  type ReadTotal,
+} from './repositories/statistic-repository.js';
 /** Re-exported so an API layer can tell a caller's conflict from a fault. */
 export { ScheduleConflictError } from '@copalibre/domain';
 export {

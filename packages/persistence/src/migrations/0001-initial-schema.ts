@@ -438,6 +438,72 @@ export const initialSchema: Migration = {
       .addUniqueConstraint('materialised_standings_match_unique', ['match_id'])
       .execute();
 
+    // Folded figures (0016). The key carries the match the row was folded from,
+    // so correcting one result recomputes exactly the rows that result produced
+    // and leaves every other match's figures untouched. Coarser totals are the
+    // aggregate of these rows at read: one number, one place it comes from.
+    await db.schema
+      .createTable('statistic_totals')
+      .addColumn('organization_id', 'uuid', (col) =>
+        col.notNull().references('organizations.organization_id'),
+      )
+      .addColumn('collector_code', 'text', (col) => col.notNull())
+      .addColumn('actor_granularity', 'text', (col) => col.notNull())
+      .addColumn('actor_id', 'text', (col) => col.notNull())
+      .addColumn('competition_granularity', 'text', (col) => col.notNull())
+      .addColumn('competition_id', 'text', (col) => col.notNull())
+      .addColumn('source_match_id', 'uuid', (col) => col.notNull().references('matches.match_id'))
+      .addColumn('value', 'double precision', (col) => col.notNull())
+      .addColumn('samples', 'integer', (col) => col.notNull())
+      .addColumn('projection_version', 'integer', (col) => col.notNull())
+      .addColumn('updated_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addPrimaryKeyConstraint('statistic_totals_pk', [
+        'collector_code',
+        'actor_granularity',
+        'actor_id',
+        'competition_granularity',
+        'competition_id',
+        'source_match_id',
+      ])
+      .execute();
+
+    // The read a profile page makes: one collector, one actor granularity,
+    // one competition.
+    await db.schema
+      .createIndex('statistic_totals_read_idx')
+      .on('statistic_totals')
+      .columns([
+        'organization_id',
+        'collector_code',
+        'actor_granularity',
+        'competition_granularity',
+        'competition_id',
+      ])
+      .execute();
+
+    await db.schema
+      .createTable('statistic_adjustments')
+      .addColumn('adjustment_id', 'uuid', (col) => col.primaryKey())
+      .addColumn('organization_id', 'uuid', (col) =>
+        col.notNull().references('organizations.organization_id'),
+      )
+      .addColumn('match_id', 'uuid', (col) => col.notNull().references('matches.match_id'))
+      .addColumn('collector_code', 'text', (col) => col.notNull())
+      .addColumn('actor_granularity', 'text', (col) => col.notNull())
+      .addColumn('actor_id', 'text', (col) => col.notNull())
+      .addColumn('delta', 'double precision', (col) => col.notNull())
+      // Not nullable: a correction nobody explained reads exactly like a bug.
+      .addColumn('reason', 'text', (col) => col.notNull())
+      .addColumn('actor', 'text', (col) => col.notNull())
+      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .execute();
+
+    await db.schema
+      .createIndex('statistic_adjustments_match_idx')
+      .on('statistic_adjustments')
+      .columns(['match_id'])
+      .execute();
+
     await db.schema
       .createTable('schema_version')
       .addColumn('version', 'text', (col) => col.primaryKey())
@@ -449,6 +515,8 @@ export const initialSchema: Migration = {
     // Reverse dependency order.
     for (const table of [
       'schema_version',
+      'statistic_adjustments',
+      'statistic_totals',
       'materialised_standings',
       'compiled_rulesets',
       'tournament_profiles',

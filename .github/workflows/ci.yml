@@ -101,7 +101,9 @@ jobs:
       # (0012), which are pure domain logic; the SQL side runs in integration.
       # Since 0015 it also carries seasons, the person/player split and the
       # natural-key normalisation that decides whether two spellings of one
-      # document are one human.
+      # document are one human. Since 0016 it carries the two granularity
+      # hierarchies, the collector declaration and the adjustment fact — a
+      # collector chain that feeds itself fails here rather than at install.
       - run: yarn workspace @copalibre/domain test:coverage
       # Golden-fixture suite included; any fixture mismatch fails the PR (0003).
       # Covers the win-condition registry, evaluator and trace fixture (0009),
@@ -110,7 +112,8 @@ jobs:
       # expression whitelist and function registry, the declared effects, and
       # the hook-evaluation trace golden — which is part of the determinism
       # guard alongside the draw and allocation goldens: a replay that stops
-      # reproducing its draws moves that fixture and fails the PR.
+      # reproducing its draws moves that fixture and fails the PR. Since 0016 it
+      # covers `adjustStatistic`, which declares a movement and performs none.
       - run: yarn workspace @copalibre/rules test:coverage
       - run: yarn workspace @copalibre/api test:coverage
       # Includes the golden-fixture regression set (0007), the discipline-driven
@@ -118,6 +121,8 @@ jobs:
       # seed allocation and the constrained draw (0010), and the placement-stage
       # goldens (0011). Every advertised format has generation tests here, and a
       # duel golden moving is how this job reports an accidental regression.
+      # Since 0016 it carries the fold: figures on both axes from one pass, and
+      # an average recomputed from its samples rather than averaged again.
       - run: yarn workspace @copalibre/tournament-engine test:coverage
       - uses: actions/upload-artifact@v4
         if: always()
@@ -186,7 +191,10 @@ jobs:
       # started downstream stage that is not rebuilt behind anyone's back. The
       # person suite (0015) proves the rest against real constraints: one human
       # recognised across two spellings, holding a membership per team, and a
-      # document that never reaches the audit trail.
+      # document that never reaches the audit trail. The statistics suite (0016)
+      # proves the projection: totals written at every declared granularity from
+      # one pass, a correction that recomputes rather than compensates, and a
+      # hand adjustment stored as an audited fact instead of an increment.
       - run: yarn workspace @copalibre/persistence test:integration
       # Guard/policy/controller suite through the real HTTP stack (0005),
       # including match-scoped authorization (0014).
