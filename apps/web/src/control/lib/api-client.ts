@@ -1,4 +1,6 @@
+import type { CanvasMatch } from './bracket-canvas.js';
 import type { RegistrationStatus } from './review.js';
+import type { StandingsData } from './standings.js';
 import type { DisciplineOption } from './wizard.js';
 
 export interface ControlApiClient {
@@ -23,6 +25,57 @@ export interface ControlApiClient {
     entrantId: string,
     request: ReviewRegistrationRequest,
   ) => Promise<RegistrationResponse>;
+  readonly fetchStandings: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageNumber: number,
+  ) => Promise<StandingsData>;
+  /**
+   * One row's comparator chain, fetched when it is expanded.
+   *
+   * Lazy on purpose: a forty-row table would otherwise carry forty chains
+   * nobody asked for, on a screen an operator refreshes between every match.
+   */
+  readonly fetchTiebreakTrace: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageNumber: number,
+    entrantId: string,
+  ) => Promise<TiebreakTraceResponse>;
+  readonly fetchSeeding: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageNumber: number,
+  ) => Promise<SeedingResponse>;
+  readonly publishSeeding: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageNumber: number,
+    request: PublishSeedingRequest,
+  ) => Promise<SeedingClassificationResponse>;
+}
+
+export interface TiebreakTraceResponse {
+  readonly entrantId: string;
+  readonly lines: readonly string[];
+}
+
+export interface SeedingResponse {
+  readonly stageId: string;
+  readonly format: string;
+  readonly seeds: readonly { readonly seed: number; readonly entrantId: string }[];
+  readonly matches: readonly CanvasMatch[];
+  readonly hasRecordedResults: boolean;
+}
+
+export interface PublishSeedingRequest {
+  readonly seeds: readonly { readonly seed: number; readonly entrantId: string }[];
+}
+
+export interface SeedingClassificationResponse {
+  readonly mutationClass: 'safe' | 'requires_rebuild' | 'blocked_after_results';
+  readonly reason: string;
+  readonly invalidates: readonly string[];
 }
 
 export interface CreateTournamentRequest {
@@ -127,7 +180,52 @@ export function createControlApiClient(input: {
           token: input.accessToken?.(),
         },
       ),
+
+    fetchStandings: (organizationAlias, tournamentAlias, stageNumber) =>
+      requestJson<StandingsData>(
+        input.fetch,
+        `${stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber)}/standings`,
+        {
+          token: input.accessToken?.(),
+        },
+      ),
+
+    fetchTiebreakTrace: (organizationAlias, tournamentAlias, stageNumber, entrantId) =>
+      requestJson<TiebreakTraceResponse>(
+        input.fetch,
+        `${stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber)}/standings/entrants/${encodeURIComponent(
+          entrantId,
+        )}/trace`,
+        { token: input.accessToken?.() },
+      ),
+
+    fetchSeeding: (organizationAlias, tournamentAlias, stageNumber) =>
+      requestJson<SeedingResponse>(
+        input.fetch,
+        `${stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber)}/seeding`,
+        {
+          token: input.accessToken?.(),
+        },
+      ),
+
+    publishSeeding: (organizationAlias, tournamentAlias, stageNumber, body) =>
+      requestJson<SeedingClassificationResponse>(
+        input.fetch,
+        `${stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber)}/seeding`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
   };
+}
+
+function stagePath(
+  baseUrl: string,
+  organizationAlias: string,
+  tournamentAlias: string,
+  stageNumber: number,
+): string {
+  return `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
+    tournamentAlias,
+  )}/stages/${stageNumber}`;
 }
 
 async function requestJson<T>(

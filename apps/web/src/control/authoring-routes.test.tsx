@@ -19,6 +19,22 @@ function client(overrides: Partial<ControlApiClient> = {}): ControlApiClient {
       name: 'Copa Verano',
     }),
     listRegistrations: async () => [],
+    fetchStandings: async () => ({
+      stageId: 's-1',
+      projectionVersion: 0,
+      fullyResolved: true,
+      rows: [],
+      trace: [],
+    }),
+    fetchTiebreakTrace: async () => ({ entrantId: 'e-1', lines: [] }),
+    fetchSeeding: async () => ({
+      stageId: 's-1',
+      format: 'round-robin',
+      seeds: [],
+      matches: [],
+      hasRecordedResults: false,
+    }),
+    publishSeeding: async () => ({ mutationClass: 'safe' as const, reason: '', invalidates: [] }),
     bulkReview: async () => ({ applied: [], refused: [] }),
     reviewRegistration: async () => ({
       entrantId: 'e-1',

@@ -143,6 +143,13 @@ export {
   type TraceNode,
   type EvaluationRecord,
 } from './trace/explanation-trace.js';
+export {
+  traceLines,
+  lineOf,
+  traceForEntrant,
+  hasTraceFor,
+  type TraceRenderOptions,
+} from './trace/render.js';
 
 export {
   registerWinConditionVocabulary,

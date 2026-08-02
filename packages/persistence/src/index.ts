@@ -58,6 +58,11 @@ export {
   type Refold,
   type ProjectionOutcome,
 } from './projections/statistic-projection.js';
+export {
+  StageReadModel,
+  type StageRecord,
+  type StageMatchRecord,
+} from './projections/stage-read-model.js';
 export { TagRepository, type TagQuery } from './repositories/tag-repository.js';
 export { AliasRepository, type AliasScopeName } from './repositories/alias-repository.js';
 export {

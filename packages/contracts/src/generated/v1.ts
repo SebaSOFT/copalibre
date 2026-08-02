@@ -392,6 +392,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/standings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ranked standings for one stage, with the calculation’s trace
+         * @description Rows come from the published projection; the trace is the rules engine’s own explanation, verbatim.
+         */
+        get: operations["StandingsController_standings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/standings/entrants/{entrantId}/trace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The comparator chain that placed one entrant
+         * @description Empty for a row no tiebreak comparator had to separate — the screen shows no expander for it.
+         */
+        get: operations["StandingsController_trace"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/seeding": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The stage’s seed order and its generated bracket
+         * @description Structure comes from the engine; status and scores from the recorded matches.
+         */
+        get: operations["SeedingController_seeding"];
+        put?: never;
+        /**
+         * Publish a seed order
+         * @description Classified before anything is written. Once a result exists, reseeding is refused here regardless of what the console allowed.
+         */
+        post: operations["SeedingController_publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -701,6 +765,120 @@ export interface components {
         CorrectionHistoryResponse: {
             /** @description Oldest first — the chain, in order */
             corrections: components["schemas"]["CorrectionEntryDto"][];
+        };
+        StandingsRowResponse: {
+            /**
+             * @description 1-based; rows sharing a rank were not separated
+             * @example 1
+             */
+            rank: number;
+            /** Format: uuid */
+            entrantId: string;
+            /** @description True when another row holds the same rank */
+            sharedRank: boolean;
+            /**
+             * @description Exactly the statistics the bound discipline declares, keyed by code
+             * @example {
+             *       "played": 6,
+             *       "won": 4,
+             *       "points": 13
+             *     }
+             */
+            statistics: {
+                [key: string]: number;
+            };
+            /** @description True when a tiebreak comparator had to separate this row; the screen shows the trace expander only for these */
+            tieBroken: boolean;
+        };
+        StandingsResponse: {
+            /** Format: uuid */
+            stageId: string;
+            /**
+             * @description Generation of the standings projection; 0 before the first rebuild
+             * @example 12
+             */
+            projectionVersion: number;
+            /** @description False when a tie survived every declared comparator */
+            fullyResolved: boolean;
+            rows: components["schemas"]["StandingsRowResponse"][];
+            /**
+             * @description The rules engine’s explanation trace for the whole calculation, rendered verbatim
+             * @example [
+             *       "Rule 1 (Puntos): a=13, b=13 → Tie not fully resolved by Puntos"
+             *     ]
+             */
+            trace: string[];
+        };
+        TiebreakTraceResponse: {
+            /** Format: uuid */
+            entrantId: string;
+            /** @description Empty when no comparator had to separate this entrant */
+            lines: string[];
+        };
+        SeedAssignmentResponse: {
+            /**
+             * @description 1-based seed
+             * @example 3
+             */
+            seed: number;
+            /** Format: uuid */
+            entrantId: string;
+        };
+        BracketSlotResponse: {
+            /**
+             * @description Where this side comes from
+             * @enum {string}
+             */
+            kind: "entrant" | "bye" | "winner-of" | "loser-of";
+            /** Format: uuid */
+            entrantId?: string;
+            /** @description Match this slot sources its participant from */
+            matchId?: string;
+            /** @description Score recorded for this side, when the match is finalized */
+            score?: number;
+        };
+        BracketMatchResponse: {
+            /**
+             * @description Deterministic engine id, e.g. WB-R2-M1
+             * @example WB-R2-M1
+             */
+            matchId: string;
+            /** @enum {string} */
+            bracket: "winners" | "losers" | "grand-final" | "round-robin" | "placement";
+            /** @description 1-based round within the bracket */
+            round: number;
+            /** @description 1-based position within the round */
+            position: number;
+            /** @enum {string} */
+            status: "scheduled" | "live" | "finalized";
+            /**
+             * @description Declared match format, e.g. BO3 — absent when the stage declares none
+             * @example BO3
+             */
+            format?: string;
+            slots: components["schemas"]["BracketSlotResponse"][];
+        };
+        SeedingResponse: {
+            /** Format: uuid */
+            stageId: string;
+            /** @enum {string} */
+            format: "single-elimination" | "double-elimination" | "round-robin" | "league";
+            seeds: components["schemas"]["SeedAssignmentResponse"][];
+            matches: components["schemas"]["BracketMatchResponse"][];
+            /** @description True once any match in this stage has a recorded result */
+            hasRecordedResults: boolean;
+        };
+        PublishSeedingRequest: {
+            /** @description The full seed order, not a delta — a partial order is an ambiguous bracket */
+            seeds: components["schemas"]["SeedAssignmentResponse"][];
+        };
+        SeedingClassificationResponse: {
+            /** @enum {string} */
+            mutationClass: "safe" | "requires_rebuild" | "blocked_after_results";
+            /** @description Why the change was classified this way */
+            reason: string;
+            /** @description Fixture ids this change invalidates; empty unless it requires a rebuild */
+            invalidates: string[];
         };
     };
     responses: never;
@@ -1379,6 +1557,207 @@ export interface operations {
                 };
             };
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    StandingsController_standings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                stageNumber: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StandingsResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    StandingsController_trace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                stageNumber: number;
+                entrantId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TiebreakTraceResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    SeedingController_seeding: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                stageNumber: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeedingResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    SeedingController_publish: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                stageNumber: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublishSeedingRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeedingClassificationResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -1237,6 +1237,364 @@
           "match-control"
         ]
       }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/standings": {
+      "get": {
+        "description": "Rows come from the published projection; the trace is the rules engine’s own explanation, verbatim.",
+        "operationId": "StandingsController_standings",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandingsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Ranked standings for one stage, with the calculation’s trace",
+        "tags": [
+          "standings"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/standings/entrants/{entrantId}/trace": {
+      "get": {
+        "description": "Empty for a row no tiebreak comparator had to separate — the screen shows no expander for it.",
+        "operationId": "StandingsController_trace",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "entrantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TiebreakTraceResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The comparator chain that placed one entrant",
+        "tags": [
+          "standings"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/seeding": {
+      "get": {
+        "description": "Structure comes from the engine; status and scores from the recorded matches.",
+        "operationId": "SeedingController_seeding",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeedingResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The stage’s seed order and its generated bracket",
+        "tags": [
+          "seeding"
+        ]
+      },
+      "post": {
+        "description": "Classified before anything is written. Once a result exists, reseeding is refused here regardless of what the console allowed.",
+        "operationId": "SeedingController_publish",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublishSeedingRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeedingClassificationResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Publish a seed order",
+        "tags": [
+          "seeding"
+        ]
+      }
     }
   },
   "info": {
@@ -2002,6 +2360,296 @@
         },
         "required": [
           "corrections"
+        ]
+      },
+      "StandingsRowResponse": {
+        "type": "object",
+        "properties": {
+          "rank": {
+            "type": "number",
+            "description": "1-based; rows sharing a rank were not separated",
+            "example": 1
+          },
+          "entrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sharedRank": {
+            "type": "boolean",
+            "description": "True when another row holds the same rank"
+          },
+          "statistics": {
+            "type": "object",
+            "description": "Exactly the statistics the bound discipline declares, keyed by code",
+            "additionalProperties": {
+              "type": "number"
+            },
+            "example": {
+              "played": 6,
+              "won": 4,
+              "points": 13
+            }
+          },
+          "tieBroken": {
+            "type": "boolean",
+            "description": "True when a tiebreak comparator had to separate this row; the screen shows the trace expander only for these"
+          }
+        },
+        "required": [
+          "rank",
+          "entrantId",
+          "sharedRank",
+          "statistics",
+          "tieBroken"
+        ]
+      },
+      "StandingsResponse": {
+        "type": "object",
+        "properties": {
+          "stageId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "projectionVersion": {
+            "type": "number",
+            "description": "Generation of the standings projection; 0 before the first rebuild",
+            "example": 12
+          },
+          "fullyResolved": {
+            "type": "boolean",
+            "description": "False when a tie survived every declared comparator"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StandingsRowResponse"
+            }
+          },
+          "trace": {
+            "description": "The rules engine’s explanation trace for the whole calculation, rendered verbatim",
+            "example": [
+              "Rule 1 (Puntos): a=13, b=13 → Tie not fully resolved by Puntos"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "stageId",
+          "projectionVersion",
+          "fullyResolved",
+          "rows",
+          "trace"
+        ]
+      },
+      "TiebreakTraceResponse": {
+        "type": "object",
+        "properties": {
+          "entrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "lines": {
+            "description": "Empty when no comparator had to separate this entrant",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "entrantId",
+          "lines"
+        ]
+      },
+      "SeedAssignmentResponse": {
+        "type": "object",
+        "properties": {
+          "seed": {
+            "type": "number",
+            "description": "1-based seed",
+            "example": 3
+          },
+          "entrantId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "seed",
+          "entrantId"
+        ]
+      },
+      "BracketSlotResponse": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "Where this side comes from",
+            "enum": [
+              "entrant",
+              "bye",
+              "winner-of",
+              "loser-of"
+            ]
+          },
+          "entrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "matchId": {
+            "type": "string",
+            "description": "Match this slot sources its participant from"
+          },
+          "score": {
+            "type": "number",
+            "description": "Score recorded for this side, when the match is finalized"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "BracketMatchResponse": {
+        "type": "object",
+        "properties": {
+          "matchId": {
+            "type": "string",
+            "description": "Deterministic engine id, e.g. WB-R2-M1",
+            "example": "WB-R2-M1"
+          },
+          "bracket": {
+            "type": "string",
+            "enum": [
+              "winners",
+              "losers",
+              "grand-final",
+              "round-robin",
+              "placement"
+            ]
+          },
+          "round": {
+            "type": "number",
+            "description": "1-based round within the bracket"
+          },
+          "position": {
+            "type": "number",
+            "description": "1-based position within the round"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "scheduled",
+              "live",
+              "finalized"
+            ]
+          },
+          "format": {
+            "type": "string",
+            "description": "Declared match format, e.g. BO3 — absent when the stage declares none",
+            "example": "BO3"
+          },
+          "slots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BracketSlotResponse"
+            }
+          }
+        },
+        "required": [
+          "matchId",
+          "bracket",
+          "round",
+          "position",
+          "status",
+          "slots"
+        ]
+      },
+      "SeedingResponse": {
+        "type": "object",
+        "properties": {
+          "stageId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "single-elimination",
+              "double-elimination",
+              "round-robin",
+              "league"
+            ]
+          },
+          "seeds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SeedAssignmentResponse"
+            }
+          },
+          "matches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BracketMatchResponse"
+            }
+          },
+          "hasRecordedResults": {
+            "type": "boolean",
+            "description": "True once any match in this stage has a recorded result"
+          }
+        },
+        "required": [
+          "stageId",
+          "format",
+          "seeds",
+          "matches",
+          "hasRecordedResults"
+        ]
+      },
+      "PublishSeedingRequest": {
+        "type": "object",
+        "properties": {
+          "seeds": {
+            "description": "The full seed order, not a delta — a partial order is an ambiguous bracket",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SeedAssignmentResponse"
+            }
+          }
+        },
+        "required": [
+          "seeds"
+        ]
+      },
+      "SeedingClassificationResponse": {
+        "type": "object",
+        "properties": {
+          "mutationClass": {
+            "type": "string",
+            "enum": [
+              "safe",
+              "requires_rebuild",
+              "blocked_after_results"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why the change was classified this way"
+          },
+          "invalidates": {
+            "description": "Fixture ids this change invalidates; empty unless it requires a rebuild",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "mutationClass",
+          "reason",
+          "invalidates"
         ]
       }
     }

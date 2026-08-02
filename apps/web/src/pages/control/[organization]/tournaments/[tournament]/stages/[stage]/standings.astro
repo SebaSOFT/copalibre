@@ -1,0 +1,32 @@
+---
+import { StandingsControlRoute } from '../../../../../../../control/components/ControlRoutes.tsx';
+import '@copalibre/design-tokens/generated/copalibre.css';
+
+export function getStaticPaths() {
+  return [{ params: { organization: 'liga-mendocina', tournament: 'apertura-2026', stage: '1' } }];
+}
+
+const { organization, tournament, stage } = Astro.params;
+const alias = organization ?? 'liga-mendocina';
+const tournamentAlias = tournament ?? 'apertura-2026';
+const stageNumber = Number(stage ?? '1');
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Posiciones — {tournamentAlias}</title>
+  </head>
+  <body>
+    <StandingsControlRoute
+      client:only="react"
+      organizationAlias={alias}
+      stageNumber={stageNumber}
+      tournamentAlias={tournamentAlias}
+    />
+    <noscript>El panel de control necesita JavaScript. Las páginas públicas no.</noscript>
+  </body>
+</html>
