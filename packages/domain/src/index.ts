@@ -194,6 +194,22 @@ export {
   type NaturalKey,
 } from './aggregates/person.js';
 export {
+  ORGANIZATION_ROLES,
+  ORGANIZATION_MEMBER_STATUSES,
+  canCreateOrganizationInvitation,
+  isOrganizationMemberStatus,
+  isOrganizationRole,
+  normaliseEmail,
+  validateOrganizationInvitation,
+  OrganizationAccessError,
+  type IdentityPrincipal,
+  type OrganizationInvitation,
+  type OrganizationMemberStatus,
+  type OrganizationRole,
+  type OrganizationRoleAssignment,
+  type ParticipantIdentityLink,
+} from './aggregates/organization-access.js';
+export {
   validateSeason,
   competitionName,
   isImplicitSeason,

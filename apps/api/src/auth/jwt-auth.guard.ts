@@ -14,6 +14,7 @@ import {
 } from './security-plane.js';
 import type { RequestWithSubject } from './request-context.js';
 import { TokenVerifier } from './token-verifier.js';
+import { REQUIRED_SCOPES_KEY } from './required-scopes.js';
 
 /**
  * Authentication only: is this token valid, and does the subject hold the coarse
@@ -57,7 +58,11 @@ export class JwtAuthGuard implements CanActivate {
       throw new UnauthorizedException('Invalid bearer token');
     }
 
-    const required = PLANE_REQUIRED_SCOPES[plane];
+    const required =
+      this.reflector.getAllAndOverride<readonly string[]>(REQUIRED_SCOPES_KEY, [
+        context.getHandler(),
+        context.getClass(),
+      ]) ?? PLANE_REQUIRED_SCOPES[plane];
     const missing = required.filter((scope) => !subject.scopes.includes(scope));
     if (missing.length > 0) {
       // Authentication succeeded, authorization did not: 403, never 401.

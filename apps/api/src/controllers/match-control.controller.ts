@@ -44,6 +44,7 @@ import {
 import type { Kysely } from 'kysely';
 import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
+import { RequireOrganizationRole } from '../auth/access-requirement.js';
 import {
   CorrectionHistoryResponse,
   CorrectionPreviewResponse,
@@ -110,6 +111,7 @@ export class MatchControlController {
 
   @Post('commands/:command')
   @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Start, pause, resume or finalize',
@@ -209,6 +211,7 @@ export class MatchControlController {
 
   @Post('events')
   @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Record a discipline event',
@@ -327,6 +330,7 @@ export class MatchControlController {
 
   @Post('corrections/preview')
   @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Dry-run a correction',
@@ -360,6 +364,7 @@ export class MatchControlController {
 
   @Post('corrections')
   @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Supersede a result',
@@ -406,6 +411,7 @@ export class MatchControlController {
 
   @Get('corrections')
   @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Read what this result has been',

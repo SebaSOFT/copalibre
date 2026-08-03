@@ -5,16 +5,20 @@ import { Reflector } from '@nestjs/core';
 import { extractBearerToken, JwtAuthGuard } from './jwt-auth.guard.js';
 import type { AuthenticatedSubject, RequestWithSubject } from './request-context.js';
 import { SECURITY_PLANE_KEY, type SecurityPlane } from './security-plane.js';
+import { REQUIRED_SCOPES_KEY } from './required-scopes.js';
 import type { TokenVerifier } from './token-verifier.js';
 
 function contextFor(
   request: RequestWithSubject,
   plane: SecurityPlane | undefined,
+  requiredScopes?: readonly string[],
 ): { context: ExecutionContext; reflector: Reflector } {
   const reflector = new Reflector();
-  jest
-    .spyOn(reflector, 'getAllAndOverride')
-    .mockImplementation((key: unknown) => (key === SECURITY_PLANE_KEY ? plane : undefined));
+  jest.spyOn(reflector, 'getAllAndOverride').mockImplementation((key: unknown) => {
+    if (key === SECURITY_PLANE_KEY) return plane;
+    if (key === REQUIRED_SCOPES_KEY) return requiredScopes;
+    return undefined;
+  });
 
   const context = {
     getHandler: () => () => undefined,
@@ -121,6 +125,19 @@ describe('JwtAuthGuard', () => {
       verifierReturning({ ...controlSubject, scopes: ['copalibre.control'] }),
     );
     await expect(guard.canActivate(context)).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('uses an explicit scope requirement over the plane default', async () => {
+    const request: RequestWithSubject = { headers: { authorization: 'Bearer invite' } };
+    const { context, reflector } = contextFor(request, 'authenticated-interaction', [
+      'copalibre.invite.accept',
+    ]);
+    const guard = new JwtAuthGuard(
+      reflector,
+      verifierReturning({ ...controlSubject, scopes: ['copalibre.invite.accept'] }),
+    );
+
+    await expect(guard.canActivate(context)).resolves.toBe(true);
   });
 });
 

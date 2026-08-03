@@ -12,11 +12,13 @@ import { OrganizationRepository, withTransaction, type Database } from '@copalib
 import type { Kysely } from 'kysely';
 import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
+import { RequireSuperAdmin, SUPER_ADMIN_SCOPE } from '../auth/access-requirement.js';
 import {
   CreateOrganizationRequest,
   OrganizationResponse,
   ProblemResponse,
 } from '../dto/organization.dto.js';
+import { RequireScopes } from '../auth/required-scopes.js';
 import { enforcePolicy } from '../policy/resource-policy.js';
 import { DATABASE } from '../database.token.js';
 
@@ -50,11 +52,13 @@ export class OrganizationsController {
 
   @Post()
   @SecurityPlaneTag('admin-control')
+  @RequireSuperAdmin()
+  @RequireScopes(SUPER_ADMIN_SCOPE)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Create an organization',
     description:
-      'Requires the copalibre.control scope. The alias is validated by the domain layer and must be lowercase kebab-case, unique per installation.',
+      'Requires the copalibre.super-admin scope. The alias is validated by the domain layer and must be lowercase kebab-case, unique per installation.',
   })
   @ApiCreatedResponse({ type: OrganizationResponse })
   @ApiUnauthorizedResponse({
@@ -67,14 +71,6 @@ export class OrganizationsController {
     @Req() request: RequestWithSubject,
   ): Promise<OrganizationResponse> {
     const subject = request.subject;
-    // Creating an organization establishes its own scope, so the policy check
-    // is against the org the token is already scoped to.
-    enforcePolicy({
-      plane: 'admin-control',
-      subject,
-      resource: { organizationId: subject?.organizationId ?? '' },
-    });
-
     const repository = new OrganizationRepository(this.db);
     return withTransaction(this.db, (uow) =>
       repository.create(uow, {

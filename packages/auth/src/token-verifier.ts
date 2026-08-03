@@ -69,11 +69,18 @@ export class TokenVerifier {
       throw new TokenVerificationError('missing-subject', 'Token has no usable subject claim');
     }
 
+    const email = typeof payload.email === 'string' ? payload.email : undefined;
+    const name = typeof payload.name === 'string' ? payload.name : undefined;
+    const picture = typeof payload.picture === 'string' ? payload.picture : undefined;
     return {
       subjectId: payload.sub,
       organizationId: typeof payload.org === 'string' ? payload.org : undefined,
       scopes: parseScopes(payload.scp),
       tokenId: typeof payload.jti === 'string' ? payload.jti : undefined,
+      ...(email === undefined ? {} : { email }),
+      ...(payload.email_verified === true ? { emailVerified: true } : {}),
+      ...(name === undefined ? {} : { name }),
+      ...(picture === undefined ? {} : { picture }),
     };
   }
 }

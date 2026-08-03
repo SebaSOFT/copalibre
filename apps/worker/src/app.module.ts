@@ -11,6 +11,10 @@ import { DeadLetterController } from './dead-letter.controller.js';
 import { HealthController } from './health.controller.js';
 import { JobDispatcher } from './jobs/dispatcher.js';
 import { statisticsHandler } from './jobs/statistics-handler.js';
+import {
+  emailDeliveryConfigFromEnv,
+  invitationEmailHandler,
+} from './invitations/email-delivery.js';
 import { RelayService } from './relay.service.js';
 
 /**
@@ -38,9 +42,11 @@ const providers: Provider[] = [
       // the catalogue lands.
       const refold: Refold = async () => undefined;
       const handler = statisticsHandler({ db, refold });
+      const invitation = invitationEmailHandler(emailDeliveryConfigFromEnv());
       return new JobDispatcher()
         .register('match.finalized', handler)
-        .register('result.superseded', handler);
+        .register('result.superseded', handler)
+        .register('organization.invite.requested', invitation);
     },
   },
   RelayService,

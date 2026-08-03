@@ -9,6 +9,7 @@ import {
 } from 'kysely/migration';
 import type { Database } from '../schema.js';
 import { initialSchema } from './0001-initial-schema.js';
+import { organizationAccess } from './0002-organization-access.js';
 
 /**
  * Migrations are explicit, ordered, and code-defined (no filesystem scanning),
@@ -18,6 +19,7 @@ import { initialSchema } from './0001-initial-schema.js';
  */
 export const MIGRATIONS: Readonly<Record<string, Migration>> = {
   '0001-initial-schema': initialSchema,
+  '0002-organization-access': organizationAccess,
 };
 
 /** The version `apps/api`'s readiness check expects to find applied. */

@@ -62,6 +62,22 @@ jobs:
       - run: yarn install --immutable
       - run: yarn typecheck
 
+  # Added by 0026: a missing access decorator is a security defect, so surface
+  # it as its own required check instead of burying it inside API coverage.
+  guard-coverage:
+    name: Guard coverage
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - uses: actions/checkout@v4
+      - run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+      - run: yarn install --immutable
+      - run: yarn workspace @copalibre/api test --testPathPatterns 'access-coverage'
+
   license-scan:
     name: License scan
     runs-on: ubuntu-latest
@@ -134,6 +150,9 @@ jobs:
       # JWT verification, extracted from apps/api in 0018 so apps/events could
       # reuse it rather than grow a second answer to "is this token valid".
       - run: yarn workspace @copalibre/auth test:coverage
+      # SQLite is a fast repository-feedback profile only. PostgreSQL remains
+      # mandatory in integration-tests for migration, locking, audit and outbox.
+      - run: yarn workspace @copalibre/persistence test:sqlite
       # The URL builder (0020): one place that knows what a thing is called on
       # every surface, and the alias redirect that keeps a printed URL working.
       - run: yarn workspace @copalibre/routing test:coverage

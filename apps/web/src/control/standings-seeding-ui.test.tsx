@@ -303,6 +303,18 @@ function stubClient(overrides: Partial<ControlApiClient>): ControlApiClient {
       }),
     publishSeeding: () =>
       Promise.resolve({ mutationClass: 'safe', reason: 'Sin fixtures generados', invalidates: [] }),
+    listOrganizationRoles: () => Promise.resolve([]),
+    inviteOrganizationUser: () =>
+      Promise.resolve({ invitationId: 'invite-1', expiresAt: '2099-01-01T00:00:00.000Z' }),
+    changeOrganizationRole: () =>
+      Promise.resolve({
+        assignmentId: 'assignment-1',
+        principalId: 'principal-1',
+        email: 'user@example.test',
+        role: 'viewer' as const,
+        status: 'active' as const,
+      }),
+    deleteOrganizationRole: () => Promise.resolve(),
     ...overrides,
   };
 }

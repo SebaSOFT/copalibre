@@ -8,7 +8,7 @@
     "start": "node dist/main.js",
     "test": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.config.cjs",
     "test:coverage": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.config.cjs --coverage",
-    "test:integration": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.integration.config.cjs --runInBand"
+    "test:integration": "node --env-file-if-exists=../../.env.test --experimental-vm-modules ../../node_modules/.bin/jest --config jest.integration.config.cjs --runInBand"
   },
   "dependencies": {
     "@copalibre/domain": "workspace:^",
@@ -18,6 +18,7 @@
     "@nestjs/core": "^11.1.28",
     "@nestjs/platform-fastify": "^11.1.28",
     "kysely": "^0.29",
+    "nodemailer": "^9.0.3",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
   },
@@ -25,6 +26,7 @@
   "devDependencies": {
     "@nestjs/testing": "^11.1.28",
     "@types/jest": "^30.0.0",
+    "@types/nodemailer": "^8.0.1",
     "jest": "^30.4.2",
     "ts-jest": "^29.4.12",
     "typescript": "^5"

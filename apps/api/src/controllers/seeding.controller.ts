@@ -38,6 +38,7 @@ import {
 import type { Kysely } from 'kysely';
 import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
+import { RequireOrganizationRole } from '../auth/access-requirement.js';
 import { ProblemResponse } from '../dto/organization.dto.js';
 import {
   BracketMatchResponse,
@@ -66,6 +67,7 @@ export class SeedingController {
 
   @Get('seeding')
   @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'The stage’s seed order and its generated bracket',
@@ -108,6 +110,7 @@ export class SeedingController {
   @Post('seeding')
   @HttpCode(200)
   @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Publish a seed order',

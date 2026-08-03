@@ -41,6 +41,19 @@ function client(overrides: Partial<ControlApiClient> = {}): ControlApiClient {
       tournamentId: 't-1',
       status: 'withdrawn',
     }),
+    listOrganizationRoles: async () => [],
+    inviteOrganizationUser: async () => ({
+      invitationId: 'invite-1',
+      expiresAt: '2099-01-01T00:00:00.000Z',
+    }),
+    changeOrganizationRole: async () => ({
+      assignmentId: 'assignment-1',
+      principalId: 'principal-1',
+      email: 'user@example.test',
+      role: 'viewer',
+      status: 'active',
+    }),
+    deleteOrganizationRole: async () => undefined,
     ...overrides,
   };
 }

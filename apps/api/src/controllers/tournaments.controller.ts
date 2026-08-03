@@ -29,6 +29,7 @@ import { SUPPORTED_FORMATS } from '@copalibre/domain';
 import type { Kysely } from 'kysely';
 import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
+import { RequireOrganizationRole } from '../auth/access-requirement.js';
 import {
   CreateTournamentRequest,
   ProblemResponse,
@@ -78,6 +79,7 @@ export class TournamentsController {
 
   @Post()
   @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Create a tournament in draft status',
@@ -153,6 +155,7 @@ export class TournamentsController {
   @Post(':tournamentAlias/publish')
   @HttpCode(200)
   @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Publish a tournament',

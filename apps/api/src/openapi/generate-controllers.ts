@@ -9,6 +9,14 @@ import { SchedulesController } from '../controllers/schedules.controller.js';
 import { SeedingController } from '../controllers/seeding.controller.js';
 import { StandingsController } from '../controllers/standings.controller.js';
 import { TournamentsController } from '../controllers/tournaments.controller.js';
+import {
+  InvitationAcceptanceController,
+  OrganizationAccessController,
+} from '../controllers/organization-access.controller.js';
+import {
+  ParticipantIdentityLinksController,
+  ParticipantsController,
+} from '../controllers/participants.controller.js';
 
 /**
  * The controllers the OpenAPI artifact is generated from.
@@ -28,4 +36,8 @@ export const OPENAPI_CONTROLLERS = [
   MatchControlController,
   StandingsController,
   SeedingController,
+  OrganizationAccessController,
+  InvitationAcceptanceController,
+  ParticipantsController,
+  ParticipantIdentityLinksController,
 ] as const;

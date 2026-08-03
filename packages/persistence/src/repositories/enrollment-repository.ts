@@ -23,6 +23,20 @@ export interface AuditContext {
   readonly authorizationContext: string;
 }
 
+export interface ParticipantRosterMembership {
+  readonly playerId: string;
+  readonly teamId: string;
+  readonly teamName: string;
+  readonly role: string;
+}
+
+export interface ParticipantReportedResult {
+  readonly matchId: string;
+  readonly entrantId: string;
+  readonly status: string;
+  readonly result: Record<string, unknown> | null;
+}
+
 export class EnrollmentRepository {
   constructor(private readonly db: Kysely<Database>) {}
 
@@ -533,6 +547,81 @@ export class EnrollmentRepository {
       .orderBy('created_at')
       .execute();
     return rows.map(toEntrant);
+  }
+
+  /** Entrants owned by one participant, never a whole tournament's registration list. */
+  async listParticipantEntrants(
+    organizationId: string,
+    personId: string,
+  ): Promise<readonly Entrant[]> {
+    const rows = await this.db
+      .selectFrom('entrants')
+      .innerJoin('tournaments', 'tournaments.tournament_id', 'entrants.tournament_id')
+      .selectAll('entrants')
+      .where('tournaments.organization_id', '=', organizationId)
+      .where('entrants.person_id', '=', personId)
+      .orderBy('entrants.created_at')
+      .execute();
+    return rows.map(toEntrant);
+  }
+
+  /** Team memberships are the participant's readable roster projection. */
+  async listParticipantRoster(
+    organizationId: string,
+    personId: string,
+  ): Promise<readonly ParticipantRosterMembership[]> {
+    const rows = await this.db
+      .selectFrom('players')
+      .innerJoin('teams', 'teams.team_id', 'players.team_id')
+      .select([
+        'players.player_id as player_id',
+        'players.team_id as team_id',
+        'players.role as role',
+        'teams.name as team_name',
+      ])
+      .where('players.person_id', '=', personId)
+      .where('teams.organization_id', '=', organizationId)
+      .orderBy('teams.name')
+      .execute();
+    return rows.map((row) => ({
+      playerId: row.player_id,
+      teamId: row.team_id,
+      teamName: row.team_name,
+      role: row.role,
+    }));
+  }
+
+  /** Published match results for this participant's individual registrations. */
+  async listParticipantReportedResults(
+    organizationId: string,
+    personId: string,
+  ): Promise<readonly ParticipantReportedResult[]> {
+    const entrants = await this.listParticipantEntrants(organizationId, personId);
+    const results: ParticipantReportedResult[] = [];
+    for (const entrant of entrants) {
+      const rows = await this.db
+        .selectFrom('fixtures')
+        .innerJoin('matches', 'matches.fixture_id', 'fixtures.fixture_id')
+        .select(['matches.match_id', 'matches.status', 'matches.result'])
+        .where((eb) =>
+          eb.or([
+            eb('fixtures.home_entrant_id', '=', entrant.entrantId),
+            eb('fixtures.away_entrant_id', '=', entrant.entrantId),
+          ]),
+        )
+        .where('matches.result', 'is not', null)
+        .orderBy('matches.created_at')
+        .execute();
+      results.push(
+        ...rows.map((row) => ({
+          matchId: row.match_id,
+          entrantId: entrant.entrantId,
+          status: row.status,
+          result: row.result,
+        })),
+      );
+    }
+    return results;
   }
 }
 

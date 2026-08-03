@@ -13,7 +13,9 @@ export const initialSchema: Migration = {
       .addColumn('organization_id', 'uuid', (col) => col.primaryKey())
       .addColumn('alias', 'text', (col) => col.notNull().unique())
       .addColumn('name', 'text', (col) => col.notNull())
-      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addColumn('created_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
       .execute();
 
     await db.schema
@@ -31,7 +33,9 @@ export const initialSchema: Migration = {
       // and never derived: an abbreviation nobody chose is one nobody can
       // explain when the club asks about it.
       .addColumn('abbreviation', 'text')
-      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addColumn('created_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
       .addUniqueConstraint('clubs_organization_alias_unique', ['organization_id', 'alias'])
       .execute();
 
@@ -42,7 +46,9 @@ export const initialSchema: Migration = {
       .addColumn('version', 'text', (col) => col.notNull())
       .addColumn('name', 'text', (col) => col.notNull())
       .addColumn('document', 'jsonb', (col) => col.notNull())
-      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addColumn('created_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
       .addPrimaryKeyConstraint('discipline_descriptors_pk', ['descriptor_id', 'version'])
       .execute();
 
@@ -61,7 +67,9 @@ export const initialSchema: Migration = {
       .addColumn('started_at', 'timestamptz')
       .addColumn('profile_id', 'uuid')
       .addColumn('profile_version', 'text')
-      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addColumn('created_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
       .addUniqueConstraint('tournaments_org_alias_unique', ['organization_id', 'alias'])
       .execute();
 
@@ -75,7 +83,9 @@ export const initialSchema: Migration = {
       .addColumn('descriptor_id', 'uuid', (col) => col.notNull())
       .addColumn('descriptor_version', 'text', (col) => col.notNull())
       .addColumn('overrides', 'jsonb', (col) => col.notNull())
-      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addColumn('created_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
       .addPrimaryKeyConstraint('tournament_rulesets_pk', ['ruleset_id', 'version'])
       .execute();
 
@@ -90,7 +100,9 @@ export const initialSchema: Migration = {
       )
       .addColumn('name', 'text', (col) => col.notNull())
       .addColumn('ordinal', 'integer', (col) => col.notNull())
-      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addColumn('created_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
       .addUniqueConstraint('seasons_tournament_ordinal_unique', ['tournament_id', 'ordinal'])
       .execute();
 
@@ -102,7 +114,9 @@ export const initialSchema: Migration = {
       .addColumn('name', 'text', (col) => col.notNull())
       .addColumn('format', 'text', (col) => col.notNull())
       .addColumn('stage_configuration_id', 'uuid')
-      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addColumn('created_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
       .addUniqueConstraint('stages_season_number_unique', ['season_id', 'number'])
       .execute();
 
@@ -113,7 +127,9 @@ export const initialSchema: Migration = {
       .addColumn('version', 'integer', (col) => col.notNull())
       .addColumn('ruleset_id', 'uuid', (col) => col.notNull())
       .addColumn('overrides', 'jsonb', (col) => col.notNull())
-      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addColumn('created_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
       .addPrimaryKeyConstraint('stage_configurations_pk', ['stage_configuration_id', 'version'])
       .execute();
 
@@ -132,7 +148,9 @@ export const initialSchema: Migration = {
       .addColumn('natural_key_kind', 'text')
       .addColumn('natural_key_value', 'text')
       .addColumn('natural_key_normalised', 'text')
-      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addColumn('created_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
       .addUniqueConstraint('persons_organization_natural_key_unique', [
         'organization_id',
         'natural_key_kind',
@@ -155,7 +173,9 @@ export const initialSchema: Migration = {
       // Overrides the club's (0037), which is how two sides of one club are
       // told apart on a board with room for five characters.
       .addColumn('abbreviation', 'text')
-      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addColumn('created_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
       .execute();
 
     await db.schema
@@ -164,7 +184,9 @@ export const initialSchema: Migration = {
       .addColumn('person_id', 'uuid', (col) => col.notNull().references('persons.person_id'))
       .addColumn('team_id', 'uuid', (col) => col.notNull().references('teams.team_id'))
       .addColumn('role', 'text', (col) => col.notNull())
-      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addColumn('created_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
       // One membership per person per team; several teams per person is the point.
       .addUniqueConstraint('players_person_team_unique', ['person_id', 'team_id'])
       .execute();
@@ -180,7 +202,9 @@ export const initialSchema: Migration = {
       .addColumn('team_id', 'uuid', (col) => col.references('teams.team_id'))
       .addColumn('seed', 'integer')
       .addColumn('status', 'text', (col) => col.notNull())
-      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addColumn('created_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
       .execute();
 
     // Operator knowledge the results cannot supply: a ranking, a region, an
@@ -198,7 +222,9 @@ export const initialSchema: Migration = {
       .addColumn('kind', 'text', (col) => col.notNull())
       .addColumn('value_text', 'text')
       .addColumn('value_numeric', 'double precision')
-      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addColumn('created_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
       .addUniqueConstraint('entrant_attributes_entrant_key_unique', ['entrant_id', 'key'])
       .execute();
 
@@ -210,7 +236,9 @@ export const initialSchema: Migration = {
       .addColumn('home_entrant_id', 'uuid', (col) => col.references('entrants.entrant_id'))
       .addColumn('away_entrant_id', 'uuid', (col) => col.references('entrants.entrant_id'))
       .addColumn('scheduled_at', 'timestamptz')
-      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addColumn('created_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
       .execute();
 
     // Schedulable resources (0012). A venue's concurrent capacity is what makes
@@ -226,7 +254,9 @@ export const initialSchema: Migration = {
       .addColumn('name', 'text', (col) => col.notNull())
       .addColumn('concurrent_capacity', 'integer', (col) => col.notNull().defaultTo(1))
       .addColumn('address', 'text')
-      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addColumn('created_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
       .addUniqueConstraint('venues_organization_alias_unique', ['organization_id', 'alias'])
       .execute();
 
@@ -238,7 +268,9 @@ export const initialSchema: Migration = {
       )
       .addColumn('display_name', 'text', (col) => col.notNull())
       .addColumn('roles', 'jsonb', (col) => col.notNull())
-      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addColumn('created_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
       .execute();
 
     // One row per scheduled fixture. `starts_at` is epoch milliseconds rather
@@ -255,7 +287,9 @@ export const initialSchema: Migration = {
       .addColumn('starts_at', 'bigint', (col) => col.notNull())
       .addColumn('duration_minutes', 'integer', (col) => col.notNull())
       .addColumn('published', 'boolean', (col) => col.notNull().defaultTo(false))
-      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addColumn('created_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
       .execute();
 
     await db.schema
@@ -277,7 +311,9 @@ export const initialSchema: Migration = {
       .addColumn('number', 'integer', (col) => col.notNull())
       .addColumn('status', 'text', (col) => col.notNull())
       .addColumn('result', 'jsonb')
-      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addColumn('created_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
       .execute();
 
     await db.schema
@@ -287,7 +323,9 @@ export const initialSchema: Migration = {
       .addColumn('segment_type', 'text', (col) => col.notNull())
       .addColumn('number', 'integer', (col) => col.notNull())
       .addColumn('state', 'text', (col) => col.notNull())
-      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addColumn('created_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
       .execute();
 
     await db.schema
@@ -301,7 +339,9 @@ export const initialSchema: Migration = {
       .addColumn('side', 'text')
       .addColumn('person_id', 'uuid')
       .addColumn('payload', 'jsonb', (col) => col.notNull())
-      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addColumn('created_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
       .addUniqueConstraint('match_events_match_sequence_unique', ['match_id', 'sequence'])
       .execute();
 
@@ -314,7 +354,9 @@ export const initialSchema: Migration = {
       .addColumn('match_id', 'uuid', (col) => col.notNull().references('matches.match_id'))
       .addColumn('entrant_id', 'uuid', (col) => col.notNull())
       .addColumn('person_ids', 'jsonb', (col) => col.notNull())
-      .addColumn('updated_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addColumn('updated_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
       .addPrimaryKeyConstraint('match_lineups_pk', ['match_id', 'entrant_id'])
       .execute();
 
@@ -333,7 +375,9 @@ export const initialSchema: Migration = {
       .addColumn('match_id', 'uuid', (col) => col.references('matches.match_id'))
       .addColumn('stage_id', 'uuid', (col) => col.references('stages.stage_id'))
       .addColumn('capabilities', 'jsonb', (col) => col.notNull())
-      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addColumn('created_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
       .addCheckConstraint(
         'match_assignments_one_scope',
         sql`(match_id is null) <> (stage_id is null)`,
@@ -358,7 +402,9 @@ export const initialSchema: Migration = {
       .addColumn('previous_state', 'jsonb')
       .addColumn('resulting_state', 'jsonb')
       .addColumn('reason', 'text')
-      .addColumn('occurred_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addColumn('occurred_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
       .execute();
     await db.schema
       .createIndex('audit_log_entity_idx')
@@ -375,7 +421,9 @@ export const initialSchema: Migration = {
       .addColumn('event_type', 'text', (col) => col.notNull())
       .addColumn('projection_version', 'integer', (col) => col.notNull())
       .addColumn('payload', 'jsonb', (col) => col.notNull())
-      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addColumn('created_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
       .addColumn('consumed_at', 'timestamptz')
       // Claim and retry state (0017), on the row rather than in a queue table:
       // the row is the unit of work, and a second table would let the two
@@ -383,9 +431,11 @@ export const initialSchema: Migration = {
       .addColumn('claimed_by', 'text')
       .addColumn('claimed_until', 'timestamptz')
       .addColumn('attempts', 'integer', (col) => col.notNull().defaultTo(0))
-      .addColumn('next_attempt_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addColumn('next_attempt_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
       .addColumn('dead_lettered_at', 'timestamptz')
-      .addColumn('failures', 'jsonb', (col) => col.notNull().defaultTo(sql`'[]'::jsonb`))
+      .addColumn('failures', 'jsonb', (col) => col.notNull().defaultTo(sql`'[]'`))
       .execute();
     // Phase 0009's relay poll: oldest unconsumed first.
     await db.schema
@@ -409,7 +459,9 @@ export const initialSchema: Migration = {
       .createTable('processed_markers')
       .addColumn('consumer', 'text', (col) => col.notNull())
       .addColumn('event_id', 'uuid', (col) => col.notNull().references('outbox_events.event_id'))
-      .addColumn('processed_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addColumn('processed_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
       // Two consumers may each process one row once; one consumer may not
       // process it twice. That is the whole guarantee, stated as a constraint.
       .addPrimaryKeyConstraint('processed_markers_pk', ['consumer', 'event_id'])
@@ -421,8 +473,12 @@ export const initialSchema: Migration = {
       .addColumn('lease_name', 'text', (col) => col.primaryKey())
       .addColumn('holder', 'text', (col) => col.notNull())
       .addColumn('expires_at', 'timestamptz', (col) => col.notNull())
-      .addColumn('acquired_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
-      .addColumn('renewed_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addColumn('acquired_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
+      .addColumn('renewed_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
       // Bumped on every handoff, so a replica that was away long enough to lose
       // the lease can tell it was replaced instead of assuming it still holds it.
       .addColumn('fencing_token', 'bigint', (col) => col.notNull().defaultTo(1))
@@ -439,7 +495,9 @@ export const initialSchema: Migration = {
       .addColumn('interval_seconds', 'integer', (col) => col.notNull())
       .addColumn('last_enqueued_at', 'timestamptz')
       .addColumn('enabled', 'boolean', (col) => col.notNull().defaultTo(true))
-      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addColumn('created_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
       .addCheckConstraint('scheduled_jobs_interval', sql`interval_seconds > 0`)
       .execute();
 
@@ -448,7 +506,9 @@ export const initialSchema: Migration = {
       .addColumn('cursor_id', 'uuid', (col) => col.primaryKey())
       .addColumn('consumer', 'text', (col) => col.notNull().unique())
       .addColumn('last_event_id', 'uuid', (col) => col.notNull())
-      .addColumn('updated_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addColumn('updated_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
       .execute();
 
     await db.schema
@@ -458,7 +518,9 @@ export const initialSchema: Migration = {
       .addColumn('entity_id', 'uuid', (col) => col.notNull())
       .addColumn('version', 'integer', (col) => col.notNull())
       .addColumn('published_at', 'timestamptz')
-      .addColumn('updated_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addColumn('updated_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
       .addUniqueConstraint('projection_versions_type_entity_unique', [
         'projection_type',
         'entity_id',
@@ -471,7 +533,9 @@ export const initialSchema: Migration = {
       .addColumn('version', 'text', (col) => col.notNull())
       .addColumn('name', 'text', (col) => col.notNull())
       .addColumn('document', 'jsonb', (col) => col.notNull())
-      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addColumn('created_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
       .addPrimaryKeyConstraint('tournament_profiles_pk', ['profile_id', 'version'])
       .execute();
 
@@ -490,7 +554,9 @@ export const initialSchema: Migration = {
       .addColumn('profile_version', 'text')
       .addColumn('config', 'jsonb', (col) => col.notNull())
       .addColumn('binding', 'jsonb')
-      .addColumn('compiled_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addColumn('compiled_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
       .execute();
 
     await db.schema
@@ -504,7 +570,9 @@ export const initialSchema: Migration = {
       .addColumn('rows', 'jsonb', (col) => col.notNull())
       .addColumn('trace', 'jsonb', (col) => col.notNull())
       .addColumn('fully_resolved', 'boolean', (col) => col.notNull())
-      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addColumn('created_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
       .addUniqueConstraint('materialised_standings_match_unique', ['match_id'])
       .execute();
 
@@ -526,7 +594,9 @@ export const initialSchema: Migration = {
       .addColumn('value', 'double precision', (col) => col.notNull())
       .addColumn('samples', 'integer', (col) => col.notNull())
       .addColumn('projection_version', 'integer', (col) => col.notNull())
-      .addColumn('updated_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addColumn('updated_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
       .addPrimaryKeyConstraint('statistic_totals_pk', [
         'collector_code',
         'actor_granularity',
@@ -565,7 +635,9 @@ export const initialSchema: Migration = {
       // Not nullable: a correction nobody explained reads exactly like a bug.
       .addColumn('reason', 'text', (col) => col.notNull())
       .addColumn('actor', 'text', (col) => col.notNull())
-      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addColumn('created_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
       .execute();
 
     await db.schema
@@ -593,7 +665,9 @@ export const initialSchema: Migration = {
       .addColumn('actor', 'text', (col) => col.notNull())
       .addColumn('reason', 'text', (col) => col.notNull())
       .addColumn('occurred_at', 'timestamptz', (col) => col.notNull())
-      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addColumn('created_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
       .addCheckConstraint('tag_facts_action', sql`action in ('applied', 'lifted')`)
       .execute();
 
@@ -614,7 +688,9 @@ export const initialSchema: Migration = {
       .addColumn('scope', 'text', (col) => col.notNull())
       .addColumn('old_alias', 'text', (col) => col.notNull())
       .addColumn('new_alias', 'text', (col) => col.notNull())
-      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addColumn('created_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
       // One answer per old alias within an organization and scope; two would
       // make the redirect depend on read order.
       .addUniqueConstraint('alias_redirects_unique', ['organization_id', 'scope', 'old_alias'])
@@ -624,7 +700,9 @@ export const initialSchema: Migration = {
     await db.schema
       .createTable('schema_version')
       .addColumn('version', 'text', (col) => col.primaryKey())
-      .addColumn('applied_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
+      .addColumn('applied_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
       .execute();
   },
 

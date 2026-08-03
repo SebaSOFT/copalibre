@@ -4,6 +4,7 @@ import { RegistrationReviewRoute } from './RegistrationReviewRoute.js';
 import { SeedingBuilderRoute } from './SeedingBuilderRoute.js';
 import { StandingsRoute } from './StandingsRoute.js';
 import { TournamentAuthoringPage } from './TournamentAuthoringPage.js';
+import { RolesPermissionsRoute } from './RolesPermissionsRoute.js';
 
 export function TournamentAuthoringControlRoute({
   organizationAlias,
@@ -80,6 +81,20 @@ export function SeedingControlRoute({
         stageNumber={stageNumber}
         tournamentAlias={tournamentAlias}
       />
+    </ControlShell>
+  );
+}
+
+export function RolesPermissionsControlRoute({
+  organizationAlias,
+  client,
+}: {
+  readonly organizationAlias: string;
+  readonly client?: ControlApiClient;
+}): React.JSX.Element {
+  return (
+    <ControlShell active="Roles" organizationAlias={organizationAlias}>
+      <RolesPermissionsRoute client={client} organizationAlias={organizationAlias} />
     </ControlShell>
   );
 }
