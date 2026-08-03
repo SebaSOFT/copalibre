@@ -23,6 +23,9 @@
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
+    "@copalibre/domain": "workspace:^",
+    "@copalibre/rules": "workspace:^",
+    "@copalibre/tournament-engine": "workspace:^",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^7.0.0",
     "@testing-library/react": "^16.3.2",

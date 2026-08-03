@@ -16,6 +16,7 @@
     "@copalibre/domain": "workspace:^",
     "@copalibre/persistence": "workspace:^",
     "@copalibre/rules": "workspace:^",
+    "@copalibre/tournament-engine": "workspace:^",
     "@nestjs/common": "^11.1.28",
     "@nestjs/core": "^11.1.28",
     "@nestjs/platform-fastify": "^11.1.28",

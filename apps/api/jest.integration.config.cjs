@@ -12,6 +12,8 @@ module.exports = {
     '^@copalibre/domain$': '<rootDir>/../../packages/domain/src/index.ts',
     '^@copalibre/routing$': '<rootDir>/../../packages/routing/src/index.ts',
     '^@copalibre/persistence$': '<rootDir>/../../packages/persistence/src/index.ts',
+    '^@copalibre/rules$': '<rootDir>/../../packages/rules/src/index.ts',
+    '^@copalibre/tournament-engine$': '<rootDir>/../../packages/tournament-engine/src/index.ts',
   },
   testMatch: ['<rootDir>/src/**/*.integration.test.ts'],
   testTimeout: 30000,

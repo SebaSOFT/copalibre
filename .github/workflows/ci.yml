@@ -137,7 +137,8 @@ jobs:
       # The URL builder (0020): one place that knows what a thing is called on
       # every surface, and the alias redirect that keeps a printed URL working.
       - run: yarn workspace @copalibre/routing test:coverage
-      # The public overview's view model (0020).
+      # The public overview's view model (0020), plus the standings/seeding view
+      # models and the bracket-canvas geometry (0024).
       - run: yarn workspace @copalibre/web test:coverage
       # One token source generated into CSS and Tailwind (0019); the tests are
       # what stop the two outputs drifting apart.
@@ -225,6 +226,7 @@ jobs:
   # Added by 0023: operator flows are client-side islands backed by the control
   # API. Playwright runs the production web build and mocks those API calls so
   # wizard submission and registration decisions fail here if route wiring drifts.
+  # 0024 adds the standings trace and the seeding/bracket specs to the same run.
   e2e-tests:
     name: E2E tests
     runs-on: ubuntu-latest
@@ -246,6 +248,27 @@ jobs:
       # The runner image ships no Playwright browser.
       - run: yarn playwright install --with-deps chromium
       - run: yarn test:e2e
+
+  # Added by 0024: "explainable rankings" is a claim until something proves the
+  # text on the standings screen is the text the rules engine produced. This job
+  # runs that one contract on its own so a failure names it, instead of arriving
+  # as one red line among two hundred in the unit suite.
+  contract-tests:
+    name: Trace-equality contract
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - uses: actions/checkout@v4
+      - run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+      - run: yarn install --immutable
+      # Calls the real packages/rules trace renderer and the real A5 component
+      # against one fixture. A snapshot of either half would pass while they
+      # disagreed, which is the failure this exists to catch.
+      - run: yarn workspace @copalibre/web test --testPathPatterns 'trace-contract'
 
   # Added by 0019: CopaLibre and sebasoft.app must look unrelated, and a brand
   # review months later is not a control. The scan runs against generated

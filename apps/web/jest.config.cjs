@@ -34,7 +34,10 @@ module.exports = {
   moduleFileExtensions: ['tsx', 'ts', 'js', 'json'],
   moduleNameMapper: {
     ...esmExtensionMapper,
+    '^@copalibre/domain$': '<rootDir>/../../packages/domain/src/index.ts',
     '^@copalibre/realtime$': '<rootDir>/../../packages/realtime/src/index.ts',
+    '^@copalibre/rules$': '<rootDir>/../../packages/rules/src/index.ts',
+    '^@copalibre/tournament-engine$': '<rootDir>/../../packages/tournament-engine/src/index.ts',
     '^@copalibre/routing$': '<rootDir>/../../packages/routing/src/index.ts',
   },
   // The view model and the route list; the .astro templates are covered by the
