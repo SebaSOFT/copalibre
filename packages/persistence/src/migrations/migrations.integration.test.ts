@@ -1,11 +1,22 @@
 import { checkReadinessAgainst } from '../test-support/readiness-probe.js';
 import { createScratchDatabase, type ScratchDatabase } from '../test-support/scratch-database.js';
+import type { Kysely } from 'kysely';
 import {
   EXPECTED_SCHEMA_VERSION,
   migrateDownOneStep,
   migrateToLatest,
   readAppliedSchemaVersion,
 } from './index.js';
+import { rosterTerminology } from './0004-roster-terminology.js';
+
+interface LegacyRosterSchema {
+  match_lineups: {
+    readonly match_id: string;
+    readonly entrant_id: string;
+    readonly person_ids: string;
+    readonly updated_at: Date;
+  };
+}
 
 describe('migrations (integration)', () => {
   let scratch: ScratchDatabase;
@@ -73,8 +84,19 @@ describe('migrations (integration)', () => {
     expect(afterDown).toContain('organizations');
     expect(afterDown).toContain('organization_role_assignments');
     expect(afterDown).toContain('organization_invites');
-    expect(afterDown).not.toContain('match_command_idempotency');
-    expect(afterDown).not.toContain('match_timer_resolutions');
+    expect(afterDown).toContain('match_command_idempotency');
+    expect(afterDown).toContain('match_timer_resolutions');
+    expect(afterDown).toContain('match_lineups');
+    expect(afterDown).not.toContain('match_rosters');
+
+    const liveConsoleDown = await migrateDownOneStep(scratch.db);
+    expect(liveConsoleDown.error).toBeUndefined();
+
+    const afterLiveConsoleDown = (await scratch.db.introspection.getTables()).map(
+      (table) => table.name,
+    );
+    expect(afterLiveConsoleDown).not.toContain('match_command_idempotency');
+    expect(afterLiveConsoleDown).not.toContain('match_timer_resolutions');
 
     const organizationAccessDown = await migrateDownOneStep(scratch.db);
     expect(organizationAccessDown.error).toBeUndefined();
@@ -104,6 +126,77 @@ describe('migrations (integration)', () => {
     expect(again.error).toBeUndefined();
     await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe(EXPECTED_SCHEMA_VERSION);
   });
+
+  it('preserves roster rows and rewrites legacy capabilities in both directions', async () => {
+    await scratch.db.schema
+      .createTable('match_lineups')
+      .addColumn('match_id', 'uuid', (column) => column.notNull())
+      .addColumn('entrant_id', 'uuid', (column) => column.notNull())
+      .addColumn('person_ids', 'jsonb', (column) => column.notNull())
+      .addColumn('updated_at', 'timestamptz', (column) => column.notNull())
+      .execute();
+    await scratch.db.schema
+      .createTable('match_assignments')
+      .addColumn('assignment_id', 'uuid', (column) => column.primaryKey())
+      .addColumn('organization_id', 'uuid', (column) => column.notNull())
+      .addColumn('subject_id', 'text', (column) => column.notNull())
+      .addColumn('match_id', 'uuid')
+      .addColumn('stage_id', 'uuid', (column) => column.notNull())
+      .addColumn('capabilities', 'jsonb', (column) => column.notNull())
+      .addColumn('created_at', 'timestamptz', (column) => column.notNull())
+      .execute();
+
+    await scratch.db
+      .insertInto('match_assignments')
+      .values({
+        assignment_id: '00000000-0000-7000-8000-000000000001',
+        organization_id: '00000000-0000-7000-8000-000000000010',
+        subject_id: 'user:legacy',
+        match_id: null,
+        stage_id: '00000000-0000-7000-8000-000000000011',
+        capabilities: JSON.stringify(['match.record-event', 'match.select-lineup']),
+        created_at: new Date('2026-08-03T00:00:00.000Z'),
+      })
+      .execute();
+    const legacyDb = scratch.db as unknown as Kysely<LegacyRosterSchema>;
+    await legacyDb
+      .insertInto('match_lineups')
+      .values({
+        match_id: '00000000-0000-7000-8000-000000000002',
+        entrant_id: '00000000-0000-7000-8000-000000000003',
+        person_ids: JSON.stringify(['00000000-0000-7000-8000-000000000004']),
+        updated_at: new Date('2026-08-03T00:00:00.000Z'),
+      })
+      .execute();
+
+    await rosterTerminology.up(scratch.db);
+
+    const afterUp = (await scratch.db.introspection.getTables()).map((table) => table.name);
+    expect(afterUp).toContain('match_rosters');
+    expect(afterUp).not.toContain('match_lineups');
+    await expect(
+      scratch.db.selectFrom('match_rosters').selectAll().execute(),
+    ).resolves.toHaveLength(1);
+    const assignmentAfterUp = await scratch.db
+      .selectFrom('match_assignments')
+      .select('capabilities')
+      .executeTakeFirstOrThrow();
+    expect(assignmentAfterUp.capabilities).toEqual(['match.record-event', 'match.select-roster']);
+
+    if (!rosterTerminology.down) {
+      throw new Error('Roster terminology migration must support rollback.');
+    }
+    await rosterTerminology.down(scratch.db);
+
+    const afterDown = (await scratch.db.introspection.getTables()).map((table) => table.name);
+    expect(afterDown).toContain('match_lineups');
+    expect(afterDown).not.toContain('match_rosters');
+    const assignmentAfterDown = await scratch.db
+      .selectFrom('match_assignments')
+      .select('capabilities')
+      .executeTakeFirstOrThrow();
+    expect(assignmentAfterDown.capabilities).toEqual(['match.record-event', 'match.select-lineup']);
+  });
 });
 
 describe('api readiness check (integration)', () => {
@@ -123,6 +216,7 @@ describe('api readiness check (integration)', () => {
 
   it('reports ready once the schema matches the expected version', async () => {
     scratch = await createScratchDatabase('ready-migrated');
+    if (scratch.dialect === 'sqlite') return;
     await migrateToLatest(scratch.db);
     const report = await checkReadinessAgainst(scratch.connectionString);
     expect(report).toMatchObject({

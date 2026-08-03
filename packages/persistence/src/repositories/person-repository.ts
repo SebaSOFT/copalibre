@@ -19,7 +19,7 @@ import type { AuditContext } from './enrollment-repository.js';
  * The one behaviour worth stating: registering somebody who is already known
  * **recognises** them rather than creating a second row. That is what a natural
  * key is for, and an import that skips it is an import that quietly duplicates
- * a roster.
+ * team membership.
  */
 export class PersonRepository {
   constructor(private readonly db: Kysely<Database>) {}

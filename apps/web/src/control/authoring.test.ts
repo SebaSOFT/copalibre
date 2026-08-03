@@ -14,7 +14,7 @@ import {
   LOCK_EXPLANATION,
   initialReview,
   pageCount,
-  rosterActionsEnabled,
+  teamMembershipActionsEnabled,
   setFilter,
   toggleAllVisible,
   toggleRow,
@@ -178,21 +178,35 @@ describe('the eligibility lock, as the console shows it', () => {
     status: 'checked-in' as const,
   };
 
-  it('disables roster actions once check-in has closed', () => {
-    expect(rosterActionsEnabled({ ...closed, now: '2026-08-01T19:00:00.000Z' })).toBe(false);
-    expect(LOCK_EXPLANATION).toContain('la que juega');
+  it('disables team-membership actions once check-in has closed', () => {
+    expect(teamMembershipActionsEnabled({ ...closed, now: '2026-08-01T19:00:00.000Z' })).toBe(
+      false,
+    );
+    expect(LOCK_EXPLANATION).toContain('membresías registradas');
   });
 
   it('leaves them enabled before it closes, and when nothing requires check-in', () => {
-    expect(rosterActionsEnabled({ ...closed, now: '2026-08-01T17:00:00.000Z' })).toBe(true);
+    expect(teamMembershipActionsEnabled({ ...closed, now: '2026-08-01T17:00:00.000Z' })).toBe(true);
     expect(
-      rosterActionsEnabled({ requiresCheckIn: false, status: 'checked-in', now: '2030-01-01' }),
+      teamMembershipActionsEnabled({
+        requiresCheckIn: false,
+        status: 'checked-in',
+        now: '2030-01-01',
+      }),
     ).toBe(true);
     expect(
-      rosterActionsEnabled({ ...closed, status: 'accepted', now: '2026-08-01T19:00:00.000Z' }),
+      teamMembershipActionsEnabled({
+        ...closed,
+        status: 'accepted',
+        now: '2026-08-01T19:00:00.000Z',
+      }),
     ).toBe(true);
     expect(
-      rosterActionsEnabled({ requiresCheckIn: true, status: 'checked-in', now: '2030-01-01' }),
+      teamMembershipActionsEnabled({
+        requiresCheckIn: true,
+        status: 'checked-in',
+        now: '2030-01-01',
+      }),
     ).toBe(true);
   });
 });

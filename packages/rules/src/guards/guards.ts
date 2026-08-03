@@ -13,7 +13,7 @@ export interface EligibilityFacts {
   readonly person?: Person;
   /** The team's squad: the memberships pointing at it. */
   readonly squad?: readonly Player[];
-  readonly lineup?: readonly string[];
+  readonly roster?: readonly string[];
   /** Effective configuration the eligibility rules read constraints from. */
   readonly rulesetConfig?: Readonly<Record<string, unknown>>;
   readonly [key: string]: unknown;

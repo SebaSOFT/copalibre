@@ -171,9 +171,9 @@ function timerKey(event: RecordedEvent): string {
 }
 
 /**
- * A lineup: who takes the field for one entrant in one match (0014).
+ * A roster: who takes the field for one entrant in one match (0014).
  *
- * **It refuses a lineup that is incoherent, and reports everything else.**
+ * **It refuses a roster that is incoherent, and reports everything else.**
  * CopaLibre enforces the integrity of its own records and what this organizer
  * configured; it does not enforce what a sport usually requires. A discipline
  * saying "between five and eleven players" is a norm, and the first under-12
@@ -184,7 +184,7 @@ function timerKey(event: RecordedEvent): string {
  * might relax, it is a sheet that contradicts itself, and no competition
  * anywhere wants it recorded.
  */
-export interface LineupSelection {
+export interface RosterSelection {
   readonly matchId: string;
   readonly entrantId: string;
   readonly personIds: readonly string[];
@@ -196,42 +196,42 @@ export interface RosterConstraint {
 }
 
 /** Something worth an operator's attention, which is not the same as a refusal. */
-export interface LineupFinding {
-  readonly kind: 'off-roster' | 'below-minimum' | 'above-maximum';
+export interface RosterFinding {
+  readonly kind: 'not-eligible' | 'below-minimum' | 'above-maximum';
   readonly detail: string;
   readonly personId?: string;
 }
 
-export interface CheckedLineup {
-  readonly selection: LineupSelection;
-  /** Empty when nothing is worth saying; never a reason the lineup was blocked. */
-  readonly findings: readonly LineupFinding[];
+export interface CheckedRoster {
+  readonly selection: RosterSelection;
+  /** Empty when nothing is worth saying; never a reason the roster was blocked. */
+  readonly findings: readonly RosterFinding[];
 }
 
-export function validateLineup(
-  selection: LineupSelection,
-  eligibleParticipantIds: readonly string[],
+export function validateRoster(
+  selection: RosterSelection,
+  eligiblePlayerIds: readonly string[],
   constraint: RosterConstraint,
-): Result<CheckedLineup, MatchOperationError> {
+): Result<CheckedRoster, MatchOperationError> {
   const unique = new Set(selection.personIds);
   if (unique.size !== selection.personIds.length) {
     return err(
-      new MatchOperationError('A lineup names the same person twice', {
+      new MatchOperationError('A roster names the same person twice', {
         matchId: selection.matchId,
         entrantId: selection.entrantId,
       }),
     );
   }
 
-  const findings: LineupFinding[] = [];
+  const findings: RosterFinding[] = [];
 
-  const eligible = new Set(eligibleParticipantIds);
+  const eligible = new Set(eligiblePlayerIds);
   for (const personId of selection.personIds) {
     if (!eligible.has(personId)) {
       findings.push({
-        kind: 'off-roster',
+        kind: 'not-eligible',
         personId,
-        detail: `"${personId}" is not on this entrant's active roster`,
+        detail: `"${personId}" is not in this entrant's eligible player pool`,
       });
     }
   }
@@ -239,13 +239,13 @@ export function validateLineup(
   if (unique.size < constraint.minPlayers) {
     findings.push({
       kind: 'below-minimum',
-      detail: `The discipline expects at least ${constraint.minPlayers} players; this lineup names ${unique.size}`,
+      detail: `The discipline expects at least ${constraint.minPlayers} players; this roster names ${unique.size}`,
     });
   }
   if (unique.size > constraint.maxPlayers) {
     findings.push({
       kind: 'above-maximum',
-      detail: `The discipline expects at most ${constraint.maxPlayers} players; this lineup names ${unique.size}`,
+      detail: `The discipline expects at most ${constraint.maxPlayers} players; this roster names ${unique.size}`,
     });
   }
 

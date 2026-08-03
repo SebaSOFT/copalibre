@@ -3,7 +3,7 @@ import { err, ok, type Result } from '../result.js';
 import type { EntrantStatus } from './participant.js';
 
 /**
- * Reviewing registrations, and when a roster stops being editable (0023).
+ * Reviewing registrations, and when team memberships stop being editable (0023).
  *
  * The decision lives here rather than in the console because the console is a
  * *hint*: a tab left open through the check-in deadline still has yesterday's
@@ -25,14 +25,14 @@ export interface CheckInWindow {
 }
 
 /**
- * Whether the roster of a checked-in entrant may still change.
+ * Whether the team memberships of a checked-in entrant may still change.
  *
  * Two conditions, both required: the tournament asks for check-in, and the
  * window has closed. A tournament that never asked for check-in never locks —
  * CopaLibre enforces what *this* organizer configured, not what a competition
  * usually does.
  */
-export function rosterEditable(
+export function teamMembershipsEditable(
   window: CheckInWindow,
   status: EntrantStatus,
   now: string,
@@ -43,7 +43,7 @@ export function rosterEditable(
 
   return err(
     new RegistrationError(
-      'Check-in has closed for this entrant; the roster it was checked in with is the one that plays',
+      'Check-in has closed for this entrant; recorded team memberships remain the eligibility basis',
       { closesAt: window.closesAt, status },
     ),
   );

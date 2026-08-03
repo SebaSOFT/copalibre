@@ -83,7 +83,9 @@ function toReviewRow(row: RegistrationResponse): ReviewRegistrationRow {
     status: row.status,
     submittedAt: '',
     contactEmail: 'No disponible en esta respuesta',
-    roster: [displayName],
+    // RegistrationResponse identifies the entrant, not its members. Do not
+    // present the team identifier as a person until the API supplies members.
+    teamMembers: [],
     experience: 'No registrada',
     requiresCheckIn: false,
   };

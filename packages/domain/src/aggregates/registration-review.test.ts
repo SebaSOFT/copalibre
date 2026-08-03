@@ -1,36 +1,43 @@
-import { canDecide, planBulkReview, rosterEditable, statusFor } from './registration-review.js';
+import {
+  canDecide,
+  planBulkReview,
+  statusFor,
+  teamMembershipsEditable,
+} from './registration-review.js';
 
 const REQUIRED = { requiresCheckIn: true, closesAt: '2026-08-01T18:00:00.000Z' };
 
-describe('when a roster stops being editable', () => {
+describe('when team memberships stop being editable', () => {
   it('locks a checked-in entrant once the window closes', () => {
-    const result = rosterEditable(REQUIRED, 'checked-in', '2026-08-01T19:00:00.000Z');
+    const result = teamMembershipsEditable(REQUIRED, 'checked-in', '2026-08-01T19:00:00.000Z');
 
     expect(result.ok).toBe(false);
     if (result.ok) return;
-    expect(result.error.message).toContain('the one that plays');
+    expect(result.error.message).toContain('eligibility basis');
   });
 
   it('leaves it editable before the window closes', () => {
-    expect(rosterEditable(REQUIRED, 'checked-in', '2026-08-01T17:00:00.000Z').ok).toBe(true);
+    expect(teamMembershipsEditable(REQUIRED, 'checked-in', '2026-08-01T17:00:00.000Z').ok).toBe(
+      true,
+    );
   });
 
   it('never locks a tournament that asked for no check-in', () => {
     // CopaLibre enforces what this organizer configured, not what a
     // competition usually does.
     expect(
-      rosterEditable({ requiresCheckIn: false }, 'checked-in', '2027-01-01T00:00:00Z').ok,
+      teamMembershipsEditable({ requiresCheckIn: false }, 'checked-in', '2027-01-01T00:00:00Z').ok,
     ).toBe(true);
   });
 
   it('never locks an entrant who has not checked in', () => {
-    expect(rosterEditable(REQUIRED, 'accepted', '2026-08-01T19:00:00.000Z').ok).toBe(true);
+    expect(teamMembershipsEditable(REQUIRED, 'accepted', '2026-08-01T19:00:00.000Z').ok).toBe(true);
   });
 
   it('never locks when no closing instant was set', () => {
-    expect(rosterEditable({ requiresCheckIn: true }, 'checked-in', '2027-01-01T00:00:00Z').ok).toBe(
-      true,
-    );
+    expect(
+      teamMembershipsEditable({ requiresCheckIn: true }, 'checked-in', '2027-01-01T00:00:00Z').ok,
+    ).toBe(true);
   });
 });
 

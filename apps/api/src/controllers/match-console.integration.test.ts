@@ -36,6 +36,7 @@ describe('live match console (integration)', () => {
   let matchId = '';
   let segmentId = '';
   let timerId = '';
+  let rosteredPersonId = '';
   const entrantIds: string[] = [];
   const base = () => `/organizations/liga-prueba/tournaments/apertura/matches/${matchId}`;
 
@@ -174,6 +175,16 @@ describe('live match console (integration)', () => {
         organizationId,
         ...audit,
       });
+      rosteredPersonId = newId();
+      await uow.tx
+        .insertInto('match_rosters')
+        .values({
+          match_id: matchId,
+          entrant_id: entrants[0]?.entrantId ?? '',
+          person_ids: JSON.stringify([rosteredPersonId]),
+          updated_at: new Date(),
+        })
+        .execute();
       timerId = newId();
       await competition.appendEvent(uow, {
         event: {
@@ -198,6 +209,7 @@ describe('live match console (integration)', () => {
           'match.control-clock',
           'match.resolve-timer',
           'match.finalize',
+          'match.select-roster',
         ],
         ...audit,
       });
@@ -217,8 +229,8 @@ describe('live match console (integration)', () => {
     expect(consoleRead.statusCode).toBe(200);
     expect(consoleRead.json()).toMatchObject({
       matchId,
-      eligiblePersonIds: [],
-      capabilities: expect.arrayContaining(['match.record-event']),
+      eligiblePersonIds: [rosteredPersonId],
+      capabilities: expect.arrayContaining(['match.record-event', 'match.select-roster']),
     });
   });
 
@@ -262,6 +274,27 @@ describe('live match console (integration)', () => {
         (event) => event.entityId === matchId && event.eventType === 'match.console-projection',
       ),
     ).toHaveLength(3);
+  });
+
+  it('accepts attribution from match rosters and rejects people outside them', async () => {
+    const accepted = await request('POST', `${base()}/events`, 'referee', {
+      definitionCode: 'goal',
+      segmentId,
+      occurredAt: Date.now(),
+      side: entrantIds[0],
+      personId: rosteredPersonId,
+    });
+    expect(accepted.statusCode).toBe(201);
+
+    const refused = await request('POST', `${base()}/events`, 'referee', {
+      definitionCode: 'goal',
+      segmentId,
+      occurredAt: Date.now(),
+      side: entrantIds[0],
+      personId: newId(),
+    });
+    expect(refused.statusCode).toBe(400);
+    expect(refused.json().message).toContain('match roster');
   });
 
   it('persists one finalization per idempotency key and rejects altered retries', async () => {

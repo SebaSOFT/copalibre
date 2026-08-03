@@ -5,7 +5,7 @@ import {
   LOCK_EXPLANATION,
   initialReview,
   pageCount,
-  rosterActionsEnabled,
+  teamMembershipActionsEnabled,
   setFilter,
   toggleAllVisible,
   toggleRow,
@@ -16,7 +16,7 @@ import {
 
 export interface ReviewRegistrationRow extends RegistrationRow {
   readonly contactEmail: string;
-  readonly roster: readonly string[];
+  readonly teamMembers: readonly string[];
   readonly experience: string;
   readonly requiresCheckIn: boolean;
   readonly checkInClosesAt?: string;
@@ -121,7 +121,7 @@ export function RegistrationReviewPage({
           <span>Enviada</span>
         </div>
         {visible.map((row) => {
-          const rosterEnabled = rosterActionsEnabled({
+          const teamMembershipEnabled = teamMembershipActionsEnabled({
             requiresCheckIn: row.requiresCheckIn,
             checkInClosesAt: row.checkInClosesAt,
             status: row.status,
@@ -148,14 +148,21 @@ export function RegistrationReviewPage({
               </summary>
               <div style={detailStyle}>
                 <FieldValue label="Contacto" value={row.contactEmail} />
-                <FieldValue label="Roster" value={row.roster.join(', ')} />
+                <FieldValue
+                  label="Miembros del equipo"
+                  value={
+                    row.teamMembers.length === 0
+                      ? 'No disponible en esta respuesta'
+                      : row.teamMembers.join(', ')
+                  }
+                />
                 <FieldValue label="Experiencia" value={row.experience} />
                 <div style={detailActionsStyle}>
                   <Button type="button" variant="secondary">
                     Mensaje
                   </Button>
-                  <Button disabled={!rosterEnabled} type="button" variant="secondary">
-                    Editar roster
+                  <Button disabled={!teamMembershipEnabled} type="button" variant="secondary">
+                    Editar miembros
                   </Button>
                   <Button
                     onClick={() =>
@@ -170,7 +177,7 @@ export function RegistrationReviewPage({
                     Revocar
                   </Button>
                 </div>
-                {!rosterEnabled && (
+                {!teamMembershipEnabled && (
                   <p className="cl-inline-alert" style={lockStyle}>
                     {LOCK_EXPLANATION}
                   </p>

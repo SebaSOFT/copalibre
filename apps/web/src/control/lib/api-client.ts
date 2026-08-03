@@ -207,7 +207,7 @@ export type MatchCapability =
   | 'match.record-event'
   | 'match.control-clock'
   | 'match.resolve-timer'
-  | 'match.select-lineup'
+  | 'match.select-roster'
   | 'match.finalize';
 
 export interface ConsoleSegment {

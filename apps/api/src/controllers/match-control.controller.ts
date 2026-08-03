@@ -132,7 +132,7 @@ export class MatchControlController {
     summary: 'Read the authoritative state required by a match-control console',
     description:
       'Returns operator-only state after organization role and match-assignment checks. Public reads ' +
-      'remain sanitized and never include capabilities, lineups, or descriptor input metadata.',
+      'remain sanitized and never include capabilities, rosters, or descriptor input metadata.',
   })
   @ApiOkResponse({ type: MatchConsoleResponse })
   @ApiUnauthorizedResponse({ type: ProblemResponse })
@@ -489,9 +489,9 @@ export class MatchControlController {
     const segment = segments.find((candidate) => candidate.segmentId === body.segmentId);
     if (!segment) throw new NotFoundException(`No segment "${body.segmentId}" in this match`);
 
-    const [lineups, fixture, descriptor] = await Promise.all([
+    const [rosters, fixture, descriptor] = await Promise.all([
       this.db
-        .selectFrom('match_lineups')
+        .selectFrom('match_rosters')
         .select('person_ids')
         .where('match_id', '=', matchId)
         .execute(),
@@ -507,7 +507,7 @@ export class MatchControlController {
       (entrantId): entrantId is string => entrantId !== null && entrantId !== undefined,
     );
     const eligiblePersonIds = new Set(
-      lineups.flatMap((lineup) => lineup.person_ids as readonly string[]),
+      rosters.flatMap((roster) => roster.person_ids as readonly string[]),
     );
     const definition = descriptor.eventDefinitions.find(
       (candidate) => candidate.code === body.definitionCode,
@@ -517,7 +517,7 @@ export class MatchControlController {
       definition?.actorRequirement === 'person' &&
       !eligiblePersonIds.has(body.personId)
     ) {
-      throw new BadRequestException(`Person "${body.personId}" is not in this match lineup`);
+      throw new BadRequestException(`Person "${body.personId}" is not in this match roster`);
     }
     if (body.personId && definition?.actorRequirement === 'person-or-staff') {
       const eligibleStaffIds = await this.eligibleStaffIds(entrantIds);
@@ -830,7 +830,7 @@ export class MatchControlController {
     if (!match) throw new NotFoundException(`No match "${matchId}"`);
 
     const stageId = await this.stageOf(matchId);
-    const [segments, events, descriptor, resolvedTimerIds, assignments, lineups, fixture, version] =
+    const [segments, events, descriptor, resolvedTimerIds, assignments, rosters, fixture, version] =
       await Promise.all([
         competition.listSegments(matchId),
         competition.listEvents(matchId),
@@ -843,7 +843,7 @@ export class MatchControlController {
           stageId,
         }),
         this.db
-          .selectFrom('match_lineups')
+          .selectFrom('match_rosters')
           .select('person_ids')
           .where('match_id', '=', matchId)
           .execute(),
@@ -911,7 +911,7 @@ export class MatchControlController {
             }),
       })),
       eligiblePersonIds: [
-        ...new Set(lineups.flatMap((lineup) => lineup.person_ids as readonly string[])),
+        ...new Set(rosters.flatMap((roster) => roster.person_ids as readonly string[])),
       ],
       eligibleStaffIds: [...eligibleStaffIds],
       entrantIds,
