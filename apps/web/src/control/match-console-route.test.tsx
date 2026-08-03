@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MatchConsoleRoute } from './components/MatchConsoleRoute.js';
 import type { MatchConsoleApiClient, MatchConsoleResponse } from './lib/api-client.js';
 
@@ -305,5 +305,335 @@ describe('MatchConsoleRoute', () => {
 
     expect(keys).toHaveLength(2);
     expect(keys[1]).toBe(keys[0]);
+  });
+
+  it('adjusts the selected clock, resolves an authorized timer, and filters the ledger', async () => {
+    const requests: string[] = [];
+    const withTimer: MatchConsoleResponse = {
+      ...projection,
+      runningTimers: [
+        {
+          timerId: 'timer-1',
+          side: 'entrant-a',
+          startedAt: Date.now(),
+          durationSeconds: 120,
+          remainingSeconds: 90,
+        },
+      ],
+      capabilities: ['match.control-clock', 'match.resolve-timer'],
+    };
+    await act(async () => {
+      render(
+        <MatchConsoleRoute
+          client={client({
+            fetchMatchConsole: async () => withTimer,
+            adjustMatchClock: async () => {
+              requests.push('clock');
+              return withTimer;
+            },
+            resolveMatchTimer: async () => {
+              requests.push('timer');
+              return withTimer;
+            },
+          })}
+          matchId="match-1"
+          organizationAlias="liga"
+          tournamentAlias="apertura"
+        />,
+      );
+    });
+
+    fireEvent.change(screen.getByLabelText('Segundos transcurridos'), { target: { value: '180' } });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Aplicar reloj' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Resolver' }));
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'negative' }));
+
+    expect(requests).toEqual(['clock', 'timer']);
+    expect(screen.queryByText('goal · half 1')).toBeNull();
+    expect(
+      (screen.getByRole('button', { name: 'Finalizar partido' }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+  });
+
+  it('shows a server rejection while retaining granted clock controls', async () => {
+    await act(async () => {
+      render(
+        <MatchConsoleRoute
+          client={client({
+            recordMatchEvent: async () => {
+              throw new Error('Evento rechazado por servidor');
+            },
+          })}
+          matchId="match-1"
+          organizationAlias="liga"
+          tournamentAlias="apertura"
+        />,
+      );
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Gol' }));
+    });
+    expect(screen.getByText('Evento rechazado por servidor')).toBeDefined();
+    expect((screen.getByLabelText('Segundos transcurridos') as HTMLInputElement).disabled).toBe(
+      false,
+    );
+  });
+
+  it('shows the authoritative-load failure before a projection exists', async () => {
+    await act(async () => {
+      render(
+        <MatchConsoleRoute
+          client={client({ fetchMatchConsole: async () => Promise.reject(new Error('offline')) })}
+          matchId="match-1"
+          organizationAlias="liga"
+          tournamentAlias="apertura"
+        />,
+      );
+    });
+    expect(screen.getByText('No se pudo cargar el estado autoritativo del partido.')).toBeDefined();
+  });
+
+  it('withholds invalid palette entries when no active segment or eligible actor exists', async () => {
+    const unavailable: MatchConsoleResponse = {
+      ...projection,
+      segments: [{ ...projection.segments[0], state: 'pending', durationSeconds: undefined }],
+      eligibleStaffIds: [],
+      eventDefinitions: [
+        { ...projection.eventDefinitions[3], actorRequirement: 'person' },
+        { ...projection.eventDefinitions[4], actorRequirement: 'person-or-staff' },
+      ],
+    };
+    await act(async () => {
+      render(
+        <MatchConsoleRoute
+          client={client({ fetchMatchConsole: async () => unavailable })}
+          matchId="match-1"
+          organizationAlias="liga"
+          tournamentAlias="apertura"
+        />,
+      );
+    });
+    expect(screen.queryByRole('button', { name: 'Gol' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Advertencia técnica' })).toBeNull();
+  });
+
+  it('attributes a person event and clears staff selection', async () => {
+    const requests: unknown[] = [];
+    const personProjection: MatchConsoleResponse = {
+      ...projection,
+      eligiblePersonIds: ['person-1'],
+      eventDefinitions: [
+        { ...projection.eventDefinitions[3], actorRequirement: 'person' },
+        {
+          ...projection.eventDefinitions[3],
+          code: 'pause',
+          label: 'Pausa',
+          actorRequirement: 'none',
+        },
+      ],
+    };
+    await act(async () => {
+      render(
+        <MatchConsoleRoute
+          client={client({
+            fetchMatchConsole: async () => personProjection,
+            recordMatchEvent: async (_o, _t, _m, request) => {
+              requests.push(request);
+              return {
+                eventId: 'event-2',
+                definitionCode: request.definitionCode,
+                sequence: 2,
+                notifications: [],
+              };
+            },
+          })}
+          matchId="match-1"
+          organizationAlias="liga"
+          tournamentAlias="apertura"
+        />,
+      );
+    });
+    fireEvent.change(screen.getByLabelText('Persona del evento'), {
+      target: { value: 'person-1' },
+    });
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Gol' })));
+    expect(requests).toEqual([expect.objectContaining({ personId: 'person-1' })]);
+  });
+
+  it('updates operator selectors, retains a ledger note, and cancels finalization', async () => {
+    await act(async () => {
+      render(
+        <MatchConsoleRoute
+          client={client()}
+          matchId="match-1"
+          organizationAlias="liga"
+          tournamentAlias="apertura"
+        />,
+      );
+    });
+
+    fireEvent.change(screen.getByLabelText('Segmento activo'), { target: { value: 'segment-1' } });
+    fireEvent.change(screen.getByLabelText('Participante del evento'), {
+      target: { value: 'entrant-b' },
+    });
+    fireEvent.change(screen.getByLabelText('Staff del evento'), { target: { value: 'staff-1' } });
+    fireEvent.change(screen.getByLabelText('Nota de bitácora'), {
+      target: { value: 'Verificado por mesa' },
+    });
+
+    expect((screen.getByLabelText('Participante del evento') as HTMLSelectElement).value).toBe(
+      'entrant-b',
+    );
+    expect((screen.getByLabelText('Nota de bitácora') as HTMLTextAreaElement).value).toBe(
+      'Verificado por mesa',
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Finalizar partido' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(screen.queryByRole('button', { name: 'Confirmar finalización' })).toBeNull();
+  });
+
+  it('withholds person events without an eligible person and labels unmatched ledger segments', async () => {
+    const unavailablePerson: MatchConsoleResponse = {
+      ...projection,
+      events: [{ ...projection.events[0], segmentId: 'removed-segment' }],
+      eligiblePersonIds: [],
+      eventDefinitions: [{ ...projection.eventDefinitions[3], actorRequirement: 'person' }],
+    };
+    await act(async () => {
+      render(
+        <MatchConsoleRoute
+          client={client({ fetchMatchConsole: async () => unavailablePerson })}
+          matchId="match-1"
+          organizationAlias="liga"
+          tournamentAlias="apertura"
+        />,
+      );
+    });
+
+    expect(screen.queryByRole('button', { name: 'Gol' })).toBeNull();
+    expect(screen.getByText('goal · Segmento desconocido')).toBeDefined();
+  });
+
+  it('does not offer finalization for a completed match and records descriptions only when supported', async () => {
+    const requests: unknown[] = [];
+    const completed: MatchConsoleResponse = {
+      ...projection,
+      status: 'finalized',
+      eventDefinitions: [{ ...projection.eventDefinitions[3], payloadSchema: { type: 'object' } }],
+    };
+    await act(async () => {
+      render(
+        <MatchConsoleRoute
+          client={client({
+            fetchMatchConsole: async () => completed,
+            recordMatchEvent: async (_organization, _tournament, _match, request) => {
+              requests.push(request);
+              return {
+                eventId: 'event-2',
+                definitionCode: request.definitionCode,
+                sequence: 2,
+                notifications: [],
+              };
+            },
+          })}
+          matchId="match-1"
+          organizationAlias="liga"
+          tournamentAlias="apertura"
+        />,
+      );
+    });
+
+    fireEvent.change(screen.getByLabelText('Descripción del evento'), {
+      target: { value: 'Sin campo de descripción' },
+    });
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Gol' })));
+
+    expect(requests).toEqual([expect.not.objectContaining({ payload: expect.anything() })]);
+    expect(
+      (screen.getByRole('button', { name: 'Finalizar partido' }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+  });
+
+  it('marks the projection stale when its authenticated stream fails', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async () => new Response('', { status: 403 })) as typeof fetch;
+    try {
+      await act(async () => {
+        render(
+          <MatchConsoleRoute
+            client={client({
+              matchConsoleStream: () => ({ url: 'https://events.test/control/liga' }),
+            })}
+            matchId="match-1"
+            organizationAlias="liga"
+            tournamentAlias="apertura"
+          />,
+        );
+        await Promise.resolve();
+      });
+      expect(screen.getByText('Esperando proyección autoritativa...')).toBeDefined();
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('reloads only for newer projections of its own match from the authenticated stream', async () => {
+    const originalFetch = globalThis.fetch;
+    const replayExpiredFrame = `event: replay.expired\ndata: ${JSON.stringify({
+      reason: 'cursor expired',
+    })}\n\n`;
+    const frames = [
+      { eventType: 'standings.recalculated', entityId: 'match-1', projectionVersion: 2 },
+      { eventType: 'match.console-projection', entityId: 'other-match', projectionVersion: 2 },
+      { eventType: 'match.console-projection', entityId: 'match-1', projectionVersion: 1 },
+      { eventType: 'match.console-projection', entityId: 'match-1', projectionVersion: 2 },
+    ]
+      .map(
+        (event, index) =>
+          `data: ${JSON.stringify({
+            eventId: `event-${index}`,
+            organizationId: 'organization-1',
+            stream: 'control',
+            createdAt: '2026-08-03T20:00:00.000Z',
+            payload: {},
+            ...event,
+          })}\n\n`,
+      )
+      .join('');
+    let loads = 0;
+    globalThis.fetch = (async () =>
+      new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode(replayExpiredFrame + frames));
+          },
+        }),
+      )) as typeof fetch;
+    try {
+      await act(async () => {
+        render(
+          <MatchConsoleRoute
+            client={client({
+              fetchMatchConsole: async () => {
+                loads += 1;
+                return projection;
+              },
+              matchConsoleStream: () => ({ url: 'https://events.test/control/liga' }),
+            })}
+            matchId="match-1"
+            organizationAlias="liga"
+            tournamentAlias="apertura"
+          />,
+        );
+      });
+
+      await waitFor(() => expect(loads).toBe(3));
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 });
