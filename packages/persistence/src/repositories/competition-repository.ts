@@ -11,7 +11,7 @@ import type {
   Stage,
   TournamentFormat,
 } from '@copalibre/domain';
-import type { Kysely } from 'kysely';
+import type { Kysely, Transaction } from 'kysely';
 import { InvariantViolationError, NotFoundError } from '../errors.js';
 import { newId } from '../ids.js';
 import { toIsoString, toMatch, toRecordedEvent, toSegment, toStage } from '../mapping.js';
@@ -283,7 +283,7 @@ export class CompetitionRepository {
       readonly grantedBy: string;
     } & AuditContext,
   ): Promise<Match> {
-    const existing = await this.findMatch(input.matchId);
+    const existing = await this.findMatchIn(uow.tx, input.matchId);
     if (!existing) {
       throw new NotFoundError(`Match ${input.matchId} does not exist`, { matchId: input.matchId });
     }
@@ -471,7 +471,7 @@ export class CompetitionRepository {
       readonly blockedPropagation?: { readonly stageId: string; readonly reason: string };
     } & AuditContext,
   ): Promise<Match> {
-    const existing = await this.findMatch(input.matchId);
+    const existing = await this.findMatchIn(uow.tx, input.matchId);
     if (!existing?.result) {
       throw new InvariantViolationError(`Match ${input.matchId} has no result to supersede`, {
         matchId: input.matchId,
@@ -729,7 +729,7 @@ export class CompetitionRepository {
     uow: UnitOfWork,
     input: { readonly matchId: string; readonly result: MatchResult } & AuditContext,
   ): Promise<Match> {
-    const existing = await this.findMatch(input.matchId);
+    const existing = await this.findMatchIn(uow.tx, input.matchId);
     if (!existing) {
       throw new NotFoundError(`Match ${input.matchId} does not exist`, {
         matchId: input.matchId,
@@ -774,7 +774,14 @@ export class CompetitionRepository {
   }
 
   async findMatch(matchId: string): Promise<Match | undefined> {
-    const row = await this.db
+    return this.findMatchIn(this.db, matchId);
+  }
+
+  private async findMatchIn(
+    executor: Kysely<Database> | Transaction<Database>,
+    matchId: string,
+  ): Promise<Match | undefined> {
+    const row = await executor
       .selectFrom('matches')
       .selectAll()
       .where('match_id', '=', matchId)
