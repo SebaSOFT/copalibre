@@ -43,6 +43,7 @@ import {
   CompetitionRepository,
   MatchAssignmentRepository,
   MatchCommandIdempotencyRepository,
+  ProjectionStore,
   TournamentRepository,
   withTransaction,
   type Database,
@@ -239,12 +240,16 @@ export class MatchControlController {
           });
         }
 
+        const projectionVersion = await new ProjectionStore(this.db).nextVersion(uow, {
+          projectionType: 'match-console',
+          entityId: matchId,
+        });
         await uow.publishEvent({
           organizationId: tournament.organizationId,
           stream: `match:${matchId}`,
           entityId: matchId,
           eventType: 'match.console-projection',
-          projectionVersion: Date.now(),
+          projectionVersion,
           payload: {
             matchId,
             status: transition.value.status,
@@ -356,12 +361,16 @@ export class MatchControlController {
         elapsedSeconds: body.elapsedSeconds,
         ...audit,
       });
+      const projectionVersion = await new ProjectionStore(this.db).nextVersion(uow, {
+        projectionType: 'match-console',
+        entityId: matchId,
+      });
       await uow.publishEvent({
         organizationId: tournament.organizationId,
         stream: `match:${matchId}`,
         entityId: matchId,
         eventType: 'match.console-projection',
-        projectionVersion: Date.now(),
+        projectionVersion,
         payload: { matchId, command: 'clock-adjusted', segmentId: selected.segmentId },
       });
     });
@@ -415,12 +424,16 @@ export class MatchControlController {
     };
     await withTransaction(this.db, async (uow) => {
       await competition.resolveTimer(uow, { timerId, matchId, ...audit });
+      const projectionVersion = await new ProjectionStore(this.db).nextVersion(uow, {
+        projectionType: 'match-console',
+        entityId: matchId,
+      });
       await uow.publishEvent({
         organizationId: tournament.organizationId,
         stream: `match:${matchId}`,
         entityId: matchId,
         eventType: 'match.console-projection',
-        projectionVersion: Date.now(),
+        projectionVersion,
         payload: { matchId, command: 'timer-resolved', timerId },
       });
     });
@@ -559,12 +572,16 @@ export class MatchControlController {
         sequence: await competition.nextEventSequence(matchId),
         ...audit,
       });
+      const projectionVersion = await new ProjectionStore(this.db).nextVersion(uow, {
+        projectionType: 'match-console',
+        entityId: matchId,
+      });
       await uow.publishEvent({
         organizationId: tournament.organizationId,
         stream: `match:${matchId}`,
         entityId: matchId,
         eventType: 'match.console-projection',
-        projectionVersion: appended.sequence,
+        projectionVersion,
         payload: { matchId, eventId: appended.eventId, sequence: appended.sequence },
       });
 
@@ -813,7 +830,7 @@ export class MatchControlController {
     if (!match) throw new NotFoundException(`No match "${matchId}"`);
 
     const stageId = await this.stageOf(matchId);
-    const [segments, events, descriptor, resolvedTimerIds, assignments, lineups, fixture] =
+    const [segments, events, descriptor, resolvedTimerIds, assignments, lineups, fixture, version] =
       await Promise.all([
         competition.listSegments(matchId),
         competition.listEvents(matchId),
@@ -836,6 +853,7 @@ export class MatchControlController {
           .select(['fixtures.home_entrant_id', 'fixtures.away_entrant_id'])
           .where('matches.match_id', '=', matchId)
           .executeTakeFirst(),
+        new ProjectionStore(this.db).versionOf('match-console', matchId),
       ]);
     const capabilities = [...new Set(assignments.flatMap((assignment) => assignment.capabilities))];
     if (capabilities.length === 0) {
@@ -898,7 +916,7 @@ export class MatchControlController {
       eligibleStaffIds: [...eligibleStaffIds],
       entrantIds,
       capabilities,
-      projectionVersion: Date.now(),
+      projectionVersion: version?.version ?? 0,
     };
   }
 
