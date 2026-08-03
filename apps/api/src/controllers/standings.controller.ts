@@ -17,9 +17,11 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { traceForEntrant, traceLines } from '@copalibre/rules';
+import type { TraceNode } from '@copalibre/rules';
 import { computeStandings } from '@copalibre/tournament-engine';
 import {
   CompetitionRepository,
+  CompetitionRecordRepository,
   OrganizationRepository,
   ProjectionStore,
   StageReadModel,
@@ -70,7 +72,11 @@ export class StandingsController {
     @Param('stageNumber', ParseIntPipe) stageNumber: number,
     @Req() request: RequestWithSubject,
   ): Promise<StandingsResponse> {
-    const { standings, stageId } = await this.calculate(
+    const stageId = await this.stageIdOf(organizationAlias, tournamentAlias, stageNumber, request);
+    const materialised = await this.materialised(stageId);
+    if (materialised) return materialised;
+
+    const { standings } = await this.calculate(
       organizationAlias,
       tournamentAlias,
       stageNumber,
@@ -115,6 +121,10 @@ export class StandingsController {
     @Param('entrantId') entrantId: string,
     @Req() request: RequestWithSubject,
   ): Promise<TiebreakTraceResponse> {
+    const stageId = await this.stageIdOf(organizationAlias, tournamentAlias, stageNumber, request);
+    const materialised = await this.materialisedTrace(stageId, entrantId);
+    if (materialised) return materialised;
+
     const { standings } = await this.calculate(
       organizationAlias,
       tournamentAlias,
@@ -182,6 +192,93 @@ export class StandingsController {
       ),
     };
   }
+
+  private async stageIdOf(
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageNumber: number,
+    request: RequestWithSubject,
+  ): Promise<string> {
+    const { tournament } = await resolveTournament(this.db, {
+      organizationAlias,
+      tournamentAlias,
+      request,
+    });
+
+    const stages = await new CompetitionRepository(this.db).listStagesOfTournament(
+      tournament.tournamentId,
+    );
+    const stage = stages.find((candidate) => candidate.number === stageNumber);
+    if (!stage) throw new NotFoundException(`No stage ${stageNumber} in "${tournamentAlias}"`);
+    return stage.stageId;
+  }
+
+  private async materialised(stageId: string): Promise<StandingsResponse | undefined> {
+    const stored = await new CompetitionRecordRepository(this.db).latestStandings(stageId);
+    if (!stored) return undefined;
+
+    const version = await new ProjectionStore(this.db).versionOf('standings', stageId);
+    return {
+      stageId,
+      projectionVersion: version?.version ?? 0,
+      fullyResolved: stored.fullyResolved,
+      rows: stored.rows.map(toStoredRowResponse),
+      trace: storedTraceLines(stored.trace),
+    };
+  }
+
+  private async materialisedTrace(
+    stageId: string,
+    entrantId: string,
+  ): Promise<TiebreakTraceResponse | undefined> {
+    const stored = await new CompetitionRecordRepository(this.db).latestStandings(stageId);
+    if (!stored) return undefined;
+
+    if (!stored.rows.some((row) => row.entrantId === entrantId)) {
+      throw new NotFoundException(`No entrant ${entrantId} in this stage’s standings`);
+    }
+
+    return { entrantId, lines: storedTraceLinesForEntrant(stored.trace, entrantId) };
+  }
+}
+
+function toStoredRowResponse(row: Record<string, unknown>) {
+  const statistics = row.statistics;
+  return {
+    rank: typeof row.rank === 'number' ? row.rank : 0,
+    entrantId: typeof row.entrantId === 'string' ? row.entrantId : '',
+    sharedRank: row.sharedRank === true,
+    statistics: numericRecord(statistics),
+    tieBroken: row.tieBroken === true,
+  };
+}
+
+function numericRecord(value: unknown): Record<string, number> {
+  if (typeof value !== 'object' || value === null) return {};
+  return Object.fromEntries(
+    Object.entries(value).filter(
+      (entry): entry is [string, number] => typeof entry[1] === 'number',
+    ),
+  );
+}
+
+function storedTraceLines(trace: readonly Record<string, unknown>[]): string[] {
+  if (trace.every((line): line is { readonly text: string } => typeof line.text === 'string')) {
+    return trace.map((line) => line.text);
+  }
+  return traceLines(trace as unknown as readonly TraceNode[]).map((line) => line);
+}
+
+function storedTraceLinesForEntrant(
+  trace: readonly Record<string, unknown>[],
+  entrantId: string,
+): string[] {
+  if (trace.every((line): line is { readonly text: string } => typeof line.text === 'string')) {
+    return trace.map((line) => line.text);
+  }
+  const nodes = trace as unknown as readonly TraceNode[];
+  const filtered = traceForEntrant(nodes, entrantId);
+  return traceLines(filtered.length > 0 ? filtered : nodes).map((line) => line);
 }
 
 /** Alias resolution plus the policy check, shared by the 0024 controllers. */

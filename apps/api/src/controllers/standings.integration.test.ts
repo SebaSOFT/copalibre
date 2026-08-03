@@ -5,6 +5,7 @@ import { Test } from '@nestjs/testing';
 import type { DisciplineDescriptor } from '@copalibre/domain';
 import {
   CompetitionRepository,
+  CompetitionRecordRepository,
   EnrollmentRepository,
   OrganizationRepository,
   ProjectionStore,
@@ -16,7 +17,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 import type { AuthenticatedSubject } from '../auth/request-context.js';
 import { TokenVerifier } from '../auth/token-verifier.js';
 import { DATABASE } from '../database.token.js';
-import { SeedingController } from './seeding.controller.js';
+import { SeedingController, toBracketMatch } from './seeding.controller.js';
 import { StandingsController } from './standings.controller.js';
 
 /**
@@ -65,7 +66,9 @@ function descriptor(): DisciplineDescriptor {
     notificationRuleCapabilities: [],
     winCondition: {},
     defaults: {},
-    fieldPolicies: {},
+    fieldPolicies: {
+      'match.format': { permission: { kind: 'replaced' }, mutationClass: 'requires_rebuild' },
+    },
   } as unknown as DisciplineDescriptor;
 }
 
@@ -73,9 +76,11 @@ describe('standings and seeding routes (integration)', () => {
   let app: INestApplication;
   let scratch: Awaited<ReturnType<typeof createMigratedDatabase>>;
   let organizationId = '';
+  let tournamentId = '';
   let stageId = '';
   const entrantIds: string[] = [];
   let firstFixtureId = '';
+  let finalizedMatchId = '';
 
   beforeAll(async () => {
     scratch = await createMigratedDatabase('standings');
@@ -119,6 +124,14 @@ describe('standings and seeding routes (integration)', () => {
         descriptor: discipline,
         ...AUDIT,
       });
+      tournamentId = tournament.tournamentId;
+      const { ruleset } = await tournaments.createRuleset(uow, {
+        tournamentId: tournament.tournamentId,
+        organizationId,
+        descriptor: discipline,
+        overrides: {},
+        ...AUDIT,
+      });
       const stage = await competition.createStageInTournament(uow, {
         tournamentId: tournament.tournamentId,
         number: 1,
@@ -128,6 +141,13 @@ describe('standings and seeding routes (integration)', () => {
         ...AUDIT,
       });
       stageId = stage.stageId;
+      await tournaments.createStageConfiguration(uow, {
+        stageId: stage.stageId,
+        rulesetId: ruleset.rulesetId,
+        organizationId,
+        overrides: { 'match.format': 'BO5' },
+        ...AUDIT,
+      });
 
       for (const name of ['Talleres', 'Independiente', 'Gimnasia', 'Maipú']) {
         const team = await participants.createTeam(uow, { organizationId, name, ...AUDIT });
@@ -237,6 +257,7 @@ describe('standings and seeding routes (integration)', () => {
     const body = response.json();
     expect(body.seeds.map((seed: { seed: number }) => seed.seed)).toEqual([1, 2, 3, 4]);
     expect(body.matches.length).toBeGreaterThan(0);
+    expect(body.matches[0].format).toBe('BO5');
     expect(body.hasRecordedResults).toBe(false);
   });
 
@@ -268,6 +289,31 @@ describe('standings and seeding routes (integration)', () => {
     expect(response.statusCode).toBe(422);
   });
 
+  it('refuses a partial seed order and entrants outside the stage', async () => {
+    const partial = await request({
+      method: 'POST',
+      url: `${base}/seeding`,
+      token: 'organizer',
+      payload: { seeds: [{ seed: 1, entrantId: entrantIds[0] }] },
+    });
+    expect(partial.statusCode).toBe(422);
+
+    const outsider = await request({
+      method: 'POST',
+      url: `${base}/seeding`,
+      token: 'organizer',
+      payload: {
+        seeds: [
+          { seed: 1, entrantId: entrantIds[0] },
+          { seed: 2, entrantId: entrantIds[1] },
+          { seed: 3, entrantId: entrantIds[2] },
+          { seed: 4, entrantId: '01890000-0000-7000-8000-00000000ffff' },
+        ],
+      },
+    });
+    expect(outsider.statusCode).toBe(422);
+  });
+
   it('refuses a reseed once a result exists, whatever the console allowed', async () => {
     const [winner = '', runnerUp = ''] = entrantIds;
     const competition = new CompetitionRepository(scratch.db);
@@ -281,6 +327,7 @@ describe('standings and seeding routes (integration)', () => {
         ...AUDIT,
       }),
     );
+    finalizedMatchId = match.matchId;
     await withTransaction(scratch.db, async (uow) => {
       await competition.recordResult(uow, {
         matchId: match.matchId,
@@ -308,11 +355,74 @@ describe('standings and seeding routes (integration)', () => {
     expect(response.json().message).toContain('Seeding cannot change once a result exists');
   });
 
-  it('ranks the recorded result and traces the comparator that did it', async () => {
+  it('serves the published materialised standings when one exists', async () => {
+    await withTransaction(scratch.db, (uow) =>
+      new CompetitionRecordRepository(scratch.db).materialiseStandings(uow, {
+        tournamentId,
+        stageId,
+        matchId: finalizedMatchId,
+        rows: [
+          {
+            rank: 9,
+            entrantId: entrantIds[1],
+            sharedRank: false,
+            statistics: { points: 99 },
+            tieBroken: true,
+          },
+        ],
+        trace: [
+          {
+            kind: 'comparator',
+            id: 'points',
+            label: 'Puntos',
+            outcome: 'resolved',
+            values: { [entrantIds[1] ?? '']: 99 },
+          },
+        ],
+        fullyResolved: true,
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+
     const response = await request({ method: 'GET', url: `${base}/standings`, token: 'organizer' });
 
     const body = response.json();
-    expect(body.rows[0]).toMatchObject({ rank: 1, entrantId: entrantIds[0] });
-    expect(body.trace[0]).toContain('Rule 1 (Puntos)');
+    expect(body.rows[0]).toMatchObject({ rank: 9, entrantId: entrantIds[1] });
+    expect(body.trace[0]).toContain('Puntos');
+
+    const trace = await request({
+      method: 'GET',
+      url: `${base}/standings/entrants/${entrantIds[1]}/trace`,
+      token: 'organizer',
+    });
+    expect(trace.json().lines[0]).toContain('Puntos');
+  });
+
+  it('does not paint a persisted winners result onto an ambiguous losers bracket node', () => {
+    const node = toBracketMatch(
+      {
+        id: 'LB-R1-M1',
+        shape: 'duel',
+        bracket: 'losers',
+        round: 1,
+        position: 1,
+        slotA: { kind: 'loser-of', matchId: 'WB-R1-M1' },
+        slotB: { kind: 'loser-of', matchId: 'WB-R1-M2' },
+      },
+      [
+        {
+          matchId: 'persisted-winners',
+          round: 1,
+          position: 1,
+          status: 'finalized',
+          scores: [2, 0],
+        },
+      ],
+      { ambiguousPositions: new Set(['1:1']) },
+    );
+
+    expect(node.status).toBe('scheduled');
+    expect(node.slots.some((slot) => slot.score !== undefined)).toBe(false);
   });
 });

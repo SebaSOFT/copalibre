@@ -91,11 +91,16 @@ export class SeedingController {
     const graph = this.graphOf(record.format, record.entrantIds);
     const persisted = await new StageReadModel(this.db).matches(stageId);
 
+    const ambiguousPositions = ambiguousRoundPositions(graph.matches);
+    const matchFormat = matchFormatOf(record.overrides);
+
     return {
       stageId,
       format: record.format,
       seeds: record.entrantIds.map((entrantId, index) => ({ seed: index + 1, entrantId })),
-      matches: graph.matches.map((match) => toBracketMatch(match, persisted)),
+      matches: graph.matches.map((match) =>
+        toBracketMatch(match, persisted, { ambiguousPositions, matchFormat }),
+      ),
       hasRecordedResults: record.hasRecordedResults,
     };
   }
@@ -127,10 +132,7 @@ export class SeedingController {
     if (seeds.length === 0) {
       throw new UnprocessableEntityException('A seed order must name every entrant');
     }
-    const entrantIds = seeds.map((seed) => seed.entrantId);
-    if (new Set(entrantIds).size !== entrantIds.length) {
-      throw new UnprocessableEntityException('A seed order may not place an entrant twice');
-    }
+    validateSeedOrder(seeds, record.entrantIds);
 
     const classification = classifyEngineMutation(
       { kind: 'seeding' },
@@ -203,10 +205,17 @@ export class SeedingController {
 export function toBracketMatch(
   match: GeneratedMatch,
   persisted: readonly StageMatchRecord[],
+  options: {
+    readonly ambiguousPositions?: ReadonlySet<string>;
+    readonly matchFormat?: string;
+  } = {},
 ): BracketMatchResponse {
-  const recorded = persisted.find(
-    (candidate) => candidate.round === match.round && candidate.position === match.position,
-  );
+  const key = roundPositionKey(match);
+  const recorded = options.ambiguousPositions?.has(key)
+    ? undefined
+    : persisted.find(
+        (candidate) => candidate.round === match.round && candidate.position === match.position,
+      );
 
   return {
     matchId: match.id,
@@ -214,6 +223,7 @@ export function toBracketMatch(
     round: match.round,
     position: match.position,
     status: recorded?.status ?? 'scheduled',
+    ...(options.matchFormat === undefined ? {} : { format: options.matchFormat }),
     slots: slotsOf(match).map((slot, index) => ({
       kind: slot.kind,
       ...(slot.kind === 'entrant' ? { entrantId: slot.entrantId } : {}),
@@ -221,4 +231,62 @@ export function toBracketMatch(
       ...(recorded?.scores?.[index] === undefined ? {} : { score: recorded.scores[index] }),
     })),
   };
+}
+
+function validateSeedOrder(
+  seeds: readonly { readonly seed: number; readonly entrantId: string }[],
+  expectedEntrantIds: readonly string[],
+): void {
+  if (seeds.length !== expectedEntrantIds.length) {
+    throw new UnprocessableEntityException('A seed order must name every entrant exactly once');
+  }
+
+  const expectedEntrants = new Set(expectedEntrantIds);
+  const seenEntrants = new Set<string>();
+  const seenSeeds = new Set<number>();
+  for (const entry of seeds) {
+    if (!Number.isInteger(entry.seed) || entry.seed < 1 || entry.seed > expectedEntrantIds.length) {
+      throw new UnprocessableEntityException('Seed numbers must form the full 1-based stage order');
+    }
+    if (!expectedEntrants.has(entry.entrantId)) {
+      throw new UnprocessableEntityException('A seed order may only name entrants in this stage');
+    }
+    if (seenEntrants.has(entry.entrantId)) {
+      throw new UnprocessableEntityException('A seed order may not place an entrant twice');
+    }
+    if (seenSeeds.has(entry.seed)) {
+      throw new UnprocessableEntityException('A seed number may only appear once');
+    }
+    seenEntrants.add(entry.entrantId);
+    seenSeeds.add(entry.seed);
+  }
+}
+
+function ambiguousRoundPositions(matches: readonly GeneratedMatch[]): ReadonlySet<string> {
+  const counts = new Map<string, number>();
+  for (const match of matches) {
+    const key = roundPositionKey(match);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  return new Set([...counts].filter(([, count]) => count > 1).map(([key]) => key));
+}
+
+function roundPositionKey(match: Pick<GeneratedMatch, 'round' | 'position'>): string {
+  return `${match.round}:${match.position}`;
+}
+
+function matchFormatOf(overrides: Readonly<Record<string, unknown>>): string | undefined {
+  const dotted = overrides['match.format'];
+  if (typeof dotted === 'string' && dotted.length > 0) return dotted;
+
+  const camel = overrides['matchFormat'];
+  if (typeof camel === 'string' && camel.length > 0) return camel;
+
+  const match = overrides['match'];
+  if (typeof match === 'object' && match !== null) {
+    const nested = (match as { readonly format?: unknown }).format;
+    if (typeof nested === 'string' && nested.length > 0) return nested;
+  }
+
+  return undefined;
 }

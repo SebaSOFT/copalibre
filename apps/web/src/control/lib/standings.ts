@@ -20,6 +20,7 @@ export interface StandingsData {
   readonly projectionVersion: number;
   readonly fullyResolved: boolean;
   readonly rows: readonly StandingsRowData[];
+  /** Whole-calculation trace retained for audit/export; row panels fetch filtered traces lazily. */
   readonly trace: readonly string[];
 }
 
