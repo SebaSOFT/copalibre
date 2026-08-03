@@ -308,6 +308,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/console": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the authoritative state required by a match-control console
+         * @description Returns operator-only state after organization role and match-assignment checks. Public reads remain sanitized and never include capabilities, lineups, or descriptor input metadata.
+         */
+        get: operations["MatchControlController_console"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/commands/{command}": {
         parameters: {
             query?: never;
@@ -322,6 +342,40 @@ export interface paths {
          * @description Pausing stops the clock, not the competition: a paused match is still in progress. Finalizing needs its own capability — recording events never implies declaring a result.
          */
         post: operations["MatchControlController_command"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/clock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Adjust the authoritative elapsed time or active segment */
+        post: operations["MatchControlController_adjustClock"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/timers/{timerId}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resolve a discipline-declared timer early */
+        post: operations["MatchControlController_resolveTimer"];
         delete?: never;
         options?: never;
         head?: never;
@@ -822,6 +876,82 @@ export interface components {
             /** @description Timers still running, by event id */
             runningTimers: string[];
         };
+        ConsoleLiveScoreResponse: {
+            /** Format: uuid */
+            entrantId: string;
+            /** @description Score folded from the immutable event log */
+            score: number;
+            /** @description Declared statistic deltas folded from the event log */
+            statistics: Record<string, never>;
+        };
+        ConsoleSegmentResponse: {
+            /** Format: uuid */
+            segmentId: string;
+            type: string;
+            number: number;
+            /** @enum {string} */
+            state: "pending" | "active" | "completed";
+            elapsedSeconds: number;
+            /** @description Descriptor-declared duration for a timed segment */
+            durationSeconds?: number;
+        };
+        RunningTimerDto: {
+            /**
+             * Format: uuid
+             * @description The event that started it
+             */
+            timerId: string;
+            /**
+             * Format: uuid
+             * @description The entrant serving it
+             */
+            side?: string;
+            /** Format: uuid */
+            personId?: string;
+            /** @description Epoch milliseconds of the causing event */
+            startedAt: number;
+            durationSeconds: number;
+            /** @description Derived at read; never a stored countdown */
+            remainingSeconds: number;
+        };
+        ConsoleEventResponse: {
+            /** Format: uuid */
+            eventId: string;
+            definitionCode: string;
+            /** Format: uuid */
+            segmentId: string;
+            sequence: number;
+            /** Format: date-time */
+            occurredAt: string;
+            /** Format: uuid */
+            side?: string;
+            /** Format: uuid */
+            personId?: string;
+        };
+        MatchConsoleResponse: {
+            /** Format: uuid */
+            matchId: string;
+            /** @enum {string} */
+            status: "scheduled" | "in-progress" | "finalized";
+            /** @description Resolved authoritative result when one exists */
+            result: Record<string, never>;
+            liveScores: components["schemas"]["ConsoleLiveScoreResponse"][];
+            segments: components["schemas"]["ConsoleSegmentResponse"][];
+            runningTimers: components["schemas"]["RunningTimerDto"][];
+            events: components["schemas"]["ConsoleEventResponse"][];
+            /** @description Descriptor-owned palette presentation metadata */
+            eventDefinitions: Record<string, never>[];
+            /** @description Persons eligible for attribution from active lineups */
+            eligiblePersonIds: string[];
+            /** @description Coaches and staff attached to an entrant contesting this match */
+            eligibleStaffIds: string[];
+            /** @description Entrants contesting this match */
+            entrantIds: string[];
+            /** @description Capabilities granted to this subject for this match */
+            capabilities: string[];
+            /** @description Monotonic server-issued projection version */
+            projectionVersion: number;
+        };
         FinalizeRequest: {
             /** @description One entry per side: entrant id, its declared statistics, and placement for a heat */
             sides: Record<string, never>[];
@@ -830,6 +960,13 @@ export interface components {
              * @description Duel matches only
              */
             winnerEntrantId?: string;
+        };
+        ClockAdjustmentRequest: {
+            /** Format: uuid */
+            segmentId: string;
+            elapsedSeconds: number;
+            /** @description Make the selected segment the active clock segment */
+            activate?: boolean;
         };
         RecordEventRequest: {
             /**
@@ -1562,10 +1699,51 @@ export interface operations {
             };
         };
     };
-    MatchControlController_command: {
+    MatchControlController_console: {
         parameters: {
             query?: never;
             header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                matchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MatchConsoleResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    MatchControlController_command: {
+        parameters: {
+            query?: never;
+            header: {
+                "idempotency-key": string;
+            };
             path: {
                 organizationAlias: string;
                 tournamentAlias: string;
@@ -1594,6 +1772,73 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    MatchControlController_adjustClock: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                matchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClockAdjustmentRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MatchConsoleResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    MatchControlController_resolveTimer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                matchId: string;
+                timerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MatchConsoleResponse"];
                 };
             };
             403: {

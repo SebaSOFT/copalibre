@@ -1,0 +1,40 @@
+---
+import { MatchConsoleControlRoute } from '../../../../../../control/components/ControlRoutes.tsx';
+import '@copalibre/design-tokens/generated/copalibre.css';
+
+export function getStaticPaths() {
+  return [
+    {
+      params: {
+        organization: 'liga-mendocina',
+        tournament: 'apertura-2026',
+        match: '00000000-0000-7000-8000-000000000001',
+      },
+    },
+  ];
+}
+
+const { organization, tournament, match } = Astro.params;
+const alias = organization ?? 'liga-mendocina';
+const tournamentAlias = tournament ?? 'apertura-2026';
+const matchId = match ?? '00000000-0000-7000-8000-000000000001';
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Operar partido — {tournamentAlias}</title>
+  </head>
+  <body>
+    <MatchConsoleControlRoute
+      client:only="react"
+      matchId={matchId}
+      organizationAlias={alias}
+      tournamentAlias={tournamentAlias}
+    />
+    <noscript>El panel de control necesita JavaScript. Las páginas públicas no.</noscript>
+  </body>
+</html>

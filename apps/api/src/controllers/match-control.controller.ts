@@ -1,8 +1,12 @@
+import { createHash } from 'node:crypto';
 import {
   BadRequestException,
   Body,
+  ConflictException,
   Controller,
+  ForbiddenException,
   Get,
+  Headers,
   Inject,
   NotFoundException,
   Param,
@@ -20,6 +24,7 @@ import {
 import {
   applyMatchCommand,
   EventLog,
+  foldLiveScores,
   planCorrection,
   runningTimers,
   type DisciplineDescriptor,
@@ -37,6 +42,7 @@ import {
   CompetitionRecordRepository,
   CompetitionRepository,
   MatchAssignmentRepository,
+  MatchCommandIdempotencyRepository,
   TournamentRepository,
   withTransaction,
   type Database,
@@ -49,7 +55,9 @@ import {
   CorrectionHistoryResponse,
   CorrectionPreviewResponse,
   CorrectionRequestDto,
+  ClockAdjustmentRequest,
   FinalizeRequest,
+  MatchConsoleResponse,
   MatchStateResponse,
   RecordEventRequest,
   RecordedEventResponse,
@@ -95,9 +103,10 @@ export class MatchControlController {
     const match = await competition.findMatch(matchId);
     if (!match) throw new NotFoundException(`No match "${matchId}"`);
 
-    const [segments, events] = await Promise.all([
+    const [segments, events, resolvedTimerIds] = await Promise.all([
       competition.listSegments(matchId),
       competition.listEvents(matchId),
+      competition.resolvedTimerIds(matchId),
     ]);
     const descriptor = await this.descriptorFor(organizationAlias, tournamentAlias);
 
@@ -105,13 +114,40 @@ export class MatchControlController {
       matchId,
       status: match.status,
       clockRunning: segments.some((segment) => segment.state === 'active'),
-      runningTimers: runningTimers(events, timerCodesOf(descriptor), Date.now()).map(toTimerDto),
+      runningTimers: runningTimers(
+        events,
+        timerCodesOf(descriptor),
+        Date.now(),
+        resolvedTimerIds,
+      ).map(toTimerDto),
     };
+  }
+
+  @Get('console')
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin', 'referee')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Read the authoritative state required by a match-control console',
+    description:
+      'Returns operator-only state after organization role and match-assignment checks. Public reads ' +
+      'remain sanitized and never include capabilities, lineups, or descriptor input metadata.',
+  })
+  @ApiOkResponse({ type: MatchConsoleResponse })
+  @ApiUnauthorizedResponse({ type: ProblemResponse })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  async console(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('matchId') matchId: string,
+    @Req() request: RequestWithSubject,
+  ): Promise<MatchConsoleResponse> {
+    return this.consoleProjection(organizationAlias, tournamentAlias, matchId, request);
   }
 
   @Post('commands/:command')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationRole('admin', 'referee')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Start, pause, resume or finalize',
@@ -129,6 +165,7 @@ export class MatchControlController {
     @Param('command') command: string,
     @Req() request: RequestWithSubject,
     @Body() body?: FinalizeRequest,
+    @Headers('idempotency-key') idempotencyKey?: string,
   ): Promise<MatchStateResponse> {
     if (!isMatchCommand(command)) {
       throw new BadRequestException(`Unknown match command "${command}"`);
@@ -138,6 +175,16 @@ export class MatchControlController {
     const competition = new CompetitionRepository(this.db);
     const match = await competition.findMatch(matchId);
     if (!match) throw new NotFoundException(`No match "${matchId}"`);
+
+    const fingerprint = command === 'finalize' ? finalizeFingerprint(body) : undefined;
+    const idempotency = new MatchCommandIdempotencyRepository(this.db);
+    if (command === 'finalize') {
+      if (!idempotencyKey) {
+        throw new BadRequestException('Finalizing a match requires an Idempotency-Key header');
+      }
+      const previous = await idempotency.find(idempotencyKey);
+      if (previous) return replayFinalize(previous, matchId, fingerprint ?? '');
+    }
 
     const stageId = await this.stageOf(matchId);
     const granted = enforceMatchCommand({
@@ -167,51 +214,222 @@ export class MatchControlController {
       authorizationContext: `capability:${granted.capability}`,
     };
 
-    await withTransaction(this.db, async (uow) => {
-      await competition.applyCommand(uow, {
+    const finalizeResponse: MatchStateResponse = {
+      matchId,
+      status: transition.value.status,
+      clockRunning: transition.value.clockRunning,
+      runningTimers: [],
+    };
+
+    try {
+      await withTransaction(this.db, async (uow) => {
+        await competition.applyCommand(uow, {
+          matchId,
+          command,
+          status: transition.value.status,
+          grantedBy: granted.grantedBy,
+          ...audit,
+        });
+
+        if (active) {
+          await competition.setSegmentState(uow, {
+            segmentId: active.segmentId,
+            state: transition.value.clockRunning ? 'active' : 'pending',
+            ...audit,
+          });
+        }
+
+        await uow.publishEvent({
+          organizationId: tournament.organizationId,
+          stream: `match:${matchId}`,
+          entityId: matchId,
+          eventType: 'match.console-projection',
+          projectionVersion: Date.now(),
+          payload: {
+            matchId,
+            status: transition.value.status,
+            clockRunning: transition.value.clockRunning,
+          },
+        });
+
+        if (command === 'finalize') {
+          if (!body?.sides?.length) {
+            throw new BadRequestException('Finalizing a match requires one entry per side');
+          }
+          await competition.recordResult(uow, {
+            matchId,
+            result: {
+              sides: body.sides.map((side) => ({
+                entrantId: side.entrantId,
+                statistics: side.statistics,
+                ...(side.placement === undefined ? {} : { placement: side.placement }),
+              })),
+              ...(body.winnerEntrantId === undefined
+                ? {}
+                : { winnerEntrantId: body.winnerEntrantId }),
+              recordedAt: new Date().toISOString(),
+            },
+            ...audit,
+          });
+          await idempotency.record(uow, {
+            idempotencyKey: idempotencyKey ?? '',
+            matchId,
+            operation: command,
+            requestFingerprint: fingerprint ?? '',
+            response: finalizeResponse as unknown as Record<string, unknown>,
+          });
+        }
+      });
+    } catch (error) {
+      if (command !== 'finalize' || !idempotencyKey) throw error;
+      const previous = await idempotency.find(idempotencyKey);
+      if (!previous) throw error;
+      return replayFinalize(previous, matchId, fingerprint ?? '');
+    }
+
+    return command === 'finalize'
+      ? finalizeResponse
+      : this.state(organizationAlias, tournamentAlias, matchId);
+  }
+
+  @Post('clock')
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin', 'referee')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Adjust the authoritative elapsed time or active segment' })
+  @ApiOkResponse({ type: MatchConsoleResponse })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  async adjustClock(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('matchId') matchId: string,
+    @Body() body: ClockAdjustmentRequest,
+    @Req() request: RequestWithSubject,
+  ): Promise<MatchConsoleResponse> {
+    const tournament = await this.resolveTournament(organizationAlias, tournamentAlias);
+    const competition = new CompetitionRepository(this.db);
+    const segments = await competition.listSegments(matchId);
+    const selected = segments.find((segment) => segment.segmentId === body.segmentId);
+    if (!selected) throw new NotFoundException(`No segment "${body.segmentId}" in this match`);
+
+    const stageId = await this.stageOf(matchId);
+    const granted = enforceMatchCommand({
+      plane: 'admin-control',
+      subject: request.subject,
+      resource: { organizationId: tournament.organizationId },
+      assignments: await new MatchAssignmentRepository(this.db).forSubject({
+        organizationId: tournament.organizationId,
+        subjectId: request.subject?.subjectId ?? '',
         matchId,
-        command,
-        status: transition.value.status,
-        grantedBy: granted.grantedBy,
+        stageId,
+      }),
+      capability: 'match.control-clock',
+      match: { organizationId: tournament.organizationId, matchId, stageId },
+    });
+    const audit = {
+      organizationId: tournament.organizationId,
+      actor: request.subject?.subjectId ?? 'unknown',
+      authorizationContext: `capability:${granted.capability} via ${granted.grantedBy}`,
+    };
+
+    await withTransaction(this.db, async (uow) => {
+      if (body.activate) {
+        for (const segment of segments) {
+          if (segment.segmentId !== selected.segmentId && segment.state === 'active') {
+            await competition.setSegmentState(uow, {
+              segmentId: segment.segmentId,
+              state: 'pending',
+              ...audit,
+            });
+          }
+        }
+        if (selected.state !== 'active') {
+          await competition.setSegmentState(uow, {
+            segmentId: selected.segmentId,
+            state: 'active',
+            ...audit,
+          });
+        }
+      }
+      await competition.adjustSegmentClock(uow, {
+        segmentId: selected.segmentId,
+        elapsedSeconds: body.elapsedSeconds,
         ...audit,
       });
-
-      if (active) {
-        await competition.setSegmentState(uow, {
-          segmentId: active.segmentId,
-          state: transition.value.clockRunning ? 'active' : 'pending',
-          ...audit,
-        });
-      }
-
-      if (command === 'finalize') {
-        if (!body?.sides?.length) {
-          throw new BadRequestException('Finalizing a match requires one entry per side');
-        }
-        await competition.recordResult(uow, {
-          matchId,
-          result: {
-            sides: body.sides.map((side) => ({
-              entrantId: side.entrantId,
-              statistics: side.statistics,
-              ...(side.placement === undefined ? {} : { placement: side.placement }),
-            })),
-            ...(body.winnerEntrantId === undefined
-              ? {}
-              : { winnerEntrantId: body.winnerEntrantId }),
-            recordedAt: new Date().toISOString(),
-          },
-          ...audit,
-        });
-      }
+      await uow.publishEvent({
+        organizationId: tournament.organizationId,
+        stream: `match:${matchId}`,
+        entityId: matchId,
+        eventType: 'match.console-projection',
+        projectionVersion: Date.now(),
+        payload: { matchId, command: 'clock-adjusted', segmentId: selected.segmentId },
+      });
     });
 
-    return this.state(organizationAlias, tournamentAlias, matchId);
+    return this.consoleProjection(organizationAlias, tournamentAlias, matchId, request);
+  }
+
+  @Post('timers/:timerId/resolve')
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin', 'referee')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Resolve a discipline-declared timer early' })
+  @ApiOkResponse({ type: MatchConsoleResponse })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  async resolveTimer(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('matchId') matchId: string,
+    @Param('timerId') timerId: string,
+    @Req() request: RequestWithSubject,
+  ): Promise<MatchConsoleResponse> {
+    const tournament = await this.resolveTournament(organizationAlias, tournamentAlias);
+    const competition = new CompetitionRepository(this.db);
+    const [events, descriptor] = await Promise.all([
+      competition.listEvents(matchId),
+      this.descriptorFor(organizationAlias, tournamentAlias),
+    ]);
+    const timer = events.find((event) => event.eventId === timerId);
+    if (!timer || !allowsManualTimerResolution(descriptor, timer.definitionCode)) {
+      throw new BadRequestException('This timer has no discipline-declared manual resolution');
+    }
+
+    const stageId = await this.stageOf(matchId);
+    const granted = enforceMatchCommand({
+      plane: 'admin-control',
+      subject: request.subject,
+      resource: { organizationId: tournament.organizationId },
+      assignments: await new MatchAssignmentRepository(this.db).forSubject({
+        organizationId: tournament.organizationId,
+        subjectId: request.subject?.subjectId ?? '',
+        matchId,
+        stageId,
+      }),
+      capability: 'match.resolve-timer',
+      match: { organizationId: tournament.organizationId, matchId, stageId },
+    });
+    const audit = {
+      organizationId: tournament.organizationId,
+      actor: request.subject?.subjectId ?? 'unknown',
+      authorizationContext: `capability:${granted.capability} via ${granted.grantedBy}`,
+    };
+    await withTransaction(this.db, async (uow) => {
+      await competition.resolveTimer(uow, { timerId, matchId, ...audit });
+      await uow.publishEvent({
+        organizationId: tournament.organizationId,
+        stream: `match:${matchId}`,
+        entityId: matchId,
+        eventType: 'match.console-projection',
+        projectionVersion: Date.now(),
+        payload: { matchId, command: 'timer-resolved', timerId },
+      });
+    });
+    return this.consoleProjection(organizationAlias, tournamentAlias, matchId, request);
   }
 
   @Post('events')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationRole('admin', 'referee')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Record a discipline event',
@@ -258,7 +476,51 @@ export class MatchControlController {
     const segment = segments.find((candidate) => candidate.segmentId === body.segmentId);
     if (!segment) throw new NotFoundException(`No segment "${body.segmentId}" in this match`);
 
-    const descriptor = await this.descriptorFor(organizationAlias, tournamentAlias);
+    const [lineups, fixture, descriptor] = await Promise.all([
+      this.db
+        .selectFrom('match_lineups')
+        .select('person_ids')
+        .where('match_id', '=', matchId)
+        .execute(),
+      this.db
+        .selectFrom('matches')
+        .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
+        .select(['fixtures.home_entrant_id', 'fixtures.away_entrant_id'])
+        .where('matches.match_id', '=', matchId)
+        .executeTakeFirst(),
+      this.descriptorFor(organizationAlias, tournamentAlias),
+    ]);
+    const entrantIds = [fixture?.home_entrant_id, fixture?.away_entrant_id].filter(
+      (entrantId): entrantId is string => entrantId !== null && entrantId !== undefined,
+    );
+    const eligiblePersonIds = new Set(
+      lineups.flatMap((lineup) => lineup.person_ids as readonly string[]),
+    );
+    const definition = descriptor.eventDefinitions.find(
+      (candidate) => candidate.code === body.definitionCode,
+    );
+    if (
+      body.personId &&
+      definition?.actorRequirement === 'person' &&
+      !eligiblePersonIds.has(body.personId)
+    ) {
+      throw new BadRequestException(`Person "${body.personId}" is not in this match lineup`);
+    }
+    if (body.personId && definition?.actorRequirement === 'person-or-staff') {
+      const eligibleStaffIds = await this.eligibleStaffIds(entrantIds);
+      if (!eligiblePersonIds.has(body.personId) && !eligibleStaffIds.has(body.personId)) {
+        throw new BadRequestException(`Person "${body.personId}" is not eligible for this match`);
+      }
+    }
+    if (
+      body.personId &&
+      (definition?.actorRequirement === 'none' || definition?.actorRequirement === 'side')
+    ) {
+      throw new BadRequestException(
+        `Event "${body.definitionCode}" does not accept a person attribution`,
+      );
+    }
+
     const validated = new EventLog(descriptor).record({
       eventId: crypto.randomUUID(),
       matchId,
@@ -268,6 +530,7 @@ export class MatchControlController {
       ...(body.side === undefined ? {} : { side: body.side }),
       ...(body.personId === undefined ? {} : { personId: body.personId }),
       ...(body.payload === undefined ? {} : { payload: body.payload }),
+      entrantIds,
     });
     if (!validated.ok) {
       throw new BadRequestException(validated.error.message);
@@ -295,6 +558,14 @@ export class MatchControlController {
         // recording at once cannot both claim the same one.
         sequence: await competition.nextEventSequence(matchId),
         ...audit,
+      });
+      await uow.publishEvent({
+        organizationId: tournament.organizationId,
+        stream: `match:${matchId}`,
+        entityId: matchId,
+        eventType: 'match.console-projection',
+        projectionVersion: appended.sequence,
+        payload: { matchId, eventId: appended.eventId, sequence: appended.sequence },
       });
 
       const log = [...(await competition.listEvents(matchId)), appended];
@@ -530,6 +801,127 @@ export class MatchControlController {
     return descriptor;
   }
 
+  private async consoleProjection(
+    organizationAlias: string,
+    tournamentAlias: string,
+    matchId: string,
+    request: RequestWithSubject,
+  ): Promise<MatchConsoleResponse> {
+    const tournament = await this.resolveTournament(organizationAlias, tournamentAlias);
+    const competition = new CompetitionRepository(this.db);
+    const match = await competition.findMatch(matchId);
+    if (!match) throw new NotFoundException(`No match "${matchId}"`);
+
+    const stageId = await this.stageOf(matchId);
+    const [segments, events, descriptor, resolvedTimerIds, assignments, lineups, fixture] =
+      await Promise.all([
+        competition.listSegments(matchId),
+        competition.listEvents(matchId),
+        this.descriptorFor(organizationAlias, tournamentAlias),
+        competition.resolvedTimerIds(matchId),
+        new MatchAssignmentRepository(this.db).forSubject({
+          organizationId: tournament.organizationId,
+          subjectId: request.subject?.subjectId ?? '',
+          matchId,
+          stageId,
+        }),
+        this.db
+          .selectFrom('match_lineups')
+          .select('person_ids')
+          .where('match_id', '=', matchId)
+          .execute(),
+        this.db
+          .selectFrom('matches')
+          .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
+          .select(['fixtures.home_entrant_id', 'fixtures.away_entrant_id'])
+          .where('matches.match_id', '=', matchId)
+          .executeTakeFirst(),
+      ]);
+    const capabilities = [...new Set(assignments.flatMap((assignment) => assignment.capabilities))];
+    if (capabilities.length === 0) {
+      throw new ForbiddenException('Subject holds no match-control capability for this match');
+    }
+
+    const entrantIds = [fixture?.home_entrant_id, fixture?.away_entrant_id].filter(
+      (entrantId): entrantId is string => entrantId !== null && entrantId !== undefined,
+    );
+    const eligibleStaffIds = await this.eligibleStaffIds(entrantIds);
+
+    return {
+      matchId,
+      status: match.status,
+      result: (match.result as Record<string, unknown> | undefined) ?? null,
+      liveScores: [...foldLiveScores(descriptor, events, entrantIds)],
+      segments: segments.map((segment) => ({
+        segmentId: segment.segmentId,
+        type: segment.type,
+        number: segment.number,
+        state: segment.state,
+        elapsedSeconds: elapsedSecondsOf(segment, Date.now()),
+        ...durationFor(descriptor, segment.type),
+      })),
+      runningTimers: runningTimers(
+        events,
+        timerCodesOf(descriptor),
+        Date.now(),
+        resolvedTimerIds,
+      ).map(toTimerDto),
+      events: events.map((event) => ({
+        eventId: event.eventId,
+        definitionCode: event.definitionCode,
+        segmentId: event.segmentId,
+        sequence: event.sequence,
+        occurredAt: event.occurredAt,
+        ...(event.side === undefined ? {} : { side: event.side }),
+        ...(event.personId === undefined ? {} : { personId: event.personId }),
+      })),
+      eventDefinitions: descriptor.eventDefinitions.map((definition) => ({
+        code: definition.code,
+        label: definition.label,
+        category: definition.category,
+        permittedSegmentTypes: [...definition.permittedSegmentTypes],
+        actorRequirement: definition.actorRequirement,
+        payloadSchema: { ...definition.payloadSchema },
+        display: definition.display ? { ...definition.display } : {},
+        ...(definition.workflow === undefined
+          ? {}
+          : {
+              workflow: {
+                kind: definition.workflow.kind,
+                options: definition.workflow.options.map((option) => ({ ...option })),
+              },
+            }),
+      })),
+      eligiblePersonIds: [
+        ...new Set(lineups.flatMap((lineup) => lineup.person_ids as readonly string[])),
+      ],
+      eligibleStaffIds: [...eligibleStaffIds],
+      entrantIds,
+      capabilities,
+      projectionVersion: Date.now(),
+    };
+  }
+
+  private async eligibleStaffIds(entrantIds: readonly string[]): Promise<ReadonlySet<string>> {
+    if (entrantIds.length === 0) return new Set();
+
+    const entrants = await this.db
+      .selectFrom('entrants')
+      .select('team_id')
+      .where('entrant_id', 'in', entrantIds)
+      .execute();
+    const teamIds = entrants.flatMap((entrant) => (entrant.team_id ? [entrant.team_id] : []));
+    if (teamIds.length === 0) return new Set();
+
+    const staff = await this.db
+      .selectFrom('players')
+      .select('person_id')
+      .where('team_id', 'in', teamIds)
+      .where('role', 'in', ['coach', 'staff'])
+      .execute();
+    return new Set(staff.map((member) => member.person_id));
+  }
+
   private async stageOf(matchId: string): Promise<string> {
     const stageId = await new CompetitionRepository(this.db).stageOfMatch(matchId);
     if (!stageId) throw new NotFoundException(`Match "${matchId}" belongs to no stage`);
@@ -558,6 +950,29 @@ function timerCodesOf(descriptor: DisciplineDescriptor) {
   return { starts, stops: [] as readonly string[] };
 }
 
+function allowsManualTimerResolution(
+  descriptor: DisciplineDescriptor,
+  definitionCode: string,
+): boolean {
+  return (
+    descriptor.eventDefinitions
+      .find((definition) => definition.code === definitionCode)
+      ?.effects?.some(
+        (effect) => effect.kind === 'timed-penalty' && effect.allowManualResolution === true,
+      ) ?? false
+  );
+}
+
+function durationFor(
+  descriptor: DisciplineDescriptor,
+  segmentType: string,
+): { readonly durationSeconds?: number } {
+  const durationSeconds = descriptor.segmentTypes.find(
+    (segment) => segment.name === segmentType,
+  )?.defaultDurationSeconds;
+  return durationSeconds === undefined ? {} : { durationSeconds };
+}
+
 function toTimerDto(timer: RunningTimer) {
   return {
     timerId: timer.timerId,
@@ -567,6 +982,41 @@ function toTimerDto(timer: RunningTimer) {
     durationSeconds: timer.durationSeconds,
     remainingSeconds: timer.remainingSeconds,
   };
+}
+
+function elapsedSecondsOf(
+  segment: { readonly elapsedSeconds?: number; readonly clockStartedAt?: string },
+  now: number,
+): number {
+  const elapsed = segment.elapsedSeconds ?? 0;
+  if (!segment.clockStartedAt) return elapsed;
+  return elapsed + Math.max(0, Math.floor((now - Date.parse(segment.clockStartedAt)) / 1000));
+}
+
+function finalizeFingerprint(body: FinalizeRequest | undefined): string {
+  return createHash('sha256')
+    .update(JSON.stringify(body ?? {}))
+    .digest('hex');
+}
+
+function replayFinalize(
+  stored: {
+    readonly matchId: string;
+    readonly operation: string;
+    readonly requestFingerprint: string;
+    readonly response: Readonly<Record<string, unknown>>;
+  },
+  matchId: string,
+  fingerprint: string,
+): MatchStateResponse {
+  if (
+    stored.operation !== 'finalize' ||
+    stored.matchId !== matchId ||
+    stored.requestFingerprint !== fingerprint
+  ) {
+    throw new ConflictException('Idempotency-Key was already used for a different finalization');
+  }
+  return stored.response as unknown as MatchStateResponse;
 }
 
 export type { RecordedEvent };

@@ -95,7 +95,8 @@ jobs:
       - run: yarn license:check
 
   # Added by 0002-domain-model-core; later phases' suites run under the same job
-  # via the root `yarn test:coverage` fan-out.
+  # via the root `yarn test:coverage` fan-out. This includes 0025's console
+  # projection, descriptor validation, palette, idempotency-key, and reconciliation tests.
   unit-tests:
     name: Unit tests
     runs-on: ubuntu-latest
@@ -245,7 +246,8 @@ jobs:
   # Added by 0023: operator flows are client-side islands backed by the control
   # API. Playwright runs the production web build and mocks those API calls so
   # wizard submission and registration decisions fail here if route wiring drifts.
-  # 0024 adds the standings trace and the seeding/bracket specs to the same run.
+  # 0024 adds standings trace and seeding/bracket specs; 0025 adds A4 console
+  # event, clock, timer, idempotency, capability, and reconciliation scenarios.
   e2e-tests:
     name: E2E tests
     runs-on: ubuntu-latest
@@ -354,7 +356,8 @@ jobs:
       # hand adjustment stored as an audited fact instead of an increment.
       - run: yarn workspace @copalibre/persistence test:integration
       # Guard/policy/controller suite through the real HTTP stack (0005),
-      # including match-scoped authorization (0014).
+      # including match-scoped authorization (0014) and 0025's non-flaky
+      # idempotency, authorization, audit/outbox, and reconciliation contracts.
       - run: yarn workspace @copalibre/api test:integration
       # Includes the N-sided result, retired-module and segment-threshold
       # notification suites (0009), the full stage-transition suite (0010), and

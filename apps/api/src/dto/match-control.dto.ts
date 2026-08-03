@@ -42,6 +42,122 @@ export class RunningTimerDto {
   remainingSeconds!: number;
 }
 
+export class ConsoleSegmentResponse {
+  @ApiProperty({ format: 'uuid' })
+  segmentId!: string;
+
+  @ApiProperty()
+  type!: string;
+
+  @ApiProperty()
+  number!: number;
+
+  @ApiProperty({ enum: ['pending', 'active', 'completed'] })
+  state!: string;
+
+  @ApiProperty()
+  elapsedSeconds!: number;
+
+  @ApiPropertyOptional({ description: 'Descriptor-declared duration for a timed segment' })
+  durationSeconds?: number;
+}
+
+export class ConsoleEventResponse {
+  @ApiProperty({ format: 'uuid' })
+  eventId!: string;
+
+  @ApiProperty()
+  definitionCode!: string;
+
+  @ApiProperty({ format: 'uuid' })
+  segmentId!: string;
+
+  @ApiProperty()
+  sequence!: number;
+
+  @ApiProperty({ format: 'date-time' })
+  occurredAt!: string;
+
+  @ApiPropertyOptional({ format: 'uuid' })
+  side?: string;
+
+  @ApiPropertyOptional({ format: 'uuid' })
+  personId?: string;
+}
+
+export class ConsoleLiveScoreResponse {
+  @ApiProperty({ format: 'uuid' })
+  entrantId!: string;
+
+  @ApiProperty({ description: 'Score folded from the immutable event log' })
+  score!: number;
+
+  @ApiProperty({ type: Object, description: 'Declared statistic deltas folded from the event log' })
+  statistics!: Record<string, number>;
+}
+
+/** The protected read model a live-match console uses to render and recover. */
+export class MatchConsoleResponse {
+  @ApiProperty({ format: 'uuid' })
+  matchId!: string;
+
+  @ApiProperty({ enum: ['scheduled', 'in-progress', 'finalized'] })
+  status!: string;
+
+  @ApiProperty({ type: Object, description: 'Resolved authoritative result when one exists' })
+  result!: Record<string, unknown> | null;
+
+  @ApiProperty({ type: [ConsoleLiveScoreResponse] })
+  liveScores!: ConsoleLiveScoreResponse[];
+
+  @ApiProperty({ type: [ConsoleSegmentResponse] })
+  segments!: ConsoleSegmentResponse[];
+
+  @ApiProperty({ type: [RunningTimerDto] })
+  runningTimers!: RunningTimerDto[];
+
+  @ApiProperty({ type: [ConsoleEventResponse] })
+  events!: ConsoleEventResponse[];
+
+  @ApiProperty({ type: [Object], description: 'Descriptor-owned palette presentation metadata' })
+  eventDefinitions!: Record<string, unknown>[];
+
+  @ApiProperty({
+    type: [String],
+    description: 'Persons eligible for attribution from active lineups',
+  })
+  eligiblePersonIds!: string[];
+
+  @ApiProperty({
+    type: [String],
+    description: 'Coaches and staff attached to an entrant contesting this match',
+  })
+  eligibleStaffIds!: string[];
+
+  @ApiProperty({ type: [String], description: 'Entrants contesting this match' })
+  entrantIds!: string[];
+
+  @ApiProperty({
+    type: [String],
+    description: 'Capabilities granted to this subject for this match',
+  })
+  capabilities!: string[];
+
+  @ApiProperty({ description: 'Monotonic server-issued projection version' })
+  projectionVersion!: number;
+}
+
+export class ClockAdjustmentRequest {
+  @ApiProperty({ format: 'uuid' })
+  segmentId!: string;
+
+  @ApiProperty({ minimum: 0 })
+  elapsedSeconds!: number;
+
+  @ApiPropertyOptional({ description: 'Make the selected segment the active clock segment' })
+  activate?: boolean;
+}
+
 export class RecordEventRequest {
   @ApiProperty({ description: 'Event definition code the discipline declares', example: 'goal' })
   definitionCode!: string;

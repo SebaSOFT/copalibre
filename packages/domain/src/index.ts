@@ -75,6 +75,7 @@ export type {
   ActorRequirement,
   PayloadJsonSchema,
   EventEffect,
+  EventWorkflow,
   EventDefinition,
 } from './descriptors/event-definition.js';
 export {
@@ -238,6 +239,7 @@ export {
   type RunningTimer,
   type TimerEventCodes,
 } from './aggregates/match-operations.js';
+export { foldLiveScores, type LiveScore } from './events/live-score.js';
 export {
   authorizeMatchCommand,
   validateAssignment,
