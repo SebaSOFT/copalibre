@@ -76,6 +76,16 @@ describe('migrations (integration)', () => {
     expect(afterDown).not.toContain('match_command_idempotency');
     expect(afterDown).not.toContain('match_timer_resolutions');
 
+    const organizationAccessDown = await migrateDownOneStep(scratch.db);
+    expect(organizationAccessDown.error).toBeUndefined();
+
+    const afterOrganizationAccessDown = (await scratch.db.introspection.getTables()).map(
+      (table) => table.name,
+    );
+    expect(afterOrganizationAccessDown).toContain('organizations');
+    expect(afterOrganizationAccessDown).not.toContain('organization_role_assignments');
+    expect(afterOrganizationAccessDown).not.toContain('organization_invites');
+
     const initialDown = await migrateDownOneStep(scratch.db);
     expect(initialDown.error).toBeUndefined();
 
