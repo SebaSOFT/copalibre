@@ -53,6 +53,22 @@ export interface ControlApiClient {
     stageNumber: number,
     request: PublishSeedingRequest,
   ) => Promise<SeedingClassificationResponse>;
+  readonly listOrganizationRoles: (
+    organizationAlias: string,
+  ) => Promise<readonly OrganizationRoleResponse[]>;
+  readonly inviteOrganizationUser: (
+    organizationAlias: string,
+    request: InviteOrganizationUserRequest,
+  ) => Promise<InvitationResponse>;
+  readonly changeOrganizationRole: (
+    organizationAlias: string,
+    assignmentId: string,
+    request: ChangeOrganizationRoleRequest,
+  ) => Promise<OrganizationRoleResponse>;
+  readonly deleteOrganizationRole: (
+    organizationAlias: string,
+    assignmentId: string,
+  ) => Promise<void>;
 }
 
 export interface TiebreakTraceResponse {
@@ -118,6 +134,33 @@ export interface ReviewRegistrationRequest {
 export interface BulkReviewResponse {
   readonly applied: readonly RegistrationResponse[];
   readonly refused: readonly { readonly entrantId: string; readonly reason: string }[];
+}
+
+export type OrganizationRole = 'admin' | 'referee' | 'broadcaster' | 'viewer';
+export type OrganizationMemberStatus = 'active' | 'inactive';
+
+export interface OrganizationRoleResponse {
+  readonly assignmentId: string;
+  readonly principalId: string;
+  readonly email: string;
+  readonly role: OrganizationRole;
+  readonly status: OrganizationMemberStatus;
+}
+
+export interface InviteOrganizationUserRequest {
+  readonly email: string;
+  readonly role: OrganizationRole;
+  readonly status: OrganizationMemberStatus;
+}
+
+export interface ChangeOrganizationRoleRequest {
+  readonly role: OrganizationRole;
+  readonly status: OrganizationMemberStatus;
+}
+
+export interface InvitationResponse {
+  readonly invitationId: string;
+  readonly expiresAt: string;
 }
 
 export function createControlApiClient(input: {
@@ -214,6 +257,39 @@ export function createControlApiClient(input: {
         `${stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber)}/seeding`,
         { method: 'POST', body, token: input.accessToken?.() },
       ),
+
+    listOrganizationRoles: (organizationAlias) =>
+      requestJson<readonly OrganizationRoleResponse[]>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/roles`,
+        { token: input.accessToken?.() },
+      ),
+
+    inviteOrganizationUser: (organizationAlias, body) =>
+      requestJson<InvitationResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/invitations`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    changeOrganizationRole: (organizationAlias, assignmentId, body) =>
+      requestJson<OrganizationRoleResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/roles/${encodeURIComponent(
+          assignmentId,
+        )}`,
+        { method: 'PATCH', body, token: input.accessToken?.() },
+      ),
+
+    deleteOrganizationRole: async (organizationAlias, assignmentId) => {
+      await requestJson<OrganizationRoleResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/roles/${encodeURIComponent(
+          assignmentId,
+        )}`,
+        { method: 'DELETE', token: input.accessToken?.() },
+      );
+    },
   };
 }
 
@@ -232,7 +308,7 @@ async function requestJson<T>(
   fetcher: typeof fetch,
   url: string,
   options: {
-    readonly method?: 'GET' | 'POST';
+    readonly method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
     readonly body?: unknown;
     readonly token?: string;
   } = {},

@@ -45,6 +45,10 @@ interface TokenOptions {
   readonly scopes?: string | string[];
   readonly org?: string;
   readonly jti?: string;
+  readonly email?: string;
+  readonly emailVerified?: boolean;
+  readonly name?: string;
+  readonly picture?: string;
   readonly alg?: string;
 }
 
@@ -53,6 +57,10 @@ async function signToken(keys: KeyMaterial, options: TokenOptions = {}): Promise
   if (options.scopes !== undefined) payload.scp = options.scopes;
   if (options.org !== undefined) payload.org = options.org;
   if (options.jti !== undefined) payload.jti = options.jti;
+  if (options.email !== undefined) payload.email = options.email;
+  if (options.emailVerified !== undefined) payload.email_verified = options.emailVerified;
+  if (options.name !== undefined) payload.name = options.name;
+  if (options.picture !== undefined) payload.picture = options.picture;
 
   let jwt = new SignJWT(payload)
     .setProtectedHeader({ alg: options.alg ?? 'RS256', kid: keys.kid })
@@ -90,6 +98,23 @@ describe('TokenVerifier', () => {
     const token = await signToken(keys, { scopes: ['a', 'b'] });
     await expect(verifierFor([keys.publicJwk]).verify(token)).resolves.toMatchObject({
       scopes: ['a', 'b'],
+    });
+  });
+
+  it('extracts verified contact and display claims when the IdP provides them', async () => {
+    const keys = await makeKeys();
+    const token = await signToken(keys, {
+      email: 'ana@example.test',
+      emailVerified: true,
+      name: 'Ana Perez',
+      picture: 'https://id.example.test/ana.png',
+    });
+
+    await expect(verifierFor([keys.publicJwk]).verify(token)).resolves.toMatchObject({
+      email: 'ana@example.test',
+      emailVerified: true,
+      name: 'Ana Perez',
+      picture: 'https://id.example.test/ana.png',
     });
   });
 

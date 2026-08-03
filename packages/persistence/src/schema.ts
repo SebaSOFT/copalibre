@@ -20,6 +20,44 @@ export interface OrganizationsTable {
   created_at: Timestamp;
 }
 
+/** Internal principal; OIDC remains a replaceable external credential. */
+export interface IdentityPrincipalsTable {
+  principal_id: string;
+  email: string;
+  oidc_subject_id: string | null;
+  name: string | null;
+  picture: string | null;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+}
+
+/** Accepted, organization-local access assignment for one verified OIDC subject. */
+export interface OrganizationRoleAssignmentsTable {
+  assignment_id: string;
+  organization_id: string;
+  principal_id: string;
+  email: string;
+  role: string;
+  status: string;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+  deleted_at: Timestamp | null;
+}
+
+/** Opaque invitation credentials are stored only as hashes. */
+export interface OrganizationInvitesTable {
+  invitation_id: string;
+  organization_id: string;
+  recipient_email: string;
+  role: string;
+  status: string;
+  token_hash: string;
+  expires_at: Timestamp;
+  accepted_at: Timestamp | null;
+  accepted_principal_id: string | null;
+  created_at: Timestamp;
+}
+
 export interface ClubsTable {
   club_id: string;
   organization_id: string;
@@ -91,6 +129,15 @@ export interface PersonsTable {
   natural_key_value: string | null;
   natural_key_normalised: string | null;
   created_at: Timestamp;
+}
+
+/** One participant record may be reached by one installation principal per organization. */
+export interface ParticipantIdentityLinksTable {
+  principal_id: string;
+  organization_id: string;
+  person_id: string;
+  created_at: Timestamp;
+  created_by: string;
 }
 
 /** One person's membership in one team (0015). Several per person, one per team. */
@@ -496,12 +543,16 @@ export interface SchemaVersionTable {
 
 export interface Database {
   organizations: OrganizationsTable;
+  identity_principals: IdentityPrincipalsTable;
+  organization_role_assignments: OrganizationRoleAssignmentsTable;
+  organization_invites: OrganizationInvitesTable;
   clubs: ClubsTable;
   discipline_descriptors: DisciplineDescriptorsTable;
   tournament_rulesets: TournamentRulesetsTable;
   stage_configurations: StageConfigurationsTable;
   tournaments: TournamentsTable;
   persons: PersonsTable;
+  participant_identity_links: ParticipantIdentityLinksTable;
   players: PlayersTable;
   teams: TeamsTable;
   entrants: EntrantsTable;

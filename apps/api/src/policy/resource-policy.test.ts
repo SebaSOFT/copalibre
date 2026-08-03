@@ -12,7 +12,8 @@ import {
 
 function subject(overrides?: Partial<AuthenticatedSubject>): AuthenticatedSubject {
   return {
-    subjectId: 'participant-1',
+    subjectId: 'oidc-participant-1',
+    participantPersonId: 'participant-1',
     organizationId: 'org-1',
     scopes: ['copalibre.participant'],
     ...overrides,
@@ -42,6 +43,20 @@ describe('authenticated-interaction plane (resource ownership)', () => {
       organizationId: 'org-1',
       ownerParticipantId: 'participant-2',
     });
+    expect(decision).toEqual({
+      allowed: false,
+      reason: 'subject may only act on their own records',
+    });
+  });
+
+  it('does not treat an external OIDC subject as a participant identifier', () => {
+    const decision = evaluateAuthenticatedInteraction(
+      subject({ subjectId: 'participant-1', participantPersonId: 'participant-9' }),
+      {
+        organizationId: 'org-1',
+        ownerParticipantId: 'participant-1',
+      },
+    );
     expect(decision).toEqual({
       allowed: false,
       reason: 'subject may only act on their own records',

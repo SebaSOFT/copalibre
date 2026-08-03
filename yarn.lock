@@ -934,8 +934,10 @@ __metadata:
   dependencies:
     "@copalibre/domain": "workspace:^"
     "@copalibre/routing": "workspace:^"
+    "@types/better-sqlite3": "npm:^9.6.0"
     "@types/jest": "npm:^30.0.0"
     "@types/pg": "npm:^8.20.0"
+    better-sqlite3: "npm:^13.0.2"
     jest: "npm:^30.4.2"
     kysely: "npm:^0.29"
     pg: "npm:^8.22.0"
@@ -1057,8 +1059,10 @@ __metadata:
     "@nestjs/platform-fastify": "npm:^11.1.28"
     "@nestjs/testing": "npm:^11.1.28"
     "@types/jest": "npm:^30.0.0"
+    "@types/nodemailer": "npm:^8.0.1"
     jest: "npm:^30.4.2"
     kysely: "npm:^0.29"
+    nodemailer: "npm:^9.0.3"
     reflect-metadata: "npm:^0.2.2"
     rxjs: "npm:^7.8.2"
     ts-jest: "npm:^29.4.12"
@@ -3220,6 +3224,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/better-sqlite3@npm:^9.6.0":
+  version: 9.6.0
+  resolution: "@types/better-sqlite3@npm:9.6.0"
+  dependencies:
+    "@types/node": "npm:*"
+  checksum: 10c0/630273028a281addb0df36d204d0edcd0ab000f55ed89fdc742536a6ead4d4404287ebfb1714f5c58ec2f08fd508baf810e1d8f093ff9d480b9f3fb6495d141a
+  languageName: node
+  linkType: hard
+
 "@types/cookiejar@npm:^2.1.5":
   version: 2.1.5
   resolution: "@types/cookiejar@npm:2.1.5"
@@ -3343,6 +3356,15 @@ __metadata:
   dependencies:
     undici-types: "npm:~8.3.0"
   checksum: 10c0/a45503222c7db8f374afd5c9381db63dd95b6b1f703abea0890dd3d4a09eeb41da489e08a1a45baf18fe89fb77fbf310ff2789f680c490b04dafc41a60800a86
+  languageName: node
+  linkType: hard
+
+"@types/nodemailer@npm:^8.0.1":
+  version: 8.0.1
+  resolution: "@types/nodemailer@npm:8.0.1"
+  dependencies:
+    "@types/node": "npm:*"
+  checksum: 10c0/4370ac478a6811faaa64fcf769556515c72b78c66961cde22be75bb975ce8a964cfbe5e7c0988a99250f3250faa34357c73958b019b3c63dd138ea3784442032
   languageName: node
   linkType: hard
 
@@ -4418,6 +4440,16 @@ __metadata:
   bin:
     baseline-browser-mapping: dist/cli.cjs
   checksum: 10c0/c289e5686e6b8c036e4dd4864a24224d30db2af2ae576a017fa929c83a949555d8bd5a25a27534ac6ef7aa2d5646427d1b187b96f93fefa9af81f673d7d67da1
+  languageName: node
+  linkType: hard
+
+"better-sqlite3@npm:^13.0.2":
+  version: 13.0.2
+  resolution: "better-sqlite3@npm:13.0.2"
+  dependencies:
+    node-addon-api: "npm:^8.0.0"
+    node-gyp: "npm:latest"
+  checksum: 10c0/c0519e589bdcac15d82c9c10df8cc149d18141c75fdabd6f230de71221d1791353f9611e4d31fc63a8b57a274b1b5cd5a8b3ac66eb1e8965ea6ca4c743b98d59
   languageName: node
   linkType: hard
 
@@ -8655,6 +8687,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"node-addon-api@npm:^8.0.0":
+  version: 8.9.1
+  resolution: "node-addon-api@npm:8.9.1"
+  dependencies:
+    node-gyp: "npm:latest"
+  checksum: 10c0/189160497de690479030b7b2f5641c38ffab8601c2ada6fcb8fe3718baf14af51d651528a49ec58de5dd602ff7858459d13facb71914669106f2c6cc6d9d50a5
+  languageName: node
+  linkType: hard
+
 "node-exports-info@npm:^1.6.0":
   version: 1.6.2
   resolution: "node-exports-info@npm:1.6.2"
@@ -8732,6 +8773,13 @@ __metadata:
   version: 2.0.51
   resolution: "node-releases@npm:2.0.51"
   checksum: 10c0/6cf3fe1f9eabe02ce6de67e9db77b73edc9f5625003791e1f8f239f8e2a851450a5aeb1eff2cc43cfb26312e19b26bfe07626bf428479e6a76f56553fc6148da
+  languageName: node
+  linkType: hard
+
+"nodemailer@npm:^9.0.3":
+  version: 9.0.3
+  resolution: "nodemailer@npm:9.0.3"
+  checksum: 10c0/9e93516fb9fcc8835b683cdf3b90135648dabf0133ac9b04890303c2e23eef1d7bae58fe98afb0e251ae10428b96f05df483deb78f0b49f47793debbb0383216
   languageName: node
   linkType: hard
 

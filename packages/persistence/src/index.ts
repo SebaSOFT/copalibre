@@ -41,11 +41,25 @@ export {
   type CreateOrganizationInput,
 } from './repositories/organization-repository.js';
 export {
+  OrganizationAccessRepository,
+  type AccessAuditContext,
+  type AcceptOrganizationInvitationInput,
+  type ChangeOrganizationRoleInput,
+  type CreateOrganizationInvitationInput,
+  type DeleteOrganizationRoleInput,
+} from './repositories/organization-access-repository.js';
+export { IdentityPrincipalRepository } from './repositories/identity-principal-repository.js';
+export {
   TournamentRepository,
   type CreateTournamentInput,
   type CreateRulesetInput,
 } from './repositories/tournament-repository.js';
-export { EnrollmentRepository, type AuditContext } from './repositories/enrollment-repository.js';
+export {
+  EnrollmentRepository,
+  type AuditContext,
+  type ParticipantReportedResult,
+  type ParticipantRosterMembership,
+} from './repositories/enrollment-repository.js';
 export { CompetitionRepository } from './repositories/competition-repository.js';
 export { ScheduleRepository, type SchedulePreview } from './repositories/schedule-repository.js';
 export { MatchAssignmentRepository } from './repositories/match-assignment-repository.js';
@@ -107,6 +121,9 @@ export {
 
 export {
   toOrganization,
+  toIdentityPrincipal,
+  toOrganizationInvitation,
+  toOrganizationRoleAssignment,
   toTournament,
   toTeam,
   toClub,

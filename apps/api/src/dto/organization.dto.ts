@@ -101,6 +101,47 @@ export class ProblemResponse {
   message!: string;
 }
 
+export class OrganizationRoleResponse {
+  @ApiProperty({ format: 'uuid' })
+  assignmentId!: string;
+  @ApiProperty({ format: 'uuid', description: 'CopaLibre internal principal UUIDv7' })
+  principalId!: string;
+  @ApiProperty()
+  email!: string;
+  @ApiProperty({ enum: ['admin', 'referee', 'broadcaster', 'viewer'] })
+  role!: string;
+  @ApiProperty({ enum: ['active', 'inactive'] })
+  status!: string;
+}
+
+export class InviteOrganizationUserRequest {
+  @ApiProperty({ format: 'email' })
+  email!: string;
+  @ApiProperty({ enum: ['admin', 'referee', 'broadcaster', 'viewer'] })
+  role!: 'admin' | 'referee' | 'broadcaster' | 'viewer';
+  @ApiProperty({ enum: ['active', 'inactive'] })
+  status!: 'active' | 'inactive';
+}
+
+export class OrganizationInvitationResponse {
+  @ApiProperty({ format: 'uuid' })
+  invitationId!: string;
+  @ApiProperty({ format: 'date-time' })
+  expiresAt!: string;
+}
+
+export class ChangeOrganizationRoleRequest {
+  @ApiProperty({ enum: ['admin', 'referee', 'broadcaster', 'viewer'] })
+  role!: 'admin' | 'referee' | 'broadcaster' | 'viewer';
+  @ApiProperty({ enum: ['active', 'inactive'] })
+  status!: 'active' | 'inactive';
+}
+
+export class AcceptInvitationRequest {
+  @ApiProperty({ minLength: 32 })
+  token!: string;
+}
+
 export class DisciplineSummaryResponse {
   @ApiProperty({ format: 'uuid' })
   descriptorId!: string;
@@ -135,6 +176,40 @@ export class RegistrationResponse {
 
   @ApiPropertyOptional({ format: 'uuid' })
   personId?: string;
+}
+
+export class ParticipantRosterResponse {
+  @ApiProperty({ format: 'uuid' })
+  playerId!: string;
+  @ApiProperty({ format: 'uuid' })
+  teamId!: string;
+  @ApiProperty()
+  teamName!: string;
+  @ApiProperty()
+  role!: string;
+}
+
+export class ParticipantReportedResultResponse {
+  @ApiProperty({ format: 'uuid' })
+  matchId!: string;
+  @ApiProperty({ format: 'uuid' })
+  entrantId!: string;
+  @ApiProperty()
+  status!: string;
+  @ApiProperty({ nullable: true, type: Object })
+  result!: Record<string, unknown> | null;
+}
+
+export class LinkParticipantIdentityRequest {
+  @ApiProperty({ format: 'email' })
+  email!: string;
+}
+
+export class ParticipantIdentityLinkResponse {
+  @ApiProperty({ format: 'uuid' })
+  principalId!: string;
+  @ApiProperty({ format: 'uuid' })
+  personId!: string;
 }
 
 export class ReviewRegistrationRequest {

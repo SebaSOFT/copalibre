@@ -31,6 +31,7 @@ import {
 import type { Kysely } from 'kysely';
 import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
+import { RequireOrganizationRole } from '../auth/access-requirement.js';
 import { ProblemResponse } from '../dto/organization.dto.js';
 import { StandingsResponse, TiebreakTraceResponse } from '../dto/standings.dto.js';
 import { enforcePolicy } from '../policy/resource-policy.js';
@@ -56,6 +57,7 @@ export class StandingsController {
 
   @Get('standings')
   @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Ranked standings for one stage, with the calculation’s trace',
@@ -104,6 +106,7 @@ export class StandingsController {
 
   @Get('standings/entrants/:entrantId/trace')
   @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'The comparator chain that placed one entrant',

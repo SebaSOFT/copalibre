@@ -7,6 +7,9 @@ import type {
   ResourceAssignment,
   Venue,
   Organization,
+  IdentityPrincipal,
+  OrganizationInvitation,
+  OrganizationRoleAssignment,
   RecordedEvent,
   Segment,
   Stage,
@@ -24,6 +27,9 @@ import type {
   MatchEventsTable,
   MatchesTable,
   OrganizationsTable,
+  IdentityPrincipalsTable,
+  OrganizationInvitesTable,
+  OrganizationRoleAssignmentsTable,
   SegmentsTable,
   StagesTable,
   TeamsTable,
@@ -39,6 +45,9 @@ import type {
  * as Date) rather than a hand-rolled equivalent.
  */
 export type OrganizationRow = Selectable<OrganizationsTable>;
+export type IdentityPrincipalRow = Selectable<IdentityPrincipalsTable>;
+export type OrganizationRoleAssignmentRow = Selectable<OrganizationRoleAssignmentsTable>;
+export type OrganizationInviteRow = Selectable<OrganizationInvitesTable>;
 export type TournamentRow = Selectable<TournamentsTable>;
 export type TeamRow = Selectable<TeamsTable>;
 export type EntrantRow = Selectable<EntrantsTable>;
@@ -59,6 +68,41 @@ export function toOrganization(row: OrganizationRow): Organization {
     organizationId: row.organization_id,
     alias: row.alias,
     name: row.name,
+  };
+}
+
+export function toOrganizationRoleAssignment(
+  row: OrganizationRoleAssignmentRow,
+): OrganizationRoleAssignment {
+  return {
+    assignmentId: row.assignment_id,
+    organizationId: row.organization_id,
+    principalId: row.principal_id,
+    email: row.email,
+    role: row.role as OrganizationRoleAssignment['role'],
+    status: row.status as OrganizationRoleAssignment['status'],
+    ...(row.deleted_at === null ? {} : { deletedAt: toIsoString(row.deleted_at) }),
+  };
+}
+
+export function toIdentityPrincipal(row: IdentityPrincipalRow): IdentityPrincipal {
+  return {
+    principalId: row.principal_id,
+    email: row.email,
+    ...(row.oidc_subject_id === null ? {} : { oidcSubjectId: row.oidc_subject_id }),
+    ...(row.name === null ? {} : { name: row.name }),
+    ...(row.picture === null ? {} : { picture: row.picture }),
+  };
+}
+
+export function toOrganizationInvitation(row: OrganizationInviteRow): OrganizationInvitation {
+  return {
+    invitationId: row.invitation_id,
+    organizationId: row.organization_id,
+    recipientEmail: row.recipient_email,
+    role: row.role as OrganizationInvitation['role'],
+    status: row.status as OrganizationInvitation['status'],
+    expiresAt: toIsoString(row.expires_at),
   };
 }
 

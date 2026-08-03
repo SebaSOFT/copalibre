@@ -57,7 +57,7 @@ export function evaluateAuthenticatedInteraction(
   if (resource.ownerParticipantId === undefined) {
     return deny('resource has no participant owner; not reachable on this plane');
   }
-  if (resource.ownerParticipantId !== subject.subjectId) {
+  if (resource.ownerParticipantId !== subject.participantPersonId) {
     return deny('subject may only act on their own records');
   }
   return allow();

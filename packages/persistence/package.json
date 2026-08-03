@@ -9,7 +9,8 @@
     "build": "tsc --build",
     "test": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.config.cjs",
     "test:coverage": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.config.cjs --coverage",
-    "test:integration": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.integration.config.cjs --runInBand"
+    "test:integration": "node --env-file-if-exists=../../.env.test --experimental-vm-modules ../../node_modules/.bin/jest --config jest.integration.config.cjs --runInBand",
+    "test:sqlite": "COPALIBRE_TEST_DIALECT=sqlite node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.integration.config.cjs --runInBand --testPathPatterns organization-access"
   },
   "dependencies": {
     "@copalibre/domain": "workspace:^",
@@ -18,8 +19,10 @@
     "pg": "^8.22.0"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
     "@types/jest": "^30.0.0",
     "@types/pg": "^8.20.0",
+    "better-sqlite3": "^13.0.2",
     "jest": "^30.4.2",
     "ts-jest": "^29.4.12"
   },

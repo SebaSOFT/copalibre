@@ -1,4 +1,5 @@
 import { Module, type Provider } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import type { Kysely } from 'kysely';
 import { DATABASE } from './database.token.js';
 import { HealthController } from './health.controller.js';
@@ -12,8 +13,18 @@ import {
 } from './controllers/registrations.controller.js';
 import { StandingsController } from './controllers/standings.controller.js';
 import { SeedingController } from './controllers/seeding.controller.js';
+import {
+  InvitationAcceptanceController,
+  OrganizationAccessController,
+} from './controllers/organization-access.controller.js';
+import {
+  ParticipantIdentityLinksController,
+  ParticipantsController,
+} from './controllers/participants.controller.js';
 import { authConfigFromEnv } from './auth/auth-config.js';
 import { TokenVerifier } from './auth/token-verifier.js';
+import { JwtAuthGuard } from './auth/jwt-auth.guard.js';
+import { OrganizationAccessGuard } from './auth/organization-access.guard.js';
 import { createDatabase, databaseConfigFromEnv, type Database } from '@copalibre/persistence';
 
 /**
@@ -29,6 +40,8 @@ const providers: Provider[] = [
     provide: TokenVerifier,
     useFactory: (): TokenVerifier => new TokenVerifier(authConfigFromEnv()),
   },
+  { provide: APP_GUARD, useClass: JwtAuthGuard },
+  { provide: APP_GUARD, useClass: OrganizationAccessGuard },
 ];
 
 @Module({
@@ -42,6 +55,10 @@ const providers: Provider[] = [
     DisciplinesController,
     StandingsController,
     SeedingController,
+    OrganizationAccessController,
+    InvitationAcceptanceController,
+    ParticipantsController,
+    ParticipantIdentityLinksController,
   ],
   providers,
 })

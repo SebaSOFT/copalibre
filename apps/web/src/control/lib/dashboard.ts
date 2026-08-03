@@ -91,6 +91,7 @@ export const SIDENAV = [
   { label: 'Panel', path: '' },
   { label: 'Consola en vivo', path: '/live' },
   { label: 'Torneos', path: '/tournaments' },
+  { label: 'Roles', path: '/roles' },
   { label: 'Organización', path: '/organization' },
   { label: 'Analítica', path: '/analytics' },
 ] as const;

@@ -33,6 +33,8 @@ describe('migrations (integration)', () => {
     expect(names).toEqual(
       expect.arrayContaining([
         'organizations',
+        'organization_role_assignments',
+        'organization_invites',
         'tournaments',
         'tournament_rulesets',
         'match_events',
@@ -55,17 +57,29 @@ describe('migrations (integration)', () => {
     await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe(versionAfterFirst);
   });
 
-  it('round-trips up → down cleanly, dropping every table it created', async () => {
+  it('rolls back the latest migration without disturbing preceding schema', async () => {
     await migrateToLatest(scratch.db);
     const afterUp = (await scratch.db.introspection.getTables()).map((table) => table.name);
     expect(afterUp).toContain('organizations');
+    expect(afterUp).toContain('organization_role_assignments');
+    expect(afterUp).toContain('organization_invites');
 
     const down = await migrateDownOneStep(scratch.db);
     expect(down.error).toBeUndefined();
 
     const afterDown = (await scratch.db.introspection.getTables()).map((table) => table.name);
+    expect(afterDown).toContain('organizations');
+    expect(afterDown).not.toContain('organization_role_assignments');
+    expect(afterDown).not.toContain('organization_invites');
+
+    const initialDown = await migrateDownOneStep(scratch.db);
+    expect(initialDown.error).toBeUndefined();
+
+    const afterInitialDown = (await scratch.db.introspection.getTables()).map(
+      (table) => table.name,
+    );
     for (const table of ['organizations', 'tournaments', 'audit_log', 'outbox_events']) {
-      expect(afterDown).not.toContain(table);
+      expect(afterInitialDown).not.toContain(table);
     }
   });
 

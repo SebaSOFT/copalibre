@@ -13,6 +13,7 @@ import type { Kysely } from 'kysely';
 import { InvariantViolationError } from '../errors.js';
 import { newId } from '../ids.js';
 import { toOfficial, toResourceAssignment, toVenue } from '../mapping.js';
+import { lockRowsForMutation } from '../row-lock.js';
 import type { Database } from '../schema.js';
 import type { UnitOfWork } from '../transaction.js';
 import type { AuditContext } from './enrollment-repository.js';
@@ -264,22 +265,24 @@ export class ScheduleRepository {
     ].sort();
 
     if (venueIds.length > 0) {
-      await uow.tx
-        .selectFrom('venues')
-        .select('venue_id')
-        .where('venue_id', 'in', venueIds)
-        .orderBy('venue_id')
-        .forUpdate()
-        .execute();
+      await lockRowsForMutation(
+        this.db,
+        uow.tx
+          .selectFrom('venues')
+          .select('venue_id')
+          .where('venue_id', 'in', venueIds)
+          .orderBy('venue_id'),
+      ).execute();
     }
     if (officialIds.length > 0) {
-      await uow.tx
-        .selectFrom('officials')
-        .select('official_id')
-        .where('official_id', 'in', officialIds)
-        .orderBy('official_id')
-        .forUpdate()
-        .execute();
+      await lockRowsForMutation(
+        this.db,
+        uow.tx
+          .selectFrom('officials')
+          .select('official_id')
+          .where('official_id', 'in', officialIds)
+          .orderBy('official_id'),
+      ).execute();
     }
   }
 

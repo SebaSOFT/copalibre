@@ -75,7 +75,7 @@ export interface paths {
         put?: never;
         /**
          * Create an organization
-         * @description Requires the copalibre.control scope. The alias is validated by the domain layer and must be lowercase kebab-case, unique per installation.
+         * @description Requires the copalibre.super-admin scope. The alias is validated by the domain layer and must be lowercase kebab-case, unique per installation.
          */
         post: operations["OrganizationsController_create"];
         delete?: never;
@@ -450,6 +450,143 @@ export interface paths {
          * @description Classified before anything is written. Once a result exists, reseeding is refused here regardless of what the console allowed.
          */
         post: operations["SeedingController_publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List active organization role assignments */
+        get: operations["OrganizationAccessController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Invite an organization user by email */
+        post: operations["OrganizationAccessController_invite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/roles/{assignmentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Soft-delete an organization role assignment */
+        delete: operations["OrganizationAccessController_remove"];
+        options?: never;
+        head?: never;
+        /** Change an organization role or active status */
+        patch: operations["OrganizationAccessController_change"];
+        trace?: never;
+    };
+    "/invitations/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept an organization invitation */
+        post: operations["InvitationAcceptanceController_accept"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/participant/registrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the participant's own registrations */
+        get: operations["ParticipantsController_registrations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/participant/roster": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the participant's own team memberships */
+        get: operations["ParticipantsController_roster"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/participant/reported-results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List results for the participant's own registrations */
+        get: operations["ParticipantsController_reportedResults"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/participants/{personId}/identity-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pre-link a participant identity by email */
+        post: operations["ParticipantIdentityLinksController_link"];
         delete?: never;
         options?: never;
         head?: never;
@@ -879,6 +1016,69 @@ export interface components {
             reason: string;
             /** @description Fixture ids this change invalidates; empty unless it requires a rebuild */
             invalidates: string[];
+        };
+        OrganizationRoleResponse: {
+            /** Format: uuid */
+            assignmentId: string;
+            /**
+             * Format: uuid
+             * @description CopaLibre internal principal UUIDv7
+             */
+            principalId: string;
+            email: string;
+            /** @enum {string} */
+            role: "admin" | "referee" | "broadcaster" | "viewer";
+            /** @enum {string} */
+            status: "active" | "inactive";
+        };
+        InviteOrganizationUserRequest: {
+            /** Format: email */
+            email: string;
+            /** @enum {string} */
+            role: "admin" | "referee" | "broadcaster" | "viewer";
+            /** @enum {string} */
+            status: "active" | "inactive";
+        };
+        OrganizationInvitationResponse: {
+            /** Format: uuid */
+            invitationId: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        ChangeOrganizationRoleRequest: {
+            /** @enum {string} */
+            role: "admin" | "referee" | "broadcaster" | "viewer";
+            /** @enum {string} */
+            status: "active" | "inactive";
+        };
+        AcceptInvitationRequest: {
+            token: string;
+        };
+        ParticipantRosterResponse: {
+            /** Format: uuid */
+            playerId: string;
+            /** Format: uuid */
+            teamId: string;
+            teamName: string;
+            role: string;
+        };
+        ParticipantReportedResultResponse: {
+            /** Format: uuid */
+            matchId: string;
+            /** Format: uuid */
+            entrantId: string;
+            status: string;
+            result: Record<string, never> | null;
+        };
+        LinkParticipantIdentityRequest: {
+            /** Format: email */
+            email: string;
+        };
+        ParticipantIdentityLinkResponse: {
+            /** Format: uuid */
+            principalId: string;
+            /** Format: uuid */
+            personId: string;
         };
     };
     responses: never;
@@ -1763,6 +1963,213 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    OrganizationAccessController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationRoleResponse"][];
+                };
+            };
+        };
+    };
+    OrganizationAccessController_invite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InviteOrganizationUserRequest"];
+            };
+        };
+        responses: {
+            /** @description Invitation queued for secure delivery */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationInvitationResponse"];
+                };
+            };
+        };
+    };
+    OrganizationAccessController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationRoleResponse"];
+                };
+            };
+        };
+    };
+    OrganizationAccessController_change: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeOrganizationRoleRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationRoleResponse"];
+                };
+            };
+        };
+    };
+    InvitationAcceptanceController_accept: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcceptInvitationRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationRoleResponse"];
+                };
+            };
+        };
+    };
+    ParticipantsController_registrations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistrationResponse"][];
+                };
+            };
+        };
+    };
+    ParticipantsController_roster: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ParticipantRosterResponse"][];
+                };
+            };
+        };
+    };
+    ParticipantsController_reportedResults: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ParticipantReportedResultResponse"][];
+                };
+            };
+        };
+    };
+    ParticipantIdentityLinksController_link: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                personId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkParticipantIdentityRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ParticipantIdentityLinkResponse"];
                 };
             };
         };

@@ -46,6 +46,10 @@ const TOKENS: Readonly<Record<string, AuthenticatedSubject>> = {
     organizationId: 'ORG_1',
     scopes: ['copalibre.participant'],
   },
+  'super-admin': {
+    subjectId: 'super-admin-1',
+    scopes: ['copalibre.super-admin'],
+  },
 };
 
 class FakeTokenVerifier {
@@ -173,11 +177,11 @@ describe('api routes (integration)', () => {
       expect(response.statusCode).toBe(403);
     });
 
-    it('creates an organization with a control-scoped token', async () => {
+    it('creates an organization with a super-admin-scoped token', async () => {
       const response = await request({
         method: 'POST',
         url: '/organizations',
-        token: 'organizer-org1',
+        token: 'super-admin',
         payload: { alias: 'club-cometa', name: 'Club Cometa' },
       });
       expect(response.statusCode).toBe(201);

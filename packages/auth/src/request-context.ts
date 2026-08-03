@@ -14,6 +14,18 @@ export interface AuthenticatedSubject {
   readonly scopes: readonly string[];
   /** `jti` — retained for audit correlation, never for permission decisions. */
   readonly tokenId?: string;
+  /** OIDC `email`; used only where a flow binds an identity to an email recipient. */
+  readonly email?: string;
+  /** OIDC `email_verified`; absence is never treated as verified. */
+  readonly emailVerified?: boolean;
+  /** OIDC `name`, used for operator identity display only. */
+  readonly name?: string;
+  /** OIDC `picture`, used for operator avatar display only. */
+  readonly picture?: string;
+  /** CopaLibre UUIDv7 principal resolved by the API policy layer. */
+  readonly principalId?: string;
+  /** Participant record linked to this principal in the requested organization. */
+  readonly participantPersonId?: string;
 }
 
 /** Fastify request augmented by the JWT guard. */

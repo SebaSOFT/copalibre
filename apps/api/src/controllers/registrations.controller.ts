@@ -40,6 +40,7 @@ import {
 import type { Kysely } from 'kysely';
 import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
+import { RequireOrganizationRole } from '../auth/access-requirement.js';
 import {
   BulkReviewRequest,
   BulkReviewResponse,
@@ -65,6 +66,7 @@ export class RegistrationsController {
 
   @Get()
   @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'List a tournament’s registrations',
@@ -91,6 +93,7 @@ export class RegistrationsController {
   @Post(':entrantId/review')
   @HttpCode(200)
   @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Accept, refuse or withdraw one registration',
@@ -136,6 +139,7 @@ export class RegistrationsController {
   @Post('bulk-review')
   @HttpCode(200)
   @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Review several registrations',
@@ -179,6 +183,7 @@ export class RegistrationsController {
   @Post(':entrantId/roster')
   @HttpCode(200)
   @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Edit a registration’s roster',
