@@ -176,6 +176,8 @@ describe('snake_case row → camelCase domain mapping', () => {
       segment_type: 'half',
       number: 1,
       state: 'active',
+      elapsed_seconds: 0,
+      clock_started_at: CREATED,
       created_at: CREATED,
     };
     expect(toSegment(row).type).toBe('half');

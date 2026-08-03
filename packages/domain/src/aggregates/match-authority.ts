@@ -21,6 +21,8 @@ export const MATCH_CAPABILITIES = [
   'match.record-event',
   /** Starting, pausing, resuming segments and timers. */
   'match.control-clock',
+  /** Resolving a discipline-declared active timer. */
+  'match.resolve-timer',
   /** Choosing who takes the field from the roster. */
   'match.select-lineup',
   /** Declaring the result, after which only the correction workflow may write. */

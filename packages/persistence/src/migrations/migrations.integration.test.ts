@@ -63,14 +63,28 @@ describe('migrations (integration)', () => {
     expect(afterUp).toContain('organizations');
     expect(afterUp).toContain('organization_role_assignments');
     expect(afterUp).toContain('organization_invites');
+    expect(afterUp).toContain('match_command_idempotency');
+    expect(afterUp).toContain('match_timer_resolutions');
 
     const down = await migrateDownOneStep(scratch.db);
     expect(down.error).toBeUndefined();
 
     const afterDown = (await scratch.db.introspection.getTables()).map((table) => table.name);
     expect(afterDown).toContain('organizations');
-    expect(afterDown).not.toContain('organization_role_assignments');
-    expect(afterDown).not.toContain('organization_invites');
+    expect(afterDown).toContain('organization_role_assignments');
+    expect(afterDown).toContain('organization_invites');
+    expect(afterDown).not.toContain('match_command_idempotency');
+    expect(afterDown).not.toContain('match_timer_resolutions');
+
+    const organizationAccessDown = await migrateDownOneStep(scratch.db);
+    expect(organizationAccessDown.error).toBeUndefined();
+
+    const afterOrganizationAccessDown = (await scratch.db.introspection.getTables()).map(
+      (table) => table.name,
+    );
+    expect(afterOrganizationAccessDown).toContain('organizations');
+    expect(afterOrganizationAccessDown).not.toContain('organization_role_assignments');
+    expect(afterOrganizationAccessDown).not.toContain('organization_invites');
 
     const initialDown = await migrateDownOneStep(scratch.db);
     expect(initialDown.error).toBeUndefined();

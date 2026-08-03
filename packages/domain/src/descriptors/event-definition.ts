@@ -32,6 +32,15 @@ export type PayloadJsonSchema = Readonly<Record<string, unknown>>;
  */
 export type ScoreAward = 'actor' | 'every-other-side';
 
+/** A descriptor-owned branch from a preliminary event choice to a final fact. */
+export interface EventWorkflow {
+  readonly kind: 'outcome-choice';
+  readonly options: readonly {
+    readonly definitionCode: string;
+    readonly label: string;
+  }[];
+}
+
 /** An explicit, configured effect. Never inferred from category. */
 export type EventEffect =
   | { readonly kind: 'score'; readonly awardTo: ScoreAward; readonly delta: number }
@@ -40,6 +49,8 @@ export type EventEffect =
       readonly kind: 'timed-penalty';
       readonly durationSeconds: number;
       readonly affects: 'actor' | 'side';
+      /** A console may resolve this timer early only when the discipline opts in. */
+      readonly allowManualResolution?: boolean;
     }
   | { readonly kind: 'match-state'; readonly transition: string }
   /**
@@ -69,6 +80,8 @@ export interface EventDefinition {
   readonly payloadSchema: PayloadJsonSchema;
   /** Explicit effects; empty/omitted means recording it changes nothing derived. */
   readonly effects?: readonly EventEffect[];
+  /** Optional data-driven branch a console resolves before recording a final fact. */
+  readonly workflow?: EventWorkflow;
   /** Presentation metadata for consoles/public surfaces — never behavior. */
   readonly display?: {
     readonly icon?: string;

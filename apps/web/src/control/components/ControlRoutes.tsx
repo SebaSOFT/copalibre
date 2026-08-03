@@ -1,10 +1,11 @@
-import type { ControlApiClient } from '../lib/api-client.js';
+import type { ControlApiClient, MatchConsoleApiClient } from '../lib/api-client.js';
 import { ControlShell } from './ControlShell.js';
 import { RegistrationReviewRoute } from './RegistrationReviewRoute.js';
 import { SeedingBuilderRoute } from './SeedingBuilderRoute.js';
 import { StandingsRoute } from './StandingsRoute.js';
 import { TournamentAuthoringPage } from './TournamentAuthoringPage.js';
 import { RolesPermissionsRoute } from './RolesPermissionsRoute.js';
+import { MatchConsoleRoute } from './MatchConsoleRoute.js';
 
 export function TournamentAuthoringControlRoute({
   organizationAlias,
@@ -95,6 +96,29 @@ export function RolesPermissionsControlRoute({
   return (
     <ControlShell active="Roles" organizationAlias={organizationAlias}>
       <RolesPermissionsRoute client={client} organizationAlias={organizationAlias} />
+    </ControlShell>
+  );
+}
+
+export function MatchConsoleControlRoute({
+  organizationAlias,
+  tournamentAlias,
+  matchId,
+  client,
+}: {
+  readonly organizationAlias: string;
+  readonly tournamentAlias: string;
+  readonly matchId: string;
+  readonly client?: MatchConsoleApiClient;
+}): React.JSX.Element {
+  return (
+    <ControlShell organizationAlias={organizationAlias}>
+      <MatchConsoleRoute
+        client={client}
+        matchId={matchId}
+        organizationAlias={organizationAlias}
+        tournamentAlias={tournamentAlias}
+      />
     </ControlShell>
   );
 }

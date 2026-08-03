@@ -837,6 +837,79 @@
         ]
       }
     },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/console": {
+      "get": {
+        "description": "Returns operator-only state after organization role and match-assignment checks. Public reads remain sanitized and never include capabilities, lineups, or descriptor input metadata.",
+        "operationId": "MatchControlController_console",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "matchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchConsoleResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read the authoritative state required by a match-control console",
+        "tags": [
+          "match-control"
+        ]
+      }
+    },
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/commands/{command}": {
       "post": {
         "description": "Pausing stops the clock, not the competition: a paused match is still in progress. Finalizing needs its own capability — recording events never implies declaring a result.",
@@ -870,6 +943,14 @@
             "name": "command",
             "required": true,
             "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "idempotency-key",
+            "required": true,
+            "in": "header",
             "schema": {
               "type": "string"
             }
@@ -923,6 +1004,148 @@
           }
         ],
         "summary": "Start, pause, resume or finalize",
+        "tags": [
+          "match-control"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/clock": {
+      "post": {
+        "operationId": "MatchControlController_adjustClock",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "matchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClockAdjustmentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchConsoleResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Adjust the authoritative elapsed time or active segment",
+        "tags": [
+          "match-control"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/timers/{timerId}/resolve": {
+      "post": {
+        "operationId": "MatchControlController_resolveTimer",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "matchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "timerId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchConsoleResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Resolve a discipline-declared timer early",
         "tags": [
           "match-control"
         ]
@@ -2548,6 +2771,238 @@
           "runningTimers"
         ]
       },
+      "ConsoleLiveScoreResponse": {
+        "type": "object",
+        "properties": {
+          "entrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "score": {
+            "type": "number",
+            "description": "Score folded from the immutable event log"
+          },
+          "statistics": {
+            "type": "object",
+            "description": "Declared statistic deltas folded from the event log"
+          }
+        },
+        "required": [
+          "entrantId",
+          "score",
+          "statistics"
+        ]
+      },
+      "ConsoleSegmentResponse": {
+        "type": "object",
+        "properties": {
+          "segmentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string"
+          },
+          "number": {
+            "type": "number"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "active",
+              "completed"
+            ]
+          },
+          "elapsedSeconds": {
+            "type": "number"
+          },
+          "durationSeconds": {
+            "type": "number",
+            "description": "Descriptor-declared duration for a timed segment"
+          }
+        },
+        "required": [
+          "segmentId",
+          "type",
+          "number",
+          "state",
+          "elapsedSeconds"
+        ]
+      },
+      "RunningTimerDto": {
+        "type": "object",
+        "properties": {
+          "timerId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The event that started it"
+          },
+          "side": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The entrant serving it"
+          },
+          "personId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "startedAt": {
+            "type": "number",
+            "description": "Epoch milliseconds of the causing event"
+          },
+          "durationSeconds": {
+            "type": "number"
+          },
+          "remainingSeconds": {
+            "type": "number",
+            "description": "Derived at read; never a stored countdown"
+          }
+        },
+        "required": [
+          "timerId",
+          "startedAt",
+          "durationSeconds",
+          "remainingSeconds"
+        ]
+      },
+      "ConsoleEventResponse": {
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "definitionCode": {
+            "type": "string"
+          },
+          "segmentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequence": {
+            "type": "number"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "side": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "personId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "eventId",
+          "definitionCode",
+          "segmentId",
+          "sequence",
+          "occurredAt"
+        ]
+      },
+      "MatchConsoleResponse": {
+        "type": "object",
+        "properties": {
+          "matchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "scheduled",
+              "in-progress",
+              "finalized"
+            ]
+          },
+          "result": {
+            "type": "object",
+            "description": "Resolved authoritative result when one exists"
+          },
+          "liveScores": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConsoleLiveScoreResponse"
+            }
+          },
+          "segments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConsoleSegmentResponse"
+            }
+          },
+          "runningTimers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunningTimerDto"
+            }
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConsoleEventResponse"
+            }
+          },
+          "eventDefinitions": {
+            "description": "Descriptor-owned palette presentation metadata",
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "eligiblePersonIds": {
+            "description": "Persons eligible for attribution from active lineups",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "eligibleStaffIds": {
+            "description": "Coaches and staff attached to an entrant contesting this match",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "entrantIds": {
+            "description": "Entrants contesting this match",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "capabilities": {
+            "description": "Capabilities granted to this subject for this match",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "projectionVersion": {
+            "type": "number",
+            "description": "Monotonic server-issued projection version"
+          }
+        },
+        "required": [
+          "matchId",
+          "status",
+          "result",
+          "liveScores",
+          "segments",
+          "runningTimers",
+          "events",
+          "eventDefinitions",
+          "eligiblePersonIds",
+          "eligibleStaffIds",
+          "entrantIds",
+          "capabilities",
+          "projectionVersion"
+        ]
+      },
       "FinalizeRequest": {
         "type": "object",
         "properties": {
@@ -2566,6 +3021,27 @@
         },
         "required": [
           "sides"
+        ]
+      },
+      "ClockAdjustmentRequest": {
+        "type": "object",
+        "properties": {
+          "segmentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "elapsedSeconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "activate": {
+            "type": "boolean",
+            "description": "Make the selected segment the active clock segment"
+          }
+        },
+        "required": [
+          "segmentId",
+          "elapsedSeconds"
         ]
       },
       "RecordEventRequest": {

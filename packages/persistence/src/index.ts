@@ -63,6 +63,10 @@ export {
 export { CompetitionRepository } from './repositories/competition-repository.js';
 export { ScheduleRepository, type SchedulePreview } from './repositories/schedule-repository.js';
 export { MatchAssignmentRepository } from './repositories/match-assignment-repository.js';
+export {
+  MatchCommandIdempotencyRepository,
+  type StoredMatchCommandResponse,
+} from './repositories/match-command-idempotency-repository.js';
 export { PersonRepository } from './repositories/person-repository.js';
 export {
   StatisticProjection,

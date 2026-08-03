@@ -228,6 +228,8 @@ export function toSegment(row: SegmentRow): Segment {
     type: row.segment_type,
     number: row.number,
     state: row.state as Segment['state'],
+    elapsedSeconds: row.elapsed_seconds,
+    ...(row.clock_started_at === null ? {} : { clockStartedAt: toIsoString(row.clock_started_at) }),
   };
 }
 

@@ -263,6 +263,10 @@ export interface SegmentsTable {
   segment_type: string;
   number: number;
   state: string;
+  /** Accumulated elapsed time while the segment was not actively running. */
+  elapsed_seconds: number;
+  /** Server clock instant at which the current running interval started. */
+  clock_started_at: Timestamp | null;
   created_at: Timestamp;
 }
 
@@ -301,6 +305,24 @@ export interface MatchAssignmentsTable {
   stage_id: string | null;
   capabilities: JSONColumnType<readonly string[]>;
   created_at: Timestamp;
+}
+
+/** A completed command response keyed by a client-supplied idempotency key. */
+export interface MatchCommandIdempotencyTable {
+  idempotency_key: string;
+  match_id: string;
+  operation: string;
+  request_fingerprint: string;
+  response: JSONColumnType<Record<string, unknown>>;
+  created_at: Timestamp;
+}
+
+/** An explicit early resolution of a timer fact; the source event remains immutable. */
+export interface MatchTimerResolutionsTable {
+  timer_id: string;
+  match_id: string;
+  actor: string;
+  resolved_at: Timestamp;
 }
 
 export interface AuditLogTable {
@@ -568,6 +590,8 @@ export interface Database {
   segments: SegmentsTable;
   match_events: MatchEventsTable;
   match_assignments: MatchAssignmentsTable;
+  match_command_idempotency: MatchCommandIdempotencyTable;
+  match_timer_resolutions: MatchTimerResolutionsTable;
   match_lineups: MatchLineupsTable;
   audit_log: AuditLogTable;
   outbox_events: OutboxEventsTable;

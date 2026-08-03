@@ -71,6 +71,46 @@ export interface ControlApiClient {
   ) => Promise<void>;
 }
 
+export interface MatchConsoleApiClient {
+  readonly fetchMatchConsole: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    matchId: string,
+  ) => Promise<MatchConsoleResponse>;
+  readonly adjustMatchClock: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    matchId: string,
+    request: ClockAdjustmentRequest,
+  ) => Promise<MatchConsoleResponse>;
+  readonly resolveMatchTimer: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    matchId: string,
+    timerId: string,
+  ) => Promise<MatchConsoleResponse>;
+  readonly recordMatchEvent: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    matchId: string,
+    request: RecordMatchEventRequest,
+  ) => Promise<RecordedMatchEventResponse>;
+  readonly finalizeMatch: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    matchId: string,
+    request: FinalizeMatchRequest,
+    idempotencyKey: string,
+  ) => Promise<MatchStateResponse>;
+  /** Authenticated stream configuration; events never carry console details. */
+  readonly matchConsoleStream?: (organizationAlias: string) => MatchConsoleStream;
+}
+
+export interface MatchConsoleStream {
+  readonly url: string;
+  readonly accessToken?: () => string | undefined;
+}
+
 export interface TiebreakTraceResponse {
   readonly entrantId: string;
   readonly lines: readonly string[];
@@ -163,11 +203,122 @@ export interface InvitationResponse {
   readonly expiresAt: string;
 }
 
+export type MatchCapability =
+  | 'match.record-event'
+  | 'match.control-clock'
+  | 'match.resolve-timer'
+  | 'match.select-lineup'
+  | 'match.finalize';
+
+export interface ConsoleSegment {
+  readonly segmentId: string;
+  readonly type: string;
+  readonly number: number;
+  readonly state: 'pending' | 'active' | 'completed';
+  readonly elapsedSeconds: number;
+  readonly durationSeconds?: number;
+}
+
+export interface ConsoleTimer {
+  readonly timerId: string;
+  readonly side?: string;
+  readonly personId?: string;
+  readonly startedAt: number;
+  readonly durationSeconds: number;
+  readonly remainingSeconds: number;
+}
+
+export interface ConsoleMatchEvent {
+  readonly eventId: string;
+  readonly definitionCode: string;
+  readonly segmentId: string;
+  readonly sequence: number;
+  readonly occurredAt: string;
+  readonly side?: string;
+  readonly personId?: string;
+}
+
+export interface ConsoleEventDefinition {
+  readonly code: string;
+  readonly label: string;
+  readonly category: 'positive' | 'negative' | 'neutral';
+  readonly permittedSegmentTypes: readonly string[];
+  readonly actorRequirement: 'none' | 'side' | 'person' | 'person-or-staff';
+  readonly payloadSchema: Record<string, unknown>;
+  readonly display: { readonly icon?: string; readonly color?: string; readonly order?: number };
+  readonly workflow?: {
+    readonly kind: 'outcome-choice';
+    readonly options: readonly { readonly definitionCode: string; readonly label: string }[];
+  };
+}
+
+export interface ConsoleLiveScore {
+  readonly entrantId: string;
+  readonly score: number;
+  readonly statistics: Readonly<Record<string, number>>;
+}
+
+export interface MatchConsoleResponse {
+  readonly matchId: string;
+  readonly status: 'scheduled' | 'in-progress' | 'finalized';
+  readonly result: Record<string, unknown> | null;
+  readonly liveScores: readonly ConsoleLiveScore[];
+  readonly segments: readonly ConsoleSegment[];
+  readonly runningTimers: readonly ConsoleTimer[];
+  readonly events: readonly ConsoleMatchEvent[];
+  readonly eventDefinitions: readonly ConsoleEventDefinition[];
+  readonly eligiblePersonIds: readonly string[];
+  readonly eligibleStaffIds: readonly string[];
+  readonly entrantIds: readonly string[];
+  readonly capabilities: readonly MatchCapability[];
+  readonly projectionVersion: number;
+}
+
+export interface ClockAdjustmentRequest {
+  readonly segmentId: string;
+  readonly elapsedSeconds: number;
+  readonly activate?: boolean;
+}
+
+export interface RecordMatchEventRequest {
+  readonly definitionCode: string;
+  readonly segmentId: string;
+  readonly occurredAt: number;
+  readonly side?: string;
+  readonly personId?: string;
+  readonly payload?: Record<string, unknown>;
+}
+
+export interface RecordedMatchEventResponse {
+  readonly eventId: string;
+  readonly definitionCode: string;
+  readonly sequence: number;
+  readonly side?: string;
+  readonly personId?: string;
+  readonly notifications: readonly string[];
+}
+
+export interface FinalizeMatchRequest {
+  readonly sides: readonly {
+    readonly entrantId: string;
+    readonly statistics: Record<string, number>;
+    readonly placement?: number;
+  }[];
+  readonly winnerEntrantId?: string;
+}
+
+export interface MatchStateResponse {
+  readonly matchId: string;
+  readonly status: 'scheduled' | 'in-progress' | 'finalized';
+  readonly clockRunning: boolean;
+  readonly runningTimers: readonly ConsoleTimer[];
+}
+
 export function createControlApiClient(input: {
   readonly fetch: typeof fetch;
   readonly baseUrl?: string;
   readonly accessToken?: () => string | undefined;
-}): ControlApiClient {
+}): ControlApiClient & MatchConsoleApiClient {
   const baseUrl = input.baseUrl ?? '';
 
   return {
@@ -290,7 +441,58 @@ export function createControlApiClient(input: {
         { method: 'DELETE', token: input.accessToken?.() },
       );
     },
+
+    fetchMatchConsole: (organizationAlias, tournamentAlias, matchId) =>
+      requestJson<MatchConsoleResponse>(
+        input.fetch,
+        `${matchPath(baseUrl, organizationAlias, tournamentAlias, matchId)}/console`,
+        { token: input.accessToken?.() },
+      ),
+
+    adjustMatchClock: (organizationAlias, tournamentAlias, matchId, body) =>
+      requestJson<MatchConsoleResponse>(
+        input.fetch,
+        `${matchPath(baseUrl, organizationAlias, tournamentAlias, matchId)}/clock`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    resolveMatchTimer: (organizationAlias, tournamentAlias, matchId, timerId) =>
+      requestJson<MatchConsoleResponse>(
+        input.fetch,
+        `${matchPath(baseUrl, organizationAlias, tournamentAlias, matchId)}/timers/${encodeURIComponent(timerId)}/resolve`,
+        { method: 'POST', token: input.accessToken?.() },
+      ),
+
+    recordMatchEvent: (organizationAlias, tournamentAlias, matchId, body) =>
+      requestJson<RecordedMatchEventResponse>(
+        input.fetch,
+        `${matchPath(baseUrl, organizationAlias, tournamentAlias, matchId)}/events`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    finalizeMatch: (organizationAlias, tournamentAlias, matchId, body, idempotencyKey) =>
+      requestJson<MatchStateResponse>(
+        input.fetch,
+        `${matchPath(baseUrl, organizationAlias, tournamentAlias, matchId)}/commands/finalize`,
+        { method: 'POST', body, token: input.accessToken?.(), idempotencyKey },
+      ),
+
+    matchConsoleStream: (organizationAlias) => ({
+      url: `${baseUrl}/events/control/${encodeURIComponent(organizationAlias)}`,
+      accessToken: input.accessToken,
+    }),
   };
+}
+
+function matchPath(
+  baseUrl: string,
+  organizationAlias: string,
+  tournamentAlias: string,
+  matchId: string,
+): string {
+  return `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
+    tournamentAlias,
+  )}/matches/${encodeURIComponent(matchId)}`;
 }
 
 function stagePath(
@@ -311,11 +513,13 @@ async function requestJson<T>(
     readonly method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
     readonly body?: unknown;
     readonly token?: string;
+    readonly idempotencyKey?: string;
   } = {},
 ): Promise<T> {
   const headers = new Headers();
   if (options.body !== undefined) headers.set('content-type', 'application/json');
   if (options.token !== undefined) headers.set('authorization', `Bearer ${options.token}`);
+  if (options.idempotencyKey !== undefined) headers.set('idempotency-key', options.idempotencyKey);
 
   const response = await fetcher(url, {
     method: options.method ?? 'GET',

@@ -74,4 +74,8 @@ export interface Segment {
   /** 1-based sequential number within the match. */
   readonly number: number;
   readonly state: 'pending' | 'active' | 'completed';
+  /** Accumulated elapsed time persisted by the authoritative match clock. */
+  readonly elapsedSeconds?: number;
+  /** Present only while this segment's authoritative clock is running. */
+  readonly clockStartedAt?: string;
 }

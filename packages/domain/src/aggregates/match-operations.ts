@@ -122,10 +122,12 @@ export function runningTimers(
   events: readonly RecordedEvent[],
   codes: TimerEventCodes,
   now: number,
+  resolvedTimerIds: ReadonlySet<string> = new Set(),
 ): readonly RunningTimer[] {
   const running = new Map<string, RunningTimer>();
 
   for (const event of [...events].sort((left, right) => left.sequence - right.sequence)) {
+    if (resolvedTimerIds.has(event.eventId)) continue;
     const key = timerKey(event);
 
     if (codes.stops.includes(event.definitionCode)) {

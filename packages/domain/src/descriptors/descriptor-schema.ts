@@ -202,6 +202,7 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
           actorRequirement: { enum: ['none', 'side', 'person', 'person-or-staff'] },
           payloadSchema: { type: 'object' },
           effects: { type: 'array', items: { $ref: '#/definitions/eventEffect' } },
+          workflow: { $ref: '#/definitions/eventWorkflow' },
         },
       },
     },
@@ -414,6 +415,7 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
             durationSeconds: { type: 'number', exclusiveMinimum: 0 },
             /** The person who caused it, or the entrant they belong to. */
             affects: { enum: ['actor', 'side'] },
+            allowManualResolution: { type: 'boolean' },
           },
         },
         {
@@ -434,6 +436,27 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
           },
         },
       ],
+    },
+    eventWorkflow: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['kind', 'options'],
+      properties: {
+        kind: { const: 'outcome-choice' },
+        options: {
+          type: 'array',
+          minItems: 1,
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['definitionCode', 'label'],
+            properties: {
+              definitionCode: { type: 'string', minLength: 1 },
+              label: { type: 'string', minLength: 1 },
+            },
+          },
+        },
+      },
     },
   },
 });
@@ -463,6 +486,24 @@ export function validateDisciplineDescriptorDocument(
   }
 
   const descriptor = document as DisciplineDescriptor;
+  const definitionCodes = new Set(descriptor.eventDefinitions.map((definition) => definition.code));
+  for (const definition of descriptor.eventDefinitions) {
+    const unknown = definition.workflow?.options.find(
+      (option) => !definitionCodes.has(option.definitionCode),
+    );
+    if (unknown) {
+      return err(
+        new DescriptorValidationError(
+          `Event "${definition.code}" workflow names unknown event "${unknown.definitionCode}"`,
+          {
+            field: 'eventDefinitions',
+            definitionCode: definition.code,
+            option: unknown.definitionCode,
+          },
+        ),
+      );
+    }
+  }
   const duplicate = firstDuplicate(descriptor.statistics.map((statistic) => statistic.code));
   if (duplicate) {
     return err(

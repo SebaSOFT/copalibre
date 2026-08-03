@@ -11,7 +11,7 @@ import type {
   Stage,
   TournamentFormat,
 } from '@copalibre/domain';
-import type { Kysely } from 'kysely';
+import type { Kysely, Transaction } from 'kysely';
 import { InvariantViolationError, NotFoundError } from '../errors.js';
 import { newId } from '../ids.js';
 import { toIsoString, toMatch, toRecordedEvent, toSegment, toStage } from '../mapping.js';
@@ -283,7 +283,7 @@ export class CompetitionRepository {
       readonly grantedBy: string;
     } & AuditContext,
   ): Promise<Match> {
-    const existing = await this.findMatch(input.matchId);
+    const existing = await this.findMatchIn(uow.tx, input.matchId);
     if (!existing) {
       throw new NotFoundError(`Match ${input.matchId} does not exist`, { matchId: input.matchId });
     }
@@ -323,9 +323,36 @@ export class CompetitionRepository {
       readonly state: Segment['state'];
     } & AuditContext,
   ): Promise<Segment> {
+    const existing = await uow.tx
+      .selectFrom('segments')
+      .selectAll()
+      .where('segment_id', '=', input.segmentId)
+      .executeTakeFirst();
+    if (!existing) {
+      throw new NotFoundError(`Segment ${input.segmentId} does not exist`, {
+        segmentId: input.segmentId,
+      });
+    }
+
+    const now = new Date();
+    let elapsedSeconds = existing.elapsed_seconds;
+    if (
+      input.state !== 'active' &&
+      existing.state === 'active' &&
+      existing.clock_started_at !== null
+    ) {
+      elapsedSeconds += Math.max(
+        0,
+        Math.floor((now.getTime() - existing.clock_started_at.getTime()) / 1000),
+      );
+    }
     const row = await uow.tx
       .updateTable('segments')
-      .set({ state: input.state })
+      .set({
+        state: input.state,
+        elapsed_seconds: elapsedSeconds,
+        clock_started_at: input.state === 'active' ? (existing.clock_started_at ?? now) : null,
+      })
       .where('segment_id', '=', input.segmentId)
       .returningAll()
       .executeTakeFirstOrThrow();
@@ -341,6 +368,89 @@ export class CompetitionRepository {
       resultingState: { ...segment },
     });
     return segment;
+  }
+
+  /** Explicit clock correction; elapsed time is a durable match fact, never browser state. */
+  async adjustSegmentClock(
+    uow: UnitOfWork,
+    input: { readonly segmentId: string; readonly elapsedSeconds: number } & AuditContext,
+  ): Promise<Segment> {
+    if (!Number.isInteger(input.elapsedSeconds) || input.elapsedSeconds < 0) {
+      throw new InvariantViolationError('Elapsed seconds must be a non-negative integer', {
+        elapsedSeconds: input.elapsedSeconds,
+      });
+    }
+    const existing = await uow.tx
+      .selectFrom('segments')
+      .selectAll()
+      .where('segment_id', '=', input.segmentId)
+      .executeTakeFirst();
+    if (!existing) {
+      throw new NotFoundError(`Segment ${input.segmentId} does not exist`, {
+        segmentId: input.segmentId,
+      });
+    }
+    const now = new Date();
+    const row = await uow.tx
+      .updateTable('segments')
+      .set({
+        elapsed_seconds: input.elapsedSeconds,
+        clock_started_at: existing.state === 'active' ? now : null,
+      })
+      .where('segment_id', '=', input.segmentId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    const segment = toSegment(row);
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'segment',
+      entityId: input.segmentId,
+      action: 'segment.clock-adjusted',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      previousState: { ...toSegment(existing) },
+      resultingState: { ...segment },
+    });
+    return segment;
+  }
+
+  async resolveTimer(
+    uow: UnitOfWork,
+    input: { readonly timerId: string; readonly matchId: string } & AuditContext,
+  ): Promise<void> {
+    const existing = await uow.tx
+      .selectFrom('match_timer_resolutions')
+      .select('timer_id')
+      .where('timer_id', '=', input.timerId)
+      .executeTakeFirst();
+    if (existing) return;
+    await uow.tx
+      .insertInto('match_timer_resolutions')
+      .values({
+        timer_id: input.timerId,
+        match_id: input.matchId,
+        actor: input.actor,
+        resolved_at: new Date(),
+      })
+      .execute();
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'match-timer',
+      entityId: input.timerId,
+      action: 'match-timer.resolved',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      resultingState: { matchId: input.matchId, resolved: true },
+    });
+  }
+
+  async resolvedTimerIds(matchId: string): Promise<ReadonlySet<string>> {
+    const rows = await this.db
+      .selectFrom('match_timer_resolutions')
+      .select('timer_id')
+      .where('match_id', '=', matchId)
+      .execute();
+    return new Set(rows.map((row) => row.timer_id));
   }
 
   /**
@@ -361,7 +471,7 @@ export class CompetitionRepository {
       readonly blockedPropagation?: { readonly stageId: string; readonly reason: string };
     } & AuditContext,
   ): Promise<Match> {
-    const existing = await this.findMatch(input.matchId);
+    const existing = await this.findMatchIn(uow.tx, input.matchId);
     if (!existing?.result) {
       throw new InvariantViolationError(`Match ${input.matchId} has no result to supersede`, {
         matchId: input.matchId,
@@ -513,6 +623,8 @@ export class CompetitionRepository {
         segment_type: input.type,
         number: input.number,
         state: 'pending',
+        elapsed_seconds: 0,
+        clock_started_at: null,
         created_at: new Date(),
       })
       .returningAll()
@@ -617,7 +729,7 @@ export class CompetitionRepository {
     uow: UnitOfWork,
     input: { readonly matchId: string; readonly result: MatchResult } & AuditContext,
   ): Promise<Match> {
-    const existing = await this.findMatch(input.matchId);
+    const existing = await this.findMatchIn(uow.tx, input.matchId);
     if (!existing) {
       throw new NotFoundError(`Match ${input.matchId} does not exist`, {
         matchId: input.matchId,
@@ -662,7 +774,14 @@ export class CompetitionRepository {
   }
 
   async findMatch(matchId: string): Promise<Match | undefined> {
-    const row = await this.db
+    return this.findMatchIn(this.db, matchId);
+  }
+
+  private async findMatchIn(
+    executor: Kysely<Database> | Transaction<Database>,
+    matchId: string,
+  ): Promise<Match | undefined> {
+    const row = await executor
       .selectFrom('matches')
       .selectAll()
       .where('match_id', '=', matchId)
