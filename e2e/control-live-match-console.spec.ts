@@ -295,6 +295,16 @@ test('does not expose finalization to a referee without its match capability', a
   await expect(page.getByRole('button', { name: 'Gol', exact: true })).toBeEnabled();
 });
 
+test('does not grant event recording from the roster-selection capability alone', async ({
+  page,
+}) => {
+  await mockMatchConsole(page, { capabilities: ['match.select-roster'] });
+  await page.goto(`/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`);
+
+  await expect(page.getByRole('button', { name: 'Gol', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Finalizar partido' })).toBeDisabled();
+});
+
 test('labels every unavailable telemetry signal without fabricated figures', async ({ page }) => {
   await mockMatchConsole(page);
   await page.goto(`/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`);

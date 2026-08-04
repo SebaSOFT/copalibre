@@ -83,8 +83,8 @@ export function setFilter(
   return { ...next, selected: state.selected.filter((id) => visible.has(id)) };
 }
 
-/** Whether the roster actions should be offered at all; the API decides finally. */
-export function rosterActionsEnabled(input: {
+/** Whether team-membership actions should be offered at all; the API decides finally. */
+export function teamMembershipActionsEnabled(input: {
   readonly requiresCheckIn: boolean;
   readonly checkInClosesAt?: string;
   readonly status: RegistrationStatus;
@@ -96,4 +96,4 @@ export function rosterActionsEnabled(input: {
 }
 
 export const LOCK_EXPLANATION =
-  'El check-in cerró: la lista con la que se presentó es la que juega. Si hay un error, corregilo con un acta.';
+  'El check-in cerró: las membresías registradas sostienen elegibilidad. Si hay un error, corregilo con un acta.';

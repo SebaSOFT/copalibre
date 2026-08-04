@@ -64,7 +64,7 @@ function fold(overrides: Partial<Parameters<typeof foldStatistics>[0]> = {}) {
   return foldStatistics({
     collectors: [collector()],
     events: [],
-    lineup: [],
+    roster: [],
     actorOf,
     context: CONTEXT,
     ...overrides,
@@ -143,7 +143,7 @@ describe('an appearance is not an event', () => {
           measure: { kind: 'count' },
         }),
       ],
-      lineup: [
+      roster: [
         { ...ATLAS, role: 'player' },
         { ...BOCA, role: 'player' },
       ],
@@ -158,7 +158,7 @@ describe('an appearance is not an event', () => {
       collectors: [
         collector({ code: 'played', source: { kind: 'participation', roles: ['player'] } }),
       ],
-      lineup: [
+      roster: [
         { ...ATLAS, role: 'player' },
         { ...BOCA, role: 'coach' },
       ],

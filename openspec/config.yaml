@@ -58,7 +58,7 @@ context: |
     - CopaLibre enforces two things and no third: the integrity of its own records, and what THIS
       organizer explicitly configured. It never enforces what a sport "usually" requires. A player
       with too many red cards carries a tag; the organizer keeps them off the sheet, and CopaLibre
-      does not refuse the lineup. State the difference in every proposal that adds a check: a refusal
+    does not refuse the roster. State the difference in every proposal that adds a check: a refusal
       is for a record that would be incoherent (a result overwritten, an event naming an entrant that
       is not playing, a venue in two places), or for a rule the organizer configured themselves.
       Everything a federation might do differently is labelled and reported, never blocked — a system

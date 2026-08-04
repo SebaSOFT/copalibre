@@ -58,7 +58,7 @@ export {
   EnrollmentRepository,
   type AuditContext,
   type ParticipantReportedResult,
-  type ParticipantRosterMembership,
+  type ParticipantTeamMembership,
 } from './repositories/enrollment-repository.js';
 export { CompetitionRepository } from './repositories/competition-repository.js';
 export { ScheduleRepository, type SchedulePreview } from './repositories/schedule-repository.js';

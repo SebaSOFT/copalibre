@@ -498,10 +498,10 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/{entrantId}/roster": {
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/{entrantId}/team-memberships": {
       "post": {
         "description": "Refused once check-in has closed for a checked-in entrant, whatever a stale console still offers.",
-        "operationId": "RegistrationsController_editRoster",
+        "operationId": "RegistrationsController_editTeamMemberships",
         "parameters": [
           {
             "name": "organizationAlias",
@@ -545,7 +545,7 @@
             "bearer": []
           }
         ],
-        "summary": "Edit a registration’s roster",
+        "summary": "Edit a registration’s team memberships",
         "tags": [
           "registrations"
         ]
@@ -839,7 +839,7 @@
     },
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/console": {
       "get": {
-        "description": "Returns operator-only state after organization role and match-assignment checks. Public reads remain sanitized and never include capabilities, lineups, or descriptor input metadata.",
+        "description": "Returns operator-only state after organization role and match-assignment checks. Public reads remain sanitized and never include capabilities, rosters, or descriptor input metadata.",
         "operationId": "MatchControlController_console",
         "parameters": [
           {
@@ -2076,9 +2076,9 @@
         ]
       }
     },
-    "/organizations/{organizationAlias}/participant/roster": {
+    "/organizations/{organizationAlias}/participant/team-memberships": {
       "get": {
-        "operationId": "ParticipantsController_roster",
+        "operationId": "ParticipantsController_teamMemberships",
         "parameters": [
           {
             "name": "organizationAlias",
@@ -2097,7 +2097,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/ParticipantRosterResponse"
+                    "$ref": "#/components/schemas/ParticipantTeamMembershipResponse"
                   }
                 }
               }
@@ -2212,7 +2212,7 @@
   "info": {
     "title": "CopaLibre API",
     "description": "Self-hosted tournament management API.\n\nAuthentication is JWT Bearer, validated against the operator-selected\nidentity provider’s JWKS. Browsers use Authorization Code + PKCE and\nhold the access token in memory only — never localStorage. A token\npassed as a query parameter is ignored, because URLs leak into proxy\nlogs, browser history, metrics, traces and screenshots.\n\nEvery route declares one security plane: public-read,\nauthenticated-interaction, admin-control, or integration.\nauthenticated-interaction and admin-control share this same bearer\ntransport and differ only in authorization policy.",
-    "version": "3.0.0",
+    "version": "4.0.0",
     "contact": {}
   },
   "tags": [],
@@ -2427,7 +2427,7 @@
           "checkInClosesAt": {
             "type": "string",
             "format": "date-time",
-            "description": "Optional instant when checked-in rosters stop being editable."
+            "description": "Optional instant when checked-in team memberships stop being editable."
           }
         },
         "required": [
@@ -2955,7 +2955,7 @@
             }
           },
           "eligiblePersonIds": {
-            "description": "Persons eligible for attribution from active lineups",
+            "description": "Persons eligible for attribution from active match rosters",
             "type": "array",
             "items": {
               "type": "string"
@@ -3641,7 +3641,7 @@
           "token"
         ]
       },
-      "ParticipantRosterResponse": {
+      "ParticipantTeamMembershipResponse": {
         "type": "object",
         "properties": {
           "playerId": {

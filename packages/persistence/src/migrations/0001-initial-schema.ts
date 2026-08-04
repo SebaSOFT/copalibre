@@ -346,9 +346,9 @@ export const initialSchema: Migration = {
       .execute();
 
     // Who takes the field (0014). One row per entrant per match, replaced when
-    // the lineup changes and audited every time — a lineup is state an operator
-    // edits before kick-off, not an event stream, but who changed it and when
-    // is exactly what a protest asks about.
+    // the match roster changes and audited every time. Migration 0004 renames
+    // this historical table to match_rosters; the original name stays here so
+    // established databases retain a valid migration chain.
     await db.schema
       .createTable('match_lineups')
       .addColumn('match_id', 'uuid', (col) => col.notNull().references('matches.match_id'))

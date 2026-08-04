@@ -88,7 +88,7 @@ export class CreateTournamentRequest {
 
   @ApiPropertyOptional({
     format: 'date-time',
-    description: 'Optional instant when checked-in rosters stop being editable.',
+    description: 'Optional instant when checked-in team memberships stop being editable.',
   })
   checkInClosesAt?: string;
 }
@@ -178,7 +178,7 @@ export class RegistrationResponse {
   personId?: string;
 }
 
-export class ParticipantRosterResponse {
+export class ParticipantTeamMembershipResponse {
   @ApiProperty({ format: 'uuid' })
   playerId!: string;
   @ApiProperty({ format: 'uuid' })

@@ -11,6 +11,7 @@ import type { Database } from '../schema.js';
 import { initialSchema } from './0001-initial-schema.js';
 import { organizationAccess } from './0002-organization-access.js';
 import { liveMatchConsole } from './0003-live-match-console.js';
+import { rosterTerminology } from './0004-roster-terminology.js';
 
 /**
  * Migrations are explicit, ordered, and code-defined (no filesystem scanning),
@@ -22,6 +23,7 @@ export const MIGRATIONS: Readonly<Record<string, Migration>> = {
   '0001-initial-schema': initialSchema,
   '0002-organization-access': organizationAccess,
   '0003-live-match-console': liveMatchConsole,
+  '0004-roster-terminology': rosterTerminology,
 };
 
 /** The version `apps/api`'s readiness check expects to find applied. */

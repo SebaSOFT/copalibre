@@ -28,7 +28,7 @@ export const CONSTRAINT_HOOK_POINTS = [
   'seed.order',
   /** Phase 12: rest rules and venue conflicts. */
   'schedule.assign-slot',
-  /** Roster and check-in rules. */
+  /** Team-membership and check-in rules. */
   'entrant.eligibility',
   /** Qualification-cut admissibility. */
   'stage.advance',

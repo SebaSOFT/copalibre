@@ -91,7 +91,7 @@ function fold(events: readonly RecordedEvent[]) {
   return foldStatistics({
     collectors: COLLECTORS,
     events,
-    lineup: [
+    roster: [
       { ...HOME, role: 'player' },
       { ...AWAY, role: 'player' },
     ],
@@ -132,7 +132,7 @@ describe('one declaration set, four axes', () => {
       value: 1,
       competitionGranularity: 'segment',
     });
-    // Nobody records "he played": it comes from the lineup, which is why a
+    // Nobody records "he played": it comes from the roster, which is why a
     // player who touched nothing still has a presence.
     expect(at('appearances', 'pe-2')?.value).toBe(1);
   });
@@ -170,7 +170,7 @@ describe('the same collectors under a deliberately unlike discipline', () => {
         event(2, 'score', 'en-a', 'sw-1'),
         event(3, 'sanction', 'en-b', 'sw-2'),
       ],
-      lineup: [
+      roster: [
         { ...SWIMMER, role: 'player' },
         { ...RIVAL, role: 'player' },
       ],
@@ -202,7 +202,7 @@ describe('the same collectors under a deliberately unlike discipline', () => {
         },
       ],
       events: [event(1, 'score', 'en-a', 'sw-1')],
-      lineup: [],
+      roster: [],
       actorOf: () => SWIMMER,
       context: CONTEXT,
     });

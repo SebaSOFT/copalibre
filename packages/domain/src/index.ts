@@ -228,10 +228,10 @@ export {
 export {
   applyMatchCommand,
   runningTimers,
-  validateLineup,
-  type LineupSelection,
-  type LineupFinding,
-  type CheckedLineup,
+  validateRoster,
+  type RosterSelection,
+  type RosterFinding,
+  type CheckedRoster,
   type RosterConstraint,
   MatchOperationError,
   type MatchCommand,
@@ -309,7 +309,7 @@ export {
 } from './aggregates/tournament-start.js';
 export type { Team, EntrantStatus, Entrant } from './aggregates/participant.js';
 export {
-  rosterEditable,
+  teamMembershipsEditable,
   canDecide,
   statusFor,
   planBulkReview,

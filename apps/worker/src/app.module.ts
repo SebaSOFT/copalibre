@@ -24,7 +24,7 @@ import { RelayService } from './relay.service.js';
  * actually run" is one list rather than a search for decorators.
  *
  * `refold` is a seam, not an omission: recomputing a match's figures needs the
- * discipline's collectors and the lineup that played, and resolving those is
+ * discipline's collectors and the roster that played, and resolving those is
  * 0029's catalogue work. Until then the projection is exercised end to end by
  * the integration tests, which supply their own.
  */

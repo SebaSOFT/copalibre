@@ -409,7 +409,7 @@ describe('api routes (integration)', () => {
       expect(histories[2]?.map((one) => one.action)).not.toContain('entrant.accepted');
     });
 
-    it('rejects a stale roster edit after check-in closes for a checked-in entrant', async () => {
+    it('rejects a stale team-membership edit after check-in closes for a checked-in entrant', async () => {
       const tournaments = new TournamentRepository(scratch.db);
       const enrollment = new EnrollmentRepository(scratch.db);
       const descriptor = footballDescriptor();
@@ -467,7 +467,7 @@ describe('api routes (integration)', () => {
 
       const response = await request({
         method: 'POST',
-        url: `/organizations/liga-orbital/tournaments/copa-check-in/registrations/${seeded.entrantId}/roster`,
+        url: `/organizations/liga-orbital/tournaments/copa-check-in/registrations/${seeded.entrantId}/team-memberships`,
         token: 'organizer-org1',
         payload: { personIds: [] },
       });

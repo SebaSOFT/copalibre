@@ -1,4 +1,4 @@
-import { validateLineup } from '../aggregates/match-operations.js';
+import { validateRoster } from '../aggregates/match-operations.js';
 import {
   checkTagApplication,
   tagScopeFor,
@@ -253,9 +253,9 @@ describe('a lifetime is derived, never written', () => {
 });
 
 describe('a tag refuses nothing', () => {
-  it('exposes no operation that could block a lineup, a match or a result', () => {
+  it('exposes no operation that could block a roster, a match or a result', () => {
     // The whole module surface: two validators about the record's own shape and
-    // one read. Nothing here takes a lineup, a match or a command — a tag says
+    // one read. Nothing here takes a roster, a match or a command — a tag says
     // what is the case, and the organizer decides what to do about it.
     const surface = { validateTagDeclaration, checkTagApplication, tagsAt };
 
@@ -266,17 +266,17 @@ describe('a tag refuses nothing', () => {
     ]);
   });
 
-  it('does not block a lineup naming a suspended person', () => {
+  it('does not block a roster naming a suspended person', () => {
     const standing = tagsAt([declaration()], [fact()]);
     expect(standing[0]?.actorId).toBe('pe-1');
 
-    const checked = validateLineup(
+    const checked = validateRoster(
       { matchId: 'm-1', entrantId: 'en-1', personIds: ['pe-1', 'pe-2'] },
       ['pe-1', 'pe-2'],
       { minPlayers: 1, maxPlayers: 5 },
     );
 
-    // The suspension is real, readable and carries a reason — and the lineup is
+    // The suspension is real, readable and carries a reason — and the roster is
     // still accepted. If this player must not take the field, the organizer
     // keeps them out; CopaLibre does not.
     expect(checked.ok).toBe(true);

@@ -204,7 +204,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/{entrantId}/roster": {
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/{entrantId}/team-memberships": {
         parameters: {
             query?: never;
             header?: never;
@@ -214,10 +214,10 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Edit a registration’s roster
+         * Edit a registration’s team memberships
          * @description Refused once check-in has closed for a checked-in entrant, whatever a stale console still offers.
          */
-        post: operations["RegistrationsController_editRoster"];
+        post: operations["RegistrationsController_editTeamMemberships"];
         delete?: never;
         options?: never;
         head?: never;
@@ -317,7 +317,7 @@ export interface paths {
         };
         /**
          * Read the authoritative state required by a match-control console
-         * @description Returns operator-only state after organization role and match-assignment checks. Public reads remain sanitized and never include capabilities, lineups, or descriptor input metadata.
+         * @description Returns operator-only state after organization role and match-assignment checks. Public reads remain sanitized and never include capabilities, rosters, or descriptor input metadata.
          */
         get: operations["MatchControlController_console"];
         put?: never;
@@ -596,7 +596,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/organizations/{organizationAlias}/participant/roster": {
+    "/organizations/{organizationAlias}/participant/team-memberships": {
         parameters: {
             query?: never;
             header?: never;
@@ -604,7 +604,7 @@ export interface paths {
             cookie?: never;
         };
         /** List the participant's own team memberships */
-        get: operations["ParticipantsController_roster"];
+        get: operations["ParticipantsController_teamMemberships"];
         put?: never;
         post?: never;
         delete?: never;
@@ -754,7 +754,7 @@ export interface components {
             requiresCheckIn: boolean;
             /**
              * Format: date-time
-             * @description Optional instant when checked-in rosters stop being editable.
+             * @description Optional instant when checked-in team memberships stop being editable.
              */
             checkInClosesAt?: string;
         };
@@ -941,7 +941,7 @@ export interface components {
             events: components["schemas"]["ConsoleEventResponse"][];
             /** @description Descriptor-owned palette presentation metadata */
             eventDefinitions: Record<string, never>[];
-            /** @description Persons eligible for attribution from active lineups */
+            /** @description Persons eligible for attribution from active match rosters */
             eligiblePersonIds: string[];
             /** @description Coaches and staff attached to an entrant contesting this match */
             eligibleStaffIds: string[];
@@ -1191,7 +1191,7 @@ export interface components {
         AcceptInvitationRequest: {
             token: string;
         };
-        ParticipantRosterResponse: {
+        ParticipantTeamMembershipResponse: {
             /** Format: uuid */
             playerId: string;
             /** Format: uuid */
@@ -1525,7 +1525,7 @@ export interface operations {
             };
         };
     };
-    RegistrationsController_editRoster: {
+    RegistrationsController_editTeamMemberships: {
         parameters: {
             query?: never;
             header?: never;
@@ -2351,7 +2351,7 @@ export interface operations {
             };
         };
     };
-    ParticipantsController_roster: {
+    ParticipantsController_teamMemberships: {
         parameters: {
             query?: never;
             header?: never;
@@ -2367,7 +2367,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ParticipantRosterResponse"][];
+                    "application/json": components["schemas"]["ParticipantTeamMembershipResponse"][];
                 };
             };
         };

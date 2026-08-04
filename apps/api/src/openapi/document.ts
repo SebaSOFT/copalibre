@@ -18,8 +18,11 @@ import type { OpenAPIObject } from '@nestjs/swagger';
  * tournament creation now writes the initial ruleset, so `format`,
  * `publicRegistration`, and `requiresCheckIn` are required request fields
  * instead of implied UI state.
+ *
+ * Bumped to 4.0.0 by 0039-roster-terminology: match capability and participant
+ * membership endpoint names changed to keep team membership separate from a match roster.
  */
-export const OPENAPI_VERSION = '3.0.0';
+export const OPENAPI_VERSION = '4.0.0';
 
 export function buildOpenApiDocument(app: INestApplication): OpenAPIObject {
   const config = new DocumentBuilder()

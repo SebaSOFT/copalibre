@@ -62,7 +62,7 @@ describe('the registration review screen', () => {
     expect(screen.getByText('delegado@talleres.test')).toBeDefined();
   });
 
-  it('shows the check-in roster lock when the server would reject the edit', () => {
+  it('shows the check-in team-membership lock when the server would reject the edit', () => {
     render(
       <RegistrationReviewPage
         organizationAlias="liga-mendocina"
@@ -77,7 +77,7 @@ describe('the registration review screen', () => {
     expect(screen.getByText(/El check-in cerró/)).toBeDefined();
     expect(
       screen
-        .getAllByRole('button', { name: 'Editar roster' })
+        .getAllByRole('button', { name: 'Editar miembros' })
         .some((button) => (button as HTMLButtonElement).disabled),
     ).toBe(true);
   });

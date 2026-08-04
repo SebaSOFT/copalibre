@@ -56,8 +56,8 @@ describe('a side is an entrant', () => {
   });
 
   it('accepts any side when the caller does not say who is playing', () => {
-    // The log validates what it is told; a caller that withholds the lineup
-    // gets no lineup check, rather than a guess.
+    // The log validates what it is told; a caller that withholds the roster
+    // gets no roster check, rather than a guess.
     const log = new EventLog(fixtureDescriptor());
 
     expect(log.record(strikeInput({ side: 'entrant-atlas' })).ok).toBe(true);

@@ -25,7 +25,7 @@ import {
   SUPPORTED_FORMATS,
   canDecide,
   planBulkReview,
-  rosterEditable,
+  teamMembershipsEditable,
   type CheckInWindow,
   type Entrant,
   type ReviewDecision,
@@ -180,18 +180,18 @@ export class RegistrationsController {
     return { applied, refused: [...plan.refused] };
   }
 
-  @Post(':entrantId/roster')
+  @Post(':entrantId/team-memberships')
   @HttpCode(200)
   @SecurityPlaneTag('admin-control')
   @RequireOrganizationRole('admin')
   @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Edit a registration’s roster',
+    summary: 'Edit a registration’s team memberships',
     description:
       'Refused once check-in has closed for a checked-in entrant, whatever a stale console still offers.',
   })
   @ApiOkResponse({ type: RegistrationResponse })
-  async editRoster(
+  async editTeamMemberships(
     @Param('organizationAlias') organizationAlias: string,
     @Param('tournamentAlias') tournamentAlias: string,
     @Param('entrantId') entrantId: string,
@@ -207,19 +207,19 @@ export class RegistrationsController {
     }
 
     const window = await this.checkInWindow(tournament.tournamentId);
-    const editable = rosterEditable(window, entrant.status, new Date().toISOString());
+    const editable = teamMembershipsEditable(window, entrant.status, new Date().toISOString());
     if (!editable.ok) throw new ConflictException(editable.error.message);
 
     if (!Array.isArray(body.personIds)) {
-      throw new BadRequestException('A roster edit names the people on it');
+      throw new BadRequestException('A team-membership edit names the people on it');
     }
 
     // The lock above is this phase's contract and it is enforced. Persisting the
-    // roster itself belongs to the phase that owns entrant rosters, and
+    // Membership persistence belongs to the phase that owns team membership, and
     // answering 200 without writing anything would tell a console its edit
     // landed — a worse failure than saying plainly that it did not.
     throw new NotImplementedException(
-      'Roster editing is not implemented yet; check-in enforcement is, and this request passed it',
+      'Team-membership editing is not implemented yet; check-in enforcement is, and this request passed it',
     );
   }
 

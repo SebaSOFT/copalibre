@@ -284,8 +284,8 @@ export interface MatchEventsTable {
   created_at: Timestamp;
 }
 
-/** Who takes the field for one entrant in one match (0014). */
-export interface MatchLineupsTable {
+/** The selected players for one entrant in one match (0014). */
+export interface MatchRostersTable {
   match_id: string;
   entrant_id: string;
   person_ids: JSONColumnType<readonly string[]>;
@@ -592,7 +592,7 @@ export interface Database {
   match_assignments: MatchAssignmentsTable;
   match_command_idempotency: MatchCommandIdempotencyTable;
   match_timer_resolutions: MatchTimerResolutionsTable;
-  match_lineups: MatchLineupsTable;
+  match_rosters: MatchRostersTable;
   audit_log: AuditLogTable;
   outbox_events: OutboxEventsTable;
   tournament_profiles: TournamentProfilesTable;

@@ -39,7 +39,7 @@ export type CollectorSource =
   /**
    * Appearances. "Matches played" cannot be folded from goals or fouls — a
    * player who touched nothing still played — so it comes from being named in
-   * the lineup rather than from an event nobody records.
+   * the roster rather than from an event nobody records.
    */
   | { readonly kind: 'participation'; readonly roles?: readonly string[] };
 

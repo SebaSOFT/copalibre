@@ -18,7 +18,7 @@ export interface Team {
    * What this side plays (0015). The **discipline**, not a pinned module
    * version: a club's football team plays football whichever descriptor version
    * a given tournament froze. Without it, a club fielding a football and a
-   * futsal side has two rows the model cannot tell apart — and a roster
+   * futsal side has two rows the model cannot tell apart — and a match roster
    * constraint has no team to attach to.
    *
    * Absent on a team registered before the discipline was asked for.

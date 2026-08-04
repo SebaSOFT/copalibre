@@ -223,7 +223,7 @@ describe('people and their memberships (integration)', () => {
     const teams = [football, futsal];
     const memberships = await people.playersOf(person.personId);
 
-    // A roster constraint is a claim about one side. Before a team named its
+    // A match-roster constraint is a claim about one side. Before a team named its
     // discipline, checking it against the wrong squad was not even expressible
     // as a mistake.
     expect(squadOfDiscipline(memberships, teams, FOOTBALL).map((p) => p.teamId)).toEqual([

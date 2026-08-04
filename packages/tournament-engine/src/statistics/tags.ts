@@ -17,7 +17,7 @@ import type { ActorContext, CompetitionContext } from './fold.js';
  * decision produces — so the read path has one kind of fact to fold and the
  * console shows one history, not two lists that have to be merged.
  *
- * Producing a fact is all this does. Nothing here refuses a lineup, a match or
+ * Producing a fact is all this does. Nothing here refuses a roster, a match or
  * a result: the tag says what is the case, and the organizer decides.
  */
 

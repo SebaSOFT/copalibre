@@ -23,7 +23,7 @@ export interface AuditContext {
   readonly authorizationContext: string;
 }
 
-export interface ParticipantRosterMembership {
+export interface ParticipantTeamMembership {
   readonly playerId: string;
   readonly teamId: string;
   readonly teamName: string;
@@ -565,11 +565,11 @@ export class EnrollmentRepository {
     return rows.map(toEntrant);
   }
 
-  /** Team memberships are the participant's readable roster projection. */
-  async listParticipantRoster(
+  /** Team memberships are the participant's readable membership projection. */
+  async listParticipantTeamMemberships(
     organizationId: string,
     personId: string,
-  ): Promise<readonly ParticipantRosterMembership[]> {
+  ): Promise<readonly ParticipantTeamMembership[]> {
     const rows = await this.db
       .selectFrom('players')
       .innerJoin('teams', 'teams.team_id', 'players.team_id')

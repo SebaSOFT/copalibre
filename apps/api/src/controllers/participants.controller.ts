@@ -35,7 +35,7 @@ import {
   LinkParticipantIdentityRequest,
   ParticipantIdentityLinkResponse,
   ParticipantReportedResultResponse,
-  ParticipantRosterResponse,
+  ParticipantTeamMembershipResponse,
   RegistrationResponse,
 } from '../dto/organization.dto.js';
 import { enforcePolicy } from '../policy/resource-policy.js';
@@ -62,18 +62,21 @@ export class ParticipantsController {
       .then((entrants) => entrants.map(toRegistrationResponse));
   }
 
-  @Get('roster')
+  @Get('team-memberships')
   @SecurityPlaneTag('authenticated-interaction')
   @RequireParticipantSelfService()
   @ApiBearerAuth()
   @ApiOperation({ summary: "List the participant's own team memberships" })
-  @ApiOkResponse({ type: ParticipantRosterResponse, isArray: true })
-  async roster(
+  @ApiOkResponse({ type: ParticipantTeamMembershipResponse, isArray: true })
+  async teamMemberships(
     @Param('organizationAlias') alias: string,
     @Req() request: RequestWithSubject,
-  ): Promise<readonly ParticipantRosterResponse[]> {
+  ): Promise<readonly ParticipantTeamMembershipResponse[]> {
     const { organizationId, personId } = await this.ownedParticipant(alias, request);
-    return new EnrollmentRepository(this.db).listParticipantRoster(organizationId, personId);
+    return new EnrollmentRepository(this.db).listParticipantTeamMemberships(
+      organizationId,
+      personId,
+    );
   }
 
   @Get('reported-results')

@@ -44,7 +44,7 @@ describe('a statistic is declared, not implemented', () => {
     }
   });
 
-  it('counts appearances from the lineup, because a player who touched nothing still played', () => {
+  it('counts appearances from the roster, because a player who touched nothing still played', () => {
     const played = collector({
       code: 'matches-played',
       source: { kind: 'participation', roles: ['player'] },

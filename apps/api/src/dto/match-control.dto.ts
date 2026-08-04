@@ -124,7 +124,7 @@ export class MatchConsoleResponse {
 
   @ApiProperty({
     type: [String],
-    description: 'Persons eligible for attribution from active lineups',
+    description: 'Persons eligible for attribution from active match rosters',
   })
   eligiblePersonIds!: string[];
 

@@ -157,6 +157,10 @@ test('revokes an expanded registration from the review queue', async ({ page }) 
   await page.goto('/control/liga-mendocina/tournaments/apertura-2026/registrations');
 
   await page.locator('summary').filter({ hasText: 'Deportivo Norte' }).click();
+  const expandedRegistration = page.locator('details[open]');
+  await expect(expandedRegistration.getByText('Miembros del equipo')).toBeVisible();
+  await expect(expandedRegistration.getByRole('button', { name: 'Editar miembros' })).toBeEnabled();
+  await expect(page.locator('body')).not.toContainText(/roster/i);
   await page.getByRole('button', { name: 'Revocar' }).click();
 
   await expect(page.getByText('Retirada')).toBeVisible();

@@ -23,7 +23,7 @@ import {
  * integrity of its own records, and what *this* organizer configured. It never
  * enforces what a sport usually requires. If a player must not take the field
  * after five reds, they carry a tag and the organizer keeps them out; nothing
- * here refuses the lineup. A system that decided otherwise would be wrong the
+ * here refuses the roster. A system that decided otherwise would be wrong the
  * first time a tribunal lifted a suspension on appeal, a friendly ignored the
  * league's discipline, or a discipline counted cards a way nobody anticipated —
  * and it would be wrong in the direction that stops a match being played.

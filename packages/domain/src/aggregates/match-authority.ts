@@ -4,7 +4,7 @@ import { err, ok, type Result } from '../result.js';
 /**
  * Who may operate a match (0014-live-match-operations-result-authority).
  *
- * The decision record asks for event entry, clock control, lineup selection and
+ * The decision record asks for event entry, clock control, roster selection and
  * finalization to be *separate permissions, not a consequence of a generic
  * organizer role*. The reason is concrete: a scorekeeper entering events is not
  * thereby entitled to declare the match over, and an organizer who administers
@@ -24,7 +24,7 @@ export const MATCH_CAPABILITIES = [
   /** Resolving a discipline-declared active timer. */
   'match.resolve-timer',
   /** Choosing who takes the field from the roster. */
-  'match.select-lineup',
+  'match.select-roster',
   /** Declaring the result, after which only the correction workflow may write. */
   'match.finalize',
 ] as const;
@@ -71,7 +71,7 @@ export const CAPABILITY_TEMPLATES: Readonly<Record<string, readonly MatchCapabil
   Object.freeze({
     referee: MATCH_CAPABILITIES,
     'table-official': ['match.record-event', 'match.control-clock'],
-    'team-delegate': ['match.select-lineup'],
+    'team-delegate': ['match.select-roster'],
   });
 
 export class MatchAuthorityError extends DomainError {

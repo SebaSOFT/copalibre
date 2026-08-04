@@ -2,7 +2,7 @@ import type { RecordedEvent } from '../events/event-log.js';
 import {
   applyMatchCommand,
   runningTimers,
-  validateLineup,
+  validateRoster,
   type MatchCommand,
 } from './match-operations.js';
 
@@ -169,26 +169,26 @@ describe('runningTimers', () => {
   });
 });
 
-describe('validateLineup', () => {
-  const roster = ['p-1', 'p-2', 'p-3', 'p-4', 'p-5'];
+describe('validateRoster', () => {
+  const eligiblePlayerIds = ['p-1', 'p-2', 'p-3', 'p-4', 'p-5'];
   const constraint = { minPlayers: 2, maxPlayers: 4 };
   const selection = { matchId: 'm-1', entrantId: 'entrant-atlas', personIds: ['p-1', 'p-2'] };
 
   function check(personIds: readonly string[]) {
-    const result = validateLineup({ ...selection, personIds }, roster, constraint);
+    const result = validateRoster({ ...selection, personIds }, eligiblePlayerIds, constraint);
     if (!result.ok) throw result.error;
     return result.value;
   }
 
-  it('accepts a lineup drawn from the active roster, with nothing to say about it', () => {
+  it('accepts a roster drawn from the eligible player pool, with nothing to say about it', () => {
     expect(check(['p-1', 'p-2']).findings).toEqual([]);
   });
 
-  it('reports someone who is not on the roster, and does not refuse the sheet', () => {
+  it('reports an ineligible player and does not refuse the roster', () => {
     const checked = check(['p-1', 'p-transferred']);
 
     expect(checked.findings).toEqual([
-      expect.objectContaining({ kind: 'off-roster', personId: 'p-transferred' }),
+      expect.objectContaining({ kind: 'not-eligible', personId: 'p-transferred' }),
     ]);
     // The organizer signs the sheet; CopaLibre says what it noticed.
     expect(checked.selection.personIds).toContain('p-transferred');
@@ -197,7 +197,7 @@ describe('validateLineup', () => {
   it.each([
     ['below', ['p-1'], 'below-minimum'],
     ['above', ['p-1', 'p-2', 'p-3', 'p-4', 'p-5'], 'above-maximum'],
-  ])('reports a lineup %s what the discipline expects, without blocking it', (_l, ids, kind) => {
+  ])('reports a roster %s what the discipline expects, without blocking it', (_l, ids, kind) => {
     expect(check(ids).findings).toEqual([expect.objectContaining({ kind })]);
   });
 
@@ -205,14 +205,18 @@ describe('validateLineup', () => {
     const checked = check(['p-transferred']);
 
     expect(checked.findings.map((finding) => finding.kind)).toEqual([
-      'off-roster',
+      'not-eligible',
       'below-minimum',
     ]);
   });
 
   it('refuses the same person named twice, because that sheet contradicts itself', () => {
     // Not a rule a competition might relax: no federation wants it recorded.
-    const result = validateLineup({ ...selection, personIds: ['p-1', 'p-1'] }, roster, constraint);
+    const result = validateRoster(
+      { ...selection, personIds: ['p-1', 'p-1'] },
+      eligiblePlayerIds,
+      constraint,
+    );
 
     expect(result.ok).toBe(false);
   });
