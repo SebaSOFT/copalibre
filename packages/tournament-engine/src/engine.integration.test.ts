@@ -20,9 +20,10 @@ import type { RecordedOutcome } from '@copalibre/domain';
 const AUDIT = { actor: 'user:organizer-1', authorizationContext: 'scope:tournament.write' };
 
 function descriptor(): DisciplineDescriptor {
+  const descriptorId = newId();
   return {
-    descriptorId: newId(),
-    alias: 'orbital-field',
+    descriptorId,
+    alias: `orbital-field-${descriptorId}`,
     version: '1.0.0',
     name: 'Orbital Field',
     attribution: { author: 'CopaLibre tests', licence: 'AGPL-3.0-only' },

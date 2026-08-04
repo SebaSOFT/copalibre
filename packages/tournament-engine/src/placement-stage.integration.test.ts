@@ -51,6 +51,16 @@ const lower = (id: string, label: string) => ({
   direction: 'lower_wins' as const,
 });
 
+function battleRoyale(): DisciplineDescriptor {
+  const descriptorId = newId();
+  return battleRoyaleDescriptor({ descriptorId, alias: `battle-royale-${descriptorId}` });
+}
+
+function swimming(): DisciplineDescriptor {
+  const descriptorId = newId();
+  return swimmingDescriptor({ descriptorId, alias: `swimming-${descriptorId}` });
+}
+
 describe('placement stages (integration)', () => {
   let scratch: Awaited<ReturnType<typeof createMigratedDatabase>>;
   let organizationId = '';
@@ -117,7 +127,7 @@ describe('placement stages (integration)', () => {
   }
 
   it('carries a heats stage into a double-elimination stage through the cut', async () => {
-    const descriptor = battleRoyaleDescriptor({ descriptorId: newId() });
+    const descriptor = battleRoyale();
     const { entrants } = await seedStage('copa-series', descriptor, 16);
 
     const graph = generateFixtures({
@@ -189,7 +199,7 @@ describe('placement stages (integration)', () => {
   });
 
   it('qualifies a battle royale on placement points plus frags', async () => {
-    const descriptor = battleRoyaleDescriptor({ descriptorId: newId() });
+    const descriptor = battleRoyale();
     const { entrants } = await seedStage('copa-royale', descriptor, 20);
 
     const graph = generateFixtures({
@@ -252,7 +262,7 @@ describe('placement stages (integration)', () => {
   });
 
   it('qualifies swimmers on time across all heats, not on position within one', async () => {
-    const descriptor = swimmingDescriptor({ descriptorId: newId() });
+    const descriptor = swimming();
     const { entrants } = await seedStage('copa-natacion', descriptor, 8);
 
     const graph = generateFixtures({
