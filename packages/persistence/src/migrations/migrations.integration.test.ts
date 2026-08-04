@@ -76,6 +76,7 @@ describe('migrations (integration)', () => {
     expect(afterUp).toContain('organization_invites');
     expect(afterUp).toContain('match_command_idempotency');
     expect(afterUp).toContain('match_timer_resolutions');
+    expect(afterUp).toContain('csv_import_sessions');
 
     const down = await migrateDownOneStep(scratch.db);
     expect(down.error).toBeUndefined();
@@ -86,8 +87,17 @@ describe('migrations (integration)', () => {
     expect(afterDown).toContain('organization_invites');
     expect(afterDown).toContain('match_command_idempotency');
     expect(afterDown).toContain('match_timer_resolutions');
-    expect(afterDown).toContain('match_lineups');
-    expect(afterDown).not.toContain('match_rosters');
+    expect(afterDown).not.toContain('csv_import_sessions');
+    expect(afterDown).toContain('match_rosters');
+
+    const rosterTerminologyDown = await migrateDownOneStep(scratch.db);
+    expect(rosterTerminologyDown.error).toBeUndefined();
+
+    const afterRosterTerminologyDown = (await scratch.db.introspection.getTables()).map(
+      (table) => table.name,
+    );
+    expect(afterRosterTerminologyDown).toContain('match_lineups');
+    expect(afterRosterTerminologyDown).not.toContain('match_rosters');
 
     const liveConsoleDown = await migrateDownOneStep(scratch.db);
     expect(liveConsoleDown.error).toBeUndefined();

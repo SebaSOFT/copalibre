@@ -152,6 +152,7 @@ export interface PlayersTable {
 export interface TeamsTable {
   team_id: string;
   organization_id: string;
+  alias: string | null;
   club_id: string | null;
   name: string;
   /** The discipline this side plays (0015); null on teams predating it. */
@@ -183,6 +184,23 @@ export interface EntrantAttributesTable {
   /** Populated for a numeric attribute; null for a categorical one. */
   value_numeric: number | null;
   created_at: Timestamp;
+}
+
+/** Source and review state for one asynchronous participant CSV import (0027). */
+export interface CsvImportSessionsTable {
+  import_id: string;
+  organization_id: string;
+  tournament_id: string;
+  target_type: string;
+  source_csv: string;
+  source_hash: string;
+  status: string;
+  preview: JSONColumnType<Record<string, unknown>> | null;
+  created_by: string;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+  reviewed_at: Timestamp | null;
+  committed_at: Timestamp | null;
 }
 
 /** One running of a tournament (0015). Every tournament has at least one. */
@@ -579,6 +597,7 @@ export interface Database {
   teams: TeamsTable;
   entrants: EntrantsTable;
   entrant_attributes: EntrantAttributesTable;
+  csv_import_sessions: CsvImportSessionsTable;
   venues: VenuesTable;
   officials: OfficialsTable;
   fixture_schedules: FixtureSchedulesTable;

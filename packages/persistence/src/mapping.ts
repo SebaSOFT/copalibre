@@ -125,6 +125,7 @@ export function toTeam(row: TeamRow): Team {
   return {
     teamId: row.team_id,
     organizationId: row.organization_id,
+    alias: row.alias ?? undefined,
     clubId: row.club_id ?? undefined,
     name: row.name,
     disciplineId: row.discipline_id ?? undefined,

@@ -1,6 +1,8 @@
 import type { Kysely } from 'kysely';
 import {
+  Alias,
   normaliseNaturalKey,
+  suggestAvailableAlias,
   validatePerson,
   type NaturalKey,
   type Person,
@@ -45,11 +47,18 @@ export class PersonRepository {
       if (existing) return { person: existing, recognised: true };
     }
 
+    const alias =
+      input.alias ?? (await this.suggestPersonAlias(input.organizationId, input.displayName));
+    const validatedAlias = Alias.create('participant', alias);
+    if (!validatedAlias.ok) {
+      throw new InvariantViolationError(validatedAlias.error.message, { alias });
+    }
+
     const person: Person = {
       personId: newId(),
       organizationId: input.organizationId,
       displayName: input.displayName,
-      ...(input.alias === undefined ? {} : { alias: input.alias }),
+      alias,
       ...(input.naturalKey === undefined ? {} : { naturalKey: input.naturalKey }),
     };
 
@@ -156,6 +165,87 @@ export class PersonRepository {
     return row ? toPerson(row) : undefined;
   }
 
+  async findByAlias(organizationId: string, alias: string): Promise<Person | undefined> {
+    const row = await this.db
+      .selectFrom('persons')
+      .selectAll()
+      .where('organization_id', '=', organizationId)
+      .where('alias', '=', alias)
+      .executeTakeFirst();
+    return row ? toPerson(row) : undefined;
+  }
+
+  async replaceByAlias(
+    uow: UnitOfWork,
+    input: {
+      readonly organizationId: string;
+      readonly alias: string;
+      readonly displayName: string;
+      readonly naturalKey?: NaturalKey;
+    } & AuditContext,
+  ): Promise<{ readonly person: Person; readonly created: boolean }> {
+    const existing = await this.findByAlias(input.organizationId, input.alias);
+    if (!existing) {
+      const registered = await this.register(uow, input);
+      return { person: registered.person, created: true };
+    }
+    if (input.naturalKey) {
+      const claimed = await this.findByNaturalKey(input.organizationId, input.naturalKey);
+      if (claimed && claimed.personId !== existing.personId) {
+        throw new InvariantViolationError('Another person already carries this natural key', {
+          alias: input.alias,
+          conflictsWith: claimed.personId,
+        });
+      }
+    }
+    const row = await uow.tx
+      .updateTable('persons')
+      .set({
+        display_name: input.displayName,
+        ...(input.naturalKey === undefined
+          ? {}
+          : {
+              natural_key_kind: input.naturalKey.kind,
+              natural_key_value: input.naturalKey.value,
+              natural_key_normalised: normaliseNaturalKey(input.naturalKey.value),
+            }),
+      })
+      .where('person_id', '=', existing.personId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    const person = toPerson(row);
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'person',
+      entityId: person.personId,
+      action: 'person.replaced',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      previousState: {
+        personId: existing.personId,
+        alias: existing.alias,
+        displayName: existing.displayName,
+      },
+      resultingState: {
+        personId: person.personId,
+        alias: person.alias,
+        displayName: person.displayName,
+      },
+    });
+    return { person, created: false };
+  }
+
+  private async suggestPersonAlias(organizationId: string, displayName: string): Promise<string> {
+    const rows = await this.db
+      .selectFrom('persons')
+      .select('alias')
+      .where('organization_id', '=', organizationId)
+      .where('alias', 'is not', null)
+      .execute();
+    const aliases = rows.flatMap((row) => (row.alias === null ? [] : [row.alias]));
+    return suggestAvailableAlias(displayName, aliases) ?? nextAlias('participant', aliases);
+  }
+
   /** Adds a membership. A person may hold one per team, and as many teams as they play for. */
   async enlist(
     uow: UnitOfWork,
@@ -215,6 +305,12 @@ export class PersonRepository {
       .execute();
     return rows.map(toPlayer);
   }
+}
+
+function nextAlias(prefix: string, aliases: readonly string[]): string {
+  let ordinal = 1;
+  while (aliases.includes(`${prefix}-${ordinal}`)) ordinal += 1;
+  return `${prefix}-${ordinal}`;
 }
 
 interface PersonRow {

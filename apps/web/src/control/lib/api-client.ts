@@ -69,6 +69,27 @@ export interface ControlApiClient {
     organizationAlias: string,
     assignmentId: string,
   ) => Promise<void>;
+  readonly createCsvImport?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    request: CreateCsvImportRequest,
+  ) => Promise<CsvImportPreviewResponse>;
+  readonly fetchCsvImport?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    importId: string,
+  ) => Promise<CsvImportPreviewResponse>;
+  readonly commitCsvImport?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    importId: string,
+    sourceHash: string,
+  ) => Promise<CsvImportPreviewResponse>;
+  readonly downloadCsvExport?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    kind: 'participants/individual' | 'participants/team' | 'results' | 'standings',
+  ) => Promise<string>;
 }
 
 export interface MatchConsoleApiClient {
@@ -174,6 +195,26 @@ export interface ReviewRegistrationRequest {
 export interface BulkReviewResponse {
   readonly applied: readonly RegistrationResponse[];
   readonly refused: readonly { readonly entrantId: string; readonly reason: string }[];
+}
+
+export interface CreateCsvImportRequest {
+  readonly target: 'individual' | 'team';
+  readonly sourceCsv: string;
+}
+
+export interface CsvImportPreviewResponse {
+  readonly importId: string;
+  readonly target: 'individual' | 'team';
+  readonly status: string;
+  readonly sourceHash: string;
+  readonly preview?: {
+    readonly valid: boolean;
+    readonly rows: readonly {
+      readonly rowNumber: number;
+      readonly errors: readonly { readonly message: string }[];
+    }[];
+    readonly errors: readonly { readonly message: string }[];
+  };
 }
 
 export type OrganizationRole = 'admin' | 'referee' | 'broadcaster' | 'viewer';
@@ -442,6 +483,34 @@ export function createControlApiClient(input: {
       );
     },
 
+    createCsvImport: (organizationAlias, tournamentAlias, body) =>
+      requestJson<CsvImportPreviewResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/imports`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    fetchCsvImport: (organizationAlias, tournamentAlias, importId) =>
+      requestJson<CsvImportPreviewResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/imports/${encodeURIComponent(importId)}`,
+        { token: input.accessToken?.() },
+      ),
+
+    commitCsvImport: (organizationAlias, tournamentAlias, importId, sourceHash) =>
+      requestJson<CsvImportPreviewResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/imports/${encodeURIComponent(importId)}/commit`,
+        { method: 'POST', body: { sourceHash }, token: input.accessToken?.() },
+      ),
+
+    downloadCsvExport: (organizationAlias, tournamentAlias, kind) =>
+      requestText(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/exports/${kind}`,
+        input.accessToken?.(),
+      ),
+
     fetchMatchConsole: (organizationAlias, tournamentAlias, matchId) =>
       requestJson<MatchConsoleResponse>(
         input.fetch,
@@ -482,6 +551,18 @@ export function createControlApiClient(input: {
       accessToken: input.accessToken,
     }),
   };
+}
+
+async function requestText(
+  fetcher: typeof fetch,
+  url: string,
+  token: string | undefined,
+): Promise<string> {
+  const response = await fetcher(url, {
+    headers: token === undefined ? undefined : { authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) throw new ControlApiError(response.status, await reasonOf(response));
+  return response.text();
 }
 
 function matchPath(

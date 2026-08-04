@@ -101,6 +101,41 @@ export class ProblemResponse {
   message!: string;
 }
 
+export class CreateCsvImportRequest {
+  @ApiProperty({ enum: ['individual', 'team'] })
+  target!: 'individual' | 'team';
+
+  @ApiProperty({
+    description: 'UTF-8 CopaLibre participant CSV, limited to 4 MiB.',
+    example: 'alias,displayName,naturalKeyKind,naturalKey\\nmaria-perez,Maria Perez,dni,12345678',
+  })
+  sourceCsv!: string;
+}
+
+export class CsvImportPreviewResponse {
+  @ApiProperty({ format: 'uuid' })
+  importId!: string;
+  @ApiProperty({ enum: ['individual', 'team'] })
+  target!: 'individual' | 'team';
+  @ApiProperty({
+    enum: ['queued', 'validating', 'review-ready', 'invalid', 'committing', 'committed'],
+  })
+  status!: string;
+  @ApiProperty({ description: 'SHA-256 source fingerprint used to reject stale confirmation.' })
+  sourceHash!: string;
+  @ApiPropertyOptional({ type: Object })
+  preview?: {
+    valid: boolean;
+    rows: readonly unknown[];
+    errors: readonly unknown[];
+  };
+}
+
+export class CommitCsvImportRequest {
+  @ApiProperty({ description: 'Source hash returned by the reviewed preview.' })
+  sourceHash!: string;
+}
+
 export class OrganizationRoleResponse {
   @ApiProperty({ format: 'uuid' })
   assignmentId!: string;

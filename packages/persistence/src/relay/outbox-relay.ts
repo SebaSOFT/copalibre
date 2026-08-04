@@ -66,6 +66,10 @@ export class OutboxRelay {
     const limit = input.limit ?? 20;
     const leaseSeconds = input.leaseSeconds ?? 30;
 
+    if (process.env.COPALIBRE_TEST_DIALECT === 'sqlite') {
+      return this.claimForSqlite(input.worker, limit, leaseSeconds);
+    }
+
     const { rows } = await sql<ClaimedRow>`
       update outbox_events
       set claimed_by = ${input.worker},
@@ -85,6 +89,54 @@ export class OutboxRelay {
     `.execute(this.db);
 
     return rows.map(toClaimedJob);
+  }
+
+  /**
+   * SQLite is a fast, single-process integration driver. It cannot express
+   * PostgreSQL's `FOR UPDATE SKIP LOCKED` claim, so tests claim candidates in
+   * one SQLite transaction. Production always follows the PostgreSQL path.
+   */
+  private async claimForSqlite(
+    worker: string,
+    limit: number,
+    leaseSeconds: number,
+  ): Promise<readonly ClaimedJob[]> {
+    const now = new Date();
+    const claimedUntil = new Date(now.getTime() + leaseSeconds * 1_000);
+    return this.db.transaction().execute(async (tx) => {
+      const candidates = await tx
+        .selectFrom('outbox_events')
+        .selectAll()
+        .where('consumed_at', 'is', null)
+        .where('dead_lettered_at', 'is', null)
+        .where('next_attempt_at', '<=', now)
+        .where((expression) =>
+          expression.or([
+            expression('claimed_until', 'is', null),
+            expression('claimed_until', '<', now),
+          ]),
+        )
+        .orderBy('created_at')
+        .orderBy('event_id')
+        .limit(limit)
+        .execute();
+
+      const claimed: ClaimedRow[] = [];
+      for (const candidate of candidates) {
+        const row = await tx
+          .updateTable('outbox_events')
+          .set({
+            claimed_by: worker,
+            claimed_until: claimedUntil,
+            attempts: candidate.attempts + 1,
+          })
+          .where('event_id', '=', candidate.event_id)
+          .returningAll()
+          .executeTakeFirstOrThrow();
+        claimed.push(row as unknown as ClaimedRow);
+      }
+      return claimed.map(toClaimedJob);
+    });
   }
 
   /**

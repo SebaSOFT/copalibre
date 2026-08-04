@@ -12,6 +12,8 @@ export interface Participant {
 export interface Team {
   readonly teamId: string;
   readonly organizationId: string;
+  /** Stable participant interchange key, unique within its organization. */
+  readonly alias?: string;
   readonly clubId?: string;
   readonly name: string;
   /**

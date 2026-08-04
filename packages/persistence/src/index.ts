@@ -69,6 +69,12 @@ export {
 } from './repositories/match-command-idempotency-repository.js';
 export { PersonRepository } from './repositories/person-repository.js';
 export {
+  CsvImportRepository,
+  hashSource,
+  type CsvImportSession,
+  type CsvImportStatus,
+} from './repositories/csv-import-repository.js';
+export {
   StatisticProjection,
   PROJECTED_EVENT_TYPES,
   type ProjectionEvent,

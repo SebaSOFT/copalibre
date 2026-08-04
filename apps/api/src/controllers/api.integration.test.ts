@@ -2,9 +2,10 @@ import { Module, type INestApplication } from '@nestjs/common';
 import { APP_GUARD, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
-import { footballDescriptor } from '@copalibre/domain';
+import { footballDescriptor, validateCsvImport } from '@copalibre/domain';
 import {
   AuditReader,
+  CsvImportRepository,
   EnrollmentRepository,
   OrganizationRepository,
   TournamentRepository,
@@ -18,6 +19,9 @@ import type { AuthenticatedSubject } from '../auth/request-context.js';
 import { TokenVerifier } from '../auth/token-verifier.js';
 import { DATABASE } from '../database.token.js';
 import { HealthController } from '../health.controller.js';
+import { API_BODY_LIMIT_BYTES } from '../http-body-limit.js';
+import { DataImportExportController } from './data-import-export.controller.js';
+import { DataExportController } from './data-export.controller.js';
 import { OrganizationsController } from './organizations.controller.js';
 import { DisciplinesController, RegistrationsController } from './registrations.controller.js';
 import { SchedulesController } from './schedules.controller.js';
@@ -83,6 +87,8 @@ describe('api routes (integration)', () => {
         SchedulesController,
         RegistrationsController,
         DisciplinesController,
+        DataImportExportController,
+        DataExportController,
       ],
       providers: [
         { provide: DATABASE, useValue: scratch.db },
@@ -94,7 +100,9 @@ describe('api routes (integration)', () => {
     class TestModule {}
 
     const moduleRef = await Test.createTestingModule({ imports: [TestModule] }).compile();
-    app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    app = moduleRef.createNestApplication<NestFastifyApplication>(
+      new FastifyAdapter({ bodyLimit: API_BODY_LIMIT_BYTES }),
+    );
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
 
@@ -474,6 +482,134 @@ describe('api routes (integration)', () => {
 
       expect(response.statusCode).toBe(409);
       expect(response.json().message).toContain('Check-in has closed');
+    });
+  });
+
+  describe('CSV import routes', () => {
+    it('persists an upload and queues validation without parsing in the request', async () => {
+      const tournaments = new TournamentRepository(scratch.db);
+      const descriptor = footballDescriptor();
+      await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+        await tournaments.saveDescriptor(uow, descriptor, {
+          organizationId,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+        await tournaments.create(uow, {
+          organizationId,
+          alias: 'copa-importacion',
+          name: 'Copa Importacion',
+          descriptor,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+      });
+
+      const created = await request({
+        method: 'POST',
+        url: '/organizations/liga-orbital/tournaments/copa-importacion/imports',
+        token: 'organizer-org1',
+        payload: {
+          target: 'team',
+          sourceCsv: 'alias,name\\nclub-atletico,Club Atletico\\n',
+        },
+      });
+
+      expect(created.statusCode).toBe(202);
+      expect(created.json()).toMatchObject({ target: 'team', status: 'queued' });
+      expect(created.json().preview).toBeUndefined();
+
+      await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        new CsvImportRepository(scratch.db).storePreview(uow, {
+          importId: created.json().importId,
+          preview: validateCsvImport({
+            target: 'team',
+            allowedParticipantTypes: ['team'],
+            csv: 'alias,name\nclub-atletico,Club Atletico\n',
+          }),
+        }),
+      );
+
+      const preview = await request({
+        method: 'GET',
+        url: `/organizations/liga-orbital/tournaments/copa-importacion/imports/${created.json().importId}`,
+        token: 'organizer-org1',
+      });
+      expect(preview.statusCode).toBe(200);
+      expect(preview.json()).toMatchObject({
+        importId: created.json().importId,
+        status: 'review-ready',
+        preview: { valid: true },
+      });
+
+      const committed = await request({
+        method: 'POST',
+        url: `/organizations/liga-orbital/tournaments/copa-importacion/imports/${created.json().importId}/commit`,
+        token: 'organizer-org1',
+        payload: { sourceHash: created.json().sourceHash },
+      });
+      expect(committed.statusCode).toBe(200);
+      expect(committed.json()).toMatchObject({ status: 'committed' });
+
+      const audit = await new AuditReader(scratch.db).historyFor(
+        'csv-import',
+        created.json().importId,
+      );
+      expect(audit[0]).toMatchObject({ action: 'csv-import.committed', actor: 'user:organizer-1' });
+
+      const stale = await request({
+        method: 'POST',
+        url: `/organizations/liga-orbital/tournaments/copa-importacion/imports/${created.json().importId}/commit`,
+        token: 'organizer-org1',
+        payload: { sourceHash: created.json().sourceHash },
+      });
+      expect(stale.statusCode).toBe(409);
+
+      const participantExport = await request({
+        method: 'GET',
+        url: '/organizations/liga-orbital/tournaments/copa-importacion/exports/participants/team',
+        token: 'organizer-org1',
+      });
+      expect(participantExport.statusCode).toBe(200);
+      expect(participantExport.body).toBe('alias,name\nclub-atletico,Club Atletico\n');
+    });
+
+    it('never commits a preview containing invalid rows', async () => {
+      const created = await request({
+        method: 'POST',
+        url: '/organizations/liga-orbital/tournaments/copa-importacion/imports',
+        token: 'organizer-org1',
+        payload: { target: 'team', sourceCsv: 'alias,name\nINVALID,\n' },
+      });
+      await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        new CsvImportRepository(scratch.db).storePreview(uow, {
+          importId: created.json().importId,
+          preview: validateCsvImport({
+            target: 'team',
+            allowedParticipantTypes: ['team'],
+            csv: 'alias,name\nINVALID,\n',
+          }),
+        }),
+      );
+      const committed = await request({
+        method: 'POST',
+        url: `/organizations/liga-orbital/tournaments/copa-importacion/imports/${created.json().importId}/commit`,
+        token: 'organizer-org1',
+        payload: { sourceHash: created.json().sourceHash },
+      });
+      expect(committed.statusCode).toBe(409);
+    });
+
+    it('rejects a source larger than 4 MiB before creating a durable job', async () => {
+      const response = await request({
+        method: 'POST',
+        url: '/organizations/liga-orbital/tournaments/copa-importacion/imports',
+        token: 'organizer-org1',
+        payload: { target: 'team', sourceCsv: 'x'.repeat(4 * 1024 * 1024 + 1) },
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(response.json().message).toContain('4 MiB');
     });
   });
 
