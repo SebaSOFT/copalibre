@@ -3,7 +3,7 @@ import { segmentThresholdEventDefinitions } from '../descriptors/segment-thresho
 import { winConditionScript } from './win-condition-scripts.js';
 
 /**
- * Seeded association-football module.
+ * Association-football descriptor builder for rules and engine tests.
  *
  * Every statistic the standings engine used to assume is declared here, which
  * is the point of 0009: the vocabulary belongs to the module, not to
@@ -18,6 +18,7 @@ export function footballDescriptor(
   const segmentTypes = ['half', 'extra-time'];
   return {
     descriptorId: '01890000-0000-7000-8000-00000000f001',
+    alias: 'football',
     version: '1.0.0',
     name: 'Football',
     attribution: {

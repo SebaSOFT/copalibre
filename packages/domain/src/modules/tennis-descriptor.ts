@@ -3,7 +3,7 @@ import { segmentThresholdEventDefinitions } from '../descriptors/segment-thresho
 import { winConditionScript } from './win-condition-scripts.js';
 
 /**
- * Seeded tennis module — the nested-scoring reference implementation.
+ * Tennis descriptor builder — the nested-scoring reference implementation.
  *
  * Tennis is the discipline that broke the pre-0009 model: one match produces
  * three levels of score at once (matches, sets, games), and a single scalar
@@ -21,6 +21,7 @@ export function tennisDescriptor(overrides?: Partial<DisciplineDescriptor>): Dis
   const segmentTypes = ['set', 'tiebreak'];
   return {
     descriptorId: '01890000-0000-7000-8000-00000000t001',
+    alias: 'tennis',
     version: '1.0.0',
     name: 'Tennis',
     attribution: {
@@ -77,6 +78,7 @@ export function tennisDescriptor(overrides?: Partial<DisciplineDescriptor>): Dis
       'double-elimination',
       'round-robin',
       'round-robin-single-leg',
+      'round-robin-home-away',
     ],
     notificationRuleCapabilities: ['threshold-count'],
     winCondition: winConditionScript('tennis-best-of-three', { unit: 'set', target: 2 }, [

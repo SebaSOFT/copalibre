@@ -17,6 +17,7 @@ const AUDIT = { actor: 'user:organizer-1', authorizationContext: 'scope:tourname
 function descriptor(): DisciplineDescriptor {
   return {
     descriptorId: newId(),
+    alias: 'orbital-field',
     version: '1.0.0',
     name: 'Orbital Field',
     attribution: { author: 'CopaLibre tests', licence: 'AGPL-3.0-only' },

@@ -71,6 +71,8 @@ export interface ClubsTable {
 
 export interface DisciplineDescriptorsTable {
   descriptor_id: string;
+  /** Installation-wide catalogue identity; older rows are backfilled by 0029. */
+  alias: string | null;
   /** Semver text, not an integer: see 0008-extensible-module-foundation. */
   version: string;
   name: string;
@@ -452,6 +454,8 @@ export interface ProjectionVersionsTable {
 
 export interface TournamentProfilesTable {
   profile_id: string;
+  /** Installation-wide catalogue identity; older rows are backfilled by 0029. */
+  alias: string | null;
   /** Semver text. */
   version: string;
   name: string;

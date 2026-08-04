@@ -3,7 +3,9 @@ import { validateDisciplineDescriptorDocument } from './descriptor-schema.js';
 
 /** A descriptor arrives as JSON; the tests exercise it as JSON, not as a typed object. */
 function asDocument(overrides: Record<string, unknown> = {}): unknown {
-  return JSON.parse(JSON.stringify({ ...fixtureDescriptor(), ...overrides })) as unknown;
+  const document = JSON.parse(JSON.stringify(fixtureDescriptor())) as Record<string, unknown>;
+  delete document.descriptorId;
+  return JSON.parse(JSON.stringify({ ...document, ...overrides })) as unknown;
 }
 
 describe('discipline descriptor schema', () => {

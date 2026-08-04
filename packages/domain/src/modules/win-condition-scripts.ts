@@ -6,7 +6,7 @@ import type { RuleScript } from '../descriptors/discipline-descriptor.js';
  *
  * The scripts are plain serializable data — a module is JSON, never code — but
  * hand-writing Neuron-JS parameter objects is noisy and easy to get subtly
- * wrong, so the seeded modules compose them through these helpers. A
+ * wrong, so test builders compose them through these helpers. A
  * community-authored module writes the same JSON by hand or with its own tools;
  * nothing here is required to author one.
  */

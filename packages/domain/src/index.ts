@@ -12,6 +12,7 @@ export {
   RulesetCompilationError,
   EventValidationError,
   DescriptorValidationError,
+  TournamentProfileValidationError,
   OutcomeValidationError,
   MutationBlockedError,
   type PolicyViolation,
@@ -74,6 +75,7 @@ export {
 } from './capabilities/binder.js';
 export type {
   TournamentProfile,
+  TournamentProfileDocument,
   ProfileStage,
   ProfileTiebreak,
 } from './profiles/tournament-profile.js';
@@ -103,6 +105,7 @@ export {
   type PlacementPoints,
   type ScoringInputDefinition,
   type DisciplineDescriptor,
+  type DisciplineDescriptorDocument,
   type RuleScript,
 } from './descriptors/discipline-descriptor.js';
 export {
@@ -116,7 +119,6 @@ export {
   battleRoyaleDescriptor,
   swimmingDescriptor,
   bestOfFiveWinCondition,
-  seededDescriptors,
   winConditionScript,
   type SegmentRuleSpec,
   type MatchRuleSpec,
@@ -128,6 +130,10 @@ export {
   RULE_SCRIPT_SCHEMA,
   type JsonSchemaDocument,
 } from './descriptors/descriptor-schema.js';
+export {
+  TOURNAMENT_PROFILE_SCHEMA,
+  validateTournamentProfileDocument,
+} from './profiles/profile-schema.js';
 
 export type {
   DescriptorRef,

@@ -81,7 +81,7 @@ function createSqliteScratchDatabase(label: string): ScratchDatabase {
   const db = registerTestDatabase(
     new Kysely<Database>({
       dialect: new SqliteDialect({ database: sqliteDriverWithDateBindings(sqlite) }),
-      plugins: [new ParseJSONResultsPlugin()],
+      plugins: [new ParseJSONResultsPlugin({ shouldParse: isJsonDocument })],
     }),
     'sqlite',
   );
@@ -114,6 +114,26 @@ function sqliteDriverWithDateBindings(database: DatabaseConstructor.Database) {
       };
     },
   };
+}
+
+/**
+ * Kysely's default heuristic treats any `{...}` string as JSON. Rule-script
+ * expressions use that syntax too (`{{ score.home }}`), so only parse strings
+ * that are in fact complete JSON documents.
+ */
+function isJsonDocument(value: string): boolean {
+  if (!(
+    (value.startsWith('{') && value.endsWith('}')) ||
+    (value.startsWith('[') && value.endsWith(']'))
+  )) {
+    return false;
+  }
+  try {
+    JSON.parse(value);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /** Scratch database with every migration already applied. */

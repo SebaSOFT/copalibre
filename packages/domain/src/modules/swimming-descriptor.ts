@@ -3,7 +3,7 @@ import { segmentThresholdEventDefinitions } from '../descriptors/segment-thresho
 import { winConditionScript } from './win-condition-scripts.js';
 
 /**
- * Seeded swimming module — the time-based heats reference.
+ * Swimming descriptor builder — the time-based heats reference.
  *
  * Swimming is the discipline that settles what qualification means, and it is
  * cited across three phases for it: you advance on **time across every heat**,
@@ -21,6 +21,7 @@ export function swimmingDescriptor(
   const segmentTypes = ['heat'];
   return {
     descriptorId: '01890000-0000-7000-8000-00000000s001',
+    alias: 'swimming',
     version: '1.0.0',
     name: 'Swimming',
     attribution: {

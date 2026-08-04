@@ -8,6 +8,7 @@ import type { DisciplineDescriptor } from '../descriptors/discipline-descriptor.
 export function fixtureDescriptor(overrides?: Partial<DisciplineDescriptor>): DisciplineDescriptor {
   return {
     descriptorId: '01890000-0000-7000-8000-000000000001',
+    alias: 'orbital-field',
     version: '3.0.0',
     name: 'Orbital Field',
     attribution: {

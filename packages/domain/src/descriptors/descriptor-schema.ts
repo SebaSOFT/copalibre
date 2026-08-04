@@ -1,5 +1,5 @@
 import { Ajv, type ValidateFunction } from 'ajv';
-import type { DisciplineDescriptor } from './discipline-descriptor.js';
+import type { DisciplineDescriptorDocument } from './discipline-descriptor.js';
 import { DescriptorValidationError } from '../errors.js';
 import { err, ok, type Result } from '../result.js';
 
@@ -132,7 +132,7 @@ const AGGREGATION_MODES = ['sum', 'count', 'max', 'min', 'average'] as const;
 export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
   type: 'object',
   required: [
-    'descriptorId',
+    'alias',
     'version',
     'name',
     'attribution',
@@ -149,7 +149,7 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
     'fieldPolicies',
   ],
   properties: {
-    descriptorId: { type: 'string', minLength: 1 },
+    alias: { type: 'string', pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$', maxLength: 64 },
     version: { type: 'string', minLength: 1 },
     name: { type: 'string', minLength: 1 },
     attribution: {
@@ -461,8 +461,9 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
   },
 });
 
-const ajv = new Ajv({ allErrors: false, coerceTypes: false, strict: false });
-ajv.addSchema(RULE_SCRIPT_SCHEMA);
+/** Shared validator for all versioned module document schemas. */
+export const moduleDocumentAjv = new Ajv({ allErrors: false, coerceTypes: false, strict: false });
+moduleDocumentAjv.addSchema(RULE_SCRIPT_SCHEMA);
 let descriptorValidator: ValidateFunction | undefined;
 
 /**
@@ -472,8 +473,10 @@ let descriptorValidator: ValidateFunction | undefined;
  */
 export function validateDisciplineDescriptorDocument(
   document: unknown,
-): Result<DisciplineDescriptor, DescriptorValidationError> {
-  descriptorValidator ??= ajv.compile(stripCustomKeywords(DISCIPLINE_DESCRIPTOR_SCHEMA));
+): Result<DisciplineDescriptorDocument, DescriptorValidationError> {
+  descriptorValidator ??= moduleDocumentAjv.compile(
+    stripCustomKeywords(DISCIPLINE_DESCRIPTOR_SCHEMA),
+  );
 
   if (!descriptorValidator(document)) {
     const [first] = descriptorValidator.errors ?? [];
@@ -485,7 +488,7 @@ export function validateDisciplineDescriptorDocument(
     );
   }
 
-  const descriptor = document as DisciplineDescriptor;
+  const descriptor = document as DisciplineDescriptorDocument;
   const definitionCodes = new Set(descriptor.eventDefinitions.map((definition) => definition.code));
   for (const definition of descriptor.eventDefinitions) {
     const unknown = definition.workflow?.options.find(
