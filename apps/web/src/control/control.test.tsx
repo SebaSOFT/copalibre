@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { jest } from '@jest/globals';
 
 // jsdom ships neither SubtleCrypto nor the text encoders; the browser has both
 // and Node exposes the same APIs.
@@ -211,6 +212,57 @@ describe('what the dashboard renders', () => {
 
     expect(screen.getByText(/no tiene torneos/)).toBeDefined();
     expect(screen.getByText(/Sin actividad/)).toBeDefined();
+  });
+
+  it('downloads every CSV view through the organization-scoped API', async () => {
+    const requests: string[] = [];
+    const originalFetch = globalThis.fetch;
+    const originalCreateObjectUrl = URL.createObjectURL;
+    const originalRevokeObjectUrl = URL.revokeObjectURL;
+    const createObjectUrl = jest.fn(() => 'blob:csv-export');
+    const revokeObjectUrl = jest.fn();
+    const click = jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    Object.defineProperty(globalThis, 'fetch', {
+      configurable: true,
+      value: async (url: string) => {
+        requests.push(url);
+        return new Response('alias,name\nclub-atletico,Club Atletico\n');
+      },
+    });
+    Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: createObjectUrl });
+    Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: revokeObjectUrl });
+
+    try {
+      render(
+        <Dashboard
+          model={buildDashboard({ organizationId: 'org-1', tournaments: [card()], activity: [] })}
+          organizationAlias="liga-mendocina"
+        />,
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Participantes CSV' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Resultados CSV' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Posiciones CSV' }));
+
+      await waitFor(() => expect(click).toHaveBeenCalledTimes(3));
+      expect(requests).toEqual([
+        '/organizations/liga-mendocina/tournaments/apertura-2026/exports/participants/team',
+        '/organizations/liga-mendocina/tournaments/apertura-2026/exports/results',
+        '/organizations/liga-mendocina/tournaments/apertura-2026/exports/standings',
+      ]);
+      expect(createObjectUrl).toHaveBeenCalledTimes(3);
+      expect(revokeObjectUrl).toHaveBeenCalledWith('blob:csv-export');
+    } finally {
+      Object.defineProperty(globalThis, 'fetch', { configurable: true, value: originalFetch });
+      Object.defineProperty(URL, 'createObjectURL', {
+        configurable: true,
+        value: originalCreateObjectUrl,
+      });
+      Object.defineProperty(URL, 'revokeObjectURL', {
+        configurable: true,
+        value: originalRevokeObjectUrl,
+      });
+      click.mockRestore();
+    }
   });
 });
 
