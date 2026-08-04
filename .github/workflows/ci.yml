@@ -243,6 +243,26 @@ jobs:
       - run: yarn workspace @copalibre/design-tokens build:tokens
       - run: yarn workspace @copalibre/web verify:build
 
+  # Added by 0028: Starlight and the statically served Scalar document are a
+  # separate product surface. Build and inspect them before the dependent
+  # OpenAPI, integration, and browser checks run.
+  docs-build:
+    name: Help docs build
+    runs-on: ubuntu-latest
+    needs: [install, typecheck]
+    steps:
+      - uses: actions/checkout@v4
+      - run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+      - run: yarn install --immutable
+      - run: yarn workspace @copalibre/routing build
+      - run: yarn workspace @copalibre/realtime build
+      - run: yarn workspace @copalibre/design-tokens build:tokens
+      - run: yarn workspace @copalibre/web verify:docs
+
   # Added by 0023: operator flows are client-side islands backed by the control
   # API. Playwright runs the production web build and mocks those API calls so
   # wizard submission and registration decisions fail here if route wiring drifts.
@@ -251,7 +271,7 @@ jobs:
   e2e-tests:
     name: E2E tests
     runs-on: ubuntu-latest
-    needs: install
+    needs: [install, docs-build]
     steps:
       - uses: actions/checkout@v4
       - run: corepack enable
@@ -312,7 +332,7 @@ jobs:
   integration-tests:
     name: Integration tests
     runs-on: ubuntu-latest
-    needs: install
+    needs: [install, docs-build]
     services:
       postgres:
         image: postgres:17
@@ -360,6 +380,9 @@ jobs:
       # idempotency, authorization, audit/outbox, reconciliation, and 0027 CSV
       # import/export contracts discovered by the workspace integration glob.
       - run: yarn workspace @copalibre/api test:integration
+      # 0028 proves that the help/API-reference build has no runtime API
+      # dependency. Its static-build contract joins the existing integration job.
+      - run: yarn workspace @copalibre/web test:integration
       # Includes the N-sided result, retired-module and segment-threshold
       # notification suites (0009), the full stage-transition suite (0010), and
       # the declared-effect suite (0013): one identity across two evaluations,
@@ -384,10 +407,10 @@ jobs:
   # Added by 0005-api-auth-jwt-openapi-contract. Regenerates the artifact from
   # the decorated controllers, fails on drift from the committed copy, then runs
   # contract-lint and the breaking-change check.
-  openapi-contract:
-    name: OpenAPI contract
+  openapi-contract-lint:
+    name: OpenAPI contract lint
     runs-on: ubuntu-latest
-    needs: [install, typecheck]
+    needs: [install, typecheck, docs-build]
     steps:
       - uses: actions/checkout@v4
       # corepack must be enabled before setup-node: its yarn-cache probe invokes the

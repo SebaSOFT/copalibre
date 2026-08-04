@@ -1,0 +1,57 @@
+---
+import DefaultSearch from '@astrojs/starlight/components/Search.astro';
+---
+
+<DefaultSearch />
+
+<script>
+  interface PagefindResult {
+    url: string;
+    sub_results: Array<{ url: string }>;
+  }
+
+  async function initializeSearch(): Promise<void> {
+    const element = document.querySelector<HTMLElement>('#starlight__search');
+    const search = element?.closest<HTMLElement>('site-search');
+    if (!element || !search || element.childElementCount > 0 || element.dataset.pagefindReady)
+      return;
+
+    // Starlight 0.41's initializer waits for DOMContentLoaded. With ClientRouter,
+    // the module can arrive after that event. Mark before import to avoid a second
+    // Pagefind instance when a later view transition dispatches astro:page-load.
+    element.dataset.pagefindReady = 'true';
+    try {
+      const translations = JSON.parse(search.dataset.translations ?? '{}');
+      const shouldStrip = search.dataset.stripTrailingSlash !== undefined;
+      const formatUrl = shouldStrip
+        ? (path: string) => path.replace(/(.)\/(#.*)?$/, '$1$2')
+        : (path: string) => path;
+
+      // @ts-expect-error Pagefind's UI package does not ship declarations.
+      const { PagefindUI } = await import('@pagefind/default-ui');
+      new PagefindUI({
+        element: '#starlight__search',
+        baseUrl: import.meta.env.BASE_URL,
+        bundlePath: `${import.meta.env.BASE_URL.replace(/\/$/, '')}/pagefind/`,
+        showImages: false,
+        showSubResults: true,
+        translations,
+        processResult: (result: PagefindResult) => {
+          result.url = formatUrl(result.url);
+          result.sub_results = result.sub_results.map((subResult) => {
+            subResult.url = formatUrl(subResult.url);
+            return subResult;
+          });
+        },
+      });
+    } catch (error) {
+      delete element.dataset.pagefindReady;
+      throw error;
+    }
+  }
+
+  document.addEventListener('astro:page-load', () => {
+    // Let Starlight's normal initializer win when it did receive DOMContentLoaded.
+    window.setTimeout(() => void initializeSearch(), 0);
+  });
+</script>

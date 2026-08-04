@@ -1,0 +1,24 @@
+@import '@copalibre/design-tokens/generated/copalibre.css';
+
+/* Starlight owns only its --sl-* surface; CopaLibre tokens remain read-only inputs. */
+:root {
+  --sl-color-accent-low: var(--cl-surface-panel);
+  --sl-color-accent: var(--cl-state-live);
+  --sl-color-accent-high: var(--cl-text-primary);
+  --sl-color-white: var(--cl-text-primary);
+  --sl-color-gray-1: var(--cl-text-secondary);
+  --sl-color-gray-2: var(--cl-text-muted);
+  --sl-color-gray-3: var(--cl-border-strong);
+  --sl-color-gray-4: var(--cl-border-muted);
+  --sl-color-gray-5: var(--cl-surface-raised);
+  --sl-color-gray-6: var(--cl-surface-panel);
+  --sl-color-black: var(--cl-surface-base);
+  --sl-font: var(--cl-font-body);
+  --sl-font-mono: var(--cl-font-mono);
+}
+
+:root[data-theme='light'] {
+  --sl-color-accent-low: var(--cl-surface-raised);
+  --sl-color-accent: var(--cl-state-live);
+  --sl-color-accent-high: var(--cl-text-primary);
+}

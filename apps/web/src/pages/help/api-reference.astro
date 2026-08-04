@@ -1,0 +1,32 @@
+---
+const scalarCdn = 'https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.64.0';
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Referencia API | CopaLibre</title>
+  </head>
+  <body>
+    <main id="api-reference"></main>
+    <script is:inline src={scalarCdn}></script>
+    <script is:inline>
+      Scalar.createApiReference('#api-reference', {
+        url: '/openapi/v1.json',
+        pageTitle: 'Referencia API | CopaLibre',
+        theme: 'default',
+        hideTestRequestButton: true,
+        hideClientButton: true,
+        hiddenClients: true,
+        showDeveloperTools: 'never',
+        documentDownloadType: 'none',
+        withDefaultFonts: false,
+        telemetry: false,
+        agent: { disabled: true },
+      });
+    </script>
+  </body>
+</html>

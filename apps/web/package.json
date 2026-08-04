@@ -5,19 +5,23 @@
   "license": "AGPL-3.0-only",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "build": "node scripts/copy-openapi-artifact.mjs && astro build",
     "preview": "astro preview",
     "check": "astro check",
     "test": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.config.cjs",
     "test:coverage": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.config.cjs --coverage",
-    "verify:build": "astro build && node scripts/verify-build.mjs"
+    "test:integration": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.integration.config.cjs --runInBand",
+    "verify:build": "node scripts/copy-openapi-artifact.mjs && astro build && node scripts/verify-build.mjs",
+    "verify:docs": "node scripts/copy-openapi-artifact.mjs && astro build && node scripts/verify-help-build.mjs"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.10",
     "@astrojs/react": "^6.0.2",
+    "@astrojs/starlight": "0.41.6",
     "@copalibre/design-tokens": "workspace:^",
     "@copalibre/realtime": "workspace:^",
     "@copalibre/routing": "workspace:^",
+    "@pagefind/default-ui": "1.5.2",
     "astro": "^7.1.5",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
