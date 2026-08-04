@@ -1,4 +1,6 @@
 import { HealthController } from '../health.controller.js';
+import { DataExportController } from '../controllers/data-export.controller.js';
+import { DataImportExportController } from '../controllers/data-import-export.controller.js';
 import { MatchControlController } from '../controllers/match-control.controller.js';
 import { OrganizationsController } from '../controllers/organizations.controller.js';
 import {
@@ -34,6 +36,8 @@ export const OPENAPI_CONTROLLERS = [
   DisciplinesController,
   SchedulesController,
   MatchControlController,
+  DataImportExportController,
+  DataExportController,
   StandingsController,
   SeedingController,
   OrganizationAccessController,

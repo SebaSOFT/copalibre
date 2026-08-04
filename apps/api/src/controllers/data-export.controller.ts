@@ -25,7 +25,10 @@ export class DataExportController {
   @ApiBearerAuth()
   @ApiProduces('text/csv')
   @ApiOperation({ summary: 'Export re-importable participant CSV by stable alias' })
-  @ApiOkResponse({ description: 'CSV participant export' })
+  @ApiOkResponse({
+    description: 'CSV participant export',
+    schema: { type: 'string', format: 'binary' },
+  })
   async participants(
     @Param('organizationAlias') organizationAlias: string,
     @Param('tournamentAlias') tournamentAlias: string,
@@ -81,6 +84,10 @@ export class DataExportController {
   @ApiBearerAuth()
   @ApiProduces('text/csv')
   @ApiOperation({ summary: 'Export calculated match results by participant alias' })
+  @ApiOkResponse({
+    description: 'CSV result export',
+    schema: { type: 'string', format: 'binary' },
+  })
   async results(
     @Param('organizationAlias') organizationAlias: string,
     @Param('tournamentAlias') tournamentAlias: string,
@@ -114,6 +121,10 @@ export class DataExportController {
   @ApiBearerAuth()
   @ApiProduces('text/csv')
   @ApiOperation({ summary: 'Export calculated standings by participant alias' })
+  @ApiOkResponse({
+    description: 'CSV standings export',
+    schema: { type: 'string', format: 'binary' },
+  })
   async standings(
     @Param('organizationAlias') organizationAlias: string,
     @Param('tournamentAlias') tournamentAlias: string,
