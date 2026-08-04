@@ -70,25 +70,44 @@ describe('migrations (integration)', () => {
 
   it('rolls back the latest migration without disturbing preceding schema', async () => {
     await migrateToLatest(scratch.db);
-    const afterUp = (await scratch.db.introspection.getTables()).map((table) => table.name);
+    const afterUpTables = await scratch.db.introspection.getTables();
+    const afterUp = afterUpTables.map((table) => table.name);
     expect(afterUp).toContain('organizations');
     expect(afterUp).toContain('organization_role_assignments');
     expect(afterUp).toContain('organization_invites');
     expect(afterUp).toContain('match_command_idempotency');
     expect(afterUp).toContain('match_timer_resolutions');
     expect(afterUp).toContain('csv_import_sessions');
+    expect(afterUpTables.find((table) => table.name === 'discipline_descriptors')?.columns).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'alias' })]),
+    );
+    expect(afterUpTables.find((table) => table.name === 'tournament_profiles')?.columns).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'alias' })]),
+    );
 
     const down = await migrateDownOneStep(scratch.db);
     expect(down.error).toBeUndefined();
 
-    const afterDown = (await scratch.db.introspection.getTables()).map((table) => table.name);
+    const afterCatalogueDownTables = await scratch.db.introspection.getTables();
+    const afterDown = afterCatalogueDownTables.map((table) => table.name);
     expect(afterDown).toContain('organizations');
     expect(afterDown).toContain('organization_role_assignments');
     expect(afterDown).toContain('organization_invites');
     expect(afterDown).toContain('match_command_idempotency');
     expect(afterDown).toContain('match_timer_resolutions');
-    expect(afterDown).not.toContain('csv_import_sessions');
+    expect(afterDown).toContain('csv_import_sessions');
     expect(afterDown).toContain('match_rosters');
+    expect(
+      afterCatalogueDownTables.find((table) => table.name === 'discipline_descriptors')?.columns,
+    ).not.toEqual(expect.arrayContaining([expect.objectContaining({ name: 'alias' })]));
+
+    const csvImportExportDown = await migrateDownOneStep(scratch.db);
+    expect(csvImportExportDown.error).toBeUndefined();
+
+    const afterCsvImportExportDown = (await scratch.db.introspection.getTables()).map(
+      (table) => table.name,
+    );
+    expect(afterCsvImportExportDown).not.toContain('csv_import_sessions');
 
     const rosterTerminologyDown = await migrateDownOneStep(scratch.db);
     expect(rosterTerminologyDown.error).toBeUndefined();

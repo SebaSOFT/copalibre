@@ -8,6 +8,7 @@ import type { TournamentProfile } from '../profiles/tournament-profile.js';
 export function fixtureProfile(overrides?: Partial<TournamentProfile>): TournamentProfile {
   return {
     profileId: '01890000-0000-7000-8000-00000000000a',
+    alias: 'winter-league',
     version: '1.2.0',
     name: 'Winter League',
     attribution: {

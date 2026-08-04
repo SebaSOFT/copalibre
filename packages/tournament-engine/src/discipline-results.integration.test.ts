@@ -38,8 +38,10 @@ const AUDIT = { actor: 'user:organizer-1', authorizationContext: 'scope:tourname
 
 /** An eight-lane heat: N sides, placements, no winner. */
 function heatDescriptor(): DisciplineDescriptor {
+  const descriptorId = newId();
   return footballDescriptor({
-    descriptorId: newId(),
+    descriptorId,
+    alias: `football-${descriptorId}`,
     name: 'Lane Heat',
     statistics: [
       { code: 'placement-points', label: 'Placement points', aggregation: 'sum' },
@@ -248,7 +250,8 @@ describe('discipline-driven results (integration)', () => {
   });
 
   it('delivers a segment-threshold event to a subscribed notification rule', async () => {
-    const tennis = tennisDescriptor({ descriptorId: newId() });
+    const descriptorId = newId();
+    const tennis = tennisDescriptor({ descriptorId, alias: `tennis-${descriptorId}` });
     const { match } = await seed('copa-tenis', tennis);
     const competition = new CompetitionRepository(scratch.db);
 

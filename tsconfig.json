@@ -8,6 +8,9 @@
       "path": "packages/domain/tsconfig.json"
     },
     {
+      "path": "packages/module-catalogue/tsconfig.json"
+    },
+    {
       "path": "packages/rules/tsconfig.json"
     },
     {
@@ -42,6 +45,9 @@
     },
     {
       "path": "apps/migrate/tsconfig.json"
+    },
+    {
+      "path": "apps/seed/tsconfig.json"
     },
     {
       "path": "apps/doctor/tsconfig.json"

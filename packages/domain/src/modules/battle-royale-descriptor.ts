@@ -3,7 +3,7 @@ import { segmentThresholdEventDefinitions } from '../descriptors/segment-thresho
 import { winConditionScript } from './win-condition-scripts.js';
 
 /**
- * Seeded battle-royale module — the placement-scoring reference.
+ * Battle-royale descriptor builder — the placement-scoring reference.
  *
  * Its scoring is the shape the whole placement format exists for: points for
  * where you finished, plus points for what you did. The first half is
@@ -21,6 +21,7 @@ export function battleRoyaleDescriptor(
   const segmentTypes = ['lobby'];
   return {
     descriptorId: '01890000-0000-7000-8000-00000000b001',
+    alias: 'battle-royale',
     version: '1.0.0',
     name: 'Battle Royale',
     attribution: {

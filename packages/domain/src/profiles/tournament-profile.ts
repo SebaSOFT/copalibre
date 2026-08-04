@@ -35,8 +35,9 @@ export interface ProfileTiebreak {
   readonly missingValue: 'treat-as-worst' | 'treat-as-zero' | 'invalid';
 }
 
-export interface TournamentProfile {
-  readonly profileId: string;
+export interface TournamentProfileDocument {
+  /** Stable catalogue identity, unique with `version` within an installation. */
+  readonly alias: string;
   /** Semver: a release identifier, not a compatibility contract. */
   readonly version: string;
   readonly name: string;
@@ -51,4 +52,9 @@ export interface TournamentProfile {
    * race). Absent means the discipline's win condition stands.
    */
   readonly winConditionOverride?: RuleScript;
+}
+
+/** A profile installed locally, with its installation-specific UUIDv7. */
+export interface TournamentProfile extends TournamentProfileDocument {
+  readonly profileId: string;
 }

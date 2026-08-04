@@ -6,6 +6,7 @@ import type { AuditContext } from './enrollment-repository.js';
 
 export interface StoredProfile {
   readonly profileId: string;
+  readonly alias: string;
   readonly version: string;
   readonly name: string;
 }
@@ -24,17 +25,28 @@ export class TournamentProfileRepository {
     profile: TournamentProfile,
     context: AuditContext,
   ): Promise<StoredProfile> {
-    await uow.tx
+    const inserted = await uow.tx
       .insertInto('tournament_profiles')
       .values({
         profile_id: profile.profileId,
+        alias: profile.alias,
         version: profile.version,
         name: profile.name,
         document: JSON.stringify(profile),
         created_at: new Date(),
       })
       .onConflict((oc) => oc.columns(['profile_id', 'version']).doNothing())
-      .execute();
+      .returning('profile_id')
+      .executeTakeFirst();
+
+    if (!inserted) {
+      return {
+        profileId: profile.profileId,
+        alias: profile.alias,
+        version: profile.version,
+        name: profile.name,
+      };
+    }
 
     await uow.recordAudit({
       organizationId: context.organizationId,
@@ -45,13 +57,27 @@ export class TournamentProfileRepository {
       authorizationContext: context.authorizationContext,
       resultingState: {
         profileId: profile.profileId,
+        alias: profile.alias,
         version: profile.version,
         author: profile.attribution.author,
         licence: profile.attribution.licence,
       },
     });
+    await uow.publishEvent({
+      organizationId: context.organizationId,
+      stream: `tournament-profile:${profile.profileId}`,
+      entityId: profile.profileId,
+      eventType: 'tournament-profile.published',
+      projectionVersion: 1,
+      payload: { profileId: profile.profileId, alias: profile.alias, version: profile.version },
+    });
 
-    return { profileId: profile.profileId, version: profile.version, name: profile.name };
+    return {
+      profileId: profile.profileId,
+      alias: profile.alias,
+      version: profile.version,
+      name: profile.name,
+    };
   }
 
   async find(profileId: string, version: string): Promise<TournamentProfile | undefined> {
@@ -62,6 +88,28 @@ export class TournamentProfileRepository {
       .where('version', '=', version)
       .executeTakeFirst();
     return row ? (row.document as unknown as TournamentProfile) : undefined;
+  }
+
+  /** Looks up an installed profile by its catalogue identity. */
+  async findByAlias(alias: string, version: string): Promise<TournamentProfile | undefined> {
+    const row = await this.db
+      .selectFrom('tournament_profiles')
+      .select('document')
+      .where('alias', '=', alias)
+      .where('version', '=', version)
+      .executeTakeFirst();
+    return row ? (row.document as unknown as TournamentProfile) : undefined;
+  }
+
+  /** Every installed version under an alias, used to protect reserved names. */
+  async findVersionsByAlias(alias: string): Promise<readonly TournamentProfile[]> {
+    const rows = await this.db
+      .selectFrom('tournament_profiles')
+      .select('document')
+      .where('alias', '=', alias)
+      .orderBy('version')
+      .execute();
+    return rows.map((row) => row.document as unknown as TournamentProfile);
   }
 
   async listVersions(profileId: string): Promise<readonly string[]> {

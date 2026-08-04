@@ -1,0 +1,21 @@
+{
+  "alias": "copa-eliminacion",
+  "version": "1.0.0",
+  "name": "Single-elimination cup",
+  "attribution": {
+    "author": "CopaLibre",
+    "licence": "AGPL-3.0-only",
+    "sourceUrl": "https://github.com/SebaSOFT/copalibre"
+  },
+  "requires": [
+    {
+      "capability": "primary-scoring",
+      "satisfiedBy": ["goals-for", "matches-won", "points-for", "frags"],
+      "necessity": "required",
+      "description": "A discipline must determine the winner of each fixture"
+    }
+  ],
+  "stages": [{ "number": 1, "name": "Cup", "format": "single-elimination" }],
+  "points": { "win": 0, "draw": 0, "loss": 0 },
+  "tiebreak": []
+}

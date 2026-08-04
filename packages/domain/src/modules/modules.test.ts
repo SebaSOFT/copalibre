@@ -1,25 +1,35 @@
 import { bindCapabilities } from '../capabilities/binder.js';
 import { validateDisciplineDescriptorDocument } from '../descriptors/descriptor-schema.js';
 import { SEGMENT_THRESHOLD_EVENT_CODES } from '../descriptors/segment-threshold-events.js';
+import { battleRoyaleDescriptor } from './battle-royale-descriptor.js';
 import { footballDescriptor } from './football-descriptor.js';
-import { seededDescriptors } from './index.js';
+import { swimmingDescriptor } from './swimming-descriptor.js';
 import { tennisDescriptor } from './tennis-descriptor.js';
 import { winConditionScript } from './win-condition-scripts.js';
 
 /** A module is JSON on the wire; validate it the way an installation would. */
 function asDocument(value: unknown): unknown {
-  return JSON.parse(JSON.stringify(value)) as unknown;
+  const document = JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
+  delete document.descriptorId;
+  return JSON.parse(JSON.stringify(document)) as unknown;
 }
 
-describe('seeded discipline modules', () => {
-  it.each(seededDescriptors().map((descriptor) => [descriptor.name, descriptor] as const))(
+describe('discipline test builders', () => {
+  const descriptors = [
+    footballDescriptor(),
+    tennisDescriptor(),
+    battleRoyaleDescriptor(),
+    swimmingDescriptor(),
+  ];
+
+  it.each(descriptors.map((descriptor) => [descriptor.name, descriptor] as const))(
     '%s satisfies the descriptor schema with no privileges',
     (_name, descriptor) => {
       expect(validateDisciplineDescriptorDocument(asDocument(descriptor)).ok).toBe(true);
     },
   );
 
-  it.each(seededDescriptors().map((descriptor) => [descriptor.name, descriptor] as const))(
+  it.each(descriptors.map((descriptor) => [descriptor.name, descriptor] as const))(
     '%s can raise segment thresholds as events',
     (_name, descriptor) => {
       const codes = descriptor.eventDefinitions.map((definition) => definition.code);
@@ -68,6 +78,7 @@ describe('seeded discipline modules', () => {
     it('satisfies a three-level tiebreak binding, the defect that motivated 0009', () => {
       const binding = bindCapabilities(tennis, {
         profileId: '01890000-0000-7000-8000-00000000p001',
+        alias: 'club-ladder',
         version: '1.0.0',
         name: 'Club Ladder',
         attribution: { author: 'CopaLibre', licence: 'CC-BY-4.0' },

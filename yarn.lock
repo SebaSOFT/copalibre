@@ -1037,6 +1037,18 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@copalibre/module-catalogue@workspace:^, @copalibre/module-catalogue@workspace:packages/module-catalogue":
+  version: 0.0.0-use.local
+  resolution: "@copalibre/module-catalogue@workspace:packages/module-catalogue"
+  dependencies:
+    "@copalibre/domain": "workspace:^"
+    "@types/jest": "npm:^30.0.0"
+    jest: "npm:^30.4.2"
+    ts-jest: "npm:^29.4.12"
+    typescript: "npm:^5"
+  languageName: unknown
+  linkType: soft
+
 "@copalibre/persistence@workspace:^, @copalibre/persistence@workspace:packages/persistence":
   version: 0.0.0-use.local
   resolution: "@copalibre/persistence@workspace:packages/persistence"
@@ -1106,6 +1118,20 @@ __metadata:
     kysely: "npm:^0.29"
     reflect-metadata: "npm:^0.2.2"
     rxjs: "npm:^7.8.2"
+    ts-jest: "npm:^29.4.12"
+    typescript: "npm:^5"
+  languageName: unknown
+  linkType: soft
+
+"@copalibre/seed@workspace:apps/seed":
+  version: 0.0.0-use.local
+  resolution: "@copalibre/seed@workspace:apps/seed"
+  dependencies:
+    "@copalibre/module-catalogue": "workspace:^"
+    "@copalibre/persistence": "workspace:^"
+    "@types/jest": "npm:^30.0.0"
+    jest: "npm:^30.4.2"
+    kysely: "npm:^0.29"
     ts-jest: "npm:^29.4.12"
     typescript: "npm:^5"
   languageName: unknown

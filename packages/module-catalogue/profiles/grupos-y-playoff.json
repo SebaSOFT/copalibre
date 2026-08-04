@@ -1,0 +1,43 @@
+{
+  "alias": "grupos-y-playoff",
+  "version": "1.0.0",
+  "name": "Groups and playoff",
+  "attribution": {
+    "author": "CopaLibre",
+    "licence": "AGPL-3.0-only",
+    "sourceUrl": "https://github.com/SebaSOFT/copalibre"
+  },
+  "requires": [
+    {
+      "capability": "primary-scoring",
+      "satisfiedBy": ["goals-for", "matches-won", "points-for", "frags"],
+      "necessity": "required",
+      "description": "Primary value used to resolve the group table"
+    },
+    {
+      "capability": "defensive-record",
+      "satisfiedBy": ["goals-against", "matches-lost", "defence-frags"],
+      "necessity": "optional",
+      "description": "Lower values improve a tied entrant's rank"
+    }
+  ],
+  "stages": [
+    { "number": 1, "name": "Groups", "format": "round-robin" },
+    { "number": 2, "name": "Playoff", "format": "single-elimination" }
+  ],
+  "points": { "win": 3, "draw": 1, "loss": 0 },
+  "tiebreak": [
+    {
+      "capability": "primary-scoring",
+      "label": "Scored",
+      "direction": "higher_wins",
+      "missingValue": "treat-as-zero"
+    },
+    {
+      "capability": "defensive-record",
+      "label": "Conceded",
+      "direction": "lower_wins",
+      "missingValue": "treat-as-worst"
+    }
+  ]
+}

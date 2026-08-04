@@ -25,8 +25,10 @@ const window = (startMinutes: number, durationMinutes = 60) => ({
 });
 
 function descriptor(): DisciplineDescriptor {
+  const descriptorId = newId();
   return {
-    descriptorId: newId(),
+    descriptorId,
+    alias: `liga-regional-${descriptorId}`,
     version: '1.0.0',
     name: 'Liga Regional',
     attribution: { author: 'CopaLibre tests', licence: 'AGPL-3.0-only' },

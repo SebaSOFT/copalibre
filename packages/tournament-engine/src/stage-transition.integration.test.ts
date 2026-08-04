@@ -54,8 +54,10 @@ const pipeline: TiebreakPipeline = {
 };
 
 function league(): DisciplineDescriptor {
+  const descriptorId = newId();
   return fixtureDescriptor({
-    descriptorId: newId(),
+    descriptorId,
+    alias: `orbital-field-${descriptorId}`,
     name: 'Liga Regional',
     statistics: [
       { code: 'goals-for', label: 'Goals for', aggregation: 'sum' },

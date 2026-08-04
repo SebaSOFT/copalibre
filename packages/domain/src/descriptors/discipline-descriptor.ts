@@ -109,6 +109,8 @@ export interface ScoringInputDefinition {
 
 export interface DisciplineDescriptor {
   readonly descriptorId: string;
+  /** Stable catalogue identity, unique with `version` within an installation. */
+  readonly alias: string;
   /**
    * Semver. Identifies a release, not a compatibility contract: profiles
    * declare capabilities rather than version ranges, so a new discipline
@@ -161,3 +163,9 @@ export interface DisciplineDescriptor {
   /** Per-dot-path override permission + mutation class for `defaults`. */
   readonly fieldPolicies: ConfigFieldPolicies;
 }
+
+/**
+ * A submitted or catalogued discipline document before an installation assigns
+ * its local UUIDv7. Persistent descriptors always carry `descriptorId`.
+ */
+export type DisciplineDescriptorDocument = Omit<DisciplineDescriptor, 'descriptorId'>;

@@ -114,6 +114,9 @@ jobs:
       # --passWithNoTests makes "zero tests discovered" look identical to success,
       # which a broken Jest/ESM config would otherwise hide (0006).
       - run: yarn test:verify-discovery
+      # First-party modules are data, so their loader/schema coverage is a
+      # separate guard against a release shipping an unreadable catalogue (0029).
+      - run: yarn workspace @copalibre/module-catalogue test:coverage
       # Covers the scheduling conflict detection and mutation classification
       # (0012), which are pure domain logic; the SQL side runs in integration.
       # Since 0015 it also carries seasons, the person/player split and the
@@ -175,6 +178,12 @@ jobs:
         with:
           name: coverage-domain
           path: packages/domain/coverage
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-module-catalogue
+          path: packages/module-catalogue/coverage
           retention-days: 14
       - uses: actions/upload-artifact@v4
         if: always()
@@ -361,6 +370,9 @@ jobs:
       - run: yarn install --immutable
       # Proves the one controlled migration entrypoint works before any test runs.
       - run: yarn workspace @copalibre/migrate run start
+      # Explicit bootstrap only: validates the full release catalogue and proves
+      # re-seeding, aliases, audit and outbox against PostgreSQL (0029).
+      - run: yarn workspace @copalibre/seed test:integration
       # Includes the competition-record suite — a finished tournament must stay
       # readable after the modules that produced it are deleted (0008) — the
       # scheduling suite (0012), where atomic publication and in-transaction

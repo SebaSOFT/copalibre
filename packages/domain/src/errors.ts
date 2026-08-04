@@ -52,6 +52,11 @@ export class DescriptorValidationError extends DomainError {
   readonly code = 'DESCRIPTOR_VALIDATION_FAILED';
 }
 
+/** A submitted tournament-profile document is not structurally well-formed. */
+export class TournamentProfileValidationError extends DomainError {
+  readonly code = 'TOURNAMENT_PROFILE_VALIDATION_FAILED';
+}
+
 /** A submitted result contradicts the discipline it was recorded under. */
 export class OutcomeValidationError extends DomainError {
   readonly code = 'OUTCOME_VALIDATION_FAILED';
