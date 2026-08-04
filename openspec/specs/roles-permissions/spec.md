@@ -52,9 +52,9 @@ recipient's authenticated OIDC identity to present a verified email matching the
 - **THEN** the system rejects acceptance and leaves the invitation usable by its intended recipient
 
 ### Requirement: Resource-ownership policy for participant scope
-A participant-scoped identity's authorized scope SHALL be limited to its own registration, roster
-membership, and reported results, and SHALL NOT extend to another participant's records or to any
-operator/admin tool.
+A participant-scoped identity's authorized scope SHALL be limited to its own registration, team
+memberships, and reported results, and SHALL NOT extend to another participant's records or to any
+operator/admin tool. A roster is match-scoped and does not grant participant ownership by itself.
 
 #### Scenario: Participant cannot read another participant's private data
 - **WHEN** a participant-scoped token requests another participant's registration details

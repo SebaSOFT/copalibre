@@ -25,24 +25,26 @@ action only to the selected rows, and SHALL produce one audit entry per affected
 - **THEN** 3 separate audit entries are recorded, each with the acting organizer, timestamp, and affected registration
 
 ### Requirement: Registration detail is available without leaving the list
-Expanding a registration row SHALL reveal contact information, roster/team detail, and prior
-experience without navigating to a separate page.
+Expanding a registration row SHALL reveal contact information, team and team-membership detail, and
+prior experience without navigating to a separate page. It SHALL NOT present team membership as a
+roster, because a roster belongs to one specific match.
 
 #### Scenario: Expanding a row reveals detail
 - **WHEN** an organizer expands a registration row
-- **THEN** contact email, team/roster, and available message/revoke actions are shown inline
+- **THEN** contact email, team-membership detail, and available message/revoke actions are shown inline
 
 ### Requirement: Eligibility is locked after check-in closes
 Once an entrant has checked in and the tournament's check-in window has closed, the registration
-review screen SHALL block further roster/eligibility edits for that entrant.
+review screen SHALL block further team-membership and eligibility edits for that entrant. This does
+not select or alter a match roster.
 
-#### Scenario: Roster edit blocked after check-in closes
+#### Scenario: Team-membership edit blocked after check-in closes
 - **WHEN** an entrant is checked in and the check-in window has closed
-- **THEN** attempting to edit that entrant's roster is rejected with an explanation that eligibility is locked
+- **THEN** attempting to edit that entrant's team membership is rejected with an explanation that eligibility is locked
 
-#### Scenario: Roster edit allowed before check-in closes
+#### Scenario: Team-membership edit allowed before check-in closes
 - **WHEN** the check-in window is still open
-- **THEN** an organizer can still edit that entrant's roster
+- **THEN** an organizer can still edit that entrant's team membership
 
 ### Requirement: Registration list is scoped to its tournament
 The registration review screen SHALL only display registrations belonging to the tournament being
@@ -51,4 +53,3 @@ reviewed.
 #### Scenario: Cross-tournament isolation
 - **WHEN** an organizer opens registration review for tournament A
 - **THEN** no registration belonging to tournament B appears in the list
-
