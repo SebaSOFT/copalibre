@@ -572,6 +572,36 @@ describe('api routes (integration)', () => {
       });
       expect(participantExport.statusCode).toBe(200);
       expect(participantExport.body).toBe('alias,name\nclub-atletico,Club Atletico\n');
+
+      const reimport = await request({
+        method: 'POST',
+        url: '/organizations/liga-orbital/tournaments/copa-importacion/imports',
+        token: 'organizer-org1',
+        payload: { target: 'team', sourceCsv: participantExport.body },
+      });
+      await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        new CsvImportRepository(scratch.db).storePreview(uow, {
+          importId: reimport.json().importId,
+          preview: validateCsvImport({
+            target: 'team',
+            allowedParticipantTypes: ['team'],
+            csv: participantExport.body,
+          }),
+        }),
+      );
+      const recommitted = await request({
+        method: 'POST',
+        url: `/organizations/liga-orbital/tournaments/copa-importacion/imports/${reimport.json().importId}/commit`,
+        token: 'organizer-org1',
+        payload: { sourceHash: reimport.json().sourceHash },
+      });
+      expect(recommitted.statusCode).toBe(200);
+      const roundTrip = await request({
+        method: 'GET',
+        url: '/organizations/liga-orbital/tournaments/copa-importacion/exports/participants/team',
+        token: 'organizer-org1',
+      });
+      expect(roundTrip.body).toBe(participantExport.body);
     });
 
     it('never commits a preview containing invalid rows', async () => {

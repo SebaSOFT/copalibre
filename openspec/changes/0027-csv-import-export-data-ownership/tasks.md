@@ -29,14 +29,14 @@
 
 - [x] 6.1 Integration test: mixed valid/invalid CSV commits nothing until corrected
 - [x] 6.2 Integration test: import commit writes an audit record with actor/timestamp/row identity
-- [ ] 6.3 Integration test: export output round-trips through import without data loss (fidelity test)
+- [x] 6.3 Integration test: export output round-trips through import without data loss (fidelity test)
 - [x] 6.4 Integration test: malformed CSV (unparsable) is rejected cleanly with an actionable error, not a crash
 
 ## 7. E2E tests
 
-- [ ] 7.1 Playwright: upload a valid CSV, review preview, confirm, verify data appears
-- [ ] 7.2 Playwright: upload a CSV with invalid rows, verify row-level errors shown and nothing committed
-- [ ] 7.3 Playwright: export data, re-import the exported file, verify round-trip fidelity end-to-end
+- [x] 7.1 Playwright: upload a valid CSV, review preview, confirm, verify data appears
+- [x] 7.2 Playwright: upload a CSV with invalid rows, verify row-level errors shown and nothing committed
+- [x] 7.3 Playwright: export data, re-import the exported file, verify round-trip fidelity end-to-end
 
 ## 8. CI wiring
 
