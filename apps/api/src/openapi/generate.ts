@@ -10,6 +10,8 @@ import { buildOpenApiDocument, OPENAPI_VERSION } from './document.js';
 import { collectRoutePlanes } from './collect-planes.js';
 import { lintOpenApiContract } from './contract-lint.js';
 import { detectBreakingChanges } from './breaking-change.js';
+import { formatArtifactSecurityFindings, scanOpenApiArtifact } from './artifact-security.js';
+import { serializeOpenApiArtifact } from './artifact.js';
 import { Module } from '@nestjs/common';
 
 /**
@@ -30,7 +32,11 @@ const CONTROLLERS = OPENAPI_CONTROLLERS;
 })
 class OpenApiModule {}
 
-const ARTIFACT_PATH = join(import.meta.dirname, '../../../../packages/contracts/openapi/v1.json');
+// Tests may point generation at an isolated artifact. Production and CI retain
+// the reviewed contracts path unless they explicitly opt into that override.
+const ARTIFACT_PATH =
+  process.env.COPALIBRE_OPENAPI_ARTIFACT_PATH ??
+  join(import.meta.dirname, '../../../../packages/contracts/openapi/v1.json');
 
 async function main(): Promise<void> {
   // Fastify adapter, matching production; generation needs no listening server.
@@ -39,6 +45,7 @@ async function main(): Promise<void> {
   });
   const document = buildOpenApiDocument(app);
   await app.close();
+  const artifact = serializeOpenApiArtifact(document);
 
   const planes = collectRoutePlanes(CONTROLLERS);
 
@@ -72,8 +79,18 @@ async function main(): Promise<void> {
     }
   }
 
+  const securityFindings = scanOpenApiArtifact(artifact);
+  if (securityFindings.length > 0) {
+    process.stderr.write(`${formatArtifactSecurityFindings(securityFindings)}\n`);
+    process.stderr.write(
+      `\nartifact-security failed with ${securityFindings.length} finding(s); remove secrets or internal addresses.\n`,
+    );
+    process.exitCode = 1;
+    return;
+  }
+
   mkdirSync(dirname(ARTIFACT_PATH), { recursive: true });
-  writeFileSync(ARTIFACT_PATH, `${JSON.stringify(document, null, 2)}\n`);
+  writeFileSync(ARTIFACT_PATH, artifact);
   const routeCount = Object.keys(document.paths ?? {}).length;
   process.stdout.write(
     `openapi ${OPENAPI_VERSION}: ${routeCount} path(s), contract-lint clean -> ${ARTIFACT_PATH}\n`,
