@@ -110,7 +110,7 @@ than written to the total, so the projection stays rebuildable from the log.
 - **THEN** there is no such path, so rebuilding the projection from the log can never lose a number
 
 #### Scenario: An appearance counts without an event
-- **WHEN** a person is named in a match's lineup and records nothing during it
+- **WHEN** a person is named in a match's roster and records nothing during it
 - **THEN** a collector counting appearances still counts one for them
 
 ### Requirement: Totals survive correction and recomputation
@@ -124,4 +124,3 @@ do not support, and recomputation never double-counts.
 #### Scenario: Replaying the log produces the same totals
 - **WHEN** the same facts are aggregated twice
 - **THEN** the totals are identical, and nothing is counted a second time
-

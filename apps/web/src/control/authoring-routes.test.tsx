@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { TournamentAuthoringPage } from './components/TournamentAuthoringPage.js';
 import { RegistrationReviewRoute } from './components/RegistrationReviewRoute.js';
 import type { ControlApiClient } from './lib/api-client.js';
@@ -91,6 +91,93 @@ describe('the tournament authoring route container', () => {
 });
 
 describe('the registration review route container', () => {
+  it('uploads, reviews and confirms a participant CSV', async () => {
+    const calls: string[] = [];
+    const preview = {
+      importId: 'import-1',
+      target: 'team' as const,
+      status: 'review-ready',
+      sourceHash: 'source-hash',
+      preview: { valid: true, rows: [], errors: [] },
+    };
+
+    await act(async () => {
+      render(
+        <RegistrationReviewRoute
+          organizationAlias="liga-mendocina"
+          tournamentAlias="apertura-2026"
+          client={client({
+            createCsvImport: async (_organizationAlias, _tournamentAlias, request) => {
+              calls.push(request.sourceCsv);
+              return { ...preview, status: 'queued' };
+            },
+            fetchCsvImport: async () => preview,
+            commitCsvImport: async (_organizationAlias, _tournamentAlias, importId, sourceHash) => {
+              calls.push(`${importId}:${sourceHash}`);
+              return { ...preview, status: 'committed' };
+            },
+          })}
+        />,
+      );
+    });
+
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText('CSV de participantes'), {
+        target: { files: [{ text: async () => 'alias,name\nclub-atletico,Club Atletico\n' }] },
+      });
+    });
+
+    await waitFor(() => expect(screen.getByText('Preview válido.')).toBeDefined());
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Confirmar importación' }));
+    });
+
+    expect(calls).toEqual(['alias,name\nclub-atletico,Club Atletico\n', 'import-1:source-hash']);
+    expect(screen.getByText('Importación confirmada.')).toBeDefined();
+  });
+
+  it('renders row errors and keeps an invalid CSV preview uncommittable', async () => {
+    const invalid = {
+      importId: 'import-1',
+      target: 'team' as const,
+      status: 'invalid',
+      sourceHash: 'source-hash',
+      preview: {
+        valid: false,
+        rows: [{ rowNumber: 2, errors: [{ message: 'name is required' }] }],
+        errors: [{ message: 'The file has invalid rows' }],
+      },
+    };
+
+    await act(async () => {
+      render(
+        <RegistrationReviewRoute
+          organizationAlias="liga-mendocina"
+          tournamentAlias="apertura-2026"
+          client={client({
+            createCsvImport: async () => ({ ...invalid, status: 'queued' }),
+            fetchCsvImport: async () => invalid,
+            commitCsvImport: async () => invalid,
+          })}
+        />,
+      );
+    });
+
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText('CSV de participantes'), {
+        target: { files: [{ text: async () => 'alias,name\nclub-atletico,\n' }] },
+      });
+    });
+
+    await waitFor(() => expect(screen.getByText('Preview con errores.')).toBeDefined());
+    expect(screen.getByText('The file has invalid rows')).toBeDefined();
+    expect(screen.getByText('Fila 2: name is required')).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Confirmar importación' })).toHaveProperty(
+      'disabled',
+      true,
+    );
+  });
+
   it('loads registrations and sends selected ids to the bulk endpoint', async () => {
     const reviewed: unknown[] = [];
 

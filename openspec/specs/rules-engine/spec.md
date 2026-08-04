@@ -41,9 +41,10 @@ equality behavior, stopping at the first comparator that resolves the tie.
 - **THEN** the pipeline reports an explicit unresolved-tie result rather than defaulting to an arbitrary order
 
 ### Requirement: Eligibility and advancement guards
-The engine SHALL evaluate eligibility (participant/roster/lineup facts) and advancement
+The engine SHALL evaluate eligibility (participant and roster facts) and advancement
 (state-transition) guards as deterministic Neuron-JS decisions consuming a compiled `MatchRuleset`
-and the `Event` log as inputs.
+and the `Event` log as inputs. A roster fact SHALL describe a match-specific player selection, not a
+team membership.
 
 #### Scenario: Ineligible participant is blocked
 - **WHEN** an eligibility guard evaluates a participant who fails a configured eligibility condition
@@ -260,4 +261,3 @@ with no actions, and SHALL apply the guard exception consistently.
 #### Scenario: An unconditional rule is a valid way to express "always"
 - **WHEN** a rule declares an empty condition list
 - **THEN** its actions run, and the trace records that it fired unconditionally
-

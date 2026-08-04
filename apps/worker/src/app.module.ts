@@ -12,6 +12,10 @@ import { HealthController } from './health.controller.js';
 import { JobDispatcher } from './jobs/dispatcher.js';
 import { statisticsHandler } from './jobs/statistics-handler.js';
 import {
+  csvImportValidationHandler,
+  CSV_IMPORT_VALIDATION_EVENT,
+} from './jobs/csv-import-handler.js';
+import {
   emailDeliveryConfigFromEnv,
   invitationEmailHandler,
 } from './invitations/email-delivery.js';
@@ -42,10 +46,12 @@ const providers: Provider[] = [
       // the catalogue lands.
       const refold: Refold = async () => undefined;
       const handler = statisticsHandler({ db, refold });
+      const csvImport = csvImportValidationHandler({ db });
       const invitation = invitationEmailHandler(emailDeliveryConfigFromEnv());
       return new JobDispatcher()
         .register('match.finalized', handler)
         .register('result.superseded', handler)
+        .register(CSV_IMPORT_VALIDATION_EVENT, csvImport)
         .register('organization.invite.requested', invitation);
     },
   },

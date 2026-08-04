@@ -6,8 +6,10 @@ through a discipline-configured, capability-scoped interface, producing the audi
 facts the engine calculates results from.
 ## Requirements
 ### Requirement: Match-scoped capability-based authorization
-Event entry, clock control, lineup selection, and match finalization SHALL each be separate,
-independently grantable permissions scoped to one match, not implied by a generic organizer role.
+Event entry, clock control, roster selection, and match finalization SHALL each be separate,
+independently grantable permissions scoped to one match, not implied by a generic organizer role. A
+roster SHALL mean the selected set of eligible players for one entrant in one match; a player's
+membership in a team is not a roster.
 
 #### Scenario: Official with event-entry only cannot finalize
 - **WHEN** a user holding only the event-entry capability for a match attempts to finalize it
@@ -52,4 +54,3 @@ fixtures unlock correctly for the match's format.
 #### Scenario: Elimination match finalization populates the next round
 - **WHEN** an elimination-format match is finalized
 - **THEN** the winner (and, for double elimination, the loser) is routed to the correct downstream fixture per the advancement engine
-

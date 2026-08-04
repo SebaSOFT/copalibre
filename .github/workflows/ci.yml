@@ -357,7 +357,8 @@ jobs:
       - run: yarn workspace @copalibre/persistence test:integration
       # Guard/policy/controller suite through the real HTTP stack (0005),
       # including match-scoped authorization (0014) and 0025's non-flaky
-      # idempotency, authorization, audit/outbox, and reconciliation contracts.
+      # idempotency, authorization, audit/outbox, reconciliation, and 0027 CSV
+      # import/export contracts discovered by the workspace integration glob.
       - run: yarn workspace @copalibre/api test:integration
       # Includes the N-sided result, retired-module and segment-threshold
       # notification suites (0009), the full stage-transition suite (0010), and

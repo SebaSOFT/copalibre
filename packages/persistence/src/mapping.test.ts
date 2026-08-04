@@ -72,6 +72,7 @@ describe('snake_case row → camelCase domain mapping', () => {
     const team: TeamRow = {
       team_id: 'tm-1',
       organization_id: 'org-1',
+      alias: null,
       club_id: null,
       name: 'Equipo Uno',
       discipline_id: null,

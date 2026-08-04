@@ -24,6 +24,15 @@ export {
   InvalidSemanticVersionError,
 } from './identifiers/semantic-version.js';
 export { Alias, type AliasScope } from './identifiers/alias.js';
+export {
+  MAX_CSV_IMPORT_BYTES,
+  validateCsvImport,
+  type ParticipantImportTarget,
+  type CsvImportError,
+  type CsvImportPreview,
+  type CsvImportPreviewRow,
+} from './import-export/csv-import.js';
+export { stringifyCsv } from './import-export/csv-export.js';
 export { suggestAlias, suggestAvailableAlias, isSuggestable } from './identifiers/suggest-alias.js';
 export {
   Abbreviation,

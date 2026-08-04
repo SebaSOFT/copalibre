@@ -888,6 +888,8 @@ __metadata:
     "@types/jest": "npm:^30.0.0"
     "@types/semver": "npm:^7.7.1"
     ajv: "npm:^8.20.0"
+    csv-parse: "npm:^7.0.2"
+    csv-stringify: "npm:^6.8.2"
     jest: "npm:^30.4.2"
     semver: "npm:^7.8.5"
     ts-jest: "npm:^29.4.12"
@@ -4994,6 +4996,20 @@ __metadata:
   version: 3.2.3
   resolution: "csstype@npm:3.2.3"
   checksum: 10c0/cd29c51e70fa822f1cecd8641a1445bed7063697469d35633b516e60fe8c1bde04b08f6c5b6022136bb669b64c63d4173af54864510fbb4ee23281801841a3ce
+  languageName: node
+  linkType: hard
+
+"csv-parse@npm:^7.0.2":
+  version: 7.0.2
+  resolution: "csv-parse@npm:7.0.2"
+  checksum: 10c0/52ffaafbf7be37201ad782ec3eda37bc24ee0ec6e8967b5a68d5ad2973f10b4154fd11a5b90a002615ef98395c4cd699a13d13509b10067297795b9d3c9320e9
+  languageName: node
+  linkType: hard
+
+"csv-stringify@npm:^6.8.2":
+  version: 6.8.2
+  resolution: "csv-stringify@npm:6.8.2"
+  checksum: 10c0/4ff031bed4413d9bf5d93c4841d91e61fa6aba0c64d04cdf24658f9afff3338c4fdf6969e92752d46a806e0a8b7568e0087b8d15abc64519836b09d4893673c3
   languageName: node
   linkType: hard
 

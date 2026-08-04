@@ -167,6 +167,7 @@ export class EnrollmentRepository {
     uow: UnitOfWork,
     input: {
       readonly organizationId: string;
+      readonly alias?: string;
       readonly clubId?: string;
       readonly name: string;
       readonly disciplineId?: string;
@@ -174,6 +175,8 @@ export class EnrollmentRepository {
     } & Omit<AuditContext, 'organizationId'>,
   ): Promise<Team> {
     assertAbbreviation(input.abbreviation);
+    const alias = input.alias ?? (await this.suggestTeamAlias(input.organizationId, input.name));
+    assertAlias(alias);
 
     const teamId = newId();
     const row = await uow.tx
@@ -181,6 +184,7 @@ export class EnrollmentRepository {
       .values({
         team_id: teamId,
         organization_id: input.organizationId,
+        alias,
         club_id: input.clubId ?? null,
         discipline_id: input.disciplineId ?? null,
         name: input.name,
@@ -251,6 +255,71 @@ export class EnrollmentRepository {
       .where('team_id', '=', teamId)
       .executeTakeFirst();
     return row ? toTeam(row) : undefined;
+  }
+
+  async findTeamByAlias(organizationId: string, alias: string): Promise<Team | undefined> {
+    const row = await this.db
+      .selectFrom('teams')
+      .selectAll()
+      .where('organization_id', '=', organizationId)
+      .where('alias', '=', alias)
+      .executeTakeFirst();
+    return row ? toTeam(row) : undefined;
+  }
+
+  async replaceTeamByAlias(
+    uow: UnitOfWork,
+    input: {
+      readonly organizationId: string;
+      readonly alias: string;
+      readonly name: string;
+    } & Omit<AuditContext, 'organizationId'>,
+  ): Promise<{ readonly team: Team; readonly created: boolean }> {
+    const existing = await this.findTeamByAlias(input.organizationId, input.alias);
+    if (!existing) {
+      return {
+        team: await this.createTeam(uow, input),
+        created: true,
+      };
+    }
+    return {
+      team: await this.updateTeam(uow, {
+        teamId: existing.teamId,
+        organizationId: input.organizationId,
+        name: input.name,
+        actor: input.actor,
+        authorizationContext: input.authorizationContext,
+      }),
+      created: false,
+    };
+  }
+
+  async findEntrantForRef(
+    tournamentId: string,
+    entrantRef: Entrant['entrantRef'],
+  ): Promise<Entrant | undefined> {
+    const row = await this.db
+      .selectFrom('entrants')
+      .selectAll()
+      .where('tournament_id', '=', tournamentId)
+      .where(
+        entrantRef.kind === 'person' ? 'person_id' : 'team_id',
+        '=',
+        entrantRef.kind === 'person' ? entrantRef.personId : entrantRef.teamId,
+      )
+      .executeTakeFirst();
+    return row ? toEntrant(row) : undefined;
+  }
+
+  private async suggestTeamAlias(organizationId: string, name: string): Promise<string> {
+    const rows = await this.db
+      .selectFrom('teams')
+      .select('alias')
+      .where('organization_id', '=', organizationId)
+      .where('alias', 'is not', null)
+      .execute();
+    const aliases = rows.flatMap((row) => (row.alias === null ? [] : [row.alias]));
+    return suggestAvailableAlias(name, aliases) ?? nextAlias('team', aliases);
   }
 
   /** Registration intake. Status transitions are audited individually. */
@@ -647,4 +716,10 @@ function assertAlias(value: string | undefined): void {
   if (!alias.ok) {
     throw new InvariantViolationError(alias.error.message, { alias: value });
   }
+}
+
+function nextAlias(prefix: string, aliases: readonly string[]): string {
+  let ordinal = 1;
+  while (aliases.includes(`${prefix}-${ordinal}`)) ordinal += 1;
+  return `${prefix}-${ordinal}`;
 }
