@@ -15,9 +15,11 @@ import { TournamentRepository } from './tournament-repository.js';
 
 const AUDIT = { actor: 'user:organizer-1', authorizationContext: 'scope:tournament.write' };
 
-const football = () =>
-  fixtureDescriptor({
-    descriptorId: newId(),
+const football = () => {
+  const descriptorId = newId();
+  return fixtureDescriptor({
+    descriptorId,
+    alias: `orbital-field-${descriptorId}`,
     version: '3.0.0',
     statistics: [
       { code: 'goals-for', label: 'Goals For', aggregation: 'sum' },
@@ -25,6 +27,7 @@ const football = () =>
     ],
     scoringInputs: [],
   });
+};
 
 describe('competition record (integration)', () => {
   let scratch: ScratchDatabase;
@@ -50,7 +53,8 @@ describe('competition record (integration)', () => {
 
   async function seed(alias: string) {
     const descriptor = football();
-    const profile = fixtureProfile({ profileId: newId() });
+    const profileId = newId();
+    const profile = fixtureProfile({ profileId, alias: `league-default-${profileId}` });
     const tournaments = new TournamentRepository(scratch.db);
     const competition = new CompetitionRepository(scratch.db);
     const profiles = new TournamentProfileRepository(scratch.db);
