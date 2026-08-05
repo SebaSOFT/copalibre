@@ -100,7 +100,7 @@ tmp/
 
 # Local AI-assistant tooling and OpenSpec planning artifacts stay out of the repo
 .claude/
-openspec/changes/
+openspec/changes/*
 apps/web/public/openapi/
 packages/design-tokens/generated/
 
