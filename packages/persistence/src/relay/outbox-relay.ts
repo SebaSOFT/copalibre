@@ -241,7 +241,7 @@ export class OutboxRelay {
       .set({
         dead_lettered_at: null,
         attempts: 0,
-        next_attempt_at: new Date(),
+        next_attempt_at: sql`now()`,
         claimed_by: null,
         claimed_until: null,
       })
