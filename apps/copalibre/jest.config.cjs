@@ -9,6 +9,8 @@ module.exports = {
     ...esmExtensionMapper,
     '^@copalibre/auth$': '<rootDir>/../../packages/auth/src/index.ts',
     '^@copalibre/persistence$': '<rootDir>/../../packages/persistence/src/index.ts',
+    '^@copalibre/domain$': '<rootDir>/../../packages/domain/src/index.ts',
+    '^@copalibre/routing$': '<rootDir>/../../packages/routing/src/index.ts',
   },
   // Bootstrap wiring is exercised by Compose smoke tests. Unit coverage focuses
   // on deterministic command, validation and argument contracts.

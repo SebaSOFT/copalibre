@@ -420,6 +420,7 @@ jobs:
       - run: yarn workspace @copalibre/events test:integration
       # Runs the CLI's process-level misconfiguration contract. The API
       # bootstrap lifecycle itself is covered by the API integration suite.
+      - run: yarn workspace @copalibre/copalibre build
       - run: yarn workspace @copalibre/copalibre test:integration
 
   # Added by 0005-api-auth-jwt-openapi-contract. Regenerates the artifact from
