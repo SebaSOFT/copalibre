@@ -17,6 +17,7 @@ COPY tsconfig.json tsconfig.base.json jest.config.base.cjs jest.esm-mapper.cjs .
 
 RUN yarn install --immutable
 RUN yarn typecheck
+RUN yarn workspace @copalibre/design-tokens build:tokens
 RUN yarn workspace @copalibre/web build
 # Keep only runtime dependencies while preserving all workspace links needed by
 # the six process roles and the CLI in the final image.
