@@ -173,6 +173,9 @@ jobs:
       # The stream services: replay resolution, public sanitisation, connection
       # limits, and the guard that refuses a token in a query string.
       - run: yarn workspace @copalibre/events test:coverage
+      # Deployment command parsing and doctor coverage must stay above their
+      # local threshold; a green API suite does not exercise the operator CLI.
+      - run: yarn workspace @copalibre/copalibre test:coverage
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -415,6 +418,9 @@ jobs:
       # a query string refused, and a cursor outside the replay window told to
       # fetch a projection instead of being replayed a partial one.
       - run: yarn workspace @copalibre/events test:integration
+      # Runs the CLI's process-level misconfiguration contract. The API
+      # bootstrap lifecycle itself is covered by the API integration suite.
+      - run: yarn workspace @copalibre/copalibre test:integration
 
   # Added by 0005-api-auth-jwt-openapi-contract. Regenerates the artifact from
   # the decorated controllers, fails on drift from the committed copy, then runs
@@ -448,3 +454,124 @@ jobs:
             echo "::error::then commit packages/contracts."
             exit 1
           fi
+
+  build:
+    name: Release image build
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck, unit-tests, integration-tests, e2e-tests]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build multi-role runtime image
+        run: docker build --target runtime --tag copalibre:ci .
+      - name: Build static web image
+        run: docker build --target web --tag copalibre-web:ci .
+      - name: Export tested images
+        run: docker save copalibre:ci copalibre-web:ci | gzip > copalibre-images.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: copalibre-images
+          path: copalibre-images.tar.gz
+          retention-days: 1
+
+  deployment-e2e:
+    name: Deployment E2E
+    runs-on: ubuntu-latest
+    needs: build
+    timeout-minutes: 30
+    env:
+      COPALIBRE_IMAGE: copalibre:ci
+      COPALIBRE_WEB_IMAGE: copalibre-web:ci
+      POSTGRES_PASSWORD: copalibre_e2e_only
+      COPALIBRE_APP_URL: http://localhost:4321
+      COPALIBRE_API_URL: http://localhost:3001
+      COPALIBRE_BOOTSTRAP_TOKEN: copalibre_e2e_bootstrap_only
+      COPALIBRE_JWKS_URI: http://postgres:5432/jwks.json
+      COPALIBRE_JWT_ISSUER: http://postgres:5432
+      COPALIBRE_JWT_AUDIENCE: copalibre
+      COPALIBRE_OIDC_CLIENT_ID: copalibre-compose-e2e
+      COPALIBRE_EMAIL_PROVIDER: smtp
+      COPALIBRE_EMAIL_FROM: e2e@copalibre.invalid
+      COPALIBRE_SMTP_URL: smtp://host.docker.internal:1025
+    steps:
+      - uses: actions/checkout@v4
+      - run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+      - run: yarn install --immutable
+      - run: yarn playwright install --with-deps chromium
+      - uses: actions/download-artifact@v4
+        with:
+          name: copalibre-images
+      - run: gzip --decompress --stdout copalibre-images.tar.gz | docker load
+      - name: Run clean-host CLI lifecycle
+        run: |
+          ./copalibre init
+          ./copalibre doctor
+          ./copalibre start
+          ./copalibre create-admin --organization-alias integrity-league --organization-name "Integrity League" --email admin@example.test
+      - name: Verify Compose login and PKCE
+        run: yarn playwright test --config playwright.compose.config.ts
+      - name: Show container logs on failure
+        if: failure()
+        run: docker compose logs --no-color
+      - name: Remove ephemeral installation
+        if: always()
+        run: docker compose down --volumes --remove-orphans
+
+  deploy-smoke-test:
+    name: Deploy smoke test
+    runs-on: ubuntu-latest
+    needs: [build, deployment-e2e]
+    env:
+      COPALIBRE_IMAGE: copalibre:ci
+      COPALIBRE_WEB_IMAGE: copalibre-web:ci
+      POSTGRES_PASSWORD: copalibre_ci_only
+      COPALIBRE_APP_URL: http://web:4321
+      COPALIBRE_API_URL: http://api:3001
+      COPALIBRE_BOOTSTRAP_TOKEN: copalibre_ci_bootstrap_only
+      COPALIBRE_JWKS_URI: http://api:3001/jwks.json
+      COPALIBRE_JWT_ISSUER: http://api:3001
+      COPALIBRE_JWT_AUDIENCE: copalibre
+      COPALIBRE_OIDC_CLIENT_ID: copalibre-ci
+      COPALIBRE_EMAIL_PROVIDER: smtp
+      COPALIBRE_EMAIL_FROM: noreply@copalibre.invalid
+      COPALIBRE_SMTP_URL: smtp://postgres:5432
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: copalibre-images
+      - name: Load tested images
+        run: gzip --decompress --stdout copalibre-images.tar.gz | docker load
+      - name: Start all runtime roles
+        run: docker compose up --detach --wait
+      - name: Verify externally reachable role liveness
+        run: |
+          node -e 'fetch("http://127.0.0.1:3001/health").then(async (r) => { const b = await r.json(); process.exit(r.ok && b.role === "api" ? 0 : 1); }).catch(() => process.exit(1))'
+          node -e 'fetch("http://127.0.0.1:3002/health").then(async (r) => { const b = await r.json(); process.exit(r.ok && b.role === "events" ? 0 : 1); }).catch(() => process.exit(1))'
+          docker compose exec --no-TTY worker node -e 'fetch("http://127.0.0.1:3003/health").then(async (r) => { const b = await r.json(); process.exit(r.ok && b.role === "worker" ? 0 : 1); }).catch(() => process.exit(1))'
+          docker compose exec --no-TTY scheduler node -e 'fetch("http://127.0.0.1:3004/health").then(async (r) => { const b = await r.json(); process.exit(r.ok && b.role === "scheduler" ? 0 : 1); }).catch(() => process.exit(1))'
+      - name: Verify doctor role
+        run: docker compose run --rm doctor
+      - name: Verify Caddy proxy conformance
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.proxy-test.yml --profile proxy-caddy-test up --detach caddy
+          docker compose run --rm doctor --check-proxy --proxy-url http://caddy:8080/events/proxy-check
+      - name: Verify NGINX proxy conformance and detect buffering
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.proxy-test.yml --profile proxy-nginx-test up --detach nginx
+          docker compose run --rm doctor --check-proxy --proxy-url http://nginx:8080/events/proxy-check
+          docker compose -f docker-compose.yml -f docker-compose.proxy-test.yml --profile proxy-buffered-test up --detach nginx-buffered
+          if docker compose run --rm doctor --check-proxy --proxy-url http://nginx-buffered:8080/events/proxy-check; then
+            echo 'buffered proxy unexpectedly passed conformance'
+            exit 1
+          fi
+      - name: Show container logs on failure
+        if: failure()
+        run: docker compose logs --no-color
+      - name: Stop smoke installation
+        if: always()
+        run: docker compose down --volumes --remove-orphans

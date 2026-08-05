@@ -749,6 +749,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/installation/bootstrap/admin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create first organization administrator
+         * @description Available only before the installation contains an organization. Requires the out-of-band bootstrap secret and returns a one-time OIDC invitation setup link.
+         */
+        post: operations["InstallationBootstrapController_createAdmin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1342,6 +1362,32 @@ export interface components {
             principalId: string;
             /** Format: uuid */
             personId: string;
+        };
+        BootstrapAdministratorRequest: {
+            /** @example liga-orbital */
+            organizationAlias: string;
+            /** @example Liga Orbital */
+            organizationName: string;
+            /**
+             * Format: email
+             * @example admin@example.test
+             */
+            email: string;
+        };
+        BootstrapAdministratorResponse: {
+            /** Format: uuid */
+            organizationId: string;
+            /** @example liga-orbital */
+            organizationAlias: string;
+            /** Format: uuid */
+            invitationId: string;
+            /** Format: date-time */
+            expiresAt: string;
+            /**
+             * Format: uri
+             * @description One-time OIDC invitation setup link.
+             */
+            setupUrl: string;
         };
     };
     responses: never;
@@ -2687,6 +2733,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ParticipantIdentityLinkResponse"];
+                };
+            };
+        };
+    };
+    InstallationBootstrapController_createAdmin: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Operator-provided bootstrap secret. Never store this in browser code. */
+                "x-copalibre-bootstrap-token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BootstrapAdministratorRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BootstrapAdministratorResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
                 };
             };
         };

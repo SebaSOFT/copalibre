@@ -2518,6 +2518,59 @@
           "participants"
         ]
       }
+    },
+    "/installation/bootstrap/admin": {
+      "post": {
+        "description": "Available only before the installation contains an organization. Requires the out-of-band bootstrap secret and returns a one-time OIDC invitation setup link.",
+        "operationId": "InstallationBootstrapController_createAdmin",
+        "parameters": [
+          {
+            "name": "x-copalibre-bootstrap-token",
+            "in": "header",
+            "description": "Operator-provided bootstrap secret. Never store this in browser code.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BootstrapAdministratorRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BootstrapAdministratorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Create first organization administrator",
+        "tags": [
+          "installation-bootstrap"
+        ]
+      }
     }
   },
   "info": {
@@ -4103,6 +4156,62 @@
         "required": [
           "principalId",
           "personId"
+        ]
+      },
+      "BootstrapAdministratorRequest": {
+        "type": "object",
+        "properties": {
+          "organizationAlias": {
+            "type": "string",
+            "example": "liga-orbital"
+          },
+          "organizationName": {
+            "type": "string",
+            "example": "Liga Orbital"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "admin@example.test"
+          }
+        },
+        "required": [
+          "organizationAlias",
+          "organizationName",
+          "email"
+        ]
+      },
+      "BootstrapAdministratorResponse": {
+        "type": "object",
+        "properties": {
+          "organizationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "organizationAlias": {
+            "type": "string",
+            "example": "liga-orbital"
+          },
+          "invitationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "setupUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "One-time OIDC invitation setup link."
+          }
+        },
+        "required": [
+          "organizationId",
+          "organizationAlias",
+          "invitationId",
+          "expiresAt",
+          "setupUrl"
         ]
       }
     }

@@ -1,7 +1,25 @@
-# Development-only stateful dependencies (task 7.1 of 0001-bootstrap-monorepo-toolchain).
-# Application containers are deliberately absent until phase 0030-deployment-docker-compose-cli.
-# PostgreSQL major version is pinned here; phase 0004-persistence-postgres-outbox-audit owns
-# any future bump decision.
+# Local development profile. Its credentials and OIDC endpoint are deliberately
+# non-production values; use docker-compose.yml plus .env for an install.
+name: copalibre-dev
+
+x-development-environment: &development-environment
+  DATABASE_URL: postgres://copalibre:copalibre_dev_only@postgres:5432/copalibre
+  COPALIBRE_APP_URL: http://localhost:4321
+  COPALIBRE_BOOTSTRAP_TOKEN: copalibre_dev_bootstrap_only
+  COPALIBRE_JWKS_URI: http://oidc.invalid/jwks.json
+  COPALIBRE_JWT_ISSUER: http://oidc.invalid
+  COPALIBRE_JWT_AUDIENCE: copalibre
+  COPALIBRE_OIDC_CLIENT_ID: copalibre-dev
+  COPALIBRE_EMAIL_PROVIDER: smtp
+  COPALIBRE_EMAIL_FROM: dev@copalibre.invalid
+  COPALIBRE_SMTP_URL: smtp://mailpit:1025
+  COPALIBRE_DATA_DIR: /var/lib/copalibre
+  COPALIBRE_IN_CONTAINER: 'true'
+
+x-application-build: &application-build
+  context: .
+  target: runtime
+
 services:
   postgres:
     image: postgres:17
@@ -12,12 +30,119 @@ services:
     ports:
       - '5432:5432'
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres-dev-data:/var/lib/postgresql/data
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U copalibre -d copalibre']
       interval: 5s
       timeout: 3s
-      retries: 10
+      retries: 20
+    profiles: ['infrastructure', 'containerized']
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports:
+      - '8025:8025'
+      - '1025:1025'
+    profiles: ['infrastructure', 'containerized']
+
+  migrate:
+    build: *application-build
+    environment:
+      <<: *development-environment
+      PRODUCT_ROLE: migrate
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles: ['containerized']
+
+  api:
+    build: *application-build
+    environment:
+      <<: *development-environment
+      PRODUCT_ROLE: api
+      PORT: 3001
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - '3001:3001'
+    develop:
+      watch:
+        - path: ./apps/api
+          action: rebuild
+        - path: ./packages
+          action: rebuild
+    profiles: ['containerized']
+
+  events:
+    build: *application-build
+    environment:
+      <<: *development-environment
+      PRODUCT_ROLE: events
+      PORT: 3002
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - '3002:3002'
+    develop:
+      watch:
+        - path: ./apps/events
+          action: rebuild
+        - path: ./packages
+          action: rebuild
+    profiles: ['containerized']
+
+  worker:
+    build: *application-build
+    environment:
+      <<: *development-environment
+      PRODUCT_ROLE: worker
+      PORT: 3003
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    develop:
+      watch:
+        - path: ./apps/worker
+          action: rebuild
+        - path: ./packages
+          action: rebuild
+    profiles: ['containerized']
+
+  scheduler:
+    build: *application-build
+    environment:
+      <<: *development-environment
+      PRODUCT_ROLE: scheduler
+      PORT: 3004
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    develop:
+      watch:
+        - path: ./apps/scheduler
+          action: rebuild
+        - path: ./packages
+          action: rebuild
+    profiles: ['containerized']
+
+  web:
+    build:
+      context: .
+      target: web
+    environment:
+      COPALIBRE_JWT_ISSUER: http://oidc.invalid
+      COPALIBRE_OIDC_CLIENT_ID: copalibre-dev
+    ports:
+      - '4321:4321'
+    develop:
+      watch:
+        - path: ./apps/web
+          action: rebuild
+        - path: ./packages
+          action: rebuild
+    profiles: ['containerized']
 
 volumes:
-  postgres-data:
+  postgres-dev-data:

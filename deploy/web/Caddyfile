@@ -1,0 +1,13 @@
+:4321 {
+	handle /runtime-config.json {
+		header Content-Type "application/json"
+		header Cache-Control "no-store"
+		respond "{\"oidcIssuer\":\"{$COPALIBRE_JWT_ISSUER}\",\"oidcClientId\":\"{$COPALIBRE_OIDC_CLIENT_ID}\"}" 200
+	}
+
+	handle {
+		root * /srv
+		try_files {path} {path}/ /index.html
+		file_server
+	}
+}

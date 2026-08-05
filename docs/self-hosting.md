@@ -1,0 +1,28 @@
+# Self-Hosting CopaLibre
+
+Run `./copalibre init` once from a release checkout. It writes non-secret local defaults to
+`.env` and lists values that must be supplied by the operator. Set a strong PostgreSQL password,
+an opaque `COPALIBRE_BOOTSTRAP_TOKEN`, OIDC JWKS/issuer/audience values, the public browser client ID,
+and one supported email provider configuration. Then run `./copalibre start` or
+`docker compose up --detach --wait`.
+
+`docker-compose.yml` intentionally does not terminate TLS. Put Caddy or NGINX at the public edge:
+route ordinary API traffic to `api:3001`, SSE traffic to `events:3002`, and static control/public
+web traffic to `web:4321`. The proxy must preserve forwarding headers, keep SSE unbuffered, and
+allow idle streams to survive heartbeats. Use `deploy/proxy/Caddyfile` or
+`deploy/proxy/nginx.conf` as the edge configuration, then verify its live address with
+`./copalibre doctor --check-proxy --proxy-url https://events.example/events/proxy-check`.
+
+## Persistent Data And Backups
+
+`postgres-data` contains authoritative tournament, participant, result, audit, outbox, identity,
+and configuration records. `object-storage-data` exists only with the `optional-adapters` profile
+and holds uploaded objects; back it up with PostgreSQL when it is enabled. `redis-data` is
+non-authoritative and does not replace database or object backups.
+
+Create a PostgreSQL backup with `./copalibre backup --file backups/copalibre.dump`. Backup files
+must remain under the release checkout's `backups/` directory, which is the only host path mounted
+into the Compose CLI container; PostgreSQL client tools and credentials never need to be installed
+on host. Restore only into a clean target with
+`./copalibre restore --file backups/copalibre.dump --confirm`; first use `--dry-run` to inspect the
+non-secret plan. A scheduled restore drill validates the supported procedure.

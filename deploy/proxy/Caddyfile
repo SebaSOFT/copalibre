@@ -1,0 +1,21 @@
+{
+  email {$ACME_EMAIL}
+}
+
+# Set these three host names in the reverse proxy environment. Caddy terminates
+# TLS here; Docker Compose deliberately does not expose a public TLS listener.
+{$COPALIBRE_APP_HOST} {
+  reverse_proxy web:4321
+}
+
+{$COPALIBRE_API_HOST} {
+  reverse_proxy api:3001
+}
+
+{$COPALIBRE_EVENTS_HOST} {
+  @sse path /events/*
+  reverse_proxy @sse events:3002 {
+    # Flush comments/events as they are written instead of collecting a batch.
+    flush_interval -1
+  }
+}

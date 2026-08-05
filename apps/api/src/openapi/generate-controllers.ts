@@ -1,6 +1,7 @@
 import { HealthController } from '../health.controller.js';
 import { DataExportController } from '../controllers/data-export.controller.js';
 import { DataImportExportController } from '../controllers/data-import-export.controller.js';
+import { InstallationBootstrapController } from '../controllers/installation-bootstrap.controller.js';
 import { MatchControlController } from '../controllers/match-control.controller.js';
 import { OrganizationsController } from '../controllers/organizations.controller.js';
 import {
@@ -44,4 +45,5 @@ export const OPENAPI_CONTROLLERS = [
   InvitationAcceptanceController,
   ParticipantsController,
   ParticipantIdentityLinksController,
+  InstallationBootstrapController,
 ] as const;
