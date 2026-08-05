@@ -5,6 +5,7 @@
   "license": "AGPL-3.0-only",
   "scripts": {
     "build": "tsc --build",
+    "dev": "../../node_modules/.bin/tsx watch src/main.ts",
     "start": "node dist/main.js",
     "test": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.config.cjs",
     "test:coverage": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.config.cjs --coverage",

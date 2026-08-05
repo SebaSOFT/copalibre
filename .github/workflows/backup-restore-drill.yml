@@ -1,0 +1,61 @@
+name: Backup Restore Drill
+
+on:
+  schedule:
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup-restore-drill
+  cancel-in-progress: false
+
+jobs:
+  backup-restore-drill:
+    name: Backup restore integrity
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      COPALIBRE_IMAGE: copalibre:backup-drill
+      POSTGRES_PASSWORD: backup_restore_drill_only
+      COPALIBRE_APP_URL: http://localhost:4321
+      COPALIBRE_API_URL: http://localhost:3001
+      COPALIBRE_BOOTSTRAP_TOKEN: backup_restore_drill_bootstrap_only
+      COPALIBRE_JWKS_URI: http://host.docker.internal:9999/jwks.json
+      COPALIBRE_JWT_ISSUER: http://host.docker.internal:9999
+      COPALIBRE_JWT_AUDIENCE: copalibre
+      COPALIBRE_OIDC_CLIENT_ID: copalibre-backup-drill
+      COPALIBRE_EMAIL_PROVIDER: smtp
+      COPALIBRE_EMAIL_FROM: backup-drill@copalibre.invalid
+      COPALIBRE_SMTP_URL: smtp://host.docker.internal:1025
+    steps:
+      - uses: actions/checkout@v4
+      - run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+      - run: yarn install --immutable
+      - run: yarn typecheck
+      - run: docker build --target runtime --tag "$COPALIBRE_IMAGE" .
+      - name: Seed authoritative source data
+        run: |
+          docker compose up --detach --wait postgres
+          docker compose run --rm migrate
+          docker compose run --rm --entrypoint node migrate packages/persistence/dist/test-support/backup-drill.js seed
+          docker compose run --rm --entrypoint node migrate packages/persistence/dist/test-support/backup-drill.js snapshot > "$RUNNER_TEMP/source.json"
+      - name: Backup with CopaLibre CLI
+        run: ./copalibre backup --file backups/backup-drill.dump
+      - name: Restore into clean installation
+        run: |
+          docker compose down --volumes --remove-orphans
+          docker compose up --detach --wait postgres
+          ./copalibre restore --file backups/backup-drill.dump --confirm
+          docker compose run --rm --entrypoint node migrate packages/persistence/dist/test-support/backup-drill.js snapshot > "$RUNNER_TEMP/restored.json"
+      - name: Compare authoritative data
+        run: diff --unified "$RUNNER_TEMP/source.json" "$RUNNER_TEMP/restored.json"
+      - name: Remove ephemeral installation
+        if: always()
+        run: docker compose down --volumes --remove-orphans

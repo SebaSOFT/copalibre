@@ -44,6 +44,8 @@ interface ClosableRequest extends RequestWithSubject {
   readonly raw?: { on(event: 'close', listener: () => void): void };
 }
 
+const PROXY_DIAGNOSTIC_HEARTBEAT_MS = 2_000;
+
 @Controller('events')
 export class EventsController {
   private readonly subscriptions: SubscriptionService;
@@ -51,6 +53,28 @@ export class EventsController {
 
   constructor(@Inject(DATABASE) private readonly db: Kysely<Database>) {
     this.subscriptions = SubscriptionService.fromDatabase(this.db);
+  }
+
+  /**
+   * A finite SSE stream for `copalibre doctor --check-proxy`. The first comment
+   * must arrive immediately and the second after an idle interval; a buffering
+   * proxy therefore cannot make this look like a healthy stream by returning
+   * the final body all at once.
+   */
+  @Get('proxy-check')
+  async proxyCheck(@Res() reply: RawReply): Promise<void> {
+    reply.raw.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      Connection: 'keep-alive',
+      'X-Accel-Buffering': 'no',
+    });
+    reply.raw.write(': copalibre-proxy-check-1\n\n');
+    await delay(PROXY_DIAGNOSTIC_HEARTBEAT_MS);
+    if (!reply.raw.writableEnded) {
+      reply.raw.write(': copalibre-proxy-check-2\n\n');
+      reply.raw.end();
+    }
   }
 
   /**
@@ -145,6 +169,10 @@ export class EventsController {
       if (!reply.raw.writableEnded) reply.raw.end();
     }
   }
+}
+
+function delay(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
 /**

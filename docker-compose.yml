@@ -1,0 +1,214 @@
+# Level 1 single-host install. TLS and public routing belong to an external
+# reverse proxy; see docs/self-hosting.md and deploy/proxy/.
+name: copalibre
+
+x-application-environment: &application-environment
+  DATABASE_URL: postgres://${POSTGRES_USER:-copalibre}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-copalibre}
+  COPALIBRE_APP_URL: ${COPALIBRE_APP_URL:?Set COPALIBRE_APP_URL in .env}
+  COPALIBRE_API_URL: ${COPALIBRE_API_URL:-http://localhost:3001}
+  COPALIBRE_BOOTSTRAP_TOKEN: ${COPALIBRE_BOOTSTRAP_TOKEN:?Set COPALIBRE_BOOTSTRAP_TOKEN in .env}
+  COPALIBRE_JWKS_URI: ${COPALIBRE_JWKS_URI:?Set COPALIBRE_JWKS_URI in .env}
+  COPALIBRE_JWT_ISSUER: ${COPALIBRE_JWT_ISSUER:?Set COPALIBRE_JWT_ISSUER in .env}
+  COPALIBRE_JWT_AUDIENCE: ${COPALIBRE_JWT_AUDIENCE:?Set COPALIBRE_JWT_AUDIENCE in .env}
+  COPALIBRE_OIDC_CLIENT_ID: ${COPALIBRE_OIDC_CLIENT_ID:?Set COPALIBRE_OIDC_CLIENT_ID in .env}
+  COPALIBRE_EMAIL_PROVIDER: ${COPALIBRE_EMAIL_PROVIDER:?Set COPALIBRE_EMAIL_PROVIDER in .env}
+  COPALIBRE_EMAIL_FROM: ${COPALIBRE_EMAIL_FROM:?Set COPALIBRE_EMAIL_FROM in .env}
+  COPALIBRE_RESEND_API_KEY: ${COPALIBRE_RESEND_API_KEY:-}
+  COPALIBRE_BREVO_API_KEY: ${COPALIBRE_BREVO_API_KEY:-}
+  COPALIBRE_MAILGUN_API_KEY: ${COPALIBRE_MAILGUN_API_KEY:-}
+  COPALIBRE_MAILGUN_DOMAIN: ${COPALIBRE_MAILGUN_DOMAIN:-}
+  COPALIBRE_MAILGUN_BASE_URL: ${COPALIBRE_MAILGUN_BASE_URL:-}
+  COPALIBRE_SMTP_URL: ${COPALIBRE_SMTP_URL:-}
+  COPALIBRE_OBJECT_STORAGE_URL: ${COPALIBRE_OBJECT_STORAGE_URL:-}
+  COPALIBRE_DATA_DIR: /var/lib/copalibre
+  COPALIBRE_IN_CONTAINER: 'true'
+
+x-application-service: &application-service
+  image: ${COPALIBRE_IMAGE:-copalibre:local}
+  build:
+    context: .
+    target: runtime
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-copalibre}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-copalibre}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    <<: *application-service
+    environment:
+      <<: *application-environment
+      PRODUCT_ROLE: migrate
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: 'no'
+
+  api:
+    <<: *application-service
+    environment:
+      <<: *application-environment
+      PRODUCT_ROLE: api
+      PORT: 3001
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - '3001:3001'
+    volumes:
+      - copalibre-data:/var/lib/copalibre
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'node -e "fetch(\"http://127.0.0.1:3001/health\").then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"',
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  events:
+    <<: *application-service
+    environment:
+      <<: *application-environment
+      PRODUCT_ROLE: events
+      PORT: 3002
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - '3002:3002'
+    volumes:
+      - copalibre-data:/var/lib/copalibre
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'node -e "fetch(\"http://127.0.0.1:3002/health\").then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"',
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  worker:
+    <<: *application-service
+    environment:
+      <<: *application-environment
+      PRODUCT_ROLE: worker
+      PORT: 3003
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    volumes:
+      - copalibre-data:/var/lib/copalibre
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'node -e "fetch(\"http://127.0.0.1:3003/health\").then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"',
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  scheduler:
+    <<: *application-service
+    environment:
+      <<: *application-environment
+      PRODUCT_ROLE: scheduler
+      PORT: 3004
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    volumes:
+      - copalibre-data:/var/lib/copalibre
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'node -e "fetch(\"http://127.0.0.1:3004/health\").then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"',
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  web:
+    build:
+      context: .
+      target: web
+    image: ${COPALIBRE_WEB_IMAGE:-copalibre-web:local}
+    environment:
+      COPALIBRE_JWT_ISSUER: ${COPALIBRE_JWT_ISSUER:?Set COPALIBRE_JWT_ISSUER in .env}
+      COPALIBRE_OIDC_CLIENT_ID: ${COPALIBRE_OIDC_CLIENT_ID:?Set COPALIBRE_OIDC_CLIENT_ID in .env}
+    ports:
+      - '4321:4321'
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -q --spider http://127.0.0.1:4321/']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  doctor:
+    <<: *application-service
+    environment:
+      <<: *application-environment
+      PRODUCT_ROLE: doctor
+    profiles: ['operations']
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  database-tools:
+    image: postgres:17
+    entrypoint: []
+    environment:
+      PGHOST: postgres
+      PGPORT: 5432
+      PGUSER: ${POSTGRES_USER:-copalibre}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      PGDATABASE: ${POSTGRES_DB:-copalibre}
+    profiles: ['operations']
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backups:/backups
+    working_dir: /
+
+  redis:
+    image: redis:8-alpine
+    profiles: ['optional-adapters']
+    volumes:
+      - redis-data:/data
+
+  object-storage:
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    entrypoint: ['/bin/sh', '-ec']
+    command: |
+      test -n "$${MINIO_ROOT_USER}" || { echo 'MINIO_ROOT_USER is required when object-storage is enabled' >&2; exit 1; }
+      test -n "$${MINIO_ROOT_PASSWORD}" || { echo 'MINIO_ROOT_PASSWORD is required when object-storage is enabled' >&2; exit 1; }
+      exec minio server /data --console-address ':9001'
+    profiles: ['optional-adapters']
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-}
+    volumes:
+      - object-storage-data:/data
+    ports:
+      - '9001:9001'
+
+volumes:
+  copalibre-data:
+  postgres-data:
+  redis-data:
+  object-storage-data:

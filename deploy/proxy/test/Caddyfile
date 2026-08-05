@@ -1,0 +1,20 @@
+{
+  auto_https off
+}
+
+http://:8080 {
+  @sse path /events/*
+  handle @sse {
+    reverse_proxy events:3002 {
+      flush_interval -1
+    }
+  }
+
+  handle /api/* {
+    reverse_proxy api:3001
+  }
+
+  handle {
+    reverse_proxy web:4321
+  }
+}

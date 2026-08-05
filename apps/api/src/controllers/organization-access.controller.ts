@@ -157,6 +157,7 @@ export class InvitationAcceptanceController {
   constructor(@Inject(DATABASE) private readonly db: Kysely<Database>) {}
 
   @Post('accept')
+  @HttpCode(200)
   @SecurityPlaneTag('authenticated-interaction')
   @RequireScopes('copalibre.invite.accept')
   @AllowInvitationAcceptance()

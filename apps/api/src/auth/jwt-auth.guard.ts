@@ -2,6 +2,7 @@ import {
   CanActivate,
   ExecutionContext,
   ForbiddenException,
+  Inject,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -27,8 +28,8 @@ import { REQUIRED_SCOPES_KEY } from './required-scopes.js';
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   constructor(
-    private readonly reflector: Reflector,
-    private readonly verifier: TokenVerifier,
+    @Inject(Reflector) private readonly reflector: Reflector,
+    @Inject(TokenVerifier) private readonly verifier: TokenVerifier,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {

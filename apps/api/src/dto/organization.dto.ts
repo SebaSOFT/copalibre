@@ -26,6 +26,34 @@ export class CreateOrganizationRequest {
   name!: string;
 }
 
+export class BootstrapAdministratorRequest {
+  @ApiProperty({ example: 'liga-orbital' })
+  organizationAlias!: string;
+
+  @ApiProperty({ example: 'Liga Orbital' })
+  organizationName!: string;
+
+  @ApiProperty({ format: 'email', example: 'admin@example.test' })
+  email!: string;
+}
+
+export class BootstrapAdministratorResponse {
+  @ApiProperty({ format: 'uuid' })
+  organizationId!: string;
+
+  @ApiProperty({ example: 'liga-orbital' })
+  organizationAlias!: string;
+
+  @ApiProperty({ format: 'uuid' })
+  invitationId!: string;
+
+  @ApiProperty({ format: 'date-time' })
+  expiresAt!: string;
+
+  @ApiProperty({ format: 'uri', description: 'One-time OIDC invitation setup link.' })
+  setupUrl!: string;
+}
+
 export class TournamentResponse {
   @ApiProperty({ format: 'uuid' })
   tournamentId!: string;

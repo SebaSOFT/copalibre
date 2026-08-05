@@ -5,6 +5,7 @@ import { DATABASE } from './database.token.js';
 import { HealthController } from './health.controller.js';
 import { MatchControlController } from './controllers/match-control.controller.js';
 import { DataImportExportController } from './controllers/data-import-export.controller.js';
+import { InstallationBootstrapController } from './controllers/installation-bootstrap.controller.js';
 import { DataExportController } from './controllers/data-export.controller.js';
 import { OrganizationsController } from './controllers/organizations.controller.js';
 import { SchedulesController } from './controllers/schedules.controller.js';
@@ -63,6 +64,7 @@ const providers: Provider[] = [
     InvitationAcceptanceController,
     ParticipantsController,
     ParticipantIdentityLinksController,
+    InstallationBootstrapController,
   ],
   providers,
 })

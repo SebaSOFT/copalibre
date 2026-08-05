@@ -136,6 +136,17 @@ describe('event streams (integration)', () => {
     expect(response.headers['x-accel-buffering']).toBe('no');
   });
 
+  it('emits immediate and idle heartbeats for the reverse-proxy diagnostic', async () => {
+    const response = await inject({ method: 'GET', url: '/events/proxy-check' });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['content-type']).toContain('text/event-stream');
+    expect(response.headers['cache-control']).toBe('no-cache, no-transform');
+    expect(response.headers['x-accel-buffering']).toBe('no');
+    expect(response.body).toContain(': copalibre-proxy-check-1');
+    expect(response.body).toContain(': copalibre-proxy-check-2');
+  });
+
   it('tells a public client with an unknown cursor to fetch the projection', async () => {
     const response = await inject({
       method: 'GET',

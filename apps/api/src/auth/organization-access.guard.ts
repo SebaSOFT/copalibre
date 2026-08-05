@@ -30,7 +30,7 @@ import { SECURITY_PLANE_KEY, type SecurityPlane } from './security-plane.js';
 @Injectable()
 export class OrganizationAccessGuard implements CanActivate {
   constructor(
-    private readonly reflector: Reflector,
+    @Inject(Reflector) private readonly reflector: Reflector,
     @Inject(DATABASE) private readonly db: Kysely<Database>,
   ) {}
 

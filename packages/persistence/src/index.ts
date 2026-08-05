@@ -50,6 +50,11 @@ export {
 } from './repositories/organization-access-repository.js';
 export { IdentityPrincipalRepository } from './repositories/identity-principal-repository.js';
 export {
+  InstallationBootstrapRepository,
+  type BootstrapAdministratorInput,
+  type BootstrapAdministratorResult,
+} from './repositories/installation-bootstrap-repository.js';
+export {
   TournamentRepository,
   type CreateTournamentInput,
   type CreateRulesetInput,
