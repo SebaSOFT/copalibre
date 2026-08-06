@@ -2,6 +2,7 @@ import { jest } from '@jest/globals';
 import {
   runDoctor,
   validateDatabase,
+  validateJwksContent,
   validateObjectStorage,
   validatePersistentPath,
   validatePublicUrls,
@@ -28,16 +29,26 @@ function dependencies(overrides: Partial<DoctorDependencies> = {}): DoctorDepend
     lookupHost: jest.fn(async () => undefined),
     probeDatabase: jest.fn(async () => undefined),
     ensureWritable: jest.fn(async () => undefined),
-    fetch: jest.fn(
-      async () =>
-        new Response(': copalibre-proxy-check-1\n\n: copalibre-proxy-check-2\n\n', {
-          headers: {
-            'cache-control': 'no-cache, no-transform',
-            'content-type': 'text/event-stream',
-            'x-accel-buffering': 'no',
-          },
-        }),
-    ) as unknown as typeof fetch,
+    fetch: jest.fn(async (input: string | URL | Request) => {
+      // The JWKS content check and the SSE proxy-conformance check share this
+      // default mock; discriminate by URL so each gets a response shaped for
+      // what it validates.
+      if (String(input).includes('/jwks')) {
+        return new Response(
+          JSON.stringify({
+            keys: [{ kty: 'RSA', kid: 'test-key', use: 'sig', n: 'x', e: 'AQAB' }],
+          }),
+          { headers: { 'content-type': 'application/json' } },
+        );
+      }
+      return new Response(': copalibre-proxy-check-1\n\n: copalibre-proxy-check-2\n\n', {
+        headers: {
+          'cache-control': 'no-cache, no-transform',
+          'content-type': 'text/event-stream',
+          'x-accel-buffering': 'no',
+        },
+      });
+    }) as unknown as typeof fetch,
     ...overrides,
   };
 }
@@ -90,6 +101,61 @@ describe('copalibre doctor', () => {
     await expect(
       validateDatabase({ DATABASE_URL: 'not-a-url' }, dependencies()),
     ).resolves.toContainEqual(expect.objectContaining({ status: 'fail' }));
+  });
+
+  it('passes the JWKS content check when the URI serves a valid key set', async () => {
+    const report = await validateJwksContent(environment, dependencies());
+    expect(report).toContainEqual(expect.objectContaining({ name: 'jwks-content', status: 'pass' }));
+  });
+
+  it('fails the JWKS content check when the URI is reachable but not a JWKS document', async () => {
+    const report = await validateJwksContent(
+      environment,
+      dependencies({
+        fetch: jest.fn(
+          async () => new Response('<html>not json</html>', { status: 200 }),
+        ) as unknown as typeof fetch,
+      }),
+    );
+    expect(report).toContainEqual(
+      expect.objectContaining({
+        name: 'jwks-content',
+        status: 'fail',
+        message: expect.stringContaining('does not serve a valid JWKS document'),
+      }),
+    );
+  });
+
+  it('fails the JWKS content check when the JSON body has no keys array', async () => {
+    const report = await validateJwksContent(
+      environment,
+      dependencies({
+        fetch: jest.fn(
+          async () => new Response(JSON.stringify({}), { status: 200 }),
+        ) as unknown as typeof fetch,
+      }),
+    );
+    expect(report).toContainEqual(expect.objectContaining({ name: 'jwks-content', status: 'fail' }));
+  });
+
+  it('fails the JWKS content check when the endpoint is unreachable', async () => {
+    const report = await validateJwksContent(
+      environment,
+      dependencies({
+        fetch: jest.fn(() => Promise.reject(new Error('ECONNREFUSED'))) as unknown as typeof fetch,
+      }),
+    );
+    expect(report).toContainEqual(
+      expect.objectContaining({
+        name: 'jwks-content',
+        status: 'fail',
+        message: expect.stringContaining('ECONNREFUSED'),
+      }),
+    );
+  });
+
+  it('skips the JWKS content check when no URI is configured', async () => {
+    await expect(validateJwksContent({}, dependencies())).resolves.toEqual([]);
   });
 
   it('rejects invalid or colliding service ports', () => {
