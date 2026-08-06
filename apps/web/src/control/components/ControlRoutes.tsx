@@ -1,6 +1,7 @@
 import type { ControlApiClient, MatchConsoleApiClient } from '../lib/api-client.js';
 import { ControlShell } from './ControlShell.js';
 import { RegistrationReviewRoute } from './RegistrationReviewRoute.js';
+import { ReportReviewRoute } from './ReportReviewRoute.js';
 import { SeedingBuilderRoute } from './SeedingBuilderRoute.js';
 import { StandingsRoute } from './StandingsRoute.js';
 import { TournamentAuthoringPage } from './TournamentAuthoringPage.js';
@@ -34,6 +35,26 @@ export function RegistrationReviewControlRoute({
         organizationAlias={organizationAlias}
         tournamentAlias={tournamentAlias}
         now={now}
+      />
+    </ControlShell>
+  );
+}
+
+export function ReportReviewControlRoute({
+  organizationAlias,
+  tournamentAlias,
+  client,
+}: {
+  readonly organizationAlias: string;
+  readonly tournamentAlias: string;
+  readonly client?: ControlApiClient;
+}): React.JSX.Element {
+  return (
+    <ControlShell organizationAlias={organizationAlias}>
+      <ReportReviewRoute
+        client={client}
+        organizationAlias={organizationAlias}
+        tournamentAlias={tournamentAlias}
       />
     </ControlShell>
   );
