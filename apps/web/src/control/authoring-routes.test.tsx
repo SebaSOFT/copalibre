@@ -34,7 +34,12 @@ function client(overrides: Partial<ControlApiClient> = {}): ControlApiClient {
       matches: [],
       hasRecordedResults: false,
     }),
-    publishSeeding: async () => ({ mutationClass: 'safe' as const, reason: '', invalidates: [] }),
+    publishSeeding: async () => ({
+      mutationClass: 'safe' as const,
+      reason: '',
+      invalidates: [],
+      persisted: true,
+    }),
     bulkReview: async () => ({ applied: [], refused: [] }),
     reviewRegistration: async () => ({
       entrantId: 'e-1',
