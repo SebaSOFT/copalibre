@@ -131,33 +131,47 @@ async function mockControlApi(
 ): Promise<void> {
   await page.addInitScript(
     ({ stage, standings, trace, seeding, reseedBlocked }) => {
-      window.fetch = (input, init) => {
+      // `addInitScript` re-runs on every navigation, including a reload, so a
+      // plain closure variable would not survive one — sessionStorage does,
+      // letting a GET after a reload reflect what the server would have
+      // actually persisted (0040) rather than resetting to the page's
+      // starting fixture.
+      const STORAGE_KEY = 'e2e-current-seeding';
+      const readCurrent = (): typeof seeding => {
+        const stored = sessionStorage.getItem(STORAGE_KEY);
+        return stored ? (JSON.parse(stored) as typeof seeding) : seeding;
+      };
+      const writeCurrent = (next: typeof seeding): void => {
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      };
+
+      window.fetch = async (input, init) => {
         const url = String(input);
         const method = init?.method ?? 'GET';
 
-        if (url === `${stage}/standings`) return Promise.resolve(Response.json(standings));
-        if (url.startsWith(`${stage}/standings/entrants/`)) {
-          return Promise.resolve(Response.json(trace));
-        }
-        if (url === `${stage}/seeding` && method === 'GET') {
-          return Promise.resolve(Response.json(seeding));
-        }
+        if (url === `${stage}/standings`) return Response.json(standings);
+        if (url.startsWith(`${stage}/standings/entrants/`)) return Response.json(trace);
+        if (url === `${stage}/seeding` && method === 'GET') return Response.json(readCurrent());
         if (url === `${stage}/seeding` && method === 'POST') {
-          return Promise.resolve(
-            reseedBlocked
-              ? Response.json(
-                  { message: 'Seeding cannot change once a result exists' },
-                  { status: 409 },
-                )
-              : Response.json({
-                  mutationClass: 'requires_rebuild',
-                  reason: 'Reseeding regenerates the fixture graph',
-                  invalidates: ['WB-R1-M1'],
-                }),
-          );
+          if (reseedBlocked) {
+            return Response.json(
+              { message: 'Seeding cannot change once a result exists' },
+              { status: 409 },
+            );
+          }
+          const body = JSON.parse(String(init?.body)) as {
+            readonly seeds: readonly { readonly seed: number; readonly entrantId: string }[];
+          };
+          writeCurrent({ ...readCurrent(), seeds: body.seeds });
+          return Response.json({
+            mutationClass: 'requires_rebuild',
+            reason: 'Reseeding regenerates the fixture graph',
+            invalidates: ['WB-R1-M1'],
+            persisted: true,
+          });
         }
 
-        return Promise.resolve(new Response('Not found', { status: 404 }));
+        return new Response('Not found', { status: 404 });
       };
     },
     {
@@ -221,6 +235,29 @@ test('renders both halves of a double-elimination bracket with named placeholder
   await expect(canvas.getByText('TBD · Perdedor del WB-R1-M1')).toBeVisible();
   await expect(canvas.getByText('TBD · Ganador del LB-R1-M1')).toBeVisible();
   await expect(canvas.getByText('BO5').first()).toBeVisible();
+});
+
+test('a published seed order survives a page reload', async ({ page }) => {
+  await mockControlApi(page);
+
+  await page.goto('/control/liga-mendocina/tournaments/apertura-2026/stages/1/seeding');
+
+  const seedList = page.getByRole('list', { name: 'Orden de siembra' });
+  await expect(async () => {
+    await page.getByRole('button', { name: 'Sortear no fijados' }).click();
+    await expect(page.getByRole('button', { name: 'Publicar sembrado' })).toBeEnabled({
+      timeout: 500,
+    });
+  }).toPass();
+
+  const shuffled = await seedList.getByRole('listitem').allTextContents();
+
+  await page.getByRole('button', { name: 'Publicar sembrado' }).click();
+  await expect(page.getByRole('alert')).toContainText('sembrado guardado');
+
+  await page.reload();
+  const afterReload = await seedList.getByRole('listitem').allTextContents();
+  expect(afterReload).toEqual(shuffled);
 });
 
 test('shows the server’s refusal when a reseed lands after a result', async ({ page }) => {

@@ -234,6 +234,100 @@ export class CompetitionRepository {
     return fixtures;
   }
 
+  /**
+   * Replaces a stage's fixture graph in place — the write side of reseeding
+   * (0040). Only reachable once `classifyEngineMutation` has already refused a
+   * `blocked_after_results` request, but a fixture with a match already
+   * attached (started, even without a final result) is still a record this
+   * would orphan, so that case is refused here too rather than trusted to the
+   * classification alone.
+   */
+  async replaceFixtures(
+    uow: UnitOfWork,
+    input: {
+      readonly stageId: string;
+      readonly fixtures: readonly {
+        readonly round: number;
+        readonly homeEntrantId?: string;
+        readonly awayEntrantId?: string;
+        readonly scheduledAt?: string;
+      }[];
+    } & AuditContext,
+  ): Promise<readonly Fixture[]> {
+    if (input.fixtures.length === 0) {
+      throw new InvariantViolationError('Cannot replace a fixture set with an empty one', {
+        stageId: input.stageId,
+      });
+    }
+
+    const attached = await uow.tx
+      .selectFrom('matches')
+      .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
+      .select('matches.match_id')
+      .where('fixtures.stage_id', '=', input.stageId)
+      .executeTakeFirst();
+    if (attached) {
+      throw new InvariantViolationError(
+        'Cannot replace fixtures once a match has been created against them',
+        { stageId: input.stageId },
+      );
+    }
+
+    const previousCount = await uow.tx
+      .selectFrom('fixtures')
+      .select((eb) => eb.fn.countAll<number>().as('count'))
+      .where('stage_id', '=', input.stageId)
+      .executeTakeFirstOrThrow();
+
+    await uow.tx.deleteFrom('fixtures').where('stage_id', '=', input.stageId).execute();
+
+    const rows = await uow.tx
+      .insertInto('fixtures')
+      .values(
+        input.fixtures.map((fixture) => ({
+          fixture_id: newId(),
+          stage_id: input.stageId,
+          round: fixture.round,
+          home_entrant_id: fixture.homeEntrantId ?? null,
+          away_entrant_id: fixture.awayEntrantId ?? null,
+          scheduled_at: fixture.scheduledAt ? new Date(fixture.scheduledAt) : null,
+          created_at: new Date(),
+        })),
+      )
+      .returningAll()
+      .execute();
+
+    const fixtures: Fixture[] = rows.map((row) => ({
+      fixtureId: row.fixture_id,
+      stageId: row.stage_id,
+      round: row.round,
+      homeEntrantId: row.home_entrant_id ?? undefined,
+      awayEntrantId: row.away_entrant_id ?? undefined,
+      scheduledAt: row.scheduled_at ? toIsoString(row.scheduled_at) : undefined,
+    }));
+
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'stage',
+      entityId: input.stageId,
+      action: 'fixtures.regenerated',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      previousState: { fixtureCount: Number(previousCount.count) },
+      resultingState: { fixtureCount: fixtures.length },
+    });
+    await uow.publishEvent({
+      organizationId: input.organizationId,
+      stream: `stage:${input.stageId}`,
+      entityId: input.stageId,
+      eventType: 'fixtures.regenerated',
+      projectionVersion: 1,
+      payload: { stageId: input.stageId, fixtureCount: fixtures.length },
+    });
+
+    return fixtures;
+  }
+
   async createMatch(
     uow: UnitOfWork,
     input: { readonly fixtureId: string; readonly number: number } & AuditContext,

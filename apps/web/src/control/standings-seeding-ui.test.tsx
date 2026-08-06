@@ -302,7 +302,12 @@ function stubClient(overrides: Partial<ControlApiClient>): ControlApiClient {
         hasRecordedResults: false,
       }),
     publishSeeding: () =>
-      Promise.resolve({ mutationClass: 'safe', reason: 'Sin fixtures generados', invalidates: [] }),
+      Promise.resolve({
+        mutationClass: 'safe',
+        reason: 'Sin fixtures generados',
+        invalidates: [],
+        persisted: true,
+      }),
     listOrganizationRoles: () => Promise.resolve([]),
     inviteOrganizationUser: () =>
       Promise.resolve({ invitationId: 'invite-1', expiresAt: '2099-01-01T00:00:00.000Z' }),
@@ -383,6 +388,61 @@ describe('control routes', () => {
     });
 
     expect(screen.getByRole('alert').textContent).toContain('once a result exists');
+  });
+
+  it('confirms persistence and refreshes the bracket after a successful publish', async () => {
+    const fetchSeeding = jest
+      .fn<ControlApiClient['fetchSeeding']>()
+      .mockResolvedValueOnce({
+        stageId: 'stage-1',
+        format: 'single-elimination',
+        seeds: [
+          { seed: 1, entrantId: 'tll' },
+          { seed: 2, entrantId: 'ind' },
+        ],
+        matches,
+        hasRecordedResults: false,
+      })
+      .mockResolvedValueOnce({
+        stageId: 'stage-1',
+        format: 'single-elimination',
+        seeds: [
+          { seed: 1, entrantId: 'ind' },
+          { seed: 2, entrantId: 'tll' },
+        ],
+        matches,
+        hasRecordedResults: false,
+      });
+
+    render(
+      <SeedingControlRoute
+        client={stubClient({
+          fetchSeeding,
+          publishSeeding: () =>
+            Promise.resolve({
+              mutationClass: 'safe',
+              reason: 'Sin fixtures generados',
+              invalidates: [],
+              persisted: true,
+            }),
+        })}
+        organizationAlias="liga-mendocina"
+        stageNumber={1}
+        tournamentAlias="apertura"
+      />,
+    );
+
+    await screen.findByText('Sembrado');
+    const random = jest.spyOn(Math, 'random').mockReturnValue(0);
+    fireEvent.click(screen.getByRole('button', { name: 'Sortear no fijados' }));
+    random.mockRestore();
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Publicar sembrado' }));
+    });
+
+    expect(await screen.findByText(/sembrado guardado/)).toBeTruthy();
+    // Once on load, once to refresh after the confirmed publish.
+    expect(fetchSeeding).toHaveBeenCalledTimes(2);
   });
 
   it('reports a seeding load it could not complete', async () => {

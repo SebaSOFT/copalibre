@@ -155,4 +155,10 @@ export class SeedingClassificationResponse {
     isArray: true,
   })
   invalidates!: string[];
+
+  @ApiProperty({
+    description:
+      'True once the new seed order and fixture graph are durably persisted. Always true for a 200 response — a publish that could not persist refuses with 409 instead of returning a partial success.',
+  })
+  persisted!: boolean;
 }

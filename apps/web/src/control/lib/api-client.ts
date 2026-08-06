@@ -153,6 +153,8 @@ export interface SeedingClassificationResponse {
   readonly mutationClass: 'safe' | 'requires_rebuild' | 'blocked_after_results';
   readonly reason: string;
   readonly invalidates: readonly string[];
+  /** True once the new seed order and fixtures are durably persisted (0040). */
+  readonly persisted: boolean;
 }
 
 export interface CreateTournamentRequest {
