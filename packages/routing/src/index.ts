@@ -9,6 +9,7 @@ export {
   controlPath,
   tvPath,
   publicStreamPath,
+  tvStreamPath,
   viewQuery,
   validateRouteInput,
   RouteError,

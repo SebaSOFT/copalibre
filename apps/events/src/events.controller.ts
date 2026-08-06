@@ -11,11 +11,19 @@ import {
   ServiceUnavailableException,
   UseGuards,
 } from '@nestjs/common';
-import { OrganizationRepository, type Database } from '@copalibre/persistence';
+import {
+  DisplayTokenRepository,
+  OrganizationRepository,
+  type Database,
+} from '@copalibre/persistence';
 import type { RequestWithSubject } from '@copalibre/auth';
 import type { Kysely } from 'kysely';
 import { DATABASE } from './database.token.js';
 import { ConnectionLimiter } from './stream/connection-limits.js';
+import {
+  DisplayTokenAuthGuard,
+  type DisplayTokenRequest,
+} from './stream/display-token-auth.guard.js';
 import { StreamAuthGuard } from './stream/stream-auth.guard.js';
 import { streamEvents, type StreamSink } from './stream/stream-writer.js';
 import { SubscriptionService, type SubscriptionQuery } from './stream/subscription.js';
@@ -118,6 +126,48 @@ export class EventsController {
     await this.stream(request, reply, organizationId, {
       organizationId,
       visibility: 'control',
+      ...(lastEventId === undefined ? {} : { afterEventId: lastEventId }),
+    });
+  }
+
+  /**
+   * The `/tv/**` stream (0031): same public projection and same channel as
+   * `publicStream` — "the underlying data is the same published projection,
+   * only the rendering differs" — gated by a device-scoped display token
+   * instead of being open to anyone, since a kiosk is a specific,
+   * operator-authorized, revocable device rather than an anonymous visitor.
+   *
+   * One route for both the full-rotation and pinned-to-one-match pages: there
+   * is no match-scoped stream anywhere in this system (`publicStream` has
+   * none either) — a pinned view subscribes to the same tournament stream and
+   * renders only its one match, the same "same channel, different rendering"
+   * shape as everything else `/tv/**` reuses.
+   */
+  @Get('tv/:organization/tournaments/:tournament')
+  @UseGuards(DisplayTokenAuthGuard)
+  async tvStream(
+    @Param('organization') organizationAlias: string,
+    @Headers('last-event-id') lastEventId: string | undefined,
+    @Req() request: ClosableRequest & DisplayTokenRequest,
+    @Res() reply: RawReply,
+  ): Promise<void> {
+    const organizationId = await this.organizationIdOf(organizationAlias);
+    if (request.displayTokenId !== undefined) {
+      // Fire-and-forget: the device-health heartbeat never gates the stream.
+      void new DisplayTokenRepository(this.db).touchLastSeen(request.displayTokenId);
+    }
+    // The guard already resolved the URL's tournament alias to its real id
+    // (it had to, to compare against the token's stored scope) — reused here
+    // rather than re-querying, and required rather than the alias itself:
+    // the subscription query below filters on the real id.
+    const tournamentId = request.tournamentId;
+    if (tournamentId === undefined) {
+      throw new Error('DisplayTokenAuthGuard did not resolve a tournament id');
+    }
+    await this.stream(request, reply, `${organizationId}:${tournamentId}`, {
+      organizationId,
+      tournamentId,
+      visibility: 'public',
       ...(lastEventId === undefined ? {} : { afterEventId: lastEventId }),
     });
   }

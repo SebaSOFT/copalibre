@@ -612,6 +612,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/display-tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List display tokens issued for this tournament’s /tv/** surfaces */
+        get: operations["DisplayTokenController_list"];
+        put?: never;
+        /** Issue a device-scoped display token for one /tv/** route */
+        post: operations["DisplayTokenController_issue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/display-tokens/{displayTokenId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke one device’s display token */
+        delete: operations["DisplayTokenController_revoke"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{organizationAlias}/roles": {
         parameters: {
             query?: never;
@@ -1301,6 +1336,41 @@ export interface components {
             invalidates: string[];
             /** @description True once the new seed order and fixture graph are durably persisted. Always true for a 200 response — a publish that could not persist refuses with 409 instead of returning a partial success. */
             persisted: boolean;
+        };
+        DisplayTokenResponse: {
+            /** Format: uuid */
+            displayTokenId: string;
+            /** Format: uuid */
+            tournamentId: string;
+            /** Format: uuid */
+            matchId?: string;
+            label?: string;
+            revoked: boolean;
+            /**
+             * Format: date-time
+             * @description Last authorized page/stream request
+             */
+            lastSeenAt?: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        IssueDisplayTokenRequest: {
+            /**
+             * Format: uuid
+             * @description Pins the device to one match, not the full tournament rotation
+             */
+            matchId?: string;
+            /** @description Operator-facing device label, e.g. "Cancha 1 - TV entrada" */
+            label?: string;
+        };
+        DisplayTokenIssuedResponse: {
+            /** Format: uuid */
+            displayTokenId: string;
+            /** @description Shown once. Provision the device with it; it is never stored raw. */
+            token: string;
+            /** @description The /tv/** launch URL to configure on the device */
+            url: string;
+            label?: string;
         };
         OrganizationRoleResponse: {
             /** Format: uuid */
@@ -2528,6 +2598,78 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    DisplayTokenController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DisplayTokenResponse"][];
+                };
+            };
+        };
+    };
+    DisplayTokenController_issue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IssueDisplayTokenRequest"];
+            };
+        };
+        responses: {
+            /** @description Shown once — provision the device with it, it is stored only as a hash */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DisplayTokenIssuedResponse"];
+                };
+            };
+        };
+    };
+    DisplayTokenController_revoke: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                displayTokenId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DisplayTokenResponse"];
                 };
             };
         };

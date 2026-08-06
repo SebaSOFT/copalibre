@@ -13,7 +13,7 @@
  * an internal identifier into proxy logs and browser history for nothing.
  */
 
-export type ViewMode = 'default' | 'compact' | 'broadcast';
+export type ViewMode = 'default' | 'compact' | 'broadcast' | 'overlay';
 
 export interface RouteInput {
   readonly organizationAlias: string;
@@ -112,6 +112,18 @@ export function publicStreamPath(input: RouteInput): string {
     throw new RouteError('A public stream is scoped to a tournament');
   }
   return `/events/public/${input.organizationAlias}/tournaments/${input.tournamentAlias}`;
+}
+
+/**
+ * The `/tv/**` SSE endpoint (0031) — same derivation as `publicStreamPath`,
+ * so the kiosk page and the stream it opens cannot name different tournaments.
+ */
+export function tvStreamPath(input: RouteInput): string {
+  validateRouteInput(input);
+  if (input.tournamentAlias === undefined) {
+    throw new RouteError('A TV stream is scoped to a tournament');
+  }
+  return `/events/tv/${input.organizationAlias}/tournaments/${input.tournamentAlias}`;
 }
 
 /**

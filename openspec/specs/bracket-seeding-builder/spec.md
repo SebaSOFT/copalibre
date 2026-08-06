@@ -30,12 +30,28 @@ client-side.
 
 ### Requirement: Seed configuration changes follow mutation classification
 Publishing a seed configuration change through this builder SHALL apply the mutation-class rules
-(`safe` / `requires_rebuild` / `blocked_after_results`) defined for tournament configuration, and
-SHALL block the change with an explanatory message if results already exist and the change is
-classified `blocked_after_results`.
+(`safe` / `requires_rebuild` / `blocked_after_results`) defined for tournament configuration. A
+publish classified `safe` or `requires_rebuild` SHALL persist the new seed order for the stage and
+regenerate its fixtures from that order, so the persisted state matches what the builder displayed
+as published. Publishing SHALL block the change with an explanatory message if results already
+exist and the change is classified `blocked_after_results`.
 
 #### Scenario: Reseeding after results is blocked
 - **WHEN** an operator attempts to change seed assignments after match results already exist for the
   affected stage
 - **THEN** the system blocks the change and directs the operator to the authorized correction workflow
+
+#### Scenario: Publish persists the new seed order
+- **WHEN** an operator publishes a seed configuration change classified `safe` or `requires_rebuild`
+- **THEN** the stage's persisted seed order matches the published order on the next read, independent
+  of the client that published it
+
+#### Scenario: Publish regenerates fixtures matching the new order
+- **WHEN** a publish classified `requires_rebuild` completes
+- **THEN** the stage's fixtures are regenerated from the newly persisted seed order and the bracket
+  canvas reflects the regenerated structure on next load
+
+#### Scenario: Re-publishing the same order is idempotent
+- **WHEN** an operator publishes a seed order identical to the one already persisted for the stage
+- **THEN** the publish succeeds without error and the persisted seed order and fixtures are unchanged
 

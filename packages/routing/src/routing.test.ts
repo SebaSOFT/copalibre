@@ -9,6 +9,7 @@ import {
   publicStreamPath,
   resolveAlias,
   tvPath,
+  tvStreamPath,
   viewQuery,
   type AliasRedirect,
 } from './index.js';
@@ -46,6 +47,12 @@ describe('every surface from one input', () => {
     expect(publicStreamPath(BASE)).toBe('/events/public/liga-mendocina/tournaments/apertura-2026');
   });
 
+  it('pins the TV path to one match by number, never by id', () => {
+    expect(tvPath({ ...BASE, stageNumber: 1, matchNumber: 5 })).toBe(
+      '/tv/liga-mendocina/tournaments/apertura-2026/stages/1/matches/5',
+    );
+  });
+
   it('keeps the locale prefix out of control and TV paths', () => {
     expect(controlPath({ ...BASE, locale: 'en' })).toBe(
       '/control/liga-mendocina/tournaments/apertura-2026',
@@ -54,6 +61,14 @@ describe('every surface from one input', () => {
 
   it('refuses a stream that names no tournament', () => {
     expect(() => publicStreamPath({ organizationAlias: 'liga-mendocina' })).toThrow(RouteError);
+  });
+
+  it('derives the TV stream the same way as the TV page (0031)', () => {
+    expect(tvStreamPath(BASE)).toBe('/events/tv/liga-mendocina/tournaments/apertura-2026');
+  });
+
+  it('refuses a TV stream that names no tournament', () => {
+    expect(() => tvStreamPath({ organizationAlias: 'liga-mendocina' })).toThrow(RouteError);
   });
 });
 
@@ -114,6 +129,10 @@ describe('view state is a query, never a path', () => {
   it('says nothing for the default view', () => {
     expect(viewQuery({ viewMode: 'default' })).toBe('');
     expect(viewQuery({})).toBe('');
+  });
+
+  it('carries the TV overlay mode for chroma-key capture (0031)', () => {
+    expect(viewQuery({ viewMode: 'overlay' })).toBe('?mode=overlay');
   });
 });
 

@@ -165,6 +165,23 @@ describe('the dashboard is scoped to one organization', () => {
 });
 
 describe('what the dashboard renders', () => {
+  let originalFetch: typeof fetch;
+
+  beforeEach(() => {
+    // Dashboard's device-heartbeat panel (0031, 4.4) fetches on mount; a
+    // stub here keeps that fetch from crashing tests that never mock it
+    // themselves.
+    originalFetch = globalThis.fetch;
+    Object.defineProperty(globalThis, 'fetch', {
+      configurable: true,
+      value: async () => new Response('[]', { headers: { 'content-type': 'application/json' } }),
+    });
+  });
+
+  afterEach(() => {
+    Object.defineProperty(globalThis, 'fetch', { configurable: true, value: originalFetch });
+  });
+
   it('shows a tile per stat with its number', () => {
     render(
       <QuickStats stats={{ activeTournaments: 4, pendingRegistrations: 9, matchesToday: 2 }} />,
@@ -216,7 +233,6 @@ describe('what the dashboard renders', () => {
 
   it('downloads every CSV view through the organization-scoped API', async () => {
     const requests: string[] = [];
-    const originalFetch = globalThis.fetch;
     const originalCreateObjectUrl = URL.createObjectURL;
     const originalRevokeObjectUrl = URL.revokeObjectURL;
     const createObjectUrl = jest.fn(() => 'blob:csv-export');
@@ -225,6 +241,11 @@ describe('what the dashboard renders', () => {
     Object.defineProperty(globalThis, 'fetch', {
       configurable: true,
       value: async (url: string) => {
+        // The device-heartbeat panel also fetches on mount; only exports are
+        // this test's concern, so its own request is answered but not counted.
+        if (url.includes('/display-tokens')) {
+          return new Response('[]', { headers: { 'content-type': 'application/json' } });
+        }
         requests.push(url);
         return new Response('alias,name\nclub-atletico,Club Atletico\n');
       },

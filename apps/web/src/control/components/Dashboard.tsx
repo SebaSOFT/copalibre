@@ -1,8 +1,15 @@
+import { useEffect, useState } from 'react';
 import { ActivityLog } from './ActivityLog.js';
+import { DeviceHeartbeat } from './DeviceHeartbeat.js';
 import { QuickStats } from './QuickStats.js';
 import { TournamentCard } from './TournamentCard.js';
 import { SIDENAV, type DashboardModel } from '../lib/dashboard.js';
-import { createControlApiClient } from '../lib/api-client.js';
+import { createControlApiClient, type DisplayTokenResponse } from '../lib/api-client.js';
+
+interface DeviceEntry {
+  readonly tournamentAlias: string;
+  readonly token: DisplayTokenResponse;
+}
 
 /** A1, the organization dashboard (0022). */
 export function Dashboard({
@@ -21,6 +28,35 @@ export function Dashboard({
       link.click();
       URL.revokeObjectURL(link.href);
     });
+
+  const [devices, setDevices] = useState<readonly DeviceEntry[]>([]);
+  const [now, setNow] = useState(() => Date.now());
+  const tournamentAliases = model.tournaments.map((card) => card.alias).join(',');
+
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = () => {
+      setNow(Date.now());
+      void Promise.all(
+        model.tournaments.map(async (card) => {
+          const tokens = (await api.listDisplayTokens?.(organizationAlias, card.alias)) ?? [];
+          return tokens.map((token) => ({ tournamentAlias: card.alias, token }));
+        }),
+      ).then((byTournament) => {
+        if (!cancelled) setDevices(byTournament.flat());
+      });
+    };
+    refresh();
+    // A dead kiosk should show as such within a screen an operator is likely
+    // to still be looking at, not only on the next full page load.
+    const interval = setInterval(refresh, 15_000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-fetches when the tournament set changes, not on every model identity change
+  }, [organizationAlias, tournamentAliases]);
+
   return (
     <div className="cl-control">
       <nav aria-label="Secciones">
@@ -56,6 +92,7 @@ export function Dashboard({
             </div>
           ))}
         </section>
+        <DeviceHeartbeat devices={devices} now={now} />
         <ActivityLog entries={model.activity} />
       </main>
     </div>

@@ -1,0 +1,60 @@
+name: TV Soak Test
+
+# A kiosk is never restarted by a person, so a slow leak that no per-PR test
+# run can see is exactly what this exists to catch (0031, tasks 9.1/9.3).
+# GitHub-hosted runners cap a single job well short of the multi-day window
+# design.md describes, so this runs as long as the job timeout below allows
+# and fails on unbounded growth within that window — the same nightly-cron,
+# fail-the-scheduled-job pattern as backup-restore-drill.yml, at this job's
+# own duration rather than that one's.
+
+on:
+  schedule:
+    - cron: '41 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tv-soak-test
+  cancel-in-progress: false
+
+jobs:
+  tv-soak-test:
+    name: TV kiosk memory stability
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+      - run: yarn install --immutable
+      - run: yarn workspace @copalibre/routing build
+      - run: yarn workspace @copalibre/realtime build
+      - run: yarn workspace @copalibre/design-tokens build:tokens
+      - run: yarn playwright install --with-deps chromium
+      - name: Start the built web preview
+        run: |
+          yarn workspace @copalibre/web build
+          yarn workspace @copalibre/web run preview &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:4321 > /dev/null && break
+            sleep 2
+          done
+      - name: Run the soak measurement
+        run: |
+          node scripts/tv-soak-test.mjs \
+            --duration-minutes=300 \
+            --sample-interval-seconds=60 \
+            --growth-threshold=0.3 \
+            --report=tv-soak-report.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tv-soak-report-nightly
+          path: tv-soak-report.json
+          retention-days: 30

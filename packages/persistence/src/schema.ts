@@ -58,6 +58,26 @@ export interface OrganizationInvitesTable {
   created_at: Timestamp;
 }
 
+/**
+ * Device-scoped, revocable credentials for `/tv/**` kiosk and overlay
+ * surfaces (0031) — deliberately not a person's JWT. Bound to exactly one
+ * route (tournament, optionally one match); never stored or logged raw.
+ */
+export interface DisplayTokensTable {
+  display_token_id: string;
+  organization_id: string;
+  tournament_id: string;
+  match_id: string | null;
+  token_hash: string;
+  /** Operator-supplied device label, e.g. "Cancha 1 - TV entrada". */
+  label: string | null;
+  revoked_at: Timestamp | null;
+  /** Last successful stream/page authorization, for the device-health heartbeat. */
+  last_seen_at: Timestamp | null;
+  created_at: Timestamp;
+  created_by: string;
+}
+
 export interface ClubsTable {
   club_id: string;
   organization_id: string;
@@ -590,6 +610,7 @@ export interface Database {
   identity_principals: IdentityPrincipalsTable;
   organization_role_assignments: OrganizationRoleAssignmentsTable;
   organization_invites: OrganizationInvitesTable;
+  display_tokens: DisplayTokensTable;
   clubs: ClubsTable;
   discipline_descriptors: DisciplineDescriptorsTable;
   tournament_rulesets: TournamentRulesetsTable;

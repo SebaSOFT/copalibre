@@ -167,6 +167,14 @@ jobs:
       # The public overview's view model (0020), plus the standings/seeding view
       # models and the bracket-canvas geometry (0024).
       - run: yarn workspace @copalibre/web test:coverage
+      # tv-surfaces (0031): the organizer-branding override guard and the
+      # device-heartbeat status classification, named separately so a reviewer
+      # scanning the job log finds the TV surface's own signal directly.
+      - run: yarn workspace @copalibre/web test --testPathPatterns 'tv-branding|device-heartbeat'
+      # The soak-report growth judgment (0031, 9.3) — the arithmetic that
+      # decides whether the nightly and per-PR soak runs pass, tested without
+      # a browser.
+      - run: node --test scripts/tv-soak-test.test.mjs
       # One token source generated into CSS and Tailwind (0019); the tests are
       # what stop the two outputs drifting apart.
       - run: yarn workspace @copalibre/design-tokens test:coverage
@@ -305,6 +313,30 @@ jobs:
       # The runner image ships no Playwright browser.
       - run: yarn playwright install --with-deps chromium
       - run: yarn test:e2e
+      # Accelerated TV soak-test proxy (0031, 9.2/10.2). design.md describes
+      # the per-PR-eligible proxy as a 2-hour run; a literal 2 hours on every
+      # PR would be a severe, ongoing CI-turnaround regression this repo does
+      # not otherwise have, so this runs the same script and threshold logic
+      # compressed to a few minutes instead. The full 2-hour/multi-day window
+      # runs nightly in tv-soak-test.yml, not per PR.
+      - name: TV soak-test (accelerated proxy)
+        run: |
+          yarn workspace @copalibre/web run preview &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:4321 > /dev/null && break
+            sleep 2
+          done
+          node scripts/tv-soak-test.mjs \
+            --duration-minutes=5 \
+            --sample-interval-seconds=5 \
+            --growth-threshold=0.25 \
+            --report=tv-soak-report.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tv-soak-report
+          path: tv-soak-report.json
+          retention-days: 14
 
   # Added by 0024: "explainable rankings" is a claim until something proves the
   # text on the standings screen is the text the rules engine produced. This job
@@ -422,6 +454,13 @@ jobs:
       # a query string refused, and a cursor outside the replay window told to
       # fetch a projection instead of being replayed a partial one.
       - run: yarn workspace @copalibre/events test:integration
+      # tv-surfaces (0031): issuance/revocation/scope-binding against real
+      # PostgreSQL, and the device-scoped SSE guard through the real HTTP
+      # stack — named separately so a reviewer finds the TV surface's own
+      # signal directly rather than inside the broad persistence/events runs
+      # above (which already include these files; this just re-surfaces them).
+      - run: yarn workspace @copalibre/persistence run test:integration --testPathPatterns 'display-token'
+      - run: yarn workspace @copalibre/events run test:integration --testPathPatterns 'display-token'
       # Runs the CLI's process-level misconfiguration contract. The API
       # bootstrap lifecycle itself is covered by the API integration suite.
       - run: yarn workspace @copalibre/copalibre build
