@@ -241,6 +241,16 @@ export {
   type DownstreamState,
 } from './aggregates/result-correction.js';
 export {
+  validateReportSubmission,
+  ReportValidationError,
+  type ReportKind,
+  type ReportStatus,
+  type EvidenceReference,
+  type ProposedResultClaim,
+  type ParticipantReportSubmission,
+  type SubmitReportInput,
+} from './aggregates/participant-report.js';
+export {
   applyMatchCommand,
   runningTimers,
   validateRoster,
