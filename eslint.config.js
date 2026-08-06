@@ -91,6 +91,7 @@ export default tseslint.config(
         __dirname: 'readonly',
         URL: 'readonly',
         console: 'readonly',
+        setTimeout: 'readonly',
       },
     },
     rules: {
