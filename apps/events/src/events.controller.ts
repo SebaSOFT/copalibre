@@ -136,6 +136,12 @@ export class EventsController {
    * only the rendering differs" — gated by a device-scoped display token
    * instead of being open to anyone, since a kiosk is a specific,
    * operator-authorized, revocable device rather than an anonymous visitor.
+   *
+   * One route for both the full-rotation and pinned-to-one-match pages: there
+   * is no match-scoped stream anywhere in this system (`publicStream` has
+   * none either) — a pinned view subscribes to the same tournament stream and
+   * renders only its one match, the same "same channel, different rendering"
+   * shape as everything else `/tv/**` reuses.
    */
   @Get('tv/:organization/tournaments/:tournament')
   @UseGuards(DisplayTokenAuthGuard)
@@ -145,28 +151,6 @@ export class EventsController {
     @Headers('last-event-id') lastEventId: string | undefined,
     @Req() request: ClosableRequest & DisplayTokenRequest,
     @Res() reply: RawReply,
-  ): Promise<void> {
-    await this.tv(organizationAlias, tournamentId, lastEventId, request, reply);
-  }
-
-  @Get('tv/:organization/tournaments/:tournament/matches/:match')
-  @UseGuards(DisplayTokenAuthGuard)
-  async tvMatchStream(
-    @Param('organization') organizationAlias: string,
-    @Param('tournament') tournamentId: string,
-    @Headers('last-event-id') lastEventId: string | undefined,
-    @Req() request: ClosableRequest & DisplayTokenRequest,
-    @Res() reply: RawReply,
-  ): Promise<void> {
-    await this.tv(organizationAlias, tournamentId, lastEventId, request, reply);
-  }
-
-  private async tv(
-    organizationAlias: string,
-    tournamentId: string,
-    lastEventId: string | undefined,
-    request: ClosableRequest & DisplayTokenRequest,
-    reply: RawReply,
   ): Promise<void> {
     const organizationId = await this.organizationIdOf(organizationAlias);
     if (request.displayTokenId !== undefined) {

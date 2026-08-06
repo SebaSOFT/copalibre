@@ -5,9 +5,14 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { DisplayTokenRepository, type Database } from '@copalibre/persistence';
+import {
+  DisplayTokenRepository,
+  TournamentRepository,
+  type Database,
+} from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
 import { DATABASE } from '../database.token.js';
 
@@ -47,11 +52,21 @@ export class DisplayTokenAuthGuard implements CanActivate {
     const scope = await new DisplayTokenRepository(this.db).scopeOf(hash(token));
     if (!scope) throw new UnauthorizedException('Display token rejected');
 
-    if (scope.tournamentId !== request.params.tournamentId) {
-      throw new ForbiddenException('Display token is not scoped to this tournament');
+    // The route carries organization/tournament as aliases, same as every
+    // other web-facing path; the token's scope is stored by real id, so the
+    // comparison resolves the alias rather than comparing the two directly.
+    const organizationAlias = request.params.organization;
+    const tournamentAlias = request.params.tournament;
+    if (organizationAlias === undefined || tournamentAlias === undefined) {
+      throw new NotFoundException('No tournament named');
     }
-    if (scope.matchId !== undefined && scope.matchId !== request.params.matchId) {
-      throw new ForbiddenException('Display token is not scoped to this match');
+    const tournament = await new TournamentRepository(this.db).findByScopedAlias(
+      organizationAlias,
+      tournamentAlias,
+    );
+    if (!tournament) throw new NotFoundException(`No tournament "${tournamentAlias}"`);
+    if (scope.tournamentId !== tournament.tournamentId) {
+      throw new ForbiddenException('Display token is not scoped to this tournament');
     }
 
     request.displayTokenId = scope.displayTokenId;
