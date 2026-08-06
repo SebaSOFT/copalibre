@@ -35,6 +35,18 @@ obtain the OpenAPI document.
 - **WHEN** the documentation site is built and served with no running API instance reachable
 - **THEN** `/help/api-reference/` still renders the full reference correctly
 
+### Requirement: Reference renderer runs without a third-party CDN
+
+The `/help/api-reference/` route's rendering UI (the library that renders the OpenAPI artifact into
+an interactive reference page) SHALL be served from CopaLibre's own static build, not fetched from a
+third-party CDN at runtime, so the page renders correctly on an installation with no internet egress.
+
+#### Scenario: Reference renders with no internet egress
+
+- **WHEN** the documentation site is built and served on a host with no outbound internet access
+- **THEN** `/help/api-reference/` still renders the full interactive reference correctly, with no
+  failed cross-origin script or stylesheet request
+
 ### Requirement: Try It is disabled by default
 
 The interactive API reference's "Try It" request-execution feature SHALL be disabled by default.

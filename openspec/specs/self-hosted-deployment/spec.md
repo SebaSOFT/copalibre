@@ -39,6 +39,13 @@ The release SHALL provide a `copalibre` CLI with `init`, `doctor`, `dev`, `dev -
 - **WHEN** `copalibre create-admin` is run against a fresh installation with no existing users
 - **THEN** it creates exactly one administrator account and prints the credentials or setup link once
 
+#### Scenario: doctor validates JWKS URI content, not only resolvability
+- **WHEN** `copalibre doctor` runs against an installation whose configured JWKS URI is
+  DNS-resolvable and reachable but does not serve a valid JWKS document (a JSON object with a
+  `keys` array)
+- **THEN** it reports the JWKS URI as misconfigured, naming the URL, and exits non-zero without
+  starting any process role
+
 ### Requirement: Verified backup and restore
 A backup produced by `copalibre backup` SHALL restore into a clean installation via `copalibre
 restore` and pass an automated integrity check.
@@ -52,12 +59,19 @@ restore` and pass an automated integrity check.
 ### Requirement: Reverse-proxy conformance
 The release SHALL document and test at least one reverse-proxy configuration (Caddy or NGINX)
 preserving original scheme/host/client-address forwarding, disabling buffering/caching on SSE routes,
-and providing sufficiently long idle timeouts with heartbeat support.
+providing sufficiently long idle timeouts with heartbeat support, and restricting trusted client-IP
+resolution to an explicit, operator-scoped allowlist of proxy addresses.
 
 #### Scenario: Proxy conformance test detects SSE buffering
 - **WHEN** the conformance test suite runs against a reverse-proxy configuration that buffers
   responses on an SSE route
 - **THEN** the test fails and identifies the buffering misconfiguration
+
+#### Scenario: Example configs restrict trusted client-IP resolution
+- **WHEN** an operator reviews the provided Caddy or NGINX example configuration
+- **THEN** it contains an explicit trusted-proxy allowlist directive (not a default that trusts
+  every upstream) and documentation directing the operator to scope it to their actual proxy
+  network
 
 ### Requirement: Continuous integration builds and smoke-tests the release image
 The CI pipeline SHALL build the release Docker image and start a full Compose profile as an

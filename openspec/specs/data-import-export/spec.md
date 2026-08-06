@@ -68,6 +68,25 @@ CopaLibre.
 - **THEN** the system produces a stable-alias-keyed read-only export and exposes no import path that
   overwrites calculated results or standings
 
+### Requirement: Export escapes formula-injection payloads
+
+Any CSV export cell whose value originates from organizer- or participant-controlled free text
+(participant names, team names, aliases, or any other free-text field) SHALL be escaped before
+serialization so that a value beginning with `=`, `+`, `-`, or `@` cannot be interpreted as a
+formula by a spreadsheet application that opens the exported file.
+
+#### Scenario: Formula-shaped participant name is neutralized on export
+
+- **WHEN** a participant or team name stored in the system begins with `=`, `+`, `-`, or `@`
+  (e.g. `=cmd|'/c calc'!A1`)
+- **THEN** the exported CSV cell for that value is prefixed so a spreadsheet application opens it
+  as inert text, not as a formula
+
+#### Scenario: Ordinary text is exported unchanged
+
+- **WHEN** a participant or team name does not begin with `=`, `+`, `-`, or `@`
+- **THEN** the exported CSV cell contains the value exactly as stored, with no added prefix
+
 ### Requirement: Export works without a SebaSOFT-hosted account
 Export SHALL function on a fully self-hosted installation with no dependency on any SebaSOFT-hosted
 service or account.
