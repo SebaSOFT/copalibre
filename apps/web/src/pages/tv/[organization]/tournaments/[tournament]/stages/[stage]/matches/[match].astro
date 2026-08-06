@@ -1,0 +1,43 @@
+---
+import TvLayout from '../../../../../../../../layouts/TvLayout.astro';
+import { TvDashboard } from '../../../../../../../../components/TvDashboard.tsx';
+import { tvStreamPath } from '@copalibre/routing';
+import { sampleDashboard } from '../../../../../../../../lib/live-sample.ts';
+
+/**
+ * The `/tv/**` pinned-to-one-match kiosk route (0031, task 2.2).
+ *
+ * Subscribes to the same tournament stream as the full-rotation route and
+ * renders only the one match — there is no match-scoped stream anywhere in
+ * this system (`publicStream` has none either), so a second stream shape
+ * here would be a boundary nothing else respects.
+ */
+export function getStaticPaths() {
+  return [
+    {
+      params: {
+        organization: 'liga-mendocina',
+        tournament: 'apertura-2026',
+        stage: '1',
+        match: '1',
+      },
+    },
+  ];
+}
+
+const { organization, tournament, match } = Astro.params;
+const organizationAlias = organization ?? 'liga-mendocina';
+const tournamentAlias = tournament ?? 'apertura-2026';
+const matchNumber = Number(match ?? '1');
+const streamPath = tvStreamPath({ organizationAlias, tournamentAlias });
+const dashboard = sampleDashboard();
+---
+
+<TvLayout title={`TV — ${tournamentAlias} — partido ${matchNumber}`}>
+  <TvDashboard
+    client:load
+    initial={dashboard}
+    streamPath={streamPath}
+    pinnedMatchNumber={matchNumber}
+  />
+</TvLayout>

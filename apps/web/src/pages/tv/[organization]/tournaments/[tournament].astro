@@ -1,0 +1,26 @@
+---
+import TvLayout from '../../../../layouts/TvLayout.astro';
+import { TvDashboard } from '../../../../components/TvDashboard.tsx';
+import { tvStreamPath } from '@copalibre/routing';
+import { sampleDashboard } from '../../../../lib/live-sample.ts';
+
+/**
+ * The `/tv/**` full-rotation kiosk route (0031, task 2.1).
+ *
+ * No `PublicLayout`: this surface has no header, nav, footer or skip link —
+ * a screen nobody can click has nothing for any of them to do.
+ */
+export function getStaticPaths() {
+  return [{ params: { organization: 'liga-mendocina', tournament: 'apertura-2026' } }];
+}
+
+const { organization, tournament } = Astro.params;
+const organizationAlias = organization ?? 'liga-mendocina';
+const tournamentAlias = tournament ?? 'apertura-2026';
+const streamPath = tvStreamPath({ organizationAlias, tournamentAlias });
+const dashboard = sampleDashboard();
+---
+
+<TvLayout title={`TV — ${tournamentAlias}`}>
+  <TvDashboard client:load initial={dashboard} streamPath={streamPath} />
+</TvLayout>

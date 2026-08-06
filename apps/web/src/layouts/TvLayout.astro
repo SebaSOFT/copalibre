@@ -1,0 +1,119 @@
+---
+import '@copalibre/design-tokens/generated/copalibre.css';
+
+interface Props {
+  readonly title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{title}</title>
+    <style>
+      /**
+       * No header, no nav, no footer, no skip link: this surface has no
+       * pointer and no keyboard (0031). Full-bleed body, safe-area padding
+       * sized for a screen watched from 5-10m rather than an arm's length.
+       */
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background: var(--cl-surface-base);
+        color: var(--cl-text-primary);
+        overflow: hidden;
+      }
+      #tv-root {
+        box-sizing: border-box;
+        width: 100vw;
+        height: 100vh;
+        /* Title-safe margin: ~5% of the shorter viewport dimension. */
+        padding: 5vmin;
+      }
+      .tv-overlay #tv-root {
+        background: transparent;
+      }
+    </style>
+    <style is:global>
+      /**
+       * Sized for a screen read from 5-10m rather than arm's length (0031
+       * 2.3) — a fixed rem scale would be right for one panel size and wrong
+       * for the next, so every measure here is vmin-relative instead.
+       */
+      .tv-dashboard {
+        --tv-accent: var(--cl-focus-ring);
+        display: flex;
+        flex-direction: column;
+        gap: 3vmin;
+        height: 100%;
+        font-family: var(--cl-font-body);
+      }
+      .tv-dashboard__logo {
+        max-height: 6vmin;
+        max-width: 20vmin;
+        object-fit: contain;
+        align-self: flex-end;
+      }
+      .tv-dashboard__matches {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(40vmin, 1fr));
+        gap: 3vmin;
+        flex: 1;
+      }
+      .tv-match {
+        background: var(--cl-surface-panel);
+        color: var(--cl-text-primary);
+        border-inline-start: 1vmin solid var(--cl-border-muted);
+        padding: 3vmin;
+        display: flex;
+        flex-direction: column;
+        gap: 2vmin;
+      }
+      .tv-match__badge {
+        display: flex;
+        align-items: center;
+        gap: 1vmin;
+        font-family: var(--cl-font-display);
+        font-weight: var(--cl-weight-semibold);
+        text-transform: uppercase;
+        font-size: clamp(1.25rem, 3vmin, 2.5rem);
+        letter-spacing: 0.05em;
+      }
+      .tv-match__sides {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5vmin;
+      }
+      .tv-match__side {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 3vmin;
+      }
+      .tv-match__name {
+        font-family: var(--cl-font-display);
+        font-weight: var(--cl-weight-medium);
+        font-size: clamp(1.5rem, 5vmin, 5rem);
+      }
+      .tv-match__score {
+        font-family: var(--cl-font-display);
+        font-weight: var(--cl-weight-bold);
+        font-size: clamp(2rem, 9vmin, 9rem);
+        font-variant-numeric: tabular-nums;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="tv-root">
+      <slot />
+    </div>
+  </body>
+</html>
