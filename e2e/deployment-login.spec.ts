@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-const issuer = 'http://postgres:5432';
+const issuer = 'http://jwks-stub';
 
 test('fresh Compose installation exposes generic OIDC PKCE login', async ({ page }) => {
   await page.route(`${issuer}/.well-known/openid-configuration`, async (route) => {
