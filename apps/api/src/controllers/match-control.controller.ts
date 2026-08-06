@@ -684,6 +684,7 @@ export class MatchControlController {
         matchId,
         result: plan.replacement,
         reason: plan.reason,
+        ...(plan.sourceReportId === undefined ? {} : { sourceReportId: plan.sourceReportId }),
         ...(plan.blockedPropagation ? { blockedPropagation: plan.blockedPropagation } : {}),
         organizationId,
         actor: request.subject?.subjectId ?? 'unknown',
@@ -770,6 +771,7 @@ export class MatchControlController {
         matchId,
         reason: body.reason,
         actor: request.subject?.subjectId ?? 'unknown',
+        ...(body.sourceReportId === undefined ? {} : { sourceReportId: body.sourceReportId }),
         replacement: {
           sides: body.sides.map((side) => ({
             entrantId: side.entrantId,

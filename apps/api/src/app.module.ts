@@ -18,6 +18,10 @@ import { StandingsController } from './controllers/standings.controller.js';
 import { SeedingController } from './controllers/seeding.controller.js';
 import { DisplayTokenController } from './controllers/broadcast.controller.js';
 import {
+  ParticipantReportsController,
+  ReportReviewController,
+} from './controllers/reports.controller.js';
+import {
   InvitationAcceptanceController,
   OrganizationAccessController,
 } from './controllers/organization-access.controller.js';
@@ -29,7 +33,15 @@ import { authConfigFromEnv } from './auth/auth-config.js';
 import { TokenVerifier } from './auth/token-verifier.js';
 import { JwtAuthGuard } from './auth/jwt-auth.guard.js';
 import { OrganizationAccessGuard } from './auth/organization-access.guard.js';
-import { createDatabase, databaseConfigFromEnv, type Database } from '@copalibre/persistence';
+import {
+  createDatabase,
+  createObjectStorageAdapter,
+  databaseConfigFromEnv,
+  objectStorageConfigFromEnv,
+  type Database,
+  type ObjectStorageAdapter,
+} from '@copalibre/persistence';
+import { OBJECT_STORAGE } from './object-storage.token.js';
 
 /**
  * The database and TokenVerifier are provided behind tokens so tests can
@@ -43,6 +55,13 @@ const providers: Provider[] = [
   {
     provide: TokenVerifier,
     useFactory: (): TokenVerifier => new TokenVerifier(authConfigFromEnv()),
+  },
+  {
+    provide: OBJECT_STORAGE,
+    useFactory: (): ObjectStorageAdapter | undefined => {
+      const config = objectStorageConfigFromEnv(process.env);
+      return config ? createObjectStorageAdapter(config) : undefined;
+    },
   },
   { provide: APP_GUARD, useClass: JwtAuthGuard },
   { provide: APP_GUARD, useClass: OrganizationAccessGuard },
@@ -66,6 +85,8 @@ const providers: Provider[] = [
     InvitationAcceptanceController,
     ParticipantsController,
     ParticipantIdentityLinksController,
+    ParticipantReportsController,
+    ReportReviewController,
     InstallationBootstrapController,
   ],
   providers,

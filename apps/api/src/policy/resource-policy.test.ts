@@ -1,8 +1,10 @@
 import { ForbiddenException } from '@nestjs/common';
+import { jest } from '@jest/globals';
 import type { AuthenticatedSubject } from '../auth/request-context.js';
 import {
   enforceMatchCommand,
   enforcePolicy,
+  enforceReportSubmission,
   evaluateAdminControl,
   evaluateAuthenticatedInteraction,
   evaluateIntegration,
@@ -240,6 +242,86 @@ describe('hasScope helper', () => {
     const s = subject({ scopes: ['a', 'b'] });
     expect(hasScope(s, 'a')).toBe(true);
     expect(hasScope(s, 'c')).toBe(false);
+  });
+});
+
+describe('enforceReportSubmission', () => {
+  const participant = subject();
+
+  it('allows a participant who is a party to the match, and returns their person id', async () => {
+    const isPartyToMatch = jest
+      .fn<(organizationId: string, personId: string, matchId: string) => Promise<boolean>>()
+      .mockResolvedValue(true);
+    await expect(
+      enforceReportSubmission({
+        subject: participant,
+        organizationId: 'org-1',
+        matchId: 'm-1',
+        isPartyToMatch,
+      }),
+    ).resolves.toBe('participant-1');
+    expect(isPartyToMatch).toHaveBeenCalledWith('org-1', 'participant-1', 'm-1');
+  });
+
+  it('refuses a match the participant is not a party to (4.2)', async () => {
+    const isPartyToMatch = jest
+      .fn<(organizationId: string, personId: string, matchId: string) => Promise<boolean>>()
+      .mockResolvedValue(false);
+    await expect(
+      enforceReportSubmission({
+        subject: participant,
+        organizationId: 'org-1',
+        matchId: 'm-1',
+        isPartyToMatch,
+      }),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('refuses across organizations before ever checking match membership', async () => {
+    const isPartyToMatch = jest
+      .fn<(organizationId: string, personId: string, matchId: string) => Promise<boolean>>()
+      .mockResolvedValue(true);
+    await expect(
+      enforceReportSubmission({
+        subject: subject({ organizationId: 'org-9' }),
+        organizationId: 'org-1',
+        matchId: 'm-1',
+        isPartyToMatch,
+      }),
+    ).rejects.toThrow(ForbiddenException);
+    expect(isPartyToMatch).not.toHaveBeenCalled();
+  });
+
+  it('refuses a non-participant (operator) subject with no participant person id', async () => {
+    const isPartyToMatch = jest
+      .fn<(organizationId: string, personId: string, matchId: string) => Promise<boolean>>()
+      .mockResolvedValue(true);
+    await expect(
+      enforceReportSubmission({
+        subject: {
+          subjectId: 'organizer-1',
+          organizationId: 'org-1',
+          scopes: ['copalibre.control'],
+        },
+        organizationId: 'org-1',
+        matchId: 'm-1',
+        isPartyToMatch,
+      }),
+    ).rejects.toThrow(ForbiddenException);
+    expect(isPartyToMatch).not.toHaveBeenCalled();
+  });
+
+  it('refuses with no subject at all', async () => {
+    await expect(
+      enforceReportSubmission({
+        organizationId: 'org-1',
+        matchId: 'm-1',
+        isPartyToMatch:
+          jest.fn<
+            (organizationId: string, personId: string, matchId: string) => Promise<boolean>
+          >(),
+      }),
+    ).rejects.toThrow(ForbiddenException);
   });
 });
 

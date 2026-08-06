@@ -2,6 +2,7 @@ import { Module, type Provider } from '@nestjs/common';
 import {
   createDatabase,
   databaseConfigFromEnv,
+  EVIDENCE_VALIDATION_REQUESTED_EVENT,
   type Database,
   type Refold,
 } from '@copalibre/persistence';
@@ -19,6 +20,7 @@ import {
   emailDeliveryConfigFromEnv,
   invitationEmailHandler,
 } from './invitations/email-delivery.js';
+import { reportEvidenceValidationHandler } from './jobs/report-evidence-handler.js';
 import { RelayService } from './relay.service.js';
 
 /**
@@ -48,11 +50,13 @@ const providers: Provider[] = [
       const handler = statisticsHandler({ db, refold });
       const csvImport = csvImportValidationHandler({ db });
       const invitation = invitationEmailHandler(emailDeliveryConfigFromEnv());
+      const evidence = reportEvidenceValidationHandler({ db });
       return new JobDispatcher()
         .register('match.finalized', handler)
         .register('result.superseded', handler)
         .register(CSV_IMPORT_VALIDATION_EVENT, csvImport)
-        .register('organization.invite.requested', invitation);
+        .register('organization.invite.requested', invitation)
+        .register(EVIDENCE_VALIDATION_REQUESTED_EVENT, evidence);
     },
   },
   RelayService,

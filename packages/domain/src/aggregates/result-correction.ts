@@ -22,6 +22,13 @@ export interface CorrectionRequest {
   /** Why, in the operator's words. Never derived, never defaulted. */
   readonly reason: string;
   readonly actor: string;
+  /**
+   * A participant report/dispute this correction cites (0032) — retained as
+   * supporting evidence in the audit trail. Citing one grants no authority of
+   * its own; the operator still supplies their own `replacement` and `reason`
+   * exactly as any other correction would.
+   */
+  readonly sourceReportId?: string;
 }
 
 export class CorrectionError extends DomainError {
@@ -49,6 +56,7 @@ export interface CorrectionPlan {
   readonly reason: string;
   readonly prior: MatchResult;
   readonly replacement: MatchResult;
+  readonly sourceReportId?: string;
   /** Entrants whose recorded numbers move. */
   readonly changedEntrantIds: readonly string[];
   /**
@@ -143,6 +151,7 @@ export function planCorrection(
     prior,
     replacement: request.replacement,
     changedEntrantIds,
+    ...(request.sourceReportId === undefined ? {} : { sourceReportId: request.sourceReportId }),
     ...(blocked ? { blockedPropagation: blocked } : {}),
   });
 }

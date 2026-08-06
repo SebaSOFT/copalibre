@@ -2670,6 +2670,242 @@
         ]
       }
     },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/reports": {
+      "post": {
+        "description": "A candidate input to the operator-authorized correction workflow — never a direct change to the recorded result.",
+        "operationId": "ParticipantReportsController_submitReport",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "matchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitReportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParticipantReportResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Submit a proposed result for a match the participant is entered in",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/disputes": {
+      "post": {
+        "description": "The recorded result is unchanged by this call; it becomes actionable only through an operator-authorized correction citing this dispute.",
+        "operationId": "ParticipantReportsController_submitDispute",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "matchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitDisputeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParticipantReportResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Dispute a recorded result for a match the participant is entered in",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/reports": {
+      "get": {
+        "operationId": "ReportReviewController_listPending",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ParticipantReportResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List pending participant reports and disputes",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/reports/{reportId}/review": {
+      "post": {
+        "description": "Never applies a correction by itself — the recorded result is unaffected either way.",
+        "operationId": "ReportReviewController_review",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "reportId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewReportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParticipantReportResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark a report or dispute reviewed or dismissed",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
     "/installation/bootstrap/admin": {
       "post": {
         "description": "Available only before the installation contains an organization. Requires the out-of-band bootstrap secret and returns a one-time OIDC invitation setup link.",
@@ -3651,6 +3887,11 @@
           "winnerEntrantId": {
             "type": "string",
             "format": "uuid"
+          },
+          "sourceReportId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "A participant report or dispute this correction cites (0032) — retained as supporting evidence in the audit trail. Citing one grants no authority of its own."
           }
         },
         "required": [
@@ -4389,6 +4630,222 @@
         "required": [
           "principalId",
           "personId"
+        ]
+      },
+      "ProposedResultSideDto": {
+        "type": "object",
+        "properties": {
+          "entrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "statistics": {
+            "type": "object",
+            "description": "Statistic values by code, as the participant saw them"
+          },
+          "placement": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "entrantId",
+          "statistics"
+        ]
+      },
+      "ProposedResultDto": {
+        "type": "object",
+        "properties": {
+          "sides": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProposedResultSideDto"
+            }
+          },
+          "winnerEntrantId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "sides"
+        ]
+      },
+      "EvidenceUploadDto": {
+        "type": "object",
+        "properties": {
+          "filename": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "contentBase64": {
+            "type": "string",
+            "description": "Base64-encoded file content"
+          }
+        },
+        "required": [
+          "filename",
+          "contentType",
+          "contentBase64"
+        ]
+      },
+      "SubmitReportRequest": {
+        "type": "object",
+        "properties": {
+          "proposedResult": {
+            "description": "What the participant believes the result was",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProposedResultDto"
+              }
+            ]
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EvidenceUploadDto"
+            }
+          }
+        },
+        "required": [
+          "proposedResult"
+        ]
+      },
+      "EvidenceFileResponse": {
+        "type": "object",
+        "properties": {
+          "evidenceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "type": "number"
+          },
+          "uploadedBy": {
+            "type": "string"
+          },
+          "uploadedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "validationStatus": {
+            "type": "string",
+            "description": "pending, passed, or failed — set by the async validation job"
+          }
+        },
+        "required": [
+          "evidenceId",
+          "filename",
+          "contentType",
+          "sizeBytes",
+          "uploadedBy",
+          "uploadedAt",
+          "validationStatus"
+        ]
+      },
+      "ParticipantReportResponse": {
+        "type": "object",
+        "properties": {
+          "reportId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "matchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "description": "report or dispute"
+          },
+          "submittedByPersonId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "proposedResult": {
+            "type": "object"
+          },
+          "status": {
+            "type": "string",
+            "description": "pending, reviewed, or dismissed"
+          },
+          "reviewedBy": {
+            "type": "string"
+          },
+          "reviewedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reviewNote": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EvidenceFileResponse"
+            }
+          }
+        },
+        "required": [
+          "reportId",
+          "matchId",
+          "kind",
+          "submittedByPersonId",
+          "submittedAt",
+          "status",
+          "createdAt",
+          "evidence"
+        ]
+      },
+      "SubmitDisputeRequest": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "description": "Why the recorded result is being disputed"
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EvidenceUploadDto"
+            }
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
+      "ReviewReportRequest": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "reviewed or dismissed — never applies a correction by itself"
+          },
+          "reviewNote": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
         ]
       },
       "BootstrapAdministratorRequest": {

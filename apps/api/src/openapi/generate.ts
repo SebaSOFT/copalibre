@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
 import { DATABASE } from '../database.token.js';
+import { OBJECT_STORAGE } from '../object-storage.token.js';
 import type { OpenAPIObject } from '@nestjs/swagger';
 import { OPENAPI_CONTROLLERS } from './generate-controllers.js';
 import { TokenVerifier } from '../auth/token-verifier.js';
@@ -28,6 +29,7 @@ const CONTROLLERS = OPENAPI_CONTROLLERS;
   providers: [
     { provide: DATABASE, useValue: {} },
     { provide: TokenVerifier, useValue: {} },
+    { provide: OBJECT_STORAGE, useValue: undefined },
   ],
 })
 class OpenApiModule {}

@@ -8,6 +8,14 @@
 export type { Database } from './schema.js';
 export { createDatabase, databaseConfigFromEnv, type DatabaseConfig } from './database.js';
 export { newId } from './ids.js';
+export {
+  createObjectStorageAdapter,
+  objectStorageConfigFromEnv,
+  type ObjectStorageAdapter,
+  type ObjectStorageConfig,
+  type StoredObject,
+  type StoredObjectReference,
+} from './object-storage.js';
 
 export {
   PersistenceError,
@@ -56,6 +64,15 @@ export {
   type IssueDisplayTokenInput,
   type RevokeDisplayTokenInput,
 } from './repositories/display-token-repository.js';
+export {
+  ParticipantReportRepository,
+  EVIDENCE_VALIDATION_REQUESTED_EVENT,
+  type ParticipantReport,
+  type EvidenceFile,
+  type SubmitReportInput as StoreReportSubmissionInput,
+  type AttachEvidenceInput,
+  type ReviewReportInput,
+} from './repositories/participant-report-repository.js';
 export {
   InstallationBootstrapRepository,
   type BootstrapAdministratorInput,

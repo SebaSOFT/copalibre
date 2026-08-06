@@ -95,6 +95,17 @@ export interface ControlApiClient {
     organizationAlias: string,
     tournamentAlias: string,
   ) => Promise<readonly DisplayTokenResponse[]>;
+  /** The pending participant reports/disputes queue (0032). */
+  readonly listPendingReports?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+  ) => Promise<readonly ParticipantReportResponse[]>;
+  readonly reviewReport?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    reportId: string,
+    request: ReviewReportRequest,
+  ) => Promise<ParticipantReportResponse>;
 }
 
 export interface DisplayTokenResponse {
@@ -105,6 +116,35 @@ export interface DisplayTokenResponse {
   readonly revoked: boolean;
   readonly lastSeenAt?: string;
   readonly createdAt: string;
+}
+
+export interface ParticipantReportResponse {
+  readonly reportId: string;
+  readonly matchId: string;
+  readonly kind: string;
+  readonly submittedByPersonId: string;
+  readonly submittedAt: string;
+  readonly reason?: string;
+  readonly proposedResult?: Record<string, unknown>;
+  readonly status: string;
+  readonly reviewedBy?: string;
+  readonly reviewedAt?: string;
+  readonly reviewNote?: string;
+  readonly createdAt: string;
+  readonly evidence: readonly {
+    readonly evidenceId: string;
+    readonly filename: string;
+    readonly contentType: string;
+    readonly sizeBytes: number;
+    readonly uploadedBy: string;
+    readonly uploadedAt: string;
+    readonly validationStatus: string;
+  }[];
+}
+
+export interface ReviewReportRequest {
+  readonly status: 'reviewed' | 'dismissed';
+  readonly reviewNote?: string;
 }
 
 export interface MatchConsoleApiClient {
@@ -533,6 +573,20 @@ export function createControlApiClient(input: {
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/display-tokens`,
         { token: input.accessToken?.() },
+      ),
+
+    listPendingReports: (organizationAlias, tournamentAlias) =>
+      requestJson<readonly ParticipantReportResponse[]>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/reports`,
+        { token: input.accessToken?.() },
+      ),
+
+    reviewReport: (organizationAlias, tournamentAlias, reportId, body) =>
+      requestJson<ParticipantReportResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/reports/${encodeURIComponent(reportId)}/review`,
+        { method: 'POST', body, token: input.accessToken?.() },
       ),
 
     fetchMatchConsole: (organizationAlias, tournamentAlias, matchId) =>

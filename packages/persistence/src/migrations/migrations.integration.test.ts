@@ -85,6 +85,17 @@ describe('migrations (integration)', () => {
       expect.arrayContaining([expect.objectContaining({ name: 'alias' })]),
     );
     expect(afterUp).toContain('display_tokens');
+    expect(afterUp).toContain('participant_reports');
+    expect(afterUp).toContain('report_evidence');
+
+    const participantReportsDown = await migrateDownOneStep(scratch.db);
+    expect(participantReportsDown.error).toBeUndefined();
+
+    const afterParticipantReportsDown = (await scratch.db.introspection.getTables()).map(
+      (table) => table.name,
+    );
+    expect(afterParticipantReportsDown).not.toContain('participant_reports');
+    expect(afterParticipantReportsDown).not.toContain('report_evidence');
 
     const displayTokensDown = await migrateDownOneStep(scratch.db);
     expect(displayTokensDown.error).toBeUndefined();

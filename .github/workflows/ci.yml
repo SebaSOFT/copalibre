@@ -171,6 +171,15 @@ jobs:
       # device-heartbeat status classification, named separately so a reviewer
       # scanning the job log finds the TV surface's own signal directly.
       - run: yarn workspace @copalibre/web test --testPathPatterns 'tv-branding|device-heartbeat'
+      # participant-reporting (0032): the report/dispute fact validator (never
+      # a field capable of directly setting authoritative state), the
+      # resource-ownership party-to-match check, the evidence-validation
+      # worker job's decision logic, and the pending-queue view model — named
+      # separately so a reviewer finds this capability's own signal directly.
+      - run: yarn workspace @copalibre/domain test --testPathPatterns 'participant-report'
+      - run: yarn workspace @copalibre/api test --testPathPatterns 'resource-policy'
+      - run: yarn workspace @copalibre/worker test --testPathPatterns 'report-evidence'
+      - run: yarn workspace @copalibre/web test --testPathPatterns 'control/lib/reports'
       # The soak-report growth judgment (0031, 9.3) — the arithmetic that
       # decides whether the nightly and per-PR soak runs pass, tested without
       # a browser.
@@ -461,6 +470,13 @@ jobs:
       # above (which already include these files; this just re-surfaces them).
       - run: yarn workspace @copalibre/persistence run test:integration --testPathPatterns 'display-token'
       - run: yarn workspace @copalibre/events run test:integration --testPathPatterns 'display-token'
+      # participant-reporting (0032): submission/authorization through the
+      # real HTTP stack (the first suite in this repo to exercise a
+      # participant token through OrganizationAccessGuard end to end) and the
+      # correction endpoint's sourceReportId reference, named separately so a
+      # reviewer finds this capability's own signal directly.
+      - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'reports'
+      - run: yarn workspace @copalibre/persistence run test:integration --testPathPatterns 'match-operations'
       # Runs the CLI's process-level misconfiguration contract. The API
       # bootstrap lifecycle itself is covered by the API integration suite.
       - run: yarn workspace @copalibre/copalibre build

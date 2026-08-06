@@ -142,6 +142,54 @@ export function enforcePolicy(request: PolicyRequest): void {
 }
 
 /**
+ * Submitting a report or dispute for a match (0032).
+ *
+ * Ownership here is not "the resource already belongs to this subject" the
+ * way a registration does — it is "the subject is a party to the match this
+ * submission names." `evaluateAuthenticatedInteraction` alone cannot express
+ * that (it compares a resource's existing owner to the subject; a report
+ * being submitted has no owner yet), so this composes the same org-scope
+ * check with an explicit party-to-match gate rather than inventing a second,
+ * unrelated authorization concept. "A roster is match-scoped and does not
+ * grant participant ownership by itself" — the party check is a real query
+ * (`EnrollmentRepository.isParticipantPartyToMatch`), not a roster lookup.
+ */
+export interface ReportSubmissionRequest {
+  readonly subject?: AuthenticatedSubject;
+  readonly organizationId: string;
+  readonly matchId: string;
+  readonly isPartyToMatch: (
+    organizationId: string,
+    personId: string,
+    matchId: string,
+  ) => Promise<boolean>;
+}
+
+export async function enforceReportSubmission(request: ReportSubmissionRequest): Promise<string> {
+  if (!request.subject) {
+    throw new ForbiddenException('report/dispute submission requires a verified subject');
+  }
+  const personId = request.subject.participantPersonId;
+  enforcePolicy({
+    plane: 'authenticated-interaction',
+    subject: request.subject,
+    resource: { organizationId: request.organizationId, ownerParticipantId: personId },
+  });
+  // enforcePolicy already denied an undefined personId (an operator token has
+  // none, so `ownerParticipantId` above was undefined too) — narrowed here
+  // only so the caller gets a real string to query and record as submitter.
+  if (personId === undefined) {
+    throw new ForbiddenException('report/dispute submission requires a participant subject');
+  }
+
+  const isParty = await request.isPartyToMatch(request.organizationId, personId, request.matchId);
+  if (!isParty) {
+    throw new ForbiddenException('subject is not a party to this match');
+  }
+  return personId;
+}
+
+/**
  * Operating a match is a second question, asked after the first (0014).
  *
  * Organization scope says the subject belongs here; it never says they are the

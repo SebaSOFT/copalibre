@@ -209,6 +209,49 @@ describe('match operations (integration)', () => {
     });
   });
 
+  it('retains a cited report/dispute id as supporting evidence in the audit trail (0032)', async () => {
+    const { match } = await playableMatch('cites-report');
+    const competition = new CompetitionRepository(scratch.db);
+    await withTransaction(scratch.db, (uow) =>
+      competition.recordResult(uow, { matchId: match.matchId, result, organizationId, ...AUDIT }),
+    );
+
+    const sourceReportId = newId();
+    const plan = planCorrection(
+      {
+        matchId: match.matchId,
+        replacement: { ...result, winnerEntrantId: result.sides[1]?.entrantId },
+        reason: 'Participant dispute upheld after review',
+        actor: AUDIT.actor,
+        sourceReportId,
+      },
+      result,
+    );
+    expect(plan.ok).toBe(true);
+    if (!plan.ok) return;
+    expect(plan.value.sourceReportId).toBe(sourceReportId);
+
+    await withTransaction(scratch.db, (uow) =>
+      competition.supersedeResult(uow, {
+        matchId: match.matchId,
+        result: plan.value.replacement,
+        reason: plan.value.reason,
+        sourceReportId: plan.value.sourceReportId,
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+
+    // Retained as supporting evidence, never read back as authority — the
+    // stored result and the operator's own reason are what the correction
+    // actually rests on, asserted unchanged just above.
+    const history = await new AuditReader(scratch.db).historyFor('match', match.matchId);
+    const supersession = history.find(
+      (entry) => entry.action === 'match.result-superseded' && entry.reason?.includes('dispute'),
+    );
+    expect(supersession?.resultingState).toMatchObject({ sourceReportId });
+  });
+
   it('records the corrected fact while withholding a rebuild of a started stage', async () => {
     const { match } = await playableMatch('blocked');
     const competition = new CompetitionRepository(scratch.db);

@@ -562,6 +562,8 @@ export class CompetitionRepository {
       readonly matchId: string;
       readonly result: MatchResult;
       readonly reason: string;
+      /** A participant report/dispute this correction cites (0032). */
+      readonly sourceReportId?: string;
       readonly blockedPropagation?: { readonly stageId: string; readonly reason: string };
     } & AuditContext,
   ): Promise<Match> {
@@ -588,7 +590,13 @@ export class CompetitionRepository {
       actor: input.actor,
       authorizationContext: input.authorizationContext,
       previousState: { ...existing.result },
-      resultingState: { ...input.result },
+      // Retained as supporting evidence in the audit trail (0032) — never
+      // read back as authority for anything; the operator's own reason and
+      // replacement above are what the correction actually rests on.
+      resultingState:
+        input.sourceReportId === undefined
+          ? { ...input.result }
+          : { ...input.result, sourceReportId: input.sourceReportId },
       reason: input.reason,
     });
 

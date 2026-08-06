@@ -6,6 +6,7 @@ import { Test } from '@nestjs/testing';
 import type { OpenAPIObject } from '@nestjs/swagger';
 import { TokenVerifier } from '../auth/token-verifier.js';
 import { DATABASE } from '../database.token.js';
+import { OBJECT_STORAGE } from '../object-storage.token.js';
 import { OPENAPI_CONTROLLERS } from './generate-controllers.js';
 import { buildOpenApiDocument } from './document.js';
 import { collectRoutePlanes } from './collect-planes.js';
@@ -32,6 +33,7 @@ describe('OpenAPI artifact', () => {
       providers: [
         { provide: DATABASE, useValue: {} },
         { provide: TokenVerifier, useValue: {} },
+        { provide: OBJECT_STORAGE, useValue: undefined },
       ],
     })
     class OpenApiTestModule {}
