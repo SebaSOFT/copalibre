@@ -15,6 +15,7 @@ import { rosterTerminology } from './0004-roster-terminology.js';
 import { csvImportExport } from './0005-csv-import-export.js';
 import { defaultModuleCatalogue } from './0006-default-module-catalogue.js';
 import { broadcastDisplayTokens } from './0007-broadcast-display-tokens.js';
+import { participantReports } from './0008-participant-reports.js';
 
 /**
  * Migrations are explicit, ordered, and code-defined (no filesystem scanning),
@@ -30,6 +31,7 @@ export const MIGRATIONS: Readonly<Record<string, Migration>> = {
   '0005-csv-import-export': csvImportExport,
   '0006-default-module-catalogue': defaultModuleCatalogue,
   '0007-broadcast-display-tokens': broadcastDisplayTokens,
+  '0008-participant-reports': participantReports,
 };
 
 /** The version `apps/api`'s readiness check expects to find applied. */

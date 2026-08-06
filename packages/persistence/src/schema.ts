@@ -78,6 +78,43 @@ export interface DisplayTokensTable {
   created_by: string;
 }
 
+/** A participant self-service report or dispute (0032) — a fact, never a mutation path. */
+export interface ParticipantReportsTable {
+  report_id: string;
+  organization_id: string;
+  match_id: string;
+  /** `report` or `dispute`. */
+  kind: string;
+  submitted_by_person_id: string;
+  submitted_at: Timestamp;
+  /** Set for a dispute; absent for a plain report. */
+  reason: string | null;
+  /** Set for a report; absent for a plain dispute. Never read as authority. */
+  proposed_result: JSONColumnType<Record<string, unknown>> | null;
+  /** `pending`, `reviewed`, or `dismissed`. */
+  status: string;
+  reviewed_by: string | null;
+  reviewed_at: Timestamp | null;
+  review_note: string | null;
+  created_at: Timestamp;
+}
+
+/** Evidence attached to a report/dispute — a reference into object storage, never bytes in this table. */
+export interface ReportEvidenceTable {
+  evidence_id: string;
+  report_id: string;
+  organization_id: string;
+  filename: string;
+  content_type: string;
+  size_bytes: number;
+  storage_bucket: string;
+  storage_key: string;
+  uploaded_by: string;
+  uploaded_at: Timestamp;
+  /** `pending`, `passed`, or `failed` — set by the async validation worker job. */
+  validation_status: string;
+}
+
 export interface ClubsTable {
   club_id: string;
   organization_id: string;
@@ -611,6 +648,8 @@ export interface Database {
   organization_role_assignments: OrganizationRoleAssignmentsTable;
   organization_invites: OrganizationInvitesTable;
   display_tokens: DisplayTokensTable;
+  participant_reports: ParticipantReportsTable;
+  report_evidence: ReportEvidenceTable;
   clubs: ClubsTable;
   discipline_descriptors: DisciplineDescriptorsTable;
   tournament_rulesets: TournamentRulesetsTable;

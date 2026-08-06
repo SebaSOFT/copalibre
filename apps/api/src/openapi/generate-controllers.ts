@@ -21,6 +21,10 @@ import {
   ParticipantIdentityLinksController,
   ParticipantsController,
 } from '../controllers/participants.controller.js';
+import {
+  ParticipantReportsController,
+  ReportReviewController,
+} from '../controllers/reports.controller.js';
 
 /**
  * The controllers the OpenAPI artifact is generated from.
@@ -47,5 +51,7 @@ export const OPENAPI_CONTROLLERS = [
   InvitationAcceptanceController,
   ParticipantsController,
   ParticipantIdentityLinksController,
+  ParticipantReportsController,
+  ReportReviewController,
   InstallationBootstrapController,
 ] as const;

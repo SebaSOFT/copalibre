@@ -784,6 +784,83 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit a proposed result for a match the participant is entered in
+         * @description A candidate input to the operator-authorized correction workflow — never a direct change to the recorded result.
+         */
+        post: operations["ParticipantReportsController_submitReport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/disputes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Dispute a recorded result for a match the participant is entered in
+         * @description The recorded result is unchanged by this call; it becomes actionable only through an operator-authorized correction citing this dispute.
+         */
+        post: operations["ParticipantReportsController_submitDispute"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List pending participant reports and disputes */
+        get: operations["ReportReviewController_listPending"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/reports/{reportId}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark a report or dispute reviewed or dismissed
+         * @description Never applies a correction by itself — the recorded result is unaffected either way.
+         */
+        post: operations["ReportReviewController_review"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/installation/bootstrap/admin": {
         parameters: {
             query?: never;
@@ -1171,6 +1248,11 @@ export interface components {
             sides: Record<string, never>[];
             /** Format: uuid */
             winnerEntrantId?: string;
+            /**
+             * Format: uuid
+             * @description A participant report or dispute this correction cites (0032) — retained as supporting evidence in the audit trail. Citing one grants no authority of its own.
+             */
+            sourceReportId?: string;
         };
         BlockedPropagationDto: {
             /** Format: uuid */
@@ -1434,6 +1516,74 @@ export interface components {
             principalId: string;
             /** Format: uuid */
             personId: string;
+        };
+        ProposedResultSideDto: {
+            /** Format: uuid */
+            entrantId: string;
+            /** @description Statistic values by code, as the participant saw them */
+            statistics: Record<string, never>;
+            placement?: number;
+        };
+        ProposedResultDto: {
+            sides: components["schemas"]["ProposedResultSideDto"][];
+            /** Format: uuid */
+            winnerEntrantId?: string;
+        };
+        EvidenceUploadDto: {
+            filename: string;
+            contentType: string;
+            /** @description Base64-encoded file content */
+            contentBase64: string;
+        };
+        SubmitReportRequest: {
+            /** @description What the participant believes the result was */
+            proposedResult: components["schemas"]["ProposedResultDto"];
+            evidence?: components["schemas"]["EvidenceUploadDto"][];
+        };
+        EvidenceFileResponse: {
+            /** Format: uuid */
+            evidenceId: string;
+            filename: string;
+            contentType: string;
+            sizeBytes: number;
+            uploadedBy: string;
+            /** Format: date-time */
+            uploadedAt: string;
+            /** @description pending, passed, or failed — set by the async validation job */
+            validationStatus: string;
+        };
+        ParticipantReportResponse: {
+            /** Format: uuid */
+            reportId: string;
+            /** Format: uuid */
+            matchId: string;
+            /** @description report or dispute */
+            kind: string;
+            /** Format: uuid */
+            submittedByPersonId: string;
+            /** Format: date-time */
+            submittedAt: string;
+            reason?: string;
+            proposedResult?: Record<string, never>;
+            /** @description pending, reviewed, or dismissed */
+            status: string;
+            reviewedBy?: string;
+            /** Format: date-time */
+            reviewedAt?: string;
+            reviewNote?: string;
+            /** Format: date-time */
+            createdAt: string;
+            evidence: components["schemas"]["EvidenceFileResponse"][];
+        };
+        SubmitDisputeRequest: {
+            /** @description Why the recorded result is being disputed */
+            reason: string;
+            evidence?: components["schemas"]["EvidenceUploadDto"][];
+        };
+        ReviewReportRequest: {
+            /** @description reviewed or dismissed — never applies a correction by itself */
+            status: string;
+            reviewNote?: string;
         };
         BootstrapAdministratorRequest: {
             /** @example liga-orbital */
@@ -2877,6 +3027,109 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ParticipantIdentityLinkResponse"];
+                };
+            };
+        };
+    };
+    ParticipantReportsController_submitReport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                matchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitReportRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ParticipantReportResponse"];
+                };
+            };
+        };
+    };
+    ParticipantReportsController_submitDispute: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                matchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitDisputeRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ParticipantReportResponse"];
+                };
+            };
+        };
+    };
+    ReportReviewController_listPending: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ParticipantReportResponse"][];
+                };
+            };
+        };
+    };
+    ReportReviewController_review: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                reportId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewReportRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ParticipantReportResponse"];
                 };
             };
         };

@@ -233,6 +233,14 @@ export class CorrectionRequestDto {
 
   @ApiPropertyOptional({ format: 'uuid' })
   winnerEntrantId?: string;
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description:
+      'A participant report or dispute this correction cites (0032) — retained as supporting ' +
+      'evidence in the audit trail. Citing one grants no authority of its own.',
+  })
+  sourceReportId?: string;
 }
 
 export class BlockedPropagationDto {
