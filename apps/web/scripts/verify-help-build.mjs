@@ -58,7 +58,10 @@ check(
     !apiReference.includes('cdn.jsdelivr.net') &&
     !apiReference.includes('unpkg.com'),
 );
-check('Vendored Scalar bundle exists in the build output', existsSync(join(DIST, 'vendor/scalar/standalone.js')));
+check(
+  'Vendored Scalar bundle exists in the build output',
+  existsSync(join(DIST, 'vendor/scalar/standalone.js')),
+);
 check(
   'API reference disables request execution',
   apiReference.includes('hideTestRequestButton: true'),

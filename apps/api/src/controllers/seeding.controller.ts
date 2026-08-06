@@ -335,8 +335,13 @@ function resolvedFixtureInputs(graph: FixtureGraph): readonly {
   for (const match of graph.matches) {
     if (!isDuelMatch(match)) continue;
     if (match.slotA.kind !== 'entrant' || match.slotB.kind !== 'entrant') continue;
-    const [home, away] = match.homeSlot === 'B' ? [match.slotB, match.slotA] : [match.slotA, match.slotB];
-    fixtures.push({ round: match.round, homeEntrantId: home.entrantId, awayEntrantId: away.entrantId });
+    const [home, away] =
+      match.homeSlot === 'B' ? [match.slotB, match.slotA] : [match.slotA, match.slotB];
+    fixtures.push({
+      round: match.round,
+      homeEntrantId: home.entrantId,
+      awayEntrantId: away.entrantId,
+    });
   }
   return fixtures;
 }

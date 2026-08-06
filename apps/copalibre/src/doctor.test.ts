@@ -105,7 +105,9 @@ describe('copalibre doctor', () => {
 
   it('passes the JWKS content check when the URI serves a valid key set', async () => {
     const report = await validateJwksContent(environment, dependencies());
-    expect(report).toContainEqual(expect.objectContaining({ name: 'jwks-content', status: 'pass' }));
+    expect(report).toContainEqual(
+      expect.objectContaining({ name: 'jwks-content', status: 'pass' }),
+    );
   });
 
   it('fails the JWKS content check when the URI is reachable but not a JWKS document', async () => {
@@ -135,7 +137,9 @@ describe('copalibre doctor', () => {
         ) as unknown as typeof fetch,
       }),
     );
-    expect(report).toContainEqual(expect.objectContaining({ name: 'jwks-content', status: 'fail' }));
+    expect(report).toContainEqual(
+      expect.objectContaining({ name: 'jwks-content', status: 'fail' }),
+    );
   });
 
   it('fails the JWKS content check when the endpoint is unreachable', async () => {

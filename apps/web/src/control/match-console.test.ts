@@ -7,7 +7,11 @@ import {
   newIdempotencyKey,
   segmentLabel,
 } from './lib/match-console.js';
-import type { ConsoleEventDefinition, ConsoleSegment, MatchConsoleResponse } from './lib/api-client.js';
+import type {
+  ConsoleEventDefinition,
+  ConsoleSegment,
+  MatchConsoleResponse,
+} from './lib/api-client.js';
 
 function definition(overrides: Partial<ConsoleEventDefinition> = {}): ConsoleEventDefinition {
   return {

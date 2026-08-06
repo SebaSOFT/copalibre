@@ -297,9 +297,9 @@ describe('standings and seeding routes (integration)', () => {
     const seeding = await request({ method: 'GET', url: `${base}/seeding`, token: 'organizer' });
     const body = seeding.json();
     expect(body.matches).toHaveLength(6);
-    expect(
-      [...body.seeds].map((seed: { entrantId: string }) => seed.entrantId).sort(),
-    ).toEqual([...reversed].sort());
+    expect([...body.seeds].map((seed: { entrantId: string }) => seed.entrantId).sort()).toEqual(
+      [...reversed].sort(),
+    );
   });
 
   it('republishing the same seed order is idempotent', async () => {
@@ -312,7 +312,10 @@ describe('standings and seeding routes (integration)', () => {
     });
 
     expect(republished.statusCode).toBe(200);
-    expect(republished.json()).toMatchObject({ mutationClass: 'requires_rebuild', persisted: true });
+    expect(republished.json()).toMatchObject({
+      mutationClass: 'requires_rebuild',
+      persisted: true,
+    });
 
     const fixtures = await scratch.db
       .selectFrom('fixtures')
@@ -321,8 +324,8 @@ describe('standings and seeding routes (integration)', () => {
       .execute();
     expect(fixtures).toHaveLength(6);
     const pairs = new Set(
-      fixtures.map(
-        (fixture) => [fixture.home_entrant_id, fixture.away_entrant_id].sort().join(':'),
+      fixtures.map((fixture) =>
+        [fixture.home_entrant_id, fixture.away_entrant_id].sort().join(':'),
       ),
     );
     expect(pairs.size).toBe(6);
