@@ -147,7 +147,6 @@ export class EventsController {
   @UseGuards(DisplayTokenAuthGuard)
   async tvStream(
     @Param('organization') organizationAlias: string,
-    @Param('tournament') tournamentId: string,
     @Headers('last-event-id') lastEventId: string | undefined,
     @Req() request: ClosableRequest & DisplayTokenRequest,
     @Res() reply: RawReply,
@@ -156,6 +155,14 @@ export class EventsController {
     if (request.displayTokenId !== undefined) {
       // Fire-and-forget: the device-health heartbeat never gates the stream.
       void new DisplayTokenRepository(this.db).touchLastSeen(request.displayTokenId);
+    }
+    // The guard already resolved the URL's tournament alias to its real id
+    // (it had to, to compare against the token's stored scope) — reused here
+    // rather than re-querying, and required rather than the alias itself:
+    // the subscription query below filters on the real id.
+    const tournamentId = request.tournamentId;
+    if (tournamentId === undefined) {
+      throw new Error('DisplayTokenAuthGuard did not resolve a tournament id');
     }
     await this.stream(request, reply, `${organizationId}:${tournamentId}`, {
       organizationId,

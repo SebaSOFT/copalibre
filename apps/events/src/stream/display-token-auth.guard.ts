@@ -19,6 +19,8 @@ import { DATABASE } from '../database.token.js';
 /** What a display-token-authorized request carries for the controller to use. */
 export interface DisplayTokenRequest {
   displayTokenId?: string;
+  /** The tournament's real id, resolved from the URL's alias by this guard. */
+  tournamentId?: string;
   readonly headers: Record<string, unknown>;
   readonly params: Record<string, string | undefined>;
   readonly query?: Record<string, unknown>;
@@ -70,6 +72,9 @@ export class DisplayTokenAuthGuard implements CanActivate {
     }
 
     request.displayTokenId = scope.displayTokenId;
+    // The subscription query below filters by real id; resolving it here,
+    // once, means the controller never re-derives it from the alias itself.
+    request.tournamentId = tournament.tournamentId;
     return true;
   }
 }
