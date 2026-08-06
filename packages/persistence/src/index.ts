@@ -50,6 +50,13 @@ export {
 } from './repositories/organization-access-repository.js';
 export { IdentityPrincipalRepository } from './repositories/identity-principal-repository.js';
 export {
+  DisplayTokenRepository,
+  type DisplayToken,
+  type DisplayTokenScope,
+  type IssueDisplayTokenInput,
+  type RevokeDisplayTokenInput,
+} from './repositories/display-token-repository.js';
+export {
   InstallationBootstrapRepository,
   type BootstrapAdministratorInput,
   type BootstrapAdministratorResult,

@@ -2130,6 +2130,157 @@
         ]
       }
     },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/display-tokens": {
+      "get": {
+        "operationId": "DisplayTokenController_list",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DisplayTokenResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List display tokens issued for this tournament’s /tv/** surfaces",
+        "tags": [
+          "broadcast"
+        ]
+      },
+      "post": {
+        "operationId": "DisplayTokenController_issue",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IssueDisplayTokenRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Shown once — provision the device with it, it is stored only as a hash",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DisplayTokenIssuedResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Issue a device-scoped display token for one /tv/** route",
+        "tags": [
+          "broadcast"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/display-tokens/{displayTokenId}": {
+      "delete": {
+        "operationId": "DisplayTokenController_revoke",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "displayTokenId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DisplayTokenResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Revoke one device’s display token",
+        "tags": [
+          "broadcast"
+        ]
+      }
+    },
     "/organizations/{organizationAlias}/roles": {
       "get": {
         "operationId": "OrganizationAccessController_list",
@@ -3957,6 +4108,83 @@
           "reason",
           "invalidates",
           "persisted"
+        ]
+      },
+      "DisplayTokenResponse": {
+        "type": "object",
+        "properties": {
+          "displayTokenId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tournamentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "matchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "label": {
+            "type": "string"
+          },
+          "revoked": {
+            "type": "boolean"
+          },
+          "lastSeenAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last authorized page/stream request"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "displayTokenId",
+          "tournamentId",
+          "revoked",
+          "createdAt"
+        ]
+      },
+      "IssueDisplayTokenRequest": {
+        "type": "object",
+        "properties": {
+          "matchId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Pins the device to one match, not the full tournament rotation"
+          },
+          "label": {
+            "type": "string",
+            "description": "Operator-facing device label, e.g. \"Cancha 1 - TV entrada\""
+          }
+        }
+      },
+      "DisplayTokenIssuedResponse": {
+        "type": "object",
+        "properties": {
+          "displayTokenId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "token": {
+            "type": "string",
+            "description": "Shown once. Provision the device with it; it is never stored raw."
+          },
+          "url": {
+            "type": "string",
+            "description": "The /tv/** launch URL to configure on the device"
+          },
+          "label": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "displayTokenId",
+          "token",
+          "url"
         ]
       },
       "OrganizationRoleResponse": {

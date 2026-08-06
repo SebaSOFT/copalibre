@@ -5,6 +5,7 @@ import type { Kysely } from 'kysely';
 import { DATABASE } from './database.token.js';
 import { EventsController, LongPollController } from './events.controller.js';
 import { HealthController } from './health.controller.js';
+import { DisplayTokenAuthGuard } from './stream/display-token-auth.guard.js';
 import { StreamAuthGuard } from './stream/stream-auth.guard.js';
 
 /**
@@ -22,6 +23,7 @@ const providers: Provider[] = [
     useFactory: (): TokenVerifier => new TokenVerifier(authConfigFromEnv()),
   },
   StreamAuthGuard,
+  DisplayTokenAuthGuard,
 ];
 
 @Module({
