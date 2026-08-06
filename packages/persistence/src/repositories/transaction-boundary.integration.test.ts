@@ -1,7 +1,10 @@
+import { footballDescriptor } from '@copalibre/domain';
 import { withTransaction } from '../transaction.js';
 import { AuditReader } from '../audit.js';
 import { OutboxReader } from '../outbox.js';
+import { EnrollmentRepository } from './enrollment-repository.js';
 import { OrganizationRepository } from './organization-repository.js';
+import { TournamentRepository } from './tournament-repository.js';
 import { InvariantViolationError } from '../errors.js';
 import { createMigratedDatabase, type ScratchDatabase } from '../test-support/scratch-database.js';
 
@@ -152,5 +155,78 @@ describe('transaction boundary (integration)', () => {
       previousState: { name: 'History' },
       reason: 'operator rename',
     });
+  });
+
+  // A repository method that reads its own pre-write state (a next version
+  // number, a suggested alias) must read through the transaction it was
+  // handed, not a second connection off the pool — PostgreSQL's pool masks a
+  // violation by always having another connection to give out; a
+  // single-connection dialect (SQLite, this suite's other profile) deadlocks
+  // waiting for a connection the still-open outer transaction is holding
+  // (0040 — found as a real, previously-undetected hang in `createRuleset`
+  // and `createTeam`).
+  it('creates a ruleset without contending for a second connection mid-transaction', async () => {
+    const tournaments = new TournamentRepository(scratch.db);
+    const disciplineDescriptor = footballDescriptor();
+    const organization = await withTransaction(scratch.db, (uow) =>
+      new OrganizationRepository(scratch.db).create(uow, {
+        alias: 'liga-transaccion',
+        name: 'Liga Transaccion',
+        actor: 'user:admin-1',
+        authorizationContext: 'scope:organization.write',
+      }),
+    );
+    const tournamentId = await withTransaction(scratch.db, async (uow) => {
+      await tournaments.saveDescriptor(uow, disciplineDescriptor, {
+        organizationId: organization.organizationId,
+        actor: 'user:admin-1',
+        authorizationContext: 'scope:organization.write',
+      });
+      const tournament = await tournaments.create(uow, {
+        organizationId: organization.organizationId,
+        alias: 'copa-transaccion',
+        name: 'Copa Transaccion',
+        descriptor: disciplineDescriptor,
+        actor: 'user:admin-1',
+        authorizationContext: 'scope:organization.write',
+      });
+      return tournament.tournamentId;
+    });
+
+    const { ruleset } = await withTransaction(scratch.db, (uow) =>
+      tournaments.createRuleset(uow, {
+        tournamentId,
+        organizationId: organization.organizationId,
+        descriptor: disciplineDescriptor,
+        overrides: {},
+        actor: 'user:admin-1',
+        authorizationContext: 'scope:organization.write',
+      }),
+    );
+
+    expect(ruleset.version).toBe(1);
+  });
+
+  it('creates a team without contending for a second connection mid-transaction', async () => {
+    const participants = new EnrollmentRepository(scratch.db);
+    const organization = await withTransaction(scratch.db, (uow) =>
+      new OrganizationRepository(scratch.db).create(uow, {
+        alias: 'liga-equipo-transaccion',
+        name: 'Liga Equipo Transaccion',
+        actor: 'user:admin-1',
+        authorizationContext: 'scope:organization.write',
+      }),
+    );
+
+    const team = await withTransaction(scratch.db, (uow) =>
+      participants.createTeam(uow, {
+        organizationId: organization.organizationId,
+        name: 'Equipo Transaccion',
+        actor: 'user:admin-1',
+        authorizationContext: 'scope:organization.write',
+      }),
+    );
+
+    expect(team.alias).toBeTruthy();
   });
 });

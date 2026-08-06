@@ -157,6 +157,10 @@ jobs:
       # SQLite is a fast repository-feedback profile only. PostgreSQL remains
       # mandatory in integration-tests for migration, locking, audit and outbox.
       - run: yarn workspace @copalibre/persistence test:sqlite
+      # The catalogue seeder's own sqlite profile (0029) — previously unwired
+      # into CI, which is how a real single-connection transaction deadlock in
+      # createRuleset/createTeam (0040) shipped undetected under this dialect.
+      - run: yarn workspace @copalibre/seed test:sqlite
       # The URL builder (0020): one place that knows what a thing is called on
       # every surface, and the alias redirect that keeps a printed URL working.
       - run: yarn workspace @copalibre/routing test:coverage
