@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
   Inject,
   NotFoundException,
   Param,
@@ -309,6 +310,7 @@ export class ReportReviewController {
   }
 
   @Post(':reportId/review')
+  @HttpCode(200)
   @SecurityPlaneTag('admin-control')
   @RequireOrganizationRole('admin')
   @ApiBearerAuth()
