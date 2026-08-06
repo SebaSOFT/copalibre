@@ -256,6 +256,7 @@ test('a published seed order survives a page reload', async ({ page }) => {
   await expect(page.getByRole('alert')).toContainText('sembrado guardado');
 
   await page.reload();
+  await expect(seedList.getByRole('listitem')).toHaveCount(shuffled.length);
   const afterReload = await seedList.getByRole('listitem').allTextContents();
   expect(afterReload).toEqual(shuffled);
 });
