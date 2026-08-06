@@ -157,6 +157,10 @@ jobs:
       # SQLite is a fast repository-feedback profile only. PostgreSQL remains
       # mandatory in integration-tests for migration, locking, audit and outbox.
       - run: yarn workspace @copalibre/persistence test:sqlite
+      # The catalogue seeder's own sqlite profile (0029) — previously unwired
+      # into CI, which is how a real single-connection transaction deadlock in
+      # createRuleset/createTeam (0040) shipped undetected under this dialect.
+      - run: yarn workspace @copalibre/seed test:sqlite
       # The URL builder (0020): one place that knows what a thing is called on
       # every surface, and the alias redirect that keeps a printed URL working.
       - run: yarn workspace @copalibre/routing test:coverage
@@ -487,8 +491,11 @@ jobs:
       COPALIBRE_APP_URL: http://localhost:4321
       COPALIBRE_API_URL: http://localhost:3001
       COPALIBRE_BOOTSTRAP_TOKEN: copalibre_e2e_bootstrap_only
-      COPALIBRE_JWKS_URI: http://postgres:5432/jwks.json
-      COPALIBRE_JWT_ISSUER: http://postgres:5432
+      # A static stub (docker-compose.jwks-test.yml) that actually serves
+      # JWKS content: doctor's jwks-content check (0040) fetches this and
+      # needs a real 200-with-`keys` response, not a bare hostname.
+      COPALIBRE_JWKS_URI: http://jwks-stub/jwks.json
+      COPALIBRE_JWT_ISSUER: http://jwks-stub
       COPALIBRE_JWT_AUDIENCE: copalibre
       COPALIBRE_OIDC_CLIENT_ID: copalibre-compose-e2e
       COPALIBRE_EMAIL_PROVIDER: smtp
@@ -507,6 +514,8 @@ jobs:
         with:
           name: copalibre-images
       - run: gzip --decompress --stdout copalibre-images.tar.gz | docker load
+      - name: Start JWKS stub
+        run: docker compose -f docker-compose.yml -f docker-compose.jwks-test.yml --profile jwks-test up --detach jwks-stub
       - name: Run clean-host CLI lifecycle
         run: |
           ./copalibre init
@@ -533,8 +542,10 @@ jobs:
       COPALIBRE_APP_URL: http://web:4321
       COPALIBRE_API_URL: http://api:3001
       COPALIBRE_BOOTSTRAP_TOKEN: copalibre_ci_bootstrap_only
-      COPALIBRE_JWKS_URI: http://api:3001/jwks.json
-      COPALIBRE_JWT_ISSUER: http://api:3001
+      # See deployment-e2e's identical comment: a real JWKS-serving stub, not
+      # a route `api` never implements (it's a resource server, not an IdP).
+      COPALIBRE_JWKS_URI: http://jwks-stub/jwks.json
+      COPALIBRE_JWT_ISSUER: http://jwks-stub
       COPALIBRE_JWT_AUDIENCE: copalibre
       COPALIBRE_OIDC_CLIENT_ID: copalibre-ci
       COPALIBRE_EMAIL_PROVIDER: smtp
@@ -549,6 +560,8 @@ jobs:
         run: gzip --decompress --stdout copalibre-images.tar.gz | docker load
       - name: Start all runtime roles
         run: docker compose up --detach --wait
+      - name: Start JWKS stub
+        run: docker compose -f docker-compose.yml -f docker-compose.jwks-test.yml --profile jwks-test up --detach jwks-stub
       - name: Verify externally reachable role liveness
         run: |
           node -e 'fetch("http://127.0.0.1:3001/health").then(async (r) => { const b = await r.json(); process.exit(r.ok && b.role === "api" ? 0 : 1); }).catch(() => process.exit(1))'

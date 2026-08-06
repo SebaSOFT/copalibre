@@ -8,7 +8,7 @@ import {
   type Tournament,
   type TournamentRuleset,
 } from '@copalibre/domain';
-import type { Kysely } from 'kysely';
+import type { Kysely, Transaction } from 'kysely';
 import { InvariantViolationError, NotFoundError } from '../errors.js';
 import { newId } from '../ids.js';
 import { toTournament } from '../mapping.js';
@@ -220,9 +220,10 @@ export class TournamentRepository {
     uow: UnitOfWork,
     input: CreateRulesetInput,
   ): Promise<{ readonly ruleset: TournamentRuleset; readonly effective: MatchRuleset }> {
-    const previous = await this.latestRulesetVersion(input.tournamentId);
+    const previous = await this.latestRulesetVersion(uow.tx, input.tournamentId);
     const version = previous + 1;
-    const rulesetId = previous === 0 ? newId() : await this.rulesetIdFor(input.tournamentId);
+    const rulesetId =
+      previous === 0 ? newId() : await this.rulesetIdFor(uow.tx, input.tournamentId);
 
     const candidate: TournamentRuleset = {
       rulesetId,
@@ -429,8 +430,18 @@ export class TournamentRepository {
       : undefined;
   }
 
-  private async latestRulesetVersion(tournamentId: string): Promise<number> {
-    const row = await this.db
+  /**
+   * Reads through the caller's own executor rather than `this.db`: called
+   * from inside `createRuleset`'s open transaction, and a second connection
+   * acquisition against the same underlying connection deadlocks under
+   * SQLite's single-connection test dialect (0040) — Postgres's pool masked
+   * this because a "second" connection was always available to hand out.
+   */
+  private async latestRulesetVersion(
+    executor: Kysely<Database> | Transaction<Database>,
+    tournamentId: string,
+  ): Promise<number> {
+    const row = await executor
       .selectFrom('tournament_rulesets')
       .select('version')
       .where('tournament_id', '=', tournamentId)
@@ -440,8 +451,11 @@ export class TournamentRepository {
     return row?.version ?? 0;
   }
 
-  private async rulesetIdFor(tournamentId: string): Promise<string> {
-    const row = await this.db
+  private async rulesetIdFor(
+    executor: Kysely<Database> | Transaction<Database>,
+    tournamentId: string,
+  ): Promise<string> {
+    const row = await executor
       .selectFrom('tournament_rulesets')
       .select('ruleset_id')
       .where('tournament_id', '=', tournamentId)

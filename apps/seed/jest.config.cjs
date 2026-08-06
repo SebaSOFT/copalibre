@@ -10,5 +10,6 @@ module.exports = {
     '^@copalibre/domain$': '<rootDir>/../../packages/domain/src/index.ts',
     '^@copalibre/module-catalogue$': '<rootDir>/../../packages/module-catalogue/src/index.ts',
     '^@copalibre/persistence$': '<rootDir>/../../packages/persistence/src/index.ts',
+    '^@copalibre/routing$': '<rootDir>/../../packages/routing/src/index.ts',
   },
 };

@@ -1,12 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RealtimeClient } from '@copalibre/realtime';
-import { v7 as uuidv7 } from 'uuid';
 import {
   createControlApiClient,
   type ConsoleEventDefinition,
   type MatchConsoleApiClient,
   type MatchConsoleResponse,
 } from '../lib/api-client.js';
+import {
+  currentEpochMilliseconds,
+  descriptionFor,
+  formatClock,
+  isEventPermitted,
+  newIdempotencyKey,
+  segmentLabel,
+} from '../lib/match-console.js';
 import { Button } from './ui/button.js';
 
 const RECONCILIATION_TIMEOUT_MS = 8_000;
@@ -108,21 +115,9 @@ export function MatchConsoleRoute({
   if (!projection) return <p className="cl-inline-alert">{status}</p>;
 
   const activeSegment = projection.segments.find((segment) => segment.state === 'active');
-  const permittedEvents = projection.eventDefinitions.filter((definition) => {
-    if (!activeSegment || !definition.permittedSegmentTypes.includes(activeSegment.type))
-      return false;
-    if (definition.actorRequirement === 'side') return projection.entrantIds.length > 0;
-    if (definition.actorRequirement === 'person') {
-      return projection.entrantIds.length > 0 && projection.eligiblePersonIds.length > 0;
-    }
-    if (definition.actorRequirement === 'person-or-staff') {
-      return (
-        projection.entrantIds.length > 0 &&
-        (projection.eligiblePersonIds.length > 0 || projection.eligibleStaffIds.length > 0)
-      );
-    }
-    return true;
-  });
+  const permittedEvents = projection.eventDefinitions.filter((definition) =>
+    isEventPermitted(definition, projection, activeSegment),
+  );
   const canRecord = projection.capabilities.includes('match.record-event');
   const canControlClock = projection.capabilities.includes('match.control-clock');
   const canResolveTimer = projection.capabilities.includes('match.resolve-timer');
@@ -581,36 +576,6 @@ export function MatchConsoleRoute({
       </div>
     </section>
   );
-}
-
-function newIdempotencyKey(): string {
-  return uuidv7();
-}
-
-function currentEpochMilliseconds(): number {
-  return Date.now();
-}
-
-function formatClock(seconds: number): string {
-  const whole = Math.max(0, Math.floor(seconds));
-  return `${String(Math.floor(whole / 60)).padStart(2, '0')}:${String(whole % 60).padStart(2, '0')}`;
-}
-
-function descriptionFor(
-  definition: ConsoleEventDefinition,
-  description: string,
-): string | undefined {
-  if (description.trim() === '') return undefined;
-  const properties = definition.payloadSchema.properties;
-  if (typeof properties !== 'object' || properties === null || !('description' in properties)) {
-    return undefined;
-  }
-  return description.trim();
-}
-
-function segmentLabel(projection: MatchConsoleResponse, segmentId: string): string {
-  const segment = projection.segments.find((candidate) => candidate.segmentId === segmentId);
-  return segment ? `${segment.type} ${segment.number}` : 'Segmento desconocido';
 }
 
 function ClockRing({

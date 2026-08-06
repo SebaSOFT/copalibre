@@ -79,7 +79,6 @@ describe('standings and seeding routes (integration)', () => {
   let tournamentId = '';
   let stageId = '';
   const entrantIds: string[] = [];
-  let firstFixtureId = '';
   let finalizedMatchId = '';
 
   beforeAll(async () => {
@@ -169,7 +168,7 @@ describe('standings and seeding routes (integration)', () => {
         organizationId,
         ...AUDIT,
       });
-      firstFixtureId = fixtures[0]?.fixtureId ?? '';
+      if (!fixtures[0]) throw new Error('Expected at least one seeded fixture');
     });
   });
 
@@ -261,16 +260,75 @@ describe('standings and seeding routes (integration)', () => {
     expect(body.hasRecordedResults).toBe(false);
   });
 
-  it('accepts a seed order while no result exists', async () => {
+  it('accepts a seed order while no result exists, persists it, and regenerates the fixture graph', async () => {
+    // Reversed relative to registration order, so a persisted match reflecting
+    // it can't be mistaken for the fixtures `beforeAll` seeded manually.
+    const reversed = [...entrantIds].reverse();
     const response = await request({
       method: 'POST',
       url: `${base}/seeding`,
       token: 'organizer',
-      payload: { seeds: entrantIds.map((entrantId, index) => ({ seed: index + 1, entrantId })) },
+      payload: { seeds: reversed.map((entrantId, index) => ({ seed: index + 1, entrantId })) },
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json().mutationClass).toBe('requires_rebuild');
+    expect(response.json()).toMatchObject({ mutationClass: 'requires_rebuild', persisted: true });
+
+    // Round-robin among 4 entrants plays every pairing once: 6 matches, all
+    // resolved (no winner-of/loser-of slot), so all 6 persist as fixtures.
+    const fixtures = await scratch.db
+      .selectFrom('fixtures')
+      .select(['home_entrant_id', 'away_entrant_id'])
+      .where('stage_id', '=', stageId)
+      .execute();
+    expect(fixtures).toHaveLength(6);
+    for (const fixture of fixtures) {
+      expect(reversed).toContain(fixture.home_entrant_id);
+      expect(reversed).toContain(fixture.away_entrant_id);
+    }
+
+    // The read model recovers entrant order by iterating persisted fixtures,
+    // not by replaying the submitted seed list verbatim — round-robin's
+    // circle-method pairing does not insert round-1 fixtures in 1..N order,
+    // so the exact seed→entrant index mapping is not itself a guarantee. What
+    // publish must guarantee is that the read-back reflects the *persisted*
+    // graph: the full 6-match round-robin schedule, over exactly this entrant
+    // set — not the 2 fixtures `beforeAll` seeded manually.
+    const seeding = await request({ method: 'GET', url: `${base}/seeding`, token: 'organizer' });
+    const body = seeding.json();
+    expect(body.matches).toHaveLength(6);
+    expect([...body.seeds].map((seed: { entrantId: string }) => seed.entrantId).sort()).toEqual(
+      [...reversed].sort(),
+    );
+  });
+
+  it('republishing the same seed order is idempotent', async () => {
+    const reversed = [...entrantIds].reverse();
+    const republished = await request({
+      method: 'POST',
+      url: `${base}/seeding`,
+      token: 'organizer',
+      payload: { seeds: reversed.map((entrantId, index) => ({ seed: index + 1, entrantId })) },
+    });
+
+    expect(republished.statusCode).toBe(200);
+    expect(republished.json()).toMatchObject({
+      mutationClass: 'requires_rebuild',
+      persisted: true,
+    });
+
+    const fixtures = await scratch.db
+      .selectFrom('fixtures')
+      .select(['home_entrant_id', 'away_entrant_id'])
+      .where('stage_id', '=', stageId)
+      .execute();
+    expect(fixtures).toHaveLength(6);
+    const pairs = new Set(
+      fixtures.map((fixture) =>
+        [fixture.home_entrant_id, fixture.away_entrant_id].sort().join(':'),
+      ),
+    );
+    expect(pairs.size).toBe(6);
   });
 
   it('refuses a seed order that places an entrant twice', async () => {
@@ -317,11 +375,19 @@ describe('standings and seeding routes (integration)', () => {
   it('refuses a reseed once a result exists, whatever the console allowed', async () => {
     const [winner = '', runnerUp = ''] = entrantIds;
     const competition = new CompetitionRepository(scratch.db);
+    // A prior test republished this stage's seed order, which replaces its
+    // fixtures wholesale (0040) — `firstFixtureId` no longer names a live row,
+    // so this reads the current one instead of trusting the captured id.
+    const currentFixture = await scratch.db
+      .selectFrom('fixtures')
+      .select('fixture_id')
+      .where('stage_id', '=', stageId)
+      .executeTakeFirstOrThrow();
     // Two transactions: `recordResult` re-reads the match through the pool to
     // refuse an overwrite, so the insert has to be committed first.
     const match = await withTransaction(scratch.db, (uow) =>
       competition.createMatch(uow, {
-        fixtureId: firstFixtureId,
+        fixtureId: currentFixture.fixture_id,
         number: 1,
         organizationId,
         ...AUDIT,
@@ -344,6 +410,13 @@ describe('standings and seeding routes (integration)', () => {
       });
     });
 
+    const before = await scratch.db
+      .selectFrom('fixtures')
+      .select(['fixture_id', 'home_entrant_id', 'away_entrant_id'])
+      .where('stage_id', '=', stageId)
+      .orderBy('fixture_id')
+      .execute();
+
     const response = await request({
       method: 'POST',
       url: `${base}/seeding`,
@@ -353,6 +426,16 @@ describe('standings and seeding routes (integration)', () => {
 
     expect(response.statusCode).toBe(409);
     expect(response.json().message).toContain('Seeding cannot change once a result exists');
+
+    // A blocked publish persists nothing: the fixture set is byte-for-byte
+    // what it was before the refused request.
+    const after = await scratch.db
+      .selectFrom('fixtures')
+      .select(['fixture_id', 'home_entrant_id', 'away_entrant_id'])
+      .where('stage_id', '=', stageId)
+      .orderBy('fixture_id')
+      .execute();
+    expect(after).toEqual(before);
   });
 
   it('serves the published materialised standings when one exists', async () => {

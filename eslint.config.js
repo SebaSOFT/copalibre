@@ -15,6 +15,10 @@ export default tseslint.config(
       '**/node_modules/**',
       'playwright-report/**',
       'test-results/**',
+      // Build artifacts copied into place at build time (0024's OpenAPI
+      // artifact, 0040's vendored Scalar bundle) — not source, not committed.
+      'apps/web/public/openapi/**',
+      'apps/web/public/vendor/**',
     ],
   },
 

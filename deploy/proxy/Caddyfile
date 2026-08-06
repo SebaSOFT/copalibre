@@ -1,5 +1,15 @@
 {
   email {$ACME_EMAIL}
+
+  # If this Caddy instance sits behind another proxy or load balancer (a
+  # cloud LB, Cloudflare, ...), uncomment and scope this to THAT proxy's
+  # actual address range — never a default that trusts every upstream —
+  # so Caddy only honors X-Forwarded-For from a network the operator
+  # actually controls. Leave commented when Caddy is the public edge
+  # itself, as it is in the default single-host Compose deployment.
+  # servers {
+  #   trusted_proxies static 203.0.113.0/24
+  # }
 }
 
 # Set these three host names in the reverse proxy environment. Caddy terminates

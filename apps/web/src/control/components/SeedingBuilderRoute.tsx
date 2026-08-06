@@ -66,7 +66,17 @@ export function SeedingBuilderRoute({
             .publishSeeding(organizationAlias, tournamentAlias, stageNumber, {
               seeds: seeds.map((seed) => ({ seed: seed.seed, entrantId: seed.entrantId })),
             })
-            .then((result) => setNotice(result.reason))
+            .then((result) => {
+              // `persisted` is the server's confirmation the new order and
+              // fixtures are durably saved, not only classified — re-fetch so
+              // the bracket canvas reflects what's actually on disk rather
+              // than trusting the classification response's own shape.
+              if (!result.persisted) return;
+              setNotice(`${result.reason} — sembrado guardado.`);
+              return api
+                .fetchSeeding(organizationAlias, tournamentAlias, stageNumber)
+                .then(setSeeding);
+            })
             .catch((error: unknown) =>
               // The server's own reason, not a status code: a 409 here says
               // "seeding cannot change once a result exists", which is the

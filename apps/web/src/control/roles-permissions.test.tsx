@@ -134,7 +134,12 @@ function controlClient(overrides: Partial<ControlApiClient>): ControlApiClient {
       matches: [],
       hasRecordedResults: false,
     }),
-    publishSeeding: async () => ({ mutationClass: 'safe', reason: 'test', invalidates: [] }),
+    publishSeeding: async () => ({
+      mutationClass: 'safe',
+      reason: 'test',
+      invalidates: [],
+      persisted: true,
+    }),
     listOrganizationRoles: async () => [],
     inviteOrganizationUser: async () => ({ invitationId: 'invite', expiresAt: '2099-01-01' }),
     changeOrganizationRole: async () => rows[0],

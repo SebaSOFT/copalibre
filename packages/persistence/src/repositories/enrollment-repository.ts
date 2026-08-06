@@ -10,7 +10,7 @@ import {
   type StageAllocation,
   type Team,
 } from '@copalibre/domain';
-import type { Kysely } from 'kysely';
+import type { Kysely, Transaction } from 'kysely';
 import { InvariantViolationError } from '../errors.js';
 import { newId } from '../ids.js';
 import { toClub, toEntrant, toEntrantAttribute, toTeam } from '../mapping.js';
@@ -175,7 +175,8 @@ export class EnrollmentRepository {
     } & Omit<AuditContext, 'organizationId'>,
   ): Promise<Team> {
     assertAbbreviation(input.abbreviation);
-    const alias = input.alias ?? (await this.suggestTeamAlias(input.organizationId, input.name));
+    const alias =
+      input.alias ?? (await this.suggestTeamAlias(uow.tx, input.organizationId, input.name));
     assertAlias(alias);
 
     const teamId = newId();
@@ -311,8 +312,19 @@ export class EnrollmentRepository {
     return row ? toEntrant(row) : undefined;
   }
 
-  private async suggestTeamAlias(organizationId: string, name: string): Promise<string> {
-    const rows = await this.db
+  /**
+   * Reads through the caller's own executor rather than `this.db`: called
+   * from inside `createTeam`'s open transaction, and a second connection
+   * acquisition against the same underlying connection deadlocks under
+   * SQLite's single-connection test dialect (0040's `createRuleset` fix is
+   * the same bug, same reason).
+   */
+  private async suggestTeamAlias(
+    executor: Kysely<Database> | Transaction<Database>,
+    organizationId: string,
+    name: string,
+  ): Promise<string> {
+    const rows = await executor
       .selectFrom('teams')
       .select('alias')
       .where('organization_id', '=', organizationId)

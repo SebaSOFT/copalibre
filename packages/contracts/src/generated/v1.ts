@@ -1299,6 +1299,8 @@ export interface components {
             reason: string;
             /** @description Fixture ids this change invalidates; empty unless it requires a rebuild */
             invalidates: string[];
+            /** @description True once the new seed order and fixture graph are durably persisted. Always true for a 200 response — a publish that could not persist refuses with 409 instead of returning a partial success. */
+            persisted: boolean;
         };
         OrganizationRoleResponse: {
             /** Format: uuid */

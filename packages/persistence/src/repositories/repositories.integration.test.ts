@@ -408,6 +408,151 @@ describe('repositories (integration)', () => {
       ),
     ).rejects.toBeInstanceOf(InvariantViolationError);
   });
+
+  it('replaces a stage’s fixtures wholesale when nothing has started', async () => {
+    const disciplineDescriptor = descriptor();
+    const { stageId, entrantIds } = await withTransaction(scratch.db, async (uow) => {
+      await tournaments.saveDescriptor(uow, disciplineDescriptor, { organizationId, ...AUDIT });
+      const tournament = await tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-reseed',
+        name: 'Copa Reseed',
+        descriptor: disciplineDescriptor,
+        ...AUDIT,
+      });
+      const ids: string[] = [];
+      for (const name of ['Orbital A', 'Orbital B', 'Orbital C']) {
+        const team = await participants.createTeam(uow, { organizationId, name, ...AUDIT });
+        const entrant = await participants.registerEntrant(uow, {
+          tournamentId: tournament.tournamentId,
+          entrantRef: { kind: 'team', teamId: team.teamId },
+          organizationId,
+          ...AUDIT,
+        });
+        ids.push(entrant.entrantId);
+      }
+      const stage = await competition.createStageInTournament(uow, {
+        tournamentId: tournament.tournamentId,
+        number: 1,
+        name: 'Group Stage',
+        format: 'round-robin',
+        organizationId,
+        ...AUDIT,
+      });
+      await competition.createFixtures(uow, {
+        stageId: stage.stageId,
+        fixtures: [{ round: 1, homeEntrantId: ids[0], awayEntrantId: ids[1] }],
+        organizationId,
+        ...AUDIT,
+      });
+      return { stageId: stage.stageId, entrantIds: ids };
+    });
+
+    const replaced = await withTransaction(scratch.db, (uow) =>
+      competition.replaceFixtures(uow, {
+        stageId,
+        fixtures: [{ round: 1, homeEntrantId: entrantIds[1], awayEntrantId: entrantIds[2] }],
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+
+    expect(replaced).toHaveLength(1);
+    expect(replaced[0]).toMatchObject({
+      homeEntrantId: entrantIds[1],
+      awayEntrantId: entrantIds[2],
+    });
+
+    const remaining = await scratch.db
+      .selectFrom('fixtures')
+      .selectAll()
+      .where('stage_id', '=', stageId)
+      .execute();
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0]?.home_entrant_id).toBe(entrantIds[1]);
+
+    const audit = await new AuditReader(scratch.db).historyFor('stage', stageId);
+    expect(audit.map((entry) => entry.action)).toContain('fixtures.regenerated');
+  });
+
+  it('refuses to replace fixtures once a match has been created against one of them', async () => {
+    const disciplineDescriptor = descriptor();
+    const { stageId, fixtureId, entrantId } = await withTransaction(scratch.db, async (uow) => {
+      await tournaments.saveDescriptor(uow, disciplineDescriptor, { organizationId, ...AUDIT });
+      const tournament = await tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-reseed-bloqueada',
+        name: 'Copa Reseed Bloqueada',
+        descriptor: disciplineDescriptor,
+        ...AUDIT,
+      });
+      const team = await participants.createTeam(uow, {
+        organizationId,
+        name: 'Orbital Bloqueado',
+        ...AUDIT,
+      });
+      const entrant = await participants.registerEntrant(uow, {
+        tournamentId: tournament.tournamentId,
+        entrantRef: { kind: 'team', teamId: team.teamId },
+        organizationId,
+        ...AUDIT,
+      });
+      const stage = await competition.createStageInTournament(uow, {
+        tournamentId: tournament.tournamentId,
+        number: 1,
+        name: 'Group Stage',
+        format: 'round-robin',
+        organizationId,
+        ...AUDIT,
+      });
+      const [fixture] = await competition.createFixtures(uow, {
+        stageId: stage.stageId,
+        fixtures: [{ round: 1, homeEntrantId: entrant.entrantId }],
+        organizationId,
+        ...AUDIT,
+      });
+      if (!fixture) throw new Error('fixture was not created');
+      await competition.createMatch(uow, {
+        fixtureId: fixture.fixtureId,
+        number: 1,
+        organizationId,
+        ...AUDIT,
+      });
+      return { stageId: stage.stageId, fixtureId: fixture.fixtureId, entrantId: entrant.entrantId };
+    });
+
+    await expect(
+      withTransaction(scratch.db, (uow) =>
+        competition.replaceFixtures(uow, {
+          stageId,
+          fixtures: [{ round: 1, homeEntrantId: entrantId }],
+          organizationId,
+          ...AUDIT,
+        }),
+      ),
+    ).rejects.toBeInstanceOf(InvariantViolationError);
+
+    // Nothing was touched: the original fixture is still exactly there.
+    const remaining = await scratch.db
+      .selectFrom('fixtures')
+      .selectAll()
+      .where('stage_id', '=', stageId)
+      .execute();
+    expect(remaining.map((row) => row.fixture_id)).toEqual([fixtureId]);
+  });
+
+  it('refuses to replace fixtures with an empty set', async () => {
+    await expect(
+      withTransaction(scratch.db, (uow) =>
+        competition.replaceFixtures(uow, {
+          stageId: newId(),
+          fixtures: [],
+          organizationId,
+          ...AUDIT,
+        }),
+      ),
+    ).rejects.toBeInstanceOf(InvariantViolationError);
+  });
 });
 
 describe('entrant attributes (integration)', () => {

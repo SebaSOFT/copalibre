@@ -102,6 +102,7 @@ tmp/
 .claude/
 openspec/changes/*
 apps/web/public/openapi/
+apps/web/public/vendor/
 packages/design-tokens/generated/
 
 # CodeGraph index: derived from the source, rebuilt by `codegraph init`.

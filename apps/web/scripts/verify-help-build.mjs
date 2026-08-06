@@ -52,7 +52,16 @@ check(
   'API reference reads the local OpenAPI artifact',
   apiReference.includes("url: '/openapi/v1.json'"),
 );
-check('API reference pins Scalar CDN', apiReference.includes('@scalar/api-reference@1.64.0'));
+check(
+  'API reference loads Scalar from the vendored build asset, not a CDN',
+  apiReference.includes('src="/vendor/scalar/standalone.js"') &&
+    !apiReference.includes('cdn.jsdelivr.net') &&
+    !apiReference.includes('unpkg.com'),
+);
+check(
+  'Vendored Scalar bundle exists in the build output',
+  existsSync(join(DIST, 'vendor/scalar/standalone.js')),
+);
 check(
   'API reference disables request execution',
   apiReference.includes('hideTestRequestButton: true'),
@@ -66,4 +75,4 @@ if (failures.length > 0) {
   process.exit(1);
 }
 
-process.stdout.write(`Help build verified: ${14 - failures.length} checks passed.\n`);
+process.stdout.write(`Help build verified: ${15 - failures.length} checks passed.\n`);

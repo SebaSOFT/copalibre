@@ -4,6 +4,7 @@ import { dirname } from 'node:path';
 import { authConfigFromEnv } from '@copalibre/auth';
 import { createDatabase } from '@copalibre/persistence';
 import { sql } from 'kysely';
+import { createRemoteJWKSet, customFetch, type FetchImplementation } from 'jose';
 
 export type DoctorCheckStatus = 'pass' | 'fail' | 'skip';
 
@@ -43,6 +44,7 @@ export async function runDoctor(
     ...validateServicePorts(environment),
   ];
   checks.push(...(await validatePublicUrls(environment, dependencies)));
+  checks.push(...(await validateJwksContent(environment, dependencies)));
   checks.push(...(await validateDatabase(environment, dependencies)));
   checks.push(...(await validateObjectStorage(environment, dependencies)));
   checks.push(...(await validatePersistentPath(environment, dependencies)));
@@ -115,6 +117,52 @@ export async function validatePublicUrls(
     }
   }
   return checks;
+}
+
+/**
+ * Resolvable is not the same as correct: a `COPALIBRE_JWKS_URI` that answers
+ * with an unrelated 200 (a login page, an empty object) passes DNS
+ * resolution and then breaks auth at runtime with nothing in `doctor` having
+ * said so (0040). `jose`'s own remote-JWKS fetch is reused here rather than a
+ * hand-rolled fetch-and-parse, so "valid JWKS" means exactly what the JWT
+ * verification path itself will require.
+ */
+export async function validateJwksContent(
+  environment: NodeJS.ProcessEnv,
+  dependencies: Pick<DoctorDependencies, 'fetch'>,
+): Promise<readonly DoctorCheck[]> {
+  const value = environment.COPALIBRE_JWKS_URI;
+  if (!value) return [];
+
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    // Malformed as a URL at all: `validatePublicUrls` already reports this.
+    return [];
+  }
+
+  try {
+    const jwks = createRemoteJWKSet(url, {
+      // jose's own doc: fetch-like implementations never line up with the
+      // DOM lib's `typeof fetch` exactly enough to satisfy this without a
+      // cast, `@ts-expect-error`-worthy per their own example.
+      [customFetch]: dependencies.fetch as unknown as FetchImplementation,
+      timeoutDuration: 5_000,
+    });
+    // `reload()` forces one fetch now, rather than the lazy fetch-on-first-use
+    // the resolver function itself would perform — each `doctor` run gets a
+    // fresh answer, never a cached one from a prior run.
+    await jwks.reload();
+    return [pass('jwks-content', 'COPALIBRE_JWKS_URI serves a valid JSON Web Key Set')];
+  } catch (error) {
+    return [
+      fail(
+        'jwks-content',
+        `COPALIBRE_JWKS_URI (${url.toString()}) does not serve a valid JWKS document: ${errorMessage(error)}`,
+      ),
+    ];
+  }
 }
 
 export async function validateDatabase(

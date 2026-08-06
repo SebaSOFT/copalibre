@@ -1,0 +1,12 @@
+services:
+  # A static, empty-keys JWKS document — CI's own `deployment-e2e` and
+  # `deploy-smoke-test` jobs need `COPALIBRE_JWKS_URI` to resolve to something
+  # that actually serves valid JWKS content (0040's `copalibre doctor`
+  # jwks-content check fetches it), but neither job exercises real JWT
+  # verification against it. Never use this as a real identity provider — an
+  # operator's COPALIBRE_JWKS_URI must point at their actual OIDC provider.
+  jwks-stub:
+    image: nginx:1.29-alpine
+    profiles: ['jwks-test']
+    volumes:
+      - ./deploy/test/jwks/jwks.json:/usr/share/nginx/html/jwks.json:ro

@@ -1,7 +1,5 @@
 import { expect, test } from '@playwright/test';
 
-const scalarCdn = 'https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.64.0';
-
 test('navigates help content and searches through Starlight', async ({ page }) => {
   const pageErrors: string[] = [];
   const failedRequests: string[] = [];
@@ -31,48 +29,41 @@ test('navigates help content and searches through Starlight', async ({ page }) =
   await expect(dialog.getByRole('link', { name: /Roster/ }).first()).toBeVisible();
 });
 
-test('renders the static OpenAPI artifact with request execution disabled', async ({ page }) => {
-  const requests: string[] = [];
-  page.on('request', (request) => requests.push(request.url()));
+test('loads its rendering script and stylesheet same-origin, not from a CDN', async ({ page }) => {
+  // Vendored (0040): the reference's own script tag must point at this
+  // origin's build output, never a third-party host — the literal defect
+  // this task fixes (a blank page on an install with no internet egress).
+  const documentRequests: string[] = [];
+  page.on('request', (request) => {
+    if (['script', 'stylesheet'].includes(request.resourceType())) {
+      documentRequests.push(request.url());
+    }
+  });
 
-  await page.route(scalarCdn, (route) =>
-    route.fulfill({
-      contentType: 'application/javascript',
-      body: `
-        window.Scalar = {
-          createApiReference(target, configuration) {
-            const root = document.querySelector(target);
-            if (!root) throw new Error('Scalar mount is missing');
-            root.dataset.scalarReady = 'true';
-            if (!configuration.hideTestRequestButton) {
-              const button = document.createElement('button');
-              button.textContent = 'Try It';
-              root.append(button);
-            }
-            fetch(configuration.url)
-              .then((response) => response.json())
-              .then((document) => {
-                root.dataset.openapiVersion = document.info.version;
-                root.textContent = document.info.title;
-              });
-          },
-        };
-      `,
-    }),
-  );
+  await page.goto('/help/api-reference/');
+  await expect(page.getByText('CopaLibre API')).toBeVisible();
+
+  expect(documentRequests).toContain('http://localhost:4321/vendor/scalar/standalone.js');
+  expect(documentRequests.every((url) => url.startsWith('http://localhost:4321/'))).toBe(true);
+});
+
+test('renders correctly when Scalar’s own hosted endpoints are unreachable', async ({ page }) => {
+  // Even vendored, this pinned build still calls out to Scalar's cloud for a
+  // couple of secondary features (default webfont, an AI-agent "suggested
+  // docs" prefetch) that no documented config flag fully suppresses — see
+  // design.md's "residual outbound calls" note. What must hold regardless:
+  // those calls failing (as they would on a true no-egress install) must not
+  // break the reference itself.
+  await page.route('**://fonts.scalar.com/**', (route) => route.abort());
+  await page.route('**://api.scalar.com/**', (route) => route.abort());
+
+  const pageErrors: string[] = [];
+  page.on('pageerror', (error) => pageErrors.push(error.message));
 
   await page.goto('/help/api-reference/');
 
-  const reference = page.locator('#api-reference[data-scalar-ready="true"]');
-  await expect(reference).toHaveAttribute('data-openapi-version', '4.0.0');
-  await expect(reference).toHaveText('CopaLibre API');
-  await expect(page.getByRole('button', { name: 'Try It' })).toHaveCount(0);
-
-  expect(requests).toContain('http://localhost:4321/openapi/v1.json');
-  expect(requests).toEqual(
-    expect.arrayContaining([expect.stringMatching(/^http:\/\/localhost:4321\//), scalarCdn]),
-  );
-  expect(
-    requests.every((url) => url.startsWith('http://localhost:4321/') || url === scalarCdn),
-  ).toBe(true);
+  await expect(page.locator('#api-reference')).not.toBeEmpty();
+  await expect(page.getByText('CopaLibre API')).toBeVisible();
+  await expect(page.getByRole('button', { name: /Send Request|Test Request/ })).toHaveCount(0);
+  expect(pageErrors).toEqual([]);
 });

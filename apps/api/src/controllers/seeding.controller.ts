@@ -25,13 +25,16 @@ import {
 import {
   classifyEngineMutation,
   generateFixtures,
+  isDuelMatch,
   slotsOf,
   type FixtureGraph,
   type GeneratedMatch,
 } from '@copalibre/tournament-engine';
 import {
   CompetitionRepository,
+  InvariantViolationError,
   StageReadModel,
+  withTransaction,
   type Database,
   type StageMatchRecord,
 } from '@copalibre/persistence';
@@ -129,7 +132,12 @@ export class SeedingController {
     @Body() body: PublishSeedingRequest,
     @Req() request: RequestWithSubject,
   ): Promise<SeedingClassificationResponse> {
-    const { record } = await this.stage(organizationAlias, tournamentAlias, stageNumber, request);
+    const { stageId, organizationId, record } = await this.stage(
+      organizationAlias,
+      tournamentAlias,
+      stageNumber,
+      request,
+    );
 
     const seeds = body.seeds ?? [];
     if (seeds.length === 0) {
@@ -153,10 +161,41 @@ export class SeedingController {
       throw new ConflictException(classification.reason);
     }
 
+    const orderedEntrantIds = [...seeds]
+      .sort((a, b) => a.seed - b.seed)
+      .map((entry) => entry.entrantId);
+    const newGraph = this.graphOf(record.format, orderedEntrantIds);
+    const fixtures = resolvedFixtureInputs(newGraph);
+
+    const competition = new CompetitionRepository(this.db);
+    try {
+      await withTransaction(this.db, (uow) =>
+        record.hasGeneratedFixtures
+          ? competition.replaceFixtures(uow, {
+              stageId,
+              fixtures,
+              organizationId,
+              actor: actorOf(request),
+              authorizationContext: authorizationContextOf(request),
+            })
+          : competition.createFixtures(uow, {
+              stageId,
+              fixtures,
+              organizationId,
+              actor: actorOf(request),
+              authorizationContext: authorizationContextOf(request),
+            }),
+      );
+    } catch (error) {
+      if (error instanceof InvariantViolationError) throw new ConflictException(error.message);
+      throw error;
+    }
+
     return {
       mutationClass: classification.mutationClass,
       reason: classification.reason,
       invalidates: [...classification.invalidates],
+      persisted: true,
     };
   }
 
@@ -176,9 +215,10 @@ export class SeedingController {
     request: RequestWithSubject,
   ): Promise<{
     readonly stageId: string;
+    readonly organizationId: string;
     readonly record: NonNullable<Awaited<ReturnType<StageReadModel['stageRecord']>>>;
   }> {
-    const { tournament } = await resolveTournament(this.db, {
+    const { organizationId, tournament } = await resolveTournament(this.db, {
       organizationAlias,
       tournamentAlias,
       request,
@@ -193,7 +233,7 @@ export class SeedingController {
     const record = await new StageReadModel(this.db).stageRecord(stage.stageId);
     if (!record) throw new NotFoundException(`No stage ${stageNumber} in "${tournamentAlias}"`);
 
-    return { stageId: stage.stageId, record };
+    return { stageId: stage.stageId, organizationId, record };
   }
 }
 
@@ -276,6 +316,42 @@ function ambiguousRoundPositions(matches: readonly GeneratedMatch[]): ReadonlySe
 
 function roundPositionKey(match: Pick<GeneratedMatch, 'round' | 'position'>): string {
   return `${match.round}:${match.position}`;
+}
+
+/**
+ * Fixture rows worth persisting from a generated graph: a match both of whose
+ * slots already resolve to a concrete entrant. Round-robin/league resolve
+ * every round this way; elimination formats resolve only round one — a
+ * `winner-of`/`loser-of` slot has nothing to persist yet, and a `bye` needs no
+ * fixture at all, matching the class comment: the engine regenerates the rest
+ * of the structure at read time.
+ */
+function resolvedFixtureInputs(graph: FixtureGraph): readonly {
+  readonly round: number;
+  readonly homeEntrantId?: string;
+  readonly awayEntrantId?: string;
+}[] {
+  const fixtures: { round: number; homeEntrantId?: string; awayEntrantId?: string }[] = [];
+  for (const match of graph.matches) {
+    if (!isDuelMatch(match)) continue;
+    if (match.slotA.kind !== 'entrant' || match.slotB.kind !== 'entrant') continue;
+    const [home, away] =
+      match.homeSlot === 'B' ? [match.slotB, match.slotA] : [match.slotA, match.slotB];
+    fixtures.push({
+      round: match.round,
+      homeEntrantId: home.entrantId,
+      awayEntrantId: away.entrantId,
+    });
+  }
+  return fixtures;
+}
+
+function actorOf(request: RequestWithSubject): string {
+  return `user:${request.subject?.principalId ?? request.subject?.subjectId ?? 'unknown'}`;
+}
+
+function authorizationContextOf(request: RequestWithSubject): string {
+  return (request.subject?.scopes ?? []).join(' ');
 }
 
 function matchFormatOf(overrides: Readonly<Record<string, unknown>>): string | undefined {
