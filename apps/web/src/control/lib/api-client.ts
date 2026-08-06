@@ -90,6 +90,21 @@ export interface ControlApiClient {
     tournamentAlias: string,
     kind: 'participants/individual' | 'participants/team' | 'results' | 'standings',
   ) => Promise<string>;
+  /** The A1 dashboard's device-health panel (0031, task 4.4) reads this per tournament. */
+  readonly listDisplayTokens?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+  ) => Promise<readonly DisplayTokenResponse[]>;
+}
+
+export interface DisplayTokenResponse {
+  readonly displayTokenId: string;
+  readonly tournamentId: string;
+  readonly matchId?: string;
+  readonly label?: string;
+  readonly revoked: boolean;
+  readonly lastSeenAt?: string;
+  readonly createdAt: string;
 }
 
 export interface MatchConsoleApiClient {
@@ -511,6 +526,13 @@ export function createControlApiClient(input: {
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/exports/${kind}`,
         input.accessToken?.(),
+      ),
+
+    listDisplayTokens: (organizationAlias, tournamentAlias) =>
+      requestJson<readonly DisplayTokenResponse[]>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/display-tokens`,
+        { token: input.accessToken?.() },
       ),
 
     fetchMatchConsole: (organizationAlias, tournamentAlias, matchId) =>
