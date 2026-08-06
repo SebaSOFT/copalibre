@@ -641,6 +641,44 @@ describe('api routes (integration)', () => {
       expect(response.statusCode).toBe(400);
       expect(response.json().message).toContain('4 MiB');
     });
+
+    it('escapes a formula-shaped team name on export', async () => {
+      const sourceCsv = 'alias,name\nequipo-formula,=SUM(A1:A2)\n';
+      const created = await request({
+        method: 'POST',
+        url: '/organizations/liga-orbital/tournaments/copa-importacion/imports',
+        token: 'organizer-org1',
+        payload: { target: 'team', sourceCsv },
+      });
+      expect(created.statusCode).toBe(202);
+
+      await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        new CsvImportRepository(scratch.db).storePreview(uow, {
+          importId: created.json().importId,
+          preview: validateCsvImport({
+            target: 'team',
+            allowedParticipantTypes: ['team'],
+            csv: sourceCsv,
+          }),
+        }),
+      );
+
+      const committed = await request({
+        method: 'POST',
+        url: `/organizations/liga-orbital/tournaments/copa-importacion/imports/${created.json().importId}/commit`,
+        token: 'organizer-org1',
+        payload: { sourceHash: created.json().sourceHash },
+      });
+      expect(committed.statusCode).toBe(200);
+
+      const exported = await request({
+        method: 'GET',
+        url: '/organizations/liga-orbital/tournaments/copa-importacion/exports/participants/team',
+        token: 'organizer-org1',
+      });
+      expect(exported.statusCode).toBe(200);
+      expect(exported.body).toContain("equipo-formula,'=SUM(A1:A2)");
+    });
   });
 
   describe('scheduling routes', () => {

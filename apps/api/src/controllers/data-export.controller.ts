@@ -1,6 +1,6 @@
 import { Controller, Get, Header, Inject, NotFoundException, Param, Req } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiProduces, ApiTags } from '@nestjs/swagger';
-import { stringifyCsv } from '@copalibre/domain';
+import { escapeCsvFormulaCell, stringifyCsv } from '@copalibre/domain';
 import {
   OrganizationRepository,
   TournamentRepository,
@@ -53,10 +53,10 @@ export class DataExportController {
       return stringifyCsv(
         ['alias', 'displayName', 'naturalKeyKind', 'naturalKey'],
         rows.map((row) => ({
-          alias: row.alias ?? '',
-          displayName: row.displayName,
+          alias: escapeCsvFormulaCell(row.alias ?? ''),
+          displayName: escapeCsvFormulaCell(row.displayName ?? ''),
           naturalKeyKind: row.naturalKeyKind,
-          naturalKey: row.naturalKey,
+          naturalKey: escapeCsvFormulaCell(row.naturalKey ?? ''),
         })),
       );
     }
@@ -71,7 +71,10 @@ export class DataExportController {
         .execute();
       return stringifyCsv(
         ['alias', 'name'],
-        rows.map((row) => ({ alias: row.alias ?? '', name: row.name })),
+        rows.map((row) => ({
+          alias: escapeCsvFormulaCell(row.alias ?? ''),
+          name: escapeCsvFormulaCell(row.name),
+        })),
       );
     }
     throw new NotFoundException('Participant export target must be individual or team');
