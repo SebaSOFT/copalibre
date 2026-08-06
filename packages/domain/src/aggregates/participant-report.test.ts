@@ -49,9 +49,7 @@ describe('validateReportSubmission', () => {
   });
 
   it('rejects a report with no sides', () => {
-    const result = validateReportSubmission(
-      reportInput({ proposedResult: { sides: [] } }),
-    );
+    const result = validateReportSubmission(reportInput({ proposedResult: { sides: [] } }));
     expect(result.ok).toBe(false);
   });
 
@@ -75,7 +73,12 @@ describe('validateReportSubmission', () => {
     const result = validateReportSubmission(
       reportInput({
         evidence: [
-          { evidenceId: 'ev-1', filename: 'huge.mp4', contentType: 'video/mp4', sizeBytes: 999_999_999 },
+          {
+            evidenceId: 'ev-1',
+            filename: 'huge.mp4',
+            contentType: 'video/mp4',
+            sizeBytes: 999_999_999,
+          },
         ],
       }),
     );
@@ -100,7 +103,15 @@ describe('validateReportSubmission', () => {
       expect(result.value).not.toHaveProperty('standingsOverride');
       expect(result.value).not.toHaveProperty('applyImmediately');
       expect(Object.keys(result.value).sort()).toEqual(
-        ['evidence', 'kind', 'matchId', 'proposedResult', 'status', 'submittedAt', 'submittedByPersonId'].sort(),
+        [
+          'evidence',
+          'kind',
+          'matchId',
+          'proposedResult',
+          'status',
+          'submittedAt',
+          'submittedByPersonId',
+        ].sort(),
       );
     }
   });

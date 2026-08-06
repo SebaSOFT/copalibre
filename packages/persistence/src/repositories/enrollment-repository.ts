@@ -704,6 +704,43 @@ export class EnrollmentRepository {
     }
     return results;
   }
+
+  /**
+   * Whether this participant is a party to this match — the ownership check a
+   * report or dispute submission needs (0032), extracted from
+   * `listParticipantReportedResults`'s join so it is a real, reusable check
+   * rather than logic that only exists inlined inside a read listing. A
+   * roster is match-scoped and does not by itself grant this: the check is
+   * "is one of this match's entrants owned by this person," not "is this
+   * person named on the roster."
+   */
+  async isParticipantPartyToMatch(
+    organizationId: string,
+    personId: string,
+    matchId: string,
+  ): Promise<boolean> {
+    // A fixture's home/away entrant columns are nullable (a bye) — joining
+    // both sides at once and requiring both to resolve would wrongly say
+    // the present entrant is not a party to a match with a bye on the other
+    // side, so this checks against this person's own entrant ids instead.
+    const entrants = await this.listParticipantEntrants(organizationId, personId);
+    if (entrants.length === 0) return false;
+    const entrantIds = entrants.map((entrant) => entrant.entrantId);
+
+    const row = await this.db
+      .selectFrom('matches')
+      .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
+      .select('matches.match_id')
+      .where('matches.match_id', '=', matchId)
+      .where((eb) =>
+        eb.or([
+          eb('fixtures.home_entrant_id', 'in', entrantIds),
+          eb('fixtures.away_entrant_id', 'in', entrantIds),
+        ]),
+      )
+      .executeTakeFirst();
+    return row !== undefined;
+  }
 }
 
 /**

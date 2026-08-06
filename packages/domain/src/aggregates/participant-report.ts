@@ -55,7 +55,10 @@ interface ParticipantReportCommon {
  * persistence layer) — a pure validator does not mint identifiers.
  */
 export type ParticipantReportSubmission =
-  | (ParticipantReportCommon & { readonly kind: 'report'; readonly proposedResult: ProposedResultClaim })
+  | (ParticipantReportCommon & {
+      readonly kind: 'report';
+      readonly proposedResult: ProposedResultClaim;
+    })
   | (ParticipantReportCommon & { readonly kind: 'dispute'; readonly reason: string });
 
 export type SubmitReportInput = {
@@ -128,13 +131,20 @@ function validateProposedResult(claim: ProposedResultClaim): ReportValidationErr
   return undefined;
 }
 
-function validateEvidence(evidence: readonly EvidenceReference[]): ReportValidationError | undefined {
+function validateEvidence(
+  evidence: readonly EvidenceReference[],
+): ReportValidationError | undefined {
   if (evidence.length > MAX_EVIDENCE_FILES) {
-    return new ReportValidationError(`A submission may attach at most ${MAX_EVIDENCE_FILES} files`, {
-      count: evidence.length,
-    });
+    return new ReportValidationError(
+      `A submission may attach at most ${MAX_EVIDENCE_FILES} files`,
+      {
+        count: evidence.length,
+      },
+    );
   }
-  const oversized = evidence.find((file) => file.sizeBytes > MAX_EVIDENCE_BYTES || file.sizeBytes <= 0);
+  const oversized = evidence.find(
+    (file) => file.sizeBytes > MAX_EVIDENCE_BYTES || file.sizeBytes <= 0,
+  );
   if (oversized) {
     return new ReportValidationError(
       `Evidence file "${oversized.filename}" is not a valid size (0 < bytes <= ${MAX_EVIDENCE_BYTES})`,
