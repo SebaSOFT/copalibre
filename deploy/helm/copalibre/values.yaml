@@ -110,3 +110,118 @@ migrate:
 # `--set doctor.enabled=true` to run it on demand.
 doctor:
   enabled: false
+
+# --- Enterprise (Level 3) additions -------------------------------------
+# Every group below is additive to the base chart above and defaulted OFF, so
+# a default `helm install` with this values.yaml is byte-identical in
+# behavior to 0034-k3s-helm-deployment alone. See
+# docs/deployment/enterprise-kubernetes.md for prerequisites and usage.
+
+# HorizontalPodAutoscaler per role, driven by the three signals named in the
+# architecture doc: HTTP request rate (api), active connection count
+# (events), outbox queue depth/age (worker). None of these are native
+# Kubernetes metrics — each requires a custom-metrics adapter (e.g.
+# Prometheus Adapter, KEDA) exposing `metricName` as a Kubernetes External
+# metric. CPU-based scaling is available per role via `cpu.enabled` but is
+# not the documented default signal.
+autoscaling:
+  api:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 6
+    metricName: copalibre_http_requests_per_second
+    targetAverageValue: '100'
+    cpu:
+      enabled: false
+      targetAverageUtilization: 70
+  events:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 6
+    metricName: copalibre_sse_active_connections
+    targetAverageValue: '500'
+    cpu:
+      enabled: false
+      targetAverageUtilization: 70
+  worker:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 6
+    metricName: copalibre_outbox_queue_age_seconds
+    targetAverageValue: '300'
+    cpu:
+      enabled: false
+      targetAverageUtilization: 70
+
+# PodDisruptionBudget per role: a voluntary disruption (node drain, rolling
+# upgrade) never reduces that role's available replicas below minAvailable.
+# Independent of autoscaling — a fixed-size enterprise deployment may want
+# disruption protection without scaling.
+podDisruptionBudget:
+  api:
+    enabled: false
+    minAvailable: 1
+  events:
+    enabled: false
+    minAvailable: 1
+  worker:
+    enabled: false
+    minAvailable: 1
+  scheduler:
+    enabled: false
+    minAvailable: 1
+
+# Preferred (soft) pod anti-affinity: replicas of the same role prefer
+# scheduling on different nodes. Soft, not required, so a single-node dev
+# cluster is unaffected.
+affinity:
+  antiAffinity:
+    enabled: false
+    topologyKey: kubernetes.io/hostname
+    weight: 100
+
+# Default-deny NetworkPolicy with explicit per-role allow rules (architecture
+# principle "security boundaries follow exposure"). `publicRoles` additionally
+# get ingress from outside the pod network (an ingress controller or
+# NodePort); every role always accepts ingress from other CopaLibre pods in
+# the same release. `worker`/`scheduler` are never in `publicRoles`, so they
+# accept no external ingress.
+networkPolicy:
+  enabled: false
+  publicRoles:
+    - api
+    - events
+
+# TLS ingress for the public-facing roles (web/api/events), layered on top of
+# the Service templates above, not replacing them. Annotations default to
+# cert-manager's ClusterIssuer convention; override for a different ingress
+# controller/cert issuer. A host left empty ('') is not routed.
+ingress:
+  enabled: false
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  tls:
+    enabled: true
+    secretName: copalibre-tls
+  hosts:
+    web: ''
+    api: ''
+    events: ''
+
+# External Secrets Operator integration: when enabled, replaces the plain
+# values-driven Secret (templates/secret.yaml) with an ExternalSecret that
+# populates the identical Secret name from `secretStoreRef`, so
+# templates/deployment.yaml's envFrom needs no change either way.
+externalSecrets:
+  enabled: false
+  secretStoreRef:
+    name: copalibre-secret-store
+    kind: SecretStore
+  refreshInterval: 1h
+  # Per-key remote reference overrides, e.g.:
+  #   remoteRefs:
+  #     DATABASE_URL: { key: copalibre/database, property: url }
+  # Any key in `secretKeys` without an override here defaults to
+  # { key: <the env var name>, property: value }.
+  remoteRefs: {}
