@@ -15,6 +15,43 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # A PR confined to apps/web (and its own e2e specs / Playwright configs)
+  # cannot affect anything the backend-heavy jobs below actually verify — no
+  # other workspace's source changed, so their own test suites are already
+  # covered by whatever last touched them. The classification is
+  # deliberately conservative: apps/web imports @copalibre/domain,
+  # @copalibre/rules, and @copalibre/tournament-engine directly (see
+  # trace-contract.test.tsx), and packages/routing and packages/realtime are
+  # each also depended on by a backend workspace (persistence and events,
+  # respectively) — none of those count as "frontend", and a single changed
+  # file outside the safe set forces the full suite. Only integration-tests
+  # is gated directly; build/deployment-e2e/deploy-smoke-test all `needs`
+  # it (directly or transitively), and GitHub Actions skips a job whose
+  # `needs` entry was itself skipped, so they cascade without their own
+  # `if:` — see design note in integration-tests below before changing that
+  # needs graph.
+  detect-changes:
+    name: Detect change scope
+    runs-on: ubuntu-latest
+    outputs:
+      frontend_only: ${{ steps.classify.outputs.frontend_only }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: classify
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "frontend_only=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          changed=$(git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}")
+          if [ -z "$changed" ] || echo "$changed" | grep -qvE '^(apps/web/|e2e/|playwright\.config\.ts$|playwright\.compose\.config\.ts$)'; then
+            echo "frontend_only=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "frontend_only=true" >> "$GITHUB_OUTPUT"
+          fi
+
   install:
     name: Install
     runs-on: ubuntu-latest
@@ -393,7 +430,15 @@ jobs:
   integration-tests:
     name: Integration tests
     runs-on: ubuntu-latest
-    needs: [install, docs-build]
+    needs: [install, docs-build, detect-changes]
+    # Skipped for a PR confined to apps/web/e2e — see detect-changes above.
+    # build, deployment-e2e, and deploy-smoke-test all `needs` this job
+    # (directly or transitively) and are not given their own `if:`: GitHub
+    # Actions skips a job whose `needs` entry was itself skipped, so all
+    # three cascade-skip from this one condition. Do not add a `needs` edge
+    # from any *other* required job to this one without checking whether
+    # that cascade is still the intended behavior.
+    if: needs.detect-changes.outputs.frontend_only != 'true'
     services:
       postgres:
         image: postgres:17
