@@ -1,10 +1,19 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ControlShell } from './components/ControlShell.js';
 import {
+  MatchConsoleControlRoute,
   RegistrationReviewControlRoute,
+  ReportReviewControlRoute,
+  RolesPermissionsControlRoute,
   TournamentAuthoringControlRoute,
 } from './components/ControlRoutes.js';
-import { ControlApiError, createControlApiClient } from './lib/api-client.js';
+import {
+  ControlApiError,
+  createControlApiClient,
+  type ControlApiClient,
+  type MatchConsoleApiClient,
+  type MatchConsoleResponse,
+} from './lib/api-client.js';
 import { mutationFeedback } from './lib/mutation-feedback.js';
 import { sampleDashboardData } from './lib/sample.js';
 import { TournamentSetupWizard } from './components/TournamentSetupWizard.js';
@@ -86,7 +95,105 @@ describe('the control routes', () => {
 
     expect(screen.getByRole('navigation', { name: 'Secciones' })).toBeDefined();
   });
+
+  it('renders the report review route inside the shell', async () => {
+    const client: ControlApiClient = minimalControlClient({
+      listPendingReports: async () => [],
+    });
+    render(
+      <ReportReviewControlRoute
+        client={client}
+        organizationAlias="liga-mendocina"
+        tournamentAlias="apertura-2026"
+      />,
+    );
+
+    expect(screen.getByRole('navigation', { name: 'Secciones' })).toBeDefined();
+    await screen.findByText('No hay reportes ni disputas pendientes.');
+  });
+
+  it('renders the roles and permissions route inside the shell', async () => {
+    const client: ControlApiClient = minimalControlClient({
+      listOrganizationRoles: async () => [],
+    });
+    render(<RolesPermissionsControlRoute client={client} organizationAlias="liga-mendocina" />);
+
+    expect(screen.getByRole('navigation', { name: 'Secciones' })).toBeDefined();
+    await waitFor(() => expect(screen.queryByText(/Cargando/)).toBeNull());
+  });
+
+  it('renders the match console route inside the shell', async () => {
+    const projection: MatchConsoleResponse = {
+      matchId: 'match-1',
+      status: 'scheduled',
+      result: null,
+      liveScores: [],
+      segments: [],
+      runningTimers: [],
+      events: [],
+      eventDefinitions: [],
+      eligiblePersonIds: [],
+      eligibleStaffIds: [],
+      entrantIds: [],
+      capabilities: [],
+      projectionVersion: 1,
+    };
+    const client: MatchConsoleApiClient = { fetchMatchConsole: async () => projection };
+    render(
+      <MatchConsoleControlRoute
+        client={client}
+        matchId="match-1"
+        organizationAlias="liga-mendocina"
+        tournamentAlias="apertura-2026"
+      />,
+    );
+
+    expect(screen.getByRole('navigation', { name: 'Secciones' })).toBeDefined();
+    await screen.findByRole('region', { name: 'Operar partido' });
+  });
 });
+
+function minimalControlClient(overrides: Partial<ControlApiClient>): ControlApiClient {
+  return {
+    listDisciplines: async () => [],
+    createTournament: async () => ({ tournamentId: 't-1', alias: 't-1', name: 'Test' }),
+    listRegistrations: async () => [],
+    bulkReview: async () => ({ applied: [], refused: [] }),
+    reviewRegistration: async () => ({
+      entrantId: 'entrant',
+      tournamentId: 'tournament',
+      status: 'accepted',
+    }),
+    fetchStandings: async () => ({
+      stageId: 'stage',
+      projectionVersion: 0,
+      fullyResolved: true,
+      rows: [],
+      trace: [],
+    }),
+    fetchTiebreakTrace: async () => ({ entrantId: 'entrant', lines: [] }),
+    fetchSeeding: async () => ({
+      stageId: 'stage',
+      format: 'single-elimination',
+      seeds: [],
+      matches: [],
+      hasRecordedResults: false,
+    }),
+    publishSeeding: async () => ({
+      mutationClass: 'safe',
+      reason: 'test',
+      invalidates: [],
+      persisted: true,
+    }),
+    listOrganizationRoles: async () => [],
+    inviteOrganizationUser: async () => ({ invitationId: 'invite', expiresAt: '2099-01-01' }),
+    changeOrganizationRole: async () => {
+      throw new Error('not used in this test');
+    },
+    deleteOrganizationRole: async () => undefined,
+    ...overrides,
+  };
+}
 
 describe('the wizard beyond the first step', () => {
   it('carries the chosen discipline’s version and resets the format with it', () => {

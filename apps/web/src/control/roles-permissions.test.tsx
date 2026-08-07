@@ -102,6 +102,55 @@ describe('roles and permissions control', () => {
     render(<RolesPermissionsRoute client={client} organizationAlias="liga-mendocina" />);
     await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('Sin permisos'));
   });
+
+  it('deletes a role assignment through the route', async () => {
+    const deleteOrganizationRole = jest.fn(async () => undefined);
+    const client = controlClient({
+      listOrganizationRoles: async () => rows,
+      deleteOrganizationRole,
+    });
+    render(<RolesPermissionsRoute client={client} organizationAlias="liga-mendocina" />);
+
+    await screen.findByText('referee@example.test');
+    await act(async () => {
+      fireEvent.click(screen.getByLabelText('Eliminar referee@example.test'));
+    });
+
+    expect(deleteOrganizationRole).toHaveBeenCalledWith('liga-mendocina', 'assignment-1');
+    await waitFor(() => expect(screen.queryByText('referee@example.test')).toBeNull());
+  });
+
+  it('invites a user through the route and reloads the row list', async () => {
+    const inviteOrganizationUser = jest.fn(async () => ({
+      invitationId: 'invite-1',
+      expiresAt: '2099-01-01',
+    }));
+    const listOrganizationRoles = jest
+      .fn()
+      .mockResolvedValueOnce(rows)
+      .mockResolvedValueOnce([
+        ...rows,
+        { ...rows[0], assignmentId: 'assignment-2', email: 'viewer@example.test' },
+      ]);
+    const client = controlClient({ listOrganizationRoles, inviteOrganizationUser });
+    render(<RolesPermissionsRoute client={client} organizationAlias="liga-mendocina" />);
+
+    await screen.findByText('referee@example.test');
+    fireEvent.click(screen.getByText('Añadir destinatario'));
+    fireEvent.change(screen.getByLabelText('Correo electrónico'), {
+      target: { value: 'viewer@example.test' },
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Enviar invitación'));
+    });
+
+    expect(inviteOrganizationUser).toHaveBeenCalledWith('liga-mendocina', {
+      email: 'viewer@example.test',
+      role: 'viewer',
+      status: 'active',
+    });
+    await waitFor(() => expect(screen.getByText('viewer@example.test')).toBeDefined());
+  });
 });
 
 function controlClient(overrides: Partial<ControlApiClient>): ControlApiClient {
