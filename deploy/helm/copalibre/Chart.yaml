@@ -1,0 +1,14 @@
+apiVersion: v2
+name: copalibre
+description: >-
+  Deploys the CopaLibre release artifact to a K3s/Kubernetes cluster using the
+  same images, environment contract, health checks, and migration process as
+  the Docker Compose Level 1 install (0030-deployment-docker-compose-cli).
+type: application
+version: 0.1.0
+# apps/copalibre/package.json's "version" field is a "0.0.0" placeholder today
+# — no release-tagging pipeline exists yet in this repo (see
+# 0042-cli-startup-banner's design.md for the same open gate). appVersion
+# tracks that same release artifact and should be set at packaging time
+# (helm package --app-version=<real-version>) once one exists.
+appVersion: '0.0.0'

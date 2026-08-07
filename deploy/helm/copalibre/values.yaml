@@ -1,0 +1,112 @@
+# Mirrors docker-compose.yml's contract: one multi-role image for
+# api/events/worker/scheduler/migrate/doctor, selected at container start via
+# PRODUCT_ROLE; web is a separate (Caddy + static build) image with its own,
+# much smaller environment surface. Keep this file's env var names in sync
+# with docker-compose.yml — scripts/check-helm-compose-parity.sh fails CI if
+# they drift.
+
+image:
+  repository: copalibre
+  tag: local
+  pullPolicy: IfNotPresent
+
+# One entry per long-running role sharing the multi-role image. Each becomes
+# one Deployment (templates/deployment.yaml, ranged over this map) so no role
+# can drift from the shared template — only these values differ per role.
+roles:
+  api:
+    port: 3001
+    replicas: 1
+    service: true
+    # api alone can distinguish "up" from "ready to serve" (GET /ready checks
+    # the DB schema version); the other roles only have GET /health.
+    probePath: /health
+    readinessPath: /ready
+    resources: {}
+  events:
+    port: 3002
+    replicas: 1
+    service: true
+    probePath: /health
+    resources: {}
+  worker:
+    port: 3003
+    replicas: 1
+    service: false
+    probePath: /health
+    resources: {}
+  scheduler:
+    port: 3004
+    replicas: 1
+    service: false
+    probePath: /health
+    resources: {}
+
+# web never runs the Nest multi-role image or the shared 22-variable
+# environment contract below — it's Caddy serving Astro's static build, health
+# checked with a plain GET / (see docker-compose.yml's web service).
+web:
+  image:
+    repository: copalibre-web
+    tag: local
+    pullPolicy: IfNotPresent
+  port: 4321
+  replicas: 1
+  probePath: /
+  resources: {}
+  env:
+    COPALIBRE_JWT_ISSUER: ''
+    COPALIBRE_OIDC_CLIENT_ID: ''
+
+# Shared by every role in `roles` above (envFrom a ConfigMap + Secret built
+# from this map — see templates/configmap.yaml and templates/secret.yaml).
+# Matches docker-compose.yml's `x-application-environment` anchor exactly;
+# PRODUCT_ROLE and PORT are set per-role by the Deployment template itself,
+# not listed here.
+env:
+  DATABASE_URL: ''
+  COPALIBRE_APP_URL: ''
+  COPALIBRE_API_URL: ''
+  COPALIBRE_BOOTSTRAP_TOKEN: ''
+  COPALIBRE_JWKS_URI: ''
+  COPALIBRE_JWT_ISSUER: ''
+  COPALIBRE_JWT_AUDIENCE: ''
+  COPALIBRE_OIDC_CLIENT_ID: ''
+  COPALIBRE_EMAIL_PROVIDER: ''
+  COPALIBRE_EMAIL_FROM: ''
+  COPALIBRE_RESEND_API_KEY: ''
+  COPALIBRE_BREVO_API_KEY: ''
+  COPALIBRE_MAILGUN_API_KEY: ''
+  COPALIBRE_MAILGUN_DOMAIN: ''
+  COPALIBRE_MAILGUN_BASE_URL: ''
+  COPALIBRE_SMTP_URL: ''
+  COPALIBRE_OBJECT_STORAGE_URL: ''
+  COPALIBRE_OBJECT_STORAGE_ACCESS_KEY: ''
+  COPALIBRE_OBJECT_STORAGE_SECRET_KEY: ''
+  COPALIBRE_OBJECT_STORAGE_BUCKET: ''
+  COPALIBRE_DATA_DIR: /var/lib/copalibre
+  COPALIBRE_IN_CONTAINER: 'true'
+
+# Which of the keys in `env` above hold credentials and belong in the Secret
+# rather than the ConfigMap. Everything else in `env` goes in the ConfigMap.
+secretKeys:
+  - DATABASE_URL
+  - COPALIBRE_BOOTSTRAP_TOKEN
+  - COPALIBRE_RESEND_API_KEY
+  - COPALIBRE_BREVO_API_KEY
+  - COPALIBRE_MAILGUN_API_KEY
+  - COPALIBRE_SMTP_URL
+  - COPALIBRE_OBJECT_STORAGE_ACCESS_KEY
+  - COPALIBRE_OBJECT_STORAGE_SECRET_KEY
+
+migrate:
+  # backoffLimit 0: fail fast, no silent retries — a stuck migration should
+  # surface as a failed helm upgrade, not retry into a worse state.
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 3600
+
+# Off by default, like docker-compose.yml's `doctor` service (profile
+# "operations", not started by `docker compose up`). Enable with
+# `--set doctor.enabled=true` to run it on demand.
+doctor:
+  enabled: false
