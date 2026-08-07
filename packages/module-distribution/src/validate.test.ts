@@ -275,13 +275,17 @@ describe('validateModulePackage', () => {
     }
   });
 
-  it('rejects an unparseable manifest.json', async () => {
+  it('rejects an unparseable manifest.json as a normal validation failure, not a throw', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'copalibre-module-'));
     directories.push(directory);
     await writeFile(join(directory, 'manifest.json'), '{not json');
     await writeFile(join(directory, 'artifact.json'), JSON.stringify(validDisciplineDocument()));
 
-    await expect(validateModulePackage(directory, OPTIONS)).rejects.toThrow(/manifest\.json/);
+    const result = await validateModulePackage(directory, OPTIONS);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.failures[0]?.message).toMatch(/manifest\.json/);
+    }
   });
 
   it('rejects an artifact document failing its own schema', async () => {
@@ -444,14 +448,16 @@ describe('validateModulePackage', () => {
     }
   });
 
-  it('rejects a directory with no manifest.json at all', async () => {
+  it('rejects a directory with no manifest.json at all, as a normal validation failure', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'copalibre-module-'));
     directories.push(directory);
     await writeFile(join(directory, 'artifact.json'), JSON.stringify(validDisciplineDocument()));
 
-    await expect(validateModulePackage(directory, OPTIONS)).rejects.toThrow(
-      /Cannot read manifest\.json/,
-    );
+    const result = await validateModulePackage(directory, OPTIONS);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.failures[0]?.message).toMatch(/Cannot read manifest\.json/);
+    }
   });
 
   it('rejects a manifest declaring an invalid semver range', async () => {

@@ -42,7 +42,21 @@ export async function validateModulePackage(
   | { readonly ok: false; readonly failures: readonly ModuleValidationFailure[] }
 > {
   const failures: ModuleValidationFailure[] = [];
-  const raw = await readModulePackage(directory);
+  let raw;
+  try {
+    raw = await readModulePackage(directory);
+  } catch (error) {
+    // A directory missing or unable to parse manifest.json/artifact.json is
+    // "not a valid module" (spec.md's own scenario), a normal validation
+    // rejection — never an exceptional program error a caller of this
+    // Result-returning entry point should have to catch separately.
+    return {
+      ok: false,
+      failures: [
+        { stage: 'manifest', message: error instanceof Error ? error.message : String(error) },
+      ],
+    };
+  }
 
   const manifestResult = validateModuleManifest(raw.manifestDocument);
   if (!manifestResult.ok) {

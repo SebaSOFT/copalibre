@@ -1,0 +1,54 @@
+name: Module validation
+
+# Reusable (0036-community-module-distribution task 5.1): the curated module
+# repository (github.com/SebaSOFT/copalibre-modules) calls this on every
+# pull request via `uses: SebaSOFT/copalibre/.github/workflows/
+# module-validation.yml@develop`, so a contribution is checked before review
+# rather than after an operator's failed import. ci.yml's own
+# `module-validation` job (task 8.1) also calls this, pointed at the
+# reference repository's fixtures, so a core change that breaks the module
+# contract fails here rather than in the community repository.
+on:
+  workflow_call:
+    inputs:
+      module-repository:
+        description: 'owner/repo of the module repository to validate (defaults to the caller)'
+        required: false
+        type: string
+      module-repository-ref:
+        description: 'git ref of the module repository to validate'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate module packages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout copalibre (the validator)
+        uses: actions/checkout@v4
+        with:
+          repository: SebaSOFT/copalibre
+          path: copalibre
+      - name: Checkout the module repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.module-repository || github.repository }}
+          ref: ${{ inputs.module-repository-ref || github.ref }}
+          path: modules
+      - run: corepack enable
+        working-directory: copalibre
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+          cache-dependency-path: copalibre/yarn.lock
+      - run: yarn install --immutable
+        working-directory: copalibre
+      - run: yarn workspace @copalibre/module-distribution run build
+        working-directory: copalibre
+      - run: node scripts/validate-module-repository.mjs "${{ github.workspace }}/modules"
+        working-directory: copalibre
