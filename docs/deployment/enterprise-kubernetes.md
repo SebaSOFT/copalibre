@@ -77,6 +77,46 @@ See `docs/deployment/kamal.md` for the documented alternative to full
 Kubernetes: the same images and environment contract, deployed to managed
 VMs instead of a cluster.
 
-<!-- Remaining sections (measured-evidence report links, readiness-claim
-     policy) are added by later task groups in
-     0035-kubernetes-enterprise-deployment. -->
+## Measured evidence
+
+The architecture doc's explicit open gate — "Enterprise claims require
+measured multi-node, failover, backup/restore, and upgrade evidence" — is
+produced by three scripts, each run locally against a real k3d cluster
+during development and on a schedule in CI (`k8s-enterprise-validate`, see
+`.github/workflows/`):
+
+- `scripts/validate-multi-node-failover.sh` — `api`/`events`/`worker` run at
+  `replicas >= 2` across at least two nodes; one node is forcibly terminated;
+  the remaining replica keeps serving and the lost pod reschedules onto a
+  healthy node within the documented recovery window.
+- `scripts/validate-backup-restore.sh` — the latest PostgreSQL and
+  object-storage backup restores into a clean Kubernetes installation and
+  passes the same integrity checks as `0030-deployment-docker-compose-cli`'s
+  Compose-level backup/restore requirement.
+- `scripts/validate-upgrade-safety.sh` — a chart upgrade across two minor
+  versions completes with zero downtime and a successful migration Job at
+  each step.
+
+Each script writes a dated Markdown evidence report to
+`docs/deployment/evidence/` on every run — see that directory for the most
+recent reports. Latest passing reports as of this phase's implementation:
+
+- [multi-node-failover-20260807T205413Z](evidence/multi-node-failover-20260807T205413Z.md) — PASS
+- [backup-restore-20260807T204217Z](evidence/backup-restore-20260807T204217Z.md) — PASS
+- [upgrade-safety-20260807T210717Z](evidence/upgrade-safety-20260807T210717Z.md) — PASS
+
+## Enterprise-readiness claim policy
+
+**This phase does not, by itself, claim CopaLibre is "enterprise-ready."**
+That claim requires the evidence above to exist and pass — a documentation
+decision outside this phase's scope, not something this phase asserts on its
+own.
+
+Any future readiness language added to this document (or elsewhere) is
+enforced structurally, not just by convention:
+`scripts/check-enterprise-readiness-docs.mjs` runs in CI
+(`.github/workflows/ci.yml`) and fails the build if this file contains
+readiness language (e.g. "enterprise-ready", "enterprise Kubernetes support")
+without linking a dated, passing evidence report from **both** the
+multi-node-failover and backup-restore validations above. See that script
+for the exact gate logic.

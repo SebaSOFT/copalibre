@@ -57,7 +57,7 @@ compares Compose against Helm today.
   `0034-k3s-helm-deployment`'s pre-install/pre-upgrade Helm hook (weight
   `-5`) provides. Kamal has no native pre-deploy migration Job primitive —
   run migration via a `kamal app exec` (or an equivalent pre-deploy hook)
-  against the `runtime` image with `PRODUCT_ROLE=migrate` *before* triggering
+  against the `runtime` image with `PRODUCT_ROLE=migrate` _before_ triggering
   the roll, and fail the deploy if it exits non-zero, mirroring the Helm
   chart's `backoffLimit: 0` fail-fast behavior in `templates/job-migrate.yaml`.
 
