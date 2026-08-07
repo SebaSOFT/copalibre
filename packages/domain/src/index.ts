@@ -315,7 +315,14 @@ export {
 } from './rulesets/mutation.js';
 
 export type { Organization, Club } from './aggregates/organization.js';
-export { hasStarted, type Tournament, type TournamentStatus } from './aggregates/tournament.js';
+export {
+  hasStarted,
+  canTransitionTournament,
+  transitionTournament,
+  TournamentTransitionError,
+  type Tournament,
+  type TournamentStatus,
+} from './aggregates/tournament.js';
 export {
   validateStageCompletion,
   validateNextStage,

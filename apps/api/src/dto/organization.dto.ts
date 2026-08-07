@@ -68,17 +68,25 @@ export class TournamentResponse {
   name!: string;
 
   @ApiProperty({
-    enum: ['draft', 'published', 'started', 'finished'],
+    enum: ['draft', 'published', 'started', 'finished', 'archived'],
     description:
-      "Once started, the tournament's discipline and profile versions are frozen and its results are materialised.",
+      "Once started, the tournament's discipline and profile versions are frozen and its results " +
+      'are materialised. Archived is legal only from finished (0033) and changes default visibility ' +
+      'only — no data is affected.',
   })
-  status!: 'draft' | 'published' | 'started' | 'finished';
+  status!: 'draft' | 'published' | 'started' | 'finished' | 'archived';
 
   @ApiPropertyOptional({
     format: 'date-time',
     description: 'When the first match began, marking the module freeze.',
   })
   startedAt?: string;
+
+  @ApiPropertyOptional({
+    format: 'date-time',
+    description: 'When the tournament was archived (0033); absent until then.',
+  })
+  archivedAt?: string;
 
   @ApiPropertyOptional({ format: 'uuid', description: 'Active ruleset version, when one exists' })
   rulesetId?: string;

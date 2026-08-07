@@ -106,6 +106,11 @@ export interface ControlApiClient {
     reportId: string,
     request: ReviewReportRequest,
   ) => Promise<ParticipantReportResponse>;
+  /** Archives a finished tournament (0033); legal only from finished. */
+  readonly archiveTournament?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+  ) => Promise<{ readonly status: string }>;
 }
 
 export interface DisplayTokenResponse {
@@ -587,6 +592,13 @@ export function createControlApiClient(input: {
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/reports/${encodeURIComponent(reportId)}/review`,
         { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    archiveTournament: (organizationAlias, tournamentAlias) =>
+      requestJson<{ readonly status: string }>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/archive`,
+        { method: 'POST', token: input.accessToken?.() },
       ),
 
     fetchMatchConsole: (organizationAlias, tournamentAlias, matchId) =>

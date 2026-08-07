@@ -87,6 +87,17 @@ describe('migrations (integration)', () => {
     expect(afterUp).toContain('display_tokens');
     expect(afterUp).toContain('participant_reports');
     expect(afterUp).toContain('report_evidence');
+    expect(afterUpTables.find((table) => table.name === 'tournaments')?.columns).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'archived_at' })]),
+    );
+
+    const archivedAtDown = await migrateDownOneStep(scratch.db);
+    expect(archivedAtDown.error).toBeUndefined();
+
+    const afterArchivedAtDownTables = await scratch.db.introspection.getTables();
+    expect(
+      afterArchivedAtDownTables.find((table) => table.name === 'tournaments')?.columns,
+    ).not.toEqual(expect.arrayContaining([expect.objectContaining({ name: 'archived_at' })]));
 
     const participantReportsDown = await migrateDownOneStep(scratch.db);
     expect(participantReportsDown.error).toBeUndefined();

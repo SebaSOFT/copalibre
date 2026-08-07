@@ -180,6 +180,10 @@ jobs:
       - run: yarn workspace @copalibre/api test --testPathPatterns 'resource-policy'
       - run: yarn workspace @copalibre/worker test --testPathPatterns 'report-evidence'
       - run: yarn workspace @copalibre/web test --testPathPatterns 'control/lib/reports'
+      # competition-lifecycle (0033): the five-state legal-transition table,
+      # exhaustively checked pairwise — named separately so a reviewer finds
+      # this capability's own signal directly.
+      - run: yarn workspace @copalibre/domain test --testPathPatterns 'tournament'
       # The soak-report growth judgment (0031, 9.3) — the arithmetic that
       # decides whether the nightly and per-PR soak runs pass, tested without
       # a browser.
@@ -477,6 +481,11 @@ jobs:
       # reviewer finds this capability's own signal directly.
       - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'reports'
       - run: yarn workspace @copalibre/persistence run test:integration --testPathPatterns 'match-operations'
+      # competition-lifecycle (0033): the illegal-transition rejection and
+      # archival's effect on the active-only listing through the real HTTP
+      # stack, and archived-tournament export byte-equality — named
+      # separately so a reviewer finds this capability's own signal directly.
+      - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'lifecycle'
       # Runs the CLI's process-level misconfiguration contract. The API
       # bootstrap lifecycle itself is covered by the API integration suite.
       - run: yarn workspace @copalibre/copalibre build

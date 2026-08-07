@@ -18,6 +18,7 @@ import {
   type TournamentCard,
 } from './lib/dashboard.js';
 import { Dashboard } from './components/Dashboard.js';
+import { DeviceHeartbeat } from './components/DeviceHeartbeat.js';
 import { TournamentCard as Card } from './components/TournamentCard.js';
 import { QuickStats } from './components/QuickStats.js';
 import { Badge } from './components/ui/badge.js';
@@ -284,6 +285,83 @@ describe('what the dashboard renders', () => {
       });
       click.mockRestore();
     }
+  });
+
+  it('archives a finished tournament and removes it from view (0033, 6.1)', async () => {
+    Object.defineProperty(globalThis, 'fetch', {
+      configurable: true,
+      value: async (url: string, init?: RequestInit) => {
+        if (url.includes('/display-tokens')) {
+          return new Response('[]', { headers: { 'content-type': 'application/json' } });
+        }
+        if (url.includes('/archive') && init?.method === 'POST') {
+          return Response.json({ status: 'archived' });
+        }
+        return new Response('Not found', { status: 404 });
+      },
+    });
+
+    render(
+      <Dashboard
+        model={buildDashboard({
+          organizationId: 'org-1',
+          tournaments: [card({ lifecycle: 'finished' })],
+          activity: [],
+        })}
+        organizationAlias="liga-mendocina"
+      />,
+    );
+
+    expect(screen.getByText('Torneo Apertura')).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: 'Archivar' }));
+
+    await waitFor(() => expect(screen.queryByText('Torneo Apertura')).toBeNull());
+  });
+
+  it('classifies each device by its last-seen signal, not only by label', () => {
+    const now = new Date('2026-08-01T12:00:00.000Z').getTime();
+    render(
+      <DeviceHeartbeat
+        devices={[
+          {
+            tournamentAlias: 'apertura-2026',
+            token: {
+              displayTokenId: 'token-online',
+              tournamentId: 't-1',
+              label: 'Cancha 1',
+              revoked: false,
+              lastSeenAt: new Date(now - 5_000).toISOString(),
+              createdAt: '2026-08-01T00:00:00.000Z',
+            },
+          },
+          {
+            tournamentAlias: 'apertura-2026',
+            token: {
+              displayTokenId: 'token-never-seen',
+              tournamentId: 't-1',
+              revoked: false,
+              createdAt: '2026-08-01T00:00:00.000Z',
+            },
+          },
+        ]}
+        now={now}
+      />,
+    );
+
+    expect(screen.getByText('Cancha 1')).toBeDefined();
+    expect(screen.getByText('token-never-seen')).toBeDefined();
+    expect(screen.getByText(/última señal/)).toBeDefined();
+  });
+
+  it('shows no archive action for a tournament that has not finished', () => {
+    render(
+      <Dashboard
+        model={buildDashboard({ organizationId: 'org-1', tournaments: [card()], activity: [] })}
+        organizationAlias="liga-mendocina"
+      />,
+    );
+
+    expect(screen.queryByRole('button', { name: 'Archivar' })).toBeNull();
   });
 });
 

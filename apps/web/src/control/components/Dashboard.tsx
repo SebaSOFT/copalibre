@@ -31,6 +31,16 @@ export function Dashboard({
 
   const [devices, setDevices] = useState<readonly DeviceEntry[]>([]);
   const [now, setNow] = useState(() => Date.now());
+  const [archivedAliases, setArchivedAliases] = useState<ReadonlySet<string>>(new Set());
+  const visibleTournaments = model.tournaments.filter((card) => !archivedAliases.has(card.alias));
+  const archive = (tournamentAlias: string) =>
+    void api.archiveTournament?.(organizationAlias, tournamentAlias).then(() => {
+      // Removed from view rather than re-fetched: this dashboard's tournament
+      // list is still build-time sample data (0033), so a live "active only"
+      // re-query isn't possible yet — the operator sees the result of their
+      // own action immediately either way.
+      setArchivedAliases((current) => new Set([...current, tournamentAlias]));
+    });
   const tournamentAliases = model.tournaments.map((card) => card.alias).join(',');
 
   useEffect(() => {
@@ -74,8 +84,8 @@ export function Dashboard({
       <main>
         <QuickStats stats={model.stats} />
         <section aria-label="Torneos">
-          {model.tournaments.length === 0 && <p>Esta organización no tiene torneos todavía.</p>}
-          {model.tournaments.map((card) => (
+          {visibleTournaments.length === 0 && <p>Esta organización no tiene torneos todavía.</p>}
+          {visibleTournaments.map((card) => (
             <div key={card.tournamentId}>
               <TournamentCard card={card} />
               <p>
@@ -88,6 +98,11 @@ export function Dashboard({
                 <button onClick={() => download(card.alias, 'standings')} type="button">
                   Posiciones CSV
                 </button>
+                {card.lifecycle === 'finished' && (
+                  <button onClick={() => archive(card.alias)} type="button">
+                    Archivar
+                  </button>
+                )}
               </p>
             </div>
           ))}

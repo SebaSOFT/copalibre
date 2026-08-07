@@ -55,6 +55,9 @@ recipient's authenticated OIDC identity to present a verified email matching the
 A participant-scoped identity's authorized scope SHALL be limited to its own registration, team
 memberships, and reported results, and SHALL NOT extend to another participant's records or to any
 operator/admin tool. A roster is match-scoped and does not grant participant ownership by itself.
+This scope SHALL include submitting a result report or dispute for a match the participant is
+entered in, bounded by the same ownership rule as every other participant self-service action — no
+new authorization concept, only a new scoped write action.
 
 #### Scenario: Participant cannot read another participant's private data
 - **WHEN** a participant-scoped token requests another participant's registration details
@@ -63,6 +66,17 @@ operator/admin tool. A roster is match-scoped and does not grant participant own
 #### Scenario: Participant cannot access operator tools
 - **WHEN** a participant-scoped token requests an operator-only endpoint (e.g. match finalization)
 - **THEN** the request is rejected with an authorization error, regardless of tournament membership
+
+#### Scenario: Participant can submit a report or dispute for their own match
+- **WHEN** a participant-scoped token submits a result report or dispute for a match that participant
+  is entered in
+- **THEN** the submission is accepted as a candidate input to the existing operator-authorized
+  correction workflow, and does not itself change any authoritative result
+
+#### Scenario: Participant cannot submit a report or dispute for another participant's match
+- **WHEN** a participant-scoped token submits a result report or dispute for a match that participant
+  is not entered in
+- **THEN** the request is rejected with an authorization error
 
 ### Requirement: Role changes are audited
 Every role assignment, change, or revocation SHALL be recorded as an auditable event with actor,

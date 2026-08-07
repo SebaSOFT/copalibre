@@ -56,6 +56,7 @@ describe('snake_case row → camelCase domain mapping', () => {
       profile_id: null,
       profile_version: null,
       created_at: CREATED,
+      archived_at: null,
     };
     expect(toTournament(row)).toEqual({
       tournamentId: 't-1',
@@ -254,6 +255,7 @@ describe('mapping edge cases', () => {
       profile_id: null,
       profile_version: null,
       created_at: CREATED,
+      archived_at: null,
     };
     expect(toTournament(row).rulesetId).toBe('rs-1');
   });
