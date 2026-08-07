@@ -26,6 +26,10 @@ export const communityModuleInstallation: Migration = {
       .addColumn('attribution_author', 'text', (col) => col.notNull())
       .addColumn('attribution_licence', 'text', (col) => col.notNull())
       .addColumn('attribution_source_url', 'text')
+      // Snapshotted from the manifest at install time so `module verify`
+      // (task 4.6) can re-check core-version compatibility without needing
+      // the original module package on disk.
+      .addColumn('requires_copalibre', 'text', (col) => col.notNull())
       .addColumn('source_kind', 'text', (col) => col.notNull())
       .addColumn('source_repository_url', 'text', (col) => col.notNull())
       .addColumn('installed_at', 'timestamptz', (col) =>

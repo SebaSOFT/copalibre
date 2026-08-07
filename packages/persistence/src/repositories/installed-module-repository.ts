@@ -15,6 +15,7 @@ export interface InstalledModule {
   readonly version: string;
   readonly documentId: string;
   readonly attribution: Attribution;
+  readonly requiresCopalibre: string;
   readonly sourceKind: ModuleSourceKind;
   readonly sourceRepositoryUrl: string;
   readonly installedAt: string;
@@ -70,6 +71,7 @@ export class InstalledModuleRepository {
       readonly version: string;
       readonly documentId: string;
       readonly attribution: Attribution;
+      readonly requiresCopalibre: string;
       readonly sourceKind: ModuleSourceKind;
       readonly sourceRepositoryUrl: string;
     } & AuditContext,
@@ -87,6 +89,7 @@ export class InstalledModuleRepository {
         attribution_author: input.attribution.author,
         attribution_licence: input.attribution.licence,
         attribution_source_url: input.attribution.sourceUrl ?? null,
+        requires_copalibre: input.requiresCopalibre,
         source_kind: input.sourceKind,
         source_repository_url: input.sourceRepositoryUrl,
         installed_at: installedAt,
@@ -115,6 +118,7 @@ export class InstalledModuleRepository {
       version: input.version,
       documentId: input.documentId,
       attribution: input.attribution,
+      requiresCopalibre: input.requiresCopalibre,
       sourceKind: input.sourceKind,
       sourceRepositoryUrl: input.sourceRepositoryUrl,
       installedAt: installedAt.toISOString(),
@@ -192,10 +196,29 @@ export class InstalledModuleRepository {
    * Removes an installed module and its asset references (task 4.5 checks
    * "referenced by a started tournament" before calling this — removal
    * itself does not re-check, so the check and the act cannot race apart).
+   * Leaves the underlying `discipline_descriptors`/`tournament_profiles` row
+   * in place: another installed module version, or a finished tournament
+   * that never re-reads it live, may still reference that document.
    */
-  async remove(uow: UnitOfWork, moduleId: string): Promise<void> {
+  async remove(
+    uow: UnitOfWork,
+    moduleId: string,
+    context: {
+      readonly module: Pick<InstalledModule, 'kind' | 'alias' | 'version'>;
+    } & AuditContext,
+  ): Promise<void> {
     await uow.tx.deleteFrom('module_assets').where('module_id', '=', moduleId).execute();
     await uow.tx.deleteFrom('installed_modules').where('module_id', '=', moduleId).execute();
+
+    await uow.recordAudit({
+      organizationId: context.organizationId,
+      entityType: 'installed-module',
+      entityId: moduleId,
+      action: 'module.removed',
+      actor: context.actor,
+      authorizationContext: context.authorizationContext,
+      resultingState: { ...context.module },
+    });
   }
 }
 
@@ -208,6 +231,7 @@ function toInstalledModule(row: {
   attribution_author: string;
   attribution_licence: string;
   attribution_source_url: string | null;
+  requires_copalibre: string;
   source_kind: string;
   source_repository_url: string;
   installed_at: Date;
@@ -223,6 +247,7 @@ function toInstalledModule(row: {
       licence: row.attribution_licence,
       ...(row.attribution_source_url === null ? {} : { sourceUrl: row.attribution_source_url }),
     },
+    requiresCopalibre: row.requires_copalibre,
     sourceKind: row.source_kind as ModuleSourceKind,
     sourceRepositoryUrl: row.source_repository_url,
     installedAt: row.installed_at.toISOString(),

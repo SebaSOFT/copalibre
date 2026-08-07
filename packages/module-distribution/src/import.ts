@@ -161,6 +161,7 @@ export async function importValidatedModule(
         version: manifest.version,
         documentId,
         attribution: artifact.attribution,
+        requiresCopalibre: manifest.requiresCopalibre,
         sourceKind: options.source.kind,
         sourceRepositoryUrl: options.source.repositoryUrl,
         organizationId: SYSTEM_ORGANIZATION,

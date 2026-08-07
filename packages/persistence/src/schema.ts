@@ -659,6 +659,7 @@ export interface InstalledModulesTable {
   attribution_author: string;
   attribution_licence: string;
   attribution_source_url: string | null;
+  requires_copalibre: string;
   /** `curated` or `alternate`. */
   source_kind: string;
   source_repository_url: string;

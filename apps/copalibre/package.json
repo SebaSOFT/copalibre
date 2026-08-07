@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@copalibre/auth": "workspace:^",
+    "@copalibre/domain": "workspace:^",
+    "@copalibre/module-distribution": "workspace:^",
     "@copalibre/persistence": "workspace:^",
     "@nestjs/common": "^11.1.28",
     "@nestjs/core": "^11.1.28",

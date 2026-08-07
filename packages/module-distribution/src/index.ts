@@ -40,6 +40,7 @@ export {
   ModuleFetchError,
   alternateModuleSource,
   fetchModule,
+  listPublishedVersions,
   parseModuleTagVersions,
   resolveModuleVersion,
   type FetchedModule,
@@ -54,3 +55,5 @@ export {
   type ImportModuleOptions,
   type ImportModuleReport,
 } from './import.js';
+
+export { verifyInstalledModule } from './verify.js';

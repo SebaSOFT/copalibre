@@ -73,10 +73,26 @@ export function resolveModuleVersion(
 }
 
 export interface FetchedModule {
-  /** The checked-out module directory, containing manifest.json/artifact.json/assets/. Caller must clean up. */
+  /** The checked-out module directory, containing manifest.json/artifact.json/assets/. */
   readonly directory: string;
+  /** The temp checkout `directory` lives under — remove this (not just `directory`) to clean up fully. */
+  readonly checkoutRoot: string;
   readonly resolvedVersion: string;
   readonly source: ModuleSource;
+}
+
+/** Every version of `alias` published to `source` — `module list --outdated` (task 4.3) uses this without checking anything out. */
+export async function listPublishedVersions(
+  source: ModuleSource,
+  alias: string,
+): Promise<readonly string[]> {
+  const { stdout } = await runGit([
+    'ls-remote',
+    '--tags',
+    source.repositoryUrl,
+    `${tagPrefix(alias)}*`,
+  ]);
+  return parseModuleTagVersions(alias, stdout);
 }
 
 /**
@@ -92,13 +108,7 @@ export async function fetchModule(
   range: string | undefined,
   workspaceDirectory: string = tmpdir(),
 ): Promise<FetchedModule> {
-  const { stdout } = await runGit([
-    'ls-remote',
-    '--tags',
-    source.repositoryUrl,
-    `${tagPrefix(alias)}*`,
-  ]);
-  const versions = parseModuleTagVersions(alias, stdout);
+  const versions = await listPublishedVersions(source, alias);
   const resolvedVersion = resolveModuleVersion(versions, range);
   if (!resolvedVersion) {
     throw new ModuleFetchError(
@@ -129,7 +139,7 @@ export async function fetchModule(
   for (const category of ['disciplines', 'profiles']) {
     const candidate = join(checkoutRoot, category, alias);
     if (await pathExists(join(candidate, 'manifest.json'))) {
-      return { directory: candidate, resolvedVersion, source };
+      return { directory: candidate, checkoutRoot, resolvedVersion, source };
     }
   }
   await rm(checkoutRoot, { recursive: true, force: true });
