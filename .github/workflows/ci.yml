@@ -673,6 +673,13 @@ jobs:
     name: Deployment E2E
     runs-on: ubuntu-latest
     needs: build
+    # GitHub's default cascade-skip looks at the *entire* transitive needs
+    # graph, not just this job's direct needs — confirmed empirically: with
+    # no if: of its own, this job still skipped when e2e-tests (two levels
+    # up, one of build's needs) was skipped, even though build itself
+    # completed with result 'success'. An explicit check against build's own
+    # result is required to stop that taint from propagating any further.
+    if: needs.build.result == 'success'
     timeout-minutes: 30
     env:
       COPALIBRE_IMAGE: copalibre:ci
@@ -729,6 +736,8 @@ jobs:
     name: Deploy smoke test
     runs-on: ubuntu-latest
     needs: [build, deployment-e2e]
+    # Same taint-stops-here reasoning as deployment-e2e's if: above.
+    if: needs.build.result == 'success' && needs.deployment-e2e.result == 'success'
     env:
       COPALIBRE_IMAGE: copalibre:ci
       COPALIBRE_WEB_IMAGE: copalibre-web:ci
