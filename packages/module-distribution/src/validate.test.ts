@@ -127,6 +127,33 @@ describe('validateModulePackage', () => {
     }
   });
 
+  it.each([
+    ['^1.0.0', true],
+    ['^2.0.0', false],
+    ['~1.0.0', true],
+    ['~1.1.0', false],
+    ['*', true],
+    ['1.x', true],
+    ['2.x', false],
+    ['>=1.0.0 <2.0.0', true],
+    ['>=2.0.0 <3.0.0', false],
+  ] as const)(
+    'requiresCopalibre "%s" against running version 1.0.0 %s',
+    async (range, accepted) => {
+      const directory = await makeModuleDirectory(
+        validManifest({ requiresCopalibre: range }),
+        validDisciplineDocument(),
+      );
+      directories.push(directory);
+
+      const result = await validateModulePackage(directory, OPTIONS);
+      expect(result.ok).toBe(accepted);
+      if (!result.ok) {
+        expect(result.failures.some((failure) => failure.stage === 'core-version')).toBe(true);
+      }
+    },
+  );
+
   it('rejects a module declaring an asset that is not present on disk', async () => {
     const directory = await makeModuleDirectory(
       validManifest({ assets: [{ path: 'missing.png', kind: 'logo' }] }),
