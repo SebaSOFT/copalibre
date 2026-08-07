@@ -1454,6 +1454,8 @@ __metadata:
   resolution: "@copalibre/copalibre@workspace:apps/copalibre"
   dependencies:
     "@copalibre/auth": "workspace:^"
+    "@copalibre/domain": "workspace:^"
+    "@copalibre/module-distribution": "workspace:^"
     "@copalibre/persistence": "workspace:^"
     "@nestjs/common": "npm:^11.1.28"
     "@nestjs/core": "npm:^11.1.28"
@@ -1546,7 +1548,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@copalibre/module-distribution@workspace:packages/module-distribution":
+"@copalibre/module-distribution@workspace:^, @copalibre/module-distribution@workspace:packages/module-distribution":
   version: 0.0.0-use.local
   resolution: "@copalibre/module-distribution@workspace:packages/module-distribution"
   dependencies:
