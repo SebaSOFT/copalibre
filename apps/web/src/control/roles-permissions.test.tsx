@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { jest } from '@jest/globals';
 import { RolesPermissionsPage } from './components/RolesPermissionsPage.js';
 import { RolesPermissionsRoute } from './components/RolesPermissionsRoute.js';
-import type { ControlApiClient } from './lib/api-client.js';
+import type { ControlApiClient, OrganizationRoleResponse } from './lib/api-client.js';
 
 const rows = [
   {
@@ -126,7 +126,7 @@ describe('roles and permissions control', () => {
       expiresAt: '2099-01-01',
     }));
     const listOrganizationRoles = jest
-      .fn()
+      .fn<() => Promise<readonly OrganizationRoleResponse[]>>()
       .mockResolvedValueOnce(rows)
       .mockResolvedValueOnce([
         ...rows,

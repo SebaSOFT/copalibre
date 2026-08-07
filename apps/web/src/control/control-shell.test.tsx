@@ -138,7 +138,17 @@ describe('the control routes', () => {
       capabilities: [],
       projectionVersion: 1,
     };
-    const client: MatchConsoleApiClient = { fetchMatchConsole: async () => projection };
+    const client: MatchConsoleApiClient = {
+      fetchMatchConsole: async () => projection,
+      adjustMatchClock: async () => projection,
+      resolveMatchTimer: async () => projection,
+      recordMatchEvent: async () => {
+        throw new Error('not used in this test');
+      },
+      finalizeMatch: async () => {
+        throw new Error('not used in this test');
+      },
+    };
     render(
       <MatchConsoleControlRoute
         client={client}
