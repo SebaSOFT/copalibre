@@ -1,0 +1,33 @@
+{
+  "name": "@copalibre/module-distribution",
+  "version": "0.0.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc --build",
+    "test": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.config.cjs",
+    "test:coverage": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.config.cjs --coverage"
+  },
+  "dependencies": {
+    "@copalibre/domain": "workspace:^",
+    "@copalibre/module-catalogue": "workspace:^",
+    "@copalibre/persistence": "workspace:^",
+    "@copalibre/rules": "workspace:^",
+    "ajv": "^8.20.0",
+    "image-size": "^2.0.2",
+    "semver": "^7.8.5"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/semver": "^7.7.1",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.4.12",
+    "typescript": "^5"
+  }
+}

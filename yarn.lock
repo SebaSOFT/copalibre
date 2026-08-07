@@ -1546,6 +1546,25 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@copalibre/module-distribution@workspace:packages/module-distribution":
+  version: 0.0.0-use.local
+  resolution: "@copalibre/module-distribution@workspace:packages/module-distribution"
+  dependencies:
+    "@copalibre/domain": "workspace:^"
+    "@copalibre/module-catalogue": "workspace:^"
+    "@copalibre/persistence": "workspace:^"
+    "@copalibre/rules": "workspace:^"
+    "@types/jest": "npm:^30.0.0"
+    "@types/semver": "npm:^7.7.1"
+    ajv: "npm:^8.20.0"
+    image-size: "npm:^2.0.2"
+    jest: "npm:^30.4.2"
+    semver: "npm:^7.8.5"
+    ts-jest: "npm:^29.4.12"
+    typescript: "npm:^5"
+  languageName: unknown
+  linkType: soft
+
 "@copalibre/persistence@workspace:^, @copalibre/persistence@workspace:packages/persistence":
   version: 0.0.0-use.local
   resolution: "@copalibre/persistence@workspace:packages/persistence"
@@ -9163,6 +9182,15 @@ __metadata:
   version: 7.0.6
   resolution: "ignore@npm:7.0.6"
   checksum: 10c0/fc01ef1d14efbe003439b60538726351e81483d1b6f55bdbb3a4465c6346d9481afad5b350dfbd604ddd7049618ef9093ff26dc147984aabc303c56ba53ea3b5
+  languageName: node
+  linkType: hard
+
+"image-size@npm:^2.0.2":
+  version: 2.0.2
+  resolution: "image-size@npm:2.0.2"
+  bin:
+    image-size: bin/image-size.js
+  checksum: 10c0/f09dd0f7cf8511cd20e4f756bdb5a7cb6d2240de3323f41bde266bed8373392a293892bf12e907e2995f52833fd88dd27cf6b1a52ab93968afc716cb78cd7b79
   languageName: node
   linkType: hard
 

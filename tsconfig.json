@@ -11,6 +11,9 @@
       "path": "packages/module-catalogue/tsconfig.json"
     },
     {
+      "path": "packages/module-distribution/tsconfig.json"
+    },
+    {
       "path": "packages/rules/tsconfig.json"
     },
     {
