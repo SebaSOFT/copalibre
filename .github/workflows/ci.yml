@@ -162,6 +162,29 @@ jobs:
       - run: yarn install --immutable
       - run: yarn license:check
 
+  # Added by 0035-kubernetes-enterprise-deployment: structurally enforces
+  # design.md's "enterprise-ready is an evidence-gated claim" decision —
+  # fails the build if docs/deployment/enterprise-kubernetes.md asserts
+  # Kubernetes enterprise-readiness without linking a dated, passing
+  # evidence report from both the multi-node-failover and backup-restore
+  # validations. Unconditional (not path-filtered) like every other job in
+  # this file, since the readiness language it guards against could be
+  # added to that doc from any PR, not only ones touching deploy/helm/**.
+  enterprise-readiness-doc-lint:
+    name: Enterprise readiness doc lint
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - uses: actions/checkout@v4
+      - run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+      - run: yarn install --immutable
+      - run: node --test scripts/check-enterprise-readiness-docs.test.mjs
+      - run: node scripts/check-enterprise-readiness-docs.mjs
+
   # Added by 0002-domain-model-core; later phases' suites run under the same job
   # via the root `yarn test:coverage` fan-out. This includes 0025's console
   # projection, descriptor validation, palette, idempotency-key, and reconciliation tests.

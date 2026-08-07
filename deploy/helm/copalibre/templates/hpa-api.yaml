@@ -1,0 +1,7 @@
+{{- if .Values.autoscaling.api.enabled }}
+# HTTP request-rate autoscaling for the api role — the first of the three
+# signals named in the architecture doc. Requires a custom-metrics adapter
+# (e.g. Prometheus Adapter) exposing autoscaling.api.metricName as a
+# Kubernetes External metric — see docs/deployment/enterprise-kubernetes.md.
+{{ include "copalibre.hpa" (dict "role" "api" "cfg" .Values.autoscaling.api "root" .) }}
+{{- end }}

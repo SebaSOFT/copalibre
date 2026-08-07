@@ -1,0 +1,104 @@
+name: K8s Enterprise Validation
+
+# Produces the measured multi-node-failover, backup/restore, and
+# upgrade-safety evidence 0035-kubernetes-enterprise-deployment's
+# design.md requires before any Kubernetes enterprise-readiness claim —
+# scheduled (not per-PR), same rationale as k3s-validate.yml: this validates
+# infrastructure, not application code, and each script spins up its own
+# throwaway k3d cluster, which is materially slower than this repo's
+# PR-blocking jobs. helm-lint.yml still runs the fast, static
+# enterprise-values chart lint on every PR that touches deploy/helm/**.
+on:
+  schedule:
+    - cron: '31 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: k8s-enterprise-validate
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Multi-node failover
+            slug: multi-node-failover
+            script: scripts/validate-multi-node-failover.sh
+          - name: Backup and restore
+            slug: backup-restore
+            script: scripts/validate-backup-restore.sh
+          - name: Upgrade safety
+            slug: upgrade-safety
+            script: scripts/validate-upgrade-safety.sh
+    steps:
+      - uses: actions/checkout@v4
+      - run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+      - run: yarn install --immutable
+      - run: yarn typecheck
+      - name: Install helm
+        run: curl -s https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+      - name: Install k3d
+        run: curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+      # validate-backup-restore.sh's object-storage backup/restore step uses
+      # the MinIO client directly against the bucket — not preinstalled on
+      # GitHub-hosted runners, unlike the PostgreSQL client tools
+      # backup-restore-drill.yml already relies on being present.
+      - name: Install MinIO client (mc)
+        if: matrix.slug == 'backup-restore'
+        run: |
+          curl -sL https://dl.min.io/client/mc/release/linux-amd64/mc -o /usr/local/bin/mc
+          chmod +x /usr/local/bin/mc
+      - run: ${{ matrix.script }}
+      - name: Upload evidence report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-${{ matrix.slug }}
+          path: docs/deployment/evidence/
+          if-no-files-found: ignore
+
+  alert-on-consecutive-failure:
+    name: Alert on consecutive failures
+    needs: validate
+    if: failure() && github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Check whether the previous scheduled run also failed
+        id: streak
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          previous=$(gh run list --workflow=k8s-enterprise-validate.yml --event=schedule --limit 3 \
+            --json conclusion --jq '.[1].conclusion // "none"' --repo "${{ github.repository }}")
+          echo "previous=$previous" >> "$GITHUB_OUTPUT"
+
+      - name: Alert on consecutive failures
+        if: steps.streak.outputs.previous == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          label=k8s-enterprise-validate-alert
+          gh label create "$label" --color B60205 --description "Consecutive K8s enterprise validation failures" 2>/dev/null || true
+          existing=$(gh issue list --label "$label" --state open --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "Failed again: $RUN_URL"
+          else
+            gh issue create --title "K8s enterprise validation failed on consecutive scheduled runs" \
+              --label "$label" --body "Failed on consecutive scheduled runs. Latest: $RUN_URL"
+          fi
