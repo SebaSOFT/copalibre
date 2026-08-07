@@ -37,6 +37,17 @@ spec:
                 name: {{ include "copalibre.fullname" $ }}-env
             - secretRef:
                 name: {{ include "copalibre.fullname" $ }}-secret
+          lifecycle:
+            preStop:
+              # Without this, a rolling update can drop an in-flight request:
+              # SIGTERM would otherwise reach the process at the same moment
+              # the Service's endpoint list is still catching up to the pod's
+              # termination, not strictly after — confirmed empirically
+              # against a real k3d cluster (0034 validation). This sleep just
+              # buys kube-proxy time to remove the endpoint before the
+              # container actually stops accepting connections.
+              exec:
+                command: ['sh', '-c', 'sleep 5']
           startupProbe:
             httpGet:
               path: {{ $role.probePath }}
