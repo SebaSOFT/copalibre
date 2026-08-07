@@ -19,6 +19,16 @@ on:
         description: 'git ref of the module repository to validate'
         required: false
         type: string
+      copalibre-ref:
+        description: >-
+          git ref of SebaSOFT/copalibre to validate with. `uses: owner/repo/path@REF` only pins
+          which copy of *this workflow file* runs — a plain `actions/checkout` step inside it
+          still defaults to copalibre's own default branch unless told otherwise, so this must be
+          set explicitly rather than assumed (confirmed the hard way: without it, the very first
+          real run of this workflow silently validated against a 247-commits-stale branch).
+        required: false
+        type: string
+        default: develop
 
 permissions:
   contents: read
@@ -32,6 +42,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: SebaSOFT/copalibre
+          ref: ${{ inputs.copalibre-ref }}
           path: copalibre
       - name: Checkout the module repository
         uses: actions/checkout@v4
