@@ -16,6 +16,8 @@ export default defineConfig({
     starlight({
       title: 'CopaLibre Help',
       description: 'Operator documentation for self-hosted CopaLibre tournaments.',
+      favicon: '/copalibre-logo.svg',
+      logo: { src: './src/assets/copalibre-logo.svg', alt: 'CopaLibre' },
       defaultLocale: 'root',
       locales: {
         root: { label: 'Español', lang: 'es' },

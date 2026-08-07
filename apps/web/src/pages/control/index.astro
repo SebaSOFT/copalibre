@@ -7,13 +7,14 @@ import '@copalibre/design-tokens/generated/copalibre.css';
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/copalibre-logo.svg" />
     <meta name="robots" content="noindex, nofollow" />
     <title>Acceso de control — CopaLibre</title>
   </head>
   <body>
     <main class="login-shell">
       <header class="brand">
-        <span class="brand-mark" aria-hidden="true">CL</span>
+        <img class="brand-mark" src="/copalibre-logo.svg" alt="" width="44" height="44" />
         <div>
           <strong>CopaLibre</strong>
           <span>Control de torneos</span>
@@ -83,12 +84,8 @@ import '@copalibre/design-tokens/generated/copalibre.css';
   .brand-mark {
     width: 44px;
     height: 44px;
-    display: grid;
-    place-items: center;
     border: 1px solid var(--cl-state-live);
-    color: var(--cl-state-live);
-    font-family: var(--cl-font-mono);
-    font-weight: 700;
+    padding: 4px;
   }
 
   .brand div {
