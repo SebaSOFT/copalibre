@@ -360,7 +360,14 @@ jobs:
       - run: yarn workspace @copalibre/routing build
       - run: yarn workspace @copalibre/realtime build
       - run: yarn workspace @copalibre/design-tokens build:tokens
-      # The runner image ships no Playwright browser.
+      # The runner image ships no Playwright browser. `install --with-deps`
+      # always runs (the apt-installed OS deps aren't cacheable), but it
+      # skips redownloading the browser binary itself when the cache below
+      # already has it at the same version.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('yarn.lock') }}
       - run: yarn playwright install --with-deps chromium
       - run: yarn test:e2e
       # Accelerated TV soak-test proxy (0031, 9.2/10.2). design.md describes
@@ -576,10 +583,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
+      # buildx's own GitHub Actions cache backend (type=gha) — no extra
+      # action needed beyond setup-buildx-action, it talks to the runner's
+      # built-in cache API directly. Every GitHub-hosted runner is a fresh
+      # VM, so without this every build starts with a cold layer cache;
+      # separate scopes per image keep the runtime and web builds (different
+      # Dockerfile targets, no shared layers) from evicting each other.
       - name: Build multi-role runtime image
-        run: docker build --target runtime --tag copalibre:ci .
+        run: |
+          docker buildx build --target runtime --tag copalibre:ci \
+            --cache-from type=gha,scope=runtime \
+            --cache-to type=gha,mode=max,scope=runtime \
+            --load .
       - name: Build static web image
-        run: docker build --target web --tag copalibre-web:ci .
+        run: |
+          docker buildx build --target web --tag copalibre-web:ci \
+            --cache-from type=gha,scope=web \
+            --cache-to type=gha,mode=max,scope=web \
+            --load .
       - name: Export tested images
         run: docker save copalibre:ci copalibre-web:ci | gzip > copalibre-images.tar.gz
       - uses: actions/upload-artifact@v4
@@ -618,6 +639,10 @@ jobs:
           node-version: 24
           cache: yarn
       - run: yarn install --immutable
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('yarn.lock') }}
       - run: yarn playwright install --with-deps chromium
       - uses: actions/download-artifact@v4
         with:
