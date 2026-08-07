@@ -30,11 +30,24 @@ jobs:
   # `needs` entry was itself skipped, so they cascade without their own
   # `if:` — see design note in integration-tests below before changing that
   # needs graph.
+  #
+  # backend_only is the mirror case: a PR touching nothing that the web
+  # build/e2e suite actually reads (apps/web itself, plus the three packages
+  # e2e-tests/public-web-build build before running — design-tokens,
+  # routing, realtime, all excluded here for the same shared-with-backend
+  # reason they're excluded from the frontend set above) can skip e2e-tests
+  # and public-web-build. Unlike integration-tests, e2e-tests has a
+  # downstream dependent (build, which also needs integration-tests) — build
+  # gets its own explicit `if:` rather than relying on cascade, specifically
+  # so a *backend*-only PR's release-image build still runs even though its
+  # e2e-tests input was skipped. Do not simplify build's `if:` back to a
+  # bare `needs` cascade without re-checking that case.
   detect-changes:
     name: Detect change scope
     runs-on: ubuntu-latest
     outputs:
       frontend_only: ${{ steps.classify.outputs.frontend_only }}
+      backend_only: ${{ steps.classify.outputs.backend_only }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -43,13 +56,31 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" != "pull_request" ]; then
             echo "frontend_only=false" >> "$GITHUB_OUTPUT"
+            echo "backend_only=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           changed=$(git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}")
-          if [ -z "$changed" ] || echo "$changed" | grep -qvE '^(apps/web/|e2e/|playwright\.config\.ts$|playwright\.compose\.config\.ts$)'; then
+          # A workflow-file change is exactly the PR that must never trust
+          # either skip path — including this one, the first time it existed
+          # at all: skipping e2e-tests/integration-tests for a change to the
+          # logic that skips e2e-tests/integration-tests would mean the
+          # skip's own correctness goes unverified by the PR that changes it.
+          if [ -z "$changed" ] || echo "$changed" | grep -qE '^\.github/workflows/'; then
+            echo "frontend_only=false" >> "$GITHUB_OUTPUT"
+            echo "backend_only=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          frontend_pattern='^(apps/web/|e2e/|playwright\.config\.ts$|playwright\.compose\.config\.ts$)'
+          frontend_relevant_pattern='^(apps/web/|e2e/|playwright\.config\.ts$|playwright\.compose\.config\.ts$|packages/design-tokens/|packages/routing/|packages/realtime/)'
+          if echo "$changed" | grep -qvE "$frontend_pattern"; then
             echo "frontend_only=false" >> "$GITHUB_OUTPUT"
           else
             echo "frontend_only=true" >> "$GITHUB_OUTPUT"
+          fi
+          if echo "$changed" | grep -qE "$frontend_relevant_pattern"; then
+            echo "backend_only=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "backend_only=true" >> "$GITHUB_OUTPUT"
           fi
 
   install:
@@ -301,7 +332,11 @@ jobs:
   public-web-build:
     name: Public web build
     runs-on: ubuntu-latest
-    needs: install
+    needs: [install, detect-changes]
+    # Skipped for a PR confined to backend workspaces — see detect-changes
+    # above. No other required job needs this one, so a plain `if:` is safe
+    # here (unlike e2e-tests, which build also needs).
+    if: needs.detect-changes.outputs.backend_only != 'true'
     steps:
       - uses: actions/checkout@v4
       - run: corepack enable
@@ -345,7 +380,12 @@ jobs:
   e2e-tests:
     name: E2E tests
     runs-on: ubuntu-latest
-    needs: [install, docs-build]
+    needs: [install, docs-build, detect-changes]
+    # Skipped for a PR confined to backend workspaces — see detect-changes
+    # above. build also needs this job (and integration-tests); it gets an
+    # explicit if: rather than relying on cascade, so a backend-only PR's
+    # release-image build still runs despite this input being skipped.
+    if: needs.detect-changes.outputs.backend_only != 'true'
     steps:
       - uses: actions/checkout@v4
       - run: corepack enable
@@ -579,7 +619,27 @@ jobs:
   build:
     name: Release image build
     runs-on: ubuntu-latest
-    needs: [lint, typecheck, unit-tests, integration-tests, e2e-tests]
+    needs: [lint, typecheck, unit-tests, integration-tests, e2e-tests, detect-changes]
+    # integration-tests and e2e-tests can each be legitimately skipped now
+    # (frontend_only and backend_only respectively — see detect-changes).
+    # GitHub's default "skip if a needs entry skipped" cascade can't tell
+    # those two cases apart, so it's overridden here with an explicit check:
+    # skip outright for a frontend-only PR (no release image is needed to
+    # validate a change that never touches the backend), but for a
+    # backend-only PR — where e2e-tests skipped and integration-tests did
+    # not — still build, since that's exactly the release image a
+    # backend-only PR needs validated. A genuine failure (not a skip) in
+    # either still blocks this job either way.
+    if: |
+      !cancelled() &&
+      needs.detect-changes.outputs.frontend_only != 'true' &&
+      needs.lint.result == 'success' &&
+      needs.typecheck.result == 'success' &&
+      needs.unit-tests.result == 'success' &&
+      needs.integration-tests.result != 'failure' &&
+      needs.integration-tests.result != 'cancelled' &&
+      needs.e2e-tests.result != 'failure' &&
+      needs.e2e-tests.result != 'cancelled'
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
