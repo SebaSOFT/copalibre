@@ -3,7 +3,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { validateModulePackage, validateModulePackageOrThrow } from './validate.js';
 import { ModuleValidationError } from './errors.js';
-import type { ModuleManifest } from './manifest.js';
+import {
+  VALID_ATTRIBUTION,
+  makeModuleDirectory,
+  validDisciplineDocument,
+  validManifest,
+} from './test-support/module-fixtures.js';
 
 const ONE_PIXEL_PNG_BASE64 =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
@@ -21,48 +26,6 @@ function makeOversizedPngBuffer(width: number, height: number): Buffer {
   const type = Buffer.from('IHDR');
   const crc = Buffer.alloc(4); // unvalidated by image-size's dimension-only read
   return Buffer.concat([signature, length, type, ihdrData, crc]);
-}
-
-const VALID_ATTRIBUTION = { author: 'Test Author', licence: 'AGPL-3.0-only' };
-
-function validManifest(overrides?: Partial<ModuleManifest>): ModuleManifest {
-  return {
-    kind: 'discipline',
-    alias: 'orbital-frisbee',
-    version: '1.0.0',
-    attribution: VALID_ATTRIBUTION,
-    requiresCopalibre: '>=0.0.0',
-    assets: [],
-    ...overrides,
-  };
-}
-
-function validDisciplineDocument(overrides?: Record<string, unknown>): Record<string, unknown> {
-  return {
-    alias: 'orbital-frisbee',
-    version: '1.0.0',
-    name: 'Orbital Frisbee',
-    attribution: VALID_ATTRIBUTION,
-    participantTypes: ['team'],
-    rosterConstraints: { minPlayers: 3, maxPlayers: 7 },
-    segmentTypes: [],
-    eventDefinitions: [],
-    statistics: [{ code: 'points', label: 'Points', aggregation: 'sum' }],
-    scoringInputs: [],
-    availableFormats: ['round-robin'],
-    notificationRuleCapabilities: [],
-    winCondition: { id: 'wc', rules: [] },
-    defaults: {},
-    fieldPolicies: {},
-    ...overrides,
-  };
-}
-
-async function makeModuleDirectory(manifest: unknown, artifact: unknown): Promise<string> {
-  const directory = await mkdtemp(join(tmpdir(), 'copalibre-module-'));
-  await writeFile(join(directory, 'manifest.json'), JSON.stringify(manifest));
-  await writeFile(join(directory, 'artifact.json'), JSON.stringify(artifact));
-  return directory;
 }
 
 const OPTIONS = { runningCopalibreVersion: '1.0.0' };

@@ -156,6 +156,7 @@ export async function importValidatedModule(
       const documentId = await saveArtifact(uow, manifest.kind, artifact, options.actor);
 
       await modules.save(uow, {
+        moduleId,
         kind: manifest.kind,
         alias: manifest.alias,
         version: manifest.version,

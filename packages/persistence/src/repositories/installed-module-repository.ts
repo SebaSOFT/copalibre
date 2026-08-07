@@ -74,9 +74,21 @@ export class InstalledModuleRepository {
       readonly requiresCopalibre: string;
       readonly sourceKind: ModuleSourceKind;
       readonly sourceRepositoryUrl: string;
+      /**
+       * The caller may pre-generate this (importValidatedModule does, to
+       * name object-storage keys and correlate asset rows before this
+       * transaction ever opens) — defaulting to a fresh id here exists only
+       * for a caller with no such need. Silently generating our own
+       * regardless of what the caller passed produced a real bug: an
+       * inserted `installed_modules` row whose id never matched the
+       * `module_assets` rows written against the id the caller actually
+       * used, failing that table's foreign key on every asset-bearing
+       * import (caught by a real integration-test run, not by inspection).
+       */
+      readonly moduleId?: string;
     } & AuditContext,
   ): Promise<InstalledModule> {
-    const moduleId = newId();
+    const moduleId = input.moduleId ?? newId();
     const installedAt = new Date();
     await uow.tx
       .insertInto('installed_modules')
