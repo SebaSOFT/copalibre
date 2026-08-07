@@ -1,0 +1,20 @@
+{{- range $name, $role := .Values.roles }}
+{{- $pdb := index $.Values.podDisruptionBudget $name }}
+{{- if and $pdb $pdb.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "copalibre.fullname" $ }}-{{ $name }}
+  labels:
+    {{- include "copalibre.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $name }}
+spec:
+  minAvailable: {{ $pdb.minAvailable }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: copalibre
+      app.kubernetes.io/instance: {{ $.Release.Name }}
+      app.kubernetes.io/component: {{ $name }}
+---
+{{- end }}
+{{- end }}
