@@ -677,9 +677,14 @@ jobs:
     # graph, not just this job's direct needs — confirmed empirically: with
     # no if: of its own, this job still skipped when e2e-tests (two levels
     # up, one of build's needs) was skipped, even though build itself
-    # completed with result 'success'. An explicit check against build's own
-    # result is required to stop that taint from propagating any further.
-    if: needs.build.result == 'success'
+    # completed with result 'success'. A bare boolean expression here isn't
+    # enough either — confirmed empirically a second time: GitHub only
+    # re-evaluates a job's own if: instead of auto-skipping it when that if:
+    # contains one of the status-check functions (always()/!cancelled()/
+    # success()/failure()); a plain `needs.build.result == 'success'` still
+    # got skipped without ever being evaluated. !cancelled() is what makes
+    # this actually run.
+    if: "!cancelled() && needs.build.result == 'success'"
     timeout-minutes: 30
     env:
       COPALIBRE_IMAGE: copalibre:ci
@@ -736,8 +741,9 @@ jobs:
     name: Deploy smoke test
     runs-on: ubuntu-latest
     needs: [build, deployment-e2e]
-    # Same taint-stops-here reasoning as deployment-e2e's if: above.
-    if: needs.build.result == 'success' && needs.deployment-e2e.result == 'success'
+    # Same taint-stops-here reasoning as deployment-e2e's if: above — and the
+    # same !cancelled() requirement, for the same reason.
+    if: "!cancelled() && needs.build.result == 'success' && needs.deployment-e2e.result == 'success'"
     env:
       COPALIBRE_IMAGE: copalibre:ci
       COPALIBRE_WEB_IMAGE: copalibre-web:ci
