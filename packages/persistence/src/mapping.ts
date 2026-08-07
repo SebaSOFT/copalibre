@@ -118,6 +118,7 @@ export function toTournament(row: TournamentRow): Tournament {
     },
     rulesetId: row.ruleset_id ?? undefined,
     status: row.status as Tournament['status'],
+    ...(row.archived_at === null ? {} : { archivedAt: toIsoString(row.archived_at) }),
   };
 }
 

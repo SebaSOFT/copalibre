@@ -82,6 +82,12 @@ export class TournamentResponse {
   })
   startedAt?: string;
 
+  @ApiPropertyOptional({
+    format: 'date-time',
+    description: 'When the tournament was archived (0033); absent until then.',
+  })
+  archivedAt?: string;
+
   @ApiPropertyOptional({ format: 'uuid', description: 'Active ruleset version, when one exists' })
   rulesetId?: string;
 }

@@ -416,7 +416,7 @@ export class TournamentRepository {
 
     const row = await uow.tx
       .updateTable('tournaments')
-      .set({ status: 'archived' })
+      .set({ status: 'archived', archived_at: new Date() })
       .where('tournament_id', '=', input.tournamentId)
       .returningAll()
       .executeTakeFirstOrThrow();
@@ -431,7 +431,7 @@ export class TournamentRepository {
       actor: input.actor,
       authorizationContext: input.authorizationContext,
       previousState: { status: current.status },
-      resultingState: { status: archived.status },
+      resultingState: { status: archived.status, archivedAt: archived.archivedAt },
     });
     await uow.publishEvent({
       organizationId: input.organizationId,

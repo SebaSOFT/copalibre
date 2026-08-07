@@ -984,6 +984,11 @@ export interface components {
              */
             startedAt?: string;
             /**
+             * Format: date-time
+             * @description When the tournament was archived (0033); absent until then.
+             */
+            archivedAt?: string;
+            /**
              * Format: uuid
              * @description Active ruleset version, when one exists
              */

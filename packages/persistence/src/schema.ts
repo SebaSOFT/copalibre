@@ -172,6 +172,8 @@ export interface TournamentsTable {
   profile_id: string | null;
   profile_version: string | null;
   created_at: Timestamp;
+  /** Set when the tournament is archived (0033); null until then. */
+  archived_at: Timestamp | null;
 }
 
 /**

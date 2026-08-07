@@ -3252,6 +3252,11 @@
             "format": "date-time",
             "description": "When the first match began, marking the module freeze."
           },
+          "archivedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the tournament was archived (0033); absent until then."
+          },
           "rulesetId": {
             "type": "string",
             "format": "uuid",

@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Body,
+  ConflictException,
   Controller,
   Get,
   HttpCode,
@@ -20,6 +21,7 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import {
+  InvariantViolationError,
   OrganizationRepository,
   TournamentRepository,
   withTransaction,
@@ -230,14 +232,22 @@ export class TournamentsController {
       resource: { organizationId: tournament.organizationId },
     });
 
-    return withTransaction(this.db, (uow) =>
-      tournaments.archive(uow, {
-        tournamentId: tournament.tournamentId,
-        organizationId: tournament.organizationId,
-        actor: `user:${subject?.subjectId ?? 'unknown'}`,
-        authorizationContext: (subject?.scopes ?? []).join(' '),
-      }),
-    );
+    try {
+      return await withTransaction(this.db, (uow) =>
+        tournaments.archive(uow, {
+          tournamentId: tournament.tournamentId,
+          organizationId: tournament.organizationId,
+          actor: `user:${subject?.subjectId ?? 'unknown'}`,
+          authorizationContext: (subject?.scopes ?? []).join(' '),
+        }),
+      );
+    } catch (error) {
+      // An illegal transition is a state conflict, not a malformed request —
+      // matches the existing InvariantViolationError -> 409 convention
+      // (installation-bootstrap.controller.ts, seeding.controller.ts).
+      if (error instanceof InvariantViolationError) throw new ConflictException(error.message);
+      throw error;
+    }
   }
 
   @Get()

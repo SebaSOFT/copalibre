@@ -26,6 +26,8 @@ export interface Tournament {
   readonly status: TournamentStatus;
   /** Set when the tournament starts; discipline and profile versions freeze from here. */
   readonly startedAt?: string;
+  /** Set when the tournament is archived (0033); absent until then. */
+  readonly archivedAt?: string;
   /** Profile this tournament instantiated, pinned at start. */
   readonly profileRef?: { readonly profileId: string; readonly version: string };
 }
