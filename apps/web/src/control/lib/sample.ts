@@ -29,6 +29,15 @@ export function sampleDashboardData(): {
         matchesToday: 0,
         pendingRegistrations: 7,
       },
+      {
+        tournamentId: 't-3',
+        organizationId: 'org-1',
+        alias: 'apertura-2025',
+        name: 'Torneo Apertura 2025',
+        lifecycle: 'finished',
+        matchesToday: 0,
+        pendingRegistrations: 0,
+      },
     ],
     activity: [
       {
