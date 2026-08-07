@@ -34,3 +34,23 @@ export {
   type ValidateModulePackageOptions,
   type ValidatedModule,
 } from './validate.js';
+
+export {
+  CURATED_MODULE_REPOSITORY,
+  ModuleFetchError,
+  alternateModuleSource,
+  fetchModule,
+  parseModuleTagVersions,
+  resolveModuleVersion,
+  type FetchedModule,
+  type ModuleSource,
+  type ModuleSourceKind,
+} from './fetch.js';
+
+export {
+  ModuleAliasConflictError,
+  UnsatisfiedModuleCapabilitiesError,
+  importValidatedModule,
+  type ImportModuleOptions,
+  type ImportModuleReport,
+} from './import.js';
