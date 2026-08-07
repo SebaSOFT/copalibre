@@ -1,3 +1,4 @@
+// Throwaway comment: verifying the backend-only CI skip path (0048).
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module.js';
