@@ -18,6 +18,7 @@ const site = Astro.site?.toString().replace(/\/$/, '') ?? '';
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/copalibre-logo.svg" />
     <title>{title}</title>
     {description && <meta name="description" content={description} />}
     <link rel="canonical" href={`${site}${canonicalPath}`} />
@@ -28,7 +29,10 @@ const site = Astro.site?.toString().replace(/\/$/, '') ?? '';
     <a class="cl-focusable" href="#main">Saltar al contenido</a>
     <header>
       <nav aria-label="Principal">
-        <a href="/">CopaLibre</a>
+        <a href="/" class="cl-brand">
+          <img src="/copalibre-logo.svg" alt="" width="28" height="28" />
+          CopaLibre
+        </a>
       </nav>
     </header>
     <main id="main">
@@ -39,3 +43,11 @@ const site = Astro.site?.toString().replace(/\/$/, '') ?? '';
     </footer>
   </body>
 </html>
+
+<style>
+  .cl-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+</style>

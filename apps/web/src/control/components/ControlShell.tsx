@@ -13,7 +13,10 @@ export function ControlShell({
     <div className="cl-control" style={shellStyle}>
       <nav aria-label="Secciones" style={navStyle}>
         <div style={brandStyle}>
-          <strong>COPALIBRE CMD</strong>
+          <div style={brandMarkRowStyle}>
+            <img src="/copalibre-logo.svg" alt="" width="24" height="24" />
+            <strong>COPALIBRE CMD</strong>
+          </div>
           <span style={metaStyle}>BROADCAST OPS</span>
         </div>
         <ul style={navListStyle}>
@@ -60,6 +63,12 @@ const brandStyle: React.CSSProperties = {
   borderBottom: '1px solid var(--cl-border-muted)',
   fontFamily: 'var(--cl-font-display)',
   color: 'var(--cl-state-live)',
+};
+
+const brandMarkRowStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 'var(--cl-space-2)',
 };
 
 const metaStyle: React.CSSProperties = {
