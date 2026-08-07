@@ -39,7 +39,16 @@ jobs:
           cache: yarn
       - run: yarn install --immutable
       - run: yarn typecheck
-      - run: docker build --target runtime --tag "$COPALIBRE_IMAGE" .
+      - uses: docker/setup-buildx-action@v3
+      # Same scope as ci.yml's "Release image build" job — this and that job
+      # build the identical Dockerfile target from the identical context, so
+      # sharing the cache scope means whichever ran more recently warms the
+      # other.
+      - run: |
+          docker buildx build --target runtime --tag "$COPALIBRE_IMAGE" \
+            --cache-from type=gha,scope=runtime \
+            --cache-to type=gha,mode=max,scope=runtime \
+            --load .
       - name: Seed authoritative source data
         run: |
           docker compose up --detach --wait postgres
