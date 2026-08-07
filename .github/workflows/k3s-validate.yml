@@ -1,0 +1,67 @@
+name: K3s Release Validation
+
+# Spinning up a k3d cluster and running a real rolling-update/migration-gate/
+# lease/unhealthy-pod assertion is materially slower and flakier than this
+# repo's PR-blocking jobs — it validates infrastructure, not application
+# code, so a PR touching only apps/api business logic doesn't need to
+# re-prove K3s compatibility every time (see 0034's design.md). helm-lint.yml
+# still runs the fast, static chart checks on every PR that touches
+# deploy/helm/**.
+on:
+  schedule:
+    - cron: '43 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: k3s-validate
+  cancel-in-progress: false
+
+jobs:
+  k3s-validate:
+    name: Validate the Helm chart on a real K3s cluster
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+      - run: yarn install --immutable
+      - run: yarn typecheck
+      - name: Install helm
+        run: curl -s https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+      - name: Install k3d
+        run: curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+      - run: ./scripts/validate-k3s-release.sh
+
+      - name: Check whether the previous scheduled run also failed
+        id: streak
+        if: failure() && github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          previous=$(gh run list --workflow=k3s-validate.yml --event=schedule --limit 3 \
+            --json conclusion --jq '.[1].conclusion // "none"')
+          echo "previous=$previous" >> "$GITHUB_OUTPUT"
+
+      - name: Alert on consecutive failures
+        if: failure() && github.event_name == 'schedule' && steps.streak.outputs.previous == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          label=k3s-validate-alert
+          gh label create "$label" --color B60205 --description "Consecutive K3s release validation failures" 2>/dev/null || true
+          existing=$(gh issue list --label "$label" --state open --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "Failed again: $RUN_URL"
+          else
+            gh issue create --title "K3s release validation failed on consecutive nightly runs" \
+              --label "$label" --body "Failed on consecutive nightly runs. Latest: $RUN_URL"
+          fi
