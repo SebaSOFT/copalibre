@@ -111,7 +111,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * List the organization's active (non-archived) tournaments
+         * @description Excludes archived tournaments — their own detail route still resolves directly.
+         */
+        get: operations["TournamentsController_listActive"];
         put?: never;
         /**
          * Create a tournament in draft status
@@ -138,6 +142,26 @@ export interface paths {
          * @description Transitions draft to published. Audited with previous and resulting state; publishing is not destructive, so no confirmation flag is required.
          */
         post: operations["TournamentsController_publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Archive a finished tournament
+         * @description Transitions finished to archived, legal only from finished. Changes default visibility only — no result, standing, registration, or audit data is affected, and the tournament's own canonical URL keeps resolving.
+         */
+        post: operations["TournamentsController_archive"];
         delete?: never;
         options?: never;
         head?: never;
@@ -950,10 +974,10 @@ export interface components {
             /** @example Copa Verano */
             name: string;
             /**
-             * @description Once started, the tournament's discipline and profile versions are frozen and its results are materialised.
+             * @description Once started, the tournament's discipline and profile versions are frozen and its results are materialised. Archived is legal only from finished (0033) and changes default visibility only — no data is affected.
              * @enum {string}
              */
-            status: "draft" | "published" | "started" | "finished";
+            status: "draft" | "published" | "started" | "finished" | "archived";
             /**
              * Format: date-time
              * @description When the first match began, marking the module freeze.
@@ -1749,6 +1773,43 @@ export interface operations {
             };
         };
     };
+    TournamentsController_listActive: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TournamentResponse"][];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
     TournamentsController_create: {
         parameters: {
             query?: never;
@@ -1791,6 +1852,44 @@ export interface operations {
         };
     };
     TournamentsController_publish: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TournamentResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    TournamentsController_archive: {
         parameters: {
             query?: never;
             header?: never;

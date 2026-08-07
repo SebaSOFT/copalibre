@@ -1,6 +1,7 @@
 import {
   Alias,
   compileEffectiveRuleset,
+  transitionTournament,
   type DisciplineDescriptor,
   type MatchRuleset,
   type OverrideSet,
@@ -381,6 +382,84 @@ export class TournamentRepository {
     });
 
     return published;
+  }
+
+  /**
+   * Archives a tournament (0033): `finished` → `archived` only. The state
+   * machine itself refuses every other starting state, so this never needs
+   * its own separate "is this actually done?" check — `transitionTournament`
+   * is the single source of truth `publish` predates and does not yet use.
+   */
+  async archive(
+    uow: UnitOfWork,
+    input: {
+      readonly tournamentId: string;
+      readonly organizationId: string;
+      readonly actor: string;
+      readonly authorizationContext: string;
+    },
+  ): Promise<Tournament> {
+    const current = await this.findById(input.tournamentId);
+    if (!current) {
+      throw new NotFoundError(`Tournament ${input.tournamentId} does not exist`, {
+        tournamentId: input.tournamentId,
+      });
+    }
+
+    const transition = transitionTournament(current.status, 'archived');
+    if (!transition.ok) {
+      throw new InvariantViolationError(transition.error.message, {
+        tournamentId: input.tournamentId,
+        from: current.status,
+      });
+    }
+
+    const row = await uow.tx
+      .updateTable('tournaments')
+      .set({ status: 'archived' })
+      .where('tournament_id', '=', input.tournamentId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const archived = toTournament(row);
+
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'tournament',
+      entityId: input.tournamentId,
+      action: 'tournament.archived',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      previousState: { status: current.status },
+      resultingState: { status: archived.status },
+    });
+    await uow.publishEvent({
+      organizationId: input.organizationId,
+      stream: `tournament:${input.tournamentId}`,
+      entityId: input.tournamentId,
+      eventType: 'tournament.archived',
+      projectionVersion: 1,
+      payload: { tournamentId: input.tournamentId },
+    });
+
+    return archived;
+  }
+
+  /**
+   * Every non-archived tournament in an organization (0033) — the shared
+   * "active only" filter every listing method is meant to go through. No
+   * other listing method exists in this repository yet, so this is the
+   * first one built with the filter in place, not a retrofit.
+   */
+  async listActiveByOrganization(organizationId: string): Promise<readonly Tournament[]> {
+    const rows = await this.db
+      .selectFrom('tournaments')
+      .selectAll()
+      .where('organization_id', '=', organizationId)
+      .where('status', '!=', 'archived')
+      .orderBy('created_at', 'desc')
+      .execute();
+    return rows.map(toTournament);
   }
 
   async findById(tournamentId: string): Promise<Tournament | undefined> {

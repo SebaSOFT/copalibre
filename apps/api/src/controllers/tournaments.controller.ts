@@ -194,4 +194,77 @@ export class TournamentsController {
       }),
     );
   }
+
+  @Post(':tournamentAlias/archive')
+  @HttpCode(200)
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Archive a finished tournament',
+    description:
+      'Transitions finished to archived, legal only from finished. Changes default visibility ' +
+      "only — no result, standing, registration, or audit data is affected, and the tournament's " +
+      'own canonical URL keeps resolving.',
+  })
+  @ApiOkResponse({ type: TournamentResponse })
+  @ApiUnauthorizedResponse({ type: ProblemResponse })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  async archive(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Req() request: RequestWithSubject,
+  ): Promise<TournamentResponse> {
+    const tournaments = new TournamentRepository(this.db);
+    const tournament = await tournaments.findByScopedAlias(organizationAlias, tournamentAlias);
+    if (!tournament) {
+      throw new NotFoundException(
+        `No tournament "${tournamentAlias}" in organization "${organizationAlias}"`,
+      );
+    }
+
+    const subject = request.subject;
+    enforcePolicy({
+      plane: 'admin-control',
+      subject,
+      resource: { organizationId: tournament.organizationId },
+    });
+
+    return withTransaction(this.db, (uow) =>
+      tournaments.archive(uow, {
+        tournamentId: tournament.tournamentId,
+        organizationId: tournament.organizationId,
+        actor: `user:${subject?.subjectId ?? 'unknown'}`,
+        authorizationContext: (subject?.scopes ?? []).join(' '),
+      }),
+    );
+  }
+
+  @Get()
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: "List the organization's active (non-archived) tournaments",
+    description: 'Excludes archived tournaments — their own detail route still resolves directly.',
+  })
+  @ApiOkResponse({ type: TournamentResponse, isArray: true })
+  @ApiUnauthorizedResponse({ type: ProblemResponse })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  async listActive(
+    @Param('organizationAlias') organizationAlias: string,
+    @Req() request: RequestWithSubject,
+  ): Promise<readonly TournamentResponse[]> {
+    const organization = await new OrganizationRepository(this.db).findByAlias(organizationAlias);
+    if (!organization) {
+      throw new NotFoundException(`No organization with alias "${organizationAlias}"`);
+    }
+    enforcePolicy({
+      plane: 'admin-control',
+      subject: request.subject,
+      resource: { organizationId: organization.organizationId },
+    });
+
+    return new TournamentRepository(this.db).listActiveByOrganization(organization.organizationId);
+  }
 }
