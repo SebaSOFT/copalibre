@@ -1,0 +1,7 @@
+{{- if .Values.autoscaling.events.enabled }}
+# Active SSE connection-count autoscaling for the events role — the second
+# of the three signals named in the architecture doc. Requires a
+# custom-metrics adapter exposing autoscaling.events.metricName as a
+# Kubernetes External metric — see docs/deployment/enterprise-kubernetes.md.
+{{ include "copalibre.hpa" (dict "role" "events" "cfg" .Values.autoscaling.events "root" .) }}
+{{- end }}

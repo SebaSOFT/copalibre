@@ -1,0 +1,11 @@
+{{- if .Values.autoscaling.worker.enabled }}
+# Outbox queue depth/age autoscaling for the worker role — the third of the
+# three signals named in the architecture doc. This is not a native
+# Kubernetes metric: it requires a custom-metrics adapter reading the
+# outbox table/queue and exposing autoscaling.worker.metricName as a
+# Kubernetes External metric. See docs/deployment/enterprise-kubernetes.md
+# for the specific adapter requirement — no fallback to CPU-based scaling is
+# used here by default, since that would silently violate the "exactly
+# these three signals" decision in design.md.
+{{ include "copalibre.hpa" (dict "role" "worker" "cfg" .Values.autoscaling.worker "root" .) }}
+{{- end }}
