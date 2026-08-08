@@ -337,7 +337,7 @@ describe('copalibre doctor', () => {
     expect(check.message).toContain('No installed discipline versions are retirable');
   });
 
-  it('fails the retirable-modules check when the query itself fails', async () => {
+  it('skips (never fails) the retirable-modules check when the query itself fails, e.g. an unmigrated database', async () => {
     const check = await validateRetirableModules(
       environment,
       dependencies({
@@ -346,7 +346,7 @@ describe('copalibre doctor', () => {
     );
     expect(check).toMatchObject({
       name: 'retirable-modules',
-      status: 'fail',
+      status: 'skip',
       message: expect.stringContaining('connection refused'),
     });
   });

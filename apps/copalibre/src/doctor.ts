@@ -208,7 +208,13 @@ export async function validateRetirableModules(
         : `Retirable discipline versions: ${retirable.map((module_) => `${module_.alias}@${module_.version}`).join(', ')}`,
     );
   } catch (error) {
-    return fail('retirable-modules', `Could not compute retirable modules: ${errorMessage(error)}`);
+    // Never fail: doctor runs on a clean, unmigrated host too (this is
+    // exactly what caught it — the schema doesn't exist yet at that point),
+    // and this check is purely informational, not a readiness gate.
+    return skip(
+      'retirable-modules',
+      `Could not compute retirable modules: ${errorMessage(error)}`,
+    );
   }
 }
 
