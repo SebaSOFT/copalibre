@@ -1,12 +1,23 @@
 import type { Kysely } from 'kysely';
 import { newId } from '../ids.js';
 import type { Database } from '../schema.js';
+import type { UnitOfWork } from '../transaction.js';
+import type { AuditContext } from './enrollment-repository.js';
 
 export type ObjectStorageMetadataProfile = 's3' | 'filesystem';
 export type ObjectStorageMetadataStatus = 'pending' | 'passed' | 'failed';
 
+/**
+ * Published on the same transaction as an `object_metadata` insert (task
+ * 2.1), so the async media-processing job always sees a durably-committed
+ * row — the same "row before job" ordering `EVIDENCE_VALIDATION_REQUESTED_EVENT`
+ * already established for 0032's own evidence uploads.
+ */
+export const OBJECT_PROCESSING_REQUESTED_EVENT = 'object-storage.processing-requested';
+
 export interface ObjectMetadata {
   readonly objectId: string;
+  readonly organizationId: string;
   readonly profile: ObjectStorageMetadataProfile;
   readonly storageKey: string;
   readonly contentType: string;
@@ -26,19 +37,25 @@ export interface ObjectMetadata {
 export class ObjectMetadataRepository {
   constructor(private readonly db: Kysely<Database>) {}
 
-  async save(input: {
-    readonly profile: ObjectStorageMetadataProfile;
-    readonly storageKey: string;
-    readonly contentType: string;
-    readonly sizeBytes: number;
-    readonly uploadedBy: string;
-  }): Promise<ObjectMetadata> {
+  /** Records the object and enqueues async processing (task 2.1) in the same transaction. */
+  async save(
+    uow: UnitOfWork,
+    input: {
+      readonly organizationId: string;
+      readonly profile: ObjectStorageMetadataProfile;
+      readonly storageKey: string;
+      readonly contentType: string;
+      readonly sizeBytes: number;
+      readonly uploadedBy: string;
+    },
+  ): Promise<ObjectMetadata> {
     const objectId = newId();
     const createdAt = new Date();
-    await this.db
+    await uow.tx
       .insertInto('object_metadata')
       .values({
         object_id: objectId,
+        organization_id: input.organizationId,
         profile: input.profile,
         storage_key: input.storageKey,
         content_type: input.contentType,
@@ -49,8 +66,18 @@ export class ObjectMetadataRepository {
       })
       .execute();
 
+    await uow.publishEvent({
+      organizationId: input.organizationId,
+      stream: `object-metadata:${objectId}`,
+      entityId: objectId,
+      eventType: OBJECT_PROCESSING_REQUESTED_EVENT,
+      projectionVersion: 1,
+      payload: { objectId },
+    });
+
     return {
       objectId,
+      organizationId: input.organizationId,
       profile: input.profile,
       storageKey: input.storageKey,
       contentType: input.contentType,
@@ -70,17 +97,43 @@ export class ObjectMetadataRepository {
     return row ? toObjectMetadata(row) : undefined;
   }
 
-  async setStatus(objectId: string, status: ObjectStorageMetadataStatus): Promise<void> {
+  /** A routine, expected outcome — no audit entry. */
+  async markPassed(objectId: string): Promise<void> {
     await this.db
       .updateTable('object_metadata')
-      .set({ status })
+      .set({ status: 'passed' })
       .where('object_id', '=', objectId)
       .execute();
+  }
+
+  /** A malware/validation failure (task 2.5) — exactly the kind of fact the audit trail exists for. */
+  async markFailed(
+    uow: UnitOfWork,
+    objectId: string,
+    reason: string,
+    context: AuditContext,
+  ): Promise<void> {
+    await uow.tx
+      .updateTable('object_metadata')
+      .set({ status: 'failed' })
+      .where('object_id', '=', objectId)
+      .execute();
+
+    await uow.recordAudit({
+      organizationId: context.organizationId,
+      entityType: 'object-metadata',
+      entityId: objectId,
+      action: 'object.scan-failed',
+      actor: context.actor,
+      authorizationContext: context.authorizationContext,
+      resultingState: { status: 'failed', reason },
+    });
   }
 }
 
 function toObjectMetadata(row: {
   object_id: string;
+  organization_id: string;
   profile: string;
   storage_key: string;
   content_type: string;
@@ -91,6 +144,7 @@ function toObjectMetadata(row: {
 }): ObjectMetadata {
   return {
     objectId: row.object_id,
+    organizationId: row.organization_id,
     profile: row.profile as ObjectStorageMetadataProfile,
     storageKey: row.storage_key,
     contentType: row.content_type,

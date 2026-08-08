@@ -689,6 +689,7 @@ export interface ModuleAssetsTable {
  */
 export interface ObjectMetadataTable {
   object_id: string;
+  organization_id: string;
   /** `s3` or `filesystem`. */
   profile: string;
   storage_key: string;

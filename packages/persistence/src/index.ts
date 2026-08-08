@@ -166,6 +166,7 @@ export {
 } from './repositories/installed-module-repository.js';
 export {
   ObjectMetadataRepository,
+  OBJECT_PROCESSING_REQUESTED_EVENT,
   type ObjectMetadata,
   type ObjectStorageMetadataProfile,
   type ObjectStorageMetadataStatus,

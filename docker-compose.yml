@@ -210,8 +210,21 @@ services:
     ports:
       - '9001:9001'
 
+  # Async media processing's malware scanner (0041) — only started when a
+  # capability that opts into scanning (participant-reporting's evidence
+  # uploads) is actually enabled, mirroring object-storage's own
+  # optional-adapters profile.
+  clamd:
+    image: clamav/clamav:1.5.4-debian13-slim
+    profiles: ['optional-adapters']
+    volumes:
+      - clamav-data:/var/lib/clamav
+    ports:
+      - '3310:3310'
+
 volumes:
   copalibre-data:
   postgres-data:
   redis-data:
   object-storage-data:
+  clamav-data:
