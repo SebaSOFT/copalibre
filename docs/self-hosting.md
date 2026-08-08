@@ -23,8 +23,7 @@ non-authoritative and does not replace database or object backups.
 Create a backup with `./copalibre backup`. It writes a compressed packet (`.tar.gz`, PostgreSQL dump
 plus a manifest recording when it was taken and which CopaLibre version produced it) to a
 timestamped name under `backups/`, the only host path mounted into the Compose CLI container —
-PostgreSQL client tools and credentials never need to be installed on host. `--retain <n>` (default
-5) prunes packets beyond the `n` most recent after each successful backup, touching only files
+PostgreSQL client tools and credentials never need to be installed on host. `--retain <n>` (default 5) prunes packets beyond the `n` most recent after each successful backup, touching only files
 matching this command's own packet naming pattern. Restore only into a clean target with
 `./copalibre restore --file backups/<packet>.tar.gz --confirm`; first use `--dry-run` to inspect the
 non-secret plan. A scheduled restore drill validates the supported procedure.
