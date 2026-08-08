@@ -66,3 +66,15 @@ example, a required token), not merely its name in prose.
 - **WHEN** an MCP client reads a tournament-operational tool's description from `tools/list`
 - **THEN** the description states that the tool requires `COPALIBRE_MCP_TOKEN`, not only what HTTP
   call it makes
+
+### Requirement: Module-authoring tools are always available
+
+`copalibre_module_scaffold`, `copalibre_module_validate_local`, and `copalibre_module_submit` SHALL
+be registered on every `copalibre mcp` invocation, requiring no API token — they operate on the
+local filesystem and Git, never `apps/api`.
+
+#### Scenario: Module-authoring tools work without any token configured
+
+- **WHEN** `copalibre mcp` starts with no `COPALIBRE_MCP_TOKEN` configured
+- **THEN** `copalibre_module_scaffold`, `copalibre_module_validate_local`, and
+  `copalibre_module_submit` are listed and callable

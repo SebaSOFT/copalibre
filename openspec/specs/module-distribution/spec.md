@@ -135,3 +135,36 @@ references.
 #### Scenario: A version in use is not offered for retirement
 - **WHEN** a started tournament references a discipline version
 - **THEN** that version is excluded from the retirable list
+
+### Requirement: A module can be scaffolded, validated, and run locally before submission
+
+`copalibre module scaffold <kind> <alias>` SHALL produce a module package (`manifest.json`,
+`artifact.json`, an `assets/` directory) that passes the same validation `module add`/`module
+verify` apply, packaged as a tagged local Git repository in the layout `fetchModule` already expects
+(`<kind-plural>/<alias>/`, tag `<alias>@<version>`). `copalibre module validate-local <path>` SHALL
+run that same validation directly against a local directory, without fetching anything.
+
+#### Scenario: A scaffolded module validates without modification
+
+- **WHEN** `copalibre module scaffold` produces a module package
+- **THEN** `copalibre module validate-local` run against that package reports it valid, with no
+  edits made to the generated files
+
+#### Scenario: A scaffolded module installs through the existing install path
+
+- **WHEN** an operator runs `copalibre module add <alias> --source
+  file:///path/to/a/scaffolded/module` against an allow-listed local source
+- **THEN** the module installs into the local database through the same code path any other module
+  installation uses — no separate local-install mechanism exists
+
+### Requirement: A local module can be submitted to copalibre-modules as a pull request
+
+`copalibre module submit <path>` SHALL fork `copalibre-modules`, copy the local module package into
+the fork under `disciplines/<alias>/` or `profiles/<alias>/` on a new branch, push it, and open a
+pull request against the upstream repository.
+
+#### Scenario: Submission never modifies the local module package
+
+- **WHEN** `copalibre module submit` runs against a local module package
+- **THEN** the local package's `manifest.json`/`artifact.json`/`assets/` are copied, not moved or
+  edited, and remain usable for a further local `module add --source` install afterward
