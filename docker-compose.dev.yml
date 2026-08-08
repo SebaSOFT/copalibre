@@ -45,6 +45,53 @@ services:
       - '1025:1025'
     profiles: ['infrastructure', 'containerized']
 
+  # Real S3-compatible endpoint for local object-storage integration tests
+  # (0041) — the production docker-compose.yml's own object-storage service
+  # only exposes the admin console (9001); this dev profile exposes the S3
+  # API port (9000) too, so `yarn workspace @copalibre/object-storage run
+  # test:integration` can reach it directly from the host.
+  object-storage:
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    command: ['server', '/data', '--console-address', ':9001']
+    environment:
+      MINIO_ROOT_USER: copalibre_dev_only
+      MINIO_ROOT_PASSWORD: copalibre_dev_only
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    volumes:
+      - object-storage-dev-data:/data
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    profiles: ['infrastructure', 'containerized']
+
+  clamd:
+    image: clamav/clamav:1.5.4-debian13-slim
+    ports:
+      - '3310:3310'
+    volumes:
+      - clamav-dev-data:/var/lib/clamav
+    profiles: ['infrastructure', 'containerized']
+
+  # One-shot: MinIO doesn't auto-create buckets. Pre-provisions the bucket
+  # the object-storage integration suite (and this dev profile generally)
+  # expects, then exits — not a long-running service.
+  object-storage-init:
+    image: minio/mc:RELEASE.2025-08-13T08-35-41Z
+    depends_on:
+      object-storage:
+        condition: service_healthy
+    entrypoint: ['/bin/sh']
+    command:
+      - -c
+      - |
+        mc alias set local http://object-storage:9000 copalibre_dev_only copalibre_dev_only &&
+        mc mb --ignore-existing local/copalibre-dev
+    profiles: ['infrastructure', 'containerized']
+
   migrate:
     build: *application-build
     environment:
@@ -146,3 +193,5 @@ services:
 
 volumes:
   postgres-dev-data:
+  object-storage-dev-data:
+  clamav-dev-data:

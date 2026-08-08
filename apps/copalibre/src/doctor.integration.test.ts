@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { chmod, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -25,9 +25,48 @@ describe('copalibre doctor command (integration)', () => {
       await rm(dataDirectory, { force: true, recursive: true });
     }
   });
+
+  /**
+   * The object-storage round-trip check (0041 task 6.4) — against real
+   * infrastructure both times: real MinIO with wrong credentials for the S3
+   * profile, a real read-only directory for the filesystem profile. Neither
+   * scenario is reachable through `objectStorageConfigFromEnv`'s unit tests
+   * (it never fails to resolve a config), so this is the only place either
+   * failure mode is actually exercised.
+   */
+  it('fails the object-storage check clearly against a misconfigured S3 bucket/credential', async () => {
+    const dataDirectory = await mkdtemp(resolve(tmpdir(), 'copalibre-doctor-'));
+    try {
+      const result = await runDoctorProcess(dataDirectory, {
+        COPALIBRE_OBJECT_STORAGE_URL: 'http://localhost:9000',
+        COPALIBRE_OBJECT_STORAGE_ACCESS_KEY: 'wrong-access-key',
+        COPALIBRE_OBJECT_STORAGE_SECRET_KEY: 'wrong-secret-key',
+        COPALIBRE_OBJECT_STORAGE_BUCKET: 'copalibre-dev',
+      });
+
+      expect(result.stdout).toContain('FAIL object-storage: Object storage round-trip failed:');
+    } finally {
+      await rm(dataDirectory, { force: true, recursive: true });
+    }
+  });
+
+  it('fails the object-storage check clearly against a read-only filesystem path', async () => {
+    const dataDirectory = await mkdtemp(resolve(tmpdir(), 'copalibre-doctor-'));
+    await chmod(dataDirectory, 0o444);
+    try {
+      const result = await runDoctorProcess(dataDirectory);
+      expect(result.stdout).toContain('FAIL object-storage: Object storage round-trip failed:');
+    } finally {
+      await chmod(dataDirectory, 0o755);
+      await rm(dataDirectory, { force: true, recursive: true });
+    }
+  });
 });
 
-function runDoctorProcess(dataDirectory: string): Promise<{
+function runDoctorProcess(
+  dataDirectory: string,
+  extraEnvironment: NodeJS.ProcessEnv = {},
+): Promise<{
   readonly code: number | null;
   readonly stdout: string;
   readonly stderr: string;
@@ -48,6 +87,7 @@ function runDoctorProcess(dataDirectory: string): Promise<{
         COPALIBRE_EMAIL_PROVIDER: '',
         COPALIBRE_EMAIL_FROM: '',
         COPALIBRE_SMTP_URL: '',
+        ...extraEnvironment,
       },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
