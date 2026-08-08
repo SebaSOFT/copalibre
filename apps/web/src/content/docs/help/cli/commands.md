@@ -125,3 +125,10 @@ Elimina un módulo instalado que ningún torneo iniciado referencia.
 `copalibre module verify`
 
 Re-valida cada módulo instalado contra la versión del core en ejecución.
+
+## mcp
+
+`copalibre mcp`
+
+Arranca un servidor local del Model Context Protocol (MCP) sobre stdio, para que una IA pueda operar
+CopaLibre. Ver el [detalle de herramientas MCP](/help/cli/mcp/).

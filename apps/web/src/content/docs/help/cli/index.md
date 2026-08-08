@@ -11,3 +11,4 @@ para ver su uso exacto sin ejecutar ningún efecto real.
 - [Instalación](/help/cli/installation/)
 - [Actualización](/help/cli/updating/)
 - [Referencia de comandos](/help/cli/commands/)
+- [MCP para IA](/help/cli/mcp/)

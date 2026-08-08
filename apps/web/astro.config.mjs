@@ -52,7 +52,13 @@ export default defineConfig({
         },
         {
           label: 'CLI de copalibre',
-          items: ['help/cli', 'help/cli/installation', 'help/cli/updating', 'help/cli/commands'],
+          items: [
+            'help/cli',
+            'help/cli/installation',
+            'help/cli/updating',
+            'help/cli/commands',
+            'help/cli/mcp',
+          ],
         },
       ],
       tableOfContents: { minHeadingLevel: 2, maxHeadingLevel: 3 },

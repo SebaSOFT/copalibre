@@ -19,6 +19,7 @@ import {
   renderTopLevelHelp,
 } from './help-text.js';
 import { formatRequiredSecrets, writeLocalDefaults } from './init.js';
+import { startMcpServer } from './mcp/server.js';
 import { moduleAdd, moduleList, moduleRemove, moduleVerify } from './module-commands.js';
 import type { ProcessRunner } from './process-runner.js';
 import { PROCESS_RUNNER } from './tokens.js';
@@ -82,6 +83,8 @@ export class CliRunner {
           return await this.createAdmin(arguments_.slice(1), environment);
         case 'module':
           return await this.module(arguments_.slice(1), environment);
+        case 'mcp':
+          return await this.mcp(environment);
         default:
           process.stderr.write(`Unknown copalibre command: ${command}\n`);
           return 64;
@@ -309,6 +312,16 @@ export class CliRunner {
         process.stderr.write(renderModuleHelp());
         return 64;
     }
+  }
+
+  /**
+   * Runs until stdin closes, the same way an MCP client's spawned server
+   * process is expected to (0047). Protocol messages go over stdout/stdin
+   * only — stderr (the banner, and any logging) never mixes with them.
+   */
+  private async mcp(environment: NodeJS.ProcessEnv): Promise<number> {
+    await startMcpServer(environment);
+    return 0;
   }
 
   /**
