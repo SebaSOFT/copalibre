@@ -10,6 +10,9 @@
       "path": "../../packages/auth/tsconfig.json"
     },
     {
+      "path": "../../packages/object-storage/tsconfig.json"
+    },
+    {
       "path": "../../packages/persistence/tsconfig.json"
     },
     {

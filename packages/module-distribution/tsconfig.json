@@ -8,6 +8,7 @@
   "references": [
     { "path": "../domain/tsconfig.json" },
     { "path": "../module-catalogue/tsconfig.json" },
+    { "path": "../object-storage/tsconfig.json" },
     { "path": "../persistence/tsconfig.json" },
     { "path": "../rules/tsconfig.json" }
   ]

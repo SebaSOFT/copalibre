@@ -4,6 +4,7 @@ import { APP_GUARD, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
 import { winConditionScript, type DisciplineDescriptor } from '@copalibre/domain';
+import type { ObjectStorageAdapter } from '@copalibre/object-storage';
 import {
   CompetitionRepository,
   EnrollmentRepository,
@@ -15,7 +16,6 @@ import {
   TournamentRepository,
   withTransaction,
   type Database,
-  type ObjectStorageAdapter,
 } from '@copalibre/persistence';
 import { createMigratedDatabase } from '../../../../packages/persistence/src/test-support/scratch-database.js';
 import type { Kysely } from 'kysely';
@@ -94,11 +94,12 @@ let currentOrganizationId = '';
 const CURRENT_ORG = (): string => currentOrganizationId;
 
 class FakeObjectStorage implements ObjectStorageAdapter {
+  readonly profile = 'filesystem' as const;
   private readonly objects = new Map<string, Uint8Array>();
 
-  async put(key: string, body: Uint8Array): Promise<{ bucket: string; key: string }> {
+  async put(key: string, body: Uint8Array): Promise<{ key: string }> {
     this.objects.set(key, body);
-    return { bucket: 'test-bucket', key };
+    return { key };
   }
   async get(reference: { key: string }): Promise<{ body: Uint8Array }> {
     return { body: this.objects.get(reference.key) ?? new Uint8Array() };

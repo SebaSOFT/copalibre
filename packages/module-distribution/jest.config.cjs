@@ -12,6 +12,7 @@ module.exports = {
     ...esmExtensionMapper,
     '^@copalibre/domain$': '<rootDir>/../domain/src/index.ts',
     '^@copalibre/module-catalogue$': '<rootDir>/../module-catalogue/src/index.ts',
+    '^@copalibre/object-storage$': '<rootDir>/../object-storage/src/index.ts',
     '^@copalibre/persistence$': '<rootDir>/../persistence/src/index.ts',
     '^@copalibre/rules$': '<rootDir>/../rules/src/index.ts',
   },

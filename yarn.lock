@@ -1408,6 +1408,7 @@ __metadata:
   dependencies:
     "@copalibre/auth": "workspace:^"
     "@copalibre/domain": "workspace:^"
+    "@copalibre/object-storage": "workspace:^"
     "@copalibre/persistence": "workspace:^"
     "@copalibre/rules": "workspace:^"
     "@copalibre/tournament-engine": "workspace:^"
@@ -1555,6 +1556,7 @@ __metadata:
   dependencies:
     "@copalibre/domain": "workspace:^"
     "@copalibre/module-catalogue": "workspace:^"
+    "@copalibre/object-storage": "workspace:^"
     "@copalibre/persistence": "workspace:^"
     "@copalibre/rules": "workspace:^"
     "@types/jest": "npm:^30.0.0"
@@ -1584,7 +1586,6 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@copalibre/persistence@workspace:packages/persistence"
   dependencies:
-    "@aws-sdk/client-s3": "npm:^3.1104.0"
     "@copalibre/domain": "workspace:^"
     "@copalibre/routing": "workspace:^"
     "@types/better-sqlite3": "npm:^9.6.0"

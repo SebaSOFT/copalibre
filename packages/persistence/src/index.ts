@@ -8,14 +8,6 @@
 export type { Database } from './schema.js';
 export { createDatabase, databaseConfigFromEnv, type DatabaseConfig } from './database.js';
 export { newId } from './ids.js';
-export {
-  createObjectStorageAdapter,
-  objectStorageConfigFromEnv,
-  type ObjectStorageAdapter,
-  type ObjectStorageConfig,
-  type StoredObject,
-  type StoredObjectReference,
-} from './object-storage.js';
 
 export {
   PersistenceError,

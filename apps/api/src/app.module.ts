@@ -33,14 +33,8 @@ import { authConfigFromEnv } from './auth/auth-config.js';
 import { TokenVerifier } from './auth/token-verifier.js';
 import { JwtAuthGuard } from './auth/jwt-auth.guard.js';
 import { OrganizationAccessGuard } from './auth/organization-access.guard.js';
-import {
-  createDatabase,
-  createObjectStorageAdapter,
-  databaseConfigFromEnv,
-  objectStorageConfigFromEnv,
-  type Database,
-  type ObjectStorageAdapter,
-} from '@copalibre/persistence';
+import { createObjectStorageAdapter, objectStorageConfigFromEnv } from '@copalibre/object-storage';
+import { createDatabase, databaseConfigFromEnv, type Database } from '@copalibre/persistence';
 import { OBJECT_STORAGE } from './object-storage.token.js';
 
 /**
@@ -58,10 +52,7 @@ const providers: Provider[] = [
   },
   {
     provide: OBJECT_STORAGE,
-    useFactory: (): ObjectStorageAdapter | undefined => {
-      const config = objectStorageConfigFromEnv(process.env);
-      return config ? createObjectStorageAdapter(config) : undefined;
-    },
+    useFactory: () => createObjectStorageAdapter(objectStorageConfigFromEnv(process.env)),
   },
   { provide: APP_GUARD, useClass: JwtAuthGuard },
   { provide: APP_GUARD, useClass: OrganizationAccessGuard },
