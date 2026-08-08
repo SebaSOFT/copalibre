@@ -164,6 +164,12 @@ export {
   type InstalledModuleKind,
   type ModuleSourceKind,
 } from './repositories/installed-module-repository.js';
+export {
+  ObjectMetadataRepository,
+  type ObjectMetadata,
+  type ObjectStorageMetadataProfile,
+  type ObjectStorageMetadataStatus,
+} from './repositories/object-metadata-repository.js';
 
 export {
   toOrganization,

@@ -89,9 +89,18 @@ describe('migrations (integration)', () => {
     expect(afterUp).toContain('report_evidence');
     expect(afterUp).toContain('installed_modules');
     expect(afterUp).toContain('module_assets');
+    expect(afterUp).toContain('object_metadata');
     expect(afterUpTables.find((table) => table.name === 'tournaments')?.columns).toEqual(
       expect.arrayContaining([expect.objectContaining({ name: 'archived_at' })]),
     );
+
+    const objectStorageMetadataDown = await migrateDownOneStep(scratch.db);
+    expect(objectStorageMetadataDown.error).toBeUndefined();
+
+    const afterObjectStorageMetadataDown = (await scratch.db.introspection.getTables()).map(
+      (table) => table.name,
+    );
+    expect(afterObjectStorageMetadataDown).not.toContain('object_metadata');
 
     const communityModuleInstallationDown = await migrateDownOneStep(scratch.db);
     expect(communityModuleInstallationDown.error).toBeUndefined();

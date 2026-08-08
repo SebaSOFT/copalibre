@@ -680,6 +680,26 @@ export interface ModuleAssetsTable {
   created_at: Timestamp;
 }
 
+/**
+ * The object-storage capability's own metadata registry (0041) — one row per
+ * object stored through `@copalibre/object-storage`, pointing at its
+ * profile-agnostic storage key. A domain-specific table that already records
+ * its own storage reference and status (`report_evidence`, `module_assets`)
+ * is not required to write here too.
+ */
+export interface ObjectMetadataTable {
+  object_id: string;
+  /** `s3` or `filesystem`. */
+  profile: string;
+  storage_key: string;
+  content_type: string;
+  size_bytes: number;
+  uploaded_by: string;
+  /** `pending`, `passed` or `failed` — the async media-processing job's tracking field. */
+  status: string;
+  created_at: Timestamp;
+}
+
 export interface Database {
   organizations: OrganizationsTable;
   identity_principals: IdentityPrincipalsTable;
@@ -731,4 +751,5 @@ export interface Database {
   schema_version: SchemaVersionTable;
   installed_modules: InstalledModulesTable;
   module_assets: ModuleAssetsTable;
+  object_metadata: ObjectMetadataTable;
 }

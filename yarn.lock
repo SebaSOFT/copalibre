@@ -1567,6 +1567,18 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@copalibre/object-storage@workspace:packages/object-storage":
+  version: 0.0.0-use.local
+  resolution: "@copalibre/object-storage@workspace:packages/object-storage"
+  dependencies:
+    "@aws-sdk/client-s3": "npm:^3.1104.0"
+    "@types/jest": "npm:^30.0.0"
+    jest: "npm:^30.4.2"
+    ts-jest: "npm:^29.4.12"
+    typescript: "npm:^5"
+  languageName: unknown
+  linkType: soft
+
 "@copalibre/persistence@workspace:^, @copalibre/persistence@workspace:packages/persistence":
   version: 0.0.0-use.local
   resolution: "@copalibre/persistence@workspace:packages/persistence"
