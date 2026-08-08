@@ -1,7 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { COMMAND_HELP, MODULE_SUBCOMMAND_HELP, renderCommandHelp, renderTopLevelHelp } from './help-text.js';
+import {
+  COMMAND_HELP,
+  MODULE_SUBCOMMAND_HELP,
+  renderCommandHelp,
+  renderTopLevelHelp,
+} from './help-text.js';
 
 const SOURCE_DIRECTORY = dirname(fileURLToPath(import.meta.url));
 

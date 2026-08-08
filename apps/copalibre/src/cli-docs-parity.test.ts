@@ -18,12 +18,9 @@ describe('the CLI command reference docs page stays in sync with COMMAND_HELP (0
     'utf8',
   );
 
-  it.each(COMMAND_HELP.map((command) => command.name))(
-    'commands.md mentions "%s"',
-    (name) => {
-      expect(commandsPage).toContain(name);
-    },
-  );
+  it.each(COMMAND_HELP.map((command) => command.name))('commands.md mentions "%s"', (name) => {
+    expect(commandsPage).toContain(name);
+  });
 
   it.each(MODULE_SUBCOMMAND_HELP.map((subcommand) => subcommand.name))(
     'commands.md mentions module subcommand "%s"',

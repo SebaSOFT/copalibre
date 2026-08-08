@@ -67,7 +67,10 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
     summary: 'Restore a PostgreSQL backup into a clean installation',
     usage: 'copalibre restore --file <path> (--confirm | --dry-run)',
     flags: [
-      { flag: '--file <path>', description: 'Backup file to restore, within the backups/ directory' },
+      {
+        flag: '--file <path>',
+        description: 'Backup file to restore, within the backups/ directory',
+      },
       { flag: '--confirm', description: 'Required to actually run the restore' },
       { flag: '--dry-run', description: 'Print the restore plan without running it' },
     ],
@@ -99,9 +102,13 @@ export const MODULE_SUBCOMMAND_HELP: readonly CommandHelp[] = [
   {
     name: 'add',
     summary: 'Install a module by alias, optionally pinned to a version range',
-    usage: 'copalibre module add <alias>[@range] [--source <url>] [--allow-unsatisfied-capabilities]',
+    usage:
+      'copalibre module add <alias>[@range] [--source <url>] [--allow-unsatisfied-capabilities]',
     flags: [
-      { flag: '--source <url>', description: 'An allow-listed alternate source instead of curated' },
+      {
+        flag: '--source <url>',
+        description: 'An allow-listed alternate source instead of curated',
+      },
       {
         flag: '--allow-unsatisfied-capabilities',
         description: 'Install even if declared required capabilities are not yet satisfied',
