@@ -1,0 +1,56 @@
+# object-storage Specification
+
+## Purpose
+
+Provides the S3-compatible object-storage adapter, asynchronous media processing, and the real
+backup/health checks the architecture doc names as a first-class stateful dependency, so every other
+capability that stores a file (evidence, module assets, exports) has one real place to do it.
+
+## Requirements
+
+### Requirement: S3-compatible storage adapter
+The system SHALL store binary objects through an S3-compatible adapter, with a Postgres metadata row
+per object pointing at its storage location rather than the object's bytes living in the database.
+
+#### Scenario: An uploaded object is retrievable by its metadata reference
+- **WHEN** a caller stores an object through the adapter
+- **THEN** the object is retrievable by the identifier returned at store time, and no copy of its bytes
+  is written into a PostgreSQL column
+
+#### Scenario: The adapter works against any S3-compatible endpoint
+- **WHEN** the adapter is configured against MinIO, AWS S3, or another S3-compatible provider
+- **THEN** put/get/delete behave identically, with no code path that only works against one provider
+
+### Requirement: Single-node filesystem fallback
+A self-hosted, single-node installation SHALL be able to run without a separate object-storage service,
+using local filesystem storage as a documented fallback profile.
+
+#### Scenario: Filesystem profile serves the same adapter contract
+- **WHEN** an installation is configured for the local-filesystem storage profile instead of an
+  S3-compatible endpoint
+- **THEN** every caller of the adapter continues to work unchanged, unaware of which profile is active
+
+### Requirement: Asynchronous media processing
+Object validation, malware/content scanning, and — where the media type warrants it — thumbnail and
+rendition generation SHALL run asynchronously through the durable worker/outbox path, never inline in
+the request that accepted the upload.
+
+#### Scenario: Upload response does not wait on processing
+- **WHEN** a caller uploads an object
+- **THEN** the upload request completes without waiting for validation, scanning, or rendition
+  generation to finish
+
+#### Scenario: A failed malware scan is surfaced, not silently dropped
+- **WHEN** asynchronous scanning flags an object as unsafe
+- **THEN** the object's status reflects the failure and it is not served to any consumer as valid,
+  with the failure visible to an operator through the existing audit/notification path
+
+### Requirement: Object-storage health check
+`copalibre doctor` SHALL verify object storage with a real write/read/delete round-trip against the
+configured endpoint or filesystem profile, not only that the configured URL is reachable.
+
+#### Scenario: Doctor catches a misconfigured bucket or credential before first use
+- **WHEN** `copalibre doctor` runs against a configured object-storage endpoint the installation cannot
+  actually write to (wrong credentials, missing bucket, read-only mount)
+- **THEN** doctor reports a clear failure naming the object-storage check, rather than passing on
+  reachability alone

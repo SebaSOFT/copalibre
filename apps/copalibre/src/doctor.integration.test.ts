@@ -3,6 +3,7 @@ import { chmod, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { renderBanner } from './banner.js';
 
 const SOURCE_DIRECTORY = dirname(fileURLToPath(import.meta.url));
 const CLI_EXECUTABLE = resolve(SOURCE_DIRECTORY, '../dist/main.js');
@@ -20,7 +21,8 @@ describe('copalibre doctor command (integration)', () => {
         'FAIL secret:COPALIBRE_BOOTSTRAP_TOKEN: COPALIBRE_BOOTSTRAP_TOKEN is required',
       );
       expect(result.stdout).toContain('FAIL oidc-config:');
-      expect(result.stderr).toBe('');
+      // Only the startup banner (0042) — no stray diagnostic noise beyond it.
+      expect(result.stderr).toBe(renderBanner());
     } finally {
       await rm(dataDirectory, { force: true, recursive: true });
     }
