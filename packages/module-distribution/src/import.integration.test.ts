@@ -71,28 +71,43 @@ describe('importValidatedModule (integration)', () => {
 
   async function addAsset(directory: string): Promise<void> {
     await mkdir(join(directory, 'assets'));
-    await writeFile(join(directory, 'assets', 'logo.png'), Buffer.from(ONE_PIXEL_PNG_BASE64, 'base64'));
+    await writeFile(
+      join(directory, 'assets', 'logo.png'),
+      Buffer.from(ONE_PIXEL_PNG_BASE64, 'base64'),
+    );
   }
 
   async function importFixture(
     manifest: unknown,
     document: unknown,
-    options?: { readonly storage?: ObjectStorageAdapter; readonly overrideUnsatisfiedCapabilities?: boolean },
+    options?: {
+      readonly storage?: ObjectStorageAdapter;
+      readonly overrideUnsatisfiedCapabilities?: boolean;
+    },
   ) {
     const directory = await makeModuleDirectory(manifest, document);
     directories.push(directory);
     const validated = await validateModulePackageOrThrow(directory, OPTIONS);
-    const report = await importValidatedModule(db, options?.storage ?? new FakeObjectStorage(), directory, validated, {
-      source: CURATED_MODULE_REPOSITORY,
-      actor: 'integration-test',
-      overrideUnsatisfiedCapabilities: options?.overrideUnsatisfiedCapabilities,
-    });
+    const report = await importValidatedModule(
+      db,
+      options?.storage ?? new FakeObjectStorage(),
+      directory,
+      validated,
+      {
+        source: CURATED_MODULE_REPOSITORY,
+        actor: 'integration-test',
+        overrideUnsatisfiedCapabilities: options?.overrideUnsatisfiedCapabilities,
+      },
+    );
     return { report, directory };
   }
 
   it('imports a valid discipline end to end: row persisted, module recorded under its real source (7.1)', async () => {
     const alias = `orbital-frisbee-${newId()}`;
-    const { report } = await importFixture(validManifest({ alias }), validDisciplineDocument({ alias }));
+    const { report } = await importFixture(
+      validManifest({ alias }),
+      validDisciplineDocument({ alias }),
+    );
 
     expect(report.kind).toBe('discipline');
     expect(report.alias).toBe(alias);
@@ -157,7 +172,9 @@ describe('importValidatedModule (integration)', () => {
 
     const installed = await new InstalledModuleRepository(db).findByAlias(alias);
     expect(installed).toHaveLength(0);
-    const descriptorVersions = await new TournamentRepository(db).findDescriptorVersionsByAlias(alias);
+    const descriptorVersions = await new TournamentRepository(db).findDescriptorVersionsByAlias(
+      alias,
+    );
     expect(descriptorVersions).toHaveLength(0);
   });
 
@@ -184,7 +201,10 @@ describe('importValidatedModule (integration)', () => {
         assets: [{ path: 'logo.png', kind: 'logo' }],
         attribution: { author: 'A Different Author', licence: 'MIT' },
       }),
-      validDisciplineDocument({ alias, attribution: { author: 'A Different Author', licence: 'MIT' } }),
+      validDisciplineDocument({
+        alias,
+        attribution: { author: 'A Different Author', licence: 'MIT' },
+      }),
     );
     directories.push(directory);
     await addAsset(directory);
@@ -247,7 +267,10 @@ describe('importValidatedModule (integration)', () => {
 
     const referencing = await new TournamentRepository(
       db,
-    ).findStartedTournamentAliasesReferencingDescriptor(descriptor.descriptorId, descriptor.version);
+    ).findStartedTournamentAliasesReferencingDescriptor(
+      descriptor.descriptorId,
+      descriptor.version,
+    );
     expect(referencing).toContain(tournament.alias);
 
     // The refusal itself lives in the CLI (module-commands.ts), which checks
@@ -265,7 +288,11 @@ describe('importValidatedModule (integration)', () => {
       validProfileDocument({
         alias: profileAlias,
         requires: [
-          { capability: 'nothing-installed-satisfies-this', satisfiedBy: ['xyz'], necessity: 'required' },
+          {
+            capability: 'nothing-installed-satisfies-this',
+            satisfiedBy: ['xyz'],
+            necessity: 'required',
+          },
         ],
       }),
     );
@@ -291,7 +318,10 @@ describe('importValidatedModule (integration)', () => {
 
   it('installs a profile immediately, no override needed, when an installed discipline already satisfies it (7.4)', async () => {
     const disciplineAlias = `orbital-frisbee-${newId()}`;
-    await importFixture(validManifest({ alias: disciplineAlias }), validDisciplineDocument({ alias: disciplineAlias }));
+    await importFixture(
+      validManifest({ alias: disciplineAlias }),
+      validDisciplineDocument({ alias: disciplineAlias }),
+    );
 
     const profileAlias = `weekend-cup-${newId()}`;
     const { report } = await importFixture(
@@ -357,10 +387,19 @@ describe('importValidatedModule (integration)', () => {
     await importFixture(validManifest({ alias }), validDisciplineDocument({ alias }));
     const [installed] = await new InstalledModuleRepository(db).findByAlias(alias);
     if (!installed) throw new Error('expected an installed module row');
-    const descriptor = await new TournamentRepository(db).findDescriptor(installed.documentId, installed.version);
+    const descriptor = await new TournamentRepository(db).findDescriptor(
+      installed.documentId,
+      installed.version,
+    );
     if (!descriptor) throw new Error('expected the imported descriptor to be found');
 
-    const failures = await verifyInstalledModule(new FakeObjectStorage(), '1.0.0', installed, descriptor, []);
+    const failures = await verifyInstalledModule(
+      new FakeObjectStorage(),
+      '1.0.0',
+      installed,
+      descriptor,
+      [],
+    );
     expect(failures).toEqual([]);
   });
 
@@ -370,7 +409,10 @@ describe('importValidatedModule (integration)', () => {
 
     const directory = await makeModuleDirectory(
       validManifest({ alias, attribution: { author: 'A Different Author', licence: 'MIT' } }),
-      validDisciplineDocument({ alias, attribution: { author: 'A Different Author', licence: 'MIT' } }),
+      validDisciplineDocument({
+        alias,
+        attribution: { author: 'A Different Author', licence: 'MIT' },
+      }),
     );
     directories.push(directory);
     const validated = await validateModulePackageOrThrow(directory, OPTIONS);

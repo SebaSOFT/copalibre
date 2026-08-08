@@ -39,7 +39,10 @@ describe('module add --source allow-list (integration)', () => {
 
   it('refuses an alternate source that is not allow-listed, installing nothing', async () => {
     await expect(
-      moduleAdd(['orbital-frisbee', '--source', CURATED_MODULE_REPOSITORY.repositoryUrl], baseEnvironment()),
+      moduleAdd(
+        ['orbital-frisbee', '--source', CURATED_MODULE_REPOSITORY.repositoryUrl],
+        baseEnvironment(),
+      ),
     ).rejects.toThrow(/not allow-listed/);
 
     const installed = await new InstalledModuleRepository(db).findByAlias('orbital-frisbee');

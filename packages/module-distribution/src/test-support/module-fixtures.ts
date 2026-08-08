@@ -17,7 +17,9 @@ export function validManifest(overrides?: Partial<ModuleManifest>): ModuleManife
   };
 }
 
-export function validDisciplineDocument(overrides?: Record<string, unknown>): Record<string, unknown> {
+export function validDisciplineDocument(
+  overrides?: Record<string, unknown>,
+): Record<string, unknown> {
   return {
     alias: 'orbital-frisbee',
     version: '1.0.0',
@@ -44,9 +46,7 @@ export function validProfileDocument(overrides?: Record<string, unknown>): Recor
     version: '1.0.0',
     name: 'Weekend Cup',
     attribution: VALID_ATTRIBUTION,
-    requires: [
-      { capability: 'primary-scoring', satisfiedBy: ['points'], necessity: 'required' },
-    ],
+    requires: [{ capability: 'primary-scoring', satisfiedBy: ['points'], necessity: 'required' }],
     stages: [{ number: 1, name: 'League', format: 'round-robin' }],
     points: { win: 3, draw: 1, loss: 0 },
     tiebreak: [],

@@ -45,10 +45,7 @@ describe('fetchModule / listPublishedVersions (integration, real repository)', (
   });
 
   it('lists no versions for an alias nothing has ever published', async () => {
-    const versions = await listPublishedVersions(
-      CURATED_MODULE_REPOSITORY,
-      'no-such-module-alias',
-    );
+    const versions = await listPublishedVersions(CURATED_MODULE_REPOSITORY, 'no-such-module-alias');
     expect(versions).toEqual([]);
   });
 
