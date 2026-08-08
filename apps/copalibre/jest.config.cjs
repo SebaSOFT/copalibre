@@ -11,6 +11,9 @@ module.exports = {
     '^@copalibre/persistence$': '<rootDir>/../../packages/persistence/src/index.ts',
     '^@copalibre/domain$': '<rootDir>/../../packages/domain/src/index.ts',
     '^@copalibre/routing$': '<rootDir>/../../packages/routing/src/index.ts',
+    '^@copalibre/module-distribution$': '<rootDir>/../../packages/module-distribution/src/index.ts',
+    '^@copalibre/module-catalogue$': '<rootDir>/../../packages/module-catalogue/src/index.ts',
+    '^@copalibre/rules$': '<rootDir>/../../packages/rules/src/index.ts',
   },
   // Bootstrap wiring is exercised by Compose smoke tests. Unit coverage focuses
   // on deterministic command, validation and argument contracts.
