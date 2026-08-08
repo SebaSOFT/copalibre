@@ -123,6 +123,14 @@ export async function scaffoldModule(
   await runGit(processes, repositoryDirectory, ['init', '--quiet']);
   await runGit(processes, repositoryDirectory, ['add', '-A']);
   await runGit(processes, repositoryDirectory, [
+    // Local, ephemeral identity (`-c`, not `--global`): the scaffold must
+    // commit on any host, including one with no git identity configured at
+    // all (a fresh CI runner, a minimal container) — never rely on ambient
+    // global git config existing.
+    '-c',
+    'user.name=CopaLibre Module Scaffold',
+    '-c',
+    'user.email=scaffold@copalibre.invalid',
     'commit',
     '--quiet',
     '-m',
