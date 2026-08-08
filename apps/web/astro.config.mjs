@@ -50,6 +50,10 @@ export default defineConfig({
             'help/control/match-console',
           ],
         },
+        {
+          label: 'CLI de copalibre',
+          items: ['help/cli', 'help/cli/installation', 'help/cli/updating', 'help/cli/commands'],
+        },
       ],
       tableOfContents: { minHeadingLevel: 2, maxHeadingLevel: 3 },
       customCss: ['./src/styles/help.css'],

@@ -13,3 +13,6 @@ lleva directamente a la página correspondiente de esta sección. Esta página l
 - [Sorteo y siembra (seeding)](/help/control/seeding/)
 - [Roles y permisos](/help/control/roles-permissions/)
 - [Consola de partido en vivo](/help/control/match-console/)
+
+Para instalar, actualizar o entender los comandos del CLI de administración, vea la
+[documentación del CLI](/help/cli/).

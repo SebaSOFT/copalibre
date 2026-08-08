@@ -65,3 +65,22 @@ hostnames, private paths, or production example credentials.
 
 - **WHEN** the OpenAPI artifact is generated during CI
 - **THEN** a scan for token-shaped strings, internal hostnames, and known credential patterns finds none
+
+### Requirement: Every control-panel screen links to matching contextual help
+
+Each control-panel screen SHALL render a visible link to a Starlight help page that explains that
+specific screen's purpose and its key data fields, distinct from a generic link to the help site's
+homepage.
+
+#### Scenario: An operator on the seeding screen reaches seeding-specific help
+
+- **WHEN** an operator viewing the seeding-builder control-panel screen activates its help link
+- **THEN** they land on a Starlight page that explains seeding, byes, and the draw constraints this
+  screen enforces — not the help site's homepage or an unrelated screen's page
+
+#### Scenario: A screen with no matching help page fails the build
+
+- **WHEN** a control-panel route component is added or changed without a corresponding `helpPath`
+  pointing at an existing Starlight page under `/help/control/`
+- **THEN** the build fails, naming the missing help path, rather than shipping a silently broken or
+  absent help link
