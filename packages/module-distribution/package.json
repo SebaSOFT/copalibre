@@ -1,32 +1,34 @@
 {
-  "name": "@copalibre/copalibre",
+  "name": "@copalibre/module-distribution",
   "version": "0.0.0",
   "private": true,
   "license": "AGPL-3.0-only",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc --build",
-    "start": "node dist/main.js",
     "test": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.config.cjs",
     "test:coverage": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.config.cjs --coverage",
     "test:integration": "node --env-file-if-exists=../../.env.test --experimental-vm-modules ../../node_modules/.bin/jest --config jest.integration.config.cjs --runInBand"
   },
   "dependencies": {
-    "@copalibre/auth": "workspace:^",
     "@copalibre/domain": "workspace:^",
-    "@copalibre/module-distribution": "workspace:^",
+    "@copalibre/module-catalogue": "workspace:^",
     "@copalibre/persistence": "workspace:^",
-    "@nestjs/common": "^11.1.28",
-    "@nestjs/core": "^11.1.28",
-    "jose": "^6",
-    "kysely": "^0.29",
-    "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2"
+    "@copalibre/rules": "workspace:^",
+    "ajv": "^8.20.0",
+    "image-size": "^2.0.2",
+    "semver": "^7.8.5"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
+    "@types/semver": "^7.7.1",
     "jest": "^30.4.2",
     "ts-jest": "^29.4.12",
     "typescript": "^5"
-  },
-  "type": "module"
+  }
 }

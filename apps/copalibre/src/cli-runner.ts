@@ -12,6 +12,7 @@ import {
 import { createInitialAdministrator, parseCreateAdminArguments } from './create-admin.js';
 import { runDoctor, type DoctorOptions } from './doctor.js';
 import { formatRequiredSecrets, writeLocalDefaults } from './init.js';
+import { moduleAdd, moduleList, moduleRemove, moduleVerify } from './module-commands.js';
 import type { ProcessRunner } from './process-runner.js';
 import { PROCESS_RUNNER } from './tokens.js';
 
@@ -26,7 +27,7 @@ export class CliRunner {
     const command = arguments_[0];
     if (!command || command === '--help' || command === '-h') {
       process.stdout.write(
-        'Usage: copalibre <init|doctor|dev|start|migrate|create-admin|backup|restore|upgrade-check>\n',
+        'Usage: copalibre <init|doctor|dev|start|migrate|create-admin|backup|restore|upgrade-check|module>\n',
       );
       return 0;
     }
@@ -50,6 +51,8 @@ export class CliRunner {
           return await this.upgradeCheck();
         case 'create-admin':
           return await this.createAdmin(arguments_.slice(1), environment);
+        case 'module':
+          return await this.module(arguments_.slice(1), environment);
         default:
           process.stderr.write(`Unknown copalibre command: ${command}\n`);
           return 64;
@@ -214,6 +217,28 @@ export class CliRunner {
   private upgradeCheck(): Promise<number> {
     process.stdout.write('No release compatibility checks are registered yet.\n');
     return Promise.resolve(0);
+  }
+
+  private async module(
+    arguments_: readonly string[],
+    environment: NodeJS.ProcessEnv,
+  ): Promise<number> {
+    const [sub, ...rest] = arguments_;
+    switch (sub) {
+      case 'add':
+        return moduleAdd(rest, environment);
+      case 'list':
+        return moduleList(rest, environment);
+      case 'remove':
+        return moduleRemove(rest, environment);
+      case 'verify':
+        return moduleVerify(rest, environment);
+      default:
+        process.stderr.write(
+          `Usage: copalibre module <add <alias>[@range] [--source <url>]|list [--outdated]|remove <alias>|verify>\n`,
+        );
+        return 64;
+    }
   }
 
   private runDatabaseTools(command: readonly string[]): Promise<number> {

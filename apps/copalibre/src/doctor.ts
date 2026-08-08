@@ -2,7 +2,11 @@ import { access, mkdir } from 'node:fs/promises';
 import { lookup } from 'node:dns/promises';
 import { dirname } from 'node:path';
 import { authConfigFromEnv } from '@copalibre/auth';
-import { createDatabase } from '@copalibre/persistence';
+import {
+  CompetitionRecordRepository,
+  InstalledModuleRepository,
+  createDatabase,
+} from '@copalibre/persistence';
 import { sql } from 'kysely';
 import { createRemoteJWKSet, customFetch, type FetchImplementation } from 'jose';
 
@@ -19,11 +23,18 @@ export interface DoctorReport {
   readonly ok: boolean;
 }
 
+export interface RetirableModule {
+  readonly alias: string;
+  readonly version: string;
+}
+
 export interface DoctorDependencies {
   readonly lookupHost: (hostname: string) => Promise<void>;
   readonly probeDatabase: (connectionString: string) => Promise<void>;
   readonly ensureWritable: (path: string) => Promise<void>;
   readonly fetch: typeof fetch;
+  /** Installed community discipline versions no started/finished tournament references (task 4.7). */
+  readonly retirableModules: (connectionString: string) => Promise<readonly RetirableModule[]>;
 }
 
 export interface DoctorOptions {
@@ -46,6 +57,7 @@ export async function runDoctor(
   checks.push(...(await validatePublicUrls(environment, dependencies)));
   checks.push(...(await validateJwksContent(environment, dependencies)));
   checks.push(...(await validateDatabase(environment, dependencies)));
+  checks.push(await validateRetirableModules(environment, dependencies));
   checks.push(...(await validateObjectStorage(environment, dependencies)));
   checks.push(...(await validatePersistentPath(environment, dependencies)));
   if (options.checkProxy) checks.push(await validateReverseProxy(options, dependencies));
@@ -177,6 +189,29 @@ export async function validateDatabase(
     return [pass('postgresql', 'PostgreSQL accepts a query')];
   } catch (error) {
     return [fail('postgresql', `PostgreSQL is unreachable: ${errorMessage(error)}`)];
+  }
+}
+
+/** Reports installed community discipline versions no live tournament references (task 4.7) — informational, never `fail`. */
+export async function validateRetirableModules(
+  environment: NodeJS.ProcessEnv,
+  dependencies: Pick<DoctorDependencies, 'retirableModules'>,
+): Promise<DoctorCheck> {
+  const connectionString = environment.DATABASE_URL;
+  if (!connectionString) return skip('retirable-modules', 'DATABASE_URL is not configured');
+  try {
+    const retirable = await dependencies.retirableModules(connectionString);
+    return pass(
+      'retirable-modules',
+      retirable.length === 0
+        ? 'No installed discipline versions are retirable'
+        : `Retirable discipline versions: ${retirable.map((module_) => `${module_.alias}@${module_.version}`).join(', ')}`,
+    );
+  } catch (error) {
+    // Never fail: doctor runs on a clean, unmigrated host too (this is
+    // exactly what caught it — the schema doesn't exist yet at that point),
+    // and this check is purely informational, not a readiness gate.
+    return skip('retirable-modules', `Could not compute retirable modules: ${errorMessage(error)}`);
   }
 }
 
@@ -323,6 +358,31 @@ function systemDoctorDependencies(): DoctorDependencies {
       await mkdir(path, { recursive: true });
       await access(dirname(path));
       await access(path);
+    },
+    retirableModules: async (connectionString) => {
+      const database = createDatabase({ connectionString, maxConnections: 1 });
+      try {
+        // Scoped to community-installed modules (0036) — installed_modules
+        // only tracks those; the first-party catalogue's own aliases are
+        // reserved, not candidates for retirement.
+        const retirable = await new CompetitionRecordRepository(
+          database,
+        ).retirableDescriptorVersions();
+        const modules = await new InstalledModuleRepository(database).list();
+        const aliasByDescriptor = new Map(
+          modules
+            .filter((module_) => module_.kind === 'discipline')
+            .map((module_) => [`${module_.documentId}@${module_.version}`, module_.alias]),
+        );
+        return retirable
+          .map((row) => ({
+            alias: aliasByDescriptor.get(`${row.descriptorId}@${row.version}`),
+            version: row.version,
+          }))
+          .filter((row): row is RetirableModule => row.alias !== undefined);
+      } finally {
+        await database.destroy();
+      }
     },
     fetch,
   };

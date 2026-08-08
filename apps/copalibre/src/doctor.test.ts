@@ -6,6 +6,7 @@ import {
   validateObjectStorage,
   validatePersistentPath,
   validatePublicUrls,
+  validateRetirableModules,
   validateReverseProxy,
   validateServicePorts,
   type DoctorDependencies,
@@ -29,6 +30,7 @@ function dependencies(overrides: Partial<DoctorDependencies> = {}): DoctorDepend
     lookupHost: jest.fn(async () => undefined),
     probeDatabase: jest.fn(async () => undefined),
     ensureWritable: jest.fn(async () => undefined),
+    retirableModules: jest.fn(async () => []),
     fetch: jest.fn(async (input: string | URL | Request) => {
       // The JWKS content check and the SSE proxy-conformance check share this
       // default mock; discriminate by URL so each gets a response shaped for
@@ -308,6 +310,45 @@ describe('copalibre doctor', () => {
     );
 
     expect(check).toMatchObject({ status: 'fail', message: expect.stringContaining('timeout') });
+  });
+
+  it('skips the retirable-modules check when no database is configured', async () => {
+    const check = await validateRetirableModules({}, dependencies());
+    expect(check).toMatchObject({ name: 'retirable-modules', status: 'skip' });
+  });
+
+  it('reports retirable module versions by alias', async () => {
+    const check = await validateRetirableModules(
+      environment,
+      dependencies({
+        retirableModules: async () => [{ alias: 'orbital-frisbee', version: '1.0.0' }],
+      }),
+    );
+    expect(check).toMatchObject({
+      name: 'retirable-modules',
+      status: 'pass',
+      message: expect.stringContaining('orbital-frisbee@1.0.0'),
+    });
+  });
+
+  it('passes with no retirable versions when none are found', async () => {
+    const check = await validateRetirableModules(environment, dependencies());
+    expect(check).toMatchObject({ name: 'retirable-modules', status: 'pass' });
+    expect(check.message).toContain('No installed discipline versions are retirable');
+  });
+
+  it('skips (never fails) the retirable-modules check when the query itself fails, e.g. an unmigrated database', async () => {
+    const check = await validateRetirableModules(
+      environment,
+      dependencies({
+        retirableModules: async () => Promise.reject(new Error('connection refused')),
+      }),
+    );
+    expect(check).toMatchObject({
+      name: 'retirable-modules',
+      status: 'skip',
+      message: expect.stringContaining('connection refused'),
+    });
   });
 
   it('requires both a recognizable first heartbeat and a later idle heartbeat', async () => {

@@ -166,6 +166,43 @@ export class TournamentRepository {
     }));
   }
 
+  /**
+   * Tournament aliases (started or finished) naming this exact descriptor
+   * version — 0036's `module remove` safety check, distinct from
+   * `retirableDescriptorVersions`'s catalogue-retirement question: this asks
+   * whether *deleting the row* would orphan a reference a tournament record
+   * still names, not whether the version is worth keeping in a browsable
+   * catalogue.
+   */
+  async findStartedTournamentAliasesReferencingDescriptor(
+    descriptorId: string,
+    version: string,
+  ): Promise<readonly string[]> {
+    const rows = await this.db
+      .selectFrom('tournaments')
+      .select('alias')
+      .where('descriptor_id', '=', descriptorId)
+      .where('descriptor_version', '=', version)
+      .where('status', 'in', ['started', 'finished'])
+      .execute();
+    return rows.map((row) => row.alias);
+  }
+
+  /** Same question as above, for a profile version. */
+  async findStartedTournamentAliasesReferencingProfile(
+    profileId: string,
+    version: string,
+  ): Promise<readonly string[]> {
+    const rows = await this.db
+      .selectFrom('tournaments')
+      .select('alias')
+      .where('profile_id', '=', profileId)
+      .where('profile_version', '=', version)
+      .where('status', 'in', ['started', 'finished'])
+      .execute();
+    return rows.map((row) => row.alias);
+  }
+
   async create(uow: UnitOfWork, input: CreateTournamentInput): Promise<Tournament> {
     const alias = Alias.create('tournament', input.alias);
     if (!alias.ok) {

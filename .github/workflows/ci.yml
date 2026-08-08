@@ -341,6 +341,22 @@ jobs:
           path: apps/events/coverage
           retention-days: 14
 
+  # Added by 0036-community-module-distribution task 8.1: the reusable
+  # module-validation.yml workflow (which the curated copalibre-modules
+  # repository also calls on its own pull requests) run here against that
+  # same reference repository's real fixtures, at this PR's own commit — so
+  # a core change that breaks the module contract (a renamed registry
+  # action, a tightened asset limit, a reserved-alias list edit) fails here
+  # rather than surfacing only in the community repository or an operator's
+  # `module add`.
+  module-validation:
+    name: Module validation (reference repository)
+    uses: ./.github/workflows/module-validation.yml
+    with:
+      module-repository: SebaSOFT/copalibre-modules
+      module-repository-ref: main
+      copalibre-ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
   # Added by 0022: a copied component is how an MIT notice quietly disappears.
   third-party-notices:
     name: Third-party notices

@@ -157,6 +157,13 @@ export {
   TournamentProfileRepository,
   type StoredProfile,
 } from './repositories/tournament-profile-repository.js';
+export {
+  InstalledModuleRepository,
+  type InstalledModule,
+  type InstalledModuleAsset,
+  type InstalledModuleKind,
+  type ModuleSourceKind,
+} from './repositories/installed-module-repository.js';
 
 export {
   toOrganization,

@@ -87,9 +87,20 @@ describe('migrations (integration)', () => {
     expect(afterUp).toContain('display_tokens');
     expect(afterUp).toContain('participant_reports');
     expect(afterUp).toContain('report_evidence');
+    expect(afterUp).toContain('installed_modules');
+    expect(afterUp).toContain('module_assets');
     expect(afterUpTables.find((table) => table.name === 'tournaments')?.columns).toEqual(
       expect.arrayContaining([expect.objectContaining({ name: 'archived_at' })]),
     );
+
+    const communityModuleInstallationDown = await migrateDownOneStep(scratch.db);
+    expect(communityModuleInstallationDown.error).toBeUndefined();
+
+    const afterCommunityModuleInstallationDown = (await scratch.db.introspection.getTables()).map(
+      (table) => table.name,
+    );
+    expect(afterCommunityModuleInstallationDown).not.toContain('module_assets');
+    expect(afterCommunityModuleInstallationDown).not.toContain('installed_modules');
 
     const archivedAtDown = await migrateDownOneStep(scratch.db);
     expect(archivedAtDown.error).toBeUndefined();

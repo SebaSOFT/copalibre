@@ -644,6 +644,42 @@ export interface SchemaVersionTable {
   applied_at: Timestamp;
 }
 
+/**
+ * One installed community module (0036) — its source (curated or
+ * allow-listed alternate) and which `discipline_descriptors`/
+ * `tournament_profiles` row (`document_id`, matching `kind`) it installed.
+ */
+export interface InstalledModulesTable {
+  module_id: string;
+  /** `discipline` or `tournament-profile`. */
+  kind: string;
+  alias: string;
+  version: string;
+  document_id: string;
+  attribution_author: string;
+  attribution_licence: string;
+  attribution_source_url: string | null;
+  requires_copalibre: string;
+  /** `curated` or `alternate`. */
+  source_kind: string;
+  source_repository_url: string;
+  installed_at: Timestamp;
+}
+
+/** An installed module's uploaded asset — object-storage reference only, no bytes in this table. */
+export interface ModuleAssetsTable {
+  asset_id: string;
+  module_id: string;
+  path: string;
+  /** `background` or `logo`. */
+  kind: string;
+  content_type: string;
+  size_bytes: number;
+  storage_bucket: string;
+  storage_key: string;
+  created_at: Timestamp;
+}
+
 export interface Database {
   organizations: OrganizationsTable;
   identity_principals: IdentityPrincipalsTable;
@@ -693,4 +729,6 @@ export interface Database {
   tag_facts: TagFactsTable;
   alias_redirects: AliasRedirectsTable;
   schema_version: SchemaVersionTable;
+  installed_modules: InstalledModulesTable;
+  module_assets: ModuleAssetsTable;
 }
