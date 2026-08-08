@@ -3,10 +3,13 @@ import { SIDENAV } from '../lib/dashboard.js';
 export function ControlShell({
   organizationAlias,
   active = 'Torneos',
+  helpPath,
   children,
 }: {
   readonly organizationAlias: string;
   readonly active?: string;
+  /** Slug under `/help/control/`, e.g. `'seeding'` — required so a screen can never ship with no matching help page linked (0043). */
+  readonly helpPath: string;
   readonly children: React.ReactNode;
 }): React.JSX.Element {
   return (
@@ -19,6 +22,15 @@ export function ControlShell({
           </div>
           <span style={metaStyle}>BROADCAST OPS</span>
         </div>
+        <a
+          className="cl-focusable"
+          href={`/help/control/${helpPath}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={helpLinkStyle}
+        >
+          ¿Qué es esta pantalla?
+        </a>
         <ul style={navListStyle}>
           {SIDENAV.map((item) => (
             <li key={item.label}>
@@ -75,6 +87,15 @@ const metaStyle: React.CSSProperties = {
   color: 'var(--cl-text-muted)',
   fontFamily: 'var(--cl-font-mono)',
   fontSize: '0.75rem',
+};
+
+const helpLinkStyle: React.CSSProperties = {
+  display: 'block',
+  marginTop: 'var(--cl-space-3)',
+  color: 'var(--cl-text-muted)',
+  textDecoration: 'none',
+  fontFamily: 'var(--cl-font-mono)',
+  fontSize: '0.7rem',
 };
 
 const navListStyle: React.CSSProperties = {

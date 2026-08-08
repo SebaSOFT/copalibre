@@ -27,7 +27,10 @@ command, and a separate dev profile with Compose Watch enabled.
 
 ### Requirement: copalibre administrative CLI
 The release SHALL provide a `copalibre` CLI with `init`, `doctor`, `dev`, `dev --hybrid`, `start`,
-`migrate`, `create-admin`, `backup`, `restore`, and `upgrade-check` subcommands.
+`migrate`, `create-admin`, `backup`, `restore`, and `upgrade-check` subcommands. Every invocation
+SHALL print a startup banner identifying the product, its version, and its license before running
+the requested subcommand, and that banner SHALL be written to a stream that never mixes with a
+subcommand's own stdout output.
 
 #### Scenario: doctor catches misconfiguration before start
 - **WHEN** `copalibre doctor` runs against an installation missing a required secret or with an
@@ -45,6 +48,17 @@ The release SHALL provide a `copalibre` CLI with `init`, `doctor`, `dev`, `dev -
   `keys` array)
 - **THEN** it reports the JWKS URI as misconfigured, naming the URL, and exits non-zero without
   starting any process role
+
+#### Scenario: Every invocation discloses version and license
+- **WHEN** any `copalibre` subcommand is run, including `--help`/`-h` and an unknown command
+- **THEN** the CLI prints a startup banner naming the product, the version it is currently
+  distributed at, and its license, before any of the subcommand's own output
+
+#### Scenario: The banner never pollutes piped stdout
+- **WHEN** `copalibre`'s stdout is piped or redirected to another program or file (e.g.
+  `copalibre doctor | grep FAIL`)
+- **THEN** the piped/redirected stream contains only the subcommand's own output — the startup
+  banner appears on stderr, not stdout
 
 ### Requirement: Module management subcommands
 The `copalibre` CLI SHALL provide `module add`, `module list`, `module remove` and `module verify`.

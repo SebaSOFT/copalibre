@@ -50,7 +50,7 @@ function jsonResponse(body: unknown, status = 200): Response {
 describe('the control shell', () => {
   it('links every section under the organization it is showing', () => {
     render(
-      <ControlShell organizationAlias="liga-mendocina">
+      <ControlShell helpPath="tournament-authoring" organizationAlias="liga-mendocina">
         <p>contenido</p>
       </ControlShell>,
     );
@@ -63,7 +63,11 @@ describe('the control shell', () => {
 
   it('marks the active section, and only that one', () => {
     render(
-      <ControlShell active="Panel" organizationAlias="liga-mendocina">
+      <ControlShell
+        active="Panel"
+        helpPath="tournament-authoring"
+        organizationAlias="liga-mendocina"
+      >
         <p>x</p>
       </ControlShell>,
     );
@@ -73,6 +77,19 @@ describe('the control shell', () => {
     const active = screen.getByRole('link', { name: 'Panel' });
     const other = screen.getByRole('link', { name: 'Torneos' });
     expect(active.getAttribute('style')).not.toBe(other.getAttribute('style'));
+  });
+
+  it('links to the matching help page, in a new tab that never loses in-progress work (0043)', () => {
+    render(
+      <ControlShell helpPath="seeding" organizationAlias="liga-mendocina">
+        <p>contenido</p>
+      </ControlShell>,
+    );
+
+    const help = screen.getByRole('link', { name: '¿Qué es esta pantalla?' });
+    expect(help.getAttribute('href')).toBe('/help/control/seeding');
+    expect(help.getAttribute('target')).toBe('_blank');
+    expect(help.getAttribute('rel')).toBe('noopener noreferrer');
   });
 });
 
