@@ -46,6 +46,23 @@ The release SHALL provide a `copalibre` CLI with `init`, `doctor`, `dev`, `dev -
 - **THEN** it reports the JWKS URI as misconfigured, naming the URL, and exits non-zero without
   starting any process role
 
+### Requirement: Module management subcommands
+The `copalibre` CLI SHALL provide `module add`, `module list`, `module remove` and `module verify`.
+
+#### Scenario: An operator lists installed modules
+- **WHEN** the module-list command is run
+- **THEN** each installed module's kind, version, attribution, source and satisfied-capability state
+  is shown
+
+#### Scenario: Adding a module takes a name, not a URL
+- **WHEN** an operator runs the module-add command
+- **THEN** its argument is a module alias with an optional version range, and no location is required
+  for a module published in the curated repository
+
+#### Scenario: Removing a module in use is refused
+- **WHEN** an operator removes a module a started tournament references
+- **THEN** the removal is refused, naming the tournaments that reference it
+
 ### Requirement: Verified backup and restore
 A backup produced by `copalibre backup` SHALL restore into a clean installation via `copalibre
 restore` and pass an automated integrity check.
