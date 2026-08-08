@@ -27,9 +27,9 @@ command, and a separate dev profile with Compose Watch enabled.
 
 ### Requirement: copalibre administrative CLI
 The release SHALL provide a `copalibre` CLI with `init`, `doctor`, `dev`, `dev --hybrid`, `start`,
-`migrate`, `create-admin`, `backup`, `restore`, and `upgrade-check` subcommands. Every invocation
-SHALL print a startup banner identifying the product, its version, and its license before running
-the requested subcommand, and that banner SHALL be written to a stream that never mixes with a
+`migrate`, `create-admin`, `backup`, `restore`, `upgrade-check`, and `mcp` subcommands. Every
+invocation SHALL print a startup banner identifying the product, its version, and its license before
+running the requested subcommand, and that banner SHALL be written to a stream that never mixes with a
 subcommand's own stdout output. Running `copalibre --help`/`-h` with no subcommand SHALL list every
 subcommand with a one-line summary, and running `copalibre <subcommand> --help`/`-h` SHALL print
 that subcommand's usage line, a description of what it does, and its flags — for every documented

@@ -68,6 +68,17 @@ check(
 );
 check('API reference navigation forces a document load', help.includes('data-astro-reload'));
 
+const llmsTxt = existsSync(join(DIST, 'llms.txt')) ? readOutput('llms.txt') : '';
+const llmsFullTxt = existsSync(join(DIST, 'llms-full.txt')) ? readOutput('llms-full.txt') : '';
+check('llms.txt exists', llmsTxt.length > 0);
+check('llms.txt points at llms-full.txt', llmsTxt.includes('llms-full.txt'));
+check('llms-full.txt exists', llmsFullTxt.length > 0);
+check(
+  'llms-full.txt contains real page content, not a placeholder',
+  llmsFullTxt.includes('copalibre init') && llmsFullTxt.includes('copalibre mcp'),
+);
+
+const TOTAL_CHECKS = 19;
 if (failures.length > 0) {
   process.stderr.write(
     `Help build failed:\n${failures.map((failure) => `  - ${failure}`).join('\n')}\n`,
@@ -75,4 +86,4 @@ if (failures.length > 0) {
   process.exit(1);
 }
 
-process.stdout.write(`Help build verified: ${15 - failures.length} checks passed.\n`);
+process.stdout.write(`Help build verified: ${TOTAL_CHECKS - failures.length} checks passed.\n`);

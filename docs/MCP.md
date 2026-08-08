@@ -60,3 +60,10 @@ Point an MCP-capable client at the `copalibre` executable with the `mcp` argumen
 
 Omit `COPALIBRE_MCP_TOKEN`/`COPALIBRE_API_URL` for an installation-actions-only session — no token
 is needed, and the tournament-operational tools simply won't be offered.
+
+## For an AI reading this without calling any tool yet
+
+The server advertises an `instructions` field on its `initialize` response — the same summary given
+here, in a form an MCP client reads before choosing a tool. If you're instead crawling the help
+site's rendered pages, `/llms.txt` (and the fuller `/llms-full.txt`) on a running instance's help
+site give the same documentation in a form built for that.

@@ -40,3 +40,10 @@ Un cliente MCP típico arranca `copalibre mcp` como subproceso, pasando las vari
 necesarias (`DATABASE_URL`, y opcionalmente `COPALIBRE_MCP_TOKEN`/`COPALIBRE_API_URL` para las
 herramientas de torneo). Ver [`docs/MCP.md`](https://github.com/SebaSOFT/copalibre/blob/develop/docs/MCP.md)
 en el repositorio para un ejemplo completo de configuración.
+
+## Documentación para IA
+
+El servidor MCP anuncia sus propias `instructions` en la respuesta de `initialize` — el mismo
+resumen de esta página, en la forma que un cliente MCP lee antes de elegir una herramienta. Esta
+instancia también publica `/llms.txt` y `/llms-full.txt` en la raíz del sitio de ayuda, para una IA
+que en cambio recorre las páginas renderizadas.

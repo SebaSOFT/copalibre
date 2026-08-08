@@ -116,4 +116,11 @@ describe('tournamentTools (0047)', () => {
     );
     expect(fetchImplementation).not.toHaveBeenCalled();
   });
+
+  it('describes what each tool does, when to use it, and that it requires a token (0048)', () => {
+    for (const tool of tournamentTools(fakeConfig(jest.fn<typeof fetch>()))) {
+      expect(tool.description.length).toBeGreaterThan(80);
+      expect(tool.description).toContain('COPALIBRE_MCP_TOKEN');
+    }
+  });
 });

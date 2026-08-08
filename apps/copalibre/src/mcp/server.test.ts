@@ -1,4 +1,4 @@
-import { buildServer, buildTools } from './server.js';
+import { SERVER_INSTRUCTIONS, buildServer, buildTools } from './server.js';
 
 describe('buildTools (0047)', () => {
   it('registers only the three admin tools when no token/API URL is configured', () => {
@@ -32,5 +32,14 @@ describe('buildTools (0047)', () => {
 describe('buildServer (0047)', () => {
   it('constructs without throwing given a tool list', () => {
     expect(() => buildServer({}, buildTools({}))).not.toThrow();
+  });
+});
+
+describe('SERVER_INSTRUCTIONS (0048)', () => {
+  it('mentions both tool categories and the token requirement', () => {
+    expect(SERVER_INSTRUCTIONS).toContain('copalibre_doctor');
+    expect(SERVER_INSTRUCTIONS).toContain('copalibre_create_tournament');
+    expect(SERVER_INSTRUCTIONS).toContain('COPALIBRE_MCP_TOKEN');
+    expect(SERVER_INSTRUCTIONS.length).toBeGreaterThan(200);
   });
 });

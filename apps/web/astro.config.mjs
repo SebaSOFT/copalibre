@@ -2,6 +2,7 @@
 import { defineConfig } from 'astro/config';
 import react from '@astrojs/react';
 import starlight from '@astrojs/starlight';
+import starlightLlmsTxt from 'starlight-llms-txt';
 
 // React is wired now but only used from /control/** routes starting at
 // 0022-control-web-shell-and-org-dashboard (see openspec/changes/README.md).
@@ -23,6 +24,15 @@ export default defineConfig({
         root: { label: 'Español', lang: 'es' },
         en: { label: 'English', lang: 'en' },
       },
+      plugins: [
+        starlightLlmsTxt({
+          projectName: 'CopaLibre',
+          description:
+            'Self-hosted, open-source tournament-management platform (AGPL-3.0). Operator ' +
+            'documentation for installation, the control panel, the copalibre CLI, and its MCP ' +
+            'server for AI agents.',
+        }),
+      ],
       sidebar: [
         {
           label: 'CopaLibre',

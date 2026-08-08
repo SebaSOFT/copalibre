@@ -25,6 +25,23 @@ export function buildTools(environment: NodeJS.ProcessEnv): readonly McpToolDefi
 }
 
 /**
+ * The SDK's own `instructions` field (0048) — an AI client reads this before
+ * choosing which tool to call, so it states what CopaLibre is, the two tool
+ * categories, and when each applies, rather than leaving that only to each
+ * tool's own description.
+ */
+export const SERVER_INSTRUCTIONS =
+  'CopaLibre is a self-hosted tournament-management platform for clubs, leagues, and federations. ' +
+  'This server exposes two kinds of tools. Installation-action tools (copalibre_doctor, ' +
+  'copalibre_module_list, copalibre_upgrade_check) always work, need no token, and mirror the ' +
+  '`copalibre` CLI’s own maintenance commands — use them to check or operate this installation ' +
+  'itself. Tournament-operational tools (copalibre_get_organization, copalibre_list_tournaments, ' +
+  'copalibre_get_tournament, copalibre_create_tournament, copalibre_publish_tournament) act on a ' +
+  'running installation over its HTTP API and only appear when COPALIBRE_MCP_TOKEN and ' +
+  'COPALIBRE_API_URL are configured — an already-valid bearer token under CopaLibre’s existing ' +
+  'OIDC/JWT auth contract; this server does not mint or manage tokens itself.';
+
+/**
  * Uses the SDK's low-level `Server`, not `McpServer`, so every tool's
  * `inputSchema` stays plain JSON Schema validated with `ajv` — this
  * project's standing convention — rather than a zod schema (design.md).
@@ -40,7 +57,7 @@ export function buildServer(
 
   const server = new Server(
     { name: 'copalibre', version: readCopalibreVersion() },
-    { capabilities: { tools: {} } },
+    { capabilities: { tools: {} }, instructions: SERVER_INSTRUCTIONS },
   );
 
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
