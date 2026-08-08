@@ -15,6 +15,7 @@
   "dependencies": {
     "@copalibre/auth": "workspace:^",
     "@copalibre/domain": "workspace:^",
+    "@copalibre/object-storage": "workspace:^",
     "@copalibre/persistence": "workspace:^",
     "@copalibre/rules": "workspace:^",
     "@copalibre/tournament-engine": "workspace:^",

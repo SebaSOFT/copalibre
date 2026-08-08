@@ -13,19 +13,23 @@
   },
   "dependencies": {
     "@copalibre/domain": "workspace:^",
+    "@copalibre/object-storage": "workspace:^",
     "@copalibre/persistence": "workspace:^",
     "@copalibre/tournament-engine": "workspace:^",
     "@nestjs/common": "^11.1.28",
     "@nestjs/core": "^11.1.28",
     "@nestjs/platform-fastify": "^11.1.28",
+    "clamscan": "^2.4.0",
     "kysely": "^0.29",
     "nodemailer": "^9.0.3",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2"
+    "rxjs": "^7.8.2",
+    "sharp": "^0.35.3"
   },
   "type": "module",
   "devDependencies": {
     "@nestjs/testing": "^11.1.28",
+    "@types/clamscan": "^2.4.1",
     "@types/jest": "^30.0.0",
     "@types/nodemailer": "^8.0.1",
     "jest": "^30.4.2",

@@ -18,6 +18,7 @@
   "dependencies": {
     "@copalibre/domain": "workspace:^",
     "@copalibre/module-catalogue": "workspace:^",
+    "@copalibre/object-storage": "workspace:^",
     "@copalibre/persistence": "workspace:^",
     "@copalibre/rules": "workspace:^",
     "ajv": "^8.20.0",

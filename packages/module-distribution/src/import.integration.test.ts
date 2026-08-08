@@ -1,12 +1,12 @@
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import type { ObjectStorageAdapter } from '@copalibre/object-storage';
 import {
   InstalledModuleRepository,
   TournamentRepository,
   newId,
   withTransaction,
   type Database,
-  type ObjectStorageAdapter,
 } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
 import {
@@ -33,11 +33,12 @@ const ONE_PIXEL_PNG_BASE64 =
 
 /** Same fake used by apps/api's own integration suite — real Postgres, in-memory object storage. */
 class FakeObjectStorage implements ObjectStorageAdapter {
+  readonly profile = 'filesystem' as const;
   private readonly objects = new Map<string, Uint8Array>();
 
-  async put(key: string, body: Uint8Array): Promise<{ bucket: string; key: string }> {
+  async put(key: string, body: Uint8Array): Promise<{ key: string }> {
     this.objects.set(key, body);
-    return { bucket: 'test-bucket', key };
+    return { key };
   }
   async get(reference: { key: string }): Promise<{ body: Uint8Array }> {
     return { body: this.objects.get(reference.key) ?? new Uint8Array() };
@@ -145,7 +146,7 @@ describe('importValidatedModule (integration)', () => {
     const assets = await new InstalledModuleRepository(db).findAssetsByModuleId(report.moduleId);
     expect(assets).toHaveLength(1);
     expect(assets[0]?.path).toBe('logo.png');
-    expect(assets[0]?.storageBucket).toBe('test-bucket');
+    expect(assets[0]?.storageBucket).toBe('filesystem');
   });
 
   it('leaves no row or asset behind when the object-storage upload fails (7.2)', async () => {

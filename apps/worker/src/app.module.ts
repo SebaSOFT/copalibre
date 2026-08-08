@@ -1,12 +1,15 @@
 import { Module, type Provider } from '@nestjs/common';
+import { createObjectStorageAdapter, objectStorageConfigFromEnv } from '@copalibre/object-storage';
 import {
   createDatabase,
   databaseConfigFromEnv,
   EVIDENCE_VALIDATION_REQUESTED_EVENT,
+  OBJECT_PROCESSING_REQUESTED_EVENT,
   type Database,
   type Refold,
 } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
+import { createClamScanClient } from './clamav.js';
 import { DATABASE } from './database.token.js';
 import { DeadLetterController } from './dead-letter.controller.js';
 import { HealthController } from './health.controller.js';
@@ -20,6 +23,7 @@ import {
   emailDeliveryConfigFromEnv,
   invitationEmailHandler,
 } from './invitations/email-delivery.js';
+import { objectProcessingHandler } from './jobs/object-processing-handler.js';
 import { reportEvidenceValidationHandler } from './jobs/report-evidence-handler.js';
 import { RelayService } from './relay.service.js';
 
@@ -42,7 +46,7 @@ const providers: Provider[] = [
   {
     provide: JobDispatcher,
     inject: [DATABASE],
-    useFactory: (db: Kysely<Database>): JobDispatcher => {
+    useFactory: async (db: Kysely<Database>): Promise<JobDispatcher> => {
       // No collectors are resolvable yet, so the fold produces nothing rather
       // than guessing at a discipline. Wired here so the path is real the day
       // the catalogue lands.
@@ -51,12 +55,18 @@ const providers: Provider[] = [
       const csvImport = csvImportValidationHandler({ db });
       const invitation = invitationEmailHandler(emailDeliveryConfigFromEnv());
       const evidence = reportEvidenceValidationHandler({ db });
+      const objectProcessing = objectProcessingHandler({
+        db,
+        storage: createObjectStorageAdapter(objectStorageConfigFromEnv(process.env)),
+        scanner: await createClamScanClient(),
+      });
       return new JobDispatcher()
         .register('match.finalized', handler)
         .register('result.superseded', handler)
         .register(CSV_IMPORT_VALIDATION_EVENT, csvImport)
         .register('organization.invite.requested', invitation)
-        .register(EVIDENCE_VALIDATION_REQUESTED_EVENT, evidence);
+        .register(EVIDENCE_VALIDATION_REQUESTED_EVENT, evidence)
+        .register(OBJECT_PROCESSING_REQUESTED_EVENT, objectProcessing);
     },
   },
   RelayService,

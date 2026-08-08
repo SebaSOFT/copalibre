@@ -13,6 +13,7 @@ module.exports = {
     '^@copalibre/routing$': '<rootDir>/../../packages/routing/src/index.ts',
     '^@copalibre/module-distribution$': '<rootDir>/../../packages/module-distribution/src/index.ts',
     '^@copalibre/module-catalogue$': '<rootDir>/../../packages/module-catalogue/src/index.ts',
+    '^@copalibre/object-storage$': '<rootDir>/../../packages/object-storage/src/index.ts',
     '^@copalibre/rules$': '<rootDir>/../../packages/rules/src/index.ts',
   },
 };

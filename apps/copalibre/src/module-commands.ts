@@ -16,19 +16,17 @@ import {
   verifyInstalledModule,
   type ModuleSource,
 } from '@copalibre/module-distribution';
+import { createObjectStorageAdapter, objectStorageConfigFromEnv } from '@copalibre/object-storage';
 import {
   InstalledModuleRepository,
   SYSTEM_ORGANIZATION,
   TournamentProfileRepository,
   TournamentRepository,
   createDatabase,
-  createObjectStorageAdapter,
   databaseConfigFromEnv,
-  objectStorageConfigFromEnv,
   withTransaction,
   type Database,
   type InstalledModule,
-  type ObjectStorageAdapter,
 } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
 
@@ -75,9 +73,8 @@ function openDatabase(environment: NodeJS.ProcessEnv): Kysely<Database> {
   return createDatabase(databaseConfigFromEnv(environment));
 }
 
-function openStorage(environment: NodeJS.ProcessEnv): ObjectStorageAdapter | undefined {
-  const config = objectStorageConfigFromEnv(environment);
-  return config ? createObjectStorageAdapter(config) : undefined;
+function openStorage(environment: NodeJS.ProcessEnv) {
+  return createObjectStorageAdapter(objectStorageConfigFromEnv(environment));
 }
 
 function parseAliasRange(spec: string): {
@@ -238,11 +235,7 @@ export async function moduleRemove(
     const actor = environment.USER ?? 'copalibre-cli';
     for (const module_ of installed) {
       const assets = await modules.findAssetsByModuleId(module_.moduleId);
-      await Promise.all(
-        assets.map((asset) =>
-          storage?.delete({ bucket: asset.storageBucket, key: asset.storageKey }),
-        ),
-      );
+      await Promise.all(assets.map((asset) => storage.delete({ key: asset.storageKey })));
       await withTransaction(db, (uow) =>
         modules.remove(uow, module_.moduleId, {
           module: module_,

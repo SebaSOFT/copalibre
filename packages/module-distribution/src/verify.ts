@@ -7,7 +7,7 @@ import type {
   DisciplineDescriptorDocument,
   TournamentProfileDocument,
 } from '@copalibre/domain';
-import type { ObjectStorageAdapter } from '@copalibre/persistence';
+import type { ObjectStorageAdapter } from '@copalibre/object-storage';
 import type { InstalledModule, InstalledModuleAsset } from '@copalibre/persistence';
 import type { RuleScript } from '@copalibre/rules';
 import { validateModuleAssets } from './assets.js';
@@ -26,7 +26,7 @@ import { buildValidationRegistry } from './registry.js';
  * about a schema can drift under an installed, immutable row.
  */
 export async function verifyInstalledModule(
-  storage: ObjectStorageAdapter | undefined,
+  storage: ObjectStorageAdapter,
   runningCopalibreVersion: string,
   installed: InstalledModule,
   document: DisciplineDescriptorDocument | TournamentProfileDocument,
@@ -75,23 +75,14 @@ export async function verifyInstalledModule(
 }
 
 async function verifyAssets(
-  storage: ObjectStorageAdapter | undefined,
+  storage: ObjectStorageAdapter,
   assets: readonly InstalledModuleAsset[],
 ): Promise<readonly ModuleValidationFailure[]> {
-  if (!storage) {
-    return [
-      {
-        stage: 'asset',
-        message: `${assets.length} asset(s) recorded but this installation has no object storage configured to re-check them`,
-      },
-    ];
-  }
-
   const directory = await mkdtemp(join(tmpdir(), 'copalibre-module-verify-'));
   try {
     await mkdir(join(directory, ASSETS_DIRECTORY_NAME));
     for (const asset of assets) {
-      const stored = await storage.get({ bucket: asset.storageBucket, key: asset.storageKey });
+      const stored = await storage.get({ key: asset.storageKey });
       await writeFile(join(directory, ASSETS_DIRECTORY_NAME, asset.path), stored.body);
     }
     const failures = await validateModuleAssets(

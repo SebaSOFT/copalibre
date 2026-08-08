@@ -8,14 +8,6 @@
 export type { Database } from './schema.js';
 export { createDatabase, databaseConfigFromEnv, type DatabaseConfig } from './database.js';
 export { newId } from './ids.js';
-export {
-  createObjectStorageAdapter,
-  objectStorageConfigFromEnv,
-  type ObjectStorageAdapter,
-  type ObjectStorageConfig,
-  type StoredObject,
-  type StoredObjectReference,
-} from './object-storage.js';
 
 export {
   PersistenceError,
@@ -164,6 +156,13 @@ export {
   type InstalledModuleKind,
   type ModuleSourceKind,
 } from './repositories/installed-module-repository.js';
+export {
+  ObjectMetadataRepository,
+  OBJECT_PROCESSING_REQUESTED_EVENT,
+  type ObjectMetadata,
+  type ObjectStorageMetadataProfile,
+  type ObjectStorageMetadataStatus,
+} from './repositories/object-metadata-repository.js';
 
 export {
   toOrganization,

@@ -8,6 +8,7 @@ import {
   type TournamentProfile,
   type TournamentProfileDocument,
 } from '@copalibre/domain';
+import type { ObjectStorageAdapter } from '@copalibre/object-storage';
 import {
   InstalledModuleRepository,
   SYSTEM_ORGANIZATION,
@@ -16,7 +17,6 @@ import {
   newId,
   withTransaction,
   type Database,
-  type ObjectStorageAdapter,
   type UnitOfWork,
 } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
@@ -78,6 +78,7 @@ interface AssetUploadRecord {
   readonly kind: 'background' | 'logo';
   readonly contentType: string;
   readonly sizeBytes: number;
+  /** Which storage profile held this — `packages/object-storage`'s reference no longer carries a per-object bucket name (0041). */
   readonly storageBucket: string;
   readonly storageKey: string;
 }
@@ -87,7 +88,7 @@ async function uploadModuleAssets(
   storage: ObjectStorageAdapter,
   directory: string,
   manifest: ModuleManifest,
-  uploaded: { readonly bucket: string; readonly key: string }[],
+  uploaded: { readonly key: string }[],
 ): Promise<AssetUploadRecord[]> {
   const records: AssetUploadRecord[] = [];
   for (const asset of manifest.assets) {
@@ -102,7 +103,7 @@ async function uploadModuleAssets(
       kind: asset.kind,
       contentType,
       sizeBytes: bytes.byteLength,
-      storageBucket: reference.bucket,
+      storageBucket: storage.profile,
       storageKey: reference.key,
     });
   }
@@ -120,7 +121,7 @@ async function uploadModuleAssets(
  */
 export async function importValidatedModule(
   db: Kysely<Database>,
-  storage: ObjectStorageAdapter | undefined,
+  storage: ObjectStorageAdapter,
   directory: string,
   validated: ValidatedModule,
   options: ImportModuleOptions,
@@ -139,16 +140,11 @@ export async function importValidatedModule(
       : [];
 
   const moduleId = newId();
-  const uploaded: { readonly bucket: string; readonly key: string }[] = [];
+  const uploaded: { readonly key: string }[] = [];
   let assetRecords: AssetUploadRecord[] = [];
 
   try {
     if (manifest.assets.length > 0) {
-      if (!storage) {
-        throw new Error(
-          `Module "${manifest.alias}" declares ${manifest.assets.length} asset(s) but this installation has no object storage configured`,
-        );
-      }
       assetRecords = await uploadModuleAssets(storage, directory, manifest, uploaded);
     }
 
@@ -176,7 +172,7 @@ export async function importValidatedModule(
     });
   } catch (error) {
     await Promise.all(
-      uploaded.map((reference) => storage?.delete(reference).catch(() => undefined)),
+      uploaded.map((reference) => storage.delete(reference).catch(() => undefined)),
     );
     throw error;
   }

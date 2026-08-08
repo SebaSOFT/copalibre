@@ -1408,6 +1408,7 @@ __metadata:
   dependencies:
     "@copalibre/auth": "workspace:^"
     "@copalibre/domain": "workspace:^"
+    "@copalibre/object-storage": "workspace:^"
     "@copalibre/persistence": "workspace:^"
     "@copalibre/rules": "workspace:^"
     "@copalibre/tournament-engine": "workspace:^"
@@ -1456,6 +1457,7 @@ __metadata:
     "@copalibre/auth": "workspace:^"
     "@copalibre/domain": "workspace:^"
     "@copalibre/module-distribution": "workspace:^"
+    "@copalibre/object-storage": "workspace:^"
     "@copalibre/persistence": "workspace:^"
     "@nestjs/common": "npm:^11.1.28"
     "@nestjs/core": "npm:^11.1.28"
@@ -1554,6 +1556,7 @@ __metadata:
   dependencies:
     "@copalibre/domain": "workspace:^"
     "@copalibre/module-catalogue": "workspace:^"
+    "@copalibre/object-storage": "workspace:^"
     "@copalibre/persistence": "workspace:^"
     "@copalibre/rules": "workspace:^"
     "@types/jest": "npm:^30.0.0"
@@ -1567,11 +1570,22 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@copalibre/object-storage@workspace:^, @copalibre/object-storage@workspace:packages/object-storage":
+  version: 0.0.0-use.local
+  resolution: "@copalibre/object-storage@workspace:packages/object-storage"
+  dependencies:
+    "@aws-sdk/client-s3": "npm:^3.1104.0"
+    "@types/jest": "npm:^30.0.0"
+    jest: "npm:^30.4.2"
+    ts-jest: "npm:^29.4.12"
+    typescript: "npm:^5"
+  languageName: unknown
+  linkType: soft
+
 "@copalibre/persistence@workspace:^, @copalibre/persistence@workspace:packages/persistence":
   version: 0.0.0-use.local
   resolution: "@copalibre/persistence@workspace:packages/persistence"
   dependencies:
-    "@aws-sdk/client-s3": "npm:^3.1104.0"
     "@copalibre/domain": "workspace:^"
     "@copalibre/routing": "workspace:^"
     "@types/better-sqlite3": "npm:^9.6.0"
@@ -1710,19 +1724,23 @@ __metadata:
   resolution: "@copalibre/worker@workspace:apps/worker"
   dependencies:
     "@copalibre/domain": "workspace:^"
+    "@copalibre/object-storage": "workspace:^"
     "@copalibre/persistence": "workspace:^"
     "@copalibre/tournament-engine": "workspace:^"
     "@nestjs/common": "npm:^11.1.28"
     "@nestjs/core": "npm:^11.1.28"
     "@nestjs/platform-fastify": "npm:^11.1.28"
     "@nestjs/testing": "npm:^11.1.28"
+    "@types/clamscan": "npm:^2.4.1"
     "@types/jest": "npm:^30.0.0"
     "@types/nodemailer": "npm:^8.0.1"
+    clamscan: "npm:^2.4.0"
     jest: "npm:^30.4.2"
     kysely: "npm:^0.29"
     nodemailer: "npm:^9.0.3"
     reflect-metadata: "npm:^0.2.2"
     rxjs: "npm:^7.8.2"
+    sharp: "npm:^0.35.3"
     ts-jest: "npm:^29.4.12"
     typescript: "npm:^5"
   languageName: unknown
@@ -4716,6 +4734,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/clamscan@npm:^2.4.1":
+  version: 2.4.1
+  resolution: "@types/clamscan@npm:2.4.1"
+  dependencies:
+    "@types/node": "npm:*"
+  checksum: 10c0/fb1514752d3fc1503bdd66e28372f722a4795ca557750d922fb5e9ba1e1c85d89df9053731dfb7f2fafd01350b8046a99da2d36af41fd26b85b5151856fb84d8
+  languageName: node
+  linkType: hard
+
 "@types/cookiejar@npm:^2.1.5":
   version: 2.1.5
   resolution: "@types/cookiejar@npm:2.1.5"
@@ -6596,6 +6623,13 @@ __metadata:
   version: 2.2.0
   resolution: "cjs-module-lexer@npm:2.2.0"
   checksum: 10c0/aec4ca58f87145fac221386790ecaae8b012f2e2359a45acb61d8c75ea4fa84f6ea869f17abc1a7e91a808eff0fed581209632f03540de16f72f0a28f5fd35ac
+  languageName: node
+  linkType: hard
+
+"clamscan@npm:^2.4.0":
+  version: 2.4.0
+  resolution: "clamscan@npm:2.4.0"
+  checksum: 10c0/ac15ddc9debf597cf13d98362b62f722a8af087b210991dbabe5849a9fee53902968fc2ea254404296a31ac9dc0dd4c25174289b2b68d26cb4bba85ccfe8e441
   languageName: node
   linkType: hard
 
@@ -13973,7 +14007,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"sharp@npm:^0.34.0 || ^0.35.0":
+"sharp@npm:^0.34.0 || ^0.35.0, sharp@npm:^0.35.3":
   version: 0.35.3
   resolution: "sharp@npm:0.35.3"
   dependencies:

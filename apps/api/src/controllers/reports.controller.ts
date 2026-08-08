@@ -22,6 +22,7 @@ import {
   type EvidenceReference,
   type ParticipantReportSubmission,
 } from '@copalibre/domain';
+import type { ObjectStorageAdapter } from '@copalibre/object-storage';
 import {
   CompetitionRepository,
   EnrollmentRepository,
@@ -30,7 +31,6 @@ import {
   TournamentRepository,
   newId,
   withTransaction,
-  type ObjectStorageAdapter,
   type ParticipantReport,
   type Database,
 } from '@copalibre/persistence';
@@ -66,7 +66,8 @@ import { resolveTournament } from './standings.controller.js';
 const MAX_EVIDENCE_BYTES = 25 * 1024 * 1024;
 
 interface UploadedEvidence extends EvidenceReference {
-  readonly bucket: string;
+  /** Which storage profile held this — `packages/object-storage`'s reference no longer carries a per-object bucket name (0041). */
+  readonly storageProfile: string;
   readonly key: string;
 }
 
@@ -75,7 +76,7 @@ interface UploadedEvidence extends EvidenceReference {
 export class ParticipantReportsController {
   constructor(
     @Inject(DATABASE) private readonly db: Kysely<Database>,
-    @Inject(OBJECT_STORAGE) private readonly storage: ObjectStorageAdapter | undefined,
+    @Inject(OBJECT_STORAGE) private readonly storage: ObjectStorageAdapter,
   ) {}
 
   @Post('reports')
@@ -210,11 +211,6 @@ export class ParticipantReportsController {
     uploads: readonly EvidenceUploadDto[],
   ): Promise<readonly UploadedEvidence[]> {
     if (uploads.length === 0) return [];
-    if (!this.storage) {
-      throw new BadRequestException(
-        'This installation has no object storage configured; submit without evidence',
-      );
-    }
 
     const stored: UploadedEvidence[] = [];
     for (const upload of uploads) {
@@ -231,7 +227,7 @@ export class ParticipantReportsController {
         filename: upload.filename,
         contentType: upload.contentType,
         sizeBytes: bytes.length,
-        bucket: reference.bucket,
+        storageProfile: this.storage.profile,
         key: reference.key,
       });
     }
@@ -265,7 +261,7 @@ export class ParticipantReportsController {
           filename: file.filename,
           contentType: file.contentType,
           sizeBytes: file.sizeBytes,
-          storageBucket: file.bucket,
+          storageBucket: file.storageProfile,
           storageKey: file.key,
           uploadedBy,
           actor,

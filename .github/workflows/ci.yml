@@ -208,6 +208,10 @@ jobs:
       # First-party modules are data, so their loader/schema coverage is a
       # separate guard against a release shipping an unreadable catalogue (0029).
       - run: yarn workspace @copalibre/module-catalogue test:coverage
+      # The S3/filesystem adapter contract (0041) — both profiles against the
+      # same shared test suite; async processing and the real round-trip
+      # checks run in integration, against real MinIO/clamd.
+      - run: yarn workspace @copalibre/object-storage test:coverage
       # Covers the scheduling conflict detection and mutation classification
       # (0012), which are pure domain logic; the SQL side runs in integration.
       # Since 0015 it also carries seasons, the person/player split and the
@@ -539,6 +543,14 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+      # object-storage's own async media-processing suite (0041 task 7.1).
+      # The image bakes its own HEALTHCHECK (clamdcheck.sh); GitHub Actions
+      # waits for it before any step below runs, the same as postgres's
+      # explicit one above.
+      clamd:
+        image: clamav/clamav:1.5.4-debian13-slim
+        ports:
+          - 3310:3310
     env:
       DATABASE_URL: postgres://copalibre:copalibre_ci_only@localhost:5432/copalibre
     steps:
@@ -551,6 +563,28 @@ jobs:
           node-version: 24
           cache: yarn
       - run: yarn install --immutable
+      # MinIO's image has no default CMD (just `minio`, which prints usage
+      # and exits) — GitHub Actions' `services:` block can't override a
+      # container's command, unlike docker-compose.dev.yml's own object-
+      # storage service, so it's started as an explicit step instead.
+      # Credentials/bucket match docker-compose.dev.yml's object-storage-init
+      # exactly, which is also what packages/object-storage's integration
+      # suite defaults to when no COPALIBRE_OBJECT_STORAGE_* env is set.
+      - name: Start MinIO
+        run: |
+          docker run -d --name minio --network host \
+            -e MINIO_ROOT_USER=copalibre_dev_only \
+            -e MINIO_ROOT_PASSWORD=copalibre_dev_only \
+            minio/minio:RELEASE.2025-09-07T16-13-09Z server /data --console-address :9001
+      - name: Wait for MinIO and create its bucket
+        run: |
+          docker run --rm --network host --entrypoint /bin/sh minio/mc:RELEASE.2025-08-13T08-35-41Z -c '
+            for i in $(seq 1 30); do
+              mc alias set local http://localhost:9000 copalibre_dev_only copalibre_dev_only && break
+              sleep 2
+            done
+            mc mb --ignore-existing local/copalibre-dev
+          '
       # Proves the one controlled migration entrypoint works before any test runs.
       - run: yarn workspace @copalibre/migrate run start
       # Explicit bootstrap only: validates the full release catalogue and proves
@@ -570,6 +604,12 @@ jobs:
       # one pass, a correction that recomputes rather than compensates, and a
       # hand adjustment stored as an audited fact instead of an increment.
       - run: yarn workspace @copalibre/persistence test:integration
+      # The S3 profile against real MinIO (0041 task 6) — the unit suite
+      # proves the same contract against a fake AWS SDK; this proves it
+      # against a real endpoint. Filesystem-profile async processing and the
+      # doctor round-trip check run against real clamd/MinIO too, in the
+      # worker and copalibre integration steps below.
+      - run: yarn workspace @copalibre/object-storage test:integration
       # Guard/policy/controller suite through the real HTTP stack (0005),
       # including match-scoped authorization (0014) and 0025's non-flaky
       # idempotency, authorization, audit/outbox, reconciliation, and 0027 CSV
@@ -588,7 +628,9 @@ jobs:
       # claim that expires after a worker dies, an idempotency marker that makes
       # a redelivery a no-op, and a dead letter that keeps its whole failure
       # history. Also the loop 0016 left open — a finalization arriving here is
-      # what writes the folded figures.
+      # what writes the folded figures. Since 0041 it also carries async media
+      # processing through the real relay against real clamd: a clean object
+      # marked passed, an EICAR-payload object marked failed and audited.
       - run: yarn workspace @copalibre/worker test:integration
       # Three replicas racing for one lease, and a periodic job that is enqueued
       # once per interval rather than up to three times.
@@ -619,6 +661,9 @@ jobs:
       - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'lifecycle'
       # Runs the CLI's process-level misconfiguration contract. The API
       # bootstrap lifecycle itself is covered by the API integration suite.
+      # Since 0041 this also covers doctor's object-storage round-trip check
+      # failing clearly against real wrong MinIO credentials and a real
+      # read-only filesystem path.
       - run: yarn workspace @copalibre/copalibre build
       - run: yarn workspace @copalibre/copalibre test:integration
 
