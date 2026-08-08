@@ -4,6 +4,7 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 import { Ajv, type ValidateFunction } from 'ajv';
 import { readCopalibreVersion } from '../banner.js';
 import { adminTools } from './tools/admin-tools.js';
+import { moduleAuthoringTools } from './tools/module-authoring-tools.js';
 import { tournamentTools } from './tools/tournament-tools.js';
 import type { McpToolDefinition } from './tool.js';
 
@@ -15,7 +16,10 @@ import type { McpToolDefinition } from './tool.js';
  * unauthenticated HTTP call.
  */
 export function buildTools(environment: NodeJS.ProcessEnv): readonly McpToolDefinition[] {
-  const tools: McpToolDefinition[] = [...adminTools(environment)];
+  const tools: McpToolDefinition[] = [
+    ...adminTools(environment),
+    ...moduleAuthoringTools(environment),
+  ];
   const token = environment.COPALIBRE_MCP_TOKEN;
   const baseUrl = environment.COPALIBRE_API_URL;
   if (token && baseUrl) {
@@ -32,10 +36,14 @@ export function buildTools(environment: NodeJS.ProcessEnv): readonly McpToolDefi
  */
 export const SERVER_INSTRUCTIONS =
   'CopaLibre is a self-hosted tournament-management platform for clubs, leagues, and federations. ' +
-  'This server exposes two kinds of tools. Installation-action tools (copalibre_doctor, ' +
+  'This server exposes three kinds of tools. Installation-action tools (copalibre_doctor, ' +
   'copalibre_module_list, copalibre_upgrade_check) always work, need no token, and mirror the ' +
   '`copalibre` CLI’s own maintenance commands — use them to check or operate this installation ' +
-  'itself. Tournament-operational tools (copalibre_get_organization, copalibre_list_tournaments, ' +
+  'itself. Module-authoring tools (copalibre_module_scaffold, copalibre_module_validate_local, ' +
+  'copalibre_module_submit) also always work and need no token — use them to build a new ' +
+  'discipline or tournament-profile module locally (starting from real, valid example content, ' +
+  'not a blank schema), validate it, and submit it as a pull request to copalibre-modules. ' +
+  'Tournament-operational tools (copalibre_get_organization, copalibre_list_tournaments, ' +
   'copalibre_get_tournament, copalibre_create_tournament, copalibre_publish_tournament) act on a ' +
   'running installation over its HTTP API and only appear when COPALIBRE_MCP_TOKEN and ' +
   'COPALIBRE_API_URL are configured — an already-valid bearer token under CopaLibre’s existing ' +

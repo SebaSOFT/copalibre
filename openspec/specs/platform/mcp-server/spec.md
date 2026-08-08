@@ -48,3 +48,21 @@ using a bearer token from `COPALIBRE_MCP_TOKEN`, and SHALL NOT be registered unl
 
 - **WHEN** a tournament-operational tool is called with `COPALIBRE_MCP_TOKEN` configured
 - **THEN** the resulting `apps/api` request carries `Authorization: Bearer <token>`
+
+### Requirement: The server and its tools are self-explanatory to an AI client
+
+`copalibre mcp` SHALL advertise a top-level `instructions` string explaining what CopaLibre is, the
+installation-action vs. tournament-operational tool categories, and when each applies. Every
+registered tool's `description` SHALL state what it does, when to use it, and what it requires (for
+example, a required token), not merely its name in prose.
+
+#### Scenario: The server advertises instructions
+
+- **WHEN** an MCP client performs the initialization handshake against `copalibre mcp`
+- **THEN** the server's response includes a non-empty `instructions` string
+
+#### Scenario: A tool description explains when to use it
+
+- **WHEN** an MCP client reads a tournament-operational tool's description from `tools/list`
+- **THEN** the description states that the tool requires `COPALIBRE_MCP_TOKEN`, not only what HTTP
+  call it makes

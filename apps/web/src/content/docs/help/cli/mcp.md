@@ -18,6 +18,22 @@ comandos CLI equivalentes, en el mismo proceso:
 - **`copalibre_upgrade_check`**: chequea compatibilidad de módulos y migraciones pendientes contra
   una versión objetivo (`target_version`), igual que `copalibre upgrade-check`.
 
+## Herramientas de autoría de módulos
+
+Siempre disponibles, sin token — operan sobre el sistema de archivos local y Git, nunca sobre
+`apps/api`:
+
+- **`copalibre_module_scaffold`**: genera un paquete de módulo estructuralmente válido, sembrado
+  desde un documento ya válido del catálogo, como repositorio Git local etiquetado.
+- **`copalibre_module_validate_local`**: valida un paquete local sin buscarlo ni instalarlo.
+- **`copalibre_module_submit`**: bifurca `copalibre-modules`, publica el módulo en una rama nueva y
+  abre un pull request.
+
+Este es el escenario completo que justifica este servidor: una IA lee las reglas de un deporte, le
+pregunta al operador los detalles que necesita, arma el módulo localmente, lo valida, lo instala en
+una instalación de desarrollo local para probarlo de verdad (vía `copalibre module add --source
+file://...`, sin mecanismo aparte) y lo envía como pull request — todo sin salir del protocolo MCP.
+
 ## Herramientas de operación de torneos
 
 Solo se registran cuando `COPALIBRE_MCP_TOKEN` y `COPALIBRE_API_URL` están configurados — sin token,

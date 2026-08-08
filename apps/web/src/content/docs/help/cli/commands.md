@@ -126,6 +126,37 @@ Elimina un módulo instalado que ningún torneo iniciado referencia.
 
 Re-valida cada módulo instalado contra la versión del core en ejecución.
 
+### module scaffold
+
+`copalibre module scaffold <discipline|tournament-profile> <alias> [--author <nombre>] [--licence <licencia>] [--name <nombre>] [--source-url <url>] [--output <dir>]`
+
+Genera un paquete de módulo estructuralmente válido para empezar a autoría — sembrado desde uno de
+los documentos ya válidos del catálogo de CopaLibre, no una suposición a ciegas del schema — como un
+repositorio Git local etiquetado, listo para editar, validar e instalar/enviar.
+
+- `--author <nombre>`: autor de la atribución (por defecto: Unknown)
+- `--licence <licencia>`: identificador SPDX (por defecto: AGPL-3.0-only)
+- `--name <nombre>`: nombre de despliegue (por defecto: el alias)
+- `--source-url <url>`: URL de origen de la atribución
+- `--output <dir>`: dónde escribir el repositorio del módulo (por defecto: `modules/<alias>`)
+
+### module validate-local
+
+`copalibre module validate-local <ruta>`
+
+Valida un paquete de módulo local sin buscarlo ni instalarlo — el mismo chequeo que
+`module add`/`module verify` ya aplican.
+
+### module submit
+
+`copalibre module submit <ruta> [--upstream <owner/repo>] [--base <rama>]`
+
+Bifurca (`fork`) `copalibre-modules`, copia el módulo local a una rama nueva, la publica, y abre un
+pull request.
+
+- `--upstream <owner/repo>`: repositorio destino (por defecto: `SebaSOFT/copalibre-modules`)
+- `--base <rama>`: rama base del pull request (por defecto: `main`)
+
 ## mcp
 
 `copalibre mcp`

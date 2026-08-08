@@ -1456,6 +1456,7 @@ __metadata:
   dependencies:
     "@copalibre/auth": "workspace:^"
     "@copalibre/domain": "workspace:^"
+    "@copalibre/module-catalogue": "workspace:^"
     "@copalibre/module-distribution": "workspace:^"
     "@copalibre/object-storage": "workspace:^"
     "@copalibre/persistence": "workspace:^"

@@ -76,3 +76,27 @@ community-authored and can be retracted.
 
 Packaging, `copalibre module add`, asset handling and the module-repository CI are
 `0036-community-module-distribution`. This document covers the model those build on.
+
+### Authoring, running, and submitting a new module locally
+
+1. `copalibre module scaffold <discipline|tournament-profile> <alias>` — writes a structurally-valid
+   module package, seeded from one of CopaLibre's own already-valid catalogue documents (real
+   segments/events/statistics or real stages/points/tiebreak, not a blank schema), as a tagged local
+   Git repository.
+2. Edit `<output>/disciplines/<alias>/artifact.json` (or `profiles/<alias>/artifact.json`) and its
+   `manifest.json` to describe the real sport or tournament format.
+3. `copalibre module validate-local <path>` — the exact check `module add`/`module verify` apply,
+   with no fetch and no install.
+4. Try it for real, in a local development installation — no separate "local install" mechanism
+   exists; a scaffolded module is already a Git repository in the layout `module add` expects:
+   ```bash
+   COPALIBRE_MODULE_SOURCE_ALLOWLIST=file:///abs/path/to/the/scaffold \
+     copalibre module add <alias> --source file:///abs/path/to/the/scaffold
+   ```
+5. `copalibre module submit <path>` — forks `copalibre-modules`, pushes the module on a new branch,
+   and opens a pull request for a human reviewer.
+
+All five steps are also exposed as MCP tools (`copalibre_module_scaffold`,
+`copalibre_module_validate_local`, `copalibre_module_submit`) — see [`docs/MCP.md`](MCP.md) — so an
+AI agent can drive this whole flow: read a sport's rules, ask the operator any details it needs, and
+build, validate, and submit the module without shelling out to the CLI.

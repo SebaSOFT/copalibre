@@ -112,3 +112,22 @@ describing `upgrade-check` as a placeholder with no registered checks.
 - **WHEN** an operator reads the `/help/cli/` updating page
 - **THEN** it names `copalibre upgrade-check --target-version <version>` as a pre-restart gate against
   module incompatibility, not as an unimplemented placeholder
+
+### Requirement: Help site publishes llms.txt and llms-full.txt
+
+The help site SHALL publish `/llms.txt` (a summary and links to every documentation page) and
+`/llms-full.txt` (the same pages' content inlined into one file), generated from the real content
+collection at build time so neither can silently list a page that no longer exists or omit one that
+does.
+
+#### Scenario: llms.txt links resolve to real pages
+
+- **WHEN** the help site is built
+- **THEN** `/llms.txt` is produced, and every link it contains resolves to a page that exists in the
+  built output
+
+#### Scenario: llms-full.txt contains real page content
+
+- **WHEN** the help site is built
+- **THEN** `/llms-full.txt` is produced and contains the content of the documentation pages, not a
+  hand-maintained summary that could drift from them

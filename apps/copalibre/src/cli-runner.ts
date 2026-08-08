@@ -21,6 +21,11 @@ import {
 import { formatRequiredSecrets, writeLocalDefaults } from './init.js';
 import { startMcpServer } from './mcp/server.js';
 import { moduleAdd, moduleList, moduleRemove, moduleVerify } from './module-commands.js';
+import {
+  moduleScaffoldCommand,
+  moduleSubmitCommand,
+  moduleValidateLocalCommand,
+} from './module-authoring/cli.js';
 import type { ProcessRunner } from './process-runner.js';
 import { PROCESS_RUNNER } from './tokens.js';
 import { runUpgradeCheck } from './upgrade-check.js';
@@ -308,6 +313,12 @@ export class CliRunner {
         return moduleRemove(rest, environment);
       case 'verify':
         return moduleVerify(rest, environment);
+      case 'scaffold':
+        return moduleScaffoldCommand(rest);
+      case 'validate-local':
+        return moduleValidateLocalCommand(rest, environment);
+      case 'submit':
+        return moduleSubmitCommand(rest);
       default:
         process.stderr.write(renderModuleHelp());
         return 64;
