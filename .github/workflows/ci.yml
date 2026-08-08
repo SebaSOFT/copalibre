@@ -212,6 +212,12 @@ jobs:
       # same shared test suite; async processing and the real round-trip
       # checks run in integration, against real MinIO/clamd.
       - run: yarn workspace @copalibre/object-storage test:coverage
+      # Module package validation, compatibility checking, and fetch/import
+      # logic (0036) — previously had no dedicated CI step; added here rather
+      # than left to only run when a broader `test:verify-discovery` count
+      # happens to pass (0045, which adds the first test for the extracted
+      # `evaluateCoreVersionCompatibility`).
+      - run: yarn workspace @copalibre/module-distribution test:coverage
       # Covers the scheduling conflict detection and mutation classification
       # (0012), which are pure domain logic; the SQL side runs in integration.
       # Since 0015 it also carries seasons, the person/player split and the
@@ -313,6 +319,12 @@ jobs:
       # cannot silently drift from the real command set — named separately so
       # a reviewer finds this capability's own signal directly.
       - run: yarn workspace @copalibre/copalibre test --testPathPatterns 'help-text|cli-docs-parity'
+      # Non-destructive upgrade path (0045): upgrade-check evaluates installed
+      # modules' declared compatibility against a target version and reports
+      # pending migrations, reusing module-distribution's install-time check
+      # rather than a second hand-written one — named separately so a
+      # reviewer finds this capability's own signal directly.
+      - run: yarn workspace @copalibre/copalibre test --testPathPatterns 'upgrade-check'
       - uses: actions/upload-artifact@v4
         if: always()
         with:

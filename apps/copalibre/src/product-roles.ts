@@ -1,4 +1,12 @@
-export const PRODUCT_ROLES = ['api', 'events', 'worker', 'scheduler', 'migrate', 'doctor'] as const;
+export const PRODUCT_ROLES = [
+  'api',
+  'events',
+  'worker',
+  'scheduler',
+  'migrate',
+  'doctor',
+  'upgrade-check',
+] as const;
 
 export type ProductRole = (typeof PRODUCT_ROLES)[number];
 

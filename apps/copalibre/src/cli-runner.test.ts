@@ -143,6 +143,41 @@ describe('CliRunner', () => {
     );
   });
 
+  describe('upgrade-check (0045)', () => {
+    it('proxies to a one-off container outside a container, like doctor', async () => {
+      const run = jest.fn<ProcessRunner['run']>().mockResolvedValueOnce(0);
+      const result = await new CliRunner({ run }).run(
+        ['upgrade-check', '--target-version', '2.0.0'],
+        {},
+      );
+
+      expect(result).toBe(0);
+      expect(run).toHaveBeenCalledWith('docker', [
+        'compose',
+        'run',
+        '--rm',
+        'upgrade-check',
+        '--target-version',
+        '2.0.0',
+      ]);
+    });
+
+    it('requires --target-version inside a container', async () => {
+      const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+      try {
+        const result = await new CliRunner({ run: jest.fn(async () => 0) }).run(['upgrade-check'], {
+          COPALIBRE_IN_CONTAINER: 'true',
+        });
+        expect(result).toBe(1);
+        expect(stderr).toHaveBeenCalledWith(
+          'copalibre upgrade-check failed: --target-version is required\n',
+        );
+      } finally {
+        stderr.mockRestore();
+      }
+    });
+  });
+
   it('waits for development infrastructure before running hybrid migrations', async () => {
     const run = jest.fn<ProcessRunner['run']>().mockResolvedValueOnce(0).mockResolvedValueOnce(7);
     const result = await new CliRunner({ run }).run(['dev', '--hybrid'], {});

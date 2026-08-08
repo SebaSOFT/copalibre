@@ -56,4 +56,4 @@ export {
   type ImportModuleReport,
 } from './import.js';
 
-export { verifyInstalledModule } from './verify.js';
+export { evaluateCoreVersionCompatibility, verifyInstalledModule } from './verify.js';

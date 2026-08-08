@@ -65,9 +65,15 @@ Restaura un respaldo de PostgreSQL en una instalación limpia.
 
 ## upgrade-check
 
-`copalibre upgrade-check`
+`copalibre upgrade-check --target-version <semver>`
 
-Reporta los chequeos de compatibilidad de versión registrados para la instalación actual.
+Chequea la compatibilidad de los módulos instalados y las migraciones pendientes antes de
+actualizar.
+
+- `--target-version <semver>`: versión de CopaLibre contra la que verificar módulos y migraciones
+
+Termina con código de salida distinto de cero si algún módulo instalado dejaría de ser compatible
+con la versión objetivo. Ver [actualización](/help/cli/updating/) para la secuencia completa.
 
 ## create-admin
 

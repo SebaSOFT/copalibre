@@ -1,17 +1,26 @@
 ---
 title: Actualización
-description: Cómo actualizar el framework CopaLibre y sus módulos instalados.
+description: Camino no-destructivo para actualizar el framework CopaLibre y sus módulos instalados.
 ---
 
 ## Actualizar el framework
 
-Hoy, actualizar CopaLibre significa: obtener el checkout o la imagen de la nueva versión, correr
-`copalibre migrate` para aplicar migraciones pendientes, y `copalibre doctor` para confirmar que la
-configuración sigue siendo válida antes de reiniciar los procesos. `copalibre upgrade-check` existe
-como punto de entrada para chequeos de compatibilidad de versión, pero hoy no tiene ninguno
-registrado — reporta explícitamente que no hay chequeos configurados, en vez de fallar en silencio.
-Un camino de actualización no-destructivo más completo, con migración cuidadosa de datos, es un
-objetivo en curso.
+Secuencia recomendada, no-destructiva:
+
+1. **Respalde** antes de tocar nada: `./copalibre backup --file backups/pre-upgrade.dump`.
+2. **Actualice** el checkout o la referencia de imagen a la nueva versión (no reinicie los
+   servicios todavía).
+3. **Verifique compatibilidad** contra la nueva versión, sin reiniciar nada:
+   ```bash
+   ./copalibre upgrade-check --target-version <version-nueva>
+   ```
+   Reporta si algún módulo instalado dejaría de ser compatible con esa versión (mismo chequeo que
+   `module verify` usa contra la versión en ejecución, pero contra la versión objetivo), y lista las
+   migraciones de base de datos pendientes — sin aplicar ninguna. Termina con código de salida
+   distinto de cero si algún módulo quedaría incompatible; corríjalo antes de continuar.
+4. **Reinicie** con la nueva versión (`./copalibre start` o `docker compose up --detach --wait`). Las
+   migraciones pendientes se aplican automáticamente y en orden antes de que cualquier rol de proceso
+   empiece a servir tráfico — no es un paso manual separado.
 
 ## Actualizar módulos
 

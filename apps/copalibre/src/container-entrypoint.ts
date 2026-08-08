@@ -8,6 +8,7 @@ const roleCommands: Record<ProductRole, readonly string[]> = {
   scheduler: ['apps/scheduler/dist/main.js'],
   migrate: ['apps/migrate/dist/main.js'],
   doctor: ['apps/copalibre/dist/main.js', 'doctor'],
+  'upgrade-check': ['apps/copalibre/dist/main.js', 'upgrade-check'],
 };
 
 async function main(): Promise<void> {
