@@ -12,10 +12,19 @@ import {
 import { renderBanner } from './banner.js';
 import { createInitialAdministrator, parseCreateAdminArguments } from './create-admin.js';
 import { runDoctor, type DoctorOptions } from './doctor.js';
+import {
+  COMMAND_HELP,
+  MODULE_SUBCOMMAND_HELP,
+  renderCommandHelp,
+  renderModuleHelp,
+  renderTopLevelHelp,
+} from './help-text.js';
 import { formatRequiredSecrets, writeLocalDefaults } from './init.js';
 import { moduleAdd, moduleList, moduleRemove, moduleVerify } from './module-commands.js';
 import type { ProcessRunner } from './process-runner.js';
 import { PROCESS_RUNNER } from './tokens.js';
+
+const HELP_FLAGS = new Set(['--help', '-h']);
 
 @Injectable()
 export class CliRunner {
@@ -31,10 +40,24 @@ export class CliRunner {
     // script piping a subcommand's stdout never has to filter this out.
     process.stderr.write(renderBanner());
     const command = arguments_[0];
-    if (!command || command === '--help' || command === '-h') {
-      process.stdout.write(
-        'Usage: copalibre <init|doctor|dev|start|migrate|create-admin|backup|restore|upgrade-check|module>\n',
-      );
+    if (!command || HELP_FLAGS.has(command)) {
+      process.stdout.write(renderTopLevelHelp());
+      return 0;
+    }
+    // Help is intercepted before any command body runs (task 1.2): a help
+    // request must never reach a command's own `parseArgs` call (which would
+    // reject an unrecognized flag) or any of its real side effects.
+    if (command === 'module') {
+      const moduleHelp = this.moduleHelpFor(arguments_.slice(1));
+      if (moduleHelp !== undefined) {
+        process.stdout.write(moduleHelp);
+        return 0;
+      }
+    } else if (
+      HELP_FLAGS.has(arguments_[1] ?? '') &&
+      COMMAND_HELP.some((candidate) => candidate.name === command)
+    ) {
+      process.stdout.write(renderCommandHelp(command, COMMAND_HELP));
       return 0;
     }
     try {
@@ -240,11 +263,23 @@ export class CliRunner {
       case 'verify':
         return moduleVerify(rest, environment);
       default:
-        process.stderr.write(
-          `Usage: copalibre module <add <alias>[@range] [--source <url>]|list [--outdated]|remove <alias>|verify>\n`,
-        );
+        process.stderr.write(renderModuleHelp());
         return 64;
     }
+  }
+
+  /**
+   * Returns rendered help text for a `module` help request (task 1.2), or
+   * `undefined` when `arguments_` is not a help request and dispatch should
+   * proceed normally to `module()`.
+   */
+  private moduleHelpFor(arguments_: readonly string[]): string | undefined {
+    const [sub, next] = arguments_;
+    if (!sub || HELP_FLAGS.has(sub)) return renderModuleHelp();
+    if (HELP_FLAGS.has(next ?? '') && MODULE_SUBCOMMAND_HELP.some((c) => c.name === sub)) {
+      return renderCommandHelp(sub, MODULE_SUBCOMMAND_HELP);
+    }
+    return undefined;
   }
 
   private runDatabaseTools(command: readonly string[]): Promise<number> {

@@ -1,6 +1,7 @@
 import { jest } from '@jest/globals';
 import { renderBanner } from './banner.js';
 import { CliRunner } from './cli-runner.js';
+import { COMMAND_HELP, MODULE_SUBCOMMAND_HELP } from './help-text.js';
 import type { ProcessRunner } from './process-runner.js';
 
 /** Shared by every "banner prints first" case (task 3.1): records write order across both streams. */
@@ -70,6 +71,76 @@ describe('CliRunner', () => {
         spy.restore();
       }
     });
+  });
+
+  describe('comprehensive help (0044)', () => {
+    it.each([
+      ['--help', ['--help']],
+      ['-h', ['-h']],
+      ['no arguments', []],
+    ] as const)('%s lists every command', async (_label, arguments_) => {
+      const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+      try {
+        const result = await new CliRunner({ run: jest.fn(async () => 0) }).run(
+          [...arguments_],
+          {},
+        );
+        expect(result).toBe(0);
+        const printed = stdout.mock.calls.map((call) => String(call[0])).join('');
+        for (const command of COMMAND_HELP) {
+          expect(printed).toContain(command.name);
+        }
+      } finally {
+        stdout.mockRestore();
+      }
+    });
+
+    it.each(COMMAND_HELP.map((command) => command.name))(
+      '"%s --help" prints usage and exits 0 without running the command',
+      async (command) => {
+        const run = jest.fn<ProcessRunner['run']>(async () => 0);
+        const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+        try {
+          const result = await new CliRunner({ run }).run([command, '--help'], {});
+          expect(result).toBe(0);
+          expect(run).not.toHaveBeenCalled();
+        } finally {
+          stdout.mockRestore();
+        }
+      },
+    );
+
+    it('"module --help" lists every module subcommand', async () => {
+      const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+      try {
+        const result = await new CliRunner({ run: jest.fn(async () => 0) }).run(
+          ['module', '--help'],
+          {},
+        );
+        expect(result).toBe(0);
+        const printed = stdout.mock.calls.map((call) => String(call[0])).join('');
+        for (const subcommand of MODULE_SUBCOMMAND_HELP) {
+          expect(printed).toContain(subcommand.name);
+        }
+      } finally {
+        stdout.mockRestore();
+      }
+    });
+
+    it.each(MODULE_SUBCOMMAND_HELP.map((subcommand) => subcommand.name))(
+      '"module %s --help" prints usage and exits 0 without running the subcommand',
+      async (subcommand) => {
+        const run = jest.fn<ProcessRunner['run']>(async () => 0);
+        const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+        try {
+          const result = await new CliRunner({ run }).run(['module', subcommand, '--help'], {});
+          expect(result).toBe(0);
+          expect(run).not.toHaveBeenCalled();
+        } finally {
+          stdout.mockRestore();
+        }
+      },
+    );
   });
 
   it('waits for development infrastructure before running hybrid migrations', async () => {
