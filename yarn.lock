@@ -1456,6 +1456,7 @@ __metadata:
     "@copalibre/auth": "workspace:^"
     "@copalibre/domain": "workspace:^"
     "@copalibre/module-distribution": "workspace:^"
+    "@copalibre/object-storage": "workspace:^"
     "@copalibre/persistence": "workspace:^"
     "@nestjs/common": "npm:^11.1.28"
     "@nestjs/core": "npm:^11.1.28"

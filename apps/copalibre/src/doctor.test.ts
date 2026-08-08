@@ -31,6 +31,7 @@ function dependencies(overrides: Partial<DoctorDependencies> = {}): DoctorDepend
     probeDatabase: jest.fn(async () => undefined),
     ensureWritable: jest.fn(async () => undefined),
     retirableModules: jest.fn(async () => []),
+    objectStorageRoundTrip: jest.fn(async () => undefined),
     fetch: jest.fn(async (input: string | URL | Request) => {
       // The JWKS content check and the SSE proxy-conformance check share this
       // default mock; discriminate by URL so each gets a response shaped for
@@ -178,19 +179,29 @@ describe('copalibre doctor', () => {
     );
   });
 
-  it('checks a configured object-storage endpoint and writable path', async () => {
+  it('reports a pass when the object-storage round-trip succeeds', async () => {
+    await expect(validateObjectStorage({}, dependencies())).resolves.toMatchObject({
+      name: 'object-storage',
+      status: 'pass',
+    });
+  });
+
+  it('reports a failure naming the error when the object-storage round-trip fails', async () => {
     await expect(
       validateObjectStorage(
-        { COPALIBRE_OBJECT_STORAGE_URL: 'https://objects.example' },
-        dependencies(),
+        {},
+        dependencies({
+          objectStorageRoundTrip: async () => Promise.reject(new Error('bucket not found')),
+        }),
       ),
-    ).resolves.toContainEqual(expect.objectContaining({ status: 'pass' }));
-    await expect(
-      validateObjectStorage(
-        { COPALIBRE_OBJECT_STORAGE_URL: 'ftp://objects.example' },
-        dependencies(),
-      ),
-    ).resolves.toContainEqual(expect.objectContaining({ status: 'fail' }));
+    ).resolves.toMatchObject({
+      name: 'object-storage',
+      status: 'fail',
+      message: expect.stringContaining('bucket not found'),
+    });
+  });
+
+  it('reports a failure when the persistent path is not writable', async () => {
     await expect(
       validatePersistentPath(
         { COPALIBRE_DATA_DIR: '/not-writable' },

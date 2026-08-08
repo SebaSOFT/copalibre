@@ -1,7 +1,9 @@
 import { access, mkdir } from 'node:fs/promises';
 import { lookup } from 'node:dns/promises';
+import { randomUUID } from 'node:crypto';
 import { dirname } from 'node:path';
 import { authConfigFromEnv } from '@copalibre/auth';
+import { createObjectStorageAdapter, objectStorageConfigFromEnv } from '@copalibre/object-storage';
 import {
   CompetitionRecordRepository,
   InstalledModuleRepository,
@@ -35,6 +37,8 @@ export interface DoctorDependencies {
   readonly fetch: typeof fetch;
   /** Installed community discipline versions no started/finished tournament references (task 4.7). */
   readonly retirableModules: (connectionString: string) => Promise<readonly RetirableModule[]>;
+  /** Puts, reads back, and deletes a small probe object against the configured profile (0041 task 3.1). */
+  readonly objectStorageRoundTrip: (environment: NodeJS.ProcessEnv) => Promise<void>;
 }
 
 export interface DoctorOptions {
@@ -58,7 +62,7 @@ export async function runDoctor(
   checks.push(...(await validateJwksContent(environment, dependencies)));
   checks.push(...(await validateDatabase(environment, dependencies)));
   checks.push(await validateRetirableModules(environment, dependencies));
-  checks.push(...(await validateObjectStorage(environment, dependencies)));
+  checks.push(await validateObjectStorage(environment, dependencies));
   checks.push(...(await validatePersistentPath(environment, dependencies)));
   if (options.checkProxy) checks.push(await validateReverseProxy(options, dependencies));
   return { checks, ok: checks.every((check) => check.status !== 'fail') };
@@ -215,19 +219,23 @@ export async function validateRetirableModules(
   }
 }
 
+/**
+ * A real write/read/delete round-trip (0041 task 3.1-3.2), replacing the
+ * former URL-reachability-only check — reachability passes on a bucket that
+ * exists but denies writes, or credentials that resolve DNS fine and then
+ * fail every request. `objectStorageConfigFromEnv` never leaves this
+ * unconfigured (a filesystem fallback always resolves), so this always
+ * actually runs, against whichever profile is active.
+ */
 export async function validateObjectStorage(
   environment: NodeJS.ProcessEnv,
-  dependencies: Pick<DoctorDependencies, 'lookupHost'>,
-): Promise<readonly DoctorCheck[]> {
-  const value = environment.COPALIBRE_OBJECT_STORAGE_URL;
-  if (!value) return [skip('object-storage', 'No object storage endpoint configured')];
+  dependencies: Pick<DoctorDependencies, 'objectStorageRoundTrip'>,
+): Promise<DoctorCheck> {
   try {
-    const url = new URL(value);
-    if (!['http:', 'https:'].includes(url.protocol)) throw new Error('must use http or https');
-    if (!isLocalHost(url.hostname)) await dependencies.lookupHost(url.hostname);
-    return [pass('object-storage', `Object storage endpoint resolves as ${url.hostname}`)];
+    await dependencies.objectStorageRoundTrip(environment);
+    return pass('object-storage', 'Object storage accepts a write, read and delete round-trip');
   } catch (error) {
-    return [fail('object-storage', `Object storage is unreachable: ${errorMessage(error)}`)];
+    return fail('object-storage', `Object storage round-trip failed: ${errorMessage(error)}`);
   }
 }
 
@@ -385,6 +393,17 @@ function systemDoctorDependencies(): DoctorDependencies {
       }
     },
     fetch,
+    objectStorageRoundTrip: async (environment) => {
+      const adapter = createObjectStorageAdapter(objectStorageConfigFromEnv(environment));
+      const key = `doctor-probe/${randomUUID()}`;
+      const probe = new TextEncoder().encode('copalibre doctor round-trip probe');
+      const reference = await adapter.put(key, probe, 'text/plain');
+      const read = await adapter.get(reference);
+      if (Buffer.compare(Buffer.from(read.body), Buffer.from(probe)) !== 0) {
+        throw new Error('read back different bytes than were written');
+      }
+      await adapter.delete(reference);
+    },
   };
 }
 
