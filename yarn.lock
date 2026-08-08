@@ -1467,6 +1467,7 @@ __metadata:
     kysely: "npm:^0.29"
     reflect-metadata: "npm:^0.2.2"
     rxjs: "npm:^7.8.2"
+    tar: "npm:^7.4.3"
     ts-jest: "npm:^29.4.12"
     typescript: "npm:^5"
   languageName: unknown

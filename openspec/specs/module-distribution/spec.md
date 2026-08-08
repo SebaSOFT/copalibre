@@ -87,7 +87,9 @@ and artifact schema, registry references, ruleset compilation, and asset limits.
 
 ### Requirement: Core version compatibility is declared and enforced
 A module SHALL declare the CopaLibre versions it supports as a semver range, and installation SHALL
-be refused when the running version does not satisfy it.
+be refused when the running version does not satisfy it. The same compatibility check SHALL be
+reusable against a version the installation is not yet running, so a pre-upgrade check and
+post-install re-verification evaluate compatibility identically to installation itself.
 
 #### Scenario: A module needing a newer core is refused
 - **WHEN** a module declares a range the running CopaLibre version does not satisfy
@@ -96,6 +98,12 @@ be refused when the running version does not satisfy it.
 #### Scenario: A range is resolved to the highest satisfying published tag
 - **WHEN** an operator installs a module specifying a semver range rather than an exact tag
 - **THEN** the highest published tag satisfying that range is installed
+
+#### Scenario: The same check evaluates a not-yet-running target version
+- **WHEN** a caller evaluates an installed module's declared range against a target CopaLibre
+  version that is not the version currently running
+- **THEN** it reports the same incompatibility (or compatibility) that installation, `module verify`,
+  and a pre-upgrade check would each report for that pairing of module and version
 
 ### Requirement: Assets are imported into object storage
 Media assets SHALL be stored through the object-storage adapter, with the database holding references.

@@ -325,6 +325,11 @@ jobs:
       # rather than a second hand-written one — named separately so a
       # reviewer finds this capability's own signal directly.
       - run: yarn workspace @copalibre/copalibre test --testPathPatterns 'upgrade-check'
+      # Backup/restore packets (0046): a compressed, self-describing packet
+      # with retention pruning, replacing the bare uncompressed pg_dump file
+      # — named separately so a reviewer finds this capability's own signal
+      # directly, matching the precedent set for tv-surfaces (0031) onward.
+      - run: yarn workspace @copalibre/copalibre test --testPathPatterns 'backup-packet|backup\.test'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
