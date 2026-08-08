@@ -23,6 +23,7 @@ import { formatRequiredSecrets, writeLocalDefaults } from './init.js';
 import { moduleAdd, moduleList, moduleRemove, moduleVerify } from './module-commands.js';
 import type { ProcessRunner } from './process-runner.js';
 import { PROCESS_RUNNER } from './tokens.js';
+import { runUpgradeCheck } from './upgrade-check.js';
 
 const HELP_FLAGS = new Set(['--help', '-h']);
 
@@ -77,7 +78,7 @@ export class CliRunner {
         case 'restore':
           return await this.restore(arguments_.slice(1), environment);
         case 'upgrade-check':
-          return await this.upgradeCheck();
+          return await this.upgradeCheck(arguments_.slice(1), environment);
         case 'create-admin':
           return await this.createAdmin(arguments_.slice(1), environment);
         case 'module':
@@ -243,9 +244,42 @@ export class CliRunner {
     return 0;
   }
 
-  private upgradeCheck(): Promise<number> {
-    process.stdout.write('No release compatibility checks are registered yet.\n');
-    return Promise.resolve(0);
+  private async upgradeCheck(
+    arguments_: readonly string[],
+    environment: NodeJS.ProcessEnv,
+  ): Promise<number> {
+    if (!isContainer(environment)) {
+      return this.processes.run('docker', [
+        'compose',
+        'run',
+        '--rm',
+        'upgrade-check',
+        ...arguments_,
+      ]);
+    }
+    const parsed = parseArgs({
+      args: [...arguments_],
+      options: { 'target-version': { type: 'string' } },
+      strict: true,
+    });
+    const targetVersion = parsed.values['target-version'];
+    if (!targetVersion) throw new Error('--target-version is required');
+
+    const report = await runUpgradeCheck(targetVersion, environment);
+    for (const failure of report.moduleFailures) {
+      process.stdout.write(`FAIL [${failure.stage}] ${failure.field ?? ''}: ${failure.message}\n`);
+    }
+    process.stdout.write(
+      report.pendingMigrations.length === 0
+        ? 'No pending migrations.\n'
+        : `Pending migrations: ${report.pendingMigrations.join(', ')}\n`,
+    );
+    process.stdout.write(
+      report.ok
+        ? `upgrade-check: OK for target version ${targetVersion}\n`
+        : `upgrade-check: FAILED for target version ${targetVersion}\n`,
+    );
+    return report.ok ? 0 : 1;
   }
 
   private async module(

@@ -84,3 +84,22 @@ homepage.
   pointing at an existing Starlight page under `/help/control/`
 - **THEN** the build fails, naming the missing help path, rather than shipping a silently broken or
   absent help link
+
+### Requirement: Help site documents CLI installation, updating, and every command
+
+The help site SHALL provide a `/help/cli/` section covering how to install CopaLibre, how to update
+the framework and its installed modules, and a reference entry for every `copalibre` CLI command —
+generated from or checked against the same command-metadata source the CLI's own `--help` output
+renders from, so the page cannot silently drift out of sync with the real command set.
+
+#### Scenario: Every real CLI command has a reference entry
+
+- **WHEN** a `copalibre` subcommand exists in the CLI's command-metadata source
+- **THEN** the `/help/cli/` command reference names it, and a build-time check fails if a command is
+  missing from the page or a page entry no longer matches a real command
+
+#### Scenario: An operator finds the update path for modules, not just the framework
+
+- **WHEN** an operator reads the `/help/cli/` updating page
+- **THEN** it covers both updating the CopaLibre framework itself and updating installed modules
+  (`module list --outdated`, `module add <alias>@<range>`), not only one of the two

@@ -171,6 +171,16 @@ services:
       postgres:
         condition: service_healthy
 
+  upgrade-check:
+    <<: *application-service
+    environment:
+      <<: *application-environment
+      PRODUCT_ROLE: upgrade-check
+    profiles: ['operations']
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   database-tools:
     image: postgres:17
     entrypoint: []

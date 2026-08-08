@@ -56,22 +56,37 @@ export async function verifyInstalledModule(
     }
   }
 
-  if (
-    !semver.satisfies(runningCopalibreVersion, installed.requiresCopalibre, {
-      includePrerelease: true,
-    })
-  ) {
-    failures.push({
-      stage: 'core-version',
-      message: `requires CopaLibre ${installed.requiresCopalibre}, but this installation runs ${runningCopalibreVersion}`,
-    });
-  }
+  const coreVersionFailure = evaluateCoreVersionCompatibility(runningCopalibreVersion, installed);
+  if (coreVersionFailure) failures.push(coreVersionFailure);
 
   if (assets.length > 0) {
     failures.push(...(await verifyAssets(storage, assets)));
   }
 
   return failures;
+}
+
+/**
+ * Checks one installed module's declared `requiresCopalibre` range against a
+ * CopaLibre version — the running version for `verifyInstalledModule` above,
+ * or a not-yet-installed target version for a pre-upgrade compatibility check
+ * (0045's `copalibre upgrade-check --target-version`). Extracted so both call
+ * sites report the exact same failure shape instead of two hand-written copies
+ * of the same `semver.satisfies` check drifting apart.
+ */
+export function evaluateCoreVersionCompatibility(
+  copalibreVersion: string,
+  installed: Pick<InstalledModule, 'alias' | 'version' | 'requiresCopalibre'>,
+): ModuleValidationFailure | undefined {
+  if (
+    semver.satisfies(copalibreVersion, installed.requiresCopalibre, { includePrerelease: true })
+  ) {
+    return undefined;
+  }
+  return {
+    stage: 'core-version',
+    message: `requires CopaLibre ${installed.requiresCopalibre}, but this installation runs ${copalibreVersion}`,
+  };
 }
 
 async function verifyAssets(

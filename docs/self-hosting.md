@@ -26,3 +26,15 @@ into the Compose CLI container; PostgreSQL client tools and credentials never ne
 on host. Restore only into a clean target with
 `./copalibre restore --file backups/copalibre.dump --confirm`; first use `--dry-run` to inspect the
 non-secret plan. A scheduled restore drill validates the supported procedure.
+
+## Upgrading
+
+Non-destructive sequence: back up (`./copalibre backup --file backups/pre-upgrade.dump`), update the
+checkout or image reference to the new version without restarting anything yet, then run
+`./copalibre upgrade-check --target-version <new-version>` against it. `upgrade-check` reports any
+installed module whose declared `requiresCopalibre` range would no longer be satisfied by the target
+version (the same check `module verify` runs against the version currently running) and lists
+pending database migrations without applying them, exiting non-zero on any module incompatibility.
+Once it passes, restart with the new version — migrations apply automatically, forward-only, before
+any process role starts serving traffic (`docker-compose.yml`'s `migrate` service gates every other
+role via `depends_on: condition: service_completed_successfully`).

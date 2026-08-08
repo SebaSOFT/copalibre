@@ -77,8 +77,14 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
   },
   {
     name: 'upgrade-check',
-    summary: 'Report release compatibility checks for the current installation',
-    usage: 'copalibre upgrade-check',
+    summary: 'Check module compatibility and pending migrations before upgrading',
+    usage: 'copalibre upgrade-check --target-version <semver>',
+    flags: [
+      {
+        flag: '--target-version <semver>',
+        description: 'CopaLibre version to check installed modules and migrations against',
+      },
+    ],
   },
   {
     name: 'create-admin',
