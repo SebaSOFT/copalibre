@@ -30,7 +30,11 @@ The release SHALL provide a `copalibre` CLI with `init`, `doctor`, `dev`, `dev -
 `migrate`, `create-admin`, `backup`, `restore`, and `upgrade-check` subcommands. Every invocation
 SHALL print a startup banner identifying the product, its version, and its license before running
 the requested subcommand, and that banner SHALL be written to a stream that never mixes with a
-subcommand's own stdout output.
+subcommand's own stdout output. Running `copalibre --help`/`-h` with no subcommand SHALL list every
+subcommand with a one-line summary, and running `copalibre <subcommand> --help`/`-h` SHALL print
+that subcommand's usage line, a description of what it does, and its flags — for every documented
+subcommand, sourced from one place so the top-level summary and each subcommand's detail cannot
+drift apart.
 
 #### Scenario: doctor catches misconfiguration before start
 - **WHEN** `copalibre doctor` runs against an installation missing a required secret or with an
@@ -60,8 +64,24 @@ subcommand's own stdout output.
 - **THEN** the piped/redirected stream contains only the subcommand's own output — the startup
   banner appears on stderr, not stdout
 
+#### Scenario: Top-level help lists every subcommand
+- **WHEN** an operator runs `copalibre --help`, `copalibre -h`, or `copalibre` with no arguments
+- **THEN** the output lists every documented subcommand with a one-line summary of what it does, and
+  names `copalibre <subcommand> --help` as the way to see more
+
+#### Scenario: A subcommand's own help never runs the subcommand
+- **WHEN** an operator runs `copalibre <subcommand> --help` or `copalibre <subcommand> -h` for any
+  documented subcommand
+- **THEN** the CLI prints that subcommand's usage line, description, and flags, and exits 0 without
+  performing any of the subcommand's real effects (no database connection opened, no process
+  started, no file written)
+
 ### Requirement: Module management subcommands
 The `copalibre` CLI SHALL provide `module add`, `module list`, `module remove` and `module verify`.
+Running `copalibre module --help`/`-h` SHALL list these four subcommands with a one-line summary
+each, and running `copalibre module <subcommand> --help`/`-h` SHALL print that subcommand's usage
+line, description, and flags, following the same one-source-of-truth rule as the top-level CLI's
+help.
 
 #### Scenario: An operator lists installed modules
 - **WHEN** the module-list command is run
@@ -76,6 +96,11 @@ The `copalibre` CLI SHALL provide `module add`, `module list`, `module remove` a
 #### Scenario: Removing a module in use is refused
 - **WHEN** an operator removes a module a started tournament references
 - **THEN** the removal is refused, naming the tournaments that reference it
+
+#### Scenario: module --help lists its subcommands
+- **WHEN** an operator runs `copalibre module --help` or `copalibre module` with no further
+  arguments
+- **THEN** the output lists `add`, `list`, `remove`, and `verify` with a one-line summary of each
 
 ### Requirement: Verified backup and restore
 A backup produced by `copalibre backup` SHALL restore into a clean installation via `copalibre
