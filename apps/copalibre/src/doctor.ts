@@ -211,10 +211,7 @@ export async function validateRetirableModules(
     // Never fail: doctor runs on a clean, unmigrated host too (this is
     // exactly what caught it — the schema doesn't exist yet at that point),
     // and this check is purely informational, not a readiness gate.
-    return skip(
-      'retirable-modules',
-      `Could not compute retirable modules: ${errorMessage(error)}`,
-    );
+    return skip('retirable-modules', `Could not compute retirable modules: ${errorMessage(error)}`);
   }
 }
 
