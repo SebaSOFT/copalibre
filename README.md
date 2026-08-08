@@ -84,6 +84,7 @@ authentication contract). Every change is planned and tracked as an OpenSpec pro
 ## Documentation
 
 - [`docs/self-hosting.md`](docs/self-hosting.md) — deployment, persistent data, backup/restore
+- [`docs/MCP.md`](docs/MCP.md) — `copalibre mcp`, its tool set, and how an AI agent connects
 - [`docs/MODULES.md`](docs/MODULES.md) — discipline and tournament-profile authoring
 - [`docs/AUTH.md`](docs/AUTH.md) — JWT/OIDC authentication contract
 - [`docs/TESTING.md`](docs/TESTING.md) — testing conventions

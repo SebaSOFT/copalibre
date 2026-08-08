@@ -101,6 +101,11 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
     summary: 'Manage installed discipline and tournament-profile modules',
     usage: 'copalibre module <add|list|remove|verify>',
   },
+  {
+    name: 'mcp',
+    summary: 'Start a local stdio Model Context Protocol server for AI agents',
+    usage: 'copalibre mcp',
+  },
 ];
 
 /**
