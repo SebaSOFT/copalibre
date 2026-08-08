@@ -34,7 +34,9 @@ subcommand's own stdout output. Running `copalibre --help`/`-h` with no subcomma
 subcommand with a one-line summary, and running `copalibre <subcommand> --help`/`-h` SHALL print
 that subcommand's usage line, a description of what it does, and its flags — for every documented
 subcommand, sourced from one place so the top-level summary and each subcommand's detail cannot
-drift apart.
+drift apart. `upgrade-check` SHALL evaluate a given target CopaLibre version against every installed
+module's declared compatibility range and report pending database migrations, exiting non-zero if
+any installed module would become incompatible with the target version.
 
 #### Scenario: doctor catches misconfiguration before start
 - **WHEN** `copalibre doctor` runs against an installation missing a required secret or with an
@@ -75,6 +77,22 @@ drift apart.
 - **THEN** the CLI prints that subcommand's usage line, description, and flags, and exits 0 without
   performing any of the subcommand's real effects (no database connection opened, no process
   started, no file written)
+
+#### Scenario: upgrade-check refuses an incompatible target version
+- **WHEN** an operator runs `copalibre upgrade-check --target-version <version>` and an installed
+  module's declared `requiresCopalibre` range does not include `<version>`
+- **THEN** it names the incompatible module, its declared range, and the target version, and exits
+  non-zero without altering any installed data
+
+#### Scenario: upgrade-check reports pending migrations
+- **WHEN** an operator runs `copalibre upgrade-check` against an installation with unapplied
+  database migrations
+- **THEN** it lists the pending migration names, without applying any of them
+
+#### Scenario: upgrade-check passes when every module is compatible
+- **WHEN** every installed module's declared `requiresCopalibre` range includes the given target
+  version
+- **THEN** `copalibre upgrade-check --target-version <version>` exits 0
 
 ### Requirement: Module management subcommands
 The `copalibre` CLI SHALL provide `module add`, `module list`, `module remove` and `module verify`.

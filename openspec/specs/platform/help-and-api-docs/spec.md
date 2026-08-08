@@ -90,7 +90,10 @@ homepage.
 The help site SHALL provide a `/help/cli/` section covering how to install CopaLibre, how to update
 the framework and its installed modules, and a reference entry for every `copalibre` CLI command —
 generated from or checked against the same command-metadata source the CLI's own `--help` output
-renders from, so the page cannot silently drift out of sync with the real command set.
+renders from, so the page cannot silently drift out of sync with the real command set. The updating
+page SHALL describe the real, non-destructive upgrade sequence — back up, update the checkout or
+image reference, run `upgrade-check` against the target version, then restart — rather than
+describing `upgrade-check` as a placeholder with no registered checks.
 
 #### Scenario: Every real CLI command has a reference entry
 
@@ -103,3 +106,9 @@ renders from, so the page cannot silently drift out of sync with the real comman
 - **WHEN** an operator reads the `/help/cli/` updating page
 - **THEN** it covers both updating the CopaLibre framework itself and updating installed modules
   (`module list --outdated`, `module add <alias>@<range>`), not only one of the two
+
+#### Scenario: The updating page describes a real, gated upgrade sequence
+
+- **WHEN** an operator reads the `/help/cli/` updating page
+- **THEN** it names `copalibre upgrade-check --target-version <version>` as a pre-restart gate against
+  module incompatibility, not as an unimplemented placeholder
