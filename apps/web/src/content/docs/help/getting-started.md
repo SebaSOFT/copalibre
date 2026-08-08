@@ -16,3 +16,8 @@ Revise participantes antes de aceptarlos. Cada decisión registra actor y moment
 
 Publique una configuración revisada antes de generar fixture. Cambios posteriores se clasifican según
 su impacto sobre resultados existentes.
+
+## Ayuda por pantalla
+
+Cada pantalla del [panel de control](/help/control/) tiene su propia página de ayuda, accesible
+desde el enlace "¿Qué es esta pantalla?" en su barra lateral.

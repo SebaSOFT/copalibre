@@ -262,6 +262,10 @@ jobs:
       # The public overview's view model (0020), plus the standings/seeding view
       # models and the bracket-canvas geometry (0024).
       - run: yarn workspace @copalibre/web test:coverage
+      # Contextual control-panel help links (0043): every screen's helpPath
+      # resolves to a real Starlight page, named separately so a reviewer
+      # finds this capability's own signal directly.
+      - run: yarn workspace @copalibre/web test --testPathPatterns 'control-help-links'
       # tv-surfaces (0031): the organizer-branding override guard and the
       # device-heartbeat status classification, named separately so a reviewer
       # scanning the job log finds the TV surface's own signal directly.

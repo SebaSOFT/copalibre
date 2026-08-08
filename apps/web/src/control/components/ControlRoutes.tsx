@@ -14,7 +14,7 @@ export function TournamentAuthoringControlRoute({
   readonly organizationAlias: string;
 }): React.JSX.Element {
   return (
-    <ControlShell organizationAlias={organizationAlias}>
+    <ControlShell helpPath="tournament-authoring" organizationAlias={organizationAlias}>
       <TournamentAuthoringPage organizationAlias={organizationAlias} />
     </ControlShell>
   );
@@ -30,7 +30,7 @@ export function RegistrationReviewControlRoute({
   readonly now: string;
 }): React.JSX.Element {
   return (
-    <ControlShell organizationAlias={organizationAlias}>
+    <ControlShell helpPath="registration-review" organizationAlias={organizationAlias}>
       <RegistrationReviewRoute
         organizationAlias={organizationAlias}
         tournamentAlias={tournamentAlias}
@@ -50,7 +50,7 @@ export function ReportReviewControlRoute({
   readonly client?: ControlApiClient;
 }): React.JSX.Element {
   return (
-    <ControlShell organizationAlias={organizationAlias}>
+    <ControlShell helpPath="report-review" organizationAlias={organizationAlias}>
       <ReportReviewRoute
         client={client}
         organizationAlias={organizationAlias}
@@ -73,7 +73,7 @@ export function StandingsControlRoute({
   readonly client?: ControlApiClient;
 }): React.JSX.Element {
   return (
-    <ControlShell organizationAlias={organizationAlias}>
+    <ControlShell helpPath="standings" organizationAlias={organizationAlias}>
       <StandingsRoute
         client={client}
         organizationAlias={organizationAlias}
@@ -96,7 +96,7 @@ export function SeedingControlRoute({
   readonly client?: ControlApiClient;
 }): React.JSX.Element {
   return (
-    <ControlShell organizationAlias={organizationAlias}>
+    <ControlShell helpPath="seeding" organizationAlias={organizationAlias}>
       <SeedingBuilderRoute
         client={client}
         organizationAlias={organizationAlias}
@@ -115,7 +115,7 @@ export function RolesPermissionsControlRoute({
   readonly client?: ControlApiClient;
 }): React.JSX.Element {
   return (
-    <ControlShell active="Roles" organizationAlias={organizationAlias}>
+    <ControlShell active="Roles" helpPath="roles-permissions" organizationAlias={organizationAlias}>
       <RolesPermissionsRoute client={client} organizationAlias={organizationAlias} />
     </ControlShell>
   );
@@ -133,7 +133,7 @@ export function MatchConsoleControlRoute({
   readonly client?: MatchConsoleApiClient;
 }): React.JSX.Element {
   return (
-    <ControlShell organizationAlias={organizationAlias}>
+    <ControlShell helpPath="match-console" organizationAlias={organizationAlias}>
       <MatchConsoleRoute
         client={client}
         matchId={matchId}
