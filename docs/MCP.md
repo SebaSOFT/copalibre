@@ -15,6 +15,22 @@ the same functions the CLI's own commands call):
 | `copalibre_module_list`   | `copalibre module list`                                     |
 | `copalibre_upgrade_check` | `copalibre upgrade-check --target-version <target_version>` |
 
+**Module-authoring actions** (always registered, no token required — operate on the local
+filesystem and Git, never `apps/api`):
+
+| Tool                              | Equivalent to                     |
+| --------------------------------- | --------------------------------- |
+| `copalibre_module_scaffold`       | `copalibre module scaffold`       |
+| `copalibre_module_validate_local` | `copalibre module validate-local` |
+| `copalibre_module_submit`         | `copalibre module submit`         |
+
+This is the scenario this server's whole design targets: an AI agent reads a sport's rules, asks the
+operator any clarifying questions it needs, scaffolds a module locally, edits it, validates it,
+installs it into a local development instance for a real try (via the existing
+`copalibre module add --source file://...` path — no separate "local run" mechanism exists), and
+submits it as a pull request to `copalibre-modules` — all without shelling out to the CLI. See
+[`docs/MODULES.md`](MODULES.md) for the full local-authoring sequence.
+
 **Tournament-operational actions** (registered only when both `COPALIBRE_MCP_TOKEN` and
 `COPALIBRE_API_URL` are set — without them, none of these appear in the server's tool list, and no
 HTTP request is ever attempted):

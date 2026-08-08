@@ -148,6 +148,40 @@ export const MODULE_SUBCOMMAND_HELP: readonly CommandHelp[] = [
     summary: 'Re-validate every installed module against the running core version',
     usage: 'copalibre module verify',
   },
+  {
+    name: 'scaffold',
+    summary: 'Generate a structurally-valid module package to start authoring from',
+    usage:
+      'copalibre module scaffold <discipline|tournament-profile> <alias> [--author <name>] ' +
+      '[--licence <licence>] [--name <name>] [--source-url <url>] [--output <dir>]',
+    flags: [
+      { flag: '--author <name>', description: 'Attribution author (default: Unknown)' },
+      { flag: '--licence <licence>', description: 'SPDX identifier (default: AGPL-3.0-only)' },
+      { flag: '--name <name>', description: 'Display name (default: the alias)' },
+      { flag: '--source-url <url>', description: 'Attribution source URL' },
+      {
+        flag: '--output <dir>',
+        description: 'Where to write the module repo (default: modules/<alias>)',
+      },
+    ],
+  },
+  {
+    name: 'validate-local',
+    summary: 'Validate a local module package without fetching or installing it',
+    usage: 'copalibre module validate-local <path>',
+  },
+  {
+    name: 'submit',
+    summary: 'Fork copalibre-modules and open a pull request for a local module',
+    usage: 'copalibre module submit <path> [--upstream <owner/repo>] [--base <branch>]',
+    flags: [
+      {
+        flag: '--upstream <owner/repo>',
+        description: 'Target repository (default: SebaSOFT/copalibre-modules)',
+      },
+      { flag: '--base <branch>', description: 'Base branch for the pull request (default: main)' },
+    ],
+  },
 ];
 
 export function renderTopLevelHelp(): string {
