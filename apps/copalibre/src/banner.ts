@@ -38,3 +38,8 @@ export function renderBanner(): string {
   const { version, license } = readPackageManifest();
   return `${MARK}  CopaLibre v${version} · ${license}\n\n`;
 }
+
+/** The running CopaLibre version, for callers that need it outside the banner (0046). */
+export function readCopalibreVersion(): string {
+  return readPackageManifest().version;
+}

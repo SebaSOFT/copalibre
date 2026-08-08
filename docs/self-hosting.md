@@ -20,17 +20,19 @@ and configuration records. `object-storage-data` exists only with the `optional-
 and holds uploaded objects; back it up with PostgreSQL when it is enabled. `redis-data` is
 non-authoritative and does not replace database or object backups.
 
-Create a PostgreSQL backup with `./copalibre backup --file backups/copalibre.dump`. Backup files
-must remain under the release checkout's `backups/` directory, which is the only host path mounted
-into the Compose CLI container; PostgreSQL client tools and credentials never need to be installed
-on host. Restore only into a clean target with
-`./copalibre restore --file backups/copalibre.dump --confirm`; first use `--dry-run` to inspect the
+Create a backup with `./copalibre backup`. It writes a compressed packet (`.tar.gz`, PostgreSQL dump
+plus a manifest recording when it was taken and which CopaLibre version produced it) to a
+timestamped name under `backups/`, the only host path mounted into the Compose CLI container —
+PostgreSQL client tools and credentials never need to be installed on host. `--retain <n>` (default
+5) prunes packets beyond the `n` most recent after each successful backup, touching only files
+matching this command's own packet naming pattern. Restore only into a clean target with
+`./copalibre restore --file backups/<packet>.tar.gz --confirm`; first use `--dry-run` to inspect the
 non-secret plan. A scheduled restore drill validates the supported procedure.
 
 ## Upgrading
 
-Non-destructive sequence: back up (`./copalibre backup --file backups/pre-upgrade.dump`), update the
-checkout or image reference to the new version without restarting anything yet, then run
+Non-destructive sequence: back up (`./copalibre backup`), update the checkout or image reference to
+the new version without restarting anything yet, then run
 `./copalibre upgrade-check --target-version <new-version>` against it. `upgrade-check` reports any
 installed module whose declared `requiresCopalibre` range would no longer be satisfied by the target
 version (the same check `module verify` runs against the version currently running) and lists

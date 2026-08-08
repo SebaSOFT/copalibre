@@ -46,20 +46,29 @@ Corre las migraciones de base de datos pendientes.
 
 ## backup
 
-`copalibre backup --file <ruta> [--dry-run]`
+`copalibre backup [--file <ruta>] [--retain <n>] [--dry-run]`
 
-Crea un respaldo de PostgreSQL bajo `backups/`.
+Crea un **paquete de respaldo** comprimido (`.tar.gz`) bajo `backups/`, con el volcado de PostgreSQL
+y un manifiesto (fecha y versión de CopaLibre). Aplica retención: después de un respaldo exitoso,
+borra los paquetes más viejos que excedan `--retain`. Solo borra archivos que coinciden con el
+patrón de nombre de paquete (`copalibre-<fecha>.tar.gz`) — nunca toca otros archivos en `backups/`.
 
-- `--file <ruta>`: archivo destino, dentro del directorio `backups/`
+- `--file <ruta>`: destino del paquete, dentro de `backups/` (por defecto: nombre con fecha)
+- `--retain <n>`: paquetes a conservar después de este respaldo (por defecto: 5)
 - `--dry-run`: imprime el plan de respaldo sin ejecutarlo
+
+Los datos de módulos instalados (descriptores de disciplina, perfiles de torneo) están en
+PostgreSQL, así que quedan incluidos en el volcado. Los bytes de objetos en almacenamiento de
+objetos (`object-storage-data`) están fuera del alcance de este comando — respáldelos por separado
+a nivel de infraestructura, como ya indica la guía de autoalojamiento.
 
 ## restore
 
 `copalibre restore --file <ruta> (--confirm | --dry-run)`
 
-Restaura un respaldo de PostgreSQL en una instalación limpia.
+Extrae un paquete de respaldo y restaura su volcado de PostgreSQL en una instalación limpia.
 
-- `--file <ruta>`: archivo de respaldo a restaurar, dentro de `backups/`
+- `--file <ruta>`: paquete a restaurar, dentro de `backups/`
 - `--confirm`: requerido para ejecutar la restauración de verdad
 - `--dry-run`: imprime el plan de restauración sin ejecutarlo
 

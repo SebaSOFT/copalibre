@@ -3,13 +3,12 @@ import { parseArgs } from 'node:util';
 import {
   assertBackupFile,
   backupDryRunMessage,
-  backupCommand,
   parseBackupOptions,
   parseRestoreOptions,
   restoreDryRunMessage,
-  restoreCommand,
 } from './backup.js';
-import { renderBanner } from './banner.js';
+import { createBackupPacket, restoreBackupPacket } from './backup-packet.js';
+import { readCopalibreVersion, renderBanner } from './banner.js';
 import { createInitialAdministrator, parseCreateAdminArguments } from './create-admin.js';
 import { runDoctor, type DoctorOptions } from './doctor.js';
 import {
@@ -208,17 +207,25 @@ export class CliRunner {
     return this.processes.run('docker', ['compose', 'run', '--rm', 'migrate', ...arguments_]);
   }
 
-  private backup(arguments_: readonly string[]): Promise<number> {
+  private async backup(arguments_: readonly string[]): Promise<number> {
     const options = parseBackupOptions(arguments_);
     assertBackupFile(options.file);
     if (options.dryRun) {
       process.stdout.write(`${backupDryRunMessage(options)}\n`);
-      return Promise.resolve(0);
+      return 0;
     }
-    return this.runDatabaseTools(backupCommand(options));
+    const result = await createBackupPacket(this.processes, options, readCopalibreVersion());
+    process.stdout.write(`Backup packet written: ${result.file}\n`);
+    if (result.pruned.length > 0) {
+      process.stdout.write(`Pruned older packet(s): ${result.pruned.join(', ')}\n`);
+    }
+    return 0;
   }
 
-  private restore(arguments_: readonly string[], environment: NodeJS.ProcessEnv): Promise<number> {
+  private async restore(
+    arguments_: readonly string[],
+    environment: NodeJS.ProcessEnv,
+  ): Promise<number> {
     const options = parseRestoreOptions(arguments_);
     if (!options.dryRun && !options.confirmed) {
       throw new Error('restore requires --confirm (or use --dry-run)');
@@ -226,10 +233,12 @@ export class CliRunner {
     assertBackupFile(options.file);
     if (options.dryRun) {
       process.stdout.write(`${restoreDryRunMessage(options)}\n`);
-      return Promise.resolve(0);
+      return 0;
     }
     const database = environment.POSTGRES_DB?.trim() || 'copalibre';
-    return this.runDatabaseTools(restoreCommand(database, options));
+    await restoreBackupPacket(this.processes, { file: options.file, database });
+    process.stdout.write(`Restored from packet: ${options.file}\n`);
+    return 0;
   }
 
   private async createAdmin(
@@ -314,10 +323,6 @@ export class CliRunner {
       return renderCommandHelp(sub, MODULE_SUBCOMMAND_HELP);
     }
     return undefined;
-  }
-
-  private runDatabaseTools(command: readonly string[]): Promise<number> {
-    return this.processes.run('docker', ['compose', 'run', '--rm', 'database-tools', ...command]);
   }
 }
 

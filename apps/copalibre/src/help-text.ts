@@ -55,21 +55,25 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
   },
   {
     name: 'backup',
-    summary: 'Create a PostgreSQL backup under backups/',
-    usage: 'copalibre backup --file <path> [--dry-run]',
+    summary: 'Create a compressed, retention-managed backup packet under backups/',
+    usage: 'copalibre backup [--file <path>] [--retain <n>] [--dry-run]',
     flags: [
-      { flag: '--file <path>', description: 'Destination file, within the backups/ directory' },
+      {
+        flag: '--file <path>',
+        description: 'Packet destination, within backups/ (default: timestamped name)',
+      },
+      { flag: '--retain <n>', description: 'Packets to keep after this backup (default: 5)' },
       { flag: '--dry-run', description: 'Print the backup plan without running it' },
     ],
   },
   {
     name: 'restore',
-    summary: 'Restore a PostgreSQL backup into a clean installation',
+    summary: 'Restore a backup packet into a clean installation',
     usage: 'copalibre restore --file <path> (--confirm | --dry-run)',
     flags: [
       {
         flag: '--file <path>',
-        description: 'Backup file to restore, within the backups/ directory',
+        description: 'Packet to restore, within the backups/ directory',
       },
       { flag: '--confirm', description: 'Required to actually run the restore' },
       { flag: '--dry-run', description: 'Print the restore plan without running it' },

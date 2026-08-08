@@ -143,6 +143,44 @@ describe('CliRunner', () => {
     );
   });
 
+  describe('backup/restore dry-run (0046)', () => {
+    it('backup --dry-run prints the plan without touching the filesystem or docker', async () => {
+      const run = jest.fn<ProcessRunner['run']>();
+      const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+      try {
+        const result = await new CliRunner({ run }).run(
+          ['backup', '--file', 'backups/example.tar.gz', '--dry-run'],
+          {},
+        );
+        expect(result).toBe(0);
+        expect(run).not.toHaveBeenCalled();
+        expect(stdout.mock.calls.some((call) => String(call[0]).includes('Backup plan'))).toBe(
+          true,
+        );
+      } finally {
+        stdout.mockRestore();
+      }
+    });
+
+    it('restore --dry-run prints the plan without touching the filesystem or docker', async () => {
+      const run = jest.fn<ProcessRunner['run']>();
+      const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+      try {
+        const result = await new CliRunner({ run }).run(
+          ['restore', '--file', 'backups/example.tar.gz', '--dry-run'],
+          {},
+        );
+        expect(result).toBe(0);
+        expect(run).not.toHaveBeenCalled();
+        expect(stdout.mock.calls.some((call) => String(call[0]).includes('Restore plan'))).toBe(
+          true,
+        );
+      } finally {
+        stdout.mockRestore();
+      }
+    });
+  });
+
   describe('upgrade-check (0045)', () => {
     it('proxies to a one-off container outside a container, like doctor', async () => {
       const run = jest.fn<ProcessRunner['run']>().mockResolvedValueOnce(0);
