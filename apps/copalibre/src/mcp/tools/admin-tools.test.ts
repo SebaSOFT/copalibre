@@ -36,6 +36,13 @@ describe('adminTools (0047)', () => {
       'copalibre_upgrade_check',
     ]);
   });
+
+  it('describes what each tool does, when to use it, and that no token is required (0048)', () => {
+    for (const tool of adminTools({})) {
+      expect(tool.description.length).toBeGreaterThan(80);
+      expect(tool.description.toLowerCase()).toContain('token');
+    }
+  });
 });
 
 describe('doctorTool (0047)', () => {

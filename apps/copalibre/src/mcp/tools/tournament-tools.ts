@@ -29,7 +29,10 @@ function stringArgument(args: Record<string, unknown>, name: string): string {
 function getOrganizationTool(config: ApiClientConfig): McpToolDefinition {
   return {
     name: 'copalibre_get_organization',
-    description: 'Read an organization by its alias.',
+    description:
+      'Reads an organization by its alias. Use it to confirm an organization exists, or to get ' +
+      'its identity before calling a tournament tool scoped to it. Calls apps/api over HTTP; ' +
+      'requires COPALIBRE_MCP_TOKEN and COPALIBRE_API_URL to be configured.',
     inputSchema: {
       type: 'object',
       properties: { alias: { type: 'string' } },
@@ -46,7 +49,11 @@ function getOrganizationTool(config: ApiClientConfig): McpToolDefinition {
 function listTournamentsTool(config: ApiClientConfig): McpToolDefinition {
   return {
     name: 'copalibre_list_tournaments',
-    description: "List an organization's active (non-archived) tournaments.",
+    description:
+      "Lists an organization's active (non-archived) tournaments. Use it to see what an " +
+      'organization is currently running before reading or creating a specific one — archived ' +
+      'tournaments are excluded but still resolve via copalibre_get_tournament directly. Calls ' +
+      'apps/api over HTTP; requires COPALIBRE_MCP_TOKEN and COPALIBRE_API_URL to be configured.',
     inputSchema: {
       type: 'object',
       properties: { organization_alias: { type: 'string' } },
@@ -66,7 +73,11 @@ function listTournamentsTool(config: ApiClientConfig): McpToolDefinition {
 function getTournamentTool(config: ApiClientConfig): McpToolDefinition {
   return {
     name: 'copalibre_get_tournament',
-    description: 'Read a tournament by its organization-scoped alias.',
+    description:
+      'Reads one tournament by its organization-scoped alias — its format, descriptor, and ' +
+      'registration/check-in configuration. Use it once you know which tournament alias you want, ' +
+      'rather than fetching the whole list. Calls apps/api over HTTP; requires COPALIBRE_MCP_TOKEN ' +
+      'and COPALIBRE_API_URL to be configured.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -90,7 +101,12 @@ function getTournamentTool(config: ApiClientConfig): McpToolDefinition {
 function createTournamentTool(config: ApiClientConfig): McpToolDefinition {
   return {
     name: 'copalibre_create_tournament',
-    description: 'Create a tournament in draft status.',
+    description:
+      'Creates a tournament in draft status, pinned to a specific discipline and version. Use it ' +
+      'to start a new competition — the tournament stays a draft, invisible to public surfaces, ' +
+      'until copalibre_publish_tournament is called. Requires an installed discipline module ' +
+      '(see copalibre_module_list for what is available). Calls apps/api over HTTP; requires ' +
+      'COPALIBRE_MCP_TOKEN and COPALIBRE_API_URL to be configured.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -137,7 +153,11 @@ function createTournamentTool(config: ApiClientConfig): McpToolDefinition {
 function publishTournamentTool(config: ApiClientConfig): McpToolDefinition {
   return {
     name: 'copalibre_publish_tournament',
-    description: 'Publish a draft tournament’s configuration.',
+    description:
+      'Publishes a draft tournament’s configuration. Use it once a tournament created with ' +
+      'copalibre_create_tournament is ready to become visible and operable — this is the step ' +
+      'that moves it out of draft status. Calls apps/api over HTTP; requires COPALIBRE_MCP_TOKEN ' +
+      'and COPALIBRE_API_URL to be configured.',
     inputSchema: {
       type: 'object',
       properties: {

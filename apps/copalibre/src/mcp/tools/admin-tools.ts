@@ -24,8 +24,11 @@ export function doctorTool(
   return {
     name: 'copalibre_doctor',
     description:
-      'Validate this CopaLibre installation’s configuration and dependencies, the same ' +
-      'checks `copalibre doctor` runs.',
+      'Checks whether this CopaLibre installation is correctly configured: required secrets, ' +
+      'database reachability, JWKS content, object storage, and persistent-path writability. Use ' +
+      'it before starting an installation, or to diagnose why one is failing. Runs the same checks ' +
+      'as `copalibre doctor`; needs no API token — it inspects local configuration and connects ' +
+      'directly to the database, not through apps/api.',
     inputSchema: { type: 'object' },
     handler: async () => {
       const report = await runDoctor(environment, dependencies);
@@ -40,7 +43,11 @@ export function doctorTool(
 export function moduleListTool(environment: NodeJS.ProcessEnv): McpToolDefinition {
   return {
     name: 'copalibre_module_list',
-    description: 'List installed discipline and tournament-profile modules.',
+    description:
+      'Lists every installed discipline and tournament-profile module (alias, version, kind, ' +
+      'source, attribution). Use it to see what a given installation can run before creating a ' +
+      'tournament, or to check whether a module you expect is actually installed. Needs no API ' +
+      'token — reads directly from the database, not through apps/api.',
     inputSchema: { type: 'object' },
     handler: async () => {
       const db = createDatabase(databaseConfigFromEnv(environment));
@@ -68,8 +75,11 @@ export function upgradeCheckTool(environment: NodeJS.ProcessEnv): McpToolDefinit
   return {
     name: 'copalibre_upgrade_check',
     description:
-      'Check installed modules’ compatibility with a target CopaLibre version and list ' +
-      'pending database migrations, the same check `copalibre upgrade-check` runs.',
+      'Checks, before upgrading, whether every installed module would still satisfy its declared ' +
+      'CopaLibre-version compatibility range under a target version, and lists database migrations ' +
+      'that would run. Use it as a pre-flight gate before switching an installation to a new ' +
+      'CopaLibre version — it reports incompatibilities without applying any migration or ' +
+      'altering any installed data. Needs no API token.',
     inputSchema: {
       type: 'object',
       properties: { target_version: { type: 'string', description: 'CopaLibre semver to check' } },
