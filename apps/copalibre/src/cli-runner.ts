@@ -9,6 +9,7 @@ import {
   restoreDryRunMessage,
   restoreCommand,
 } from './backup.js';
+import { renderBanner } from './banner.js';
 import { createInitialAdministrator, parseCreateAdminArguments } from './create-admin.js';
 import { runDoctor, type DoctorOptions } from './doctor.js';
 import { formatRequiredSecrets, writeLocalDefaults } from './init.js';
@@ -24,6 +25,11 @@ export class CliRunner {
     arguments_: readonly string[],
     environment: NodeJS.ProcessEnv = process.env,
   ): Promise<number> {
+    // Unconditional, first statement (task 2.1): every invocation — including
+    // --help/-h and an unknown command — discloses identity, version and
+    // license before any subcommand output. stderr, never stdout, so a
+    // script piping a subcommand's stdout never has to filter this out.
+    process.stderr.write(renderBanner());
     const command = arguments_[0];
     if (!command || command === '--help' || command === '-h') {
       process.stdout.write(

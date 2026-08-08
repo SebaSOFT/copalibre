@@ -1,8 +1,77 @@
 import { jest } from '@jest/globals';
+import { renderBanner } from './banner.js';
 import { CliRunner } from './cli-runner.js';
 import type { ProcessRunner } from './process-runner.js';
 
+/** Shared by every "banner prints first" case (task 3.1): records write order across both streams. */
+function spyOnOutputOrder(): {
+  readonly writes: { readonly stream: 'stdout' | 'stderr'; readonly chunk: string }[];
+  restore(): void;
+} {
+  const writes: { readonly stream: 'stdout' | 'stderr'; readonly chunk: string }[] = [];
+  const stdout = jest.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
+    writes.push({ stream: 'stdout', chunk: String(chunk) });
+    return true;
+  });
+  const stderr = jest.spyOn(process.stderr, 'write').mockImplementation((chunk) => {
+    writes.push({ stream: 'stderr', chunk: String(chunk) });
+    return true;
+  });
+  return {
+    writes,
+    restore() {
+      stdout.mockRestore();
+      stderr.mockRestore();
+    },
+  };
+}
+
 describe('CliRunner', () => {
+  describe('startup banner (0042)', () => {
+    it.each([
+      ['--help', ['--help']],
+      ['no arguments', []],
+      ['an unknown command', ['not-a-real-command']],
+    ] as const)('prints to stderr before any other output, for %s', async (_label, arguments_) => {
+      const spy = spyOnOutputOrder();
+      try {
+        await new CliRunner({ run: jest.fn(async () => 0) }).run([...arguments_], {});
+
+        expect(spy.writes.length).toBeGreaterThan(0);
+        expect(spy.writes[0]).toMatchObject({ stream: 'stderr', chunk: renderBanner() });
+      } finally {
+        spy.restore();
+      }
+    });
+
+    it('prints to stderr before a normal command fails with its own error', async () => {
+      const spy = spyOnOutputOrder();
+      try {
+        await new CliRunner({ run: jest.fn(async () => 0) }).run(['create-admin'], {});
+
+        expect(spy.writes[0]).toMatchObject({ stream: 'stderr', chunk: renderBanner() });
+        expect(spy.writes.some((write) => write.chunk.includes('create-admin failed'))).toBe(true);
+      } finally {
+        spy.restore();
+      }
+    });
+
+    it('never writes the banner to stdout', async () => {
+      const spy = spyOnOutputOrder();
+      try {
+        await new CliRunner({ run: jest.fn(async () => 0) }).run([], {});
+
+        expect(
+          spy.writes.some(
+            (write) => write.stream === 'stdout' && write.chunk.includes('CopaLibre'),
+          ),
+        ).toBe(false);
+      } finally {
+        spy.restore();
+      }
+    });
+  });
+
   it('waits for development infrastructure before running hybrid migrations', async () => {
     const run = jest.fn<ProcessRunner['run']>().mockResolvedValueOnce(0).mockResolvedValueOnce(7);
     const result = await new CliRunner({ run }).run(['dev', '--hybrid'], {});

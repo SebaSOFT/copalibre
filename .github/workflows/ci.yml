@@ -296,6 +296,13 @@ jobs:
       # Deployment command parsing and doctor coverage must stay above their
       # local threshold; a green API suite does not exercise the operator CLI.
       - run: yarn workspace @copalibre/copalibre test:coverage
+      # Startup self-identification (0042): stderr-only, printed before any
+      # subcommand output, discloses the real version/license from
+      # package.json — named separately so a reviewer finds this
+      # capability's own signal directly, matching the precedent set for
+      # tv-surfaces (0031), participant-reporting (0032) and
+      # competition-lifecycle (0033).
+      - run: yarn workspace @copalibre/copalibre test --testPathPatterns 'banner'
       - uses: actions/upload-artifact@v4
         if: always()
         with:

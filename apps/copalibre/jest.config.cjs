@@ -20,6 +20,7 @@ module.exports = {
   // on deterministic command, validation and argument contracts.
   collectCoverageFrom: [
     'src/backup.ts',
+    'src/banner.ts',
     'src/create-admin.ts',
     'src/doctor.ts',
     'src/init.ts',
