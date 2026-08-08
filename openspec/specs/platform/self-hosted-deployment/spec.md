@@ -121,14 +121,33 @@ help.
 - **THEN** the output lists `add`, `list`, `remove`, and `verify` with a one-line summary of each
 
 ### Requirement: Verified backup and restore
-A backup produced by `copalibre backup` SHALL restore into a clean installation via `copalibre
-restore` and pass an automated integrity check.
+
+`copalibre backup` SHALL produce a compressed packet under `backups/` containing the database dump
+and a manifest recording the backup timestamp and the CopaLibre version that produced it, restorable
+into a clean installation via `copalibre restore` and passing an automated integrity check.
+`copalibre backup` SHALL retain no more than a configurable number of packets (`--retain`, default
+5), deleting the oldest beyond that count after each successful backup, and SHALL only ever delete
+files matching its own packet naming pattern.
 
 #### Scenario: Restore into a clean install recovers all authoritative data
+
 - **WHEN** a backup is taken, a new clean installation is created, and `copalibre restore` is run
   against that backup
 - **THEN** the restored installation's tournament, participant, result, and audit data matches the
   source installation at backup time, and the integrity check reports no discrepancy
+
+#### Scenario: Old packets are pruned beyond the retention count
+
+- **WHEN** `copalibre backup` succeeds and more than `--retain` packets (or the default of 5) exist
+  under `backups/`
+- **THEN** the oldest packets beyond that count are deleted, and every file in `backups/` that does
+  not match the packet naming pattern is left untouched
+
+#### Scenario: A backup packet is self-describing
+
+- **WHEN** an operator inspects a packet `copalibre backup` produced
+- **THEN** it contains a manifest recording when the backup was taken and which CopaLibre version
+  produced it, alongside the compressed database dump
 
 ### Requirement: Reverse-proxy conformance
 The release SHALL document and test at least one reverse-proxy configuration (Caddy or NGINX)
