@@ -1,18 +1,18 @@
 ---
-title: Panel de control
-description: Qué es cada pantalla del panel de control de CopaLibre.
+title: Control panel
+description: What each screen in the CopaLibre control panel is for.
 ---
 
-Cada pantalla del panel de control tiene un enlace "¿Qué es esta pantalla?" en su barra lateral que
-lleva directamente a la página correspondiente de esta sección. Esta página las lista todas.
+Every control-panel screen has a "What is this screen?" link in its sidebar that leads directly to
+the matching page in this section. This page lists them all.
 
-- [Creación de torneo](/help/control/tournament-authoring/)
-- [Revisión de inscripciones](/help/control/registration-review/)
-- [Revisión de reportes y disputas](/help/control/report-review/)
-- [Posiciones (standings)](/help/control/standings/)
-- [Sorteo y siembra (seeding)](/help/control/seeding/)
-- [Roles y permisos](/help/control/roles-permissions/)
-- [Consola de partido en vivo](/help/control/match-console/)
+- [Tournament authoring](/help/control/tournament-authoring/)
+- [Registration review](/help/control/registration-review/)
+- [Report and dispute review](/help/control/report-review/)
+- [Standings](/help/control/standings/)
+- [Draw and seeding](/help/control/seeding/)
+- [Roles and permissions](/help/control/roles-permissions/)
+- [Live match console](/help/control/match-console/)
 
-Para instalar, actualizar o entender los comandos del CLI de administración, vea la
-[documentación del CLI](/help/cli/).
+To install, update, or understand the administration CLI's commands, see the
+[CLI documentation](/help/cli/).

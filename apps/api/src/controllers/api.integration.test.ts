@@ -196,6 +196,43 @@ describe('api routes (integration)', () => {
       expect(response.json()).toMatchObject({ alias: 'club-cometa' });
     });
 
+    it('defaults a new organization to Spanish and UTC when not specified (0051)', async () => {
+      const response = await request({
+        method: 'POST',
+        url: '/organizations',
+        token: 'super-admin',
+        payload: { alias: 'club-default-locale', name: 'Club Default Locale' },
+      });
+      expect(response.statusCode).toBe(201);
+      expect(response.json()).toMatchObject({ primaryLanguage: 'es', timezone: 'UTC' });
+    });
+
+    it('creates an organization with an explicit primary language and timezone (0051)', async () => {
+      const response = await request({
+        method: 'POST',
+        url: '/organizations',
+        token: 'super-admin',
+        payload: {
+          alias: 'club-explicit-locale',
+          name: 'Club Explicit Locale',
+          primaryLanguage: 'de',
+          timezone: 'Europe/Berlin',
+        },
+      });
+      expect(response.statusCode).toBe(201);
+      expect(response.json()).toMatchObject({ primaryLanguage: 'de', timezone: 'Europe/Berlin' });
+    });
+
+    it('409s an organization created with an unsupported primary language (0051)', async () => {
+      const response = await request({
+        method: 'POST',
+        url: '/organizations',
+        token: 'super-admin',
+        payload: { alias: 'club-bad-locale', name: 'Club Bad Locale', primaryLanguage: 'ja' },
+      });
+      expect(response.statusCode).toBe(409);
+    });
+
     it('403s an organizer scoped to a different organization', async () => {
       const response = await request({
         method: 'POST',

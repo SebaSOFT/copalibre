@@ -33,12 +33,16 @@ describe('snake_case row → camelCase domain mapping', () => {
       organization_id: 'org-1',
       alias: 'club-atlas',
       name: 'Club Atlas',
+      primary_language: 'es',
+      timezone: 'UTC',
       created_at: CREATED,
     };
     expect(toOrganization(row)).toEqual({
       organizationId: 'org-1',
       alias: 'club-atlas',
       name: 'Club Atlas',
+      primaryLanguage: 'es',
+      timezone: 'UTC',
     });
   });
 

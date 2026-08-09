@@ -84,6 +84,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update an organization's primary language and/or timezone
+         * @description Requires the organization admin role. Presentation-layer defaults only; never reinterprets stored data.
+         */
+        patch: operations["OrganizationsController_updateSettings"];
+        trace?: never;
+    };
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}": {
         parameters: {
             query?: never;
@@ -945,6 +965,17 @@ export interface components {
             alias: string;
             /** @example Liga Orbital */
             name: string;
+            /**
+             * @description Presentation-layer default interface language; never reinterprets stored data
+             * @example es
+             * @enum {string}
+             */
+            primaryLanguage: "en" | "es" | "fr" | "pt" | "it" | "de" | "ru";
+            /**
+             * @description IANA time zone identifier; presentation-layer default only
+             * @example America/Argentina/San_Juan
+             */
+            timezone: string;
         };
         CreateOrganizationRequest: {
             /**
@@ -954,12 +985,32 @@ export interface components {
             alias: string;
             /** @example Liga Orbital */
             name: string;
+            /**
+             * @description Defaults to "es" (matches this installation's current default behavior) when omitted
+             * @example es
+             * @enum {string}
+             */
+            primaryLanguage?: "en" | "es" | "fr" | "pt" | "it" | "de" | "ru";
+            /**
+             * @description IANA time zone identifier; defaults to "UTC" when omitted
+             * @example America/Argentina/San_Juan
+             */
+            timezone?: string;
         };
         ProblemResponse: {
             /** @example 403 */
             statusCode: number;
             /** @example subject may only act on their own records */
             message: string;
+        };
+        UpdateOrganizationSettingsRequest: {
+            /**
+             * @example en
+             * @enum {string}
+             */
+            primaryLanguage?: "en" | "es" | "fr" | "pt" | "it" | "de" | "ru";
+            /** @example America/Argentina/San_Juan */
+            timezone?: string;
         };
         TournamentResponse: {
             /** Format: uuid */
@@ -1746,6 +1797,49 @@ export interface operations {
                 };
             };
             /** @description Token lacks the required scope */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    OrganizationsController_updateSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateOrganizationSettingsRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationResponse"];
+                };
+            };
+            /** @description Missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            /** @description Requester is not an organization admin */
             403: {
                 headers: {
                     [name: string]: unknown;

@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '@copalibre/domain';
 
 /** Wire DTOs are camelCase, per the naming-conventions casing rule. */
 export class OrganizationResponse {
@@ -13,6 +14,19 @@ export class OrganizationResponse {
 
   @ApiProperty({ example: 'Liga Orbital' })
   name!: string;
+
+  @ApiProperty({
+    enum: SUPPORTED_LANGUAGES,
+    description: 'Presentation-layer default interface language; never reinterprets stored data',
+    example: 'es',
+  })
+  primaryLanguage!: SupportedLanguage;
+
+  @ApiProperty({
+    description: 'IANA time zone identifier; presentation-layer default only',
+    example: 'America/Argentina/San_Juan',
+  })
+  timezone!: string;
 }
 
 export class CreateOrganizationRequest {
@@ -24,6 +38,28 @@ export class CreateOrganizationRequest {
 
   @ApiProperty({ example: 'Liga Orbital' })
   name!: string;
+
+  @ApiPropertyOptional({
+    enum: SUPPORTED_LANGUAGES,
+    description:
+      'Defaults to "es" (matches this installation\'s current default behavior) when omitted',
+    example: 'es',
+  })
+  primaryLanguage?: string;
+
+  @ApiPropertyOptional({
+    description: 'IANA time zone identifier; defaults to "UTC" when omitted',
+    example: 'America/Argentina/San_Juan',
+  })
+  timezone?: string;
+}
+
+export class UpdateOrganizationSettingsRequest {
+  @ApiPropertyOptional({ enum: SUPPORTED_LANGUAGES, example: 'en' })
+  primaryLanguage?: string;
+
+  @ApiPropertyOptional({ example: 'America/Argentina/San_Juan' })
+  timezone?: string;
 }
 
 export class BootstrapAdministratorRequest {

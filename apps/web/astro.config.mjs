@@ -19,10 +19,14 @@ export default defineConfig({
       description: 'Operator documentation for self-hosted CopaLibre tournaments.',
       favicon: '/copalibre-logo.svg',
       logo: { src: './src/assets/copalibre-logo.svg', alt: 'CopaLibre' },
+      // English is the default (unprefixed) locale (0051): `starlight-llms-txt`
+      // sources llms.txt/llms-full.txt from whichever locale is `defaultLocale`,
+      // and LLM-facing docs must stay English regardless of how many other
+      // interface languages this site later supports.
       defaultLocale: 'root',
       locales: {
-        root: { label: 'Español', lang: 'es' },
-        en: { label: 'English', lang: 'en' },
+        root: { label: 'English', lang: 'en' },
+        es: { label: 'Español', lang: 'es' },
       },
       plugins: [
         starlightLlmsTxt({
@@ -41,14 +45,16 @@ export default defineConfig({
             'help/getting-started',
             'help/operations',
             {
-              label: 'Referencia API',
+              label: 'API reference',
+              translations: { es: 'Referencia API' },
               link: '/help/api-reference/',
               attrs: { 'data-astro-reload': true },
             },
           ],
         },
         {
-          label: 'Panel de control',
+          label: 'Control panel',
+          translations: { es: 'Panel de control' },
           items: [
             'help/control',
             'help/control/tournament-authoring',
@@ -61,7 +67,8 @@ export default defineConfig({
           ],
         },
         {
-          label: 'CLI de copalibre',
+          label: 'copalibre CLI',
+          translations: { es: 'CLI de copalibre' },
           items: [
             'help/cli',
             'help/cli/installation',

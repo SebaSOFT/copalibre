@@ -8,17 +8,17 @@ test('navigates help content and searches through Starlight', async ({ page }) =
 
   await page.goto('/help/');
 
-  await expect(page.getByRole('heading', { name: 'Ayuda de CopaLibre' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'CopaLibre Help' })).toBeVisible();
   await expect(page.locator('meta[name="astro-view-transitions-enabled"]')).toHaveCount(1);
 
-  await page.getByRole('link', { name: 'Primer torneo', exact: true }).click();
+  await page.getByRole('link', { name: 'Your first tournament', exact: true }).click();
   await expect(page).toHaveURL(/\/help\/getting-started\/$/);
-  await expect(page.getByRole('heading', { name: 'Crear torneo' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Create the tournament' })).toBeVisible();
 
-  const search = page.getByRole('button', { name: 'Buscar' }).first();
+  const search = page.getByRole('button', { name: 'Search' }).first();
   await expect(search).toBeEnabled();
   await search.click();
-  const dialog = page.getByRole('dialog', { name: 'Buscar' });
+  const dialog = page.getByRole('dialog', { name: 'Search' });
   await expect(dialog).toBeVisible();
   await page.waitForTimeout(1_000);
   expect(pageErrors).toEqual([]);

@@ -246,6 +246,8 @@ describe('importValidatedModule (integration)', () => {
         organization_id: organizationId,
         alias: `org-${newId()}`,
         name: 'Test Org',
+        primary_language: 'es',
+        timezone: 'UTC',
         created_at: new Date(),
       })
       .execute();

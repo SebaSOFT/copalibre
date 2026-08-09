@@ -1,27 +1,27 @@
 ---
-title: Creación de torneo
-description: Qué configura el asistente de creación de torneo y qué significa cada campo.
+title: Tournament authoring
+description: What the tournament-creation wizard configures and what each field means.
 ---
 
-## Para qué sirve esta pantalla
+## What this screen is for
 
-Crea un torneo nuevo dentro de la organización: elige la disciplina, el formato y los datos básicos
-antes de que exista ningún participante inscrito.
+Creates a new tournament within the organization: choose the discipline, the format, and the basic
+data before any participant is registered.
 
-## Datos clave
+## Key fields
 
-- **Disciplina**: el conjunto de reglas del deporte/actividad que va a jugarse (ganada, puntos,
-  segmentos, etc.). Solo aparecen disciplinas instaladas en esta instalación — si falta la que
-  necesita, hay que instalarla primero (`copalibre module add`) antes de poder crear el torneo.
-- **Alias**: identificador de ruta pública del torneo, único dentro de la organización. Usa
-  minúsculas y guiones; aparece en la URL pública, no se puede cambiar después libremente.
-- **Formato**: el formato de disputa disponible para la disciplina elegida (eliminación simple,
-  round robin, etc.).
+- **Discipline**: the ruleset for the sport/activity being played (win condition, points, segments,
+  and so on). Only disciplines installed on this installation appear — if the one you need is
+  missing, install it first (`copalibre module add`) before you can create the tournament.
+- **Alias**: the tournament's public route identifier, unique within the organization. Uses
+  lowercase and hyphens; appears in the public URL and cannot be freely changed afterward.
+- **Format**: the competition format available for the chosen discipline (single elimination, round
+  robin, and so on).
 
-## Ciclo de vida
+## Lifecycle
 
-Un torneo recién creado queda en estado **borrador**. Desde ahí sigue un camino lineal:
-borrador → publicado → iniciado → finalizado → archivado. Cada paso es una decisión explícita en
-otra pantalla, no algo que esta pantalla haga por usted. Una vez **iniciado**, la disciplina y el
-perfil de torneo quedan congelados en la versión que tenían en ese momento — un torneo en curso
-nunca cambia de reglas a mitad de camino.
+A newly created tournament starts in **draft** state. From there it follows a linear path:
+draft → published → started → finished → archived. Each step is an explicit decision on another
+screen, never something this screen does for you. Once **started**, the discipline and the
+tournament profile freeze at the version they had at that moment — a tournament in progress never
+changes its rules midway through.

@@ -140,6 +140,73 @@
         ]
       }
     },
+    "/organizations/{organizationAlias}/settings": {
+      "patch": {
+        "description": "Requires the organization admin role. Presentation-layer defaults only; never reinterprets stored data.",
+        "operationId": "OrganizationsController_updateSettings",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOrganizationSettingsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Requester is not an organization admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update an organization's primary language and/or timezone",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}": {
       "get": {
         "description": "A tournament alias is unique only within its organization, so both aliases are required.",
@@ -3173,12 +3240,33 @@
           "name": {
             "type": "string",
             "example": "Liga Orbital"
+          },
+          "primaryLanguage": {
+            "type": "string",
+            "enum": [
+              "en",
+              "es",
+              "fr",
+              "pt",
+              "it",
+              "de",
+              "ru"
+            ],
+            "description": "Presentation-layer default interface language; never reinterprets stored data",
+            "example": "es"
+          },
+          "timezone": {
+            "type": "string",
+            "description": "IANA time zone identifier; presentation-layer default only",
+            "example": "America/Argentina/San_Juan"
           }
         },
         "required": [
           "organizationId",
           "alias",
-          "name"
+          "name",
+          "primaryLanguage",
+          "timezone"
         ]
       },
       "CreateOrganizationRequest": {
@@ -3192,6 +3280,25 @@
           "name": {
             "type": "string",
             "example": "Liga Orbital"
+          },
+          "primaryLanguage": {
+            "type": "string",
+            "enum": [
+              "en",
+              "es",
+              "fr",
+              "pt",
+              "it",
+              "de",
+              "ru"
+            ],
+            "description": "Defaults to \"es\" (matches this installation's current default behavior) when omitted",
+            "example": "es"
+          },
+          "timezone": {
+            "type": "string",
+            "description": "IANA time zone identifier; defaults to \"UTC\" when omitted",
+            "example": "America/Argentina/San_Juan"
           }
         },
         "required": [
@@ -3215,6 +3322,28 @@
           "statusCode",
           "message"
         ]
+      },
+      "UpdateOrganizationSettingsRequest": {
+        "type": "object",
+        "properties": {
+          "primaryLanguage": {
+            "type": "string",
+            "enum": [
+              "en",
+              "es",
+              "fr",
+              "pt",
+              "it",
+              "de",
+              "ru"
+            ],
+            "example": "en"
+          },
+          "timezone": {
+            "type": "string",
+            "example": "America/Argentina/San_Juan"
+          }
+        }
       },
       "TournamentResponse": {
         "type": "object",

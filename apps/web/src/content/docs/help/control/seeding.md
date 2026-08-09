@@ -1,26 +1,25 @@
 ---
-title: Sorteo y siembra (seeding)
-description: Qué son los seeds, los byes, y las restricciones de sorteo que esta pantalla respeta.
+title: Draw and seeding
+description: What seeds, byes, and the draw constraints this screen respects are.
 ---
 
-## Para qué sirve esta pantalla
+## What this screen is for
 
-Arma el sorteo/bracket de una etapa: asigna cada participante a una posición inicial (un "seed"),
-respetando las restricciones declaradas para esa disciplina/formato.
+Builds a stage's draw/bracket: assigns each participant an initial position (a "seed"), respecting
+the constraints declared for that discipline/format.
 
-## Datos clave
+## Key fields
 
-- **Seed**: la posición de siembra de un participante en el bracket — determina contra quién juega
-  primero y en qué ronda podría cruzarse con otros seeds altos.
-- **Bye**: cuando el número de participantes no completa una llave perfecta, algunas posiciones
-  "pasan de ronda" sin jugar. La pantalla los distribuye siguiendo la misma regla siempre, no al
-  azar cada vez.
-- **Restricciones de sorteo**: reglas declaradas (por ejemplo, que dos participantes del mismo club
-  no se enfrenten en primera ronda) que el sorteo respeta automáticamente — la pantalla no permite
-  guardar un sorteo que las viole.
+- **Seed**: a participant's seeding position in the bracket — determines who they play first and in
+  which round they might meet other high seeds.
+- **Bye**: when the number of participants doesn't fill a perfect bracket, some positions "advance"
+  without playing. The screen distributes them following the same rule every time, never randomly.
+- **Draw constraints**: declared rules (for example, that two participants from the same club don't
+  meet in the first round) the draw respects automatically — the screen does not let you save a draw
+  that violates them.
 
-## Cuándo se puede rehacer
+## When it can be redone
 
-El sorteo puede rehacerse mientras la etapa no haya arrancado. Una vez que la etapa está en curso,
-rehacer el sorteo dejaría de tener sentido con partidos ya jugados — la pantalla no lo permite en
-ese punto.
+The draw can be redone as long as the stage hasn't started. Once the stage is underway, redoing the
+draw would no longer make sense with matches already played — the screen does not allow it at that
+point.

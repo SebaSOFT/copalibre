@@ -1,14 +1,14 @@
 ---
-title: CLI de copalibre
-description: Instalación, actualización y referencia de comandos del CLI copalibre.
+title: The copalibre CLI
+description: Installing, updating, and the command reference for the copalibre CLI.
 ---
 
-El CLI `copalibre` opera una instalación autoalojada: instala, valida configuración, arranca los
-procesos, gestiona módulos y respalda/restaura datos. Toda invocación acepta `--help`/`-h` — tanto
-sin comando (`copalibre --help`) como después de cualquier comando (`copalibre doctor --help`) —
-para ver su uso exacto sin ejecutar ningún efecto real.
+The `copalibre` CLI operates a self-hosted installation: it installs, validates configuration,
+starts the processes, manages modules, and backs up/restores data. Every invocation accepts
+`--help`/`-h` — both with no command (`copalibre --help`) and after any command
+(`copalibre doctor --help`) — to show its exact usage without running any real effect.
 
-- [Instalación](/help/cli/installation/)
-- [Actualización](/help/cli/updating/)
-- [Referencia de comandos](/help/cli/commands/)
-- [MCP para IA](/help/cli/mcp/)
+- [Installation](/help/cli/installation/)
+- [Updating](/help/cli/updating/)
+- [Command reference](/help/cli/commands/)
+- [MCP for AI](/help/cli/mcp/)

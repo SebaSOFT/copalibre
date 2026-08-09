@@ -93,6 +93,25 @@ describe('migrations (integration)', () => {
     expect(afterUpTables.find((table) => table.name === 'tournaments')?.columns).toEqual(
       expect.arrayContaining([expect.objectContaining({ name: 'archived_at' })]),
     );
+    expect(afterUpTables.find((table) => table.name === 'organizations')?.columns).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'primary_language' }),
+        expect.objectContaining({ name: 'timezone' }),
+      ]),
+    );
+
+    const organizationLocaleDown = await migrateDownOneStep(scratch.db);
+    expect(organizationLocaleDown.error).toBeUndefined();
+
+    const afterOrganizationLocaleDownTables = await scratch.db.introspection.getTables();
+    expect(
+      afterOrganizationLocaleDownTables.find((table) => table.name === 'organizations')?.columns,
+    ).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'primary_language' }),
+        expect.objectContaining({ name: 'timezone' }),
+      ]),
+    );
 
     const objectStorageMetadataDown = await migrateDownOneStep(scratch.db);
     expect(objectStorageMetadataDown.error).toBeUndefined();

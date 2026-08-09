@@ -1,24 +1,25 @@
 ---
-title: Posiciones (standings)
-description: Qué representa la tabla de posiciones de una etapa y cómo se explican los desempates.
+title: Standings
+description: What a stage's standings table represents and how tiebreakers are explained.
 ---
 
-## Para qué sirve esta pantalla
+## What this screen is for
 
-Muestra la tabla de posiciones de una etapa del torneo — quién está dónde y por qué, con la
-explicación del cálculo visible, no solo el número final.
+Shows a tournament stage's standings table — who is where and why, with the calculation's
+explanation visible, not just the final number.
 
-## Datos clave
+## Key fields
 
-- **Etapa (stage)**: una fase del torneo (por ejemplo, "fase de grupos" o "playoffs") con su propio
-  formato y su propia tabla. Un torneo puede tener varias etapas encadenadas.
-- **Puntos/criterios**: los criterios de cálculo y desempate son los que declaró la disciplina — esta
-  pantalla no inventa un criterio propio, solo aplica y muestra el que corresponde según la
-  configuración vigente en el momento en que se calculó.
-- **Explicabilidad**: cada posición puede desglosarse para ver exactamente qué datos y qué regla
-  determinaron ese puesto — la trama de decisión que produjo el número, no solo el número.
+- **Stage**: a phase of the tournament (for example, "group stage" or "playoffs") with its own
+  format and its own table. A tournament can have several chained stages.
+- **Points/criteria**: the scoring and tiebreak criteria are the ones the discipline declared — this
+  screen never invents its own criterion, it only applies and shows the one that corresponds to the
+  configuration in effect at the time it was calculated.
+- **Explainability**: every position can be expanded to see exactly which data and which rule
+  determined that placement — the decision trail that produced the number, not just the number.
 
-## Cuándo se actualiza
+## When it updates
 
-La tabla refleja resultados ya cargados y correcciones ya aplicadas. Un resultado corregido
-recalcula la tabla completa a partir de los hechos vigentes, nunca ajusta el número de forma manual.
+The table reflects already-loaded results and already-applied corrections. A corrected result
+recalculates the whole table from the facts currently in effect, never adjusting the number
+manually.

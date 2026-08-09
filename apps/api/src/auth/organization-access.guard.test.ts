@@ -26,9 +26,13 @@ describe('OrganizationAccessGuard', () => {
       { kind: 'organization-role', roles: ['admin'] },
       handler,
     );
-    jest
-      .spyOn(OrganizationRepository.prototype, 'findByAlias')
-      .mockResolvedValue({ organizationId: 'org-b', alias: 'org-b', name: 'Organization B' });
+    jest.spyOn(OrganizationRepository.prototype, 'findByAlias').mockResolvedValue({
+      organizationId: 'org-b',
+      alias: 'org-b',
+      name: 'Organization B',
+      primaryLanguage: 'es',
+      timezone: 'UTC',
+    });
     jest.spyOn(IdentityPrincipalRepository.prototype, 'findByOidcSubject').mockResolvedValue({
       principalId: '01800000-0000-7000-8000-000000000001',
       email: 'admin@example.test',

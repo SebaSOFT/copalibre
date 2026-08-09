@@ -1,25 +1,24 @@
 ---
-title: Roles y permisos
-description: Qué otorga cada rol de organización y cómo funciona el flujo de invitación.
+title: Roles and permissions
+description: What each organization role grants and how the invitation flow works.
 ---
 
-## Para qué sirve esta pantalla
+## What this screen is for
 
-Administra quién tiene acceso a la organización y con qué nivel de permiso — quién puede
-administrar torneos, quién puede operar partidos en vivo, quién solo puede ver.
+Manages who has access to the organization and at what permission level — who can administer
+tournaments, who can operate live matches, who can only view.
 
-## Datos clave
+## Key fields
 
-- **Rol**: el nivel de acceso otorgado (por ejemplo, administrador de la organización u operador de
-  partidos). Cada rol determina exactamente qué acciones puede hacer esa persona, nunca más de lo
-  que su rol permite.
-- **Invitación**: un enlace de invitación pendiente de aceptar. Hasta que se acepta, la persona
-  invitada no tiene acceso todavía.
-- **Miembro activo**: alguien que ya aceptó su invitación y tiene acceso vigente con el rol
-  asignado.
+- **Role**: the granted access level (for example, organization administrator or match operator).
+  Each role determines exactly what actions that person can take, never more than their role allows.
+- **Invitation**: an invitation link pending acceptance. Until it is accepted, the invited person has
+  no access yet.
+- **Active member**: someone who already accepted their invitation and has current access with the
+  assigned role.
 
-## Qué revisar antes de quitar un rol
+## What to check before removing a role
 
-Quitarle un rol a alguien es inmediato — deja de poder operar apenas se guarda el cambio. Si esa
-persona tenía una sesión activa operando un partido en vivo, conviene coordinar el cambio con ella
-antes de aplicarlo.
+Removing someone's role is immediate — they lose the ability to operate as soon as the change saves.
+If that person had an active session operating a live match, coordinate the change with them before
+applying it.

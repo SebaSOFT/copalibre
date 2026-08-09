@@ -1,21 +1,21 @@
 ---
-title: Ayuda de CopaLibre
-description: Operación segura de torneos autohospedados con CopaLibre.
+title: CopaLibre Help
+description: Secure operation of self-hosted tournaments with CopaLibre.
 ---
 
-CopaLibre mantiene resultados, inscripciones y actividad operativa bajo control de cada organización.
+CopaLibre keeps results, registrations, and operational activity under each organization's control.
 
-## Antes de empezar
+## Before you start
 
-Un administrador crea organización, torneo y formato de competencia. Las decisiones de operación quedan
-registradas para que el historial de cada torneo sea verificable.
+An administrator creates the organization, the tournament, and its competition format. Operational
+decisions are recorded so each tournament's history stays verifiable.
 
-## Operación diaria
+## Daily operation
 
-Use consola de control para revisar inscripciones, publicar la configuración aprobada y operar partidos.
-Las correcciones de resultados conservan actor, motivo y estado anterior.
+Use the control console to review registrations, publish the approved configuration, and operate
+matches. Result corrections preserve the actor, the reason, and the prior state.
 
-## Datos propios
+## Your own data
 
-Las exportaciones CSV permiten conservar una copia portable de participantes, resultados y posiciones.
-Las importaciones de participantes requieren revisión antes de confirmar cambios.
+CSV exports let you keep a portable copy of participants, results, and standings. Participant
+imports require review before changes are confirmed.

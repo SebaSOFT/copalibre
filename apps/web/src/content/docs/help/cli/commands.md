@@ -1,178 +1,177 @@
 ---
-title: Referencia de comandos
-description: Cada comando del CLI copalibre, su uso y sus flags.
+title: Command reference
+description: Every copalibre CLI command, its usage, and its flags.
 ---
 
-Cada comando responde `--help`/`-h` con este mismo texto de uso, generado desde una única fuente
-en el propio CLI — esta página no puede describir un comando distinto de lo que el CLI realmente
-hace.
+Every command answers `--help`/`-h` with this exact usage text, generated from a single source
+inside the CLI itself — this page cannot describe a command differently from what the CLI actually
+does.
 
 ## init
 
-`copalibre init [--file <ruta>]`
+`copalibre init [--file <path>]`
 
-Escribe valores por defecto no secretos y lista los secretos requeridos.
+Writes non-secret defaults and lists the required secrets.
 
-- `--file <ruta>`: archivo destino (por defecto `.env`)
+- `--file <path>`: target file (default `.env`)
 
 ## doctor
 
 `copalibre doctor [--check-proxy] [--proxy-url <url>]`
 
-Valida configuración y dependencias antes de arrancar.
+Validates configuration and dependencies before starting.
 
-- `--check-proxy`: además verifica la configuración del proxy inverso
-- `--proxy-url <url>`: URL pública a probar cuando se usa `--check-proxy`
+- `--check-proxy`: also verifies the reverse-proxy configuration
+- `--proxy-url <url>`: public URL to test when `--check-proxy` is used
 
 ## dev
 
 `copalibre dev [--hybrid]`
 
-Corre un entorno de desarrollo, contenerizado o híbrido.
+Runs a development environment, containerized or hybrid.
 
-- `--hybrid`: infraestructura en Docker, procesos de aplicación en el host
+- `--hybrid`: infrastructure in Docker, application processes on the host
 
 ## start
 
 `copalibre start`
 
-Levanta PostgreSQL, corre doctor, y arranca todos los roles de proceso.
+Brings up PostgreSQL, runs doctor, and starts every process role.
 
 ## migrate
 
 `copalibre migrate`
 
-Corre las migraciones de base de datos pendientes.
+Runs pending database migrations.
 
 ## backup
 
-`copalibre backup [--file <ruta>] [--retain <n>] [--dry-run]`
+`copalibre backup [--file <path>] [--retain <n>] [--dry-run]`
 
-Crea un **paquete de respaldo** comprimido (`.tar.gz`) bajo `backups/`, con el volcado de PostgreSQL
-y un manifiesto (fecha y versión de CopaLibre). Aplica retención: después de un respaldo exitoso,
-borra los paquetes más viejos que excedan `--retain`. Solo borra archivos que coinciden con el
-patrón de nombre de paquete (`copalibre-<fecha>.tar.gz`) — nunca toca otros archivos en `backups/`.
+Creates a compressed **backup packet** (`.tar.gz`) under `backups/`, with the PostgreSQL dump and a
+manifest (date and CopaLibre version). Applies retention: after a successful backup, deletes older
+packets beyond `--retain`. Only ever deletes files matching the packet naming pattern
+(`copalibre-<date>.tar.gz`) — never touches any other file under `backups/`.
 
-- `--file <ruta>`: destino del paquete, dentro de `backups/` (por defecto: nombre con fecha)
-- `--retain <n>`: paquetes a conservar después de este respaldo (por defecto: 5)
-- `--dry-run`: imprime el plan de respaldo sin ejecutarlo
+- `--file <path>`: packet destination, within `backups/` (default: a timestamped name)
+- `--retain <n>`: packets to keep after this backup (default: 5)
+- `--dry-run`: prints the backup plan without running it
 
-Los datos de módulos instalados (descriptores de disciplina, perfiles de torneo) están en
-PostgreSQL, así que quedan incluidos en el volcado. Los bytes de objetos en almacenamiento de
-objetos (`object-storage-data`) están fuera del alcance de este comando — respáldelos por separado
-a nivel de infraestructura, como ya indica la guía de autoalojamiento.
+Installed module data (discipline descriptors, tournament profiles) lives in PostgreSQL, so it is
+included in the dump. Object bytes in object storage (`object-storage-data`) are out of scope for
+this command — back them up separately at the infrastructure level, as the self-hosting guide
+already notes.
 
 ## restore
 
-`copalibre restore --file <ruta> (--confirm | --dry-run) [--allow-newer-backup]`
+`copalibre restore --file <path> (--confirm | --dry-run) [--allow-newer-backup]`
 
-Extrae un paquete de respaldo, restaura su volcado de PostgreSQL, corre las migraciones pendientes
-y confirma que el esquema aplicado coincide con esta instalación — todo en una sola invocación.
+Extracts a backup packet, restores its PostgreSQL dump, runs pending migrations, and confirms the
+applied schema matches this installation — all in one invocation.
 
-- `--file <ruta>`: paquete a restaurar, dentro de `backups/`
-- `--confirm`: requerido para ejecutar la restauración de verdad
-- `--dry-run`: imprime el plan de restauración sin ejecutarlo
-- `--allow-newer-backup`: permite restaurar un paquete producido por una versión de CopaLibre más
-  nueva que la que corre actualmente (rechazado por defecto)
+- `--file <path>`: packet to restore, within `backups/`
+- `--confirm`: required to actually run the restore
+- `--dry-run`: prints the restore plan without running it
+- `--allow-newer-backup`: restores a packet produced by a CopaLibre version newer than the one
+  currently running (refused by default)
 
-Después de un `pg_restore` exitoso, `restore` corre automáticamente `copalibre migrate` y luego abre
-una conexión para verificar que la versión de esquema aplicada coincide exactamente con la que esta
-instalación espera (el mismo chequeo que usa `GET /ready`) — así una restauración nunca deja el
-código y la base desincronizados en silencio. Si la migración falla, `restore` lo reporta con su
-código de salida sin afirmar éxito; reintente con `copalibre migrate` y luego `copalibre doctor`.
+After a successful `pg_restore`, `restore` automatically runs `copalibre migrate` and then opens a
+connection to verify the applied schema version exactly matches what this installation expects (the
+same check `GET /ready` uses) — so a restore never leaves code and the database silently
+desynchronized. If migration fails, `restore` reports it with its exit code without claiming
+success; retry with `copalibre migrate` and then `copalibre doctor`.
 
-Un paquete cuyo manifiesto registra una versión de CopaLibre más nueva que la que corre actualmente
-se rechaza antes de tocar la base de datos, nombrando ambas versiones — actualice esta instalación
-primero, o pase `--allow-newer-backup` si de verdad lo desea.
+A packet whose manifest records a CopaLibre version newer than the one currently running is refused
+before touching the database, naming both versions — upgrade this installation first, or pass
+`--allow-newer-backup` if you genuinely intend to proceed.
 
 ## upgrade-check
 
 `copalibre upgrade-check --target-version <semver>`
 
-Chequea la compatibilidad de los módulos instalados y las migraciones pendientes antes de
-actualizar.
+Checks installed module compatibility and pending migrations before upgrading.
 
-- `--target-version <semver>`: versión de CopaLibre contra la que verificar módulos y migraciones
+- `--target-version <semver>`: CopaLibre version to check modules and migrations against
 
-Termina con código de salida distinto de cero si algún módulo instalado dejaría de ser compatible
-con la versión objetivo. Ver [actualización](/help/cli/updating/) para la secuencia completa.
+Exits with a non-zero status if any installed module would stop being compatible with the target
+version. See [updating](/help/cli/updating/) for the full sequence.
 
 ## create-admin
 
-`copalibre create-admin --organization-alias <alias> --organization-name <nombre> --email <email>`
+`copalibre create-admin --organization-alias <alias> --organization-name <name> --email <email>`
 
-Crea la primera cuenta de administrador de una organización.
+Creates an organization's first administrator account.
 
 ## module
 
 `copalibre module <add|list|remove|verify>`
 
-Gestiona los módulos de disciplina y perfil de torneo instalados.
+Manages installed discipline and tournament-profile modules.
 
 ### module add
 
-`copalibre module add <alias>[@rango] [--source <url>] [--allow-unsatisfied-capabilities]`
+`copalibre module add <alias>[@range] [--source <url>] [--allow-unsatisfied-capabilities]`
 
-Instala un módulo por alias, opcionalmente fijado a un rango de versión.
+Installs a module by alias, optionally pinned to a version range.
 
-- `--source <url>`: una fuente alternativa habilitada explícitamente, en vez de la curada
-- `--allow-unsatisfied-capabilities`: instala aunque las capacidades requeridas declaradas no estén
-  aún satisfechas
+- `--source <url>`: an explicitly enabled alternate source, instead of the curated one
+- `--allow-unsatisfied-capabilities`: installs even when the declared required capabilities are not
+  yet satisfied
 
 ### module list
 
 `copalibre module list [--outdated]`
 
-Lista los módulos instalados, o solo los que tienen una versión publicada más nueva.
+Lists installed modules, or only the ones with a newer published version.
 
-- `--outdated`: muestra solo los módulos con una versión publicada más nueva
+- `--outdated`: shows only modules with a newer published version
 
 ### module remove
 
 `copalibre module remove <alias>`
 
-Elimina un módulo instalado que ningún torneo iniciado referencia.
+Removes an installed module that no started tournament references.
 
 ### module verify
 
 `copalibre module verify`
 
-Re-valida cada módulo instalado contra la versión del core en ejecución.
+Re-validates every installed module against the running core version.
 
 ### module scaffold
 
-`copalibre module scaffold <discipline|tournament-profile> <alias> [--author <nombre>] [--licence <licencia>] [--name <nombre>] [--source-url <url>] [--output <dir>]`
+`copalibre module scaffold <discipline|tournament-profile> <alias> [--author <name>] [--licence <licence>] [--name <name>] [--source-url <url>] [--output <dir>]`
 
-Genera un paquete de módulo estructuralmente válido para empezar a autoría — sembrado desde uno de
-los documentos ya válidos del catálogo de CopaLibre, no una suposición a ciegas del schema — como un
-repositorio Git local etiquetado, listo para editar, validar e instalar/enviar.
+Generates a structurally valid module package to start authoring — seeded from one of CopaLibre's
+own already-valid catalogue documents, not a blind guess at the schema — as a tagged local Git
+repository, ready to edit, validate, and install/submit.
 
-- `--author <nombre>`: autor de la atribución (por defecto: Unknown)
-- `--licence <licencia>`: identificador SPDX (por defecto: AGPL-3.0-only)
-- `--name <nombre>`: nombre de despliegue (por defecto: el alias)
-- `--source-url <url>`: URL de origen de la atribución
-- `--output <dir>`: dónde escribir el repositorio del módulo (por defecto: `modules/<alias>`)
+- `--author <name>`: attribution author (default: Unknown)
+- `--licence <licence>`: SPDX identifier (default: AGPL-3.0-only)
+- `--name <name>`: deployment name (default: the alias)
+- `--source-url <url>`: attribution source URL
+- `--output <dir>`: where to write the module repository (default: `modules/<alias>`)
 
 ### module validate-local
 
-`copalibre module validate-local <ruta>`
+`copalibre module validate-local <path>`
 
-Valida un paquete de módulo local sin buscarlo ni instalarlo — el mismo chequeo que
-`module add`/`module verify` ya aplican.
+Validates a local module package without searching for or installing it — the same check
+`module add`/`module verify` already apply.
 
 ### module submit
 
-`copalibre module submit <ruta> [--upstream <owner/repo>] [--base <rama>]`
+`copalibre module submit <path> [--upstream <owner/repo>] [--base <branch>]`
 
-Bifurca (`fork`) `copalibre-modules`, copia el módulo local a una rama nueva, la publica, y abre un
-pull request.
+Forks `copalibre-modules`, copies the local module to a new branch, pushes it, and opens a pull
+request.
 
-- `--upstream <owner/repo>`: repositorio destino (por defecto: `SebaSOFT/copalibre-modules`)
-- `--base <rama>`: rama base del pull request (por defecto: `main`)
+- `--upstream <owner/repo>`: target repository (default: `SebaSOFT/copalibre-modules`)
+- `--base <branch>`: the pull request's base branch (default: `main`)
 
 ## mcp
 
 `copalibre mcp`
 
-Arranca un servidor local del Model Context Protocol (MCP) sobre stdio, para que una IA pueda operar
-CopaLibre. Ver el [detalle de herramientas MCP](/help/cli/mcp/).
+Starts a local Model Context Protocol (MCP) server over stdio, so an AI can operate CopaLibre. See
+the [MCP tools detail](/help/cli/mcp/).

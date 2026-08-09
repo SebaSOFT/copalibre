@@ -38,7 +38,7 @@ const starlightSource = readTree(STARLIGHT_ROOT)
 check('help route renders Starlight navigation', help.includes('/help/getting-started/'));
 check('help route renders Pagefind search', help.includes('pagefind'));
 check('help route enables Astro view transitions', help.includes('astro-view-transitions-enabled'));
-check('help document renders a table of contents', gettingStarted.includes('En esta página'));
+check('help document renders a table of contents', gettingStarted.includes('On this page'));
 check('Pagefind output exists', existsSync(join(DIST, 'pagefind')));
 check(
   'custom Starlight CSS does not redefine CopaLibre tokens',
@@ -77,8 +77,18 @@ check(
   'llms-full.txt contains real page content, not a placeholder',
   llmsFullTxt.includes('copalibre init') && llmsFullTxt.includes('copalibre mcp'),
 );
+check(
+  'llms-full.txt stays English-only as more locales are added (0051)',
+  !llmsFullTxt.includes('Panel de control') && !llmsFullTxt.includes('Referencia de comandos'),
+);
 
-const TOTAL_CHECKS = 19;
+const esGettingStarted = readOutput('es/help/getting-started/index.html');
+check(
+  'the Spanish locale still builds and is reachable at /es/ (0051)',
+  esGettingStarted.includes('En esta página'),
+);
+
+const TOTAL_CHECKS = 21;
 if (failures.length > 0) {
   process.stderr.write(
     `Help build failed:\n${failures.map((failure) => `  - ${failure}`).join('\n')}\n`,
