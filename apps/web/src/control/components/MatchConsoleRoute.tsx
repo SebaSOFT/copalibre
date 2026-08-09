@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { FormattedMessage, useIntl } from 'react-intl';
 import { RealtimeClient } from '@copalibre/realtime';
 import {
   createControlApiClient,
@@ -15,8 +16,14 @@ import {
   segmentLabel,
 } from '../lib/match-console.js';
 import { Button } from './ui/button.js';
+import { messages } from '../i18n/messages.en.js';
 
 const RECONCILIATION_TIMEOUT_MS = 8_000;
+
+type ConsoleStatus =
+  | { readonly kind: 'loading' }
+  | { readonly kind: 'ready' }
+  | { readonly kind: 'error'; readonly message: string };
 
 export function MatchConsoleRoute({
   organizationAlias,
@@ -29,12 +36,13 @@ export function MatchConsoleRoute({
   readonly matchId: string;
   readonly client?: MatchConsoleApiClient;
 }): React.JSX.Element {
+  const intl = useIntl();
   const api = useMemo(
     () => client ?? createControlApiClient({ fetch: globalThis.fetch.bind(globalThis) }),
     [client],
   );
   const [projection, setProjection] = useState<MatchConsoleResponse>();
-  const [status, setStatus] = useState('Cargando control de partido...');
+  const [status, setStatus] = useState<ConsoleStatus>({ kind: 'loading' });
   const [stale, setStale] = useState(false);
   const [confirmingFinalize, setConfirmingFinalize] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
@@ -70,11 +78,16 @@ export function MatchConsoleRoute({
           setSelectedSide((current) => current || loaded.entrantIds[0] || '');
           setSelectedPersonId((current) => current || loaded.eligiblePersonIds[0] || '');
           setSelectedStaffId((current) => current || loaded.eligibleStaffIds[0] || '');
-          setStatus('');
+          setStatus({ kind: 'ready' });
           setStale(false);
         })
-        .catch(() => setStatus('No se pudo cargar el estado autoritativo del partido.')),
-    [api, matchId, organizationAlias, tournamentAlias],
+        .catch(() =>
+          setStatus({
+            kind: 'error',
+            message: intl.formatMessage(messages.matchConsoleLoadFailed),
+          }),
+        ),
+    [api, matchId, organizationAlias, tournamentAlias, intl],
   );
 
   useEffect(() => {
@@ -112,7 +125,15 @@ export function MatchConsoleRoute({
     return () => globalThis.clearTimeout(timeout);
   }, [reload, stale]);
 
-  if (!projection) return <p className="cl-inline-alert">{status}</p>;
+  if (!projection) {
+    return (
+      <p className="cl-inline-alert">
+        {status.kind === 'error'
+          ? status.message
+          : intl.formatMessage(messages.matchConsoleLoading)}
+      </p>
+    );
+  }
 
   const activeSegment = projection.segments.find((segment) => segment.state === 'active');
   const permittedEvents = projection.eventDefinitions.filter((definition) =>
@@ -137,7 +158,13 @@ export function MatchConsoleRoute({
       await work();
       await reload();
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'La operación fue rechazada.');
+      setStatus({
+        kind: 'error',
+        message:
+          error instanceof Error
+            ? error.message
+            : intl.formatMessage(messages.matchConsoleOperationRejected),
+      });
     }
   }
 
@@ -219,7 +246,13 @@ export function MatchConsoleRoute({
       setConfirmingFinalize(false);
       setFinalizeIdempotencyKey(undefined);
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'La finalización no pudo confirmarse.');
+      setStatus({
+        kind: 'error',
+        message:
+          error instanceof Error
+            ? error.message
+            : intl.formatMessage(messages.matchConsoleFinalizeNotConfirmed),
+      });
     } finally {
       finalizationInFlight.current = false;
       setFinalizing(false);
@@ -227,17 +260,24 @@ export function MatchConsoleRoute({
   }
 
   return (
-    <section aria-label="Operar partido" style={pageStyle}>
+    <section aria-label={intl.formatMessage(messages.matchConsoleSectionLabel)} style={pageStyle}>
       <header style={headerStyle}>
         <div>
           <p style={metaStyle}>
-            {tournamentAlias} / Partido {matchId.slice(-8)}
+            {intl.formatMessage(messages.matchConsoleBreadcrumb, {
+              tournamentAlias,
+              matchId: matchId.slice(-8),
+            })}
           </p>
-          <h1 style={titleStyle}>Operaciones de partido</h1>
+          <h1 style={titleStyle}>
+            <FormattedMessage {...messages.matchConsoleTitle} />
+          </h1>
         </div>
         <div style={statusStyle}>
           <strong>
-            {projection.status === 'in-progress' ? 'EN VIVO' : projection.status.toUpperCase()}
+            {projection.status === 'in-progress'
+              ? intl.formatMessage(messages.matchConsoleLive)
+              : projection.status.toUpperCase()}
           </strong>
           <ClockRing
             elapsedSeconds={activeSegment?.elapsedSeconds ?? 0}
@@ -246,12 +286,22 @@ export function MatchConsoleRoute({
         </div>
       </header>
 
-      {status && <p className="cl-inline-alert">{status}</p>}
-      {stale && <p className="cl-inline-alert">Esperando proyección autoritativa...</p>}
+      {status.kind === 'error' && <p className="cl-inline-alert">{status.message}</p>}
+      {stale && (
+        <p className="cl-inline-alert">
+          <FormattedMessage {...messages.matchConsoleAwaitingProjection} />
+        </p>
+      )}
 
       <div style={workspaceStyle}>
-        <section aria-label="Controles del partido" style={primaryColumnStyle}>
-          <section aria-label="Marcador actual" style={scoreboardStyle}>
+        <section
+          aria-label={intl.formatMessage(messages.matchConsoleControls)}
+          style={primaryColumnStyle}
+        >
+          <section
+            aria-label={intl.formatMessage(messages.matchConsoleCurrentScoreboard)}
+            style={scoreboardStyle}
+          >
             {projection.liveScores.map((side) => (
               <div key={side.entrantId} style={scoreSideStyle}>
                 <span>{side.entrantId.slice(-8)}</span>
@@ -260,12 +310,14 @@ export function MatchConsoleRoute({
             ))}
           </section>
           <section style={panelStyle}>
-            <h2 style={sectionTitleStyle}>Reloj y período</h2>
+            <h2 style={sectionTitleStyle}>
+              <FormattedMessage {...messages.matchConsoleClockAndPeriod} />
+            </h2>
             <div style={controlGridStyle}>
               <label style={labelStyle}>
-                Segmento
+                <FormattedMessage {...messages.matchConsoleSegment} />
                 <select
-                  aria-label="Segmento activo"
+                  aria-label={intl.formatMessage(messages.matchConsoleActiveSegment)}
                   disabled={!canControlClock}
                   onChange={(event) => setSelectedSegmentId(event.target.value)}
                   style={inputStyle}
@@ -279,9 +331,9 @@ export function MatchConsoleRoute({
                 </select>
               </label>
               <label style={labelStyle}>
-                Segundos transcurridos
+                <FormattedMessage {...messages.matchConsoleElapsedSeconds} />
                 <input
-                  aria-label="Segundos transcurridos"
+                  aria-label={intl.formatMessage(messages.matchConsoleElapsedSeconds)}
                   disabled={!canControlClock}
                   min="0"
                   onChange={(event) => setElapsedSeconds(event.target.value)}
@@ -324,18 +376,20 @@ export function MatchConsoleRoute({
                 }
                 type="button"
               >
-                Aplicar reloj
+                <FormattedMessage {...messages.matchConsoleApplyClock} />
               </Button>
             </div>
           </section>
 
           <section style={panelStyle}>
-            <h2 style={sectionTitleStyle}>Registrar evento</h2>
+            <h2 style={sectionTitleStyle}>
+              <FormattedMessage {...messages.matchConsoleRecordEvent} />
+            </h2>
             <div style={attributionStyle}>
               <label style={labelStyle}>
-                Participante
+                <FormattedMessage {...messages.matchConsoleParticipant} />
                 <select
-                  aria-label="Participante del evento"
+                  aria-label={intl.formatMessage(messages.matchConsoleEventParticipant)}
                   disabled={!canRecord}
                   onChange={(event) => setSelectedSide(event.target.value)}
                   style={inputStyle}
@@ -349,9 +403,9 @@ export function MatchConsoleRoute({
                 </select>
               </label>
               <label style={labelStyle}>
-                Persona
+                <FormattedMessage {...messages.matchConsolePerson} />
                 <select
-                  aria-label="Persona del evento"
+                  aria-label={intl.formatMessage(messages.matchConsoleEventPerson)}
                   disabled={!canRecord || projection.eligiblePersonIds.length === 0}
                   onChange={(event) => {
                     setSelectedPersonId(event.target.value);
@@ -360,7 +414,7 @@ export function MatchConsoleRoute({
                   style={inputStyle}
                   value={selectedPersonId}
                 >
-                  <option value="">Sin atribución</option>
+                  <option value="">{intl.formatMessage(messages.matchConsoleNoAttribution)}</option>
                   {projection.eligiblePersonIds.map((personId) => (
                     <option key={personId} value={personId}>
                       {personId.slice(-8)}
@@ -369,9 +423,9 @@ export function MatchConsoleRoute({
                 </select>
               </label>
               <label style={labelStyle}>
-                Staff
+                <FormattedMessage {...messages.matchConsoleStaff} />
                 <select
-                  aria-label="Staff del evento"
+                  aria-label={intl.formatMessage(messages.matchConsoleEventStaff)}
                   disabled={!canRecord || projection.eligibleStaffIds.length === 0}
                   onChange={(event) => {
                     setSelectedStaffId(event.target.value);
@@ -380,7 +434,7 @@ export function MatchConsoleRoute({
                   style={inputStyle}
                   value={selectedStaffId}
                 >
-                  <option value="">Sin atribución</option>
+                  <option value="">{intl.formatMessage(messages.matchConsoleNoAttribution)}</option>
                   {projection.eligibleStaffIds.map((personId) => (
                     <option key={personId} value={personId}>
                       {personId.slice(-8)}
@@ -404,7 +458,10 @@ export function MatchConsoleRoute({
               ))}
             </div>
             {conditionalEvent && (
-              <div aria-label="Resultado del evento" style={conditionalStyle}>
+              <div
+                aria-label={intl.formatMessage(messages.matchConsoleEventOutcome)}
+                style={conditionalStyle}
+              >
                 <strong>{conditionalEvent.label}</strong>
                 <div style={eventGridStyle}>
                   {conditionalEvent.workflow?.options.map((option) => {
@@ -428,9 +485,9 @@ export function MatchConsoleRoute({
               </div>
             )}
             <label style={labelStyle}>
-              Descripción
+              <FormattedMessage {...messages.matchConsoleDescription} />
               <input
-                aria-label="Descripción del evento"
+                aria-label={intl.formatMessage(messages.matchConsoleEventDescription)}
                 disabled={!canRecord}
                 onChange={(event) => setDescription(event.target.value)}
                 style={inputStyle}
@@ -440,7 +497,9 @@ export function MatchConsoleRoute({
           </section>
 
           <section style={panelStyle}>
-            <h2 style={sectionTitleStyle}>Finalizar</h2>
+            <h2 style={sectionTitleStyle}>
+              <FormattedMessage {...messages.matchConsoleFinalize} />
+            </h2>
             {!confirmingFinalize ? (
               <Button
                 disabled={!canFinalize || projection.status !== 'in-progress'}
@@ -448,12 +507,16 @@ export function MatchConsoleRoute({
                 type="button"
                 variant="destructive"
               >
-                Finalizar partido
+                <FormattedMessage {...messages.matchConsoleFinalizeMatch} />
               </Button>
             ) : (
               <div className="cl-inline-alert" style={confirmationStyle}>
-                <strong>El resultado quedará registrado como hecho inmutable.</strong>
-                <span>Las correcciones posteriores preservarán motivo e historial.</span>
+                <strong>
+                  <FormattedMessage {...messages.matchConsoleFinalizeImmutable} />
+                </strong>
+                <span>
+                  <FormattedMessage {...messages.matchConsoleFinalizeCorrections} />
+                </span>
                 <div style={buttonRowStyle}>
                   <Button
                     onClick={() => {
@@ -463,7 +526,7 @@ export function MatchConsoleRoute({
                     type="button"
                     variant="secondary"
                   >
-                    Cancelar
+                    <FormattedMessage {...messages.matchConsoleCancel} />
                   </Button>
                   <Button
                     disabled={finalizing}
@@ -471,7 +534,7 @@ export function MatchConsoleRoute({
                     type="button"
                     variant="destructive"
                   >
-                    Confirmar finalización
+                    <FormattedMessage {...messages.matchConsoleConfirmFinalization} />
                   </Button>
                 </div>
               </div>
@@ -479,11 +542,18 @@ export function MatchConsoleRoute({
           </section>
         </section>
 
-        <aside aria-label="Ledger y estado" style={railStyle}>
+        <aside
+          aria-label={intl.formatMessage(messages.matchConsoleLedgerAndStatus)}
+          style={railStyle}
+        >
           <section style={panelStyle}>
-            <h2 style={sectionTitleStyle}>Timers activos</h2>
+            <h2 style={sectionTitleStyle}>
+              <FormattedMessage {...messages.matchConsoleActiveTimers} />
+            </h2>
             {projection.runningTimers.length === 0 ? (
-              <p style={emptyStyle}>Sin timers activos.</p>
+              <p style={emptyStyle}>
+                <FormattedMessage {...messages.matchConsoleNoActiveTimers} />
+              </p>
             ) : (
               <ul style={listStyle}>
                 {projection.runningTimers.map((timer) => (
@@ -516,7 +586,7 @@ export function MatchConsoleRoute({
                       type="button"
                       variant="secondary"
                     >
-                      Resolver
+                      <FormattedMessage {...messages.matchConsoleResolve} />
                     </Button>
                   </li>
                 ))}
@@ -525,7 +595,9 @@ export function MatchConsoleRoute({
           </section>
 
           <section style={panelStyle}>
-            <h2 style={sectionTitleStyle}>Event ledger</h2>
+            <h2 style={sectionTitleStyle}>
+              <FormattedMessage {...messages.matchConsoleEventLedger} />
+            </h2>
             <div style={filterRowStyle}>
               {(['all', 'positive', 'negative', 'neutral'] as const).map((category) => (
                 <Button
@@ -535,7 +607,7 @@ export function MatchConsoleRoute({
                   type="button"
                   variant="secondary"
                 >
-                  {category === 'all' ? 'Todos' : category}
+                  {category === 'all' ? intl.formatMessage(messages.matchConsoleAll) : category}
                 </Button>
               ))}
             </div>
@@ -543,16 +615,21 @@ export function MatchConsoleRoute({
               {[...displayedEvents].reverse().map((event) => (
                 <li key={event.eventId} style={ledgerItemStyle}>
                   <strong>
-                    {event.definitionCode} · {segmentLabel(projection, event.segmentId)}
+                    {event.definitionCode} ·{' '}
+                    {segmentLabel(
+                      projection,
+                      event.segmentId,
+                      intl.formatMessage(messages.matchConsoleUnknownSegment),
+                    )}
                   </strong>
-                  <span>{new Date(event.occurredAt).toLocaleTimeString('es-AR')}</span>
+                  <span>{new Date(event.occurredAt).toLocaleTimeString(intl.locale)}</span>
                 </li>
               ))}
             </ol>
             <label style={labelStyle}>
-              Nota de bitácora
+              <FormattedMessage {...messages.matchConsoleLogNote} />
               <textarea
-                aria-label="Nota de bitácora"
+                aria-label={intl.formatMessage(messages.matchConsoleLogNote)}
                 onChange={(event) => setLogNote(event.target.value)}
                 placeholder=""
                 style={noteStyle}
@@ -562,12 +639,21 @@ export function MatchConsoleRoute({
           </section>
 
           <section style={panelStyle}>
-            <h2 style={sectionTitleStyle}>Señal operativa</h2>
+            <h2 style={sectionTitleStyle}>
+              <FormattedMessage {...messages.matchConsoleOperationalSignal} />
+            </h2>
             <div style={telemetryStyle}>
-              {['Latencia', 'Packet loss', 'Espectadores', 'Uptime'].map((metric) => (
-                <div key={metric} style={telemetryItemStyle}>
-                  <span>{metric}</span>
-                  <strong>Unavailable</strong>
+              {[
+                messages.matchConsoleLatency,
+                messages.matchConsolePacketLoss,
+                messages.matchConsoleViewers,
+                messages.matchConsoleUptime,
+              ].map((metric) => (
+                <div key={metric.id} style={telemetryItemStyle}>
+                  <span>{intl.formatMessage(metric)}</span>
+                  <strong>
+                    <FormattedMessage {...messages.matchConsoleUnavailable} />
+                  </strong>
                 </div>
               ))}
             </div>
@@ -585,12 +671,18 @@ function ClockRing({
   readonly elapsedSeconds: number;
   readonly durationSeconds: number | undefined;
 }): React.JSX.Element {
+  const intl = useIntl();
   const radius = 20;
   const circumference = 2 * Math.PI * radius;
   const progress =
     durationSeconds && durationSeconds > 0 ? Math.min(elapsedSeconds / durationSeconds, 1) : 0;
   return (
-    <div aria-label={`Reloj ${formatClock(elapsedSeconds)}`} style={clockRingStyle}>
+    <div
+      aria-label={intl.formatMessage(messages.matchConsoleClockAriaLabel, {
+        time: formatClock(elapsedSeconds),
+      })}
+      style={clockRingStyle}
+    >
       <svg aria-hidden="true" height="52" viewBox="0 0 52 52" width="52">
         <circle
           cx="26"

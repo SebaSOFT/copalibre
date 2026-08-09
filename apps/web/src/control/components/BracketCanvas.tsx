@@ -1,3 +1,4 @@
+import { FormattedMessage, useIntl } from 'react-intl';
 import {
   DEFAULT_GEOMETRY,
   layoutBracket,
@@ -6,6 +7,7 @@ import {
   type CanvasMatch,
 } from '../lib/bracket-canvas.js';
 import { Button } from './ui/button.js';
+import { messages } from '../i18n/messages.en.js';
 
 /**
  * A6 — the bracket canvas (0024).
@@ -14,18 +16,25 @@ import { Button } from './ui/button.js';
  * sources the engine declared, so a losers' bracket that takes an entrant from
  * two places draws two lines because the engine said so, not because this file
  * knows what a losers' bracket is.
+ *
+ * Per-slot labels (`describeSlot` in `lib/bracket-canvas.ts`: "Bye", "Winner
+ * of <match>", "Loser of <match>") are not yet extracted (0053) — they embed a
+ * dynamic match ID and need ICU interpolation at the point they are computed,
+ * a genuinely different pattern from this file's static chrome; tracked as a
+ * follow-up rather than rushed here.
  */
 export function BracketCanvas({
   matches,
   zoom,
   onZoomChange,
-  emptyMessage = 'Todavía no hay estructura generada para esta fase.',
+  emptyMessage,
 }: {
   readonly matches: readonly CanvasMatch[];
   readonly zoom: number;
   readonly onZoomChange?: (zoom: number) => void;
-  readonly emptyMessage?: string;
+  readonly emptyMessage?: React.ReactNode;
 }): React.JSX.Element {
+  const intl = useIntl();
   const layout = layoutBracket(matches);
   const padding = DEFAULT_GEOMETRY.grid * 2;
 
@@ -33,7 +42,7 @@ export function BracketCanvas({
     <div style={wrapperStyle}>
       <div style={toolbarStyle}>
         <Button
-          aria-label="Alejar"
+          aria-label={intl.formatMessage(messages.bracketZoomOut)}
           onClick={() => onZoomChange?.(zoomOut(zoom))}
           type="button"
           variant="secondary"
@@ -42,7 +51,7 @@ export function BracketCanvas({
         </Button>
         <span style={zoomLabelStyle}>{Math.round(zoom * 100)}%</span>
         <Button
-          aria-label="Acercar"
+          aria-label={intl.formatMessage(messages.bracketZoomIn)}
           onClick={() => onZoomChange?.(zoomIn(zoom))}
           type="button"
           variant="secondary"
@@ -52,11 +61,11 @@ export function BracketCanvas({
       </div>
 
       {layout.matches.length === 0 ? (
-        <p style={mutedStyle}>{emptyMessage}</p>
+        <p style={mutedStyle}>{emptyMessage ?? <FormattedMessage {...messages.bracketEmpty} />}</p>
       ) : (
         <div style={scrollStyle}>
           <div
-            aria-label="Llave"
+            aria-label={intl.formatMessage(messages.bracketGroupLabel)}
             role="group"
             style={{
               position: 'relative',

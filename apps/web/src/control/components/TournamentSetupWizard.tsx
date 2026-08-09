@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { FormattedMessage, useIntl } from 'react-intl';
 import { Button } from './ui/button.js';
 import { Card } from './ui/card.js';
 import {
@@ -14,6 +15,7 @@ import {
   type DisciplineOption,
   type WizardState,
 } from '../lib/wizard.js';
+import { messages } from '../i18n/messages.en.js';
 
 export function TournamentSetupWizard({
   disciplines,
@@ -22,6 +24,7 @@ export function TournamentSetupWizard({
   readonly disciplines: readonly DisciplineOption[];
   readonly onSubmit?: (request: ReturnType<typeof toCreateRequest>) => void;
 }): React.JSX.Element {
+  const intl = useIntl();
   const firstDiscipline = disciplines[0];
   const [state, setState] = useState<WizardState>(() => ({
     ...initialWizard(),
@@ -48,20 +51,26 @@ export function TournamentSetupWizard({
   }
 
   return (
-    <section aria-label="Crear torneo" style={stackStyle}>
+    <section aria-label={intl.formatMessage(messages.wizardTitle)} style={stackStyle}>
       <header style={headerStyle}>
         <div>
-          <p style={metaStyle}>Torneos &gt; Nuevo</p>
-          <h1 style={titleStyle}>Crear torneo</h1>
+          <p style={metaStyle}>
+            <FormattedMessage {...messages.wizardBreadcrumb} />
+          </p>
+          <h1 style={titleStyle}>
+            <FormattedMessage {...messages.wizardTitle} />
+          </h1>
         </div>
         <div className="cl-stat-tile cl-chamfer cl-chamfer--control" data-testid="wizard-progress">
           <strong className="cl-stat-tile__value">{progress(state)}%</strong>
-          <span>configurado</span>
+          <span>
+            <FormattedMessage {...messages.wizardConfigured} />
+          </span>
         </div>
       </header>
 
       <Card>
-        <ol aria-label="Pasos" style={stepperStyle}>
+        <ol aria-label={intl.formatMessage(messages.wizardSteps)} style={stepperStyle}>
           {WIZARD_STEPS.map((step, index) => (
             <li key={step.id} style={stepStyle}>
               <span
@@ -73,7 +82,7 @@ export function TournamentSetupWizard({
               >
                 {index + 1}
               </span>
-              <span>{step.label}</span>
+              <span>{intl.formatMessage(step.label)}</span>
             </li>
           ))}
         </ol>
@@ -82,18 +91,18 @@ export function TournamentSetupWizard({
       <Card>
         {state.step === 'name' && (
           <div style={formGridStyle}>
-            <Field label="Nombre">
+            <Field label={intl.formatMessage(messages.wizardFieldName)}>
               <input
-                aria-label="Nombre"
+                aria-label={intl.formatMessage(messages.wizardFieldName)}
                 className="cl-focusable"
                 onChange={(event) => patch({ name: event.target.value })}
                 style={fieldStyle}
                 value={state.name ?? ''}
               />
             </Field>
-            <Field label="Alias">
+            <Field label={intl.formatMessage(messages.wizardFieldAlias)}>
               <input
-                aria-label="Alias"
+                aria-label={intl.formatMessage(messages.wizardFieldAlias)}
                 className="cl-focusable"
                 onChange={(event) => patch({ alias: event.target.value })}
                 style={fieldStyle}
@@ -104,9 +113,9 @@ export function TournamentSetupWizard({
         )}
 
         {state.step === 'discipline' && (
-          <Field label="Disciplina">
+          <Field label={intl.formatMessage(messages.wizardFieldDiscipline)}>
             <select
-              aria-label="Disciplina"
+              aria-label={intl.formatMessage(messages.wizardFieldDiscipline)}
               className="cl-focusable"
               onChange={(event) => {
                 const discipline = disciplines.find(
@@ -131,9 +140,9 @@ export function TournamentSetupWizard({
         )}
 
         {state.step === 'format' && (
-          <Field label="Formato">
+          <Field label={intl.formatMessage(messages.wizardFieldFormat)}>
             <select
-              aria-label="Formato"
+              aria-label={intl.formatMessage(messages.wizardFieldFormat)}
               className="cl-focusable"
               onChange={(event) => patch({ format: event.target.value })}
               style={fieldStyle}
@@ -150,18 +159,18 @@ export function TournamentSetupWizard({
 
         {state.step === 'window' && (
           <div style={formGridStyle}>
-            <Field label="Región">
+            <Field label={intl.formatMessage(messages.wizardFieldRegion)}>
               <input
-                aria-label="Región"
+                aria-label={intl.formatMessage(messages.wizardFieldRegion)}
                 className="cl-focusable"
                 onChange={(event) => patch({ region: event.target.value })}
                 style={fieldStyle}
                 value={state.region ?? ''}
               />
             </Field>
-            <Field label="Capacidad">
+            <Field label={intl.formatMessage(messages.wizardFieldCapacity)}>
               <input
-                aria-label="Capacidad"
+                aria-label={intl.formatMessage(messages.wizardFieldCapacity)}
                 className="cl-focusable"
                 min={2}
                 onChange={(event) => patch({ capacity: Number(event.target.value) })}
@@ -176,7 +185,7 @@ export function TournamentSetupWizard({
                 onChange={(event) => patch({ publicRegistration: event.target.checked })}
                 type="checkbox"
               />
-              Registro público abierto
+              <FormattedMessage {...messages.wizardPublicRegistration} />
             </label>
             <label style={toggleStyle}>
               <input
@@ -184,7 +193,7 @@ export function TournamentSetupWizard({
                 onChange={(event) => patch({ requiresCheckIn: event.target.checked })}
                 type="checkbox"
               />
-              Requiere check-in
+              <FormattedMessage {...messages.wizardRequiresCheckIn} />
             </label>
           </div>
         )}
@@ -192,7 +201,7 @@ export function TournamentSetupWizard({
         {problems.length > 0 && (
           <ul className="cl-inline-alert" style={problemStyle}>
             {problems.map((problem) => (
-              <li key={problem}>{problem}</li>
+              <li key={problem.id}>{intl.formatMessage(problem)}</li>
             ))}
           </ul>
         )}
@@ -203,11 +212,11 @@ export function TournamentSetupWizard({
             type="button"
             variant="secondary"
           >
-            Volver
+            <FormattedMessage {...messages.wizardBack} />
           </Button>
           {state.step === 'window' ? (
             <Button disabled={!canContinue(state, disciplines)} onClick={submit} type="button">
-              Crear torneo
+              <FormattedMessage {...messages.wizardCreate} />
             </Button>
           ) : (
             <Button
@@ -215,7 +224,7 @@ export function TournamentSetupWizard({
               onClick={() => patch({ step: nextStep(state) })}
               type="button"
             >
-              Continuar
+              <FormattedMessage {...messages.wizardContinue} />
             </Button>
           )}
         </footer>

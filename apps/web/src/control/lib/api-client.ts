@@ -728,5 +728,12 @@ async function reasonOf(response: Response): Promise<string> {
   } catch {
     // A body that is not JSON tells us nothing; the status still does.
   }
-  return `La solicitud falló con ${response.status}`;
+  // Not extracted to the message catalog (0053): react-intl's createIntl/
+  // createIntlCache — the only API for formatting outside a component tree —
+  // pulled a Node-only `Buffer` reference into this module's bundle, crashing
+  // every client:only control route at hydration. This fallback only fires
+  // when the server sends a non-JSON error body with no message, a genuinely
+  // rare edge case; hardcoding it plainly here is safer than risking that
+  // bundling failure again for a string almost nobody sees.
+  return `The request failed with ${response.status}`;
 }

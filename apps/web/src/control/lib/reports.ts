@@ -1,3 +1,6 @@
+import type { MessageDescriptor } from 'react-intl';
+import { messages } from '../i18n/messages.en.js';
+
 /**
  * The pending participant reports/disputes queue's view model (0032).
  *
@@ -28,12 +31,18 @@ export interface ReportRow {
   readonly evidence: readonly EvidenceRow[];
 }
 
-export const KIND_LABEL: Readonly<Record<ReportKind, string>> = {
-  report: 'Resultado propuesto',
-  dispute: 'Disputa',
+export const KIND_LABEL: Readonly<Record<ReportKind, MessageDescriptor>> = {
+  report: messages.reportKindReport,
+  dispute: messages.reportKindDispute,
 };
 
-/** Present tense, so an operator reads the queue as work still to do. */
-export function summaryOf(row: ReportRow): string {
-  return row.reason ?? 'Resultado propuesto por el participante — ver detalle.';
+/**
+ * Present tense, so an operator reads the queue as work still to do. Returns
+ * `undefined` (not a formatted fallback string) when the row has no reason —
+ * the caller renders `messages.reportGenericSummary` via `useIntl()` in that
+ * case (0053; this function stays `intl`-free and testable without a React
+ * context).
+ */
+export function summaryOf(row: ReportRow): string | undefined {
+  return row.reason;
 }

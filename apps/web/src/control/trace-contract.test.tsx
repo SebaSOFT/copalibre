@@ -5,6 +5,7 @@ import { traceForEntrant, traceLines, type TiebreakPipeline } from '@copalibre/r
 import { computeStandings } from '@copalibre/tournament-engine';
 import { StandingsPage } from './components/StandingsPage.js';
 import type { StandingsData } from './lib/standings.js';
+import { withIntl } from './i18n/test-support.js';
 
 /**
  * The contract that makes "explainable" true rather than aspirational (0024).
@@ -132,21 +133,23 @@ describe('tiebreak trace contract', () => {
     };
 
     render(
-      <StandingsPage
-        onExpand={(entrantId) =>
-          Promise.resolve(
-            traceLines(
-              traceForEntrant(standings.trace, entrantId, {
-                stillTied:
-                  standings.rows.find((row) => row.entrantId === entrantId)?.sharedRank ?? false,
-              }),
-            ),
-          )
-        }
-        organizationAlias="liga-mendocina"
-        standings={data}
-        tournamentName="Apertura 2026"
-      />,
+      withIntl(
+        <StandingsPage
+          onExpand={(entrantId) =>
+            Promise.resolve(
+              traceLines(
+                traceForEntrant(standings.trace, entrantId, {
+                  stillTied:
+                    standings.rows.find((row) => row.entrantId === entrantId)?.sharedRank ?? false,
+                }),
+              ),
+            )
+          }
+          organizationAlias="liga-mendocina"
+          standings={data}
+          tournamentName="Apertura 2026"
+        />,
+      ),
     );
 
     // jsdom does not run the native summary activation behaviour, so the
@@ -158,7 +161,7 @@ describe('tiebreak trace contract', () => {
     row.open = true;
     fireEvent(row, new Event('toggle'));
 
-    const panel = await screen.findByLabelText('Traza de desempate');
+    const panel = await screen.findByLabelText('Tiebreak trace');
     await waitFor(() =>
       expect([...panel.querySelectorAll('li')].map((item) => item.textContent ?? '')).toEqual(
         expected,

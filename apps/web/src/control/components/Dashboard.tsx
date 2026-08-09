@@ -1,10 +1,18 @@
 import { useEffect, useState } from 'react';
+import { FormattedMessage, useIntl } from 'react-intl';
 import { ActivityLog } from './ActivityLog.js';
 import { DeviceHeartbeat } from './DeviceHeartbeat.js';
 import { QuickStats } from './QuickStats.js';
 import { TournamentCard } from './TournamentCard.js';
 import { SIDENAV, type DashboardModel } from '../lib/dashboard.js';
 import { createControlApiClient, type DisplayTokenResponse } from '../lib/api-client.js';
+import { activeControlLanguage, ControlIntl } from '../i18n/ControlIntl.js';
+import { LanguageSwitcher } from '../i18n/LanguageSwitcher.js';
+import { messages } from '../i18n/messages.en.js';
+import {
+  writeStoredLanguagePreference,
+  type SupportedLanguage,
+} from '../../lib/language-preference.js';
 
 interface DeviceEntry {
   readonly tournamentAlias: string;
@@ -19,6 +27,34 @@ export function Dashboard({
   readonly model: DashboardModel;
   readonly organizationAlias: string;
 }): React.JSX.Element {
+  const [locale, setLocale] = useState<SupportedLanguage>(() => activeControlLanguage());
+  return (
+    <ControlIntl locale={locale}>
+      <DashboardBody
+        locale={locale}
+        model={model}
+        onLocaleChange={(next) => {
+          writeStoredLanguagePreference(next);
+          setLocale(next);
+        }}
+        organizationAlias={organizationAlias}
+      />
+    </ControlIntl>
+  );
+}
+
+function DashboardBody({
+  model,
+  organizationAlias,
+  locale,
+  onLocaleChange,
+}: {
+  readonly model: DashboardModel;
+  readonly organizationAlias: string;
+  readonly locale: SupportedLanguage;
+  readonly onLocaleChange: (language: SupportedLanguage) => void;
+}): React.JSX.Element {
+  const intl = useIntl();
   const api = createControlApiClient({ fetch: globalThis.fetch.bind(globalThis) });
   const download = (tournamentAlias: string, kind: 'participants/team' | 'results' | 'standings') =>
     void api.downloadCsvExport?.(organizationAlias, tournamentAlias, kind).then((csv) => {
@@ -69,38 +105,43 @@ export function Dashboard({
 
   return (
     <div className="cl-control">
-      <nav aria-label="Secciones">
+      <nav aria-label={intl.formatMessage(messages.shellSections)}>
         <ul>
           {SIDENAV.map((item) => (
-            <li key={item.label}>
+            <li key={item.id}>
               <a className="cl-focusable" href={`/control/${organizationAlias}${item.path}`}>
-                {item.label}
+                {intl.formatMessage(item.label)}
               </a>
             </li>
           ))}
         </ul>
+        <LanguageSwitcher onChange={onLocaleChange} value={locale} />
       </nav>
 
       <main>
         <QuickStats stats={model.stats} />
-        <section aria-label="Torneos">
-          {visibleTournaments.length === 0 && <p>Esta organización no tiene torneos todavía.</p>}
+        <section aria-label={intl.formatMessage(messages.dashboardTournaments)}>
+          {visibleTournaments.length === 0 && (
+            <p>
+              <FormattedMessage {...messages.dashboardNoTournaments} />
+            </p>
+          )}
           {visibleTournaments.map((card) => (
             <div key={card.tournamentId}>
               <TournamentCard card={card} />
               <p>
                 <button onClick={() => download(card.alias, 'participants/team')} type="button">
-                  Participantes CSV
+                  <FormattedMessage {...messages.dashboardParticipantsCsv} />
                 </button>
                 <button onClick={() => download(card.alias, 'results')} type="button">
-                  Resultados CSV
+                  <FormattedMessage {...messages.dashboardResultsCsv} />
                 </button>
                 <button onClick={() => download(card.alias, 'standings')} type="button">
-                  Posiciones CSV
+                  <FormattedMessage {...messages.dashboardStandingsCsv} />
                 </button>
                 {card.lifecycle === 'finished' && (
                   <button onClick={() => archive(card.alias)} type="button">
-                    Archivar
+                    <FormattedMessage {...messages.dashboardArchive} />
                   </button>
                 )}
               </p>

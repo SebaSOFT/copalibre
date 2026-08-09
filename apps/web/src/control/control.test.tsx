@@ -23,6 +23,7 @@ import { TournamentCard as Card } from './components/TournamentCard.js';
 import { QuickStats } from './components/QuickStats.js';
 import { Badge } from './components/ui/badge.js';
 import { Button } from './components/ui/button.js';
+import { withIntl } from './i18n/test-support.js';
 
 function card(overrides: Partial<TournamentCard> = {}): TournamentCard {
   return {
@@ -185,7 +186,9 @@ describe('what the dashboard renders', () => {
 
   it('shows a tile per stat with its number', () => {
     render(
-      <QuickStats stats={{ activeTournaments: 4, pendingRegistrations: 9, matchesToday: 2 }} />,
+      withIntl(
+        <QuickStats stats={{ activeTournaments: 4, pendingRegistrations: 9, matchesToday: 2 }} />,
+      ),
     );
 
     expect(screen.getByTestId('activeTournaments').textContent).toBe('4');
@@ -194,12 +197,12 @@ describe('what the dashboard renders', () => {
   });
 
   it.each([
-    ['live', 'EN VIVO'],
-    ['upcoming', 'PRÓXIMO'],
-    ['draft', 'BORRADOR'],
-    ['finished', 'FINALIZADO'],
+    ['live', 'LIVE'],
+    ['upcoming', 'UPCOMING'],
+    ['draft', 'DRAFT'],
+    ['finished', 'FINISHED'],
   ] as const)('labels a %s tournament as %s, not only by colour', (lifecycle, label) => {
-    render(<Card card={card({ lifecycle })} />);
+    render(withIntl(<Card card={card({ lifecycle })} />));
 
     expect(screen.getByTestId('lifecycle').textContent).toBe(label);
   });
@@ -321,36 +324,38 @@ describe('what the dashboard renders', () => {
   it('classifies each device by its last-seen signal, not only by label', () => {
     const now = new Date('2026-08-01T12:00:00.000Z').getTime();
     render(
-      <DeviceHeartbeat
-        devices={[
-          {
-            tournamentAlias: 'apertura-2026',
-            token: {
-              displayTokenId: 'token-online',
-              tournamentId: 't-1',
-              label: 'Cancha 1',
-              revoked: false,
-              lastSeenAt: new Date(now - 5_000).toISOString(),
-              createdAt: '2026-08-01T00:00:00.000Z',
+      withIntl(
+        <DeviceHeartbeat
+          devices={[
+            {
+              tournamentAlias: 'apertura-2026',
+              token: {
+                displayTokenId: 'token-online',
+                tournamentId: 't-1',
+                label: 'Cancha 1',
+                revoked: false,
+                lastSeenAt: new Date(now - 5_000).toISOString(),
+                createdAt: '2026-08-01T00:00:00.000Z',
+              },
             },
-          },
-          {
-            tournamentAlias: 'apertura-2026',
-            token: {
-              displayTokenId: 'token-never-seen',
-              tournamentId: 't-1',
-              revoked: false,
-              createdAt: '2026-08-01T00:00:00.000Z',
+            {
+              tournamentAlias: 'apertura-2026',
+              token: {
+                displayTokenId: 'token-never-seen',
+                tournamentId: 't-1',
+                revoked: false,
+                createdAt: '2026-08-01T00:00:00.000Z',
+              },
             },
-          },
-        ]}
-        now={now}
-      />,
+          ]}
+          now={now}
+        />,
+      ),
     );
 
     expect(screen.getByText('Cancha 1')).toBeDefined();
     expect(screen.getByText('token-never-seen')).toBeDefined();
-    expect(screen.getByText(/última señal/)).toBeDefined();
+    expect(screen.getByText(/last signal/i)).toBeDefined();
   });
 
   it('shows no archive action for a tournament that has not finished', () => {

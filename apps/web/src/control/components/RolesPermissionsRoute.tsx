@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useIntl } from 'react-intl';
 import {
   createControlApiClient,
   type ControlApiClient,
   type OrganizationRoleResponse,
 } from '../lib/api-client.js';
 import { RolesPermissionsPage } from './RolesPermissionsPage.js';
+import { messages } from '../i18n/messages.en.js';
 
 export function RolesPermissionsRoute({
   organizationAlias,
@@ -13,6 +15,7 @@ export function RolesPermissionsRoute({
   readonly organizationAlias: string;
   readonly client?: ControlApiClient;
 }): React.JSX.Element {
+  const intl = useIntl();
   const api = useMemo(
     () => client ?? createControlApiClient({ fetch: globalThis.fetch.bind(globalThis) }),
     [client],
@@ -27,11 +30,13 @@ export function RolesPermissionsRoute({
       setRows(await api.listOrganizationRoles(organizationAlias));
       setError(undefined);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'No se pudieron cargar los usuarios.');
+      setError(
+        cause instanceof Error ? cause.message : intl.formatMessage(messages.rolesLoadFailed),
+      );
     } finally {
       setLoading(false);
     }
-  }, [api, organizationAlias]);
+  }, [api, organizationAlias, intl]);
 
   useEffect(() => {
     let current = true;
@@ -45,7 +50,9 @@ export function RolesPermissionsRoute({
       })
       .catch((cause: unknown) => {
         if (current) {
-          setError(cause instanceof Error ? cause.message : 'No se pudieron cargar los usuarios.');
+          setError(
+            cause instanceof Error ? cause.message : intl.formatMessage(messages.rolesLoadFailed),
+          );
         }
       })
       .finally(() => {
@@ -54,7 +61,7 @@ export function RolesPermissionsRoute({
     return () => {
       current = false;
     };
-  }, [api, organizationAlias]);
+  }, [api, organizationAlias, intl]);
 
   return (
     <RolesPermissionsPage

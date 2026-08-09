@@ -1,20 +1,66 @@
+import { useState } from 'react';
+import { FormattedMessage, useIntl } from 'react-intl';
 import { SIDENAV } from '../lib/dashboard.js';
+import { activeControlLanguage, ControlIntl } from '../i18n/ControlIntl.js';
+import { LanguageSwitcher } from '../i18n/LanguageSwitcher.js';
+import { messages } from '../i18n/messages.en.js';
+import {
+  writeStoredLanguagePreference,
+  type SupportedLanguage,
+} from '../../lib/language-preference.js';
 
 export function ControlShell({
   organizationAlias,
-  active = 'Torneos',
+  active = 'tournaments',
   helpPath,
   children,
 }: {
   readonly organizationAlias: string;
+  /** A `SIDENAV` item's stable `id`, e.g. `'roles'` — never its display label (0053). */
   readonly active?: string;
   /** Slug under `/help/control/`, e.g. `'seeding'` — required so a screen can never ship with no matching help page linked (0043). */
   readonly helpPath: string;
   readonly children: React.ReactNode;
 }): React.JSX.Element {
+  const [locale, setLocale] = useState<SupportedLanguage>(() => activeControlLanguage());
+
+  return (
+    <ControlIntl locale={locale}>
+      <ControlShellChrome
+        active={active}
+        helpPath={helpPath}
+        locale={locale}
+        onLocaleChange={(next) => {
+          writeStoredLanguagePreference(next);
+          setLocale(next);
+        }}
+        organizationAlias={organizationAlias}
+      >
+        {children}
+      </ControlShellChrome>
+    </ControlIntl>
+  );
+}
+
+function ControlShellChrome({
+  organizationAlias,
+  active,
+  helpPath,
+  locale,
+  onLocaleChange,
+  children,
+}: {
+  readonly organizationAlias: string;
+  readonly active: string;
+  readonly helpPath: string;
+  readonly locale: SupportedLanguage;
+  readonly onLocaleChange: (language: SupportedLanguage) => void;
+  readonly children: React.ReactNode;
+}): React.JSX.Element {
+  const intl = useIntl();
   return (
     <div className="cl-control" style={shellStyle}>
-      <nav aria-label="Secciones" style={navStyle}>
+      <nav aria-label={intl.formatMessage(messages.shellSections)} style={navStyle}>
         <div style={brandStyle}>
           <div style={brandMarkRowStyle}>
             <img src="/copalibre-logo.svg" alt="" width="24" height="24" />
@@ -29,24 +75,25 @@ export function ControlShell({
           rel="noopener noreferrer"
           style={helpLinkStyle}
         >
-          ¿Qué es esta pantalla?
+          <FormattedMessage {...messages.shellWhatIsThisScreen} />
         </a>
         <ul style={navListStyle}>
           {SIDENAV.map((item) => (
-            <li key={item.label}>
+            <li key={item.id}>
               <a
                 className="cl-focusable"
                 href={`/control/${organizationAlias}${item.path}`}
                 style={{
                   ...navLinkStyle,
-                  ...(item.label === active ? navLinkActiveStyle : {}),
+                  ...(item.id === active ? navLinkActiveStyle : {}),
                 }}
               >
-                {item.label}
+                {intl.formatMessage(item.label)}
               </a>
             </li>
           ))}
         </ul>
+        <LanguageSwitcher onChange={onLocaleChange} value={locale} />
       </nav>
       <main style={mainStyle}>{children}</main>
     </div>

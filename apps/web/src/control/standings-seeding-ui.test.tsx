@@ -10,6 +10,7 @@ import type { StandingsData } from './lib/standings.js';
 import { SeedingControlRoute, StandingsControlRoute } from './components/ControlRoutes.js';
 import { SeedingBuilderPage } from './components/SeedingBuilderPage.js';
 import { StandingsPage } from './components/StandingsPage.js';
+import { withIntl } from './i18n/test-support.js';
 
 const standings: StandingsData = {
   stageId: 'stage-1',
@@ -70,40 +71,46 @@ function openRow(entrantId: string): HTMLDetailsElement {
 describe('StandingsPage', () => {
   it('shows the projection version and the tiebreak indicator with text, not colour', () => {
     render(
-      <StandingsPage
-        organizationAlias="liga-mendocina"
-        standings={standings}
-        tournamentName="Apertura"
-      />,
+      withIntl(
+        <StandingsPage
+          organizationAlias="liga-mendocina"
+          standings={standings}
+          tournamentName="Apertura"
+        />,
+      ),
     );
 
-    expect(screen.getByText(/Proyección v7/)).toBeTruthy();
-    expect(screen.getByText(/empate sin resolver/)).toBeTruthy();
-    expect(screen.getByText('Posición compartida')).toBeTruthy();
+    expect(screen.getByText(/Projection v7/)).toBeTruthy();
+    expect(screen.getByText(/unresolved tie/)).toBeTruthy();
+    expect(screen.getByText('Shared position')).toBeTruthy();
   });
 
   it('says so plainly on a row no comparator touched', () => {
     render(
-      <StandingsPage
-        organizationAlias="liga-mendocina"
-        standings={standings}
-        tournamentName="Apertura"
-      />,
+      withIntl(
+        <StandingsPage
+          organizationAlias="liga-mendocina"
+          standings={standings}
+          tournamentName="Apertura"
+        />,
+      ),
     );
     openRow('tll');
 
-    expect(screen.getByText(/Ningún comparador de desempate/)).toBeTruthy();
+    expect(screen.getByText(/No tiebreak comparator/)).toBeTruthy();
   });
 
   it('fetches a row’s trace once, on first expand', async () => {
     const onExpand = jest.fn(async () => ['Rule 2 (A favor): ind=2 → resuelto']);
     render(
-      <StandingsPage
-        onExpand={onExpand as unknown as (entrantId: string) => Promise<readonly string[]>}
-        organizationAlias="liga-mendocina"
-        standings={standings}
-        tournamentName="Apertura"
-      />,
+      withIntl(
+        <StandingsPage
+          onExpand={onExpand as unknown as (entrantId: string) => Promise<readonly string[]>}
+          organizationAlias="liga-mendocina"
+          standings={standings}
+          tournamentName="Apertura"
+        />,
+      ),
     );
 
     const row = openRow('ind');
@@ -118,29 +125,33 @@ describe('StandingsPage', () => {
 
   it('reports a trace it could not retrieve instead of rendering an empty panel', async () => {
     render(
-      <StandingsPage
-        onExpand={() => Promise.reject(new Error('offline'))}
-        organizationAlias="liga-mendocina"
-        standings={standings}
-        tournamentName="Apertura"
-      />,
+      withIntl(
+        <StandingsPage
+          onExpand={() => Promise.reject(new Error('offline'))}
+          organizationAlias="liga-mendocina"
+          standings={standings}
+          tournamentName="Apertura"
+        />,
+      ),
     );
     openRow('ind');
 
-    expect(await screen.findByText(/No se pudo recuperar la traza/)).toBeTruthy();
+    expect(await screen.findByText(/Could not retrieve the rules engine trace/)).toBeTruthy();
   });
 
   it('renders an empty stage without pretending it has rows', () => {
     render(
-      <StandingsPage
-        organizationAlias="liga-mendocina"
-        standings={{ ...standings, rows: [], trace: [] }}
-        tournamentName="Apertura"
-      />,
+      withIntl(
+        <StandingsPage
+          organizationAlias="liga-mendocina"
+          standings={{ ...standings, rows: [], trace: [] }}
+          tournamentName="Apertura"
+        />,
+      ),
     );
 
-    expect(screen.getByText(/Todavía no hay resultados/)).toBeTruthy();
-    expect(screen.getByText('Sin datos para graficar.')).toBeTruthy();
+    expect(screen.getByText(/There are no results in this stage yet/)).toBeTruthy();
+    expect(screen.getByText('No data to chart.')).toBeTruthy();
   });
 });
 
@@ -152,18 +163,20 @@ describe('SeedingBuilderPage', () => {
 
   it('locks a seed and keeps it through a randomize', () => {
     render(
-      <SeedingBuilderPage
-        hasRecordedResults={false}
-        matches={matches}
-        organizationAlias="liga-mendocina"
-        random={() => 0.99}
-        seeds={seeds}
-        tournamentName="Apertura"
-      />,
+      withIntl(
+        <SeedingBuilderPage
+          hasRecordedResults={false}
+          matches={matches}
+          organizationAlias="liga-mendocina"
+          random={() => 0.99}
+          seeds={seeds}
+          tournamentName="Apertura"
+        />,
+      ),
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Fijar siembra 1' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Sortear no fijados' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Lock seed 1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Shuffle unlocked' }));
 
     const rows = screen.getAllByRole('listitem').map((item) => item.textContent ?? '');
     expect(rows[0]).toContain('tll');
@@ -171,42 +184,46 @@ describe('SeedingBuilderPage', () => {
 
   it('undoes and redoes a change', () => {
     render(
-      <SeedingBuilderPage
-        hasRecordedResults={false}
-        matches={matches}
-        organizationAlias="liga-mendocina"
-        seeds={seeds}
-        tournamentName="Apertura"
-      />,
+      withIntl(
+        <SeedingBuilderPage
+          hasRecordedResults={false}
+          matches={matches}
+          organizationAlias="liga-mendocina"
+          seeds={seeds}
+          tournamentName="Apertura"
+        />,
+      ),
     );
 
-    expect(screen.getByRole('button', { name: 'Deshacer' })).toHaveProperty('disabled', true);
-    fireEvent.click(screen.getByRole('button', { name: 'Fijar siembra 2' }));
-    expect(screen.getByRole('button', { name: 'Liberar siembra 2' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Undo' })).toHaveProperty('disabled', true);
+    fireEvent.click(screen.getByRole('button', { name: 'Lock seed 2' }));
+    expect(screen.getByRole('button', { name: 'Release seed 2' })).toBeTruthy();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Deshacer' }));
-    expect(screen.getByRole('button', { name: 'Fijar siembra 2' })).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Rehacer' }));
-    expect(screen.getByRole('button', { name: 'Liberar siembra 2' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(screen.getByRole('button', { name: 'Lock seed 2' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Redo' }));
+    expect(screen.getByRole('button', { name: 'Release seed 2' })).toBeTruthy();
   });
 
   it('blocks every seeding action once a result exists, and explains why', () => {
     render(
-      <SeedingBuilderPage
-        hasRecordedResults
-        matches={matches}
-        organizationAlias="liga-mendocina"
-        seeds={seeds}
-        tournamentName="Apertura"
-      />,
+      withIntl(
+        <SeedingBuilderPage
+          hasRecordedResults
+          matches={matches}
+          organizationAlias="liga-mendocina"
+          seeds={seeds}
+          tournamentName="Apertura"
+        />,
+      ),
     );
 
-    expect(screen.getByRole('alert').textContent).toContain('corrección auditada');
-    expect(screen.getByRole('button', { name: 'Sortear no fijados' })).toHaveProperty(
+    expect(screen.getByRole('alert').textContent).toContain('audited correction flow');
+    expect(screen.getByRole('button', { name: 'Shuffle unlocked' })).toHaveProperty(
       'disabled',
       true,
     );
-    expect(screen.getByRole('button', { name: 'Publicar sembrado' })).toHaveProperty(
+    expect(screen.getByRole('button', { name: 'Publish seeding' })).toHaveProperty(
       'disabled',
       true,
     );
@@ -215,72 +232,82 @@ describe('SeedingBuilderPage', () => {
   it('publishes only an order that actually changed', () => {
     const onPublish = jest.fn();
     render(
-      <SeedingBuilderPage
-        hasRecordedResults={false}
-        matches={matches}
-        onPublish={onPublish as unknown as (next: readonly (typeof seeds)[number][]) => void}
-        organizationAlias="liga-mendocina"
-        random={() => 0}
-        seeds={seeds}
-        tournamentName="Apertura"
-      />,
+      withIntl(
+        <SeedingBuilderPage
+          hasRecordedResults={false}
+          matches={matches}
+          onPublish={onPublish as unknown as (next: readonly (typeof seeds)[number][]) => void}
+          organizationAlias="liga-mendocina"
+          random={() => 0}
+          seeds={seeds}
+          tournamentName="Apertura"
+        />,
+      ),
     );
 
-    expect(screen.getByRole('button', { name: 'Publicar sembrado' })).toHaveProperty(
+    expect(screen.getByRole('button', { name: 'Publish seeding' })).toHaveProperty(
       'disabled',
       true,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Sortear no fijados' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Publicar sembrado' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Shuffle unlocked' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Publish seeding' }));
     expect(onPublish).toHaveBeenCalled();
   });
 
   it('names an unresolved slot and shows the format badge', () => {
     render(
-      <SeedingBuilderPage
-        hasRecordedResults={false}
-        matches={matches}
-        organizationAlias="liga-mendocina"
-        seeds={seeds}
-        tournamentName="Apertura"
-      />,
+      withIntl(
+        <SeedingBuilderPage
+          hasRecordedResults={false}
+          matches={matches}
+          organizationAlias="liga-mendocina"
+          seeds={seeds}
+          tournamentName="Apertura"
+        />,
+      ),
     );
 
+    // describeSlot (lib/bracket-canvas.ts) is not yet extracted (0053, documented
+    // follow-up) — its dynamic match-ID interpolation stays Spanish regardless of locale.
     expect(screen.getByText('TBD · Ganador del WB-R1-M1')).toBeTruthy();
     expect(screen.getByText('BO3')).toBeTruthy();
   });
 
   it('zooms the canvas through the declared stops', () => {
     render(
-      <SeedingBuilderPage
-        hasRecordedResults={false}
-        matches={matches}
-        organizationAlias="liga-mendocina"
-        seeds={seeds}
-        tournamentName="Apertura"
-      />,
+      withIntl(
+        <SeedingBuilderPage
+          hasRecordedResults={false}
+          matches={matches}
+          organizationAlias="liga-mendocina"
+          seeds={seeds}
+          tournamentName="Apertura"
+        />,
+      ),
     );
 
     expect(screen.getByText('100%')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Acercar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
     expect(screen.getByText('125%')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Alejar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom out' }));
     expect(screen.getByText('100%')).toBeTruthy();
   });
 
   it('says a stage has no structure rather than drawing an empty frame', () => {
     render(
-      <SeedingBuilderPage
-        hasRecordedResults={false}
-        matches={[]}
-        organizationAlias="liga-mendocina"
-        seeds={[]}
-        tournamentName="Apertura"
-      />,
+      withIntl(
+        <SeedingBuilderPage
+          hasRecordedResults={false}
+          matches={[]}
+          organizationAlias="liga-mendocina"
+          seeds={[]}
+          tournamentName="Apertura"
+        />,
+      ),
     );
 
-    expect(screen.getByText(/Todavía no hay estructura generada/)).toBeTruthy();
-    expect(screen.getByText('Esta fase no tiene participantes.')).toBeTruthy();
+    expect(screen.getByText(/No structure has been generated/)).toBeTruthy();
+    expect(screen.getByText('This stage has no participants.')).toBeTruthy();
   });
 });
 

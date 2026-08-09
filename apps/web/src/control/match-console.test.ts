@@ -103,11 +103,11 @@ describe('segmentLabel', () => {
   } as unknown as MatchConsoleResponse;
 
   it('labels a known segment by type and number', () => {
-    expect(segmentLabel(projection, 's1')).toBe('half 2');
+    expect(segmentLabel(projection, 's1', 'Unknown segment')).toBe('half 2');
   });
 
-  it('falls back for a segment id the projection does not carry', () => {
-    expect(segmentLabel(projection, 'missing')).toBe('Segmento desconocido');
+  it('falls back to the caller-supplied label for a segment id the projection does not carry', () => {
+    expect(segmentLabel(projection, 'missing', 'Unknown segment')).toBe('Unknown segment');
   });
 });
 

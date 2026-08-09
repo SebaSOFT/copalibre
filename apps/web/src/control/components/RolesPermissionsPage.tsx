@@ -1,15 +1,17 @@
 import { useState } from 'react';
+import { FormattedMessage, useIntl, type MessageDescriptor } from 'react-intl';
 import type {
   OrganizationMemberStatus,
   OrganizationRole,
   OrganizationRoleResponse,
 } from '../lib/api-client.js';
+import { messages } from '../i18n/messages.en.js';
 
-const ROLE_LABEL: Record<OrganizationRole, string> = {
-  admin: 'Admin',
-  referee: 'Árbitro',
-  broadcaster: 'Broadcast',
-  viewer: 'Observador',
+const ROLE_LABEL: Record<OrganizationRole, MessageDescriptor> = {
+  admin: messages.rolesRoleAdmin,
+  referee: messages.rolesRoleReferee,
+  broadcaster: messages.rolesRoleBroadcaster,
+  viewer: messages.rolesRoleViewer,
 };
 
 export function RolesPermissionsPage({
@@ -37,6 +39,7 @@ export function RolesPermissionsPage({
     status: OrganizationMemberStatus,
   ) => Promise<void>;
 }): React.JSX.Element {
+  const intl = useIntl();
   const [inviteOpen, setInviteOpen] = useState(false);
   const [busy, setBusy] = useState<string>();
   const [actionError, setActionError] = useState<string>();
@@ -47,18 +50,24 @@ export function RolesPermissionsPage({
     try {
       await action();
     } catch (cause) {
-      setActionError(cause instanceof Error ? cause.message : 'No se pudo aplicar el cambio.');
+      setActionError(
+        cause instanceof Error ? cause.message : intl.formatMessage(messages.rolesChangeFailed),
+      );
     } finally {
       setBusy(undefined);
     }
   };
 
   return (
-    <section aria-label="Roles y permisos" style={stackStyle}>
+    <section aria-label={intl.formatMessage(messages.rolesSectionLabel)} style={stackStyle}>
       <header style={headerStyle}>
         <div>
-          <p style={metaStyle}>{organizationAlias} / Organización</p>
-          <h1 style={titleStyle}>Roles y permisos</h1>
+          <p style={metaStyle}>
+            {intl.formatMessage(messages.rolesBreadcrumb, { organizationAlias })}
+          </p>
+          <h1 style={titleStyle}>
+            <FormattedMessage {...messages.rolesTitle} />
+          </h1>
         </div>
         <button
           className="cl-focusable"
@@ -66,7 +75,7 @@ export function RolesPermissionsPage({
           style={addButtonStyle}
           type="button"
         >
-          Añadir destinatario
+          <FormattedMessage {...messages.rolesAddRecipient} />
         </button>
       </header>
       {error || actionError ? (
@@ -76,14 +85,28 @@ export function RolesPermissionsPage({
       ) : null}
       <div className="cl-card cl-chamfer cl-chamfer--control" style={tableStyle}>
         <div style={tableHeaderStyle}>
-          <span>Usuario</span>
-          <span>Rol</span>
-          <span>Estado</span>
-          <span>Acciones</span>
+          <span>
+            <FormattedMessage {...messages.rolesColumnUser} />
+          </span>
+          <span>
+            <FormattedMessage {...messages.rolesColumnRole} />
+          </span>
+          <span>
+            <FormattedMessage {...messages.rolesColumnStatus} />
+          </span>
+          <span>
+            <FormattedMessage {...messages.rolesColumnActions} />
+          </span>
         </div>
-        {loading ? <p style={emptyStyle}>Cargando usuarios...</p> : null}
+        {loading ? (
+          <p style={emptyStyle}>
+            <FormattedMessage {...messages.rolesLoading} />
+          </p>
+        ) : null}
         {!loading && rows.length === 0 ? (
-          <p style={emptyStyle}>No hay usuarios asignados.</p>
+          <p style={emptyStyle}>
+            <FormattedMessage {...messages.rolesEmpty} />
+          </p>
         ) : null}
         {rows.map((row) => (
           <RoleRow
@@ -124,6 +147,7 @@ function RoleRow({
   readonly onChange: (role: OrganizationRole, status: OrganizationMemberStatus) => Promise<void>;
   readonly onDelete: () => Promise<void>;
 }): React.JSX.Element {
+  const intl = useIntl();
   const initials = row.email
     .split('@')[0]
     .split(/[._-]/)
@@ -141,7 +165,7 @@ function RoleRow({
         </span>
       </div>
       <select
-        aria-label={`Rol de ${row.email}`}
+        aria-label={intl.formatMessage(messages.rolesRoleOf, { email: row.email })}
         className="cl-focusable"
         disabled={busy}
         onChange={(event) => void onChange(event.target.value as OrganizationRole, row.status)}
@@ -150,13 +174,13 @@ function RoleRow({
       >
         {(Object.keys(ROLE_LABEL) as OrganizationRole[]).map((role) => (
           <option key={role} value={role}>
-            {ROLE_LABEL[role]}
+            {intl.formatMessage(ROLE_LABEL[role])}
           </option>
         ))}
       </select>
       <label style={statusStyle}>
         <input
-          aria-label={`Estado de ${row.email}`}
+          aria-label={intl.formatMessage(messages.rolesStatusOf, { email: row.email })}
           checked={row.status === 'active'}
           disabled={busy}
           onChange={(event) =>
@@ -169,18 +193,20 @@ function RoleRow({
             color: row.status === 'active' ? 'var(--cl-state-live)' : 'var(--cl-text-muted)',
           }}
         >
-          {row.status === 'active' ? 'Activo' : 'Inactivo'}
+          {row.status === 'active'
+            ? intl.formatMessage(messages.rolesActive)
+            : intl.formatMessage(messages.rolesInactive)}
         </span>
       </label>
       <button
-        aria-label={`Eliminar ${row.email}`}
+        aria-label={intl.formatMessage(messages.rolesDeleteOf, { email: row.email })}
         className="cl-focusable"
         disabled={busy}
         onClick={() => void onDelete()}
         style={deleteButtonStyle}
         type="button"
       >
-        Eliminar
+        <FormattedMessage {...messages.rolesDelete} />
       </button>
     </div>
   );
@@ -199,11 +225,17 @@ function InviteDialog({
     status: OrganizationMemberStatus,
   ) => Promise<void>;
 }): React.JSX.Element {
+  const intl = useIntl();
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<OrganizationRole>('viewer');
   const [active, setActive] = useState(true);
   return (
-    <div role="dialog" aria-modal="true" aria-label="Añadir destinatario" style={overlayStyle}>
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={intl.formatMessage(messages.rolesAddRecipient)}
+      style={overlayStyle}
+    >
       <form
         className="cl-card cl-chamfer"
         onSubmit={(event) => {
@@ -213,19 +245,21 @@ function InviteDialog({
         style={dialogStyle}
       >
         <header style={dialogHeaderStyle}>
-          <h2 style={dialogTitleStyle}>Añadir destinatario</h2>
+          <h2 style={dialogTitleStyle}>
+            <FormattedMessage {...messages.rolesAddRecipient} />
+          </h2>
           <button
-            aria-label="Cerrar"
+            aria-label={intl.formatMessage(messages.rolesInviteDialogClose)}
             className="cl-focusable"
             onClick={onClose}
             style={closeStyle}
             type="button"
           >
-            Cerrar
+            <FormattedMessage {...messages.rolesInviteDialogClose} />
           </button>
         </header>
         <label style={fieldStyle}>
-          Correo electrónico
+          <FormattedMessage {...messages.rolesInviteDialogEmail} />
           <input
             className="cl-focusable"
             onChange={(event) => setEmail(event.target.value)}
@@ -236,9 +270,9 @@ function InviteDialog({
           />
         </label>
         <label style={fieldStyle}>
-          Rol
+          <FormattedMessage {...messages.rolesInviteDialogRole} />
           <select
-            aria-label="Rol de invitación"
+            aria-label={intl.formatMessage(messages.rolesInviteDialogRoleAriaLabel)}
             className="cl-focusable"
             onChange={(event) => setRole(event.target.value as OrganizationRole)}
             style={inputStyle}
@@ -246,7 +280,7 @@ function InviteDialog({
           >
             {(Object.keys(ROLE_LABEL) as OrganizationRole[]).map((one) => (
               <option key={one} value={one}>
-                {ROLE_LABEL[one]}
+                {intl.formatMessage(ROLE_LABEL[one])}
               </option>
             ))}
           </select>
@@ -257,7 +291,7 @@ function InviteDialog({
             onChange={(event) => setActive(event.target.checked)}
             type="checkbox"
           />
-          Activo al aceptar
+          <FormattedMessage {...messages.rolesInviteDialogActiveOnAccept} />
         </label>
         <footer style={dialogFooterStyle}>
           <button
@@ -266,10 +300,10 @@ function InviteDialog({
             style={secondaryButtonStyle}
             type="button"
           >
-            Cancelar
+            <FormattedMessage {...messages.rolesInviteDialogCancel} />
           </button>
           <button className="cl-focusable" disabled={busy} style={addButtonStyle} type="submit">
-            Enviar invitación
+            <FormattedMessage {...messages.rolesInviteDialogSubmit} />
           </button>
         </footer>
       </form>

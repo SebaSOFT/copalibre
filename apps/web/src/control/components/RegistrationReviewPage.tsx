@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { FormattedMessage, useIntl, type MessageDescriptor } from 'react-intl';
 import { Button } from './ui/button.js';
 import type { BulkReviewRequest, ReviewRegistrationRequest } from '../lib/api-client.js';
 import {
@@ -13,6 +14,7 @@ import {
   type RegistrationRow,
   type StatusFilter,
 } from '../lib/review.js';
+import { messages } from '../i18n/messages.en.js';
 
 export interface ReviewRegistrationRow extends RegistrationRow {
   readonly contactEmail: string;
@@ -22,19 +24,19 @@ export interface ReviewRegistrationRow extends RegistrationRow {
   readonly checkInClosesAt?: string;
 }
 
-const FILTERS: readonly { readonly value: StatusFilter; readonly label: string }[] = [
-  { value: 'all', label: 'Todos' },
-  { value: 'pending', label: 'Pendientes' },
-  { value: 'accepted', label: 'Aceptados' },
-  { value: 'refused', label: 'Rechazados' },
+const FILTERS: readonly { readonly value: StatusFilter; readonly label: MessageDescriptor }[] = [
+  { value: 'all', label: messages.reviewFilterAll },
+  { value: 'pending', label: messages.reviewFilterPending },
+  { value: 'accepted', label: messages.reviewFilterAccepted },
+  { value: 'refused', label: messages.reviewFilterRefused },
 ];
 
-const STATUS_LABELS: Record<RegistrationRow['status'], string> = {
-  pending: 'Pendiente',
-  accepted: 'Aceptada',
-  refused: 'Rechazada',
-  withdrawn: 'Retirada',
-  'checked-in': 'Check-in',
+const STATUS_LABELS: Record<RegistrationRow['status'], MessageDescriptor> = {
+  pending: messages.reviewStatusPending,
+  accepted: messages.reviewStatusAccepted,
+  refused: messages.reviewStatusRefused,
+  withdrawn: messages.reviewStatusWithdrawn,
+  'checked-in': messages.reviewStatusCheckedIn,
 };
 
 export function RegistrationReviewPage({
@@ -55,6 +57,7 @@ export function RegistrationReviewPage({
     request: ReviewRegistrationRequest,
   ) => Promise<void> | void;
 }): React.JSX.Element {
+  const intl = useIntl();
   const [state, setState] = useState(() => initialReview(10));
   const visible = visibleRows(rows, state) as readonly ReviewRegistrationRow[];
   const selected = new Set(state.selected);
@@ -62,17 +65,19 @@ export function RegistrationReviewPage({
     visible.length > 0 && visible.every((row) => state.selected.includes(row.entrantId));
 
   return (
-    <section aria-label="Revisión de inscripciones" style={stackStyle}>
+    <section aria-label={intl.formatMessage(messages.reviewSectionLabel)} style={stackStyle}>
       <header style={headerStyle}>
         <div>
           <p style={metaStyle}>
             {organizationAlias} &gt; {tournamentName}
           </p>
-          <h1 style={titleStyle}>Revisión de inscripciones</h1>
+          <h1 style={titleStyle}>
+            <FormattedMessage {...messages.reviewTitle} />
+          </h1>
         </div>
         <div style={actionsStyle}>
           <select
-            aria-label="Estado"
+            aria-label={intl.formatMessage(messages.reviewStatusFieldLabel)}
             className="cl-focusable"
             onChange={(event) =>
               setState((current) => setFilter(current, event.target.value as StatusFilter, rows))
@@ -82,7 +87,7 @@ export function RegistrationReviewPage({
           >
             {FILTERS.map((filter) => (
               <option key={filter.value} value={filter.value}>
-                {filter.label}
+                {intl.formatMessage(filter.label)}
               </option>
             ))}
           </select>
@@ -94,7 +99,7 @@ export function RegistrationReviewPage({
             type="button"
             variant="secondary"
           >
-            Aprobar
+            <FormattedMessage {...messages.reviewApprove} />
           </Button>
           <Button
             disabled={state.selected.length === 0}
@@ -102,23 +107,31 @@ export function RegistrationReviewPage({
             type="button"
             variant="destructive-outline"
           >
-            Rechazar
+            <FormattedMessage {...messages.reviewRefuse} />
           </Button>
-          <Button type="button">Exportar</Button>
+          <Button type="button">
+            <FormattedMessage {...messages.reviewExport} />
+          </Button>
         </div>
       </header>
 
       <div className="cl-card cl-chamfer cl-chamfer--control" style={tableStyle}>
         <div style={tableHeaderStyle}>
           <input
-            aria-label="Seleccionar visibles"
+            aria-label={intl.formatMessage(messages.reviewSelectVisible)}
             checked={allVisibleSelected}
             onChange={() => setState((current) => toggleAllVisible(current, rows))}
             type="checkbox"
           />
-          <span>Nombre</span>
-          <span>Estado</span>
-          <span>Enviada</span>
+          <span>
+            <FormattedMessage {...messages.reviewColumnName} />
+          </span>
+          <span>
+            <FormattedMessage {...messages.reviewColumnStatus} />
+          </span>
+          <span>
+            <FormattedMessage {...messages.reviewColumnSubmitted} />
+          </span>
         </div>
         {visible.map((row) => {
           const teamMembershipEnabled = teamMembershipActionsEnabled({
@@ -131,7 +144,9 @@ export function RegistrationReviewPage({
             <details className="cl-focusable" key={row.entrantId} style={rowStyle}>
               <summary style={summaryStyle}>
                 <input
-                  aria-label={`Seleccionar ${row.displayName}`}
+                  aria-label={intl.formatMessage(messages.reviewSelectRow, {
+                    displayName: row.displayName,
+                  })}
                   checked={selected.has(row.entrantId)}
                   onChange={() => setState((current) => toggleRow(current, row.entrantId))}
                   onClick={(event) => event.stopPropagation()}
@@ -139,30 +154,38 @@ export function RegistrationReviewPage({
                 />
                 <span>
                   <strong>{row.displayName}</strong>
-                  <small style={smallStyle}>ID: {row.entrantId}</small>
+                  <small style={smallStyle}>
+                    {intl.formatMessage(messages.reviewIdLabel, { entrantId: row.entrantId })}
+                  </small>
                 </span>
-                <span className="cl-badge">{STATUS_LABELS[row.status]}</span>
+                <span className="cl-badge">{intl.formatMessage(STATUS_LABELS[row.status])}</span>
                 <time dateTime={row.submittedAt} style={smallStyle}>
                   {row.submittedAt}
                 </time>
               </summary>
               <div style={detailStyle}>
-                <FieldValue label="Contacto" value={row.contactEmail} />
                 <FieldValue
-                  label="Miembros del equipo"
+                  label={intl.formatMessage(messages.reviewContact)}
+                  value={row.contactEmail}
+                />
+                <FieldValue
+                  label={intl.formatMessage(messages.reviewTeamMembers)}
                   value={
                     row.teamMembers.length === 0
-                      ? 'No disponible en esta respuesta'
+                      ? intl.formatMessage(messages.reviewTeamMembersUnavailable)
                       : row.teamMembers.join(', ')
                   }
                 />
-                <FieldValue label="Experiencia" value={row.experience} />
+                <FieldValue
+                  label={intl.formatMessage(messages.reviewExperience)}
+                  value={row.experience}
+                />
                 <div style={detailActionsStyle}>
                   <Button type="button" variant="secondary">
-                    Mensaje
+                    <FormattedMessage {...messages.reviewMessage} />
                   </Button>
                   <Button disabled={!teamMembershipEnabled} type="button" variant="secondary">
-                    Editar miembros
+                    <FormattedMessage {...messages.reviewEditMembers} />
                   </Button>
                   <Button
                     onClick={() =>
@@ -174,24 +197,31 @@ export function RegistrationReviewPage({
                     type="button"
                     variant="destructive-outline"
                   >
-                    Revocar
+                    <FormattedMessage {...messages.reviewRevoke} />
                   </Button>
                 </div>
                 {!teamMembershipEnabled && (
                   <p className="cl-inline-alert" style={lockStyle}>
-                    {LOCK_EXPLANATION}
+                    {intl.formatMessage(LOCK_EXPLANATION)}
                   </p>
                 )}
               </div>
             </details>
           );
         })}
-        {visible.length === 0 && <p>No hay inscripciones para este filtro.</p>}
+        {visible.length === 0 && (
+          <p>
+            <FormattedMessage {...messages.reviewEmptyFilter} />
+          </p>
+        )}
       </div>
 
       <footer style={paginationStyle}>
         <span>
-          Página {state.page} de {pageCount(rows, state)}
+          {intl.formatMessage(messages.reviewPagination, {
+            page: state.page,
+            pageCount: pageCount(rows, state),
+          })}
         </span>
       </footer>
     </section>

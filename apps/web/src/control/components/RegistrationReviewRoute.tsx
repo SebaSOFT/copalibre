@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { FormattedMessage, useIntl } from 'react-intl';
 import {
   createControlApiClient,
   type CsvImportPreviewResponse,
@@ -6,6 +7,9 @@ import {
   type RegistrationResponse,
 } from '../lib/api-client.js';
 import { RegistrationReviewPage, type ReviewRegistrationRow } from './RegistrationReviewPage.js';
+import { messages } from '../i18n/messages.en.js';
+
+type LoadStatus = 'loading' | 'ready' | 'failed';
 
 export function RegistrationReviewRoute({
   organizationAlias,
@@ -18,12 +22,13 @@ export function RegistrationReviewRoute({
   readonly client?: ControlApiClient;
   readonly now?: string;
 }): React.JSX.Element {
+  const intl = useIntl();
   const api = useMemo(
     () => client ?? createControlApiClient({ fetch: globalThis.fetch.bind(globalThis) }),
     [client],
   );
   const [rows, setRows] = useState<readonly ReviewRegistrationRow[]>([]);
-  const [status, setStatus] = useState('Cargando inscripciones...');
+  const [status, setStatus] = useState<LoadStatus>('loading');
   const [csv, setCsv] = useState<CsvImportPreviewResponse>();
   const [csvStatus, setCsvStatus] = useState('');
   const csvApi = api as Required<
@@ -36,27 +41,48 @@ export function RegistrationReviewRoute({
       .listRegistrations(organizationAlias, tournamentAlias)
       .then((loaded) => {
         if (!live) return;
-        setRows(loaded.map(toReviewRow));
-        setStatus('');
+        setRows(
+          loaded.map((row) =>
+            toReviewRow(
+              row,
+              intl.formatMessage(messages.registrationContactUnavailable),
+              intl.formatMessage(messages.registrationExperienceUnrecorded),
+            ),
+          ),
+        );
+        setStatus('ready');
       })
       .catch(() => {
-        if (live) setStatus('No se pudieron cargar las inscripciones.');
+        if (live) setStatus('failed');
       });
     return () => {
       live = false;
     };
-  }, [api, organizationAlias, tournamentAlias]);
+  }, [api, organizationAlias, tournamentAlias, intl]);
 
-  if (status !== '' && rows.length === 0) return <p className="cl-inline-alert">{status}</p>;
+  if (status === 'loading' && rows.length === 0) {
+    return (
+      <p className="cl-inline-alert">
+        <FormattedMessage {...messages.registrationLoading} />
+      </p>
+    );
+  }
+  if (status === 'failed' && rows.length === 0) {
+    return (
+      <p className="cl-inline-alert">
+        <FormattedMessage {...messages.registrationLoadFailed} />
+      </p>
+    );
+  }
 
   return (
     <>
       <section
-        aria-label="Importar participantes"
+        aria-label={intl.formatMessage(messages.registrationImportSection)}
         className="cl-card cl-chamfer cl-chamfer--control"
       >
         <label>
-          CSV de participantes
+          <FormattedMessage {...messages.registrationCsvLabel} />
           <input
             accept=".csv,text/csv"
             onChange={(event) => {
@@ -70,7 +96,7 @@ export function RegistrationReviewRoute({
                   })
                   .then((created) => {
                     setCsv(created);
-                    setCsvStatus('Validación en cola.');
+                    setCsvStatus(intl.formatMessage(messages.registrationImportQueued));
                     return csvApi.fetchCsvImport(
                       organizationAlias,
                       tournamentAlias,
@@ -81,7 +107,9 @@ export function RegistrationReviewRoute({
                     setCsv(preview);
                     setCsvStatus(preview.status);
                   })
-                  .catch(() => setCsvStatus('No se pudo crear la importación.')),
+                  .catch(() =>
+                    setCsvStatus(intl.formatMessage(messages.registrationImportCreateFailed)),
+                  ),
               );
             }}
             type="file"
@@ -90,7 +118,11 @@ export function RegistrationReviewRoute({
         {csvStatus && <p className="cl-inline-alert">{csvStatus}</p>}
         {csv?.preview && (
           <div>
-            <p>{csv.preview.valid ? 'Preview válido.' : 'Preview con errores.'}</p>
+            <p>
+              {csv.preview.valid
+                ? intl.formatMessage(messages.registrationPreviewValid)
+                : intl.formatMessage(messages.registrationPreviewInvalid)}
+            </p>
             {csv.preview.errors.map((error) => (
               <p key={error.message}>{error.message}</p>
             ))}
@@ -98,7 +130,10 @@ export function RegistrationReviewRoute({
               .filter((row) => row.errors.length > 0)
               .map((row) => (
                 <p key={row.rowNumber}>
-                  Fila {row.rowNumber}: {row.errors.map((error) => error.message).join(', ')}
+                  {intl.formatMessage(messages.registrationRow, {
+                    rowNumber: row.rowNumber,
+                    errors: row.errors.map((error) => error.message).join(', '),
+                  })}
                 </p>
               ))}
             <button
@@ -108,12 +143,12 @@ export function RegistrationReviewRoute({
                   .commitCsvImport(organizationAlias, tournamentAlias, csv.importId, csv.sourceHash)
                   .then((next) => {
                     setCsv(next);
-                    setCsvStatus('Importación confirmada.');
+                    setCsvStatus(intl.formatMessage(messages.registrationImportConfirmed));
                   })
               }
               type="button"
             >
-              Confirmar importación
+              <FormattedMessage {...messages.registrationConfirmImport} />
             </button>
           </div>
         )}
@@ -150,18 +185,22 @@ export function RegistrationReviewRoute({
   );
 }
 
-function toReviewRow(row: RegistrationResponse): ReviewRegistrationRow {
+function toReviewRow(
+  row: RegistrationResponse,
+  contactUnavailableLabel: string,
+  experienceUnrecordedLabel: string,
+): ReviewRegistrationRow {
   const displayName = row.teamId ?? row.personId ?? row.entrantId;
   return {
     entrantId: row.entrantId,
     displayName,
     status: row.status,
     submittedAt: '',
-    contactEmail: 'No disponible en esta respuesta',
+    contactEmail: contactUnavailableLabel,
     // RegistrationResponse identifies the entrant, not its members. Do not
     // present the team identifier as a person until the API supplies members.
     teamMembers: [],
-    experience: 'No registrada',
+    experience: experienceUnrecordedLabel,
     requiresCheckIn: false,
   };
 }

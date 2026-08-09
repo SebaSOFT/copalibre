@@ -1,3 +1,6 @@
+import type { MessageDescriptor } from 'react-intl';
+import { messages } from '../i18n/messages.en.js';
+
 /**
  * Device-health status for `/tv/**` kiosks, surfaced in the A1 dashboard
  * rather than on the kiosk screen itself (0031, task 4.4) — the kiosk never
@@ -23,10 +26,11 @@ export function heartbeatStatus(token: DisplayTokenHealth, now: number): Heartbe
   return now - Date.parse(token.lastSeenAt) > STALE_AFTER_MS ? 'stale' : 'online';
 }
 
-export const HEARTBEAT_PRESENTATION: Readonly<Record<HeartbeatStatus, { readonly label: string }>> =
-  {
-    online: { label: 'En línea' },
-    stale: { label: 'Sin señal' },
-    'never-seen': { label: 'Nunca conectado' },
-    revoked: { label: 'Revocado' },
-  };
+export const HEARTBEAT_PRESENTATION: Readonly<
+  Record<HeartbeatStatus, { readonly label: MessageDescriptor }>
+> = {
+  online: { label: messages.heartbeatOnline },
+  stale: { label: messages.heartbeatStale },
+  'never-seen': { label: messages.heartbeatNeverSeen },
+  revoked: { label: messages.heartbeatRevoked },
+};
