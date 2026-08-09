@@ -127,7 +127,11 @@ and a manifest recording the backup timestamp and the CopaLibre version that pro
 into a clean installation via `copalibre restore` and passing an automated integrity check.
 `copalibre backup` SHALL retain no more than a configurable number of packets (`--retain`, default
 5), deleting the oldest beyond that count after each successful backup, and SHALL only ever delete
-files matching its own packet naming pattern.
+files matching its own packet naming pattern. `copalibre restore` SHALL refuse to restore a packet
+whose recorded CopaLibre version is newer than the running installation's version unless explicitly
+overridden, SHALL run pending database migrations against the restored data automatically after a
+successful restore, and SHALL confirm that the resulting schema matches what the running
+installation expects before reporting success.
 
 #### Scenario: Restore into a clean install recovers all authoritative data
 
@@ -148,6 +152,27 @@ files matching its own packet naming pattern.
 - **WHEN** an operator inspects a packet `copalibre backup` produced
 - **THEN** it contains a manifest recording when the backup was taken and which CopaLibre version
   produced it, alongside the compressed database dump
+
+#### Scenario: A backup newer than the running installation is refused by default
+
+- **WHEN** an operator runs `copalibre restore` against a packet whose recorded CopaLibre version is
+  newer than the version currently running, without `--allow-newer-backup`
+- **THEN** the restore is refused, naming both the backup's version and the running version, and no
+  data is restored
+
+#### Scenario: An older or same-version backup restores and migrates automatically
+
+- **WHEN** an operator restores a packet whose recorded CopaLibre version is the same as or older
+  than the running installation
+- **THEN** the restore proceeds, and pending database migrations run automatically against the
+  restored data immediately afterward, with no separate manual step required
+
+#### Scenario: Restore confirms the schema matches before reporting success
+
+- **WHEN** a restore and its automatic migration both complete
+- **THEN** `copalibre restore` checks that the applied schema matches what the running installation
+  expects and reports that confirmation, or reports a clear failure naming what to run next if it
+  does not match
 
 ### Requirement: Reverse-proxy conformance
 The release SHALL document and test at least one reverse-proxy configuration (Caddy or NGINX)
