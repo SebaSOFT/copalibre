@@ -1,0 +1,66 @@
+---
+import PublicLayout from '../../../../layouts/PublicLayout.astro';
+import TournamentHero from '../../../../components/TournamentHero.astro';
+import ScoreTicker from '../../../../components/ScoreTicker.astro';
+import StandingsPreview from '../../../../components/StandingsPreview.astro';
+import BroadcastStatusPanel from '../../../../components/BroadcastStatusPanel.astro';
+import RulesetBriefing from '../../../../components/RulesetBriefing.astro';
+import { buildOverview, displayName } from '../../../../lib/overview.ts';
+import { sampleOverview } from '../../../../lib/sample-data.ts';
+import { publicIntl } from '../../../../lib/i18n/public-intl.ts';
+import { messages } from '../../../../lib/i18n/public-messages.en.ts';
+import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
+
+/**
+ * B1, the tournament overview (0020).
+ *
+ * Everything a spectator needs is server-rendered. The SSE stream from 0018 is
+ * an improvement on this page, never a requirement for it: a venue on hotel
+ * Wi-Fi still gets the score.
+ *
+ * The data is sample data until 0021 wires the read models; the shape is the
+ * one the repositories already return.
+ *
+ * `[[locale]]` is an optional Astro route segment (0055): English, the
+ * primary locale, is generated with `locale: undefined` (no URL segment);
+ * Spanish is generated with `locale: 'es'`. The remaining five supported
+ * languages are a separate follow-up (0056) — this file only emits the two
+ * this change populates content for.
+ */
+export function getStaticPaths() {
+  // Inlined rather than a module-level const (0055): Astro's static-path
+  // extraction bundles `getStaticPaths` into its own chunk per route, and a
+  // module-scope const referenced only from inside this function was dropped
+  // by that chunking, throwing "NON_PRIMARY_LOCALES is not defined" at build
+  // time. Self-contained avoids relying on cross-chunk scope-hoisting.
+  const nonPrimaryLocales = ['es'] as const;
+  const base = { organization: 'liga-mendocina', tournament: 'apertura-2026' };
+  return [
+    { params: { locale: undefined, ...base } },
+    ...nonPrimaryLocales.map((locale) => ({ params: { locale, ...base } })),
+  ];
+}
+
+const { locale, organization, tournament } = Astro.params;
+const resolvedLocale: SupportedLanguage = isSupportedLanguage(locale) ? locale : 'en';
+const intl = publicIntl(resolvedLocale);
+const model = buildOverview({
+  ...sampleOverview(organization ?? 'liga-mendocina', tournament ?? 'apertura-2026'),
+  locale: resolvedLocale,
+});
+---
+
+<PublicLayout
+  title={`${displayName(model)} — ${model.organizationName}`}
+  description={intl.formatMessage(messages.tournamentPageDescription, {
+    tournament: displayName(model),
+  })}
+  canonicalPath={model.canonicalPath}
+  intl={intl}
+>
+  <TournamentHero model={model} intl={intl} />
+  <BroadcastStatusPanel model={model} intl={intl} />
+  <ScoreTicker model={model} intl={intl} />
+  <StandingsPreview model={model} intl={intl} />
+  <RulesetBriefing model={model} intl={intl} />
+</PublicLayout>

@@ -1,11 +1,14 @@
 ---
+import type { IntlShape } from 'react-intl';
 import { presentState, type ResultState } from '../lib/result-state.ts';
+import { resultStateLabels } from '../lib/i18n/public-intl.ts';
 
 interface Props {
   readonly state: ResultState;
+  readonly intl: IntlShape;
 }
-const { state } = Astro.props;
-const presentation = presentState(state);
+const { state, intl } = Astro.props;
+const presentation = presentState(state, resultStateLabels(intl));
 ---
 
 {/* Colour, icon and word together — a template cannot ask for just the colour. */}

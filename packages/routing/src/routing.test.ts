@@ -54,7 +54,7 @@ describe('every surface from one input', () => {
   });
 
   it('keeps the locale prefix out of control and TV paths', () => {
-    expect(controlPath({ ...BASE, locale: 'en' })).toBe(
+    expect(controlPath({ ...BASE, locale: 'es' })).toBe(
       '/control/liga-mendocina/tournaments/apertura-2026',
     );
   });
@@ -106,8 +106,8 @@ describe('locale', () => {
   });
 
   it('prefixes every other locale', () => {
-    expect(publicPath({ ...BASE, locale: 'en' })).toBe(
-      '/en/liga-mendocina/tournaments/apertura-2026',
+    expect(publicPath({ ...BASE, locale: 'es' })).toBe(
+      '/es/liga-mendocina/tournaments/apertura-2026',
     );
     expect(homePath('pt-BR')).toBe('/pt-BR');
   });

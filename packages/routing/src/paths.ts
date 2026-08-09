@@ -32,7 +32,7 @@ const ALIAS = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** The locale that owns the bare path; others carry a prefix. */
-export const PRIMARY_LOCALE = 'es';
+export const PRIMARY_LOCALE = 'en';
 
 export function validateRouteInput(input: RouteInput): void {
   for (const [field, value] of [

@@ -1,13 +1,22 @@
 ---
+import type { IntlShape } from 'react-intl';
 import { resultLegend } from '../lib/result-state.ts';
+import { resultStateLabels } from '../lib/i18n/public-intl.ts';
+import { messages } from '../lib/i18n/public-messages.en.ts';
+
+interface Props {
+  readonly intl: IntlShape;
+}
+const { intl } = Astro.props;
+const legend = resultLegend(resultStateLabels(intl));
 ---
 
 {/* Shown once per page: the colours mean nothing on their own. */}
 <section aria-labelledby="legend-heading">
-  <h2 id="legend-heading">Referencias</h2>
+  <h2 id="legend-heading">{intl.formatMessage(messages.legendHeading)}</h2>
   <ul>
     {
-      resultLegend().map((state) => (
+      legend.map((state) => (
         <li class={`cl-badge ${state.className}`}>
           <span aria-hidden="true">{state.icon}</span>
           <span>{state.label}</span>

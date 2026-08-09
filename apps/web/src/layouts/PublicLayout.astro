@@ -1,5 +1,7 @@
 ---
+import type { IntlShape } from 'react-intl';
 import '@copalibre/design-tokens/generated/copalibre.css';
+import { messages } from '../lib/i18n/public-messages.en.ts';
 
 interface Props {
   readonly title: string;
@@ -7,14 +9,15 @@ interface Props {
   readonly canonicalPath: string;
   /** Set on anything that is not a public canonical route. */
   readonly noindex?: boolean;
+  readonly intl: IntlShape;
 }
 
-const { title, description, canonicalPath, noindex = false } = Astro.props;
+const { title, description, canonicalPath, noindex = false, intl } = Astro.props;
 const site = Astro.site?.toString().replace(/\/$/, '') ?? '';
 ---
 
 <!doctype html>
-<html lang="es">
+<html lang={intl.locale}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -26,9 +29,9 @@ const site = Astro.site?.toString().replace(/\/$/, '') ?? '';
     {noindex && <meta name="robots" content="noindex, nofollow" />}
   </head>
   <body>
-    <a class="cl-focusable" href="#main">Saltar al contenido</a>
+    <a class="cl-focusable" href="#main">{intl.formatMessage(messages.layoutSkipToContent)}</a>
     <header>
-      <nav aria-label="Principal">
+      <nav aria-label={intl.formatMessage(messages.layoutNavAriaLabel)}>
         <a href="/" class="cl-brand">
           <img src="/copalibre-logo.svg" alt="" width="28" height="28" />
           CopaLibre
@@ -39,7 +42,7 @@ const site = Astro.site?.toString().replace(/\/$/, '') ?? '';
       <slot />
     </main>
     <footer>
-      <p>Publicado con CopaLibre — AGPL-3.0</p>
+      <p>{intl.formatMessage(messages.layoutFooter)}</p>
     </footer>
   </body>
 </html>

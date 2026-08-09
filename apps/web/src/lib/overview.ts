@@ -45,19 +45,6 @@ export interface OverviewModel {
   readonly liveCount: number;
 }
 
-/**
- * The state's label, which is never optional.
- *
- * Colour alone is not a state — the identity doc's accessibility gate — so the
- * label is part of the model rather than something a template might forget.
- */
-export const STATE_LABEL: Readonly<Record<MatchState, string>> = {
-  live: 'EN VIVO',
-  upcoming: 'PROGRAMADO',
-  final: 'FINAL',
-  disputed: 'EN DISPUTA',
-};
-
 export interface OverviewInput extends RouteInput {
   readonly organizationName: string;
   readonly tournamentName: string;

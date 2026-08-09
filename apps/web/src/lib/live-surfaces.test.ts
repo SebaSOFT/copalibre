@@ -1,14 +1,26 @@
 import type { EventEnvelope } from '@copalibre/realtime';
-import { decide, presentState, resultLegend } from './result-state.js';
+import { decide, presentState, resultLegend, type ResultStateLabels } from './result-state.js';
 import { describeSlot, isResolved, toNode, toRounds } from './bracket.js';
 import { sampleBracket } from './bracket-sample.js';
 import { seriesDecided, seriesScore, seriesSegments } from './series.js';
 import { applyEvent, applyEvents, markConnected } from './live-state.js';
 import { sampleDashboard } from './live-sample.js';
 
+/** Matches `public-messages.en.ts`'s `defaultMessage` values exactly. */
+const LABELS: ResultStateLabels = {
+  live: 'LIVE',
+  upcoming: 'UPCOMING',
+  final: 'FINAL',
+  disputed: 'DISPUTED',
+  winner: 'WON',
+  loser: 'LOST',
+  tbd: 'TBD',
+  cancelled: 'CANCELLED',
+};
+
 describe('a state is never a colour alone', () => {
   it('gives every state a label and an icon alongside its class', () => {
-    for (const state of resultLegend()) {
+    for (const state of resultLegend(LABELS)) {
       expect(state.label.length).toBeGreaterThan(0);
       expect(state.icon.length).toBeGreaterThan(0);
       expect(state.className).toContain('cl-state--');
@@ -16,9 +28,9 @@ describe('a state is never a colour alone', () => {
   });
 
   it('resolves a state to all three at once, so a template cannot take just the colour', () => {
-    expect(presentState('live')).toEqual({
+    expect(presentState('live', LABELS)).toEqual({
       state: 'live',
-      label: 'EN VIVO',
+      label: 'LIVE',
       icon: '●',
       className: 'cl-state--live',
     });
@@ -58,17 +70,17 @@ describe('a bracket that is not a tree', () => {
   it('renders the grand final as pending while the semifinals are unresolved', () => {
     const final = matches.find((match) => match.branch === 'final');
     if (!final) throw new Error('the sample bracket has no grand final');
-    const node = toNode(final);
+    const node = toNode(final, LABELS);
 
     expect(isResolved(final)).toBe(false);
     expect(node.slots.every((slot) => slot.pending)).toBe(true);
-    expect(node.badge.label).toBe('A DEFINIR');
+    expect(node.badge.label).toBe('TBD');
   });
 
   it('carries scores onto a decided node', () => {
     const [decided] = matches;
     if (!decided) throw new Error('the sample bracket is empty');
-    const node = toNode(decided);
+    const node = toNode(decided, LABELS);
 
     expect(node.slots[0]?.score).toBe(3);
     expect(node.slots[0]?.pending).toBe(false);

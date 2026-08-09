@@ -1,4 +1,4 @@
-import { presentState, type ResultState } from './result-state.js';
+import { presentState, type ResultState, type ResultStateLabels } from './result-state.js';
 
 /**
  * The bracket, as a list of rounds rather than a tree (0021).
@@ -71,11 +71,11 @@ export function toRounds(matches: readonly BracketMatch[]): readonly BracketRoun
  * indistinguishable from a bug, while a named dependency tells a spectator what
  * has to happen before their team plays.
  */
-export function toNode(match: BracketMatch): MatchNodeView {
+export function toNode(match: BracketMatch, labels: ResultStateLabels): MatchNodeView {
   return {
     matchNumber: match.matchNumber,
     state: match.state,
-    badge: presentState(match.state),
+    badge: presentState(match.state, labels),
     slots: match.slots.map((slot, index) => {
       const score = match.scores?.[index];
       const pending = slot.kind !== 'entrant';
@@ -89,6 +89,14 @@ export function toNode(match: BracketMatch): MatchNodeView {
   };
 }
 
+/**
+ * Not extracted to the message catalog (0055) — same shape as the control
+ * panel's own deferred `describeSlot` (`apps/web/src/control/lib/bracket-
+ * canvas.ts`, 0053 task 4.4): pure geometry computation with a dynamic match/
+ * seed number and no `intl` in scope at the call site, a genuinely different
+ * pattern from this module's other extractions; tracked as a follow-up
+ * alongside that one rather than solved differently here.
+ */
 export function describeSlot(slot: SlotSource): string {
   switch (slot.kind) {
     case 'entrant':
