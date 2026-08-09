@@ -314,6 +314,7 @@ export {
   type MutationDecision,
 } from './rulesets/mutation.js';
 
+export { SUPPORTED_LANGUAGES, isSupportedLanguage, type SupportedLanguage } from './i18n.js';
 export type { Organization, Club } from './aggregates/organization.js';
 export {
   hasStarted,

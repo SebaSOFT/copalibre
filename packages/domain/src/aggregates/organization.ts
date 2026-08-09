@@ -1,3 +1,5 @@
+import type { SupportedLanguage } from '../i18n.js';
+
 /**
  * Organization is the tenancy boundary. Whether a separate multi-tenant
  * "tenant" concept ever exists is an explicitly open naming-conventions item;
@@ -8,6 +10,10 @@ export interface Organization {
   /** Globally unique per installation (Alias, scope 'organization'). */
   readonly alias: string;
   readonly name: string;
+  /** Presentation-layer default only; stored instants remain UTC (0051). */
+  readonly primaryLanguage: SupportedLanguage;
+  /** IANA time zone identifier; presentation-layer default only (0051). */
+  readonly timezone: string;
 }
 
 export interface Club {

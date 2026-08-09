@@ -13,6 +13,7 @@ import type {
   RecordedEvent,
   Segment,
   Stage,
+  SupportedLanguage,
   Team,
   Tournament,
 } from '@copalibre/domain';
@@ -68,6 +69,8 @@ export function toOrganization(row: OrganizationRow): Organization {
     organizationId: row.organization_id,
     alias: row.alias,
     name: row.name,
+    primaryLanguage: row.primary_language as SupportedLanguage,
+    timezone: row.timezone,
   };
 }
 

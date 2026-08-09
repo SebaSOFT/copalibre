@@ -276,6 +276,12 @@ jobs:
       # device-heartbeat status classification, named separately so a reviewer
       # scanning the job log finds the TV surface's own signal directly.
       - run: yarn workspace @copalibre/web test --testPathPatterns 'tv-branding|device-heartbeat'
+      # Platform internationalization foundation (0051): the seven-language
+      # contract and the per-browser interface-language resolution order —
+      # named separately so a reviewer finds this capability's own signal
+      # directly.
+      - run: yarn workspace @copalibre/domain test --testPathPatterns 'i18n'
+      - run: yarn workspace @copalibre/web test --testPathPatterns 'language-preference'
       # participant-reporting (0032): the report/dispute fact validator (never
       # a field capable of directly setting authoritative state), the
       # resource-ownership party-to-match check, the evidence-validation
@@ -705,6 +711,14 @@ jobs:
       # stack, and archived-tournament export byte-equality — named
       # separately so a reviewer finds this capability's own signal directly.
       - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'lifecycle'
+      # Platform internationalization foundation (0051): organization primary
+      # language/timezone validation and update against real PostgreSQL, and
+      # the admin-gated settings endpoint through the real HTTP stack — named
+      # separately so a reviewer finds this capability's own signal directly
+      # rather than inside the broad persistence/api runs above (which already
+      # include these files; this just re-surfaces them).
+      - run: yarn workspace @copalibre/persistence run test:integration --testPathPatterns 'organization-repository'
+      - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'organization-access-guard'
       # Runs the CLI's process-level misconfiguration contract. The API
       # bootstrap lifecycle itself is covered by the API integration suite.
       # Since 0041 this also covers doctor's object-storage round-trip check

@@ -19,6 +19,7 @@ import { participantReports } from './0008-participant-reports.js';
 import { tournamentArchivedAt } from './0009-tournament-archived-at.js';
 import { communityModuleInstallation } from './0010-community-module-installation.js';
 import { objectStorageMetadata } from './0011-object-storage-metadata.js';
+import { organizationLocale } from './0012-organization-locale.js';
 
 /**
  * Migrations are explicit, ordered, and code-defined (no filesystem scanning),
@@ -38,6 +39,7 @@ export const MIGRATIONS: Readonly<Record<string, Migration>> = {
   '0009-tournament-archived-at': tournamentArchivedAt,
   '0010-community-module-installation': communityModuleInstallation,
   '0011-object-storage-metadata': objectStorageMetadata,
+  '0012-organization-locale': organizationLocale,
 };
 
 /** The version `apps/api`'s readiness check expects to find applied. */

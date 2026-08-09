@@ -16,6 +16,7 @@ import type { AuthenticatedSubject } from '../auth/request-context.js';
 import { TokenVerifier } from '../auth/token-verifier.js';
 import { DATABASE } from '../database.token.js';
 import { OrganizationAccessController } from './organization-access.controller.js';
+import { OrganizationsController } from './organizations.controller.js';
 import { ParticipantsController } from './participants.controller.js';
 
 const subjects: Record<string, AuthenticatedSubject> = {
@@ -45,7 +46,7 @@ describe('organization access guards (integration)', () => {
     await seedRole(scratch.db, 'oidc-inactive', 'inactive@example.test', 'viewer', 'inactive');
 
     @Module({
-      controllers: [OrganizationAccessController, ParticipantsController],
+      controllers: [OrganizationAccessController, OrganizationsController, ParticipantsController],
       providers: [
         { provide: DATABASE, useValue: scratch.db },
         {
@@ -101,6 +102,46 @@ describe('organization access guards (integration)', () => {
     const response = await request('admin', `/organizations/liga-segura/roles`);
     expect(response.statusCode).toBe(200);
     expect(response.json()).toHaveLength(2);
+  });
+
+  describe('organization settings (0051)', () => {
+    it('lets the active organization admin update the primary language', async () => {
+      const response = await patch('admin', `/organizations/liga-segura/settings`, {
+        primaryLanguage: 'fr',
+      });
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toMatchObject({ primaryLanguage: 'fr' });
+    });
+
+    it('refuses an inactive organization user', async () => {
+      const response = await patch('inactive', `/organizations/liga-segura/settings`, {
+        primaryLanguage: 'en',
+      });
+      expect(response.statusCode).toBe(403);
+    });
+
+    it('refuses a participant token', async () => {
+      const response = await patch('participant', `/organizations/liga-segura/settings`, {
+        primaryLanguage: 'en',
+      });
+      expect(response.statusCode).toBe(403);
+    });
+
+    it('409s an unsupported primary language', async () => {
+      const response = await patch('admin', `/organizations/liga-segura/settings`, {
+        primaryLanguage: 'ja',
+      });
+      expect(response.statusCode).toBe(409);
+    });
+
+    function patch(token: string, url: string, payload: unknown) {
+      return (app as NestFastifyApplication).inject({
+        method: 'PATCH',
+        url,
+        headers: { authorization: `Bearer ${token}` },
+        payload: payload as never,
+      });
+    }
   });
 
   function request(token: string, url: string) {

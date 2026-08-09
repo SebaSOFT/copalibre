@@ -1,33 +1,33 @@
 ---
-title: Instalación
-description: Cómo instalar CopaLibre desde cero con el CLI copalibre.
+title: Installation
+description: How to install CopaLibre from scratch with the copalibre CLI.
 ---
 
-## Requisitos
+## Requirements
 
-Docker y Docker Compose en el host. No hace falta instalar PostgreSQL ni sus herramientas cliente:
-corren dentro de los contenedores que administra `copalibre`.
+Docker and Docker Compose on the host. There is no need to install PostgreSQL or its client
+tools — they run inside the containers `copalibre` manages.
 
-## Pasos
+## Steps
 
 ```bash
 git clone https://github.com/SebaSOFT/copalibre.git
 cd copalibre
-./copalibre init      # escribe valores por defecto no secretos en .env
+./copalibre init      # writes non-secret defaults to .env
 ```
 
-Edite `.env`: contraseña de PostgreSQL, `COPALIBRE_BOOTSTRAP_TOKEN`, JWKS/issuer/audience de OIDC,
-ID de cliente del navegador, y un proveedor de email.
+Edit `.env`: the PostgreSQL password, `COPALIBRE_BOOTSTRAP_TOKEN`, OIDC JWKS/issuer/audience, the
+browser client ID, and one email provider.
 
 ```bash
-./copalibre doctor    # valida configuración antes de arrancar nada
-./copalibre start     # levanta PostgreSQL, corre doctor, y arranca todos los procesos
-./copalibre create-admin --organization-alias mi-liga --organization-name "Mi Liga" --email admin@ejemplo.com
+./copalibre doctor    # validates configuration before starting anything
+./copalibre start     # brings up PostgreSQL, runs doctor, and starts every process
+./copalibre create-admin --organization-alias my-league --organization-name "My League" --email admin@example.com
 ```
 
-`docker-compose.yml` no termina TLS a propósito — un proxy inverso (Caddy o NGINX) va al borde. Hay
-configuraciones de ejemplo en `deploy/proxy/`; verifique la instalación con
-`./copalibre doctor --check-proxy --proxy-url https://eventos.ejemplo/events/proxy-check`.
+`docker-compose.yml` deliberately does not terminate TLS — a reverse proxy (Caddy or NGINX) sits at
+the edge. Example configurations live under `deploy/proxy/`; verify the installation with
+`./copalibre doctor --check-proxy --proxy-url https://events.example/events/proxy-check`.
 
-Detalle completo de datos persistentes, respaldo/restauración y el proxy inverso: `docs/self-hosting.md`
-en el repositorio.
+Full detail on persistent data, backup/restore, and the reverse proxy: `docs/self-hosting.md` in the
+repository.

@@ -61,6 +61,8 @@ describe('statistics projection through the relay (integration)', () => {
         organization_id: ORGANIZATION,
         alias: 'liga',
         name: 'Liga',
+        primary_language: 'es',
+        timezone: 'UTC',
         created_at: new Date(),
       })
       .execute();

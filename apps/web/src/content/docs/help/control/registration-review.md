@@ -1,26 +1,25 @@
 ---
-title: Revisión de inscripciones
-description: Qué hace aceptar, rechazar o retirar una inscripción, y cómo importar participantes por CSV.
+title: Registration review
+description: What accepting, rejecting, or withdrawing a registration does, and how to import participants by CSV.
 ---
 
-## Para qué sirve esta pantalla
+## What this screen is for
 
-Revisa cada participante o equipo inscrito antes de que el torneo se publique, y decide si queda
-aceptado, rechazado o retirado. Cada decisión se audita individualmente con el estado anterior, el
-estado resultante y quién la tomó.
+Reviews every participant or team registered before the tournament publishes, and decides whether
+each one is accepted, rejected, or withdrawn. Every decision is audited individually with the prior
+state, the resulting state, and who made it.
 
-## Datos clave
+## Key fields
 
-- **Estado**: pendiente, aceptado, rechazado o retirado. Solo transiciones válidas están permitidas
-  desde cada estado — la pantalla no deja aplicar una decisión ilegal (por ejemplo, aceptar algo ya
-  rechazado).
-- **Importar por CSV**: sube un archivo de participantes; el sistema valida el contenido y muestra
-  una vista previa fila por fila antes de confirmar. Ninguna fila con error se importa hasta que se
-  corrija el archivo y se vuelva a intentar.
-- **Revisión masiva**: aplica la misma decisión a varias inscripciones a la vez; cada una queda
-  auditada por separado, no como un solo evento agregado.
+- **Status**: pending, accepted, rejected, or withdrawn. Only valid transitions are allowed from each
+  status — the screen does not let you apply an illegal decision (for example, accepting something
+  already rejected).
+- **CSV import**: upload a participant file; the system validates the content and shows a row-by-row
+  preview before confirming. No row with an error is imported until the file is fixed and retried.
+- **Bulk review**: applies the same decision to several registrations at once; each one is still
+  audited separately, not as a single aggregate event.
 
-## Qué NO hace esta pantalla
+## What this screen does NOT do
 
-No modifica resultados de partidos ni el fixture — es exclusivamente sobre quién participa, antes de
-que el torneo arranque.
+It does not change match results or the fixture — it is exclusively about who participates, before
+the tournament starts.

@@ -1,26 +1,26 @@
 ---
-title: Revisión de reportes y disputas
-description: Qué son los reportes/disputas de participantes y qué hace revisarlos.
+title: Report and dispute review
+description: What participant reports/disputes are, and what reviewing them does.
 ---
 
-## Para qué sirve esta pantalla
+## What this screen is for
 
-Muestra los reportes y disputas que los propios participantes enviaron sobre un partido (por
-ejemplo, "el resultado cargado no es el que jugamos", con evidencia adjunta) para que un organizador
-los revise y decida qué hacer.
+Shows the reports and disputes participants themselves submitted about a match (for example, "the
+loaded result isn't what we played," with attached evidence) so an organizer can review them and
+decide what to do.
 
-## Datos clave
+## Key fields
 
-- **Reporte** vs. **disputa**: un reporte es una afirmación del participante sobre lo ocurrido; una
-  disputa cuestiona específicamente el resultado ya cargado.
-- **Evidencia**: archivos adjuntos (imagen, video, PDF) que el participante subió como respaldo.
-  Pasan por un chequeo de contenido/malware asincrónico antes de considerarse válidos — un adjunto
-  marcado como no seguro no se muestra como válido a ningún revisor.
-- **Estado de revisión**: pendiente, revisado o descartado, con nota del revisor.
+- **Report** vs. **dispute**: a report is a participant's claim about what happened; a dispute
+  specifically challenges an already-loaded result.
+- **Evidence**: attachments (image, video, PDF) the participant uploaded as support. They pass an
+  asynchronous content/malware check before counting as valid — an attachment flagged unsafe is
+  never shown as valid to any reviewer.
+- **Review status**: pending, reviewed, or dismissed, with a reviewer note.
 
-## Qué NO hace esta pantalla
+## What this screen does NOT do
 
-Revisar un reporte **nunca** sobrescribe un resultado directamente. Un resultado ya cargado solo
-cambia por el camino auditado de corrección/supersesión (motivo, estado anterior, estado resultante,
-vista previa de recálculo) — esta pantalla es donde un organizador decide _si_ amerita esa
-corrección, no donde la corrección misma ocurre.
+Reviewing a report **never** overwrites a result directly. An already-loaded result only changes
+through the audited correction/supersession path (reason, prior state, resulting state, recalculation
+preview) — this screen is where an organizer decides _whether_ that correction is warranted, not
+where the correction itself happens.

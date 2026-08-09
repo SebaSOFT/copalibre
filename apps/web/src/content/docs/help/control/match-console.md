@@ -1,26 +1,26 @@
 ---
-title: Consola de partido en vivo
-description: Qué hace la consola de partido, y qué no se puede cambiar una vez cargado un resultado.
+title: Live match console
+description: What the match console does, and what cannot change once a result is loaded.
 ---
 
-## Para qué sirve esta pantalla
+## What this screen is for
 
-Es la pantalla de operación de un partido en curso: registrar eventos y segmentos a medida que
-ocurren, y cargar el resultado final cuando el partido termina. Lo que se hace acá se transmite en
-vivo a la pantalla pública del torneo.
+This is the operation screen for a match in progress: recording events and segments as they happen,
+and loading the final result when the match ends. What happens here broadcasts live to the
+tournament's public screen.
 
-## Datos clave
+## Key fields
 
-- **Evento**: un hecho puntual del partido (un punto, una tarjeta, un cambio) registrado con su
-  momento exacto — forma el historial reconstruible del partido, no solo el marcador final.
-- **Segmento**: una división del partido con reloj propio (un set, un período). El reloj y el
-  resultado se manejan por segmento, no como un único cronómetro para todo el partido.
-- **Resultado**: el resultado final del partido, cargado una sola vez. Una vez cargado, no se
-  sobrescribe desde esta pantalla — cualquier corrección posterior pasa por el flujo auditado de
-  corrección/supersesión, no por volver a cargar acá.
+- **Event**: a specific match occurrence (a point, a card, a substitution) recorded with its exact
+  moment — it forms the match's reconstructible history, not just the final score.
+- **Segment**: a division of the match with its own clock (a set, a period). The clock and the result
+  are handled per segment, not as a single stopwatch for the whole match.
+- **Result**: the match's final result, loaded exactly once. Once loaded, it is not overwritten from
+  this screen — any later correction goes through the audited correction/supersession flow, not by
+  reloading it here.
 
-## Qué NO se puede hacer después de cargar el resultado
+## What you cannot do after loading the result
 
-Una vez finalizado el partido, esta pantalla no permite seguir agregando eventos como si el partido
-continuara, ni recargar el resultado directamente. Eso es intencional: protege la integridad del
-historial ya publicado.
+Once the match is finished, this screen no longer lets you keep adding events as if the match were
+continuing, nor reload the result directly. That is intentional: it protects the integrity of the
+history already published.

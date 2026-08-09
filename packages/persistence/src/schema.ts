@@ -17,6 +17,10 @@ export interface OrganizationsTable {
   organization_id: string;
   alias: string;
   name: string;
+  /** ISO 639-1 code from `SUPPORTED_LANGUAGES` (0051); presentation default only. */
+  primary_language: string;
+  /** IANA time zone identifier (0051); presentation default only. */
+  timezone: string;
   created_at: Timestamp;
 }
 

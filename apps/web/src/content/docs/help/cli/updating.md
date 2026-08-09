@@ -1,45 +1,44 @@
 ---
-title: Actualización
-description: Camino no-destructivo para actualizar el framework CopaLibre y sus módulos instalados.
+title: Updating
+description: The non-destructive path to updating the CopaLibre framework and its installed modules.
 ---
 
-## Actualizar el framework
+## Updating the framework
 
-Secuencia recomendada, no-destructiva:
+Recommended, non-destructive sequence:
 
-1. **Respalde** antes de tocar nada: `./copalibre backup --file backups/pre-upgrade.dump`.
-2. **Actualice** el checkout o la referencia de imagen a la nueva versión (no reinicie los
-   servicios todavía).
-3. **Verifique compatibilidad** contra la nueva versión, sin reiniciar nada:
+1. **Back up** before touching anything: `./copalibre backup --file backups/pre-upgrade.dump`.
+2. **Update** the checkout or image reference to the new version (do not restart services yet).
+3. **Check compatibility** against the new version, without restarting anything:
    ```bash
-   ./copalibre upgrade-check --target-version <version-nueva>
+   ./copalibre upgrade-check --target-version <new-version>
    ```
-   Reporta si algún módulo instalado dejaría de ser compatible con esa versión (mismo chequeo que
-   `module verify` usa contra la versión en ejecución, pero contra la versión objetivo), y lista las
-   migraciones de base de datos pendientes — sin aplicar ninguna. Termina con código de salida
-   distinto de cero si algún módulo quedaría incompatible; corríjalo antes de continuar.
-4. **Reinicie** con la nueva versión (`./copalibre start` o `docker compose up --detach --wait`). Las
-   migraciones pendientes se aplican automáticamente y en orden antes de que cualquier rol de proceso
-   empiece a servir tráfico — no es un paso manual separado.
+   Reports whether any installed module would stop being compatible with that version (the same
+   check `module verify` runs against the running version, but against the target version), and
+   lists pending database migrations — without applying any of them. Exits with a non-zero status if
+   any module would become incompatible; fix that before continuing.
+4. **Restart** with the new version (`./copalibre start` or `docker compose up --detach --wait`).
+   Pending migrations apply automatically, in order, before any process role starts serving
+   traffic — not a separate manual step.
 
-## Actualizar módulos
+## Updating modules
 
-Cada disciplina o perfil de torneo instalado es un módulo versionado independientemente del
+Every installed discipline or tournament profile is a module versioned independently of the
 framework.
 
 ```bash
 ./copalibre module list --outdated
 ```
 
-Lista solo los módulos instalados que tienen una versión publicada más nueva que la instalada.
+Lists only the installed modules that have a newer published version than the one installed.
 
 ```bash
-./copalibre module add <alias>@<rango>
+./copalibre module add <alias>@<range>
 ```
 
-Instala una versión específica o un rango (por ejemplo `@^2.0.0`) de un módulo ya instalado —
-reinstalar con una versión distinta es la forma de actualizar un módulo. Un torneo ya iniciado sigue
-referenciando la versión con la que se creó; actualizar un módulo no cambia retroactivamente un
-torneo en curso.
+Installs a specific version or range (for example `@^2.0.0`) of an already-installed module —
+reinstalling with a different version is how a module is updated. A tournament already in progress
+keeps referencing the version it was created with; updating a module never retroactively changes a
+tournament already underway.
 
-Ver la [referencia de comandos](/help/cli/commands/) para el resto de las opciones de `module`.
+See the [command reference](/help/cli/commands/) for the rest of `module`'s options.

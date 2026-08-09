@@ -1,65 +1,65 @@
 ---
-title: MCP para IA
-description: Cómo una IA puede operar CopaLibre mediante copalibre mcp.
+title: MCP for AI
+description: How an AI can operate CopaLibre through copalibre mcp.
 ---
 
-`copalibre mcp` arranca un servidor [Model Context Protocol](https://modelcontextprotocol.io) local,
-sobre stdio únicamente — sin transporte HTTP/SSE. Un cliente MCP (por ejemplo, un agente de IA)
-arranca el proceso y se comunica por su entrada/salida estándar; los mensajes de bitácora (el
-banner, etc.) van por stderr, nunca mezclados con el protocolo.
+`copalibre mcp` starts a local [Model Context Protocol](https://modelcontextprotocol.io) server,
+over stdio only — no HTTP/SSE transport. An MCP client (for example, an AI agent) starts the
+process and communicates over its standard input/output; log messages (the banner, etc.) go to
+stderr, never mixed with the protocol.
 
-## Herramientas de instalación
+## Installation tools
 
-Siempre disponibles, sin necesidad de configurar ningún token — ejecutan la misma lógica que sus
-comandos CLI equivalentes, en el mismo proceso:
+Always available, no token to configure — they run the exact same logic as their equivalent CLI
+commands, in the same process:
 
-- **`copalibre_doctor`**: valida configuración y dependencias (igual que `copalibre doctor`).
-- **`copalibre_module_list`**: lista los módulos instalados.
-- **`copalibre_upgrade_check`**: chequea compatibilidad de módulos y migraciones pendientes contra
-  una versión objetivo (`target_version`), igual que `copalibre upgrade-check`.
+- **`copalibre_doctor`**: validates configuration and dependencies (same as `copalibre doctor`).
+- **`copalibre_module_list`**: lists installed modules.
+- **`copalibre_upgrade_check`**: checks module compatibility and pending migrations against a target
+  version (`target_version`), same as `copalibre upgrade-check`.
 
-## Herramientas de autoría de módulos
+## Module-authoring tools
 
-Siempre disponibles, sin token — operan sobre el sistema de archivos local y Git, nunca sobre
-`apps/api`:
+Always available, no token — they operate on the local filesystem and Git, never on `apps/api`:
 
-- **`copalibre_module_scaffold`**: genera un paquete de módulo estructuralmente válido, sembrado
-  desde un documento ya válido del catálogo, como repositorio Git local etiquetado.
-- **`copalibre_module_validate_local`**: valida un paquete local sin buscarlo ni instalarlo.
-- **`copalibre_module_submit`**: bifurca `copalibre-modules`, publica el módulo en una rama nueva y
-  abre un pull request.
+- **`copalibre_module_scaffold`**: generates a structurally valid module package, seeded from an
+  already-valid catalogue document, as a tagged local Git repository.
+- **`copalibre_module_validate_local`**: validates a local package without searching for or
+  installing it.
+- **`copalibre_module_submit`**: forks `copalibre-modules`, publishes the module on a new branch,
+  and opens a pull request.
 
-Este es el escenario completo que justifica este servidor: una IA lee las reglas de un deporte, le
-pregunta al operador los detalles que necesita, arma el módulo localmente, lo valida, lo instala en
-una instalación de desarrollo local para probarlo de verdad (vía `copalibre module add --source
-file://...`, sin mecanismo aparte) y lo envía como pull request — todo sin salir del protocolo MCP.
+This is the full scenario this server exists for: an AI reads a sport's rules, asks the operator the
+details it needs, assembles the module locally, validates it, installs it into a local development
+installation to actually try it out (via `copalibre module add --source file://...`, no separate
+mechanism), and submits it as a pull request — all without leaving the MCP protocol.
 
-## Herramientas de operación de torneos
+## Tournament-operation tools
 
-Solo se registran cuando `COPALIBRE_MCP_TOKEN` y `COPALIBRE_API_URL` están configurados — sin token,
-ni siquiera aparecen en la lista de herramientas del servidor, y nunca se intenta ninguna llamada
-HTTP. `COPALIBRE_MCP_TOKEN` es un token bearer ya válido bajo el mismo contrato de autenticación
-OIDC/JWT que usa el resto de la API; este comando no emite ni gestiona tokens, solo los reenvía.
+Only registered when `COPALIBRE_MCP_TOKEN` and `COPALIBRE_API_URL` are configured — without a token,
+they don't even appear in the server's tool list, and no HTTP call is ever attempted.
+`COPALIBRE_MCP_TOKEN` is a bearer token already valid under the same OIDC/JWT authentication
+contract the rest of the API uses; this command does not issue or manage tokens, only forwards them.
 
-- **`copalibre_get_organization`**: lee una organización por su alias.
-- **`copalibre_list_tournaments`**: lista los torneos activos (no archivados) de una organización.
-- **`copalibre_get_tournament`**: lee un torneo por su alias dentro de una organización.
-- **`copalibre_create_tournament`**: crea un torneo en estado borrador.
-- **`copalibre_publish_tournament`**: publica la configuración de un torneo borrador.
+- **`copalibre_get_organization`**: reads an organization by its alias.
+- **`copalibre_list_tournaments`**: lists an organization's active (non-archived) tournaments.
+- **`copalibre_get_tournament`**: reads a tournament by its alias within an organization.
+- **`copalibre_create_tournament`**: creates a tournament in draft state.
+- **`copalibre_publish_tournament`**: publishes a draft tournament's configuration.
 
-Este es un conjunto inicial curado, no un espejo exhaustivo de cada endpoint de `apps/api` —
-ampliarlo más adelante es un trabajo esperado, no un límite fijo.
+This is an initial, curated set, not an exhaustive mirror of every `apps/api` endpoint — expanding it
+later is expected work, not a fixed limit.
 
-## Configurar un cliente MCP
+## Configuring an MCP client
 
-Un cliente MCP típico arranca `copalibre mcp` como subproceso, pasando las variables de entorno
-necesarias (`DATABASE_URL`, y opcionalmente `COPALIBRE_MCP_TOKEN`/`COPALIBRE_API_URL` para las
-herramientas de torneo). Ver [`docs/MCP.md`](https://github.com/SebaSOFT/copalibre/blob/develop/docs/MCP.md)
-en el repositorio para un ejemplo completo de configuración.
+A typical MCP client starts `copalibre mcp` as a subprocess, passing the required environment
+variables (`DATABASE_URL`, and optionally `COPALIBRE_MCP_TOKEN`/`COPALIBRE_API_URL` for the
+tournament tools). See [`docs/MCP.md`](https://github.com/SebaSOFT/copalibre/blob/develop/docs/MCP.md)
+in the repository for a complete configuration example.
 
-## Documentación para IA
+## Documentation for AI
 
-El servidor MCP anuncia sus propias `instructions` en la respuesta de `initialize` — el mismo
-resumen de esta página, en la forma que un cliente MCP lee antes de elegir una herramienta. Esta
-instancia también publica `/llms.txt` y `/llms-full.txt` en la raíz del sitio de ayuda, para una IA
-que en cambio recorre las páginas renderizadas.
+The MCP server announces its own `instructions` in the `initialize` response — the same summary as
+this page, in the form an MCP client reads before choosing a tool. This same instance also publishes
+`/llms.txt` and `/llms-full.txt` at the help site's root, for an AI that instead crawls the rendered
+pages.

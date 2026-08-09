@@ -13,6 +13,28 @@ allow idle streams to survive heartbeats. Use `deploy/proxy/Caddyfile` or
 `deploy/proxy/nginx.conf` as the edge configuration, then verify its live address with
 `./copalibre doctor --check-proxy --proxy-url https://events.example/events/proxy-check`.
 
+## Organization Language And Timezone
+
+Every organization carries a `primaryLanguage` (one of `en`, `es`, `fr`, `pt`, `it`, `de`, `ru`) and
+a `timezone` (an IANA identifier), defaulting to `es`/`UTC` when not specified at creation. Both are
+presentation-layer defaults only — stored instants remain UTC throughout. Change either after
+creation with a bearer token holding the organization's `admin` role:
+
+```bash
+curl -X PATCH https://api.example/organizations/<alias>/settings \
+  -H "Authorization: Bearer <token>" -H "Content-Type: application/json" \
+  -d '{"primaryLanguage": "en", "timezone": "America/Argentina/San_Juan"}'
+```
+
+A user's own interface language is a separate, per-browser preference (never synced to their
+account) that this installation's control panel and public pages resolve from, in order: an explicit
+choice already stored in that browser, then the organization's `primaryLanguage`, then the browser's
+own language list, then English.
+
+The help site (`/help/`) now defaults to English, with the same content also available at `/es/`;
+generated `llms.txt`/`llms-full.txt` stay English regardless of how many interface languages the
+site later supports.
+
 ## Persistent Data And Backups
 
 `postgres-data` contains authoritative tournament, participant, result, audit, outbox, identity,

@@ -1,19 +1,19 @@
 ---
-title: Operación y trazabilidad
-description: Reglas para operar partidos y corregir datos de torneo.
+title: Operation and traceability
+description: Rules for operating matches and correcting tournament data.
 ---
 
-## Consola de partido
+## Match console
 
-Registre eventos y reloj desde consola autorizada. La proyección pública se actualiza desde eventos
-durables y conserva versión para recuperación.
+Record events and the clock from an authorized console. The public projection updates from durable
+events and keeps a version for recovery.
 
-## Correcciones
+## Corrections
 
-No sobrescriba resultados calculados. Una corrección requiere motivo, actor y vista previa de impacto
-antes de afectar posiciones o fases posteriores.
+Never overwrite a calculated result. A correction requires a reason, an actor, and an impact preview
+before it affects standings or downstream stages.
 
 ## Roster
 
-Roster representa selección de jugadores de un participante para un partido. No representa relación
-persistente entre persona y equipo.
+A roster represents a participant's selected players for one match. It does not represent a
+persistent relationship between a person and a team.

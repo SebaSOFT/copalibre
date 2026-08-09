@@ -1,23 +1,24 @@
 ---
-title: Primer torneo
-description: Flujo inicial para crear y publicar un torneo.
+title: Your first tournament
+description: The initial flow for creating and publishing a tournament.
 ---
 
-## Crear torneo
+## Create the tournament
 
-Seleccione disciplina, alias de torneo y formato declarado. El alias identifica ruta pública y usa
-minúsculas con guiones.
+Choose the discipline, the tournament alias, and the declared format. The alias identifies the
+public route and uses lowercase with hyphens.
 
-## Revisar inscripciones
+## Review registrations
 
-Revise participantes antes de aceptarlos. Cada decisión registra actor y momento de cambio.
+Review participants before accepting them. Every decision records the actor and the moment of the
+change.
 
-## Publicar configuración
+## Publish the configuration
 
-Publique una configuración revisada antes de generar fixture. Cambios posteriores se clasifican según
-su impacto sobre resultados existentes.
+Publish a reviewed configuration before generating the fixture. Later changes are classified
+according to their impact on existing results.
 
-## Ayuda por pantalla
+## Per-screen help
 
-Cada pantalla del [panel de control](/help/control/) tiene su propia página de ayuda, accesible
-desde el enlace "¿Qué es esta pantalla?" en su barra lateral.
+Every screen in the [control panel](/help/control/) has its own help page, reachable from the
+"What is this screen?" link in its sidebar.

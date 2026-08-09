@@ -34,6 +34,8 @@ describe('cursor-based replay (integration)', () => {
           organization_id: organizationId,
           alias: organizationId === ORGANIZATION ? 'liga' : 'otra-liga',
           name: 'Liga',
+          primary_language: 'es',
+          timezone: 'UTC',
           created_at: new Date(),
         })
         .execute();
