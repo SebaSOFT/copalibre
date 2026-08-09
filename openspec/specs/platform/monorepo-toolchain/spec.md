@@ -100,3 +100,29 @@ rather than on module format.
 - **THEN** both execute successfully, proving decorators, dependency injection, and
   `reflect-metadata` work under the ES module system
 
+### Requirement: End-to-end and deploy-verification jobs run only for release-candidate builds
+
+The end-to-end browser test suite and the Docker build/deploy-verification chain (release image build,
+deployment end-to-end, deploy smoke test) SHALL run only when the current CI run is a release
+candidate — a pull request targeting `main`, a push to `main`, or a manually dispatched run — and SHALL
+be skipped for a pull request targeting any other branch, so routine `develop`-targeting pull requests
+get fast feedback without the cost of the full browser and deployment verification chain.
+
+#### Scenario: A pull request against develop skips the end-to-end and deploy-verification jobs
+
+- **WHEN** a pull request is opened targeting `develop`
+- **THEN** the `e2e-tests`, `build`, `deployment-e2e`, and `deploy-smoke-test` jobs do not run, while
+  lint, typecheck, unit tests, and integration tests still run
+
+#### Scenario: A pull request against main runs the full verification chain
+
+- **WHEN** a pull request is opened targeting `main`
+- **THEN** the `e2e-tests`, `build`, `deployment-e2e`, and `deploy-smoke-test` jobs all run, subject to
+  their own existing scope-based skip conditions (a frontend-only or backend-only change may still
+  legitimately skip a subset, unrelated to the release-candidate gate)
+
+#### Scenario: A manually dispatched run always includes the full verification chain
+
+- **WHEN** the CI workflow is triggered manually (`workflow_dispatch`)
+- **THEN** the end-to-end and deploy-verification jobs run regardless of branch
+
