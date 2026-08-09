@@ -52,6 +52,44 @@ route even if the old alias string collides.
 - **AND** a visitor requests the old path `/{organization}/tournaments/spring-cup-2026`
 - **THEN** the response is a 301 redirect to `/{organization}/tournaments/spring-cup-26`
 
+### Requirement: Public routes carry a locale prefix, primary locale excepted
+
+Every public canonical route SHALL be available in each of the platform's supported interface
+languages that have populated content, as a `/{locale}/{organization}/...` prefixed static variant,
+except the primary locale (English), which SHALL remain unprefixed at
+`/{organization}/tournaments/{tournament}` and its public children. Interface chrome (navigation,
+footer, section headings, status labels) SHALL render in the variant's own language; organizer-entered
+content (tournament names, participant names, organization names) is never translated.
+
+#### Scenario: English is served unprefixed
+
+- **WHEN** an anonymous visitor requests `/{organization}/tournaments/{tournament}`
+- **THEN** the page renders with English interface chrome and no locale prefix in the URL
+
+#### Scenario: A non-primary locale is served under its prefix
+
+- **WHEN** an anonymous visitor requests `/es/{organization}/tournaments/{tournament}` for a
+  tournament that also has an English variant
+- **THEN** the page renders the same tournament's data with Spanish interface chrome, and organizer-
+  entered names render identically to the English variant
+
+#### Scenario: The document language attribute matches the served locale
+
+- **WHEN** any public page is requested
+- **THEN** its `<html lang>` attribute matches the locale actually served, never a value hardcoded
+  independent of the requested variant
+
+### Requirement: Sitemap advertises every locale variant of a public route
+
+`sitemap.xml` SHALL include an entry for each locale variant of each public canonical route it
+advertises, not only the primary-locale entry.
+
+#### Scenario: A route with two locale variants produces two sitemap entries
+
+- **WHEN** `sitemap.xml` is generated for a public route that has both English and Spanish variants
+- **THEN** it contains a `<url>` entry for the unprefixed English path and a separate entry for the
+  `/es/`-prefixed path
+
 #### Scenario: Redirect does not leak across organizations
 - **WHEN** organization A previously used alias `spring-cup-2026` and later renamed it
 - **AND** organization B independently registers a tournament with alias `spring-cup-2026`

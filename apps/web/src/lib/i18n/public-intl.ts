@@ -1,6 +1,11 @@
 import { createIntl, createIntlCache, type IntlShape } from 'react-intl';
 import type { SupportedLanguage } from '@copalibre/domain';
 import { messages as esMessages } from './public-messages.es.js';
+import { messages as frMessages } from './public-messages.fr.js';
+import { messages as ptMessages } from './public-messages.pt.js';
+import { messages as itMessages } from './public-messages.it.js';
+import { messages as deMessages } from './public-messages.de.js';
+import { messages as ruMessages } from './public-messages.ru.js';
 import { messages } from './public-messages.en.js';
 import type { ResultState, ResultStateLabels } from '../result-state.js';
 
@@ -20,6 +25,11 @@ import type { ResultState, ResultStateLabels } from '../result-state.js';
 
 const CATALOGS: Partial<Record<SupportedLanguage, Record<string, string>>> = {
   es: esMessages,
+  fr: frMessages,
+  pt: ptMessages,
+  it: itMessages,
+  de: deMessages,
+  ru: ruMessages,
 };
 
 const cache = createIntlCache();

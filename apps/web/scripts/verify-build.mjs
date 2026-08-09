@@ -9,15 +9,19 @@ import { readFileSync } from 'node:fs';
  * cheap half of section 7 that needs no browser.
  *
  * English is the primary locale (0055): the unprefixed path carries English
- * chrome, and `/es/` carries the same content translated. `describeSlot`'s
- * bracket-slot labels ("Ganador del N") stay Spanish regardless of locale —
- * a documented, deliberate exception (`lib/bracket.ts`), not a bug here.
+ * chrome, and every other supported language carries the same content
+ * translated under its own `/{locale}/` prefix (0056 populated the five
+ * beyond 0055's Spanish). `describeSlot`'s bracket-slot labels ("Ganador del
+ * N") stay Spanish regardless of locale — a documented, deliberate exception
+ * (`lib/bracket.ts`), not a bug here.
  */
 const DIST = new URL('../dist/', import.meta.url);
 const read = (path) => readFileSync(new URL(path, DIST), 'utf8');
 
 const failures = [];
+let totalChecks = 0;
 const check = (label, condition) => {
+  totalChecks += 1;
   if (!condition) failures.push(label);
 };
 
@@ -44,21 +48,32 @@ check('the grand final reads as pending', bracket.includes('TBD'));
 // No discipline-specific widget belongs on a shared template.
 check('the bracket has no minimap', !/minimap/i.test(bracket));
 
-// The `/es/` variant (0055): same data, translated chrome, no in-page switcher.
-const overviewEs = read('es/liga-mendocina/tournaments/apertura-2026/index.html');
-check(
-  'the Spanish overview names the same competition',
-  overviewEs.includes('Torneo Apertura 2026'),
-);
-check(
-  'the Spanish overview declares the Spanish document language',
-  /<html lang="es"/.test(overviewEs),
-);
-check('the Spanish overview labels its state in Spanish', overviewEs.includes('EN VIVO'));
-check(
-  'the Spanish overview canonical URL carries the /es/ prefix',
-  overviewEs.includes('/es/liga-mendocina/tournaments/apertura-2026'),
-);
+// Every non-primary locale variant (0055 built `es`; 0056 added the rest):
+// same data, translated chrome, no in-page switcher.
+const NON_PRIMARY_LOCALES = [
+  { locale: 'es', liveLabel: 'EN VIVO', name: 'Spanish' },
+  { locale: 'fr', liveLabel: 'EN DIRECT', name: 'French' },
+  { locale: 'pt', liveLabel: 'AO VIVO', name: 'Portuguese' },
+  { locale: 'it', liveLabel: 'IN DIRETTA', name: 'Italian' },
+  { locale: 'de', liveLabel: 'LIVE', name: 'German' },
+  { locale: 'ru', liveLabel: 'В ЭФИРЕ', name: 'Russian' },
+];
+for (const { locale, liveLabel, name } of NON_PRIMARY_LOCALES) {
+  const overviewVariant = read(`${locale}/liga-mendocina/tournaments/apertura-2026/index.html`);
+  check(
+    `the ${name} overview names the same competition`,
+    overviewVariant.includes('Torneo Apertura 2026'),
+  );
+  check(
+    `the ${name} overview declares the ${name} document language`,
+    new RegExp(`<html lang="${locale}"`).test(overviewVariant),
+  );
+  check(`the ${name} overview labels its state in ${name}`, overviewVariant.includes(liveLabel));
+  check(
+    `the ${name} overview canonical URL carries the /${locale}/ prefix`,
+    overviewVariant.includes(`/${locale}/liga-mendocina/tournaments/apertura-2026`),
+  );
+}
 
 const robots = read('robots.txt');
 check('robots disallows /control/', robots.includes('Disallow: /control/'));
@@ -71,14 +86,15 @@ check(
   'the sitemap lists the tournament',
   sitemap.includes('/liga-mendocina/tournaments/apertura-2026'),
 );
-check(
-  'the sitemap lists the Spanish tournament variant',
-  sitemap.includes('/es/liga-mendocina/tournaments/apertura-2026'),
-);
+for (const { locale, name } of NON_PRIMARY_LOCALES) {
+  check(
+    `the sitemap lists the ${name} tournament variant`,
+    sitemap.includes(`/${locale}/liga-mendocina/tournaments/apertura-2026`),
+  );
+}
 
-const TOTAL_CHECKS = 21;
 if (failures.length > 0) {
   process.stderr.write(`Built output failed:\n${failures.map((f) => `  - ${f}`).join('\n')}\n`);
   process.exit(1);
 }
-process.stdout.write(`Built output verified: ${TOTAL_CHECKS - failures.length} checks passed.\n`);
+process.stdout.write(`Built output verified: ${totalChecks} checks passed.\n`);
