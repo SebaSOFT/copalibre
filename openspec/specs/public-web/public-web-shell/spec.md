@@ -95,22 +95,22 @@ advertises, not only the primary-locale entry.
 - **THEN** it contains a `<url>` entry for the unprefixed English path and a separate entry for the
   `/es/`-prefixed path
 
-### Requirement: Public-web chrome is available in all seven supported interface languages
+### Requirement: Public-web chrome is available in all eight supported interface languages
 
 The public-web message catalog (0055) SHALL have populated content for every language in the
 platform's supported-language contract (English, Spanish, French, Portuguese, Italian, German,
-Russian), not just English and Spanish, with a reachable locale-prefixed static variant of every public
-page for each.
+Russian, Mandarin Chinese), not just English and Spanish, with a reachable locale-prefixed static
+variant of every public page for each.
 
 #### Scenario: Every supported language has a reachable public-page variant
 
 - **WHEN** the public-web site is built
-- **THEN** each of the seven supported languages' variant of every public page builds successfully and
-  is reachable — English unprefixed, the other six under their `/{locale}/` prefix
+- **THEN** each of the eight supported languages' variant of every public page builds successfully and
+  is reachable — English unprefixed, the other seven under their `/{locale}/` prefix
 
 #### Scenario: Every catalog carries the same key set as the English source
 
 - **WHEN** the public-web message catalogs are inspected
-- **THEN** each of the six non-English catalogs has exactly the same set of message IDs as
+- **THEN** each of the seven non-English catalogs has exactly the same set of message IDs as
   `public-messages.en.ts`, with no empty translation values
 

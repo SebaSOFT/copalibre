@@ -2,22 +2,22 @@
 
 ## Purpose
 
-Gives every organization a stable primary language and timezone, defines the seven-language contract
+Gives every organization a stable primary language and timezone, defines the eight-language contract
 the rest of the platform's interface work targets, and defines how a visitor's own interface-language
 preference is resolved — the foundation later changes build translated content and routing on top of.
 
 ## Requirements
 
-### Requirement: Seven supported interface languages, as stable codes
+### Requirement: Eight supported interface languages, as stable codes
 
 The system SHALL define a single, shared list of supported interface languages — English (`en`),
-Spanish (`es`), French (`fr`), Portuguese (`pt`), Italian (`it`), German (`de`), and Russian (`ru`) — as
-ISO 639-1 codes, never as display labels, reused by every layer that validates or stores a language
-selection.
+Spanish (`es`), French (`fr`), Portuguese (`pt`), Italian (`it`), German (`de`), Russian (`ru`), and
+Mandarin Chinese (`zh`) — as ISO 639-1 codes, never as display labels, reused by every layer that
+validates or stores a language selection.
 
 #### Scenario: A language code outside the supported set is rejected
 
-- **WHEN** any API request supplies a `primaryLanguage` value that is not one of the seven supported
+- **WHEN** any API request supplies a `primaryLanguage` value that is not one of the eight supported
   codes
 - **THEN** the request is rejected with a validation error naming the supported set
 

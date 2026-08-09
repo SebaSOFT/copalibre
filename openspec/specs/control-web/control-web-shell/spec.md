@@ -69,23 +69,24 @@ translated by this mechanism.
 - **WHEN** the control panel renders a date or time value
 - **THEN** it formats using the active interface language, never a hardcoded locale tag
 
-### Requirement: Control-panel chrome is available in all seven supported interface languages
+### Requirement: Control-panel chrome is available in all eight supported interface languages
 
 The control panel's message catalog (0053) SHALL have populated content for every language in the
 platform's supported-language contract (English, Spanish, French, Portuguese, Italian, German,
-Russian), not just English and Spanish, so the language switcher changes chrome for any selection
-rather than silently falling back to English for five of its seven options.
+Russian, Mandarin Chinese), not just English and Spanish, so the language switcher changes chrome for
+any selection rather than silently falling back to English for any of its non-English options.
 
 #### Scenario: Every supported language renders its own chrome, not an English fallback
 
-- **WHEN** an operator selects French, Portuguese, Italian, German, or Russian from the control-panel
-  language switcher
+- **WHEN** an operator selects French, Portuguese, Italian, German, Russian, or Mandarin Chinese from
+  the control-panel language switcher
 - **THEN** labels, buttons, and messages render in the selected language rather than falling back to
   English
 
 #### Scenario: Every catalog carries the same key set as the English source
 
 - **WHEN** the control panel's message catalogs are inspected
-- **THEN** each of the six non-English catalogs (Spanish, French, Portuguese, Italian, German, Russian)
-  has exactly the same set of message IDs as `messages.en.ts`, with no empty translation values
+- **THEN** each of the seven non-English catalogs (Spanish, French, Portuguese, Italian, German,
+  Russian, Mandarin Chinese) has exactly the same set of message IDs as `messages.en.ts`, with no empty
+  translation values
 

@@ -140,18 +140,18 @@ as the site's language coverage grows.
 - **THEN** `/llms-full.txt` contains only the English content, with no page from any other locale
   included
 
-### Requirement: Help site content is available in all seven supported interface languages
+### Requirement: Help site content is available in all eight supported interface languages
 
 The help site's `/help/` content (the overview, the CLI section, and the control-panel section)
 SHALL be available in every language in the platform's supported-language contract (English, Spanish,
-French, Portuguese, Italian, German, Russian) as a prefixed Starlight locale, with English remaining
-the unprefixed default that `llms.txt`/`llms-full.txt` are generated from.
+French, Portuguese, Italian, German, Russian, Mandarin Chinese) as a prefixed Starlight locale, with
+English remaining the unprefixed default that `llms.txt`/`llms-full.txt` are generated from.
 
 #### Scenario: Every supported language has a reachable help site
 
 - **WHEN** the help site is built
-- **THEN** each of the seven supported languages' `/help/` section builds successfully and is
-  reachable — English unprefixed, the other six under their language-code prefix
+- **THEN** each of the eight supported languages' `/help/` section builds successfully and is
+  reachable — English unprefixed, the other seven under their language-code prefix
 
 #### Scenario: Adding a locale never changes what llms.txt/llms-full.txt contain
 
