@@ -86,16 +86,19 @@ describe('distributionBars', () => {
 describe('tiebreakIndicator', () => {
   it('distinguishes the three states by icon and text, not colour', () => {
     expect(tiebreakIndicator(rowAt(0))).toMatchObject({ kind: 'none' });
-    expect(tiebreakIndicator(rowAt(1))).toMatchObject({ kind: 'resolved', label: 'Desempatado' });
+    expect(tiebreakIndicator(rowAt(1))).toMatchObject({
+      kind: 'resolved',
+      label: { id: 'control.standings.tieBroken' },
+    });
     expect(tiebreakIndicator(rowAt(2))).toMatchObject({
       kind: 'shared',
-      label: 'Posición compartida',
+      label: { id: 'control.standings.sharedRank' },
     });
 
     for (const row of rows.slice(1)) {
       const indicator = tiebreakIndicator(row);
       expect(indicator.icon).not.toBe('');
-      expect(indicator.label).not.toBe('');
+      expect(indicator.label).toBeDefined();
     }
   });
 });

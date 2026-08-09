@@ -3,6 +3,7 @@ import { jest } from '@jest/globals';
 import { RolesPermissionsPage } from './components/RolesPermissionsPage.js';
 import { RolesPermissionsRoute } from './components/RolesPermissionsRoute.js';
 import type { ControlApiClient, OrganizationRoleResponse } from './lib/api-client.js';
+import { withIntl } from './i18n/test-support.js';
 
 const rows = [
   {
@@ -18,25 +19,27 @@ describe('roles and permissions control', () => {
   it('changes role and active status through controlled row actions', async () => {
     const changes: unknown[] = [];
     render(
-      <RolesPermissionsPage
-        loading={false}
-        onChange={async (assignmentId, role, status) =>
-          void changes.push({ assignmentId, role, status })
-        }
-        onDelete={async () => undefined}
-        onInvite={async () => undefined}
-        organizationAlias="liga-mendocina"
-        rows={rows}
-      />,
+      withIntl(
+        <RolesPermissionsPage
+          loading={false}
+          onChange={async (assignmentId, role, status) =>
+            void changes.push({ assignmentId, role, status })
+          }
+          onDelete={async () => undefined}
+          onInvite={async () => undefined}
+          organizationAlias="liga-mendocina"
+          rows={rows}
+        />,
+      ),
     );
 
     await act(async () => {
-      fireEvent.change(screen.getByLabelText('Rol de referee@example.test'), {
+      fireEvent.change(screen.getByLabelText('Role of referee@example.test'), {
         target: { value: 'broadcaster' },
       });
     });
     await act(async () => {
-      fireEvent.click(screen.getByLabelText('Estado de referee@example.test'));
+      fireEvent.click(screen.getByLabelText('Status of referee@example.test'));
     });
 
     expect(changes).toEqual([
@@ -48,24 +51,26 @@ describe('roles and permissions control', () => {
   it('submits email, role and initial status from the invite dialog', async () => {
     const invitations: unknown[] = [];
     render(
-      <RolesPermissionsPage
-        loading={false}
-        onChange={async () => undefined}
-        onDelete={async () => undefined}
-        onInvite={async (email, role, status) => void invitations.push({ email, role, status })}
-        organizationAlias="liga-mendocina"
-        rows={rows}
-      />,
+      withIntl(
+        <RolesPermissionsPage
+          loading={false}
+          onChange={async () => undefined}
+          onDelete={async () => undefined}
+          onInvite={async (email, role, status) => void invitations.push({ email, role, status })}
+          organizationAlias="liga-mendocina"
+          rows={rows}
+        />,
+      ),
     );
 
-    fireEvent.click(screen.getByText('Añadir destinatario'));
-    fireEvent.change(screen.getByLabelText('Correo electrónico'), {
+    fireEvent.click(screen.getByText('Add recipient'));
+    fireEvent.change(screen.getByLabelText('Email'), {
       target: { value: 'viewer@example.test' },
     });
-    fireEvent.change(screen.getByLabelText('Rol de invitación'), { target: { value: 'viewer' } });
-    fireEvent.click(screen.getByLabelText('Activo al aceptar'));
+    fireEvent.change(screen.getByLabelText('Invitation role'), { target: { value: 'viewer' } });
+    fireEvent.click(screen.getByLabelText('Active once accepted'));
     await act(async () => {
-      fireEvent.click(screen.getByText('Enviar invitación'));
+      fireEvent.click(screen.getByText('Send invitation'));
     });
 
     expect(invitations).toEqual([
@@ -79,11 +84,11 @@ describe('roles and permissions control', () => {
       listOrganizationRoles: async () => rows,
       changeOrganizationRole,
     });
-    render(<RolesPermissionsRoute client={client} organizationAlias="liga-mendocina" />);
+    render(withIntl(<RolesPermissionsRoute client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('referee@example.test');
     await act(async () => {
-      fireEvent.change(screen.getByLabelText('Rol de referee@example.test'), {
+      fireEvent.change(screen.getByLabelText('Role of referee@example.test'), {
         target: { value: 'viewer' },
       });
     });
@@ -99,7 +104,7 @@ describe('roles and permissions control', () => {
         throw new Error('Sin permisos');
       },
     });
-    render(<RolesPermissionsRoute client={client} organizationAlias="liga-mendocina" />);
+    render(withIntl(<RolesPermissionsRoute client={client} organizationAlias="liga-mendocina" />));
     await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('Sin permisos'));
   });
 
@@ -109,11 +114,11 @@ describe('roles and permissions control', () => {
       listOrganizationRoles: async () => rows,
       deleteOrganizationRole,
     });
-    render(<RolesPermissionsRoute client={client} organizationAlias="liga-mendocina" />);
+    render(withIntl(<RolesPermissionsRoute client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('referee@example.test');
     await act(async () => {
-      fireEvent.click(screen.getByLabelText('Eliminar referee@example.test'));
+      fireEvent.click(screen.getByLabelText('Delete referee@example.test'));
     });
 
     expect(deleteOrganizationRole).toHaveBeenCalledWith('liga-mendocina', 'assignment-1');
@@ -133,15 +138,15 @@ describe('roles and permissions control', () => {
         { ...rows[0], assignmentId: 'assignment-2', email: 'viewer@example.test' },
       ]);
     const client = controlClient({ listOrganizationRoles, inviteOrganizationUser });
-    render(<RolesPermissionsRoute client={client} organizationAlias="liga-mendocina" />);
+    render(withIntl(<RolesPermissionsRoute client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('referee@example.test');
-    fireEvent.click(screen.getByText('Añadir destinatario'));
-    fireEvent.change(screen.getByLabelText('Correo electrónico'), {
+    fireEvent.click(screen.getByText('Add recipient'));
+    fireEvent.change(screen.getByLabelText('Email'), {
       target: { value: 'viewer@example.test' },
     });
     await act(async () => {
-      fireEvent.click(screen.getByText('Enviar invitación'));
+      fireEvent.click(screen.getByText('Send invitation'));
     });
 
     expect(inviteOrganizationUser).toHaveBeenCalledWith('liga-mendocina', {

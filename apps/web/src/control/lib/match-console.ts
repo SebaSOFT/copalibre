@@ -32,9 +32,19 @@ export function descriptionFor(
   return description.trim();
 }
 
-export function segmentLabel(projection: MatchConsoleResponse, segmentId: string): string {
+/**
+ * `unknownSegmentLabel` is caller-supplied (rather than a fixed fallback
+ * string here) so this stays a plain, `intl`-free function testable without
+ * a React context — the caller resolves the translated fallback via
+ * `useIntl().formatMessage()` (0053).
+ */
+export function segmentLabel(
+  projection: MatchConsoleResponse,
+  segmentId: string,
+  unknownSegmentLabel: string,
+): string {
   const segment = projection.segments.find((candidate) => candidate.segmentId === segmentId);
-  return segment ? `${segment.type} ${segment.number}` : 'Segmento desconocido';
+  return segment ? `${segment.type} ${segment.number}` : unknownSegmentLabel;
 }
 
 /**

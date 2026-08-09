@@ -282,6 +282,11 @@ jobs:
       # directly.
       - run: yarn workspace @copalibre/domain test --testPathPatterns 'i18n'
       - run: yarn workspace @copalibre/web test --testPathPatterns 'language-preference'
+      # Control-panel interface strings (0053): every string extracted to a
+      # message catalog with English and Spanish both populated, the
+      # Spanish-fidelity regression sample, and catalog completeness — named
+      # separately so a reviewer finds this capability's own signal directly.
+      - run: yarn workspace @copalibre/web test --testPathPatterns 'i18n/i18n\.test'
       # participant-reporting (0032): the report/dispute fact validator (never
       # a field capable of directly setting authoritative state), the
       # resource-ownership party-to-match check, the evidence-validation

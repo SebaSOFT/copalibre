@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { jest } from '@jest/globals';
 import { ReportReviewRoute } from './components/ReportReviewRoute.js';
 import type { ControlApiClient, ParticipantReportResponse } from './lib/api-client.js';
+import { withIntl } from './i18n/test-support.js';
 
 const pendingReport: ParticipantReportResponse = {
   reportId: 'report-1',
@@ -70,65 +71,73 @@ function client(overrides: Partial<ControlApiClient> = {}): ControlApiClient {
 describe('the pending reports and disputes queue', () => {
   it('says so when there is nothing pending', async () => {
     render(
-      <ReportReviewRoute
-        client={client({ listPendingReports: async () => [] })}
-        organizationAlias="liga-mendocina"
-        tournamentAlias="apertura-2026"
-      />,
+      withIntl(
+        <ReportReviewRoute
+          client={client({ listPendingReports: async () => [] })}
+          organizationAlias="liga-mendocina"
+          tournamentAlias="apertura-2026"
+        />,
+      ),
     );
 
-    await screen.findByText('No hay reportes ni disputas pendientes.');
+    await screen.findByText('There are no pending reports or disputes.');
   });
 
   it('lists a pending report with its evidence and kind label', async () => {
     render(
-      <ReportReviewRoute
-        client={client({ listPendingReports: async () => [pendingReport] })}
-        organizationAlias="liga-mendocina"
-        tournamentAlias="apertura-2026"
-      />,
+      withIntl(
+        <ReportReviewRoute
+          client={client({ listPendingReports: async () => [pendingReport] })}
+          organizationAlias="liga-mendocina"
+          tournamentAlias="apertura-2026"
+        />,
+      ),
     );
 
-    expect(await screen.findByText('Disputa')).toBeDefined();
+    expect(await screen.findByText('Dispute')).toBeDefined();
     expect(screen.getByText('El resultado cargado no coincide con la planilla')).toBeDefined();
     expect(screen.getByText(/planilla\.jpg/)).toBeDefined();
   });
 
   it('shows the loading failure when the queue cannot be fetched', async () => {
     render(
-      <ReportReviewRoute
-        client={client({
-          listPendingReports: async () => {
-            throw new Error('offline');
-          },
-        })}
-        organizationAlias="liga-mendocina"
-        tournamentAlias="apertura-2026"
-      />,
+      withIntl(
+        <ReportReviewRoute
+          client={client({
+            listPendingReports: async () => {
+              throw new Error('offline');
+            },
+          })}
+          organizationAlias="liga-mendocina"
+          tournamentAlias="apertura-2026"
+        />,
+      ),
     );
 
-    await screen.findByText('No se pudieron cargar los reportes.');
+    await screen.findByText('Could not load the reports.');
   });
 
   it('dismisses a report and removes it from the queue', async () => {
     const reviewReport = jest.fn(async () => ({ ...pendingReport, status: 'dismissed' }));
     render(
-      <ReportReviewRoute
-        client={client({ listPendingReports: async () => [pendingReport], reviewReport })}
-        organizationAlias="liga-mendocina"
-        tournamentAlias="apertura-2026"
-      />,
+      withIntl(
+        <ReportReviewRoute
+          client={client({ listPendingReports: async () => [pendingReport], reviewReport })}
+          organizationAlias="liga-mendocina"
+          tournamentAlias="apertura-2026"
+        />,
+      ),
     );
 
-    await screen.findByText('Disputa');
+    await screen.findByText('Dispute');
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Descartar' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
     });
 
     expect(reviewReport).toHaveBeenCalledWith('liga-mendocina', 'apertura-2026', 'report-1', {
       status: 'dismissed',
     });
-    await waitFor(() => expect(screen.queryByText('Disputa')).toBeNull());
+    await waitFor(() => expect(screen.queryByText('Dispute')).toBeNull());
   });
 
   it('builds its own client when none is injected', async () => {
@@ -140,9 +149,11 @@ describe('the pending reports and disputes queue', () => {
 
     try {
       render(
-        <ReportReviewRoute organizationAlias="liga-mendocina" tournamentAlias="apertura-2026" />,
+        withIntl(
+          <ReportReviewRoute organizationAlias="liga-mendocina" tournamentAlias="apertura-2026" />,
+        ),
       );
-      await screen.findByText('No hay reportes ni disputas pendientes.');
+      await screen.findByText('There are no pending reports or disputes.');
     } finally {
       Object.defineProperty(globalThis, 'fetch', { configurable: true, value: originalFetch });
     }

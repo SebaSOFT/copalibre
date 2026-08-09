@@ -44,10 +44,14 @@ function wizard(overrides: Partial<WizardState> = {}): WizardState {
 
 describe('the wizard gates each step', () => {
   it('will not leave the name step without a name and a valid alias', () => {
-    expect(stepProblems(wizard(), DISCIPLINES)).toContain('Falta el nombre');
-    expect(stepProblems(wizard({ name: 'Copa', alias: 'Copa Verano' }), DISCIPLINES)).toContain(
-      'El alias va en minúscula, con guiones',
+    expect(stepProblems(wizard(), DISCIPLINES).map((problem) => problem.id)).toContain(
+      'control.wizard.problem.missingName',
     );
+    expect(
+      stepProblems(wizard({ name: 'Copa', alias: 'Copa Verano' }), DISCIPLINES).map(
+        (problem) => problem.id,
+      ),
+    ).toContain('control.wizard.problem.aliasFormat');
     expect(canContinue(wizard({ name: 'Copa', alias: 'copa-verano' }), DISCIPLINES)).toBe(true);
   });
 
@@ -73,8 +77,8 @@ describe('the wizard gates each step', () => {
       format: 'round-robin',
     });
 
-    expect(stepProblems(stale, DISCIPLINES)).toEqual([
-      'Ese formato no lo soporta la disciplina elegida',
+    expect(stepProblems(stale, DISCIPLINES).map((problem) => problem.id)).toEqual([
+      'control.wizard.problem.formatNotSupported',
     ]);
   });
 
@@ -182,7 +186,7 @@ describe('the eligibility lock, as the console shows it', () => {
     expect(teamMembershipActionsEnabled({ ...closed, now: '2026-08-01T19:00:00.000Z' })).toBe(
       false,
     );
-    expect(LOCK_EXPLANATION).toContain('membresías registradas');
+    expect(LOCK_EXPLANATION.id).toBe('control.review.lockExplanation');
   });
 
   it('leaves them enabled before it closes, and when nothing requires check-in', () => {
@@ -220,8 +224,7 @@ describe('mutation-classification feedback', () => {
       }),
     ).toEqual({
       kind: 'blocked',
-      message:
-        'Este cambio ya no se puede aplicar desde edición normal: usá el flujo de corrección auditada.',
+      descriptor: expect.objectContaining({ id: 'control.mutation.blockedAfterResults' }),
     });
   });
 
@@ -234,7 +237,8 @@ describe('mutation-classification feedback', () => {
       }),
     ).toEqual({
       kind: 'warning',
-      message: 'Este cambio requiere regenerar 3 fixtures.',
+      descriptor: expect.objectContaining({ id: 'control.mutation.requiresRebuild' }),
+      values: { count: 3 },
     });
     expect(mutationFeedback({ mutationClass: 'safe', hasRecordedResults: true })).toEqual({
       kind: 'none',

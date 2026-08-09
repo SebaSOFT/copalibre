@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { FormattedMessage, useIntl } from 'react-intl';
 import {
   distributionBars,
   standingsColumns,
@@ -6,6 +7,7 @@ import {
   type EntrantNames,
   type StandingsData,
 } from '../lib/standings.js';
+import { messages } from '../i18n/messages.en.js';
 
 /**
  * A5 — standings with an expandable, engine-sourced tiebreak trace (0024).
@@ -29,6 +31,7 @@ export function StandingsPage({
   /** Fetches one row's trace lines; called the first time a row is expanded. */
   readonly onExpand?: (entrantId: string) => Promise<readonly string[]>;
 }): React.JSX.Element {
+  const intl = useIntl();
   const [traces, setTraces] = useState<Readonly<Record<string, readonly string[]>>>({});
   const [pending, setPending] = useState<readonly string[]>([]);
   const columns = standingsColumns(standings.rows);
@@ -43,24 +46,28 @@ export function StandingsPage({
       .catch(() =>
         setTraces((current) => ({
           ...current,
-          [entrantId]: ['No se pudo recuperar la traza del motor de reglas.'],
+          [entrantId]: [intl.formatMessage(messages.standingsTraceFetchFailed)],
         })),
       )
       .finally(() => setPending((current) => current.filter((id) => id !== entrantId)));
   };
 
   return (
-    <section aria-label="Posiciones" style={stackStyle}>
+    <section aria-label={intl.formatMessage(messages.standingsSectionLabel)} style={stackStyle}>
       <header style={headerStyle}>
         <div>
           <p style={metaStyle}>
             {organizationAlias} &gt; {tournamentName}
           </p>
-          <h1 style={titleStyle}>Posiciones</h1>
+          <h1 style={titleStyle}>
+            <FormattedMessage {...messages.standingsTitle} />
+          </h1>
         </div>
         <p style={smallStyle}>
-          Proyección v{standings.projectionVersion}
-          {standings.fullyResolved ? '' : ' · empate sin resolver'}
+          {intl.formatMessage(messages.standingsProjectionVersion, {
+            version: standings.projectionVersion,
+          })}
+          {standings.fullyResolved ? '' : intl.formatMessage(messages.standingsUnresolvedTie)}
         </p>
       </header>
 
@@ -69,13 +76,17 @@ export function StandingsPage({
       <div className="cl-card cl-chamfer cl-chamfer--control" style={tableStyle}>
         <div style={{ ...gridStyle(columns.length), ...tableHeaderStyle }}>
           <span>#</span>
-          <span>Participante</span>
+          <span>
+            <FormattedMessage {...messages.standingsParticipant} />
+          </span>
           {columns.map((column) => (
             <span key={column.code} title={column.label}>
               {column.shortLabel}
             </span>
           ))}
-          <span>Desempate</span>
+          <span>
+            <FormattedMessage {...messages.standingsTiebreak} />
+          </span>
         </div>
 
         {rows.map((row) => (
@@ -105,7 +116,8 @@ export function StandingsPage({
                   // Icon and text together: the printed sheet on the venue wall
                   // is grayscale, and so is a colour-blind operator's screen.
                   <span className="cl-badge">
-                    <span aria-hidden="true">{row.indicator.icon}</span> {row.indicator.label}
+                    <span aria-hidden="true">{row.indicator.icon}</span>{' '}
+                    {row.indicator.label && intl.formatMessage(row.indicator.label)}
                   </span>
                 )}
               </span>
@@ -118,13 +130,19 @@ export function StandingsPage({
                   loading={pending.includes(row.entrantId)}
                 />
               ) : (
-                <p style={smallStyle}>Ningún comparador de desempate intervino en esta posición.</p>
+                <p style={smallStyle}>
+                  <FormattedMessage {...messages.standingsNoTiebreak} />
+                </p>
               )}
             </div>
           </details>
         ))}
 
-        {rows.length === 0 && <p style={emptyStyle}>Todavía no hay resultados en esta fase.</p>}
+        {rows.length === 0 && (
+          <p style={emptyStyle}>
+            <FormattedMessage {...messages.standingsNoResultsYet} />
+          </p>
+        )}
       </div>
     </section>
   );
@@ -143,13 +161,34 @@ export function TiebreakTrace({
   readonly lines?: readonly string[];
   readonly loading: boolean;
 }): React.JSX.Element {
-  if (loading) return <p style={smallStyle}>Recuperando la traza…</p>;
-  if (lines === undefined) return <p style={smallStyle}>Abrí la fila para ver la traza.</p>;
-  if (lines.length === 0) return <p style={smallStyle}>El motor no registró comparadores.</p>;
+  const intl = useIntl();
+  if (loading) {
+    return (
+      <p style={smallStyle}>
+        <FormattedMessage {...messages.standingsTraceLoading} />
+      </p>
+    );
+  }
+  if (lines === undefined) {
+    return (
+      <p style={smallStyle}>
+        <FormattedMessage {...messages.standingsTraceOpenRow} />
+      </p>
+    );
+  }
+  if (lines.length === 0) {
+    return (
+      <p style={smallStyle}>
+        <FormattedMessage {...messages.standingsTraceNoComparators} />
+      </p>
+    );
+  }
 
   return (
-    <div aria-label="Traza de desempate" style={traceStyle}>
-      <h2 style={traceTitleStyle}>Traza de desempate</h2>
+    <div aria-label={intl.formatMessage(messages.standingsTraceAriaLabel)} style={traceStyle}>
+      <h2 style={traceTitleStyle}>
+        <FormattedMessage {...messages.standingsTraceTitle} />
+      </h2>
       <ol style={traceListStyle}>
         {lines.map((line, index) => (
           <li key={`${index}-${line}`} style={traceLineStyle}>
@@ -178,9 +217,16 @@ export function PointsDistribution({
     readonly widthPercent: number;
   }[];
 }): React.JSX.Element {
+  const intl = useIntl();
   return (
-    <div aria-label="Distribución de puntos" className="cl-card cl-chamfer" style={chartStyle}>
-      <h2 style={chartTitleStyle}>Distribución de puntos · Top {bars.length}</h2>
+    <div
+      aria-label={intl.formatMessage(messages.standingsDistributionAriaLabel)}
+      className="cl-card cl-chamfer"
+      style={chartStyle}
+    >
+      <h2 style={chartTitleStyle}>
+        {intl.formatMessage(messages.standingsDistributionTitle, { count: bars.length })}
+      </h2>
       {bars.map((bar) => (
         <div key={bar.entrantId} style={barRowStyle}>
           <span style={barLabelStyle}>{bar.label}</span>
@@ -190,7 +236,11 @@ export function PointsDistribution({
           <strong style={barValueStyle}>{bar.value}</strong>
         </div>
       ))}
-      {bars.length === 0 && <p style={smallStyle}>Sin datos para graficar.</p>}
+      {bars.length === 0 && (
+        <p style={smallStyle}>
+          <FormattedMessage {...messages.standingsDistributionEmpty} />
+        </p>
+      )}
     </div>
   );
 }

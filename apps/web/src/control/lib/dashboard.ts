@@ -1,3 +1,6 @@
+import type { MessageDescriptor } from 'react-intl';
+import { messages } from '../i18n/messages.en.js';
+
 /**
  * The organization dashboard's view models (0022).
  *
@@ -41,12 +44,12 @@ export interface DashboardModel {
 }
 
 export const LIFECYCLE_PRESENTATION: Readonly<
-  Record<TournamentLifecycle, { readonly label: string; readonly accent: string }>
+  Record<TournamentLifecycle, { readonly label: MessageDescriptor; readonly accent: string }>
 > = {
-  live: { label: 'EN VIVO', accent: 'cl-state--live' },
-  upcoming: { label: 'PRÓXIMO', accent: 'cl-state--upcoming' },
-  draft: { label: 'BORRADOR', accent: 'cl-state--muted' },
-  finished: { label: 'FINALIZADO', accent: 'cl-state--positive' },
+  live: { label: messages.lifecycleLive, accent: 'cl-state--live' },
+  upcoming: { label: messages.lifecycleUpcoming, accent: 'cl-state--upcoming' },
+  draft: { label: messages.lifecycleDraft, accent: 'cl-state--muted' },
+  finished: { label: messages.lifecycleFinished, accent: 'cl-state--positive' },
 };
 
 /**
@@ -87,11 +90,15 @@ export function isMember(
   return subject.organizationId === organizationId;
 }
 
-export const SIDENAV = [
-  { label: 'Panel', path: '' },
-  { label: 'Consola en vivo', path: '/live' },
-  { label: 'Torneos', path: '/tournaments' },
-  { label: 'Roles', path: '/roles' },
-  { label: 'Organización', path: '/organization' },
-  { label: 'Analítica', path: '/analytics' },
-] as const;
+export const SIDENAV: readonly {
+  readonly id: string;
+  readonly label: MessageDescriptor;
+  readonly path: string;
+}[] = [
+  { id: 'dashboard', label: messages.navDashboard, path: '' },
+  { id: 'live-console', label: messages.navLiveConsole, path: '/live' },
+  { id: 'tournaments', label: messages.navTournaments, path: '/tournaments' },
+  { id: 'roles', label: messages.navRoles, path: '/roles' },
+  { id: 'organization', label: messages.navOrganization, path: '/organization' },
+  { id: 'analytics', label: messages.navAnalytics, path: '/analytics' },
+];

@@ -1,10 +1,27 @@
+import type { MessageDescriptor } from 'react-intl';
+import { messages } from '../i18n/messages.en.js';
+
 type MutationClass = 'safe' | 'requires_rebuild' | 'blocked_after_results';
 
 export type MutationFeedback =
   | { readonly kind: 'none' }
-  | { readonly kind: 'warning'; readonly message: string }
-  | { readonly kind: 'blocked'; readonly message: string };
+  | {
+      readonly kind: 'warning';
+      readonly descriptor: MessageDescriptor;
+      readonly values?: Readonly<Record<string, string | number>>;
+    }
+  | {
+      readonly kind: 'blocked';
+      readonly descriptor: MessageDescriptor;
+      readonly values?: Readonly<Record<string, string | number>>;
+    };
 
+/**
+ * Returns a message descriptor (plus any ICU interpolation values), not a
+ * formatted string — this stays a plain, `intl`-free function testable
+ * without a React context; the caller formats via `useIntl().formatMessage()`
+ * (0053).
+ */
 export function mutationFeedback(input: {
   readonly mutationClass: MutationClass;
   readonly hasRecordedResults: boolean;
@@ -13,21 +30,15 @@ export function mutationFeedback(input: {
   if (input.mutationClass === 'safe') return { kind: 'none' };
 
   if (input.mutationClass === 'blocked_after_results' && input.hasRecordedResults) {
-    return {
-      kind: 'blocked',
-      message:
-        'Este cambio ya no se puede aplicar desde edición normal: usá el flujo de corrección auditada.',
-    };
+    return { kind: 'blocked', descriptor: messages.mutationBlockedAfterResults };
   }
 
   if (input.mutationClass === 'requires_rebuild') {
     const count = input.invalidatedFixtureCount ?? 0;
     return {
       kind: 'warning',
-      message:
-        count === 0
-          ? 'Este cambio requiere regenerar estructura competitiva.'
-          : `Este cambio requiere regenerar ${count} fixture${count === 1 ? '' : 's'}.`,
+      descriptor: messages.mutationRequiresRebuild,
+      values: { count },
     };
   }
 

@@ -1,3 +1,6 @@
+import type { MessageDescriptor } from 'react-intl';
+import { messages } from '../i18n/messages.en.js';
+
 /**
  * The tournament setup wizard (0023).
  *
@@ -8,11 +11,14 @@
 
 export type WizardStepId = 'name' | 'discipline' | 'format' | 'window';
 
-export const WIZARD_STEPS: readonly { readonly id: WizardStepId; readonly label: string }[] = [
-  { id: 'name', label: 'Nombre' },
-  { id: 'discipline', label: 'Disciplina' },
-  { id: 'format', label: 'Formato' },
-  { id: 'window', label: 'Ventana' },
+export const WIZARD_STEPS: readonly {
+  readonly id: WizardStepId;
+  readonly label: MessageDescriptor;
+}[] = [
+  { id: 'name', label: messages.wizardStepName },
+  { id: 'discipline', label: messages.wizardStepDiscipline },
+  { id: 'format', label: messages.wizardStepFormat },
+  { id: 'window', label: messages.wizardStepWindow },
 ];
 
 export interface DisciplineOption {
@@ -53,32 +59,34 @@ export function formatsFor(
   return disciplines.find((one) => one.descriptorId === descriptorId)?.supportedFormats ?? [];
 }
 
-/** What is missing on this step, in words the operator can act on. */
+/** What is missing on this step, as message descriptors the caller formats via `useIntl()`. */
 export function stepProblems(
   state: WizardState,
   disciplines: readonly DisciplineOption[],
-): readonly string[] {
+): readonly MessageDescriptor[] {
   switch (state.step) {
     case 'name':
       return [
-        ...(state.name === undefined || state.name.trim() === '' ? ['Falta el nombre'] : []),
+        ...(state.name === undefined || state.name.trim() === ''
+          ? [messages.wizardProblemMissingName]
+          : []),
         ...(state.alias === undefined || !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(state.alias)
-          ? ['El alias va en minúscula, con guiones']
+          ? [messages.wizardProblemAliasFormat]
           : []),
       ];
     case 'discipline':
-      return state.descriptorId === undefined ? ['Elegí una disciplina'] : [];
+      return state.descriptorId === undefined ? [messages.wizardProblemChooseDiscipline] : [];
     case 'format': {
-      if (state.format === undefined) return ['Elegí un formato'];
+      if (state.format === undefined) return [messages.wizardProblemChooseFormat];
       // Guards against a stale selection: changing the discipline after
       // choosing a format must not carry the old one through.
       return formatsFor(disciplines, state.descriptorId).includes(state.format)
         ? []
-        : ['Ese formato no lo soporta la disciplina elegida'];
+        : [messages.wizardProblemFormatNotSupported];
     }
     case 'window':
       return state.capacity !== undefined && state.capacity < 2
-        ? ['Un torneo necesita al menos dos participantes']
+        ? [messages.wizardProblemMinParticipants]
         : [];
   }
 }

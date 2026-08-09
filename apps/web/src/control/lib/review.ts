@@ -1,3 +1,5 @@
+import { messages } from '../i18n/messages.en.js';
+
 /**
  * The registration review table's state (0023).
  *
@@ -95,5 +97,4 @@ export function teamMembershipActionsEnabled(input: {
   return input.checkInClosesAt === undefined || input.now < input.checkInClosesAt;
 }
 
-export const LOCK_EXPLANATION =
-  'El check-in cerró: las membresías registradas sostienen elegibilidad. Si hay un error, corregilo con un acta.';
+export const LOCK_EXPLANATION = messages.reviewLockExplanation;

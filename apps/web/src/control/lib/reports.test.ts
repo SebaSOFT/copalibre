@@ -20,7 +20,7 @@ describe('summaryOf', () => {
     );
   });
 
-  it('falls back to a generic label for a plain report with no reason', () => {
-    expect(summaryOf(row({ kind: 'report' }))).toContain('propuesto');
+  it('returns undefined for a plain report with no reason, leaving the generic label to the caller', () => {
+    expect(summaryOf(row({ kind: 'report' }))).toBeUndefined();
   });
 });

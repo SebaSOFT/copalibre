@@ -5,6 +5,7 @@
   "license": "AGPL-3.0-only",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "sideEffects": false,
   "scripts": {
     "build": "tsc --build",
     "test": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.config.cjs",

@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { FormattedMessage, useIntl } from 'react-intl';
 import { BracketCanvas } from './BracketCanvas.js';
 import { Button } from './ui/button.js';
 import type { CanvasMatch } from '../lib/bracket-canvas.js';
 import { canRedo, canUndo, initHistory, push, redo, undo } from '../lib/history.js';
 import { isDirty, randomizeUnlocked, toggleLock, type SeedAssignment } from '../lib/seeding.js';
 import { mutationFeedback } from '../lib/mutation-feedback.js';
+import { messages } from '../i18n/messages.en.js';
 
 /**
  * A6 — seed assignment beside the bracket it produces (0024).
@@ -33,6 +35,7 @@ export function SeedingBuilderPage({
   readonly onPublish?: (seeds: readonly SeedAssignment[]) => Promise<void> | void;
   readonly random?: () => number;
 }): React.JSX.Element {
+  const intl = useIntl();
   const [history, setHistory] = useState(() => initHistory<readonly SeedAssignment[]>(seeds));
   const [zoom, setZoom] = useState(1);
   const current = history.present;
@@ -45,13 +48,15 @@ export function SeedingBuilderPage({
   const apply = (next: readonly SeedAssignment[]): void => setHistory((state) => push(state, next));
 
   return (
-    <section aria-label="Sembrado y llave" style={stackStyle}>
+    <section aria-label={intl.formatMessage(messages.seedingSectionLabel)} style={stackStyle}>
       <header style={headerStyle}>
         <div>
           <p style={metaStyle}>
             {organizationAlias} &gt; {tournamentName}
           </p>
-          <h1 style={titleStyle}>Sembrado</h1>
+          <h1 style={titleStyle}>
+            <FormattedMessage {...messages.seedingTitle} />
+          </h1>
         </div>
         <div style={actionsStyle}>
           <Button
@@ -60,7 +65,7 @@ export function SeedingBuilderPage({
             type="button"
             variant="secondary"
           >
-            Deshacer
+            <FormattedMessage {...messages.seedingUndo} />
           </Button>
           <Button
             disabled={!canRedo(history)}
@@ -68,7 +73,7 @@ export function SeedingBuilderPage({
             type="button"
             variant="secondary"
           >
-            Rehacer
+            <FormattedMessage {...messages.seedingRedo} />
           </Button>
           <Button
             disabled={blocked}
@@ -76,50 +81,63 @@ export function SeedingBuilderPage({
             type="button"
             variant="secondary"
           >
-            Sortear no fijados
+            <FormattedMessage {...messages.seedingRandomizeUnlocked} />
           </Button>
           <Button
             disabled={blocked || !isDirty(current, seeds)}
             onClick={() => void onPublish?.(current)}
             type="button"
           >
-            Publicar sembrado
+            <FormattedMessage {...messages.seedingPublish} />
           </Button>
         </div>
       </header>
 
-      {blocked && (
+      {blocked && feedback.kind === 'blocked' && (
         <p className="cl-inline-alert" role="alert">
-          {feedback.message}
+          {intl.formatMessage(feedback.descriptor, feedback.values)}
         </p>
       )}
 
       <div style={panesStyle}>
         <div className="cl-card cl-chamfer cl-chamfer--control" style={listStyle}>
-          <h2 style={paneTitleStyle}>Orden de siembra</h2>
-          <ol aria-label="Orden de siembra" style={seedListStyle}>
+          <h2 style={paneTitleStyle}>
+            <FormattedMessage {...messages.seedingOrder} />
+          </h2>
+          <ol aria-label={intl.formatMessage(messages.seedingOrder)} style={seedListStyle}>
             {current.map((assignment) => (
               <li key={assignment.seed} style={seedRowStyle}>
                 <span style={seedNumberStyle}>{assignment.seed}</span>
                 <span>{names[assignment.entrantId] ?? assignment.entrantId}</span>
                 <Button
-                  aria-label={`${assignment.locked ? 'Liberar' : 'Fijar'} siembra ${assignment.seed}`}
+                  aria-label={intl.formatMessage(messages.seedingToggleLockAriaLabel, {
+                    locked: assignment.locked,
+                    seed: assignment.seed,
+                  })}
                   aria-pressed={assignment.locked}
                   disabled={blocked}
                   onClick={() => apply(toggleLock(current, assignment.seed))}
                   type="button"
                   variant="secondary"
                 >
-                  {assignment.locked ? 'Fijado' : 'Libre'}
+                  <FormattedMessage
+                    {...(assignment.locked ? messages.seedingLocked : messages.seedingUnlocked)}
+                  />
                 </Button>
               </li>
             ))}
           </ol>
-          {current.length === 0 && <p style={mutedStyle}>Esta fase no tiene participantes.</p>}
+          {current.length === 0 && (
+            <p style={mutedStyle}>
+              <FormattedMessage {...messages.seedingNoParticipants} />
+            </p>
+          )}
         </div>
 
         <div className="cl-card cl-chamfer cl-chamfer--control" style={canvasPaneStyle}>
-          <h2 style={paneTitleStyle}>Llave generada</h2>
+          <h2 style={paneTitleStyle}>
+            <FormattedMessage {...messages.seedingGeneratedBracket} />
+          </h2>
           <BracketCanvas matches={matches} onZoomChange={setZoom} zoom={zoom} />
         </div>
       </div>

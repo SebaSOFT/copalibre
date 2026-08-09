@@ -115,7 +115,7 @@ export function RolesPermissionsControlRoute({
   readonly client?: ControlApiClient;
 }): React.JSX.Element {
   return (
-    <ControlShell active="Roles" helpPath="roles-permissions" organizationAlias={organizationAlias}>
+    <ControlShell active="roles" helpPath="roles-permissions" organizationAlias={organizationAlias}>
       <RolesPermissionsRoute client={client} organizationAlias={organizationAlias} />
     </ControlShell>
   );

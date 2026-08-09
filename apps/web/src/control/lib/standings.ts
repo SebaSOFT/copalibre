@@ -7,6 +7,9 @@
  * an operator reads is what the engine decided.
  */
 
+import type { MessageDescriptor } from 'react-intl';
+import { messages } from '../i18n/messages.en.js';
+
 export interface StandingsRowData {
   readonly rank: number;
   readonly entrantId: string;
@@ -111,8 +114,8 @@ export function distributionBars(
 }
 
 export interface TiebreakIndicator {
-  /** Rendered as text beside the icon; never colour alone. */
-  readonly label: string;
+  /** Rendered as text beside the icon (via `intl.formatMessage`); never colour alone. Absent for `kind: 'none'`, which never renders it. */
+  readonly label?: MessageDescriptor;
   /** A glyph, chosen so grayscale printing still distinguishes the states. */
   readonly icon: string;
   readonly kind: 'resolved' | 'shared' | 'none';
@@ -126,9 +129,9 @@ export interface TiebreakIndicator {
  * somebody pins to the wall of the venue.
  */
 export function tiebreakIndicator(row: StandingsRowData): TiebreakIndicator {
-  if (row.sharedRank) return { kind: 'shared', icon: '=', label: 'Posición compartida' };
-  if (row.tieBroken) return { kind: 'resolved', icon: '⇅', label: 'Desempatado' };
-  return { kind: 'none', icon: '', label: '' };
+  if (row.sharedRank) return { kind: 'shared', icon: '=', label: messages.standingsSharedRank };
+  if (row.tieBroken) return { kind: 'resolved', icon: '⇅', label: messages.standingsTieBroken };
+  return { kind: 'none', icon: '' };
 }
 
 export interface StandingsRowView extends StandingsRowData {

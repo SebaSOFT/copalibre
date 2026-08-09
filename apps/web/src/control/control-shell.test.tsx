@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { useIntl } from 'react-intl';
 import { ControlShell } from './components/ControlShell.js';
 import {
   MatchConsoleControlRoute,
@@ -17,6 +18,7 @@ import {
 import { mutationFeedback } from './lib/mutation-feedback.js';
 import { sampleDashboardData } from './lib/sample.js';
 import { TournamentSetupWizard } from './components/TournamentSetupWizard.js';
+import { withIntl } from './i18n/test-support.js';
 
 /**
  * The shell, the routes and the wizard's later steps (0023).
@@ -47,6 +49,13 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
+// `ControlShell` resolves its interface language through the real
+// `ControlIntl` (0053) — no stored preference in a test's jsdom environment,
+// so it falls back to the organization-primary-language placeholder ('es'),
+// exactly matching today's Spanish-only behavior. Assertions in this describe
+// block and "the control routes" below stay Spanish for that reason — only
+// tests that mount a leaf component directly, bypassing `ControlShell`, wrap
+// with `withIntl()` and assert English.
 describe('the control shell', () => {
   it('links every section under the organization it is showing', () => {
     render(
@@ -64,7 +73,7 @@ describe('the control shell', () => {
   it('marks the active section, and only that one', () => {
     render(
       <ControlShell
-        active="Panel"
+        active="dashboard"
         helpPath="tournament-authoring"
         organizationAlias="liga-mendocina"
       >
@@ -224,49 +233,51 @@ function minimalControlClient(overrides: Partial<ControlApiClient>): ControlApiC
 
 describe('the wizard beyond the first step', () => {
   it('carries the chosen discipline’s version and resets the format with it', () => {
-    render(<TournamentSetupWizard disciplines={DISCIPLINES} onSubmit={() => {}} />);
+    render(withIntl(<TournamentSetupWizard disciplines={DISCIPLINES} onSubmit={() => {}} />));
 
-    fireEvent.change(screen.getByLabelText('Nombre'), { target: { value: 'Copa Verano' } });
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Verano' } });
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-verano' } });
-    fireEvent.click(screen.getByRole('button', { name: /Continuar/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Continue/i }));
 
-    fireEvent.change(screen.getByLabelText('Disciplina'), { target: { value: 'd-swimming' } });
-    fireEvent.click(screen.getByRole('button', { name: /Continuar/i }));
+    fireEvent.change(screen.getByLabelText('Discipline'), { target: { value: 'd-swimming' } });
+    fireEvent.click(screen.getByRole('button', { name: /Continue/i }));
 
     // Changing the discipline must not carry the previous discipline's format
     // through — the API rejects it, and the operator would not know why.
-    expect(screen.getByLabelText('Formato')).toHaveProperty('value', 'placement');
+    expect(screen.getByLabelText('Format')).toHaveProperty('value', 'placement');
   });
 
   it('goes back without losing what was typed', () => {
-    render(<TournamentSetupWizard disciplines={DISCIPLINES} onSubmit={() => {}} />);
+    render(withIntl(<TournamentSetupWizard disciplines={DISCIPLINES} onSubmit={() => {}} />));
 
-    fireEvent.change(screen.getByLabelText('Nombre'), { target: { value: 'Copa Verano' } });
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Verano' } });
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-verano' } });
-    fireEvent.click(screen.getByRole('button', { name: /Continuar/i }));
-    fireEvent.click(screen.getByRole('button', { name: /Volver/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Continue/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Back/i }));
 
-    expect(screen.getByLabelText('Nombre')).toHaveProperty('value', 'Copa Verano');
+    expect(screen.getByLabelText('Name')).toHaveProperty('value', 'Copa Verano');
   });
 
   it('submits the window toggles the check-in lock later reads', async () => {
     const submitted: unknown[] = [];
     render(
-      <TournamentSetupWizard
-        disciplines={DISCIPLINES}
-        onSubmit={(request) => void submitted.push(request)}
-      />,
+      withIntl(
+        <TournamentSetupWizard
+          disciplines={DISCIPLINES}
+          onSubmit={(request) => void submitted.push(request)}
+        />,
+      ),
     );
 
-    fireEvent.change(screen.getByLabelText('Nombre'), { target: { value: 'Copa Verano' } });
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Verano' } });
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-verano' } });
-    fireEvent.click(screen.getByRole('button', { name: /Continuar/i }));
-    fireEvent.click(screen.getByRole('button', { name: /Continuar/i }));
-    fireEvent.click(screen.getByRole('button', { name: /Continuar/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Continue/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Continue/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Continue/i }));
 
-    fireEvent.change(screen.getByLabelText('Capacidad'), { target: { value: '16' } });
-    fireEvent.click(screen.getByLabelText(/Requiere check-in/i));
-    fireEvent.click(screen.getByRole('button', { name: /Crear/i }));
+    fireEvent.change(screen.getByLabelText('Capacity'), { target: { value: '16' } });
+    fireEvent.click(screen.getByLabelText(/Requires check-in/i));
+    fireEvent.click(screen.getByRole('button', { name: /Create/i }));
 
     await waitFor(() => expect(submitted).toHaveLength(1));
     expect(submitted[0]).toMatchObject({
@@ -402,8 +413,10 @@ describe('mutation feedback', () => {
     expect(counted.kind).toBe('warning');
     expect(uncounted.kind).toBe('warning');
     if (counted.kind === 'none' || uncounted.kind === 'none') return;
-    expect(counted.message).toContain('1 fixture');
-    expect(uncounted.message).toContain('regenerar estructura');
+    expect(formatDescriptor(counted.descriptor, counted.values)).toContain('1 fixture');
+    expect(formatDescriptor(uncounted.descriptor, uncounted.values)).toContain(
+      'regenerating the competitive structure',
+    );
   });
 
   it('says nothing about a safe change', () => {
@@ -412,6 +425,20 @@ describe('mutation feedback', () => {
     });
   });
 });
+
+/** Formats a `MessageDescriptor` outside a component tree, for assertions. */
+function formatDescriptor(
+  descriptor: Parameters<ReturnType<typeof useIntl>['formatMessage']>[0],
+  values?: Record<string, string | number>,
+): string {
+  let formatted = '';
+  function Probe(): null {
+    formatted = useIntl().formatMessage(descriptor, values);
+    return null;
+  }
+  render(withIntl(<Probe />));
+  return formatted;
+}
 
 describe('the sample data', () => {
   it('describes one organization', () => {

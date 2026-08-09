@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MatchConsoleRoute } from './components/MatchConsoleRoute.js';
 import type { MatchConsoleApiClient, MatchConsoleResponse } from './lib/api-client.js';
+import { withIntl } from './i18n/test-support.js';
 
 const projection: MatchConsoleResponse = {
   matchId: 'match-1',
@@ -118,29 +119,31 @@ describe('MatchConsoleRoute', () => {
     const requests: unknown[] = [];
     await act(async () => {
       render(
-        <MatchConsoleRoute
-          client={client({
-            recordMatchEvent: async (_organization, _tournament, _match, request) => {
-              requests.push(request);
-              return {
-                eventId: 'event-2',
-                definitionCode: request.definitionCode,
-                sequence: 2,
-                notifications: [],
-              };
-            },
-          })}
-          matchId="match-1"
-          organizationAlias="liga"
-          tournamentAlias="apertura"
-        />,
+        withIntl(
+          <MatchConsoleRoute
+            client={client({
+              recordMatchEvent: async (_organization, _tournament, _match, request) => {
+                requests.push(request);
+                return {
+                  eventId: 'event-2',
+                  definitionCode: request.definitionCode,
+                  sequence: 2,
+                  notifications: [],
+                };
+              },
+            })}
+            matchId="match-1"
+            organizationAlias="liga"
+            tournamentAlias="apertura"
+          />,
+        ),
       );
     });
 
-    expect(screen.getByLabelText('Marcador actual').textContent).toContain('ntrant-a1');
+    expect(screen.getByLabelText('Current scoreboard').textContent).toContain('ntrant-a1');
     fireEvent.click(screen.getByRole('button', { name: 'Penal' }));
-    expect(screen.getByLabelText('Resultado del evento')).toBeDefined();
-    fireEvent.change(screen.getByLabelText('Descripción del evento'), {
+    expect(screen.getByLabelText('Event outcome')).toBeDefined();
+    fireEvent.change(screen.getByLabelText('Event description'), {
       target: { value: 'Tiro al ángulo' },
     });
     await act(async () => {
@@ -161,12 +164,14 @@ describe('MatchConsoleRoute', () => {
   it('labels telemetry as unavailable without numeric placeholders', async () => {
     await act(async () => {
       render(
-        <MatchConsoleRoute
-          client={client()}
-          matchId="match-1"
-          organizationAlias="liga"
-          tournamentAlias="apertura"
-        />,
+        withIntl(
+          <MatchConsoleRoute
+            client={client()}
+            matchId="match-1"
+            organizationAlias="liga"
+            tournamentAlias="apertura"
+          />,
+        ),
       );
     });
 
@@ -178,26 +183,28 @@ describe('MatchConsoleRoute', () => {
     const requests: unknown[] = [];
     await act(async () => {
       render(
-        <MatchConsoleRoute
-          client={client({
-            recordMatchEvent: async (_organization, _tournament, _match, request) => {
-              requests.push(request);
-              return {
-                eventId: 'event-2',
-                definitionCode: request.definitionCode,
-                sequence: 2,
-                notifications: [],
-              };
-            },
-          })}
-          matchId="match-1"
-          organizationAlias="liga"
-          tournamentAlias="apertura"
-        />,
+        withIntl(
+          <MatchConsoleRoute
+            client={client({
+              recordMatchEvent: async (_organization, _tournament, _match, request) => {
+                requests.push(request);
+                return {
+                  eventId: 'event-2',
+                  definitionCode: request.definitionCode,
+                  sequence: 2,
+                  notifications: [],
+                };
+              },
+            })}
+            matchId="match-1"
+            organizationAlias="liga"
+            tournamentAlias="apertura"
+          />,
+        ),
       );
     });
 
-    expect((screen.getByLabelText('Staff del evento') as HTMLSelectElement).value).toBe('staff-1');
+    expect((screen.getByLabelText('Event staff') as HTMLSelectElement).value).toBe('staff-1');
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Advertencia técnica' }));
     });
@@ -234,22 +241,30 @@ describe('MatchConsoleRoute', () => {
 
     await act(async () => {
       render(
-        <MatchConsoleRoute
-          client={client({
-            finalizeMatch: async (_organization, _tournament, _match, _request, idempotencyKey) => {
-              calls.push(idempotencyKey);
-              return pending;
-            },
-          })}
-          matchId="match-1"
-          organizationAlias="liga"
-          tournamentAlias="apertura"
-        />,
+        withIntl(
+          <MatchConsoleRoute
+            client={client({
+              finalizeMatch: async (
+                _organization,
+                _tournament,
+                _match,
+                _request,
+                idempotencyKey,
+              ) => {
+                calls.push(idempotencyKey);
+                return pending;
+              },
+            })}
+            matchId="match-1"
+            organizationAlias="liga"
+            tournamentAlias="apertura"
+          />,
+        ),
       );
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Finalizar partido' }));
-    const confirm = screen.getByRole('button', { name: 'Confirmar finalización' });
+    fireEvent.click(screen.getByRole('button', { name: 'Finalize match' }));
+    const confirm = screen.getByRole('button', { name: 'Confirm finalization' });
     fireEvent.click(confirm);
     fireEvent.click(confirm);
 
@@ -273,34 +288,42 @@ describe('MatchConsoleRoute', () => {
     const keys: string[] = [];
     await act(async () => {
       render(
-        <MatchConsoleRoute
-          client={client({
-            finalizeMatch: async (_organization, _tournament, _match, _request, idempotencyKey) => {
-              keys.push(idempotencyKey);
-              if (keys.length === 1) throw new Error('Conexión interrumpida');
-              return {
-                matchId: 'match-1',
-                status: 'finalized',
-                clockRunning: false,
-                runningTimers: [],
-              };
-            },
-          })}
-          matchId="match-1"
-          organizationAlias="liga"
-          tournamentAlias="apertura"
-        />,
+        withIntl(
+          <MatchConsoleRoute
+            client={client({
+              finalizeMatch: async (
+                _organization,
+                _tournament,
+                _match,
+                _request,
+                idempotencyKey,
+              ) => {
+                keys.push(idempotencyKey);
+                if (keys.length === 1) throw new Error('Conexión interrumpida');
+                return {
+                  matchId: 'match-1',
+                  status: 'finalized',
+                  clockRunning: false,
+                  runningTimers: [],
+                };
+              },
+            })}
+            matchId="match-1"
+            organizationAlias="liga"
+            tournamentAlias="apertura"
+          />,
+        ),
       );
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Finalizar partido' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Finalize match' }));
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Confirmar finalización' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Confirm finalization' }));
     });
     expect(screen.getByText('Conexión interrumpida')).toBeDefined();
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Confirmar finalización' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Confirm finalization' }));
     });
 
     expect(keys).toHaveLength(2);
@@ -324,52 +347,56 @@ describe('MatchConsoleRoute', () => {
     };
     await act(async () => {
       render(
-        <MatchConsoleRoute
-          client={client({
-            fetchMatchConsole: async () => withTimer,
-            adjustMatchClock: async () => {
-              requests.push('clock');
-              return withTimer;
-            },
-            resolveMatchTimer: async () => {
-              requests.push('timer');
-              return withTimer;
-            },
-          })}
-          matchId="match-1"
-          organizationAlias="liga"
-          tournamentAlias="apertura"
-        />,
+        withIntl(
+          <MatchConsoleRoute
+            client={client({
+              fetchMatchConsole: async () => withTimer,
+              adjustMatchClock: async () => {
+                requests.push('clock');
+                return withTimer;
+              },
+              resolveMatchTimer: async () => {
+                requests.push('timer');
+                return withTimer;
+              },
+            })}
+            matchId="match-1"
+            organizationAlias="liga"
+            tournamentAlias="apertura"
+          />,
+        ),
       );
     });
 
-    fireEvent.change(screen.getByLabelText('Segundos transcurridos'), { target: { value: '180' } });
+    fireEvent.change(screen.getByLabelText('Elapsed seconds'), { target: { value: '180' } });
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Aplicar reloj' }));
-      fireEvent.click(screen.getByRole('button', { name: 'Resolver' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Apply clock' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Resolve' }));
     });
     fireEvent.click(screen.getByRole('button', { name: 'negative' }));
 
     expect(requests).toEqual(['clock', 'timer']);
     expect(screen.queryByText('goal · half 1')).toBeNull();
     expect(
-      (screen.getByRole('button', { name: 'Finalizar partido' }) as HTMLButtonElement).disabled,
+      (screen.getByRole('button', { name: 'Finalize match' }) as HTMLButtonElement).disabled,
     ).toBe(true);
   });
 
   it('shows a server rejection while retaining granted clock controls', async () => {
     await act(async () => {
       render(
-        <MatchConsoleRoute
-          client={client({
-            recordMatchEvent: async () => {
-              throw new Error('Evento rechazado por servidor');
-            },
-          })}
-          matchId="match-1"
-          organizationAlias="liga"
-          tournamentAlias="apertura"
-        />,
+        withIntl(
+          <MatchConsoleRoute
+            client={client({
+              recordMatchEvent: async () => {
+                throw new Error('Evento rechazado por servidor');
+              },
+            })}
+            matchId="match-1"
+            organizationAlias="liga"
+            tournamentAlias="apertura"
+          />,
+        ),
       );
     });
 
@@ -377,23 +404,23 @@ describe('MatchConsoleRoute', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Gol' }));
     });
     expect(screen.getByText('Evento rechazado por servidor')).toBeDefined();
-    expect((screen.getByLabelText('Segundos transcurridos') as HTMLInputElement).disabled).toBe(
-      false,
-    );
+    expect((screen.getByLabelText('Elapsed seconds') as HTMLInputElement).disabled).toBe(false);
   });
 
   it('shows the authoritative-load failure before a projection exists', async () => {
     await act(async () => {
       render(
-        <MatchConsoleRoute
-          client={client({ fetchMatchConsole: async () => Promise.reject(new Error('offline')) })}
-          matchId="match-1"
-          organizationAlias="liga"
-          tournamentAlias="apertura"
-        />,
+        withIntl(
+          <MatchConsoleRoute
+            client={client({ fetchMatchConsole: async () => Promise.reject(new Error('offline')) })}
+            matchId="match-1"
+            organizationAlias="liga"
+            tournamentAlias="apertura"
+          />,
+        ),
       );
     });
-    expect(screen.getByText('No se pudo cargar el estado autoritativo del partido.')).toBeDefined();
+    expect(screen.getByText('Could not load the match’s authoritative state.')).toBeDefined();
   });
 
   it('withholds invalid palette entries when no active segment or eligible actor exists', async () => {
@@ -408,12 +435,14 @@ describe('MatchConsoleRoute', () => {
     };
     await act(async () => {
       render(
-        <MatchConsoleRoute
-          client={client({ fetchMatchConsole: async () => unavailable })}
-          matchId="match-1"
-          organizationAlias="liga"
-          tournamentAlias="apertura"
-        />,
+        withIntl(
+          <MatchConsoleRoute
+            client={client({ fetchMatchConsole: async () => unavailable })}
+            matchId="match-1"
+            organizationAlias="liga"
+            tournamentAlias="apertura"
+          />,
+        ),
       );
     });
     expect(screen.queryByRole('button', { name: 'Gol' })).toBeNull();
@@ -437,26 +466,28 @@ describe('MatchConsoleRoute', () => {
     };
     await act(async () => {
       render(
-        <MatchConsoleRoute
-          client={client({
-            fetchMatchConsole: async () => personProjection,
-            recordMatchEvent: async (_o, _t, _m, request) => {
-              requests.push(request);
-              return {
-                eventId: 'event-2',
-                definitionCode: request.definitionCode,
-                sequence: 2,
-                notifications: [],
-              };
-            },
-          })}
-          matchId="match-1"
-          organizationAlias="liga"
-          tournamentAlias="apertura"
-        />,
+        withIntl(
+          <MatchConsoleRoute
+            client={client({
+              fetchMatchConsole: async () => personProjection,
+              recordMatchEvent: async (_o, _t, _m, request) => {
+                requests.push(request);
+                return {
+                  eventId: 'event-2',
+                  definitionCode: request.definitionCode,
+                  sequence: 2,
+                  notifications: [],
+                };
+              },
+            })}
+            matchId="match-1"
+            organizationAlias="liga"
+            tournamentAlias="apertura"
+          />,
+        ),
       );
     });
-    fireEvent.change(screen.getByLabelText('Persona del evento'), {
+    fireEvent.change(screen.getByLabelText('Event person'), {
       target: { value: 'person-1' },
     });
     await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Gol' })));
@@ -466,34 +497,36 @@ describe('MatchConsoleRoute', () => {
   it('updates operator selectors, retains a ledger note, and cancels finalization', async () => {
     await act(async () => {
       render(
-        <MatchConsoleRoute
-          client={client()}
-          matchId="match-1"
-          organizationAlias="liga"
-          tournamentAlias="apertura"
-        />,
+        withIntl(
+          <MatchConsoleRoute
+            client={client()}
+            matchId="match-1"
+            organizationAlias="liga"
+            tournamentAlias="apertura"
+          />,
+        ),
       );
     });
 
-    fireEvent.change(screen.getByLabelText('Segmento activo'), { target: { value: 'segment-1' } });
-    fireEvent.change(screen.getByLabelText('Participante del evento'), {
+    fireEvent.change(screen.getByLabelText('Active segment'), { target: { value: 'segment-1' } });
+    fireEvent.change(screen.getByLabelText('Event participant'), {
       target: { value: 'entrant-b' },
     });
-    fireEvent.change(screen.getByLabelText('Staff del evento'), { target: { value: 'staff-1' } });
-    fireEvent.change(screen.getByLabelText('Nota de bitácora'), {
+    fireEvent.change(screen.getByLabelText('Event staff'), { target: { value: 'staff-1' } });
+    fireEvent.change(screen.getByLabelText('Log note'), {
       target: { value: 'Verificado por mesa' },
     });
 
-    expect((screen.getByLabelText('Participante del evento') as HTMLSelectElement).value).toBe(
+    expect((screen.getByLabelText('Event participant') as HTMLSelectElement).value).toBe(
       'entrant-b',
     );
-    expect((screen.getByLabelText('Nota de bitácora') as HTMLTextAreaElement).value).toBe(
+    expect((screen.getByLabelText('Log note') as HTMLTextAreaElement).value).toBe(
       'Verificado por mesa',
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Finalizar partido' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
-    expect(screen.queryByRole('button', { name: 'Confirmar finalización' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Finalize match' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('button', { name: 'Confirm finalization' })).toBeNull();
   });
 
   it('withholds person events without an eligible person and labels unmatched ledger segments', async () => {
@@ -505,17 +538,19 @@ describe('MatchConsoleRoute', () => {
     };
     await act(async () => {
       render(
-        <MatchConsoleRoute
-          client={client({ fetchMatchConsole: async () => unavailablePerson })}
-          matchId="match-1"
-          organizationAlias="liga"
-          tournamentAlias="apertura"
-        />,
+        withIntl(
+          <MatchConsoleRoute
+            client={client({ fetchMatchConsole: async () => unavailablePerson })}
+            matchId="match-1"
+            organizationAlias="liga"
+            tournamentAlias="apertura"
+          />,
+        ),
       );
     });
 
     expect(screen.queryByRole('button', { name: 'Gol' })).toBeNull();
-    expect(screen.getByText('goal · Segmento desconocido')).toBeDefined();
+    expect(screen.getByText('goal · Unknown segment')).toBeDefined();
   });
 
   it('does not offer finalization for a completed match and records descriptions only when supported', async () => {
@@ -527,34 +562,36 @@ describe('MatchConsoleRoute', () => {
     };
     await act(async () => {
       render(
-        <MatchConsoleRoute
-          client={client({
-            fetchMatchConsole: async () => completed,
-            recordMatchEvent: async (_organization, _tournament, _match, request) => {
-              requests.push(request);
-              return {
-                eventId: 'event-2',
-                definitionCode: request.definitionCode,
-                sequence: 2,
-                notifications: [],
-              };
-            },
-          })}
-          matchId="match-1"
-          organizationAlias="liga"
-          tournamentAlias="apertura"
-        />,
+        withIntl(
+          <MatchConsoleRoute
+            client={client({
+              fetchMatchConsole: async () => completed,
+              recordMatchEvent: async (_organization, _tournament, _match, request) => {
+                requests.push(request);
+                return {
+                  eventId: 'event-2',
+                  definitionCode: request.definitionCode,
+                  sequence: 2,
+                  notifications: [],
+                };
+              },
+            })}
+            matchId="match-1"
+            organizationAlias="liga"
+            tournamentAlias="apertura"
+          />,
+        ),
       );
     });
 
-    fireEvent.change(screen.getByLabelText('Descripción del evento'), {
+    fireEvent.change(screen.getByLabelText('Event description'), {
       target: { value: 'Sin campo de descripción' },
     });
     await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Gol' })));
 
     expect(requests).toEqual([expect.not.objectContaining({ payload: expect.anything() })]);
     expect(
-      (screen.getByRole('button', { name: 'Finalizar partido' }) as HTMLButtonElement).disabled,
+      (screen.getByRole('button', { name: 'Finalize match' }) as HTMLButtonElement).disabled,
     ).toBe(true);
   });
 
@@ -564,18 +601,20 @@ describe('MatchConsoleRoute', () => {
     try {
       await act(async () => {
         render(
-          <MatchConsoleRoute
-            client={client({
-              matchConsoleStream: () => ({ url: 'https://events.test/control/liga' }),
-            })}
-            matchId="match-1"
-            organizationAlias="liga"
-            tournamentAlias="apertura"
-          />,
+          withIntl(
+            <MatchConsoleRoute
+              client={client({
+                matchConsoleStream: () => ({ url: 'https://events.test/control/liga' }),
+              })}
+              matchId="match-1"
+              organizationAlias="liga"
+              tournamentAlias="apertura"
+            />,
+          ),
         );
         await Promise.resolve();
       });
-      expect(screen.getByText('Esperando proyección autoritativa...')).toBeDefined();
+      expect(screen.getByText('Awaiting authoritative projection...')).toBeDefined();
     } finally {
       globalThis.fetch = originalFetch;
     }
@@ -616,18 +655,20 @@ describe('MatchConsoleRoute', () => {
     try {
       await act(async () => {
         render(
-          <MatchConsoleRoute
-            client={client({
-              fetchMatchConsole: async () => {
-                loads += 1;
-                return projection;
-              },
-              matchConsoleStream: () => ({ url: 'https://events.test/control/liga' }),
-            })}
-            matchId="match-1"
-            organizationAlias="liga"
-            tournamentAlias="apertura"
-          />,
+          withIntl(
+            <MatchConsoleRoute
+              client={client({
+                fetchMatchConsole: async () => {
+                  loads += 1;
+                  return projection;
+                },
+                matchConsoleStream: () => ({ url: 'https://events.test/control/liga' }),
+              })}
+              matchId="match-1"
+              organizationAlias="liga"
+              tournamentAlias="apertura"
+            />,
+          ),
         );
       });
 

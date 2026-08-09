@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { TournamentAuthoringPage } from './components/TournamentAuthoringPage.js';
 import { RegistrationReviewRoute } from './components/RegistrationReviewRoute.js';
 import type { ControlApiClient } from './lib/api-client.js';
+import { withIntl } from './i18n/test-support.js';
 
 function client(overrides: Partial<ControlApiClient> = {}): ControlApiClient {
   return {
@@ -69,25 +70,27 @@ describe('the tournament authoring route container', () => {
 
     await act(async () => {
       render(
-        <TournamentAuthoringPage
-          organizationAlias="liga-mendocina"
-          client={client({
-            createTournament: async (_organizationAlias, request) => {
-              requests.push(request);
-              return { tournamentId: 't-1', alias: request.alias, name: request.name };
-            },
-          })}
-        />,
+        withIntl(
+          <TournamentAuthoringPage
+            organizationAlias="liga-mendocina"
+            client={client({
+              createTournament: async (_organizationAlias, request) => {
+                requests.push(request);
+                return { tournamentId: 't-1', alias: request.alias, name: request.name };
+              },
+            })}
+          />,
+        ),
       );
     });
 
-    fireEvent.change(screen.getByLabelText('Nombre'), { target: { value: 'Copa Verano' } });
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Verano' } });
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-verano' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Continuar' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continuar' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continuar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Crear torneo' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Create tournament' }));
     });
 
     expect(requests).toHaveLength(1);
@@ -108,37 +111,44 @@ describe('the registration review route container', () => {
 
     await act(async () => {
       render(
-        <RegistrationReviewRoute
-          organizationAlias="liga-mendocina"
-          tournamentAlias="apertura-2026"
-          client={client({
-            createCsvImport: async (_organizationAlias, _tournamentAlias, request) => {
-              calls.push(request.sourceCsv);
-              return { ...preview, status: 'queued' };
-            },
-            fetchCsvImport: async () => preview,
-            commitCsvImport: async (_organizationAlias, _tournamentAlias, importId, sourceHash) => {
-              calls.push(`${importId}:${sourceHash}`);
-              return { ...preview, status: 'committed' };
-            },
-          })}
-        />,
+        withIntl(
+          <RegistrationReviewRoute
+            organizationAlias="liga-mendocina"
+            tournamentAlias="apertura-2026"
+            client={client({
+              createCsvImport: async (_organizationAlias, _tournamentAlias, request) => {
+                calls.push(request.sourceCsv);
+                return { ...preview, status: 'queued' };
+              },
+              fetchCsvImport: async () => preview,
+              commitCsvImport: async (
+                _organizationAlias,
+                _tournamentAlias,
+                importId,
+                sourceHash,
+              ) => {
+                calls.push(`${importId}:${sourceHash}`);
+                return { ...preview, status: 'committed' };
+              },
+            })}
+          />,
+        ),
       );
     });
 
     await act(async () => {
-      fireEvent.change(screen.getByLabelText('CSV de participantes'), {
+      fireEvent.change(screen.getByLabelText('Participants CSV'), {
         target: { files: [{ text: async () => 'alias,name\nclub-atletico,Club Atletico\n' }] },
       });
     });
 
-    await waitFor(() => expect(screen.getByText('Preview válido.')).toBeDefined());
+    await waitFor(() => expect(screen.getByText('Valid preview.')).toBeDefined());
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Confirmar importación' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Confirm import' }));
     });
 
     expect(calls).toEqual(['alias,name\nclub-atletico,Club Atletico\n', 'import-1:source-hash']);
-    expect(screen.getByText('Importación confirmada.')).toBeDefined();
+    expect(screen.getByText('Import confirmed.')).toBeDefined();
   });
 
   it('renders row errors and keeps an invalid CSV preview uncommittable', async () => {
@@ -156,31 +166,30 @@ describe('the registration review route container', () => {
 
     await act(async () => {
       render(
-        <RegistrationReviewRoute
-          organizationAlias="liga-mendocina"
-          tournamentAlias="apertura-2026"
-          client={client({
-            createCsvImport: async () => ({ ...invalid, status: 'queued' }),
-            fetchCsvImport: async () => invalid,
-            commitCsvImport: async () => invalid,
-          })}
-        />,
+        withIntl(
+          <RegistrationReviewRoute
+            organizationAlias="liga-mendocina"
+            tournamentAlias="apertura-2026"
+            client={client({
+              createCsvImport: async () => ({ ...invalid, status: 'queued' }),
+              fetchCsvImport: async () => invalid,
+              commitCsvImport: async () => invalid,
+            })}
+          />,
+        ),
       );
     });
 
     await act(async () => {
-      fireEvent.change(screen.getByLabelText('CSV de participantes'), {
+      fireEvent.change(screen.getByLabelText('Participants CSV'), {
         target: { files: [{ text: async () => 'alias,name\nclub-atletico,\n' }] },
       });
     });
 
-    await waitFor(() => expect(screen.getByText('Preview con errores.')).toBeDefined());
+    await waitFor(() => expect(screen.getByText('Preview has errors.')).toBeDefined());
     expect(screen.getByText('The file has invalid rows')).toBeDefined();
-    expect(screen.getByText('Fila 2: name is required')).toBeDefined();
-    expect(screen.getByRole('button', { name: 'Confirmar importación' })).toHaveProperty(
-      'disabled',
-      true,
-    );
+    expect(screen.getByText('Row 2: name is required')).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Confirm import' })).toHaveProperty('disabled', true);
   });
 
   it('loads registrations and sends selected ids to the bulk endpoint', async () => {
@@ -188,35 +197,40 @@ describe('the registration review route container', () => {
 
     await act(async () => {
       render(
-        <RegistrationReviewRoute
-          organizationAlias="liga-mendocina"
-          tournamentAlias="apertura-2026"
-          client={client({
-            listRegistrations: async () => [
-              { entrantId: 'e-1', tournamentId: 't-1', status: 'pending', teamId: 'team-1' },
-            ],
-            bulkReview: async (_organizationAlias, _tournamentAlias, request) => {
-              reviewed.push(request);
-              return {
-                applied: [
-                  { entrantId: 'e-1', tournamentId: 't-1', status: 'accepted', teamId: 'team-1' },
-                ],
-                refused: [],
-              };
-            },
-          })}
-          now="2026-08-01T17:00:00.000Z"
-        />,
+        withIntl(
+          <RegistrationReviewRoute
+            organizationAlias="liga-mendocina"
+            tournamentAlias="apertura-2026"
+            client={client({
+              listRegistrations: async () => [
+                { entrantId: 'e-1', tournamentId: 't-1', status: 'pending', teamId: 'team-1' },
+              ],
+              bulkReview: async (_organizationAlias, _tournamentAlias, request) => {
+                reviewed.push(request);
+                return {
+                  applied: [
+                    { entrantId: 'e-1', tournamentId: 't-1', status: 'accepted', teamId: 'team-1' },
+                  ],
+                  refused: [],
+                };
+              },
+            })}
+            now="2026-08-01T17:00:00.000Z"
+          />,
+        ),
       );
     });
 
-    fireEvent.click(screen.getByLabelText('Seleccionar team-1'));
+    fireEvent.click(screen.getByLabelText('Select team-1'));
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Aprobar' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
     });
 
     expect(reviewed).toEqual([{ entrantIds: ['e-1'], decision: 'accepted' }]);
-    expect(screen.getByText('Aceptada')).toBeDefined();
+    // The status filter's own "Accepted" option shares its text with the row
+    // badge in English (Spanish's grammatical agreement kept them distinct:
+    // "Aceptados" vs "Aceptada") — scope to the badge specifically.
+    expect(document.querySelector('.cl-badge')?.textContent).toBe('Accepted');
   });
 
   it('revokes one expanded registration through the per-entrant endpoint', async () => {
@@ -224,38 +238,40 @@ describe('the registration review route container', () => {
 
     await act(async () => {
       render(
-        <RegistrationReviewRoute
-          organizationAlias="liga-mendocina"
-          tournamentAlias="apertura-2026"
-          client={client({
-            listRegistrations: async () => [
-              { entrantId: 'e-1', tournamentId: 't-1', status: 'pending', teamId: 'team-1' },
-            ],
-            reviewRegistration: async (
-              _organizationAlias,
-              _tournamentAlias,
-              entrantId,
-              request,
-            ) => {
-              reviewed.push({ entrantId, request });
-              return {
+        withIntl(
+          <RegistrationReviewRoute
+            organizationAlias="liga-mendocina"
+            tournamentAlias="apertura-2026"
+            client={client({
+              listRegistrations: async () => [
+                { entrantId: 'e-1', tournamentId: 't-1', status: 'pending', teamId: 'team-1' },
+              ],
+              reviewRegistration: async (
+                _organizationAlias,
+                _tournamentAlias,
                 entrantId,
-                tournamentId: 't-1',
-                status: 'withdrawn',
-                teamId: 'team-1',
-              };
-            },
-          })}
-          now="2026-08-01T17:00:00.000Z"
-        />,
+                request,
+              ) => {
+                reviewed.push({ entrantId, request });
+                return {
+                  entrantId,
+                  tournamentId: 't-1',
+                  status: 'withdrawn',
+                  teamId: 'team-1',
+                };
+              },
+            })}
+            now="2026-08-01T17:00:00.000Z"
+          />,
+        ),
       );
     });
 
-    const summary = screen.getByLabelText('Seleccionar team-1').closest('summary');
+    const summary = screen.getByLabelText('Select team-1').closest('summary');
     expect(summary).not.toBeNull();
     fireEvent.click(summary as HTMLElement);
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Revocar' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Revoke' }));
     });
 
     expect(reviewed).toEqual([
@@ -267,6 +283,6 @@ describe('the registration review route container', () => {
         },
       },
     ]);
-    expect(screen.getByText('Retirada')).toBeDefined();
+    expect(screen.getByText('Withdrawn')).toBeDefined();
   });
 });
