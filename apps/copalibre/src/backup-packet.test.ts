@@ -118,15 +118,21 @@ describe('restoreBackupPacket (0046)', () => {
       );
 
       const restoreRun = jest.fn<ProcessRunner['run']>(async () => 0);
-      await restoreBackupPacket(
+      const result = await restoreBackupPacket(
         { run: restoreRun },
-        { file: 'backups/copalibre-test.tar.gz', database: 'copalibre' },
+        {
+          file: 'backups/copalibre-test.tar.gz',
+          database: 'copalibre',
+          runningCopalibreVersion: '1.2.3',
+        },
       );
 
       expect(restoreRun).toHaveBeenCalledWith(
         'docker',
         expect.arrayContaining(['compose', 'run', '--rm', 'database-tools', 'pg_restore']),
       );
+      expect(result.backupVersion).toBe('1.2.3');
+      expect(result.backupCreatedAt).toEqual(expect.any(String));
 
       const remaining = await readdir('backups');
       expect(remaining).toEqual(['copalibre-test.tar.gz']);
@@ -153,12 +159,85 @@ describe('restoreBackupPacket (0046)', () => {
       await expect(
         restoreBackupPacket(
           { run: restoreRun },
-          { file: 'backups/copalibre-test.tar.gz', database: 'copalibre' },
+          {
+            file: 'backups/copalibre-test.tar.gz',
+            database: 'copalibre',
+            runningCopalibreVersion: '1.2.3',
+          },
         ),
       ).rejects.toThrow('pg_restore failed with exit code 1');
 
       const remaining = await readdir('backups');
       expect(remaining).toEqual(['copalibre-test.tar.gz']);
+    });
+  });
+});
+
+describe('restoreBackupPacket version compatibility (0050)', () => {
+  it('refuses a backup newer than the running version before touching pg_restore', async () => {
+    await withTemporaryWorkingDirectory(async () => {
+      const setupRun = jest.fn<ProcessRunner['run']>(async (_command, arguments_) => {
+        const dumpArgumentIndex = (arguments_ as readonly string[]).indexOf('--file');
+        const containerPath = (arguments_ as readonly string[])[dumpArgumentIndex + 1] as string;
+        const hostPath = containerPath.replace(/^\/backups\//, 'backups/');
+        await mkdir(join(hostPath, '..'), { recursive: true });
+        await writeFile(hostPath, 'fake dump bytes');
+        return 0;
+      });
+      await createBackupPacket(
+        { run: setupRun },
+        { file: 'backups/copalibre-test.tar.gz', retain: 5 },
+        '2.1.0',
+      );
+
+      const restoreRun = jest.fn<ProcessRunner['run']>(async () => 0);
+      await expect(
+        restoreBackupPacket(
+          { run: restoreRun },
+          {
+            file: 'backups/copalibre-test.tar.gz',
+            database: 'copalibre',
+            runningCopalibreVersion: '2.0.0',
+          },
+        ),
+      ).rejects.toThrow('--allow-newer-backup');
+
+      expect(restoreRun).not.toHaveBeenCalled();
+    });
+  });
+
+  it('restores a newer backup when explicitly allowed, returning its manifest data', async () => {
+    await withTemporaryWorkingDirectory(async () => {
+      const setupRun = jest.fn<ProcessRunner['run']>(async (_command, arguments_) => {
+        const dumpArgumentIndex = (arguments_ as readonly string[]).indexOf('--file');
+        const containerPath = (arguments_ as readonly string[])[dumpArgumentIndex + 1] as string;
+        const hostPath = containerPath.replace(/^\/backups\//, 'backups/');
+        await mkdir(join(hostPath, '..'), { recursive: true });
+        await writeFile(hostPath, 'fake dump bytes');
+        return 0;
+      });
+      await createBackupPacket(
+        { run: setupRun },
+        { file: 'backups/copalibre-test.tar.gz', retain: 5 },
+        '2.1.0',
+      );
+
+      const restoreRun = jest.fn<ProcessRunner['run']>(async () => 0);
+      const result = await restoreBackupPacket(
+        { run: restoreRun },
+        {
+          file: 'backups/copalibre-test.tar.gz',
+          database: 'copalibre',
+          runningCopalibreVersion: '2.0.0',
+          allowNewerBackup: true,
+        },
+      );
+
+      expect(restoreRun).toHaveBeenCalledWith(
+        'docker',
+        expect.arrayContaining(['compose', 'run', '--rm', 'database-tools', 'pg_restore']),
+      );
+      expect(result.backupVersion).toBe('2.1.0');
     });
   });
 });

@@ -1,8 +1,44 @@
 import { jest } from '@jest/globals';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { createBackupPacket } from './backup-packet.js';
 import { renderBanner } from './banner.js';
 import { CliRunner } from './cli-runner.js';
 import { COMMAND_HELP, MODULE_SUBCOMMAND_HELP } from './help-text.js';
 import type { ProcessRunner } from './process-runner.js';
+
+/** Mirrors `backup-packet.test.ts`'s temp-cwd helper (0050): `restore` reads `backups/` relatively. */
+async function withTemporaryWorkingDirectory<T>(run: () => Promise<T>): Promise<T> {
+  const originalCwd = process.cwd();
+  const directory = await mkdtemp(join(tmpdir(), 'copalibre-cli-runner-'));
+  process.chdir(directory);
+  try {
+    await mkdir('backups', { recursive: true });
+    return await run();
+  } finally {
+    process.chdir(originalCwd);
+    await rm(directory, { recursive: true, force: true });
+  }
+}
+
+/** Stages a real, extractable packet via `createBackupPacket` (0046), naming its manifest version. */
+async function stageRestorablePacket(copalibreVersion: string): Promise<string> {
+  const setupRun = jest.fn<ProcessRunner['run']>(async (_command, arguments_) => {
+    const dumpArgumentIndex = (arguments_ as readonly string[]).indexOf('--file');
+    const containerPath = (arguments_ as readonly string[])[dumpArgumentIndex + 1] as string;
+    const hostPath = containerPath.replace(/^\/backups\//, 'backups/');
+    await mkdir(join(hostPath, '..'), { recursive: true });
+    await writeFile(hostPath, 'fake dump bytes');
+    return 0;
+  });
+  const result = await createBackupPacket(
+    { run: setupRun },
+    { file: 'backups/copalibre-test.tar.gz', retain: 5 },
+    copalibreVersion,
+  );
+  return result.file;
+}
 
 /** Shared by every "banner prints first" case (task 3.1): records write order across both streams. */
 function spyOnOutputOrder(): {
@@ -178,6 +214,61 @@ describe('CliRunner', () => {
       } finally {
         stdout.mockRestore();
       }
+    });
+  });
+
+  describe('restore migrate-then-verify sequencing (0050)', () => {
+    it('refuses a backup newer than the running version before any migrate invocation', async () => {
+      await withTemporaryWorkingDirectory(async () => {
+        const packetFile = await stageRestorablePacket('0.0.1');
+        const run = jest.fn<ProcessRunner['run']>(async () => 0);
+        const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+        try {
+          const result = await new CliRunner({ run }).run(
+            ['restore', '--file', packetFile, '--confirm'],
+            {},
+          );
+          expect(result).toBe(1);
+          expect(
+            stderr.mock.calls.some((call) => String(call[0]).includes('--allow-newer-backup')),
+          ).toBe(true);
+          expect(run).not.toHaveBeenCalled();
+        } finally {
+          stderr.mockRestore();
+        }
+      });
+    });
+
+    it('reports a migrate failure after a successful restore, without claiming success', async () => {
+      await withTemporaryWorkingDirectory(async () => {
+        const packetFile = await stageRestorablePacket('0.0.0');
+        const run = jest.fn<ProcessRunner['run']>(async (_command, arguments_) => {
+          const args = arguments_ as readonly string[];
+          if (args.includes('migrate')) return 3;
+          return 0;
+        });
+        const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+        try {
+          const result = await new CliRunner({ run }).run(
+            ['restore', '--file', packetFile, '--confirm'],
+            {},
+          );
+          expect(result).toBe(3);
+          expect(run).toHaveBeenCalledWith(
+            'docker',
+            expect.arrayContaining(['compose', 'run', '--rm', 'migrate']),
+          );
+          expect(
+            stderr.mock.calls.some(
+              (call) =>
+                String(call[0]).includes('copalibre migrate') &&
+                String(call[0]).includes('copalibre doctor'),
+            ),
+          ).toBe(true);
+        } finally {
+          stderr.mockRestore();
+        }
+      });
     });
   });
 

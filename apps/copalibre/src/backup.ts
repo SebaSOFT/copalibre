@@ -1,5 +1,6 @@
 import { parseArgs } from 'node:util';
 import { isAbsolute, normalize, relative } from 'node:path';
+import semver from 'semver';
 
 const BACKUP_DIRECTORY = 'backups';
 const PACKET_PREFIX = 'copalibre-';
@@ -16,6 +17,7 @@ export interface RestoreOptions {
   readonly file: string;
   readonly dryRun: boolean;
   readonly confirmed: boolean;
+  readonly allowNewerBackup: boolean;
 }
 
 export interface BackupManifest {
@@ -57,6 +59,7 @@ export function parseRestoreOptions(arguments_: readonly string[]): RestoreOptio
       file: { type: 'string' },
       'dry-run': { type: 'boolean', default: false },
       confirm: { type: 'boolean', default: false },
+      'allow-newer-backup': { type: 'boolean', default: false },
     },
     strict: true,
   });
@@ -65,6 +68,7 @@ export function parseRestoreOptions(arguments_: readonly string[]): RestoreOptio
     file: parsed.values.file,
     dryRun: parsed.values['dry-run'] ?? false,
     confirmed: parsed.values.confirm ?? false,
+    allowNewerBackup: parsed.values['allow-newer-backup'] ?? false,
   };
 }
 
@@ -94,6 +98,37 @@ export function selectPacketsToPrune(
     .sort()
     .reverse();
   return packets.slice(retain);
+}
+
+export interface RestoreCompatibility {
+  readonly ok: boolean;
+  readonly reason?: string;
+}
+
+/**
+ * Pure — no filesystem or process access (0050 design, matching 0045's
+ * `evaluateCoreVersionCompatibility` split). A backup newer than the running
+ * code is refused by default: the running code has no migration code for
+ * schema changes a later release introduced, so restoring it "succeeding"
+ * would only move the desync from restore time to the next query. Older or
+ * equal is always the ordinary, supported case.
+ */
+export function evaluateRestoreCompatibility(
+  backupVersion: string,
+  runningVersion: string,
+  allowNewerBackup: boolean,
+): RestoreCompatibility {
+  if (allowNewerBackup || !semver.gt(backupVersion, runningVersion)) {
+    return { ok: true };
+  }
+  return {
+    ok: false,
+    reason:
+      `Backup was produced by CopaLibre ${backupVersion}, newer than the running ` +
+      `${runningVersion}. Restoring it here could leave the database using a schema this ` +
+      `installation does not understand. Upgrade CopaLibre to at least ${backupVersion} first, ` +
+      'or pass --allow-newer-backup to restore anyway.',
+  };
 }
 
 export function pgDumpCommand(containerDumpPath: string): readonly string[] {
@@ -130,5 +165,8 @@ export function backupDryRunMessage(options: BackupOptions): string {
 }
 
 export function restoreDryRunMessage(options: RestoreOptions): string {
-  return `Restore plan: extract ${options.file} and pg_restore --clean --if-exists its database dump`;
+  return (
+    `Restore plan: extract ${options.file} and pg_restore --clean --if-exists its database dump, ` +
+    'then run pending migrations and confirm the schema matches this installation'
+  );
 }
