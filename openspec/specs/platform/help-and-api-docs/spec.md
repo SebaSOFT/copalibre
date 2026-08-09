@@ -118,7 +118,9 @@ describing `upgrade-check` as a placeholder with no registered checks.
 The help site SHALL publish `/llms.txt` (a summary and links to every documentation page) and
 `/llms-full.txt` (the same pages' content inlined into one file), generated from the real content
 collection at build time so neither can silently list a page that no longer exists or omit one that
-does.
+does. Both files SHALL contain English content only, regardless of how many other interface languages
+the help site supports, so documentation intended for LLM consumption stays in one predictable language
+as the site's language coverage grows.
 
 #### Scenario: llms.txt links resolve to real pages
 
@@ -131,3 +133,9 @@ does.
 - **WHEN** the help site is built
 - **THEN** `/llms-full.txt` is produced and contains the content of the documentation pages, not a
   hand-maintained summary that could drift from them
+
+#### Scenario: llms-full.txt stays English as more interface languages are added
+
+- **WHEN** the help site is built with content available in multiple interface languages
+- **THEN** `/llms-full.txt` contains only the English content, with no page from any other locale
+  included
