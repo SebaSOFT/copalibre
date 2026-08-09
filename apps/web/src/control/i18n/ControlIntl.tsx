@@ -6,6 +6,11 @@ import {
   type SupportedLanguage,
 } from '../../lib/language-preference.js';
 import { messages as esMessages } from './messages.es.js';
+import { messages as frMessages } from './messages.fr.js';
+import { messages as ptMessages } from './messages.pt.js';
+import { messages as itMessages } from './messages.it.js';
+import { messages as deMessages } from './messages.de.js';
+import { messages as ruMessages } from './messages.ru.js';
 
 /**
  * No control-panel route fetches the organization's own record before
@@ -19,6 +24,11 @@ const ORGANIZATION_PRIMARY_LANGUAGE_PLACEHOLDER = 'es';
 
 const CATALOGS: Partial<Record<SupportedLanguage, Record<string, string>>> = {
   es: esMessages,
+  fr: frMessages,
+  pt: ptMessages,
+  it: itMessages,
+  de: deMessages,
+  ru: ruMessages,
 };
 
 /** Resolves the active interface language and provides its message catalog (0053). */

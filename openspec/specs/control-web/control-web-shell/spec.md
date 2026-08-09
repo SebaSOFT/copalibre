@@ -42,3 +42,30 @@ notice.
 - **WHEN** a new shadcn/ui-style component file is added under `apps/web/src/control/components/ui/`
 - **THEN** `THIRD_PARTY_NOTICES.md` contains a corresponding entry before the change is considered complete
 
+### Requirement: Control-panel interface strings are extracted and language-switchable
+
+Every user-facing control-panel string (labels, buttons, validation messages, status words) SHALL be
+sourced from a message catalog keyed by a stable ID, never hardcoded inline, so a screen's interface
+language can change without touching its logic. The active language SHALL resolve via the platform's
+client-side language-preference order (0051): an explicit stored preference, then a supported browser
+language, then English — with an explicit switcher available to change the stored preference.
+Organizer-entered content (tournament names, participant names, organization names) is never
+translated by this mechanism.
+
+#### Scenario: Selecting a language changes control-panel chrome without changing content
+
+- **WHEN** an operator selects a different interface language from the control-panel switcher
+- **THEN** labels, buttons, and messages re-render in the selected language, while every
+  organizer-entered name continues to render exactly as entered
+
+#### Scenario: An unset preference falls back through browser language to English
+
+- **WHEN** no interface-language preference is stored yet for a browser
+- **THEN** the control panel resolves the interface language from the browser's own language list,
+  falling back to English if none of the browser's languages are supported
+
+#### Scenario: Dates and times render in the active interface language, not a fixed locale
+
+- **WHEN** the control panel renders a date or time value
+- **THEN** it formats using the active interface language, never a hardcoded locale tag
+

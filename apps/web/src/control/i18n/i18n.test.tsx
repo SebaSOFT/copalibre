@@ -6,32 +6,50 @@ import { RolesPermissionsPage } from '../components/RolesPermissionsPage.js';
 import { activeControlLanguage } from './ControlIntl.js';
 import { messages } from './messages.en.js';
 import { messages as esMessages } from './messages.es.js';
+import { messages as frMessages } from './messages.fr.js';
+import { messages as ptMessages } from './messages.pt.js';
+import { messages as itMessages } from './messages.it.js';
+import { messages as deMessages } from './messages.de.js';
+import { messages as ruMessages } from './messages.ru.js';
 import type { StandingsData } from '../lib/standings.js';
 
-/** Wraps a component in the Spanish catalog, the same way `ControlIntl` does at `locale: 'es'`. */
-function withSpanish(children: React.ReactNode): React.JSX.Element {
+/** Every non-English catalog (0053 Spanish, 0054 the remaining five), keyed like `ControlIntl`'s `CATALOGS`. */
+const NON_ENGLISH_CATALOGS: Record<string, Record<string, string>> = {
+  es: esMessages,
+  fr: frMessages,
+  pt: ptMessages,
+  it: itMessages,
+  de: deMessages,
+  ru: ruMessages,
+};
+
+/** Wraps a component in the given catalog, the same way `ControlIntl` does for that locale. */
+function withLanguage(locale: string, children: React.ReactNode): React.JSX.Element {
   return (
-    <IntlProvider defaultLocale="en" locale="es" messages={esMessages}>
+    <IntlProvider defaultLocale="en" locale={locale} messages={NON_ENGLISH_CATALOGS[locale]}>
       {children}
     </IntlProvider>
   );
 }
 
-describe('message-catalog completeness (0053, task 6.4)', () => {
-  it('has an identical key set in English and Spanish', () => {
-    const englishIds = Object.values(messages)
-      .map((descriptor) => descriptor.id)
-      .sort();
-    const spanishIds = Object.keys(esMessages).sort();
+describe('message-catalog completeness (0053 task 6.4, widened to all seven languages in 0054)', () => {
+  const englishIds = Object.values(messages)
+    .map((descriptor) => descriptor.id)
+    .sort();
 
-    expect(spanishIds).toEqual(englishIds);
+  it.each(Object.keys(NON_ENGLISH_CATALOGS))('%s has an identical key set to English', (lang) => {
+    const ids = Object.keys(NON_ENGLISH_CATALOGS[lang]).sort();
+    expect(ids).toEqual(englishIds);
   });
 
-  it('has no empty translation in either catalog', () => {
+  it('has no empty translation in the English catalog', () => {
     for (const descriptor of Object.values(messages)) {
       expect(descriptor.defaultMessage).toBeTruthy();
     }
-    for (const value of Object.values(esMessages)) {
+  });
+
+  it.each(Object.keys(NON_ENGLISH_CATALOGS))('%s has no empty translation', (lang) => {
+    for (const value of Object.values(NON_ENGLISH_CATALOGS[lang])) {
       expect(value).toBeTruthy();
     }
   });
@@ -66,7 +84,8 @@ describe('Spanish catalog reproduces pre-extraction wording (0053, task 6.2)', (
 
   it('StandingsPage', () => {
     render(
-      withSpanish(
+      withLanguage(
+        'es',
         <StandingsPage
           organizationAlias="liga-mendocina"
           standings={standings}
@@ -83,7 +102,8 @@ describe('Spanish catalog reproduces pre-extraction wording (0053, task 6.2)', (
 
   it('SeedingBuilderPage', () => {
     render(
-      withSpanish(
+      withLanguage(
+        'es',
         <SeedingBuilderPage
           hasRecordedResults={false}
           matches={[]}
@@ -103,7 +123,8 @@ describe('Spanish catalog reproduces pre-extraction wording (0053, task 6.2)', (
 
   it('RolesPermissionsPage', () => {
     render(
-      withSpanish(
+      withLanguage(
+        'es',
         <RolesPermissionsPage
           loading={false}
           onChange={async () => undefined}
@@ -119,4 +140,42 @@ describe('Spanish catalog reproduces pre-extraction wording (0053, task 6.2)', (
     expect(screen.getByText('Añadir destinatario')).toBeTruthy();
     expect(screen.getByText('No hay usuarios asignados.')).toBeTruthy();
   });
+});
+
+describe('Non-English catalogs render real translated text, not an English fallback (0054, task 7.2)', () => {
+  const standings: StandingsData = {
+    stageId: 'stage-1',
+    projectionVersion: 3,
+    fullyResolved: false,
+    rows: [],
+    trace: [],
+  };
+
+  const expectedTitleAndEmptyState: Record<string, [string, string]> = {
+    fr: ['Classement', 'Il n’y a pas encore de résultats dans cette phase.'],
+    pt: ['Classificação', 'Ainda não há resultados nesta fase.'],
+    it: ['Classifica', 'Non ci sono ancora risultati in questa fase.'],
+    de: ['Tabelle', 'In dieser Phase gibt es noch keine Ergebnisse.'],
+    ru: ['Турнирная таблица', 'На этом этапе пока нет результатов.'],
+  };
+
+  it.each(Object.entries(expectedTitleAndEmptyState))(
+    '%s renders StandingsPage with real translated text',
+    (lang, [title, emptyState]) => {
+      render(
+        withLanguage(
+          lang,
+          <StandingsPage
+            organizationAlias="liga-mendocina"
+            standings={standings}
+            tournamentName="Apertura"
+          />,
+        ),
+      );
+
+      expect(screen.getByText(title)).toBeTruthy();
+      expect(screen.getByText(emptyState)).toBeTruthy();
+      expect(screen.queryByText('Standings')).toBeNull();
+    },
+  );
 });
