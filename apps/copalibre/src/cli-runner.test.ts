@@ -220,7 +220,10 @@ describe('CliRunner', () => {
   describe('restore migrate-then-verify sequencing (0050)', () => {
     it('refuses a backup newer than the running version before any migrate invocation', async () => {
       await withTemporaryWorkingDirectory(async () => {
-        const packetFile = await stageRestorablePacket('0.0.1');
+        // Deliberately far ahead of any real released version (0058), so this
+        // stays "newer than running" across future version bumps rather than
+        // needing to be re-picked at each release.
+        const packetFile = await stageRestorablePacket('99.0.0');
         const run = jest.fn<ProcessRunner['run']>(async () => 0);
         const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
         try {

@@ -48,6 +48,11 @@ jobs:
     outputs:
       frontend_only: ${{ steps.classify.outputs.frontend_only }}
       backend_only: ${{ steps.classify.outputs.backend_only }}
+      # A release candidate is a PR targeting main, a push to main (a
+      # develop->main PR merging — see release.yml, 0058), or a manual
+      # dispatch. Everything else (routine develop-targeting PRs) is not,
+      # and skips the expensive e2e/deploy-verification chain below.
+      release_candidate: ${{ github.base_ref == 'main' || (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -500,7 +505,12 @@ jobs:
     # above. build also needs this job (and integration-tests); it gets an
     # explicit if: rather than relying on cascade, so a backend-only PR's
     # release-image build still runs despite this input being skipped.
-    if: needs.detect-changes.outputs.backend_only != 'true'
+    # Also skipped outright for a non-release-candidate run (0058): a routine
+    # develop-targeting PR gets fast lint/typecheck/unit/integration feedback
+    # without the Playwright suite; see detect-changes' release_candidate.
+    if: |
+      needs.detect-changes.outputs.backend_only != 'true' &&
+      needs.detect-changes.outputs.release_candidate == 'true'
     steps:
       - uses: actions/checkout@v4
       - run: corepack enable
@@ -799,9 +809,16 @@ jobs:
     # not — still build, since that's exactly the release image a
     # backend-only PR needs validated. A genuine failure (not a skip) in
     # either still blocks this job either way.
+    #
+    # Also gated on release_candidate (0058): skipped outright for a routine
+    # develop-targeting PR, which has no need for a release image. Because
+    # deployment-e2e and deploy-smoke-test both key off this job's own
+    # `result` (== 'success'), gating it here is sufficient — a skip here
+    # reads as skipped to them too, with no change needed to their own `if:`.
     if: |
       !cancelled() &&
       needs.detect-changes.outputs.frontend_only != 'true' &&
+      needs.detect-changes.outputs.release_candidate == 'true' &&
       needs.lint.result == 'success' &&
       needs.typecheck.result == 'success' &&
       needs.unit-tests.result == 'success' &&
