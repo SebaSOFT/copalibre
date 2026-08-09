@@ -32,7 +32,7 @@ export function getStaticPaths() {
   // module-scope const referenced only from inside this function was dropped
   // by that chunking, throwing "NON_PRIMARY_LOCALES is not defined" at build
   // time. Self-contained avoids relying on cross-chunk scope-hoisting.
-  const nonPrimaryLocales = ['es', 'fr', 'pt', 'it', 'de', 'ru'] as const;
+  const nonPrimaryLocales = ['es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as const;
   const base = { organization: 'liga-mendocina', tournament: 'apertura-2026' };
   return [
     { params: { locale: undefined, ...base } },

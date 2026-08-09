@@ -11,9 +11,10 @@ import { messages as ptMessages } from './messages.pt.js';
 import { messages as itMessages } from './messages.it.js';
 import { messages as deMessages } from './messages.de.js';
 import { messages as ruMessages } from './messages.ru.js';
+import { messages as zhMessages } from './messages.zh.js';
 import type { StandingsData } from '../lib/standings.js';
 
-/** Every non-English catalog (0053 Spanish, 0054 the remaining five), keyed like `ControlIntl`'s `CATALOGS`. */
+/** Every non-English catalog (0053 Spanish, 0054 the remaining five, 0057 Mandarin), keyed like `ControlIntl`'s `CATALOGS`. */
 const NON_ENGLISH_CATALOGS: Record<string, Record<string, string>> = {
   es: esMessages,
   fr: frMessages,
@@ -21,6 +22,7 @@ const NON_ENGLISH_CATALOGS: Record<string, Record<string, string>> = {
   it: itMessages,
   de: deMessages,
   ru: ruMessages,
+  zh: zhMessages,
 };
 
 /** Wraps a component in the given catalog, the same way `ControlIntl` does for that locale. */
@@ -32,7 +34,7 @@ function withLanguage(locale: string, children: React.ReactNode): React.JSX.Elem
   );
 }
 
-describe('message-catalog completeness (0053 task 6.4, widened to all seven languages in 0054)', () => {
+describe('message-catalog completeness (0053 task 6.4, widened to all eight languages by 0054/0057)', () => {
   const englishIds = Object.values(messages)
     .map((descriptor) => descriptor.id)
     .sort();
@@ -142,7 +144,7 @@ describe('Spanish catalog reproduces pre-extraction wording (0053, task 6.2)', (
   });
 });
 
-describe('Non-English catalogs render real translated text, not an English fallback (0054, task 7.2)', () => {
+describe('Non-English catalogs render real translated text, not an English fallback (0054 task 7.2, extended by 0057)', () => {
   const standings: StandingsData = {
     stageId: 'stage-1',
     projectionVersion: 3,
@@ -157,6 +159,7 @@ describe('Non-English catalogs render real translated text, not an English fallb
     it: ['Classifica', 'Non ci sono ancora risultati in questa fase.'],
     de: ['Tabelle', 'In dieser Phase gibt es noch keine Ergebnisse.'],
     ru: ['Турнирная таблица', 'На этом этапе пока нет результатов.'],
+    zh: ['排名', '此阶段尚无结果。'],
   };
 
   it.each(Object.entries(expectedTitleAndEmptyState))(

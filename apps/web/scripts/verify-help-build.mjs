@@ -97,6 +97,7 @@ const LOCALE_HEADINGS = {
   it: 'Guida CopaLibre',
   de: 'CopaLibre-Hilfe',
   ru: 'Справка CopaLibre',
+  zh: 'CopaLibre 帮助',
 };
 for (const [locale, heading] of Object.entries(LOCALE_HEADINGS)) {
   const page = readOutput(`${locale}/help/index.html`);
@@ -106,7 +107,7 @@ for (const [locale, heading] of Object.entries(LOCALE_HEADINGS)) {
   );
 }
 
-const TOTAL_CHECKS = 26;
+const TOTAL_CHECKS = 27;
 if (failures.length > 0) {
   process.stderr.write(
     `Help build failed:\n${failures.map((failure) => `  - ${failure}`).join('\n')}\n`,

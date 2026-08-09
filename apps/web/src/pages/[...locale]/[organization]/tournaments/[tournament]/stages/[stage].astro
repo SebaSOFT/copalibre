@@ -17,7 +17,7 @@ import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 export function getStaticPaths() {
   // Inlined rather than a module-level const — see tournament.astro's comment
   // on the same pattern (0055).
-  const nonPrimaryLocales = ['es', 'fr', 'pt', 'it', 'de', 'ru'] as const;
+  const nonPrimaryLocales = ['es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as const;
   const base = { organization: 'liga-mendocina', tournament: 'apertura-2026', stage: '1' };
   return [
     { params: { locale: undefined, ...base } },

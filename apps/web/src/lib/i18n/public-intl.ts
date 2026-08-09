@@ -6,6 +6,7 @@ import { messages as ptMessages } from './public-messages.pt.js';
 import { messages as itMessages } from './public-messages.it.js';
 import { messages as deMessages } from './public-messages.de.js';
 import { messages as ruMessages } from './public-messages.ru.js';
+import { messages as zhMessages } from './public-messages.zh.js';
 import { messages } from './public-messages.en.js';
 import type { ResultState, ResultStateLabels } from '../result-state.js';
 
@@ -30,6 +31,7 @@ const CATALOGS: Partial<Record<SupportedLanguage, Record<string, string>>> = {
   it: itMessages,
   de: deMessages,
   ru: ruMessages,
+  zh: zhMessages,
 };
 
 const cache = createIntlCache();

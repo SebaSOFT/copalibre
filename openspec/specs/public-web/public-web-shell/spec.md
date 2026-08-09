@@ -52,6 +52,11 @@ route even if the old alias string collides.
 - **AND** a visitor requests the old path `/{organization}/tournaments/spring-cup-2026`
 - **THEN** the response is a 301 redirect to `/{organization}/tournaments/spring-cup-26`
 
+#### Scenario: Redirect does not leak across organizations
+- **WHEN** organization A previously used alias `spring-cup-2026` and later renamed it
+- **AND** organization B independently registers a tournament with alias `spring-cup-2026`
+- **THEN** requests to `/{organization-A}/tournaments/spring-cup-2026` redirect only within organization A's scope, never to organization B's tournament
+
 ### Requirement: Public routes carry a locale prefix, primary locale excepted
 
 Every public canonical route SHALL be available in each of the platform's supported interface
@@ -90,8 +95,22 @@ advertises, not only the primary-locale entry.
 - **THEN** it contains a `<url>` entry for the unprefixed English path and a separate entry for the
   `/es/`-prefixed path
 
-#### Scenario: Redirect does not leak across organizations
-- **WHEN** organization A previously used alias `spring-cup-2026` and later renamed it
-- **AND** organization B independently registers a tournament with alias `spring-cup-2026`
-- **THEN** requests to `/{organization-A}/tournaments/spring-cup-2026` redirect only within organization A's scope, never to organization B's tournament
+### Requirement: Public-web chrome is available in all seven supported interface languages
+
+The public-web message catalog (0055) SHALL have populated content for every language in the
+platform's supported-language contract (English, Spanish, French, Portuguese, Italian, German,
+Russian), not just English and Spanish, with a reachable locale-prefixed static variant of every public
+page for each.
+
+#### Scenario: Every supported language has a reachable public-page variant
+
+- **WHEN** the public-web site is built
+- **THEN** each of the seven supported languages' variant of every public page builds successfully and
+  is reachable — English unprefixed, the other six under their `/{locale}/` prefix
+
+#### Scenario: Every catalog carries the same key set as the English source
+
+- **WHEN** the public-web message catalogs are inspected
+- **THEN** each of the six non-English catalogs has exactly the same set of message IDs as
+  `public-messages.en.ts`, with no empty translation values
 

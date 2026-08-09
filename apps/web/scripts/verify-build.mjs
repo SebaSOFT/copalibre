@@ -11,9 +11,9 @@ import { readFileSync } from 'node:fs';
  * English is the primary locale (0055): the unprefixed path carries English
  * chrome, and every other supported language carries the same content
  * translated under its own `/{locale}/` prefix (0056 populated the five
- * beyond 0055's Spanish). `describeSlot`'s bracket-slot labels ("Ganador del
- * N") stay Spanish regardless of locale — a documented, deliberate exception
- * (`lib/bracket.ts`), not a bug here.
+ * beyond 0055's Spanish; 0057 added Mandarin). `describeSlot`'s bracket-slot
+ * labels ("Ganador del N") stay Spanish regardless of locale — a documented,
+ * deliberate exception (`lib/bracket.ts`), not a bug here.
  */
 const DIST = new URL('../dist/', import.meta.url);
 const read = (path) => readFileSync(new URL(path, DIST), 'utf8');
@@ -48,8 +48,8 @@ check('the grand final reads as pending', bracket.includes('TBD'));
 // No discipline-specific widget belongs on a shared template.
 check('the bracket has no minimap', !/minimap/i.test(bracket));
 
-// Every non-primary locale variant (0055 built `es`; 0056 added the rest):
-// same data, translated chrome, no in-page switcher.
+// Every non-primary locale variant (0055 built `es`; 0056 added five more;
+// 0057 added Mandarin): same data, translated chrome, no in-page switcher.
 const NON_PRIMARY_LOCALES = [
   { locale: 'es', liveLabel: 'EN VIVO', name: 'Spanish' },
   { locale: 'fr', liveLabel: 'EN DIRECT', name: 'French' },
@@ -57,6 +57,7 @@ const NON_PRIMARY_LOCALES = [
   { locale: 'it', liveLabel: 'IN DIRETTA', name: 'Italian' },
   { locale: 'de', liveLabel: 'LIVE', name: 'German' },
   { locale: 'ru', liveLabel: 'В ЭФИРЕ', name: 'Russian' },
+  { locale: 'zh', liveLabel: '进行中', name: 'Mandarin' },
 ];
 for (const { locale, liveLabel, name } of NON_PRIMARY_LOCALES) {
   const overviewVariant = read(`${locale}/liga-mendocina/tournaments/apertura-2026/index.html`);

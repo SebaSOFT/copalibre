@@ -3250,7 +3250,8 @@
               "pt",
               "it",
               "de",
-              "ru"
+              "ru",
+              "zh"
             ],
             "description": "Presentation-layer default interface language; never reinterprets stored data",
             "example": "es"
@@ -3290,7 +3291,8 @@
               "pt",
               "it",
               "de",
-              "ru"
+              "ru",
+              "zh"
             ],
             "description": "Defaults to \"es\" (matches this installation's current default behavior) when omitted",
             "example": "es"
@@ -3335,7 +3337,8 @@
               "pt",
               "it",
               "de",
-              "ru"
+              "ru",
+              "zh"
             ],
             "example": "en"
           },
