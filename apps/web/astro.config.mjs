@@ -27,6 +27,11 @@ export default defineConfig({
       locales: {
         root: { label: 'English', lang: 'en' },
         es: { label: 'Español', lang: 'es' },
+        fr: { label: 'Français', lang: 'fr' },
+        pt: { label: 'Português', lang: 'pt' },
+        it: { label: 'Italiano', lang: 'it' },
+        de: { label: 'Deutsch', lang: 'de' },
+        ru: { label: 'Русский', lang: 'ru' },
       },
       plugins: [
         starlightLlmsTxt({
@@ -46,7 +51,14 @@ export default defineConfig({
             'help/operations',
             {
               label: 'API reference',
-              translations: { es: 'Referencia API' },
+              translations: {
+                es: 'Referencia API',
+                fr: 'Référence API',
+                pt: 'Referência da API',
+                it: 'Riferimento API',
+                de: 'API-Referenz',
+                ru: 'Справочник API',
+              },
               link: '/help/api-reference/',
               attrs: { 'data-astro-reload': true },
             },
@@ -54,7 +66,14 @@ export default defineConfig({
         },
         {
           label: 'Control panel',
-          translations: { es: 'Panel de control' },
+          translations: {
+            es: 'Panel de control',
+            fr: 'Panneau de contrôle',
+            pt: 'Painel de controle',
+            it: 'Pannello di controllo',
+            de: 'Kontrollpanel',
+            ru: 'Панель управления',
+          },
           items: [
             'help/control',
             'help/control/tournament-authoring',
@@ -68,7 +87,14 @@ export default defineConfig({
         },
         {
           label: 'copalibre CLI',
-          translations: { es: 'CLI de copalibre' },
+          translations: {
+            es: 'CLI de copalibre',
+            fr: 'CLI copalibre',
+            pt: 'CLI do copalibre',
+            it: 'CLI di copalibre',
+            de: 'copalibre-CLI',
+            ru: 'CLI copalibre',
+          },
           items: [
             'help/cli',
             'help/cli/installation',

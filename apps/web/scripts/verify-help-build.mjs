@@ -88,7 +88,25 @@ check(
   esGettingStarted.includes('En esta página'),
 );
 
-const TOTAL_CHECKS = 21;
+// Seven-language parity (0052): each new locale's own root heading confirms
+// its content built and is reachable under its own prefix, not just that the
+// build didn't crash.
+const LOCALE_HEADINGS = {
+  fr: 'Aide CopaLibre',
+  pt: 'Ajuda do CopaLibre',
+  it: 'Guida CopaLibre',
+  de: 'CopaLibre-Hilfe',
+  ru: 'Справка CopaLibre',
+};
+for (const [locale, heading] of Object.entries(LOCALE_HEADINGS)) {
+  const page = readOutput(`${locale}/help/index.html`);
+  check(
+    `the ${locale} locale builds and is reachable at /${locale}/ (0052)`,
+    page.includes(heading),
+  );
+}
+
+const TOTAL_CHECKS = 26;
 if (failures.length > 0) {
   process.stderr.write(
     `Help build failed:\n${failures.map((failure) => `  - ${failure}`).join('\n')}\n`,
