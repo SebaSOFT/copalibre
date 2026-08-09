@@ -11,6 +11,7 @@ const LANGUAGE_NAMES: Readonly<Record<SupportedLanguage, string>> = {
   it: 'Italiano',
   de: 'Deutsch',
   ru: 'Русский',
+  zh: '中文',
 };
 
 /**

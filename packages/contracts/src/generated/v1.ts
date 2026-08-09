@@ -970,7 +970,7 @@ export interface components {
              * @example es
              * @enum {string}
              */
-            primaryLanguage: "en" | "es" | "fr" | "pt" | "it" | "de" | "ru";
+            primaryLanguage: "en" | "es" | "fr" | "pt" | "it" | "de" | "ru" | "zh";
             /**
              * @description IANA time zone identifier; presentation-layer default only
              * @example America/Argentina/San_Juan
@@ -990,7 +990,7 @@ export interface components {
              * @example es
              * @enum {string}
              */
-            primaryLanguage?: "en" | "es" | "fr" | "pt" | "it" | "de" | "ru";
+            primaryLanguage?: "en" | "es" | "fr" | "pt" | "it" | "de" | "ru" | "zh";
             /**
              * @description IANA time zone identifier; defaults to "UTC" when omitted
              * @example America/Argentina/San_Juan
@@ -1008,7 +1008,7 @@ export interface components {
              * @example en
              * @enum {string}
              */
-            primaryLanguage?: "en" | "es" | "fr" | "pt" | "it" | "de" | "ru";
+            primaryLanguage?: "en" | "es" | "fr" | "pt" | "it" | "de" | "ru" | "zh";
             /** @example America/Argentina/San_Juan */
             timezone?: string;
         };

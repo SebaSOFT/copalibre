@@ -11,6 +11,7 @@ import { messages as ptMessages } from './messages.pt.js';
 import { messages as itMessages } from './messages.it.js';
 import { messages as deMessages } from './messages.de.js';
 import { messages as ruMessages } from './messages.ru.js';
+import { messages as zhMessages } from './messages.zh.js';
 
 /**
  * No control-panel route fetches the organization's own record before
@@ -29,6 +30,7 @@ const CATALOGS: Partial<Record<SupportedLanguage, Record<string, string>>> = {
   it: itMessages,
   de: deMessages,
   ru: ruMessages,
+  zh: zhMessages,
 };
 
 /** Resolves the active interface language and provides its message catalog (0053). */

@@ -32,6 +32,7 @@ export default defineConfig({
         it: { label: 'Italiano', lang: 'it' },
         de: { label: 'Deutsch', lang: 'de' },
         ru: { label: 'Русский', lang: 'ru' },
+        zh: { label: '中文', lang: 'zh' },
       },
       plugins: [
         starlightLlmsTxt({
@@ -58,6 +59,7 @@ export default defineConfig({
                 it: 'Riferimento API',
                 de: 'API-Referenz',
                 ru: 'Справочник API',
+                zh: 'API 参考',
               },
               link: '/help/api-reference/',
               attrs: { 'data-astro-reload': true },
@@ -73,6 +75,7 @@ export default defineConfig({
             it: 'Pannello di controllo',
             de: 'Kontrollpanel',
             ru: 'Панель управления',
+            zh: '控制面板',
           },
           items: [
             'help/control',
@@ -94,6 +97,7 @@ export default defineConfig({
             it: 'CLI di copalibre',
             de: 'copalibre-CLI',
             ru: 'CLI copalibre',
+            zh: 'copalibre CLI',
           },
           items: [
             'help/cli',

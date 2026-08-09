@@ -6,6 +6,7 @@ import { messages as ptMessages } from './public-messages.pt.js';
 import { messages as itMessages } from './public-messages.it.js';
 import { messages as deMessages } from './public-messages.de.js';
 import { messages as ruMessages } from './public-messages.ru.js';
+import { messages as zhMessages } from './public-messages.zh.js';
 
 const NON_ENGLISH_CATALOGS = {
   Spanish: esMessages,
@@ -14,9 +15,10 @@ const NON_ENGLISH_CATALOGS = {
   Italian: itMessages,
   German: deMessages,
   Russian: ruMessages,
+  Mandarin: zhMessages,
 };
 
-describe('public-web message-catalog completeness (0055 task 7.3, 0056 task 8.1)', () => {
+describe('public-web message-catalog completeness (0055 task 7.3, 0056 task 8.1, 0057 task 4.6)', () => {
   const englishIds = Object.values(messages)
     .map((descriptor) => descriptor.id)
     .sort();
@@ -44,7 +46,7 @@ describe('public-web message-catalog completeness (0055 task 7.3, 0056 task 8.1)
   );
 });
 
-describe('publicIntl formats real translated text, not an English fallback (0055 task 7.4, 0056 task 8.2)', () => {
+describe('publicIntl formats real translated text, not an English fallback (0055 task 7.4, 0056 task 8.2, 0057 task 4.6)', () => {
   it('renders Spanish chrome for a plain string', () => {
     const intl = publicIntl('es');
     expect(intl.formatMessage(messages.legendHeading)).toBe('Referencias');
@@ -84,6 +86,12 @@ describe('publicIntl formats real translated text, not an English fallback (0055
   it('renders Russian chrome for a plain string', () => {
     const intl = publicIntl('ru');
     expect(intl.formatMessage(messages.legendHeading)).toBe('Легенда');
+    expect(intl.formatMessage(messages.legendHeading)).not.toBe('Legend');
+  });
+
+  it('renders Mandarin chrome for a plain string', () => {
+    const intl = publicIntl('zh');
+    expect(intl.formatMessage(messages.legendHeading)).toBe('图例');
     expect(intl.formatMessage(messages.legendHeading)).not.toBe('Legend');
   });
 
