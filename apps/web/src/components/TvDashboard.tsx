@@ -6,7 +6,7 @@ import {
   type LiveDashboard,
   type LiveMatch,
 } from '../lib/live-state.js';
-import { presentState } from '../lib/result-state.js';
+import { presentState, type ResultStateLabels } from '../lib/result-state.js';
 import { resolveTvBranding, tvStateColor, type TvBranding } from '../lib/tv-branding.js';
 
 /**
@@ -102,8 +102,27 @@ export function TvDashboard({
   );
 }
 
+/**
+ * Not localized (0055): `/tv/**` is a non-SEO surface the architecture doc
+ * explicitly allows "a simpler locale mechanism" than public-web's URL
+ * prefixing — out of scope for this change, same boundary as `/control/**`.
+ * Kept as the pre-existing Spanish text rather than switched to English, so
+ * this surface's appearance does not change as a side effect of this file
+ * merely needing to keep compiling against `presentState`'s new signature.
+ */
+const TV_RESULT_STATE_LABELS: ResultStateLabels = {
+  live: 'EN VIVO',
+  upcoming: 'PROGRAMADO',
+  final: 'FINAL',
+  disputed: 'EN DISPUTA',
+  winner: 'GANÓ',
+  loser: 'PERDIÓ',
+  tbd: 'A DEFINIR',
+  cancelled: 'CANCELADO',
+};
+
 function TvMatchCard({ match }: { readonly match: LiveMatch }): React.JSX.Element {
-  const badge = presentState(match.state);
+  const badge = presentState(match.state, TV_RESULT_STATE_LABELS);
   return (
     <article className="tv-match" style={{ borderInlineStartColor: tvStateColor(match.state) }}>
       <div className="tv-match__badge">

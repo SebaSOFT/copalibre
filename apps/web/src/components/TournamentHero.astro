@@ -1,10 +1,13 @@
 ---
+import type { IntlShape } from 'react-intl';
 import { displayName, type OverviewModel } from '../lib/overview.ts';
+import { messages } from '../lib/i18n/public-messages.en.ts';
 
 interface Props {
   readonly model: OverviewModel;
+  readonly intl: IntlShape;
 }
-const { model } = Astro.props;
+const { model, intl } = Astro.props;
 ---
 
 <section class="cl-card cl-card--live cl-chamfer">
@@ -12,6 +15,10 @@ const { model } = Astro.props;
   <h1>{displayName(model)}</h1>
   {/* The count is the label: "live" as a colour alone is not a state. */}
   <p class="cl-badge">
-    {model.liveCount > 0 ? `${model.liveCount} EN VIVO` : 'SIN PARTIDOS EN VIVO'}
+    {
+      model.liveCount > 0
+        ? intl.formatMessage(messages.heroLiveCount, { count: model.liveCount })
+        : intl.formatMessage(messages.heroNoLiveMatches)
+    }
   </p>
 </section>

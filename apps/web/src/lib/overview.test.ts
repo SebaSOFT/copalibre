@@ -1,4 +1,4 @@
-import { buildOverview, displayName, shortLabel, STATE_LABEL } from './overview.js';
+import { buildOverview, displayName, shortLabel } from './overview.js';
 import { PUBLIC_ROUTES } from './public-routes.js';
 import { sampleOverview } from './sample-data.js';
 
@@ -26,12 +26,6 @@ describe('the overview model', () => {
 
   it('counts what is live, so the badge carries a number and not just a colour', () => {
     expect(model.liveCount).toBe(1);
-  });
-
-  it('gives every state a label', () => {
-    for (const state of ['live', 'upcoming', 'final', 'disputed'] as const) {
-      expect(STATE_LABEL[state].length).toBeGreaterThan(0);
-    }
   });
 
   it('shows the abbreviation when there is one and the name when there is not', () => {

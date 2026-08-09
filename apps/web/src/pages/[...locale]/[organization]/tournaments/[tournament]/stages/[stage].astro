@@ -1,0 +1,46 @@
+---
+import PublicLayout from '../../../../../../layouts/PublicLayout.astro';
+import BracketView from '../../../../../../components/BracketView.astro';
+import ResultLegend from '../../../../../../components/ResultLegend.astro';
+import { buildOverview, displayName } from '../../../../../../lib/overview.ts';
+import { sampleOverview } from '../../../../../../lib/sample-data.ts';
+import { sampleBracket } from '../../../../../../lib/bracket-sample.ts';
+import { publicIntl } from '../../../../../../lib/i18n/public-intl.ts';
+import { messages } from '../../../../../../lib/i18n/public-messages.en.ts';
+import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
+
+/**
+ * B3, the public bracket. Double elimination is the shape it must survive.
+ *
+ * `[[locale]]` mirrors the tournament overview page (0055) — see its comment.
+ */
+export function getStaticPaths() {
+  // Inlined rather than a module-level const — see tournament.astro's comment
+  // on the same pattern (0055).
+  const nonPrimaryLocales = ['es'] as const;
+  const base = { organization: 'liga-mendocina', tournament: 'apertura-2026', stage: '1' };
+  return [
+    { params: { locale: undefined, ...base } },
+    ...nonPrimaryLocales.map((locale) => ({ params: { locale, ...base } })),
+  ];
+}
+
+const { locale, organization, tournament, stage } = Astro.params;
+const resolvedLocale: SupportedLanguage = isSupportedLanguage(locale) ? locale : 'en';
+const intl = publicIntl(resolvedLocale);
+const model = buildOverview({
+  ...sampleOverview(organization ?? 'liga-mendocina', tournament ?? 'apertura-2026'),
+  stageNumber: Number(stage ?? 1),
+  locale: resolvedLocale,
+});
+---
+
+<PublicLayout
+  title={`${intl.formatMessage(messages.bracketPageTitle)} — ${displayName(model)}`}
+  canonicalPath={model.canonicalPath}
+  intl={intl}
+>
+  <h1>{intl.formatMessage(messages.bracketPageTitle)}</h1>
+  <BracketView matches={sampleBracket()} intl={intl} />
+  <ResultLegend intl={intl} />
+</PublicLayout>

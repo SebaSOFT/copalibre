@@ -1,15 +1,19 @@
 ---
+import type { IntlShape } from 'react-intl';
 import StateBadge from './StateBadge.astro';
 import { toNode, type BracketMatch } from '../lib/bracket.ts';
+import { resultStateLabels } from '../lib/i18n/public-intl.ts';
 
 interface Props {
   readonly match: BracketMatch;
+  readonly intl: IntlShape;
 }
-const node = toNode(Astro.props.match);
+const { intl } = Astro.props;
+const node = toNode(Astro.props.match, resultStateLabels(intl));
 ---
 
 <article class="cl-card cl-chamfer" data-match={node.matchNumber}>
-  <StateBadge state={node.state} />
+  <StateBadge state={node.state} intl={intl} />
   <ol>
     {
       node.slots.map((slot) => (

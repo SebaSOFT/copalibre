@@ -5,6 +5,12 @@
  * the reliable way to hold that line is to make the label impossible to omit:
  * a state resolves to a triple, and a template that wants the colour gets the
  * label and the icon with it.
+ *
+ * The label is resolved from a caller-supplied dictionary rather than an
+ * `IntlShape` directly (0055): `LiveMatchHero.tsx`, a hydrated client island,
+ * calls this too, and must never import `react-intl`'s formatting machinery
+ * into the browser bundle — its parent page resolves the dictionary once at
+ * build time via `resultStateLabels()` and passes it down as a plain prop.
  */
 
 export type ResultState =
@@ -12,7 +18,6 @@ export type ResultState =
 
 export interface StatePresentation {
   readonly state: ResultState;
-  /** Text, always. Spanish is the primary locale (0020). */
   readonly label: string;
   /** A shape, for viewers who distinguish neither the colour nor the word. */
   readonly icon: string;
@@ -20,34 +25,48 @@ export interface StatePresentation {
   readonly className: string;
 }
 
-const PRESENTATION: Readonly<Record<ResultState, StatePresentation>> = {
-  live: { state: 'live', label: 'EN VIVO', icon: '●', className: 'cl-state--live' },
-  upcoming: { state: 'upcoming', label: 'PROGRAMADO', icon: '◷', className: 'cl-state--upcoming' },
-  final: { state: 'final', label: 'FINAL', icon: '✓', className: 'cl-state--positive' },
-  disputed: {
-    state: 'disputed',
-    label: 'EN DISPUTA',
-    icon: '!',
-    className: 'cl-state--destructive',
-  },
-  winner: { state: 'winner', label: 'GANÓ', icon: '▲', className: 'cl-state--positive' },
-  loser: { state: 'loser', label: 'PERDIÓ', icon: '▽', className: 'cl-state--muted' },
-  tbd: { state: 'tbd', label: 'A DEFINIR', icon: '—', className: 'cl-state--pending' },
-  cancelled: {
-    state: 'cancelled',
-    label: 'CANCELADO',
-    icon: '×',
-    className: 'cl-state--destructive',
-  },
+export type ResultStateLabels = Readonly<Record<ResultState, string>>;
+
+const ICON: Readonly<Record<ResultState, string>> = {
+  live: '●',
+  upcoming: '◷',
+  final: '✓',
+  disputed: '!',
+  winner: '▲',
+  loser: '▽',
+  tbd: '—',
+  cancelled: '×',
 };
 
-export function presentState(state: ResultState): StatePresentation {
-  return PRESENTATION[state];
+const CLASS_NAME: Readonly<Record<ResultState, string>> = {
+  live: 'cl-state--live',
+  upcoming: 'cl-state--upcoming',
+  final: 'cl-state--positive',
+  disputed: 'cl-state--destructive',
+  winner: 'cl-state--positive',
+  loser: 'cl-state--muted',
+  tbd: 'cl-state--pending',
+  cancelled: 'cl-state--destructive',
+};
+
+const ALL_STATES: readonly ResultState[] = [
+  'live',
+  'upcoming',
+  'final',
+  'disputed',
+  'winner',
+  'loser',
+  'tbd',
+  'cancelled',
+];
+
+export function presentState(state: ResultState, labels: ResultStateLabels): StatePresentation {
+  return { state, label: labels[state], icon: ICON[state], className: CLASS_NAME[state] };
 }
 
 /** Every state, for the legend the page shows once. */
-export function resultLegend(): readonly StatePresentation[] {
-  return Object.values(PRESENTATION);
+export function resultLegend(labels: ResultStateLabels): readonly StatePresentation[] {
+  return ALL_STATES.map((state) => presentState(state, labels));
 }
 
 /**

@@ -1,10 +1,15 @@
 ---
-import { STATE_LABEL, shortLabel, type OverviewModel } from '../lib/overview.ts';
+import type { IntlShape } from 'react-intl';
+import { shortLabel, type OverviewModel } from '../lib/overview.ts';
+import { messages } from '../lib/i18n/public-messages.en.ts';
+import { resultStateLabels } from '../lib/i18n/public-intl.ts';
 
 interface Props {
   readonly model: OverviewModel;
+  readonly intl: IntlShape;
 }
-const { model } = Astro.props;
+const { model, intl } = Astro.props;
+const labels = resultStateLabels(intl);
 ---
 
 {
@@ -14,15 +19,15 @@ const { model } = Astro.props;
 */
 }
 <section aria-labelledby="ticker-heading">
-  <h2 id="ticker-heading">Partidos</h2>
-  {model.matches.length === 0 && <p>Todavía no hay partidos programados.</p>}
+  <h2 id="ticker-heading">{intl.formatMessage(messages.tickerHeading)}</h2>
+  {model.matches.length === 0 && <p>{intl.formatMessage(messages.tickerEmpty)}</p>}
   <ul>
     {
       model.matches.map((match) => (
         <li
           class={`cl-card cl-card--${match.state === 'final' ? 'positive' : match.state === 'disputed' ? 'destructive' : match.state}`}
         >
-          <span class="cl-badge">{STATE_LABEL[match.state]}</span>
+          <span class="cl-badge">{labels[match.state]}</span>
           <span>{shortLabel(match.home)}</span>
           <span class="cl-stat-tile__value">{match.home.score ?? '—'}</span>
           <span>{shortLabel(match.away)}</span>
