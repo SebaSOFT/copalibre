@@ -446,7 +446,12 @@ jobs:
           cache: yarn
       - run: yarn install --immutable
       # The pages import built packages and generated tokens; neither is
-      # committed, so a fresh checkout has to make both.
+      # committed, so a fresh checkout has to make both. @copalibre/domain
+      # joined this list in 0053: apps/web/src/lib/language-preference.ts
+      # (0051) imports it, and 0053 is the first change to actually wire that
+      # file into a live page bundle (ControlShell's ControlIntl), so this is
+      # the first time this job's build needs it resolved.
+      - run: yarn workspace @copalibre/domain build
       - run: yarn workspace @copalibre/routing build
       - run: yarn workspace @copalibre/realtime build
       - run: yarn workspace @copalibre/design-tokens build:tokens
@@ -467,6 +472,11 @@ jobs:
           node-version: 24
           cache: yarn
       - run: yarn install --immutable
+      # @copalibre/domain joined this list in 0053, same reason as the Public
+      # web build job above: apps/web/src/lib/language-preference.ts (0051)
+      # imports it, and 0053 is the first change to make that file reachable
+      # from a real build (ControlShell's ControlIntl).
+      - run: yarn workspace @copalibre/domain build
       - run: yarn workspace @copalibre/routing build
       - run: yarn workspace @copalibre/realtime build
       - run: yarn workspace @copalibre/design-tokens build:tokens
