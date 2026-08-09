@@ -1,7 +1,14 @@
-import { mkdir, readdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import * as tar from 'tar';
-import { buildManifest, pgDumpCommand, pgRestoreCommand, selectPacketsToPrune } from './backup.js';
+import {
+  buildManifest,
+  evaluateRestoreCompatibility,
+  pgDumpCommand,
+  pgRestoreCommand,
+  selectPacketsToPrune,
+} from './backup.js';
+import type { BackupManifest } from './backup.js';
 import type { ProcessRunner } from './process-runner.js';
 
 const STAGING_ROOT = 'backups';
@@ -53,16 +60,43 @@ export async function createBackupPacket(
   return { file: options.file, pruned };
 }
 
-/** Extracts and restores a packet created by `createBackupPacket` (0046). */
+export interface RestorePacketResult {
+  readonly backupVersion: string;
+  readonly backupCreatedAt: string;
+}
+
+/**
+ * Extracts and restores a packet created by `createBackupPacket` (0046). Reads the packet's
+ * manifest before touching the database (0050): a backup newer than the running installation is
+ * refused — via `evaluateRestoreCompatibility` — before any `pg_restore` invocation.
+ */
 export async function restoreBackupPacket(
   processes: ProcessRunner,
-  options: { readonly file: string; readonly database: string },
-): Promise<void> {
+  options: {
+    readonly file: string;
+    readonly database: string;
+    readonly runningCopalibreVersion: string;
+    readonly allowNewerBackup?: boolean;
+  },
+): Promise<RestorePacketResult> {
   const stagingName = `.staging-restore-${Date.now()}`;
   const stagingPath = join(STAGING_ROOT, stagingName);
   await mkdir(stagingPath, { recursive: true });
   try {
     await tar.extract({ file: options.file, cwd: stagingPath });
+
+    const manifest = JSON.parse(
+      await readFile(join(stagingPath, MANIFEST_FILENAME), 'utf8'),
+    ) as BackupManifest;
+    const compatibility = evaluateRestoreCompatibility(
+      manifest.copalibreVersion,
+      options.runningCopalibreVersion,
+      options.allowNewerBackup ?? false,
+    );
+    if (!compatibility.ok) {
+      throw new Error(compatibility.reason);
+    }
+
     const restoreResult = await processes.run('docker', [
       'compose',
       'run',
@@ -73,6 +107,8 @@ export async function restoreBackupPacket(
     if (restoreResult !== 0) {
       throw new Error(`pg_restore failed with exit code ${restoreResult}`);
     }
+
+    return { backupVersion: manifest.copalibreVersion, backupCreatedAt: manifest.createdAt };
   } finally {
     await rm(stagingPath, { recursive: true, force: true });
   }

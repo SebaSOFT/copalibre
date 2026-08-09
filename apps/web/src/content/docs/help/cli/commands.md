@@ -64,13 +64,26 @@ a nivel de infraestructura, como ya indica la guía de autoalojamiento.
 
 ## restore
 
-`copalibre restore --file <ruta> (--confirm | --dry-run)`
+`copalibre restore --file <ruta> (--confirm | --dry-run) [--allow-newer-backup]`
 
-Extrae un paquete de respaldo y restaura su volcado de PostgreSQL en una instalación limpia.
+Extrae un paquete de respaldo, restaura su volcado de PostgreSQL, corre las migraciones pendientes
+y confirma que el esquema aplicado coincide con esta instalación — todo en una sola invocación.
 
 - `--file <ruta>`: paquete a restaurar, dentro de `backups/`
 - `--confirm`: requerido para ejecutar la restauración de verdad
 - `--dry-run`: imprime el plan de restauración sin ejecutarlo
+- `--allow-newer-backup`: permite restaurar un paquete producido por una versión de CopaLibre más
+  nueva que la que corre actualmente (rechazado por defecto)
+
+Después de un `pg_restore` exitoso, `restore` corre automáticamente `copalibre migrate` y luego abre
+una conexión para verificar que la versión de esquema aplicada coincide exactamente con la que esta
+instalación espera (el mismo chequeo que usa `GET /ready`) — así una restauración nunca deja el
+código y la base desincronizados en silencio. Si la migración falla, `restore` lo reporta con su
+código de salida sin afirmar éxito; reintente con `copalibre migrate` y luego `copalibre doctor`.
+
+Un paquete cuyo manifiesto registra una versión de CopaLibre más nueva que la que corre actualmente
+se rechaza antes de tocar la base de datos, nombrando ambas versiones — actualice esta instalación
+primero, o pase `--allow-newer-backup` si de verdad lo desea.
 
 ## upgrade-check
 

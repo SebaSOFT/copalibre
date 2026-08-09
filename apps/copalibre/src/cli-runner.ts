@@ -1,6 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { parseArgs } from 'node:util';
 import {
+  createDatabase,
+  databaseConfigFromEnv,
+  EXPECTED_SCHEMA_VERSION,
+  isSchemaReady,
+  readAppliedSchemaVersion,
+} from '@copalibre/persistence';
+import {
   assertBackupFile,
   backupDryRunMessage,
   parseBackupOptions,
@@ -244,8 +251,41 @@ export class CliRunner {
       return 0;
     }
     const database = environment.POSTGRES_DB?.trim() || 'copalibre';
-    await restoreBackupPacket(this.processes, { file: options.file, database });
-    process.stdout.write(`Restored from packet: ${options.file}\n`);
+    const restored = await restoreBackupPacket(this.processes, {
+      file: options.file,
+      database,
+      runningCopalibreVersion: readCopalibreVersion(),
+      allowNewerBackup: options.allowNewerBackup,
+    });
+    process.stdout.write(
+      `Restored from packet: ${options.file} (CopaLibre ${restored.backupVersion}, ` +
+        `created ${restored.backupCreatedAt})\n`,
+    );
+
+    const migrateResult = await this.migrate([]);
+    if (migrateResult !== 0) {
+      process.stderr.write(
+        'Restore completed but migration failed. Run "copalibre migrate" to retry, then ' +
+          '"copalibre doctor" to check the installation before serving traffic.\n',
+      );
+      return migrateResult;
+    }
+    process.stdout.write('Migrations applied.\n');
+
+    const db = createDatabase(databaseConfigFromEnv(environment));
+    try {
+      const applied = await readAppliedSchemaVersion(db);
+      if (!(await isSchemaReady(db))) {
+        process.stderr.write(
+          `Schema check failed after restore: applied schema is ${applied ?? 'unmigrated'}, ` +
+            `expected ${EXPECTED_SCHEMA_VERSION}. Run "copalibre doctor" before serving traffic.\n`,
+        );
+        return 1;
+      }
+      process.stdout.write(`Schema verified: ${applied} matches this installation.\n`);
+    } finally {
+      await db.destroy();
+    }
     return 0;
   }
 

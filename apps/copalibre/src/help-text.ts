@@ -68,8 +68,8 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
   },
   {
     name: 'restore',
-    summary: 'Restore a backup packet into a clean installation',
-    usage: 'copalibre restore --file <path> (--confirm | --dry-run)',
+    summary: 'Restore a backup packet, migrate it, and verify the schema matches',
+    usage: 'copalibre restore --file <path> (--confirm | --dry-run) [--allow-newer-backup]',
     flags: [
       {
         flag: '--file <path>',
@@ -77,6 +77,10 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
       },
       { flag: '--confirm', description: 'Required to actually run the restore' },
       { flag: '--dry-run', description: 'Print the restore plan without running it' },
+      {
+        flag: '--allow-newer-backup',
+        description: 'Restore a packet newer than this installation anyway (refused by default)',
+      },
     ],
   },
   {

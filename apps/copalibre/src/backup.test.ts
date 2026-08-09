@@ -3,6 +3,7 @@ import {
   backupDryRunMessage,
   buildManifest,
   defaultPacketFileName,
+  evaluateRestoreCompatibility,
   parseBackupOptions,
   parseRestoreOptions,
   pgDumpCommand,
@@ -50,6 +51,7 @@ describe('backup and restore options', () => {
       file: 'backups/copalibre.tar.gz',
       dryRun: false,
       confirmed: false,
+      allowNewerBackup: false,
     });
   });
 
@@ -60,7 +62,14 @@ describe('backup and restore options', () => {
       file: 'backups/copalibre.tar.gz',
       dryRun: true,
       confirmed: true,
+      allowNewerBackup: false,
     });
+  });
+
+  it('parses --allow-newer-backup', () => {
+    expect(
+      parseRestoreOptions(['--file', 'backups/copalibre.tar.gz', '--allow-newer-backup']),
+    ).toMatchObject({ allowNewerBackup: true });
   });
 
   it('renders PostgreSQL commands without shell interpolation', () => {
@@ -86,9 +95,15 @@ describe('backup and restore options', () => {
         '(retaining 5 most recent packet(s))',
     );
     expect(
-      restoreDryRunMessage({ file: 'backups/copalibre.tar.gz', dryRun: true, confirmed: false }),
+      restoreDryRunMessage({
+        file: 'backups/copalibre.tar.gz',
+        dryRun: true,
+        confirmed: false,
+        allowNewerBackup: false,
+      }),
     ).toBe(
-      'Restore plan: extract backups/copalibre.tar.gz and pg_restore --clean --if-exists its database dump',
+      'Restore plan: extract backups/copalibre.tar.gz and pg_restore --clean --if-exists its ' +
+        'database dump, then run pending migrations and confirm the schema matches this installation',
     );
   });
 });
@@ -133,5 +148,27 @@ describe('selectPacketsToPrune (0046)', () => {
   it('returns nothing to prune when fewer packets exist than the retention count', () => {
     const packets = ['copalibre-2026-01-01T00-00-00-000Z.tar.gz'];
     expect(selectPacketsToPrune(packets, 5)).toEqual([]);
+  });
+});
+
+describe('evaluateRestoreCompatibility (0050)', () => {
+  it('allows a backup older than the running version', () => {
+    expect(evaluateRestoreCompatibility('1.0.0', '2.0.0', false)).toEqual({ ok: true });
+  });
+
+  it('allows a backup at the same version as the running version', () => {
+    expect(evaluateRestoreCompatibility('2.0.0', '2.0.0', false)).toEqual({ ok: true });
+  });
+
+  it('refuses a backup newer than the running version, naming both versions', () => {
+    const result = evaluateRestoreCompatibility('2.1.0', '2.0.0', false);
+    expect(result.ok).toBe(false);
+    expect(result.reason).toContain('2.1.0');
+    expect(result.reason).toContain('2.0.0');
+    expect(result.reason).toContain('--allow-newer-backup');
+  });
+
+  it('allows a newer backup when explicitly overridden', () => {
+    expect(evaluateRestoreCompatibility('2.1.0', '2.0.0', true)).toEqual({ ok: true });
   });
 });
