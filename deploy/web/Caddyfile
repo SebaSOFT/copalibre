@@ -1,12 +1,26 @@
 :4321 {
+	root * /srv
+
 	handle /runtime-config.json {
 		header Content-Type "application/json"
 		header Cache-Control "no-store"
 		respond "{\"oidcIssuer\":\"{$COPALIBRE_JWT_ISSUER}\",\"oidcClientId\":\"{$COPALIBRE_OIDC_CLIENT_ID}\"}" 200
 	}
 
+	# Every authenticated control-panel screen beyond the login page shares
+	# one client-routed shell (0061) — real files (the login page at
+	# /control/, its own static assets, and /control/callback once 0062
+	# builds it) are served as-is by try_files finding them first; any other
+	# /control/** path (no matching file, since those eight screens no
+	# longer have their own built pages) falls back to the shell instead of
+	# the public site's own index, so a direct visit or hard refresh still
+	# renders the right screen.
+	handle /control/* {
+		try_files {path} /control/app/index.html
+		file_server
+	}
+
 	handle {
-		root * /srv
 		try_files {path} {path}/ /index.html
 		file_server
 	}

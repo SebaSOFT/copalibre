@@ -19,3 +19,4 @@ export {
 } from './paths.js';
 export { resolveAlias, type AliasRedirect, type AliasResolution } from './redirects.js';
 export { buildSitemap, buildRobots, type SitemapEntry } from './discovery.js';
+export { parseControlPath, type ControlRoute } from './control-path-parser.js';

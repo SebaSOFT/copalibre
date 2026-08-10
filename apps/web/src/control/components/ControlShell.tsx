@@ -4,6 +4,7 @@ import { SIDENAV } from '../lib/dashboard.js';
 import { activeControlLanguage, ControlIntl } from '../i18n/ControlIntl.js';
 import { LanguageSwitcher } from '../i18n/LanguageSwitcher.js';
 import { messages } from '../i18n/messages.en.js';
+import { controlLinkClick } from '../lib/control-navigation.js';
 import {
   writeStoredLanguagePreference,
   type SupportedLanguage,
@@ -83,6 +84,7 @@ function ControlShellChrome({
               <a
                 className="cl-focusable"
                 href={`/control/${organizationAlias}${item.path}`}
+                onClick={controlLinkClick(`/control/${organizationAlias}${item.path}`)}
                 style={{
                   ...navLinkStyle,
                   ...(item.id === active ? navLinkActiveStyle : {}),
