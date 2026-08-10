@@ -1,5 +1,23 @@
 import { renderHook, act } from '@testing-library/react';
-import { navigateControl, useControlPath } from './control-navigation.js';
+import { jest } from '@jest/globals';
+import type { MouseEvent } from 'react';
+import { controlLinkClick, navigateControl, useControlPath } from './control-navigation.js';
+
+function clickEvent(
+  overrides: Partial<
+    Pick<MouseEvent<HTMLAnchorElement>, 'button' | 'metaKey' | 'ctrlKey' | 'shiftKey' | 'altKey'>
+  > = {},
+): MouseEvent<HTMLAnchorElement> {
+  return {
+    button: 0,
+    metaKey: false,
+    ctrlKey: false,
+    shiftKey: false,
+    altKey: false,
+    preventDefault: jest.fn(),
+    ...overrides,
+  } as unknown as MouseEvent<HTMLAnchorElement>;
+}
 
 describe('control-panel client-side navigation', () => {
   afterEach(() => {
@@ -48,5 +66,36 @@ describe('control-panel client-side navigation', () => {
       window.dispatchEvent(new PopStateEvent('popstate'));
     });
     expect(result.current).toBe('/control/liga-mendocina');
+  });
+});
+
+describe('controlLinkClick', () => {
+  afterEach(() => {
+    window.history.replaceState({}, '', '/control/liga-mendocina');
+  });
+
+  it('intercepts a plain left click into client-side navigation', () => {
+    window.history.replaceState({}, '', '/control/liga-mendocina');
+    const event = clickEvent();
+
+    controlLinkClick('/control/liga-mendocina/roles')(event);
+
+    expect(event.preventDefault).toHaveBeenCalled();
+    expect(window.location.pathname).toBe('/control/liga-mendocina/roles');
+  });
+
+  it.each([
+    ['a non-primary button', clickEvent({ button: 1 })],
+    ['a meta-key click (open in new tab)', clickEvent({ metaKey: true })],
+    ['a ctrl-key click', clickEvent({ ctrlKey: true })],
+    ['a shift-key click (open in new window)', clickEvent({ shiftKey: true })],
+    ['an alt-key click', clickEvent({ altKey: true })],
+  ])('leaves the browser default behavior alone for %s', (_label, event) => {
+    window.history.replaceState({}, '', '/control/liga-mendocina');
+
+    controlLinkClick('/control/liga-mendocina/roles')(event);
+
+    expect(event.preventDefault).not.toHaveBeenCalled();
+    expect(window.location.pathname).toBe('/control/liga-mendocina');
   });
 });
