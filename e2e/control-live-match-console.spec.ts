@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 const matchId = '00000000-0000-7000-8000-000000000001';
 const matchPath = `/organizations/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
@@ -106,7 +107,7 @@ async function mockMatchConsole(
   } = {},
 ): Promise<void> {
   await page.addInitScript(
-    ({ initial, path, loseFirstFinalize, keepAuthoritativeScore }) => {
+    ({ initial, path, loseFirstFinalize, keepAuthoritativeScore, tokenEndpoint }) => {
       let state =
         JSON.parse(window.sessionStorage.getItem('match-console-state') ?? 'null') ?? initial;
       const persist = () =>
@@ -126,6 +127,10 @@ async function mockMatchConsole(
           ...(body === undefined ? {} : { body }),
           ...(idempotencyKey === undefined ? {} : { idempotencyKey }),
         });
+
+        if (url === tokenEndpoint) {
+          return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
+        }
 
         if (url === `${path}/console`) return Response.json(state);
         if (url === `/events/control/liga-mendocina`) return new Response('', { status: 403 });
@@ -202,6 +207,7 @@ async function mockMatchConsole(
       path: matchPath,
       loseFirstFinalize: options.loseFirstFinalize ?? false,
       keepAuthoritativeScore: options.keepAuthoritativeScore ?? false,
+      tokenEndpoint: TOKEN_ENDPOINT,
     },
   );
 }
@@ -218,7 +224,10 @@ test('records events and reconciles scoreboard, timer, and ledger from the proje
   page,
 }) => {
   await mockMatchConsole(page);
-  await page.goto(`/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`);
+  const target = `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
 
   await expect(page.getByLabel('Marcador actual')).toContainText('1');
   await page.getByRole('button', { name: 'Gol', exact: true }).click();
@@ -229,7 +238,10 @@ test('records events and reconciles scoreboard, timer, and ledger from the proje
 
 test('branches a penalty into its descriptor-declared final outcome', async ({ page }) => {
   await mockMatchConsole(page);
-  await page.goto(`/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`);
+  const target = `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
 
   await page.getByRole('button', { name: 'Penal', exact: true }).click();
   await expect(page.getByLabel('Resultado del evento')).toBeVisible();
@@ -248,7 +260,10 @@ test('renders clock and declared timer resolution from refreshed authoritative s
   page,
 }) => {
   await mockMatchConsole(page);
-  await page.goto(`/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`);
+  const target = `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
 
   await page.getByLabel('Segundos transcurridos').fill('245');
   await page.getByRole('button', { name: 'Aplicar reloj' }).click();
@@ -256,6 +271,12 @@ test('renders clock and declared timer resolution from refreshed authoritative s
   await page.getByRole('button', { name: 'Resolver' }).click();
   await expect(page.getByText('Sin timers activos.')).toBeVisible();
   await page.reload();
+  // The session is in-memory only (0062) and a reload discards it, same as a
+  // real browser refresh — log back in to return to this screen so the
+  // assertion below is about the persisted match state, not the session.
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
   await expect(page.getByLabel('Reloj 04:05')).toBeVisible();
 });
 
@@ -263,7 +284,10 @@ test('guards duplicate finalization and retries a lost response with the same ke
   page,
 }) => {
   await mockMatchConsole(page, { loseFirstFinalize: true });
-  await page.goto(`/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`);
+  const target = `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
 
   await page.getByRole('button', { name: 'Finalizar partido' }).click();
   await page.getByRole('button', { name: 'Confirmar finalización' }).dblclick();
@@ -280,7 +304,10 @@ test('guards duplicate finalization and retries a lost response with the same ke
 
 test('recovers the server projection after an optimistic event differs', async ({ page }) => {
   await mockMatchConsole(page, { keepAuthoritativeScore: true });
-  await page.goto(`/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`);
+  const target = `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
 
   await page.getByRole('button', { name: 'Gol', exact: true }).click();
   await expect(page.getByLabel('Marcador actual')).toContainText('1');
@@ -289,7 +316,10 @@ test('recovers the server projection after an optimistic event differs', async (
 
 test('does not expose finalization to a referee without its match capability', async ({ page }) => {
   await mockMatchConsole(page, { capabilities: ['match.record-event'] });
-  await page.goto(`/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`);
+  const target = `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
 
   await expect(page.getByRole('button', { name: 'Finalizar partido' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Gol', exact: true })).toBeEnabled();
@@ -299,7 +329,10 @@ test('does not grant event recording from the roster-selection capability alone'
   page,
 }) => {
   await mockMatchConsole(page, { capabilities: ['match.select-roster'] });
-  await page.goto(`/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`);
+  const target = `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
 
   await expect(page.getByRole('button', { name: 'Gol', exact: true })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Finalizar partido' })).toBeDisabled();
@@ -307,7 +340,10 @@ test('does not grant event recording from the roster-selection capability alone'
 
 test('labels every unavailable telemetry signal without fabricated figures', async ({ page }) => {
   await mockMatchConsole(page);
-  await page.goto(`/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`);
+  const target = `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
 
   await expect(page.getByText('Unavailable')).toHaveCount(4);
   await expect(page.getByText('0 ms')).toHaveCount(0);

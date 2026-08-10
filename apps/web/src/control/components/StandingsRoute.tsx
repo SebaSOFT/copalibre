@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createControlApiClient, type ControlApiClient } from '../lib/api-client.js';
 import type { StandingsData } from '../lib/standings.js';
+import { controlTokenStore } from '../session/token-store.js';
 import { StandingsPage } from './StandingsPage.js';
 
 export function StandingsRoute({
@@ -15,7 +16,12 @@ export function StandingsRoute({
   readonly client?: ControlApiClient;
 }): React.JSX.Element {
   const api = useMemo(
-    () => client ?? createControlApiClient({ fetch: globalThis.fetch.bind(globalThis) }),
+    () =>
+      client ??
+      createControlApiClient({
+        fetch: globalThis.fetch.bind(globalThis),
+        accessToken: () => controlTokenStore.read(),
+      }),
     [client],
   );
   const [standings, setStandings] = useState<StandingsData | undefined>(undefined);

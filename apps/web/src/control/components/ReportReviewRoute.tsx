@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { createControlApiClient, type ControlApiClient } from '../lib/api-client.js';
 import { KIND_LABEL, summaryOf, type ReportRow } from '../lib/reports.js';
+import { controlTokenStore } from '../session/token-store.js';
 import { messages } from '../i18n/messages.en.js';
 
 type LoadStatus = 'loading' | 'ready' | 'failed';
@@ -26,7 +27,12 @@ export function ReportReviewRoute({
 }): React.JSX.Element {
   const intl = useIntl();
   const api = useMemo(
-    () => client ?? createControlApiClient({ fetch: globalThis.fetch.bind(globalThis) }),
+    () =>
+      client ??
+      createControlApiClient({
+        fetch: globalThis.fetch.bind(globalThis),
+        accessToken: () => controlTokenStore.read(),
+      }),
     [client],
   );
   const [rows, setRows] = useState<readonly ReportRow[]>([]);

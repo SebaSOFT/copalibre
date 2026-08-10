@@ -21,6 +21,15 @@ export function navigateControl(path: string): void {
 }
 
 /**
+ * Where an unauthenticated visit to `path` sends the operator (0062) — a
+ * pure function so the redirect target is testable without a real
+ * `window.location.assign` (jsdom's `Location.assign` isn't mockable).
+ */
+export function loginRedirectUrl(path: string): string {
+  return `/control/?returnTo=${encodeURIComponent(path)}`;
+}
+
+/**
  * An `onClick` handler for an `<a href={path}>` that keeps the real `href`
  * (so middle-click, right-click, and "open in new tab" still work) but
  * intercepts a plain left click into client-side navigation instead of a

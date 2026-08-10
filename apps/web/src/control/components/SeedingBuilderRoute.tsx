@@ -6,6 +6,7 @@ import {
   type SeedingResponse,
 } from '../lib/api-client.js';
 import type { SeedAssignment } from '../lib/seeding.js';
+import { controlTokenStore } from '../session/token-store.js';
 import { SeedingBuilderPage } from './SeedingBuilderPage.js';
 
 export function SeedingBuilderRoute({
@@ -20,7 +21,12 @@ export function SeedingBuilderRoute({
   readonly client?: ControlApiClient;
 }): React.JSX.Element {
   const api = useMemo(
-    () => client ?? createControlApiClient({ fetch: globalThis.fetch.bind(globalThis) }),
+    () =>
+      client ??
+      createControlApiClient({
+        fetch: globalThis.fetch.bind(globalThis),
+        accessToken: () => controlTokenStore.read(),
+      }),
     [client],
   );
   const [seeding, setSeeding] = useState<SeedingResponse | undefined>(undefined);

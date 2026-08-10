@@ -15,6 +15,7 @@ import {
   newIdempotencyKey,
   segmentLabel,
 } from '../lib/match-console.js';
+import { controlTokenStore } from '../session/token-store.js';
 import { Button } from './ui/button.js';
 import { messages } from '../i18n/messages.en.js';
 
@@ -38,7 +39,12 @@ export function MatchConsoleRoute({
 }): React.JSX.Element {
   const intl = useIntl();
   const api = useMemo(
-    () => client ?? createControlApiClient({ fetch: globalThis.fetch.bind(globalThis) }),
+    () =>
+      client ??
+      createControlApiClient({
+        fetch: globalThis.fetch.bind(globalThis),
+        accessToken: () => controlTokenStore.read(),
+      }),
     [client],
   );
   const [projection, setProjection] = useState<MatchConsoleResponse>();

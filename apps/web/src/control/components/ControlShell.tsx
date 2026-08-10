@@ -5,6 +5,7 @@ import { activeControlLanguage, ControlIntl } from '../i18n/ControlIntl.js';
 import { LanguageSwitcher } from '../i18n/LanguageSwitcher.js';
 import { messages } from '../i18n/messages.en.js';
 import { controlLinkClick } from '../lib/control-navigation.js';
+import { controlTokenStore } from '../session/token-store.js';
 import {
   writeStoredLanguagePreference,
   type SupportedLanguage,
@@ -59,6 +60,12 @@ function ControlShellChrome({
   readonly children: React.ReactNode;
 }): React.JSX.Element {
   const intl = useIntl();
+  const logout = (): void => {
+    controlTokenStore.clear();
+    // A real navigation: /control/ (login) is a separate page from this
+    // shell (0062), same boundary as the unauthenticated-visit guard.
+    window.location.assign('/control/');
+  };
   return (
     <div className="cl-control" style={shellStyle}>
       <nav aria-label={intl.formatMessage(messages.shellSections)} style={navStyle}>
@@ -96,6 +103,9 @@ function ControlShellChrome({
           ))}
         </ul>
         <LanguageSwitcher onChange={onLocaleChange} value={locale} />
+        <button className="cl-focusable" onClick={logout} style={logoutButtonStyle} type="button">
+          <FormattedMessage {...messages.shellLogout} />
+        </button>
       </nav>
       <main style={mainStyle}>{children}</main>
     </div>
@@ -173,4 +183,17 @@ const navLinkActiveStyle: React.CSSProperties = {
 const mainStyle: React.CSSProperties = {
   minWidth: 0,
   padding: 'var(--cl-space-8)',
+};
+
+const logoutButtonStyle: React.CSSProperties = {
+  display: 'block',
+  width: '100%',
+  minHeight: 36,
+  marginTop: 'var(--cl-space-3)',
+  background: 'transparent',
+  color: 'var(--cl-text-secondary)',
+  border: '1px solid var(--cl-border-muted)',
+  fontFamily: 'var(--cl-font-mono)',
+  fontSize: '0.75rem',
+  cursor: 'pointer',
 };
