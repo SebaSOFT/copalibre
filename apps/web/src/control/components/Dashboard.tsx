@@ -9,6 +9,7 @@ import { createControlApiClient, type DisplayTokenResponse } from '../lib/api-cl
 import { activeControlLanguage, ControlIntl } from '../i18n/ControlIntl.js';
 import { LanguageSwitcher } from '../i18n/LanguageSwitcher.js';
 import { messages } from '../i18n/messages.en.js';
+import { controlLinkClick } from '../lib/control-navigation.js';
 import {
   writeStoredLanguagePreference,
   type SupportedLanguage,
@@ -109,7 +110,11 @@ function DashboardBody({
         <ul>
           {SIDENAV.map((item) => (
             <li key={item.id}>
-              <a className="cl-focusable" href={`/control/${organizationAlias}${item.path}`}>
+              <a
+                className="cl-focusable"
+                href={`/control/${organizationAlias}${item.path}`}
+                onClick={controlLinkClick(`/control/${organizationAlias}${item.path}`)}
+              >
                 {intl.formatMessage(item.label)}
               </a>
             </li>

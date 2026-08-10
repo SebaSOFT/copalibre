@@ -18,6 +18,12 @@ export default defineConfig({
       title: 'CopaLibre Help',
       description: 'Operator documentation for self-hosted CopaLibre tournaments.',
       favicon: '/copalibre-logo.svg',
+      // This site has a real top-level 404 (0061 — SPA-aware for /control/**,
+      // per public-web's no-JS baseline for a genuinely missing page).
+      // Starlight injects its own 404 route by default, which otherwise
+      // collides with it (a warning today, a hard error in later Astro
+      // versions).
+      disable404Route: true,
       logo: { src: './src/assets/copalibre-logo.svg', alt: 'CopaLibre' },
       // English is the default (unprefixed) locale (0051): `starlight-llms-txt`
       // sources llms.txt/llms-full.txt from whichever locale is `defaultLocale`,

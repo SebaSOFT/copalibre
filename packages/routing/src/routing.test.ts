@@ -5,6 +5,7 @@ import {
   buildSitemap,
   controlPath,
   homePath,
+  parseControlPath,
   publicPath,
   publicStreamPath,
   resolveAlias,
@@ -216,5 +217,80 @@ describe('what a crawler is told', () => {
     expect(buildSitemap('https://x.test', [{ input: BASE, lastModified: '<bad>' }])).toContain(
       '&lt;bad&gt;',
     );
+  });
+});
+
+describe('parseControlPath', () => {
+  it.each([
+    ['/control/liga-mendocina', { screen: 'dashboard', organizationAlias: 'liga-mendocina' }],
+    ['/control/liga-mendocina/roles', { screen: 'roles', organizationAlias: 'liga-mendocina' }],
+    [
+      '/control/liga-mendocina/tournaments/new',
+      { screen: 'newTournament', organizationAlias: 'liga-mendocina' },
+    ],
+    [
+      '/control/liga-mendocina/tournaments/apertura-2026/registrations',
+      {
+        screen: 'registrations',
+        organizationAlias: 'liga-mendocina',
+        tournamentAlias: 'apertura-2026',
+      },
+    ],
+    [
+      '/control/liga-mendocina/tournaments/apertura-2026/reports',
+      { screen: 'reports', organizationAlias: 'liga-mendocina', tournamentAlias: 'apertura-2026' },
+    ],
+    [
+      '/control/liga-mendocina/tournaments/apertura-2026/matches/00000000-0000-7000-8000-000000000001',
+      {
+        screen: 'matchConsole',
+        organizationAlias: 'liga-mendocina',
+        tournamentAlias: 'apertura-2026',
+        matchId: '00000000-0000-7000-8000-000000000001',
+      },
+    ],
+    [
+      '/control/liga-mendocina/tournaments/apertura-2026/stages/1/seeding',
+      {
+        screen: 'seeding',
+        organizationAlias: 'liga-mendocina',
+        tournamentAlias: 'apertura-2026',
+        stageNumber: 1,
+      },
+    ],
+    [
+      '/control/liga-mendocina/tournaments/apertura-2026/stages/2/standings',
+      {
+        screen: 'standings',
+        organizationAlias: 'liga-mendocina',
+        tournamentAlias: 'apertura-2026',
+        stageNumber: 2,
+      },
+    ],
+  ] as const)('matches %s', (pathname, expected) => {
+    expect(parseControlPath(pathname)).toEqual(expected);
+  });
+
+  it.each([
+    ['/'],
+    ['/control'],
+    ['/control/'],
+    ['/liga-mendocina'],
+    ['/control/liga-mendocina/live'],
+    ['/control/liga-mendocina/tournaments'],
+    ['/control/liga-mendocina/tournaments/apertura-2026'],
+    ['/control/liga-mendocina/tournaments/apertura-2026/stages/1'],
+    ['/control/liga-mendocina/tournaments/apertura-2026/stages/1/unknown'],
+    ['/control/liga-mendocina/tournaments/apertura-2026/matches'],
+  ])('finds no match for %s', (pathname) => {
+    expect(parseControlPath(pathname)).toBeUndefined();
+  });
+
+  it('does not throw on a non-numeric stage segment', () => {
+    expect(
+      parseControlPath(
+        '/control/liga-mendocina/tournaments/apertura-2026/stages/not-a-number/seeding',
+      ),
+    ).toBeUndefined();
   });
 });
