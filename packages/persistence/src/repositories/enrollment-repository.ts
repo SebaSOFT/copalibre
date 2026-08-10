@@ -760,6 +760,74 @@ export class EnrollmentRepository {
       .executeTakeFirst();
     return row !== undefined;
   }
+
+  /**
+   * Entrant id to display name/abbreviation, for a surface that shows people
+   * rather than ids (0067's public overview/live/bracket projections).
+   *
+   * A person entrant has no abbreviation; only a team can carry one (0037).
+   * An entrant id this installation does not recognise is simply absent from
+   * the returned map — the caller decides what to show for that, this method
+   * does not invent a label.
+   */
+  async resolveEntrantNames(
+    entrantIds: readonly string[],
+  ): Promise<ReadonlyMap<string, { readonly name: string; readonly abbreviation?: string }>> {
+    const names = new Map<string, { name: string; abbreviation?: string }>();
+    if (entrantIds.length === 0) return names;
+
+    const entrants = await this.db
+      .selectFrom('entrants')
+      .select(['entrant_id', 'entrant_kind', 'person_id', 'team_id'])
+      .where('entrant_id', 'in', entrantIds)
+      .execute();
+
+    const personIds = entrants
+      .map((entrant) => entrant.person_id)
+      .filter((id): id is string => id !== null);
+    const teamIds = entrants
+      .map((entrant) => entrant.team_id)
+      .filter((id): id is string => id !== null);
+
+    const [persons, teams] = await Promise.all([
+      personIds.length === 0
+        ? []
+        : this.db
+            .selectFrom('persons')
+            .select(['person_id', 'display_name'])
+            .where('person_id', 'in', personIds)
+            .execute(),
+      teamIds.length === 0
+        ? []
+        : this.db
+            .selectFrom('teams')
+            .select(['team_id', 'name', 'abbreviation'])
+            .where('team_id', 'in', teamIds)
+            .execute(),
+    ]);
+
+    const personById = new Map(persons.map((person) => [person.person_id, person]));
+    const teamById = new Map(teams.map((team) => [team.team_id, team]));
+
+    for (const entrant of entrants) {
+      if (entrant.entrant_kind === 'team' && entrant.team_id !== null) {
+        const team = teamById.get(entrant.team_id);
+        if (team) {
+          names.set(entrant.entrant_id, {
+            name: team.name,
+            ...(team.abbreviation === null ? {} : { abbreviation: team.abbreviation }),
+          });
+        }
+        continue;
+      }
+      if (entrant.person_id !== null) {
+        const person = personById.get(entrant.person_id);
+        if (person) names.set(entrant.entrant_id, { name: person.display_name });
+      }
+    }
+
+    return names;
+  }
 }
 
 /**

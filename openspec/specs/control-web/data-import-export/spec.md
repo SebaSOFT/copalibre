@@ -11,8 +11,9 @@ stable-ID copy of it back out, so the platform never traps operator data behind 
 The system SHALL accept an uploaded CSV of at most 4 MiB, validate it through a durable worker job
 against the active discipline and tournament's declared import schema, present a row-level preview of
 validation results, and SHALL NOT commit any row until the operator explicitly confirms the reviewed
-preview. The declared schema SHALL select whether rows represent individual participants or teams;
-the system SHALL NOT infer a sport-specific shape outside that configuration. A roster is a
+preview. The declared schema SHALL select whether rows register a new individual entrant, register a
+new team entrant, or attach people onto an already-registered team's persistent membership; the
+system SHALL NOT infer a sport-specific shape outside that configuration. A roster is a
 match-specific player selection and SHALL NOT be imported by this capability.
 
 #### Scenario: Valid rows are previewed before commit
@@ -94,3 +95,29 @@ service or account.
 #### Scenario: Self-hosted export succeeds offline from any hosted service
 - **WHEN** an operator triggers an export on a self-hosted installation with no external network access to any SebaSOFT-hosted service
 - **THEN** the export completes successfully
+
+### Requirement: CSV import can add people to an already-registered team's membership
+The system SHALL support a CSV import target that attaches each row's person to a team named by a
+per-row team reference, so one file can populate many teams' persistent membership in one import. The
+system SHALL only attach to a team already registered as an entrant in the target tournament; it SHALL
+NOT create a team as a side effect of this target, and a row naming a team that is not already a
+registered entrant in the tournament SHALL be reported as a row-level validation error in the
+reviewed preview, not committed. Committing this target SHALL be additive: a person named in a row who
+is already a member of the row's team SHALL be left unchanged, and re-committing the same or an
+overlapping CSV SHALL NOT duplicate membership or fail.
+
+#### Scenario: A valid row attaches a person to the named team's membership
+- **WHEN** an operator commits a reviewed CSV row naming a person and a team already registered as an entrant in the tournament
+- **THEN** the named person becomes (or remains) a member of the named team, without altering any other team's membership
+
+#### Scenario: An unregistered team reference is a validation error, not a new team
+- **WHEN** an operator uploads a CSV row naming a team reference that does not match any team already registered as an entrant in the tournament
+- **THEN** the reviewed preview reports a row-level validation error for that row, no team is created, and the row is not committed
+
+#### Scenario: Re-importing the same file does not duplicate membership
+- **WHEN** an operator commits a CSV import for this target, then commits the same file again
+- **THEN** the second commit leaves the resulting team memberships identical to the first, with no duplicate membership and no error
+
+#### Scenario: One file spans multiple teams
+- **WHEN** an operator uploads a CSV whose rows name more than one already-registered team
+- **THEN** each row's person is attached to that row's own named team, and the reviewed preview and commit apply every row's team reference independently

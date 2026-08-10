@@ -99,7 +99,11 @@ Desktop.ini
 tmp/
 
 # Local AI-assistant tooling and OpenSpec planning artifacts stay out of the repo
+.agent/
+.agents/
 .claude/
+.gemini/
+.opencode/
 openspec/changes/*
 apps/web/public/openapi/
 apps/web/public/vendor/

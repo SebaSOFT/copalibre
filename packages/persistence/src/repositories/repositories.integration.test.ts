@@ -3,6 +3,7 @@ import { AuditReader } from '../audit.js';
 import { InvariantViolationError, NotFoundError } from '../errors.js';
 import { newId } from '../ids.js';
 import { OutboxReader } from '../outbox.js';
+import { PublicOverviewReadModel } from '../projections/public-overview-read-model.js';
 import { createMigratedDatabase, type ScratchDatabase } from '../test-support/scratch-database.js';
 import { withTransaction } from '../transaction.js';
 import { CompetitionRepository } from './competition-repository.js';
@@ -1145,5 +1146,202 @@ describe('alias redirects (integration)', () => {
     expect(await aliases.resolveTournamentAlias(organizationId, 'clausura-2027')).toEqual({
       kind: 'unknown',
     });
+  });
+});
+
+describe('public overview projection (integration)', () => {
+  let scratch: ScratchDatabase;
+  let organizations: OrganizationRepository;
+  let tournaments: TournamentRepository;
+  let participants: EnrollmentRepository;
+  let competition: CompetitionRepository;
+  let overview: PublicOverviewReadModel;
+  let organizationId: string;
+
+  beforeAll(async () => {
+    scratch = await createMigratedDatabase('public-overview');
+    organizations = new OrganizationRepository(scratch.db);
+    tournaments = new TournamentRepository(scratch.db);
+    participants = new EnrollmentRepository(scratch.db);
+    competition = new CompetitionRepository(scratch.db);
+    overview = new PublicOverviewReadModel(scratch.db);
+
+    const organization = await withTransaction(scratch.db, (uow) =>
+      organizations.create(uow, {
+        alias: 'liga-publica',
+        name: 'Liga Pública',
+        ...AUDIT,
+      }),
+    );
+    organizationId = organization.organizationId;
+  });
+
+  afterAll(async () => {
+    await scratch?.drop();
+  });
+
+  it('resolves entrant names for both a team and a person entrant, and omits an unknown id', async () => {
+    const disciplineDescriptor = descriptor();
+    const { teamEntrantId, personEntrantId } = await withTransaction(scratch.db, async (uow) => {
+      await tournaments.saveDescriptor(uow, disciplineDescriptor, { organizationId, ...AUDIT });
+      const tournament = await tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-nombres',
+        name: 'Copa Nombres',
+        descriptor: disciplineDescriptor,
+        ...AUDIT,
+      });
+      const team = await participants.createTeam(uow, {
+        organizationId,
+        name: 'Talleres de Mendoza',
+        abbreviation: 'TLL A',
+        ...AUDIT,
+      });
+      const teamEntrant = await participants.registerEntrant(uow, {
+        tournamentId: tournament.tournamentId,
+        entrantRef: { kind: 'team', teamId: team.teamId },
+        organizationId,
+        ...AUDIT,
+      });
+      const { person } = await new PersonRepository(scratch.db).register(uow, {
+        organizationId,
+        displayName: 'Ana Pérez',
+        ...AUDIT,
+      });
+      const personEntrant = await participants.registerEntrant(uow, {
+        tournamentId: tournament.tournamentId,
+        entrantRef: { kind: 'person', personId: person.personId },
+        organizationId,
+        ...AUDIT,
+      });
+      return { teamEntrantId: teamEntrant.entrantId, personEntrantId: personEntrant.entrantId };
+    });
+
+    const unknownEntrantId = newId();
+    const names = await participants.resolveEntrantNames([
+      teamEntrantId,
+      personEntrantId,
+      unknownEntrantId,
+    ]);
+
+    expect(names.get(teamEntrantId)).toEqual({
+      name: 'Talleres de Mendoza',
+      abbreviation: 'TLL A',
+    });
+    expect(names.get(personEntrantId)).toEqual({ name: 'Ana Pérez' });
+    expect(names.has(unknownEntrantId)).toBe(false);
+  });
+
+  it('returns an empty map without querying when given no entrant ids', async () => {
+    await expect(participants.resolveEntrantNames([])).resolves.toEqual(new Map());
+  });
+
+  it('lists every stage’s matches for a tournament, in stage/round order, with scheduling and scores', async () => {
+    const disciplineDescriptor = descriptor();
+    const tournamentId = await withTransaction(scratch.db, async (uow) => {
+      await tournaments.saveDescriptor(uow, disciplineDescriptor, { organizationId, ...AUDIT });
+      const tournament = await tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-calendario',
+        name: 'Copa Calendario',
+        descriptor: disciplineDescriptor,
+        ...AUDIT,
+      });
+      const home = await participants.createTeam(uow, {
+        organizationId,
+        name: 'Local FC',
+        ...AUDIT,
+      });
+      const away = await participants.createTeam(uow, {
+        organizationId,
+        name: 'Visitante FC',
+        ...AUDIT,
+      });
+      const homeEntrant = await participants.registerEntrant(uow, {
+        tournamentId: tournament.tournamentId,
+        entrantRef: { kind: 'team', teamId: home.teamId },
+        organizationId,
+        ...AUDIT,
+      });
+      const awayEntrant = await participants.registerEntrant(uow, {
+        tournamentId: tournament.tournamentId,
+        entrantRef: { kind: 'team', teamId: away.teamId },
+        organizationId,
+        ...AUDIT,
+      });
+
+      const stageOne = await competition.createStageInTournament(uow, {
+        tournamentId: tournament.tournamentId,
+        number: 1,
+        name: 'Fase de grupos',
+        format: 'round-robin',
+        organizationId,
+        ...AUDIT,
+      });
+      const [fixture] = await competition.createFixtures(uow, {
+        stageId: stageOne.stageId,
+        fixtures: [
+          {
+            round: 1,
+            homeEntrantId: homeEntrant.entrantId,
+            awayEntrantId: awayEntrant.entrantId,
+            scheduledAt: '2026-08-01T20:00:00.000Z',
+          },
+        ],
+        organizationId,
+        ...AUDIT,
+      });
+      if (!fixture) throw new Error('fixture was not created');
+      const match = await competition.createMatch(uow, {
+        fixtureId: fixture.fixtureId,
+        number: 1,
+        organizationId,
+        ...AUDIT,
+      });
+      await competition.recordResult(uow, {
+        matchId: match.matchId,
+        result: {
+          sides: [
+            { entrantId: homeEntrant.entrantId, statistics: { goals: 2 } },
+            { entrantId: awayEntrant.entrantId, statistics: { goals: 1 } },
+          ],
+          winnerEntrantId: homeEntrant.entrantId,
+          recordedAt: '2026-08-01T22:00:00.000Z',
+        },
+        organizationId,
+        ...AUDIT,
+      });
+
+      const stageTwo = await competition.createStageInTournament(uow, {
+        tournamentId: tournament.tournamentId,
+        number: 2,
+        name: 'Playoffs',
+        format: 'round-robin',
+        organizationId,
+        ...AUDIT,
+      });
+      await competition.createFixtures(uow, {
+        stageId: stageTwo.stageId,
+        fixtures: [{ round: 1, homeEntrantId: homeEntrant.entrantId }],
+        organizationId,
+        ...AUDIT,
+      });
+
+      return tournament.tournamentId;
+    });
+
+    const matches = await overview.matchesForTournament(tournamentId);
+    expect(matches).toHaveLength(2);
+
+    const [played, scheduled] = matches;
+    expect(played).toMatchObject({
+      stageNumber: 1,
+      round: 1,
+      status: 'finalized',
+      scores: [2, 1],
+      scheduledAt: '2026-08-01T20:00:00.000Z',
+    });
+    expect(scheduled).toMatchObject({ stageNumber: 2, round: 1, status: 'scheduled' });
+    expect(scheduled?.scheduledAt).toBeUndefined();
   });
 });

@@ -80,9 +80,22 @@ export class CompetitionRepository {
     uow: UnitOfWork,
     input: { readonly tournamentId: string } & AuditContext,
   ): Promise<Season> {
-    const existing = await this.listSeasons(input.tournamentId);
-    const latest = existing.at(-1);
-    if (latest) return latest;
+    const row = await uow.tx
+      .selectFrom('seasons')
+      .selectAll()
+      .where('tournament_id', '=', input.tournamentId)
+      .orderBy('ordinal', 'desc')
+      .limit(1)
+      .executeTakeFirst();
+
+    if (row) {
+      return {
+        seasonId: row.season_id,
+        tournamentId: row.tournament_id,
+        name: row.name,
+        ordinal: row.ordinal,
+      };
+    }
 
     return this.createSeason(uow, {
       ...input,

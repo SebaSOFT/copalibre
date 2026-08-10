@@ -112,3 +112,55 @@ The engine SHALL NOT advertise a stage format it cannot generate.
 - **WHEN** the supported-format list is queried
 - **THEN** it contains exactly the formats the engine generates, and every entry has generation
   coverage in the test suite
+
+### Requirement: A stage can be created from a tournament's accepted registrations
+The engine SHALL provide an operation that creates a stage in a tournament, drawing its default
+entrant pool from the tournament's currently `accepted` registrations. Stage number and name SHALL
+default when not supplied (the next sequential stage number in the tournament, and a name derived
+from it); the stage's format SHALL default to the tournament's own configured format when not
+supplied, and any explicitly supplied format SHALL be validated against the tournament's discipline
+descriptor exactly as tournament creation validates it. The operation SHALL refuse to create a stage
+whose number already exists in the tournament.
+
+#### Scenario: Stage created with defaults
+- **WHEN** an operator creates a stage for a tournament with accepted registrations and supplies
+  neither number, name, nor format
+- **THEN** the stage is created as the tournament's next sequential stage number, with a derived
+  default name, using the tournament's own configured format
+
+#### Scenario: Duplicate stage number is refused
+- **WHEN** an operator requests stage creation naming a stage number that already exists in this
+  tournament
+- **THEN** the operation is refused as a conflict and no stage is created
+
+#### Scenario: Unsupported format is refused
+- **WHEN** an operator requests stage creation naming a format the tournament's discipline descriptor
+  does not support
+- **THEN** the operation is refused before any stage is created
+
+#### Scenario: Stage creation does not itself generate fixtures
+- **WHEN** a stage is created
+- **THEN** it exists with no matches yet, and generating its bracket is a separate, subsequent
+  operation
+
+### Requirement: A stage with no generated fixtures resolves its entrant pool from accepted registrations
+Any operation that reads or writes a stage's seed order SHALL resolve the stage's entrant pool from
+the tournament's currently `accepted` registrations, in registration order, when the stage has no
+generated fixtures yet. Once the stage has generated fixtures, its entrant pool SHALL continue to be
+read from those fixtures as before, unaffected by later registration changes.
+
+#### Scenario: A freshly created stage's default seed order is registration order
+- **WHEN** an operator requests the seed order of a stage that has accepted registrations but no
+  generated fixtures
+- **THEN** the returned seed order lists exactly the accepted entrants, in the order they registered
+
+#### Scenario: The first seed order can be published
+- **WHEN** an operator publishes a seed order naming exactly the stage's accepted registrations for a
+  stage with no generated fixtures yet
+- **THEN** the operation succeeds and generates the stage's fixture graph
+
+#### Scenario: A stage that already has fixtures is unaffected by later registration changes
+- **WHEN** a stage already has generated fixtures and a registration is accepted or withdrawn
+  afterward
+- **THEN** the stage's entrant pool continues to reflect its generated fixtures, not the tournament's
+  current registration list

@@ -109,6 +109,10 @@ export {
   type StageRecord,
   type StageMatchRecord,
 } from './projections/stage-read-model.js';
+export {
+  PublicOverviewReadModel,
+  type PublicOverviewMatch,
+} from './projections/public-overview-read-model.js';
 export { TagRepository, type TagQuery } from './repositories/tag-repository.js';
 export { AliasRepository, type AliasScopeName } from './repositories/alias-repository.js';
 export {
