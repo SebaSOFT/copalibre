@@ -34,7 +34,7 @@ export class RelayService implements OnModuleInit, OnApplicationShutdown {
 
   constructor(
     @Inject(DATABASE) private readonly db: Kysely<Database>,
-    private readonly dispatcher: JobDispatcher,
+    @Inject(JobDispatcher) private readonly dispatcher: JobDispatcher,
   ) {
     this.relay = new OutboxRelay(this.db);
   }

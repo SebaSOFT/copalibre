@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Inject } from '@nestjs/common';
 import { SchedulerService } from './scheduler.service.js';
 import type { LeaseState } from './lease-state.js';
 
@@ -9,7 +9,7 @@ import type { LeaseState } from './lease-state.js';
  */
 @Controller('scheduler')
 export class LeaseController {
-  constructor(private readonly scheduler: SchedulerService) {}
+  constructor(@Inject(SchedulerService) private readonly scheduler: SchedulerService) {}
 
   @Get('lease')
   lease(): { replica: string; state: LeaseState } {
