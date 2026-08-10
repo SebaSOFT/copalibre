@@ -8,6 +8,7 @@ import {
   CsvImportRepository,
   EnrollmentRepository,
   OrganizationRepository,
+  PersonRepository,
   TournamentRepository,
   withTransaction,
   type Database,
@@ -519,6 +520,288 @@ describe('api routes (integration)', () => {
 
       expect(response.statusCode).toBe(409);
       expect(response.json().message).toContain('Check-in has closed');
+    });
+
+    it('reconciles a team entrant’s membership to the submitted ids, auditing each change', async () => {
+      const tournaments = new TournamentRepository(scratch.db);
+      const enrollment = new EnrollmentRepository(scratch.db);
+      const people = new PersonRepository(scratch.db);
+      const descriptor = footballDescriptor();
+      const seedAudit = { actor: 'user:seed', authorizationContext: 'seed' };
+
+      const seeded = await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+        await tournaments.saveDescriptor(uow, descriptor, { organizationId, ...seedAudit });
+        const tournament = await tournaments.create(uow, {
+          organizationId,
+          alias: 'copa-membresia',
+          name: 'Copa Membresía',
+          descriptor,
+          ...seedAudit,
+        });
+        const team = await enrollment.createTeam(uow, {
+          organizationId,
+          name: 'Estudiantes',
+          ...seedAudit,
+        });
+        const entrant = await enrollment.registerEntrant(uow, {
+          organizationId,
+          tournamentId: tournament.tournamentId,
+          entrantRef: { kind: 'team', teamId: team.teamId },
+          ...seedAudit,
+        });
+        const kept = await people.register(uow, {
+          organizationId,
+          displayName: 'Nicolás Funes',
+          ...seedAudit,
+        });
+        const dropped = await people.register(uow, {
+          organizationId,
+          displayName: 'Marcos Ibáñez',
+          ...seedAudit,
+        });
+        const added = await people.register(uow, {
+          organizationId,
+          displayName: 'Julieta Roldán',
+          ...seedAudit,
+        });
+        await people.enlist(uow, {
+          personId: kept.person.personId,
+          teamId: team.teamId,
+          role: 'player',
+          organizationId,
+          ...seedAudit,
+        });
+        const droppedPlayer = await people.enlist(uow, {
+          personId: dropped.person.personId,
+          teamId: team.teamId,
+          role: 'player',
+          organizationId,
+          ...seedAudit,
+        });
+        return {
+          entrant,
+          team,
+          kept: kept.person,
+          dropped: dropped.person,
+          droppedPlayerId: droppedPlayer.playerId,
+          added: added.person,
+        };
+      });
+
+      const response = await request({
+        method: 'POST',
+        url: `/organizations/liga-orbital/tournaments/copa-membresia/registrations/${seeded.entrant.entrantId}/team-memberships`,
+        token: 'organizer-org1',
+        payload: { personIds: [seeded.kept.personId, seeded.added.personId] },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(
+        new Set(body.teamMembers.map((member: { personId: string }) => member.personId)),
+      ).toEqual(new Set([seeded.kept.personId, seeded.added.personId]));
+      expect(
+        body.teamMembers.find(
+          (member: { personId: string }) => member.personId === seeded.added.personId,
+        ),
+      ).toMatchObject({ role: 'player', displayName: 'Julieta Roldán' });
+
+      const squad = await people.squadOf(seeded.team.teamId);
+      expect(new Set(squad.map((player) => player.personId))).toEqual(
+        new Set([seeded.kept.personId, seeded.added.personId]),
+      );
+
+      const enlistedRows = await scratch.db
+        .selectFrom('audit_log')
+        .select('resulting_state')
+        .where('organization_id', '=', organizationId)
+        .where('entity_type', '=', 'player')
+        .where('action', '=', 'player.enlisted')
+        .execute();
+      expect(
+        enlistedRows.some(
+          (row) =>
+            (row.resulting_state as { personId?: string } | null)?.personId ===
+            seeded.added.personId,
+        ),
+      ).toBe(true);
+
+      const dismissedRows = await scratch.db
+        .selectFrom('audit_log')
+        .select('previous_state')
+        .where('organization_id', '=', organizationId)
+        .where('entity_type', '=', 'player')
+        .where('entity_id', '=', seeded.droppedPlayerId)
+        .where('action', '=', 'player.dismissed')
+        .execute();
+      expect(dismissedRows).toHaveLength(1);
+      expect(dismissedRows[0]?.previous_state).toMatchObject({ personId: seeded.dropped.personId });
+    });
+
+    it('changes nothing, and audits nothing, resubmitting the current membership', async () => {
+      const tournaments = new TournamentRepository(scratch.db);
+      const enrollment = new EnrollmentRepository(scratch.db);
+      const people = new PersonRepository(scratch.db);
+      const descriptor = footballDescriptor();
+      const seedAudit = { actor: 'user:seed', authorizationContext: 'seed' };
+
+      const seeded = await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+        await tournaments.saveDescriptor(uow, descriptor, { organizationId, ...seedAudit });
+        const tournament = await tournaments.create(uow, {
+          organizationId,
+          alias: 'copa-membresia-estable',
+          name: 'Copa Membresía Estable',
+          descriptor,
+          ...seedAudit,
+        });
+        const team = await enrollment.createTeam(uow, {
+          organizationId,
+          name: 'Racing Local',
+          ...seedAudit,
+        });
+        const entrant = await enrollment.registerEntrant(uow, {
+          organizationId,
+          tournamentId: tournament.tournamentId,
+          entrantRef: { kind: 'team', teamId: team.teamId },
+          ...seedAudit,
+        });
+        const person = await people.register(uow, {
+          organizationId,
+          displayName: 'Camila Suárez',
+          ...seedAudit,
+        });
+        await people.enlist(uow, {
+          personId: person.person.personId,
+          teamId: team.teamId,
+          role: 'player',
+          organizationId,
+          ...seedAudit,
+        });
+        return { entrant, team, person: person.person };
+      });
+
+      const before = await scratch.db
+        .selectFrom('audit_log')
+        .select('audit_id')
+        .where('organization_id', '=', organizationId)
+        .where('entity_type', '=', 'player')
+        .execute();
+
+      const response = await request({
+        method: 'POST',
+        url: `/organizations/liga-orbital/tournaments/copa-membresia-estable/registrations/${seeded.entrant.entrantId}/team-memberships`,
+        token: 'organizer-org1',
+        payload: { personIds: [seeded.person.personId] },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json().teamMembers).toHaveLength(1);
+
+      const after = await scratch.db
+        .selectFrom('audit_log')
+        .select('audit_id')
+        .where('organization_id', '=', organizationId)
+        .where('entity_type', '=', 'player')
+        .execute();
+      expect(after).toHaveLength(before.length);
+    });
+
+    it('refuses a team-membership edit against a person-kind entrant', async () => {
+      const tournaments = new TournamentRepository(scratch.db);
+      const enrollment = new EnrollmentRepository(scratch.db);
+      const people = new PersonRepository(scratch.db);
+      const descriptor = footballDescriptor();
+      const seedAudit = { actor: 'user:seed', authorizationContext: 'seed' };
+
+      const seeded = await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+        await tournaments.saveDescriptor(uow, descriptor, { organizationId, ...seedAudit });
+        const tournament = await tournaments.create(uow, {
+          organizationId,
+          alias: 'copa-individual',
+          name: 'Copa Individual',
+          descriptor,
+          ...seedAudit,
+        });
+        const person = await people.register(uow, {
+          organizationId,
+          displayName: 'Diego Farías',
+          ...seedAudit,
+        });
+        const entrant = await enrollment.registerEntrant(uow, {
+          organizationId,
+          tournamentId: tournament.tournamentId,
+          entrantRef: { kind: 'person', personId: person.person.personId },
+          ...seedAudit,
+        });
+        return entrant;
+      });
+
+      const response = await request({
+        method: 'POST',
+        url: `/organizations/liga-orbital/tournaments/copa-individual/registrations/${seeded.entrantId}/team-memberships`,
+        token: 'organizer-org1',
+        payload: { personIds: [] },
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(response.json().message).toContain('team entrant');
+    });
+
+    it('refuses a team-membership edit naming an unknown person id, and writes nothing', async () => {
+      const tournaments = new TournamentRepository(scratch.db);
+      const enrollment = new EnrollmentRepository(scratch.db);
+      const people = new PersonRepository(scratch.db);
+      const descriptor = footballDescriptor();
+      const seedAudit = { actor: 'user:seed', authorizationContext: 'seed' };
+
+      const seeded = await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+        await tournaments.saveDescriptor(uow, descriptor, { organizationId, ...seedAudit });
+        const tournament = await tournaments.create(uow, {
+          organizationId,
+          alias: 'copa-id-desconocido',
+          name: 'Copa Id Desconocido',
+          descriptor,
+          ...seedAudit,
+        });
+        const team = await enrollment.createTeam(uow, {
+          organizationId,
+          name: 'Sportivo Belgrano',
+          ...seedAudit,
+        });
+        const entrant = await enrollment.registerEntrant(uow, {
+          organizationId,
+          tournamentId: tournament.tournamentId,
+          entrantRef: { kind: 'team', teamId: team.teamId },
+          ...seedAudit,
+        });
+        const person = await people.register(uow, {
+          organizationId,
+          displayName: 'Rocío Aybar',
+          ...seedAudit,
+        });
+        await people.enlist(uow, {
+          personId: person.person.personId,
+          teamId: team.teamId,
+          role: 'player',
+          organizationId,
+          ...seedAudit,
+        });
+        return { entrant, team, person: person.person };
+      });
+
+      const response = await request({
+        method: 'POST',
+        url: `/organizations/liga-orbital/tournaments/copa-id-desconocido/registrations/${seeded.entrant.entrantId}/team-memberships`,
+        token: 'organizer-org1',
+        payload: {
+          personIds: [seeded.person.personId, '00000000-0000-4000-8000-000000000000'],
+        },
+      });
+
+      expect(response.statusCode).toBe(404);
+
+      const squad = await people.squadOf(seeded.team.teamId);
+      expect(squad.map((player) => player.personId)).toEqual([seeded.person.personId]);
     });
   });
 

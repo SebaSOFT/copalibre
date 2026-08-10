@@ -288,6 +288,17 @@ export class DisciplineSummaryResponse {
   supportedFormats!: string[];
 }
 
+export class TeamMemberResponse {
+  @ApiProperty({ format: 'uuid' })
+  personId!: string;
+
+  @ApiProperty({ example: 'Elías Salomón' })
+  displayName!: string;
+
+  @ApiProperty({ enum: ['player', 'substitute', 'coach', 'staff'] })
+  role!: 'player' | 'substitute' | 'coach' | 'staff';
+}
+
 export class RegistrationResponse {
   @ApiProperty({ format: 'uuid' })
   entrantId!: string;
@@ -303,6 +314,24 @@ export class RegistrationResponse {
 
   @ApiPropertyOptional({ format: 'uuid' })
   personId?: string;
+
+  @ApiPropertyOptional({
+    isArray: true,
+    type: TeamMemberResponse,
+    description:
+      'The team entrant’s resulting membership. Populated only by a team-membership edit response.',
+  })
+  teamMembers?: TeamMemberResponse[];
+}
+
+export class EditTeamMembershipsRequest {
+  @ApiProperty({
+    isArray: true,
+    format: 'uuid',
+    description:
+      'The team’s full desired membership. Anyone currently a member but not named here is removed.',
+  })
+  personIds!: string[];
 }
 
 export class ParticipantTeamMembershipResponse {

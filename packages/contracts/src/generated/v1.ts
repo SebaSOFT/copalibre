@@ -1092,6 +1092,14 @@ export interface components {
              */
             checkInClosesAt?: string;
         };
+        TeamMemberResponse: {
+            /** Format: uuid */
+            personId: string;
+            /** @example Elías Salomón */
+            displayName: string;
+            /** @enum {string} */
+            role: "player" | "substitute" | "coach" | "staff";
+        };
         RegistrationResponse: {
             /** Format: uuid */
             entrantId: string;
@@ -1103,6 +1111,8 @@ export interface components {
             teamId?: string;
             /** Format: uuid */
             personId?: string;
+            /** @description The team entrant’s resulting membership. Populated only by a team-membership edit response. */
+            teamMembers?: components["schemas"]["TeamMemberResponse"][];
         };
         ReviewRegistrationRequest: {
             /** @enum {string} */
@@ -1120,6 +1130,10 @@ export interface components {
             applied: components["schemas"]["RegistrationResponse"][];
             /** @description Registrations left untouched, each with the reason — never silently skipped. */
             refused: unknown[][];
+        };
+        EditTeamMembershipsRequest: {
+            /** @description The team’s full desired membership. Anyone currently a member but not named here is removed. */
+            personIds: unknown[][];
         };
         DisciplineSummaryResponse: {
             /** Format: uuid */
@@ -2176,7 +2190,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditTeamMembershipsRequest"];
+            };
+        };
         responses: {
             200: {
                 headers: {

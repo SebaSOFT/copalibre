@@ -757,6 +757,16 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditTeamMembershipsRequest"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "",
@@ -3525,6 +3535,33 @@
           "requiresCheckIn"
         ]
       },
+      "TeamMemberResponse": {
+        "type": "object",
+        "properties": {
+          "personId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string",
+            "example": "Elías Salomón"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "player",
+              "substitute",
+              "coach",
+              "staff"
+            ]
+          }
+        },
+        "required": [
+          "personId",
+          "displayName",
+          "role"
+        ]
+      },
       "RegistrationResponse": {
         "type": "object",
         "properties": {
@@ -3553,6 +3590,13 @@
           "personId": {
             "type": "string",
             "format": "uuid"
+          },
+          "teamMembers": {
+            "description": "The team entrant’s resulting membership. Populated only by a team-membership edit response.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamMemberResponse"
+            }
           }
         },
         "required": [
@@ -3628,6 +3672,22 @@
         "required": [
           "applied",
           "refused"
+        ]
+      },
+      "EditTeamMembershipsRequest": {
+        "type": "object",
+        "properties": {
+          "personIds": {
+            "description": "The team’s full desired membership. Anyone currently a member but not named here is removed.",
+            "type": "array",
+            "items": {
+              "type": "array",
+              "format": "uuid"
+            }
+          }
+        },
+        "required": [
+          "personIds"
         ]
       },
       "DisciplineSummaryResponse": {

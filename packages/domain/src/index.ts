@@ -343,6 +343,8 @@ export {
 export type { Team, EntrantStatus, Entrant } from './aggregates/participant.js';
 export {
   teamMembershipsEditable,
+  teamMembershipsApply,
+  planRosterReconciliation,
   canDecide,
   statusFor,
   planBulkReview,

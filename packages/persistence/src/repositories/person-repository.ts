@@ -287,6 +287,41 @@ export class PersonRepository {
     return player;
   }
 
+  /**
+   * Removes a membership (0064).
+   *
+   * Hard delete, not a `deleted_at` flag: `players` carries none, and its
+   * `players_person_team_unique(person_id, team_id)` constraint already
+   * assumes removal means gone — a soft-deleted row would collide with that
+   * constraint the moment the same person rejoins the same team. The audit
+   * log, not the row, is this table's history — the same shape
+   * `MatchAssignmentRepository.revoke` already uses for `match_assignments`.
+   * A no-op (unknown `playerId`) is silently accepted, matching `revoke`.
+   */
+  async dismiss(
+    uow: UnitOfWork,
+    input: { readonly playerId: string; readonly organizationId: string } & AuditContext,
+  ): Promise<void> {
+    const existing = await uow.tx
+      .selectFrom('players')
+      .selectAll()
+      .where('player_id', '=', input.playerId)
+      .executeTakeFirst();
+    if (!existing) return;
+
+    await uow.tx.deleteFrom('players').where('player_id', '=', input.playerId).execute();
+
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'player',
+      entityId: input.playerId,
+      action: 'player.dismissed',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      previousState: { ...toPlayer(existing) },
+    });
+  }
+
   /** Every team this human plays for — the question the split exists to answer. */
   async playersOf(personId: string): Promise<readonly Player[]> {
     const rows = await this.db
@@ -304,6 +339,17 @@ export class PersonRepository {
       .where('team_id', '=', teamId)
       .execute();
     return rows.map(toPlayer);
+  }
+
+  /** Bulk lookup, for resolving a submitted set of person ids in one query. */
+  async findPersons(personIds: readonly string[]): Promise<readonly Person[]> {
+    if (personIds.length === 0) return [];
+    const rows = await this.db
+      .selectFrom('persons')
+      .selectAll()
+      .where('person_id', 'in', personIds)
+      .execute();
+    return rows.map(toPerson);
   }
 }
 
