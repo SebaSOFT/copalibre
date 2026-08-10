@@ -25,6 +25,64 @@ Every authenticated API request and authenticated SSE connection SHALL send the 
 - **WHEN** the control application opens the authenticated SSE stream
 - **THEN** the request is made via Fetch streaming with an `Authorization` header, and the resulting URL contains no token value
 
+### Requirement: Authorization Code with PKCE completes to a working session
+
+The control application's `/control/callback` route SHALL exchange the identity provider's returned
+authorization code for an access token directly with the provider's token endpoint (no client secret —
+PKCE is the public-client substitute), verify the callback's `state` against the value stored when the
+flow began, and write the resulting token into the in-memory session store used by every authenticated
+request — so completing the identity provider's login screen results in a usable, authenticated control
+panel, not a dead end.
+
+#### Scenario: A successful callback establishes a working session
+
+- **WHEN** the identity provider redirects back to `/control/callback` with a valid authorization code
+  and the `state` matching what the login attempt stored
+- **THEN** the control application holds a valid access token in memory and subsequent API requests
+  carry it as a Bearer header
+
+#### Scenario: A mismatched or missing state is refused
+
+- **WHEN** `/control/callback` receives a `state` value that does not match the one stored when the
+  login attempt began, or no transaction was stored at all
+- **THEN** the callback refuses to exchange the code, no token is stored, and the operator sees an
+  error rather than a silently broken session
+
+#### Scenario: An identity-provider error is shown, not swallowed
+
+- **WHEN** the identity provider redirects back with an `error` parameter instead of a `code`
+- **THEN** the control application shows the operator that authorization failed rather than attempting
+  a token exchange or silently doing nothing
+
+### Requirement: Every authenticated request carries the session's access token
+
+Every control-panel screen's API client SHALL be constructed with the shared session store's token
+reader, so every authenticated request automatically carries the current access token — an operator's
+API calls SHALL NOT be able to reach the backend with no `Authorization` header while a session exists.
+
+#### Scenario: A request made after login carries the Bearer header
+
+- **WHEN** an operator with a valid session performs an action that calls the control API (any screen)
+- **THEN** the request carries `Authorization: Bearer <token>` with the session's current access token
+
+### Requirement: An unauthenticated visit to a protected screen redirects to login
+
+Visiting a control-panel screen with no valid access token in the session store SHALL redirect to the
+login page rather than rendering the screen and making unauthenticated requests; the login page SHALL
+return the operator to their original destination after a successful callback.
+
+#### Scenario: A protected screen redirects when no session exists
+
+- **WHEN** an operator with no stored access token navigates directly to a control-panel screen
+- **THEN** they are redirected to the login page instead of seeing the screen attempt to load with no
+  credentials
+
+#### Scenario: Login returns the operator to where they were headed
+
+- **WHEN** an operator is redirected to login from a specific screen and completes authentication
+  successfully
+- **THEN** they land on the screen they originally requested, not a generic default
+
 ### Requirement: Owned component layer, not Chakra UI
 The control application SHALL use the owned shadcn/ui-style component source and Radix Primitives for
 its interactive UI, and SHALL NOT include Chakra UI as a production dependency.
