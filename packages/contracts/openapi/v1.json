@@ -4384,8 +4384,10 @@
             "type": "string",
             "enum": [
               "individual",
-              "team"
-            ]
+              "team",
+              "team-membership"
+            ],
+            "description": "\"individual\"/\"team\" register a new entrant; \"team-membership\" attaches each row's person onto an already-registered team named by that row's teamAlias — it never creates a team."
           },
           "sourceCsv": {
             "type": "string",
@@ -4409,7 +4411,8 @@
             "type": "string",
             "enum": [
               "individual",
-              "team"
+              "team",
+              "team-membership"
             ]
           },
           "status": {

@@ -194,8 +194,14 @@ export class ProblemResponse {
 }
 
 export class CreateCsvImportRequest {
-  @ApiProperty({ enum: ['individual', 'team'] })
-  target!: 'individual' | 'team';
+  @ApiProperty({
+    enum: ['individual', 'team', 'team-membership'],
+    description:
+      '"individual"/"team" register a new entrant; "team-membership" attaches each row\'s ' +
+      "person onto an already-registered team named by that row's teamAlias — it never " +
+      'creates a team.',
+  })
+  target!: 'individual' | 'team' | 'team-membership';
 
   @ApiProperty({
     description: 'UTF-8 CopaLibre participant CSV, limited to 4 MiB.',
@@ -207,8 +213,8 @@ export class CreateCsvImportRequest {
 export class CsvImportPreviewResponse {
   @ApiProperty({ format: 'uuid' })
   importId!: string;
-  @ApiProperty({ enum: ['individual', 'team'] })
-  target!: 'individual' | 'team';
+  @ApiProperty({ enum: ['individual', 'team', 'team-membership'] })
+  target!: 'individual' | 'team' | 'team-membership';
   @ApiProperty({
     enum: ['queued', 'validating', 'review-ready', 'invalid', 'committing', 'committed'],
   })

@@ -313,6 +313,25 @@ export class EnrollmentRepository {
   }
 
   /**
+   * The aliases a `team-membership` CSV import (0065) may reference: only
+   * teams already registered as entrants in this tournament, never every team
+   * in the organization. A team-membership row names a team that already
+   * exists in the draw — this is what a worker resolves before validation, so
+   * an unregistered reference is a row-level preview error, not a silent
+   * create.
+   */
+  async listRegisteredTeamAliases(tournamentId: string): Promise<readonly string[]> {
+    const rows = await this.db
+      .selectFrom('entrants')
+      .innerJoin('teams', 'teams.team_id', 'entrants.team_id')
+      .select('teams.alias as alias')
+      .where('entrants.tournament_id', '=', tournamentId)
+      .where('teams.alias', 'is not', null)
+      .execute();
+    return rows.flatMap((row) => (row.alias === null ? [] : [row.alias]));
+  }
+
+  /**
    * Reads through the caller's own executor rather than `this.db`: called
    * from inside `createTeam`'s open transaction, and a second connection
    * acquisition against the same underlying connection deadlocks under

@@ -65,8 +65,12 @@ export class DataImportExportController {
       tournamentAlias,
       request,
     );
-    if (body.target !== 'individual' && body.target !== 'team') {
-      throw new BadRequestException('Import target must be individual or team');
+    if (
+      body.target !== 'individual' &&
+      body.target !== 'team' &&
+      body.target !== 'team-membership'
+    ) {
+      throw new BadRequestException('Import target must be individual, team, or team-membership');
     }
     if (typeof body.sourceCsv !== 'string') {
       throw new BadRequestException('sourceCsv must be a CSV string');
@@ -166,6 +170,12 @@ export class DataImportExportController {
       const people = new PersonRepository(this.db);
       const enrollment = new EnrollmentRepository(this.db);
       const rowAliases: string[] = [];
+      // Populated lazily, the first time a team-membership row references a
+      // given team: avoids an N+1 `squadOf` call per row, and lets a repeated
+      // teamAlias within one file (or a re-run of the same file) recognise an
+      // already-enlisted person without a second `enlist` call (0065's
+      // additive-with-idempotent-reimport contract; see design.md).
+      const squadCache = new Map<string, Set<string>>();
       for (const row of session.preview.rows) {
         const values = row.values;
         if (session.target === 'individual') {
@@ -188,7 +198,8 @@ export class DataImportExportController {
               authorizationContext: authorizationContextOf(request),
             });
           }
-        } else {
+          rowAliases.push(values.alias ?? '');
+        } else if (session.target === 'team') {
           const replacement = await enrollment.replaceTeamByAlias(uow, {
             organizationId,
             alias: values.alias ?? '',
@@ -206,8 +217,57 @@ export class DataImportExportController {
               authorizationContext: authorizationContextOf(request),
             });
           }
+          rowAliases.push(values.alias ?? '');
+        } else {
+          const teamAlias = values.teamAlias ?? '';
+          const team = await enrollment.findTeamByAlias(organizationId, teamAlias);
+          const entrant = team
+            ? await enrollment.findEntrantForRef(tournamentId, {
+                kind: 'team' as const,
+                teamId: team.teamId,
+              })
+            : undefined;
+          if (!team || !entrant) {
+            // The reviewed preview validated `teamAlias` against this
+            // tournament's registered team entrants (worker-side, per
+            // design.md); reaching commit without one resolving means the
+            // registration this preview relied on no longer holds — the same
+            // "what was validated no longer holds" family as a stale
+            // sourceHash, not a fresh 404.
+            throw new ConflictException(
+              `Import preview is stale: "${teamAlias}" is no longer a registered team entrant in this tournament`,
+            );
+          }
+
+          const naturalKey = naturalKeyOf(values);
+          const replacement = await people.replaceByAlias(uow, {
+            organizationId,
+            alias: values.alias ?? '',
+            displayName: values.displayName ?? '',
+            ...(naturalKey === undefined ? {} : { naturalKey }),
+            actor: actorOf(request),
+            authorizationContext: authorizationContextOf(request),
+          });
+
+          let squad = squadCache.get(team.teamId);
+          if (!squad) {
+            const current = await people.squadOf(team.teamId);
+            squad = new Set(current.map((player) => player.personId));
+            squadCache.set(team.teamId, squad);
+          }
+          if (!squad.has(replacement.person.personId)) {
+            await people.enlist(uow, {
+              personId: replacement.person.personId,
+              teamId: team.teamId,
+              role: 'player',
+              organizationId,
+              actor: actorOf(request),
+              authorizationContext: authorizationContextOf(request),
+            });
+            squad.add(replacement.person.personId);
+          }
+          rowAliases.push(`${teamAlias}/${values.alias ?? ''}`);
         }
-        rowAliases.push(values.alias ?? '');
       }
       const result = await imports.markCommitted(uow, importId);
       await uow.recordAudit({
@@ -272,7 +332,7 @@ function naturalKeyOf(values: Readonly<Record<string, string>>) {
 
 function toResponse(session: {
   importId: string;
-  target: 'individual' | 'team';
+  target: 'individual' | 'team' | 'team-membership';
   status: string;
   sourceHash: string;
   preview?: { valid: boolean; rows: readonly unknown[]; errors: readonly unknown[] };

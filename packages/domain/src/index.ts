@@ -29,6 +29,7 @@ export {
   MAX_CSV_IMPORT_BYTES,
   validateCsvImport,
   type ParticipantImportTarget,
+  type CsvImportTarget,
   type CsvImportError,
   type CsvImportPreview,
   type CsvImportPreviewRow,

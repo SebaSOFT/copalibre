@@ -1394,8 +1394,11 @@ export interface components {
             corrections: components["schemas"]["CorrectionEntryDto"][];
         };
         CreateCsvImportRequest: {
-            /** @enum {string} */
-            target: "individual" | "team";
+            /**
+             * @description "individual"/"team" register a new entrant; "team-membership" attaches each row's person onto an already-registered team named by that row's teamAlias — it never creates a team.
+             * @enum {string}
+             */
+            target: "individual" | "team" | "team-membership";
             /**
              * @description UTF-8 CopaLibre participant CSV, limited to 4 MiB.
              * @example alias,displayName,naturalKeyKind,naturalKey\nmaria-perez,Maria Perez,dni,12345678
@@ -1406,7 +1409,7 @@ export interface components {
             /** Format: uuid */
             importId: string;
             /** @enum {string} */
-            target: "individual" | "team";
+            target: "individual" | "team" | "team-membership";
             /** @enum {string} */
             status: "queued" | "validating" | "review-ready" | "invalid" | "committing" | "committed";
             /** @description SHA-256 source fingerprint used to reject stale confirmation. */

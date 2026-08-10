@@ -383,6 +383,84 @@ describe('repositories (integration)', () => {
     });
   });
 
+  it('lists only aliases of teams registered as entrants in the given tournament (0065)', async () => {
+    const disciplineDescriptor = descriptor();
+    const { tournamentId, otherTournamentId, registeredAlias, unregisteredAlias } =
+      await withTransaction(scratch.db, async (uow) => {
+        await tournaments.saveDescriptor(uow, disciplineDescriptor, { organizationId, ...AUDIT });
+        const tournament = await tournaments.create(uow, {
+          organizationId,
+          alias: 'copa-alias-registrados',
+          name: 'Copa Alias Registrados',
+          descriptor: disciplineDescriptor,
+          ...AUDIT,
+        });
+        const otherTournament = await tournaments.create(uow, {
+          organizationId,
+          alias: 'copa-alias-otra',
+          name: 'Copa Alias Otra',
+          descriptor: disciplineDescriptor,
+          ...AUDIT,
+        });
+        const registeredTeam = await participants.createTeam(uow, {
+          organizationId,
+          name: 'Club Registrado',
+          ...AUDIT,
+        });
+        await participants.registerEntrant(uow, {
+          tournamentId: tournament.tournamentId,
+          entrantRef: { kind: 'team', teamId: registeredTeam.teamId },
+          organizationId,
+          ...AUDIT,
+        });
+        // A team that exists in the organization but was never registered as an
+        // entrant in this tournament — must not appear.
+        const unregisteredTeam = await participants.createTeam(uow, {
+          organizationId,
+          name: 'Club Sin Registrar',
+          ...AUDIT,
+        });
+        // A person-kind entrant in the same tournament — must not contribute an alias.
+        const { person } = await new PersonRepository(scratch.db).register(uow, {
+          organizationId,
+          displayName: 'Jugador Individual',
+          ...AUDIT,
+        });
+        await participants.registerEntrant(uow, {
+          tournamentId: tournament.tournamentId,
+          entrantRef: { kind: 'person', personId: person.personId },
+          organizationId,
+          ...AUDIT,
+        });
+        // A team registered in a *different* tournament — must not appear either.
+        const otherTeam = await participants.createTeam(uow, {
+          organizationId,
+          name: 'Club De Otro Torneo',
+          ...AUDIT,
+        });
+        await participants.registerEntrant(uow, {
+          tournamentId: otherTournament.tournamentId,
+          entrantRef: { kind: 'team', teamId: otherTeam.teamId },
+          organizationId,
+          ...AUDIT,
+        });
+        return {
+          tournamentId: tournament.tournamentId,
+          otherTournamentId: otherTournament.tournamentId,
+          registeredAlias: registeredTeam.alias,
+          unregisteredAlias: unregisteredTeam.alias,
+        };
+      });
+
+    const aliases = await participants.listRegisteredTeamAliases(tournamentId);
+
+    expect(aliases).toEqual([registeredAlias]);
+    expect(aliases).not.toContain(unregisteredAlias);
+
+    const otherAliases = await participants.listRegisteredTeamAliases(otherTournamentId);
+    expect(otherAliases).not.toContain(registeredAlias);
+  });
+
   it('raises NotFoundError when finalizing a match that does not exist', async () => {
     await expect(
       withTransaction(scratch.db, (uow) =>

@@ -1001,6 +1001,242 @@ describe('api routes (integration)', () => {
     });
   });
 
+  describe('team-membership CSV import target (0065)', () => {
+    async function seedTwoRegisteredTeams(tournamentAlias: string) {
+      const tournaments = new TournamentRepository(scratch.db);
+      const enrollment = new EnrollmentRepository(scratch.db);
+      const descriptor = footballDescriptor();
+      const seedAudit = { actor: 'user:seed', authorizationContext: 'seed' };
+
+      return withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+        await tournaments.saveDescriptor(uow, descriptor, { organizationId, ...seedAudit });
+        const tournament = await tournaments.create(uow, {
+          organizationId,
+          alias: tournamentAlias,
+          name: tournamentAlias,
+          descriptor,
+          ...seedAudit,
+        });
+        const teamA = await enrollment.createTeam(uow, {
+          organizationId,
+          name: 'Club Atletico',
+          ...seedAudit,
+        });
+        await enrollment.registerEntrant(uow, {
+          organizationId,
+          tournamentId: tournament.tournamentId,
+          entrantRef: { kind: 'team', teamId: teamA.teamId },
+          ...seedAudit,
+        });
+        const teamB = await enrollment.createTeam(uow, {
+          organizationId,
+          name: 'Club Belgrano',
+          ...seedAudit,
+        });
+        await enrollment.registerEntrant(uow, {
+          organizationId,
+          tournamentId: tournament.tournamentId,
+          entrantRef: { kind: 'team', teamId: teamB.teamId },
+          ...seedAudit,
+        });
+        return { tournament, teamA, teamB };
+      });
+    }
+
+    it('attaches each row’s person onto its own already-registered team, spanning multiple teams in one file', async () => {
+      const people = new PersonRepository(scratch.db);
+      const seeded = await seedTwoRegisteredTeams('copa-membresia-csv');
+      const teamAAlias = seeded.teamA.alias ?? '';
+      const teamBAlias = seeded.teamB.alias ?? '';
+      const sourceCsv = `teamAlias,alias,displayName\n${teamAAlias},maria-perez,Maria Perez\n${teamBAlias},juan-diaz,Juan Diaz\n`;
+
+      const created = await request({
+        method: 'POST',
+        url: '/organizations/liga-orbital/tournaments/copa-membresia-csv/imports',
+        token: 'organizer-org1',
+        payload: { target: 'team-membership', sourceCsv },
+      });
+      expect(created.statusCode).toBe(202);
+
+      await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        new CsvImportRepository(scratch.db).storePreview(uow, {
+          importId: created.json().importId,
+          preview: validateCsvImport({
+            target: 'team-membership',
+            allowedParticipantTypes: ['team'],
+            knownTeamAliases: [teamAAlias, teamBAlias],
+            csv: sourceCsv,
+          }),
+        }),
+      );
+
+      const committed = await request({
+        method: 'POST',
+        url: `/organizations/liga-orbital/tournaments/copa-membresia-csv/imports/${created.json().importId}/commit`,
+        token: 'organizer-org1',
+        payload: { sourceHash: created.json().sourceHash },
+      });
+      expect(committed.statusCode).toBe(200);
+
+      const squadA = await people.squadOf(seeded.teamA.teamId);
+      const squadB = await people.squadOf(seeded.teamB.teamId);
+      const personA = await people.findByAlias(organizationId, 'maria-perez');
+      const personB = await people.findByAlias(organizationId, 'juan-diaz');
+
+      expect(squadA.map((player) => player.personId)).toEqual([personA?.personId]);
+      expect(squadB.map((player) => player.personId)).toEqual([personB?.personId]);
+    });
+
+    it('never commits a preview whose row names an unregistered team', async () => {
+      const people = new PersonRepository(scratch.db);
+      const seeded = await seedTwoRegisteredTeams('copa-membresia-invalida');
+      const sourceCsv = 'teamAlias,alias,displayName\nclub-fantasma,maria-perez,Maria Perez\n';
+
+      const created = await request({
+        method: 'POST',
+        url: '/organizations/liga-orbital/tournaments/copa-membresia-invalida/imports',
+        token: 'organizer-org1',
+        payload: { target: 'team-membership', sourceCsv },
+      });
+
+      await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        new CsvImportRepository(scratch.db).storePreview(uow, {
+          importId: created.json().importId,
+          preview: validateCsvImport({
+            target: 'team-membership',
+            allowedParticipantTypes: ['team'],
+            knownTeamAliases: [seeded.teamA.alias ?? '', seeded.teamB.alias ?? ''],
+            csv: sourceCsv,
+          }),
+        }),
+      );
+
+      const preview = await request({
+        method: 'GET',
+        url: `/organizations/liga-orbital/tournaments/copa-membresia-invalida/imports/${created.json().importId}`,
+        token: 'organizer-org1',
+      });
+      expect(preview.json()).toMatchObject({ status: 'invalid' });
+
+      const committed = await request({
+        method: 'POST',
+        url: `/organizations/liga-orbital/tournaments/copa-membresia-invalida/imports/${created.json().importId}/commit`,
+        token: 'organizer-org1',
+        payload: { sourceHash: created.json().sourceHash },
+      });
+      expect(committed.statusCode).toBe(409);
+
+      const squadA = await people.squadOf(seeded.teamA.teamId);
+      const squadB = await people.squadOf(seeded.teamB.teamId);
+      expect(squadA).toHaveLength(0);
+      expect(squadB).toHaveLength(0);
+    });
+
+    it('refuses commit, without writing anything, when a validated row’s team no longer resolves', async () => {
+      // Simulates the preview/commit race design.md calls out: the stored
+      // preview says the row is valid (as the worker would have, at the
+      // time), but the team it named is not actually a registered entrant in
+      // this tournament by commit time.
+      const people = new PersonRepository(scratch.db);
+      const seeded = await seedTwoRegisteredTeams('copa-membresia-carrera');
+      const sourceCsv =
+        'teamAlias,alias,displayName\nclub-jamas-registrado,noelia-vega,Noelia Vega\n';
+
+      const created = await request({
+        method: 'POST',
+        url: '/organizations/liga-orbital/tournaments/copa-membresia-carrera/imports',
+        token: 'organizer-org1',
+        payload: { target: 'team-membership', sourceCsv },
+      });
+
+      await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        new CsvImportRepository(scratch.db).storePreview(uow, {
+          importId: created.json().importId,
+          preview: {
+            target: 'team-membership',
+            valid: true,
+            rows: [
+              {
+                rowNumber: 2,
+                values: {
+                  teamAlias: 'club-jamas-registrado',
+                  alias: 'noelia-vega',
+                  displayName: 'Noelia Vega',
+                },
+                errors: [],
+              },
+            ],
+            errors: [],
+          },
+        }),
+      );
+
+      const committed = await request({
+        method: 'POST',
+        url: `/organizations/liga-orbital/tournaments/copa-membresia-carrera/imports/${created.json().importId}/commit`,
+        token: 'organizer-org1',
+        payload: { sourceHash: created.json().sourceHash },
+      });
+      expect(committed.statusCode).toBe(409);
+      expect(committed.json().message).toContain('club-jamas-registrado');
+
+      expect(await people.findByAlias(organizationId, 'noelia-vega')).toBeUndefined();
+      const squadA = await people.squadOf(seeded.teamA.teamId);
+      expect(squadA).toHaveLength(0);
+    });
+
+    it('re-committing the same file is additive and idempotent: no duplicate membership or audit rows', async () => {
+      const people = new PersonRepository(scratch.db);
+      const seeded = await seedTwoRegisteredTeams('copa-membresia-reimport');
+      const teamAAlias = seeded.teamA.alias ?? '';
+      const sourceCsv = `teamAlias,alias,displayName\n${teamAAlias},maria-perez,Maria Perez\n`;
+
+      async function importOnce() {
+        const created = await request({
+          method: 'POST',
+          url: '/organizations/liga-orbital/tournaments/copa-membresia-reimport/imports',
+          token: 'organizer-org1',
+          payload: { target: 'team-membership', sourceCsv },
+        });
+        await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+          new CsvImportRepository(scratch.db).storePreview(uow, {
+            importId: created.json().importId,
+            preview: validateCsvImport({
+              target: 'team-membership',
+              allowedParticipantTypes: ['team'],
+              knownTeamAliases: [teamAAlias],
+              csv: sourceCsv,
+            }),
+          }),
+        );
+        return request({
+          method: 'POST',
+          url: `/organizations/liga-orbital/tournaments/copa-membresia-reimport/imports/${created.json().importId}/commit`,
+          token: 'organizer-org1',
+          payload: { sourceHash: created.json().sourceHash },
+        });
+      }
+
+      const first = await importOnce();
+      expect(first.statusCode).toBe(200);
+      const second = await importOnce();
+      expect(second.statusCode).toBe(200);
+
+      const squadA = await people.squadOf(seeded.teamA.teamId);
+      expect(squadA).toHaveLength(1);
+
+      const enlistedRows = await scratch.db
+        .selectFrom('audit_log')
+        .select('audit_id')
+        .where('organization_id', '=', organizationId)
+        .where('entity_type', '=', 'player')
+        .where('action', '=', 'player.enlisted')
+        .where('entity_id', '=', squadA[0]?.playerId ?? '')
+        .execute();
+      expect(enlistedRows).toHaveLength(1);
+    });
+  });
+
   describe('scheduling routes', () => {
     const scheduleUrl = (stageId: string, suffix = '') =>
       `/organizations/liga-orbital/tournaments/no-such-copa/stages/${stageId}/schedule${suffix}`;
