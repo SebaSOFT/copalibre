@@ -55,6 +55,14 @@ export interface DeleteOrganizationRoleInput extends AccessAuditContext {
   readonly assignmentId: string;
 }
 
+/** One organization a principal has an active, non-deleted role in, with that role. */
+export interface PrincipalOrganizationMembership {
+  readonly organizationId: string;
+  readonly organizationAlias: string;
+  readonly organizationName: string;
+  readonly role: OrganizationRole;
+}
+
 /**
  * The persistence boundary for organization access. Its mutation methods require
  * a UnitOfWork so the access decision, immutable audit record and outbox event
@@ -83,6 +91,42 @@ export class OrganizationAccessRepository {
       .limit(1)
       .executeTakeFirst();
     return row !== undefined;
+  }
+
+  /**
+   * The reverse of `listAssignments`/`findAssignment`: every organization *this*
+   * principal has a role in, rather than every principal in *one* organization.
+   * Filtered to active, non-deleted assignments — an inactive or soft-deleted
+   * one already fails every other admin-control route's guard check, so it
+   * would be a dead end if surfaced here (design.md).
+   */
+  async listOrganizationsForPrincipal(
+    principalId: string,
+  ): Promise<readonly PrincipalOrganizationMembership[]> {
+    const rows = await this.db
+      .selectFrom('organization_role_assignments')
+      .innerJoin(
+        'organizations',
+        'organizations.organization_id',
+        'organization_role_assignments.organization_id',
+      )
+      .select([
+        'organizations.organization_id as organization_id',
+        'organizations.alias as organization_alias',
+        'organizations.name as organization_name',
+        'organization_role_assignments.role as role',
+      ])
+      .where('organization_role_assignments.principal_id', '=', principalId)
+      .where('organization_role_assignments.deleted_at', 'is', null)
+      .where('organization_role_assignments.status', '=', 'active')
+      .orderBy('organizations.name')
+      .execute();
+    return rows.map((row) => ({
+      organizationId: row.organization_id,
+      organizationAlias: row.organization_alias,
+      organizationName: row.organization_name,
+      role: row.role as OrganizationRole,
+    }));
   }
 
   async findAssignment(

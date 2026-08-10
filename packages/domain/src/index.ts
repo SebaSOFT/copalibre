@@ -29,6 +29,7 @@ export {
   MAX_CSV_IMPORT_BYTES,
   validateCsvImport,
   type ParticipantImportTarget,
+  type CsvImportTarget,
   type CsvImportError,
   type CsvImportPreview,
   type CsvImportPreviewRow,
@@ -343,6 +344,8 @@ export {
 export type { Team, EntrantStatus, Entrant } from './aggregates/participant.js';
 export {
   teamMembershipsEditable,
+  teamMembershipsApply,
+  planRosterReconciliation,
   canDecide,
   statusFor,
   planBulkReview,

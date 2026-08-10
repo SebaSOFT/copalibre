@@ -104,3 +104,46 @@ export function planBulkReview(
 
   return { apply, refused };
 }
+
+/**
+ * A team-membership edit applies only to a team entrant (0023/0064).
+ *
+ * An individual entrant has no persistent team membership to reconcile — the
+ * request is not a conflict with current state, it names a person id in a
+ * place a team id belongs.
+ */
+export function teamMembershipsApply(kind: 'person' | 'team'): Result<true, RegistrationError> {
+  if (kind === 'person') {
+    return err(
+      new RegistrationError('Team memberships apply only to a team entrant, not a person', {
+        kind,
+      }),
+    );
+  }
+  return ok(true);
+}
+
+/**
+ * The diff between a team's current membership and the set an edit submits
+ * (0064).
+ *
+ * A team-membership edit names the *desired end state*, not an instruction —
+ * the same submission adds whoever is new and removes whoever was left out,
+ * and leaves everyone named in both sets alone. Diffing by id, not
+ * delete-everything-then-reinsert, is what keeps an unchanged member's
+ * history reading as "still here" rather than "left and rejoined."
+ */
+export function planRosterReconciliation(
+  current: readonly string[],
+  desired: readonly string[],
+): {
+  readonly toEnlist: readonly string[];
+  readonly toRemove: readonly string[];
+} {
+  const currentSet = new Set(current);
+  const desiredSet = new Set(desired);
+  return {
+    toEnlist: desired.filter((personId) => !currentSet.has(personId)),
+    toRemove: current.filter((personId) => !desiredSet.has(personId)),
+  };
+}

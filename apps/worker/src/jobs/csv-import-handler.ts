@@ -1,11 +1,12 @@
 import {
   CsvImportRepository,
+  EnrollmentRepository,
   TournamentRepository,
   withTransaction,
   type ClaimedJob,
   type Database,
 } from '@copalibre/persistence';
-import { validateCsvImport, type CsvImportPreview } from '@copalibre/domain';
+import { validateCsvImport, type CsvImportPreview, type CsvImportTarget } from '@copalibre/domain';
 import type { Kysely } from 'kysely';
 import type { JobHandler } from './dispatcher.js';
 import { payloadOf } from './relay-runner.js';
@@ -16,6 +17,7 @@ export const CSV_IMPORT_VALIDATION_EVENT = 'csv-import.validation-requested';
 export function csvImportValidationHandler(input: { readonly db: Kysely<Database> }): JobHandler {
   const imports = new CsvImportRepository(input.db);
   const tournaments = new TournamentRepository(input.db);
+  const enrollment = new EnrollmentRepository(input.db);
 
   return async (job: ClaimedJob): Promise<void> => {
     if (job.eventType !== CSV_IMPORT_VALIDATION_EVENT) return;
@@ -48,11 +50,16 @@ export function csvImportValidationHandler(input: { readonly db: Kysely<Database
     const descriptor = tournament
       ? await tournaments.findDescriptor(tournament.descriptor_id, tournament.descriptor_version)
       : undefined;
+    const knownTeamAliases =
+      started.target === 'team-membership'
+        ? await enrollment.listRegisteredTeamAliases(started.tournamentId)
+        : undefined;
     const preview = descriptor
       ? validateCsvImport({
           csv: started.sourceCsv,
           target: started.target,
           allowedParticipantTypes: descriptor.participantTypes,
+          ...(knownTeamAliases === undefined ? {} : { knownTeamAliases }),
         })
       : unavailableDescriptorPreview(started.target);
 
@@ -77,7 +84,7 @@ export function csvImportValidationHandler(input: { readonly db: Kysely<Database
   };
 }
 
-function unavailableDescriptorPreview(target: 'individual' | 'team'): CsvImportPreview {
+function unavailableDescriptorPreview(target: CsvImportTarget): CsvImportPreview {
   return {
     target,
     valid: false,

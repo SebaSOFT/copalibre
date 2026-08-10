@@ -44,6 +44,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List organizations the authenticated caller belongs to
+         * @description Requires "?mine=true" — the only filter this endpoint supports today. Returns every organization the caller holds a non-deleted, active role assignment in, with that role. Never requires an organization to already be known, so it also answers "does this account belong to any organization at all".
+         */
+        get: operations["OrganizationsController_listMine"];
+        put?: never;
+        /**
+         * Create an organization
+         * @description Requires the copalibre.super-admin scope. The alias is validated by the domain layer and must be lowercase kebab-case, unique per installation.
+         */
+        post: operations["OrganizationsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{alias}": {
         parameters: {
             query?: never;
@@ -58,26 +82,6 @@ export interface paths {
         get: operations["OrganizationsController_findByAlias"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/organizations": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Create an organization
-         * @description Requires the copalibre.super-admin scope. The alias is validated by the domain layer and must be lowercase kebab-case, unique per installation.
-         */
-        post: operations["OrganizationsController_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -656,6 +660,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a stage from the tournament’s accepted registrations
+         * @description Number, name and format all default. Fixtures are not generated here — publish a seed order via POST .../stages/:stageNumber/seeding afterward.
+         */
+        post: operations["StagesController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/display-tokens": {
         parameters: {
             query?: never;
@@ -952,6 +976,28 @@ export interface components {
              */
             schemaVersion: string;
         };
+        MyOrganizationResponse: {
+            /** Format: uuid */
+            organizationId: string;
+            /**
+             * @description Human-readable, URL-safe alias; globally unique per installation
+             * @example liga-orbital
+             */
+            organizationAlias: string;
+            /** @example Liga Orbital */
+            organizationName: string;
+            /**
+             * @description The caller's active role in this organization
+             * @enum {string}
+             */
+            role: "admin" | "referee" | "broadcaster" | "viewer";
+        };
+        ProblemResponse: {
+            /** @example 403 */
+            statusCode: number;
+            /** @example subject may only act on their own records */
+            message: string;
+        };
         OrganizationResponse: {
             /**
              * Format: uuid
@@ -996,12 +1042,6 @@ export interface components {
              * @example America/Argentina/San_Juan
              */
             timezone?: string;
-        };
-        ProblemResponse: {
-            /** @example 403 */
-            statusCode: number;
-            /** @example subject may only act on their own records */
-            message: string;
         };
         UpdateOrganizationSettingsRequest: {
             /**
@@ -1072,6 +1112,14 @@ export interface components {
              */
             checkInClosesAt?: string;
         };
+        TeamMemberResponse: {
+            /** Format: uuid */
+            personId: string;
+            /** @example Elías Salomón */
+            displayName: string;
+            /** @enum {string} */
+            role: "player" | "substitute" | "coach" | "staff";
+        };
         RegistrationResponse: {
             /** Format: uuid */
             entrantId: string;
@@ -1083,6 +1131,8 @@ export interface components {
             teamId?: string;
             /** Format: uuid */
             personId?: string;
+            /** @description The team entrant’s resulting membership. Populated only by a team-membership edit response. */
+            teamMembers?: components["schemas"]["TeamMemberResponse"][];
         };
         ReviewRegistrationRequest: {
             /** @enum {string} */
@@ -1100,6 +1150,10 @@ export interface components {
             applied: components["schemas"]["RegistrationResponse"][];
             /** @description Registrations left untouched, each with the reason — never silently skipped. */
             refused: unknown[][];
+        };
+        EditTeamMembershipsRequest: {
+            /** @description The team’s full desired membership. Anyone currently a member but not named here is removed. */
+            personIds: unknown[][];
         };
         DisciplineSummaryResponse: {
             /** Format: uuid */
@@ -1360,8 +1414,11 @@ export interface components {
             corrections: components["schemas"]["CorrectionEntryDto"][];
         };
         CreateCsvImportRequest: {
-            /** @enum {string} */
-            target: "individual" | "team";
+            /**
+             * @description "individual"/"team" register a new entrant; "team-membership" attaches each row's person onto an already-registered team named by that row's teamAlias — it never creates a team.
+             * @enum {string}
+             */
+            target: "individual" | "team" | "team-membership";
             /**
              * @description UTF-8 CopaLibre participant CSV, limited to 4 MiB.
              * @example alias,displayName,naturalKeyKind,naturalKey\nmaria-perez,Maria Perez,dni,12345678
@@ -1372,7 +1429,7 @@ export interface components {
             /** Format: uuid */
             importId: string;
             /** @enum {string} */
-            target: "individual" | "team";
+            target: "individual" | "team" | "team-membership";
             /** @enum {string} */
             status: "queued" | "validating" | "review-ready" | "invalid" | "committing" | "committed";
             /** @description SHA-256 source fingerprint used to reject stale confirmation. */
@@ -1498,6 +1555,41 @@ export interface components {
             invalidates: string[];
             /** @description True once the new seed order and fixture graph are durably persisted. Always true for a 200 response — a publish that could not persist refuses with 409 instead of returning a partial success. */
             persisted: boolean;
+        };
+        CreateStageRequest: {
+            /**
+             * @description Defaults to the tournament’s next sequential stage number. Refused as a conflict if a stage with this number already exists.
+             * @example 1
+             */
+            number?: number;
+            /**
+             * @description Defaults to "Stage {number}".
+             * @example Fase de grupos
+             */
+            name?: string;
+            /**
+             * @description Defaults to the tournament’s own configured format. Validated against the tournament’s discipline descriptor when supplied.
+             * @example round-robin
+             */
+            format?: string;
+        };
+        StageResponse: {
+            /** Format: uuid */
+            stageId: string;
+            /**
+             * Format: uuid
+             * @description The tournament edition this stage belongs to (0015)
+             */
+            seasonId: string;
+            /**
+             * @description 1-based sequential number within the tournament
+             * @example 1
+             */
+            number: number;
+            /** @example Fase de grupos */
+            name: string;
+            /** @example round-robin */
+            format: string;
         };
         DisplayTokenResponse: {
             /** Format: uuid */
@@ -1745,13 +1837,11 @@ export interface operations {
             };
         };
     };
-    OrganizationsController_findByAlias: {
+    OrganizationsController_listMine: {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                alias: string;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -1761,7 +1851,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OrganizationResponse"];
+                    "application/json": components["schemas"]["MyOrganizationResponse"][];
+                };
+            };
+            /** @description Missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -1803,6 +1902,27 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    OrganizationsController_findByAlias: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                alias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationResponse"];
                 };
             };
         };
@@ -2128,7 +2248,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditTeamMembershipsRequest"];
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -2933,6 +3057,56 @@ export interface operations {
                 };
             };
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    StagesController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateStageRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StageResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

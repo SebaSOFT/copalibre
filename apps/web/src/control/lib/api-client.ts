@@ -4,6 +4,8 @@ import type { StandingsData } from './standings.js';
 import type { DisciplineOption } from './wizard.js';
 
 export interface ControlApiClient {
+  /** Every organization the authenticated caller belongs to, with their role (0063). */
+  readonly listMyOrganizations: () => Promise<readonly MyOrganizationResponse[]>;
   readonly listDisciplines: () => Promise<readonly DisciplineOption[]>;
   readonly createTournament: (
     organizationAlias: string,
@@ -306,6 +308,14 @@ export interface InvitationResponse {
   readonly expiresAt: string;
 }
 
+/** One organization the authenticated caller belongs to, with their role (0063). */
+export interface MyOrganizationResponse {
+  readonly organizationId: string;
+  readonly organizationAlias: string;
+  readonly organizationName: string;
+  readonly role: OrganizationRole;
+}
+
 export type MatchCapability =
   | 'match.record-event'
   | 'match.control-clock'
@@ -425,6 +435,15 @@ export function createControlApiClient(input: {
   const baseUrl = input.baseUrl ?? '';
 
   return {
+    listMyOrganizations: () =>
+      requestJson<readonly MyOrganizationResponse[]>(
+        input.fetch,
+        `${baseUrl}/organizations?mine=true`,
+        {
+          token: input.accessToken?.(),
+        },
+      ),
+
     listDisciplines: () =>
       requestJson<readonly DisciplineOption[]>(input.fetch, `${baseUrl}/disciplines`),
 

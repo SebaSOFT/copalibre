@@ -260,4 +260,9 @@ export const messages: Record<string, string> = {
   'control.standings.distributionEmpty': 'Nessun dato da rappresentare.',
   'control.standings.sharedRank': 'Posizione condivisa',
   'control.standings.tieBroken': 'Spareggio applicato',
+
+  'control.landing.emptyTitle': 'Nessuna organizzazione ancora',
+  'control.landing.emptyBody':
+    'Questo account non ha ancora un ruolo in nessuna organizzazione. È necessario un invito da un amministratore.',
+  'control.landing.pickerTitle': "Scegliere un'organizzazione",
 };

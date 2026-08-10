@@ -234,6 +234,91 @@ describe('people and their memberships (integration)', () => {
     ]);
   });
 
+  it('removes a membership, auditably, and lets the same person rejoin the same team', async () => {
+    const people = new PersonRepository(scratch.db);
+    const squad = await team('Murialdo Cuarta');
+    const { person } = await withTransaction(scratch.db, (uow) =>
+      people.register(uow, { organizationId, displayName: 'Renzo Bulacio', ...AUDIT }),
+    );
+
+    const player = await withTransaction(scratch.db, (uow) =>
+      people.enlist(uow, {
+        personId: person.personId,
+        teamId: squad.teamId,
+        role: 'player',
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+
+    await withTransaction(scratch.db, (uow) =>
+      people.dismiss(uow, { playerId: player.playerId, organizationId, ...AUDIT }),
+    );
+
+    expect(await people.squadOf(squad.teamId)).toEqual([]);
+    expect(await people.playersOf(person.personId)).toEqual([]);
+
+    const rows = await scratch.db
+      .selectFrom('audit_log')
+      .selectAll()
+      .where('entity_type', '=', 'player')
+      .where('entity_id', '=', player.playerId)
+      .where('action', '=', 'player.dismissed')
+      .execute();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.previous_state).toMatchObject({
+      playerId: player.playerId,
+      personId: person.personId,
+      teamId: squad.teamId,
+      role: 'player',
+    });
+
+    // Hard delete, not a soft-delete flag: rejoining the same team must not
+    // collide with `players_person_team_unique`.
+    const rejoined = await withTransaction(scratch.db, (uow) =>
+      people.enlist(uow, {
+        personId: person.personId,
+        teamId: squad.teamId,
+        role: 'substitute',
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+    expect(rejoined.role).toBe('substitute');
+  });
+
+  it('is a no-op dismissing a membership that does not exist', async () => {
+    const people = new PersonRepository(scratch.db);
+    await expect(
+      withTransaction(scratch.db, (uow) =>
+        people.dismiss(uow, {
+          playerId: '00000000-0000-4000-8000-000000000000',
+          organizationId,
+          ...AUDIT,
+        }),
+      ),
+    ).resolves.toBeUndefined();
+  });
+
+  it('resolves a bulk set of person ids in one call', async () => {
+    const people = new PersonRepository(scratch.db);
+    const [first, second] = await Promise.all([
+      withTransaction(scratch.db, (uow) =>
+        people.register(uow, { organizationId, displayName: 'Ariana Molina', ...AUDIT }),
+      ),
+      withTransaction(scratch.db, (uow) =>
+        people.register(uow, { organizationId, displayName: 'Bruno Salas', ...AUDIT }),
+      ),
+    ]);
+
+    const found = await people.findPersons([first.person.personId, second.person.personId]);
+    expect(new Set(found.map((p) => p.personId))).toEqual(
+      new Set([first.person.personId, second.person.personId]),
+    );
+
+    expect(await people.findPersons([])).toEqual([]);
+  });
+
   it('keeps the document out of the audit trail', async () => {
     const people = new PersonRepository(scratch.db);
     await withTransaction(scratch.db, (uow) =>

@@ -172,3 +172,37 @@ SHALL use client-side navigation, not a plain browser-navigated anchor.
 - **THEN** the screen matching that URL renders correctly, exactly as it would after client-side
   navigation to the same URL
 
+
+
+### Requirement: A default post-login landing resolves to a useful destination
+
+When `/control/callback` completes with no specific destination requested (a bare or bookmarked visit
+to `/control/`, distinct from a guard-redirected login from a protected screen, which already carries a
+real destination), the control application SHALL look up the operator's organization memberships and
+land them on a useful destination rather than an unreachable default path.
+
+#### Scenario: Exactly one organization sends the operator straight to its dashboard
+
+- **WHEN** a default-landing login completes for an operator who holds a role in exactly one
+  organization
+- **THEN** the control application navigates to that organization's dashboard with no further
+  interaction required
+
+#### Scenario: Multiple organizations show a picker
+
+- **WHEN** a default-landing login completes for an operator who holds a role in more than one
+  organization
+- **THEN** the control application shows each organization (alias, name, and role) as a link to its
+  dashboard, and does not enter any organization automatically
+
+#### Scenario: No organizations show an explanatory empty state
+
+- **WHEN** a default-landing login completes for an operator who holds no organization role
+- **THEN** the control application shows that the account has no organizations yet, rather than a
+  "screen not found" error
+
+#### Scenario: A guard-redirected login is unaffected
+
+- **WHEN** an operator is redirected to login from a specific protected screen and completes
+  authentication successfully
+- **THEN** they land on that original screen directly, with no organization-membership lookup performed

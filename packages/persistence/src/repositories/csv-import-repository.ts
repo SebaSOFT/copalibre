@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import type { CsvImportPreview, ParticipantImportTarget } from '@copalibre/domain';
+import type { CsvImportPreview, CsvImportTarget } from '@copalibre/domain';
 import type { Kysely, Selectable } from 'kysely';
 import { newId } from '../ids.js';
 import type { Database } from '../schema.js';
@@ -12,7 +12,7 @@ export interface CsvImportSession {
   readonly importId: string;
   readonly organizationId: string;
   readonly tournamentId: string;
-  readonly target: ParticipantImportTarget;
+  readonly target: CsvImportTarget;
   readonly sourceCsv: string;
   readonly sourceHash: string;
   readonly status: CsvImportStatus;
@@ -33,7 +33,7 @@ export class CsvImportRepository {
     input: {
       readonly organizationId: string;
       readonly tournamentId: string;
-      readonly target: ParticipantImportTarget;
+      readonly target: CsvImportTarget;
       readonly sourceCsv: string;
       readonly actor: string;
     },
@@ -140,7 +140,7 @@ function toSession(row: Selectable<Database['csv_import_sessions']>): CsvImportS
     importId: row.import_id,
     organizationId: row.organization_id,
     tournamentId: row.tournament_id,
-    target: row.target_type as ParticipantImportTarget,
+    target: row.target_type as CsvImportTarget,
     sourceCsv: row.source_csv,
     sourceHash: row.source_hash,
     status: row.status as CsvImportStatus,

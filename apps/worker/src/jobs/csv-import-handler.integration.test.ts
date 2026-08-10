@@ -1,4 +1,9 @@
-import { CsvImportRepository, OutboxRelay, withTransaction } from '@copalibre/persistence';
+import {
+  CsvImportRepository,
+  EnrollmentRepository,
+  OutboxRelay,
+  withTransaction,
+} from '@copalibre/persistence';
 import {
   createMigratedDatabase,
   type ScratchDatabase,
@@ -109,6 +114,64 @@ maria-perez,Maria Perez,dni,12345678
     expect(events.map((event) => JSON.stringify(event.payload))).not.toContain(
       expect.stringContaining('12345678'),
     );
+  });
+
+  it('resolves registered team aliases so a team-membership row validates against them (0065)', async () => {
+    const enrollment = new EnrollmentRepository(scratch.db);
+    const teamAlias = await withTransaction(scratch.db, async (uow) => {
+      const team = await enrollment.createTeam(uow, {
+        organizationId: ORGANIZATION,
+        name: 'Club Atletico',
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      await enrollment.registerEntrant(uow, {
+        tournamentId: TOURNAMENT,
+        entrantRef: { kind: 'team', teamId: team.teamId },
+        organizationId: ORGANIZATION,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      return team.alias;
+    });
+    if (!teamAlias) throw new Error('seeded team has no alias');
+
+    const sourceCsv = `teamAlias,alias,displayName\n${teamAlias},maria-perez,Maria Perez\nclub-fantasma,juan-diaz,Juan Diaz\n`;
+    const session = await withTransaction(scratch.db, async (uow) => {
+      const created = await new CsvImportRepository(scratch.db).create(uow, {
+        organizationId: ORGANIZATION,
+        tournamentId: TOURNAMENT,
+        target: 'team-membership',
+        sourceCsv,
+        actor: 'user:operator',
+      });
+      await uow.publishEvent({
+        organizationId: ORGANIZATION,
+        stream: `csv-import:${created.importId}`,
+        entityId: created.importId,
+        eventType: CSV_IMPORT_VALIDATION_EVENT,
+        projectionVersion: 1,
+        payload: { importId: created.importId },
+      });
+      return created;
+    });
+
+    const dispatcher = new JobDispatcher().register(
+      CSV_IMPORT_VALIDATION_EVENT,
+      csvImportValidationHandler({ db: scratch.db }),
+    );
+    const pass = await runRelayPass(new OutboxRelay(scratch.db), dispatcher, {
+      consumer: 'csv-import-validation',
+      worker: 'worker-a',
+    });
+    const preview = await new CsvImportRepository(scratch.db).find(session.importId);
+
+    expect(pass.failed).toBe(0);
+    expect(preview).toMatchObject({ status: 'invalid' });
+    expect(preview?.preview?.rows[0]).toMatchObject({ errors: [] });
+    expect(preview?.preview?.rows[1]?.errors).toEqual([
+      { column: 'teamAlias', message: expect.stringContaining('club-fantasma') },
+    ]);
   });
 
   it('stores an actionable preview for malformed CSV instead of failing the relay', async () => {

@@ -1,7 +1,9 @@
 import {
   canDecide,
   planBulkReview,
+  planRosterReconciliation,
   statusFor,
+  teamMembershipsApply,
   teamMembershipsEditable,
 } from './registration-review.js';
 
@@ -88,5 +90,49 @@ describe('a bulk action is a list of single decisions', () => {
 
   it('ignores an id that is not in the list', () => {
     expect(planBulkReview(entrants, ['nope'], 'accepted').apply).toEqual([]);
+  });
+});
+
+describe('a team-membership edit applies only to a team entrant', () => {
+  it('refuses a person-kind entrant', () => {
+    const result = teamMembershipsApply('person');
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.message).toContain('only to a team entrant');
+  });
+
+  it('allows a team-kind entrant', () => {
+    expect(teamMembershipsApply('team').ok).toBe(true);
+  });
+});
+
+describe('reconciling a team-membership edit to the submitted set', () => {
+  it('adds whoever is new and removes whoever was left out', () => {
+    const plan = planRosterReconciliation(['p-1', 'p-2', 'p-3'], ['p-2', 'p-3', 'p-4']);
+
+    expect(plan.toEnlist).toEqual(['p-4']);
+    expect(plan.toRemove).toEqual(['p-1']);
+  });
+
+  it('changes nothing when the submitted set matches the current one', () => {
+    const plan = planRosterReconciliation(['p-1', 'p-2'], ['p-2', 'p-1']);
+
+    expect(plan.toEnlist).toEqual([]);
+    expect(plan.toRemove).toEqual([]);
+  });
+
+  it('removes everyone for an empty submitted set', () => {
+    const plan = planRosterReconciliation(['p-1', 'p-2'], []);
+
+    expect(plan.toEnlist).toEqual([]);
+    expect(plan.toRemove).toEqual(['p-1', 'p-2']);
+  });
+
+  it('adds everyone for an empty current set', () => {
+    const plan = planRosterReconciliation([], ['p-1', 'p-2']);
+
+    expect(plan.toEnlist).toEqual(['p-1', 'p-2']);
+    expect(plan.toRemove).toEqual([]);
   });
 });

@@ -6,6 +6,15 @@ export const MAX_CSV_IMPORT_BYTES = 4 * 1024 * 1024;
 
 export type ParticipantImportTarget = ParticipantType;
 
+/**
+ * `team-membership` (0065) attaches CSV rows' people onto an already-
+ * registered team's persistent membership — it does not register a new
+ * entrant, so it is deliberately not folded into `ParticipantType`: that type
+ * gates which entrant *kinds* a discipline accepts, an axis this target has
+ * nothing to do with (see design.md, "Type: a new `CsvImportTarget` union").
+ */
+export type CsvImportTarget = ParticipantImportTarget | 'team-membership';
+
 export interface CsvImportError {
   readonly column?: string;
   readonly message: string;
@@ -18,7 +27,7 @@ export interface CsvImportPreviewRow {
 }
 
 export interface CsvImportPreview {
-  readonly target: ParticipantImportTarget;
+  readonly target: CsvImportTarget;
   readonly valid: boolean;
   readonly rows: readonly CsvImportPreviewRow[];
   readonly errors: readonly CsvImportError[];
@@ -26,19 +35,26 @@ export interface CsvImportPreview {
 
 const INDIVIDUAL_COLUMNS = ['alias', 'displayName', 'naturalKeyKind', 'naturalKey'] as const;
 const TEAM_COLUMNS = ['alias', 'name'] as const;
+const TEAM_MEMBERSHIP_COLUMNS = ['teamAlias', 'alias', 'displayName'] as const;
 const ROSTER_COLUMNS = ['matchAlias', 'entrantAlias', 'playerAlias'] as const;
 
 /**
  * Parses CopaLibre's deliberately small participant interchange. The worker
  * calls this pure function after resolving the active descriptor; controllers
  * only persist the source and enqueue the job.
+ *
+ * `knownTeamAliases` is meaningful only for `target: 'team-membership'`: the
+ * worker resolves it from the tournament's already-registered team entrants
+ * before calling this function (0065), so a row naming an unregistered team
+ * fails here, in the reviewed preview, rather than silently at commit.
  */
 export function validateCsvImport(input: {
   readonly csv: string;
-  readonly target: ParticipantImportTarget;
+  readonly target: CsvImportTarget;
   readonly allowedParticipantTypes: readonly ParticipantType[];
+  readonly knownTeamAliases?: readonly string[];
 }): CsvImportPreview {
-  if (!input.allowedParticipantTypes.includes(input.target)) {
+  if (input.target !== 'team-membership' && !input.allowedParticipantTypes.includes(input.target)) {
     return invalidPreview(
       input.target,
       `The active discipline does not accept ${input.target} participants`,
@@ -66,16 +82,22 @@ export function validateCsvImport(input: {
     );
   }
 
-  const required = input.target === 'individual' ? INDIVIDUAL_COLUMNS : TEAM_COLUMNS;
+  const required =
+    input.target === 'individual'
+      ? INDIVIDUAL_COLUMNS
+      : input.target === 'team-membership'
+        ? TEAM_MEMBERSHIP_COLUMNS
+        : TEAM_COLUMNS;
   const missing = required.filter((column) => !headers.includes(column));
   if (missing.length > 0) {
     return invalidPreview(input.target, `Missing required CSV column(s): ${missing.join(', ')}`);
   }
 
+  const knownTeamAliases = input.knownTeamAliases ?? [];
   const rows = records.map((values, index) => ({
     rowNumber: index + 2,
     values,
-    errors: validateRow(input.target, values),
+    errors: validateRow(input.target, values, knownTeamAliases),
   }));
   return {
     target: input.target,
@@ -95,8 +117,9 @@ function readHeaders(csv: string): string[] {
 }
 
 function validateRow(
-  target: ParticipantImportTarget,
+  target: CsvImportTarget,
   values: Readonly<Record<string, string>>,
+  knownTeamAliases: readonly string[],
 ): readonly CsvImportError[] {
   const errors: CsvImportError[] = [];
   const alias = values.alias?.trim();
@@ -106,12 +129,12 @@ function validateRow(
     errors.push({ column: 'alias', message: 'Alias must be lowercase kebab-case' });
   }
 
-  const nameColumn = target === 'individual' ? 'displayName' : 'name';
+  const nameColumn = target === 'team' ? 'name' : 'displayName';
   if (!values[nameColumn]?.trim()) {
     errors.push({ column: nameColumn, message: `${nameColumn} is required` });
   }
 
-  if (target === 'individual') {
+  if (target === 'individual' || target === 'team-membership') {
     const kind = values.naturalKeyKind?.trim();
     const naturalKey = values.naturalKey?.trim();
     if ((kind && !naturalKey) || (!kind && naturalKey)) {
@@ -121,10 +144,24 @@ function validateRow(
       });
     }
   }
+
+  if (target === 'team-membership') {
+    const teamAlias = values.teamAlias?.trim();
+    if (!teamAlias) {
+      errors.push({ column: 'teamAlias', message: 'teamAlias is required' });
+    } else if (!Alias.create('participant', teamAlias).ok) {
+      errors.push({ column: 'teamAlias', message: 'teamAlias must be lowercase kebab-case' });
+    } else if (!knownTeamAliases.includes(teamAlias)) {
+      errors.push({
+        column: 'teamAlias',
+        message: `No team registered as an entrant in this tournament has alias "${teamAlias}"`,
+      });
+    }
+  }
   return errors;
 }
 
-function invalidPreview(target: ParticipantImportTarget, message: string): CsvImportPreview {
+function invalidPreview(target: CsvImportTarget, message: string): CsvImportPreview {
   return { target, valid: false, rows: [], errors: [{ message }] };
 }
 

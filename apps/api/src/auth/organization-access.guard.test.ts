@@ -192,6 +192,36 @@ describe('OrganizationAccessGuard', () => {
     );
   });
 
+  it('resolves the caller principal for a "self" route with no organization param', async () => {
+    Reflect.defineMetadata(ACCESS_REQUIREMENT_KEY, { kind: 'self' }, handler);
+    const guard = new OrganizationAccessGuard(reflector, {} as Database as never);
+    const request: RequestWithSubject = {
+      headers: {},
+      subject: { subjectId: 'oidc-admin', scopes: ['copalibre.control'] },
+    };
+
+    await expect(guard.canActivate(contextFor(request))).resolves.toBe(true);
+    expect(request.subject?.principalId).toBe('01800000-0000-7000-8000-000000000001');
+  });
+
+  it('leaves principalId unset for a "self" route when no installation principal exists yet', async () => {
+    jest
+      .spyOn(IdentityPrincipalRepository.prototype, 'findByOidcSubject')
+      .mockResolvedValue(undefined);
+    Reflect.defineMetadata(ACCESS_REQUIREMENT_KEY, { kind: 'self' }, handler);
+    const guard = new OrganizationAccessGuard(reflector, {} as Database as never);
+    const request: RequestWithSubject = {
+      headers: {},
+      subject: { subjectId: 'oidc-unknown', scopes: ['copalibre.control'] },
+    };
+
+    // A caller who authenticated but never accepted an invitation is not
+    // refused: this route's whole point is answering "zero organizations",
+    // and that is a 200 with an empty list, not a 403 (0063 design.md).
+    await expect(guard.canActivate(contextFor(request))).resolves.toBe(true);
+    expect(request.subject?.principalId).toBeUndefined();
+  });
+
   it('rejects an active member whose role is not accepted by the route', async () => {
     jest.spyOn(OrganizationAccessRepository.prototype, 'findAssignment').mockResolvedValue({
       assignmentId: '01800000-0000-7000-8000-000000000002',

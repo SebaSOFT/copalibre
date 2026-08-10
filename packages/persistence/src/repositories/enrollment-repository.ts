@@ -313,6 +313,25 @@ export class EnrollmentRepository {
   }
 
   /**
+   * The aliases a `team-membership` CSV import (0065) may reference: only
+   * teams already registered as entrants in this tournament, never every team
+   * in the organization. A team-membership row names a team that already
+   * exists in the draw — this is what a worker resolves before validation, so
+   * an unregistered reference is a row-level preview error, not a silent
+   * create.
+   */
+  async listRegisteredTeamAliases(tournamentId: string): Promise<readonly string[]> {
+    const rows = await this.db
+      .selectFrom('entrants')
+      .innerJoin('teams', 'teams.team_id', 'entrants.team_id')
+      .select('teams.alias as alias')
+      .where('entrants.tournament_id', '=', tournamentId)
+      .where('teams.alias', 'is not', null)
+      .execute();
+    return rows.flatMap((row) => (row.alias === null ? [] : [row.alias]));
+  }
+
+  /**
    * Reads through the caller's own executor rather than `this.db`: called
    * from inside `createTeam`'s open transaction, and a second connection
    * acquisition against the same underlying connection deadlocks under
@@ -740,6 +759,74 @@ export class EnrollmentRepository {
       )
       .executeTakeFirst();
     return row !== undefined;
+  }
+
+  /**
+   * Entrant id to display name/abbreviation, for a surface that shows people
+   * rather than ids (0067's public overview/live/bracket projections).
+   *
+   * A person entrant has no abbreviation; only a team can carry one (0037).
+   * An entrant id this installation does not recognise is simply absent from
+   * the returned map — the caller decides what to show for that, this method
+   * does not invent a label.
+   */
+  async resolveEntrantNames(
+    entrantIds: readonly string[],
+  ): Promise<ReadonlyMap<string, { readonly name: string; readonly abbreviation?: string }>> {
+    const names = new Map<string, { name: string; abbreviation?: string }>();
+    if (entrantIds.length === 0) return names;
+
+    const entrants = await this.db
+      .selectFrom('entrants')
+      .select(['entrant_id', 'entrant_kind', 'person_id', 'team_id'])
+      .where('entrant_id', 'in', entrantIds)
+      .execute();
+
+    const personIds = entrants
+      .map((entrant) => entrant.person_id)
+      .filter((id): id is string => id !== null);
+    const teamIds = entrants
+      .map((entrant) => entrant.team_id)
+      .filter((id): id is string => id !== null);
+
+    const [persons, teams] = await Promise.all([
+      personIds.length === 0
+        ? []
+        : this.db
+            .selectFrom('persons')
+            .select(['person_id', 'display_name'])
+            .where('person_id', 'in', personIds)
+            .execute(),
+      teamIds.length === 0
+        ? []
+        : this.db
+            .selectFrom('teams')
+            .select(['team_id', 'name', 'abbreviation'])
+            .where('team_id', 'in', teamIds)
+            .execute(),
+    ]);
+
+    const personById = new Map(persons.map((person) => [person.person_id, person]));
+    const teamById = new Map(teams.map((team) => [team.team_id, team]));
+
+    for (const entrant of entrants) {
+      if (entrant.entrant_kind === 'team' && entrant.team_id !== null) {
+        const team = teamById.get(entrant.team_id);
+        if (team) {
+          names.set(entrant.entrant_id, {
+            name: team.name,
+            ...(team.abbreviation === null ? {} : { abbreviation: team.abbreviation }),
+          });
+        }
+        continue;
+      }
+      if (entrant.person_id !== null) {
+        const person = personById.get(entrant.person_id);
+        if (person) names.set(entrant.entrant_id, { name: person.display_name });
+      }
+    }
+
+    return names;
   }
 }
 

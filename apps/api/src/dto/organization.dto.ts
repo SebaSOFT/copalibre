@@ -54,6 +54,26 @@ export class CreateOrganizationRequest {
   timezone?: string;
 }
 
+export class MyOrganizationResponse {
+  @ApiProperty({ format: 'uuid' })
+  organizationId!: string;
+
+  @ApiProperty({
+    description: 'Human-readable, URL-safe alias; globally unique per installation',
+    example: 'liga-orbital',
+  })
+  organizationAlias!: string;
+
+  @ApiProperty({ example: 'Liga Orbital' })
+  organizationName!: string;
+
+  @ApiProperty({
+    enum: ['admin', 'referee', 'broadcaster', 'viewer'],
+    description: "The caller's active role in this organization",
+  })
+  role!: 'admin' | 'referee' | 'broadcaster' | 'viewer';
+}
+
 export class UpdateOrganizationSettingsRequest {
   @ApiPropertyOptional({ enum: SUPPORTED_LANGUAGES, example: 'en' })
   primaryLanguage?: string;
@@ -165,6 +185,45 @@ export class CreateTournamentRequest {
   checkInClosesAt?: string;
 }
 
+export class CreateStageRequest {
+  @ApiPropertyOptional({
+    description:
+      'Defaults to the tournament’s next sequential stage number. Refused as a conflict if a stage with this number already exists.',
+    example: 1,
+  })
+  number?: number;
+
+  @ApiPropertyOptional({ description: 'Defaults to "Stage {number}".', example: 'Fase de grupos' })
+  name?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Defaults to the tournament’s own configured format. Validated against the tournament’s discipline descriptor when supplied.',
+    example: 'round-robin',
+  })
+  format?: string;
+}
+
+export class StageResponse {
+  @ApiProperty({ format: 'uuid' })
+  stageId!: string;
+
+  @ApiProperty({
+    format: 'uuid',
+    description: 'The tournament edition this stage belongs to (0015)',
+  })
+  seasonId!: string;
+
+  @ApiProperty({ description: '1-based sequential number within the tournament', example: 1 })
+  number!: number;
+
+  @ApiProperty({ example: 'Fase de grupos' })
+  name!: string;
+
+  @ApiProperty({ example: 'round-robin' })
+  format!: string;
+}
+
 export class ProblemResponse {
   @ApiProperty({ example: 403 })
   statusCode!: number;
@@ -174,8 +233,14 @@ export class ProblemResponse {
 }
 
 export class CreateCsvImportRequest {
-  @ApiProperty({ enum: ['individual', 'team'] })
-  target!: 'individual' | 'team';
+  @ApiProperty({
+    enum: ['individual', 'team', 'team-membership'],
+    description:
+      '"individual"/"team" register a new entrant; "team-membership" attaches each row\'s ' +
+      "person onto an already-registered team named by that row's teamAlias — it never " +
+      'creates a team.',
+  })
+  target!: 'individual' | 'team' | 'team-membership';
 
   @ApiProperty({
     description: 'UTF-8 CopaLibre participant CSV, limited to 4 MiB.',
@@ -187,8 +252,8 @@ export class CreateCsvImportRequest {
 export class CsvImportPreviewResponse {
   @ApiProperty({ format: 'uuid' })
   importId!: string;
-  @ApiProperty({ enum: ['individual', 'team'] })
-  target!: 'individual' | 'team';
+  @ApiProperty({ enum: ['individual', 'team', 'team-membership'] })
+  target!: 'individual' | 'team' | 'team-membership';
   @ApiProperty({
     enum: ['queued', 'validating', 'review-ready', 'invalid', 'committing', 'committed'],
   })
@@ -268,6 +333,17 @@ export class DisciplineSummaryResponse {
   supportedFormats!: string[];
 }
 
+export class TeamMemberResponse {
+  @ApiProperty({ format: 'uuid' })
+  personId!: string;
+
+  @ApiProperty({ example: 'Elías Salomón' })
+  displayName!: string;
+
+  @ApiProperty({ enum: ['player', 'substitute', 'coach', 'staff'] })
+  role!: 'player' | 'substitute' | 'coach' | 'staff';
+}
+
 export class RegistrationResponse {
   @ApiProperty({ format: 'uuid' })
   entrantId!: string;
@@ -283,6 +359,24 @@ export class RegistrationResponse {
 
   @ApiPropertyOptional({ format: 'uuid' })
   personId?: string;
+
+  @ApiPropertyOptional({
+    isArray: true,
+    type: TeamMemberResponse,
+    description:
+      'The team entrant’s resulting membership. Populated only by a team-membership edit response.',
+  })
+  teamMembers?: TeamMemberResponse[];
+}
+
+export class EditTeamMembershipsRequest {
+  @ApiProperty({
+    isArray: true,
+    format: 'uuid',
+    description:
+      'The team’s full desired membership. Anyone currently a member but not named here is removed.',
+  })
+  personIds!: string[];
 }
 
 export class ParticipantTeamMembershipResponse {

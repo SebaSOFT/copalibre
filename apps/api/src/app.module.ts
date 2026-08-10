@@ -16,6 +16,7 @@ import {
 } from './controllers/registrations.controller.js';
 import { StandingsController } from './controllers/standings.controller.js';
 import { SeedingController } from './controllers/seeding.controller.js';
+import { StagesController } from './controllers/stages.controller.js';
 import { DisplayTokenController } from './controllers/broadcast.controller.js';
 import {
   ParticipantReportsController,
@@ -71,6 +72,7 @@ const providers: Provider[] = [
     DisciplinesController,
     StandingsController,
     SeedingController,
+    StagesController,
     DisplayTokenController,
     OrganizationAccessController,
     InvitationAcceptanceController,

@@ -50,39 +50,46 @@
         ]
       }
     },
-    "/organizations/{alias}": {
+    "/organizations": {
       "get": {
-        "description": "Public projection; returns only published organization data.",
-        "operationId": "OrganizationsController_findByAlias",
-        "parameters": [
-          {
-            "name": "alias",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+        "description": "Requires \"?mine=true\" — the only filter this endpoint supports today. Returns every organization the caller holds a non-deleted, active role assignment in, with that role. Never requires an organization to already be known, so it also answers \"does this account belong to any organization at all\".",
+        "operationId": "OrganizationsController_listMine",
+        "parameters": [],
         "responses": {
           "200": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OrganizationResponse"
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MyOrganizationResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             }
           }
         },
-        "summary": "Read an organization by alias",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List organizations the authenticated caller belongs to",
         "tags": [
           "organizations"
         ]
-      }
-    },
-    "/organizations": {
+      },
       "post": {
         "description": "Requires the copalibre.super-admin scope. The alias is validated by the domain layer and must be lowercase kebab-case, unique per installation.",
         "operationId": "OrganizationsController_create",
@@ -135,6 +142,38 @@
           }
         ],
         "summary": "Create an organization",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations/{alias}": {
+      "get": {
+        "description": "Public projection; returns only published organization data.",
+        "operationId": "OrganizationsController_findByAlias",
+        "parameters": [
+          {
+            "name": "alias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Read an organization by alias",
         "tags": [
           "organizations"
         ]
@@ -718,6 +757,16 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditTeamMembershipsRequest"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "",
@@ -2320,6 +2369,91 @@
         ]
       }
     },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages": {
+      "post": {
+        "description": "Number, name and format all default. Fixtures are not generated here — publish a seed order via POST .../stages/:stageNumber/seeding afterward.",
+        "operationId": "StagesController_create",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateStageRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a stage from the tournament’s accepted registrations",
+        "tags": [
+          "stages"
+        ]
+      }
+    },
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/display-tokens": {
       "get": {
         "operationId": "DisplayTokenController_list",
@@ -3224,6 +3358,57 @@
           "schemaVersion"
         ]
       },
+      "MyOrganizationResponse": {
+        "type": "object",
+        "properties": {
+          "organizationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "organizationAlias": {
+            "type": "string",
+            "description": "Human-readable, URL-safe alias; globally unique per installation",
+            "example": "liga-orbital"
+          },
+          "organizationName": {
+            "type": "string",
+            "example": "Liga Orbital"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "referee",
+              "broadcaster",
+              "viewer"
+            ],
+            "description": "The caller's active role in this organization"
+          }
+        },
+        "required": [
+          "organizationId",
+          "organizationAlias",
+          "organizationName",
+          "role"
+        ]
+      },
+      "ProblemResponse": {
+        "type": "object",
+        "properties": {
+          "statusCode": {
+            "type": "number",
+            "example": 403
+          },
+          "message": {
+            "type": "string",
+            "example": "subject may only act on their own records"
+          }
+        },
+        "required": [
+          "statusCode",
+          "message"
+        ]
+      },
       "OrganizationResponse": {
         "type": "object",
         "properties": {
@@ -3306,23 +3491,6 @@
         "required": [
           "alias",
           "name"
-        ]
-      },
-      "ProblemResponse": {
-        "type": "object",
-        "properties": {
-          "statusCode": {
-            "type": "number",
-            "example": 403
-          },
-          "message": {
-            "type": "string",
-            "example": "subject may only act on their own records"
-          }
-        },
-        "required": [
-          "statusCode",
-          "message"
         ]
       },
       "UpdateOrganizationSettingsRequest": {
@@ -3452,6 +3620,33 @@
           "requiresCheckIn"
         ]
       },
+      "TeamMemberResponse": {
+        "type": "object",
+        "properties": {
+          "personId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string",
+            "example": "Elías Salomón"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "player",
+              "substitute",
+              "coach",
+              "staff"
+            ]
+          }
+        },
+        "required": [
+          "personId",
+          "displayName",
+          "role"
+        ]
+      },
       "RegistrationResponse": {
         "type": "object",
         "properties": {
@@ -3480,6 +3675,13 @@
           "personId": {
             "type": "string",
             "format": "uuid"
+          },
+          "teamMembers": {
+            "description": "The team entrant’s resulting membership. Populated only by a team-membership edit response.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamMemberResponse"
+            }
           }
         },
         "required": [
@@ -3555,6 +3757,22 @@
         "required": [
           "applied",
           "refused"
+        ]
+      },
+      "EditTeamMembershipsRequest": {
+        "type": "object",
+        "properties": {
+          "personIds": {
+            "description": "The team’s full desired membership. Anyone currently a member but not named here is removed.",
+            "type": "array",
+            "items": {
+              "type": "array",
+              "format": "uuid"
+            }
+          }
+        },
+        "required": [
+          "personIds"
         ]
       },
       "DisciplineSummaryResponse": {
@@ -4251,8 +4469,10 @@
             "type": "string",
             "enum": [
               "individual",
-              "team"
-            ]
+              "team",
+              "team-membership"
+            ],
+            "description": "\"individual\"/\"team\" register a new entrant; \"team-membership\" attaches each row's person onto an already-registered team named by that row's teamAlias — it never creates a team."
           },
           "sourceCsv": {
             "type": "string",
@@ -4276,7 +4496,8 @@
             "type": "string",
             "enum": [
               "individual",
-              "team"
+              "team",
+              "team-membership"
             ]
           },
           "status": {
@@ -4610,6 +4831,60 @@
           "reason",
           "invalidates",
           "persisted"
+        ]
+      },
+      "CreateStageRequest": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "number",
+            "description": "Defaults to the tournament’s next sequential stage number. Refused as a conflict if a stage with this number already exists.",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "description": "Defaults to \"Stage {number}\".",
+            "example": "Fase de grupos"
+          },
+          "format": {
+            "type": "string",
+            "description": "Defaults to the tournament’s own configured format. Validated against the tournament’s discipline descriptor when supplied.",
+            "example": "round-robin"
+          }
+        }
+      },
+      "StageResponse": {
+        "type": "object",
+        "properties": {
+          "stageId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "seasonId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The tournament edition this stage belongs to (0015)"
+          },
+          "number": {
+            "type": "number",
+            "description": "1-based sequential number within the tournament",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Fase de grupos"
+          },
+          "format": {
+            "type": "string",
+            "example": "round-robin"
+          }
+        },
+        "required": [
+          "stageId",
+          "seasonId",
+          "number",
+          "name",
+          "format"
         ]
       },
       "DisplayTokenResponse": {

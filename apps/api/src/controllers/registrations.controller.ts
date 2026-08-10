@@ -2,7 +2,6 @@ import {
   BadRequestException,
   Body,
   ConflictException,
-  NotImplementedException,
   Controller,
   Get,
   HttpCode,
@@ -25,14 +24,18 @@ import {
   SUPPORTED_FORMATS,
   canDecide,
   planBulkReview,
+  planRosterReconciliation,
+  teamMembershipsApply,
   teamMembershipsEditable,
   type CheckInWindow,
   type Entrant,
+  type PlayerRole,
   type ReviewDecision,
 } from '@copalibre/domain';
 import {
   EnrollmentRepository,
   OrganizationRepository,
+  PersonRepository,
   TournamentRepository,
   withTransaction,
   type Database,
@@ -45,12 +48,22 @@ import {
   BulkReviewRequest,
   BulkReviewResponse,
   DisciplineSummaryResponse,
+  EditTeamMembershipsRequest,
   ProblemResponse,
   RegistrationResponse,
   ReviewRegistrationRequest,
 } from '../dto/organization.dto.js';
 import { enforcePolicy } from '../policy/resource-policy.js';
 import { DATABASE } from '../database.token.js';
+
+/**
+ * A team-membership edit's request body carries no per-person role (0064) —
+ * extending it to `{ personId, role }[]` is a larger, separable change this
+ * endpoint's gap did not ask for. 'player' is the unmarked, common-case
+ * membership; reconciliation only adds and removes, so this default cannot
+ * demote an existing coach or substitute named again in a later edit.
+ */
+const DEFAULT_TEAM_MEMBERSHIP_ROLE: PlayerRole = 'player';
 
 /**
  * Registration review (0023).
@@ -195,10 +208,14 @@ export class RegistrationsController {
     @Param('organizationAlias') organizationAlias: string,
     @Param('tournamentAlias') tournamentAlias: string,
     @Param('entrantId') entrantId: string,
-    @Body() body: { readonly personIds?: string[] },
+    @Body() body: EditTeamMembershipsRequest,
     @Req() request: RequestWithSubject,
   ): Promise<RegistrationResponse> {
-    const { tournament } = await this.resolve(organizationAlias, tournamentAlias, request);
+    const { organizationId, tournament } = await this.resolve(
+      organizationAlias,
+      tournamentAlias,
+      request,
+    );
     const enrollment = new EnrollmentRepository(this.db);
     const entrant = await enrollment.findEntrant(entrantId);
 
@@ -214,13 +231,74 @@ export class RegistrationsController {
       throw new BadRequestException('A team-membership edit names the people on it');
     }
 
-    // The lock above is this phase's contract and it is enforced. Persisting the
-    // Membership persistence belongs to the phase that owns team membership, and
-    // answering 200 without writing anything would tell a console its edit
-    // landed — a worse failure than saying plainly that it did not.
-    throw new NotImplementedException(
-      'Team-membership editing is not implemented yet; check-in enforcement is, and this request passed it',
+    const applies = teamMembershipsApply(entrant.entrantRef.kind);
+    if (!applies.ok) throw new BadRequestException(applies.error.message);
+    // Narrowed by the check above: only a 'team' entrant reaches this point.
+    const { teamId } = entrant.entrantRef as Extract<Entrant['entrantRef'], { kind: 'team' }>;
+
+    const people = new PersonRepository(this.db);
+    const desired = [...new Set(body.personIds)];
+    const named = await people.findPersons(desired);
+    // A person id from another organization is not a name we recognise here,
+    // and is refused identically to one that does not exist at all.
+    const namedById = new Map(
+      named
+        .filter((person) => person.organizationId === organizationId)
+        .map((person) => [person.personId, person]),
     );
+    const unknown = desired.filter((personId) => !namedById.has(personId));
+    if (unknown.length > 0) {
+      throw new NotFoundException(
+        `No person in this organization for id(s): ${unknown.join(', ')}`,
+      );
+    }
+
+    const currentSquad = await people.squadOf(teamId);
+    const plan = planRosterReconciliation(
+      currentSquad.map((player) => player.personId),
+      desired,
+    );
+    const playerIdByPersonId = new Map(currentSquad.map((player) => [player.personId, player]));
+
+    await withTransaction(this.db, async (uow) => {
+      for (const personId of plan.toEnlist) {
+        await people.enlist(uow, {
+          personId,
+          teamId,
+          role: DEFAULT_TEAM_MEMBERSHIP_ROLE,
+          organizationId,
+          actor: actorOf(request),
+          authorizationContext: (request.subject?.scopes ?? []).join(' '),
+        });
+      }
+      for (const personId of plan.toRemove) {
+        const player = playerIdByPersonId.get(personId);
+        if (!player) continue;
+        await people.dismiss(uow, {
+          playerId: player.playerId,
+          organizationId,
+          actor: actorOf(request),
+          authorizationContext: (request.subject?.scopes ?? []).join(' '),
+        });
+      }
+    });
+
+    const resultingSquad = await people.squadOf(teamId);
+    const resultingPersons = await people.findPersons(
+      resultingSquad.map((player) => player.personId),
+    );
+    const displayNameByPersonId = new Map(
+      resultingPersons.map((person) => [person.personId, person.displayName]),
+    );
+
+    return {
+      ...toResponse(entrant),
+      teamMembers: resultingSquad.map((player) => ({
+        personId: player.personId,
+        displayName: displayNameByPersonId.get(player.personId) ?? '',
+        role: player.role,
+      })),
+    };
   }
 
   /**

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   ConflictException,
   Controller,
@@ -8,6 +9,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
 } from '@nestjs/common';
 import {
@@ -21,6 +23,7 @@ import {
 } from '@nestjs/swagger';
 import {
   InvariantViolationError,
+  OrganizationAccessRepository,
   OrganizationRepository,
   withTransaction,
   type Database,
@@ -30,11 +33,13 @@ import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
 import {
   RequireOrganizationRole,
+  RequireSelf,
   RequireSuperAdmin,
   SUPER_ADMIN_SCOPE,
 } from '../auth/access-requirement.js';
 import {
   CreateOrganizationRequest,
+  MyOrganizationResponse,
   OrganizationResponse,
   ProblemResponse,
   UpdateOrganizationSettingsRequest,
@@ -51,6 +56,46 @@ import { DATABASE } from '../database.token.js';
 @Controller('organizations')
 export class OrganizationsController {
   constructor(@Inject(DATABASE) private readonly db: Kysely<Database>) {}
+
+  @Get()
+  @SecurityPlaneTag('admin-control')
+  @RequireSelf()
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'List organizations the authenticated caller belongs to',
+    description:
+      'Requires "?mine=true" — the only filter this endpoint supports today. Returns every ' +
+      'organization the caller holds a non-deleted, active role assignment in, with that role. ' +
+      'Never requires an organization to already be known, so it also answers "does this account ' +
+      'belong to any organization at all".',
+  })
+  @ApiOkResponse({ type: MyOrganizationResponse, isArray: true })
+  @ApiUnauthorizedResponse({
+    type: ProblemResponse,
+    description: 'Missing or invalid bearer token',
+  })
+  async listMine(
+    @Query('mine') mine: string | undefined,
+    @Req() request: RequestWithSubject,
+  ): Promise<MyOrganizationResponse[]> {
+    if (mine !== 'true') {
+      throw new BadRequestException('Only "?mine=true" is supported by this endpoint');
+    }
+    const principalId = request.subject?.principalId;
+    // No installation principal yet (never accepted an invitation) is not an
+    // error here — it means zero memberships, which this endpoint reports the
+    // same way it reports any other caller with zero: an empty list.
+    if (!principalId) return [];
+    const memberships = await new OrganizationAccessRepository(
+      this.db,
+    ).listOrganizationsForPrincipal(principalId);
+    return memberships.map((membership) => ({
+      organizationId: membership.organizationId,
+      organizationAlias: membership.organizationAlias,
+      organizationName: membership.organizationName,
+      role: membership.role,
+    }));
+  }
 
   @Get(':alias')
   @SecurityPlaneTag('public-read')

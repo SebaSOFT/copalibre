@@ -313,6 +313,7 @@ describe('SeedingBuilderPage', () => {
 
 function stubClient(overrides: Partial<ControlApiClient>): ControlApiClient {
   return {
+    listMyOrganizations: () => Promise.resolve([]),
     listDisciplines: () => Promise.resolve([]),
     createTournament: () => Promise.reject(new Error('not used')),
     listRegistrations: () => Promise.resolve([]),

@@ -6,6 +6,7 @@ import { withIntl } from './i18n/test-support.js';
 
 function client(overrides: Partial<ControlApiClient> = {}): ControlApiClient {
   return {
+    listMyOrganizations: async () => [],
     listDisciplines: async () => [
       {
         descriptorId: 'd-football',

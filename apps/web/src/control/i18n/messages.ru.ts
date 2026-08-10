@@ -260,4 +260,9 @@ export const messages: Record<string, string> = {
   'control.standings.distributionEmpty': 'Нет данных для графика.',
   'control.standings.sharedRank': 'Общая позиция',
   'control.standings.tieBroken': 'Тай-брейк применён',
+
+  'control.landing.emptyTitle': 'Пока нет организаций',
+  'control.landing.emptyBody':
+    'У этой учётной записи пока нет роли ни в одной организации. Требуется приглашение от администратора.',
+  'control.landing.pickerTitle': 'Выберите организацию',
 };

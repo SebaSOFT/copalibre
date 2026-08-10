@@ -2,8 +2,14 @@ import { authorizationUrl, createPkcePair } from './pkce.js';
 
 const RUNTIME_CONFIG_PATH = '/runtime-config.json';
 export const TRANSACTION_KEY = 'copalibre.oidc.transaction';
-/** Where an operator lands after login when no `returnTo` was requested. */
-const DEFAULT_RETURN_TO = '/control/';
+/**
+ * Where an operator lands after login when no `returnTo` was requested.
+ *
+ * Exported (0063) so `ControlApp.tsx`'s `CompletingLogin` can tell this case
+ * apart from a guard-redirected login (which always carries a real
+ * destination) without widening the transaction shape 0062 already shipped.
+ */
+export const DEFAULT_RETURN_TO = '/control/';
 
 interface RuntimeConfig {
   readonly oidcIssuer: string;

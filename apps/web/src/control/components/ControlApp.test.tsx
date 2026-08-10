@@ -1,8 +1,8 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ControlApp } from './ControlApp.js';
 import { navigateControl } from '../lib/control-navigation.js';
 import { controlTokenStore } from '../session/token-store.js';
-import { TRANSACTION_KEY, type OidcTransaction } from '../session/oidc-login.js';
+import { DEFAULT_RETURN_TO, TRANSACTION_KEY, type OidcTransaction } from '../session/oidc-login.js';
 
 function at(path: string): void {
   window.history.replaceState({}, '', path);
@@ -207,5 +207,139 @@ describe('ControlApp session guard and callback (0062)', () => {
 
     await waitFor(() => expect(screen.getByText('No se pudo completar el acceso')).toBeDefined());
     expect(controlTokenStore.read()).toBeUndefined();
+  });
+});
+
+describe('ControlApp default-returnTo login landing (0063)', () => {
+  let originalFetch: typeof fetch;
+
+  function membership(overrides: Partial<Record<string, unknown>> = {}) {
+    return {
+      organizationId: 'org-1',
+      organizationAlias: 'liga-mendocina',
+      organizationName: 'Liga Mendocina',
+      role: 'admin',
+      ...overrides,
+    };
+  }
+
+  function stubFetch(myOrganizations: unknown): void {
+    originalFetch = globalThis.fetch;
+    Object.defineProperty(globalThis, 'fetch', {
+      configurable: true,
+      value: async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url === 'https://identity.example/token') {
+          return json({ access_token: 'fresh-access-token', expires_in: 3600 });
+        }
+        if (url.includes('/organizations?mine=true')) {
+          if (myOrganizations === 'error') {
+            return new Response('boom', { status: 500 });
+          }
+          return json(myOrganizations);
+        }
+        return json([]);
+      },
+    });
+  }
+
+  afterEach(() => {
+    Object.defineProperty(globalThis, 'fetch', { configurable: true, value: originalFetch });
+    sessionStorage.clear();
+    controlTokenStore.clear();
+    at('/control/liga-mendocina');
+  });
+
+  it('sends the operator straight to the dashboard when there is exactly one organization', async () => {
+    stubFetch([membership()]);
+    sessionStorage.setItem(
+      TRANSACTION_KEY,
+      JSON.stringify(transaction({ returnTo: DEFAULT_RETURN_TO })),
+    );
+    at('/control/callback?code=auth-code-1&state=state-123');
+
+    render(<ControlApp />);
+
+    await waitFor(() => expect(window.location.pathname).toBe('/control/liga-mendocina'));
+  });
+
+  it('shows an explanatory empty state for an operator with no organizations', async () => {
+    stubFetch([]);
+    sessionStorage.setItem(
+      TRANSACTION_KEY,
+      JSON.stringify(transaction({ returnTo: DEFAULT_RETURN_TO })),
+    );
+    at('/control/callback?code=auth-code-1&state=state-123');
+
+    render(<ControlApp />);
+
+    // Test environment resolves to Spanish (no stored/browser preference set),
+    // same as every other ControlApp test's expected copy.
+    await waitFor(() => expect(screen.getByText('Sin organizaciones todavía')).toBeDefined());
+    // Stays on the callback screen rather than the "not found" screen the
+    // original bug landed on.
+    expect(window.location.pathname).toBe('/control/callback');
+  });
+
+  it('shows a picker for an operator with more than one organization, each linking to its dashboard', async () => {
+    stubFetch([
+      membership(),
+      membership({
+        organizationId: 'org-2',
+        organizationAlias: 'liga-cuyana',
+        organizationName: 'Liga Cuyana',
+        role: 'viewer',
+      }),
+    ]);
+    sessionStorage.setItem(
+      TRANSACTION_KEY,
+      JSON.stringify(transaction({ returnTo: DEFAULT_RETURN_TO })),
+    );
+    at('/control/callback?code=auth-code-1&state=state-123');
+
+    render(<ControlApp />);
+
+    await waitFor(() => expect(screen.getByText('Elegir una organización')).toBeDefined());
+    const link = screen.getByRole('link', { name: /Liga Cuyana/ });
+    expect(link.getAttribute('href')).toBe('/control/liga-cuyana');
+
+    fireEvent.click(link);
+    await waitFor(() => expect(window.location.pathname).toBe('/control/liga-cuyana'));
+  });
+
+  it('shows the error view when the organization lookup itself fails', async () => {
+    stubFetch('error');
+    sessionStorage.setItem(
+      TRANSACTION_KEY,
+      JSON.stringify(transaction({ returnTo: DEFAULT_RETURN_TO })),
+    );
+    at('/control/callback?code=auth-code-1&state=state-123');
+
+    render(<ControlApp />);
+
+    await waitFor(() => expect(screen.getByText('No se pudo completar el acceso')).toBeDefined());
+  });
+
+  it('leaves a guard-redirected login (a real returnTo) untouched — no lookup performed', async () => {
+    let organizationsRequested = false;
+    originalFetch = globalThis.fetch;
+    Object.defineProperty(globalThis, 'fetch', {
+      configurable: true,
+      value: async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url === 'https://identity.example/token') {
+          return json({ access_token: 'fresh-access-token', expires_in: 3600 });
+        }
+        if (url.includes('/organizations?mine=true')) organizationsRequested = true;
+        return json([]);
+      },
+    });
+    sessionStorage.setItem(TRANSACTION_KEY, JSON.stringify(transaction()));
+    at('/control/callback?code=auth-code-1&state=state-123');
+
+    render(<ControlApp />);
+
+    await waitFor(() => expect(window.location.pathname).toBe('/control/liga-mendocina'));
+    expect(organizationsRequested).toBe(false);
   });
 });

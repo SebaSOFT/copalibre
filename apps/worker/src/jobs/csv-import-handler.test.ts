@@ -9,6 +9,7 @@ const imports = {
   storePreview: jest.fn<() => Promise<unknown>>(),
 };
 const tournaments = { findDescriptor: jest.fn<() => Promise<unknown>>() };
+const enrollment = { listRegisteredTeamAliases: jest.fn<() => Promise<unknown>>() };
 const validateCsvImport = jest.fn<() => unknown>();
 const withTransaction = jest.fn(
   async (_db: unknown, callback: (transaction: typeof uow) => unknown) => callback(uow),
@@ -17,6 +18,7 @@ const withTransaction = jest.fn(
 await jest.unstable_mockModule('@copalibre/persistence', () => ({
   CsvImportRepository: jest.fn(() => imports),
   TournamentRepository: jest.fn(() => tournaments),
+  EnrollmentRepository: jest.fn(() => enrollment),
   withTransaction,
 }));
 await jest.unstable_mockModule('@copalibre/domain', () => ({ validateCsvImport }));
@@ -77,6 +79,7 @@ beforeEach(() => {
   imports.storePreview.mockResolvedValue(session({ status: 'review-ready' }));
   configureTournament({ descriptor_id: 'descriptor-1', descriptor_version: '1.0.0' });
   tournaments.findDescriptor.mockResolvedValue({ participantTypes: ['team'] });
+  enrollment.listRegisteredTeamAliases.mockResolvedValue([]);
   validateCsvImport.mockReturnValue({ target: 'team', valid: true, rows: [], errors: [] });
 });
 
@@ -148,6 +151,39 @@ describe('CSV import validation handler', () => {
           invalidRowCount: 1,
         },
       }),
+    );
+  });
+
+  it('resolves the tournament’s registered team aliases for a team-membership session (0065)', async () => {
+    imports.find.mockResolvedValue(session({ target: 'team-membership' }));
+    imports.markValidating.mockResolvedValue(
+      session({ target: 'team-membership', status: 'validating' }),
+    );
+    enrollment.listRegisteredTeamAliases.mockResolvedValue(['club-atletico', 'club-belgrano']);
+    validateCsvImport.mockReturnValue({
+      target: 'team-membership',
+      valid: true,
+      rows: [],
+      errors: [],
+    });
+
+    await csvImportValidationHandler({ db: db as never })(job());
+
+    expect(enrollment.listRegisteredTeamAliases).toHaveBeenCalledWith('tournament-1');
+    expect(validateCsvImport).toHaveBeenCalledWith({
+      csv: 'alias,name\nclub-atletico,Club Atletico\n',
+      target: 'team-membership',
+      allowedParticipantTypes: ['team'],
+      knownTeamAliases: ['club-atletico', 'club-belgrano'],
+    });
+  });
+
+  it('does not resolve team aliases for the individual/team targets', async () => {
+    await csvImportValidationHandler({ db: db as never })(job());
+
+    expect(enrollment.listRegisteredTeamAliases).not.toHaveBeenCalled();
+    expect(validateCsvImport).toHaveBeenCalledWith(
+      expect.not.objectContaining({ knownTeamAliases: expect.anything() }),
     );
   });
 

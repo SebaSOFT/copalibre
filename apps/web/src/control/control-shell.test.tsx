@@ -191,6 +191,7 @@ describe('the control routes', () => {
 
 function minimalControlClient(overrides: Partial<ControlApiClient>): ControlApiClient {
   return {
+    listMyOrganizations: async () => [],
     listDisciplines: async () => [],
     createTournament: async () => ({ tournamentId: 't-1', alias: 't-1', name: 'Test' }),
     listRegistrations: async () => [],

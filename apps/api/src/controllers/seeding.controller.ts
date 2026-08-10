@@ -32,6 +32,7 @@ import {
 } from '@copalibre/tournament-engine';
 import {
   CompetitionRepository,
+  EnrollmentRepository,
   InvariantViolationError,
   StageReadModel,
   withTransaction,
@@ -208,6 +209,20 @@ export class SeedingController {
     return generated.value;
   }
 
+  /**
+   * Resolves the stage plus its effective seeding record (0066).
+   *
+   * `StageReadModel.stageRecord` derives `entrantIds` from the stage's own matches — correct once a
+   * bracket exists, but a stage with none yet (freshly created, never seeded) has no matches to read,
+   * so `record.entrantIds` comes back `[]`. Left alone, that makes `publish()` refuse any non-empty
+   * seed order for a stage's very first bracket: `validateSeedOrder` requires the submitted seeds to
+   * match `entrantIds` exactly, and `[]` only matches `[]`. Rather than changing
+   * `StageReadModel.stageRecord` itself — it has a second caller, `standings.controller.ts`, which
+   * has no reason to start showing accepted-but-unseeded entrants in a stage's standings — this
+   * substitutes the tournament's currently accepted registrations (registration order) for
+   * `entrantIds` here, and only here, exactly when the stage has no generated fixtures yet. Once
+   * fixtures exist, `record` is used unmodified, same as before.
+   */
   private async stage(
     organizationAlias: string,
     tournamentAlias: string,
@@ -233,8 +248,23 @@ export class SeedingController {
     const record = await new StageReadModel(this.db).stageRecord(stage.stageId);
     if (!record) throw new NotFoundException(`No stage ${stageNumber} in "${tournamentAlias}"`);
 
-    return { stageId: stage.stageId, organizationId, record };
+    const effectiveRecord = record.hasGeneratedFixtures
+      ? record
+      : { ...record, entrantIds: await acceptedEntrantIds(this.db, tournament.tournamentId) };
+
+    return { stageId: stage.stageId, organizationId, record: effectiveRecord };
   }
+}
+
+/** The tournament's currently accepted registrations, in registration order (0066). */
+async function acceptedEntrantIds(
+  db: Kysely<Database>,
+  tournamentId: string,
+): Promise<readonly string[]> {
+  const entrants = await new EnrollmentRepository(db).listEntrants(tournamentId);
+  return entrants
+    .filter((entrant) => entrant.status === 'accepted')
+    .map((entrant) => entrant.entrantId);
 }
 
 /**
