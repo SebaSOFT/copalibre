@@ -1,4 +1,4 @@
-import { Controller, Get, NotFoundException, Param, Post, Query } from '@nestjs/common';
+import { Controller, Get, Inject, NotFoundException, Param, Post, Query } from '@nestjs/common';
 import type { DeadLetter, RelayMetrics } from '@copalibre/persistence';
 import { RelayService } from './relay.service.js';
 
@@ -13,7 +13,7 @@ import { RelayService } from './relay.service.js';
  */
 @Controller('jobs')
 export class DeadLetterController {
-  constructor(private readonly relay: RelayService) {}
+  constructor(@Inject(RelayService) private readonly relay: RelayService) {}
 
   @Get('dead-letters')
   async deadLetters(@Query('limit') limit?: string): Promise<readonly DeadLetter[]> {
