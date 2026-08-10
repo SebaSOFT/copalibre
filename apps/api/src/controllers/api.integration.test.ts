@@ -1185,6 +1185,65 @@ describe('api routes (integration)', () => {
       expect(squadA).toHaveLength(0);
     });
 
+    it('treats a team alias belonging to a different organization as unresolved, not attached', async () => {
+      const enrollment = new EnrollmentRepository(scratch.db);
+      const people = new PersonRepository(scratch.db);
+      const seeded = await seedTwoRegisteredTeams('copa-membresia-cruzada');
+
+      const otherOrganization = await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        new OrganizationRepository(scratch.db).create(uow, {
+          alias: 'liga-vecina',
+          name: 'Liga Vecina',
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        }),
+      );
+      const foreignTeam = await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        enrollment.createTeam(uow, {
+          organizationId: otherOrganization.organizationId,
+          name: 'Club De Otra Liga',
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        }),
+      );
+      const foreignAlias = foreignTeam.alias ?? '';
+
+      const sourceCsv = `teamAlias,alias,displayName\n${foreignAlias},sofia-luna,Sofia Luna\n`;
+      const created = await request({
+        method: 'POST',
+        url: '/organizations/liga-orbital/tournaments/copa-membresia-cruzada/imports',
+        token: 'organizer-org1',
+        payload: { target: 'team-membership', sourceCsv },
+      });
+
+      await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        new CsvImportRepository(scratch.db).storePreview(uow, {
+          importId: created.json().importId,
+          preview: validateCsvImport({
+            target: 'team-membership',
+            allowedParticipantTypes: ['team'],
+            // The worker only ever resolves known aliases from *this*
+            // tournament's own organization, so the foreign alias is
+            // deliberately absent here too — same as production.
+            knownTeamAliases: [seeded.teamA.alias ?? '', seeded.teamB.alias ?? ''],
+            csv: sourceCsv,
+          }),
+        }),
+      );
+
+      const committed = await request({
+        method: 'POST',
+        url: `/organizations/liga-orbital/tournaments/copa-membresia-cruzada/imports/${created.json().importId}/commit`,
+        token: 'organizer-org1',
+        payload: { sourceHash: created.json().sourceHash },
+      });
+      expect(committed.statusCode).toBe(409);
+
+      expect(await people.findByAlias(organizationId, 'sofia-luna')).toBeUndefined();
+      const foreignSquad = await people.squadOf(foreignTeam.teamId);
+      expect(foreignSquad).toHaveLength(0);
+    });
+
     it('re-committing the same file is additive and idempotent: no duplicate membership or audit rows', async () => {
       const people = new PersonRepository(scratch.db);
       const seeded = await seedTwoRegisteredTeams('copa-membresia-reimport');
