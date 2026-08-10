@@ -27,6 +27,7 @@ import { OrganizationsController } from './organizations.controller.js';
 import { DisciplinesController, RegistrationsController } from './registrations.controller.js';
 import { SchedulesController } from './schedules.controller.js';
 import { TournamentsController } from './tournaments.controller.js';
+import { PublicProjectionsController } from './public-projections.controller.js';
 
 /**
  * End-to-end through the real HTTP stack (Fastify + guard + policy +
@@ -85,6 +86,7 @@ describe('api routes (integration)', () => {
         HealthController,
         OrganizationsController,
         TournamentsController,
+        PublicProjectionsController,
         SchedulesController,
         RegistrationsController,
         DisciplinesController,
@@ -337,6 +339,163 @@ describe('api routes (integration)', () => {
         url: '/organizations/liga-orbital/tournaments/no-such-copa',
       });
       expect(response.statusCode).toBe(404);
+    });
+
+    it('404s a tournament that is still in draft state (0067)', async () => {
+      const tournaments = new TournamentRepository(scratch.db);
+      const descriptor = footballDescriptor();
+
+      const draftTournament = await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+        await tournaments.saveDescriptor(uow, descriptor, {
+          organizationId,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+        return tournaments.create(uow, {
+          organizationId,
+          alias: 'copa-draft',
+          name: 'Copa Draft',
+          descriptor,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+      });
+
+      const response = await request({
+        method: 'GET',
+        url: `/organizations/liga-orbital/tournaments/${draftTournament.alias}`,
+      });
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('200s a tournament that is published', async () => {
+      const tournaments = new TournamentRepository(scratch.db);
+      const descriptor = footballDescriptor();
+
+      const created = await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+        await tournaments.saveDescriptor(uow, descriptor, {
+          organizationId,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+        return tournaments.create(uow, {
+          organizationId,
+          alias: 'copa-published',
+          name: 'Copa Published',
+          descriptor,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+      });
+
+      const publishedTournament = await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+        return tournaments.publish(uow, {
+          tournamentId: created.tournamentId,
+          organizationId,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+      });
+
+      const response = await request({
+        method: 'GET',
+        url: `/organizations/liga-orbital/tournaments/${publishedTournament.alias}`,
+      });
+      expect(response.statusCode).toBe(200);
+      expect(JSON.parse(response.payload as string).alias).toBe(publishedTournament.alias);
+    });
+  });
+
+  describe('public projections routes (0067)', () => {
+    let publishedTournament: TournamentRecord;
+    let draftTournament: TournamentRecord;
+
+    beforeAll(async () => {
+      const tournaments = new TournamentRepository(scratch.db);
+      const descriptor = footballDescriptor();
+
+      draftTournament = await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+        await tournaments.saveDescriptor(uow, descriptor, {
+          organizationId,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+        return tournaments.create(uow, {
+          organizationId,
+          alias: 'copa-public-draft',
+          name: 'Copa Public Draft',
+          descriptor,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+      });
+
+      const createdPublished = await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+        return tournaments.create(uow, {
+          organizationId,
+          alias: 'copa-public-published',
+          name: 'Copa Public Published',
+          descriptor,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+      });
+
+      publishedTournament = await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+        return tournaments.publish(uow, {
+          tournamentId: createdPublished.tournamentId,
+          organizationId,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+      });
+    });
+
+    it('404s on draft tournament for every route', async () => {
+      const routes = [
+        'overview',
+        'live',
+        'stages/1/bracket'
+      ];
+      for (const route of routes) {
+        const response = await request({
+          method: 'GET',
+          url: `/organizations/liga-orbital/tournaments/${draftTournament.alias}/${route}`,
+        });
+        expect(response.statusCode).toBe(404);
+      }
+    });
+
+    it('404s on nonexistent organization/tournament/stage', async () => {
+      const responseOrg = await request({
+        method: 'GET',
+        url: `/organizations/unknown-org/tournaments/${publishedTournament.alias}/overview`,
+      });
+      expect(responseOrg.statusCode).toBe(404);
+
+      const responseTourn = await request({
+        method: 'GET',
+        url: `/organizations/liga-orbital/tournaments/unknown-tourn/overview`,
+      });
+      expect(responseTourn.statusCode).toBe(404);
+
+      const responseStage = await request({
+        method: 'GET',
+        url: `/organizations/liga-orbital/tournaments/${publishedTournament.alias}/stages/999/bracket`,
+      });
+      expect(responseStage.statusCode).toBe(404);
+    });
+
+    it('returns real data with entrant names resolved for published tournament', async () => {
+      const response = await request({
+        method: 'GET',
+        url: `/organizations/liga-orbital/tournaments/${publishedTournament.alias}/overview`,
+      });
+      expect(response.statusCode).toBe(200);
+      const data = JSON.parse(response.payload as string);
+      expect(data.tournamentAlias).toBe(publishedTournament.alias);
+      expect(data.organizationAlias).toBe('liga-orbital');
+      expect(Array.isArray(data.matches)).toBe(true);
     });
   });
 

@@ -335,7 +335,7 @@ function validateSeedOrder(
   }
 }
 
-function ambiguousRoundPositions(matches: readonly GeneratedMatch[]): ReadonlySet<string> {
+export function ambiguousRoundPositions(matches: readonly GeneratedMatch[]): ReadonlySet<string> {
   const counts = new Map<string, number>();
   for (const match of matches) {
     const key = roundPositionKey(match);
@@ -344,7 +344,7 @@ function ambiguousRoundPositions(matches: readonly GeneratedMatch[]): ReadonlySe
   return new Set([...counts].filter(([, count]) => count > 1).map(([key]) => key));
 }
 
-function roundPositionKey(match: Pick<GeneratedMatch, 'round' | 'position'>): string {
+export function roundPositionKey(match: Pick<GeneratedMatch, 'round' | 'position'>): string {
   return `${match.round}:${match.position}`;
 }
 

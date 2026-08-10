@@ -67,7 +67,7 @@ export class TournamentsController {
       organizationAlias,
       tournamentAlias,
     );
-    if (!tournament) {
+    if (!tournament || tournament.status === 'draft') {
       throw new NotFoundException(
         `No tournament "${tournamentAlias}" in organization "${organizationAlias}"`,
       );
