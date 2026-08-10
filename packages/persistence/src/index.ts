@@ -47,6 +47,7 @@ export {
   type ChangeOrganizationRoleInput,
   type CreateOrganizationInvitationInput,
   type DeleteOrganizationRoleInput,
+  type PrincipalOrganizationMembership,
 } from './repositories/organization-access-repository.js';
 export { IdentityPrincipalRepository } from './repositories/identity-principal-repository.js';
 export {

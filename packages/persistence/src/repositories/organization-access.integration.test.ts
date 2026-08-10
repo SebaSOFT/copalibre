@@ -212,6 +212,233 @@ describe('organization invitation acceptance (integration)', () => {
   });
 });
 
+describe('listing every organization a principal belongs to (0063)', () => {
+  let scratch: ScratchDatabase;
+  let orgAlpha: string;
+  let orgBeta: string;
+  let orgGamma: string;
+
+  beforeAll(async () => {
+    scratch = await createMigratedDatabase('organization-access-directory');
+    orgAlpha = (
+      await withTransaction(scratch.db, (uow) =>
+        new OrganizationRepository(scratch.db).create(uow, {
+          alias: 'liga-alfa',
+          name: 'Liga Alfa',
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        }),
+      )
+    ).organizationId;
+    orgBeta = (
+      await withTransaction(scratch.db, (uow) =>
+        new OrganizationRepository(scratch.db).create(uow, {
+          alias: 'liga-beta',
+          name: 'Liga Beta',
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        }),
+      )
+    ).organizationId;
+    orgGamma = (
+      await withTransaction(scratch.db, (uow) =>
+        new OrganizationRepository(scratch.db).create(uow, {
+          alias: 'liga-gamma',
+          name: 'Liga Gamma',
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        }),
+      )
+    ).organizationId;
+
+    // Bootstrap each of beta/gamma with its own admin first — a later
+    // referee/viewer invitation for the "directory" principal is only legal
+    // once an organization already has its first (admin) assignment.
+    await bootstrapAdmin(orgBeta, 'beta-admin@example.test', 'oidc-beta-admin');
+    await bootstrapAdmin(orgGamma, 'gamma-admin@example.test', 'oidc-gamma-admin');
+  });
+
+  async function bootstrapAdmin(
+    organizationId: string,
+    email: string,
+    subjectId: string,
+  ): Promise<void> {
+    const access = new OrganizationAccessRepository(scratch.db);
+    const token = `bootstrap-${subjectId}`;
+    await withTransaction(scratch.db, (uow) =>
+      access.createInvitation(uow, {
+        organizationId,
+        recipientEmail: email,
+        role: 'admin',
+        status: 'active',
+        token,
+        tokenHash: hash(token),
+        expiresAt: '2099-08-04T00:00:00.000Z',
+        actor: 'user:super-admin',
+        authorizationContext: 'copalibre.super-admin',
+      }),
+    );
+    await withTransaction(scratch.db, (uow) =>
+      access.acceptInvitation(uow, {
+        tokenHash: hash(token),
+        subjectId,
+        verifiedEmail: email,
+        actor: `user:${subjectId}`,
+        authorizationContext: 'copalibre.invite.accept',
+      }),
+    );
+  }
+
+  afterAll(async () => scratch.drop());
+
+  it('returns an empty list for a principal with no assignment at all', async () => {
+    const access = new OrganizationAccessRepository(scratch.db);
+    await expect(
+      access.listOrganizationsForPrincipal('01800000-0000-7000-8000-000000000099'),
+    ).resolves.toEqual([]);
+  });
+
+  it('returns exactly the organizations with an active, non-deleted assignment', async () => {
+    const access = new OrganizationAccessRepository(scratch.db);
+    const bootstrapToken = 'directory-admin-token';
+    await withTransaction(scratch.db, (uow) =>
+      access.createInvitation(uow, {
+        organizationId: orgAlpha,
+        recipientEmail: 'directory@example.test',
+        role: 'admin',
+        status: 'active',
+        token: bootstrapToken,
+        tokenHash: hash(bootstrapToken),
+        expiresAt: '2099-08-04T00:00:00.000Z',
+        actor: 'user:super-admin',
+        authorizationContext: 'copalibre.super-admin',
+      }),
+    );
+    const admin = await withTransaction(scratch.db, (uow) =>
+      access.acceptInvitation(uow, {
+        tokenHash: hash(bootstrapToken),
+        subjectId: 'oidc-directory-admin',
+        verifiedEmail: 'directory@example.test',
+        actor: 'user:oidc-directory-admin',
+        authorizationContext: 'copalibre.invite.accept',
+      }),
+    );
+
+    // A second, active assignment for the same principal in another organization.
+    const betaToken = 'directory-beta-token';
+    await withTransaction(scratch.db, (uow) =>
+      access.createInvitation(uow, {
+        organizationId: orgBeta,
+        recipientEmail: 'directory@example.test',
+        role: 'referee',
+        status: 'active',
+        token: betaToken,
+        tokenHash: hash(betaToken),
+        expiresAt: '2099-08-04T00:00:00.000Z',
+        actor: 'user:oidc-beta-admin',
+        authorizationContext: 'copalibre.control',
+      }),
+    );
+    await withTransaction(scratch.db, (uow) =>
+      access.acceptInvitation(uow, {
+        tokenHash: hash(betaToken),
+        subjectId: 'oidc-directory-admin',
+        verifiedEmail: 'directory@example.test',
+        actor: 'user:oidc-directory-admin',
+        authorizationContext: 'copalibre.invite.accept',
+      }),
+    );
+
+    // An inactive assignment in a third organization — must not appear.
+    const gammaToken = 'directory-gamma-token';
+    await withTransaction(scratch.db, (uow) =>
+      access.createInvitation(uow, {
+        organizationId: orgGamma,
+        recipientEmail: 'directory@example.test',
+        role: 'viewer',
+        status: 'inactive',
+        token: gammaToken,
+        tokenHash: hash(gammaToken),
+        expiresAt: '2099-08-04T00:00:00.000Z',
+        actor: 'user:oidc-gamma-admin',
+        authorizationContext: 'copalibre.control',
+      }),
+    );
+    await withTransaction(scratch.db, (uow) =>
+      access.acceptInvitation(uow, {
+        tokenHash: hash(gammaToken),
+        subjectId: 'oidc-directory-admin',
+        verifiedEmail: 'directory@example.test',
+        actor: 'user:oidc-directory-admin',
+        authorizationContext: 'copalibre.invite.accept',
+      }),
+    );
+
+    const memberships = await access.listOrganizationsForPrincipal(admin.principalId);
+    expect(memberships).toEqual([
+      {
+        organizationId: orgAlpha,
+        organizationAlias: 'liga-alfa',
+        organizationName: 'Liga Alfa',
+        role: 'admin',
+      },
+      {
+        organizationId: orgBeta,
+        organizationAlias: 'liga-beta',
+        organizationName: 'Liga Beta',
+        role: 'referee',
+      },
+    ]);
+  });
+
+  it('excludes a soft-deleted assignment', async () => {
+    const access = new OrganizationAccessRepository(scratch.db);
+    const token = 'directory-soft-deleted-token';
+    await withTransaction(scratch.db, (uow) =>
+      access.createInvitation(uow, {
+        organizationId: orgGamma,
+        recipientEmail: 'soon-removed@example.test',
+        role: 'viewer',
+        status: 'active',
+        token,
+        tokenHash: hash(token),
+        expiresAt: '2099-08-04T00:00:00.000Z',
+        actor: 'user:oidc-gamma-admin',
+        authorizationContext: 'copalibre.control',
+      }),
+    );
+    const assignment = await withTransaction(scratch.db, (uow) =>
+      access.acceptInvitation(uow, {
+        tokenHash: hash(token),
+        subjectId: 'oidc-soon-removed',
+        verifiedEmail: 'soon-removed@example.test',
+        actor: 'user:oidc-soon-removed',
+        authorizationContext: 'copalibre.invite.accept',
+      }),
+    );
+
+    await expect(access.listOrganizationsForPrincipal(assignment.principalId)).resolves.toEqual([
+      {
+        organizationId: orgGamma,
+        organizationAlias: 'liga-gamma',
+        organizationName: 'Liga Gamma',
+        role: 'viewer',
+      },
+    ]);
+
+    await withTransaction(scratch.db, (uow) =>
+      access.deleteAssignment(uow, {
+        organizationId: orgGamma,
+        assignmentId: assignment.assignmentId,
+        actor: 'user:oidc-gamma-admin',
+        authorizationContext: 'copalibre.control',
+      }),
+    );
+
+    await expect(access.listOrganizationsForPrincipal(assignment.principalId)).resolves.toEqual([]);
+  });
+});
+
 function hash(value: string): string {
   return createHash('sha256').update(value).digest('hex');
 }

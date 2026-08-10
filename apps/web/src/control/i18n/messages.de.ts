@@ -262,4 +262,9 @@ export const messages: Record<string, string> = {
   'control.standings.distributionEmpty': 'Keine Daten zum Darstellen.',
   'control.standings.sharedRank': 'Geteilte Position',
   'control.standings.tieBroken': 'Stichentscheid angewendet',
+
+  'control.landing.emptyTitle': 'Noch keine Organisationen',
+  'control.landing.emptyBody':
+    'Dieses Konto hat noch keine Rolle in einer Organisation. Eine Einladung durch eine Administratorin oder einen Administrator ist erforderlich.',
+  'control.landing.pickerTitle': 'Organisation auswählen',
 };

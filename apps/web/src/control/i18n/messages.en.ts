@@ -627,4 +627,16 @@ export const messages = defineMessages({
   },
   standingsSharedRank: { id: 'control.standings.sharedRank', defaultMessage: 'Shared position' },
   standingsTieBroken: { id: 'control.standings.tieBroken', defaultMessage: 'Tiebreak applied' },
+
+  // Post-login landing (ControlApp.tsx's LoginLanding, 0063)
+  landingEmptyTitle: { id: 'control.landing.emptyTitle', defaultMessage: 'No organizations yet' },
+  landingEmptyBody: {
+    id: 'control.landing.emptyBody',
+    defaultMessage:
+      'This account has no role in any organization yet. An administrator needs to send an invitation.',
+  },
+  landingPickerTitle: {
+    id: 'control.landing.pickerTitle',
+    defaultMessage: 'Choose an organization',
+  },
 });

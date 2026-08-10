@@ -28,6 +28,7 @@ const pendingReport: ParticipantReportResponse = {
 
 function client(overrides: Partial<ControlApiClient> = {}): ControlApiClient {
   return {
+    listMyOrganizations: async () => [],
     listDisciplines: async () => [],
     createTournament: async () => ({ tournamentId: 't-1', alias: 't-1', name: 'Test' }),
     listRegistrations: async () => [],

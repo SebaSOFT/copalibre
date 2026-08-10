@@ -259,4 +259,9 @@ export const messages: Record<string, string> = {
   'control.standings.distributionEmpty': 'Nenhum dado para exibir no gráfico.',
   'control.standings.sharedRank': 'Posição compartilhada',
   'control.standings.tieBroken': 'Desempate aplicado',
+
+  'control.landing.emptyTitle': 'Ainda sem organizações',
+  'control.landing.emptyBody':
+    'Esta conta ainda não tem uma função em nenhuma organização. É necessário um convite de um administrador.',
+  'control.landing.pickerTitle': 'Escolher uma organização',
 };

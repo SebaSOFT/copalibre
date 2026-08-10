@@ -50,39 +50,46 @@
         ]
       }
     },
-    "/organizations/{alias}": {
+    "/organizations": {
       "get": {
-        "description": "Public projection; returns only published organization data.",
-        "operationId": "OrganizationsController_findByAlias",
-        "parameters": [
-          {
-            "name": "alias",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+        "description": "Requires \"?mine=true\" — the only filter this endpoint supports today. Returns every organization the caller holds a non-deleted, active role assignment in, with that role. Never requires an organization to already be known, so it also answers \"does this account belong to any organization at all\".",
+        "operationId": "OrganizationsController_listMine",
+        "parameters": [],
         "responses": {
           "200": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OrganizationResponse"
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MyOrganizationResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             }
           }
         },
-        "summary": "Read an organization by alias",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List organizations the authenticated caller belongs to",
         "tags": [
           "organizations"
         ]
-      }
-    },
-    "/organizations": {
+      },
       "post": {
         "description": "Requires the copalibre.super-admin scope. The alias is validated by the domain layer and must be lowercase kebab-case, unique per installation.",
         "operationId": "OrganizationsController_create",
@@ -135,6 +142,38 @@
           }
         ],
         "summary": "Create an organization",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations/{alias}": {
+      "get": {
+        "description": "Public projection; returns only published organization data.",
+        "operationId": "OrganizationsController_findByAlias",
+        "parameters": [
+          {
+            "name": "alias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Read an organization by alias",
         "tags": [
           "organizations"
         ]
@@ -3224,6 +3263,57 @@
           "schemaVersion"
         ]
       },
+      "MyOrganizationResponse": {
+        "type": "object",
+        "properties": {
+          "organizationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "organizationAlias": {
+            "type": "string",
+            "description": "Human-readable, URL-safe alias; globally unique per installation",
+            "example": "liga-orbital"
+          },
+          "organizationName": {
+            "type": "string",
+            "example": "Liga Orbital"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "referee",
+              "broadcaster",
+              "viewer"
+            ],
+            "description": "The caller's active role in this organization"
+          }
+        },
+        "required": [
+          "organizationId",
+          "organizationAlias",
+          "organizationName",
+          "role"
+        ]
+      },
+      "ProblemResponse": {
+        "type": "object",
+        "properties": {
+          "statusCode": {
+            "type": "number",
+            "example": 403
+          },
+          "message": {
+            "type": "string",
+            "example": "subject may only act on their own records"
+          }
+        },
+        "required": [
+          "statusCode",
+          "message"
+        ]
+      },
       "OrganizationResponse": {
         "type": "object",
         "properties": {
@@ -3306,23 +3396,6 @@
         "required": [
           "alias",
           "name"
-        ]
-      },
-      "ProblemResponse": {
-        "type": "object",
-        "properties": {
-          "statusCode": {
-            "type": "number",
-            "example": 403
-          },
-          "message": {
-            "type": "string",
-            "example": "subject may only act on their own records"
-          }
-        },
-        "required": [
-          "statusCode",
-          "message"
         ]
       },
       "UpdateOrganizationSettingsRequest": {

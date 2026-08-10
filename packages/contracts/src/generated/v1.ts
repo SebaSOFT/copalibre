@@ -44,6 +44,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List organizations the authenticated caller belongs to
+         * @description Requires "?mine=true" — the only filter this endpoint supports today. Returns every organization the caller holds a non-deleted, active role assignment in, with that role. Never requires an organization to already be known, so it also answers "does this account belong to any organization at all".
+         */
+        get: operations["OrganizationsController_listMine"];
+        put?: never;
+        /**
+         * Create an organization
+         * @description Requires the copalibre.super-admin scope. The alias is validated by the domain layer and must be lowercase kebab-case, unique per installation.
+         */
+        post: operations["OrganizationsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{alias}": {
         parameters: {
             query?: never;
@@ -58,26 +82,6 @@ export interface paths {
         get: operations["OrganizationsController_findByAlias"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/organizations": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Create an organization
-         * @description Requires the copalibre.super-admin scope. The alias is validated by the domain layer and must be lowercase kebab-case, unique per installation.
-         */
-        post: operations["OrganizationsController_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -952,6 +956,28 @@ export interface components {
              */
             schemaVersion: string;
         };
+        MyOrganizationResponse: {
+            /** Format: uuid */
+            organizationId: string;
+            /**
+             * @description Human-readable, URL-safe alias; globally unique per installation
+             * @example liga-orbital
+             */
+            organizationAlias: string;
+            /** @example Liga Orbital */
+            organizationName: string;
+            /**
+             * @description The caller's active role in this organization
+             * @enum {string}
+             */
+            role: "admin" | "referee" | "broadcaster" | "viewer";
+        };
+        ProblemResponse: {
+            /** @example 403 */
+            statusCode: number;
+            /** @example subject may only act on their own records */
+            message: string;
+        };
         OrganizationResponse: {
             /**
              * Format: uuid
@@ -996,12 +1022,6 @@ export interface components {
              * @example America/Argentina/San_Juan
              */
             timezone?: string;
-        };
-        ProblemResponse: {
-            /** @example 403 */
-            statusCode: number;
-            /** @example subject may only act on their own records */
-            message: string;
         };
         UpdateOrganizationSettingsRequest: {
             /**
@@ -1745,13 +1765,11 @@ export interface operations {
             };
         };
     };
-    OrganizationsController_findByAlias: {
+    OrganizationsController_listMine: {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                alias: string;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -1761,7 +1779,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OrganizationResponse"];
+                    "application/json": components["schemas"]["MyOrganizationResponse"][];
+                };
+            };
+            /** @description Missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
@@ -1803,6 +1830,27 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    OrganizationsController_findByAlias: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                alias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationResponse"];
                 };
             };
         };

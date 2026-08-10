@@ -64,6 +64,21 @@ export class OrganizationAccessGuard implements CanActivate {
     }
     if (requirement.kind === 'invitation-acceptance') return true;
 
+    if (requirement.kind === 'self') {
+      // Unlike every other kind below, a missing principal is not refused here:
+      // this is the one route whose whole purpose is to answer "does this
+      // account have any footprint at all" — a caller who authenticated but
+      // never accepted an invitation legitimately has none yet, and the
+      // correct response is an empty result, not a 403 (0063 design.md).
+      const principal = await new IdentityPrincipalRepository(this.db).findByOidcSubject(
+        subject.subjectId,
+      );
+      if (principal) {
+        request.subject = { ...subject, principalId: principal.principalId };
+      }
+      return true;
+    }
+
     const organizationId = await this.resolveOrganizationId(
       request.params?.organizationAlias,
       subject.organizationId,

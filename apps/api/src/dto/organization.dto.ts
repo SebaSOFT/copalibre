@@ -54,6 +54,26 @@ export class CreateOrganizationRequest {
   timezone?: string;
 }
 
+export class MyOrganizationResponse {
+  @ApiProperty({ format: 'uuid' })
+  organizationId!: string;
+
+  @ApiProperty({
+    description: 'Human-readable, URL-safe alias; globally unique per installation',
+    example: 'liga-orbital',
+  })
+  organizationAlias!: string;
+
+  @ApiProperty({ example: 'Liga Orbital' })
+  organizationName!: string;
+
+  @ApiProperty({
+    enum: ['admin', 'referee', 'broadcaster', 'viewer'],
+    description: "The caller's active role in this organization",
+  })
+  role!: 'admin' | 'referee' | 'broadcaster' | 'viewer';
+}
+
 export class UpdateOrganizationSettingsRequest {
   @ApiPropertyOptional({ enum: SUPPORTED_LANGUAGES, example: 'en' })
   primaryLanguage?: string;

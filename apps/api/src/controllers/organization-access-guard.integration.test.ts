@@ -23,6 +23,10 @@ const subjects: Record<string, AuthenticatedSubject> = {
   admin: { subjectId: 'oidc-admin', scopes: ['copalibre.control'] },
   inactive: { subjectId: 'oidc-inactive', scopes: ['copalibre.control'] },
   participant: { subjectId: 'oidc-participant', scopes: ['copalibre.participant'] },
+  // Verifies fine but never accepted an invitation — no `identity_principals`
+  // row at all (0063: `GET /organizations?mine=true` must still answer 200
+  // with an empty list for this subject, not 403).
+  noPrincipal: { subjectId: 'oidc-no-principal', scopes: ['copalibre.control'] },
 };
 
 describe('organization access guards (integration)', () => {
@@ -102,6 +106,41 @@ describe('organization access guards (integration)', () => {
     const response = await request('admin', `/organizations/liga-segura/roles`);
     expect(response.statusCode).toBe(200);
     expect(response.json()).toHaveLength(2);
+  });
+
+  describe('GET /organizations?mine=true (0063)', () => {
+    it('lists exactly the organizations with an active assignment, with roles', async () => {
+      const response = await request('admin', '/organizations?mine=true');
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual([
+        {
+          organizationId,
+          organizationAlias: 'liga-segura',
+          organizationName: 'Liga Segura',
+          role: 'admin',
+        },
+      ]);
+    });
+
+    it('excludes an inactive assignment, leaving an empty list', async () => {
+      const response = await request('inactive', '/organizations?mine=true');
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual([]);
+    });
+
+    it('answers 200 with an empty list for a caller with no installation principal at all', async () => {
+      const response = await request('noPrincipal', '/organizations?mine=true');
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual([]);
+    });
+
+    it('400s when "mine=true" is not supplied', async () => {
+      const missing = await request('admin', '/organizations');
+      expect(missing.statusCode).toBe(400);
+
+      const wrongValue = await request('admin', '/organizations?mine=false');
+      expect(wrongValue.statusCode).toBe(400);
+    });
   });
 
   describe('organization settings (0051)', () => {

@@ -160,6 +160,7 @@ describe('roles and permissions control', () => {
 
 function controlClient(overrides: Partial<ControlApiClient>): ControlApiClient {
   return {
+    listMyOrganizations: async () => [],
     listDisciplines: async () => [],
     createTournament: async () => ({
       tournamentId: 'tournament',

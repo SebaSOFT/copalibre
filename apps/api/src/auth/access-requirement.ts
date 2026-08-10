@@ -9,7 +9,8 @@ export type AccessRequirement =
   | { readonly kind: 'super-admin' }
   | { readonly kind: 'invitation-acceptance' }
   | { readonly kind: 'participant-self-service' }
-  | { readonly kind: 'organization-bootstrap-or-admin' };
+  | { readonly kind: 'organization-bootstrap-or-admin' }
+  | { readonly kind: 'self' };
 
 /** Declares the active organization role required by a non-public controller route. */
 export const RequireOrganizationRole = (
@@ -41,3 +42,12 @@ export const RequireOrganizationBootstrapOrAdmin = (): MethodDecorator & ClassDe
   SetMetadata(ACCESS_REQUIREMENT_KEY, {
     kind: 'organization-bootstrap-or-admin',
   } satisfies AccessRequirement);
+
+/**
+ * A route with no organization in its path at all — only a verified subject is
+ * required, resolved to their installation principal. For lookups scoped to
+ * "the caller", never to a specific organization (e.g. listing every
+ * organization the caller belongs to).
+ */
+export const RequireSelf = (): MethodDecorator & ClassDecorator =>
+  SetMetadata(ACCESS_REQUIREMENT_KEY, { kind: 'self' } satisfies AccessRequirement);
