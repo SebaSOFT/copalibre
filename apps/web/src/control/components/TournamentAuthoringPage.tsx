@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useIntl } from 'react-intl';
 import { createControlApiClient, type ControlApiClient } from '../lib/api-client.js';
 import type { DisciplineOption } from '../lib/wizard.js';
+import { controlTokenStore } from '../session/token-store.js';
 import { TournamentSetupWizard } from './TournamentSetupWizard.js';
 import { messages } from '../i18n/messages.en.js';
 
@@ -23,7 +24,12 @@ export function TournamentAuthoringPage({
 }): React.JSX.Element {
   const intl = useIntl();
   const api = useMemo(
-    () => client ?? createControlApiClient({ fetch: globalThis.fetch.bind(globalThis) }),
+    () =>
+      client ??
+      createControlApiClient({
+        fetch: globalThis.fetch.bind(globalThis),
+        accessToken: () => controlTokenStore.read(),
+      }),
     [client],
   );
   const [disciplines, setDisciplines] = useState<readonly DisciplineOption[]>([]);

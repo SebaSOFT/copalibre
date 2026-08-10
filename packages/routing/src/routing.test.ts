@@ -222,6 +222,10 @@ describe('what a crawler is told', () => {
 
 describe('parseControlPath', () => {
   it.each([
+    ['/control/callback', { screen: 'callback' }],
+    // A real organization alias that merely starts with the reserved word
+    // stays an ordinary dashboard, not the callback screen (0062).
+    ['/control/callback-league', { screen: 'dashboard', organizationAlias: 'callback-league' }],
     ['/control/liga-mendocina', { screen: 'dashboard', organizationAlias: 'liga-mendocina' }],
     ['/control/liga-mendocina/roles', { screen: 'roles', organizationAlias: 'liga-mendocina' }],
     [

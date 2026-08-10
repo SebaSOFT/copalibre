@@ -10,6 +10,7 @@ import { activeControlLanguage, ControlIntl } from '../i18n/ControlIntl.js';
 import { LanguageSwitcher } from '../i18n/LanguageSwitcher.js';
 import { messages } from '../i18n/messages.en.js';
 import { controlLinkClick } from '../lib/control-navigation.js';
+import { controlTokenStore } from '../session/token-store.js';
 import {
   writeStoredLanguagePreference,
   type SupportedLanguage,
@@ -56,7 +57,10 @@ function DashboardBody({
   readonly onLocaleChange: (language: SupportedLanguage) => void;
 }): React.JSX.Element {
   const intl = useIntl();
-  const api = createControlApiClient({ fetch: globalThis.fetch.bind(globalThis) });
+  const api = createControlApiClient({
+    fetch: globalThis.fetch.bind(globalThis),
+    accessToken: () => controlTokenStore.read(),
+  });
   const download = (tournamentAlias: string, kind: 'participants/team' | 'results' | 'standings') =>
     void api.downloadCsvExport?.(organizationAlias, tournamentAlias, kind).then((csv) => {
       const link = document.createElement('a');
@@ -121,6 +125,18 @@ function DashboardBody({
           ))}
         </ul>
         <LanguageSwitcher onChange={onLocaleChange} value={locale} />
+        <button
+          onClick={() => {
+            controlTokenStore.clear();
+            // A real navigation: /control/ (login) is a separate page from
+            // this shell (0062), same boundary as the unauthenticated-visit
+            // guard.
+            window.location.assign('/control/');
+          }}
+          type="button"
+        >
+          <FormattedMessage {...messages.shellLogout} />
+        </button>
       </nav>
 
       <main>

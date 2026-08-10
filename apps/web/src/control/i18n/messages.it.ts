@@ -7,6 +7,7 @@ export const messages: Record<string, string> = {
   'control.shell.sections': 'Sezioni',
   'control.shell.whatIsThisScreen': 'Cos’è questa schermata?',
   'control.shell.language': 'Lingua',
+  'control.shell.logout': 'Esci',
 
   'control.nav.dashboard': 'Pannello',
   'control.nav.liveConsole': 'Console dal vivo',

@@ -1,7 +1,9 @@
 import { authorizationUrl, createPkcePair } from './pkce.js';
 
 const RUNTIME_CONFIG_PATH = '/runtime-config.json';
-const TRANSACTION_KEY = 'copalibre.oidc.transaction';
+export const TRANSACTION_KEY = 'copalibre.oidc.transaction';
+/** Where an operator lands after login when no `returnTo` was requested. */
+const DEFAULT_RETURN_TO = '/control/';
 
 interface RuntimeConfig {
   readonly oidcIssuer: string;
@@ -11,11 +13,24 @@ interface RuntimeConfig {
 interface OidcDiscovery {
   readonly issuer: string;
   readonly authorization_endpoint: string;
+  readonly token_endpoint: string;
+}
+
+/** What `/control/callback` needs to complete the exchange (0062). */
+export interface OidcTransaction {
+  readonly state: string;
+  readonly verifier: string;
+  readonly redirectUri: string;
+  readonly tokenEndpoint: string;
+  readonly clientId: string;
+  /** Where to send the operator once the exchange succeeds. */
+  readonly returnTo: string;
 }
 
 export interface OidcLoginBrowser {
   readonly fetch: typeof fetch;
   readonly origin: string;
+  readonly search: string;
   readonly setSessionItem: (key: string, value: string) => void;
   readonly navigate: (url: string) => void;
   readonly createState: () => string;
@@ -37,10 +52,16 @@ export async function beginOidcLogin(browser = currentBrowser()): Promise<void> 
   const pair = await createPkcePair();
   const state = browser.createState();
   const redirectUri = new URL('/control/callback', browser.origin).toString();
-  browser.setSessionItem(
-    TRANSACTION_KEY,
-    JSON.stringify({ state, verifier: pair.verifier, redirectUri }),
-  );
+  const returnTo = new URLSearchParams(browser.search).get('returnTo') || DEFAULT_RETURN_TO;
+  const transaction: OidcTransaction = {
+    state,
+    verifier: pair.verifier,
+    redirectUri,
+    tokenEndpoint: discovery.token_endpoint,
+    clientId: config.oidcClientId,
+    returnTo,
+  };
+  browser.setSessionItem(TRANSACTION_KEY, JSON.stringify(transaction));
   browser.navigate(
     authorizationUrl({
       authorizeEndpoint: discovery.authorization_endpoint,
@@ -57,6 +78,7 @@ function currentBrowser(): OidcLoginBrowser {
   return {
     fetch: globalThis.fetch.bind(globalThis),
     origin: window.location.origin,
+    search: window.location.search,
     setSessionItem: sessionStorage.setItem.bind(sessionStorage),
     navigate: window.location.assign.bind(window.location),
     createState: crypto.randomUUID.bind(crypto),

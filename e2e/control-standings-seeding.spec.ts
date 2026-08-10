@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
  * A5 and A6 in a real browser (0024).
@@ -130,7 +131,7 @@ async function mockControlApi(
   options: { readonly reseedBlocked?: boolean } = {},
 ): Promise<void> {
   await page.addInitScript(
-    ({ stage, standings, trace, seeding, reseedBlocked }) => {
+    ({ stage, standings, trace, seeding, reseedBlocked, tokenEndpoint }) => {
       // `addInitScript` re-runs on every navigation, including a reload, so a
       // plain closure variable would not survive one — sessionStorage does,
       // letting a GET after a reload reflect what the server would have
@@ -148,6 +149,10 @@ async function mockControlApi(
       window.fetch = async (input, init) => {
         const url = String(input);
         const method = init?.method ?? 'GET';
+
+        if (url === tokenEndpoint) {
+          return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
+        }
 
         if (url === `${stage}/standings`) return Response.json(standings);
         if (url.startsWith(`${stage}/standings/entrants/`)) return Response.json(trace);
@@ -180,6 +185,7 @@ async function mockControlApi(
       trace: traceFixture,
       seeding: seedingFixture,
       reseedBlocked: options.reseedBlocked ?? false,
+      tokenEndpoint: TOKEN_ENDPOINT,
     },
   );
 }
@@ -187,7 +193,10 @@ async function mockControlApi(
 test('expands a tied standings row and shows the engine’s trace', async ({ page }) => {
   await mockControlApi(page);
 
-  await page.goto('/control/liga-mendocina/tournaments/apertura-2026/stages/1/standings');
+  const target = '/control/liga-mendocina/tournaments/apertura-2026/stages/1/standings';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
 
   await expect(page.getByText('Proyección v12')).toBeVisible();
   await page.locator('summary').filter({ hasText: 'Deportivo Norte' }).click();
@@ -208,7 +217,10 @@ test('expands a tied standings row and shows the engine’s trace', async ({ pag
 test('keeps locked seeds through a randomize', async ({ page }) => {
   await mockControlApi(page);
 
-  await page.goto('/control/liga-mendocina/tournaments/apertura-2026/stages/1/seeding');
+  const target = '/control/liga-mendocina/tournaments/apertura-2026/stages/1/seeding';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
 
   const seedList = page.getByRole('list', { name: 'Orden de siembra' });
   await page.getByRole('button', { name: 'Fijar siembra 1' }).click();
@@ -224,7 +236,10 @@ test('renders both halves of a double-elimination bracket with named placeholder
 }) => {
   await mockControlApi(page);
 
-  await page.goto('/control/liga-mendocina/tournaments/apertura-2026/stages/1/seeding');
+  const target = '/control/liga-mendocina/tournaments/apertura-2026/stages/1/seeding';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
 
   const canvas = page.getByLabel('Llave');
   await expect(canvas.locator('[data-bracket="winners"]')).toHaveCount(3);
@@ -240,7 +255,10 @@ test('renders both halves of a double-elimination bracket with named placeholder
 test('a published seed order survives a page reload', async ({ page }) => {
   await mockControlApi(page);
 
-  await page.goto('/control/liga-mendocina/tournaments/apertura-2026/stages/1/seeding');
+  const target = '/control/liga-mendocina/tournaments/apertura-2026/stages/1/seeding';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
 
   const seedList = page.getByRole('list', { name: 'Orden de siembra' });
   await expect(async () => {
@@ -256,6 +274,12 @@ test('a published seed order survives a page reload', async ({ page }) => {
   await expect(page.getByRole('alert')).toContainText('sembrado guardado');
 
   await page.reload();
+  // The session is in-memory only (0062) and a reload discards it, same as a
+  // real browser refresh — log back in to return to this screen so the
+  // assertion below is about the persisted seed order, not the session.
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
   await expect(seedList.getByRole('listitem')).toHaveCount(shuffled.length);
   const afterReload = await seedList.getByRole('listitem').allTextContents();
   expect(afterReload).toEqual(shuffled);
@@ -264,7 +288,10 @@ test('a published seed order survives a page reload', async ({ page }) => {
 test('shows the server’s refusal when a reseed lands after a result', async ({ page }) => {
   await mockControlApi(page, { reseedBlocked: true });
 
-  await page.goto('/control/liga-mendocina/tournaments/apertura-2026/stages/1/seeding');
+  const target = '/control/liga-mendocina/tournaments/apertura-2026/stages/1/seeding';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
 
   await page.getByRole('button', { name: 'Fijar siembra 1' }).click();
   // A shuffle may legitimately return the order it started from, and the

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 interface CapturedRequest {
   readonly url: string;
@@ -32,7 +33,7 @@ const registrationsFixture = [
 
 async function mockControlApi(page: Page): Promise<void> {
   await page.addInitScript(
-    ({ disciplines, registrations }) => {
+    ({ disciplines, registrations, tokenEndpoint }) => {
       const captured: CapturedRequest[] = [];
       Object.assign(window, { __controlRequests: captured });
 
@@ -41,6 +42,10 @@ async function mockControlApi(page: Page): Promise<void> {
         const method = init?.method ?? 'GET';
         const body = typeof init?.body === 'string' ? JSON.parse(init.body) : undefined;
         captured.push({ url, method, ...(body === undefined ? {} : { body }) });
+
+        if (url === tokenEndpoint) {
+          return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
+        }
 
         if (url === '/disciplines') {
           return Response.json(disciplines);
@@ -79,7 +84,11 @@ async function mockControlApi(page: Page): Promise<void> {
         return new Response('Not found', { status: 404 });
       };
     },
-    { disciplines: disciplineFixture, registrations: registrationsFixture },
+    {
+      disciplines: disciplineFixture,
+      registrations: registrationsFixture,
+      tokenEndpoint: TOKEN_ENDPOINT,
+    },
   );
 }
 
@@ -92,8 +101,10 @@ async function capturedRequests(page: Page): Promise<readonly CapturedRequest[]>
 
 test('creates a tournament from the control authoring wizard', async ({ page }) => {
   await mockControlApi(page);
-
-  await page.goto('/control/liga-mendocina/tournaments/new');
+  const target = '/control/liga-mendocina/tournaments/new';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
 
   await page.getByLabel('Nombre').fill('Apertura Local');
   await page.getByLabel('Alias').fill('apertura-local');
@@ -128,8 +139,10 @@ test('creates a tournament from the control authoring wizard', async ({ page }) 
 
 test('bulk-approves visible registrations from the review queue', async ({ page }) => {
   await mockControlApi(page);
-
-  await page.goto('/control/liga-mendocina/tournaments/apertura-2026/registrations');
+  const target = '/control/liga-mendocina/tournaments/apertura-2026/registrations';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
 
   await expect(page.getByText('Deportivo Norte').first()).toBeVisible();
   await expect(page.getByText('Atlético Sur').first()).toBeVisible();
@@ -153,8 +166,10 @@ test('bulk-approves visible registrations from the review queue', async ({ page 
 
 test('revokes an expanded registration from the review queue', async ({ page }) => {
   await mockControlApi(page);
-
-  await page.goto('/control/liga-mendocina/tournaments/apertura-2026/registrations');
+  const target = '/control/liga-mendocina/tournaments/apertura-2026/registrations';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
 
   await page.locator('summary').filter({ hasText: 'Deportivo Norte' }).click();
   const expandedRegistration = page.locator('details[open]');

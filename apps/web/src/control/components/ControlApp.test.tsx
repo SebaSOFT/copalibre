@@ -1,6 +1,8 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { ControlApp } from './ControlApp.js';
 import { navigateControl } from '../lib/control-navigation.js';
+import { controlTokenStore } from '../session/token-store.js';
+import { TRANSACTION_KEY, type OidcTransaction } from '../session/oidc-login.js';
 
 function at(path: string): void {
   window.history.replaceState({}, '', path);
@@ -8,6 +10,18 @@ function at(path: string): void {
 
 function json(body: unknown): Response {
   return new Response(JSON.stringify(body), { headers: { 'content-type': 'application/json' } });
+}
+
+function transaction(overrides: Partial<OidcTransaction> = {}): OidcTransaction {
+  return {
+    state: 'state-123',
+    verifier: 'verifier-abc',
+    redirectUri: 'http://localhost/control/callback',
+    tokenEndpoint: 'https://identity.example/token',
+    clientId: 'copalibre-control',
+    returnTo: '/control/liga-mendocina',
+    ...overrides,
+  };
 }
 
 describe('ControlApp', () => {
@@ -23,6 +37,9 @@ describe('ControlApp', () => {
       configurable: true,
       value: async (input: RequestInfo | URL) => {
         const url = String(input);
+        if (url === 'https://identity.example/token') {
+          return json({ access_token: 'fresh-access-token', expires_in: 3600 });
+        }
         if (url.includes('/seeding')) {
           return json({
             stageId: 'stage-1',
@@ -44,11 +61,15 @@ describe('ControlApp', () => {
         return json([]);
       },
     });
+    // Every screen except `callback` redirects to login with no session
+    // (0062) — these tests render as an authenticated operator.
+    controlTokenStore.write('test-access-token', Date.now() + 60_000);
   });
 
   afterEach(() => {
     Object.defineProperty(globalThis, 'fetch', { configurable: true, value: originalFetch });
     at('/control/liga-mendocina');
+    controlTokenStore.clear();
   });
 
   it.each([
@@ -118,5 +139,73 @@ describe('ControlApp', () => {
     });
 
     await waitFor(() => expect(document.title).toBe('Panel — liga-mendocina'));
+  });
+});
+
+describe('ControlApp session guard and callback (0062)', () => {
+  let originalFetch: typeof fetch;
+
+  beforeEach(() => {
+    originalFetch = globalThis.fetch;
+    Object.defineProperty(globalThis, 'fetch', {
+      configurable: true,
+      value: async (input: RequestInfo | URL) => {
+        if (String(input) === 'https://identity.example/token') {
+          return json({ access_token: 'fresh-access-token', expires_in: 3600 });
+        }
+        return json([]);
+      },
+    });
+  });
+
+  afterEach(() => {
+    Object.defineProperty(globalThis, 'fetch', { configurable: true, value: originalFetch });
+    sessionStorage.clear();
+    controlTokenStore.clear();
+    at('/control/liga-mendocina');
+  });
+
+  // jsdom's `Location.assign` isn't mockable (non-configurable), so the
+  // guard's redirect target is covered directly by `loginRedirectUrl`'s own
+  // tests (control-navigation.test.ts); what's verified here is the guard's
+  // *rendering* decision — a protected screen never shows its content with
+  // no session.
+  it('does not render a protected screen with no session', () => {
+    controlTokenStore.clear();
+    at('/control/liga-mendocina/roles');
+
+    render(<ControlApp />);
+
+    expect(screen.queryByText('Rol')).toBeNull();
+  });
+
+  it('renders normally when a valid session exists', async () => {
+    controlTokenStore.write('test-access-token', Date.now() + 60_000);
+    at('/control/liga-mendocina');
+
+    render(<ControlApp />);
+
+    await waitFor(() => expect(document.title).toBe('Panel — liga-mendocina'));
+    expect(screen.queryByText('Torneos')).not.toBeNull();
+  });
+
+  it('completes the callback and client-side-navigates to returnTo, without a page reload', async () => {
+    sessionStorage.setItem(TRANSACTION_KEY, JSON.stringify(transaction()));
+    at('/control/callback?code=auth-code-1&state=state-123');
+
+    render(<ControlApp />);
+
+    await waitFor(() => expect(controlTokenStore.read()).toBe('fresh-access-token'));
+    await waitFor(() => expect(window.location.pathname).toBe('/control/liga-mendocina'));
+  });
+
+  it('shows an error and does not store a token when the callback fails', async () => {
+    sessionStorage.setItem(TRANSACTION_KEY, JSON.stringify(transaction({ state: 'other-state' })));
+    at('/control/callback?code=auth-code-1&state=state-123');
+
+    render(<ControlApp />);
+
+    await waitFor(() => expect(screen.getByText('No se pudo completar el acceso')).toBeDefined());
+    expect(controlTokenStore.read()).toBeUndefined();
   });
 });

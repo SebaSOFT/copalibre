@@ -5,6 +5,7 @@ import {
   type ControlApiClient,
   type OrganizationRoleResponse,
 } from '../lib/api-client.js';
+import { controlTokenStore } from '../session/token-store.js';
 import { RolesPermissionsPage } from './RolesPermissionsPage.js';
 import { messages } from '../i18n/messages.en.js';
 
@@ -17,7 +18,12 @@ export function RolesPermissionsRoute({
 }): React.JSX.Element {
   const intl = useIntl();
   const api = useMemo(
-    () => client ?? createControlApiClient({ fetch: globalThis.fetch.bind(globalThis) }),
+    () =>
+      client ??
+      createControlApiClient({
+        fetch: globalThis.fetch.bind(globalThis),
+        accessToken: () => controlTokenStore.read(),
+      }),
     [client],
   );
   const [rows, setRows] = useState<readonly OrganizationRoleResponse[]>([]);

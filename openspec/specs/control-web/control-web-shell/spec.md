@@ -90,3 +90,27 @@ any selection rather than silently falling back to English for any of its non-En
   Russian, Mandarin Chinese) has exactly the same set of message IDs as `messages.en.ts`, with no empty
   translation values
 
+### Requirement: Control-panel navigation never reloads the page
+
+Navigating between control-panel screens within the same organization session SHALL update the browser
+URL and render the destination screen without a full page reload — every internal control-panel link
+SHALL use client-side navigation, not a plain browser-navigated anchor.
+
+#### Scenario: Following an internal link does not reload the page
+
+- **WHEN** an operator activates a link to another control-panel screen (for example, from the
+  dashboard's sidenav to the roles screen)
+- **THEN** the destination screen renders and the URL updates, with no full page reload
+
+#### Scenario: The browser's back and forward buttons work
+
+- **WHEN** an operator navigates between two control-panel screens and then uses the browser's back
+  button
+- **THEN** the previous screen renders at its own URL, without a full page reload
+
+#### Scenario: A direct visit or hard refresh still renders the right screen
+
+- **WHEN** an operator loads a control-panel URL directly (typed, bookmarked, or via a hard refresh)
+- **THEN** the screen matching that URL renders correctly, exactly as it would after client-side
+  navigation to the same URL
+

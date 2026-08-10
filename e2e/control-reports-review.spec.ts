@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
  * The operator's pending reports/disputes queue (0032, tasks 7.1-7.2).
@@ -46,7 +47,7 @@ function pendingDispute() {
 
 async function mockReportsApi(page: Page): Promise<void> {
   await page.addInitScript(
-    ({ dispute }) => {
+    ({ dispute, tokenEndpoint }) => {
       let dismissed = false;
       const captured: CapturedRequest[] = [];
       Object.assign(window, { __reportsRequests: captured });
@@ -55,6 +56,10 @@ async function mockReportsApi(page: Page): Promise<void> {
         const url = String(input);
         const method = init?.method ?? 'GET';
         captured.push({ url, method });
+
+        if (url === tokenEndpoint) {
+          return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
+        }
 
         if (url.endsWith('/reports') && method === 'GET') {
           return Response.json(dismissed ? [] : [dispute]);
@@ -66,7 +71,7 @@ async function mockReportsApi(page: Page): Promise<void> {
         return new Response('Not found', { status: 404 });
       };
     },
-    { dispute: pendingDispute() },
+    { dispute: pendingDispute(), tokenEndpoint: TOKEN_ENDPOINT },
   );
 }
 
@@ -80,7 +85,9 @@ async function capturedRequests(page: Page): Promise<readonly CapturedRequest[]>
 
 test('shows a pending dispute with its evidence in the operator queue (7.1)', async ({ page }) => {
   await mockReportsApi(page);
-  await page.goto(REPORTS_PATH);
+  await seedLoginTransaction(page, REPORTS_PATH);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${REPORTS_PATH}`);
 
   await expect(page.getByText('Disputa', { exact: true })).toBeVisible();
   await expect(page.getByText('El marcador registrado no coincide')).toBeVisible();
@@ -89,7 +96,9 @@ test('shows a pending dispute with its evidence in the operator queue (7.1)', as
 
 test('dismisses a dispute without ever calling a correction endpoint (7.2)', async ({ page }) => {
   await mockReportsApi(page);
-  await page.goto(REPORTS_PATH);
+  await seedLoginTransaction(page, REPORTS_PATH);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${REPORTS_PATH}`);
 
   await expect(page.getByText('Disputa', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Descartar' }).click();

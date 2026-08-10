@@ -10,7 +10,10 @@ function response(body: unknown, status = 200): Response {
   });
 }
 
-function browser(responses: readonly Response[]): {
+function browser(
+  responses: readonly Response[],
+  search = '',
+): {
   readonly runtime: OidcLoginBrowser;
   readonly fetch: jest.MockedFunction<typeof fetch>;
   readonly setSessionItem: jest.Mock;
@@ -28,6 +31,7 @@ function browser(responses: readonly Response[]): {
     runtime: {
       fetch: fetchMock,
       origin: 'https://copalibre.example',
+      search,
       setSessionItem,
       navigate,
       createState: () => 'state-123',
@@ -42,7 +46,11 @@ describe('OIDC login', () => {
   it('discovers provider and starts Authorization Code with PKCE', async () => {
     const fixture = browser([
       response({ oidcIssuer: `${issuer}/`, oidcClientId: 'copalibre-control' }),
-      response({ issuer, authorization_endpoint: `${issuer}/authorize` }),
+      response({
+        issuer,
+        authorization_endpoint: `${issuer}/authorize`,
+        token_endpoint: `${issuer}/token`,
+      }),
     ]);
 
     await beginOidcLogin(fixture.runtime);
@@ -67,11 +75,38 @@ describe('OIDC login', () => {
       readonly state: string;
       readonly verifier: string;
       readonly redirectUri: string;
+      readonly tokenEndpoint: string;
+      readonly clientId: string;
+      readonly returnTo: string;
     };
     expect(fixture.setSessionItem.mock.calls[0]?.[0]).toBe('copalibre.oidc.transaction');
     expect(transaction.state).toBe('state-123');
     expect(transaction.verifier).toBeTruthy();
     expect(transaction.redirectUri).toBe('https://copalibre.example/control/callback');
+    expect(transaction.tokenEndpoint).toBe(`${issuer}/token`);
+    expect(transaction.clientId).toBe('copalibre-control');
+    expect(transaction.returnTo).toBe('/control/');
+  });
+
+  it('carries a requested returnTo destination into the stored transaction', async () => {
+    const fixture = browser(
+      [
+        response({ oidcIssuer: issuer, oidcClientId: 'copalibre-control' }),
+        response({
+          issuer,
+          authorization_endpoint: `${issuer}/authorize`,
+          token_endpoint: `${issuer}/token`,
+        }),
+      ],
+      '?returnTo=%2Fcontrol%2Fliga-mendocina%2Ftournaments%2Fapertura-2026%2Freports',
+    );
+
+    await beginOidcLogin(fixture.runtime);
+
+    const transaction = JSON.parse(String(fixture.setSessionItem.mock.calls[0]?.[1])) as {
+      readonly returnTo: string;
+    };
+    expect(transaction.returnTo).toBe('/control/liga-mendocina/tournaments/apertura-2026/reports');
   });
 
   it.each([

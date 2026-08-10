@@ -18,6 +18,7 @@ export const messages = defineMessages({
     defaultMessage: 'What is this screen?',
   },
   shellLanguage: { id: 'control.shell.language', defaultMessage: 'Language' },
+  shellLogout: { id: 'control.shell.logout', defaultMessage: 'Log out' },
 
   // Sidenav (lib/dashboard.ts SIDENAV)
   navDashboard: { id: 'control.nav.dashboard', defaultMessage: 'Dashboard' },

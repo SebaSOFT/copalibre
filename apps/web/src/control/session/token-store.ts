@@ -41,6 +41,17 @@ export function createTokenStore(now: () => number = Date.now): TokenStore {
 }
 
 /**
+ * The one instance every control-panel screen actually uses (0062): written
+ * by the `/control/callback` screen on a successful login, read by every
+ * screen's `ControlApiClient` and by `ControlApp`'s route guard. A
+ * module-level singleton rather than a React context — 0061's `ControlApp`
+ * already re-renders on every navigation, which is when the guard re-checks;
+ * every other consumer only ever needs to *read* the current token at
+ * request time, never re-render when it changes.
+ */
+export const controlTokenStore: TokenStore = createTokenStore();
+
+/**
  * What a reload means in each mode.
  *
  * Stated as a function rather than an `if` inside a component, so the two modes

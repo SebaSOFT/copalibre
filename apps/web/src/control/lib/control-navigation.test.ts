@@ -1,7 +1,12 @@
 import { renderHook, act } from '@testing-library/react';
 import { jest } from '@jest/globals';
 import type { MouseEvent } from 'react';
-import { controlLinkClick, navigateControl, useControlPath } from './control-navigation.js';
+import {
+  controlLinkClick,
+  loginRedirectUrl,
+  navigateControl,
+  useControlPath,
+} from './control-navigation.js';
 
 function clickEvent(
   overrides: Partial<
@@ -97,5 +102,19 @@ describe('controlLinkClick', () => {
 
     expect(event.preventDefault).not.toHaveBeenCalled();
     expect(window.location.pathname).toBe('/control/liga-mendocina');
+  });
+});
+
+describe('loginRedirectUrl', () => {
+  it('points at the login page with the current path as returnTo', () => {
+    expect(loginRedirectUrl('/control/liga-mendocina/roles')).toBe(
+      '/control/?returnTo=%2Fcontrol%2Fliga-mendocina%2Froles',
+    );
+  });
+
+  it('encodes a path that itself carries a query string', () => {
+    expect(loginRedirectUrl('/control/liga-mendocina?foo=bar')).toBe(
+      '/control/?returnTo=%2Fcontrol%2Fliga-mendocina%3Ffoo%3Dbar',
+    );
   });
 });

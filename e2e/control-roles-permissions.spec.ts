@@ -1,11 +1,12 @@
 import { expect, test, type Page } from '@playwright/test';
+import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 const rolesPath = '/organizations/liga-mendocina/roles';
 const invitationPath = '/organizations/liga-mendocina/invitations';
 
 async function mockRolesApi(page: Page, viewer = false): Promise<void> {
   await page.addInitScript(
-    ({ rolesPath, invitationPath, viewer }) => {
+    ({ rolesPath, invitationPath, viewer, tokenEndpoint }) => {
       let roles = [
         {
           assignmentId: '01800000-0000-7000-8000-000000000002',
@@ -19,6 +20,9 @@ async function mockRolesApi(page: Page, viewer = false): Promise<void> {
       window.fetch = async (input, init) => {
         const url = String(input);
         const method = init?.method ?? 'GET';
+        if (url === tokenEndpoint) {
+          return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
+        }
         if (url === rolesPath && method === 'GET') {
           if (viewer)
             return Response.json(
@@ -62,13 +66,16 @@ async function mockRolesApi(page: Page, viewer = false): Promise<void> {
         return new Response('Not found', { status: 404 });
       };
     },
-    { rolesPath, invitationPath, viewer },
+    { rolesPath, invitationPath, viewer, tokenEndpoint: TOKEN_ENDPOINT },
   );
 }
 
 test('admin invites a referee and changes a user status immediately', async ({ page }) => {
   await mockRolesApi(page);
-  await page.goto('/control/liga-mendocina/roles');
+  const target = '/control/liga-mendocina/roles';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
   await expect(page.getByText('referee@example.test')).toBeVisible();
 
   await page.getByText('Añadir destinatario').click();
@@ -97,7 +104,10 @@ test('admin invites a referee and changes a user status immediately', async ({ p
 
 test('viewer receives server refusal instead of roles data', async ({ page }) => {
   await mockRolesApi(page, true);
-  await page.goto('/control/liga-mendocina/roles');
+  const target = '/control/liga-mendocina/roles';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
   await expect(page.getByRole('alert')).toContainText('not authorized');
   await expect(page.getByText('referee@example.test')).toHaveCount(0);
 });

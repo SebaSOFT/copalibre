@@ -6,6 +6,7 @@ import {
   type ControlApiClient,
   type RegistrationResponse,
 } from '../lib/api-client.js';
+import { controlTokenStore } from '../session/token-store.js';
 import { RegistrationReviewPage, type ReviewRegistrationRow } from './RegistrationReviewPage.js';
 import { messages } from '../i18n/messages.en.js';
 
@@ -24,7 +25,12 @@ export function RegistrationReviewRoute({
 }): React.JSX.Element {
   const intl = useIntl();
   const api = useMemo(
-    () => client ?? createControlApiClient({ fetch: globalThis.fetch.bind(globalThis) }),
+    () =>
+      client ??
+      createControlApiClient({
+        fetch: globalThis.fetch.bind(globalThis),
+        accessToken: () => controlTokenStore.read(),
+      }),
     [client],
   );
   const [rows, setRows] = useState<readonly ReviewRegistrationRow[]>([]);

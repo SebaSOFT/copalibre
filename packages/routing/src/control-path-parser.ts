@@ -10,6 +10,7 @@
  */
 
 export type ControlRoute =
+  | { readonly screen: 'callback' }
   | { readonly screen: 'dashboard'; readonly organizationAlias: string }
   | { readonly screen: 'roles'; readonly organizationAlias: string }
   | { readonly screen: 'newTournament'; readonly organizationAlias: string }
@@ -42,12 +43,18 @@ export type ControlRoute =
       readonly stageNumber: number;
     };
 
-/** Matches a control-panel pathname against the eight real screen shapes. */
+/** Matches a control-panel pathname against the nine real screen shapes. */
 export function parseControlPath(pathname: string): ControlRoute | undefined {
   const segments = pathname.split('/').filter((segment) => segment.length > 0);
   if (segments[0] !== 'control') return undefined;
   const [, organizationAlias, ...rest] = segments;
   if (organizationAlias === undefined) return undefined;
+
+  // Checked first: `/control/callback` (0062, the OIDC redirect target) is
+  // the same two-segment shape as `/control/{organization}` — without this,
+  // `callback` would parse as an organization alias for the dashboard.
+  // Reserved: no real organization may use this alias.
+  if (organizationAlias === 'callback' && rest.length === 0) return { screen: 'callback' };
 
   if (rest.length === 0) return { screen: 'dashboard', organizationAlias };
   if (rest.length === 1 && rest[0] === 'roles') return { screen: 'roles', organizationAlias };
