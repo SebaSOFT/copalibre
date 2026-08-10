@@ -2369,6 +2369,91 @@
         ]
       }
     },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages": {
+      "post": {
+        "description": "Number, name and format all default. Fixtures are not generated here — publish a seed order via POST .../stages/:stageNumber/seeding afterward.",
+        "operationId": "StagesController_create",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateStageRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a stage from the tournament’s accepted registrations",
+        "tags": [
+          "stages"
+        ]
+      }
+    },
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/display-tokens": {
       "get": {
         "operationId": "DisplayTokenController_list",
@@ -4746,6 +4831,60 @@
           "reason",
           "invalidates",
           "persisted"
+        ]
+      },
+      "CreateStageRequest": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "number",
+            "description": "Defaults to the tournament’s next sequential stage number. Refused as a conflict if a stage with this number already exists.",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "description": "Defaults to \"Stage {number}\".",
+            "example": "Fase de grupos"
+          },
+          "format": {
+            "type": "string",
+            "description": "Defaults to the tournament’s own configured format. Validated against the tournament’s discipline descriptor when supplied.",
+            "example": "round-robin"
+          }
+        }
+      },
+      "StageResponse": {
+        "type": "object",
+        "properties": {
+          "stageId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "seasonId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The tournament edition this stage belongs to (0015)"
+          },
+          "number": {
+            "type": "number",
+            "description": "1-based sequential number within the tournament",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Fase de grupos"
+          },
+          "format": {
+            "type": "string",
+            "example": "round-robin"
+          }
+        },
+        "required": [
+          "stageId",
+          "seasonId",
+          "number",
+          "name",
+          "format"
         ]
       },
       "DisplayTokenResponse": {

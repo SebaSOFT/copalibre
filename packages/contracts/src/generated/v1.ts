@@ -660,6 +660,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a stage from the tournament’s accepted registrations
+         * @description Number, name and format all default. Fixtures are not generated here — publish a seed order via POST .../stages/:stageNumber/seeding afterward.
+         */
+        post: operations["StagesController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/display-tokens": {
         parameters: {
             query?: never;
@@ -1535,6 +1555,41 @@ export interface components {
             invalidates: string[];
             /** @description True once the new seed order and fixture graph are durably persisted. Always true for a 200 response — a publish that could not persist refuses with 409 instead of returning a partial success. */
             persisted: boolean;
+        };
+        CreateStageRequest: {
+            /**
+             * @description Defaults to the tournament’s next sequential stage number. Refused as a conflict if a stage with this number already exists.
+             * @example 1
+             */
+            number?: number;
+            /**
+             * @description Defaults to "Stage {number}".
+             * @example Fase de grupos
+             */
+            name?: string;
+            /**
+             * @description Defaults to the tournament’s own configured format. Validated against the tournament’s discipline descriptor when supplied.
+             * @example round-robin
+             */
+            format?: string;
+        };
+        StageResponse: {
+            /** Format: uuid */
+            stageId: string;
+            /**
+             * Format: uuid
+             * @description The tournament edition this stage belongs to (0015)
+             */
+            seasonId: string;
+            /**
+             * @description 1-based sequential number within the tournament
+             * @example 1
+             */
+            number: number;
+            /** @example Fase de grupos */
+            name: string;
+            /** @example round-robin */
+            format: string;
         };
         DisplayTokenResponse: {
             /** Format: uuid */
@@ -3002,6 +3057,56 @@ export interface operations {
                 };
             };
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    StagesController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateStageRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StageResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

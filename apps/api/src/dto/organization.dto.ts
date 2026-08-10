@@ -185,6 +185,45 @@ export class CreateTournamentRequest {
   checkInClosesAt?: string;
 }
 
+export class CreateStageRequest {
+  @ApiPropertyOptional({
+    description:
+      'Defaults to the tournament’s next sequential stage number. Refused as a conflict if a stage with this number already exists.',
+    example: 1,
+  })
+  number?: number;
+
+  @ApiPropertyOptional({ description: 'Defaults to "Stage {number}".', example: 'Fase de grupos' })
+  name?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Defaults to the tournament’s own configured format. Validated against the tournament’s discipline descriptor when supplied.',
+    example: 'round-robin',
+  })
+  format?: string;
+}
+
+export class StageResponse {
+  @ApiProperty({ format: 'uuid' })
+  stageId!: string;
+
+  @ApiProperty({
+    format: 'uuid',
+    description: 'The tournament edition this stage belongs to (0015)',
+  })
+  seasonId!: string;
+
+  @ApiProperty({ description: '1-based sequential number within the tournament', example: 1 })
+  number!: number;
+
+  @ApiProperty({ example: 'Fase de grupos' })
+  name!: string;
+
+  @ApiProperty({ example: 'round-robin' })
+  format!: string;
+}
+
 export class ProblemResponse {
   @ApiProperty({ example: 403 })
   statusCode!: number;
