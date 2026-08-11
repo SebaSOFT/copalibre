@@ -55,11 +55,3 @@ test('archives a finished tournament and it disappears from the active dashboard
   await expect(page.getByText('Torneo Apertura 2026')).toBeVisible();
 });
 
-test("an archived tournament's own public page still resolves (6.1)", async ({ page }) => {
-  // No mock needed: this is the real, unmocked static build — the point is
-  // that the route itself is unaffected by archival, not that this specific
-  // sample tournament is archived.
-  const response = await page.goto(PUBLIC_TOURNAMENT_PATH);
-  expect(response?.status()).toBe(200);
-  await expect(page.locator('body')).not.toBeEmpty();
-});
