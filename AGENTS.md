@@ -61,12 +61,14 @@ execution, authentication, client generation, telemetry, developer tools, and do
 
 Modifying cross-cutting infrastructure files (`docker-compose.yml`, `Dockerfile`, Helm chart in `deploy/helm/`) or other global configuration has cascading effects that are validated by custom repository scripts in `scripts/`. Do not assume an infrastructure change is isolated.
 Before creating or updating a PR, you MUST guarantee the CI will pass by running the baseline monorepo validations locally:
+
 - `yarn lint`
 - `yarn typecheck`
 - `yarn test` and/or `yarn test:integration` (for backend)
 - `yarn test:e2e` (for frontend)
 
 Crucially, if you modify **any** infrastructure or deployment file, you MUST explicitly run the repository's custom validation scripts locally before committing:
+
 - `node scripts/check-helm-compose-parity.mjs`
 - `node scripts/check-enterprise-readiness-docs.mjs`
 - `node scripts/check-third-party-notices.mjs`
