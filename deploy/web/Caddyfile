@@ -21,7 +21,7 @@
 	# the public site's own index, so a direct visit or hard refresh still
 	# renders the right screen.
 	handle /control/* {
-		try_files {path} /control/app/index.html
+		try_files {path} {path}/index.html /control/app/index.html
 		file_server
 	}
 
