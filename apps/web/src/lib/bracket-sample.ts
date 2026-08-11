@@ -1,3 +1,7 @@
+/**
+ * Note (0067): This sample data now backs only `apps/web/src/pages/tv/**` routes
+ * and unit test fixtures, not the main public bracket page.
+ */
 import type { BracketMatch } from './bracket.js';
 
 /** A double-elimination shape: two branches and a grand final still undecided. */

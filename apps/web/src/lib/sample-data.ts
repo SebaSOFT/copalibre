@@ -1,3 +1,7 @@
+/**
+ * Note (0067): This sample data now backs only `apps/web/src/pages/tv/**` routes
+ * and unit test fixtures, not the main public tournament overview pages.
+ */
 import type { OverviewInput } from './overview.js';
 
 /**

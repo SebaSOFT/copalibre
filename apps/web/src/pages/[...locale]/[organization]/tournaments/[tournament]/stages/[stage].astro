@@ -3,8 +3,12 @@ import PublicLayout from '../../../../../../layouts/PublicLayout.astro';
 import BracketView from '../../../../../../components/BracketView.astro';
 import ResultLegend from '../../../../../../components/ResultLegend.astro';
 import { buildOverview, displayName } from '../../../../../../lib/overview.ts';
-import { sampleOverview } from '../../../../../../lib/sample-data.ts';
-import { sampleBracket } from '../../../../../../lib/bracket-sample.ts';
+import {
+  fetchBracket,
+  fetchOverview,
+  mapOverviewResponse,
+  mapBracketResponse,
+} from '../../../../../../lib/public-api-client.ts';
 import { publicIntl } from '../../../../../../lib/i18n/public-intl.ts';
 import { messages } from '../../../../../../lib/i18n/public-messages.en.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
@@ -14,25 +18,26 @@ import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
  *
  * `[[locale]]` mirrors the tournament overview page (0055) — see its comment.
  */
-export function getStaticPaths() {
-  // Inlined rather than a module-level const — see tournament.astro's comment
-  // on the same pattern (0055).
-  const nonPrimaryLocales = ['es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as const;
-  const base = { organization: 'liga-mendocina', tournament: 'apertura-2026', stage: '1' };
-  return [
-    { params: { locale: undefined, ...base } },
-    ...nonPrimaryLocales.map((locale) => ({ params: { locale, ...base } })),
-  ];
-}
+export const prerender = false;
 
 const { locale, organization, tournament, stage } = Astro.params;
 const resolvedLocale: SupportedLanguage = isSupportedLanguage(locale) ? locale : 'en';
 const intl = publicIntl(resolvedLocale);
-const model = buildOverview({
-  ...sampleOverview(organization ?? 'liga-mendocina', tournament ?? 'apertura-2026'),
-  stageNumber: Number(stage ?? 1),
-  locale: resolvedLocale,
-});
+
+const stageNumber = Number(stage ?? 1);
+if (Number.isNaN(stageNumber)) {
+  return Astro.rewrite('/404');
+}
+
+const overviewData = await fetchOverview(organization!, tournament!);
+const rawBracketData = await fetchBracket(organization!, tournament!, stageNumber);
+const bracketData = rawBracketData ? mapBracketResponse(rawBracketData) : undefined;
+
+if (!overviewData || !bracketData) {
+  return Astro.rewrite('/404');
+}
+
+const model = buildOverview(mapOverviewResponse(overviewData));
 ---
 
 <PublicLayout
@@ -41,6 +46,6 @@ const model = buildOverview({
   intl={intl}
 >
   <h1>{intl.formatMessage(messages.bracketPageTitle)}</h1>
-  <BracketView matches={sampleBracket()} intl={intl} />
+  <BracketView matches={bracketData.matches} intl={intl} />
   <ResultLegend intl={intl} />
 </PublicLayout>

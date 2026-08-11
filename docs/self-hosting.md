@@ -7,7 +7,7 @@ and one supported email provider configuration. Then run `./copalibre start` or
 `docker compose up --detach --wait`.
 
 `docker-compose.yml` intentionally does not terminate TLS. Put Caddy or NGINX at the public edge:
-route ordinary API traffic to `api:3001`, SSE traffic to `events:3002`, and static control/public
+route ordinary API traffic to `api:3001`, SSE traffic to `events:3002`, the three public SSR routes (overview, live, bracket) to `web-ssr:3005` (the new `web` role), and static control/public
 web traffic to `web:4321`. The proxy must preserve forwarding headers, keep SSE unbuffered, and
 allow idle streams to survive heartbeats. Use `deploy/proxy/Caddyfile` or
 `deploy/proxy/nginx.conf` as the edge configuration, then verify its live address with

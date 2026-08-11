@@ -145,6 +145,30 @@ services:
       timeout: 3s
       retries: 20
 
+  web-ssr:
+    <<: *application-service
+    environment:
+      <<: *application-environment
+      PRODUCT_ROLE: web
+      PORT: 3005
+      COPALIBRE_API_INTERNAL_URL: http://api:3001
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - '3005:3005'
+    volumes:
+      - copalibre-data:/var/lib/copalibre
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'node -e "fetch(\"http://127.0.0.1:3005/health\").then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"',
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
   web:
     build:
       context: .

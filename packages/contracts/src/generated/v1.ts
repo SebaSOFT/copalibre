@@ -949,6 +949,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Overview of a tournament */
+        get: operations["PublicProjectionsController_overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Live matches of a tournament */
+        get: operations["PublicProjectionsController_live"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/bracket": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Bracket for a stage */
+        get: operations["PublicProjectionsController_bracket"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1782,6 +1833,95 @@ export interface components {
              * @description One-time OIDC invitation setup link.
              */
             setupUrl: string;
+        };
+        PublicOverviewMatchResponse: {
+            /** Format: uuid */
+            matchId: string;
+            stageNumber: number;
+            round: number;
+            /** @enum {string} */
+            status: "upcoming" | "live" | "final";
+            /** Format: uuid */
+            homeEntrantId?: string;
+            homeName?: string;
+            homeAbbreviation?: string;
+            /** Format: uuid */
+            awayEntrantId?: string;
+            awayName?: string;
+            awayAbbreviation?: string;
+            homeScore?: number;
+            awayScore?: number;
+            /** Format: date-time */
+            scheduledAt?: string;
+        };
+        PublicStandingsRowResponse: {
+            rank: number;
+            /** Format: uuid */
+            entrantId: string;
+            name: string;
+            abbreviation?: string;
+            sharedRank: boolean;
+            statistics: {
+                [key: string]: number;
+            };
+        };
+        PublicOverviewResponse: {
+            organizationAlias: string;
+            organizationName: string;
+            tournamentAlias: string;
+            tournamentName: string;
+            seasonName: string;
+            matches: components["schemas"]["PublicOverviewMatchResponse"][];
+            standingsPreview?: components["schemas"]["PublicStandingsRowResponse"][];
+            ruleset: {
+                [key: string]: string;
+            };
+        };
+        PublicLiveMatchSideResponse: {
+            /** Format: uuid */
+            entrantId: string;
+            name: string;
+            abbreviation?: string;
+            score: number;
+        };
+        PublicLiveMatchResponse: {
+            /** Format: uuid */
+            matchId: string;
+            matchNumber: number;
+            state: string;
+            projectionVersion: number;
+            sides: components["schemas"]["PublicLiveMatchSideResponse"][];
+        };
+        PublicLiveResponse: {
+            matches: components["schemas"]["PublicLiveMatchResponse"][];
+        };
+        PublicBracketSlotResponse: {
+            /**
+             * @description Where this side comes from
+             * @enum {string}
+             */
+            kind: "entrant" | "bye" | "winner-of" | "loser-of";
+            /** Format: uuid */
+            entrantId?: string;
+            name?: string;
+            abbreviation?: string;
+            /** @description Match this slot sources its participant from */
+            matchId?: string;
+            /** @description Score recorded for this side, when the match is finalized */
+            score?: number;
+        };
+        PublicBracketMatchResponse: {
+            matchId: string;
+            /** @enum {string} */
+            bracket: "winner" | "loser" | "consolation";
+            round: number;
+            position: number;
+            status: string;
+            format?: string;
+            slots: components["schemas"]["PublicBracketSlotResponse"][];
+        };
+        PublicBracketResponse: {
+            matches: components["schemas"]["PublicBracketMatchResponse"][];
         };
     };
     responses: never;
@@ -3536,6 +3676,73 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    PublicProjectionsController_overview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicOverviewResponse"];
+                };
+            };
+        };
+    };
+    PublicProjectionsController_live: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicLiveResponse"];
+                };
+            };
+        };
+    };
+    PublicProjectionsController_bracket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                stageNumber: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicBracketResponse"];
                 };
             };
         };

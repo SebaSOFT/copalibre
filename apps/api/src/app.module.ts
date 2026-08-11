@@ -59,11 +59,14 @@ const providers: Provider[] = [
   { provide: APP_GUARD, useClass: OrganizationAccessGuard },
 ];
 
+import { PublicProjectionsController } from './controllers/public-projections.controller.js';
+
 @Module({
   controllers: [
     HealthController,
     OrganizationsController,
     TournamentsController,
+    PublicProjectionsController,
     SchedulesController,
     MatchControlController,
     DataImportExportController,
