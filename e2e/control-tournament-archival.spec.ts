@@ -15,7 +15,7 @@ import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './suppor
  */
 
 const DASHBOARD_PATH = '/control/liga-mendocina';
-const PUBLIC_TOURNAMENT_PATH = '/liga-mendocina/tournaments/apertura-2026';
+
 
 async function mockArchiveApi(page: Page): Promise<void> {
   await page.addInitScript(
