@@ -1,0 +1,40 @@
+---
+import type { IntlShape } from 'react-intl';
+import { shortLabel, type OverviewModel } from '../lib/overview.ts';
+import { messages } from '../lib/i18n/public-messages.en.ts';
+import { resultStateLabels } from '../lib/i18n/public-intl.ts';
+
+interface Props {
+  readonly model: OverviewModel;
+  readonly intl: IntlShape;
+}
+const { model, intl } = Astro.props;
+const labels = resultStateLabels(intl);
+---
+
+{
+  /*
+  Rendered server-side and complete. A ticker that needs JavaScript to say the
+  score is a ticker that says nothing on a venue TV behind a hotel proxy.
+*/
+}
+<section aria-labelledby="ticker-heading">
+  <h2 id="ticker-heading">{intl.formatMessage(messages.tickerHeading)}</h2>
+  {model.matches.length === 0 && <p>{intl.formatMessage(messages.tickerEmpty)}</p>}
+  <ul>
+    {
+      model.matches.map((match) => (
+        <li
+          class={`cl-card cl-card--${match.state === 'final' ? 'positive' : match.state === 'disputed' ? 'destructive' : match.state}`}
+        >
+          <span class="cl-badge">{labels[match.state]}</span>
+          <span>{shortLabel(match.home)}</span>
+          <span class="cl-stat-tile__value">{match.home.score ?? '—'}</span>
+          <span>{shortLabel(match.away)}</span>
+          <span class="cl-stat-tile__value">{match.away.score ?? '—'}</span>
+          <time datetime={match.startsAt}>{match.startsAt}</time>
+        </li>
+      ))
+    }
+  </ul>
+</section>

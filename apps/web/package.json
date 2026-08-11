@@ -1,0 +1,52 @@
+{
+  "name": "@copalibre/web",
+  "version": "0.5.0-beta",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "node scripts/copy-openapi-artifact.mjs && node scripts/copy-scalar-assets.mjs && astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "test": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.config.cjs",
+    "test:coverage": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.config.cjs --coverage",
+    "test:integration": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.integration.config.cjs --runInBand",
+    "verify:build": "node scripts/copy-openapi-artifact.mjs && node scripts/copy-scalar-assets.mjs && astro build && node scripts/verify-build.mjs",
+    "verify:docs": "node scripts/copy-openapi-artifact.mjs && node scripts/copy-scalar-assets.mjs && astro build && node scripts/verify-help-build.mjs"
+  },
+  "dependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@astrojs/node": "^11.1.0",
+    "@astrojs/react": "^6.0.2",
+    "@astrojs/starlight": "0.41.6",
+    "@copalibre/design-tokens": "workspace:^",
+    "@copalibre/realtime": "workspace:^",
+    "@copalibre/routing": "workspace:^",
+    "@pagefind/default-ui": "1.5.2",
+    "@scalar/api-reference": "1.64.0",
+    "astro": "^7.1.5",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-intl": "^10.1.20",
+    "starlight-llms-txt": "^0.11.0",
+    "uuid": "^14.0.1"
+  },
+  "devDependencies": {
+    "@copalibre/domain": "workspace:^",
+    "@copalibre/rules": "workspace:^",
+    "@copalibre/tournament-engine": "workspace:^",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^7.0.0",
+    "@testing-library/react": "^16.3.2",
+    "@types/jest": "^30.0.0",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "jest": "^30.4.2",
+    "jest-environment-jsdom": "^30.4.1",
+    "jsdom": "^30.0.1",
+    "ts-jest": "^29.4.12",
+    "typescript": "^5",
+    "undici": "^8.9.0"
+  },
+  "type": "module"
+}

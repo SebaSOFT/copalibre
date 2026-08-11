@@ -1,0 +1,101 @@
+{
+  "outcome": "pass",
+  "reason": "permissive-hook",
+  "effects": [
+    {
+      "kind": "notification",
+      "identityKey": "lead-alert@v1|score.changed:evt-7|comfortable-lead/raise",
+      "origin": {
+        "hook": "score.changed",
+        "scriptId": "lead-alert",
+        "scriptVersion": 1,
+        "ruleId": "comfortable-lead",
+        "actionId": "raise",
+        "causeId": "evt-7"
+      },
+      "payload": {
+        "severity": "warning",
+        "title": "Comfortable lead",
+        "message": "Home leads by 3",
+        "targetRole": "operator",
+        "scopeKey": "match:m-1",
+        "contextValues": {
+          "causeId": "evt-7",
+          "at": 1770000000000
+        }
+      }
+    }
+  ],
+  "hookNode": {
+    "kind": "guard",
+    "id": "score.changed:lead-alert",
+    "label": "Hook score.changed — script lead-alert",
+    "outcome": "pass",
+    "values": {
+      "hook": "score.changed",
+      "polarity": "permissive",
+      "cause": "evt-7",
+      "seed": 42,
+      "reason": "permissive-hook"
+    },
+    "detail": "Permissive hook resolved pass: permissive-hook",
+    "children": [
+      {
+        "kind": "condition",
+        "id": "lead-alert-expressions",
+        "label": "Expressions resolved during this evaluation",
+        "outcome": "explained",
+        "values": {
+          "resolutions": [
+            {
+              "parameter": "op1",
+              "source": "{{ score.home - score.away }}",
+              "value": 3
+            },
+            {
+              "parameter": "message",
+              "source": "Home leads by {{ score.home - score.away }}",
+              "value": "Home leads by 3"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "action",
+        "id": "lead-alert-draws",
+        "label": "Values drawn from the recorded seed",
+        "outcome": "explained",
+        "values": {
+          "seed": 42,
+          "draws": [
+            {
+              "element": "element:1",
+              "uuid": "019c1c38-a400-7ade-87dd-e599ba5036f0",
+              "random": 0.9999796558766694
+            },
+            {
+              "element": "element:2",
+              "uuid": "019c1c38-a400-72da-b5ba-164eca481911",
+              "random": 0.2370510301212332
+            }
+          ]
+        }
+      },
+      {
+        "kind": "action",
+        "id": "lead-alert-effects",
+        "label": "Effects declared, none performed",
+        "outcome": "declared",
+        "values": {
+          "effects": [
+            {
+              "kind": "notification",
+              "identityKey": "lead-alert@v1|score.changed:evt-7|comfortable-lead/raise",
+              "rule": "comfortable-lead"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

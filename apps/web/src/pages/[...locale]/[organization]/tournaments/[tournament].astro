@@ -1,0 +1,56 @@
+---
+import PublicLayout from '../../../../layouts/PublicLayout.astro';
+import TournamentHero from '../../../../components/TournamentHero.astro';
+import ScoreTicker from '../../../../components/ScoreTicker.astro';
+import StandingsPreview from '../../../../components/StandingsPreview.astro';
+import BroadcastStatusPanel from '../../../../components/BroadcastStatusPanel.astro';
+import RulesetBriefing from '../../../../components/RulesetBriefing.astro';
+import { buildOverview, displayName } from '../../../../lib/overview.ts';
+import { fetchOverview, mapOverviewResponse } from '../../../../lib/public-api-client.ts';
+import { publicIntl } from '../../../../lib/i18n/public-intl.ts';
+import { messages } from '../../../../lib/i18n/public-messages.en.ts';
+import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
+
+/**
+ * B1, the tournament overview (0020).
+ *
+ * Everything a spectator needs is server-rendered. The SSE stream from 0018 is
+ * an improvement on this page, never a requirement for it: a venue on hotel
+ * Wi-Fi still gets the score.
+ *
+ * The data is sample data until 0021 wires the read models; the shape is the
+ * one the repositories already return.
+ *
+ * `[[locale]]` is an optional Astro route segment (0055): English, the
+ * primary locale, is generated with `locale: undefined` (no URL segment);
+ * every other supported language is generated with its own locale code
+ * (0056 populated the remaining five alongside 0055's Spanish).
+ */
+export const prerender = false;
+
+const { locale, organization, tournament } = Astro.params;
+const resolvedLocale: SupportedLanguage = isSupportedLanguage(locale) ? locale : 'en';
+const intl = publicIntl(resolvedLocale);
+
+const overviewData = await fetchOverview(organization!, tournament!);
+if (!overviewData) {
+  return Astro.rewrite('/404');
+}
+
+const model = buildOverview(mapOverviewResponse(overviewData));
+---
+
+<PublicLayout
+  title={`${displayName(model)} — ${model.organizationName}`}
+  description={intl.formatMessage(messages.tournamentPageDescription, {
+    tournament: displayName(model),
+  })}
+  canonicalPath={model.canonicalPath}
+  intl={intl}
+>
+  <TournamentHero model={model} intl={intl} />
+  <BroadcastStatusPanel model={model} intl={intl} />
+  <ScoreTicker model={model} intl={intl} />
+  <StandingsPreview model={model} intl={intl} />
+  <RulesetBriefing model={model} intl={intl} />
+</PublicLayout>

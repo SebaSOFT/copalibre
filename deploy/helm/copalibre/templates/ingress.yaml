@@ -1,0 +1,59 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "copalibre.fullname" . }}
+  labels:
+    {{- include "copalibre.labels" . | nindent 4 }}
+  annotations:
+    {{- toYaml .Values.ingress.annotations | nindent 4 }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- if .Values.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        {{- range $svc, $host := .Values.ingress.hosts }}
+        {{- if $host }}
+        - {{ $host }}
+        {{- end }}
+        {{- end }}
+      secretName: {{ .Values.ingress.tls.secretName }}
+  {{- end }}
+  rules:
+    {{- if .Values.ingress.hosts.web }}
+    - host: {{ .Values.ingress.hosts.web }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "copalibre.fullname" . }}-web
+                port:
+                  number: {{ .Values.web.port }}
+    {{- end }}
+    {{- if .Values.ingress.hosts.api }}
+    - host: {{ .Values.ingress.hosts.api }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "copalibre.fullname" . }}-api
+                port:
+                  number: {{ .Values.roles.api.port }}
+    {{- end }}
+    {{- if .Values.ingress.hosts.events }}
+    - host: {{ .Values.ingress.hosts.events }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "copalibre.fullname" . }}-events
+                port:
+                  number: {{ .Values.roles.events.port }}
+    {{- end }}
+{{- end }}

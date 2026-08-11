@@ -1,0 +1,114 @@
+---
+import PublicLayout from '../../../../../layouts/PublicLayout.astro';
+import ResultLegend from '../../../../../components/ResultLegend.astro';
+import StateBadge from '../../../../../components/StateBadge.astro';
+import { LiveMatchHero } from '../../../../../components/LiveMatchHero.tsx';
+import { buildOverview, displayName } from '../../../../../lib/overview.ts';
+import {
+  fetchLive,
+  fetchOverview,
+  mapOverviewResponse,
+  mapLiveResponse,
+} from '../../../../../lib/public-api-client.ts';
+import { publicIntl, resultStateLabels } from '../../../../../lib/i18n/public-intl.ts';
+import { messages } from '../../../../../lib/i18n/public-messages.en.ts';
+import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
+
+/**
+ * B2, the live dashboard (0021).
+ *
+ * Nothing here is discipline-specific: no minimap, no possession arrow, no
+ * period clock that assumes halves. A shared template that knows one sport is a
+ * template every other sport has to fight.
+ *
+ * `[[locale]]` mirrors the tournament overview page (0055) — see its comment.
+ */
+export const prerender = false;
+
+const { locale, organization, tournament } = Astro.params;
+const resolvedLocale: SupportedLanguage = isSupportedLanguage(locale) ? locale : 'en';
+const intl = publicIntl(resolvedLocale);
+const labels = resultStateLabels(intl);
+
+const overviewData = await fetchOverview(organization!, tournament!);
+const liveData = await fetchLive(organization!, tournament!);
+const dashboard = liveData ? mapLiveResponse(liveData) : undefined;
+
+if (!overviewData || !dashboard) {
+  return Astro.rewrite('/404');
+}
+
+const model = buildOverview(mapOverviewResponse(overviewData));
+---
+
+<PublicLayout
+  title={`${intl.formatMessage(messages.livePageTitle)} — ${displayName(model)}`}
+  canonicalPath={`${model.canonicalPath}/live`}
+  intl={intl}
+>
+  <h1>{intl.formatMessage(messages.livePageTitle)}</h1>
+  {/* Server-rendered first, so the page is right before any script runs. */}
+  <section>
+    {
+      dashboard.matches.map((match) => (
+        <article class="cl-card cl-chamfer">
+          <StateBadge state={match.state} intl={intl} />
+          {match.sides.map((side) => (
+            <p>
+              {side.abbreviation ?? side.name} {side.score}
+            </p>
+          ))}
+        </article>
+      ))
+    }
+  </section>
+
+  <h2>{intl.formatMessage(messages.livePageUpcomingHeading)}</h2>
+  <ul>
+    {
+      model.matches
+        .filter((match) => match.state === 'upcoming')
+        .map((match) => (
+          <li>
+            {match.home.name} vs {match.away.name} —{' '}
+            <time datetime={match.startsAt}>{match.startsAt}</time>
+          </li>
+        ))
+    }
+  </ul>
+
+  <h2>{intl.formatMessage(messages.livePageLeadersHeading)}</h2>
+  <table>
+    <thead
+      ><tr
+        ><th scope="col">#</th><th scope="col">{intl.formatMessage(messages.standingsTeam)}</th><th
+          scope="col">{intl.formatMessage(messages.standingsPoints)}</th
+        ></tr
+      ></thead
+    >
+    <tbody>
+      {
+        model.standings.map((row) => (
+          <tr>
+            <>
+              <td>{row.position}</td>
+              <td>{row.abbreviation ?? row.name}</td>
+              <td>{row.points}</td>
+            </>
+          </tr>
+        ))
+      }
+    </tbody>
+  </table>
+
+  <ResultLegend intl={intl} />
+
+  {/* The island only patches what is already on the page. */}
+  <LiveMatchHero
+    client:idle
+    initial={dashboard}
+    streamPath={model.streamPath}
+    usingLastKnownText={intl.formatMessage(messages.liveUsingLastKnown)}
+    resultStateLabels={labels}
+  />
+</PublicLayout>

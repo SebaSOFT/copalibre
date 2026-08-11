@@ -1,0 +1,27 @@
+---
+import type { IntlShape } from 'react-intl';
+import type { OverviewModel } from '../lib/overview.ts';
+import { messages } from '../lib/i18n/public-messages.en.ts';
+
+interface Props {
+  readonly model: OverviewModel;
+  readonly intl: IntlShape;
+}
+const { model, intl } = Astro.props;
+---
+
+<section aria-labelledby="ruleset-heading">
+  <h2 id="ruleset-heading">{intl.formatMessage(messages.rulesetHeading)}</h2>
+  <dl>
+    {
+      model.ruleset.map((entry) => (
+        <>
+          <>
+            <dt>{entry.label}</dt>
+            <dd>{entry.value}</dd>
+          </>
+        </>
+      ))
+    }
+  </dl>
+</section>

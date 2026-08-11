@@ -1,0 +1,41 @@
+---
+import { ControlApp } from '../../control/components/ControlApp.tsx';
+import '@copalibre/design-tokens/generated/copalibre.css';
+
+/**
+ * The one built file serving every authenticated control-panel screen
+ * (0061). Replaces eight separate per-screen Astro pages, each of which
+ * mounted its own React root and reloaded the page to reach another —
+ * `ControlApp` resolves the real screen from the browser's own URL at
+ * runtime, so no per-organization/per-tournament `getStaticPaths()`
+ * enumeration is needed at all (also resolving 0059 Finding 6 for the
+ * control panel specifically).
+ *
+ * A single fixed path, not a `[...path]` rest-param route: Astro's static
+ * output can only prerender a finite, enumerated set of paths, and the real
+ * control-panel URLs (any organization, any tournament) are open-ended. The
+ * static file server (`deploy/web/Caddyfile`, the "web" Docker role's real,
+ * shipped config — not an example) falls back to this one file for any
+ * `/control/**` request that isn't a real static asset, exactly the way a
+ * conventional SPA's `index.html` fallback works.
+ *
+ * `client:only` rather than a server render: these screens are behind
+ * authentication, and rendering server-side would mean the server holding a
+ * session — the opposite of what an in-memory client token buys (0022).
+ */
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/copalibre-logo.svg" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>CopaLibre</title>
+  </head>
+  <body>
+    <ControlApp client:only="react" />
+    <noscript>El panel de control necesita JavaScript. Las páginas públicas no.</noscript>
+  </body>
+</html>

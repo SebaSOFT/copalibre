@@ -1,0 +1,56 @@
+name: Helm lint
+
+# No job elsewhere in this repo's CI is path-filtered (every job in ci.yml
+# runs on every PR unconditionally) — this is the first, so it gets its own
+# workflow file with a top-level `paths:` filter rather than an in-job
+# conditional with no existing precedent to follow.
+on:
+  pull_request:
+    paths:
+      - 'deploy/helm/**'
+      - 'docker-compose.yml'
+      - 'scripts/check-helm-compose-parity.mjs'
+      - 'scripts/check-helm-enterprise-templates.test.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  helm-lint:
+    name: Chart lint and environment-contract parity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+      - run: yarn install --immutable
+      - name: Install helm
+        run: curl -s https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+      - run: helm lint deploy/helm/copalibre --strict
+      # 0035: lints the chart with every enterprise values group turned on,
+      # not just the defaulted-off baseline `helm lint` above already covers
+      # — catches a template that only renders invalid YAML/manifests once a
+      # flag most users leave off is actually enabled.
+      - name: Helm lint (enterprise values enabled)
+        run: |
+          helm lint deploy/helm/copalibre --strict \
+            --set autoscaling.api.enabled=true \
+            --set autoscaling.events.enabled=true \
+            --set autoscaling.worker.enabled=true \
+            --set autoscaling.worker.cpu.enabled=true \
+            --set podDisruptionBudget.api.enabled=true \
+            --set podDisruptionBudget.events.enabled=true \
+            --set podDisruptionBudget.worker.enabled=true \
+            --set podDisruptionBudget.scheduler.enabled=true \
+            --set affinity.antiAffinity.enabled=true \
+            --set networkPolicy.enabled=true \
+            --set ingress.enabled=true \
+            --set ingress.hosts.web=copalibre.example.com \
+            --set ingress.hosts.api=api.copalibre.example.com \
+            --set ingress.hosts.events=events.copalibre.example.com \
+            --set externalSecrets.enabled=true
+      - run: node scripts/check-helm-compose-parity.mjs
+      - run: node --test scripts/check-helm-enterprise-templates.test.mjs

@@ -1,0 +1,110 @@
+{
+  "engine": "copalibre-rules",
+  "ruleVersion": {
+    "id": "tennis-best-of-three",
+    "version": 1
+  },
+  "inputFacts": {
+    "matchId": "m-1",
+    "entrantIds": ["alfa", "bravo"],
+    "segments": [
+      {
+        "type": "set",
+        "unit": "game",
+        "units": {
+          "alfa": 7,
+          "bravo": 6
+        }
+      },
+      {
+        "type": "set",
+        "unit": "game",
+        "units": {
+          "alfa": 6,
+          "bravo": 7
+        }
+      },
+      {
+        "type": "set",
+        "unit": "game",
+        "units": {
+          "alfa": 6,
+          "bravo": 4
+        }
+      }
+    ]
+  },
+  "output": {
+    "matchClosed": true,
+    "winnerEntrantId": "alfa",
+    "tallies": {
+      "set": {
+        "alfa": 2,
+        "bravo": 1
+      }
+    }
+  },
+  "trace": [
+    {
+      "kind": "rule",
+      "id": "tennis-best-of-three",
+      "label": "Win condition tennis-best-of-three",
+      "outcome": "closed",
+      "values": {
+        "winnerEntrantId": "alfa",
+        "tallies": {
+          "set": {
+            "alfa": 2,
+            "bravo": 1
+          }
+        }
+      },
+      "detail": "Match closed for alfa",
+      "children": [
+        {
+          "kind": "action",
+          "id": "require-set-margin",
+          "label": "requireMargin require-set-margin",
+          "outcome": "applied",
+          "values": {
+            "margin": 2
+          },
+          "detail": "A lead of 2 is required to close"
+        },
+        {
+          "kind": "action",
+          "id": "close-set",
+          "label": "winSegment close-set",
+          "outcome": "closed",
+          "values": {
+            "segment": "set",
+            "target": 6,
+            "margin": 2,
+            "tiebreakAt": 6,
+            "tally": {
+              "alfa": 2,
+              "bravo": 1
+            }
+          },
+          "detail": "3 of 3 set(s) closed at 6 with a margin of 2, tiebreak at 6-6"
+        },
+        {
+          "kind": "action",
+          "id": "close-match",
+          "label": "winMatch close-match",
+          "outcome": "closed",
+          "values": {
+            "unit": "set",
+            "target": 2,
+            "margin": 0,
+            "counts": {
+              "alfa": 2,
+              "bravo": 1
+            }
+          },
+          "detail": "alfa took the match on 2 set(s)"
+        }
+      ]
+    }
+  ]
+}

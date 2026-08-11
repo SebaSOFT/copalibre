@@ -1,0 +1,65 @@
+{
+  "files": [],
+  "references": [
+    {
+      "path": "packages/auth/tsconfig.json"
+    },
+    {
+      "path": "packages/domain/tsconfig.json"
+    },
+    {
+      "path": "packages/module-catalogue/tsconfig.json"
+    },
+    {
+      "path": "packages/module-distribution/tsconfig.json"
+    },
+    {
+      "path": "packages/object-storage/tsconfig.json"
+    },
+    {
+      "path": "packages/rules/tsconfig.json"
+    },
+    {
+      "path": "packages/persistence/tsconfig.json"
+    },
+    {
+      "path": "packages/contracts/tsconfig.json"
+    },
+    {
+      "path": "packages/design-tokens/tsconfig.json"
+    },
+    {
+      "path": "packages/routing/tsconfig.json"
+    },
+    {
+      "path": "packages/tournament-engine/tsconfig.json"
+    },
+    {
+      "path": "packages/realtime/tsconfig.json"
+    },
+    {
+      "path": "apps/api/tsconfig.json"
+    },
+    {
+      "path": "apps/events/tsconfig.json"
+    },
+    {
+      "path": "apps/worker/tsconfig.json"
+    },
+    {
+      "path": "apps/scheduler/tsconfig.json"
+    },
+    {
+      "path": "apps/migrate/tsconfig.json"
+    },
+    {
+      "path": "apps/seed/tsconfig.json"
+    },
+    {
+      "path": "apps/doctor/tsconfig.json"
+    },
+    {
+      "path": "apps/copalibre/tsconfig.json"
+    }
+  ]
+}

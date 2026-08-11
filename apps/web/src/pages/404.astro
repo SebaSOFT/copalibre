@@ -1,0 +1,30 @@
+---
+import { ControlOrNotFound } from '../control/components/ControlOrNotFound.tsx';
+import '@copalibre/design-tokens/generated/copalibre.css';
+
+/**
+ * The site's one static 404 page — every static host falls back to this
+ * file for an unmatched path, with no special configuration required. Its
+ * own markup below is the real "not found" content for a genuinely missing
+ * public page (present without JavaScript); `ControlOrNotFound` (0061)
+ * additionally mounts the control-panel shell when the miss was actually a
+ * `/control/**` screen this build's build-time routing can't enumerate.
+ */
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/copalibre-logo.svg" />
+    <title>Página no encontrada — CopaLibre</title>
+  </head>
+  <body>
+    <main id="static-not-found">
+      <h1>Página no encontrada</h1>
+      <p>No existe contenido en esta dirección.</p>
+    </main>
+    <ControlOrNotFound client:only="react" />
+  </body>
+</html>

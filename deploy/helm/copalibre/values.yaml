@@ -1,0 +1,228 @@
+# Mirrors docker-compose.yml's contract: one multi-role image for
+# api/events/worker/scheduler/migrate/doctor, selected at container start via
+# PRODUCT_ROLE; web is a separate (Caddy + static build) image with its own,
+# much smaller environment surface. Keep this file's env var names in sync
+# with docker-compose.yml — scripts/check-helm-compose-parity.sh fails CI if
+# they drift.
+
+image:
+  repository: copalibre
+  tag: local
+  pullPolicy: IfNotPresent
+
+# One entry per long-running role sharing the multi-role image. Each becomes
+# one Deployment (templates/deployment.yaml, ranged over this map) so no role
+# can drift from the shared template — only these values differ per role.
+roles:
+  api:
+    port: 3001
+    replicas: 1
+    service: true
+    # api alone can distinguish "up" from "ready to serve" (GET /ready checks
+    # the DB schema version); the other roles only have GET /health.
+    probePath: /health
+    readinessPath: /ready
+    resources: {}
+  events:
+    port: 3002
+    replicas: 1
+    service: true
+    probePath: /health
+    resources: {}
+  worker:
+    port: 3003
+    replicas: 1
+    service: false
+    probePath: /health
+    resources: {}
+  scheduler:
+    port: 3004
+    replicas: 1
+    service: false
+    probePath: /health
+    resources: {}
+
+# web never runs the Nest multi-role image or the shared 22-variable
+# environment contract below — it's Caddy serving Astro's static build, health
+# checked with a plain GET / (see docker-compose.yml's web service).
+web:
+  image:
+    repository: copalibre-web
+    tag: local
+    pullPolicy: IfNotPresent
+  port: 4321
+  replicas: 1
+  probePath: /
+  resources: {}
+  env:
+    COPALIBRE_JWT_ISSUER: ''
+    COPALIBRE_OIDC_CLIENT_ID: ''
+
+# Shared by every role in `roles` above (envFrom a ConfigMap + Secret built
+# from this map — see templates/configmap.yaml and templates/secret.yaml).
+# Matches docker-compose.yml's `x-application-environment` anchor exactly;
+# PRODUCT_ROLE and PORT are set per-role by the Deployment template itself,
+# not listed here.
+env:
+  HOST: '0.0.0.0'
+  DATABASE_URL: ''
+  COPALIBRE_APP_URL: ''
+  COPALIBRE_API_URL: ''
+  COPALIBRE_BOOTSTRAP_TOKEN: ''
+  COPALIBRE_JWKS_URI: ''
+  COPALIBRE_JWT_ISSUER: ''
+  COPALIBRE_JWT_AUDIENCE: ''
+  COPALIBRE_OIDC_CLIENT_ID: ''
+  COPALIBRE_EMAIL_PROVIDER: ''
+  COPALIBRE_EMAIL_FROM: ''
+  COPALIBRE_RESEND_API_KEY: ''
+  COPALIBRE_BREVO_API_KEY: ''
+  COPALIBRE_MAILGUN_API_KEY: ''
+  COPALIBRE_MAILGUN_DOMAIN: ''
+  COPALIBRE_MAILGUN_BASE_URL: ''
+  COPALIBRE_SMTP_URL: ''
+  COPALIBRE_OBJECT_STORAGE_URL: ''
+  COPALIBRE_OBJECT_STORAGE_ACCESS_KEY: ''
+  COPALIBRE_OBJECT_STORAGE_SECRET_KEY: ''
+  COPALIBRE_OBJECT_STORAGE_BUCKET: ''
+  COPALIBRE_DATA_DIR: /var/lib/copalibre
+  COPALIBRE_IN_CONTAINER: 'true'
+
+# Which of the keys in `env` above hold credentials and belong in the Secret
+# rather than the ConfigMap. Everything else in `env` goes in the ConfigMap.
+secretKeys:
+  - DATABASE_URL
+  - COPALIBRE_BOOTSTRAP_TOKEN
+  - COPALIBRE_RESEND_API_KEY
+  - COPALIBRE_BREVO_API_KEY
+  - COPALIBRE_MAILGUN_API_KEY
+  - COPALIBRE_SMTP_URL
+  - COPALIBRE_OBJECT_STORAGE_ACCESS_KEY
+  - COPALIBRE_OBJECT_STORAGE_SECRET_KEY
+
+migrate:
+  # backoffLimit 0: fail fast, no silent retries — a stuck migration should
+  # surface as a failed helm upgrade, not retry into a worse state.
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 3600
+
+# Off by default, like docker-compose.yml's `doctor` service (profile
+# "operations", not started by `docker compose up`). Enable with
+# `--set doctor.enabled=true` to run it on demand.
+doctor:
+  enabled: false
+
+# --- Enterprise (Level 3) additions -------------------------------------
+# Every group below is additive to the base chart above and defaulted OFF, so
+# a default `helm install` with this values.yaml is byte-identical in
+# behavior to 0034-k3s-helm-deployment alone. See
+# docs/deployment/enterprise-kubernetes.md for prerequisites and usage.
+
+# HorizontalPodAutoscaler per role, driven by the three signals named in the
+# architecture doc: HTTP request rate (api), active connection count
+# (events), outbox queue depth/age (worker). None of these are native
+# Kubernetes metrics — each requires a custom-metrics adapter (e.g.
+# Prometheus Adapter, KEDA) exposing `metricName` as a Kubernetes External
+# metric. CPU-based scaling is available per role via `cpu.enabled` but is
+# not the documented default signal.
+autoscaling:
+  api:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 6
+    metricName: copalibre_http_requests_per_second
+    targetAverageValue: '100'
+    cpu:
+      enabled: false
+      targetAverageUtilization: 70
+  events:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 6
+    metricName: copalibre_sse_active_connections
+    targetAverageValue: '500'
+    cpu:
+      enabled: false
+      targetAverageUtilization: 70
+  worker:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 6
+    metricName: copalibre_outbox_queue_age_seconds
+    targetAverageValue: '300'
+    cpu:
+      enabled: false
+      targetAverageUtilization: 70
+
+# PodDisruptionBudget per role: a voluntary disruption (node drain, rolling
+# upgrade) never reduces that role's available replicas below minAvailable.
+# Independent of autoscaling — a fixed-size enterprise deployment may want
+# disruption protection without scaling.
+podDisruptionBudget:
+  api:
+    enabled: false
+    minAvailable: 1
+  events:
+    enabled: false
+    minAvailable: 1
+  worker:
+    enabled: false
+    minAvailable: 1
+  scheduler:
+    enabled: false
+    minAvailable: 1
+
+# Preferred (soft) pod anti-affinity: replicas of the same role prefer
+# scheduling on different nodes. Soft, not required, so a single-node dev
+# cluster is unaffected.
+affinity:
+  antiAffinity:
+    enabled: false
+    topologyKey: kubernetes.io/hostname
+    weight: 100
+
+# Default-deny NetworkPolicy with explicit per-role allow rules (architecture
+# principle "security boundaries follow exposure"). `publicRoles` additionally
+# get ingress from outside the pod network (an ingress controller or
+# NodePort); every role always accepts ingress from other CopaLibre pods in
+# the same release. `worker`/`scheduler` are never in `publicRoles`, so they
+# accept no external ingress.
+networkPolicy:
+  enabled: false
+  publicRoles:
+    - api
+    - events
+
+# TLS ingress for the public-facing roles (web/api/events), layered on top of
+# the Service templates above, not replacing them. Annotations default to
+# cert-manager's ClusterIssuer convention; override for a different ingress
+# controller/cert issuer. A host left empty ('') is not routed.
+ingress:
+  enabled: false
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  tls:
+    enabled: true
+    secretName: copalibre-tls
+  hosts:
+    web: ''
+    api: ''
+    events: ''
+
+# External Secrets Operator integration: when enabled, replaces the plain
+# values-driven Secret (templates/secret.yaml) with an ExternalSecret that
+# populates the identical Secret name from `secretStoreRef`, so
+# templates/deployment.yaml's envFrom needs no change either way.
+externalSecrets:
+  enabled: false
+  secretStoreRef:
+    name: copalibre-secret-store
+    kind: SecretStore
+  refreshInterval: 1h
+  # Per-key remote reference overrides, e.g.:
+  #   remoteRefs:
+  #     DATABASE_URL: { key: copalibre/database, property: url }
+  # Any key in `secretKeys` without an override here defaults to
+  # { key: <the env var name>, property: value }.
+  remoteRefs: {}

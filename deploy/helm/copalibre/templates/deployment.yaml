@@ -1,0 +1,83 @@
+{{- range $name, $role := .Values.roles }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "copalibre.fullname" $ }}-{{ $name }}
+  labels:
+    {{- include "copalibre.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $name }}
+spec:
+  replicas: {{ $role.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: copalibre
+      app.kubernetes.io/instance: {{ $.Release.Name }}
+      app.kubernetes.io/component: {{ $name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: copalibre
+        app.kubernetes.io/instance: {{ $.Release.Name }}
+        app.kubernetes.io/component: {{ $name }}
+    spec:
+      {{- if $.Values.affinity.antiAffinity.enabled }}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: {{ $.Values.affinity.antiAffinity.weight }}
+              podAffinityTerm:
+                topologyKey: {{ $.Values.affinity.antiAffinity.topologyKey }}
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: copalibre
+                    app.kubernetes.io/instance: {{ $.Release.Name }}
+                    app.kubernetes.io/component: {{ $name }}
+      {{- end }}
+      containers:
+        - name: {{ $name }}
+          image: '{{ $.Values.image.repository }}:{{ $.Values.image.tag }}'
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ $role.port }}
+          env:
+            - name: PRODUCT_ROLE
+              value: {{ $name }}
+            - name: PORT
+              value: '{{ $role.port }}'
+          envFrom:
+            - configMapRef:
+                name: {{ include "copalibre.fullname" $ }}-env
+            - secretRef:
+                name: {{ include "copalibre.fullname" $ }}-secret
+          lifecycle:
+            preStop:
+              # Without this, a rolling update can drop an in-flight request:
+              # SIGTERM would otherwise reach the process at the same moment
+              # the Service's endpoint list is still catching up to the pod's
+              # termination, not strictly after — confirmed empirically
+              # against a real k3d cluster (0034 validation). This sleep just
+              # buys kube-proxy time to remove the endpoint before the
+              # container actually stops accepting connections.
+              exec:
+                command: ['sh', '-c', 'sleep 5']
+          startupProbe:
+            httpGet:
+              path: {{ $role.probePath }}
+              port: http
+            failureThreshold: 30
+            periodSeconds: 2
+          livenessProbe:
+            httpGet:
+              path: {{ $role.probePath }}
+              port: http
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: {{ $role.readinessPath | default $role.probePath }}
+              port: http
+            periodSeconds: 5
+          resources:
+            {{- toYaml ($role.resources | default dict) | nindent 12 }}
+---
+{{- end }}

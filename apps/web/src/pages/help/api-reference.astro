@@ -1,0 +1,49 @@
+---
+
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Referencia API | CopaLibre</title>
+  </head>
+  <body>
+    <main id="api-reference"></main>
+    <!-- Vendored at build time (0040) from @scalar/api-reference's own
+         standalone bundle, not fetched from a CDN — a self-hosted install
+         with no internet egress must render this page fully offline. -->
+    <script is:inline src="/vendor/scalar/standalone.js"></script>
+    <script is:inline>
+      Scalar.createApiReference('#api-reference', {
+        url: '/openapi/v1.json',
+        pageTitle: 'Referencia API | CopaLibre',
+        theme: 'default',
+        hideTestRequestButton: true,
+        hideClientButton: true,
+        hiddenClients: true,
+        showDeveloperTools: 'never',
+        documentDownloadType: 'none',
+        withDefaultFonts: false,
+        // The bundled theme still ships @font-face rules pointing at
+        // fonts.scalar.com even with withDefaultFonts disabled; force system
+        // fonts so nothing on this page ever requests them (0040 — an
+        // offline install must never depend on a Scalar-hosted asset).
+        customCss: `
+          :root {
+            --scalar-font: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+            --scalar-font-code: ui-monospace, "SFMono-Regular", monospace !important;
+          }
+        `,
+        // Disables the sidebar search bar, which otherwise calls Scalar's
+        // hosted vector-registry search on load — another outbound call an
+        // offline install must not depend on.
+        hideSearch: true,
+        telemetry: false,
+        agent: { disabled: true },
+      });
+    </script>
+  </body>
+</html>

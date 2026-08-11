@@ -1,0 +1,119 @@
+schema: spec-driven
+
+# Project context (optional)
+# This is shown to AI when creating artifacts.
+context: |
+  CopaLibre is a self-hosted, open-source (AGPL-3.0) tournament-management platform for
+  clubs, leagues, federations, and esports organizers. It is an independent design informed
+  by (not copying) public Toornament behavior. Full architecture and product decisions are
+  already recorded in a separate vault repo at ../chaos-vault/ (sibling directory) — every
+  proposal MUST cite the specific chaos-vault file(s) it draws from rather than re-deciding
+  settled architecture. Key source files (paths relative to ../chaos-vault/ from this repo):
+    - 20-knowledge-domains/copalibre-platform-architecture.md (canonical architecture: apps/
+      packages layout, NestJS+Fastify+Kysely+PostgreSQL, SSE contract, JWT contract, URL/alias
+      contract, naming conventions, deployment ladder, 11-step implementation sequence, and an
+      explicit "Explicit non-decisions and open gates" section — never silently resolve those).
+    - 30-processes/decisions/2026-07-28-copalibre-platform-architecture.md (decision record).
+    - 30-processes/decisions/2026-07-28-copalibre-naming-conventions.md (alias not slug, UUIDv7,
+      camelCase wire / kebab-case alias+CLI / snake_case DB; two items still explicitly open:
+      tenant-vs-organization terminology, camelCase leaks in token dot-paths).
+    - 30-processes/decisions/2026-07-27-copalibre-tournament-engine-mvp-and-result-authority.md
+      (MVP formats, DisciplineDescriptor -> TournamentRuleset -> StageConfiguration -> MatchRuleset
+      hierarchy, mutation classes safe/requires_rebuild/blocked_after_results, Neuron-JS decision
+      layer, audited-correction-only result authority, event/segment model, live-console workflow).
+    - 50-research/copalibre-market-segment-feature-specification.md (TMS-001..014 feature IDs,
+      P0/P1 split, product invariants, explicit non-goals).
+    - 20-knowledge-domains/copalibre-visual-identity.md and
+      50-research/copalibre-visual-design-research.md ("Broadcast Command Precision" visual
+      identity; explicit non-goal: must never reuse sebasoft.app's cyberpunk-wireframe tokens,
+      e.g. #f3e600, CP2077/DATA_BLOB labels, TRON grids, scanlines).
+
+  Sibling repo ../copalibre-design-system-fixed/ has 10 already-built static HTML mockups (A1-A7
+  operator/control screens, B1-B3 public spectator screens) and shared/copalibre-system.css, the
+  real token/component reference (chamfered corners, ink/cyan/amber/red/green palette, Barlow
+  Condensed + Barlow + JetBrains Mono).
+
+  Confirmed toolchain (this session, do not re-litigate):
+    - Backend/unit/integration test runner: Jest (native NestJS support).
+    - Lint/format gate: ESLint + Prettier, zero-warnings policy (mirrors ../sebasoft-app/).
+    - E2E: Playwright.
+    - Package manager: Yarn 4 via Corepack, node_modules linker, no PnP/Zero-Installs, Yarn
+      workspaces + NestJS CLI monorepo mode (not Nx/Turborepo).
+
+  Sibling repo ../sebasoft-app/ is INSPIRATION ONLY for process/CI shape (ADR-log format,
+  zero-warnings lint gate, CI job shape quality->unit->e2e->build->deploy) - never copy its
+  TrailBase backend choice or its cyberpunk-wireframe visual tokens into CopaLibre.
+
+  Sibling repo ../neuron-js/ is the real, published @sebasoft/neuron-js rules engine that
+  packages/rules adapts as CopaLibre's decision runtime.
+
+  Cross-cutting rules every proposal must respect:
+    - UUIDv7 identifiers, never UUIDv4/ULID; UUIDv7 values never appear in a URL.
+    - "alias" is CopaLibre's term for a human-readable URL-safe path identifier; never say "slug".
+    - Casing by layer: camelCase (API/wire JSON, SSE payloads), kebab-case (alias content, CLI
+      subcommands), snake_case (DB columns/tables). JWT claims follow RFC 9068 registered names
+      (iss/aud/sub/org/scp/iat/exp/jti), exempt from this casing rule.
+    - Any config-mutating feature must classify its mutations as safe / requires_rebuild /
+      blocked_after_results.
+    - CopaLibre enforces two things and no third: the integrity of its own records, and what THIS
+      organizer explicitly configured. It never enforces what a sport "usually" requires. A player
+      with too many red cards carries a tag; the organizer keeps them off the sheet, and CopaLibre
+    does not refuse the roster. State the difference in every proposal that adds a check: a refusal
+      is for a record that would be incoherent (a result overwritten, an event naming an entrant that
+      is not playing, a venue in two places), or for a rule the organizer configured themselves.
+      Everything a federation might do differently is labelled and reported, never blocked — a system
+      that decides on their behalf is wrong for the first competition whose rules differ, and that
+      competition always exists (owner, 2026-07-31).
+    - No feature may allow direct overwrite of a calculated result - only the audited
+      correction/supersession workflow (actor, timestamp, reason, prior state, resulting state,
+      recalculation preview, blocked propagation into an already-started downstream stage).
+    - AGPL project incorporating MIT-licensed shadcn/ui + Radix source: any phase that copies a
+      component must update a THIRD_PARTY_NOTICES inventory.
+    - Every proposal's tasks.md must include unit test tasks, integration test tasks (where the
+      capability touches Postgres/Nest/outbox), e2e test tasks (where the capability touches a
+      user-facing surface), and a final task that wires the new test suite into
+      .github/workflows/ci.yml, naming the exact job/step it extends.
+    - Where chaos-vault itself leaves something an open gate (double-elimination bracket layout,
+      TV display-token mechanism, concrete queue adapter, identity provider selection,
+      tenant-vs-organization naming, camelCase token-path leaks), design.md must label it
+      explicitly as an open gate this change resolves or explicitly defers - never resolve it
+      silently without a stated rationale.
+    - Never hand-roll a general-purpose utility when a well-known, well-implemented, actively
+      maintained package without active CVEs exists (owner decision 2026-07-29, after replacing a
+      hand-rolled UUIDv7 generator with uuid). Hand-rolling is justified only for genuine domain
+      logic (product rules/contracts) or trivial one-liners. ESM-only packages are fine since
+      0006-esm-module-migration - do NOT downgrade a dependency to find a dual CJS/ESM build, and do
+      not reintroduce that constraint. Known applications - identifiers: uuid; payload/schema
+      validation: JSON Schema + ajv (schemas inside versioned JSON descriptors must be serializable,
+      so not zod); CSV (phase 0020): papaparse or csv-parse, never hand-parse; SSE client parsing
+      (phase 0011): eventsource-parser; JWT/JWKS (phase 0005): jose; OpenAPI: @nestjs/swagger.
+
+# Per-artifact rules (optional)
+rules:
+  proposal:
+    - Cite the exact chaos-vault file path(s) backing each major decision in "Why" or "What Changes"
+    - Include a "Capabilities" section listing New/Modified capabilities using the phase's canonical
+      capability slug (kebab-case, matches the specs/<capability>/ directory name)
+  design:
+    - Include an explicit "Open gates" subsection naming anything chaos-vault leaves undecided that
+      this change touches, and state whether this change resolves or defers each one
+    - Do not restate the full architecture doc; link to the chaos-vault file and quote only the
+      specific passage being implemented
+  tasks:
+    - "Group tasks under headings: Implementation, Unit tests, Integration tests, E2E tests, CI wiring (omit a heading only if genuinely not applicable to this phase)"
+    - The final task must name the exact GitHub Actions workflow file and job or step being added or extended
+
+# Per-operation guidance (optional)
+operations:
+  apply:
+    guidance:
+      - Keep test summaries concise
+  archive:
+    guidance:
+      - Summarize the archive outcome before finishing
+      - Commit the resulting openspec/specs promotion on the NEXT change branch, as its first
+        commit, rather than pushing it to develop or opening a pull request for it alone. develop is
+        protected, and a PR carrying only a spec promotion is review overhead for something nobody
+        argues with — riding along puts it in front of a reviewer already reading that area (owner,
+        2026-08-01). Keep the "docs(openspec)- promote NNNN specs into the accepted baseline" message
+        so the history still reads as a distinct act.

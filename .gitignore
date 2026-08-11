@@ -97,3 +97,18 @@ Desktop.ini
 .worktrees/
 .tmp/
 tmp/
+
+# Local AI-assistant tooling and OpenSpec planning artifacts stay out of the repo
+.agent/
+.agents/
+.claude/
+.gemini/
+.opencode/
+openspec/changes/*
+apps/web/public/openapi/
+apps/web/public/vendor/
+packages/design-tokens/generated/
+
+# CodeGraph index: derived from the source, rebuilt by `codegraph init`.
+.codegraph/
+/.codex/

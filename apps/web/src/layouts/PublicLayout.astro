@@ -1,0 +1,56 @@
+---
+import type { IntlShape } from 'react-intl';
+import '@copalibre/design-tokens/generated/copalibre.css';
+import { messages } from '../lib/i18n/public-messages.en.ts';
+
+interface Props {
+  readonly title: string;
+  readonly description?: string;
+  readonly canonicalPath: string;
+  /** Set on anything that is not a public canonical route. */
+  readonly noindex?: boolean;
+  readonly intl: IntlShape;
+}
+
+const { title, description, canonicalPath, noindex = false, intl } = Astro.props;
+const site = Astro.site?.toString().replace(/\/$/, '') ?? '';
+---
+
+<!doctype html>
+<html lang={intl.locale}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/copalibre-logo.svg" />
+    <title>{title}</title>
+    {description && <meta name="description" content={description} />}
+    <link rel="canonical" href={`${site}${canonicalPath}`} />
+    {/* Defence in depth: a non-public route that somehow renders says so itself. */}
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+  </head>
+  <body>
+    <a class="cl-focusable" href="#main">{intl.formatMessage(messages.layoutSkipToContent)}</a>
+    <header>
+      <nav aria-label={intl.formatMessage(messages.layoutNavAriaLabel)}>
+        <a href="/" class="cl-brand">
+          <img src="/copalibre-logo.svg" alt="" width="28" height="28" />
+          CopaLibre
+        </a>
+      </nav>
+    </header>
+    <main id="main">
+      <slot />
+    </main>
+    <footer>
+      <p>{intl.formatMessage(messages.layoutFooter)}</p>
+    </footer>
+  </body>
+</html>
+
+<style>
+  .cl-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+</style>

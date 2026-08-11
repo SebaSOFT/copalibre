@@ -1,0 +1,18 @@
+{
+  "rankedGroups": [["bravo"], ["alfa"], ["charlie"]],
+  "fullyResolved": true,
+  "trace": [
+    {
+      "kind": "comparator",
+      "id": "discipline-tier",
+      "label": "Rule 1 (Discipline Tier)",
+      "outcome": "resolved",
+      "values": {
+        "alfa": "silver",
+        "bravo": "gold",
+        "charlie": "bronze"
+      },
+      "detail": "Discipline Tier resolved the tie"
+    }
+  ]
+}

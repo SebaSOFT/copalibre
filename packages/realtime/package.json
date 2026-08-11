@@ -1,0 +1,20 @@
+{
+  "name": "@copalibre/realtime",
+  "version": "0.5.0-beta",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc --build",
+    "test": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.config.cjs",
+    "test:coverage": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.config.cjs --coverage"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.4.12",
+    "typescript": "^5"
+  }
+}

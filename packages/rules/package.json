@@ -1,0 +1,26 @@
+{
+  "name": "@copalibre/rules",
+  "version": "0.5.0-beta",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc --build",
+    "test": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.config.cjs",
+    "test:coverage": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.config.cjs --coverage"
+  },
+  "dependencies": {
+    "@copalibre/domain": "workspace:^",
+    "@sebasoft/neuron-js": "0.6.1",
+    "jsep": "^1.4.0",
+    "pure-rand": "^8.4.2",
+    "uuid": "^14.0.1"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.4.12"
+  },
+  "type": "module"
+}

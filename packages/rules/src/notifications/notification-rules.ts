@@ -1,0 +1,276 @@
+import type { DisciplineDescriptor, RecordedEvent } from '@copalibre/domain';
+import { splitTemplate } from '../expressions/expression.js';
+import type { EvaluationRecord, TraceNode } from '../trace/explanation-trace.js';
+
+/**
+ * Event-triggered notification rules, per the tournament-engine decision
+ * record: scope, input predicate, aggregation, threshold/comparator, trigger
+ * semantics, and an in-console notification action. "Notifications are
+ * derived effects, not source facts... delivery must be idempotent so
+ * reconnects, refreshes, or recalculation do not duplicate an alert for the
+ * same threshold crossing."
+ */
+
+export type NotificationScope = 'match' | 'segment' | 'side' | 'person';
+
+export interface NotificationPredicate {
+  readonly definitionCodes?: readonly string[];
+  readonly categories?: readonly ('positive' | 'negative' | 'neutral')[];
+}
+
+export type NotificationAggregation =
+  { readonly kind: 'count' } | { readonly kind: 'sum'; readonly payloadField: string };
+
+export type ThresholdComparator = '>=' | '>' | '==' | '<=' | '<';
+
+export type TriggerSemantics =
+  | { readonly kind: 'threshold-crossing' }
+  | { readonly kind: 'every-qualifying-event' }
+  | {
+      readonly kind: 'bounded-repeat';
+      readonly maxFirings: number;
+      /** Qualifying events to skip between firings. */
+      readonly cooldownEvents: number;
+    };
+
+export interface NotificationRule {
+  readonly id: string;
+  readonly version: number;
+  readonly scope: NotificationScope;
+  readonly predicate: NotificationPredicate;
+  readonly aggregation: NotificationAggregation;
+  readonly threshold: { readonly comparator: ThresholdComparator; readonly value: number };
+  readonly semantics: TriggerSemantics;
+  readonly action: {
+    readonly severity: 'info' | 'warning' | 'critical';
+    readonly titleTemplate: string;
+    readonly messageTemplate: string;
+    readonly targetRole: string;
+  };
+}
+
+export interface NotificationInstance {
+  /**
+   * Stable identity of one firing. Recomputing over the same event log yields
+   * the same keys, so delivery layers dedupe on it — reconnect, refresh, or
+   * recalculation can never duplicate an alert for the same crossing.
+   */
+  readonly identityKey: string;
+  readonly ruleId: string;
+  readonly ruleVersion: number;
+  readonly scopeKey: string;
+  readonly severity: 'info' | 'warning' | 'critical';
+  readonly title: string;
+  readonly message: string;
+  readonly targetRole: string;
+  readonly triggeredByEventId: string;
+  readonly contextValues: Readonly<Record<string, unknown>>;
+}
+
+export interface NotificationEvaluation {
+  readonly instances: readonly NotificationInstance[];
+  readonly record: EvaluationRecord<readonly string[]>;
+}
+
+/**
+ * Deterministically evaluates one rule over an ordered event log. Pure
+ * recomputation — no internal state — which is exactly what makes the
+ * identity keys stable across re-evaluations.
+ */
+export function evaluateNotificationRule(
+  rule: NotificationRule,
+  descriptor: DisciplineDescriptor,
+  events: readonly RecordedEvent[],
+): NotificationEvaluation {
+  const bySide = new Map<string, { aggregate: number; firings: number; cooldown: number }>();
+  const instances: NotificationInstance[] = [];
+  const trace: TraceNode[] = [];
+
+  for (const event of events) {
+    if (!qualifies(rule.predicate, descriptor, event)) continue;
+
+    const scopeKey = scopeKeyFor(rule.scope, event);
+    const tracker = bySide.get(scopeKey) ?? { aggregate: 0, firings: 0, cooldown: 0 };
+
+    const previous = tracker.aggregate;
+    tracker.aggregate += contribution(rule.aggregation, event);
+
+    const crossedNow = meets(rule.threshold, tracker.aggregate) && !meets(rule.threshold, previous);
+
+    let fires = false;
+    switch (rule.semantics.kind) {
+      case 'threshold-crossing':
+        fires = crossedNow && tracker.firings === 0;
+        break;
+      case 'every-qualifying-event':
+        fires = meets(rule.threshold, tracker.aggregate);
+        break;
+      case 'bounded-repeat':
+        if (meets(rule.threshold, tracker.aggregate)) {
+          if (tracker.cooldown > 0) {
+            tracker.cooldown -= 1;
+          } else if (tracker.firings < rule.semantics.maxFirings) {
+            fires = true;
+            tracker.cooldown = rule.semantics.cooldownEvents;
+          }
+        }
+        break;
+    }
+
+    if (fires) {
+      tracker.firings += 1;
+      const contextValues = {
+        scopeKey,
+        aggregate: tracker.aggregate,
+        threshold: rule.threshold.value,
+        eventId: event.eventId,
+        side: event.side ?? null,
+        personId: event.personId ?? null,
+      };
+      instances.push({
+        identityKey: `${rule.id}@v${rule.version}|${scopeKey}|firing:${tracker.firings}`,
+        ruleId: rule.id,
+        ruleVersion: rule.version,
+        scopeKey,
+        severity: rule.action.severity,
+        title: renderTemplate(rule.action.titleTemplate, contextValues),
+        message: renderTemplate(rule.action.messageTemplate, contextValues),
+        targetRole: rule.action.targetRole,
+        triggeredByEventId: event.eventId,
+        contextValues,
+      });
+      trace.push({
+        kind: 'threshold',
+        id: rule.id,
+        label: `Notification ${rule.id}`,
+        outcome: 'fired',
+        values: contextValues,
+        detail: `Aggregate ${tracker.aggregate} ${rule.threshold.comparator} ${rule.threshold.value} at event ${event.eventId}`,
+      });
+    }
+
+    bySide.set(scopeKey, tracker);
+  }
+
+  return {
+    instances,
+    record: {
+      engine: 'copalibre-rules',
+      ruleVersion: { id: rule.id, version: rule.version },
+      inputFacts: { eventCount: events.length },
+      output: instances.map((instance) => instance.identityKey),
+      trace,
+    },
+  };
+}
+
+/** Filters instances already delivered; delivery layers persist the keys. */
+export function dedupeNotifications(
+  alreadyDelivered: ReadonlySet<string>,
+  instances: readonly NotificationInstance[],
+): readonly NotificationInstance[] {
+  return instances.filter((instance) => !alreadyDelivered.has(instance.identityKey));
+}
+
+function qualifies(
+  predicate: NotificationPredicate,
+  descriptor: DisciplineDescriptor,
+  event: RecordedEvent,
+): boolean {
+  if (predicate.definitionCodes && !predicate.definitionCodes.includes(event.definitionCode)) {
+    return false;
+  }
+  if (predicate.categories) {
+    const definition = descriptor.eventDefinitions.find(
+      (candidate) => candidate.code === event.definitionCode,
+    );
+    if (!definition || !predicate.categories.includes(definition.category)) return false;
+  }
+  return true;
+}
+
+function scopeKeyFor(scope: NotificationScope, event: RecordedEvent): string {
+  switch (scope) {
+    case 'match':
+      return `match:${event.matchId}`;
+    case 'segment':
+      return `segment:${event.segmentId}`;
+    case 'side':
+      // The entrant, so a per-side counter reads the same in a duel and in an
+      // eight-lane heat.
+      return `match:${event.matchId}/side:${event.side ?? 'unknown'}`;
+    case 'person':
+      return `person:${event.personId ?? 'unknown'}`;
+  }
+}
+
+function contribution(aggregation: NotificationAggregation, event: RecordedEvent): number {
+  if (aggregation.kind === 'count') return 1;
+  const value = event.payload[aggregation.payloadField];
+  return typeof value === 'number' ? value : 0;
+}
+
+function meets(
+  threshold: { comparator: ThresholdComparator; value: number },
+  aggregate: number,
+): boolean {
+  switch (threshold.comparator) {
+    case '>=':
+      return aggregate >= threshold.value;
+    case '>':
+      return aggregate > threshold.value;
+    case '==':
+      return aggregate === threshold.value;
+    case '<=':
+      return aggregate <= threshold.value;
+    case '<':
+      return aggregate < threshold.value;
+  }
+}
+
+/**
+ * `{{key}}` substitution over the firing's own values, split by the same
+ * splitter the expression parameters use (0013) so a message is not a second
+ * little language. A key nobody published keeps its placeholder, which is how
+ * an operator sees that a template names something the rule does not carry.
+ */
+function renderTemplate(template: string, values: Readonly<Record<string, unknown>>): string {
+  return splitTemplate(template)
+    .map((segment) => {
+      if (segment.kind === 'literal') return segment.text;
+      const key = segment.source;
+      return key in values ? String(values[key]) : `{{${key}}}`;
+    })
+    .join('');
+}
+
+/**
+ * The notification rules a compiled ruleset configures (0014).
+ *
+ * They live in the ruleset's open config rather than in a column, because what
+ * a discipline alerts on is discipline configuration — and a malformed entry is
+ * skipped rather than throwing, since one bad rule must not stop a match from
+ * being operated.
+ */
+export function notificationRulesFrom(config: unknown): readonly NotificationRule[] {
+  if (typeof config !== 'object' || config === null) return [];
+  const declared = (config as { notificationRules?: unknown }).notificationRules;
+  if (!Array.isArray(declared)) return [];
+
+  return declared.filter(isNotificationRule);
+}
+
+function isNotificationRule(candidate: unknown): candidate is NotificationRule {
+  if (typeof candidate !== 'object' || candidate === null) return false;
+  const rule = candidate as Partial<NotificationRule>;
+  return (
+    typeof rule.id === 'string' &&
+    typeof rule.version === 'number' &&
+    typeof rule.scope === 'string' &&
+    typeof rule.predicate === 'object' &&
+    typeof rule.aggregation === 'object' &&
+    typeof rule.threshold === 'object' &&
+    typeof rule.semantics === 'object' &&
+    typeof rule.action === 'object'
+  );
+}

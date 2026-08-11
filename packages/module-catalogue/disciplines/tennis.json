@@ -1,0 +1,262 @@
+{
+  "alias": "tennis",
+  "version": "1.0.0",
+  "name": "Tennis",
+  "attribution": {
+    "author": "CopaLibre",
+    "licence": "AGPL-3.0-only",
+    "sourceUrl": "https://github.com/SebaSOFT/copalibre"
+  },
+  "participantTypes": ["individual", "team"],
+  "rosterConstraints": { "minPlayers": 1, "maxPlayers": 2 },
+  "segmentTypes": [
+    { "name": "set", "label": "Set", "timed": false },
+    { "name": "tiebreak", "label": "Tiebreak", "timed": false }
+  ],
+  "eventDefinitions": [
+    {
+      "code": "point",
+      "label": "Point",
+      "category": "positive",
+      "permittedSegmentTypes": ["set", "tiebreak"],
+      "actorRequirement": "person",
+      "payloadSchema": {
+        "type": "object",
+        "properties": { "ace": { "type": "boolean" }, "doubleFault": { "type": "boolean" } }
+      },
+      "effects": [{ "kind": "score", "awardTo": "actor", "delta": 1 }]
+    },
+    {
+      "code": "game-won",
+      "label": "Game won",
+      "category": "positive",
+      "permittedSegmentTypes": ["set", "tiebreak"],
+      "actorRequirement": "person",
+      "payloadSchema": { "type": "object", "properties": { "toLove": { "type": "boolean" } } },
+      "effects": [{ "kind": "statistic", "statisticCode": "games-won", "delta": 1 }]
+    },
+    {
+      "code": "segment-point",
+      "label": "Segment point",
+      "category": "neutral",
+      "permittedSegmentTypes": ["set", "tiebreak"],
+      "actorRequirement": "none",
+      "payloadSchema": {
+        "type": "object",
+        "properties": {
+          "segmentType": { "type": "string" },
+          "segmentIndex": { "type": ["number", "null"] },
+          "entrantId": { "type": ["string", "null"] },
+          "threshold": { "type": "number" },
+          "values": { "type": "object" }
+        },
+        "required": ["segmentType", "threshold"]
+      }
+    },
+    {
+      "code": "match-point",
+      "label": "Match point",
+      "category": "neutral",
+      "permittedSegmentTypes": ["set", "tiebreak"],
+      "actorRequirement": "none",
+      "payloadSchema": {
+        "type": "object",
+        "properties": {
+          "segmentType": { "type": "string" },
+          "segmentIndex": { "type": ["number", "null"] },
+          "entrantId": { "type": ["string", "null"] },
+          "threshold": { "type": "number" },
+          "values": { "type": "object" }
+        },
+        "required": ["segmentType", "threshold"]
+      }
+    },
+    {
+      "code": "margin-required",
+      "label": "Margin required",
+      "category": "neutral",
+      "permittedSegmentTypes": ["set", "tiebreak"],
+      "actorRequirement": "none",
+      "payloadSchema": {
+        "type": "object",
+        "properties": {
+          "segmentType": { "type": "string" },
+          "segmentIndex": { "type": ["number", "null"] },
+          "entrantId": { "type": ["string", "null"] },
+          "threshold": { "type": "number" },
+          "values": { "type": "object" }
+        },
+        "required": ["segmentType", "threshold"]
+      }
+    },
+    {
+      "code": "tiebreak-entered",
+      "label": "Tiebreak entered",
+      "category": "neutral",
+      "permittedSegmentTypes": ["set", "tiebreak"],
+      "actorRequirement": "none",
+      "payloadSchema": {
+        "type": "object",
+        "properties": {
+          "segmentType": { "type": "string" },
+          "segmentIndex": { "type": ["number", "null"] },
+          "entrantId": { "type": ["string", "null"] },
+          "threshold": { "type": "number" },
+          "values": { "type": "object" }
+        },
+        "required": ["segmentType", "threshold"]
+      }
+    }
+  ],
+  "statistics": [
+    { "code": "matches-won", "label": "Matches won", "aggregation": "sum" },
+    { "code": "matches-lost", "label": "Matches lost", "aggregation": "sum" },
+    { "code": "sets-won", "label": "Sets won", "aggregation": "sum" },
+    { "code": "sets-lost", "label": "Sets lost", "aggregation": "sum" },
+    { "code": "games-won", "label": "Games won", "aggregation": "sum" },
+    { "code": "games-lost", "label": "Games lost", "aggregation": "sum" },
+    { "code": "played", "label": "Played", "aggregation": "count" }
+  ],
+  "scoringInputs": [
+    { "code": "games", "label": "Games", "source": "event-derived" },
+    { "code": "sets", "label": "Sets", "source": "event-derived" }
+  ],
+  "availableFormats": [
+    "single-elimination",
+    "double-elimination",
+    "round-robin",
+    "round-robin-single-leg",
+    "round-robin-home-away"
+  ],
+  "notificationRuleCapabilities": ["threshold-count"],
+  "winCondition": {
+    "id": "tennis-best-of-three",
+    "rules": [
+      {
+        "id": "close-set-rule",
+        "type": "simple_rule",
+        "options": {},
+        "conditions": [],
+        "actions": [
+          {
+            "id": "require-set-margin",
+            "type": "requireMargin",
+            "options": {},
+            "params": [
+              {
+                "id": "margin",
+                "name": "margin",
+                "type": "simple_number",
+                "value": 2,
+                "options": {}
+              }
+            ]
+          },
+          {
+            "id": "close-set",
+            "type": "winSegment",
+            "options": {},
+            "params": [
+              {
+                "id": "segment",
+                "name": "segment",
+                "type": "simple_string",
+                "value": "set",
+                "options": {}
+              },
+              {
+                "id": "target",
+                "name": "target",
+                "type": "simple_number",
+                "value": 6,
+                "options": {}
+              },
+              {
+                "id": "tiebreakAt",
+                "name": "tiebreakAt",
+                "type": "simple_number",
+                "value": 6,
+                "options": {}
+              },
+              {
+                "id": "tiebreakTarget",
+                "name": "tiebreakTarget",
+                "type": "simple_number",
+                "value": 7,
+                "options": {}
+              },
+              {
+                "id": "tiebreakMargin",
+                "name": "tiebreakMargin",
+                "type": "simple_number",
+                "value": 2,
+                "options": {}
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "close-match-rule",
+        "type": "simple_rule",
+        "options": {},
+        "conditions": [],
+        "actions": [
+          {
+            "id": "close-match",
+            "type": "winMatch",
+            "options": {},
+            "params": [
+              {
+                "id": "unit",
+                "name": "unit",
+                "type": "simple_string",
+                "value": "set",
+                "options": {}
+              },
+              {
+                "id": "target",
+                "name": "target",
+                "type": "simple_number",
+                "value": "{{ 1 + 1 }}",
+                "options": { "expression": true }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "defaults": {
+    "format": "round-robin",
+    "registration": { "publicOpen": false, "requiresCheckIn": false },
+    "scoring": { "pointsPerWin": 2, "pointsPerDraw": 0, "pointsPerLoss": 0 },
+    "tiebreakers": ["matches-won", "sets-won", "games-won"],
+    "segments": { "bestOf": 3, "tiebreakInFinalSet": true }
+  },
+  "fieldPolicies": {
+    "format": { "permission": { "kind": "replaced" }, "mutationClass": "blocked_after_results" },
+    "registration.publicOpen": { "permission": { "kind": "replaced" }, "mutationClass": "safe" },
+    "registration.requiresCheckIn": {
+      "permission": { "kind": "replaced" },
+      "mutationClass": "requires_rebuild"
+    },
+    "registration.checkInClosesAt": {
+      "permission": { "kind": "replaced" },
+      "mutationClass": "requires_rebuild"
+    },
+    "scoring.pointsPerWin": {
+      "permission": { "kind": "replaced" },
+      "mutationClass": "blocked_after_results"
+    },
+    "tiebreakers": {
+      "permission": { "kind": "merged", "strategy": "union-list" },
+      "mutationClass": "requires_rebuild"
+    },
+    "winCondition": { "permission": { "kind": "replaced" }, "mutationClass": "requires_rebuild" },
+    "segments": {
+      "permission": { "kind": "merged", "strategy": "shallow-object" },
+      "mutationClass": "requires_rebuild"
+    }
+  }
+}

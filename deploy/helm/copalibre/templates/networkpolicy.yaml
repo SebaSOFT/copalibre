@@ -1,0 +1,57 @@
+{{- if .Values.networkPolicy.enabled }}
+{{- range $name, $role := .Values.roles }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "copalibre.fullname" $ }}-{{ $name }}
+  labels:
+    {{- include "copalibre.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $name }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: copalibre
+      app.kubernetes.io/instance: {{ $.Release.Name }}
+      app.kubernetes.io/component: {{ $name }}
+  policyTypes:
+    - Ingress
+  ingress:
+    # Other CopaLibre pods in this release may always reach each other
+    # (health checks, internal calls) regardless of public/internal role.
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: copalibre
+              app.kubernetes.io/instance: {{ $.Release.Name }}
+    {{- if has $name $.Values.networkPolicy.publicRoles }}
+    # Public-facing role (architecture principle "security boundaries follow
+    # exposure"): also allow ingress from outside the pod network — an
+    # ingress controller or NodePort reaching this Service.
+    - {}
+    {{- end }}
+---
+{{- end }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "copalibre.fullname" . }}-web
+  labels:
+    {{- include "copalibre.labels" . | nindent 4 }}
+    app.kubernetes.io/component: web
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: copalibre
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: web
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: copalibre
+              app.kubernetes.io/instance: {{ .Release.Name }}
+    # web is always public-facing, unlike roles gated by networkPolicy.publicRoles.
+    - {}
+{{- end }}

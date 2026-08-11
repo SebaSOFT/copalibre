@@ -1,0 +1,27 @@
+services:
+  caddy:
+    image: caddy:2.10-alpine
+    profiles: ['proxy-caddy-test']
+    volumes:
+      - ./deploy/proxy/test/Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      events:
+        condition: service_healthy
+
+  nginx:
+    image: nginx:1.29-alpine
+    profiles: ['proxy-nginx-test']
+    volumes:
+      - ./deploy/proxy/test/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      events:
+        condition: service_healthy
+
+  nginx-buffered:
+    image: nginx:1.29-alpine
+    profiles: ['proxy-buffered-test']
+    volumes:
+      - ./deploy/proxy/test/nginx-buffered.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      events:
+        condition: service_healthy

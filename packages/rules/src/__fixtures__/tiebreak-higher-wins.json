@@ -1,0 +1,17 @@
+{
+  "rankedGroups": [["alfa"], ["bravo"]],
+  "fullyResolved": true,
+  "trace": [
+    {
+      "kind": "comparator",
+      "id": "points",
+      "label": "Rule 1 (Points)",
+      "outcome": "resolved",
+      "values": {
+        "alfa": 9,
+        "bravo": 7
+      },
+      "detail": "Points resolved the tie"
+    }
+  ]
+}

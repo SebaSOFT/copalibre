@@ -1,0 +1,5870 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/health": {
+      "get": {
+        "description": "Reports the process role and release version. Deliberately public and dependency-free so it stays answerable during a dependency outage.",
+        "operationId": "HealthController_health",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Liveness probe",
+        "tags": [
+          "operations"
+        ]
+      }
+    },
+    "/ready": {
+      "get": {
+        "description": "Fails with 503 when the database schema does not match the version this release expects, so an operator who skipped \"copalibre migrate\" gets a failing probe instead of a half-working API.",
+        "operationId": "HealthController_ready",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Schema version mismatch or unmigrated database"
+          }
+        },
+        "summary": "Readiness probe",
+        "tags": [
+          "operations"
+        ]
+      }
+    },
+    "/organizations": {
+      "get": {
+        "description": "Requires \"?mine=true\" — the only filter this endpoint supports today. Returns every organization the caller holds a non-deleted, active role assignment in, with that role. Never requires an organization to already be known, so it also answers \"does this account belong to any organization at all\".",
+        "operationId": "OrganizationsController_listMine",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MyOrganizationResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List organizations the authenticated caller belongs to",
+        "tags": [
+          "organizations"
+        ]
+      },
+      "post": {
+        "description": "Requires the copalibre.super-admin scope. The alias is validated by the domain layer and must be lowercase kebab-case, unique per installation.",
+        "operationId": "OrganizationsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrganizationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token lacks the required scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create an organization",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations/{alias}": {
+      "get": {
+        "description": "Public projection; returns only published organization data.",
+        "operationId": "OrganizationsController_findByAlias",
+        "parameters": [
+          {
+            "name": "alias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Read an organization by alias",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/settings": {
+      "patch": {
+        "description": "Requires the organization admin role. Presentation-layer defaults only; never reinterprets stored data.",
+        "operationId": "OrganizationsController_updateSettings",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOrganizationSettingsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Requester is not an organization admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update an organization's primary language and/or timezone",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}": {
+      "get": {
+        "description": "A tournament alias is unique only within its organization, so both aliases are required.",
+        "operationId": "TournamentsController_findByScopedAlias",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TournamentResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Read a tournament by its organization-scoped alias",
+        "tags": [
+          "tournaments"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments": {
+      "post": {
+        "description": "Requires the copalibre.control scope and a token scoped to the target organization.",
+        "operationId": "TournamentsController_create",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTournamentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TournamentResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a tournament in draft status",
+        "tags": [
+          "tournaments"
+        ]
+      },
+      "get": {
+        "description": "Excludes archived tournaments — their own detail route still resolves directly.",
+        "operationId": "TournamentsController_listActive",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TournamentResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List the organization's active (non-archived) tournaments",
+        "tags": [
+          "tournaments"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/publish": {
+      "post": {
+        "description": "Transitions draft to published. Audited with previous and resulting state; publishing is not destructive, so no confirmation flag is required.",
+        "operationId": "TournamentsController_publish",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TournamentResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Publish a tournament",
+        "tags": [
+          "tournaments"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/archive": {
+      "post": {
+        "description": "Transitions finished to archived, legal only from finished. Changes default visibility only — no result, standing, registration, or audit data is affected, and the tournament's own canonical URL keeps resolving.",
+        "operationId": "TournamentsController_archive",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TournamentResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Archive a finished tournament",
+        "tags": [
+          "tournaments"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations": {
+      "get": {
+        "description": "Scoped to the named tournament; another tournament’s entrants are never included.",
+        "operationId": "RegistrationsController_list",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RegistrationResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List a tournament’s registrations",
+        "tags": [
+          "registrations"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/{entrantId}/review": {
+      "post": {
+        "description": "Audited individually with prior and resulting state.",
+        "operationId": "RegistrationsController_review",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entrantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewRegistrationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistrationResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Accept, refuse or withdraw one registration",
+        "tags": [
+          "registrations"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/bulk-review": {
+      "post": {
+        "description": "One audit row per registration, never one for the batch: \"approved 40\" does not answer \"why is this team in the draw\".",
+        "operationId": "RegistrationsController_bulkReview",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkReviewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkReviewResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Review several registrations",
+        "tags": [
+          "registrations"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/{entrantId}/team-memberships": {
+      "post": {
+        "description": "Refused once check-in has closed for a checked-in entrant, whatever a stale console still offers.",
+        "operationId": "RegistrationsController_editTeamMemberships",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entrantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditTeamMembershipsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistrationResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Edit a registration’s team memberships",
+        "tags": [
+          "registrations"
+        ]
+      }
+    },
+    "/disciplines": {
+      "get": {
+        "description": "The wizard filters formats from this response. A client-side list disagrees with the installation the day a module is added.",
+        "operationId": "DisciplinesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DisciplineSummaryResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "List installed disciplines and the formats they support",
+        "tags": [
+          "disciplines"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageId}/schedule": {
+      "get": {
+        "description": "Instants are epoch milliseconds; rendering them for a person is the surface's job.",
+        "operationId": "SchedulesController_read",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Read a stage's published schedule",
+        "tags": [
+          "schedules"
+        ]
+      },
+      "post": {
+        "description": "All or nothing: one conflicting assignment rejects the batch, so no partially-applied schedule is ever visible. Conflicts are reported the way the preview reports them.",
+        "operationId": "SchedulesController_publish",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Publish a schedule batch",
+        "tags": [
+          "schedules"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageId}/schedule/preview": {
+      "post": {
+        "description": "Runs the identical conflict detection the commit runs, against the identical state, and reports instead of writing — including which already-published fixtures the batch would move.",
+        "operationId": "SchedulesController_preview",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchedulePreviewResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Dry-run a schedule batch",
+        "tags": [
+          "schedules"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}": {
+      "get": {
+        "description": "Timers are derived from the event log at read time — nothing stores a countdown, so two surfaces reading the same match agree by construction.",
+        "operationId": "MatchControlController_state",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "matchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchStateResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Read a match’s live state",
+        "tags": [
+          "match-control"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/console": {
+      "get": {
+        "description": "Returns operator-only state after organization role and match-assignment checks. Public reads remain sanitized and never include capabilities, rosters, or descriptor input metadata.",
+        "operationId": "MatchControlController_console",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "matchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchConsoleResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read the authoritative state required by a match-control console",
+        "tags": [
+          "match-control"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/commands/{command}": {
+      "post": {
+        "description": "Pausing stops the clock, not the competition: a paused match is still in progress. Finalizing needs its own capability — recording events never implies declaring a result.",
+        "operationId": "MatchControlController_command",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "matchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "command",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "idempotency-key",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FinalizeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchStateResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Start, pause, resume or finalize",
+        "tags": [
+          "match-control"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/clock": {
+      "post": {
+        "operationId": "MatchControlController_adjustClock",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "matchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClockAdjustmentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchConsoleResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Adjust the authoritative elapsed time or active segment",
+        "tags": [
+          "match-control"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/timers/{timerId}/resolve": {
+      "post": {
+        "operationId": "MatchControlController_resolveTimer",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "matchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "timerId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchConsoleResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Resolve a discipline-declared timer early",
+        "tags": [
+          "match-control"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/events": {
+      "post": {
+        "description": "Validated against the discipline’s own event definitions: permitted segment, required actor, and a payload matching the declared schema. A side is an entrant id.",
+        "operationId": "MatchControlController_recordEvent",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "matchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordEventRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordedEventResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Record a discipline event",
+        "tags": [
+          "match-control"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/corrections/preview": {
+      "post": {
+        "description": "Reports whose numbers move and whether a started downstream stage blocks the rebuild — from the same function the commit uses, so a preview cannot promise what the commit refuses.",
+        "operationId": "MatchControlController_previewCorrection",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "matchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorrectionRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorrectionPreviewResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Dry-run a correction",
+        "tags": [
+          "match-control"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/corrections": {
+      "post": {
+        "description": "The only write path over a finalized outcome. The prior result, the replacement, the actor and the reason are kept together, and a started downstream stage is not rebuilt behind anyone’s back.",
+        "operationId": "MatchControlController_correct",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "matchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorrectionRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorrectionPreviewResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Supersede a result",
+        "tags": [
+          "match-control"
+        ]
+      },
+      "get": {
+        "description": "Every prior state in order, with the actor and reason each time — the chain, not the latest link.",
+        "operationId": "MatchControlController_history",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "matchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorrectionHistoryResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read what this result has been",
+        "tags": [
+          "match-control"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/imports": {
+      "post": {
+        "operationId": "DataImportExportController_create",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCsvImportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CsvImportPreviewResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Queue a CSV participant import for worker validation",
+        "tags": [
+          "data-import-export"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/imports/{importId}": {
+      "get": {
+        "operationId": "DataImportExportController_preview",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "importId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CsvImportPreviewResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read the worker-produced CSV import preview",
+        "tags": [
+          "data-import-export"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/imports/{importId}/commit": {
+      "post": {
+        "operationId": "DataImportExportController_commit",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "importId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommitCsvImportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CsvImportPreviewResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Commit a reviewed CSV preview atomically",
+        "tags": [
+          "data-import-export"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/exports/participants/{target}": {
+      "get": {
+        "operationId": "DataExportController_participants",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "target",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV participant export",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Export re-importable participant CSV by stable alias",
+        "tags": [
+          "data-import-export"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/exports/results": {
+      "get": {
+        "operationId": "DataExportController_results",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV result export",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Export calculated match results by participant alias",
+        "tags": [
+          "data-import-export"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/exports/standings": {
+      "get": {
+        "operationId": "DataExportController_standings",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV standings export",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Export calculated standings by participant alias",
+        "tags": [
+          "data-import-export"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/standings": {
+      "get": {
+        "description": "Rows come from the published projection; the trace is the rules engine’s own explanation, verbatim.",
+        "operationId": "StandingsController_standings",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandingsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Ranked standings for one stage, with the calculation’s trace",
+        "tags": [
+          "standings"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/standings/entrants/{entrantId}/trace": {
+      "get": {
+        "description": "Empty for a row no tiebreak comparator had to separate — the screen shows no expander for it.",
+        "operationId": "StandingsController_trace",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "entrantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TiebreakTraceResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The comparator chain that placed one entrant",
+        "tags": [
+          "standings"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/seeding": {
+      "get": {
+        "description": "Structure comes from the engine; status and scores from the recorded matches.",
+        "operationId": "SeedingController_seeding",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeedingResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The stage’s seed order and its generated bracket",
+        "tags": [
+          "seeding"
+        ]
+      },
+      "post": {
+        "description": "Classified before anything is written. Once a result exists, reseeding is refused here regardless of what the console allowed.",
+        "operationId": "SeedingController_publish",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublishSeedingRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeedingClassificationResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Publish a seed order",
+        "tags": [
+          "seeding"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages": {
+      "post": {
+        "description": "Number, name and format all default. Fixtures are not generated here — publish a seed order via POST .../stages/:stageNumber/seeding afterward.",
+        "operationId": "StagesController_create",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateStageRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a stage from the tournament’s accepted registrations",
+        "tags": [
+          "stages"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/display-tokens": {
+      "get": {
+        "operationId": "DisplayTokenController_list",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DisplayTokenResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List display tokens issued for this tournament’s /tv/** surfaces",
+        "tags": [
+          "broadcast"
+        ]
+      },
+      "post": {
+        "operationId": "DisplayTokenController_issue",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IssueDisplayTokenRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Shown once — provision the device with it, it is stored only as a hash",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DisplayTokenIssuedResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Issue a device-scoped display token for one /tv/** route",
+        "tags": [
+          "broadcast"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/display-tokens/{displayTokenId}": {
+      "delete": {
+        "operationId": "DisplayTokenController_revoke",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "displayTokenId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DisplayTokenResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Revoke one device’s display token",
+        "tags": [
+          "broadcast"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/roles": {
+      "get": {
+        "operationId": "OrganizationAccessController_list",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OrganizationRoleResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List active organization role assignments",
+        "tags": [
+          "organization-access"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/invitations": {
+      "post": {
+        "operationId": "OrganizationAccessController_invite",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteOrganizationUserRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Invitation queued for secure delivery",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationInvitationResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Invite an organization user by email",
+        "tags": [
+          "organization-access"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/roles/{assignmentId}": {
+      "patch": {
+        "operationId": "OrganizationAccessController_change",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "assignmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeOrganizationRoleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationRoleResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change an organization role or active status",
+        "tags": [
+          "organization-access"
+        ]
+      },
+      "delete": {
+        "operationId": "OrganizationAccessController_remove",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "assignmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationRoleResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Soft-delete an organization role assignment",
+        "tags": [
+          "organization-access"
+        ]
+      }
+    },
+    "/invitations/accept": {
+      "post": {
+        "operationId": "InvitationAcceptanceController_accept",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptInvitationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationRoleResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Accept an organization invitation",
+        "tags": [
+          "organization-access"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/participant/registrations": {
+      "get": {
+        "operationId": "ParticipantsController_registrations",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RegistrationResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List the participant's own registrations",
+        "tags": [
+          "participants"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/participant/team-memberships": {
+      "get": {
+        "operationId": "ParticipantsController_teamMemberships",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ParticipantTeamMembershipResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List the participant's own team memberships",
+        "tags": [
+          "participants"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/participant/reported-results": {
+      "get": {
+        "operationId": "ParticipantsController_reportedResults",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ParticipantReportedResultResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List results for the participant's own registrations",
+        "tags": [
+          "participants"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/participants/{personId}/identity-link": {
+      "post": {
+        "operationId": "ParticipantIdentityLinksController_link",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "personId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkParticipantIdentityRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParticipantIdentityLinkResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Pre-link a participant identity by email",
+        "tags": [
+          "participants"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/reports": {
+      "post": {
+        "description": "A candidate input to the operator-authorized correction workflow — never a direct change to the recorded result.",
+        "operationId": "ParticipantReportsController_submitReport",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "matchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitReportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParticipantReportResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Submit a proposed result for a match the participant is entered in",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/disputes": {
+      "post": {
+        "description": "The recorded result is unchanged by this call; it becomes actionable only through an operator-authorized correction citing this dispute.",
+        "operationId": "ParticipantReportsController_submitDispute",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "matchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitDisputeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParticipantReportResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Dispute a recorded result for a match the participant is entered in",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/reports": {
+      "get": {
+        "operationId": "ReportReviewController_listPending",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ParticipantReportResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List pending participant reports and disputes",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/reports/{reportId}/review": {
+      "post": {
+        "description": "Never applies a correction by itself — the recorded result is unaffected either way.",
+        "operationId": "ReportReviewController_review",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "reportId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewReportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParticipantReportResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark a report or dispute reviewed or dismissed",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/installation/bootstrap/admin": {
+      "post": {
+        "description": "Available only before the installation contains an organization. Requires the out-of-band bootstrap secret and returns a one-time OIDC invitation setup link.",
+        "operationId": "InstallationBootstrapController_createAdmin",
+        "parameters": [
+          {
+            "name": "x-copalibre-bootstrap-token",
+            "in": "header",
+            "description": "Operator-provided bootstrap secret. Never store this in browser code.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BootstrapAdministratorRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BootstrapAdministratorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Create first organization administrator",
+        "tags": [
+          "installation-bootstrap"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/overview": {
+      "get": {
+        "operationId": "PublicProjectionsController_overview",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicOverviewResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Overview of a tournament",
+        "tags": [
+          "Public Projections"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/live": {
+      "get": {
+        "operationId": "PublicProjectionsController_live",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicLiveResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Live matches of a tournament",
+        "tags": [
+          "Public Projections"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/bracket": {
+      "get": {
+        "operationId": "PublicProjectionsController_bracket",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicBracketResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Bracket for a stage",
+        "tags": [
+          "Public Projections"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "CopaLibre API",
+    "description": "Self-hosted tournament management API.\n\nAuthentication is JWT Bearer, validated against the operator-selected\nidentity provider’s JWKS. Browsers use Authorization Code + PKCE and\nhold the access token in memory only — never localStorage. A token\npassed as a query parameter is ignored, because URLs leak into proxy\nlogs, browser history, metrics, traces and screenshots.\n\nEvery route declares one security plane: public-read,\nauthenticated-interaction, admin-control, or integration.\nauthenticated-interaction and admin-control share this same bearer\ntransport and differ only in authorization policy.",
+    "version": "4.0.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http",
+        "description": "Short-lived access token. Strict stateless mode is the default: no refresh credential is persisted, so a reload reauthenticates."
+      }
+    },
+    "schemas": {
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "api",
+              "events",
+              "worker",
+              "scheduler",
+              "migrate",
+              "doctor"
+            ],
+            "description": "Process role this instance is running as"
+          },
+          "version": {
+            "type": "string",
+            "example": "0.0.0"
+          }
+        },
+        "required": [
+          "role",
+          "version"
+        ]
+      },
+      "ReadinessResponse": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "api",
+              "events",
+              "worker",
+              "scheduler",
+              "migrate",
+              "doctor"
+            ],
+            "description": "Process role this instance is running as"
+          },
+          "version": {
+            "type": "string",
+            "example": "0.0.0"
+          },
+          "schemaVersion": {
+            "type": "string",
+            "example": "0001-initial-schema",
+            "description": "Applied database schema version this release requires"
+          }
+        },
+        "required": [
+          "role",
+          "version",
+          "schemaVersion"
+        ]
+      },
+      "MyOrganizationResponse": {
+        "type": "object",
+        "properties": {
+          "organizationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "organizationAlias": {
+            "type": "string",
+            "description": "Human-readable, URL-safe alias; globally unique per installation",
+            "example": "liga-orbital"
+          },
+          "organizationName": {
+            "type": "string",
+            "example": "Liga Orbital"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "referee",
+              "broadcaster",
+              "viewer"
+            ],
+            "description": "The caller's active role in this organization"
+          }
+        },
+        "required": [
+          "organizationId",
+          "organizationAlias",
+          "organizationName",
+          "role"
+        ]
+      },
+      "ProblemResponse": {
+        "type": "object",
+        "properties": {
+          "statusCode": {
+            "type": "number",
+            "example": 403
+          },
+          "message": {
+            "type": "string",
+            "example": "subject may only act on their own records"
+          }
+        },
+        "required": [
+          "statusCode",
+          "message"
+        ]
+      },
+      "OrganizationResponse": {
+        "type": "object",
+        "properties": {
+          "organizationId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUIDv7 identifier"
+          },
+          "alias": {
+            "type": "string",
+            "description": "Human-readable, URL-safe alias; globally unique per installation",
+            "example": "liga-orbital"
+          },
+          "name": {
+            "type": "string",
+            "example": "Liga Orbital"
+          },
+          "primaryLanguage": {
+            "type": "string",
+            "enum": [
+              "en",
+              "es",
+              "fr",
+              "pt",
+              "it",
+              "de",
+              "ru",
+              "zh"
+            ],
+            "description": "Presentation-layer default interface language; never reinterprets stored data",
+            "example": "es"
+          },
+          "timezone": {
+            "type": "string",
+            "description": "IANA time zone identifier; presentation-layer default only",
+            "example": "America/Argentina/San_Juan"
+          }
+        },
+        "required": [
+          "organizationId",
+          "alias",
+          "name",
+          "primaryLanguage",
+          "timezone"
+        ]
+      },
+      "CreateOrganizationRequest": {
+        "type": "object",
+        "properties": {
+          "alias": {
+            "type": "string",
+            "description": "Lowercase kebab-case alias, unique per installation",
+            "example": "liga-orbital"
+          },
+          "name": {
+            "type": "string",
+            "example": "Liga Orbital"
+          },
+          "primaryLanguage": {
+            "type": "string",
+            "enum": [
+              "en",
+              "es",
+              "fr",
+              "pt",
+              "it",
+              "de",
+              "ru",
+              "zh"
+            ],
+            "description": "Defaults to \"es\" (matches this installation's current default behavior) when omitted",
+            "example": "es"
+          },
+          "timezone": {
+            "type": "string",
+            "description": "IANA time zone identifier; defaults to \"UTC\" when omitted",
+            "example": "America/Argentina/San_Juan"
+          }
+        },
+        "required": [
+          "alias",
+          "name"
+        ]
+      },
+      "UpdateOrganizationSettingsRequest": {
+        "type": "object",
+        "properties": {
+          "primaryLanguage": {
+            "type": "string",
+            "enum": [
+              "en",
+              "es",
+              "fr",
+              "pt",
+              "it",
+              "de",
+              "ru",
+              "zh"
+            ],
+            "example": "en"
+          },
+          "timezone": {
+            "type": "string",
+            "example": "America/Argentina/San_Juan"
+          }
+        }
+      },
+      "TournamentResponse": {
+        "type": "object",
+        "properties": {
+          "tournamentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "organizationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "alias": {
+            "type": "string",
+            "description": "Alias, unique within its organization",
+            "example": "copa-verano"
+          },
+          "name": {
+            "type": "string",
+            "example": "Copa Verano"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "published",
+              "started",
+              "finished",
+              "archived"
+            ],
+            "description": "Once started, the tournament's discipline and profile versions are frozen and its results are materialised. Archived is legal only from finished (0033) and changes default visibility only — no data is affected."
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the first match began, marking the module freeze."
+          },
+          "archivedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the tournament was archived (0033); absent until then."
+          },
+          "rulesetId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Active ruleset version, when one exists"
+          }
+        },
+        "required": [
+          "tournamentId",
+          "organizationId",
+          "alias",
+          "name",
+          "status"
+        ]
+      },
+      "CreateTournamentRequest": {
+        "type": "object",
+        "properties": {
+          "alias": {
+            "type": "string",
+            "example": "copa-verano"
+          },
+          "name": {
+            "type": "string",
+            "example": "Copa Verano"
+          },
+          "descriptorId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "DisciplineDescriptor identifier"
+          },
+          "descriptorVersion": {
+            "type": "string",
+            "description": "Pinned descriptor version (semver). Rulesets never track \"latest\": the version a tournament starts on is frozen.",
+            "example": "1.2.0"
+          },
+          "format": {
+            "type": "string",
+            "example": "round-robin"
+          },
+          "publicRegistration": {
+            "type": "boolean",
+            "description": "Whether anonymous/public registration intake is open for this tournament."
+          },
+          "requiresCheckIn": {
+            "type": "boolean",
+            "description": "Whether accepted entrants must check in before eligibility is locked."
+          },
+          "checkInClosesAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Optional instant when checked-in team memberships stop being editable."
+          }
+        },
+        "required": [
+          "alias",
+          "name",
+          "descriptorId",
+          "descriptorVersion",
+          "format",
+          "publicRegistration",
+          "requiresCheckIn"
+        ]
+      },
+      "TeamMemberResponse": {
+        "type": "object",
+        "properties": {
+          "personId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string",
+            "example": "Elías Salomón"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "player",
+              "substitute",
+              "coach",
+              "staff"
+            ]
+          }
+        },
+        "required": [
+          "personId",
+          "displayName",
+          "role"
+        ]
+      },
+      "RegistrationResponse": {
+        "type": "object",
+        "properties": {
+          "entrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tournamentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "accepted",
+              "refused",
+              "withdrawn",
+              "checked-in"
+            ]
+          },
+          "teamId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "personId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "teamMembers": {
+            "description": "The team entrant’s resulting membership. Populated only by a team-membership edit response.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamMemberResponse"
+            }
+          }
+        },
+        "required": [
+          "entrantId",
+          "tournamentId",
+          "status"
+        ]
+      },
+      "ReviewRegistrationRequest": {
+        "type": "object",
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "accepted",
+              "refused",
+              "withdrawn"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "description": "Recorded on the audit row. A refusal an entrant cannot be told about is one they will ask about."
+          }
+        },
+        "required": [
+          "decision"
+        ]
+      },
+      "BulkReviewRequest": {
+        "type": "object",
+        "properties": {
+          "entrantIds": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "format": "uuid"
+            }
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "accepted",
+              "refused",
+              "withdrawn"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "entrantIds",
+          "decision"
+        ]
+      },
+      "BulkReviewResponse": {
+        "type": "object",
+        "properties": {
+          "applied": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegistrationResponse"
+            }
+          },
+          "refused": {
+            "description": "Registrations left untouched, each with the reason — never silently skipped.",
+            "type": "array",
+            "items": {
+              "type": "array"
+            }
+          }
+        },
+        "required": [
+          "applied",
+          "refused"
+        ]
+      },
+      "EditTeamMembershipsRequest": {
+        "type": "object",
+        "properties": {
+          "personIds": {
+            "description": "The team’s full desired membership. Anyone currently a member but not named here is removed.",
+            "type": "array",
+            "items": {
+              "type": "array",
+              "format": "uuid"
+            }
+          }
+        },
+        "required": [
+          "personIds"
+        ]
+      },
+      "DisciplineSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "descriptorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "string",
+            "example": "1.2.0"
+          },
+          "name": {
+            "type": "string",
+            "example": "Fútbol 11"
+          },
+          "supportedFormats": {
+            "description": "Formats this discipline declares it supports. The client filters from this list rather than from its own copy — a hardcoded list is a list that disagrees with the module the day one is added.",
+            "example": [
+              "single-elimination",
+              "round-robin"
+            ],
+            "type": "array",
+            "items": {
+              "type": "array"
+            }
+          }
+        },
+        "required": [
+          "descriptorId",
+          "version",
+          "name",
+          "supportedFormats"
+        ]
+      },
+      "TimeWindowDto": {
+        "type": "object",
+        "properties": {
+          "startsAt": {
+            "type": "number",
+            "description": "Start of the reserved window, epoch milliseconds",
+            "example": 1785333600000
+          },
+          "durationMinutes": {
+            "type": "number",
+            "description": "How long the resource is reserved — not how long the match takes",
+            "example": 90
+          }
+        },
+        "required": [
+          "startsAt",
+          "durationMinutes"
+        ]
+      },
+      "ScheduleAssignmentDto": {
+        "type": "object",
+        "properties": {
+          "fixtureId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "window": {
+            "$ref": "#/components/schemas/TimeWindowDto"
+          },
+          "venueId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Venue hosting the fixture"
+          },
+          "officialIds": {
+            "description": "Officials assigned to the fixture",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "required": [
+          "fixtureId",
+          "window"
+        ]
+      },
+      "ScheduleResponse": {
+        "type": "object",
+        "properties": {
+          "assignments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScheduleAssignmentDto"
+            }
+          }
+        },
+        "required": [
+          "assignments"
+        ]
+      },
+      "RestRuleDto": {
+        "type": "object",
+        "properties": {
+          "minimumMinutes": {
+            "type": "number",
+            "description": "Minimum minutes between an entrant's consecutive fixtures",
+            "example": 45
+          }
+        },
+        "required": [
+          "minimumMinutes"
+        ]
+      },
+      "ScheduleRequest": {
+        "type": "object",
+        "properties": {
+          "assignments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScheduleAssignmentDto"
+            }
+          },
+          "restRule": {
+            "$ref": "#/components/schemas/RestRuleDto"
+          }
+        },
+        "required": [
+          "assignments"
+        ]
+      },
+      "ScheduleConflictDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "venue-double-booked",
+              "official-double-booked",
+              "rest-rule"
+            ],
+            "description": "Which rule the schedule breaks"
+          },
+          "fixtureId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "conflictsWithFixtureId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The fixture it clashes with"
+          },
+          "resourceId": {
+            "type": "string",
+            "description": "Venue, official or entrant the clash is about"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Human-readable explanation an operator can act on"
+          }
+        },
+        "required": [
+          "kind",
+          "fixtureId",
+          "conflictsWithFixtureId",
+          "resourceId",
+          "detail"
+        ]
+      },
+      "SchedulePreviewResponse": {
+        "type": "object",
+        "properties": {
+          "committable": {
+            "type": "boolean",
+            "description": "Whether the batch would publish as it stands"
+          },
+          "conflicts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScheduleConflictDto"
+            }
+          },
+          "affectedPublishedFixtures": {
+            "description": "Already-published fixtures this batch would move",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "required": [
+          "committable",
+          "conflicts",
+          "affectedPublishedFixtures"
+        ]
+      },
+      "MatchStateResponse": {
+        "type": "object",
+        "properties": {
+          "matchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "scheduled",
+              "in-progress",
+              "finalized"
+            ]
+          },
+          "clockRunning": {
+            "type": "boolean",
+            "description": "Whether the active segment’s clock is running"
+          },
+          "runningTimers": {
+            "description": "Timers still running, by event id",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "matchId",
+          "status",
+          "clockRunning",
+          "runningTimers"
+        ]
+      },
+      "ConsoleLiveScoreResponse": {
+        "type": "object",
+        "properties": {
+          "entrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "score": {
+            "type": "number",
+            "description": "Score folded from the immutable event log"
+          },
+          "statistics": {
+            "type": "object",
+            "description": "Declared statistic deltas folded from the event log"
+          }
+        },
+        "required": [
+          "entrantId",
+          "score",
+          "statistics"
+        ]
+      },
+      "ConsoleSegmentResponse": {
+        "type": "object",
+        "properties": {
+          "segmentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string"
+          },
+          "number": {
+            "type": "number"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "active",
+              "completed"
+            ]
+          },
+          "elapsedSeconds": {
+            "type": "number"
+          },
+          "durationSeconds": {
+            "type": "number",
+            "description": "Descriptor-declared duration for a timed segment"
+          }
+        },
+        "required": [
+          "segmentId",
+          "type",
+          "number",
+          "state",
+          "elapsedSeconds"
+        ]
+      },
+      "RunningTimerDto": {
+        "type": "object",
+        "properties": {
+          "timerId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The event that started it"
+          },
+          "side": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The entrant serving it"
+          },
+          "personId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "startedAt": {
+            "type": "number",
+            "description": "Epoch milliseconds of the causing event"
+          },
+          "durationSeconds": {
+            "type": "number"
+          },
+          "remainingSeconds": {
+            "type": "number",
+            "description": "Derived at read; never a stored countdown"
+          }
+        },
+        "required": [
+          "timerId",
+          "startedAt",
+          "durationSeconds",
+          "remainingSeconds"
+        ]
+      },
+      "ConsoleEventResponse": {
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "definitionCode": {
+            "type": "string"
+          },
+          "segmentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequence": {
+            "type": "number"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "side": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "personId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "eventId",
+          "definitionCode",
+          "segmentId",
+          "sequence",
+          "occurredAt"
+        ]
+      },
+      "MatchConsoleResponse": {
+        "type": "object",
+        "properties": {
+          "matchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "scheduled",
+              "in-progress",
+              "finalized"
+            ]
+          },
+          "result": {
+            "type": "object",
+            "description": "Resolved authoritative result when one exists"
+          },
+          "liveScores": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConsoleLiveScoreResponse"
+            }
+          },
+          "segments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConsoleSegmentResponse"
+            }
+          },
+          "runningTimers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunningTimerDto"
+            }
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConsoleEventResponse"
+            }
+          },
+          "eventDefinitions": {
+            "description": "Descriptor-owned palette presentation metadata",
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "eligiblePersonIds": {
+            "description": "Persons eligible for attribution from active match rosters",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "eligibleStaffIds": {
+            "description": "Coaches and staff attached to an entrant contesting this match",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "entrantIds": {
+            "description": "Entrants contesting this match",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "capabilities": {
+            "description": "Capabilities granted to this subject for this match",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "projectionVersion": {
+            "type": "number",
+            "description": "Monotonic server-issued projection version"
+          }
+        },
+        "required": [
+          "matchId",
+          "status",
+          "result",
+          "liveScores",
+          "segments",
+          "runningTimers",
+          "events",
+          "eventDefinitions",
+          "eligiblePersonIds",
+          "eligibleStaffIds",
+          "entrantIds",
+          "capabilities",
+          "projectionVersion"
+        ]
+      },
+      "FinalizeRequest": {
+        "type": "object",
+        "properties": {
+          "sides": {
+            "description": "One entry per side: entrant id, its declared statistics, and placement for a heat",
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "winnerEntrantId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Duel matches only"
+          }
+        },
+        "required": [
+          "sides"
+        ]
+      },
+      "ClockAdjustmentRequest": {
+        "type": "object",
+        "properties": {
+          "segmentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "elapsedSeconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "activate": {
+            "type": "boolean",
+            "description": "Make the selected segment the active clock segment"
+          }
+        },
+        "required": [
+          "segmentId",
+          "elapsedSeconds"
+        ]
+      },
+      "RecordEventRequest": {
+        "type": "object",
+        "properties": {
+          "definitionCode": {
+            "type": "string",
+            "description": "Event definition code the discipline declares",
+            "example": "goal"
+          },
+          "segmentId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Segment the event happened in"
+          },
+          "occurredAt": {
+            "type": "number",
+            "description": "When it happened, epoch milliseconds"
+          },
+          "side": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The entrant it belongs to — an id, never \"home\"/\"away\""
+          },
+          "personId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The person, when the discipline needs one"
+          },
+          "payload": {
+            "type": "object",
+            "description": "Payload validated against the definition"
+          }
+        },
+        "required": [
+          "definitionCode",
+          "segmentId",
+          "occurredAt"
+        ]
+      },
+      "RecordedEventResponse": {
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "definitionCode": {
+            "type": "string"
+          },
+          "sequence": {
+            "type": "number",
+            "description": "Monotonic per-match ordering assigned by the log"
+          },
+          "side": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "personId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "notifications": {
+            "description": "Identity keys of notifications this event declared, deduplicated on delivery",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "eventId",
+          "definitionCode",
+          "sequence",
+          "notifications"
+        ]
+      },
+      "CorrectionRequestDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "description": "Why the result is being corrected, in the operator’s words"
+          },
+          "sides": {
+            "description": "The replacement result, one entry per side",
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "winnerEntrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceReportId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "A participant report or dispute this correction cites (0032) — retained as supporting evidence in the audit trail. Citing one grants no authority of its own."
+          }
+        },
+        "required": [
+          "reason",
+          "sides"
+        ]
+      },
+      "BlockedPropagationDto": {
+        "type": "object",
+        "properties": {
+          "stageId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why nothing downstream was rebuilt"
+          }
+        },
+        "required": [
+          "stageId",
+          "reason"
+        ]
+      },
+      "CorrectionPreviewResponse": {
+        "type": "object",
+        "properties": {
+          "changedEntrantIds": {
+            "description": "Entrants whose recorded numbers move",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "blockedPropagation": {
+            "description": "Present when a started downstream stage is deliberately not rebuilt",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BlockedPropagationDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "changedEntrantIds"
+        ]
+      },
+      "CorrectionEntryDto": {
+        "type": "object",
+        "properties": {
+          "occurredAt": {
+            "type": "string"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "priorState": {
+            "type": "object",
+            "description": "What the result was"
+          },
+          "resultingState": {
+            "type": "object",
+            "description": "What it became"
+          }
+        },
+        "required": [
+          "occurredAt",
+          "actor",
+          "reason",
+          "priorState",
+          "resultingState"
+        ]
+      },
+      "CorrectionHistoryResponse": {
+        "type": "object",
+        "properties": {
+          "corrections": {
+            "description": "Oldest first — the chain, in order",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CorrectionEntryDto"
+            }
+          }
+        },
+        "required": [
+          "corrections"
+        ]
+      },
+      "CreateCsvImportRequest": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "enum": [
+              "individual",
+              "team",
+              "team-membership"
+            ],
+            "description": "\"individual\"/\"team\" register a new entrant; \"team-membership\" attaches each row's person onto an already-registered team named by that row's teamAlias — it never creates a team."
+          },
+          "sourceCsv": {
+            "type": "string",
+            "description": "UTF-8 CopaLibre participant CSV, limited to 4 MiB.",
+            "example": "alias,displayName,naturalKeyKind,naturalKey\\nmaria-perez,Maria Perez,dni,12345678"
+          }
+        },
+        "required": [
+          "target",
+          "sourceCsv"
+        ]
+      },
+      "CsvImportPreviewResponse": {
+        "type": "object",
+        "properties": {
+          "importId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "target": {
+            "type": "string",
+            "enum": [
+              "individual",
+              "team",
+              "team-membership"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "validating",
+              "review-ready",
+              "invalid",
+              "committing",
+              "committed"
+            ]
+          },
+          "sourceHash": {
+            "type": "string",
+            "description": "SHA-256 source fingerprint used to reject stale confirmation."
+          },
+          "preview": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "importId",
+          "target",
+          "status",
+          "sourceHash"
+        ]
+      },
+      "CommitCsvImportRequest": {
+        "type": "object",
+        "properties": {
+          "sourceHash": {
+            "type": "string",
+            "description": "Source hash returned by the reviewed preview."
+          }
+        },
+        "required": [
+          "sourceHash"
+        ]
+      },
+      "StandingsRowResponse": {
+        "type": "object",
+        "properties": {
+          "rank": {
+            "type": "number",
+            "description": "1-based; rows sharing a rank were not separated",
+            "example": 1
+          },
+          "entrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sharedRank": {
+            "type": "boolean",
+            "description": "True when another row holds the same rank"
+          },
+          "statistics": {
+            "type": "object",
+            "description": "Exactly the statistics the bound discipline declares, keyed by code",
+            "additionalProperties": {
+              "type": "number"
+            },
+            "example": {
+              "played": 6,
+              "won": 4,
+              "points": 13
+            }
+          },
+          "tieBroken": {
+            "type": "boolean",
+            "description": "True when a tiebreak comparator had to separate this row; the screen shows the trace expander only for these"
+          }
+        },
+        "required": [
+          "rank",
+          "entrantId",
+          "sharedRank",
+          "statistics",
+          "tieBroken"
+        ]
+      },
+      "StandingsResponse": {
+        "type": "object",
+        "properties": {
+          "stageId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "projectionVersion": {
+            "type": "number",
+            "description": "Generation of the standings projection; 0 before the first rebuild",
+            "example": 12
+          },
+          "fullyResolved": {
+            "type": "boolean",
+            "description": "False when a tie survived every declared comparator"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StandingsRowResponse"
+            }
+          },
+          "trace": {
+            "description": "The rules engine’s explanation trace for the whole calculation, rendered verbatim",
+            "example": [
+              "Rule 1 (Puntos): a=13, b=13 → Tie not fully resolved by Puntos"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "stageId",
+          "projectionVersion",
+          "fullyResolved",
+          "rows",
+          "trace"
+        ]
+      },
+      "TiebreakTraceResponse": {
+        "type": "object",
+        "properties": {
+          "entrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "lines": {
+            "description": "Empty when no comparator had to separate this entrant",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "entrantId",
+          "lines"
+        ]
+      },
+      "SeedAssignmentResponse": {
+        "type": "object",
+        "properties": {
+          "seed": {
+            "type": "number",
+            "description": "1-based seed",
+            "example": 3
+          },
+          "entrantId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "seed",
+          "entrantId"
+        ]
+      },
+      "BracketSlotResponse": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "Where this side comes from",
+            "enum": [
+              "entrant",
+              "bye",
+              "winner-of",
+              "loser-of"
+            ]
+          },
+          "entrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "matchId": {
+            "type": "string",
+            "description": "Match this slot sources its participant from"
+          },
+          "score": {
+            "type": "number",
+            "description": "Score recorded for this side, when the match is finalized"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "BracketMatchResponse": {
+        "type": "object",
+        "properties": {
+          "matchId": {
+            "type": "string",
+            "description": "Deterministic engine id, e.g. WB-R2-M1",
+            "example": "WB-R2-M1"
+          },
+          "bracket": {
+            "type": "string",
+            "enum": [
+              "winners",
+              "losers",
+              "grand-final",
+              "round-robin",
+              "placement"
+            ]
+          },
+          "round": {
+            "type": "number",
+            "description": "1-based round within the bracket"
+          },
+          "position": {
+            "type": "number",
+            "description": "1-based position within the round"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "scheduled",
+              "live",
+              "finalized"
+            ]
+          },
+          "format": {
+            "type": "string",
+            "description": "Declared match format, e.g. BO3 — absent when the stage declares none",
+            "example": "BO3"
+          },
+          "slots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BracketSlotResponse"
+            }
+          }
+        },
+        "required": [
+          "matchId",
+          "bracket",
+          "round",
+          "position",
+          "status",
+          "slots"
+        ]
+      },
+      "SeedingResponse": {
+        "type": "object",
+        "properties": {
+          "stageId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "single-elimination",
+              "double-elimination",
+              "round-robin",
+              "league"
+            ]
+          },
+          "seeds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SeedAssignmentResponse"
+            }
+          },
+          "matches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BracketMatchResponse"
+            }
+          },
+          "hasRecordedResults": {
+            "type": "boolean",
+            "description": "True once any match in this stage has a recorded result"
+          }
+        },
+        "required": [
+          "stageId",
+          "format",
+          "seeds",
+          "matches",
+          "hasRecordedResults"
+        ]
+      },
+      "PublishSeedingRequest": {
+        "type": "object",
+        "properties": {
+          "seeds": {
+            "description": "The full seed order, not a delta — a partial order is an ambiguous bracket",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SeedAssignmentResponse"
+            }
+          }
+        },
+        "required": [
+          "seeds"
+        ]
+      },
+      "SeedingClassificationResponse": {
+        "type": "object",
+        "properties": {
+          "mutationClass": {
+            "type": "string",
+            "enum": [
+              "safe",
+              "requires_rebuild",
+              "blocked_after_results"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why the change was classified this way"
+          },
+          "invalidates": {
+            "description": "Fixture ids this change invalidates; empty unless it requires a rebuild",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "persisted": {
+            "type": "boolean",
+            "description": "True once the new seed order and fixture graph are durably persisted. Always true for a 200 response — a publish that could not persist refuses with 409 instead of returning a partial success."
+          }
+        },
+        "required": [
+          "mutationClass",
+          "reason",
+          "invalidates",
+          "persisted"
+        ]
+      },
+      "CreateStageRequest": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "number",
+            "description": "Defaults to the tournament’s next sequential stage number. Refused as a conflict if a stage with this number already exists.",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "description": "Defaults to \"Stage {number}\".",
+            "example": "Fase de grupos"
+          },
+          "format": {
+            "type": "string",
+            "description": "Defaults to the tournament’s own configured format. Validated against the tournament’s discipline descriptor when supplied.",
+            "example": "round-robin"
+          }
+        }
+      },
+      "StageResponse": {
+        "type": "object",
+        "properties": {
+          "stageId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "seasonId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The tournament edition this stage belongs to (0015)"
+          },
+          "number": {
+            "type": "number",
+            "description": "1-based sequential number within the tournament",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Fase de grupos"
+          },
+          "format": {
+            "type": "string",
+            "example": "round-robin"
+          }
+        },
+        "required": [
+          "stageId",
+          "seasonId",
+          "number",
+          "name",
+          "format"
+        ]
+      },
+      "DisplayTokenResponse": {
+        "type": "object",
+        "properties": {
+          "displayTokenId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tournamentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "matchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "label": {
+            "type": "string"
+          },
+          "revoked": {
+            "type": "boolean"
+          },
+          "lastSeenAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last authorized page/stream request"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "displayTokenId",
+          "tournamentId",
+          "revoked",
+          "createdAt"
+        ]
+      },
+      "IssueDisplayTokenRequest": {
+        "type": "object",
+        "properties": {
+          "matchId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Pins the device to one match, not the full tournament rotation"
+          },
+          "label": {
+            "type": "string",
+            "description": "Operator-facing device label, e.g. \"Cancha 1 - TV entrada\""
+          }
+        }
+      },
+      "DisplayTokenIssuedResponse": {
+        "type": "object",
+        "properties": {
+          "displayTokenId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "token": {
+            "type": "string",
+            "description": "Shown once. Provision the device with it; it is never stored raw."
+          },
+          "url": {
+            "type": "string",
+            "description": "The /tv/** launch URL to configure on the device"
+          },
+          "label": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "displayTokenId",
+          "token",
+          "url"
+        ]
+      },
+      "OrganizationRoleResponse": {
+        "type": "object",
+        "properties": {
+          "assignmentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "principalId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "CopaLibre internal principal UUIDv7"
+          },
+          "email": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "referee",
+              "broadcaster",
+              "viewer"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive"
+            ]
+          }
+        },
+        "required": [
+          "assignmentId",
+          "principalId",
+          "email",
+          "role",
+          "status"
+        ]
+      },
+      "InviteOrganizationUserRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "referee",
+              "broadcaster",
+              "viewer"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive"
+            ]
+          }
+        },
+        "required": [
+          "email",
+          "role",
+          "status"
+        ]
+      },
+      "OrganizationInvitationResponse": {
+        "type": "object",
+        "properties": {
+          "invitationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "invitationId",
+          "expiresAt"
+        ]
+      },
+      "ChangeOrganizationRoleRequest": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "referee",
+              "broadcaster",
+              "viewer"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive"
+            ]
+          }
+        },
+        "required": [
+          "role",
+          "status"
+        ]
+      },
+      "AcceptInvitationRequest": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 32
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "ParticipantTeamMembershipResponse": {
+        "type": "object",
+        "properties": {
+          "playerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "teamId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "teamName": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "playerId",
+          "teamId",
+          "teamName",
+          "role"
+        ]
+      },
+      "ParticipantReportedResultResponse": {
+        "type": "object",
+        "properties": {
+          "matchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "entrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string"
+          },
+          "result": {
+            "type": "object",
+            "nullable": true
+          }
+        },
+        "required": [
+          "matchId",
+          "entrantId",
+          "status",
+          "result"
+        ]
+      },
+      "LinkParticipantIdentityRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "ParticipantIdentityLinkResponse": {
+        "type": "object",
+        "properties": {
+          "principalId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "personId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "principalId",
+          "personId"
+        ]
+      },
+      "ProposedResultSideDto": {
+        "type": "object",
+        "properties": {
+          "entrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "statistics": {
+            "type": "object",
+            "description": "Statistic values by code, as the participant saw them"
+          },
+          "placement": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "entrantId",
+          "statistics"
+        ]
+      },
+      "ProposedResultDto": {
+        "type": "object",
+        "properties": {
+          "sides": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProposedResultSideDto"
+            }
+          },
+          "winnerEntrantId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "sides"
+        ]
+      },
+      "EvidenceUploadDto": {
+        "type": "object",
+        "properties": {
+          "filename": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "contentBase64": {
+            "type": "string",
+            "description": "Base64-encoded file content"
+          }
+        },
+        "required": [
+          "filename",
+          "contentType",
+          "contentBase64"
+        ]
+      },
+      "SubmitReportRequest": {
+        "type": "object",
+        "properties": {
+          "proposedResult": {
+            "description": "What the participant believes the result was",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProposedResultDto"
+              }
+            ]
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EvidenceUploadDto"
+            }
+          }
+        },
+        "required": [
+          "proposedResult"
+        ]
+      },
+      "EvidenceFileResponse": {
+        "type": "object",
+        "properties": {
+          "evidenceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "type": "number"
+          },
+          "uploadedBy": {
+            "type": "string"
+          },
+          "uploadedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "validationStatus": {
+            "type": "string",
+            "description": "pending, passed, or failed — set by the async validation job"
+          }
+        },
+        "required": [
+          "evidenceId",
+          "filename",
+          "contentType",
+          "sizeBytes",
+          "uploadedBy",
+          "uploadedAt",
+          "validationStatus"
+        ]
+      },
+      "ParticipantReportResponse": {
+        "type": "object",
+        "properties": {
+          "reportId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "matchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "description": "report or dispute"
+          },
+          "submittedByPersonId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "proposedResult": {
+            "type": "object"
+          },
+          "status": {
+            "type": "string",
+            "description": "pending, reviewed, or dismissed"
+          },
+          "reviewedBy": {
+            "type": "string"
+          },
+          "reviewedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reviewNote": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EvidenceFileResponse"
+            }
+          }
+        },
+        "required": [
+          "reportId",
+          "matchId",
+          "kind",
+          "submittedByPersonId",
+          "submittedAt",
+          "status",
+          "createdAt",
+          "evidence"
+        ]
+      },
+      "SubmitDisputeRequest": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "description": "Why the recorded result is being disputed"
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EvidenceUploadDto"
+            }
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
+      "ReviewReportRequest": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "reviewed or dismissed — never applies a correction by itself"
+          },
+          "reviewNote": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "BootstrapAdministratorRequest": {
+        "type": "object",
+        "properties": {
+          "organizationAlias": {
+            "type": "string",
+            "example": "liga-orbital"
+          },
+          "organizationName": {
+            "type": "string",
+            "example": "Liga Orbital"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "admin@example.test"
+          }
+        },
+        "required": [
+          "organizationAlias",
+          "organizationName",
+          "email"
+        ]
+      },
+      "BootstrapAdministratorResponse": {
+        "type": "object",
+        "properties": {
+          "organizationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "organizationAlias": {
+            "type": "string",
+            "example": "liga-orbital"
+          },
+          "invitationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "setupUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "One-time OIDC invitation setup link."
+          }
+        },
+        "required": [
+          "organizationId",
+          "organizationAlias",
+          "invitationId",
+          "expiresAt",
+          "setupUrl"
+        ]
+      },
+      "PublicOverviewMatchResponse": {
+        "type": "object",
+        "properties": {
+          "matchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "stageNumber": {
+            "type": "number"
+          },
+          "round": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "upcoming",
+              "live",
+              "final"
+            ]
+          },
+          "homeEntrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "homeName": {
+            "type": "string"
+          },
+          "homeAbbreviation": {
+            "type": "string"
+          },
+          "awayEntrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "awayName": {
+            "type": "string"
+          },
+          "awayAbbreviation": {
+            "type": "string"
+          },
+          "homeScore": {
+            "type": "number"
+          },
+          "awayScore": {
+            "type": "number"
+          },
+          "scheduledAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "matchId",
+          "stageNumber",
+          "round",
+          "status"
+        ]
+      },
+      "PublicStandingsRowResponse": {
+        "type": "object",
+        "properties": {
+          "rank": {
+            "type": "number"
+          },
+          "entrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "abbreviation": {
+            "type": "string"
+          },
+          "sharedRank": {
+            "type": "boolean"
+          },
+          "statistics": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "rank",
+          "entrantId",
+          "name",
+          "sharedRank",
+          "statistics"
+        ]
+      },
+      "PublicOverviewResponse": {
+        "type": "object",
+        "properties": {
+          "organizationAlias": {
+            "type": "string"
+          },
+          "organizationName": {
+            "type": "string"
+          },
+          "tournamentAlias": {
+            "type": "string"
+          },
+          "tournamentName": {
+            "type": "string"
+          },
+          "seasonName": {
+            "type": "string"
+          },
+          "matches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicOverviewMatchResponse"
+            }
+          },
+          "standingsPreview": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicStandingsRowResponse"
+            }
+          },
+          "ruleset": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "organizationAlias",
+          "organizationName",
+          "tournamentAlias",
+          "tournamentName",
+          "seasonName",
+          "matches",
+          "ruleset"
+        ]
+      },
+      "PublicLiveMatchSideResponse": {
+        "type": "object",
+        "properties": {
+          "entrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "abbreviation": {
+            "type": "string"
+          },
+          "score": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "entrantId",
+          "name",
+          "score"
+        ]
+      },
+      "PublicLiveMatchResponse": {
+        "type": "object",
+        "properties": {
+          "matchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "matchNumber": {
+            "type": "number"
+          },
+          "state": {
+            "type": "string"
+          },
+          "projectionVersion": {
+            "type": "number"
+          },
+          "sides": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicLiveMatchSideResponse"
+            }
+          }
+        },
+        "required": [
+          "matchId",
+          "matchNumber",
+          "state",
+          "projectionVersion",
+          "sides"
+        ]
+      },
+      "PublicLiveResponse": {
+        "type": "object",
+        "properties": {
+          "matches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicLiveMatchResponse"
+            }
+          }
+        },
+        "required": [
+          "matches"
+        ]
+      },
+      "PublicBracketSlotResponse": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "Where this side comes from",
+            "enum": [
+              "entrant",
+              "bye",
+              "winner-of",
+              "loser-of"
+            ]
+          },
+          "entrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "abbreviation": {
+            "type": "string"
+          },
+          "matchId": {
+            "type": "string",
+            "description": "Match this slot sources its participant from"
+          },
+          "score": {
+            "type": "number",
+            "description": "Score recorded for this side, when the match is finalized"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "PublicBracketMatchResponse": {
+        "type": "object",
+        "properties": {
+          "matchId": {
+            "type": "string"
+          },
+          "bracket": {
+            "type": "string",
+            "enum": [
+              "winner",
+              "loser",
+              "consolation"
+            ]
+          },
+          "round": {
+            "type": "number"
+          },
+          "position": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string"
+          },
+          "format": {
+            "type": "string"
+          },
+          "slots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicBracketSlotResponse"
+            }
+          }
+        },
+        "required": [
+          "matchId",
+          "bracket",
+          "round",
+          "position",
+          "status",
+          "slots"
+        ]
+      },
+      "PublicBracketResponse": {
+        "type": "object",
+        "properties": {
+          "matches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicBracketMatchResponse"
+            }
+          }
+        },
+        "required": [
+          "matches"
+        ]
+      }
+    }
+  }
+}

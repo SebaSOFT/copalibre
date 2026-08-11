@@ -1,0 +1,17 @@
+{
+  "name": "@copalibre/contracts",
+  "version": "0.5.0-beta",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc --build",
+    "generate": "openapi-typescript openapi/v1.json --output src/generated/v1.ts"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.13.0",
+    "typescript": "^5"
+  },
+  "type": "module"
+}

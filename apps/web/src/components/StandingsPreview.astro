@@ -1,0 +1,37 @@
+---
+import type { IntlShape } from 'react-intl';
+import { shortLabel, type OverviewModel } from '../lib/overview.ts';
+import { messages } from '../lib/i18n/public-messages.en.ts';
+
+interface Props {
+  readonly model: OverviewModel;
+  readonly intl: IntlShape;
+}
+const { model, intl } = Astro.props;
+---
+
+<section aria-labelledby="standings-heading">
+  <h2 id="standings-heading">{intl.formatMessage(messages.standingsHeading)}</h2>
+  {model.standings.length === 0 && <p>{intl.formatMessage(messages.standingsEmpty)}</p>}
+  <table>
+    <thead>
+      <tr
+        ><th scope="col">#</th><th scope="col">{intl.formatMessage(messages.standingsTeam)}</th><th
+          scope="col">{intl.formatMessage(messages.standingsPlayed)}</th
+        ><th scope="col">{intl.formatMessage(messages.standingsPoints)}</th></tr
+      >
+    </thead>
+    <tbody>
+      {
+        model.standings.map((row) => (
+          <tr>
+            <td>{row.position}</td>
+            <td>{shortLabel(row)}</td>
+            <td class="cl-stat-tile__value">{row.played}</td>
+            <td class="cl-stat-tile__value">{row.points}</td>
+          </tr>
+        ))
+      }
+    </tbody>
+  </table>
+</section>

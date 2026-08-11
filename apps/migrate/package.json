@@ -1,0 +1,17 @@
+{
+  "name": "@copalibre/migrate",
+  "version": "0.5.0-beta",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "scripts": {
+    "build": "tsc --build",
+    "start": "tsc --build && node dist/main.js"
+  },
+  "dependencies": {
+    "@copalibre/persistence": "workspace:^"
+  },
+  "devDependencies": {
+    "typescript": "^5"
+  },
+  "type": "module"
+}

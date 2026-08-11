@@ -1,0 +1,30 @@
+---
+import type { IntlShape } from 'react-intl';
+import { seriesScore, seriesSegments, type SeriesInput } from '../lib/series.ts';
+import { messages } from '../lib/i18n/public-messages.en.ts';
+
+interface Props {
+  readonly series: SeriesInput;
+  readonly intl: IntlShape;
+}
+const { series, intl } = Astro.props;
+const segments = seriesSegments(series);
+const score = seriesScore(series);
+---
+
+<div
+  class="cl-series"
+  role="img"
+  aria-label={intl.formatMessage(messages.seriesAriaLabel, {
+    bestOf: series.bestOf,
+    home: score.home,
+    away: score.away,
+  })}
+>
+  {
+    segments.map((segment) => (
+      <span class={`cl-series__segment cl-series__segment--${segment} cl-chamfer`} />
+    ))
+  }
+</div>
+<p>{score.home} — {score.away}</p>

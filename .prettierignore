@@ -1,0 +1,21 @@
+node_modules/
+dist/
+coverage/
+.astro/
+.yarn/
+yarn.lock
+playwright-report/
+test-results/
+openspec/
+
+# Generated API contract. The generators are the only writers, so their output
+# must be canonical — Prettier reformatting it would make every CI regeneration
+# look like drift against the committed copy.
+packages/contracts/openapi/
+packages/contracts/src/generated/
+
+# Helm templates are Go template syntax wrapped in YAML, not plain YAML —
+# Prettier's YAML parser can't read `{{ }}` and fails on every file.
+# `helm lint`/`helm template` are this directory's own formatting/validity
+# gate instead.
+deploy/helm/copalibre/templates/

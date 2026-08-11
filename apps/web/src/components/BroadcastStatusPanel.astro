@@ -1,0 +1,22 @@
+---
+import type { IntlShape } from 'react-intl';
+import type { OverviewModel } from '../lib/overview.ts';
+import { messages } from '../lib/i18n/public-messages.en.ts';
+
+interface Props {
+  readonly model: OverviewModel;
+  readonly intl: IntlShape;
+}
+const { model, intl } = Astro.props;
+---
+
+{
+  /*
+  The stream this page would subscribe to, derived from the same input as the
+  page's own path. Announced politely: a score arriving mid-sentence should not
+  interrupt a screen reader.
+*/
+}
+<section class="cl-inline-alert cl-chamfer" aria-live="polite" data-stream={model.streamPath}>
+  <p>{intl.formatMessage(messages.broadcastStatusNote)}</p>
+</section>
