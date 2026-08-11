@@ -7,23 +7,43 @@ invariant 5 (no mandatory hosted account).
 ## Requirements
 ### Requirement: Single multi-role image
 The release SHALL ship one Docker image capable of running as any documented process role (`api`,
-`events`, `worker`, `scheduler`, `migrate`, `doctor`), selected at container start without rebuilding
-the image.
+`events`, `worker`, `scheduler`, `migrate`, `doctor`, `web`), selected at container start without
+rebuilding the image. The `web` role SHALL serve server-rendered public pages for the subset of public
+routes that require per-request backend data; it SHALL NOT replace the existing static delivery of
+every other public, control-panel-shell, help, and TV route, which continues to be served as static
+files by a separate process in front of it.
 
 #### Scenario: Same image runs two different roles
 - **WHEN** the image is started once with role `api` and again with role `worker`
 - **THEN** each container serves only its role's behavior and both report their role via `/health`
 
+#### Scenario: The web role serves only its designated dynamic routes
+- **WHEN** the image is started with role `web`
+- **THEN** it serves server-rendered responses for the tournament overview, live dashboard, and stage
+  bracket routes (and their locale-prefixed variants), and nothing else is expected to reach it
+  directly — every other public/control/help/TV route is served by the existing static file server
+
 ### Requirement: Docker Compose Level 1 install
 The repository SHALL provide a `docker-compose.yml` that starts a complete single-host CopaLibre
 installation (all process roles, PostgreSQL, and optional Redis/object storage/SMTP) with one
-command, and a separate dev profile with Compose Watch enabled.
+command, and a separate dev profile with Compose Watch enabled. The internal web reverse proxy SHALL
+route the tournament overview, live dashboard, and stage bracket URL shapes (and their locale-prefixed
+variants) to the `web` role's server-rendered responses, and SHALL serve every other route as a static
+file, unchanged.
 
 #### Scenario: One-command install
 - **WHEN** an operator with Docker installed runs the documented Compose-up command against a fresh
   host with no prior CopaLibre state
 - **THEN** every process role becomes healthy and the control web UI becomes reachable without
   further manual steps
+
+#### Scenario: A dynamic public route is served by the web role, everything else stays static
+- **WHEN** the Compose install is running and an anonymous visitor requests a tournament overview page
+- **THEN** the internal web reverse proxy forwards that request to the `web` role's server process
+- **WHEN** the same visitor requests a static public page, the control-panel shell, a help page, or a
+  TV page
+- **THEN** the internal web reverse proxy serves it directly from the static build output, without
+  involving the `web` role's server process
 
 ### Requirement: copalibre administrative CLI
 The release SHALL provide a `copalibre` CLI with `init`, `doctor`, `dev`, `dev --hybrid`, `start`,

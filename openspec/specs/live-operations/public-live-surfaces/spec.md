@@ -8,7 +8,10 @@ rely on color alone to communicate match or result state.
 ### Requirement: Live competition dashboard reflects current match state
 The public live dashboard SHALL show the current live match's clock, score, and series progress, and
 SHALL update this view when the public SSE channel emits a relevant event, without a full page
-reload.
+reload. The dashboard's initial (pre-SSE) state SHALL be fetched server-side, per request, from the
+tournament's real current match state — never from fixture/sample data — so the page is already
+correct before any script runs, and so a live match started after the site was last built is visible
+immediately.
 
 #### Scenario: Score update arrives over SSE
 - **WHEN** the public SSE channel emits a `match.updated` event with a new score for the currently displayed live match
@@ -18,9 +21,16 @@ reload.
 - **WHEN** the public SSE connection cannot be established
 - **THEN** the dashboard still renders the last known server-rendered match state instead of a blank or broken page
 
+#### Scenario: Dashboard reflects a match with no live activity
+- **WHEN** the requested tournament currently has no match in progress
+- **THEN** the dashboard renders without a fabricated live match, rather than showing sample match data
+
 ### Requirement: Bracket view never encodes result state by color alone
 Every winner/loser or match-state indicator in the public bracket view SHALL pair its color with a
-non-color cue (icon and/or text label).
+non-color cue (icon and/or text label). The bracket's structure and match state SHALL be fetched
+server-side, per request, from the stage's real recorded fixtures and results — never from fixture/
+sample data — so any published stage of any published tournament is reachable, not only one hardcoded
+stage.
 
 #### Scenario: Winner row has a redundant cue
 - **WHEN** a completed match's winner is displayed in the bracket
@@ -29,6 +39,11 @@ non-color cue (icon and/or text label).
 #### Scenario: Legend does not rely on color alone
 - **WHEN** the bracket page's result legend is rendered
 - **THEN** each legend entry shows a text label alongside its color swatch
+
+#### Scenario: An unpublished stage or tournament is not exposed
+- **WHEN** an anonymous visitor requests the bracket page for a stage whose tournament the organizer
+  has not published, or for a stage number that does not exist in the tournament
+- **THEN** the public site returns a not-found response and exposes no operational data about it
 
 ### Requirement: Unresolved bracket rounds are clearly marked pending
 A bracket round whose participants are not yet determined SHALL render as a distinct pending/TBD
