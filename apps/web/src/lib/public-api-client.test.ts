@@ -3,7 +3,7 @@ import { fetchOverview, fetchLive, fetchBracket } from './public-api-client.js';
 
 describe('public-api-client', () => {
   beforeEach(() => {
-    global.fetch = jest.fn() as any;
+    global.fetch = jest.fn() as unknown as typeof fetch;
     process.env.COPALIBRE_API_INTERNAL_URL = 'http://api.test';
   });
 
@@ -15,7 +15,7 @@ describe('public-api-client', () => {
   describe('fetchOverview', () => {
     it('returns parsed json on 200', async () => {
       const mockData = { tournamentAlias: 'test' };
-      (global.fetch as any).mockResolvedValueOnce({
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
         ok: true,
         status: 200,
         json: async () => mockData,
@@ -27,7 +27,7 @@ describe('public-api-client', () => {
     });
 
     it('returns undefined on 404', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
         ok: false,
         status: 404,
       } as unknown as Response);
@@ -37,7 +37,7 @@ describe('public-api-client', () => {
     });
 
     it('throws on non-404 failure', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
         ok: false,
         status: 500,
         statusText: 'Internal Server Error',
@@ -50,7 +50,7 @@ describe('public-api-client', () => {
   describe('fetchLive', () => {
     it('returns parsed json on 200', async () => {
       const mockData = { matches: [] };
-      (global.fetch as any).mockResolvedValueOnce({
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
         ok: true,
         status: 200,
         json: async () => mockData,
@@ -62,7 +62,7 @@ describe('public-api-client', () => {
     });
 
     it('returns undefined on 404', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
         ok: false,
         status: 404,
       } as unknown as Response);
@@ -72,7 +72,7 @@ describe('public-api-client', () => {
     });
 
     it('throws on non-404 failure', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
         ok: false,
         status: 500,
         statusText: 'Internal Server Error',
@@ -85,7 +85,7 @@ describe('public-api-client', () => {
   describe('fetchBracket', () => {
     it('returns parsed json on 200', async () => {
       const mockData = { matches: [] };
-      (global.fetch as any).mockResolvedValueOnce({
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
         ok: true,
         status: 200,
         json: async () => mockData,
@@ -97,7 +97,7 @@ describe('public-api-client', () => {
     });
 
     it('returns undefined on 404', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
         ok: false,
         status: 404,
       } as unknown as Response);
@@ -107,7 +107,7 @@ describe('public-api-client', () => {
     });
 
     it('throws on non-404 failure', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
         ok: false,
         status: 500,
         statusText: 'Internal Server Error',

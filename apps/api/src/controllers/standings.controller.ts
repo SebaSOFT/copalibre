@@ -16,15 +16,8 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { traceForEntrant, traceLines } from '@copalibre/rules';
-import type { TraceNode } from '@copalibre/rules';
-import { computeStandings } from '@copalibre/tournament-engine';
 import {
-  CompetitionRepository,
-  CompetitionRecordRepository,
   OrganizationRepository,
-  ProjectionStore,
-  StageReadModel,
   TournamentRepository,
   type Database,
 } from '@copalibre/persistence';
@@ -35,7 +28,7 @@ import { RequireOrganizationRole } from '../auth/access-requirement.js';
 import { ProblemResponse } from '../dto/organization.dto.js';
 import { StandingsResponse, TiebreakTraceResponse } from '../dto/standings.dto.js';
 import { enforcePolicy } from '../policy/resource-policy.js';
-import { standingsPipeline } from '../standings/pipeline.js';
+
 import { DATABASE } from '../database.token.js';
 
 import { readStandings, storedTraceLinesForEntrant } from '../standings/read.js';

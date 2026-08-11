@@ -37,7 +37,7 @@ if (!overviewData) {
   return Astro.rewrite('/404');
 }
 
-const model = buildOverview(mapOverviewResponse(overviewData, resolvedLocale));
+const model = buildOverview(mapOverviewResponse(overviewData));
 ---
 
 <PublicLayout

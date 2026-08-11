@@ -93,9 +93,10 @@ export class PublicProjectionsController {
     }
 
     const stages = await new CompetitionRepository(this.db).listStages(season.seasonId);
-    let standingsPreview: any = undefined;
+    let standingsPreview: PublicOverviewResponse['standingsPreview'] = undefined;
     if (stages.length > 0) {
-      const stage = stages[0]!;
+      const stage = stages[0];
+      if (stage) {
       const standings = await readStandings(this.db, tournament, stage.number);
 
       const standingsEntrantIds = standings.rows.map((r) => r.entrantId);
@@ -111,6 +112,7 @@ export class PublicProjectionsController {
         sharedRank: r.sharedRank,
         statistics: r.statistics,
       }));
+      }
     }
 
     return {
@@ -227,7 +229,10 @@ export class PublicProjectionsController {
 
     const stageMatchesMapped = await new StageReadModel(this.db).matches(stage.stageId);
 
-    const generated = generateFixtures({ format: stage.format as any, entrants: [] });
+    const generated = generateFixtures({
+      format: stage.format as Parameters<typeof generateFixtures>[0]['format'],
+      entrants: [],
+    });
     if (!generated.ok) {
       return { matches: [] };
     }

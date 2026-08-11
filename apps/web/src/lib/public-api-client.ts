@@ -5,8 +5,8 @@ import type {
   PublicBracketResponse,
   PublicStandingsRowResponse,
 } from '@copalibre/api/src/dto/public-tournament.dto.js';
-import type { OverviewInput, OverviewMatch, StandingsRowView, MatchState } from './overview.js';
-import type { LiveDashboard, LiveMatch, LiveSide } from './live-state.js';
+import type { OverviewInput, MatchState } from './overview.js';
+import type { LiveDashboard } from './live-state.js';
 import type { BracketMatch, SlotSource } from './bracket.js';
 
 function getApiBaseUrl(): string {
@@ -60,7 +60,6 @@ export async function fetchBracket(
 
 export function mapOverviewResponse(
   response: PublicOverviewResponse,
-  locale?: string,
 ): OverviewInput {
   return {
     organizationAlias: response.organizationAlias,
