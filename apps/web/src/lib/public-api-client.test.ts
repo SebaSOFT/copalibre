@@ -1,5 +1,12 @@
 import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
-import { fetchOverview, fetchLive, fetchBracket, mapOverviewResponse, mapLiveResponse, mapBracketResponse } from './public-api-client.js';
+import {
+  fetchOverview,
+  fetchLive,
+  fetchBracket,
+  mapOverviewResponse,
+  mapLiveResponse,
+  mapBracketResponse,
+} from './public-api-client.js';
 
 describe('public-api-client', () => {
   const originalFetch = global.fetch;
@@ -158,7 +165,9 @@ describe('public-api-client', () => {
           },
         ],
       };
-      const result = mapOverviewResponse(response as any);
+      const result = mapOverviewResponse(
+        response as unknown as Parameters<typeof mapOverviewResponse>[0],
+      );
       expect(result.organizationAlias).toBe('org');
       expect(result.ruleset).toEqual([{ label: 'pointsForWin', value: 3 }]);
       expect(result.matches[0].home.name).toBe('H');
@@ -188,7 +197,9 @@ describe('public-api-client', () => {
           },
         ],
       };
-      const result = mapOverviewResponse(response as any);
+      const result = mapOverviewResponse(
+        response as unknown as Parameters<typeof mapOverviewResponse>[0],
+      );
       expect(result.matches[0].home.name).toBe('TBD');
       expect(result.matches[0].startsAt).toBe('');
       expect(result.standings[0].played).toBe(0);
@@ -204,13 +215,11 @@ describe('public-api-client', () => {
             matchNumber: 1,
             state: 'in-progress',
             projectionVersion: 2,
-            sides: [
-              { entrantId: 'e1', name: 'A', abbreviation: 'A', score: 1 },
-            ],
+            sides: [{ entrantId: 'e1', name: 'A', abbreviation: 'A', score: 1 }],
           },
         ],
       };
-      const result = mapLiveResponse(response as any);
+      const result = mapLiveResponse(response as unknown as Parameters<typeof mapLiveResponse>[0]);
       expect(result.usingLastKnown).toBe(true);
       expect(result.matches[0].matchId).toBe('m1');
       expect(result.matches[0].sides[0].entrantId).toBe('e1');
@@ -236,15 +245,21 @@ describe('public-api-client', () => {
           },
         ],
       };
-      const result = mapBracketResponse(response as any);
+      const result = mapBracketResponse(
+        response as unknown as Parameters<typeof mapBracketResponse>[0],
+      );
       expect(result.matches[0].matchNumber).toBe(1);
       expect(result.matches[0].slots[0]).toEqual({ kind: 'entrant', name: 'A', abbreviation: 'A' });
       expect(result.matches[0].slots[1]).toEqual({ kind: 'winner-of', matchNumber: 2 });
       expect(result.matches[0].slots[2]).toEqual({ kind: 'loser-of', matchNumber: 3 });
-      expect(result.matches[0].slots[3]).toEqual({ kind: 'entrant', name: 'TBD', abbreviation: undefined });
+      expect(result.matches[0].slots[3]).toEqual({
+        kind: 'entrant',
+        name: 'TBD',
+        abbreviation: undefined,
+      });
       expect(result.matches[0].scores).toEqual([1, 0, 0, undefined]);
     });
-    
+
     it('handles missing matchId for winner/loser', () => {
       const response = {
         matches: [
@@ -260,7 +275,9 @@ describe('public-api-client', () => {
           },
         ],
       };
-      const result = mapBracketResponse(response as any);
+      const result = mapBracketResponse(
+        response as unknown as Parameters<typeof mapBracketResponse>[0],
+      );
       expect(result.matches[0].slots[0]).toEqual({ kind: 'winner-of', matchNumber: 0 });
       expect(result.matches[0].slots[1]).toEqual({ kind: 'loser-of', matchNumber: 0 });
     });
