@@ -174,6 +174,26 @@ services:
           action: rebuild
     profiles: ['containerized']
 
+  web-ssr:
+    build: *application-build
+    environment:
+      <<: *development-environment
+      PRODUCT_ROLE: web
+      PORT: 3005
+      COPALIBRE_API_INTERNAL_URL: http://api:3001
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - '3005:3005'
+    develop:
+      watch:
+        - path: ./apps/web
+          action: rebuild
+        - path: ./packages
+          action: rebuild
+    profiles: ['containerized']
+
   web:
     build:
       context: .

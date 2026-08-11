@@ -404,11 +404,37 @@ describe('api routes (integration)', () => {
       expect(response.statusCode).toBe(200);
       expect(JSON.parse(response.payload as string).alias).toBe(publishedTournament.alias);
     });
+
+    it('returns 404 for a draft tournament', async () => {
+      const tournaments = new TournamentRepository(scratch.db as Kysely<Database>);
+      const descriptor = footballDescriptor();
+      const draft = await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+        await tournaments.saveDescriptor(uow, descriptor, {
+          organizationId,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+        return tournaments.create(uow, {
+          organizationId,
+          alias: 'copa-draft-test',
+          name: 'Copa Draft Test',
+          descriptor,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+      });
+
+      const response = await request({
+        method: 'GET',
+        url: `/organizations/liga-orbital/tournaments/${draft.alias}`,
+      });
+      expect(response.statusCode).toBe(404);
+    });
   });
 
   describe('public projections routes (0067)', () => {
-    let publishedTournament: TournamentRecord;
-    let draftTournament: TournamentRecord;
+    let publishedTournament: Awaited<ReturnType<TournamentRepository['create']>>;
+    let draftTournament: Awaited<ReturnType<TournamentRepository['create']>>;
 
     beforeAll(async () => {
       const tournaments = new TournamentRepository(scratch.db);

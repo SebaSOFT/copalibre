@@ -3,7 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
-const DIST = join(ROOT, '../dist');
+const DIST = join(ROOT, '../dist/client');
 const STARLIGHT_ROOT = join(ROOT, '../../../node_modules/@astrojs/starlight');
 const CUSTOM_CSS = join(ROOT, '../src/styles/help.css');
 const failures = [];
@@ -27,7 +27,6 @@ const help = readOutput('help/index.html');
 const gettingStarted = readOutput('help/getting-started/index.html');
 const apiReference = readOutput('help/api-reference/index.html');
 const publicHome = readOutput('index.html');
-const publicOverview = readOutput('liga-mendocina/tournaments/apertura-2026/index.html');
 const controlHome = readOutput('control/index.html');
 const customCss = readFileSync(CUSTOM_CSS, 'utf8');
 const starlightSource = readTree(STARLIGHT_ROOT)
@@ -46,7 +45,6 @@ check(
 );
 check('Starlight source does not define CopaLibre tokens', !starlightSource.includes('--cl-'));
 check('public home does not render Starlight markup', !publicHome.includes('starlight'));
-check('public overview needs no JavaScript', !/<script/.test(publicOverview));
 check('control home does not render Starlight markup', !controlHome.includes('starlight'));
 check(
   'API reference reads the local OpenAPI artifact',

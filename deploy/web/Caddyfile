@@ -7,6 +7,11 @@
 		respond "{\"oidcIssuer\":\"{$COPALIBRE_JWT_ISSUER}\",\"oidcClientId\":\"{$COPALIBRE_OIDC_CLIENT_ID}\"}" 200
 	}
 
+	@ssr path_regexp ^(?:/(?:es|fr|pt|it|de|ru|zh))?/[^/]+/tournaments/[^/]+(?:/live|/stages/\d+)?/?$
+	handle @ssr {
+		reverse_proxy web-ssr:3005
+	}
+
 	# Every authenticated control-panel screen beyond the login page shares
 	# one client-routed shell (0061) — real files (the login page at
 	# /control/, its own static assets, and /control/callback once 0062

@@ -26,6 +26,8 @@ import {
   ParticipantReportsController,
   ReportReviewController,
 } from '../controllers/reports.controller.js';
+import { PublicProjectionsController } from '../controllers/public-projections.controller.js';
+
 
 /**
  * The controllers the OpenAPI artifact is generated from.
@@ -56,4 +58,5 @@ export const OPENAPI_CONTROLLERS = [
   ParticipantReportsController,
   ReportReviewController,
   InstallationBootstrapController,
+  PublicProjectionsController,
 ] as const;

@@ -6,6 +6,7 @@ export const PRODUCT_ROLES = [
   'migrate',
   'doctor',
   'upgrade-check',
+  'web',
 ] as const;
 
 export type ProductRole = (typeof PRODUCT_ROLES)[number];

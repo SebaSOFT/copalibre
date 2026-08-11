@@ -8,6 +8,7 @@ import {
   CompetitionRepository,
   withTransaction,
   StageReadModel,
+  PublicOverviewReadModel,
 } from '@copalibre/persistence';
 import {
   PublicOverviewResponse,
@@ -18,7 +19,7 @@ import {
 import { Kysely } from 'kysely';
 import { DATABASE } from '../database.token.js';
 import { readStandings } from '../standings/read.js';
-import { PublicOverviewReadModel } from '../../../../packages/persistence/src/projections/public-overview-read-model.js';
+
 import { toBracketMatch, ambiguousRoundPositions } from './seeding.controller.js';
 import { generateFixtures } from '@copalibre/tournament-engine';
 

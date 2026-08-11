@@ -4,10 +4,13 @@ import react from '@astrojs/react';
 import starlight from '@astrojs/starlight';
 import starlightLlmsTxt from 'starlight-llms-txt';
 
+import node from '@astrojs/node';
+
 // React is wired now but only used from /control/** routes starting at
 // 0022-control-web-shell-and-org-dashboard (see openspec/changes/README.md).
 export default defineConfig({
   site: process.env.COPALIBRE_SITE ?? 'http://localhost:4321',
+  adapter: node({ mode: 'standalone' }),
   // Starlight otherwise enables Astro prefetch globally, adding JavaScript to
   // public broadcast pages that must remain useful without it. ClientRouter
   // continues to handle documentation navigation after a click.

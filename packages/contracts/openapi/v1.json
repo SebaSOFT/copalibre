@@ -3282,6 +3282,131 @@
           "installation-bootstrap"
         ]
       }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/overview": {
+      "get": {
+        "operationId": "PublicProjectionsController_overview",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicOverviewResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Overview of a tournament",
+        "tags": [
+          "Public Projections"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/live": {
+      "get": {
+        "operationId": "PublicProjectionsController_live",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicLiveResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Live matches of a tournament",
+        "tags": [
+          "Public Projections"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/bracket": {
+      "get": {
+        "operationId": "PublicProjectionsController_bracket",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicBracketResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Bracket for a stage",
+        "tags": [
+          "Public Projections"
+        ]
+      }
     }
   },
   "info": {
@@ -5438,6 +5563,306 @@
           "invitationId",
           "expiresAt",
           "setupUrl"
+        ]
+      },
+      "PublicOverviewMatchResponse": {
+        "type": "object",
+        "properties": {
+          "matchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "stageNumber": {
+            "type": "number"
+          },
+          "round": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "upcoming",
+              "live",
+              "final"
+            ]
+          },
+          "homeEntrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "homeName": {
+            "type": "string"
+          },
+          "homeAbbreviation": {
+            "type": "string"
+          },
+          "awayEntrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "awayName": {
+            "type": "string"
+          },
+          "awayAbbreviation": {
+            "type": "string"
+          },
+          "homeScore": {
+            "type": "number"
+          },
+          "awayScore": {
+            "type": "number"
+          },
+          "scheduledAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "matchId",
+          "stageNumber",
+          "round",
+          "status"
+        ]
+      },
+      "PublicStandingsRowResponse": {
+        "type": "object",
+        "properties": {
+          "rank": {
+            "type": "number"
+          },
+          "entrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "abbreviation": {
+            "type": "string"
+          },
+          "sharedRank": {
+            "type": "boolean"
+          },
+          "statistics": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "rank",
+          "entrantId",
+          "name",
+          "sharedRank",
+          "statistics"
+        ]
+      },
+      "PublicOverviewResponse": {
+        "type": "object",
+        "properties": {
+          "organizationAlias": {
+            "type": "string"
+          },
+          "organizationName": {
+            "type": "string"
+          },
+          "tournamentAlias": {
+            "type": "string"
+          },
+          "tournamentName": {
+            "type": "string"
+          },
+          "seasonName": {
+            "type": "string"
+          },
+          "matches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicOverviewMatchResponse"
+            }
+          },
+          "standingsPreview": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicStandingsRowResponse"
+            }
+          },
+          "ruleset": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "organizationAlias",
+          "organizationName",
+          "tournamentAlias",
+          "tournamentName",
+          "seasonName",
+          "matches",
+          "ruleset"
+        ]
+      },
+      "PublicLiveMatchSideResponse": {
+        "type": "object",
+        "properties": {
+          "entrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "abbreviation": {
+            "type": "string"
+          },
+          "score": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "entrantId",
+          "name",
+          "score"
+        ]
+      },
+      "PublicLiveMatchResponse": {
+        "type": "object",
+        "properties": {
+          "matchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "matchNumber": {
+            "type": "number"
+          },
+          "state": {
+            "type": "string"
+          },
+          "projectionVersion": {
+            "type": "number"
+          },
+          "sides": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicLiveMatchSideResponse"
+            }
+          }
+        },
+        "required": [
+          "matchId",
+          "matchNumber",
+          "state",
+          "projectionVersion",
+          "sides"
+        ]
+      },
+      "PublicLiveResponse": {
+        "type": "object",
+        "properties": {
+          "matches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicLiveMatchResponse"
+            }
+          }
+        },
+        "required": [
+          "matches"
+        ]
+      },
+      "PublicBracketSlotResponse": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "Where this side comes from",
+            "enum": [
+              "entrant",
+              "bye",
+              "winner-of",
+              "loser-of"
+            ]
+          },
+          "entrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "abbreviation": {
+            "type": "string"
+          },
+          "matchId": {
+            "type": "string",
+            "description": "Match this slot sources its participant from"
+          },
+          "score": {
+            "type": "number",
+            "description": "Score recorded for this side, when the match is finalized"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "PublicBracketMatchResponse": {
+        "type": "object",
+        "properties": {
+          "matchId": {
+            "type": "string"
+          },
+          "bracket": {
+            "type": "string",
+            "enum": [
+              "winner",
+              "loser",
+              "consolation"
+            ]
+          },
+          "round": {
+            "type": "number"
+          },
+          "position": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string"
+          },
+          "format": {
+            "type": "string"
+          },
+          "slots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicBracketSlotResponse"
+            }
+          }
+        },
+        "required": [
+          "matchId",
+          "bracket",
+          "round",
+          "position",
+          "status",
+          "slots"
+        ]
+      },
+      "PublicBracketResponse": {
+        "type": "object",
+        "properties": {
+          "matches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicBracketMatchResponse"
+            }
+          }
+        },
+        "required": [
+          "matches"
         ]
       }
     }
