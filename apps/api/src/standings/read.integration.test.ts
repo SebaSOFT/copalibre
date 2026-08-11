@@ -53,111 +53,135 @@ describe('readStandings (integration)', () => {
     const disciplineDescriptor = descriptor();
     const tournamentAlias = 'read-test';
 
-    const { tournamentId, stageId, homeEntrantId, awayEntrantId, disciplineRef, matchId, organizationId } =
-      await withTransaction(scratch.db, async (uow) => {
-        const organization = await new OrganizationRepository(scratch.db).create(uow, { alias: 'org-1', name: 'Org', ...AUDIT });
-        const orgId = organization.organizationId;
-        
-        await new TournamentRepository(scratch.db).saveDescriptor(uow, disciplineDescriptor, { ...AUDIT, organizationId: orgId });
-        const tournament = await new TournamentRepository(scratch.db).create(uow, {
-          alias: tournamentAlias,
-          name: 'Tournament',
-          descriptor: disciplineDescriptor,
-          organizationId: orgId,
-          ...AUDIT,
-        });
-        const home = await new EnrollmentRepository(scratch.db).createTeam(uow, {
-          name: 'Local',
-          organizationId: orgId,
-          ...AUDIT,
-        });
-        const away = await new EnrollmentRepository(scratch.db).createTeam(uow, {
-          name: 'Away',
-          organizationId: orgId,
-          ...AUDIT,
-        });
-        const homeEntrant = await new EnrollmentRepository(scratch.db).registerEntrant(uow, {
-          tournamentId: tournament.tournamentId,
-          entrantRef: { kind: 'team', teamId: home.teamId },
-          organizationId: orgId,
-          ...AUDIT,
-        });
-        const awayEntrant = await new EnrollmentRepository(scratch.db).registerEntrant(uow, {
-          tournamentId: tournament.tournamentId,
-          entrantRef: { kind: 'team', teamId: away.teamId },
-          organizationId: orgId,
-          ...AUDIT,
-        });
+    const {
+      tournamentId,
+      stageId,
+      homeEntrantId,
+      awayEntrantId,
+      disciplineRef,
+      matchId,
+      organizationId,
+    } = await withTransaction(scratch.db, async (uow) => {
+      const organization = await new OrganizationRepository(scratch.db).create(uow, {
+        alias: 'org-1',
+        name: 'Org',
+        ...AUDIT,
+      });
+      const orgId = organization.organizationId;
 
-        const competition = new CompetitionRepository(scratch.db);
-        const season = await competition.currentSeason(uow, {
-          tournamentId: tournament.tournamentId,
-          organizationId: orgId,
-          ...AUDIT,
-        });
-        const stage = await competition.createStage(uow, {
-          seasonId: season.seasonId,
-          number: 1,
-          name: 'Fase 1',
-          format: 'round-robin',
-          organizationId: orgId,
-          ...AUDIT,
-        });
-
-        const [fixture] = await competition.createFixtures(uow, {
-          stageId: stage.stageId,
-          fixtures: [
-            {
-              round: 1,
-              homeEntrantId: homeEntrant.entrantId,
-              awayEntrantId: awayEntrant.entrantId,
-            },
-          ],
-          organizationId: orgId,
-          ...AUDIT,
-        });
-        
-        if (!fixture) throw new Error('Fixture not created');
-
-        const match = await competition.createMatch(uow, {
-          fixtureId: fixture.fixtureId,
-          number: 1,
-          organizationId: orgId,
-          ...AUDIT,
-        });
-
-        await competition.recordResult(uow, {
-          matchId: match.matchId,
-          result: {
-            sides: [
-              {
-                entrantId: homeEntrant.entrantId,
-                statistics: { points: 3, 'goals-for': 2, played: 1 },
-              },
-              {
-                entrantId: awayEntrant.entrantId,
-                statistics: { points: 0, 'goals-for': 1, played: 1 },
-              },
-            ],
-            winnerEntrantId: homeEntrant.entrantId,
-            recordedAt: new Date().toISOString(),
-          },
-          organizationId: orgId,
-          ...AUDIT,
-        });
-
-        return {
-          tournamentId: tournament.tournamentId,
-          stageId: stage.stageId,
-          homeEntrantId: homeEntrant.entrantId,
-          awayEntrantId: awayEntrant.entrantId,
-          disciplineRef: tournament.disciplineRef,
-          matchId: match.matchId,
-          organizationId: orgId,
-        };
+      await new TournamentRepository(scratch.db).saveDescriptor(uow, disciplineDescriptor, {
+        ...AUDIT,
+        organizationId: orgId,
+      });
+      const tournament = await new TournamentRepository(scratch.db).create(uow, {
+        alias: tournamentAlias,
+        name: 'Tournament',
+        descriptor: disciplineDescriptor,
+        organizationId: orgId,
+        ...AUDIT,
+      });
+      const home = await new EnrollmentRepository(scratch.db).createTeam(uow, {
+        name: 'Local',
+        organizationId: orgId,
+        ...AUDIT,
+      });
+      const away = await new EnrollmentRepository(scratch.db).createTeam(uow, {
+        name: 'Away',
+        organizationId: orgId,
+        ...AUDIT,
+      });
+      const homeEntrant = await new EnrollmentRepository(scratch.db).registerEntrant(uow, {
+        tournamentId: tournament.tournamentId,
+        entrantRef: { kind: 'team', teamId: home.teamId },
+        organizationId: orgId,
+        ...AUDIT,
+      });
+      const awayEntrant = await new EnrollmentRepository(scratch.db).registerEntrant(uow, {
+        tournamentId: tournament.tournamentId,
+        entrantRef: { kind: 'team', teamId: away.teamId },
+        organizationId: orgId,
+        ...AUDIT,
       });
 
-    const live = await readStandings(scratch.db, { tournamentId, disciplineRef: { descriptorId: disciplineRef.descriptorId, version: String(disciplineRef.version) } }, 1);
+      const competition = new CompetitionRepository(scratch.db);
+      const season = await competition.currentSeason(uow, {
+        tournamentId: tournament.tournamentId,
+        organizationId: orgId,
+        ...AUDIT,
+      });
+      const stage = await competition.createStage(uow, {
+        seasonId: season.seasonId,
+        number: 1,
+        name: 'Fase 1',
+        format: 'round-robin',
+        organizationId: orgId,
+        ...AUDIT,
+      });
+
+      const [fixture] = await competition.createFixtures(uow, {
+        stageId: stage.stageId,
+        fixtures: [
+          {
+            round: 1,
+            homeEntrantId: homeEntrant.entrantId,
+            awayEntrantId: awayEntrant.entrantId,
+          },
+        ],
+        organizationId: orgId,
+        ...AUDIT,
+      });
+
+      if (!fixture) throw new Error('Fixture not created');
+
+      const match = await competition.createMatch(uow, {
+        fixtureId: fixture.fixtureId,
+        number: 1,
+        organizationId: orgId,
+        ...AUDIT,
+      });
+
+      await competition.recordResult(uow, {
+        matchId: match.matchId,
+        result: {
+          sides: [
+            {
+              entrantId: homeEntrant.entrantId,
+              statistics: { points: 3, 'goals-for': 2, played: 1 },
+            },
+            {
+              entrantId: awayEntrant.entrantId,
+              statistics: { points: 0, 'goals-for': 1, played: 1 },
+            },
+          ],
+          winnerEntrantId: homeEntrant.entrantId,
+          recordedAt: new Date().toISOString(),
+        },
+        organizationId: orgId,
+        ...AUDIT,
+      });
+
+      return {
+        tournamentId: tournament.tournamentId,
+        stageId: stage.stageId,
+        homeEntrantId: homeEntrant.entrantId,
+        awayEntrantId: awayEntrant.entrantId,
+        disciplineRef: tournament.disciplineRef,
+        matchId: match.matchId,
+        organizationId: orgId,
+      };
+    });
+
+    const live = await readStandings(
+      scratch.db,
+      {
+        tournamentId,
+        disciplineRef: {
+          descriptorId: disciplineRef.descriptorId,
+          version: String(disciplineRef.version),
+        },
+      },
+      1,
+    );
 
     expect(live.stageId).toBe(stageId);
     expect(live.rows[0]?.entrantId).toBe(homeEntrantId);
@@ -169,15 +193,29 @@ describe('readStandings (integration)', () => {
         tournamentId,
         stageId,
         matchId,
-        rows: live.rows as unknown as Parameters<InstanceType<typeof CompetitionRecordRepository>['materialiseStandings']>[1]['rows'],
-        trace: live.rawTrace as unknown as Parameters<InstanceType<typeof CompetitionRecordRepository>['materialiseStandings']>[1]['trace'],
+        rows: live.rows as unknown as Parameters<
+          InstanceType<typeof CompetitionRecordRepository>['materialiseStandings']
+        >[1]['rows'],
+        trace: live.rawTrace as unknown as Parameters<
+          InstanceType<typeof CompetitionRecordRepository>['materialiseStandings']
+        >[1]['trace'],
         fullyResolved: live.fullyResolved,
         organizationId,
         ...AUDIT,
       });
     });
 
-    const materialised = await readStandings(scratch.db, { tournamentId, disciplineRef: { descriptorId: disciplineRef.descriptorId, version: String(disciplineRef.version) } }, 1);
+    const materialised = await readStandings(
+      scratch.db,
+      {
+        tournamentId,
+        disciplineRef: {
+          descriptorId: disciplineRef.descriptorId,
+          version: String(disciplineRef.version),
+        },
+      },
+      1,
+    );
 
     expect(materialised.rows).toEqual(live.rows);
     expect(materialised.trace).toEqual(live.trace);

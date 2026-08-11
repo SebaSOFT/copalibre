@@ -97,21 +97,21 @@ export class PublicProjectionsController {
     if (stages.length > 0) {
       const stage = stages[0];
       if (stage) {
-      const standings = await readStandings(this.db, tournament, stage.number);
+        const standings = await readStandings(this.db, tournament, stage.number);
 
-      const standingsEntrantIds = standings.rows.map((r) => r.entrantId);
-      const standingsNames = await new EnrollmentRepository(this.db).resolveEntrantNames(
-        standingsEntrantIds,
-      );
+        const standingsEntrantIds = standings.rows.map((r) => r.entrantId);
+        const standingsNames = await new EnrollmentRepository(this.db).resolveEntrantNames(
+          standingsEntrantIds,
+        );
 
-      standingsPreview = standings.rows.map((r) => ({
-        rank: r.rank,
-        entrantId: r.entrantId,
-        name: standingsNames.get(r.entrantId)?.name ?? 'Unknown',
-        abbreviation: standingsNames.get(r.entrantId)?.abbreviation,
-        sharedRank: r.sharedRank,
-        statistics: r.statistics,
-      }));
+        standingsPreview = standings.rows.map((r) => ({
+          rank: r.rank,
+          entrantId: r.entrantId,
+          name: standingsNames.get(r.entrantId)?.name ?? 'Unknown',
+          abbreviation: standingsNames.get(r.entrantId)?.abbreviation,
+          sharedRank: r.sharedRank,
+          statistics: r.statistics,
+        }));
       }
     }
 

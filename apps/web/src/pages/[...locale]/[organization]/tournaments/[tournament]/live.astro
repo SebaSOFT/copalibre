@@ -4,7 +4,12 @@ import ResultLegend from '../../../../../components/ResultLegend.astro';
 import StateBadge from '../../../../../components/StateBadge.astro';
 import { LiveMatchHero } from '../../../../../components/LiveMatchHero.tsx';
 import { buildOverview, displayName } from '../../../../../lib/overview.ts';
-import { fetchLive, fetchOverview, mapOverviewResponse, mapLiveResponse } from '../../../../../lib/public-api-client.ts';
+import {
+  fetchLive,
+  fetchOverview,
+  mapOverviewResponse,
+  mapLiveResponse,
+} from '../../../../../lib/public-api-client.ts';
 import { publicIntl, resultStateLabels } from '../../../../../lib/i18n/public-intl.ts';
 import { messages } from '../../../../../lib/i18n/public-messages.en.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';

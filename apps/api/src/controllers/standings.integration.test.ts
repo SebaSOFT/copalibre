@@ -458,6 +458,13 @@ describe('standings and seeding routes (integration)', () => {
             kind: 'comparator',
             id: 'points',
             label: 'Puntos',
+            outcome: 'tied-proceed',
+            values: { [entrantIds[1] ?? '']: 99 },
+          },
+          {
+            kind: 'comparator',
+            id: 'difference',
+            label: 'Diferencia',
             outcome: 'resolved',
             values: { [entrantIds[1] ?? '']: 99 },
           },

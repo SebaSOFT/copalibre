@@ -28,7 +28,6 @@ import {
 } from '../controllers/reports.controller.js';
 import { PublicProjectionsController } from '../controllers/public-projections.controller.js';
 
-
 /**
  * The controllers the OpenAPI artifact is generated from.
  *

@@ -58,9 +58,7 @@ export async function fetchBracket(
   return fetchOr404<PublicBracketResponse>(url);
 }
 
-export function mapOverviewResponse(
-  response: PublicOverviewResponse,
-): OverviewInput {
+export function mapOverviewResponse(response: PublicOverviewResponse): OverviewInput {
   return {
     organizationAlias: response.organizationAlias,
     tournamentAlias: response.tournamentAlias,
@@ -114,7 +112,9 @@ export function mapLiveResponse(response: PublicLiveResponse): LiveDashboard {
   } as LiveDashboard;
 }
 
-export function mapBracketResponse(response: PublicBracketResponse): { matches: readonly BracketMatch[] } {
+export function mapBracketResponse(response: PublicBracketResponse): {
+  matches: readonly BracketMatch[];
+} {
   return {
     matches: response.matches.map((m) => ({
       matchNumber: m.position,
@@ -123,8 +123,10 @@ export function mapBracketResponse(response: PublicBracketResponse): { matches: 
       state: m.status as MatchState,
       scores: m.slots.map((s) => s.score),
       slots: m.slots.map((s): SlotSource => {
-        if (s.kind === 'winner-of') return { kind: 'winner-of', matchNumber: s.matchId ? parseInt(s.matchId) : 0 };
-        if (s.kind === 'loser-of') return { kind: 'loser-of', matchNumber: s.matchId ? parseInt(s.matchId) : 0 };
+        if (s.kind === 'winner-of')
+          return { kind: 'winner-of', matchNumber: s.matchId ? parseInt(s.matchId) : 0 };
+        if (s.kind === 'loser-of')
+          return { kind: 'loser-of', matchNumber: s.matchId ? parseInt(s.matchId) : 0 };
         return { kind: 'entrant', name: s.name ?? 'TBD', abbreviation: s.abbreviation };
       }),
     })),

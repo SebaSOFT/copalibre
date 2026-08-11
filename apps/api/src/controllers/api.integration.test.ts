@@ -388,14 +388,17 @@ describe('api routes (integration)', () => {
         });
       });
 
-      const publishedTournament = await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
-        return tournaments.publish(uow, {
-          tournamentId: created.tournamentId,
-          organizationId,
-          actor: 'user:seed',
-          authorizationContext: 'seed',
-        });
-      });
+      const publishedTournament = await withTransaction(
+        scratch.db as Kysely<Database>,
+        async (uow) => {
+          return tournaments.publish(uow, {
+            tournamentId: created.tournamentId,
+            organizationId,
+            actor: 'user:seed',
+            authorizationContext: 'seed',
+          });
+        },
+      );
 
       const response = await request({
         method: 'GET',
@@ -456,16 +459,19 @@ describe('api routes (integration)', () => {
         });
       });
 
-      const createdPublished = await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
-        return tournaments.create(uow, {
-          organizationId,
-          alias: 'copa-public-published',
-          name: 'Copa Public Published',
-          descriptor,
-          actor: 'user:seed',
-          authorizationContext: 'seed',
-        });
-      });
+      const createdPublished = await withTransaction(
+        scratch.db as Kysely<Database>,
+        async (uow) => {
+          return tournaments.create(uow, {
+            organizationId,
+            alias: 'copa-public-published',
+            name: 'Copa Public Published',
+            descriptor,
+            actor: 'user:seed',
+            authorizationContext: 'seed',
+          });
+        },
+      );
 
       publishedTournament = await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
         return tournaments.publish(uow, {
@@ -478,11 +484,7 @@ describe('api routes (integration)', () => {
     });
 
     it('404s on draft tournament for every route', async () => {
-      const routes = [
-        'overview',
-        'live',
-        'stages/1/bracket'
-      ];
+      const routes = ['overview', 'live', 'stages/1/bracket'];
       for (const route of routes) {
         const response = await request({
           method: 'GET',

@@ -2,12 +2,15 @@ import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals
 import { fetchOverview, fetchLive, fetchBracket } from './public-api-client.js';
 
 describe('public-api-client', () => {
+  const originalFetch = global.fetch;
+
   beforeEach(() => {
     global.fetch = jest.fn() as unknown as typeof fetch;
     process.env.COPALIBRE_API_INTERNAL_URL = 'http://api.test';
   });
 
   afterEach(() => {
+    global.fetch = originalFetch;
     jest.restoreAllMocks();
     delete process.env.COPALIBRE_API_INTERNAL_URL;
   });
@@ -23,7 +26,9 @@ describe('public-api-client', () => {
 
       const result = await fetchOverview('org1', 'tourney1');
       expect(result).toEqual(mockData);
-      expect(fetch).toHaveBeenCalledWith('http://api.test/organizations/org1/tournaments/tourney1/overview');
+      expect(fetch).toHaveBeenCalledWith(
+        'http://api.test/organizations/org1/tournaments/tourney1/overview',
+      );
     });
 
     it('returns undefined on 404', async () => {
@@ -58,7 +63,9 @@ describe('public-api-client', () => {
 
       const result = await fetchLive('org1', 'tourney1');
       expect(result).toEqual(mockData);
-      expect(fetch).toHaveBeenCalledWith('http://api.test/organizations/org1/tournaments/tourney1/live');
+      expect(fetch).toHaveBeenCalledWith(
+        'http://api.test/organizations/org1/tournaments/tourney1/live',
+      );
     });
 
     it('returns undefined on 404', async () => {
@@ -93,7 +100,9 @@ describe('public-api-client', () => {
 
       const result = await fetchBracket('org1', 'tourney1', 1);
       expect(result).toEqual(mockData);
-      expect(fetch).toHaveBeenCalledWith('http://api.test/organizations/org1/tournaments/tourney1/stages/1/bracket');
+      expect(fetch).toHaveBeenCalledWith(
+        'http://api.test/organizations/org1/tournaments/tourney1/stages/1/bracket',
+      );
     });
 
     it('returns undefined on 404', async () => {
@@ -113,7 +122,9 @@ describe('public-api-client', () => {
         statusText: 'Internal Server Error',
       } as unknown as Response);
 
-      await expect(fetchBracket('org1', 'tourney1', 1)).rejects.toThrow(/500 Internal Server Error/);
+      await expect(fetchBracket('org1', 'tourney1', 1)).rejects.toThrow(
+        /500 Internal Server Error/,
+      );
     });
   });
 });

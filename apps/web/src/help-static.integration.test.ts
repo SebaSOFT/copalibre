@@ -5,7 +5,10 @@ import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
 const REPOSITORY_ROOT = join(import.meta.dirname, '../../..');
-const API_REFERENCE_OUTPUT = join(REPOSITORY_ROOT, 'apps/web/dist/client/help/api-reference/index.html');
+const API_REFERENCE_OUTPUT = join(
+  REPOSITORY_ROOT,
+  'apps/web/dist/client/help/api-reference/index.html',
+);
 
 async function runWorkspaceScript(workspace: string, script: string): Promise<void> {
   await execFileAsync('yarn', ['workspace', workspace, 'run', script], {

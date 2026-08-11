@@ -3,7 +3,12 @@ import PublicLayout from '../../../../../../layouts/PublicLayout.astro';
 import BracketView from '../../../../../../components/BracketView.astro';
 import ResultLegend from '../../../../../../components/ResultLegend.astro';
 import { buildOverview, displayName } from '../../../../../../lib/overview.ts';
-import { fetchBracket, fetchOverview, mapOverviewResponse, mapBracketResponse } from '../../../../../../lib/public-api-client.ts';
+import {
+  fetchBracket,
+  fetchOverview,
+  mapOverviewResponse,
+  mapBracketResponse,
+} from '../../../../../../lib/public-api-client.ts';
 import { publicIntl } from '../../../../../../lib/i18n/public-intl.ts';
 import { messages } from '../../../../../../lib/i18n/public-messages.en.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';

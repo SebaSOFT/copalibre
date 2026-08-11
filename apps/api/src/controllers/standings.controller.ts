@@ -120,6 +120,7 @@ export class StandingsController {
       lines: storedTraceLinesForEntrant(
         result.rawTrace as readonly Record<string, unknown>[],
         entrantId,
+        row.sharedRank,
       ),
     };
   }

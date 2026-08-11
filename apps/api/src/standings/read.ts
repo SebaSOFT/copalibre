@@ -113,11 +113,12 @@ export function storedTraceLines(trace: readonly Record<string, unknown>[]): str
 export function storedTraceLinesForEntrant(
   trace: readonly Record<string, unknown>[],
   entrantId: string,
+  stillTied?: boolean,
 ): string[] {
   if (trace.every((line): line is { readonly text: string } => typeof line.text === 'string')) {
     return trace.map((line) => line.text);
   }
   const nodes = trace as unknown as readonly TraceNode[];
-  const filtered = traceForEntrant(nodes, entrantId);
-  return traceLines(filtered.length > 0 ? filtered : nodes).map((line) => line);
+  const filtered = traceForEntrant(nodes, entrantId, { stillTied });
+  return traceLines(filtered).map((line) => line);
 }
