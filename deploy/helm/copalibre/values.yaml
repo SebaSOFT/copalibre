@@ -64,6 +64,7 @@ web:
 # PRODUCT_ROLE and PORT are set per-role by the Deployment template itself,
 # not listed here.
 env:
+  HOST: '0.0.0.0'
   DATABASE_URL: ''
   COPALIBRE_APP_URL: ''
   COPALIBRE_API_URL: ''
