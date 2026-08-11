@@ -16,7 +16,6 @@ import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './suppor
 
 const DASHBOARD_PATH = '/control/liga-mendocina';
 
-
 async function mockArchiveApi(page: Page): Promise<void> {
   await page.addInitScript(
     ({ tokenEndpoint }) => {
@@ -54,4 +53,3 @@ test('archives a finished tournament and it disappears from the active dashboard
   // Every other card is unaffected by one archival.
   await expect(page.getByText('Torneo Apertura 2026')).toBeVisible();
 });
-
