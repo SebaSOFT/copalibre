@@ -7,7 +7,10 @@ site that stays usable without JavaScript and is indexable only on its intended 
 ### Requirement: Organization-scoped tournament overview page
 The public site SHALL serve a tournament overview page at `/{organization}/tournaments/{tournament}`
 showing tournament identity, schedule/format facts, a standings preview, and rules access, matching
-the B1 reference layout.
+the B1 reference layout. This page SHALL be rendered per request from the current backend state for
+the requested organization/tournament alias pair, rather than pre-rendered ahead of time from a fixed
+set of aliases — any published tournament reachable through the public-read API SHALL be reachable
+through this page without a site rebuild.
 
 #### Scenario: Visiting a published tournament's overview
 - **WHEN** an anonymous visitor requests `/{organization}/tournaments/{tournament}` for a published tournament
@@ -16,6 +19,16 @@ the B1 reference layout.
 #### Scenario: Unpublished tournament is not exposed
 - **WHEN** an anonymous visitor requests the overview page for a tournament the organizer has not published
 - **THEN** the public site returns a not-found response and exposes no operational data about it
+
+#### Scenario: A newly created tournament is reachable without a rebuild
+- **WHEN** an organizer publishes a new tournament after the public site was last built
+- **AND** an anonymous visitor requests that tournament's overview page
+- **THEN** the page renders that tournament's real data, not a 404 and not another tournament's data
+
+#### Scenario: An unknown organization or tournament alias 404s
+- **WHEN** an anonymous visitor requests `/{organization}/tournaments/{tournament}` for an alias pair
+  that does not exist
+- **THEN** the public site returns a not-found response
 
 ### Requirement: Public pages function without JavaScript
 Core public content (tournament identity, schedule, standings, rules) SHALL be present in the
@@ -60,11 +73,14 @@ route even if the old alias string collides.
 ### Requirement: Public routes carry a locale prefix, primary locale excepted
 
 Every public canonical route SHALL be available in each of the platform's supported interface
-languages that have populated content, as a `/{locale}/{organization}/...` prefixed static variant,
-except the primary locale (English), which SHALL remain unprefixed at
+languages that have populated content, as a `/{locale}/{organization}/...` prefixed variant, except
+the primary locale (English), which SHALL remain unprefixed at
 `/{organization}/tournaments/{tournament}` and its public children. Interface chrome (navigation,
 footer, section headings, status labels) SHALL render in the variant's own language; organizer-entered
-content (tournament names, participant names, organization names) is never translated.
+content (tournament names, participant names, organization names) is never translated. A route's
+locale variant is resolved from the request path at the time it is served — for a route that is
+rendered per request against live backend data, this resolution SHALL happen on every request rather
+than being limited to a fixed, pre-generated set of locale/alias combinations.
 
 #### Scenario: English is served unprefixed
 
