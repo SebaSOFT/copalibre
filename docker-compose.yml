@@ -25,6 +25,7 @@ x-application-environment: &application-environment
   COPALIBRE_OBJECT_STORAGE_BUCKET: ${COPALIBRE_OBJECT_STORAGE_BUCKET:-}
   COPALIBRE_DATA_DIR: /var/lib/copalibre
   COPALIBRE_IN_CONTAINER: 'true'
+  HOST: '0.0.0.0'
 
 x-application-service: &application-service
   image: ${COPALIBRE_IMAGE:-copalibre:local}
