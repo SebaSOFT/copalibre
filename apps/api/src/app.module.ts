@@ -30,6 +30,10 @@ import {
   ParticipantIdentityLinksController,
   ParticipantsController,
 } from './controllers/participants.controller.js';
+import {
+  NativeAuthController,
+  PersonalAccessTokenController,
+} from './controllers/auth.controller.js';
 import { authConfigFromEnv } from './auth/auth-config.js';
 import { TokenVerifier } from './auth/token-verifier.js';
 import { JwtAuthGuard } from './auth/jwt-auth.guard.js';
@@ -84,6 +88,8 @@ import { PublicProjectionsController } from './controllers/public-projections.co
     ParticipantReportsController,
     ReportReviewController,
     InstallationBootstrapController,
+    NativeAuthController,
+    PersonalAccessTokenController,
   ],
   providers,
 })

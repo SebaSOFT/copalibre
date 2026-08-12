@@ -21,6 +21,54 @@ interface OidcIdentity {
 export class IdentityPrincipalRepository {
   constructor(private readonly db: Kysely<Database>) {}
 
+  async findByEmail(email: string): Promise<IdentityPrincipal | undefined> {
+    const row = await this.db
+      .selectFrom('identity_principals')
+      .selectAll()
+      .where('email', '=', normaliseEmail(email))
+      .executeTakeFirst();
+    return row ? toIdentityPrincipal(row) : undefined;
+  }
+
+  async create(
+    uow: UnitOfWork,
+    input: {
+      readonly email: string;
+      readonly passwordHash?: string;
+      readonly name?: string;
+      readonly picture?: string;
+      readonly actor?: string;
+      readonly authorizationContext?: string;
+    },
+  ): Promise<IdentityPrincipal> {
+    const email = normaliseEmail(input.email);
+    const existing = await uow.tx
+      .selectFrom('identity_principals')
+      .selectAll()
+      .where('email', '=', email)
+      .executeTakeFirst();
+
+    if (existing) {
+      throw new InvariantViolationError('Email is already registered');
+    }
+
+    const row = await uow.tx
+      .insertInto('identity_principals')
+      .values({
+        principal_id: newId(),
+        email,
+        password_hash: input.passwordHash ?? null,
+        name: input.name ?? null,
+        picture: input.picture ?? null,
+        created_at: new Date(),
+        updated_at: new Date(),
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    return toIdentityPrincipal(row);
+  }
+
   async findByOidcSubject(subjectId: string): Promise<IdentityPrincipal | undefined> {
     const row = await this.db
       .selectFrom('identity_principals')

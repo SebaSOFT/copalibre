@@ -3407,6 +3407,203 @@
           "Public Projections"
         ]
       }
+    },
+    "/auth/login": {
+      "post": {
+        "operationId": "NativeAuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Authenticate with email and password",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/forgot-password": {
+      "post": {
+        "operationId": "NativeAuthController_forgotPassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthSuccessResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Request a password reset email",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/reset-password": {
+      "post": {
+        "operationId": "NativeAuthController_resetPassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthSuccessResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Reset password using a verification token",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/pat": {
+      "get": {
+        "operationId": "PersonalAccessTokenController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PatResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List personal access tokens for the current user",
+        "tags": [
+          "auth"
+        ]
+      },
+      "post": {
+        "operationId": "PersonalAccessTokenController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePatRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Shown once — copy the token now, it is stored only as a hash",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PatCreatedResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Generate a new personal access token",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/pat/{tokenId}": {
+      "delete": {
+        "operationId": "PersonalAccessTokenController_revoke",
+        "parameters": [
+          {
+            "name": "tokenId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PatResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Revoke a personal access token",
+        "tags": [
+          "auth"
+        ]
+      }
     }
   },
   "info": {
@@ -5863,6 +6060,185 @@
         },
         "required": [
           "matches"
+        ]
+      },
+      "LoginRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "LoginResponse": {
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string",
+            "description": "JWT access token"
+          },
+          "expiresIn": {
+            "type": "number",
+            "description": "Token expiration in seconds"
+          }
+        },
+        "required": [
+          "accessToken",
+          "expiresIn"
+        ]
+      },
+      "ForgotPasswordRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "AuthSuccessResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Status message"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "ResetPasswordRequest": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "The reset token from the email link"
+          },
+          "newPassword": {
+            "type": "string",
+            "description": "New password (min 8 characters)"
+          }
+        },
+        "required": [
+          "token",
+          "newPassword"
+        ]
+      },
+      "PatResponse": {
+        "type": "object",
+        "properties": {
+          "tokenId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "label": {
+            "type": "string"
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "revoked": {
+            "type": "boolean"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastUsedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "tokenId",
+          "label",
+          "scopes",
+          "revoked",
+          "expiresAt",
+          "createdAt"
+        ]
+      },
+      "CreatePatRequest": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "description": "Human-readable label for this token"
+          },
+          "scopes": {
+            "description": "Scopes to grant (defaults to the creating user scopes)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "expiresInDays": {
+            "type": "number",
+            "description": "Expiration duration in days (max 365)",
+            "minimum": 1,
+            "maximum": 365
+          }
+        },
+        "required": [
+          "label",
+          "expiresInDays"
+        ]
+      },
+      "PatCreatedResponse": {
+        "type": "object",
+        "properties": {
+          "tokenId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "token": {
+            "type": "string",
+            "description": "Shown once. Copy it now; it is never stored raw."
+          },
+          "label": {
+            "type": "string"
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "tokenId",
+          "token",
+          "label",
+          "scopes",
+          "expiresAt",
+          "createdAt"
         ]
       }
     }

@@ -31,8 +31,40 @@ export interface IdentityPrincipalsTable {
   oidc_subject_id: string | null;
   name: string | null;
   picture: string | null;
+  password_hash: string | null;
   created_at: Timestamp;
   updated_at: Timestamp;
+}
+
+/** Long-lived, revocable API/MCP credential bound to exactly one principal. */
+export interface PersonalAccessTokensTable {
+  token_id: string;
+  principal_id: string;
+  token_hash: string;
+  label: string;
+  scopes: JSONColumnType<readonly string[]>;
+  expires_at: Timestamp;
+  revoked_at: Timestamp | null;
+  last_used_at: Timestamp | null;
+  created_at: Timestamp;
+}
+
+/**
+ * Single-use, expiring verification tokens for password resets and email
+ * changes. The raw token exists only in the email link; the database stores
+ * only its hash.
+ */
+export interface AuthVerificationTokensTable {
+  verification_id: string;
+  principal_id: string;
+  /** `password-reset` or `email-change`. */
+  kind: string;
+  token_hash: string;
+  /** For email-change: the new email being verified. */
+  new_email: string | null;
+  expires_at: Timestamp;
+  consumed_at: Timestamp | null;
+  created_at: Timestamp;
 }
 
 /** Accepted, organization-local access assignment for one verified OIDC subject. */
@@ -711,6 +743,8 @@ export interface Database {
   organization_role_assignments: OrganizationRoleAssignmentsTable;
   organization_invites: OrganizationInvitesTable;
   display_tokens: DisplayTokensTable;
+  personal_access_tokens: PersonalAccessTokensTable;
+  auth_verification_tokens: AuthVerificationTokensTable;
   participant_reports: ParticipantReportsTable;
   report_evidence: ReportEvidenceTable;
   clubs: ClubsTable;

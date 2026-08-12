@@ -108,13 +108,13 @@ describe('controlLinkClick', () => {
 describe('loginRedirectUrl', () => {
   it('points at the login page with the current path as returnTo', () => {
     expect(loginRedirectUrl('/control/liga-mendocina/roles')).toBe(
-      '/control/?returnTo=%2Fcontrol%2Fliga-mendocina%2Froles',
+      '/control/login?returnTo=%2Fcontrol%2Fliga-mendocina%2Froles',
     );
   });
 
   it('encodes a path that itself carries a query string', () => {
     expect(loginRedirectUrl('/control/liga-mendocina?foo=bar')).toBe(
-      '/control/?returnTo=%2Fcontrol%2Fliga-mendocina%3Ffoo%3Dbar',
+      '/control/login?returnTo=%2Fcontrol%2Fliga-mendocina%3Ffoo%3Dbar',
     );
   });
 });

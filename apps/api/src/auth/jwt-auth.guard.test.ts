@@ -7,6 +7,8 @@ import type { AuthenticatedSubject, RequestWithSubject } from './request-context
 import { SECURITY_PLANE_KEY, type SecurityPlane } from './security-plane.js';
 import { REQUIRED_SCOPES_KEY } from './required-scopes.js';
 import type { TokenVerifier } from './token-verifier.js';
+import { PersonalAccessTokenRepository, hashToken, type Database } from '@copalibre/persistence';
+import type { Kysely } from 'kysely';
 
 function contextFor(
   request: RequestWithSubject,
@@ -48,10 +50,14 @@ const controlSubject: AuthenticatedSubject = {
 };
 
 describe('JwtAuthGuard', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('lets a public-read route through without a token', async () => {
     const request: RequestWithSubject = { headers: {} };
     const { context, reflector } = contextFor(request, 'public-read');
-    const guard = new JwtAuthGuard(reflector, rejectingVerifier());
+    const guard = new JwtAuthGuard(reflector, rejectingVerifier(), {} as Kysely<Database>);
 
     await expect(guard.canActivate(context)).resolves.toBe(true);
     expect(request.subject).toBeUndefined();
@@ -60,7 +66,7 @@ describe('JwtAuthGuard', () => {
   it('attaches the verified subject on an authenticated route', async () => {
     const request: RequestWithSubject = { headers: { authorization: 'Bearer good-token' } };
     const { context, reflector } = contextFor(request, 'admin-control');
-    const guard = new JwtAuthGuard(reflector, verifierReturning(controlSubject));
+    const guard = new JwtAuthGuard(reflector, verifierReturning(controlSubject), {} as Kysely<Database>);
 
     await expect(guard.canActivate(context)).resolves.toBe(true);
     expect(request.subject).toEqual(controlSubject);
@@ -68,7 +74,7 @@ describe('JwtAuthGuard', () => {
 
   it('rejects a missing Authorization header with 401', async () => {
     const { context, reflector } = contextFor({ headers: {} }, 'admin-control');
-    const guard = new JwtAuthGuard(reflector, verifierReturning(controlSubject));
+    const guard = new JwtAuthGuard(reflector, verifierReturning(controlSubject), {} as Kysely<Database>);
     await expect(guard.canActivate(context)).rejects.toBeInstanceOf(UnauthorizedException);
   });
 
@@ -77,7 +83,7 @@ describe('JwtAuthGuard', () => {
       { headers: { authorization: 'Bearer bad' } },
       'admin-control',
     );
-    const guard = new JwtAuthGuard(reflector, rejectingVerifier());
+    const guard = new JwtAuthGuard(reflector, rejectingVerifier(), {} as Kysely<Database>);
     await expect(guard.canActivate(context)).rejects.toMatchObject({
       message: 'Invalid bearer token',
     });
@@ -90,6 +96,7 @@ describe('JwtAuthGuard', () => {
     const guard = new JwtAuthGuard(
       reflector,
       verifierReturning({ ...controlSubject, scopes: ['copalibre.participant'] }),
+      {} as Kysely<Database>
     );
 
     await expect(guard.canActivate(context)).rejects.toBeInstanceOf(ForbiddenException);
@@ -98,7 +105,7 @@ describe('JwtAuthGuard', () => {
 
   it('fails closed on an untagged route: treated as admin-control', async () => {
     const { context, reflector } = contextFor({ headers: {} }, undefined);
-    const guard = new JwtAuthGuard(reflector, verifierReturning(controlSubject));
+    const guard = new JwtAuthGuard(reflector, verifierReturning(controlSubject), {} as Kysely<Database>);
     // No token -> 401, proving the route was NOT treated as public.
     await expect(guard.canActivate(context)).rejects.toBeInstanceOf(UnauthorizedException);
   });
@@ -109,7 +116,7 @@ describe('JwtAuthGuard', () => {
       query: { access_token: 'smuggled-token' },
     };
     const { context, reflector } = contextFor(request, 'admin-control');
-    const guard = new JwtAuthGuard(reflector, verifierReturning(controlSubject));
+    const guard = new JwtAuthGuard(reflector, verifierReturning(controlSubject), {} as Kysely<Database>);
 
     // URLs leak into proxy logs, history, metrics and screenshots, so a
     // query-string token must leave the caller unauthenticated.
@@ -123,6 +130,7 @@ describe('JwtAuthGuard', () => {
     const guard = new JwtAuthGuard(
       reflector,
       verifierReturning({ ...controlSubject, scopes: ['copalibre.control'] }),
+      {} as Kysely<Database>
     );
     await expect(guard.canActivate(context)).rejects.toBeInstanceOf(ForbiddenException);
   });
@@ -135,9 +143,53 @@ describe('JwtAuthGuard', () => {
     const guard = new JwtAuthGuard(
       reflector,
       verifierReturning({ ...controlSubject, scopes: ['copalibre.invite.accept'] }),
+      {} as Kysely<Database>
     );
 
     await expect(guard.canActivate(context)).resolves.toBe(true);
+  });
+  it('validates a clpat_ token against the database repository', async () => {
+    const scopeOf = jest.spyOn(PersonalAccessTokenRepository.prototype, 'scopeOf').mockResolvedValue({
+      tokenId: 'token-1',
+      principalId: 'org-1-admin',
+      scopes: ['copalibre.control'],
+    });
+
+    jest.spyOn(PersonalAccessTokenRepository.prototype, 'touchLastUsed').mockResolvedValue(undefined as any);
+    const mockDb = {
+      selectFrom: jest.fn().mockReturnValue({
+        selectAll: jest.fn().mockReturnValue({
+          where: jest.fn().mockReturnValue({
+            executeTakeFirst: jest.fn().mockResolvedValue({ email: 'admin@example.com' }),
+          }),
+        }),
+      }),
+    };
+    
+    const request: RequestWithSubject = { headers: { authorization: 'Bearer clpat_validtoken' } };
+    const { context, reflector } = contextFor(request, 'admin-control');
+    const guard = new JwtAuthGuard(reflector, rejectingVerifier(), mockDb as unknown as Kysely<Database>);
+
+    await expect(guard.canActivate(context)).resolves.toBe(true);
+    expect(scopeOf).toHaveBeenCalledWith(hashToken('validtoken'));
+    expect(request.subject).toEqual({
+      subjectId: 'org-1-admin',
+      scopes: ['copalibre.control'],
+      tokenId: 'token-1',
+      email: 'admin@example.com',
+      principalId: 'org-1-admin',
+      name: undefined,
+    });
+  });
+
+  it('rejects a clpat_ token if it is not found or revoked in the database', async () => {
+    jest.spyOn(PersonalAccessTokenRepository.prototype, 'scopeOf').mockResolvedValue(undefined);
+
+    const request: RequestWithSubject = { headers: { authorization: 'Bearer clpat_invalid' } };
+    const { context, reflector } = contextFor(request, 'admin-control');
+    const guard = new JwtAuthGuard(reflector, rejectingVerifier(), {} as Kysely<Database>);
+
+    await expect(guard.canActivate(context)).rejects.toBeInstanceOf(UnauthorizedException);
   });
 });
 
