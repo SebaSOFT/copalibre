@@ -106,6 +106,7 @@ describe('api routes (integration)', () => {
     app = moduleRef.createNestApplication<NestFastifyApplication>(
       new FastifyAdapter({ bodyLimit: API_BODY_LIMIT_BYTES }),
     );
+    app.enableCors({ origin: 'https://app.example.com' });
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
 
@@ -138,6 +139,32 @@ describe('api routes (integration)', () => {
       payload: options.payload as never,
     });
   }
+
+  describe('CORS policy', () => {
+    it('allows requests from the configured COPALIBRE_APP_URL origin', async () => {
+      const response = await (app as NestFastifyApplication).inject({
+        method: 'OPTIONS',
+        url: '/_health',
+        headers: {
+          origin: 'https://app.example.com',
+          'access-control-request-method': 'GET',
+        },
+      });
+      expect(response.headers['access-control-allow-origin']).toEqual('https://app.example.com');
+    });
+
+    it('rejects requests from unknown origins by returning only the permitted origin', async () => {
+      const response = await (app as NestFastifyApplication).inject({
+        method: 'OPTIONS',
+        url: '/_health',
+        headers: {
+          origin: 'https://attacker.example.com',
+          'access-control-request-method': 'GET',
+        },
+      });
+      expect(response.headers['access-control-allow-origin']).toEqual('https://app.example.com');
+    });
+  });
 
   describe('public-read plane', () => {
     it('serves the liveness probe anonymously', async () => {
