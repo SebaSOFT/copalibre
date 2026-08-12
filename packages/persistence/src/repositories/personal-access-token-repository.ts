@@ -82,7 +82,7 @@ export class PersonalAccessTokenRepository {
 
     const pat = toPat(row);
     await uow.recordAudit({
-      organizationId: 'system',
+      organizationId: '00000000-0000-0000-0000-000000000000',
       entityType: 'personal-access-token',
       entityId: tokenId,
       action: 'pat.created',
@@ -112,7 +112,7 @@ export class PersonalAccessTokenRepository {
 
     const pat = toPat(row);
     await uow.recordAudit({
-      organizationId: 'system',
+      organizationId: '00000000-0000-0000-0000-000000000000',
       entityType: 'personal-access-token',
       entityId: input.tokenId,
       action: 'pat.revoked',
