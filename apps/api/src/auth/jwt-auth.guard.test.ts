@@ -155,12 +155,12 @@ describe('JwtAuthGuard', () => {
       scopes: ['copalibre.control'],
     });
 
-    jest.spyOn(PersonalAccessTokenRepository.prototype, 'touchLastUsed').mockResolvedValue(undefined as any);
+    jest.spyOn(PersonalAccessTokenRepository.prototype, 'touchLastUsed').mockResolvedValue(undefined);
     const mockDb = {
       selectFrom: jest.fn().mockReturnValue({
         selectAll: jest.fn().mockReturnValue({
           where: jest.fn().mockReturnValue({
-            executeTakeFirst: jest.fn().mockResolvedValue({ email: 'admin@example.com' }),
+            executeTakeFirst: jest.fn().mockResolvedValue({ email: 'admin@example.com' } as unknown as never),
           }),
         }),
       }),

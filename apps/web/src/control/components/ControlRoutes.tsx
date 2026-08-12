@@ -11,14 +11,12 @@ import { PreferencesRoute } from './PreferencesRoute.js';
 
 export function PreferencesControlRoute({
   organizationAlias,
-  client,
 }: {
   readonly organizationAlias: string;
-  readonly client?: ControlApiClient;
 }): React.JSX.Element {
   return (
     <ControlShell active="preferences" helpPath="preferences" organizationAlias={organizationAlias}>
-      <PreferencesRoute client={client} organizationAlias={organizationAlias} />
+      <PreferencesRoute />
     </ControlShell>
   );
 }

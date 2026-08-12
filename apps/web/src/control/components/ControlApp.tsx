@@ -155,6 +155,16 @@ function titleFor(route: ReturnType<typeof parseControlPath>): string {
       return `Sembrado — ${route.tournamentAlias}`;
     case 'standings':
       return `Posiciones — ${route.tournamentAlias}`;
+    case 'login':
+      return 'Iniciar sesión — CopaLibre';
+    case 'forgot-password':
+      return 'Recuperar contraseña — CopaLibre';
+    case 'reset-password':
+      return 'Restablecer contraseña — CopaLibre';
+    case 'preferences':
+      return 'Preferencias personales — CopaLibre';
+    default:
+      return 'Control — CopaLibre';
   }
 }
 

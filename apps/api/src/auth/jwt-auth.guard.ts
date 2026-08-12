@@ -16,7 +16,7 @@ import {
 import type { RequestWithSubject, AuthenticatedSubject } from './request-context.js';
 import { TokenVerifier } from './token-verifier.js';
 import { REQUIRED_SCOPES_KEY } from './required-scopes.js';
-import { PersonalAccessTokenRepository, IdentityPrincipalRepository, hashToken, type Database } from '@copalibre/persistence';
+import { PersonalAccessTokenRepository, hashToken, type Database } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
 import { DATABASE } from '../database.token.js';
 

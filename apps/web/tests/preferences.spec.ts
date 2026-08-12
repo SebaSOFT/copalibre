@@ -1,11 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from '../../../e2e/support/control-login.js';
 
-const patPath = '/api/auth/pat';
-
 async function mockPreferencesApi(page: Page): Promise<void> {
   await page.addInitScript(
-    ({ patPath, tokenEndpoint }) => {
+    ({ tokenEndpoint }) => {
       let tokens = [
         {
           tokenId: 'token-1',

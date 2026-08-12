@@ -1,5 +1,5 @@
-import { createHash } from 'node:crypto';
 import * as argon2 from 'argon2';
+import { SignJWT } from 'jose';
 import {
   BadRequestException,
   Body,
@@ -20,7 +20,6 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
-import { SignJWT, exportJWK, generateKeyPair } from 'jose';
 import type { Kysely } from 'kysely';
 import {
   IdentityPrincipalRepository,
@@ -60,7 +59,7 @@ export class NativeAuthController {
   @ApiOperation({ summary: 'Authenticate with email and password' })
   @ApiOkResponse({ type: LoginResponse })
   async login(@Body() body: LoginRequest): Promise<LoginResponse> {
-    const repo = new IdentityPrincipalRepository(this.db);
+    // Check if principal exists
     const principal = await this.db
       .selectFrom('identity_principals')
       .selectAll()

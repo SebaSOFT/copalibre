@@ -149,7 +149,8 @@ describe('Auth Controllers', () => {
         .where('principal_id', '=', principalId)
         .executeTakeFirst();
       
-      const valid = await argon2.verify(principal!.password_hash!, 'new-secret-password');
+      expect(principal?.password_hash).toBeDefined();
+      const valid = await argon2.verify(principal?.password_hash ?? '', 'new-secret-password');
       expect(valid).toBe(true);
     });
   });

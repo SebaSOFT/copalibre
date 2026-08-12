@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { FormattedMessage, useIntl, defineMessages } from 'react-intl';
-import { createControlApiClient, type ControlApiClient } from '../lib/api-client.js';
+import { FormattedMessage, defineMessages } from 'react-intl';
 import { controlTokenStore } from '../session/token-store.js';
 
 const messages = defineMessages({
@@ -56,23 +55,7 @@ export interface PatCreatedResponse extends PatResponse {
   readonly token: string;
 }
 
-export function PreferencesRoute({
-  client: providedClient,
-  organizationAlias,
-}: {
-  readonly client?: ControlApiClient;
-  readonly organizationAlias: string;
-}): React.JSX.Element {
-  const intl = useIntl();
-  const [client] = useState(
-    () =>
-      providedClient ??
-      createControlApiClient({
-        fetch: globalThis.fetch.bind(globalThis),
-        baseUrl: '/api',
-        accessToken: () => controlTokenStore.read(),
-      }),
-  );
+export function PreferencesRoute(): React.JSX.Element {
   const [tokens, setTokens] = useState<readonly PatResponse[]>([]);
   const [newToken, setNewToken] = useState<PatCreatedResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -187,7 +170,7 @@ export function PreferencesRoute({
         {newToken && (
           <div style={{ marginTop: '1.5rem', padding: '1rem', border: '1px solid var(--cl-state-live)', background: 'var(--cl-surface-base)' }}>
             <strong><FormattedMessage {...messages.patCreated} /></strong>
-            <code style={{ display: 'block', padding: '1rem', background: '#f5f5f5', marginTop: '0.5rem', wordBreak: 'break-all' }}>
+            <code style={{ display: 'block', padding: '1rem', backgroundColor: 'var(--c-surface-sunken)', borderRadius: '0.25rem', marginTop: '0.5rem', wordBreak: 'break-all' }}>
               {newToken.token}
             </code>
           </div>

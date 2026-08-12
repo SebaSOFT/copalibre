@@ -3,7 +3,7 @@ import { sql } from 'kysely';
 import type { Migration } from 'kysely/migration';
 
 export const nativeIdentity: Migration = {
-  async up(db: Kysely<any>): Promise<void> {
+  async up(db: Kysely<unknown>): Promise<void> {
     await db.schema.alterTable('identity_principals').addColumn('password_hash', 'text').execute();
 
     await db.schema
@@ -36,7 +36,7 @@ export const nativeIdentity: Migration = {
       .execute();
   },
 
-  async down(db: Kysely<any>): Promise<void> {
+  async down(db: Kysely<unknown>): Promise<void> {
     await db.schema.dropTable('auth_verification_tokens').execute();
     await db.schema.dropTable('personal_access_tokens').execute();
 

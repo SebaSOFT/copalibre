@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useIntl, defineMessages, FormattedMessage } from 'react-intl';
+import { defineMessages, FormattedMessage } from 'react-intl';
 import { beginOidcLogin } from '../session/oidc-login.js';
 import { navigateControl } from '../lib/control-navigation.js';
 import { controlTokenStore } from '../session/token-store.js';
