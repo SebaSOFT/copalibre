@@ -19,8 +19,8 @@ import { NativeAuthController, PersonalAccessTokenController } from './auth.cont
 
 const TOKENS: Readonly<Record<string, AuthenticatedSubject>> = {
   'admin-token': {
-    subjectId: 'admin-1',
-    principalId: 'admin-1',
+    subjectId: '550e8400-e29b-41d4-a716-446655440000',
+    principalId: '550e8400-e29b-41d4-a716-446655440000',
     scopes: ['copalibre.control'],
   },
 };
@@ -160,7 +160,7 @@ describe('Auth Controllers', () => {
 
     beforeAll(async () => {
       await (scratch.db as Kysely<Database>).insertInto('identity_principals').values({
-        principal_id: 'admin-1',
+        principal_id: '550e8400-e29b-41d4-a716-446655440000',
         email: 'admin@example.com',
         created_at: new Date(),
         updated_at: new Date(),

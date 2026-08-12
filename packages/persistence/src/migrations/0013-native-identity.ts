@@ -9,7 +9,7 @@ export const nativeIdentity: Migration = {
     await db.schema
       .createTable('personal_access_tokens')
       .addColumn('token_id', 'text', (col) => col.primaryKey())
-      .addColumn('principal_id', 'text', (col) =>
+      .addColumn('principal_id', 'uuid', (col) =>
         col.notNull().references('identity_principals.principal_id'),
       )
       .addColumn('token_hash', 'text', (col) => col.notNull().unique())
@@ -24,7 +24,7 @@ export const nativeIdentity: Migration = {
     await db.schema
       .createTable('auth_verification_tokens')
       .addColumn('verification_id', 'text', (col) => col.primaryKey())
-      .addColumn('principal_id', 'text', (col) =>
+      .addColumn('principal_id', 'uuid', (col) =>
         col.notNull().references('identity_principals.principal_id'),
       )
       .addColumn('kind', 'text', (col) => col.notNull())
