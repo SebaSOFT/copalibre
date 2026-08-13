@@ -25,14 +25,7 @@ describe('the two axes', () => {
   });
 
   it('runs from the human to the club that fields them, plus officials and venues', () => {
-    expect(ACTOR_GRANULARITIES).toEqual([
-      'person',
-      'player',
-      'team',
-      'club',
-      'official',
-      'venue',
-    ]);
+    expect(ACTOR_GRANULARITIES).toEqual(['person', 'player', 'team', 'club', 'official', 'venue']);
   });
 
   it('does not carry the entrant, which bridges the axes rather than sitting on one', () => {

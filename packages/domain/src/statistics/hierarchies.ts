@@ -68,10 +68,7 @@ const ACTOR_ROLLUP_CHAINS: readonly (readonly ActorGranularity[])[] = [
   ['venue'],
 ];
 
-function chainContaining<G>(
-  chains: readonly (readonly G[])[],
-  value: G,
-): readonly G[] | undefined {
+function chainContaining<G>(chains: readonly (readonly G[])[], value: G): readonly G[] | undefined {
   return chains.find((chain) => chain.includes(value));
 }
 
@@ -174,8 +171,10 @@ function actorChainFor<G extends CompetitionGranularity | ActorGranularity>(
   axis: readonly G[],
   value: G,
 ): readonly G[] | undefined {
-  if ((axis as readonly unknown[]) !== (ACTOR_GRANULARITIES as readonly unknown[])) return undefined;
-  return chainContaining(ACTOR_ROLLUP_CHAINS, value as ActorGranularity) as readonly G[] | undefined;
+  if ((axis as readonly unknown[]) !== (ACTOR_GRANULARITIES as readonly unknown[]))
+    return undefined;
+  return chainContaining(ACTOR_ROLLUP_CHAINS, value as ActorGranularity) as
+    readonly G[] | undefined;
 }
 
 /** The actor an enrollment names, which is how a fold crosses from one axis to the other. */

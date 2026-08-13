@@ -1,4 +1,9 @@
-import { isCoarser, type ActorGranularity, type RecordedEvent, type StatisticCollector } from '@copalibre/domain';
+import {
+  isCoarser,
+  type ActorGranularity,
+  type RecordedEvent,
+  type StatisticCollector,
+} from '@copalibre/domain';
 import type { TraceNode } from '../trace/explanation-trace.js';
 import type { NotificationEvaluation, NotificationInstance } from './notification-rules.js';
 
