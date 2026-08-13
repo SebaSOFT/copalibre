@@ -59,6 +59,11 @@ export function MatchConsoleRoute({
   const [selectedPersonId, setSelectedPersonId] = useState('');
   const [selectedStaffId, setSelectedStaffId] = useState('');
   const [conditionalEvent, setConditionalEvent] = useState<ConsoleEventDefinition>();
+  // Captured when the event-creation button is first pressed, not when a
+  // workflow's confirm step (after picking an outcome, typing a note) fires —
+  // the moment worth recording is when the operator reacted to what happened,
+  // not however long describing it afterward took.
+  const [pendingOccurredAt, setPendingOccurredAt] = useState<number>();
   const [description, setDescription] = useState('');
   const [eventCategory, setEventCategory] = useState<'all' | 'positive' | 'negative' | 'neutral'>(
     'all',
@@ -176,16 +181,17 @@ export function MatchConsoleRoute({
 
   function record(definition: ConsoleEventDefinition): void {
     if (!activeSegment) return;
+    const occurredAt = currentEpochMilliseconds();
     if (definition.workflow) {
+      setPendingOccurredAt(occurredAt);
       setConditionalEvent(definition);
       return;
     }
-    recordFinal(definition);
+    recordFinal(definition, occurredAt);
   }
 
-  function recordFinal(definition: ConsoleEventDefinition): void {
+  function recordFinal(definition: ConsoleEventDefinition, occurredAt: number): void {
     if (!activeSegment) return;
-    const occurredAt = currentEpochMilliseconds();
     const payloadDescription = descriptionFor(definition, description);
     void mutate(
       () =>
@@ -229,6 +235,7 @@ export function MatchConsoleRoute({
         ),
     );
     setConditionalEvent(undefined);
+    setPendingOccurredAt(undefined);
     setDescription('');
     setLogNote('');
   }
@@ -482,7 +489,12 @@ export function MatchConsoleRoute({
                       <Button
                         disabled={!canRecord}
                         key={option.definitionCode}
-                        onClick={() => recordFinal(finalDefinition)}
+                        onClick={() =>
+                          recordFinal(
+                            finalDefinition,
+                            pendingOccurredAt ?? currentEpochMilliseconds(),
+                          )
+                        }
                         type="button"
                         variant="secondary"
                       >
