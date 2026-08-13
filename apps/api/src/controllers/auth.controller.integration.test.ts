@@ -128,6 +128,55 @@ describe('Auth Controllers', () => {
       expect(response.statusCode).toBe(200);
     });
 
+    it('POST /auth/forgot-password enqueues a password-reset-requested outbox event carrying the reset token', async () => {
+      const response = await request({
+        method: 'POST',
+        url: '/auth/forgot-password',
+        payload: { email },
+      });
+      expect(response.statusCode).toBe(200);
+
+      const events = await (scratch.db as Kysely<Database>)
+        .selectFrom('outbox_events')
+        .selectAll()
+        .where('event_type', '=', 'password-reset-requested')
+        .orderBy('created_at', 'desc')
+        .execute();
+
+      expect(events.length).toBeGreaterThan(0);
+      const payload = events[0]?.payload as {
+        recipientEmail?: string;
+        token?: string;
+        expiresAt?: string;
+      };
+      expect(payload.recipientEmail).toBe(email);
+      expect(typeof payload.token).toBe('string');
+      expect(typeof payload.expiresAt).toBe('string');
+    });
+
+    it('POST /auth/forgot-password for an unknown email enqueues nothing, to avoid enumeration', async () => {
+      const before = await (scratch.db as Kysely<Database>)
+        .selectFrom('outbox_events')
+        .select(({ fn }) => fn.count<number>('event_id').as('count'))
+        .where('event_type', '=', 'password-reset-requested')
+        .executeTakeFirstOrThrow();
+
+      const response = await request({
+        method: 'POST',
+        url: '/auth/forgot-password',
+        payload: { email: 'nobody-registered@example.com' },
+      });
+      expect(response.statusCode).toBe(200);
+
+      const after = await (scratch.db as Kysely<Database>)
+        .selectFrom('outbox_events')
+        .select(({ fn }) => fn.count<number>('event_id').as('count'))
+        .where('event_type', '=', 'password-reset-requested')
+        .executeTakeFirstOrThrow();
+
+      expect(Number(after.count)).toBe(Number(before.count));
+    });
+
     it('POST /auth/reset-password correctly updates the password hash in the database when provided a valid token', async () => {
       const { rawToken } = await withTransaction(scratch.db as Kysely<Database>, (uow) =>
         new AuthVerificationTokenRepository(scratch.db).create(uow, {
