@@ -7,6 +7,19 @@ import { StandingsRoute } from './StandingsRoute.js';
 import { TournamentAuthoringPage } from './TournamentAuthoringPage.js';
 import { RolesPermissionsRoute } from './RolesPermissionsRoute.js';
 import { MatchConsoleRoute } from './MatchConsoleRoute.js';
+import { PreferencesRoute } from './PreferencesRoute.js';
+
+export function PreferencesControlRoute({
+  organizationAlias,
+}: {
+  readonly organizationAlias: string;
+}): React.JSX.Element {
+  return (
+    <ControlShell active="preferences" helpPath="preferences" organizationAlias={organizationAlias}>
+      <PreferencesRoute />
+    </ControlShell>
+  );
+}
 
 export function TournamentAuthoringControlRoute({
   organizationAlias,

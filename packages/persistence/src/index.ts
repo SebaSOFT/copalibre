@@ -58,6 +58,21 @@ export {
   type RevokeDisplayTokenInput,
 } from './repositories/display-token-repository.js';
 export {
+  PersonalAccessTokenRepository,
+  hashToken,
+  generateTokenString,
+  type PersonalAccessToken,
+  type PatScope,
+  type CreatePatInput,
+  type RevokePatInput,
+} from './repositories/personal-access-token-repository.js';
+export {
+  AuthVerificationTokenRepository,
+  type AuthVerificationToken,
+  type CreateVerificationTokenInput,
+  type VerificationKind,
+} from './repositories/auth-verification-token-repository.js';
+export {
   ParticipantReportRepository,
   EVIDENCE_VALIDATION_REQUESTED_EVENT,
   type ParticipantReport,

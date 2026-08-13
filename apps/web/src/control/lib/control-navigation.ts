@@ -26,7 +26,7 @@ export function navigateControl(path: string): void {
  * `window.location.assign` (jsdom's `Location.assign` isn't mockable).
  */
 export function loginRedirectUrl(path: string): string {
-  return `/control/?returnTo=${encodeURIComponent(path)}`;
+  return `/control/login?returnTo=${encodeURIComponent(path)}`;
 }
 
 /**

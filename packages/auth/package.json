@@ -12,6 +12,7 @@
     "test:coverage": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.config.cjs --coverage"
   },
   "dependencies": {
+    "argon2": "^0.45.1",
     "jose": "^6"
   },
   "devDependencies": {

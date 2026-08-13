@@ -1,9 +1,9 @@
 # Authentication contract
 
-Established by change `0005-api-auth-jwt-openapi-contract`, from
-`chaos-vault/20-knowledge-domains/copalibre-platform-architecture.md` ("JWT access and stateless API
-nodes", "Security planes"). The identity provider is deliberately **not** selected — only this
-contract is, and any compliant OIDC provider satisfies it.
+Established by change `0005-api-auth-jwt-openapi-contract` (stateless API nodes, security planes) and extended by `native-identity-provider`. CopaLibre uses a hybrid model:
+
+1. **OIDC Providers:** External identity via stateless JWTs.
+2. **Native Identity Provider:** Local email/password authentication using Argon2, and stateful Personal Access Tokens (PATs) for MCP and API integrations.
 
 ## Access tokens
 
@@ -15,6 +15,17 @@ All authenticated requests use `Authorization: Bearer <JWT>`. The API validates:
 - exact `iss` (`COPALIBRE_JWT_ISSUER`) and `aud` (`COPALIBRE_JWT_AUDIENCE`);
 - `exp`, and `nbf`/`iat` where present, with a small configurable clock tolerance;
 - `sub` present; `org` (tenancy scope) and `scp` (coarse scopes) extracted into a typed context.
+
+**Personal Access Tokens (PATs)**
+For machine-to-machine integrations (like MCP), operators can generate PATs from their Preferences screen.
+
+- A PAT is an opaque string starting with `clpat_`.
+- The raw token is shown only once during creation.
+- The backend stores a SHA-256 hash in the `personal_access_tokens` table.
+- At runtime, the API guard detects the `clpat_` prefix and validates it statefully via a database lookup, allowing immediate revocation.
+
+**Native Local JWTs**
+The native login flow (`/auth/login`) issues short-lived JWTs using `HS256` signed by `COPALIBRE_JWT_SECRET`. These are verified just like OIDC tokens but using the symmetric key.
 
 Key fetching, caching, and rotation are handled by `jose`'s `createRemoteJWKSet`, which re-fetches on
 an unknown `kid` — that is the key-rotation overlap the design requires, and it means a transient
@@ -68,13 +79,14 @@ separate review.
 
 ## Environment
 
-| Variable                                | Required    | Purpose                               |
-| --------------------------------------- | ----------- | ------------------------------------- |
-| `COPALIBRE_JWKS_URI`                    | yes         | Provider JWKS endpoint                |
-| `COPALIBRE_JWT_ISSUER`                  | yes         | Exact expected `iss`                  |
-| `COPALIBRE_JWT_AUDIENCE`                | yes         | Exact expected `aud`                  |
-| `COPALIBRE_JWKS_CACHE_MAX_AGE_MS`       | no (600000) | Key cache lifetime / rotation overlap |
-| `COPALIBRE_JWT_CLOCK_TOLERANCE_SECONDS` | no (5)      | Clock-skew tolerance                  |
+| Variable                                | Required    | Purpose                                         |
+| --------------------------------------- | ----------- | ----------------------------------------------- |
+| `COPALIBRE_JWKS_URI`                    | conditional | Provider JWKS endpoint (required if using OIDC) |
+| `COPALIBRE_JWT_ISSUER`                  | yes         | Exact expected `iss`                            |
+| `COPALIBRE_JWT_AUDIENCE`                | yes         | Exact expected `aud`                            |
+| `COPALIBRE_JWT_SECRET`                  | conditional | Symmetric key for native local JWTs             |
+| `COPALIBRE_JWKS_CACHE_MAX_AGE_MS`       | no (600000) | Key cache lifetime / rotation overlap           |
+| `COPALIBRE_JWT_CLOCK_TOLERANCE_SECONDS` | no (5)      | Clock-skew tolerance                            |
 
 ## The OpenAPI artifact
 

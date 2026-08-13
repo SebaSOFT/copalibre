@@ -13,9 +13,12 @@ import {
   SECURITY_PLANE_KEY,
   type SecurityPlane,
 } from './security-plane.js';
-import type { RequestWithSubject } from './request-context.js';
+import type { RequestWithSubject, AuthenticatedSubject } from './request-context.js';
 import { TokenVerifier } from './token-verifier.js';
 import { REQUIRED_SCOPES_KEY } from './required-scopes.js';
+import { PersonalAccessTokenRepository, hashToken, type Database } from '@copalibre/persistence';
+import type { Kysely } from 'kysely';
+import { DATABASE } from '../database.token.js';
 
 /**
  * Authentication only: is this token valid, and does the subject hold the coarse
@@ -30,6 +33,7 @@ export class JwtAuthGuard implements CanActivate {
   constructor(
     @Inject(Reflector) private readonly reflector: Reflector,
     @Inject(TokenVerifier) private readonly verifier: TokenVerifier,
+    @Inject(DATABASE) private readonly db: Kysely<Database>,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -51,12 +55,16 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     let subject;
-    try {
-      subject = await this.verifier.verify(token);
-    } catch {
-      // Deliberately opaque: the specific rejection reason is logged upstream,
-      // never returned, so a caller cannot probe issuer/audience config.
-      throw new UnauthorizedException('Invalid bearer token');
+    if (token.startsWith('clpat_')) {
+      subject = await this.verifyPat(token.slice(6));
+    } else {
+      try {
+        subject = await this.verifier.verify(token);
+      } catch {
+        // Deliberately opaque: the specific rejection reason is logged upstream,
+        // never returned, so a caller cannot probe issuer/audience config.
+        throw new UnauthorizedException('Invalid bearer token');
+      }
     }
 
     const required =
@@ -72,6 +80,37 @@ export class JwtAuthGuard implements CanActivate {
 
     request.subject = subject;
     return true;
+  }
+
+  private async verifyPat(rawToken: string): Promise<AuthenticatedSubject> {
+    const tokenHash = hashToken(rawToken);
+    const patRepo = new PersonalAccessTokenRepository(this.db);
+    const scope = await patRepo.scopeOf(tokenHash);
+    if (!scope) {
+      throw new UnauthorizedException('Invalid or expired personal access token');
+    }
+
+    // Resolve the principal's identity for the subject context
+    const principal = await this.db
+      .selectFrom('identity_principals')
+      .selectAll()
+      .where('principal_id', '=', scope.principalId)
+      .executeTakeFirst();
+    if (!principal) {
+      throw new UnauthorizedException('Token principal not found');
+    }
+
+    // Fire-and-forget usage tracking
+    void patRepo.touchLastUsed(scope.tokenId);
+
+    return {
+      subjectId: scope.principalId,
+      scopes: [...scope.scopes],
+      tokenId: scope.tokenId,
+      email: principal.email,
+      ...(principal.name === null ? {} : { name: principal.name }),
+      principalId: scope.principalId,
+    };
   }
 }
 

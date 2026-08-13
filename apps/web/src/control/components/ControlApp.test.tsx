@@ -96,11 +96,24 @@ describe('ControlApp', () => {
       'Posiciones — apertura-2026',
       'Posiciones',
     ],
-  ])('renders the right screen and title for %s', async (path, title) => {
+    ['/control/login', 'Iniciar sesión — CopaLibre', 'Ingresá para operar'],
+    ['/control/forgot-password', 'Recuperar contraseña — CopaLibre', 'Recuperar contraseña'],
+    [
+      '/control/reset-password',
+      'Restablecer contraseña — CopaLibre',
+      'Enlace de recuperación inválido',
+    ],
+    [
+      '/control/liga-mendocina/preferences',
+      'Preferencias personales — CopaLibre',
+      'Personal Preferences',
+    ],
+  ])('renders the right screen and title for %s', async (path, title, content) => {
     at(path);
     render(<ControlApp />);
 
     await waitFor(() => expect(document.title).toBe(title));
+    expect(screen.getAllByText(content, { exact: false }).length).toBeGreaterThan(0);
   });
 
   it('renders a not-found state for an unmatched path', () => {

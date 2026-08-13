@@ -3,6 +3,7 @@ import { FormattedMessage, useIntl } from 'react-intl';
 import { parseControlPath } from '@copalibre/routing';
 import {
   MatchConsoleControlRoute,
+  PreferencesControlRoute,
   RegistrationReviewControlRoute,
   ReportReviewControlRoute,
   RolesPermissionsControlRoute,
@@ -10,6 +11,8 @@ import {
   StandingsControlRoute,
   TournamentAuthoringControlRoute,
 } from './ControlRoutes.js';
+
+import { LoginRoute, ForgotPasswordRoute, ResetPasswordRoute } from './NativeAuthRoutes.js';
 import { Dashboard } from './Dashboard.js';
 import { buildDashboard } from '../lib/dashboard.js';
 import { sampleDashboardData } from '../lib/sample.js';
@@ -45,21 +48,45 @@ export function ControlApp(): React.JSX.Element | null {
     document.title = titleFor(route);
   }, [route]);
 
+  const isPublicRoute =
+    route?.screen === 'callback' ||
+    route?.screen === 'login' ||
+    route?.screen === 'forgot-password' ||
+    route?.screen === 'reset-password';
+
   // Guarded here, once, rather than per screen: ControlApp is every
   // authenticated screen's one mount point, so this covers all eight by
   // construction. The callback screen is exempt — it is what establishes
   // the session, not something that requires one.
   useEffect(() => {
-    if (route === undefined || route.screen === 'callback') return;
+    if (route === undefined || isPublicRoute) return;
     if (controlTokenStore.read() === undefined) {
-      // A real navigation: /control/ (login) is a genuinely separate page
+      // A real navigation: /control/login is a genuinely separate page
       // from this shell, so there is nothing in memory here to lose.
       window.location.assign(loginRedirectUrl(path));
     }
-  }, [route, path]);
+  }, [route, path, isPublicRoute]);
 
   if (route === undefined) return <NotFound path={path} />;
   if (route.screen === 'callback') return <CompletingLogin />;
+  if (route.screen === 'login')
+    return (
+      <ControlIntl locale={activeControlLanguage()}>
+        <LoginRoute />
+      </ControlIntl>
+    );
+  if (route.screen === 'forgot-password')
+    return (
+      <ControlIntl locale={activeControlLanguage()}>
+        <ForgotPasswordRoute />
+      </ControlIntl>
+    );
+  if (route.screen === 'reset-password')
+    return (
+      <ControlIntl locale={activeControlLanguage()}>
+        <ResetPasswordRoute />
+      </ControlIntl>
+    );
   // Synchronous guard for the render that happens before the effect above
   // runs — without it, a protected screen would flash unauthenticated
   // before the redirect fires.
@@ -75,6 +102,8 @@ export function ControlApp(): React.JSX.Element | null {
       );
     case 'roles':
       return <RolesPermissionsControlRoute organizationAlias={route.organizationAlias} />;
+    case 'preferences':
+      return <PreferencesControlRoute organizationAlias={route.organizationAlias} />;
     case 'newTournament':
       return <TournamentAuthoringControlRoute organizationAlias={route.organizationAlias} />;
     case 'registrations':
@@ -146,6 +175,16 @@ function titleFor(route: ReturnType<typeof parseControlPath>): string {
       return `Sembrado — ${route.tournamentAlias}`;
     case 'standings':
       return `Posiciones — ${route.tournamentAlias}`;
+    case 'login':
+      return 'Iniciar sesión — CopaLibre';
+    case 'forgot-password':
+      return 'Recuperar contraseña — CopaLibre';
+    case 'reset-password':
+      return 'Restablecer contraseña — CopaLibre';
+    case 'preferences':
+      return 'Preferencias personales — CopaLibre';
+    default:
+      return 'Control — CopaLibre';
   }
 }
 

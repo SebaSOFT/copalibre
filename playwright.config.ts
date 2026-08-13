@@ -5,7 +5,8 @@ import { defineConfig, devices } from '@playwright/test';
  * phase 0012-public-web-astro-shell writes the first ones into e2e/.
  */
 export default defineConfig({
-  testDir: './e2e',
+  testDir: '.',
+  testMatch: ['e2e/**/*.spec.ts', 'apps/web/tests/**/*.spec.ts'],
   testIgnore: '**/deployment-login.spec.ts',
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
