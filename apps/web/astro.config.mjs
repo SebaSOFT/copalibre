@@ -57,6 +57,7 @@ export default defineConfig({
           label: 'CopaLibre',
           items: [
             'help',
+            'help/self-hosting',
             'help/getting-started',
             'help/operations',
             {
