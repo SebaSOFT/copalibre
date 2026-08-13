@@ -26,6 +26,7 @@ import {
   PersonalAccessTokenRepository,
   AuthVerificationTokenRepository,
   withTransaction,
+  SYSTEM_ORGANIZATION,
   type Database,
 } from '@copalibre/persistence';
 import type { RequestWithSubject } from '../auth/request-context.js';
@@ -91,19 +92,30 @@ export class NativeAuthController {
     // Always return success to prevent email enumeration.
     if (!principal) return { message: 'If the email exists, a reset link has been sent.' };
 
-    const { rawToken } = await withTransaction(this.db, (uow) =>
-      new AuthVerificationTokenRepository(this.db).create(uow, {
+    await withTransaction(this.db, async (uow) => {
+      const created = await new AuthVerificationTokenRepository(this.db).create(uow, {
         principalId: principal.principalId,
         kind: 'password-reset',
         ttlMs: 60 * 60 * 1000, // 1 hour
-      }),
-    );
-
-    // TODO: Send email with reset link containing rawToken
-    // For now, log it in development
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`[DEV] Password reset token for ${email}: ${rawToken}`);
-    }
+      });
+      // Delivered by apps/worker's passwordResetEmailHandler (password-reset-requested),
+      // the same outbox pattern organization.invite.requested already uses.
+      // Password resets are principal-scoped, not organization-scoped, so this
+      // uses SYSTEM_ORGANIZATION the same way PersonalAccessTokenRepository does.
+      await uow.publishEvent({
+        organizationId: SYSTEM_ORGANIZATION,
+        stream: `principal:${principal.principalId}`,
+        entityId: created.verificationId,
+        eventType: 'password-reset-requested',
+        projectionVersion: 1,
+        payload: {
+          verificationId: created.verificationId,
+          recipientEmail: email,
+          token: created.rawToken,
+          expiresAt: created.expiresAt,
+        },
+      });
+    });
 
     return { message: 'If the email exists, a reset link has been sent.' };
   }

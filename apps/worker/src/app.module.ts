@@ -22,6 +22,7 @@ import {
 import {
   emailDeliveryConfigFromEnv,
   invitationEmailHandler,
+  passwordResetEmailHandler,
 } from './invitations/email-delivery.js';
 import { objectProcessingHandler } from './jobs/object-processing-handler.js';
 import { reportEvidenceValidationHandler } from './jobs/report-evidence-handler.js';
@@ -54,6 +55,7 @@ const providers: Provider[] = [
       const handler = statisticsHandler({ db, refold });
       const csvImport = csvImportValidationHandler({ db });
       const invitation = invitationEmailHandler(emailDeliveryConfigFromEnv());
+      const passwordReset = passwordResetEmailHandler(emailDeliveryConfigFromEnv());
       const evidence = reportEvidenceValidationHandler({ db });
       const objectProcessing = objectProcessingHandler({
         db,
@@ -65,6 +67,7 @@ const providers: Provider[] = [
         .register('result.superseded', handler)
         .register(CSV_IMPORT_VALIDATION_EVENT, csvImport)
         .register('organization.invite.requested', invitation)
+        .register('password-reset-requested', passwordReset)
         .register(EVIDENCE_VALIDATION_REQUESTED_EVENT, evidence)
         .register(OBJECT_PROCESSING_REQUESTED_EVENT, objectProcessing);
     },
