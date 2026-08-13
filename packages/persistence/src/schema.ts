@@ -396,6 +396,8 @@ export interface MatchEventsTable {
   side: string | null;
   person_id: string | null;
   payload: JSONColumnType<Record<string, unknown>>;
+  /** Optional free-text operator note (0075), independent of the discipline and its payloadSchema. */
+  notes: string | null;
   created_at: Timestamp;
 }
 

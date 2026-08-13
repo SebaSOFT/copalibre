@@ -783,6 +783,7 @@ export class CompetitionRepository {
         side: event.side ?? null,
         person_id: event.personId ?? null,
         payload: JSON.stringify(event.payload),
+        notes: event.notes ?? null,
         created_at: new Date(),
       })
       .returningAll()

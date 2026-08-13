@@ -1432,6 +1432,8 @@ export interface components {
             side?: string;
             /** Format: uuid */
             personId?: string;
+            /** @description Free-text operator note, if one was recorded */
+            notes?: string;
         };
         MatchConsoleResponse: {
             /** Format: uuid */
@@ -1498,6 +1500,8 @@ export interface components {
             personId?: string;
             /** @description Payload validated against the definition */
             payload?: Record<string, never>;
+            /** @description Free-text operator note, available regardless of discipline */
+            notes?: string;
         };
         RecordedEventResponse: {
             /** Format: uuid */
@@ -1509,6 +1513,8 @@ export interface components {
             side?: string;
             /** Format: uuid */
             personId?: string;
+            /** @description Free-text operator note, if one was recorded */
+            notes?: string;
             /** @description Identity keys of notifications this event declared, deduplicated on delivery */
             notifications: string[];
         };

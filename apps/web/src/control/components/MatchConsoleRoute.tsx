@@ -201,6 +201,7 @@ export function MatchConsoleRoute({
           ...(payloadDescription === undefined
             ? {}
             : { payload: { description: payloadDescription } }),
+          ...(logNote.trim() === '' ? {} : { notes: logNote.trim() }),
         }),
       () =>
         setProjection((current) =>
@@ -220,6 +221,7 @@ export function MatchConsoleRoute({
                     definition.actorRequirement === 'person-or-staff'
                       ? { personId: selectedPersonId || selectedStaffId }
                       : {}),
+                    ...(logNote.trim() === '' ? {} : { notes: logNote.trim() }),
                   },
                 ],
               }
@@ -228,6 +230,7 @@ export function MatchConsoleRoute({
     );
     setConditionalEvent(undefined);
     setDescription('');
+    setLogNote('');
   }
 
   async function finalize(): Promise<void> {
@@ -629,6 +632,7 @@ export function MatchConsoleRoute({
                     )}
                   </strong>
                   <span>{new Date(event.occurredAt).toLocaleTimeString(intl.locale)}</span>
+                  {event.notes ? <p style={eventNoteStyle}>{event.notes}</p> : null}
                 </li>
               ))}
             </ol>
@@ -839,10 +843,16 @@ const listItemStyle: React.CSSProperties = {
 };
 const ledgerItemStyle: React.CSSProperties = {
   display: 'flex',
+  flexWrap: 'wrap',
   justifyContent: 'space-between',
   gap: 'var(--cl-space-2)',
   borderBottom: '1px solid var(--cl-border-muted)',
   paddingBottom: 'var(--cl-space-2)',
+};
+const eventNoteStyle: React.CSSProperties = {
+  flexBasis: '100%',
+  margin: 0,
+  color: 'var(--cl-text-muted)',
 };
 const filterRowStyle: React.CSSProperties = {
   display: 'flex',

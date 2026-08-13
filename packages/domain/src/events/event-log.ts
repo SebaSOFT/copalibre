@@ -38,6 +38,11 @@ export interface RecordedEvent {
   /** The person, when the discipline requires one. Always inside `side`. */
   readonly personId?: string;
   readonly payload: Readonly<Record<string, unknown>>;
+  /**
+   * Optional free-text operator note (0075), independent of the discipline
+   * and its `payloadSchema` — available on any event, any discipline.
+   */
+  readonly notes?: string;
 }
 
 export interface RecordEventInput {
@@ -50,6 +55,8 @@ export interface RecordEventInput {
   readonly side?: string;
   readonly personId?: string;
   readonly payload?: Readonly<Record<string, unknown>>;
+  /** Optional free-text operator note (0075), available regardless of discipline. */
+  readonly notes?: string;
   /**
    * The entrants contesting this match. When given, a recorded side must be one
    * of them — an event attributed to an entrant that is not playing is a
@@ -105,6 +112,7 @@ export class EventLog {
       side: input.side,
       personId: input.personId,
       payload: Object.freeze({ ...payload }),
+      notes: input.notes,
     });
     this.events.push(event);
     return ok(event);

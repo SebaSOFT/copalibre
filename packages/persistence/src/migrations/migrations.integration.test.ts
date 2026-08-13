@@ -99,6 +99,17 @@ describe('migrations (integration)', () => {
         expect.objectContaining({ name: 'timezone' }),
       ]),
     );
+    expect(afterUpTables.find((table) => table.name === 'match_events')?.columns).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'notes' })]),
+    );
+
+    const matchEventNotesDown = await migrateDownOneStep(scratch.db);
+    expect(matchEventNotesDown.error).toBeUndefined();
+
+    const afterMatchEventNotesDownTables = await scratch.db.introspection.getTables();
+    expect(
+      afterMatchEventNotesDownTables.find((table) => table.name === 'match_events')?.columns,
+    ).not.toEqual(expect.arrayContaining([expect.objectContaining({ name: 'notes' })]));
 
     const nativeIdentityDown = await migrateDownOneStep(scratch.db);
     expect(nativeIdentityDown.error).toBeUndefined();

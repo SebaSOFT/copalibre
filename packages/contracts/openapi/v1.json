@@ -4446,6 +4446,10 @@
           "personId": {
             "type": "string",
             "format": "uuid"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Free-text operator note, if one was recorded"
           }
         },
         "required": [
@@ -4626,6 +4630,10 @@
           "payload": {
             "type": "object",
             "description": "Payload validated against the definition"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Free-text operator note, available regardless of discipline"
           }
         },
         "required": [
@@ -4655,6 +4663,10 @@
           "personId": {
             "type": "string",
             "format": "uuid"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Free-text operator note, if one was recorded"
           },
           "notifications": {
             "description": "Identity keys of notifications this event declared, deduplicated on delivery",

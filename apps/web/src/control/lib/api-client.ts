@@ -349,6 +349,7 @@ export interface ConsoleMatchEvent {
   readonly occurredAt: string;
   readonly side?: string;
   readonly personId?: string;
+  readonly notes?: string;
 }
 
 export interface ConsoleEventDefinition {
@@ -400,6 +401,7 @@ export interface RecordMatchEventRequest {
   readonly side?: string;
   readonly personId?: string;
   readonly payload?: Record<string, unknown>;
+  readonly notes?: string;
 }
 
 export interface RecordedMatchEventResponse {
@@ -408,6 +410,7 @@ export interface RecordedMatchEventResponse {
   readonly sequence: number;
   readonly side?: string;
   readonly personId?: string;
+  readonly notes?: string;
   readonly notifications: readonly string[];
 }
 

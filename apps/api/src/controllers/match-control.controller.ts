@@ -543,6 +543,7 @@ export class MatchControlController {
       ...(body.side === undefined ? {} : { side: body.side }),
       ...(body.personId === undefined ? {} : { personId: body.personId }),
       ...(body.payload === undefined ? {} : { payload: body.payload }),
+      ...(body.notes === undefined ? {} : { notes: body.notes }),
       entrantIds,
     });
     if (!validated.ok) {
@@ -612,6 +613,7 @@ export class MatchControlController {
       sequence: recorded.sequence,
       ...(recorded.side === undefined ? {} : { side: recorded.side }),
       ...(recorded.personId === undefined ? {} : { personId: recorded.personId }),
+      ...(recorded.notes === undefined ? {} : { notes: recorded.notes }),
       notifications,
     };
   }
@@ -894,6 +896,7 @@ export class MatchControlController {
         occurredAt: event.occurredAt,
         ...(event.side === undefined ? {} : { side: event.side }),
         ...(event.personId === undefined ? {} : { personId: event.personId }),
+        ...(event.notes === undefined ? {} : { notes: event.notes }),
       })),
       eventDefinitions: descriptor.eventDefinitions.map((definition) => ({
         code: definition.code,
