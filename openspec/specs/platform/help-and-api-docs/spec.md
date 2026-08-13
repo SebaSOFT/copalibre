@@ -157,3 +157,22 @@ English remaining the unprefixed default that `llms.txt`/`llms-full.txt` are gen
 
 - **WHEN** a new interface language's help content is added to the site
 - **THEN** `/llms.txt` and `/llms-full.txt` continue to reflect English content only
+
+### Requirement: Help site documents self-hosting across platforms and deployment topologies
+
+The help site SHALL provide a page explaining how to run CopaLibre from source on Linux, macOS, and
+Windows, and how to choose between the two supported deployment topologies — a single-host reverse
+proxy at the edge, and Kubernetes via the Helm chart.
+
+#### Scenario: An operator new to CopaLibre finds a self-hosting entry point in the help site
+
+- **WHEN** an operator visits the help site looking for how to install and expose CopaLibre
+- **THEN** they find a page, linked from the site's top-level navigation, covering per-platform
+  prerequisites, running the stack from source, and both deployment topologies with their own
+  prerequisites
+
+#### Scenario: An operator on Windows finds the WSL2 requirement before attempting a bare shell run
+
+- **WHEN** a Windows operator reads the self-hosting page's prerequisites
+- **THEN** they are told `./copalibre` requires a POSIX shell and to run it from within WSL2 rather
+  than PowerShell or `cmd.exe` directly
