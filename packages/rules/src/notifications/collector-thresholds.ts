@@ -176,6 +176,58 @@ export function thresholdReadable(
   return wanted === kept || isCoarser(order, wanted, kept);
 }
 
+/**
+ * The collector-threshold rules a compiled ruleset configures (0074), read
+ * the same defensive way `notificationRulesFrom` reads its sibling field: a
+ * malformed entry is skipped rather than throwing, since one bad rule must
+ * not stop a match from being operated.
+ */
+export function collectorThresholdRulesFrom(config: unknown): readonly CollectorThresholdRule[] {
+  if (typeof config !== 'object' || config === null) return [];
+  const declared = (config as { collectorThresholdRules?: unknown }).collectorThresholdRules;
+  if (!Array.isArray(declared)) return [];
+
+  return declared.filter(isCollectorThresholdRule);
+}
+
+function isCollectorThresholdRule(candidate: unknown): candidate is CollectorThresholdRule {
+  if (typeof candidate !== 'object' || candidate === null) return false;
+  const rule = candidate as Partial<CollectorThresholdRule>;
+  return (
+    typeof rule.id === 'string' &&
+    typeof rule.version === 'number' &&
+    typeof rule.collectorCode === 'string' &&
+    typeof rule.actorGranularity === 'string' &&
+    typeof rule.threshold === 'object' &&
+    rule.threshold !== null &&
+    typeof rule.action === 'object' &&
+    rule.action !== null
+  );
+}
+
+/**
+ * Sums a collector's contribution across an event log, grouped by actor — the
+ * same fold `evaluateCollectorThreshold` runs internally over its own `events`
+ * input, exposed so a caller can supply the result as `carriedIn`: a baseline
+ * computed over events *outside* the ones being evaluated (0074), such as a
+ * stage's other matches, ahead of the general fold engine 0073 would
+ * otherwise provide.
+ */
+export function foldCollectorTotals(
+  collector: StatisticCollector,
+  events: readonly RecordedEvent[],
+  actorOf: (event: RecordedEvent) => string | undefined,
+): Readonly<Record<string, number>> {
+  const totals: Record<string, number> = {};
+  for (const event of events) {
+    if (!watches(collector, event)) continue;
+    const actorId = actorOf(event);
+    if (actorId === undefined) continue;
+    totals[actorId] = (totals[actorId] ?? 0) + contribution(collector, event);
+  }
+  return totals;
+}
+
 function watches(collector: StatisticCollector, event: RecordedEvent): boolean {
   if (collector.source.kind !== 'event') return false;
   const codes = collector.source.definitionCodes;

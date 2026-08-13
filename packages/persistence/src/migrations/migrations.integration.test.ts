@@ -102,6 +102,15 @@ describe('migrations (integration)', () => {
     expect(afterUpTables.find((table) => table.name === 'match_events')?.columns).toEqual(
       expect.arrayContaining([expect.objectContaining({ name: 'notes' })]),
     );
+    expect(afterUp).toContain('collector_threshold_consumption');
+
+    const collectorThresholdConsumptionDown = await migrateDownOneStep(scratch.db);
+    expect(collectorThresholdConsumptionDown.error).toBeUndefined();
+
+    const afterCollectorThresholdConsumptionDown = (await scratch.db.introspection.getTables()).map(
+      (table) => table.name,
+    );
+    expect(afterCollectorThresholdConsumptionDown).not.toContain('collector_threshold_consumption');
 
     const matchEventNotesDown = await migrateDownOneStep(scratch.db);
     expect(matchEventNotesDown.error).toBeUndefined();
