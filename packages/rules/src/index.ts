@@ -51,6 +51,8 @@ export {
 export {
   evaluateCollectorThreshold,
   thresholdReadable,
+  collectorThresholdRulesFrom,
+  foldCollectorTotals,
   type CollectorThresholdRule,
   type CollectorThresholdInput,
   type ThresholdWindow,

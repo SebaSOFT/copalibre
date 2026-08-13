@@ -4,7 +4,9 @@ import {
   type StatisticCollector,
 } from '@copalibre/domain';
 import {
+  collectorThresholdRulesFrom,
   evaluateCollectorThreshold,
+  foldCollectorTotals,
   thresholdReadable,
   type CollectorThresholdRule,
 } from './collector-thresholds.js';
@@ -214,6 +216,66 @@ describe('summing rather than counting', () => {
     });
 
     expect(instances).toEqual([]);
+  });
+});
+
+describe('reading collector-threshold rules out of ruleset config (0074)', () => {
+  it('reads a declared list of rules', () => {
+    expect(collectorThresholdRulesFrom({ collectorThresholdRules: [rule()] })).toEqual([rule()]);
+  });
+
+  it('skips a malformed entry rather than throwing', () => {
+    expect(
+      collectorThresholdRulesFrom({ collectorThresholdRules: [rule(), { id: 'incomplete' }] }),
+    ).toEqual([rule()]);
+  });
+
+  it('reads as empty when the field is absent, not an array, or config itself is not an object', () => {
+    expect(collectorThresholdRulesFrom({})).toEqual([]);
+    expect(collectorThresholdRulesFrom({ collectorThresholdRules: 'nope' })).toEqual([]);
+    expect(collectorThresholdRulesFrom(undefined)).toEqual([]);
+    expect(collectorThresholdRulesFrom(null)).toEqual([]);
+  });
+});
+
+describe('folding a collector total across an event log (0074)', () => {
+  it('sums per actor, the same fold evaluateCollectorThreshold runs internally', () => {
+    const totals = foldCollectorTotals(
+      collector,
+      [...cards(3, 'pe-1'), ...cards(2, 'pe-2')],
+      (event) => event.personId,
+    );
+
+    expect(totals).toEqual({ 'pe-1': 3, 'pe-2': 2 });
+  });
+
+  it('ignores events the collector does not watch and events with no resolvable actor', () => {
+    const events: readonly RecordedEvent[] = [
+      ...cards(2, 'pe-1'),
+      {
+        eventId: 'e-unwatched',
+        sequence: 3,
+        matchId: 'm-1',
+        segmentId: 'seg-1',
+        definitionCode: 'foul',
+        occurredAt: '2026-08-01T20:00:00.000Z',
+        payload: {},
+        personId: 'pe-1',
+      },
+      {
+        eventId: 'e-unresolvable',
+        sequence: 4,
+        matchId: 'm-1',
+        segmentId: 'seg-1',
+        definitionCode: 'yellow-card',
+        occurredAt: '2026-08-01T20:00:00.000Z',
+        payload: {},
+      },
+    ];
+
+    expect(foldCollectorTotals(collector, events, (event) => event.personId)).toEqual({
+      'pe-1': 2,
+    });
   });
 });
 

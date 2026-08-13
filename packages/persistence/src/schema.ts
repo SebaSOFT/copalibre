@@ -618,6 +618,20 @@ export interface StatisticTotalsTable {
 }
 
 /**
+ * How much of a collector-threshold rule's total each actor has already
+ * answered with a firing (0074) — the `since-last-consequence` window's
+ * durable state, apart from the collector total (`statistic_totals`) it never
+ * edits.
+ */
+export interface CollectorThresholdConsumptionTable {
+  rule_id: string;
+  actor_id: string;
+  stage_id: string;
+  consumed_total: number;
+  updated_at: Timestamp;
+}
+
+/**
  * A number moved by hand or by a script's declaration, recorded as a fact
  * (0016). Folded like any other fact, so a replay reproduces the total.
  */
@@ -786,6 +800,7 @@ export interface Database {
   scheduler_leases: SchedulerLeasesTable;
   scheduled_jobs: ScheduledJobsTable;
   statistic_totals: StatisticTotalsTable;
+  collector_threshold_consumption: CollectorThresholdConsumptionTable;
   statistic_adjustments: StatisticAdjustmentsTable;
   tag_facts: TagFactsTable;
   alias_redirects: AliasRedirectsTable;

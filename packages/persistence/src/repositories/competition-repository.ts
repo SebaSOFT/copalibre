@@ -837,6 +837,38 @@ export class CompetitionRepository {
   }
 
   /**
+   * A collector-threshold rule's cross-match baseline (0074): every event in
+   * the stage's *other* matches whose definition code the collector watches.
+   * A direct, scoped `match_events` read rather than a `statistic_totals`
+   * read — the general fold engine (`0073`) does not exist yet, and this
+   * rule needs to see the current stage's live, in-progress matches, which a
+   * finalisation-triggered projection would not carry anyway. An empty
+   * `definitionCodes` array (a non-event-sourced collector) short-circuits
+   * without a query, since nothing in `match_events` could match it.
+   */
+  async eventsInStageExcludingMatch(
+    stageId: string,
+    excludeMatchId: string,
+    definitionCodes: readonly string[] | undefined,
+  ): Promise<readonly RecordedEvent[]> {
+    if (definitionCodes !== undefined && definitionCodes.length === 0) return [];
+
+    let query = this.db
+      .selectFrom('match_events')
+      .innerJoin('matches', 'matches.match_id', 'match_events.match_id')
+      .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
+      .selectAll('match_events')
+      .where('fixtures.stage_id', '=', stageId)
+      .where('match_events.match_id', '!=', excludeMatchId);
+    if (definitionCodes !== undefined) {
+      query = query.where('match_events.definition_code', 'in', definitionCodes);
+    }
+
+    const rows = await query.execute();
+    return rows.map(toRecordedEvent);
+  }
+
+  /**
    * Records a calculated result exactly once. A second attempt is refused —
    * "The MVP permits no direct overwrite of an outcome" (tournament-engine
    * decision record); superseding requires the audited correction workflow.

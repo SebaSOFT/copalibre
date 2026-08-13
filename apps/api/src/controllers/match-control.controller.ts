@@ -22,6 +22,7 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import {
+  ACTOR_GRANULARITIES,
   applyMatchCommand,
   EventLog,
   foldLiveScores,
@@ -31,14 +32,21 @@ import {
   type MatchCommand,
   type RecordedEvent,
   type RunningTimer,
+  type StatisticCollector,
 } from '@copalibre/domain';
 import {
+  collectorThresholdRulesFrom,
   dedupeNotifications,
+  evaluateCollectorThreshold,
   evaluateNotificationRule,
+  foldCollectorTotals,
   notificationRulesFrom,
+  thresholdReadable,
+  type CollectorThresholdRule,
 } from '@copalibre/rules';
 import {
   AuditReader,
+  CollectorThresholdConsumptionRepository,
   CompetitionRecordRepository,
   CompetitionRepository,
   MatchAssignmentRepository,
@@ -556,6 +564,45 @@ export class MatchControlController {
     const rules = notificationRulesFrom(ruleset?.config);
     const alreadyRaised = await competition.publishedNotificationKeys(matchId);
 
+    // Collector-threshold rules (0074): the same wiring one step further —
+    // a rule about a career/stage total rather than one match, sourced from
+    // `descriptor.collectors` instead of the discipline's event predicates.
+    // Actor resolution below only answers "person"; the general fold engine
+    // (0073) that would resolve every actor granularity does not exist yet,
+    // so a rule declared at a coarser granularity is skipped rather than
+    // silently attributed to the wrong actor.
+    const actorOf = (event: RecordedEvent): string | undefined => event.personId;
+    const consumption = new CollectorThresholdConsumptionRepository(this.db);
+    const collectorRules = collectorThresholdRulesFrom(ruleset?.config)
+      .map((rule) => ({
+        rule,
+        collector: descriptor.collectors?.find(
+          (candidate) => candidate.code === rule.collectorCode,
+        ),
+      }))
+      .filter(
+        (entry): entry is { rule: CollectorThresholdRule; collector: StatisticCollector } =>
+          entry.collector !== undefined &&
+          thresholdReadable(entry.rule, entry.collector, ACTOR_GRANULARITIES) &&
+          entry.collector.granularity.actor === 'person',
+      );
+    const collectorRuleInputs = await Promise.all(
+      collectorRules.map(async ({ rule, collector }) => {
+        const definitionCodes =
+          collector.source.kind === 'event' ? collector.source.definitionCodes : [];
+        const [otherMatchEvents, consumed] = await Promise.all([
+          competition.eventsInStageExcludingMatch(stageId, matchId, definitionCodes),
+          consumption.forRule(rule.id, stageId),
+        ]);
+        return {
+          rule,
+          collector,
+          carriedIn: foldCollectorTotals(collector, otherMatchEvents, actorOf),
+          consumed,
+        };
+      }),
+    );
+
     // One transaction: the event, the alerts it crossed, and the outbox rows a
     // relay will deliver. Evaluating afterwards would leave a window where the
     // fact exists and the alert it should have raised does not.
@@ -601,6 +648,37 @@ export class MatchControlController {
             payload: { ...instance, contextValues: { ...instance.contextValues } },
           });
           raised.push(instance.identityKey);
+        }
+      }
+
+      for (const { rule, collector, carriedIn, consumed } of collectorRuleInputs) {
+        const evaluation = evaluateCollectorThreshold({
+          rule,
+          collector,
+          events: log,
+          actorOf,
+          carriedIn,
+          consumed,
+        });
+        for (const instance of dedupeNotifications(alreadyRaised, evaluation.instances)) {
+          await uow.publishEvent({
+            organizationId: tournament.organizationId,
+            stream: `match:${matchId}`,
+            entityId: matchId,
+            eventType: 'notification.raised',
+            projectionVersion: 1,
+            payload: { ...instance, contextValues: { ...instance.contextValues } },
+          });
+          raised.push(instance.identityKey);
+
+          if (rule.window === 'since-last-consequence') {
+            await consumption.record(uow, {
+              ruleId: rule.id,
+              actorId: instance.scopeKey,
+              stageId,
+              consumedTotal: Number(instance.contextValues.total),
+            });
+          }
         }
       }
 
