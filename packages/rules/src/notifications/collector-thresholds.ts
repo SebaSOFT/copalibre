@@ -1,4 +1,9 @@
-import type { ActorGranularity, RecordedEvent, StatisticCollector } from '@copalibre/domain';
+import {
+  isCoarser,
+  type ActorGranularity,
+  type RecordedEvent,
+  type StatisticCollector,
+} from '@copalibre/domain';
 import type { TraceNode } from '../trace/explanation-trace.js';
 import type { NotificationEvaluation, NotificationInstance } from './notification-rules.js';
 
@@ -153,6 +158,12 @@ export function evaluateCollectorThreshold(input: CollectorThresholdInput): Noti
  * Whether a threshold can be evaluated at all: a rule about a person cannot
  * read a collector kept per team, and answering it with the team's number would
  * sanction the wrong human.
+ *
+ * Delegates to `isCoarser` (0072) rather than comparing `order.indexOf(...)`
+ * directly, so this stays correct once `official`/`venue` exist alongside the
+ * person→player→team→club chain — those two are never "coarser than" a
+ * chain-member granularity, and a raw index comparison would have gotten that
+ * wrong.
  */
 export function thresholdReadable(
   rule: CollectorThresholdRule,
@@ -160,9 +171,9 @@ export function thresholdReadable(
   order: readonly ActorGranularity[],
 ): boolean {
   if (rule.collectorCode !== collector.code) return false;
-  const wanted = order.indexOf(rule.actorGranularity);
-  const kept = order.indexOf(collector.granularity.actor);
-  return wanted >= 0 && kept >= 0 && wanted >= kept;
+  const wanted = rule.actorGranularity;
+  const kept = collector.granularity.actor;
+  return wanted === kept || isCoarser(order, wanted, kept);
 }
 
 function watches(collector: StatisticCollector, event: RecordedEvent): boolean {

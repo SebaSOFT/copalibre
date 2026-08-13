@@ -1,4 +1,5 @@
 import type { Entrant } from '../aggregates/participant.js';
+import type { Official, Venue } from '../aggregates/resource.js';
 import { DomainError } from '../errors.js';
 import { err, ok, type Result } from '../result.js';
 
@@ -36,8 +37,40 @@ export const COMPETITION_GRANULARITIES = [
  * one competition — so it belongs to neither axis and bridges them. That is
  * what lets a club's totals cross tournaments while an entrant cannot: an
  * entrant lives inside one.
+ *
+ * **`official` and `venue` (0072) are roll-up-terminal, not links in the
+ * person→player→team→club chain.** An official's tag does not roll up into a
+ * club's totals, and neither does a venue's — each is its own single-member
+ * family. See `ACTOR_ROLLUP_CHAINS` below for how `granularitiesAbove`/
+ * `isCoarser` keep the three families from being compared as if they were one
+ * total order.
  */
-export const ACTOR_GRANULARITIES = ['person', 'player', 'team', 'club'] as const;
+export const ACTOR_GRANULARITIES = [
+  'person',
+  'player',
+  'team',
+  'club',
+  'official',
+  'venue',
+] as const;
+
+/**
+ * The actor axis's roll-up families (0072). `person → player → team → club` is
+ * a real containment chain: a player's stats roll up to their team, which
+ * rolls up to their club. `official` and `venue` are each their own,
+ * single-member family — comparing across families answers "not comparable"
+ * (see `isCoarser`) rather than a value derived from `ACTOR_GRANULARITIES`'
+ * incidental array order.
+ */
+const ACTOR_ROLLUP_CHAINS: readonly (readonly ActorGranularity[])[] = [
+  ['person', 'player', 'team', 'club'],
+  ['official'],
+  ['venue'],
+];
+
+function chainContaining<G>(chains: readonly (readonly G[])[], value: G): readonly G[] | undefined {
+  return chains.find((chain) => chain.includes(value));
+}
 
 export type CompetitionGranularity = (typeof COMPETITION_GRANULARITIES)[number];
 export type ActorGranularity = (typeof ACTOR_GRANULARITIES)[number];
@@ -70,6 +103,8 @@ export const GRANULARITY_SOURCES: Readonly<
   player: '0015',
   team: '0002',
   club: '0002',
+  official: '0072',
+  venue: '0072',
 });
 
 export function isCompetitionGranularity(value: string): value is CompetitionGranularity {
@@ -86,21 +121,60 @@ export function isActorGranularity(value: string): value is ActorGranularity {
  * "One step coarser" is a fact about the axis rather than something each caller
  * works out, which is what stops two readers disagreeing about whether a season
  * sits above a stage.
+ *
+ * On the actor axis, this resolves within `granularity`'s own roll-up family
+ * (0072) — `official` and `venue` each have nothing above them, and neither is
+ * "above" `person`/`player`/`team`/`club` just because of where it sits in
+ * `ACTOR_GRANULARITIES`' published order.
  */
 export function granularitiesAbove<G extends CompetitionGranularity | ActorGranularity>(
   axis: readonly G[],
   granularity: G,
 ): readonly G[] {
+  const chain = actorChainFor(axis, granularity);
+  if (chain) {
+    const index = chain.indexOf(granularity);
+    return index === -1 ? [] : chain.slice(index + 1);
+  }
   const index = axis.indexOf(granularity);
   return index === -1 ? [] : axis.slice(index + 1);
 }
 
+/**
+ * Whether `candidate` is coarser than `granularity`.
+ *
+ * On the actor axis, two granularities from different roll-up families (0072)
+ * — e.g. `club` and `official` — are never coarser than one another: that
+ * comparison is "not comparable," not a value derived from
+ * `ACTOR_GRANULARITIES`' incidental array position.
+ */
 export function isCoarser<G extends CompetitionGranularity | ActorGranularity>(
   axis: readonly G[],
   candidate: G,
   granularity: G,
 ): boolean {
+  const candidateChain = actorChainFor(axis, candidate);
+  const granularityChain = actorChainFor(axis, granularity);
+  if (candidateChain !== undefined || granularityChain !== undefined) {
+    if (candidateChain === undefined || candidateChain !== granularityChain) return false;
+    return candidateChain.indexOf(candidate) > candidateChain.indexOf(granularity);
+  }
   return axis.indexOf(candidate) > axis.indexOf(granularity);
+}
+
+/**
+ * Resolves `value`'s roll-up family when `axis` is the published actor axis;
+ * `undefined` for the competition axis (a single chain, unchanged behavior) or
+ * any other array a caller might pass.
+ */
+function actorChainFor<G extends CompetitionGranularity | ActorGranularity>(
+  axis: readonly G[],
+  value: G,
+): readonly G[] | undefined {
+  if ((axis as readonly unknown[]) !== (ACTOR_GRANULARITIES as readonly unknown[]))
+    return undefined;
+  return chainContaining(ACTOR_ROLLUP_CHAINS, value as ActorGranularity) as
+    readonly G[] | undefined;
 }
 
 /** The actor an enrollment names, which is how a fold crosses from one axis to the other. */
@@ -121,6 +195,23 @@ export function actorOfEntrant(entrant: Pick<Entrant, 'entrantRef'>): ResolvedAc
   return entrant.entrantRef.kind === 'team'
     ? { granularity: 'team', actorId: entrant.entrantRef.teamId }
     : { granularity: 'person', actorId: entrant.entrantRef.personId };
+}
+
+/**
+ * Resolves an official to its `official`-granularity actor reference (0072).
+ * An official is already the addressable unit — no unwrapping, unlike an
+ * entrant naming a person or team underneath it.
+ */
+export function actorOfOfficial(official: Pick<Official, 'officialId'>): ResolvedActor {
+  return { granularity: 'official', actorId: official.officialId };
+}
+
+/**
+ * Resolves a venue to its `venue`-granularity actor reference (0072). Same
+ * shape as `actorOfOfficial` — a venue is already the addressable unit.
+ */
+export function actorOfVenue(venue: Pick<Venue, 'venueId'>): ResolvedActor {
+  return { granularity: 'venue', actorId: venue.venueId };
 }
 
 /** Refuses a granularity neither axis publishes, naming the ones that exist. */
