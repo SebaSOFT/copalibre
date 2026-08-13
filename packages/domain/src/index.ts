@@ -413,6 +413,7 @@ export {
   type OutcomeContributor,
   type RecordedOutcome,
   type OutcomeValidationOptions,
+  type ResultReason,
 } from './standings/index.js';
 
 export {

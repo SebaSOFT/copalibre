@@ -2,7 +2,7 @@
 import type { IntlShape } from 'react-intl';
 import StateBadge from './StateBadge.astro';
 import { toNode, type BracketMatch } from '../lib/bracket.ts';
-import { resultStateLabels } from '../lib/i18n/public-intl.ts';
+import { resultReasonLabels, resultStateLabels } from '../lib/i18n/public-intl.ts';
 
 interface Props {
   readonly match: BracketMatch;
@@ -10,6 +10,7 @@ interface Props {
 }
 const { intl } = Astro.props;
 const node = toNode(Astro.props.match, resultStateLabels(intl));
+const reasonLabels = resultReasonLabels(intl);
 ---
 
 <article class="cl-card cl-chamfer" data-match={node.matchNumber}>
@@ -21,6 +22,12 @@ const node = toNode(Astro.props.match, resultStateLabels(intl));
           {/* Named, never blank: a blank cell reads as a bug, "Ganador del 3"
               tells a spectator what has to happen first. */}
           <span>{slot.label}</span>
+          {slot.resultReason && (
+            // A walkover 0-10 must not read like an actual 10-goal win — the
+            // reason a result looks the way it does is shown, not just the
+            // number (0076).
+            <span class="cl-badge">{reasonLabels[slot.resultReason]}</span>
+          )}
           <span class="cl-stat-tile__value">{slot.score ?? '—'}</span>
         </li>
       ))

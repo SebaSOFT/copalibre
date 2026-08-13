@@ -122,6 +122,17 @@ export const RECORDED_OUTCOME_SCHEMA: JsonSchemaDocument = Object.freeze({
             additionalProperties: { type: 'number' },
           },
           placement: { type: 'integer', minimum: 1 },
+          resultReason: {
+            type: 'string',
+            enum: [
+              'played',
+              'administrative-loss',
+              'walkover',
+              'forfeit-abandonment',
+              'disqualified',
+              'did-not-finish',
+            ],
+          },
         },
       },
     },

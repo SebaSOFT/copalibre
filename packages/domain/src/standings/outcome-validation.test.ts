@@ -128,6 +128,50 @@ describe('recorded outcome validation', () => {
     expect(validateRecordedOutcome(tennis, document).ok).toBe(false);
   });
 
+  it('round-trips a duel result with one side’s reason set and the other omitted (0076)', () => {
+    const result = validateRecordedOutcome(tennis, {
+      matchId: 'm-1',
+      winnerEntrantId: 'alfa',
+      sides: [
+        { entrantId: 'alfa', statistics: {} },
+        { entrantId: 'bravo', statistics: {}, resultReason: 'administrative-loss' },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.sides[1]?.resultReason).toBe('administrative-loss');
+    expect(result.value.sides[0]?.resultReason).toBeUndefined();
+  });
+
+  it('round-trips a free-for-all result with one competitor disqualified, per-entrant not per-match (0076)', () => {
+    const result = validateRecordedOutcome(
+      heat,
+      {
+        matchId: 'heat-1',
+        sides: [
+          { entrantId: 'lane-1', statistics: { 'placement-points': 8 }, placement: 1 },
+          {
+            entrantId: 'lane-2',
+            statistics: { 'placement-points': 0 },
+            placement: 2,
+            resultReason: 'disqualified',
+          },
+          { entrantId: 'lane-3', statistics: { 'placement-points': 6 }, placement: 3 },
+        ],
+      },
+      { shape: 'placement' },
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.sides.map((side) => side.resultReason)).toEqual([
+      undefined,
+      'disqualified',
+      undefined,
+    ]);
+  });
+
   it('compiles one validator per descriptor version', () => {
     const v2 = fixtureDescriptor({
       descriptorId: tennis.descriptorId,

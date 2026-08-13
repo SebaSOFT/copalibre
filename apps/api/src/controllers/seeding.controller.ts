@@ -302,6 +302,9 @@ export function toBracketMatch(
       ...(slot.kind === 'entrant' ? { entrantId: slot.entrantId } : {}),
       ...(slot.kind === 'winner-of' || slot.kind === 'loser-of' ? { matchId: slot.matchId } : {}),
       ...(recorded?.scores?.[index] === undefined ? {} : { score: recorded.scores[index] }),
+      ...(recorded?.resultReasons?.[index] === undefined
+        ? {}
+        : { resultReason: recorded.resultReasons[index] }),
     })),
   };
 }

@@ -5,6 +5,7 @@ import type {
   PublicBracketResponse,
   PublicStandingsRowResponse,
 } from '@copalibre/api/src/dto/public-tournament.dto.js';
+import type { ResultReason } from '@copalibre/domain';
 import type { OverviewInput, MatchState } from './overview.js';
 import type { LiveDashboard } from './live-state.js';
 import type { BracketMatch, SlotSource } from './bracket.js';
@@ -122,6 +123,7 @@ export function mapBracketResponse(response: PublicBracketResponse): {
       branch: m.bracket,
       state: m.status as MatchState,
       scores: m.slots.map((s) => s.score),
+      resultReasons: m.slots.map((s) => s.resultReason as ResultReason | undefined),
       slots: m.slots.map((s): SlotSource => {
         if (s.kind === 'winner-of')
           return { kind: 'winner-of', matchNumber: s.matchId ? parseInt(s.matchId) : 0 };

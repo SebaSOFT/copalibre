@@ -17,6 +17,12 @@ export const messages: Record<string, string> = {
   'publicWeb.resultState.tbd': 'DA DEFINIRE',
   'publicWeb.resultState.cancelled': 'ANNULLATO',
 
+  'publicWeb.resultReason.administrativeLoss': 'SCONFITTA AMM.',
+  'publicWeb.resultReason.walkover': 'W/O',
+  'publicWeb.resultReason.forfeitAbandonment': 'RITIRO',
+  'publicWeb.resultReason.disqualified': 'SQUALIFICATO',
+  'publicWeb.resultReason.didNotFinish': 'NON COMPLETATO',
+
   'publicWeb.legend.heading': 'Legenda',
 
   'publicWeb.ruleset.heading': 'Regolamento',

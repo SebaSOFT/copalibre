@@ -17,6 +17,12 @@ export const messages: Record<string, string> = {
   'publicWeb.resultState.tbd': 'УТОЧНЯЕТСЯ',
   'publicWeb.resultState.cancelled': 'ОТМЕНЕНО',
 
+  'publicWeb.resultReason.administrativeLoss': 'ТЕХ. ПОРАЖЕНИЕ',
+  'publicWeb.resultReason.walkover': 'НЕЯВКА',
+  'publicWeb.resultReason.forfeitAbandonment': 'СНЯТИЕ',
+  'publicWeb.resultReason.disqualified': 'ДИСКВАЛИФИЦИРОВАН',
+  'publicWeb.resultReason.didNotFinish': 'НЕ ФИНИШИРОВАЛ',
+
   'publicWeb.legend.heading': 'Легенда',
 
   'publicWeb.ruleset.heading': 'Регламент',

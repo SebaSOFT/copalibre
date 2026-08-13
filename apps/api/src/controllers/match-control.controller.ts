@@ -276,6 +276,7 @@ export class MatchControlController {
                 entrantId: side.entrantId,
                 statistics: side.statistics,
                 ...(side.placement === undefined ? {} : { placement: side.placement }),
+                ...(side.resultReason === undefined ? {} : { resultReason: side.resultReason }),
               })),
               ...(body.winnerEntrantId === undefined
                 ? {}
@@ -857,6 +858,7 @@ export class MatchControlController {
             entrantId: side.entrantId,
             statistics: side.statistics,
             ...(side.placement === undefined ? {} : { placement: side.placement }),
+            ...(side.resultReason === undefined ? {} : { resultReason: side.resultReason }),
           })),
           ...(body.winnerEntrantId === undefined ? {} : { winnerEntrantId: body.winnerEntrantId }),
           recordedAt: new Date().toISOString(),

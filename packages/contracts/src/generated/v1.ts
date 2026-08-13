@@ -1463,7 +1463,7 @@ export interface components {
             projectionVersion: number;
         };
         FinalizeRequest: {
-            /** @description One entry per side: entrant id, its declared statistics, and placement for a heat */
+            /** @description One entry per side: entrant id, its declared statistics, placement for a heat, and why the result is what it is when not an ordinarily played one (0076) */
             sides: Record<string, never>[];
             /**
              * Format: uuid
@@ -1656,6 +1656,11 @@ export interface components {
             matchId?: string;
             /** @description Score recorded for this side, when the match is finalized */
             score?: number;
+            /**
+             * @description Why this side’s result is what it is; absent means an ordinarily played result
+             * @enum {string}
+             */
+            resultReason?: "played" | "administrative-loss" | "walkover" | "forfeit-abandonment" | "disqualified" | "did-not-finish";
         };
         BracketMatchResponse: {
             /**
@@ -2004,6 +2009,11 @@ export interface components {
             matchId?: string;
             /** @description Score recorded for this side, when the match is finalized */
             score?: number;
+            /**
+             * @description Why this side’s result is what it is; absent means an ordinarily played result
+             * @enum {string}
+             */
+            resultReason?: "played" | "administrative-loss" | "walkover" | "forfeit-abandonment" | "disqualified" | "did-not-finish";
         };
         PublicBracketMatchResponse: {
             matchId: string;

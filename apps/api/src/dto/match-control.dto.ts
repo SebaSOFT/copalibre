@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import type { ResultReason } from '@copalibre/domain';
 
 /**
  * Match-control wire shapes (0014).
@@ -219,12 +220,14 @@ export class FinalizeRequest {
   @ApiProperty({
     type: [Object],
     description:
-      'One entry per side: entrant id, its declared statistics, and placement for a heat',
+      'One entry per side: entrant id, its declared statistics, placement for a heat, and why the ' +
+      'result is what it is when not an ordinarily played one (0076)',
   })
   sides!: {
     entrantId: string;
     statistics: Record<string, number>;
     placement?: number;
+    resultReason?: ResultReason;
   }[];
 
   @ApiPropertyOptional({ format: 'uuid', description: 'Duel matches only' })
@@ -240,6 +243,7 @@ export class CorrectionRequestDto {
     entrantId: string;
     statistics: Record<string, number>;
     placement?: number;
+    resultReason?: ResultReason;
   }[];
 
   @ApiPropertyOptional({ format: 'uuid' })

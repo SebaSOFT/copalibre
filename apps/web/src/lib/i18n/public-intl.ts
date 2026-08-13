@@ -8,7 +8,11 @@ import { messages as deMessages } from './public-messages.de.js';
 import { messages as ruMessages } from './public-messages.ru.js';
 import { messages as zhMessages } from './public-messages.zh.js';
 import { messages } from './public-messages.en.js';
+import type { ResultReason } from '@copalibre/domain';
 import type { ResultState, ResultStateLabels } from '../result-state.js';
+
+/** Labels for every non-`played` `ResultReason` (0076) — `played` never renders one. */
+export type ResultReasonLabels = Readonly<Record<Exclude<ResultReason, 'played'>, string>>;
 
 /**
  * Build-time-only formatter for public-web's `.astro` frontmatter (0055).
@@ -62,5 +66,16 @@ export function resultStateLabels(intl: IntlShape): ResultStateLabels {
     loser: intl.formatMessage(RESULT_STATE_MESSAGE_KEY.loser),
     tbd: intl.formatMessage(RESULT_STATE_MESSAGE_KEY.tbd),
     cancelled: intl.formatMessage(RESULT_STATE_MESSAGE_KEY.cancelled),
+  };
+}
+
+/** Resolves every non-`played` result-reason label once (0076). */
+export function resultReasonLabels(intl: IntlShape): ResultReasonLabels {
+  return {
+    'administrative-loss': intl.formatMessage(messages.resultReasonAdministrativeLoss),
+    walkover: intl.formatMessage(messages.resultReasonWalkover),
+    'forfeit-abandonment': intl.formatMessage(messages.resultReasonForfeitAbandonment),
+    disqualified: intl.formatMessage(messages.resultReasonDisqualified),
+    'did-not-finish': intl.formatMessage(messages.resultReasonDidNotFinish),
   };
 }
