@@ -1,3 +1,4 @@
+import type { LocalizedLabel } from '@copalibre/domain';
 import type { CanvasMatch } from './bracket-canvas.js';
 import type { RegistrationStatus } from './review.js';
 import type { StandingsData } from './standings.js';
@@ -354,7 +355,7 @@ export interface ConsoleMatchEvent {
 
 export interface ConsoleEventDefinition {
   readonly code: string;
-  readonly label: string;
+  readonly label: string | LocalizedLabel;
   readonly category: 'positive' | 'negative' | 'neutral';
   readonly permittedSegmentTypes: readonly string[];
   readonly actorRequirement: 'none' | 'side' | 'person' | 'person-or-staff';
@@ -362,7 +363,10 @@ export interface ConsoleEventDefinition {
   readonly display: { readonly icon?: string; readonly color?: string; readonly order?: number };
   readonly workflow?: {
     readonly kind: 'outcome-choice';
-    readonly options: readonly { readonly definitionCode: string; readonly label: string }[];
+    readonly options: readonly {
+      readonly definitionCode: string;
+      readonly label: string | LocalizedLabel;
+    }[];
   };
 }
 

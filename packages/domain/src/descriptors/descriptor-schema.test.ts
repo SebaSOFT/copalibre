@@ -278,4 +278,40 @@ describe('discipline descriptor schema', () => {
   it('rejects a non-object document', () => {
     expect(validateDisciplineDescriptorDocument('a descriptor').ok).toBe(false);
   });
+
+  describe('localized labels (0071)', () => {
+    it('still accepts a plain-string label and name, unmodified', () => {
+      // The reference descriptor already uses plain strings throughout; this
+      // is what makes every module authored before 0071 stay valid forever.
+      expect(validateDisciplineDescriptorDocument(asDocument()).ok).toBe(true);
+    });
+
+    it('accepts a locale-map label requiring only en', () => {
+      const result = validateDisciplineDescriptorDocument(asDocument({ name: { en: 'Football' } }));
+      expect(result.ok).toBe(true);
+    });
+
+    it('accepts a locale-map label with additional supported languages', () => {
+      const result = validateDisciplineDescriptorDocument(
+        asDocument({
+          statistics: [
+            { code: 'strikes', label: { en: 'Strikes', es: 'Golpes' }, aggregation: 'sum' },
+          ],
+        }),
+      );
+      expect(result.ok).toBe(true);
+    });
+
+    it('rejects a locale-map label missing the required en key', () => {
+      const result = validateDisciplineDescriptorDocument(asDocument({ name: { es: 'Fútbol' } }));
+      expect(result.ok).toBe(false);
+    });
+
+    it('rejects a locale-map label with an unsupported language key', () => {
+      const result = validateDisciplineDescriptorDocument(
+        asDocument({ name: { en: 'Football', xx: 'Nope' } }),
+      );
+      expect(result.ok).toBe(false);
+    });
+  });
 });

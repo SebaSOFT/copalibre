@@ -3,6 +3,7 @@ import type { Attribution } from '../descriptors/attribution.js';
 import type { OverrideSet } from '../descriptors/override-policy.js';
 import type { RuleScript } from '../descriptors/discipline-descriptor.js';
 import type { TournamentFormat } from '../descriptors/discipline-descriptor.js';
+import type { LocalizedLabel } from '../i18n-label.js';
 
 /**
  * A reusable, publishable tournament configuration.
@@ -30,7 +31,7 @@ export interface ProfileStage {
 export interface ProfileTiebreak {
   /** Capability name resolved through the binding at compile time. */
   readonly capability: string;
-  readonly label: string;
+  readonly label: string | LocalizedLabel;
   readonly direction: 'higher_wins' | 'lower_wins';
   readonly missingValue: 'treat-as-worst' | 'treat-as-zero' | 'invalid';
 }
@@ -40,7 +41,7 @@ export interface TournamentProfileDocument {
   readonly alias: string;
   /** Semver: a release identifier, not a compatibility contract. */
   readonly version: string;
-  readonly name: string;
+  readonly name: string | LocalizedLabel;
   readonly attribution: Attribution;
   readonly requires: readonly CapabilityRequirement[];
   readonly stages: readonly ProfileStage[];

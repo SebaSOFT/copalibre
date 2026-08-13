@@ -1,7 +1,7 @@
 {
   "alias": "football",
   "version": "1.0.0",
-  "name": "Football",
+  "name": { "en": "Football", "es": "Fútbol" },
   "attribution": {
     "author": "CopaLibre",
     "licence": "AGPL-3.0-only",
@@ -10,13 +10,23 @@
   "participantTypes": ["team"],
   "rosterConstraints": { "minPlayers": 11, "maxPlayers": 11, "maxSubstitutes": 12 },
   "segmentTypes": [
-    { "name": "half", "label": "Half", "timed": true, "defaultDurationSeconds": 2700 },
-    { "name": "extra-time", "label": "Extra time", "timed": true, "defaultDurationSeconds": 900 }
+    {
+      "name": "half",
+      "label": { "en": "Half", "es": "Tiempo" },
+      "timed": true,
+      "defaultDurationSeconds": 2700
+    },
+    {
+      "name": "extra-time",
+      "label": { "en": "Extra time", "es": "Tiempo suplementario" },
+      "timed": true,
+      "defaultDurationSeconds": 900
+    }
   ],
   "eventDefinitions": [
     {
       "code": "goal",
-      "label": "Goal",
+      "label": { "en": "Goal", "es": "Gol" },
       "category": "positive",
       "permittedSegmentTypes": ["half", "extra-time"],
       "actorRequirement": "person",
@@ -31,7 +41,7 @@
     },
     {
       "code": "yellow-card",
-      "label": "Yellow card",
+      "label": { "en": "Yellow card", "es": "Tarjeta amarilla" },
       "category": "negative",
       "permittedSegmentTypes": ["half", "extra-time"],
       "actorRequirement": "person",
@@ -39,7 +49,7 @@
     },
     {
       "code": "red-card",
-      "label": "Red card",
+      "label": { "en": "Red card", "es": "Tarjeta roja" },
       "category": "negative",
       "permittedSegmentTypes": ["half", "extra-time"],
       "actorRequirement": "person",
@@ -47,7 +57,7 @@
     },
     {
       "code": "segment-point",
-      "label": "Segment point",
+      "label": { "en": "Segment point", "es": "Punto de parcial" },
       "category": "neutral",
       "permittedSegmentTypes": ["half", "extra-time"],
       "actorRequirement": "none",
@@ -65,7 +75,7 @@
     },
     {
       "code": "match-point",
-      "label": "Match point",
+      "label": { "en": "Match point", "es": "Punto de partido" },
       "category": "neutral",
       "permittedSegmentTypes": ["half", "extra-time"],
       "actorRequirement": "none",
@@ -83,7 +93,7 @@
     },
     {
       "code": "margin-required",
-      "label": "Margin required",
+      "label": { "en": "Margin required", "es": "Margen requerido" },
       "category": "neutral",
       "permittedSegmentTypes": ["half", "extra-time"],
       "actorRequirement": "none",
@@ -101,7 +111,7 @@
     },
     {
       "code": "tiebreak-entered",
-      "label": "Tiebreak entered",
+      "label": { "en": "Tiebreak entered", "es": "Ingreso a desempate" },
       "category": "neutral",
       "permittedSegmentTypes": ["half", "extra-time"],
       "actorRequirement": "none",
@@ -119,15 +129,25 @@
     }
   ],
   "statistics": [
-    { "code": "goals-for", "label": "Goals for", "aggregation": "sum" },
-    { "code": "goals-against", "label": "Goals against", "aggregation": "sum" },
-    { "code": "wins", "label": "Wins", "aggregation": "sum" },
-    { "code": "draws", "label": "Draws", "aggregation": "sum" },
-    { "code": "losses", "label": "Losses", "aggregation": "sum" },
-    { "code": "points", "label": "Points", "aggregation": "sum" },
-    { "code": "played", "label": "Played", "aggregation": "count" }
+    {
+      "code": "goals-for",
+      "label": { "en": "Goals for", "es": "Goles a favor" },
+      "aggregation": "sum"
+    },
+    {
+      "code": "goals-against",
+      "label": { "en": "Goals against", "es": "Goles en contra" },
+      "aggregation": "sum"
+    },
+    { "code": "wins", "label": { "en": "Wins", "es": "Victorias" }, "aggregation": "sum" },
+    { "code": "draws", "label": { "en": "Draws", "es": "Empates" }, "aggregation": "sum" },
+    { "code": "losses", "label": { "en": "Losses", "es": "Derrotas" }, "aggregation": "sum" },
+    { "code": "points", "label": { "en": "Points", "es": "Puntos" }, "aggregation": "sum" },
+    { "code": "played", "label": { "en": "Played", "es": "Jugados" }, "aggregation": "count" }
   ],
-  "scoringInputs": [{ "code": "goals", "label": "Goals", "source": "event-derived" }],
+  "scoringInputs": [
+    { "code": "goals", "label": { "en": "Goals", "es": "Goles" }, "source": "event-derived" }
+  ],
   "availableFormats": [
     "league",
     "round-robin",

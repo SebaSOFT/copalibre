@@ -1,3 +1,4 @@
+import type { LocalizedLabel } from '@copalibre/domain';
 import type { TraceNode } from '../trace/explanation-trace.js';
 
 /**
@@ -45,7 +46,7 @@ export interface TiebreakParameterDefinition {
    * an archived standing would see a comparator that silently did nothing.
    */
   readonly unboundCapability?: string;
-  readonly label: string;
+  readonly label: string | LocalizedLabel;
   readonly valueType: 'number' | 'ordered-value';
   readonly direction: ComparisonDirection;
   readonly missingValue: MissingValueBehavior;

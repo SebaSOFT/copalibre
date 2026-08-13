@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
+import { isSupportedLanguage, resolveLabel } from '@copalibre/domain';
 import { RealtimeClient } from '@copalibre/realtime';
 import {
   createControlApiClient,
@@ -38,6 +39,10 @@ export function MatchConsoleRoute({
   readonly client?: MatchConsoleApiClient;
 }): React.JSX.Element {
   const intl = useIntl();
+  // ControlIntl always resolves `locale` to a real SupportedLanguage, but
+  // react-intl's own IntlShape types it as a bare `string` — narrow it here,
+  // once, rather than at every resolveLabel call site.
+  const language = isSupportedLanguage(intl.locale) ? intl.locale : 'en';
   const api = useMemo(
     () =>
       client ??
@@ -469,7 +474,7 @@ export function MatchConsoleRoute({
                   type="button"
                   variant="secondary"
                 >
-                  {definition.label}
+                  {resolveLabel(definition.label, language)}
                 </Button>
               ))}
             </div>
@@ -478,7 +483,7 @@ export function MatchConsoleRoute({
                 aria-label={intl.formatMessage(messages.matchConsoleEventOutcome)}
                 style={conditionalStyle}
               >
-                <strong>{conditionalEvent.label}</strong>
+                <strong>{resolveLabel(conditionalEvent.label, language)}</strong>
                 <div style={eventGridStyle}>
                   {conditionalEvent.workflow?.options.map((option) => {
                     const finalDefinition = projection.eventDefinitions.find(
@@ -498,7 +503,7 @@ export function MatchConsoleRoute({
                         type="button"
                         variant="secondary"
                       >
-                        {option.label}
+                        {resolveLabel(option.label, language)}
                       </Button>
                     );
                   })}

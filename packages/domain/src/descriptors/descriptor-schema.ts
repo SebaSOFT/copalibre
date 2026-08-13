@@ -2,6 +2,7 @@ import { Ajv, type ValidateFunction } from 'ajv';
 import type { DisciplineDescriptorDocument } from './discipline-descriptor.js';
 import { DescriptorValidationError } from '../errors.js';
 import { err, ok, type Result } from '../result.js';
+import { SUPPORTED_LANGUAGES } from '../i18n.js';
 
 /**
  * The wire schema of a submitted discipline module.
@@ -129,6 +130,27 @@ export const RECORDED_OUTCOME_SCHEMA: JsonSchemaDocument = Object.freeze({
 
 const AGGREGATION_MODES = ['sum', 'count', 'max', 'min', 'average'] as const;
 
+/**
+ * A display string, in one language or several (0071). A plain string is
+ * still valid forever — every module authored before this schema is unaffected
+ * — and an author who wants more than one language writes the object form
+ * instead, requiring `en` as the guaranteed fallback every other localized
+ * surface in the platform already falls back to.
+ */
+const LOCALIZED_LABEL_SCHEMA: JsonSchemaDocument = {
+  oneOf: [
+    { type: 'string', minLength: 1 },
+    {
+      type: 'object',
+      required: ['en'],
+      additionalProperties: false,
+      properties: Object.fromEntries(
+        SUPPORTED_LANGUAGES.map((language) => [language, { type: 'string', minLength: 1 }]),
+      ),
+    },
+  ],
+};
+
 export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
   type: 'object',
   required: [
@@ -151,7 +173,7 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
   properties: {
     alias: { type: 'string', pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$', maxLength: 64 },
     version: { type: 'string', minLength: 1 },
-    name: { type: 'string', minLength: 1 },
+    name: LOCALIZED_LABEL_SCHEMA,
     attribution: {
       type: 'object',
       required: ['author', 'licence'],
@@ -183,7 +205,7 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
         required: ['name', 'label', 'timed'],
         properties: {
           name: { type: 'string', minLength: 1 },
-          label: { type: 'string', minLength: 1 },
+          label: LOCALIZED_LABEL_SCHEMA,
           timed: { type: 'boolean' },
           defaultDurationSeconds: { type: 'integer', minimum: 0 },
         },
@@ -196,7 +218,7 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
         required: ['code', 'label', 'category', 'permittedSegmentTypes', 'actorRequirement'],
         properties: {
           code: { type: 'string', minLength: 1 },
-          label: { type: 'string', minLength: 1 },
+          label: LOCALIZED_LABEL_SCHEMA,
           category: { enum: ['positive', 'negative', 'neutral'] },
           permittedSegmentTypes: { type: 'array', items: { type: 'string', minLength: 1 } },
           actorRequirement: { enum: ['none', 'side', 'person', 'person-or-staff'] },
@@ -218,7 +240,7 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
         additionalProperties: false,
         properties: {
           code: { type: 'string', minLength: 1 },
-          label: { type: 'string', minLength: 1 },
+          label: LOCALIZED_LABEL_SCHEMA,
           aggregation: { enum: [...AGGREGATION_MODES] },
         },
       },
@@ -231,7 +253,7 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
         additionalProperties: false,
         properties: {
           code: { type: 'string', minLength: 1 },
-          label: { type: 'string', minLength: 1 },
+          label: LOCALIZED_LABEL_SCHEMA,
           source: { enum: ['event-derived', 'operator-entered'] },
         },
       },
@@ -294,7 +316,7 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
       required: ['code', 'label', 'source', 'measure', 'granularity'],
       properties: {
         code: { type: 'string', minLength: 1 },
-        label: { type: 'string', minLength: 1 },
+        label: LOCALIZED_LABEL_SCHEMA,
         source: {
           type: 'object',
           required: ['kind'],
@@ -452,7 +474,7 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
             required: ['definitionCode', 'label'],
             properties: {
               definitionCode: { type: 'string', minLength: 1 },
-              label: { type: 'string', minLength: 1 },
+              label: LOCALIZED_LABEL_SCHEMA,
             },
           },
         },

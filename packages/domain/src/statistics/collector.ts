@@ -1,4 +1,5 @@
 import type { EventCategory } from '../descriptors/event-definition.js';
+import type { LocalizedLabel } from '../i18n-label.js';
 import { DomainError } from '../errors.js';
 import { err, ok, type Result } from '../result.js';
 import {
@@ -54,7 +55,7 @@ export interface CollectorGranularity {
 
 export interface StatisticCollector {
   readonly code: string;
-  readonly label: string;
+  readonly label: string | LocalizedLabel;
   readonly source: CollectorSource;
   readonly measure: CollectorMeasure;
   /**
