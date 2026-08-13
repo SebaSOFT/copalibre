@@ -96,16 +96,8 @@ describe('ControlApp', () => {
       'Posiciones — apertura-2026',
       'Posiciones',
     ],
-    [
-      '/control/login',
-      'Iniciar sesión — CopaLibre',
-      'Ingresá para operar',
-    ],
-    [
-      '/control/forgot-password',
-      'Recuperar contraseña — CopaLibre',
-      'Recuperar contraseña',
-    ],
+    ['/control/login', 'Iniciar sesión — CopaLibre', 'Ingresá para operar'],
+    ['/control/forgot-password', 'Recuperar contraseña — CopaLibre', 'Recuperar contraseña'],
     [
       '/control/reset-password',
       'Restablecer contraseña — CopaLibre',

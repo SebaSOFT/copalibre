@@ -20,7 +20,7 @@ describe('NativeAuthRoutes', () => {
     render(
       <ControlIntl locale="es">
         <LoginRoute />
-      </ControlIntl>
+      </ControlIntl>,
     );
 
     fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: 'test@example.com' } });
@@ -36,7 +36,7 @@ describe('NativeAuthRoutes', () => {
     render(
       <ControlIntl locale="es">
         <ForgotPasswordRoute />
-      </ControlIntl>
+      </ControlIntl>,
     );
 
     fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: 'test@example.com' } });
@@ -54,7 +54,7 @@ describe('NativeAuthRoutes', () => {
     render(
       <ControlIntl locale="es">
         <ResetPasswordRoute />
-      </ControlIntl>
+      </ControlIntl>,
     );
 
     fireEvent.change(screen.getByLabelText(/Contraseña/i), { target: { value: 'newpassword' } });

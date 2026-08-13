@@ -30,7 +30,7 @@ describe('PreferencesRoute', () => {
     render(
       <ControlIntl locale="es">
         <PreferencesRoute />
-      </ControlIntl>
+      </ControlIntl>,
     );
 
     expect(screen.getByText(/Personal Access Tokens/i)).toBeDefined();
@@ -51,7 +51,7 @@ describe('PreferencesRoute', () => {
     render(
       <ControlIntl locale="es">
         <PreferencesRoute />
-      </ControlIntl>
+      </ControlIntl>,
     );
 
     fireEvent.change(screen.getByLabelText(/Token Label/i), { target: { value: 'New PAT' } });
@@ -84,7 +84,7 @@ describe('PreferencesRoute', () => {
     render(
       <ControlIntl locale="es">
         <PreferencesRoute />
-      </ControlIntl>
+      </ControlIntl>,
     );
 
     await waitFor(() => {
