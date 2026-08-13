@@ -64,3 +64,17 @@ access JWT to `localStorage` or any other durable browser storage.
 - **WHEN** the strict stateless browser mode is active and the page is reloaded
 - **THEN** the client has no access token available and must reauthenticate, with no token recoverable from `localStorage`
 
+### Requirement: Local JWT and PAT Support
+The authentication contract MUST support both local JWTs and Personal Access Tokens (PATs) in
+addition to external OIDC JWTs.
+
+#### Scenario: Request authenticated with a local PAT
+- **WHEN** a request arrives with a Personal Access Token in the Authorization header
+- **THEN** the API layer validates the token hash against the stateful `personal_access_tokens`
+  table and authenticates the user.
+
+#### Scenario: Request authenticated with a local JWT
+- **WHEN** a request arrives with a JWT issued by the internal CopaLibre IdP
+- **THEN** the API layer validates the JWT signature and claims using the internal secret/key,
+  successfully authenticating the user.
+
