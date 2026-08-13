@@ -643,6 +643,52 @@ describe('tags (integration)', () => {
     expect(elsewhere).toEqual([]);
   });
 
+  it('records and reads a tag on an official actor (0072)', async () => {
+    const tags = new TagRepository(scratch.db);
+    const applied = fact({
+      code: 'certified',
+      actorGranularity: 'official',
+      actorId: 'of-1',
+      actor: 'user:federation-1',
+    });
+
+    await withTransaction(scratch.db, (uow) =>
+      tags.record(uow, { organizationId, fact: applied, ...AUDIT }),
+    );
+
+    const facts = await tags.factsFor({
+      organizationId,
+      actorGranularity: 'official',
+      actorId: 'of-1',
+    });
+
+    expect(facts).toHaveLength(1);
+    expect(facts[0]?.actorGranularity).toBe('official');
+  });
+
+  it('records and reads a tag on a venue actor (0072)', async () => {
+    const tags = new TagRepository(scratch.db);
+    const applied = fact({
+      code: 'poor-lighting',
+      actorGranularity: 'venue',
+      actorId: 've-1',
+      actor: 'user:operator-1',
+    });
+
+    await withTransaction(scratch.db, (uow) =>
+      tags.record(uow, { organizationId, fact: applied, ...AUDIT }),
+    );
+
+    const facts = await tags.factsFor({
+      organizationId,
+      actorGranularity: 'venue',
+      actorId: 've-1',
+    });
+
+    expect(facts).toHaveLength(1);
+    expect(facts[0]?.actorGranularity).toBe('venue');
+  });
+
   it('exposes no way to refuse anything on account of a tag', () => {
     const tags = new TagRepository(scratch.db);
     const surface = Object.getOwnPropertyNames(Object.getPrototypeOf(tags)).filter(

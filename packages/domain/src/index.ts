@@ -175,6 +175,8 @@ export {
   granularitiesAbove,
   isCoarser,
   actorOfEntrant,
+  actorOfOfficial,
+  actorOfVenue,
   requireGranularities,
   HierarchyError,
   type CompetitionGranularity,

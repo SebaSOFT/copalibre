@@ -358,7 +358,7 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
           additionalProperties: false,
           required: ['actor', 'competition'],
           properties: {
-            actor: { enum: ['person', 'player', 'team', 'club'] },
+            actor: { enum: ['person', 'player', 'team', 'club', 'official', 'venue'] },
             competition: {
               enum: ['event', 'segment', 'match', 'stage', 'season', 'tournament', 'organization'],
             },
@@ -368,7 +368,7 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
           type: 'object',
           additionalProperties: false,
           properties: {
-            actor: { enum: ['person', 'player', 'team', 'club'] },
+            actor: { enum: ['person', 'player', 'team', 'club', 'official', 'venue'] },
             competition: {
               enum: ['event', 'segment', 'match', 'stage', 'season', 'tournament', 'organization'],
             },

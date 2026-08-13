@@ -1,7 +1,10 @@
 import {
   actorOfEntrant,
+  actorOfOfficial,
+  actorOfVenue,
   ACTOR_GRANULARITIES,
   COMPETITION_GRANULARITIES,
+  isActorGranularity,
   isCoarser,
   granularitiesAbove,
   GRANULARITY_SOURCES,
@@ -21,8 +24,15 @@ describe('the two axes', () => {
     ]);
   });
 
-  it('runs from the human to the club that fields them', () => {
-    expect(ACTOR_GRANULARITIES).toEqual(['person', 'player', 'team', 'club']);
+  it('runs from the human to the club that fields them, plus officials and venues', () => {
+    expect(ACTOR_GRANULARITIES).toEqual([
+      'person',
+      'player',
+      'team',
+      'club',
+      'official',
+      'venue',
+    ]);
   });
 
   it('does not carry the entrant, which bridges the axes rather than sitting on one', () => {
@@ -72,6 +82,46 @@ describe('one step coarser is a fact about the axis', () => {
   });
 });
 
+describe('officials and venues are roll-up-terminal actor granularities (0072)', () => {
+  it('recognises official and venue as published actor granularities', () => {
+    expect(isActorGranularity('official')).toBe(true);
+    expect(isActorGranularity('venue')).toBe(true);
+  });
+
+  it('has nothing above official or venue', () => {
+    expect(granularitiesAbove(ACTOR_GRANULARITIES, 'official')).toEqual([]);
+    expect(granularitiesAbove(ACTOR_GRANULARITIES, 'venue')).toEqual([]);
+  });
+
+  it('does not treat club as coarser than official or venue, or vice versa', () => {
+    expect(isCoarser(ACTOR_GRANULARITIES, 'club', 'official')).toBe(false);
+    expect(isCoarser(ACTOR_GRANULARITIES, 'official', 'club')).toBe(false);
+    expect(isCoarser(ACTOR_GRANULARITIES, 'club', 'venue')).toBe(false);
+    expect(isCoarser(ACTOR_GRANULARITIES, 'venue', 'club')).toBe(false);
+    expect(isCoarser(ACTOR_GRANULARITIES, 'official', 'venue')).toBe(false);
+  });
+
+  it('leaves the person->player->team->club roll-up unaffected', () => {
+    expect(granularitiesAbove(ACTOR_GRANULARITIES, 'person')).toEqual(['player', 'team', 'club']);
+    expect(isCoarser(ACTOR_GRANULARITIES, 'club', 'player')).toBe(true);
+    expect(isCoarser(ACTOR_GRANULARITIES, 'player', 'club')).toBe(false);
+  });
+
+  it('resolves an official to its own actor reference', () => {
+    expect(actorOfOfficial({ officialId: 'of-1' })).toEqual({
+      granularity: 'official',
+      actorId: 'of-1',
+    });
+  });
+
+  it('resolves a venue to its own actor reference', () => {
+    expect(actorOfVenue({ venueId: 've-1' })).toEqual({
+      granularity: 'venue',
+      actorId: 've-1',
+    });
+  });
+});
+
 describe('an entrant resolves to the actor that entered', () => {
   it('resolves a team enrollment to the team', () => {
     expect(actorOfEntrant({ entrantRef: { kind: 'team', teamId: 'tm-1' } })).toEqual({
@@ -99,7 +149,7 @@ describe('requireGranularities', () => {
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.error.code).toBe('HIERARCHY_GRANULARITY_INVALID');
-    expect(result.error.message).toContain('person, player, team, club');
+    expect(result.error.message).toContain('person, player, team, club, official, venue');
   });
 
   it('refuses a competition granularity the axis does not publish', () => {
