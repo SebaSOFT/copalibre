@@ -67,7 +67,7 @@ export function PreferencesRoute(): React.JSX.Element {
     let mounted = true;
     const token = controlTokenStore.read();
     void fetch('/api/auth/pat', {
-      headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     }).then((res) => {
       if (res.ok) {
         res.json().then((data) => {
@@ -94,7 +94,7 @@ export function PreferencesRoute(): React.JSX.Element {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify({ label, expiresInDays }),
     });
@@ -109,9 +109,9 @@ export function PreferencesRoute(): React.JSX.Element {
 
   const handleRevoke = async (tokenId: string) => {
     const token = controlTokenStore.read();
-    const res = await fetch(`/api/auth/pat/${tokenId}`, { 
+    const res = await fetch(`/api/auth/pat/${tokenId}`, {
       method: 'DELETE',
-      headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (res.ok) {
       setTokens(tokens.filter((t) => t.tokenId !== tokenId));
@@ -120,15 +120,33 @@ export function PreferencesRoute(): React.JSX.Element {
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem' }}>
-      <h1><FormattedMessage {...messages.title} /></h1>
+      <h1>
+        <FormattedMessage {...messages.title} />
+      </h1>
 
-      <section style={{ marginTop: '2rem', background: 'var(--cl-surface-alt)', padding: '1.5rem', borderRadius: '8px' }}>
-        <h2><FormattedMessage {...messages.patTitle} /></h2>
-        <p><FormattedMessage {...messages.patDescription} /></p>
+      <section
+        style={{
+          marginTop: '2rem',
+          background: 'var(--cl-surface-alt)',
+          padding: '1.5rem',
+          borderRadius: '8px',
+        }}
+      >
+        <h2>
+          <FormattedMessage {...messages.patTitle} />
+        </h2>
+        <p>
+          <FormattedMessage {...messages.patDescription} />
+        </p>
 
-        <form onSubmit={handleCreate} style={{ display: 'flex', gap: '1rem', marginTop: '1rem', alignItems: 'flex-end' }}>
+        <form
+          onSubmit={handleCreate}
+          style={{ display: 'flex', gap: '1rem', marginTop: '1rem', alignItems: 'flex-end' }}
+        >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <label htmlFor="pat-label"><FormattedMessage {...messages.patLabel} /></label>
+            <label htmlFor="pat-label">
+              <FormattedMessage {...messages.patLabel} />
+            </label>
             <input
               id="pat-label"
               type="text"
@@ -139,7 +157,9 @@ export function PreferencesRoute(): React.JSX.Element {
             />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <label htmlFor="pat-expires"><FormattedMessage {...messages.patExpiresIn} /></label>
+            <label htmlFor="pat-expires">
+              <FormattedMessage {...messages.patExpiresIn} />
+            </label>
             <input
               id="pat-expires"
               type="number"
@@ -148,7 +168,11 @@ export function PreferencesRoute(): React.JSX.Element {
               value={expiresInDays}
               onChange={(e) => setExpiresInDays(parseInt(e.target.value))}
               required
-              style={{ padding: '0.5rem', border: '1px solid var(--cl-border-base)', width: '80px' }}
+              style={{
+                padding: '0.5rem',
+                border: '1px solid var(--cl-border-base)',
+                width: '80px',
+              }}
             />
           </div>
           <button
@@ -160,7 +184,7 @@ export function PreferencesRoute(): React.JSX.Element {
               color: 'var(--cl-surface-base)',
               border: 'none',
               borderRadius: '4px',
-              cursor: 'pointer'
+              cursor: 'pointer',
             }}
           >
             <FormattedMessage {...messages.createPat} />
@@ -168,9 +192,27 @@ export function PreferencesRoute(): React.JSX.Element {
         </form>
 
         {newToken && (
-          <div style={{ marginTop: '1.5rem', padding: '1rem', border: '1px solid var(--cl-state-live)', background: 'var(--cl-surface-base)' }}>
-            <strong><FormattedMessage {...messages.patCreated} /></strong>
-            <code style={{ display: 'block', padding: '1rem', backgroundColor: 'var(--c-surface-sunken)', borderRadius: '0.25rem', marginTop: '0.5rem', wordBreak: 'break-all' }}>
+          <div
+            style={{
+              marginTop: '1.5rem',
+              padding: '1rem',
+              border: '1px solid var(--cl-state-live)',
+              background: 'var(--cl-surface-base)',
+            }}
+          >
+            <strong>
+              <FormattedMessage {...messages.patCreated} />
+            </strong>
+            <code
+              style={{
+                display: 'block',
+                padding: '1rem',
+                backgroundColor: 'var(--c-surface-sunken)',
+                borderRadius: '0.25rem',
+                marginTop: '0.5rem',
+                wordBreak: 'break-all',
+              }}
+            >
               {newToken.token}
             </code>
           </div>
@@ -180,32 +222,50 @@ export function PreferencesRoute(): React.JSX.Element {
           {loading ? (
             <p>Cargando...</p>
           ) : tokens.length === 0 ? (
-            <p><FormattedMessage {...messages.noTokens} /></p>
+            <p>
+              <FormattedMessage {...messages.noTokens} />
+            </p>
           ) : (
             <ul style={{ listStyle: 'none', padding: 0 }}>
-              {tokens.filter(t => !t.revoked).map((token) => (
-                <li key={token.tokenId} style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', borderBottom: '1px solid var(--cl-border-base)' }}>
-                  <div>
-                    <strong>{token.label}</strong>
-                    <div style={{ fontSize: '0.875rem', color: 'var(--cl-text-secondary)', marginTop: '0.25rem' }}>
-                      Expira: {new Date(token.expiresAt).toLocaleDateString()}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => handleRevoke(token.tokenId)}
+              {tokens
+                .filter((t) => !t.revoked)
+                .map((token) => (
+                  <li
+                    key={token.tokenId}
                     style={{
-                      background: 'transparent',
-                      color: 'var(--cl-state-destructive)',
-                      border: '1px solid currentColor',
-                      padding: '0.25rem 0.5rem',
-                      borderRadius: '4px',
-                      cursor: 'pointer'
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      padding: '1rem',
+                      borderBottom: '1px solid var(--cl-border-base)',
                     }}
                   >
-                    <FormattedMessage {...messages.revokePat} />
-                  </button>
-                </li>
-              ))}
+                    <div>
+                      <strong>{token.label}</strong>
+                      <div
+                        style={{
+                          fontSize: '0.875rem',
+                          color: 'var(--cl-text-secondary)',
+                          marginTop: '0.25rem',
+                        }}
+                      >
+                        Expira: {new Date(token.expiresAt).toLocaleDateString()}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleRevoke(token.tokenId)}
+                      style={{
+                        background: 'transparent',
+                        color: 'var(--cl-state-destructive)',
+                        border: '1px solid currentColor',
+                        padding: '0.25rem 0.5rem',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <FormattedMessage {...messages.revokePat} />
+                    </button>
+                  </li>
+                ))}
             </ul>
           )}
         </div>

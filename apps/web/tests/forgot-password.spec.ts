@@ -20,7 +20,7 @@ async function mockForgotPasswordApi(page: Page): Promise<void> {
 test('user can request password reset link', async ({ page }) => {
   await mockForgotPasswordApi(page);
   await page.goto('/control/forgot-password');
-  
+
   await expect(page.getByLabel('Email')).toBeVisible();
 
   await page.getByLabel('Email').fill('test@example.com');

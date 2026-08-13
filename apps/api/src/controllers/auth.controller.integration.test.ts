@@ -36,7 +36,7 @@ class FakeTokenVerifier {
 describe('Auth Controllers', () => {
   let app: INestApplication;
   let scratch: Awaited<ReturnType<typeof createMigratedDatabase>>;
-  
+
   beforeAll(async () => {
     process.env.COPALIBRE_JWT_SECRET = 'test-secret-12345678901234567890';
     process.env.COPALIBRE_JWT_ISSUER = 'test-issuer';
@@ -56,9 +56,7 @@ describe('Auth Controllers', () => {
     class TestModule {}
 
     const moduleRef = await Test.createTestingModule({ imports: [TestModule] }).compile();
-    app = moduleRef.createNestApplication<NestFastifyApplication>(
-      new FastifyAdapter()
-    );
+    app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
   });
@@ -90,13 +88,16 @@ describe('Auth Controllers', () => {
     beforeAll(async () => {
       const passwordHash = await argon2.hash(password);
       principalId = newId();
-      await (scratch.db as Kysely<Database>).insertInto('identity_principals').values({
-        principal_id: principalId,
-        email,
-        password_hash: passwordHash,
-        created_at: new Date(),
-        updated_at: new Date(),
-      }).execute();
+      await (scratch.db as Kysely<Database>)
+        .insertInto('identity_principals')
+        .values({
+          principal_id: principalId,
+          email,
+          password_hash: passwordHash,
+          created_at: new Date(),
+          updated_at: new Date(),
+        })
+        .execute();
     });
 
     it('POST /auth/login returns 200 with an access token for valid credentials', async () => {
@@ -133,7 +134,7 @@ describe('Auth Controllers', () => {
           principalId,
           kind: 'password-reset',
           ttlMs: 60 * 60 * 1000,
-        })
+        }),
       );
 
       const response = await request({
@@ -148,7 +149,7 @@ describe('Auth Controllers', () => {
         .selectAll()
         .where('principal_id', '=', principalId)
         .executeTakeFirst();
-      
+
       expect(principal?.password_hash).toBeDefined();
       const valid = await argon2.verify(principal?.password_hash ?? '', 'new-secret-password');
       expect(valid).toBe(true);
@@ -159,12 +160,15 @@ describe('Auth Controllers', () => {
     let tokenId: string;
 
     beforeAll(async () => {
-      await (scratch.db as Kysely<Database>).insertInto('identity_principals').values({
-        principal_id: '550e8400-e29b-41d4-a716-446655440000',
-        email: 'admin@example.com',
-        created_at: new Date(),
-        updated_at: new Date(),
-      }).execute();
+      await (scratch.db as Kysely<Database>)
+        .insertInto('identity_principals')
+        .values({
+          principal_id: '550e8400-e29b-41d4-a716-446655440000',
+          email: 'admin@example.com',
+          created_at: new Date(),
+          updated_at: new Date(),
+        })
+        .execute();
     });
 
     it('POST /auth/pat creates a token', async () => {

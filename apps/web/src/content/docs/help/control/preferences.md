@@ -1,5 +1,5 @@
 ---
-title: "Preferences"
+title: 'Preferences'
 ---
 
 # Preferences

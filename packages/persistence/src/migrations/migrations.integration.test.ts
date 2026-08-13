@@ -111,7 +111,6 @@ describe('migrations (integration)', () => {
       afterNativeIdentityDownTables.find((table) => table.name === 'identity_principals')?.columns,
     ).not.toEqual(expect.arrayContaining([expect.objectContaining({ name: 'password_hash' })]));
 
-
     const organizationLocaleDown = await migrateDownOneStep(scratch.db);
     expect(organizationLocaleDown.error).toBeUndefined();
 

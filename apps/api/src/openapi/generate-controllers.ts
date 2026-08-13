@@ -27,7 +27,10 @@ import {
   ReportReviewController,
 } from '../controllers/reports.controller.js';
 import { PublicProjectionsController } from '../controllers/public-projections.controller.js';
-import { NativeAuthController, PersonalAccessTokenController } from '../controllers/auth.controller.js';
+import {
+  NativeAuthController,
+  PersonalAccessTokenController,
+} from '../controllers/auth.controller.js';
 
 /**
  * The controllers the OpenAPI artifact is generated from.

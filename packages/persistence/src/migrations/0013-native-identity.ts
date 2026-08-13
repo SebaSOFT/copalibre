@@ -18,7 +18,9 @@ export const nativeIdentity: Migration = {
       .addColumn('expires_at', 'timestamptz', (col) => col.notNull())
       .addColumn('revoked_at', 'timestamptz')
       .addColumn('last_used_at', 'timestamptz')
-      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`))
+      .addColumn('created_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
       .execute();
 
     await db.schema
@@ -32,7 +34,9 @@ export const nativeIdentity: Migration = {
       .addColumn('new_email', 'text')
       .addColumn('expires_at', 'timestamptz', (col) => col.notNull())
       .addColumn('consumed_at', 'timestamptz')
-      .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`))
+      .addColumn('created_at', 'timestamptz', (col) =>
+        col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
+      )
       .execute();
   },
 

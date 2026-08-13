@@ -60,12 +60,15 @@ export function parseControlPath(pathname: string): ControlRoute | undefined {
   // Reserved: no real organization may use this alias.
   if (organizationAlias === 'callback' && rest.length === 0) return { screen: 'callback' };
   if (organizationAlias === 'login' && rest.length === 0) return { screen: 'login' };
-  if (organizationAlias === 'forgot-password' && rest.length === 0) return { screen: 'forgot-password' };
-  if (organizationAlias === 'reset-password' && rest.length === 0) return { screen: 'reset-password' };
+  if (organizationAlias === 'forgot-password' && rest.length === 0)
+    return { screen: 'forgot-password' };
+  if (organizationAlias === 'reset-password' && rest.length === 0)
+    return { screen: 'reset-password' };
 
   if (rest.length === 0) return { screen: 'dashboard', organizationAlias };
   if (rest.length === 1 && rest[0] === 'roles') return { screen: 'roles', organizationAlias };
-  if (rest.length === 1 && rest[0] === 'preferences') return { screen: 'preferences', organizationAlias };
+  if (rest.length === 1 && rest[0] === 'preferences')
+    return { screen: 'preferences', organizationAlias };
 
   if (rest[0] !== 'tournaments') return undefined;
   if (rest.length === 2 && rest[1] === 'new') {

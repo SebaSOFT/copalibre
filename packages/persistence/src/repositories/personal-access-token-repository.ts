@@ -58,7 +58,10 @@ export function generateTokenString(): string {
 export class PersonalAccessTokenRepository {
   constructor(private readonly db: Kysely<Database>) {}
 
-  async create(uow: UnitOfWork, input: CreatePatInput): Promise<PersonalAccessToken & { rawToken: string }> {
+  async create(
+    uow: UnitOfWork,
+    input: CreatePatInput,
+  ): Promise<PersonalAccessToken & { rawToken: string }> {
     const tokenId = newId();
     const rawToken = generateTokenString();
     const tokenHash = hashToken(rawToken);

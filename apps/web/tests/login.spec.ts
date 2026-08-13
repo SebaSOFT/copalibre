@@ -20,7 +20,7 @@ async function mockLoginApi(page: Page): Promise<void> {
 test('user can log in successfully', async ({ page }) => {
   await mockLoginApi(page);
   await page.goto('/control/login');
-  
+
   await expect(page.getByLabel('Email')).toBeVisible();
   await expect(page.getByLabel('Contraseña')).toBeVisible();
 
@@ -28,7 +28,7 @@ test('user can log in successfully', async ({ page }) => {
   await page.getByLabel('Contraseña').fill('password123');
   await page.getByRole('button', { name: 'Ingresar' }).click();
 
-  // The application will try to redirect or store the token. 
+  // The application will try to redirect or store the token.
   // Let's just assert that the API call was made and the UI reacts.
   // Assuming successful login redirects to /control/ or dashboard
   await page.waitForURL('**/control/**');

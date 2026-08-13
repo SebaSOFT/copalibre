@@ -27,7 +27,7 @@ describe('Personal Access Token repository (integration)', () => {
 
   it('creates and retrieves a PAT', async () => {
     const tokens = new PersonalAccessTokenRepository(scratch.db);
-    
+
     const issued = await withTransaction(scratch.db, (uow) =>
       tokens.create(uow, {
         principalId,
@@ -45,7 +45,7 @@ describe('Personal Access Token repository (integration)', () => {
       scopes: ['copalibre.control'],
       revoked: false,
     });
-    
+
     // We expect the raw token to be returned ONCE upon creation
     expect(issued.rawToken).toMatch(/^clpat_[a-zA-Z0-9_-]+$/);
 
@@ -65,7 +65,7 @@ describe('Personal Access Token repository (integration)', () => {
 
   it('revokes a PAT so it can no longer authorize requests', async () => {
     const tokens = new PersonalAccessTokenRepository(scratch.db);
-    
+
     const issued = await withTransaction(scratch.db, (uow) =>
       tokens.create(uow, {
         principalId,
@@ -91,7 +91,7 @@ describe('Personal Access Token repository (integration)', () => {
 
     // After revocation, it authorizes nothing
     await expect(tokens.scopeOf(tokenHash)).resolves.toBeUndefined();
-    
+
     // But it still appears in the list (as revoked)
     const listed = await tokens.listByPrincipal(principalId);
     const found = listed.find((t) => t.tokenId === issued.tokenId);
@@ -100,7 +100,7 @@ describe('Personal Access Token repository (integration)', () => {
 
   it('rejects revoking a token that belongs to a different principal', async () => {
     const tokens = new PersonalAccessTokenRepository(scratch.db);
-    
+
     const issued = await withTransaction(scratch.db, (uow) =>
       tokens.create(uow, {
         principalId,
@@ -134,7 +134,7 @@ describe('Personal Access Token repository (integration)', () => {
 
   it('updates the last-used heartbeat without gating authorization', async () => {
     const tokens = new PersonalAccessTokenRepository(scratch.db);
-    
+
     const issued = await withTransaction(scratch.db, (uow) =>
       tokens.create(uow, {
         principalId,
@@ -157,7 +157,7 @@ describe('Personal Access Token repository (integration)', () => {
 
   it('records creation and revocation in the audit trail', async () => {
     const tokens = new PersonalAccessTokenRepository(scratch.db);
-    
+
     const issued = await withTransaction(scratch.db, (uow) =>
       tokens.create(uow, {
         principalId,
@@ -178,7 +178,10 @@ describe('Personal Access Token repository (integration)', () => {
       }),
     );
 
-    const audit = await new AuditReader(scratch.db).historyFor('personal-access-token', issued.tokenId);
+    const audit = await new AuditReader(scratch.db).historyFor(
+      'personal-access-token',
+      issued.tokenId,
+    );
     expect(audit.map((entry) => entry.action)).toEqual(['pat.created', 'pat.revoked']);
   });
 });

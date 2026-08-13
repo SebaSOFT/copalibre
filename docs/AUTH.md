@@ -1,6 +1,7 @@
 # Authentication contract
 
 Established by change `0005-api-auth-jwt-openapi-contract` (stateless API nodes, security planes) and extended by `native-identity-provider`. CopaLibre uses a hybrid model:
+
 1. **OIDC Providers:** External identity via stateless JWTs.
 2. **Native Identity Provider:** Local email/password authentication using Argon2, and stateful Personal Access Tokens (PATs) for MCP and API integrations.
 
@@ -17,6 +18,7 @@ All authenticated requests use `Authorization: Bearer <JWT>`. The API validates:
 
 **Personal Access Tokens (PATs)**
 For machine-to-machine integrations (like MCP), operators can generate PATs from their Preferences screen.
+
 - A PAT is an opaque string starting with `clpat_`.
 - The raw token is shown only once during creation.
 - The backend stores a SHA-256 hash in the `personal_access_tokens` table.
@@ -77,14 +79,14 @@ separate review.
 
 ## Environment
 
-| Variable                                | Required    | Purpose                               |
-| --------------------------------------- | ----------- | ------------------------------------- |
+| Variable                                | Required    | Purpose                                         |
+| --------------------------------------- | ----------- | ----------------------------------------------- |
 | `COPALIBRE_JWKS_URI`                    | conditional | Provider JWKS endpoint (required if using OIDC) |
-| `COPALIBRE_JWT_ISSUER`                  | yes         | Exact expected `iss`                  |
-| `COPALIBRE_JWT_AUDIENCE`                | yes         | Exact expected `aud`                  |
-| `COPALIBRE_JWT_SECRET`                  | conditional | Symmetric key for native local JWTs   |
-| `COPALIBRE_JWKS_CACHE_MAX_AGE_MS`       | no (600000) | Key cache lifetime / rotation overlap |
-| `COPALIBRE_JWT_CLOCK_TOLERANCE_SECONDS` | no (5)      | Clock-skew tolerance                  |
+| `COPALIBRE_JWT_ISSUER`                  | yes         | Exact expected `iss`                            |
+| `COPALIBRE_JWT_AUDIENCE`                | yes         | Exact expected `aud`                            |
+| `COPALIBRE_JWT_SECRET`                  | conditional | Symmetric key for native local JWTs             |
+| `COPALIBRE_JWKS_CACHE_MAX_AGE_MS`       | no (600000) | Key cache lifetime / rotation overlap           |
+| `COPALIBRE_JWT_CLOCK_TOLERANCE_SECONDS` | no (5)      | Clock-skew tolerance                            |
 
 ## The OpenAPI artifact
 

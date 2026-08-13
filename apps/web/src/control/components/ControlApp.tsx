@@ -11,6 +11,7 @@ import {
   StandingsControlRoute,
   TournamentAuthoringControlRoute,
 } from './ControlRoutes.js';
+
 import { LoginRoute, ForgotPasswordRoute, ResetPasswordRoute } from './NativeAuthRoutes.js';
 import { Dashboard } from './Dashboard.js';
 import { buildDashboard } from '../lib/dashboard.js';
@@ -47,7 +48,11 @@ export function ControlApp(): React.JSX.Element | null {
     document.title = titleFor(route);
   }, [route]);
 
-  const isPublicRoute = route?.screen === 'callback' || route?.screen === 'login' || route?.screen === 'forgot-password' || route?.screen === 'reset-password';
+  const isPublicRoute =
+    route?.screen === 'callback' ||
+    route?.screen === 'login' ||
+    route?.screen === 'forgot-password' ||
+    route?.screen === 'reset-password';
 
   // Guarded here, once, rather than per screen: ControlApp is every
   // authenticated screen's one mount point, so this covers all eight by
@@ -64,9 +69,24 @@ export function ControlApp(): React.JSX.Element | null {
 
   if (route === undefined) return <NotFound path={path} />;
   if (route.screen === 'callback') return <CompletingLogin />;
-  if (route.screen === 'login') return <LoginRoute />;
-  if (route.screen === 'forgot-password') return <ForgotPasswordRoute />;
-  if (route.screen === 'reset-password') return <ResetPasswordRoute />;
+  if (route.screen === 'login')
+    return (
+      <ControlIntl locale={activeControlLanguage()}>
+        <LoginRoute />
+      </ControlIntl>
+    );
+  if (route.screen === 'forgot-password')
+    return (
+      <ControlIntl locale={activeControlLanguage()}>
+        <ForgotPasswordRoute />
+      </ControlIntl>
+    );
+  if (route.screen === 'reset-password')
+    return (
+      <ControlIntl locale={activeControlLanguage()}>
+        <ResetPasswordRoute />
+      </ControlIntl>
+    );
   // Synchronous guard for the render that happens before the effect above
   // runs — without it, a protected screen would flash unauthenticated
   // before the redirect fires.

@@ -11,7 +11,10 @@ const messages = defineMessages({
   passwordLabel: { id: 'auth.passwordLabel', defaultMessage: 'Contraseña' },
   loginSubmit: { id: 'auth.loginSubmit', defaultMessage: 'Ingresar' },
   oidcButton: { id: 'auth.oidcButton', defaultMessage: 'Continuar con proveedor de identidad' },
-  forgotPasswordLink: { id: 'auth.forgotPasswordLink', defaultMessage: '¿Olvidaste tu contraseña?' },
+  forgotPasswordLink: {
+    id: 'auth.forgotPasswordLink',
+    defaultMessage: '¿Olvidaste tu contraseña?',
+  },
   forgotTitle: { id: 'auth.forgotTitle', defaultMessage: 'Recuperar contraseña' },
   forgotSubmit: { id: 'auth.forgotSubmit', defaultMessage: 'Enviar enlace' },
   forgotBack: { id: 'auth.forgotBack', defaultMessage: 'Volver al ingreso' },
@@ -43,7 +46,7 @@ export function LoginRoute(): React.JSX.Element {
 
       const data = await res.json();
       controlTokenStore.write(data.accessToken, Date.now() + data.expiresIn * 1000);
-      
+
       const searchParams = new URLSearchParams(window.location.search);
       const returnTo = searchParams.get('returnTo') || '/control/callback';
       navigateControl(returnTo);
@@ -56,30 +59,63 @@ export function LoginRoute(): React.JSX.Element {
 
   return (
     <AuthLayout>
-      <p className="context"><FormattedMessage {...messages.loginContext} /></p>
-      <h1><FormattedMessage {...messages.loginTitle} /></h1>
-      <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '2rem' }}>
+      <p className="context">
+        <FormattedMessage {...messages.loginContext} />
+      </p>
+      <h1>
+        <FormattedMessage {...messages.loginTitle} />
+      </h1>
+      <form
+        onSubmit={handleLogin}
+        style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '2rem' }}
+      >
         <div>
-          <label style={{ display: 'block', marginBottom: '0.5rem' }}><FormattedMessage {...messages.emailLabel} /></label>
-          <input type="email" value={email} onChange={e => setEmail(e.target.value)} required style={inputStyle} />
+          <label htmlFor="login-email" style={{ display: 'block', marginBottom: '0.5rem' }}>
+            <FormattedMessage {...messages.emailLabel} />
+          </label>
+          <input
+            id="login-email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            style={inputStyle}
+          />
         </div>
         <div>
-          <label style={{ display: 'block', marginBottom: '0.5rem' }}><FormattedMessage {...messages.passwordLabel} /></label>
-          <input type="password" value={password} onChange={e => setPassword(e.target.value)} required style={inputStyle} />
+          <label htmlFor="login-password" style={{ display: 'block', marginBottom: '0.5rem' }}>
+            <FormattedMessage {...messages.passwordLabel} />
+          </label>
+          <input
+            id="login-password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            style={inputStyle}
+          />
         </div>
         <button type="submit" disabled={loading} style={primaryButtonStyle}>
           <FormattedMessage {...messages.loginSubmit} />
         </button>
       </form>
       {error && <p style={{ color: 'var(--cl-state-destructive)', marginTop: '1rem' }}>{error}</p>}
-      
+
       <div style={{ marginTop: '1rem' }}>
-        <a href="/control/forgot-password" onClick={(e) => { e.preventDefault(); navigateControl('/control/forgot-password'); }}>
+        <a
+          href="/control/forgot-password"
+          onClick={(e) => {
+            e.preventDefault();
+            navigateControl('/control/forgot-password');
+          }}
+        >
           <FormattedMessage {...messages.forgotPasswordLink} />
         </a>
       </div>
 
-      <hr style={{ margin: '2rem 0', border: 'none', borderTop: '1px solid var(--cl-border-base)' }} />
+      <hr
+        style={{ margin: '2rem 0', border: 'none', borderTop: '1px solid var(--cl-border-base)' }}
+      />
 
       <button onClick={() => beginOidcLogin()} type="button" style={secondaryButtonStyle}>
         <FormattedMessage {...messages.oidcButton} />
@@ -114,11 +150,25 @@ export function ForgotPasswordRoute(): React.JSX.Element {
 
   return (
     <AuthLayout>
-      <h1><FormattedMessage {...messages.forgotTitle} /></h1>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '2rem' }}>
+      <h1>
+        <FormattedMessage {...messages.forgotTitle} />
+      </h1>
+      <form
+        onSubmit={handleSubmit}
+        style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '2rem' }}
+      >
         <div>
-          <label style={{ display: 'block', marginBottom: '0.5rem' }}><FormattedMessage {...messages.emailLabel} /></label>
-          <input type="email" value={email} onChange={e => setEmail(e.target.value)} required style={inputStyle} />
+          <label htmlFor="forgot-email" style={{ display: 'block', marginBottom: '0.5rem' }}>
+            <FormattedMessage {...messages.emailLabel} />
+          </label>
+          <input
+            id="forgot-email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            style={inputStyle}
+          />
         </div>
         <button type="submit" disabled={loading} style={primaryButtonStyle}>
           <FormattedMessage {...messages.forgotSubmit} />
@@ -126,7 +176,13 @@ export function ForgotPasswordRoute(): React.JSX.Element {
       </form>
       {status && <p style={{ marginTop: '1rem' }}>{status}</p>}
       <div style={{ marginTop: '2rem' }}>
-        <a href="/control/login" onClick={(e) => { e.preventDefault(); navigateControl('/control/login'); }}>
+        <a
+          href="/control/login"
+          onClick={(e) => {
+            e.preventDefault();
+            navigateControl('/control/login');
+          }}
+        >
           <FormattedMessage {...messages.forgotBack} />
         </a>
       </div>
@@ -156,7 +212,7 @@ export function ResetPasswordRoute(): React.JSX.Element {
       });
 
       if (!res.ok) throw new Error('Enlace inválido o expirado.');
-      
+
       setSuccess(true);
       setStatus('Contraseña actualizada. Ya puedes ingresar.');
     } catch (err) {
@@ -170,7 +226,13 @@ export function ResetPasswordRoute(): React.JSX.Element {
     return (
       <AuthLayout>
         <p>Enlace de recuperación inválido.</p>
-        <a href="/control/login" onClick={(e) => { e.preventDefault(); navigateControl('/control/login'); }}>
+        <a
+          href="/control/login"
+          onClick={(e) => {
+            e.preventDefault();
+            navigateControl('/control/login');
+          }}
+        >
           <FormattedMessage {...messages.forgotBack} />
         </a>
       </AuthLayout>
@@ -179,11 +241,27 @@ export function ResetPasswordRoute(): React.JSX.Element {
 
   return (
     <AuthLayout>
-      <h1><FormattedMessage {...messages.resetTitle} /></h1>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '2rem' }}>
+      <h1>
+        <FormattedMessage {...messages.resetTitle} />
+      </h1>
+      <form
+        onSubmit={handleSubmit}
+        style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '2rem' }}
+      >
         <div>
-          <label style={{ display: 'block', marginBottom: '0.5rem' }}><FormattedMessage {...messages.passwordLabel} /> (min 8 char)</label>
-          <input type="password" value={password} onChange={e => setPassword(e.target.value)} minLength={8} required style={inputStyle} disabled={success} />
+          <label htmlFor="reset-password" style={{ display: 'block', marginBottom: '0.5rem' }}>
+            <FormattedMessage {...messages.passwordLabel} /> (min 8 char)
+          </label>
+          <input
+            id="reset-password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            minLength={8}
+            required
+            style={inputStyle}
+            disabled={success}
+          />
         </div>
         {!success && (
           <button type="submit" disabled={loading} style={primaryButtonStyle}>
@@ -194,7 +272,13 @@ export function ResetPasswordRoute(): React.JSX.Element {
       {status && <p style={{ marginTop: '1rem' }}>{status}</p>}
       {success && (
         <div style={{ marginTop: '2rem' }}>
-          <a href="/control/login" onClick={(e) => { e.preventDefault(); navigateControl('/control/login'); }}>
+          <a
+            href="/control/login"
+            onClick={(e) => {
+              e.preventDefault();
+              navigateControl('/control/login');
+            }}
+          >
             <FormattedMessage {...messages.forgotBack} />
           </a>
         </div>
@@ -205,15 +289,47 @@ export function ResetPasswordRoute(): React.JSX.Element {
 
 function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <main style={{ minHeight: '100vh', display: 'grid', gridTemplateRows: 'auto 1fr', padding: 'clamp(24px, 5vw, 64px)', fontFamily: 'var(--cl-font-body)' }}>
+    <main
+      style={{
+        minHeight: '100vh',
+        display: 'grid',
+        gridTemplateRows: 'auto 1fr',
+        padding: 'clamp(24px, 5vw, 64px)',
+        fontFamily: 'var(--cl-font-body)',
+      }}
+    >
       <header style={{ display: 'flex', alignItems: 'center', gap: 'var(--cl-space-3)' }}>
-        <img src="/copalibre-logo.svg" alt="" width="44" height="44" style={{ border: '1px solid var(--cl-state-live)', padding: '4px' }} />
+        <img
+          src="/copalibre-logo.svg"
+          alt=""
+          width="44"
+          height="44"
+          style={{ border: '1px solid var(--cl-state-live)', padding: '4px' }}
+        />
         <div style={{ display: 'grid', gap: '2px' }}>
-          <strong style={{ fontFamily: 'var(--cl-font-display)', fontSize: '1.125rem' }}>CopaLibre</strong>
-          <span style={{ color: 'var(--cl-text-muted)', fontFamily: 'var(--cl-font-mono)', fontSize: '0.75rem' }}>Control de torneos</span>
+          <strong style={{ fontFamily: 'var(--cl-font-display)', fontSize: '1.125rem' }}>
+            CopaLibre
+          </strong>
+          <span
+            style={{
+              color: 'var(--cl-text-muted)',
+              fontFamily: 'var(--cl-font-mono)',
+              fontSize: '0.75rem',
+            }}
+          >
+            Control de torneos
+          </span>
         </div>
       </header>
-      <section style={{ width: 'min(100%, 560px)', alignSelf: 'center', marginBlock: 'var(--cl-space-8)', borderLeft: '4px solid var(--cl-state-live)', padding: 'var(--cl-space-6) 0 var(--cl-space-6) var(--cl-space-6)' }}>
+      <section
+        style={{
+          width: 'min(100%, 560px)',
+          alignSelf: 'center',
+          marginBlock: 'var(--cl-space-8)',
+          borderLeft: '4px solid var(--cl-state-live)',
+          padding: 'var(--cl-space-6) 0 var(--cl-space-6) var(--cl-space-6)',
+        }}
+      >
         {children}
       </section>
     </main>
