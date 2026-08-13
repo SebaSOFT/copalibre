@@ -83,6 +83,9 @@ export class ConsoleEventResponse {
 
   @ApiPropertyOptional({ format: 'uuid' })
   personId?: string;
+
+  @ApiPropertyOptional({ description: 'Free-text operator note, if one was recorded' })
+  notes?: string;
 }
 
 export class ConsoleLiveScoreResponse {
@@ -179,6 +182,11 @@ export class RecordEventRequest {
 
   @ApiPropertyOptional({ type: Object, description: 'Payload validated against the definition' })
   payload?: Record<string, unknown>;
+
+  @ApiPropertyOptional({
+    description: 'Free-text operator note, available regardless of discipline',
+  })
+  notes?: string;
 }
 
 export class RecordedEventResponse {
@@ -196,6 +204,9 @@ export class RecordedEventResponse {
 
   @ApiPropertyOptional({ format: 'uuid' })
   personId?: string;
+
+  @ApiPropertyOptional({ description: 'Free-text operator note, if one was recorded' })
+  notes?: string;
 
   @ApiProperty({
     type: [String],

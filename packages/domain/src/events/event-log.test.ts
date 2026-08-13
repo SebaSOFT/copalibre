@@ -74,6 +74,28 @@ describe('a side is an entrant', () => {
   });
 });
 
+describe('an event may carry an optional note (0075)', () => {
+  it('records the note regardless of discipline or event definition', () => {
+    const log = new EventLog(fixtureDescriptor());
+
+    const result = log.record(strikeInput({ notes: 'Reviewed by table official' }));
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.notes).toBe('Reviewed by table official');
+  });
+
+  it('leaves the note absent when the caller does not supply one', () => {
+    const log = new EventLog(fixtureDescriptor());
+
+    const result = log.record(strikeInput());
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.notes).toBeUndefined();
+  });
+});
+
 describe('EventLog', () => {
   it('records a valid event and assigns a monotonic sequence', () => {
     const log = new EventLog(fixtureDescriptor());

@@ -297,6 +297,33 @@ describe('live match console (integration)', () => {
     expect(refused.json().message).toContain('match roster');
   });
 
+  it('records an optional note with an event and reflects it in the console projection (0075)', async () => {
+    const withNote = await request('POST', `${base()}/events`, 'referee', {
+      definitionCode: 'manual-penalty',
+      segmentId,
+      occurredAt: Date.now(),
+      side: entrantIds[0],
+      notes: 'Contested by home captain',
+    });
+    expect(withNote.statusCode).toBe(201);
+    expect(withNote.json().notes).toBe('Contested by home captain');
+
+    const withoutNote = await request('POST', `${base()}/events`, 'referee', {
+      definitionCode: 'manual-penalty',
+      segmentId,
+      occurredAt: Date.now(),
+      side: entrantIds[0],
+    });
+    expect(withoutNote.statusCode).toBe(201);
+    expect(withoutNote.json().notes).toBeUndefined();
+
+    const projection = await request('GET', `${base()}/console`, 'referee');
+    const recorded = projection
+      .json()
+      .events.find((event: { eventId: string }) => event.eventId === withNote.json().eventId);
+    expect(recorded?.notes).toBe('Contested by home captain');
+  });
+
   it('persists one finalization per idempotency key and rejects altered retries', async () => {
     const payload = {
       sides: entrantIds.map((entrantId) => ({ entrantId, statistics: {} })),

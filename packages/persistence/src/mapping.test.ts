@@ -200,6 +200,7 @@ describe('snake_case row → camelCase domain mapping', () => {
       side: 'entrant-atlas',
       person_id: 'p-1',
       payload: { zone: 'inner' } as never,
+      notes: 'Under review by table official',
       created_at: CREATED,
     };
     expect(toRecordedEvent(row)).toEqual({
@@ -212,6 +213,7 @@ describe('snake_case row → camelCase domain mapping', () => {
       side: 'entrant-atlas',
       personId: 'p-1',
       payload: { zone: 'inner' },
+      notes: 'Under review by table official',
     });
   });
 });
@@ -238,11 +240,13 @@ describe('mapping edge cases', () => {
       side: null,
       person_id: null,
       payload: {} as never,
+      notes: null,
       created_at: CREATED,
     };
     const mapped = toRecordedEvent(row);
     expect(mapped.side).toBeUndefined();
     expect(mapped.personId).toBeUndefined();
+    expect(mapped.notes).toBeUndefined();
   });
 
   it('maps a tournament that already has a ruleset attached', () => {

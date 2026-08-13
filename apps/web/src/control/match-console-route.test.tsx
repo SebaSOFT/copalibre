@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MatchConsoleRoute } from './components/MatchConsoleRoute.js';
 import type { MatchConsoleApiClient, MatchConsoleResponse } from './lib/api-client.js';
@@ -159,6 +160,85 @@ describe('MatchConsoleRoute', () => {
         payload: { description: 'Tiro al ángulo' },
       },
     ]);
+  });
+
+  it('captures occurredAt at the initial button press, not the workflow confirm step (0075)', async () => {
+    const requests: unknown[] = [];
+    const now = jest.spyOn(Date, 'now');
+    now.mockReturnValueOnce(1_000); // the "Penal" press that opens the workflow
+    await act(async () => {
+      render(
+        withIntl(
+          <MatchConsoleRoute
+            client={client({
+              recordMatchEvent: async (_organization, _tournament, _match, request) => {
+                requests.push(request);
+                return {
+                  eventId: 'event-2',
+                  definitionCode: request.definitionCode,
+                  sequence: 2,
+                  notifications: [],
+                };
+              },
+            })}
+            matchId="match-1"
+            organizationAlias="liga"
+            tournamentAlias="apertura"
+          />,
+        ),
+      );
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Penal' }));
+    fireEvent.change(screen.getByLabelText('Log note'), {
+      target: { value: 'Revisado tras demora' },
+    });
+    // Time an operator spends typing before confirming must not move the
+    // recorded instant — if it did, this second `Date.now()` value would leak
+    // into the request.
+    now.mockReturnValueOnce(9_000);
+    await act(async () => {
+      fireEvent.click(screen.getAllByRole('button', { name: 'Gol' })[1] as HTMLButtonElement);
+    });
+
+    expect(requests).toEqual([expect.objectContaining({ occurredAt: 1_000 })]);
+    now.mockRestore();
+  });
+
+  it('sends and clears the log note when recording an event (0075)', async () => {
+    const requests: unknown[] = [];
+    await act(async () => {
+      render(
+        withIntl(
+          <MatchConsoleRoute
+            client={client({
+              recordMatchEvent: async (_organization, _tournament, _match, request) => {
+                requests.push(request);
+                return {
+                  eventId: 'event-2',
+                  definitionCode: request.definitionCode,
+                  sequence: 2,
+                  notifications: [],
+                };
+              },
+            })}
+            matchId="match-1"
+            organizationAlias="liga"
+            tournamentAlias="apertura"
+          />,
+        ),
+      );
+    });
+
+    fireEvent.change(screen.getByLabelText('Log note'), {
+      target: { value: 'Confirmado por árbitro' },
+    });
+    await act(async () => {
+      fireEvent.click(screen.getAllByRole('button', { name: 'Gol' })[0] as HTMLButtonElement);
+    });
+
+    expect(requests).toEqual([expect.objectContaining({ notes: 'Confirmado por árbitro' })]);
+    expect((screen.getByLabelText('Log note') as HTMLTextAreaElement).value).toBe('');
   });
 
   it('labels telemetry as unavailable without numeric placeholders', async () => {

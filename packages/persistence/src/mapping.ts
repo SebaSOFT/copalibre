@@ -251,6 +251,7 @@ export function toRecordedEvent(row: MatchEventRow): RecordedEvent {
     side: row.side ?? undefined,
     personId: row.person_id ?? undefined,
     payload: row.payload as Record<string, unknown>,
+    notes: row.notes ?? undefined,
   };
 }
 
