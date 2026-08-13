@@ -49,7 +49,7 @@ describe('Personal Access Token repository (integration)', () => {
     // We expect the raw token to be returned ONCE upon creation
     expect(issued.rawToken).toMatch(/^clpat_[a-zA-Z0-9_-]+$/);
 
-    const tokenHash = hashToken(issued.rawToken.slice(6)); // hash the part after clpat_
+    const tokenHash = hashToken(issued.rawToken);
 
     const scope = await tokens.scopeOf(tokenHash);
     expect(scope).toMatchObject({
@@ -77,7 +77,7 @@ describe('Personal Access Token repository (integration)', () => {
       }),
     );
 
-    const tokenHash = hashToken(issued.rawToken.slice(6));
+    const tokenHash = hashToken(issued.rawToken);
     await expect(tokens.scopeOf(tokenHash)).resolves.toBeDefined();
 
     await withTransaction(scratch.db, (uow) =>
@@ -129,7 +129,7 @@ describe('Personal Access Token repository (integration)', () => {
           authorizationContext: '',
         }),
       ),
-    ).rejects.toThrow('PAT was not found');
+    ).rejects.toThrow('Personal access token was not found');
   });
 
   it('updates the last-used heartbeat without gating authorization', async () => {
@@ -178,7 +178,7 @@ describe('Personal Access Token repository (integration)', () => {
       }),
     );
 
-    const audit = await new AuditReader(scratch.db).historyFor('pat', issued.tokenId);
+    const audit = await new AuditReader(scratch.db).historyFor('personal-access-token', issued.tokenId);
     expect(audit.map((entry) => entry.action)).toEqual(['pat.created', 'pat.revoked']);
   });
 });

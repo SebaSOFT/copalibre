@@ -100,6 +100,18 @@ describe('migrations (integration)', () => {
       ]),
     );
 
+    const nativeIdentityDown = await migrateDownOneStep(scratch.db);
+    expect(nativeIdentityDown.error).toBeUndefined();
+
+    const afterNativeIdentityDownTables = await scratch.db.introspection.getTables();
+    const afterNativeIdentityDownTableNames = afterNativeIdentityDownTables.map((t) => t.name);
+    expect(afterNativeIdentityDownTableNames).not.toContain('auth_verification_tokens');
+    expect(afterNativeIdentityDownTableNames).not.toContain('personal_access_tokens');
+    expect(
+      afterNativeIdentityDownTables.find((table) => table.name === 'identity_principals')?.columns,
+    ).not.toEqual(expect.arrayContaining([expect.objectContaining({ name: 'password_hash' })]));
+
+
     const organizationLocaleDown = await migrateDownOneStep(scratch.db);
     expect(organizationLocaleDown.error).toBeUndefined();
 
