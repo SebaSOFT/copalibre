@@ -1,4 +1,4 @@
-import { publicIntl, resultStateLabels } from './public-intl.js';
+import { publicIntl, resultReasonLabels, resultStateLabels } from './public-intl.js';
 import { messages } from './public-messages.en.js';
 import { messages as esMessages } from './public-messages.es.js';
 import { messages as frMessages } from './public-messages.fr.js';
@@ -111,5 +111,17 @@ describe('publicIntl formats real translated text, not an English fallback (0055
     expect(labels.live).toBe('EN VIVO');
     expect(labels.tbd).toBe('A DEFINIR');
     expect(labels.cancelled).toBe('CANCELADO');
+  });
+
+  it('resolves every non-played result-reason label at once (0076)', () => {
+    const labels = resultReasonLabels(publicIntl('es'));
+    expect(labels.walkover).toBe('W/O');
+    expect(labels.disqualified).toBe('DESCALIFICADO');
+    expect(labels['administrative-loss']).toBe('DERROTA ADM.');
+    expect(labels['forfeit-abandonment']).toBe('ABANDONO');
+    expect(labels['did-not-finish']).toBe('NO TERMINÓ');
+
+    const en = resultReasonLabels(publicIntl('en'));
+    expect(en.walkover).toBe('W/O');
   });
 });
