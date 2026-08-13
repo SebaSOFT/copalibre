@@ -107,3 +107,32 @@ public surface's path-prefix routing.
 - **WHEN** no preference is stored, no organization scope applies, and none of the browser's languages
   match a supported code
 - **THEN** English is used
+
+### Requirement: Discipline and tournament-profile display strings resolve through the supported-language contract
+
+Every discipline or tournament-profile document's display strings (a discipline or profile's `name`,
+a segment type's, event definition's, statistic's, or scoring input's `label`) SHALL be resolvable
+against the platform's `SupportedLanguage` contract, falling back to English when the requested
+language has no translation, the same fallback behavior the rest of the platform's interface
+languages already use. A document's stable `code`/`alias` identifiers are unaffected — this
+requirement governs only human-facing display strings, never a value used for effects, capability
+binding, or persisted event/statistic records.
+
+#### Scenario: An operator sees a module label in their organization's primary language
+
+- **WHEN** an organization's `primaryLanguage` is `es` and its bound discipline's `yellow-card` event
+  definition declares `{ en: "Yellow card", es: "Tarjeta amarilla" }` as its label
+- **THEN** the match console renders "Tarjeta amarilla" for that event
+
+#### Scenario: A module with no translation for the requested language falls back to English
+
+- **WHEN** a discipline document's event label is `{ en: "Goal" }` with no `es` entry, and the
+  viewer's resolved interface language is `es`
+- **THEN** the rendered label is "Goal", not an empty string or an error
+
+#### Scenario: An existing plain-string label remains valid and renders unchanged
+
+- **WHEN** a discipline document authored before this requirement existed declares
+  `"label": "Yellow card"` as a plain string
+- **THEN** the document validates successfully and every viewer, regardless of interface language,
+  sees "Yellow card" — identical to its behavior before this requirement
