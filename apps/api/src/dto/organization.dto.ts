@@ -1,5 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '@copalibre/domain';
+import {
+  SUPPORTED_LANGUAGES,
+  type LocalizedLabel,
+  type SupportedLanguage,
+} from '@copalibre/domain';
 
 /** Wire DTOs are camelCase, per the naming-conventions casing rule. */
 export class OrganizationResponse {
@@ -321,8 +325,13 @@ export class DisciplineSummaryResponse {
   @ApiProperty({ example: '1.2.0' })
   version!: string;
 
-  @ApiProperty({ example: 'Fútbol 11' })
-  name!: string;
+  @ApiProperty({
+    type: Object,
+    example: 'Fútbol 11',
+    description:
+      'A plain string, or a locale-keyed object (e.g. { en: "Football", es: "Fútbol" }) for a module authored in more than one language — the client resolves it to the viewer\'s interface language.',
+  })
+  name!: string | LocalizedLabel;
 
   @ApiProperty({
     isArray: true,

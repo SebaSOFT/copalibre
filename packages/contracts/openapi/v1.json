@@ -4109,8 +4109,9 @@
             "example": "1.2.0"
           },
           "name": {
-            "type": "string",
-            "example": "Fútbol 11"
+            "type": "object",
+            "example": "Fútbol 11",
+            "description": "A plain string, or a locale-keyed object (e.g. { en: \"Football\", es: \"Fútbol\" }) for a module authored in more than one language — the client resolves it to the viewer's interface language."
           },
           "supportedFormats": {
             "description": "Formats this discipline declares it supports. The client filters from this list rather than from its own copy — a hardcoded list is a list that disagrees with the module the day one is added.",

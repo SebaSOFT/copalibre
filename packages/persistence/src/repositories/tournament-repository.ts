@@ -1,6 +1,7 @@
 import {
   Alias,
   compileEffectiveRuleset,
+  resolveLabel,
   transitionTournament,
   type DisciplineDescriptor,
   type MatchRuleset,
@@ -58,7 +59,7 @@ export class TournamentRepository {
         descriptor_id: descriptor.descriptorId,
         alias: descriptor.alias,
         version: descriptor.version,
-        name: descriptor.name,
+        name: resolveLabel(descriptor.name, 'en'),
         document: JSON.stringify(descriptor),
         created_at: new Date(),
       })

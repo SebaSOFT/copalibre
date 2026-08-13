@@ -1297,8 +1297,11 @@ export interface components {
             descriptorId: string;
             /** @example 1.2.0 */
             version: string;
-            /** @example Fútbol 11 */
-            name: string;
+            /**
+             * @description A plain string, or a locale-keyed object (e.g. { en: "Football", es: "Fútbol" }) for a module authored in more than one language — the client resolves it to the viewer's interface language.
+             * @example Fútbol 11
+             */
+            name: Record<string, never>;
             /**
              * @description Formats this discipline declares it supports. The client filters from this list rather than from its own copy — a hardcoded list is a list that disagrees with the module the day one is added.
              * @example [

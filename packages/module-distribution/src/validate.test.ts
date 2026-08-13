@@ -46,6 +46,28 @@ describe('validateModulePackage', () => {
     expect(result.ok).toBe(true);
   });
 
+  it('accepts a discipline module using locale-map labels (0071)', async () => {
+    const directory = await makeModuleDirectory(
+      validManifest(),
+      validDisciplineDocument({ name: { en: 'Orbital Frisbee', es: 'Frisbee Orbital' } }),
+    );
+    directories.push(directory);
+
+    const result = await validateModulePackage(directory, OPTIONS);
+    expect(result.ok).toBe(true);
+  });
+
+  it('rejects a discipline module whose locale-map label omits the required en key', async () => {
+    const directory = await makeModuleDirectory(
+      validManifest(),
+      validDisciplineDocument({ name: { es: 'Frisbee Orbital' } }),
+    );
+    directories.push(directory);
+
+    const result = await validateModulePackage(directory, OPTIONS);
+    expect(result.ok).toBe(false);
+  });
+
   it('rejects a manifest declaring an unknown kind', async () => {
     const directory = await makeModuleDirectory(
       { ...validManifest(), kind: 'not-a-real-kind' },

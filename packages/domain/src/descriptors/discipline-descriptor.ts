@@ -2,6 +2,7 @@ import type { Attribution } from './attribution.js';
 import type { EventDefinition } from './event-definition.js';
 import type { StatisticCollector } from '../statistics/collector.js';
 import type { ConfigFieldPolicies, RulesetConfig } from './override-policy.js';
+import type { LocalizedLabel } from '../i18n-label.js';
 
 /**
  * Reusable, versioned profile for a sport, esports title, or competition
@@ -75,14 +76,14 @@ export interface RosterConstraints {
 /** A discipline-declared match subdivision unit — never a closed enum. */
 export interface SegmentTypeDefinition {
   readonly name: string;
-  readonly label: string;
+  readonly label: string | LocalizedLabel;
   readonly timed: boolean;
   readonly defaultDurationSeconds?: number;
 }
 
 export interface StatisticDefinition {
   readonly code: string;
-  readonly label: string;
+  readonly label: string | LocalizedLabel;
   readonly aggregation: 'sum' | 'count' | 'max' | 'min' | 'average';
 }
 
@@ -103,7 +104,7 @@ export interface PlacementPoints {
 
 export interface ScoringInputDefinition {
   readonly code: string;
-  readonly label: string;
+  readonly label: string | LocalizedLabel;
   readonly source: 'event-derived' | 'operator-entered';
 }
 
@@ -118,7 +119,7 @@ export interface DisciplineDescriptor {
    * (0008-extensible-module-foundation).
    */
   readonly version: string;
-  readonly name: string;
+  readonly name: string | LocalizedLabel;
   /** Who authored this discipline, where it came from, under what licence. */
   readonly attribution: Attribution;
   readonly participantTypes: readonly ParticipantType[];

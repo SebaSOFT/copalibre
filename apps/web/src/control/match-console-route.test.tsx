@@ -1,5 +1,6 @@
 import { jest } from '@jest/globals';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { IntlProvider } from 'react-intl';
 import { MatchConsoleRoute } from './components/MatchConsoleRoute.js';
 import type { MatchConsoleApiClient, MatchConsoleResponse } from './lib/api-client.js';
 import { withIntl } from './i18n/test-support.js';
@@ -239,6 +240,33 @@ describe('MatchConsoleRoute', () => {
 
     expect(requests).toEqual([expect.objectContaining({ notes: 'Confirmado por árbitro' })]);
     expect((screen.getByLabelText('Log note') as HTMLTextAreaElement).value).toBe('');
+  });
+
+  it("resolves a locale-map event label to the viewer's interface language (0071)", async () => {
+    const bilingualProjection: MatchConsoleResponse = {
+      ...projection,
+      eventDefinitions: [
+        {
+          ...projection.eventDefinitions[3],
+          label: { en: 'Goal', es: 'Gol' },
+        },
+      ],
+    };
+    await act(async () => {
+      render(
+        <IntlProvider defaultLocale="en" locale="es">
+          <MatchConsoleRoute
+            client={client({ fetchMatchConsole: async () => bilingualProjection })}
+            matchId="match-1"
+            organizationAlias="liga"
+            tournamentAlias="apertura"
+          />
+        </IntlProvider>,
+      );
+    });
+
+    expect(screen.getByRole('button', { name: 'Gol' })).toBeDefined();
+    expect(screen.queryByRole('button', { name: 'Goal' })).toBeNull();
   });
 
   it('labels telemetry as unavailable without numeric placeholders', async () => {

@@ -1,3 +1,5 @@
+import type { LocalizedLabel } from '../i18n-label.js';
+
 /**
  * Discipline-owned event definitions. Category drives presentation and
  * accounting only — "It does not by itself change the score or standing. Any
@@ -37,7 +39,7 @@ export interface EventWorkflow {
   readonly kind: 'outcome-choice';
   readonly options: readonly {
     readonly definitionCode: string;
-    readonly label: string;
+    readonly label: string | LocalizedLabel;
   }[];
 }
 
@@ -67,7 +69,7 @@ export type EventEffect =
 export interface EventDefinition {
   /** Stable identifier within the discipline, e.g. "goal", "yellow-card". */
   readonly code: string;
-  readonly label: string;
+  readonly label: string | LocalizedLabel;
   readonly category: EventCategory;
   /** Segment types (by name) during which this event may be recorded. */
   readonly permittedSegmentTypes: readonly string[];

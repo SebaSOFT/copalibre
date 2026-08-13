@@ -1,4 +1,4 @@
-import type { TournamentProfile } from '@copalibre/domain';
+import { resolveLabel, type TournamentProfile } from '@copalibre/domain';
 import type { Kysely } from 'kysely';
 import type { Database } from '../schema.js';
 import type { UnitOfWork } from '../transaction.js';
@@ -31,7 +31,7 @@ export class TournamentProfileRepository {
         profile_id: profile.profileId,
         alias: profile.alias,
         version: profile.version,
-        name: profile.name,
+        name: resolveLabel(profile.name, 'en'),
         document: JSON.stringify(profile),
         created_at: new Date(),
       })
@@ -44,7 +44,7 @@ export class TournamentProfileRepository {
         profileId: profile.profileId,
         alias: profile.alias,
         version: profile.version,
-        name: profile.name,
+        name: resolveLabel(profile.name, 'en'),
       };
     }
 
@@ -76,7 +76,7 @@ export class TournamentProfileRepository {
       profileId: profile.profileId,
       alias: profile.alias,
       version: profile.version,
-      name: profile.name,
+      name: resolveLabel(profile.name, 'en'),
     };
   }
 

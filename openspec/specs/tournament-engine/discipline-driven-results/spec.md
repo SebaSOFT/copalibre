@@ -75,3 +75,19 @@ subscribe to, without a mechanism dedicated to any one discipline.
 - **THEN** a segment-threshold event is emitted carrying which side and which threshold, and an
   existing notification rule can trigger on it
 
+### Requirement: Every recorded event may carry an optional operator note
+
+A recorded event SHALL support an optional free-text note, independent of the discipline that
+defines the event and independent of the event's `payloadSchema`.
+
+#### Scenario: An operator records a note with an event
+
+- **WHEN** an operator records an event and supplies a note
+- **THEN** the note is persisted alongside the event and reads back unchanged
+
+#### Scenario: A note is available regardless of discipline
+
+- **WHEN** any discipline's event is recorded, whether or not that discipline declares anything about
+  notes in its own document
+- **THEN** the optional note field is available on the recording request
+

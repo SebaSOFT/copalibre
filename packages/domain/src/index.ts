@@ -318,6 +318,7 @@ export {
 } from './rulesets/mutation.js';
 
 export { SUPPORTED_LANGUAGES, isSupportedLanguage, type SupportedLanguage } from './i18n.js';
+export { resolveLabel, isLocalizedLabel, type LocalizedLabel } from './i18n-label.js';
 export type { Organization, Club } from './aggregates/organization.js';
 export {
   hasStarted,

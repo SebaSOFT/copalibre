@@ -1,7 +1,7 @@
 {
   "alias": "tennis",
   "version": "1.0.0",
-  "name": "Tennis",
+  "name": { "en": "Tennis", "es": "Tenis" },
   "attribution": {
     "author": "CopaLibre",
     "licence": "AGPL-3.0-only",
@@ -10,13 +10,13 @@
   "participantTypes": ["individual", "team"],
   "rosterConstraints": { "minPlayers": 1, "maxPlayers": 2 },
   "segmentTypes": [
-    { "name": "set", "label": "Set", "timed": false },
-    { "name": "tiebreak", "label": "Tiebreak", "timed": false }
+    { "name": "set", "label": { "en": "Set", "es": "Set" }, "timed": false },
+    { "name": "tiebreak", "label": { "en": "Tiebreak", "es": "Desempate" }, "timed": false }
   ],
   "eventDefinitions": [
     {
       "code": "point",
-      "label": "Point",
+      "label": { "en": "Point", "es": "Punto" },
       "category": "positive",
       "permittedSegmentTypes": ["set", "tiebreak"],
       "actorRequirement": "person",
@@ -28,7 +28,7 @@
     },
     {
       "code": "game-won",
-      "label": "Game won",
+      "label": { "en": "Game won", "es": "Juego ganado" },
       "category": "positive",
       "permittedSegmentTypes": ["set", "tiebreak"],
       "actorRequirement": "person",
@@ -37,7 +37,7 @@
     },
     {
       "code": "segment-point",
-      "label": "Segment point",
+      "label": { "en": "Segment point", "es": "Punto de parcial" },
       "category": "neutral",
       "permittedSegmentTypes": ["set", "tiebreak"],
       "actorRequirement": "none",
@@ -55,7 +55,7 @@
     },
     {
       "code": "match-point",
-      "label": "Match point",
+      "label": { "en": "Match point", "es": "Punto de partido" },
       "category": "neutral",
       "permittedSegmentTypes": ["set", "tiebreak"],
       "actorRequirement": "none",
@@ -73,7 +73,7 @@
     },
     {
       "code": "margin-required",
-      "label": "Margin required",
+      "label": { "en": "Margin required", "es": "Margen requerido" },
       "category": "neutral",
       "permittedSegmentTypes": ["set", "tiebreak"],
       "actorRequirement": "none",
@@ -91,7 +91,7 @@
     },
     {
       "code": "tiebreak-entered",
-      "label": "Tiebreak entered",
+      "label": { "en": "Tiebreak entered", "es": "Ingreso a desempate" },
       "category": "neutral",
       "permittedSegmentTypes": ["set", "tiebreak"],
       "actorRequirement": "none",
@@ -109,17 +109,41 @@
     }
   ],
   "statistics": [
-    { "code": "matches-won", "label": "Matches won", "aggregation": "sum" },
-    { "code": "matches-lost", "label": "Matches lost", "aggregation": "sum" },
-    { "code": "sets-won", "label": "Sets won", "aggregation": "sum" },
-    { "code": "sets-lost", "label": "Sets lost", "aggregation": "sum" },
-    { "code": "games-won", "label": "Games won", "aggregation": "sum" },
-    { "code": "games-lost", "label": "Games lost", "aggregation": "sum" },
-    { "code": "played", "label": "Played", "aggregation": "count" }
+    {
+      "code": "matches-won",
+      "label": { "en": "Matches won", "es": "Partidos ganados" },
+      "aggregation": "sum"
+    },
+    {
+      "code": "matches-lost",
+      "label": { "en": "Matches lost", "es": "Partidos perdidos" },
+      "aggregation": "sum"
+    },
+    {
+      "code": "sets-won",
+      "label": { "en": "Sets won", "es": "Sets ganados" },
+      "aggregation": "sum"
+    },
+    {
+      "code": "sets-lost",
+      "label": { "en": "Sets lost", "es": "Sets perdidos" },
+      "aggregation": "sum"
+    },
+    {
+      "code": "games-won",
+      "label": { "en": "Games won", "es": "Juegos ganados" },
+      "aggregation": "sum"
+    },
+    {
+      "code": "games-lost",
+      "label": { "en": "Games lost", "es": "Juegos perdidos" },
+      "aggregation": "sum"
+    },
+    { "code": "played", "label": { "en": "Played", "es": "Jugados" }, "aggregation": "count" }
   ],
   "scoringInputs": [
-    { "code": "games", "label": "Games", "source": "event-derived" },
-    { "code": "sets", "label": "Sets", "source": "event-derived" }
+    { "code": "games", "label": { "en": "Games", "es": "Juegos" }, "source": "event-derived" },
+    { "code": "sets", "label": { "en": "Sets", "es": "Sets" }, "source": "event-derived" }
   ],
   "availableFormats": [
     "single-elimination",
