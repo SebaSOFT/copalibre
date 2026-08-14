@@ -17,6 +17,7 @@ import {
 } from './backup.js';
 import { createBackupPacket, restoreBackupPacket } from './backup-packet.js';
 import { readCopalibreVersion, renderBanner } from './banner.js';
+import { readCredential } from './credentials.js';
 import { createInitialAdministrator, parseCreateAdminArguments } from './create-admin.js';
 import { runDoctor, type DoctorOptions } from './doctor.js';
 import {
@@ -28,6 +29,7 @@ import {
 } from './help-text.js';
 import { formatRequiredSecrets, writeInstallationAssets } from './init.js';
 import { assertVersionCompatible, readInstallationMarker } from './installation-marker.js';
+import { login as loginToInstallation, parseLoginArguments } from './login.js';
 import { startMcpServer } from './mcp/server.js';
 import { moduleAdd, moduleList, moduleRemove, moduleVerify } from './module-commands.js';
 import {
@@ -36,7 +38,11 @@ import {
   moduleValidateLocalCommand,
 } from './module-authoring/cli.js';
 import type { ProcessRunner } from './process-runner.js';
-import { parseStatisticsRebuildOptions, runStatisticsRebuild } from './statistics-rebuild.js';
+import {
+  parseStatisticsRebuildOptions,
+  runStatisticsRebuild,
+  runStatisticsRebuildOverHttp,
+} from './statistics-rebuild.js';
 import { PROCESS_RUNNER } from './tokens.js';
 import { runUpgradeCheck } from './upgrade-check.js';
 
@@ -96,6 +102,8 @@ export class CliRunner {
           return await this.upgradeCheck(arguments_.slice(1), environment);
         case 'create-admin':
           return await this.createAdmin(arguments_.slice(1), environment);
+        case 'login':
+          return await this.login(arguments_.slice(1), environment);
         case 'statistics-rebuild':
           return await this.statisticsRebuild(arguments_.slice(1), environment);
         case 'module':
@@ -320,23 +328,53 @@ export class CliRunner {
     return 0;
   }
 
+  private async login(
+    arguments_: readonly string[],
+    environment: NodeJS.ProcessEnv,
+  ): Promise<number> {
+    const options = parseLoginArguments(arguments_, environment);
+    const credential = await loginToInstallation(process.cwd(), options);
+    process.stdout.write(
+      `Stored credential for ${options.apiUrl} (saved ${credential.savedAt}).\n`,
+    );
+    return 0;
+  }
+
   private async statisticsRebuild(
     arguments_: readonly string[],
     environment: NodeJS.ProcessEnv,
   ): Promise<number> {
     const options = parseStatisticsRebuildOptions(arguments_);
+    const credential = await readCredential(process.cwd());
+
+    // Dual-path (0085): a stored credential in the current directory (0084's
+    // `.copalibre/`, `login`'s write target) means the authenticated HTTP
+    // path — no DATABASE_URL needed at all; otherwise the direct-database
+    // path below, today's unchanged behavior. Auto-detected, not a flag, so
+    // an existing checkout/DATABASE_URL workflow never has to opt into
+    // anything for this change to reach it (design.md).
+    const result = credential
+      ? await runStatisticsRebuildOverHttp(credential.apiUrl, credential.token, options)
+      : await this.statisticsRebuildDirect(options, environment);
+
+    const scope =
+      result.tournamentAlias === undefined
+        ? `organization "${result.organizationAlias}"`
+        : `tournament "${result.tournamentAlias}" in organization "${result.organizationAlias}"`;
+    process.stdout.write(
+      `Rebuilt statistics for ${scope}: ${result.matches} finalized match(es), ` +
+        `${result.figures} figure row(s) written.\n`,
+    );
+    return 0;
+  }
+
+  private async statisticsRebuildDirect(
+    options: ReturnType<typeof parseStatisticsRebuildOptions>,
+    environment: NodeJS.ProcessEnv,
+  ): Promise<Awaited<ReturnType<typeof runStatisticsRebuild>>> {
     const db = createDatabase(databaseConfigFromEnv(environment));
     try {
-      const result = await runStatisticsRebuild(db, options);
-      const scope =
-        result.tournamentAlias === undefined
-          ? `organization "${result.organizationAlias}"`
-          : `tournament "${result.tournamentAlias}" in organization "${result.organizationAlias}"`;
-      process.stdout.write(
-        `Rebuilt statistics for ${scope}: ${result.matches} finalized match(es), ` +
-          `${result.figures} figure row(s) written.\n`,
-      );
-      return 0;
+      return await runStatisticsRebuild(db, options);
     } finally {
       await db.destroy();
     }

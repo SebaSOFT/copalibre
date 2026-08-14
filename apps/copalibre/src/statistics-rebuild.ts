@@ -1,37 +1,26 @@
 import { parseArgs } from 'node:util';
-import {
-  CompetitionRepository,
-  OrganizationRepository,
-  ProjectionStore,
-  StatisticProjection,
-  StatisticRepository,
-  TournamentRepository,
-  withTransaction,
-  type Database,
-} from '@copalibre/persistence';
-import { createRefold } from '@copalibre/statistics-refold';
-import type { Kysely } from 'kysely';
+import type {
+  StatisticsRebuildOptions,
+  StatisticsRebuildResult,
+} from '@copalibre/statistics-refold';
+
+export {
+  runStatisticsRebuild,
+  type StatisticsRebuildOptions,
+  type StatisticsRebuildResult,
+} from '@copalibre/statistics-refold';
 
 /**
- * `copalibre statistics-rebuild` (0082, task 5.1) — recomputes every folded
- * total from source facts, for an organization or one tournament within it.
- *
- * First-deployment backfill (facts recorded before the fold engine existed
- * carry no `statistic_totals` rows at all) and "trust but verify" in one
- * operation, idempotent by construction: it calls `refold` through
- * `StatisticProjection.apply`, the exact write path (delete-then-insert,
- * projection versioning) the event-driven trigger already uses, so running it
- * twice reproduces the same rows rather than drifting from them.
+ * `copalibre statistics-rebuild` (0082, task 5.1) — CLI argument parsing
+ * only; the recompute logic itself moved to `@copalibre/statistics-refold`
+ * in 0085 so `apps/api`'s admin HTTP surface can call the exact same
+ * function the direct-database CLI path already used, instead of
+ * duplicating it.
  */
-
-export interface StatisticsRebuildOptions {
+export function parseStatisticsRebuildOptions(arguments_: readonly string[]): {
   readonly organization: string;
   readonly tournament?: string;
-}
-
-export function parseStatisticsRebuildOptions(
-  arguments_: readonly string[],
-): StatisticsRebuildOptions {
+} {
   const parsed = parseArgs({
     args: [...arguments_],
     options: {
@@ -45,72 +34,46 @@ export function parseStatisticsRebuildOptions(
   return { organization, ...(tournament === undefined ? {} : { tournament }) };
 }
 
-export interface StatisticsRebuildResult {
-  readonly organizationAlias: string;
-  readonly tournamentAlias?: string;
-  readonly matches: number;
-  readonly figures: number;
-}
-
-export async function runStatisticsRebuild(
-  db: Kysely<Database>,
+/**
+ * The authenticated HTTP path (0085): mirrors `create-admin.ts`'s `fetch()`
+ * precedent — no database import at all. Used when a stored credential
+ * exists for `apiUrl` (`cli-runner.ts`'s dual-path dispatch); the direct-
+ * database `runStatisticsRebuild` above stays the fallback otherwise.
+ */
+export async function runStatisticsRebuildOverHttp(
+  apiUrl: string,
+  token: string,
   options: StatisticsRebuildOptions,
+  requestFetch: typeof fetch = fetch,
 ): Promise<StatisticsRebuildResult> {
-  const organizations = new OrganizationRepository(db);
-  const competition = new CompetitionRepository(db);
-  const tournaments = new TournamentRepository(db);
-  const statistics = new StatisticRepository(db);
-  const projections = new ProjectionStore(db);
-
-  const organization = await organizations.findByAlias(options.organization);
-  if (!organization) throw new Error(`No organization "${options.organization}"`);
-
-  let tournamentId: string | undefined;
-  if (options.tournament !== undefined) {
-    const tournament = await tournaments.findByScopedAlias(
-      options.organization,
-      options.tournament,
-    );
-    if (!tournament) {
-      throw new Error(
-        `No tournament "${options.tournament}" in organization "${options.organization}"`,
-      );
-    }
-    tournamentId = tournament.tournamentId;
-  }
-
-  const matchIds = await competition.listFinalizedMatches({
-    organizationId: organization.organizationId,
-    ...(tournamentId === undefined ? {} : { tournamentId }),
+  const target = new URL(
+    `/organizations/${encodeURIComponent(options.organization)}/statistics/rebuild`,
+    apiUrl,
+  );
+  const response = await requestFetch(target, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+    body: JSON.stringify(
+      options.tournament === undefined ? {} : { tournamentAlias: options.tournament },
+    ),
+    signal: AbortSignal.timeout(30_000),
   });
-
-  const projection = new StatisticProjection(statistics, createRefold(db));
-  let figures = 0;
-  for (const matchId of matchIds) {
-    const outcome = await withTransaction(db, async (uow) => {
-      const version = await projections.nextVersion(uow, {
-        projectionType: 'statistic-totals',
-        entityId: matchId,
-      });
-      return projection.apply(uow, {
-        eventType: 'match.finalized',
-        organizationId: organization.organizationId,
-        entityId: matchId,
-        projectionVersion: version,
-      });
-    });
-    figures += outcome.figures;
+  const body = (await response.json().catch(() => undefined)) as
+    (StatisticsRebuildResult & { readonly message?: unknown }) | undefined;
+  if (!response.ok) {
+    throw new Error(
+      `statistics-rebuild returned HTTP ${response.status}${messageSuffix(body?.message)}`,
+    );
   }
-
-  return {
-    organizationAlias: options.organization,
-    ...(options.tournament === undefined ? {} : { tournamentAlias: options.tournament }),
-    matches: matchIds.length,
-    figures,
-  };
+  if (!body) throw new Error('statistics-rebuild did not return a result');
+  return body;
 }
 
 function required(value: string | undefined, name: string): string {
   if (!value?.trim()) throw new Error(`${name} is required`);
   return value;
+}
+
+function messageSuffix(message: unknown): string {
+  return typeof message === 'string' ? `: ${message}` : '';
 }

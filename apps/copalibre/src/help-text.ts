@@ -106,6 +106,21 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
       'copalibre create-admin --organization-alias <alias> --organization-name <name> --email <email>',
   },
   {
+    name: 'login',
+    summary: 'Store a personal access token so statistics-rebuild/module work without DATABASE_URL',
+    usage: 'copalibre login [--api-url <url>] [--token <token>]',
+    flags: [
+      {
+        flag: '--api-url <url>',
+        description: 'Target installation (default: COPALIBRE_API_URL)',
+      },
+      {
+        flag: '--token <token>',
+        description: 'Personal access token (default: piped stdin, or an interactive prompt)',
+      },
+    ],
+  },
+  {
     name: 'statistics-rebuild',
     summary: 'Recompute every folded statistic total from source facts',
     usage: 'copalibre statistics-rebuild --organization <alias> [--tournament <alias>]',

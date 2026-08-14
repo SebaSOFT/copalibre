@@ -3604,6 +3604,284 @@
           "auth"
         ]
       }
+    },
+    "/organizations/{organizationAlias}/statistics/rebuild": {
+      "post": {
+        "description": "Organization-wide by default, or narrowed to one tournament. Idempotent — the same delete-then-insert write path the event-driven trigger already uses.",
+        "operationId": "AdminStatisticsController_rebuild",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StatisticsRebuildRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatisticsRebuildResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Recompute every folded statistic total from source facts",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/admin/modules": {
+      "get": {
+        "operationId": "AdminModulesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InstalledModuleResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List installed modules, or only the ones with a newer published version",
+        "tags": [
+          "admin"
+        ]
+      },
+      "post": {
+        "operationId": "AdminModulesController_install",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InstallModuleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstallModuleResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Install a module by alias, optionally pinned to a version range",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/admin/modules/{alias}": {
+      "delete": {
+        "operationId": "AdminModulesController_remove",
+        "parameters": [
+          {
+            "name": "alias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemoveModuleResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove an installed module that no started tournament references",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/admin/modules/verify": {
+      "post": {
+        "operationId": "AdminModulesController_verify",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ModuleVerifyResultResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Re-validate every installed module against the running core version",
+        "tags": [
+          "admin"
+        ]
+      }
     }
   },
   "info": {
@@ -6276,6 +6554,210 @@
           "scopes",
           "expiresAt",
           "createdAt"
+        ]
+      },
+      "StatisticsRebuildRequest": {
+        "type": "object",
+        "properties": {
+          "tournamentAlias": {
+            "type": "string",
+            "description": "Narrows the rebuild to one tournament within the organization",
+            "example": "apertura-2026"
+          }
+        }
+      },
+      "StatisticsRebuildResponse": {
+        "type": "object",
+        "properties": {
+          "organizationAlias": {
+            "type": "string",
+            "example": "liga-orbital"
+          },
+          "tournamentAlias": {
+            "type": "string",
+            "example": "apertura-2026"
+          },
+          "matches": {
+            "type": "number",
+            "description": "Finalized matches the rebuild processed",
+            "example": 42
+          },
+          "figures": {
+            "type": "number",
+            "description": "Figure rows written",
+            "example": 210
+          }
+        },
+        "required": [
+          "organizationAlias",
+          "matches",
+          "figures"
+        ]
+      },
+      "InstalledModuleResponse": {
+        "type": "object",
+        "properties": {
+          "moduleId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "discipline",
+              "tournament-profile"
+            ]
+          },
+          "alias": {
+            "type": "string",
+            "example": "orbital-frisbee"
+          },
+          "version": {
+            "type": "string",
+            "example": "1.0.0"
+          },
+          "sourceKind": {
+            "type": "string",
+            "enum": [
+              "curated",
+              "alternate"
+            ]
+          },
+          "attributionAuthor": {
+            "type": "string",
+            "example": "SebaSOFT"
+          }
+        },
+        "required": [
+          "moduleId",
+          "kind",
+          "alias",
+          "version",
+          "sourceKind",
+          "attributionAuthor"
+        ]
+      },
+      "InstallModuleRequest": {
+        "type": "object",
+        "properties": {
+          "alias": {
+            "type": "string",
+            "example": "orbital-frisbee"
+          },
+          "range": {
+            "type": "string",
+            "description": "Version range; defaults to the latest published",
+            "example": "^1.0.0"
+          },
+          "source": {
+            "type": "string",
+            "description": "An explicitly allow-listed alternate source (COPALIBRE_MODULE_SOURCE_ALLOWLIST); omit to install from the curated repository",
+            "example": "file:///var/lib/copalibre/modules-dev/orbital-frisbee"
+          },
+          "allowUnsatisfiedCapabilities": {
+            "type": "boolean",
+            "description": "Installs even when the declared required capabilities are not yet satisfied",
+            "default": false
+          }
+        },
+        "required": [
+          "alias"
+        ]
+      },
+      "InstallModuleResponse": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "discipline",
+              "tournament-profile"
+            ]
+          },
+          "alias": {
+            "type": "string",
+            "example": "orbital-frisbee"
+          },
+          "version": {
+            "type": "string",
+            "example": "1.0.0"
+          },
+          "unsatisfiedRequiredCapabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "kind",
+          "alias",
+          "version",
+          "unsatisfiedRequiredCapabilities"
+        ]
+      },
+      "RemoveModuleResponse": {
+        "type": "object",
+        "properties": {
+          "alias": {
+            "type": "string",
+            "example": "orbital-frisbee"
+          },
+          "removedCount": {
+            "type": "number",
+            "description": "Versions removed",
+            "example": 1
+          }
+        },
+        "required": [
+          "alias",
+          "removedCount"
+        ]
+      },
+      "ModuleVerifyFailureResponse": {
+        "type": "object",
+        "properties": {
+          "stage": {
+            "type": "string",
+            "example": "registry-reference"
+          },
+          "message": {
+            "type": "string",
+            "example": "Unregistered event code \"goal-x\""
+          }
+        },
+        "required": [
+          "stage",
+          "message"
+        ]
+      },
+      "ModuleVerifyResultResponse": {
+        "type": "object",
+        "properties": {
+          "alias": {
+            "type": "string",
+            "example": "orbital-frisbee"
+          },
+          "version": {
+            "type": "string",
+            "example": "1.0.0"
+          },
+          "ok": {
+            "type": "boolean",
+            "example": true
+          },
+          "failures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ModuleVerifyFailureResponse"
+            }
+          }
+        },
+        "required": [
+          "alias",
+          "version",
+          "ok",
+          "failures"
         ]
       }
     }
