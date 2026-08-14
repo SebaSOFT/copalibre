@@ -1,5 +1,6 @@
 const base = require('../../jest.config.base.cjs');
 const esmExtensionMapper = require('../../jest.esm-mapper.cjs');
+const generateJestWorkspaceMapper = require('../../scripts/generate-jest-workspace-mapper.cjs');
 
 module.exports = {
   ...base,
@@ -34,11 +35,7 @@ module.exports = {
   moduleFileExtensions: ['tsx', 'ts', 'js', 'json'],
   moduleNameMapper: {
     ...esmExtensionMapper,
-    '^@copalibre/domain$': '<rootDir>/../../packages/domain/src/index.ts',
-    '^@copalibre/realtime$': '<rootDir>/../../packages/realtime/src/index.ts',
-    '^@copalibre/rules$': '<rootDir>/../../packages/rules/src/index.ts',
-    '^@copalibre/tournament-engine$': '<rootDir>/../../packages/tournament-engine/src/index.ts',
-    '^@copalibre/routing$': '<rootDir>/../../packages/routing/src/index.ts',
+    ...generateJestWorkspaceMapper(__dirname),
   },
   // The view model and the route list; the .astro templates are covered by the
   // build test, which renders them for real.

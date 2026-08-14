@@ -1,12 +1,13 @@
 const base = require('../../jest.config.base.cjs');
 const esmExtensionMapper = require('../../jest.esm-mapper.cjs');
+const generateJestWorkspaceMapper = require('../../scripts/generate-jest-workspace-mapper.cjs');
 
 module.exports = {
   ...base,
   displayName: 'module-catalogue',
   moduleNameMapper: {
     ...esmExtensionMapper,
-    '^@copalibre/domain$': '<rootDir>/../domain/src/index.ts',
+    ...generateJestWorkspaceMapper(__dirname),
   },
   collectCoverageFrom: ['src/**/*.ts'],
   coverageThreshold: {

@@ -207,6 +207,11 @@ jobs:
           node-version: 24
           cache: yarn
       - run: yarn install --immutable
+      # The generator every jest.config.cjs's moduleNameMapper now calls (0083)
+      # — runs before test:verify-discovery below, since a bug here would make
+      # every workspace's module resolution wrong in a way a test count alone
+      # would not explain.
+      - run: node --test scripts/generate-jest-workspace-mapper.test.cjs
       # --passWithNoTests makes "zero tests discovered" look identical to success,
       # which a broken Jest/ESM config would otherwise hide (0006).
       - run: yarn test:verify-discovery

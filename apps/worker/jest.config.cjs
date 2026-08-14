@@ -1,5 +1,6 @@
 const base = require('../../jest.config.base.cjs');
 const esmExtensionMapper = require('../../jest.esm-mapper.cjs');
+const generateJestWorkspaceMapper = require('../../scripts/generate-jest-workspace-mapper.cjs');
 
 module.exports = {
   ...base,
@@ -7,16 +8,7 @@ module.exports = {
   testPathIgnorePatterns: ['/node_modules/', '\\.integration\\.test\\.ts$'],
   moduleNameMapper: {
     ...esmExtensionMapper,
-    '^@copalibre/domain$': '<rootDir>/../../packages/domain/src/index.ts',
-    '^@copalibre/object-storage$': '<rootDir>/../../packages/object-storage/src/index.ts',
-    '^@copalibre/routing$': '<rootDir>/../../packages/routing/src/index.ts',
-    '^@copalibre/persistence$': '<rootDir>/../../packages/persistence/src/index.ts',
-    '^@copalibre/statistics-refold$': '<rootDir>/../../packages/statistics-refold/src/index.ts',
-    '^@copalibre/tournament-engine$': '<rootDir>/../../packages/tournament-engine/src/index.ts',
-    // tournament-engine's own src/standings/index.ts imports this — mapped
-    // to source for the same reason every other transitive workspace import
-    // here is.
-    '^@copalibre/rules$': '<rootDir>/../../packages/rules/src/index.ts',
+    ...generateJestWorkspaceMapper(__dirname),
   },
   // The pure job logic. Wiring, controllers and the service loop are proven
   // against a real database in the integration suite — the same split apps/api

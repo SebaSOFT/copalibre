@@ -145,3 +145,37 @@ Crossing a threshold SHALL NOT itself apply any suspension, block, or other enfo
 - **THEN** no roster, lineup, or match operation is blocked or altered as a result — only a
   notification is raised, matching `declared-tagging`'s "a tag states what is true and enforces
   nothing" principle applied to this rule type
+
+### Requirement: A collector folds by default when its match finalizes, or live when it declares so
+
+Every declared `StatisticCollector` SHALL fold on `match.finalized`/`result.superseded` by default. A
+collector MAY declare a live cadence, in which case it SHALL also fold inside the same transaction
+that records each fact it watches, so its total is current before the match ends.
+
+#### Scenario: A collector with no declared cadence folds only at match end
+
+- **WHEN** a discipline declares a collector without a cadence field
+- **THEN** its total updates when the match finalizes or a result is superseded, and not before
+
+#### Scenario: A collector declaring a live cadence updates within the recording transaction
+
+- **WHEN** a collector declares a live cadence and a fact it watches is recorded
+- **THEN** its stored total reflects that fact before the recording transaction commits
+
+### Requirement: A rebuild command recomputes every collector's totals from source facts
+
+The system SHALL provide an idempotent rebuild operation that recomputes every `statistic_totals` row
+from source facts, scoped to an organization or a single tournament, safe to run at any time without
+producing different totals than the event-driven fold path would have produced.
+
+#### Scenario: Rebuilding an organization reproduces its event-driven totals exactly
+
+- **WHEN** every collector in an organization has already folded via the normal event-driven path,
+  and the rebuild command runs for that organization
+- **THEN** every `statistic_totals` row is unchanged by the rebuild
+
+#### Scenario: Rebuilding populates totals for facts recorded before the fold engine existed
+
+- **WHEN** finalized matches exist with no corresponding `statistic_totals` rows
+- **THEN** the rebuild command produces the rows those matches' facts support, identical to what the
+  event-driven path would have produced had it been running at the time

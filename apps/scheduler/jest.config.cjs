@@ -1,5 +1,6 @@
 const base = require('../../jest.config.base.cjs');
 const esmExtensionMapper = require('../../jest.esm-mapper.cjs');
+const generateJestWorkspaceMapper = require('../../scripts/generate-jest-workspace-mapper.cjs');
 
 module.exports = {
   ...base,
@@ -7,9 +8,7 @@ module.exports = {
   testPathIgnorePatterns: ['/node_modules/', '\\.integration\\.test\\.ts$'],
   moduleNameMapper: {
     ...esmExtensionMapper,
-    '^@copalibre/domain$': '<rootDir>/../../packages/domain/src/index.ts',
-    '^@copalibre/routing$': '<rootDir>/../../packages/routing/src/index.ts',
-    '^@copalibre/persistence$': '<rootDir>/../../packages/persistence/src/index.ts',
+    ...generateJestWorkspaceMapper(__dirname),
   },
   // The lease arithmetic, which is the dangerous part. The service loop and the
   // controller are proven against a real database in the integration suite.
