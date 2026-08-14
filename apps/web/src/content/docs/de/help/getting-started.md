@@ -20,5 +20,5 @@ Veröffentlichen Sie eine geprüfte Konfiguration, bevor Sie den Spielplan erzeu
 
 ## Hilfe pro Bildschirm
 
-Jeder Bildschirm im [Kontrollpanel](/help/control/) hat seine eigene Hilfeseite, erreichbar über
+Jeder Bildschirm im [Kontrollpanel](/de/help/control/) hat seine eigene Hilfeseite, erreichbar über
 den Link „Was ist dieser Bildschirm?“ in seiner Seitenleiste.

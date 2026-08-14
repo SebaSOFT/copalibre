@@ -20,5 +20,5 @@ classificate in base al loro impatto sui risultati esistenti.
 
 ## Guida per schermata
 
-Ogni schermata del [pannello di controllo](/help/control/) ha una propria pagina di guida,
+Ogni schermata del [pannello di controllo](/it/help/control/) ha una propria pagina di guida,
 raggiungibile dal link "Cos'è questa schermata?" nella sua barra laterale.

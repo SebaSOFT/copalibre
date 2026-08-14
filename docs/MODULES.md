@@ -96,6 +96,13 @@ Packaging, `copalibre module add`, asset handling and the module-repository CI a
 5. `copalibre module submit <path>` — forks `copalibre-modules`, pushes the module on a new branch,
    and opens a pull request for a human reviewer.
 
+Against a self-hosted instance with no source checkout, `copalibre init --module-dev` sets this up
+without hand-managing the allowlist: it writes a `modules-dev/` directory bind-mounted into `api`/
+`worker` at `/var/lib/copalibre/modules-dev`, with `COPALIBRE_MODULE_SOURCE_ALLOWLIST` already
+pointed at it. Scaffold with `--output modules-dev/<alias>`, then `copalibre module add <alias>
+--source file:///var/lib/copalibre/modules-dev/<alias>` — no per-invocation environment variable
+needed.
+
 All five steps are also exposed as MCP tools (`copalibre_module_scaffold`,
 `copalibre_module_validate_local`, `copalibre_module_submit`) — see [`docs/MCP.md`](MCP.md) — so an
 AI agent can drive this whole flow: read a sport's rules, ask the operator any details it needs, and

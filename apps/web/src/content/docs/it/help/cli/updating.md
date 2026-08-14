@@ -42,4 +42,4 @@ reinstallare con una versione diversa è il modo per aggiornare un modulo. Un to
 continua a fare riferimento alla versione con cui è stato creato; aggiornare un modulo non cambia
 mai retroattivamente un torneo già in corso.
 
-Vedi il [riferimento comandi](/help/cli/commands/) per il resto delle opzioni di `module`.
+Vedi il [riferimento comandi](/it/help/cli/commands/) per il resto delle opzioni di `module`.

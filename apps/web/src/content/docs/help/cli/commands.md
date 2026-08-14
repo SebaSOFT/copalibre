@@ -9,11 +9,22 @@ does.
 
 ## init
 
-`copalibre init [--file <path>]`
+`copalibre init [--module-dev]`
 
-Writes non-secret defaults and lists the required secrets.
+Writes a complete installation — `docker-compose.yml`, `.env` with non-secret defaults, and an
+installation marker (`.copalibre/installation.json`) — into the current directory. No source
+checkout required: run it in any empty directory, and every later command (`doctor`, `start`,
+`migrate`, `upgrade-check`) auto-detects that directory from the marker, the same way `.git` marks
+a repository checkout. Refuses to run again in a directory that already holds an installation.
+Lists the required secrets to fill into `.env` afterward. A directory stays pinned to the CopaLibre
+version that `init` created it with — running several versions side by side means running the
+matching CLI version per directory (see [updating](/help/cli/updating/)).
 
-- `--file <path>`: target file (default `.env`)
+- `--module-dev`: also writes `docker-compose.module-dev.yml` and a `modules-dev/` directory,
+  bind-mounted into `api`/`worker` with `COPALIBRE_MODULE_SOURCE_ALLOWLIST` pre-set — pairs with
+  `module scaffold --output modules-dev/<alias>` and `module add <alias> --source
+file:///var/lib/copalibre/modules-dev/<alias>` to develop a module against a running self-hosted
+  instance with no source checkout.
 
 ## doctor
 

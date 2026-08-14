@@ -6,13 +6,13 @@ description: Назначение каждого экрана панели уп�
 На каждом экране панели управления есть ссылка «Что это за экран?» на боковой панели, которая ведёт
 прямо на соответствующую страницу этого раздела. Эта страница перечисляет их все.
 
-- [Создание турнира](/help/control/tournament-authoring/)
-- [Проверка регистраций](/help/control/registration-review/)
-- [Проверка обращений и споров](/help/control/report-review/)
-- [Турнирная таблица](/help/control/standings/)
-- [Жеребьёвка и посев](/help/control/seeding/)
-- [Роли и разрешения](/help/control/roles-permissions/)
-- [Консоль матча в реальном времени](/help/control/match-console/)
+- [Создание турнира](/ru/help/control/tournament-authoring/)
+- [Проверка регистраций](/ru/help/control/registration-review/)
+- [Проверка обращений и споров](/ru/help/control/report-review/)
+- [Турнирная таблица](/ru/help/control/standings/)
+- [Жеребьёвка и посев](/ru/help/control/seeding/)
+- [Роли и разрешения](/ru/help/control/roles-permissions/)
+- [Консоль матча в реальном времени](/ru/help/control/match-console/)
 
 Для установки, обновления или понимания команд административного CLI смотрите
-[документацию CLI](/help/cli/).
+[документацию CLI](/ru/help/cli/).

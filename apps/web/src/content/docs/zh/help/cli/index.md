@@ -7,7 +7,7 @@ description: copalibre CLI 的安装、更新与命令参考。
 `--help`/`-h`——无论不带任何命令（`copalibre --help`）还是跟在任意命令之后（`copalibre doctor --help`）——
 以显示其确切用法，而不会产生任何实际效果。
 
-- [安装](/help/cli/installation/)
-- [更新](/help/cli/updating/)
-- [命令参考](/help/cli/commands/)
-- [面向 AI 的 MCP](/help/cli/mcp/)
+- [安装](/zh/help/cli/installation/)
+- [更新](/zh/help/cli/updating/)
+- [命令参考](/zh/help/cli/commands/)
+- [面向 AI 的 MCP](/zh/help/cli/mcp/)

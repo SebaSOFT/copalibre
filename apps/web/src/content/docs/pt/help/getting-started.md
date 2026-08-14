@@ -19,5 +19,5 @@ classificadas de acordo com seu impacto sobre resultados existentes.
 
 ## Ajuda por tela
 
-Cada tela do [painel de controle](/help/control/) tem sua própria página de ajuda, acessível pelo
+Cada tela do [painel de controle](/pt/help/control/) tem sua própria página de ajuda, acessível pelo
 link "O que é esta tela?" em sua barra lateral.

@@ -98,7 +98,7 @@ dell'aggiornamento.
 - `--target-version <semver>`: versione di CopaLibre contro cui verificare moduli e migrazioni
 
 Termina con un codice di uscita diverso da zero se un modulo installato smetterebbe di essere
-compatibile con la versione target. Vedi [aggiornamento](/help/cli/updating/) per la sequenza
+compatibile con la versione target. Vedi [aggiornamento](/it/help/cli/updating/) per la sequenza
 completa.
 
 ## create-admin
@@ -179,4 +179,4 @@ apre una pull request.
 `copalibre mcp`
 
 Avvia un server locale Model Context Protocol (MCP) su stdio, affinché un'IA possa gestire
-CopaLibre. Vedi il [dettaglio degli strumenti MCP](/help/cli/mcp/).
+CopaLibre. Vedi il [dettaglio degli strumenti MCP](/it/help/cli/mcp/).

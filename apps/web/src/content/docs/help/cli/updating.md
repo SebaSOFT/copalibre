@@ -8,7 +8,11 @@ description: The non-destructive path to updating the CopaLibre framework and it
 Recommended, non-destructive sequence:
 
 1. **Back up** before touching anything: `./copalibre backup --file backups/pre-upgrade.dump`.
-2. **Update** the checkout or image reference to the new version (do not restart services yet).
+2. **Update** the checkout or image reference to the new version (do not restart services yet). If
+   this installation was created with `copalibre init` (no checkout, see the [command
+   reference](/help/cli/commands/)), its directory is pinned to the CLI version that created it —
+   `migrate`/`upgrade-check` refuse with a clear message on a version mismatch, so update by running
+   the new version's CLI against the same directory rather than mixing CLI versions.
 3. **Check compatibility** against the new version, without restarting anything:
    ```bash
    ./copalibre upgrade-check --target-version <new-version>
