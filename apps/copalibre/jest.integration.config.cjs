@@ -16,5 +16,8 @@ module.exports = {
     '^@copalibre/object-storage$': '<rootDir>/../../packages/object-storage/src/index.ts',
     '^@copalibre/rules$': '<rootDir>/../../packages/rules/src/index.ts',
     '^@copalibre/statistics-refold$': '<rootDir>/../../packages/statistics-refold/src/index.ts',
+    // statistics-refold's own refold.ts imports this — mapped to source for
+    // the same reason every other transitive workspace import here is.
+    '^@copalibre/tournament-engine$': '<rootDir>/../../packages/tournament-engine/src/index.ts',
   },
 };
