@@ -1723,7 +1723,6 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@copalibre/routing@workspace:packages/routing"
   dependencies:
-    "@copalibre/domain": "workspace:^"
     "@types/jest": "npm:^30.0.0"
     jest: "npm:^30.4.2"
     ts-jest: "npm:^29.4.12"
