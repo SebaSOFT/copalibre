@@ -120,12 +120,12 @@ Crea la primera cuenta de administrador de una organización.
 `copalibre login [--api-url <url>] [--token <token>]`
 
 Guarda un token de acceso personal para que `statistics-rebuild` y `module add/list/remove/verify`
-funcionen mediante una conexión HTTP autenticada en vez de requerir acceso directo a la base de
-datos (`DATABASE_URL`) — el camino para administrar una instalación ya en ejecución, incluyendo
-instalar o actualizar el CLI después de que Docker ya está corriendo, desde una máquina que nunca
-tiene (ni necesita) credenciales de base de datos. Genere el token desde la pantalla de preferencias
-del panel de control mientras ya está logueado, y péguelo aquí. Valida el token con una llamada
-autenticada antes de guardarlo; se niega y no guarda nada si el token es inválido.
+puedan correr contra una instalación remota mediante una conexión HTTP autenticada — el camino para
+administrar una instalación ya en ejecución, incluyendo instalar o actualizar el CLI después de que
+Docker ya está corriendo, desde una máquina que nunca necesita credenciales de base de datos. Genere
+el token desde la pantalla de preferencias del panel de control mientras ya está logueado, y péguelo
+aquí. Valida el token con una llamada autenticada antes de guardarlo; se niega y no guarda nada si
+el token es inválido.
 
 - `--api-url <url>`: instalación destino (por defecto: `COPALIBRE_API_URL`, que `copalibre init` ya
   escribe en `.env`)
@@ -151,18 +151,15 @@ Idempotente: usa el mismo `refold` y la misma ruta de escritura de borrar-e-inse
 por eventos, así que ejecutarlo dos veces seguidas produce filas de `statistic_totals` idénticas
 byte a byte (salvo `updated_at`/la versión interna de proyección). Útil para completar el historial
 registrado antes de que existiera el motor de plegado, o para verificar los totales contra los
-hechos en cualquier momento. Funciona sin `DATABASE_URL` una vez logueado (`copalibre login`) — el
-recálculo corre entonces mediante una llamada HTTP autenticada en vez de una conexión directa a la
-base de datos, requiriendo autoridad de administrador de la organización.
+hechos en cualquier momento. Requiere autoridad de administrador de la organización una vez logueado
+mediante [`login`](#login).
 
 ## module
 
 `copalibre module <add|list|remove|verify>`
 
 Gestiona los módulos de disciplina y perfil de torneo instalados. `add`/`list`/`remove`/`verify`
-funcionan sin `DATABASE_URL` una vez logueado (`copalibre login`) — cada uno corre entonces mediante
-una llamada HTTP autenticada en vez de una conexión directa a la base de datos, requiriendo
-autoridad de super-admin de la instalación.
+requieren autoridad de super-admin de la instalación una vez logueado mediante [`login`](#login).
 
 ### module add
 

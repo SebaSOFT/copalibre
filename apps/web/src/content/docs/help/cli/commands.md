@@ -117,13 +117,12 @@ Creates an organization's first administrator account.
 
 `copalibre login [--api-url <url>] [--token <token>]`
 
-Stores a personal access token so `statistics-rebuild` and `module add/list/remove/verify` work
-over an authenticated HTTP connection instead of requiring direct database access (`DATABASE_URL`)
-— the path to managing an already-running installation, including installing or upgrading the CLI
-after Docker is already running, from a machine that never has (and never needs) database
-credentials. Generate the token from the control panel's preferences screen while already logged
-in, then paste it here. Validates the token with one authenticated call before storing it; refuses
-and stores nothing if the token is invalid.
+Stores a personal access token so `statistics-rebuild` and `module add/list/remove/verify` can run
+against a remote installation over an authenticated HTTP connection — the path to managing an
+already-running installation, including installing or upgrading the CLI after Docker is already
+running, from a machine that never needs database credentials at all. Generate the token from the
+control panel's preferences screen while already logged in, then paste it here. Validates the token
+with one authenticated call before storing it; refuses and stores nothing if the token is invalid.
 
 - `--api-url <url>`: target installation (default: `COPALIBRE_API_URL`, which `copalibre init`
   already writes to `.env`)
@@ -148,18 +147,15 @@ tournament.
 Idempotent: it drives the same `refold` and delete-then-insert write path the event-driven trigger
 uses, so running it twice in a row produces byte-identical `statistic_totals` rows (aside from
 `updated_at`/the internal projection version). Use it to backfill history recorded before the fold
-engine existed, or to verify totals against the facts at any time. Works without `DATABASE_URL` once
-logged in (`copalibre login`) — the rebuild then runs over an authenticated HTTP call instead of a
-direct database connection, requiring organization-administrator authority.
+engine existed, or to verify totals against the facts at any time. Requires organization-administrator
+authority once logged in via [`login`](#login).
 
 ## module
 
 `copalibre module <add|list|remove|verify>`
 
-Manages installed discipline and tournament-profile modules. `add`/`list`/`remove`/`verify` work
-without `DATABASE_URL` once logged in (`copalibre login`) — each then runs over an authenticated
-HTTP call instead of a direct database connection, requiring installation-wide super-admin
-authority.
+Manages installed discipline and tournament-profile modules. `add`/`list`/`remove`/`verify` require
+installation-wide super-admin authority once logged in via [`login`](#login).
 
 ### module add
 

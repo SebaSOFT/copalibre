@@ -27,14 +27,12 @@ allow idle streams to survive heartbeats. Use `deploy/proxy/Caddyfile` or
 
 ## Managing An Installation Without Database Access
 
-`copalibre create-admin` already works from any machine with no database connection — it's a pure
-HTTP call against `COPALIBRE_API_URL`. `statistics-rebuild` and `module add/list/remove/verify` join
-it once logged in: generate a personal access token from the control panel's preferences screen
-while already signed in, then run `./copalibre login --api-url https://api.example`, pasting the
-token when prompted (or `--token <token>`, or piped via stdin). Those commands then run over an
-authenticated HTTP connection instead of requiring `DATABASE_URL` — this is also the path to
-installing or upgrading the CLI itself after Docker is already running, since it never needs
-database credentials at all.
+`copalibre create-admin` always runs from any machine with no database connection, as a pure
+authenticated HTTP call against `COPALIBRE_API_URL`. `copalibre login` extends that to
+`statistics-rebuild` and `module add/list/remove/verify`: generate a personal access token from the
+control panel's preferences screen while already signed in, then run `./copalibre login --api-url
+https://api.example`, pasting the token when prompted (or `--token <token>`, or piped via stdin).
+This is also the path to installing or upgrading the CLI itself after Docker is already running.
 
 `login` stores the token in the current directory's `.copalibre/credentials.json` (`0600`) —
 alongside, but never merged into, `init`'s non-secret `installation.json` marker. Run it from
