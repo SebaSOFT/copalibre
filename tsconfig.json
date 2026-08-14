@@ -35,6 +35,9 @@
       "path": "packages/tournament-engine/tsconfig.json"
     },
     {
+      "path": "packages/statistics-refold/tsconfig.json"
+    },
+    {
       "path": "packages/realtime/tsconfig.json"
     },
     {

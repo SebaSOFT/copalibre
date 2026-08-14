@@ -266,6 +266,24 @@ describe('discipline descriptor schema', () => {
       // loses none, and that is what the granularity already says.
       expect(withCollector({ ...goals, resetOn: 'segment' }).ok).toBe(false);
     });
+
+    describe('cadence (0082)', () => {
+      it('accepts a descriptor declaring none, absent reading as on-finalize', () => {
+        expect(withCollector(goals).ok).toBe(true);
+      });
+
+      it.each(['on-finalize', 'live'])('accepts a declared "%s" cadence', (kind) => {
+        expect(withCollector({ ...goals, cadence: { kind } }).ok).toBe(true);
+      });
+
+      it('rejects an unknown cadence kind', () => {
+        expect(withCollector({ ...goals, cadence: { kind: 'hourly' } }).ok).toBe(false);
+      });
+
+      it('rejects a cadence carrying an undeclared member', () => {
+        expect(withCollector({ ...goals, cadence: { kind: 'live', every: 1 } }).ok).toBe(false);
+      });
+    });
   });
 
   it('rejects a format outside the MVP list', () => {

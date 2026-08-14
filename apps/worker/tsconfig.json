@@ -13,6 +13,9 @@
       "path": "../../packages/persistence/tsconfig.json"
     },
     {
+      "path": "../../packages/statistics-refold/tsconfig.json"
+    },
+    {
       "path": "../../packages/tournament-engine/tsconfig.json"
     }
   ]

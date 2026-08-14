@@ -597,3 +597,120 @@ describe('a declared delta and a hand adjustment both reproduce on a replay', ()
     expect(second).toEqual(first);
   });
 });
+
+describe('a collector-sourced collector (0082)', () => {
+  it('folds another collector’s own figures, in the order the caller supplies', () => {
+    const figures = fold({
+      collectors: [
+        collector({ code: 'goals', granularity: { actor: 'team', competition: 'match' } }),
+        collector({
+          code: 'goals-doubled',
+          source: { kind: 'collector', code: 'goals' },
+          measure: { kind: 'sum', field: 'unused' },
+          granularity: { actor: 'team', competition: 'match' },
+        }),
+      ],
+      events: [
+        event({ sequence: 1, side: 'en-atlas', personId: 'pe-1' }),
+        event({ sequence: 2, side: 'en-atlas', personId: 'pe-1' }),
+      ],
+    });
+
+    // `goals` counted two events; `goals-doubled` sums `goals`'s own value,
+    // which is 2 — a derived figure reads the source, not the raw events.
+    expect(figures.find((f) => f.collectorCode === 'goals')?.value).toBe(2);
+    expect(figures.find((f) => f.collectorCode === 'goals-doubled')?.value).toBe(2);
+  });
+
+  it('counts one occurrence per source figure under a count measure', () => {
+    const figures = fold({
+      collectors: [
+        collector({ code: 'goals' }),
+        collector({
+          code: 'scorers',
+          source: { kind: 'collector', code: 'goals' },
+          measure: { kind: 'count' },
+        }),
+      ],
+      events: [
+        event({ sequence: 1, side: 'en-atlas', personId: 'pe-1' }),
+        event({ sequence: 2, side: 'en-boca', personId: 'pe-2' }),
+      ],
+    });
+
+    expect(figures.filter((f) => f.collectorCode === 'scorers')).toHaveLength(2);
+    expect(figures.find((f) => f.collectorCode === 'scorers' && f.actorId === 'pe-1')?.value).toBe(
+      1,
+    );
+  });
+
+  it('produces nothing for a source collector nobody declared', () => {
+    const figures = fold({
+      collectors: [collector({ code: 'derived', source: { kind: 'collector', code: 'ghost' } })],
+      events: [event({ sequence: 1, side: 'en-atlas', personId: 'pe-1' })],
+    });
+
+    expect(figures).toEqual([]);
+  });
+
+  it('refuses a collector-sourced collector naming another collector-sourced one', () => {
+    expect(() =>
+      fold({
+        collectors: [
+          collector({ code: 'goals' }),
+          collector({ code: 'first-derived', source: { kind: 'collector', code: 'goals' } }),
+          collector({
+            code: 'second-derived',
+            source: { kind: 'collector', code: 'first-derived' },
+          }),
+        ],
+        events: [event({ sequence: 1, side: 'en-atlas', personId: 'pe-1' })],
+      }),
+    ).toThrow(/first-derived/);
+  });
+});
+
+describe('the filter seam (0082)', () => {
+  it('excludes a fact the predicate returns false for', () => {
+    const figures = fold({
+      events: [
+        event({ sequence: 1, side: 'en-atlas', personId: 'pe-1' }),
+        event({ sequence: 2, side: 'en-atlas', personId: 'pe-9' }),
+      ],
+      filter: (_fact, actorId) => actorId === 'pe-1',
+    });
+
+    expect(figures).toEqual([expect.objectContaining({ actorId: 'pe-1', value: 1 })]);
+  });
+
+  it('excludes a participation fact the predicate returns false for', () => {
+    const figures = fold({
+      collectors: [
+        collector({
+          code: 'played',
+          source: { kind: 'participation' },
+          measure: { kind: 'count' },
+        }),
+      ],
+      roster: [
+        { ...ATLAS, role: 'player' },
+        { ...BOCA, role: 'player' },
+      ],
+      filter: (_fact, actorId) => actorId !== 'pe-2',
+    });
+
+    expect(figures.map((f) => f.actorId)).toEqual(['pe-1']);
+  });
+
+  it('leaves every previously-tested case unchanged when omitted', () => {
+    const withoutFilter = fold({
+      events: [event({ sequence: 1, side: 'en-atlas', personId: 'pe-1' })],
+    });
+    const withUndefinedFilter = fold({
+      events: [event({ sequence: 1, side: 'en-atlas', personId: 'pe-1' })],
+      filter: undefined,
+    });
+
+    expect(withUndefinedFilter).toEqual(withoutFilter);
+  });
+});

@@ -103,6 +103,23 @@ con la versión objetivo. Ver [actualización](/help/cli/updating/) para la secu
 
 Crea la primera cuenta de administrador de una organización.
 
+## statistics-rebuild
+
+`copalibre statistics-rebuild --organization <alias> [--tournament <alias>]`
+
+Recalcula cada total estadístico plegado (`statistic_totals`) a partir de los hechos de origen —
+eventos registrados de partidos finalizados, planteles y ajustes manuales — para toda la
+organización por defecto, o acotado a un torneo.
+
+- `--organization <alias>`: organización para la que recalcular las estadísticas
+- `--tournament <alias>`: acota el recálculo a un torneo dentro de la organización
+
+Idempotente: usa el mismo `refold` y la misma ruta de escritura de borrar-e-insertar que el disparo
+por eventos, así que ejecutarlo dos veces seguidas produce filas de `statistic_totals` idénticas
+byte a byte (salvo `updated_at`/la versión interna de proyección). Útil para completar el historial
+registrado antes de que existiera el motor de plegado, o para verificar los totales contra los
+hechos en cualquier momento.
+
 ## module
 
 `copalibre module <add|list|remove|verify>`

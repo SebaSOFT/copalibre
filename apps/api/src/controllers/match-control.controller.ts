@@ -56,6 +56,7 @@ import {
   withTransaction,
   type Database,
 } from '@copalibre/persistence';
+import { foldLiveEvent, resolveMatchFold } from '@copalibre/statistics-refold';
 import type { Kysely } from 'kysely';
 import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
@@ -607,6 +608,12 @@ export class MatchControlController {
       }),
     );
 
+    // Live-cadence collectors (0082): resolved once, read-only, ahead of the
+    // transaction — the same roster/competition-context resolution `refold`
+    // uses at match-finalization, reused here so a `live` collector's total
+    // is computed by the identical logic, just scoped to one event.
+    const foldContext = await resolveMatchFold(this.db, matchId);
+
     // One transaction: the event, the alerts it crossed, and the outbox rows a
     // relay will deliver. Evaluating afterwards would leave a window where the
     // fact exists and the alert it should have raised does not.
@@ -636,6 +643,23 @@ export class MatchControlController {
         projectionVersion,
         payload: { matchId, eventId: appended.eventId, sequence: appended.sequence },
       });
+
+      // Every `live`-cadence collector the descriptor declares folds this one
+      // event and writes now, in the same transaction — before the match ever
+      // finalizes, unlike every other collector.
+      if (foldContext) {
+        const statisticsVersion = await new ProjectionStore(this.db).nextVersion(uow, {
+          projectionType: 'statistic-totals',
+          entityId: matchId,
+        });
+        await foldLiveEvent(uow, {
+          organizationId: tournament.organizationId,
+          matchId,
+          foldContext: foldContext.input,
+          event: appended,
+          projectionVersion: statisticsVersion,
+        });
+      }
 
       const log = [...(await competition.listEvents(matchId)), appended];
       const raised: string[] = [];

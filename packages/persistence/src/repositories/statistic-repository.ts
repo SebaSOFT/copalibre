@@ -5,10 +5,10 @@ import {
   type CompetitionGranularity,
   type StatisticAdjustment,
 } from '@copalibre/domain';
-import { sql, type Kysely } from 'kysely';
+import { sql, type Kysely, type Selectable } from 'kysely';
 import { InvariantViolationError } from '../errors.js';
 import { newId } from '../ids.js';
-import type { Database } from '../schema.js';
+import type { Database, StatisticTotalsTable } from '../schema.js';
 import type { UnitOfWork } from '../transaction.js';
 import type { AuditContext } from './enrollment-repository.js';
 
@@ -100,6 +100,48 @@ export class StatisticRepository {
       .execute();
 
     return input.figures.length;
+  }
+
+  /**
+   * The exact rows one match currently contributes (0082) — what a live-cadence
+   * fold merges its next event's marginal figures on top of, since
+   * `projectMatch` replaces a match's whole row set rather than upserting.
+   */
+  async figuresForMatch(matchId: string): Promise<readonly StoredFigure[]> {
+    const rows = await this.db
+      .selectFrom('statistic_totals')
+      .selectAll()
+      .where('source_match_id', '=', matchId)
+      .execute();
+
+    return rows.map(toStoredFigure);
+  }
+
+  /**
+   * Every stored row at a collector's own grain, unaggregated (0082) — the raw
+   * material a read-time rollup folds upward with `aggregateTo`
+   * (`@copalibre/statistics-refold`). `readTotals` combines rows with SQL at
+   * exactly this grain; a rollup needs the rows themselves, because summing to
+   * a coarser actor happens in application code, not a second SQL statement.
+   */
+  async rawFigures(query: TotalsQuery): Promise<readonly StoredFigure[]> {
+    let statement = this.db
+      .selectFrom('statistic_totals')
+      .selectAll()
+      .where('organization_id', '=', query.organizationId)
+      .where('collector_code', '=', query.collectorCode)
+      .where('actor_granularity', '=', query.actorGranularity)
+      .where('competition_granularity', '=', query.competitionGranularity);
+
+    if (query.competitionId !== undefined) {
+      statement = statement.where('competition_id', '=', query.competitionId);
+    }
+    if (query.actorId !== undefined) {
+      statement = statement.where('actor_id', '=', query.actorId);
+    }
+
+    const rows = await statement.execute();
+    return rows.map(toStoredFigure);
   }
 
   /**
@@ -215,4 +257,16 @@ export class StatisticRepository {
       actor: row.actor,
     }));
   }
+}
+
+function toStoredFigure(row: Selectable<StatisticTotalsTable>): StoredFigure {
+  return {
+    collectorCode: row.collector_code,
+    actorGranularity: row.actor_granularity as ActorGranularity,
+    actorId: row.actor_id,
+    competitionGranularity: row.competition_granularity as CompetitionGranularity,
+    competitionId: row.competition_id,
+    value: Number(row.value),
+    samples: Number(row.samples),
+  };
 }

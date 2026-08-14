@@ -17,6 +17,7 @@
     "@copalibre/module-distribution": "workspace:^",
     "@copalibre/object-storage": "workspace:^",
     "@copalibre/persistence": "workspace:^",
+    "@copalibre/statistics-refold": "workspace:^",
     "@modelcontextprotocol/sdk": "^1.30.0",
     "@nestjs/common": "^11.1.28",
     "@nestjs/core": "^11.1.28",

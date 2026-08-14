@@ -34,6 +34,7 @@ import {
   moduleValidateLocalCommand,
 } from './module-authoring/cli.js';
 import type { ProcessRunner } from './process-runner.js';
+import { parseStatisticsRebuildOptions, runStatisticsRebuild } from './statistics-rebuild.js';
 import { PROCESS_RUNNER } from './tokens.js';
 import { runUpgradeCheck } from './upgrade-check.js';
 
@@ -93,6 +94,8 @@ export class CliRunner {
           return await this.upgradeCheck(arguments_.slice(1), environment);
         case 'create-admin':
           return await this.createAdmin(arguments_.slice(1), environment);
+        case 'statistics-rebuild':
+          return await this.statisticsRebuild(arguments_.slice(1), environment);
         case 'module':
           return await this.module(arguments_.slice(1), environment);
         case 'mcp':
@@ -299,6 +302,28 @@ export class CliRunner {
     );
     process.stdout.write(`Administrator setup link (shown once): ${result.setupUrl}\n`);
     return 0;
+  }
+
+  private async statisticsRebuild(
+    arguments_: readonly string[],
+    environment: NodeJS.ProcessEnv,
+  ): Promise<number> {
+    const options = parseStatisticsRebuildOptions(arguments_);
+    const db = createDatabase(databaseConfigFromEnv(environment));
+    try {
+      const result = await runStatisticsRebuild(db, options);
+      const scope =
+        result.tournamentAlias === undefined
+          ? `organization "${result.organizationAlias}"`
+          : `tournament "${result.tournamentAlias}" in organization "${result.organizationAlias}"`;
+      process.stdout.write(
+        `Rebuilt statistics for ${scope}: ${result.matches} finalized match(es), ` +
+          `${result.figures} figure row(s) written.\n`,
+      );
+      return 0;
+    } finally {
+      await db.destroy();
+    }
   }
 
   private async upgradeCheck(

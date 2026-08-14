@@ -310,6 +310,24 @@ describe('CliRunner', () => {
     });
   });
 
+  describe('statistics-rebuild (0082)', () => {
+    it('requires --organization before ever opening a database connection', async () => {
+      const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+      try {
+        const result = await new CliRunner({ run: jest.fn(async () => 0) }).run(
+          ['statistics-rebuild'],
+          {},
+        );
+        expect(result).toBe(1);
+        expect(stderr).toHaveBeenCalledWith(
+          'copalibre statistics-rebuild failed: --organization is required\n',
+        );
+      } finally {
+        stderr.mockRestore();
+      }
+    });
+  });
+
   it('waits for development infrastructure before running hybrid migrations', async () => {
     const run = jest.fn<ProcessRunner['run']>().mockResolvedValueOnce(0).mockResolvedValueOnce(7);
     const result = await new CliRunner({ run }).run(['dev', '--hybrid'], {});

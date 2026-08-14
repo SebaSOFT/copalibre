@@ -250,6 +250,11 @@ jobs:
       # Since 0016 it carries the fold: figures on both axes from one pass, and
       # an average recomputed from its samples rather than averaged again.
       - run: yarn workspace @copalibre/tournament-engine test:coverage
+      # The orchestration layer wiring the fold engine to real persistence
+      # (0082) — the pure resolution/aggregation cores (roster resolution,
+      # live-fold merge, rollup aggregation). The database calls around them
+      # run only in integration, below.
+      - run: yarn workspace @copalibre/statistics-refold test:coverage
       # The durable job substrate (0017): the backoff curve, the dispatcher and
       # the relay pass are pure, and a retry schedule that quietly stops growing
       # is the kind of regression only arithmetic tests catch.
@@ -702,6 +707,11 @@ jobs:
       # idempotency, authorization, audit/outbox, reconciliation, and 0027 CSV
       # import/export contracts discovered by the workspace integration glob.
       - run: yarn workspace @copalibre/api test:integration
+      # Live-cadence statistics (0082): a collector declaring `live` updates
+      # inside `recordEvent`'s own transaction, before the match ends; a
+      # default-cadence collector's total stays absent until finalize — named
+      # separately so a reviewer finds this capability's own signal directly.
+      - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'live-statistics'
       # 0028 proves that the help/API-reference build has no runtime API
       # dependency. Its static-build contract joins the existing integration job.
       - run: yarn workspace @copalibre/web test:integration
@@ -711,6 +721,13 @@ jobs:
       # a timer whose remaining time derives from one stored record, and effects
       # that never reach the outbox when the transaction rolls back.
       - run: yarn workspace @copalibre/tournament-engine test:integration
+      # `refold`/the rollup read path against real PostgreSQL (0082): a
+      # match's roster and competition context resolved from real tables and
+      # folded by the real engine, a `collector`-sourced collector's total, a
+      # corrected result's recompute, and a rollup resolved through real
+      # `EnrollmentRepository` membership — named separately so a reviewer
+      # finds this capability's own signal directly.
+      - run: yarn workspace @copalibre/statistics-refold test:integration
       # The relay against real PostgreSQL (0017): `for update skip locked`, a
       # claim that expires after a worker dies, an idempotency marker that makes
       # a redelivery a no-op, and a dead letter that keeps its whole failure
@@ -761,6 +778,11 @@ jobs:
       # read-only filesystem path.
       - run: yarn workspace @copalibre/copalibre build
       - run: yarn workspace @copalibre/copalibre test:integration
+      # `statistics-rebuild` (0082): populates totals for pre-engine history
+      # and reproduces them byte-for-byte on a second run — named separately
+      # so a reviewer finds this capability's own signal directly (already
+      # included in the broad run above via the workspace's own test glob).
+      - run: yarn workspace @copalibre/copalibre run test:integration --testPathPatterns 'statistics-rebuild'
 
   # Added by 0005-api-auth-jwt-openapi-contract. Regenerates the artifact from
   # the decorated controllers, fails on drift from the committed copy, then runs

@@ -1,4 +1,6 @@
 import {
+  cadenceOf,
+  isLiveCadence,
   readableAt,
   validateCollectors,
   type CollectorVocabulary,
@@ -191,5 +193,24 @@ describe('readableAt', () => {
 
     expect(readableAt(capped, { actor: 'person', competition: 'stage' })).toBe(true);
     expect(readableAt(capped, { actor: 'person', competition: 'season' })).toBe(false);
+  });
+});
+
+describe('cadence (0082)', () => {
+  it('defaults to on-finalize when absent', () => {
+    expect(cadenceOf(collector())).toEqual({ kind: 'on-finalize' });
+    expect(isLiveCadence(collector())).toBe(false);
+  });
+
+  it('reads back a declared on-finalize cadence explicitly', () => {
+    const declared = collector({ cadence: { kind: 'on-finalize' } });
+    expect(cadenceOf(declared)).toEqual({ kind: 'on-finalize' });
+    expect(isLiveCadence(declared)).toBe(false);
+  });
+
+  it('reads back a declared live cadence', () => {
+    const live = collector({ cadence: { kind: 'live' } });
+    expect(cadenceOf(live)).toEqual({ kind: 'live' });
+    expect(isLiveCadence(live)).toBe(true);
   });
 });
