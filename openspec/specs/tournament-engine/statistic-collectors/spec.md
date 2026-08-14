@@ -179,3 +179,27 @@ producing different totals than the event-driven fold path would have produced.
 - **WHEN** finalized matches exist with no corresponding `statistic_totals` rows
 - **THEN** the rebuild command produces the rows those matches' facts support, identical to what the
   event-driven path would have produced had it been running at the time
+
+### Requirement: A collector may require a tag, checked when the fact is folded
+
+A discipline or tournament MAY declare a collector that only counts a fact from an actor carrying a
+named tag, evaluated against the tag's state as of the fact's occurrence, at fold time. The resulting
+total SHALL be a plain, pre-computed value — reading it SHALL NOT join against tag state.
+
+#### Scenario: Only tagged actors' facts count
+
+- **WHEN** a collector declares `requiresTag` naming a tag, and two actors record the same event, one
+  carrying the tag and one not
+- **THEN** the collector's total reflects only the tagged actor's contribution
+
+#### Scenario: Reading the total requires no tag lookup
+
+- **WHEN** a tag-filtered collector's total is read from `statistic_totals`
+- **THEN** the read is a plain lookup by its stored key, identical in shape and cost to any other
+  collector's total
+
+#### Scenario: An undeclared tag reference is refused
+
+- **WHEN** a collector's `requiresTag` names a tag code the same discipline/tournament document does
+  not declare
+- **THEN** module validation refuses the document, naming the unresolved tag code

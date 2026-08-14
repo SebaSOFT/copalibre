@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { existsSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 import {
   createDatabase,
@@ -25,7 +26,8 @@ import {
   renderModuleHelp,
   renderTopLevelHelp,
 } from './help-text.js';
-import { formatRequiredSecrets, writeLocalDefaults } from './init.js';
+import { formatRequiredSecrets, writeInstallationAssets } from './init.js';
+import { assertVersionCompatible, readInstallationMarker } from './installation-marker.js';
 import { startMcpServer } from './mcp/server.js';
 import { moduleAdd, moduleList, moduleRemove, moduleVerify } from './module-commands.js';
 import {
@@ -83,9 +85,9 @@ export class CliRunner {
         case 'dev':
           return await this.dev(arguments_.slice(1), environment);
         case 'start':
-          return await this.start();
+          return await this.start(environment);
         case 'migrate':
-          return await this.migrate(arguments_.slice(1));
+          return await this.migrate(arguments_.slice(1), environment);
         case 'backup':
           return await this.backup(arguments_.slice(1));
         case 'restore':
@@ -113,14 +115,21 @@ export class CliRunner {
   private async init(arguments_: readonly string[]): Promise<number> {
     const parsed = parseArgs({
       args: [...arguments_],
-      options: { file: { type: 'string', default: '.env' } },
+      options: { 'module-dev': { type: 'boolean', default: false } },
       strict: true,
     });
-    const file = parsed.values.file ?? '.env';
-    await writeLocalDefaults(file);
-    process.stdout.write(
-      `Wrote non-secret defaults to ${file}\nRequired secrets:\n${formatRequiredSecrets()}\n`,
-    );
+    const result = await writeInstallationAssets(process.cwd(), {
+      moduleDev: parsed.values['module-dev'],
+    });
+    const lines = [
+      `Wrote ${result.composeFile}`,
+      ...(result.moduleDevFile ? [`Wrote ${result.moduleDevFile}`] : []),
+      `Wrote ${result.envFile}`,
+      `Installation recorded: CopaLibre ${result.marker.version}, id ${result.marker.installId}`,
+      '',
+      `Required secrets:\n${formatRequiredSecrets()}`,
+    ];
+    process.stdout.write(`${lines.join('\n')}\n`);
     return 0;
   }
 
@@ -129,6 +138,7 @@ export class CliRunner {
     environment: NodeJS.ProcessEnv,
   ): Promise<number> {
     if (!isContainer(environment)) {
+      await this.requireComposeTarget(environment);
       return this.processes.run('docker', ['compose', 'run', '--rm', 'doctor', ...arguments_]);
     }
     const parsed = parseArgs({
@@ -213,7 +223,8 @@ export class CliRunner {
     ]);
   }
 
-  private async start(): Promise<number> {
+  private async start(environment: NodeJS.ProcessEnv): Promise<number> {
+    await this.requireComposeTarget(environment);
     const database = await this.processes.run('docker', ['compose', 'up', '--detach', 'postgres']);
     if (database !== 0) return database;
     const doctor = await this.processes.run('docker', ['compose', 'run', '--rm', 'doctor']);
@@ -221,7 +232,12 @@ export class CliRunner {
     return this.processes.run('docker', ['compose', 'up', '--detach', '--wait']);
   }
 
-  private migrate(arguments_: readonly string[]): Promise<number> {
+  private async migrate(
+    arguments_: readonly string[],
+    environment: NodeJS.ProcessEnv,
+  ): Promise<number> {
+    await this.requireComposeTarget(environment);
+    await this.assertMarkerVersionCompatible();
     return this.processes.run('docker', ['compose', 'run', '--rm', 'migrate', ...arguments_]);
   }
 
@@ -265,7 +281,7 @@ export class CliRunner {
         `created ${restored.backupCreatedAt})\n`,
     );
 
-    const migrateResult = await this.migrate([]);
+    const migrateResult = await this.migrate([], environment);
     if (migrateResult !== 0) {
       process.stderr.write(
         'Restore completed but migration failed. Run "copalibre migrate" to retry, then ' +
@@ -331,6 +347,8 @@ export class CliRunner {
     environment: NodeJS.ProcessEnv,
   ): Promise<number> {
     if (!isContainer(environment)) {
+      await this.requireComposeTarget(environment);
+      await this.assertMarkerVersionCompatible();
       return this.processes.run('docker', [
         'compose',
         'run',
@@ -412,6 +430,42 @@ export class CliRunner {
       return renderCommandHelp(sub, MODULE_SUBCOMMAND_HELP);
     }
     return undefined;
+  }
+
+  /**
+   * Refuses with a clear, actionable message (0084) when a `docker compose`
+   * invocation about to run has nothing to target: no `copalibre init`
+   * marker in the current directory, no `COMPOSE_FILE` override, and none of
+   * Compose's own default-discovered filenames present either. Marker
+   * present, or a compose file discoverable some other way (the checkout
+   * case): a no-op, preserving today's exact behavior unchanged.
+   */
+  private async requireComposeTarget(environment: NodeJS.ProcessEnv): Promise<void> {
+    if (await readInstallationMarker(process.cwd())) return;
+    if (environment.COMPOSE_FILE?.trim()) return;
+    const discoverable = [
+      'compose.yaml',
+      'compose.yml',
+      'docker-compose.yaml',
+      'docker-compose.yml',
+    ];
+    if (discoverable.some((name) => existsSync(name))) return;
+    throw new Error(
+      'no CopaLibre instance found in the current directory — run "copalibre init" here, or run ' +
+        'this command from your checkout',
+    );
+  }
+
+  /**
+   * A no-op when the current directory has no `copalibre init` marker (not
+   * every command is version-sensitive — only ones that touch schema or
+   * compatibility, per 0084's design). When a marker exists, refuses if the
+   * running CLI's own version doesn't match what created this installation.
+   */
+  private async assertMarkerVersionCompatible(): Promise<void> {
+    const marker = await readInstallationMarker(process.cwd());
+    if (!marker) return;
+    assertVersionCompatible(marker, readCopalibreVersion());
   }
 }
 

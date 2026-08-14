@@ -48,13 +48,20 @@ a standings table instead of another match.
 ```bash
 git clone https://github.com/SebaSOFT/copalibre.git
 cd copalibre
-./copalibre init      # writes non-secret defaults to .env, lists required secrets
+./copalibre init      # writes a full installation (compose file, .env, marker) into the cwd
 # edit .env: PostgreSQL password, COPALIBRE_BOOTSTRAP_TOKEN, OIDC JWKS/issuer/audience,
 # browser client ID, and one email provider
 ./copalibre doctor    # validates configuration before anything starts
 ./copalibre start     # docker compose up --detach --wait
 ./copalibre create-admin --organization-alias my-league --organization-name "My League" --email admin@example.com
 ```
+
+`init` doesn't have to run at the checkout's own root — `cd` into any directory first (a separate
+data/config directory, a second installation) and run it there; `doctor`/`start`/`migrate`/
+`upgrade-check` auto-detect that directory afterward from the marker `init` writes, the same way
+`.git` marks a checkout. `./copalibre init --module-dev` additionally sets up a `modules-dev/`
+bind mount for developing a discipline/tournament-profile module against a running instance — see
+[`docs/MODULES.md`](docs/MODULES.md).
 
 `docker-compose.yml` does not terminate TLS by design — put Caddy or NGINX at the edge (example
 configs in [`deploy/proxy/`](deploy/proxy/)) and verify it with

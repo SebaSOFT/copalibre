@@ -19,5 +19,5 @@ su impacto sobre resultados existentes.
 
 ## Ayuda por pantalla
 
-Cada pantalla del [panel de control](/help/control/) tiene su propia página de ayuda, accesible
+Cada pantalla del [panel de control](/es/help/control/) tiene su propia página de ayuda, accesible
 desde el enlace "¿Qué es esta pantalla?" en su barra lateral.

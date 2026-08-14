@@ -8,7 +8,7 @@ processos, gerencia módulos e faz backup/restauração de dados. Toda invocaç�
 tanto sem comando (`copalibre --help`) quanto após qualquer comando (`copalibre doctor --help`) —
 para mostrar seu uso exato sem executar nenhum efeito real.
 
-- [Instalação](/help/cli/installation/)
-- [Atualização](/help/cli/updating/)
-- [Referência de comandos](/help/cli/commands/)
-- [MCP para IA](/help/cli/mcp/)
+- [Instalação](/pt/help/cli/installation/)
+- [Atualização](/pt/help/cli/updating/)
+- [Referência de comandos](/pt/help/cli/commands/)
+- [MCP para IA](/pt/help/cli/mcp/)

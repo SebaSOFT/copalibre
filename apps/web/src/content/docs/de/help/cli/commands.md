@@ -98,7 +98,7 @@ Prüft die Kompatibilität installierter Module und ausstehende Migrationen vor 
 - `--target-version <semver>`: CopaLibre-Version, gegen die Module und Migrationen geprüft werden
 
 Endet mit einem Exit-Code ungleich null, wenn ein installiertes Modul mit der Zielversion nicht mehr
-kompatibel wäre. Siehe [Aktualisierung](/help/cli/updating/) für die vollständige Abfolge.
+kompatibel wäre. Siehe [Aktualisierung](/de/help/cli/updating/) für die vollständige Abfolge.
 
 ## create-admin
 
@@ -179,4 +179,4 @@ Forkt `copalibre-modules`, kopiert das lokale Modul auf einen neuen Branch, ver�
 `copalibre mcp`
 
 Startet einen lokalen Model-Context-Protocol-(MCP)-Server über stdio, damit eine KI CopaLibre
-betreiben kann. Siehe die [Details zu MCP-Werkzeugen](/help/cli/mcp/).
+betreiben kann. Siehe die [Details zu MCP-Werkzeugen](/de/help/cli/mcp/).

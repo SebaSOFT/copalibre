@@ -42,4 +42,4 @@ reinstalar com uma versão diferente é a forma de atualizar um módulo. Um torn
 continua referenciando a versão com a qual foi criado; atualizar um módulo nunca muda
 retroativamente um torneio já em andamento.
 
-Veja a [referência de comandos](/help/cli/commands/) para o restante das opções de `module`.
+Veja a [referência de comandos](/pt/help/cli/commands/) para o restante das opções de `module`.

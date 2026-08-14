@@ -3,9 +3,10 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createBackupPacket } from './backup-packet.js';
-import { renderBanner } from './banner.js';
+import { readCopalibreVersion, renderBanner } from './banner.js';
 import { CliRunner } from './cli-runner.js';
 import { COMMAND_HELP, MODULE_SUBCOMMAND_HELP } from './help-text.js';
+import { writeInstallationMarker } from './installation-marker.js';
 import type { ProcessRunner } from './process-runner.js';
 
 /** Mirrors `backup-packet.test.ts`'s temp-cwd helper (0050): `restore` reads `backups/` relatively. */
@@ -244,6 +245,11 @@ describe('CliRunner', () => {
 
     it('reports a migrate failure after a successful restore, without claiming success', async () => {
       await withTemporaryWorkingDirectory(async () => {
+        // A discoverable compose file (0084): this test simulates running
+        // from a checkout, not an `init`'d instance directory — no marker,
+        // but `migrate`'s own requireComposeTarget check needs *something*
+        // discoverable or it refuses before ever calling `run`.
+        await writeFile('docker-compose.yml', '');
         const packetFile = await stageRestorablePacket('0.0.0');
         const run = jest.fn<ProcessRunner['run']>(async (_command, arguments_) => {
           const args = arguments_ as readonly string[];
@@ -277,21 +283,26 @@ describe('CliRunner', () => {
 
   describe('upgrade-check (0045)', () => {
     it('proxies to a one-off container outside a container, like doctor', async () => {
-      const run = jest.fn<ProcessRunner['run']>().mockResolvedValueOnce(0);
-      const result = await new CliRunner({ run }).run(
-        ['upgrade-check', '--target-version', '2.0.0'],
-        {},
-      );
+      await withTemporaryWorkingDirectory(async () => {
+        // A discoverable compose file (0084) — see the equivalent comment on
+        // the restore/migrate test above.
+        await writeFile('docker-compose.yml', '');
+        const run = jest.fn<ProcessRunner['run']>().mockResolvedValueOnce(0);
+        const result = await new CliRunner({ run }).run(
+          ['upgrade-check', '--target-version', '2.0.0'],
+          {},
+        );
 
-      expect(result).toBe(0);
-      expect(run).toHaveBeenCalledWith('docker', [
-        'compose',
-        'run',
-        '--rm',
-        'upgrade-check',
-        '--target-version',
-        '2.0.0',
-      ]);
+        expect(result).toBe(0);
+        expect(run).toHaveBeenCalledWith('docker', [
+          'compose',
+          'run',
+          '--rm',
+          'upgrade-check',
+          '--target-version',
+          '2.0.0',
+        ]);
+      });
     });
 
     it('requires --target-version inside a container', async () => {
@@ -325,6 +336,100 @@ describe('CliRunner', () => {
       } finally {
         stderr.mockRestore();
       }
+    });
+  });
+
+  describe('marker-aware compose dispatch (0084)', () => {
+    it('an installation marker alone (no discoverable compose file) is enough for doctor/start/migrate/upgrade-check to proceed', async () => {
+      await withTemporaryWorkingDirectory(async () => {
+        await writeInstallationMarker(process.cwd(), readCopalibreVersion());
+        const run = jest.fn<ProcessRunner['run']>(async () => 0);
+        const runner = new CliRunner({ run });
+
+        expect(await runner.run(['doctor'], {})).toBe(0);
+        expect(await runner.run(['start'], {})).toBe(0);
+        expect(await runner.run(['migrate'], {})).toBe(0);
+        expect(await runner.run(['upgrade-check', '--target-version', '2.0.0'], {})).toBe(0);
+
+        // No hand-passed `-f` flag on any of them (3.1.1) — file selection is
+        // left entirely to `.env`'s own COMPOSE_FILE, never overridden here.
+        for (const call of run.mock.calls) {
+          expect(call[1]).not.toContain('-f');
+        }
+      });
+    });
+
+    it('refuses with a clear message when neither a marker nor a discoverable compose file exists', async () => {
+      await withTemporaryWorkingDirectory(async () => {
+        const run = jest.fn<ProcessRunner['run']>(async () => 0);
+        const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+        try {
+          const result = await new CliRunner({ run }).run(['doctor'], {});
+          expect(result).toBe(1);
+          expect(
+            stderr.mock.calls.some((call) =>
+              String(call[0]).includes('no CopaLibre instance found'),
+            ),
+          ).toBe(true);
+          expect(run).not.toHaveBeenCalled();
+        } finally {
+          stderr.mockRestore();
+        }
+      });
+    });
+
+    it('an explicit COMPOSE_FILE environment variable also counts as a valid target', async () => {
+      await withTemporaryWorkingDirectory(async () => {
+        const run = jest.fn<ProcessRunner['run']>(async () => 0);
+        const result = await new CliRunner({ run }).run(['doctor'], {
+          COMPOSE_FILE: 'docker-compose.yml',
+        });
+        expect(result).toBe(0);
+        expect(run).toHaveBeenCalled();
+      });
+    });
+
+    it('migrate refuses on a version mismatch against the marker, naming both versions', async () => {
+      await withTemporaryWorkingDirectory(async () => {
+        await writeInstallationMarker(process.cwd(), '0.0.1-older-than-running');
+        const run = jest.fn<ProcessRunner['run']>(async () => 0);
+        const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+        try {
+          const result = await new CliRunner({ run }).run(['migrate'], {});
+          expect(result).toBe(1);
+          expect(
+            stderr.mock.calls.some(
+              (call) =>
+                String(call[0]).includes('0.0.1-older-than-running') &&
+                String(call[0]).includes(readCopalibreVersion()),
+            ),
+          ).toBe(true);
+          expect(run).not.toHaveBeenCalled();
+        } finally {
+          stderr.mockRestore();
+        }
+      });
+    });
+
+    it('upgrade-check refuses on a version mismatch against the marker, outside a container', async () => {
+      await withTemporaryWorkingDirectory(async () => {
+        await writeInstallationMarker(process.cwd(), '0.0.1-older-than-running');
+        const run = jest.fn<ProcessRunner['run']>(async () => 0);
+        const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+        try {
+          const result = await new CliRunner({ run }).run(
+            ['upgrade-check', '--target-version', '2.0.0'],
+            {},
+          );
+          expect(result).toBe(1);
+          expect(
+            stderr.mock.calls.some((call) => String(call[0]).includes('0.0.1-older-than-running')),
+          ).toBe(true);
+          expect(run).not.toHaveBeenCalled();
+        } finally {
+          stderr.mockRestore();
+        }
+      });
     });
   });
 

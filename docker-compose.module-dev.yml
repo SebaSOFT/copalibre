@@ -1,0 +1,20 @@
+# Opt-in module-authoring overlay (0084): bind-mounts a local directory for
+# `copalibre module scaffold`/`module add --source file://...` against a
+# running self-hosted instance, with no source checkout required. Merged on
+# top of docker-compose.yml via multiple `-f` flags (or COMPOSE_FILE) — the
+# same pattern docker-compose.dev.yml already uses against this same base
+# file — never included by default. `profiles:` cannot express this: it gates
+# whether a whole service exists, not a partial addition (a mount, an env
+# var) to `api`/`worker`, which must exist unconditionally either way.
+services:
+  api:
+    volumes:
+      - ./modules-dev:/var/lib/copalibre/modules-dev
+    environment:
+      COPALIBRE_MODULE_SOURCE_ALLOWLIST: file:///var/lib/copalibre/modules-dev
+
+  worker:
+    volumes:
+      - ./modules-dev:/var/lib/copalibre/modules-dev
+    environment:
+      COPALIBRE_MODULE_SOURCE_ALLOWLIST: file:///var/lib/copalibre/modules-dev

@@ -56,7 +56,7 @@ async function mockPreferencesApi(page: Page): Promise<void> {
         return new Response('Not found', { status: 404 });
       };
     },
-    { patPath, tokenEndpoint: TOKEN_ENDPOINT },
+    { tokenEndpoint: TOKEN_ENDPOINT },
   );
 }
 

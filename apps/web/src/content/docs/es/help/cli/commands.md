@@ -9,11 +9,23 @@ hace.
 
 ## init
 
-`copalibre init [--file <ruta>]`
+`copalibre init [--module-dev]`
 
-Escribe valores por defecto no secretos y lista los secretos requeridos.
+Escribe una instalación completa — `docker-compose.yml`, `.env` con valores por defecto no
+secretos, y un marcador de instalación (`.copalibre/installation.json`) — en el directorio actual.
+No requiere un checkout del código fuente: ejecutalo en cualquier directorio vacío, y cada comando
+posterior (`doctor`, `start`, `migrate`, `upgrade-check`) detecta automáticamente ese directorio a
+partir del marcador, de la misma forma en que `.git` marca un checkout de repositorio. Se niega a
+ejecutarse de nuevo en un directorio que ya contiene una instalación. Lista los secretos requeridos
+para completar en `.env` después. Un directorio queda fijado a la versión de CopaLibre con la que
+`init` lo creó — ejecutar varias versiones en paralelo implica ejecutar la versión de CLI
+correspondiente por directorio (ver [actualización](/es/help/cli/updating/)).
 
-- `--file <ruta>`: archivo destino (por defecto `.env`)
+- `--module-dev`: también escribe `docker-compose.module-dev.yml` y un directorio `modules-dev/`,
+  montado en `api`/`worker` con `COPALIBRE_MODULE_SOURCE_ALLOWLIST` preconfigurado — se combina con
+  `module scaffold --output modules-dev/<alias>` y `module add <alias> --source
+file:///var/lib/copalibre/modules-dev/<alias>` para desarrollar un módulo contra una instancia
+  autoalojada en ejecución, sin checkout del código fuente.
 
 ## doctor
 
@@ -95,7 +107,7 @@ actualizar.
 - `--target-version <semver>`: versión de CopaLibre contra la que verificar módulos y migraciones
 
 Termina con código de salida distinto de cero si algún módulo instalado dejaría de ser compatible
-con la versión objetivo. Ver [actualización](/help/cli/updating/) para la secuencia completa.
+con la versión objetivo. Ver [actualización](/es/help/cli/updating/) para la secuencia completa.
 
 ## create-admin
 
@@ -192,4 +204,4 @@ pull request.
 `copalibre mcp`
 
 Arranca un servidor local del Model Context Protocol (MCP) sobre stdio, para que una IA pueda operar
-CopaLibre. Ver el [detalle de herramientas MCP](/help/cli/mcp/).
+CopaLibre. Ver el [detalle de herramientas MCP](/es/help/cli/mcp/).

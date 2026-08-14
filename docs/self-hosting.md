@@ -1,9 +1,21 @@
 # Self-Hosting CopaLibre
 
-Run `./copalibre init` once from a release checkout. It writes non-secret local defaults to
-`.env` and lists values that must be supplied by the operator. Set a strong PostgreSQL password,
-an opaque `COPALIBRE_BOOTSTRAP_TOKEN`, OIDC JWKS/issuer/audience values, the public browser client ID,
-and one supported email provider configuration. Then run `./copalibre start` or
+Run `./copalibre init` once from a release checkout. It writes a complete installation into the
+current directory — `docker-compose.yml`, `.env` with non-secret local defaults, and a
+`.copalibre/installation.json` marker — and lists values that must be supplied by the operator.
+`init` doesn't require running from the checkout's own root: `cd` into any empty directory first
+(a separate data/config directory, or a second installation) and run it there; every later command
+(`doctor`, `start`, `migrate`, `upgrade-check`) auto-detects that directory afterward from the
+marker, the same way `.git` marks a checkout — no source checkout is needed for anything past the
+CLI binary itself. A directory stays pinned to the CopaLibre version that created it: running
+several versions side by side means running the matching CLI version per directory, and
+`migrate`/`upgrade-check` refuse with a clear message on a mismatch rather than risking the wrong
+migration or compose shape (see [Upgrading](#upgrading)). Re-running `init` against an existing
+installation's directory refuses rather than overwriting it. `--module-dev` additionally sets up a
+`modules-dev/` bind mount for developing a module against a running instance — see
+[`docs/MODULES.md`](MODULES.md). Set a strong PostgreSQL password, an opaque
+`COPALIBRE_BOOTSTRAP_TOKEN`, OIDC JWKS/issuer/audience values, the public browser client ID, and one
+supported email provider configuration. Then run `./copalibre start` or
 `docker compose up --detach --wait`.
 
 `docker-compose.yml` intentionally does not terminate TLS. Put Caddy or NGINX at the public edge:

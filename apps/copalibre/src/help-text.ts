@@ -19,9 +19,14 @@ export interface CommandHelp {
 export const COMMAND_HELP: readonly CommandHelp[] = [
   {
     name: 'init',
-    summary: 'Write non-secret local defaults and list required secrets',
-    usage: 'copalibre init [--file <path>]',
-    flags: [{ flag: '--file <path>', description: 'Target env file (default: .env)' }],
+    summary: 'Write a new installation into the current directory — no checkout required',
+    usage: 'copalibre init [--module-dev]',
+    flags: [
+      {
+        flag: '--module-dev',
+        description: 'Also write docker-compose.module-dev.yml, for local module development',
+      },
+    ],
   },
   {
     name: 'doctor',

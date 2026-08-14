@@ -5,7 +5,7 @@ description: Ejecute CopaLibre desde el código fuente en Windows, macOS o Linux
 
 Esta página deja una copia recién clonada funcionando en su equipo o servidor, y luego explica las
 dos formas admitidas de exponerla a tráfico real. Referencia de comandos CLI:
-[Instalación](/help/cli/installation/); detalle de backup/restore y datos persistentes:
+[Instalación](/es/help/cli/installation/); detalle de backup/restore y datos persistentes:
 `docs/self-hosting.md` en el repositorio.
 
 ## 1. Requisitos previos, por plataforma
@@ -41,7 +41,7 @@ cd copalibre
 
 Edite `.env`: una contraseña fuerte para PostgreSQL, un `COPALIBRE_BOOTSTRAP_TOKEN` opaco, sus
 valores JWKS/issuer/audience de OIDC (o el proveedor de identidad nativo por email/contraseña — vea
-[Roles y permisos](/help/control/roles-permissions/)), el ID de cliente público del navegador, y un
+[Roles y permisos](/es/help/control/roles-permissions/)), el ID de cliente público del navegador, y un
 proveedor de email admitido.
 
 ```bash
@@ -126,9 +126,9 @@ seguridad de actualización sobre la que se condiciona esta afirmación:
 
 ## 4. Próximos pasos
 
-- [Primer torneo](/help/getting-started/) — cree y publique una competición una vez que la
+- [Primer torneo](/es/help/getting-started/) — cree y publique una competición una vez que la
   instalación esté funcionando.
-- [Operación y trazabilidad](/help/operations/) — ejecutar partidos y corregir resultados de forma
+- [Operación y trazabilidad](/es/help/operations/) — ejecutar partidos y corregir resultados de forma
   segura.
-- [Referencia CLI](/help/cli/commands/) — todos los subcomandos de `copalibre`, incluyendo `backup`,
+- [Referencia CLI](/es/help/cli/commands/) — todos los subcomandos de `copalibre`, incluyendo `backup`,
   `restore` y `upgrade-check`.

@@ -97,7 +97,7 @@ Vérifie la compatibilité des modules installés et les migrations en attente a
   migrations
 
 Se termine avec un code de sortie non nul si un module installé cesserait d'être compatible avec la
-version cible. Voir [mise à jour](/help/cli/updating/) pour la séquence complète.
+version cible. Voir [mise à jour](/fr/help/cli/updating/) pour la séquence complète.
 
 ## create-admin
 
@@ -177,4 +177,4 @@ pull request.
 `copalibre mcp`
 
 Démarre un serveur local Model Context Protocol (MCP) sur stdio, pour qu'une IA puisse exploiter
-CopaLibre. Voir le [détail des outils MCP](/help/cli/mcp/).
+CopaLibre. Voir le [détail des outils MCP](/fr/help/cli/mcp/).

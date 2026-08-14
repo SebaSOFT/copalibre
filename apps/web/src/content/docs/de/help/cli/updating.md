@@ -43,4 +43,4 @@ installierten Moduls — die Neuinstallation mit einer anderen Version ist die A
 aktualisieren. Ein bereits gestartetes Turnier referenziert weiterhin die Version, mit der es
 erstellt wurde; die Aktualisierung eines Moduls ändert niemals rückwirkend ein laufendes Turnier.
 
-Siehe die [Befehlsreferenz](/help/cli/commands/) für die restlichen Optionen von `module`.
+Siehe die [Befehlsreferenz](/de/help/cli/commands/) für die restlichen Optionen von `module`.

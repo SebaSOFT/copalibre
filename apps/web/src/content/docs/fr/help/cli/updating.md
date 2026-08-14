@@ -41,4 +41,4 @@ réinstaller avec une version différente est la façon de mettre à jour un mod
 cours continue de référencer la version avec laquelle il a été créé ; mettre à jour un module ne
 change jamais rétroactivement un tournoi déjà en cours.
 
-Voir la [référence des commandes](/help/cli/commands/) pour le reste des options de `module`.
+Voir la [référence des commandes](/fr/help/cli/commands/) pour le reste des options de `module`.

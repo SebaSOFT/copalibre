@@ -80,7 +80,7 @@ CopaLibre 版本）。应用保留策略：成功备份后，删除超出 `--ret
 
 - `--target-version <semver>`：用于检查模块和迁移的目标 CopaLibre 版本
 
-如果任何已安装模块将与目标版本不再兼容，则以非零状态退出。完整流程请参阅[更新](/help/cli/updating/)。
+如果任何已安装模块将与目标版本不再兼容，则以非零状态退出。完整流程请参阅[更新](/zh/help/cli/updating/)。
 
 ## create-admin
 
@@ -155,4 +155,4 @@ Fork `copalibre-modules`，将本地模块复制到一个新分支，推送该�
 `copalibre mcp`
 
 启动一个本地 Model Context Protocol（MCP）服务器，使 AI 能够操作 CopaLibre。详情请参阅
-[MCP 工具详情](/help/cli/mcp/)。
+[MCP 工具详情](/zh/help/cli/mcp/)。

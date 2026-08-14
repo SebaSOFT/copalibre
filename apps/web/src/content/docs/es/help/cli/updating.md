@@ -9,7 +9,11 @@ Secuencia recomendada, no-destructiva:
 
 1. **Respalde** antes de tocar nada: `./copalibre backup --file backups/pre-upgrade.dump`.
 2. **Actualice** el checkout o la referencia de imagen a la nueva versión (no reinicie los
-   servicios todavía).
+   servicios todavía). Si esta instalación se creó con `copalibre init` (sin checkout, ver la
+   [referencia de comandos](/es/help/cli/commands/)), su directorio queda fijado a la versión de CLI
+   con la que se creó — `migrate`/`upgrade-check` se niegan con un mensaje claro ante una versión
+   distinta, así que actualice ejecutando el CLI de la nueva versión contra el mismo directorio, en
+   vez de mezclar versiones de CLI.
 3. **Verifique compatibilidad** contra la nueva versión, sin reiniciar nada:
    ```bash
    ./copalibre upgrade-check --target-version <version-nueva>
@@ -42,4 +46,4 @@ reinstalar con una versión distinta es la forma de actualizar un módulo. Un to
 referenciando la versión con la que se creó; actualizar un módulo no cambia retroactivamente un
 torneo en curso.
 
-Ver la [referencia de comandos](/help/cli/commands/) para el resto de las opciones de `module`.
+Ver la [referencia de comandos](/es/help/cli/commands/) para el resto de las opciones de `module`.
