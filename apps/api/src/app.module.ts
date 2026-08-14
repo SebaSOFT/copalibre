@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/jwt-auth.guard.js';
 import { OrganizationAccessGuard } from './auth/organization-access.guard.js';
+import { AdminModule } from './modules/admin.module.js';
 import { CoreModule } from './modules/core.module.js';
 import { AuthModule } from './modules/auth.module.js';
 import { OrganizationModule } from './modules/organization.module.js';
@@ -27,6 +28,7 @@ import { PublicModule } from './modules/public.module.js';
     SchedulingModule,
     ReportingModule,
     PublicModule,
+    AdminModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

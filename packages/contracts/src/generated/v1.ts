@@ -1086,6 +1086,78 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/statistics/rebuild": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Recompute every folded statistic total from source facts
+         * @description Organization-wide by default, or narrowed to one tournament. Idempotent — the same delete-then-insert write path the event-driven trigger already uses.
+         */
+        post: operations["AdminStatisticsController_rebuild"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/modules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List installed modules, or only the ones with a newer published version */
+        get: operations["AdminModulesController_list"];
+        put?: never;
+        /** Install a module by alias, optionally pinned to a version range */
+        post: operations["AdminModulesController_install"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/modules/{alias}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove an installed module that no started tournament references */
+        delete: operations["AdminModulesController_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/modules/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Re-validate every installed module against the running core version */
+        post: operations["AdminModulesController_verify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2085,6 +2157,95 @@ export interface components {
             expiresAt: string;
             /** Format: date-time */
             createdAt: string;
+        };
+        StatisticsRebuildRequest: {
+            /**
+             * @description Narrows the rebuild to one tournament within the organization
+             * @example apertura-2026
+             */
+            tournamentAlias?: string;
+        };
+        StatisticsRebuildResponse: {
+            /** @example liga-orbital */
+            organizationAlias: string;
+            /** @example apertura-2026 */
+            tournamentAlias?: string;
+            /**
+             * @description Finalized matches the rebuild processed
+             * @example 42
+             */
+            matches: number;
+            /**
+             * @description Figure rows written
+             * @example 210
+             */
+            figures: number;
+        };
+        InstalledModuleResponse: {
+            /** Format: uuid */
+            moduleId: string;
+            /** @enum {string} */
+            kind: "discipline" | "tournament-profile";
+            /** @example orbital-frisbee */
+            alias: string;
+            /** @example 1.0.0 */
+            version: string;
+            /** @enum {string} */
+            sourceKind: "curated" | "alternate";
+            /** @example SebaSOFT */
+            attributionAuthor: string;
+        };
+        InstallModuleRequest: {
+            /** @example orbital-frisbee */
+            alias: string;
+            /**
+             * @description Version range; defaults to the latest published
+             * @example ^1.0.0
+             */
+            range?: string;
+            /**
+             * @description An explicitly allow-listed alternate source (COPALIBRE_MODULE_SOURCE_ALLOWLIST); omit to install from the curated repository
+             * @example file:///var/lib/copalibre/modules-dev/orbital-frisbee
+             */
+            source?: string;
+            /**
+             * @description Installs even when the declared required capabilities are not yet satisfied
+             * @default false
+             */
+            allowUnsatisfiedCapabilities: boolean;
+        };
+        InstallModuleResponse: {
+            /** @enum {string} */
+            kind: "discipline" | "tournament-profile";
+            /** @example orbital-frisbee */
+            alias: string;
+            /** @example 1.0.0 */
+            version: string;
+            unsatisfiedRequiredCapabilities: string[];
+        };
+        RemoveModuleResponse: {
+            /** @example orbital-frisbee */
+            alias: string;
+            /**
+             * @description Versions removed
+             * @example 1
+             */
+            removedCount: number;
+        };
+        ModuleVerifyFailureResponse: {
+            /** @example registry-reference */
+            stage: string;
+            /** @example Unregistered event code "goal-x" */
+            message: string;
+        };
+        ModuleVerifyResultResponse: {
+            /** @example orbital-frisbee */
+            alias: string;
+            /** @example 1.0.0 */
+            version: string;
+            /** @example true */
+            ok: boolean;
+            failures: components["schemas"]["ModuleVerifyFailureResponse"][];
         };
     };
     responses: never;
@@ -4039,6 +4200,193 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PatResponse"];
+                };
+            };
+        };
+    };
+    AdminStatisticsController_rebuild: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StatisticsRebuildRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatisticsRebuildResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    AdminModulesController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstalledModuleResponse"][];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    AdminModulesController_install: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InstallModuleRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstallModuleResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    AdminModulesController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                alias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemoveModuleResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    AdminModulesController_verify: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModuleVerifyResultResponse"][];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
                 };
             };
         };

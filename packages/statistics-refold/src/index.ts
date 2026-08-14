@@ -25,3 +25,8 @@ export { buildRequiresTagFilter } from './tag-filter.js';
 export { readRolledUp, type ActorMembership } from './rollup.js';
 export { readRolledUpTotals, type RollupQuery } from './rollup-read.js';
 export { createRefold, foldLiveEvent, resolveMatchFold, type MatchFoldContext } from './refold.js';
+export {
+  runStatisticsRebuild,
+  type StatisticsRebuildOptions,
+  type StatisticsRebuildResult,
+} from './rebuild.js';

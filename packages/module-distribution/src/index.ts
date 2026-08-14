@@ -57,3 +57,12 @@ export {
 } from './import.js';
 
 export { evaluateCoreVersionCompatibility, verifyInstalledModule } from './verify.js';
+
+export {
+  allowListedSources,
+  documentFor,
+  latestPerAlias,
+  resolveSource,
+  runningCopalibreVersion,
+  sourceFor,
+} from './operations.js';

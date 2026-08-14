@@ -47,16 +47,29 @@ file, unchanged.
 
 ### Requirement: copalibre administrative CLI
 The release SHALL provide a `copalibre` CLI with `init`, `doctor`, `dev`, `dev --hybrid`, `start`,
-`migrate`, `create-admin`, `backup`, `restore`, `upgrade-check`, and `mcp` subcommands. Every
-invocation SHALL print a startup banner identifying the product, its version, and its license before
-running the requested subcommand, and that banner SHALL be written to a stream that never mixes with a
-subcommand's own stdout output. Running `copalibre --help`/`-h` with no subcommand SHALL list every
-subcommand with a one-line summary, and running `copalibre <subcommand> --help`/`-h` SHALL print
-that subcommand's usage line, a description of what it does, and its flags — for every documented
-subcommand, sourced from one place so the top-level summary and each subcommand's detail cannot
-drift apart. `upgrade-check` SHALL evaluate a given target CopaLibre version against every installed
-module's declared compatibility range and report pending database migrations, exiting non-zero if
-any installed module would become incompatible with the target version.
+`migrate`, `create-admin`, `statistics-rebuild`, `backup`, `restore`, `upgrade-check`, and `mcp`
+subcommands. Every invocation SHALL print a startup banner identifying the product, its version, and
+its license before running the requested subcommand, and that banner SHALL be written to a stream that
+never mixes with a subcommand's own stdout output. Running `copalibre --help`/`-h` with no subcommand
+SHALL list every subcommand with a one-line summary, and running `copalibre <subcommand> --help`/`-h`
+SHALL print that subcommand's usage line, a description of what it does, and its flags — for every
+documented subcommand, sourced from one place so the top-level summary and each subcommand's detail
+cannot drift apart. `upgrade-check` SHALL evaluate a given target CopaLibre version against every
+installed module's declared compatibility range and report pending database migrations, exiting
+non-zero if any installed module would become incompatible with the target version.
+
+`copalibre init`, run in a directory with no prior CopaLibre installation, SHALL write a complete,
+runnable installation (a Compose file and its environment defaults) into that directory without
+requiring a checkout of this repository's source, and SHALL record the CopaLibre version and an
+installation identifier in that directory so later commands run from it identify the installation
+automatically. A directory already containing an installation SHALL cause `init` to refuse rather than
+overwrite any part of it. `doctor`, `start`, `migrate`, and `upgrade-check`, when run from a
+directory containing a recorded installation, SHALL operate against that directory's own files without
+requiring a checkout; version-sensitive subcommands (`init` re-run, `migrate`, `upgrade-check`) SHALL
+refuse with a message naming both versions when the running CLI's own version does not match the
+directory's recorded version. `init --module-dev` SHALL additionally write a companion Compose
+override file bind-mounting a local module-development directory into the installation, with no
+extra flag needed at the operator's own `docker compose` invocation.
 
 #### Scenario: doctor catches misconfiguration before start
 - **WHEN** `copalibre doctor` runs against an installation missing a required secret or with an
@@ -114,12 +127,39 @@ any installed module would become incompatible with the target version.
   version
 - **THEN** `copalibre upgrade-check --target-version <version>` exits 0
 
+#### Scenario: init works with no checkout
+- **WHEN** `copalibre init` is run in an empty directory with no CopaLibre source checked out
+  anywhere on the machine
+- **THEN** it writes a complete Compose file, `.env` defaults, and an installation record into that
+  directory, and every subsequent command run from that directory (`doctor`, `start`, `migrate`,
+  `upgrade-check`) operates correctly without a checkout
+
+#### Scenario: init refuses to overwrite an existing installation
+- **WHEN** `copalibre init` is run in a directory that already contains a CopaLibre installation
+- **THEN** it refuses, naming which file already exists, and writes nothing
+
+#### Scenario: Multiple installations coexist as separate directories
+- **WHEN** an operator runs `copalibre init` in two different empty directories
+- **THEN** each directory's installation runs independently (separate Compose project, separate data),
+  with no interaction between them
+
+#### Scenario: A version-sensitive command refuses a version mismatch
+- **WHEN** `copalibre migrate` or `copalibre upgrade-check` is run from a directory whose recorded
+  installation version does not match the running CLI binary's own version
+- **THEN** it refuses, naming both the recorded and the running version, and performs no migration or
+  compatibility check
+
 ### Requirement: Module management subcommands
-The `copalibre` CLI SHALL provide `module add`, `module list`, `module remove` and `module verify`.
-Running `copalibre module --help`/`-h` SHALL list these four subcommands with a one-line summary
-each, and running `copalibre module <subcommand> --help`/`-h` SHALL print that subcommand's usage
-line, description, and flags, following the same one-source-of-truth rule as the top-level CLI's
-help.
+The `copalibre` CLI SHALL provide `module add`, `module list`, `module remove`, `module verify`,
+`module scaffold`, and `module validate-local`. Running `copalibre module --help`/`-h` SHALL list
+these subcommands with a one-line summary each, and running `copalibre module <subcommand>
+--help`/`-h` SHALL print that subcommand's usage line, description, and flags, following the same
+one-source-of-truth rule as the top-level CLI's help.
+
+`copalibre init --module-dev` MAY write a companion Compose override file that bind-mounts a
+local directory into the running installation and pre-authorizes installing modules from it, so a
+module scaffolded via `module scaffold` can be installed and iterated on against a running instance
+without a source checkout.
 
 #### Scenario: An operator lists installed modules
 - **WHEN** the module-list command is run
@@ -138,7 +178,14 @@ help.
 #### Scenario: module --help lists its subcommands
 - **WHEN** an operator runs `copalibre module --help` or `copalibre module` with no further
   arguments
-- **THEN** the output lists `add`, `list`, `remove`, and `verify` with a one-line summary of each
+- **THEN** the output lists `add`, `list`, `remove`, `verify`, `scaffold`, and `validate-local` with a
+  one-line summary of each
+
+#### Scenario: A scaffolded module installs from the module-dev mount without a checkout
+- **WHEN** a self-hosted installation was `init`'d with `--module-dev`, a module is scaffolded
+  into the mounted directory, and `module add` is run naming that directory's `file://` source
+- **THEN** the module installs, using the pre-authorized allowlist entry `--module-dev` already set,
+  with no other configuration required
 
 ### Requirement: Verified backup and restore
 

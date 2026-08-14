@@ -113,6 +113,26 @@ version. See [updating](/help/cli/updating/) for the full sequence.
 
 Creates an organization's first administrator account.
 
+## login
+
+`copalibre login [--api-url <url>] [--token <token>]`
+
+Stores a personal access token so `statistics-rebuild` and `module add/list/remove/verify` can run
+against a remote installation over an authenticated HTTP connection — the path to managing an
+already-running installation, including installing or upgrading the CLI after Docker is already
+running, from a machine that never needs database credentials at all. Generate the token from the
+control panel's preferences screen while already logged in, then paste it here. Validates the token
+with one authenticated call before storing it; refuses and stores nothing if the token is invalid.
+
+- `--api-url <url>`: target installation (default: `COPALIBRE_API_URL`, which `copalibre init`
+  already writes to `.env`)
+- `--token <token>`: the token itself (default: read from piped stdin, or an interactive prompt
+  that masks each keystroke)
+
+Stores the credential in the current directory's `.copalibre/credentials.json` (`0600`) — run
+`login` from inside the installation directory `copalibre init` created. Re-running `login` in the
+same directory replaces the stored token, unlike `init`'s marker.
+
 ## statistics-rebuild
 
 `copalibre statistics-rebuild --organization <alias> [--tournament <alias>]`
@@ -127,13 +147,15 @@ tournament.
 Idempotent: it drives the same `refold` and delete-then-insert write path the event-driven trigger
 uses, so running it twice in a row produces byte-identical `statistic_totals` rows (aside from
 `updated_at`/the internal projection version). Use it to backfill history recorded before the fold
-engine existed, or to verify totals against the facts at any time.
+engine existed, or to verify totals against the facts at any time. Requires organization-administrator
+authority once logged in via [`login`](#login).
 
 ## module
 
 `copalibre module <add|list|remove|verify>`
 
-Manages installed discipline and tournament-profile modules.
+Manages installed discipline and tournament-profile modules. `add`/`list`/`remove`/`verify` require
+installation-wide super-admin authority once logged in via [`login`](#login).
 
 ### module add
 

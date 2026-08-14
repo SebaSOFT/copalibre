@@ -115,6 +115,27 @@ con la versión objetivo. Ver [actualización](/es/help/cli/updating/) para la s
 
 Crea la primera cuenta de administrador de una organización.
 
+## login
+
+`copalibre login [--api-url <url>] [--token <token>]`
+
+Guarda un token de acceso personal para que `statistics-rebuild` y `module add/list/remove/verify`
+puedan correr contra una instalación remota mediante una conexión HTTP autenticada — el camino para
+administrar una instalación ya en ejecución, incluyendo instalar o actualizar el CLI después de que
+Docker ya está corriendo, desde una máquina que nunca necesita credenciales de base de datos. Genere
+el token desde la pantalla de preferencias del panel de control mientras ya está logueado, y péguelo
+aquí. Valida el token con una llamada autenticada antes de guardarlo; se niega y no guarda nada si
+el token es inválido.
+
+- `--api-url <url>`: instalación destino (por defecto: `COPALIBRE_API_URL`, que `copalibre init` ya
+  escribe en `.env`)
+- `--token <token>`: el token en sí (por defecto: se lee de stdin si viene por pipe, o un prompt
+  interactivo que enmascara cada tecla)
+
+Guarda la credencial en `.copalibre/credentials.json` (`0600`) del directorio actual — ejecute
+`login` desde dentro del directorio de instalación que creó `copalibre init`. Volver a ejecutar
+`login` en el mismo directorio reemplaza el token guardado, a diferencia del marcador de `init`.
+
 ## statistics-rebuild
 
 `copalibre statistics-rebuild --organization <alias> [--tournament <alias>]`
@@ -130,13 +151,15 @@ Idempotente: usa el mismo `refold` y la misma ruta de escritura de borrar-e-inse
 por eventos, así que ejecutarlo dos veces seguidas produce filas de `statistic_totals` idénticas
 byte a byte (salvo `updated_at`/la versión interna de proyección). Útil para completar el historial
 registrado antes de que existiera el motor de plegado, o para verificar los totales contra los
-hechos en cualquier momento.
+hechos en cualquier momento. Requiere autoridad de administrador de la organización una vez logueado
+mediante [`login`](#login).
 
 ## module
 
 `copalibre module <add|list|remove|verify>`
 
-Gestiona los módulos de disciplina y perfil de torneo instalados.
+Gestiona los módulos de disciplina y perfil de torneo instalados. `add`/`list`/`remove`/`verify`
+requieren autoridad de super-admin de la instalación una vez logueado mediante [`login`](#login).
 
 ### module add
 

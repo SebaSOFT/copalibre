@@ -25,6 +25,21 @@ allow idle streams to survive heartbeats. Use `deploy/proxy/Caddyfile` or
 `deploy/proxy/nginx.conf` as the edge configuration, then verify its live address with
 `./copalibre doctor --check-proxy --proxy-url https://events.example/events/proxy-check`.
 
+## Managing An Installation Without Database Access
+
+`copalibre create-admin` always runs from any machine with no database connection, as a pure
+authenticated HTTP call against `COPALIBRE_API_URL`. `copalibre login` extends that to
+`statistics-rebuild` and `module add/list/remove/verify`: generate a personal access token from the
+control panel's preferences screen while already signed in, then run `./copalibre login --api-url
+https://api.example`, pasting the token when prompted (or `--token <token>`, or piped via stdin).
+This is also the path to installing or upgrading the CLI itself after Docker is already running.
+
+`login` stores the token in the current directory's `.copalibre/credentials.json` (`0600`) —
+alongside, but never merged into, `init`'s non-secret `installation.json` marker. Run it from
+inside the installation directory `copalibre init` created. `restore`'s post-migration schema
+check still runs directly against the database, deliberately: it may run before the API process is
+even up.
+
 ## Organization Language And Timezone
 
 Every organization carries a `primaryLanguage` (one of `en`, `es`, `fr`, `pt`, `it`, `de`, `ru`) and

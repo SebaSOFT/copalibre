@@ -63,6 +63,12 @@ data/config directory, a second installation) and run it there; `doctor`/`start`
 bind mount for developing a discipline/tournament-profile module against a running instance — see
 [`docs/MODULES.md`](docs/MODULES.md).
 
+Managing an installation from a machine with no database access — including installing or
+upgrading the CLI after Docker is already running — works the same way: generate a personal access
+token from the control panel's preferences screen, then `./copalibre login --api-url
+https://api.example`. `statistics-rebuild` and `module add/list/remove/verify` then run over an
+authenticated HTTP connection.
+
 `docker-compose.yml` does not terminate TLS by design — put Caddy or NGINX at the edge (example
 configs in [`deploy/proxy/`](deploy/proxy/)) and verify it with
 `./copalibre doctor --check-proxy --proxy-url https://events.example/events/proxy-check`.

@@ -6,6 +6,7 @@ import { createBackupPacket } from './backup-packet.js';
 import { readCopalibreVersion, renderBanner } from './banner.js';
 import { CliRunner } from './cli-runner.js';
 import { COMMAND_HELP, MODULE_SUBCOMMAND_HELP } from './help-text.js';
+import { writeCredential } from './credentials.js';
 import { writeInstallationMarker } from './installation-marker.js';
 import type { ProcessRunner } from './process-runner.js';
 
@@ -471,5 +472,103 @@ describe('CliRunner', () => {
     } finally {
       stderr.mockRestore();
     }
+  });
+
+  describe('statistics-rebuild / module dual-path dispatch (0085)', () => {
+    it('statistics-rebuild uses the direct-database path when no credential is stored', async () => {
+      await withTemporaryWorkingDirectory(async () => {
+        const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+        try {
+          const result = await new CliRunner({ run: jest.fn(async () => 0) }).run(
+            ['statistics-rebuild', '--organization', 'liga-orbital'],
+            {},
+          );
+          // DATABASE_URL is unset here — reaching that failure (rather than an
+          // HTTP-path error) proves the direct-database branch was taken.
+          expect(result).toBe(1);
+          expect(
+            stderr.mock.calls.some((call) => String(call[0]).includes('DATABASE_URL is not set')),
+          ).toBe(true);
+        } finally {
+          stderr.mockRestore();
+        }
+      });
+    });
+
+    it('statistics-rebuild uses the authenticated HTTP path when a credential is stored in cwd', async () => {
+      await withTemporaryWorkingDirectory(async () => {
+        await writeCredential(process.cwd(), 'https://copalibre.example', 'clpat_x');
+        const fetchSpy = jest.spyOn(globalThis, 'fetch').mockResolvedValue(
+          new Response(
+            JSON.stringify({
+              organizationAlias: 'liga-orbital',
+              matches: 3,
+              figures: 12,
+            }),
+            { status: 200 },
+          ),
+        );
+        try {
+          const result = await new CliRunner({ run: jest.fn(async () => 0) }).run(
+            ['statistics-rebuild', '--organization', 'liga-orbital'],
+            {},
+          );
+          expect(result).toBe(0);
+          expect(fetchSpy).toHaveBeenCalledWith(
+            new URL('/organizations/liga-orbital/statistics/rebuild', 'https://copalibre.example'),
+            expect.objectContaining({
+              method: 'POST',
+              headers: expect.objectContaining({ authorization: 'Bearer clpat_x' }),
+            }),
+          );
+        } finally {
+          fetchSpy.mockRestore();
+        }
+      });
+    });
+
+    it('module list uses the direct-database path when no credential is stored', async () => {
+      await withTemporaryWorkingDirectory(async () => {
+        const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+        try {
+          const result = await new CliRunner({ run: jest.fn(async () => 0) }).run(
+            ['module', 'list'],
+            {},
+          );
+          expect(result).toBe(1);
+          expect(
+            stderr.mock.calls.some((call) => String(call[0]).includes('DATABASE_URL is not set')),
+          ).toBe(true);
+        } finally {
+          stderr.mockRestore();
+        }
+      });
+    });
+
+    it('module list uses the authenticated HTTP path when a credential is stored in cwd', async () => {
+      await withTemporaryWorkingDirectory(async () => {
+        await writeCredential(process.cwd(), 'https://copalibre.example', 'clpat_x');
+        const fetchSpy = jest
+          .spyOn(globalThis, 'fetch')
+          .mockResolvedValue(new Response(JSON.stringify([]), { status: 200 }));
+        const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+        try {
+          const result = await new CliRunner({ run: jest.fn(async () => 0) }).run(
+            ['module', 'list'],
+            {},
+          );
+          expect(result).toBe(0);
+          expect(fetchSpy).toHaveBeenCalledWith(
+            new URL('/admin/modules', 'https://copalibre.example'),
+            expect.objectContaining({
+              headers: expect.objectContaining({ authorization: 'Bearer clpat_x' }),
+            }),
+          );
+        } finally {
+          fetchSpy.mockRestore();
+          stdout.mockRestore();
+        }
+      });
+    });
   });
 });
