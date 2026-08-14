@@ -53,6 +53,15 @@ export interface CollectorGranularity {
   readonly competition: CompetitionGranularity;
 }
 
+/**
+ * When a collector's total is kept current (0082).
+ *
+ * A field, not a boolean: `on-finalize`/`live` leaves room for a third cadence
+ * later without a breaking rename. Absent reads as `on-finalize`, which is
+ * every collector declared before this existed.
+ */
+export type CollectorCadence = { readonly kind: 'on-finalize' } | { readonly kind: 'live' };
+
 export interface StatisticCollector {
   readonly code: string;
   readonly label: string | LocalizedLabel;
@@ -72,6 +81,8 @@ export interface StatisticCollector {
     readonly actor?: ActorGranularity;
     readonly competition?: CompetitionGranularity;
   };
+  /** Absent means `{ kind: 'on-finalize' }`. */
+  readonly cadence?: CollectorCadence;
 }
 
 export class CollectorError extends DomainError {
@@ -290,4 +301,14 @@ export function readableAt(
         !isCoarser(COMPETITION_GRANULARITIES, at.competition, collector.rollsUpTo.competition)));
 
   return actorOk && competitionOk;
+}
+
+/** A collector's cadence, absent reading as `on-finalize` (0082). */
+export function cadenceOf(collector: StatisticCollector): CollectorCadence {
+  return collector.cadence ?? { kind: 'on-finalize' };
+}
+
+/** Whether a collector folds inside the event-recording transaction, not just at match end. */
+export function isLiveCadence(collector: StatisticCollector): boolean {
+  return cadenceOf(collector).kind === 'live';
 }

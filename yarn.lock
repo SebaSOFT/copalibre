@@ -1513,6 +1513,7 @@ __metadata:
     "@copalibre/object-storage": "workspace:^"
     "@copalibre/persistence": "workspace:^"
     "@copalibre/rules": "workspace:^"
+    "@copalibre/statistics-refold": "workspace:^"
     "@copalibre/tournament-engine": "workspace:^"
     "@nestjs/common": "npm:^11.1.28"
     "@nestjs/core": "npm:^11.1.28"
@@ -1563,6 +1564,7 @@ __metadata:
     "@copalibre/module-distribution": "workspace:^"
     "@copalibre/object-storage": "workspace:^"
     "@copalibre/persistence": "workspace:^"
+    "@copalibre/statistics-refold": "workspace:^"
     "@modelcontextprotocol/sdk": "npm:^1.30.0"
     "@nestjs/common": "npm:^11.1.28"
     "@nestjs/core": "npm:^11.1.28"
@@ -1779,6 +1781,21 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@copalibre/statistics-refold@workspace:^, @copalibre/statistics-refold@workspace:packages/statistics-refold":
+  version: 0.0.0-use.local
+  resolution: "@copalibre/statistics-refold@workspace:packages/statistics-refold"
+  dependencies:
+    "@copalibre/domain": "workspace:^"
+    "@copalibre/persistence": "workspace:^"
+    "@copalibre/tournament-engine": "workspace:^"
+    "@types/jest": "npm:^30.0.0"
+    jest: "npm:^30.4.2"
+    kysely: "npm:^0.29"
+    ts-jest: "npm:^29.4.12"
+    typescript: "npm:^5"
+  languageName: unknown
+  linkType: soft
+
 "@copalibre/tournament-engine@workspace:^, @copalibre/tournament-engine@workspace:packages/tournament-engine":
   version: 0.0.0-use.local
   resolution: "@copalibre/tournament-engine@workspace:packages/tournament-engine"
@@ -1838,6 +1855,7 @@ __metadata:
     "@copalibre/domain": "workspace:^"
     "@copalibre/object-storage": "workspace:^"
     "@copalibre/persistence": "workspace:^"
+    "@copalibre/statistics-refold": "workspace:^"
     "@copalibre/tournament-engine": "workspace:^"
     "@nestjs/common": "npm:^11.1.28"
     "@nestjs/core": "npm:^11.1.28"

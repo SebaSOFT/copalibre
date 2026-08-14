@@ -11,6 +11,7 @@ module.exports = {
     '^@copalibre/object-storage$': '<rootDir>/../../packages/object-storage/src/index.ts',
     '^@copalibre/routing$': '<rootDir>/../../packages/routing/src/index.ts',
     '^@copalibre/persistence$': '<rootDir>/../../packages/persistence/src/index.ts',
+    '^@copalibre/statistics-refold$': '<rootDir>/../../packages/statistics-refold/src/index.ts',
     '^@copalibre/tournament-engine$': '<rootDir>/../../packages/tournament-engine/src/index.ts',
   },
   // The pure job logic. Wiring, controllers and the service loop are proven

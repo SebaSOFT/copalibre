@@ -84,10 +84,13 @@ export {
   foldStatistics,
   aggregateTo,
   contributorsOf,
+  orderForFold,
   type CollectedFigure,
   type FigureKey,
   type ActorContext,
   type CompetitionContext,
+  type FoldInput,
+  type FoldFact,
   type StatisticAdjustment,
 } from './statistics/fold.js';
 export { tagFactsFrom, type TagEventInput } from './statistics/tags.js';

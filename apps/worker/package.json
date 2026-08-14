@@ -15,6 +15,7 @@
     "@copalibre/domain": "workspace:^",
     "@copalibre/object-storage": "workspace:^",
     "@copalibre/persistence": "workspace:^",
+    "@copalibre/statistics-refold": "workspace:^",
     "@copalibre/tournament-engine": "workspace:^",
     "@nestjs/common": "^11.1.28",
     "@nestjs/core": "^11.1.28",

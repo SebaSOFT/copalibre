@@ -1,41 +1,27 @@
 {
-  "name": "@copalibre/api",
+  "name": "@copalibre/statistics-refold",
   "version": "0.5.0-beta",
   "private": true,
   "license": "AGPL-3.0-only",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc --build",
-    "dev": "../../node_modules/.bin/tsx watch src/main.ts",
-    "start": "node dist/main.js",
-    "openapi:generate": "tsc --build && node dist/openapi/generate.js",
     "test": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.config.cjs",
     "test:coverage": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.config.cjs --coverage",
     "test:integration": "node --env-file-if-exists=../../.env.test --experimental-vm-modules ../../node_modules/.bin/jest --config jest.integration.config.cjs --runInBand"
   },
   "dependencies": {
-    "@copalibre/auth": "workspace:^",
     "@copalibre/domain": "workspace:^",
-    "@copalibre/object-storage": "workspace:^",
     "@copalibre/persistence": "workspace:^",
-    "@copalibre/rules": "workspace:^",
-    "@copalibre/statistics-refold": "workspace:^",
     "@copalibre/tournament-engine": "workspace:^",
-    "@nestjs/common": "^11.1.28",
-    "@nestjs/core": "^11.1.28",
-    "@nestjs/platform-fastify": "^11.1.29",
-    "@nestjs/swagger": "^11.4.6",
-    "jose": "^6",
-    "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2"
+    "kysely": "^0.29"
   },
   "devDependencies": {
-    "@nestjs/testing": "^11.1.28",
     "@types/jest": "^30.0.0",
-    "@types/supertest": "^7.2.1",
     "jest": "^30.4.2",
-    "supertest": "^7.2.2",
     "ts-jest": "^29.4.12",
     "typescript": "^5"
-  },
-  "type": "module"
+  }
 }

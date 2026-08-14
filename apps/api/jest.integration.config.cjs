@@ -14,6 +14,7 @@ module.exports = {
     '^@copalibre/routing$': '<rootDir>/../../packages/routing/src/index.ts',
     '^@copalibre/persistence$': '<rootDir>/../../packages/persistence/src/index.ts',
     '^@copalibre/rules$': '<rootDir>/../../packages/rules/src/index.ts',
+    '^@copalibre/statistics-refold$': '<rootDir>/../../packages/statistics-refold/src/index.ts',
     '^@copalibre/tournament-engine$': '<rootDir>/../../packages/tournament-engine/src/index.ts',
   },
   testMatch: ['<rootDir>/src/**/*.integration.test.ts'],

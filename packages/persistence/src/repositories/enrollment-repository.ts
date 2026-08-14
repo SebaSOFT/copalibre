@@ -691,6 +691,70 @@ export class EnrollmentRepository {
     }));
   }
 
+  /**
+   * Every player row for a set of teams, keyed by team then person (0082).
+   *
+   * A match roster resolves several entrants at once, and each entrant may
+   * carry a dozen players — a lookup per person would be a query per roster
+   * member. One query over every team a match's entrants name, grouped in
+   * memory, is the batch this and `refold` both need.
+   */
+  async playersByTeams(
+    teamIds: readonly string[],
+  ): Promise<ReadonlyMap<string, readonly { personId: string; playerId: string; role: string }[]>> {
+    if (teamIds.length === 0) return new Map();
+    const rows = await this.db
+      .selectFrom('players')
+      .select(['team_id', 'person_id', 'player_id', 'role'])
+      .where('team_id', 'in', teamIds)
+      .execute();
+
+    const byTeam = new Map<string, { personId: string; playerId: string; role: string }[]>();
+    for (const row of rows) {
+      const forTeam = byTeam.get(row.team_id) ?? [];
+      forTeam.push({ personId: row.person_id, playerId: row.player_id, role: row.role });
+      byTeam.set(row.team_id, forTeam);
+    }
+    return byTeam;
+  }
+
+  /**
+   * The team each of a set of players belongs to (0082) — a `player`-grain
+   * figure's `actorId` is a `player_id`, and rolling it up to `team`/`club`
+   * needs this hop; `listParticipantTeamMemberships` is keyed by person, not
+   * by the player row a stored figure already names.
+   */
+  async teamsOfPlayers(playerIds: readonly string[]): Promise<ReadonlyMap<string, string>> {
+    if (playerIds.length === 0) return new Map();
+    const rows = await this.db
+      .selectFrom('players')
+      .select(['player_id', 'team_id'])
+      .where('player_id', 'in', playerIds)
+      .execute();
+
+    return new Map(rows.map((row) => [row.player_id, row.team_id]));
+  }
+
+  /**
+   * The club fielding each of a set of teams (0082), the symmetric read
+   * `listParticipantTeamMemberships` does not offer: that method starts from
+   * a person, this one starts from the team a fold already resolved.
+   */
+  async clubsOfTeams(teamIds: readonly string[]): Promise<ReadonlyMap<string, string>> {
+    if (teamIds.length === 0) return new Map();
+    const rows = await this.db
+      .selectFrom('teams')
+      .select(['team_id', 'club_id'])
+      .where('team_id', 'in', teamIds)
+      .execute();
+
+    const byTeam = new Map<string, string>();
+    for (const row of rows) {
+      if (row.club_id !== null) byTeam.set(row.team_id, row.club_id);
+    }
+    return byTeam;
+  }
+
   /** Published match results for this participant's individual registrations. */
   async listParticipantReportedResults(
     organizationId: string,

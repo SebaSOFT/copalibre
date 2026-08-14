@@ -15,5 +15,6 @@ module.exports = {
     '^@copalibre/module-catalogue$': '<rootDir>/../../packages/module-catalogue/src/index.ts',
     '^@copalibre/object-storage$': '<rootDir>/../../packages/object-storage/src/index.ts',
     '^@copalibre/rules$': '<rootDir>/../../packages/rules/src/index.ts',
+    '^@copalibre/statistics-refold$': '<rootDir>/../../packages/statistics-refold/src/index.ts',
   },
 };

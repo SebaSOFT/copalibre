@@ -970,4 +970,41 @@ export class CompetitionRepository {
       .executeTakeFirst();
     return row?.season_id;
   }
+
+  /** The tournament an edition belongs to (0082's `CompetitionContext` chain). */
+  async tournamentOfSeason(seasonId: string): Promise<string | undefined> {
+    const row = await this.db
+      .selectFrom('seasons')
+      .select('tournament_id')
+      .where('season_id', '=', seasonId)
+      .executeTakeFirst();
+    return row?.tournament_id;
+  }
+
+  /**
+   * Every finalized match in scope for a statistics rebuild (0082):
+   * organization-wide, or narrowed to one tournament. Ordered so a rebuild's
+   * output is deterministic across runs, which is what idempotence is checked
+   * against.
+   */
+  async listFinalizedMatches(scope: {
+    readonly organizationId: string;
+    readonly tournamentId?: string;
+  }): Promise<readonly string[]> {
+    let query = this.db
+      .selectFrom('matches')
+      .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
+      .innerJoin('stages', 'stages.stage_id', 'fixtures.stage_id')
+      .innerJoin('seasons', 'seasons.season_id', 'stages.season_id')
+      .innerJoin('tournaments', 'tournaments.tournament_id', 'seasons.tournament_id')
+      .select('matches.match_id')
+      .where('matches.status', '=', 'finalized')
+      .where('tournaments.organization_id', '=', scope.organizationId);
+    if (scope.tournamentId !== undefined) {
+      query = query.where('tournaments.tournament_id', '=', scope.tournamentId);
+    }
+
+    const rows = await query.orderBy('matches.created_at').orderBy('matches.match_id').execute();
+    return rows.map((row) => row.match_id);
+  }
 }

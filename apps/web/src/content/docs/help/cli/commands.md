@@ -102,6 +102,22 @@ version. See [updating](/help/cli/updating/) for the full sequence.
 
 Creates an organization's first administrator account.
 
+## statistics-rebuild
+
+`copalibre statistics-rebuild --organization <alias> [--tournament <alias>]`
+
+Recomputes every folded statistic total (`statistic_totals`) from source facts — finalized matches'
+recorded events, rosters, and hand adjustments — organization-wide by default, or narrowed to one
+tournament.
+
+- `--organization <alias>`: organization to rebuild statistics for
+- `--tournament <alias>`: narrows the rebuild to one tournament within the organization
+
+Idempotent: it drives the same `refold` and delete-then-insert write path the event-driven trigger
+uses, so running it twice in a row produces byte-identical `statistic_totals` rows (aside from
+`updated_at`/the internal projection version). Use it to backfill history recorded before the fold
+engine existed, or to verify totals against the facts at any time.
+
 ## module
 
 `copalibre module <add|list|remove|verify>`

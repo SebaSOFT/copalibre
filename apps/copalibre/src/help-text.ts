@@ -101,6 +101,18 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
       'copalibre create-admin --organization-alias <alias> --organization-name <name> --email <email>',
   },
   {
+    name: 'statistics-rebuild',
+    summary: 'Recompute every folded statistic total from source facts',
+    usage: 'copalibre statistics-rebuild --organization <alias> [--tournament <alias>]',
+    flags: [
+      { flag: '--organization <alias>', description: 'Organization to rebuild statistics for' },
+      {
+        flag: '--tournament <alias>',
+        description: 'Narrow the rebuild to one tournament within the organization',
+      },
+    ],
+  },
+  {
     name: 'module',
     summary: 'Manage installed discipline and tournament-profile modules',
     usage: 'copalibre module <add|list|remove|verify>',

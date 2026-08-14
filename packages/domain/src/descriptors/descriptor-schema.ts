@@ -407,6 +407,15 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
             },
           },
         },
+        /** Absent reads as `{ kind: 'on-finalize' }` (0082). */
+        cadence: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['kind'],
+          properties: {
+            kind: { enum: ['on-finalize', 'live'] },
+          },
+        },
       },
     },
     /**
