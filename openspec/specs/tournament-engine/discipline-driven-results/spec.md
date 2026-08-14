@@ -91,3 +91,22 @@ defines the event and independent of the event's `payloadSchema`.
   notes in its own document
 - **THEN** the optional note field is available on the recording request
 
+### Requirement: A per-side outcome SHALL support an independent result reason
+
+Each side/entrant's recorded outcome MAY carry an optional `resultReason`, independent of every
+other side/entrant's own reason in the same match; the system SHALL NOT require a single reason to
+apply to every side of a match.
+
+#### Scenario: A free-for-all match records different reasons per competitor
+
+- **WHEN** a placement-format match finishes with one competitor disqualified and the rest finishing
+  normally
+- **THEN** the disqualified competitor's outcome carries `resultReason: 'disqualified'` and the
+  others' outcomes are unaffected, each independently
+
+#### Scenario: An omitted reason means an ordinarily played result
+
+- **WHEN** a side's outcome carries no `resultReason`
+- **THEN** it is read as an ordinarily played result, identical to every result recorded before this
+  requirement existed
+
