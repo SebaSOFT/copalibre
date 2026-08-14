@@ -18,7 +18,12 @@ module.exports = {
    * (same split `packages/persistence`'s own jest.config.cjs uses, for the
    * same reason: mocking Postgres would test the mock).
    */
-  collectCoverageFrom: ['src/actor-resolution.ts', 'src/merge-figures.ts', 'src/rollup.ts'],
+  collectCoverageFrom: [
+    'src/actor-resolution.ts',
+    'src/merge-figures.ts',
+    'src/rollup.ts',
+    'src/tag-filter.ts',
+  ],
   coverageThreshold: {
     global: { lines: 90, branches: 85, functions: 90, statements: 90 },
   },
