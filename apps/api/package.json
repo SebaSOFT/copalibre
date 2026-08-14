@@ -21,7 +21,7 @@
     "@copalibre/tournament-engine": "workspace:^",
     "@nestjs/common": "^11.1.28",
     "@nestjs/core": "^11.1.28",
-    "@nestjs/platform-fastify": "^11.1.28",
+    "@nestjs/platform-fastify": "^11.1.29",
     "@nestjs/swagger": "^11.4.6",
     "jose": "^6",
     "reflect-metadata": "^0.2.2",
