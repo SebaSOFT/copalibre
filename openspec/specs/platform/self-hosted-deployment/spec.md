@@ -47,8 +47,8 @@ file, unchanged.
 
 ### Requirement: copalibre administrative CLI
 The release SHALL provide a `copalibre` CLI with `init`, `doctor`, `dev`, `dev --hybrid`, `start`,
-`migrate`, `create-admin`, `statistics-rebuild`, `backup`, `restore`, `upgrade-check`, and `mcp`
-subcommands. Every invocation SHALL print a startup banner identifying the product, its version, and
+`migrate`, `create-admin`, `login`, `statistics-rebuild`, `backup`, `restore`, `upgrade-check`, and
+`mcp` subcommands. Every invocation SHALL print a startup banner identifying the product, its version, and
 its license before running the requested subcommand, and that banner SHALL be written to a stream that
 never mixes with a subcommand's own stdout output. Running `copalibre --help`/`-h` with no subcommand
 SHALL list every subcommand with a one-line summary, and running `copalibre <subcommand> --help`/`-h`
@@ -70,6 +70,13 @@ refuse with a message naming both versions when the running CLI's own version do
 directory's recorded version. `init --module-dev` SHALL additionally write a companion Compose
 override file bind-mounting a local module-development directory into the installation, with no
 extra flag needed at the operator's own `docker compose` invocation.
+
+`copalibre login` SHALL accept a personal access token (via flag, stdin, or an interactive prompt),
+validate it against the target installation, and store it so subsequent `statistics-rebuild` and
+`module` subcommands authenticate over the network. `statistics-rebuild`, when a stored credential
+exists for its target installation, SHALL operate over an authenticated HTTP call requiring
+organization-administrator authority for the named organization; without a stored credential, it
+SHALL operate over a direct database connection.
 
 #### Scenario: doctor catches misconfiguration before start
 - **WHEN** `copalibre doctor` runs against an installation missing a required secret or with an
@@ -149,6 +156,22 @@ extra flag needed at the operator's own `docker compose` invocation.
 - **THEN** it refuses, naming both the recorded and the running version, and performs no migration or
   compatibility check
 
+#### Scenario: login stores a valid token
+- **WHEN** an operator generates a personal access token from the control panel's preferences screen
+  and runs `copalibre login --api-url <url>`, providing that token
+- **THEN** the CLI validates the token against that installation and stores it, so subsequent
+  `statistics-rebuild`/`module` commands against that installation authenticate automatically
+
+#### Scenario: login rejects an invalid token
+- **WHEN** `copalibre login` is run with a token that is expired, revoked, or does not exist
+- **THEN** it refuses, reports that the token is invalid, and stores nothing
+
+#### Scenario: statistics-rebuild works without direct database access once logged in
+- **WHEN** an operator has run `copalibre login` against a target installation and then runs
+  `copalibre statistics-rebuild --organization <alias>` with `DATABASE_URL` unset
+- **THEN** the rebuild completes over the authenticated HTTP call, identically to the direct-database
+  path's result for the same input
+
 ### Requirement: Module management subcommands
 The `copalibre` CLI SHALL provide `module add`, `module list`, `module remove`, `module verify`,
 `module scaffold`, and `module validate-local`. Running `copalibre module --help`/`-h` SHALL list
@@ -159,7 +182,10 @@ one-source-of-truth rule as the top-level CLI's help.
 `copalibre init --module-dev` MAY write a companion Compose override file that bind-mounts a
 local directory into the running installation and pre-authorizes installing modules from it, so a
 module scaffolded via `module scaffold` can be installed and iterated on against a running instance
-without a source checkout.
+without a source checkout. When an operator is logged in via `copalibre login`, `module`
+add/list/remove/verify SHALL operate over an authenticated HTTP call requiring installation-wide
+administrator authority; without a stored credential, they SHALL operate over a direct database
+connection.
 
 #### Scenario: An operator lists installed modules
 - **WHEN** the module-list command is run
@@ -186,6 +212,11 @@ without a source checkout.
   into the mounted directory, and `module add` is run naming that directory's `file://` source
 - **THEN** the module installs, using the pre-authorized allowlist entry `--module-dev` already set,
   with no other configuration required
+
+#### Scenario: Module management requires installation-wide authority when logged in
+- **WHEN** an operator logged in via a personal access token that is not an installation super-admin
+  runs `copalibre module add`
+- **THEN** the command is refused, naming the required authority, and no module is installed
 
 ### Requirement: Verified backup and restore
 
