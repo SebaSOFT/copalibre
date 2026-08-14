@@ -309,6 +309,13 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
       },
     },
     collectors: { type: 'array', items: { $ref: '#/definitions/collector' } },
+    /**
+     * Tag declarations (0073, `declared-tagging`). The structure is checked
+     * here; whether a collector's `requiresTag` names one declared here is a
+     * question about the whole document and lives in
+     * `validateDisciplineDescriptorDocument`.
+     */
+    tags: { type: 'array', items: { $ref: '#/definitions/tagDeclaration' } },
     notificationRuleCapabilities: { type: 'array', items: { type: 'string', minLength: 1 } },
     winCondition: { $ref: RULE_SCRIPT_SCHEMA_ID },
     uiMetadata: { type: 'object' },
@@ -415,6 +422,77 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
           properties: {
             kind: { enum: ['on-finalize', 'live'] },
           },
+        },
+        /**
+         * The tag an actor must carry, at fact time, for a fact to count
+         * (0073). Only meaningful on an event-/statistic-sourced collector —
+         * `validateCollectors` refuses it on a participation-/collector-
+         * sourced one, since neither has a fact-level instant to check.
+         */
+        requiresTag: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['code'],
+          properties: {
+            code: { type: 'string', minLength: 1 },
+            competition: {
+              enum: ['event', 'segment', 'match', 'stage', 'season', 'tournament', 'organization'],
+            },
+          },
+        },
+      },
+    },
+    /**
+     * A tag declaration (0073, `declared-tagging`). `label` is a plain string
+     * (unlike a collector's `LOCALIZED_LABEL_SCHEMA` label) — matching
+     * `TagDeclaration`'s own domain type exactly.
+     */
+    tagDeclaration: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['code', 'label', 'appliesTo'],
+      properties: {
+        code: { type: 'string', minLength: 1 },
+        label: { type: 'string', minLength: 1 },
+        appliesTo: {
+          type: 'array',
+          minItems: 1,
+          items: { enum: ['person', 'player', 'team', 'club', 'official', 'venue'] },
+        },
+        scopedTo: {
+          type: 'array',
+          items: {
+            enum: ['event', 'segment', 'match', 'stage', 'season', 'tournament', 'organization'],
+          },
+        },
+        producedAt: {
+          enum: ['event', 'segment', 'match', 'stage', 'season', 'tournament', 'organization'],
+        },
+        exclusive: { type: 'boolean' },
+        until: {
+          type: 'object',
+          required: ['kind'],
+          oneOf: [
+            {
+              additionalProperties: false,
+              required: ['kind'],
+              properties: { kind: { const: 'lifted' } },
+            },
+            {
+              additionalProperties: false,
+              required: ['kind'],
+              properties: { kind: { const: 'granularity-ends' } },
+            },
+            {
+              additionalProperties: false,
+              required: ['kind', 'collectorCode', 'value'],
+              properties: {
+                kind: { const: 'collector-reaches' },
+                collectorCode: { type: 'string', minLength: 1 },
+                value: { type: 'number' },
+              },
+            },
+          ],
         },
       },
     },

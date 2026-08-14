@@ -88,10 +88,12 @@ export interface FoldInput {
   /**
    * Excludes a candidate fact before it is accumulated, checked against the
    * actor id already resolved at the collector's own declared granularity —
-   * the identity a tag or eligibility check is naturally keyed against.
-   * Nothing supplies one yet; `0073`'s `requiresTag` is the first caller.
+   * the identity a tag or eligibility check is naturally keyed against — and
+   * the collector currently being folded, since a filter's decision (e.g.
+   * `0073`'s `requiresTag`) is a per-collector declaration, not a blanket
+   * rule for the whole fold.
    */
-  readonly filter?: (fact: FoldFact, actorId: string) => boolean;
+  readonly filter?: (fact: FoldFact, actorId: string, collector: StatisticCollector) => boolean;
 }
 
 /**
@@ -137,7 +139,7 @@ export function foldStatistics(input: FoldInput): readonly CollectedFigure[] {
         if (roles && !roles.includes(member.role)) continue;
         const actorId = actorIdAt(member, collector.granularity.actor);
         if (actorId === undefined) continue;
-        if (input.filter && !input.filter(member, actorId)) continue;
+        if (input.filter && !input.filter(member, actorId, collector)) continue;
         add(keyFor(collector, actorId, input.context), 1);
       }
       continue;
@@ -151,7 +153,7 @@ export function foldStatistics(input: FoldInput): readonly CollectedFigure[] {
           if (!resolved) continue;
           const actorId = actorIdAt(resolved, collector.granularity.actor);
           if (actorId === undefined) continue;
-          if (input.filter && !input.filter(event, actorId)) continue;
+          if (input.filter && !input.filter(event, actorId, collector)) continue;
           add(keyFor(collector, actorId, input.context), delta);
         }
       }
@@ -176,7 +178,7 @@ export function foldStatistics(input: FoldInput): readonly CollectedFigure[] {
       // happens to run later in `input.collectors`.
       for (const figure of [...figures.values()]) {
         if (figure.collectorCode !== sourceCode) continue;
-        if (input.filter && !input.filter(figure, figure.actorId)) continue;
+        if (input.filter && !input.filter(figure, figure.actorId, collector)) continue;
         add(
           keyFor(collector, figure.actorId, input.context),
           measuredFromFigure(collector.measure, figure),
@@ -195,7 +197,7 @@ export function foldStatistics(input: FoldInput): readonly CollectedFigure[] {
 
       const actorId = actorIdAt(resolved, collector.granularity.actor);
       if (actorId === undefined) continue;
-      if (input.filter && !input.filter(event, actorId)) continue;
+      if (input.filter && !input.filter(event, actorId, collector)) continue;
 
       add(keyFor(collector, actorId, input.context), measured(collector.measure, event));
     }

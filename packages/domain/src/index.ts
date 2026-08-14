@@ -188,6 +188,7 @@ export {
 } from './statistics/hierarchies.js';
 export {
   validateTagDeclaration,
+  validateTagDeclarations,
   checkTagApplication,
   tagScopeFor,
   tagsAt,

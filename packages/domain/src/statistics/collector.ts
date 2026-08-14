@@ -83,6 +83,19 @@ export interface StatisticCollector {
   };
   /** Absent means `{ kind: 'on-finalize' }`. */
   readonly cadence?: CollectorCadence;
+  /**
+   * The tag an acting actor must carry, at the moment the fact occurred, for
+   * that fact to count (0073). Filtering happens at fold time, not at read
+   * time — a stored total never needs a join against tag facts to answer.
+   *
+   * Only meaningful for `event`- and `statistic`-sourced collectors, both of
+   * which have a fact with its own `occurredAt` to check tag state against.
+   * A `participation`-sourced fact (roster membership) and a
+   * `collector`-sourced fact (an already-folded figure) have no natural
+   * instant of their own, so `requiresTag` on either is refused at
+   * validation time rather than resolved against an invented one.
+   */
+  readonly requiresTag?: { readonly code: string; readonly competition?: CompetitionGranularity };
 }
 
 export class CollectorError extends DomainError {
@@ -105,6 +118,8 @@ export interface InertCollector {
 export interface CollectorVocabulary {
   readonly eventCodes: readonly string[];
   readonly statisticCodes: readonly string[];
+  /** Tag codes a `requiresTag` may name (0073) — the discipline's own `tags`. */
+  readonly tagCodes: readonly string[];
   /** Granularities nothing populates yet; empty since 0015. */
   readonly unpopulatedGranularities?: readonly (ActorGranularity | CompetitionGranularity)[];
 }
@@ -192,6 +207,24 @@ function validateOne(
         'granularity, which would put the ceiling under the floor',
       { code: collector.code, ceiling: ceiling.competition },
     );
+  }
+
+  if (collector.requiresTag) {
+    if (collector.source.kind !== 'event' && collector.source.kind !== 'statistic') {
+      return new CollectorError(
+        `Collector "${collector.code}" declares requiresTag, but its source is ` +
+          `"${collector.source.kind}", which has no fact-level instant to check tag state against; ` +
+          'requiresTag is only meaningful on an event- or statistic-sourced collector',
+        { code: collector.code, source: collector.source.kind },
+      );
+    }
+    if (!vocabulary.tagCodes.includes(collector.requiresTag.code)) {
+      return new CollectorError(
+        `Collector "${collector.code}" requires tag "${collector.requiresTag.code}", which this ` +
+          'discipline does not declare',
+        { code: collector.code, tagCode: collector.requiresTag.code },
+      );
+    }
   }
 
   return sourceError(collector, vocabulary, byCode);

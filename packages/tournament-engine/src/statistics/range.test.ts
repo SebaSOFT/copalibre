@@ -106,6 +106,7 @@ describe('one declaration set, four axes', () => {
     const result = validateCollectors(COLLECTORS, {
       eventCodes: ['score', 'sanction'],
       statisticCodes: [],
+      tagCodes: [],
     });
 
     expect(result.ok).toBe(true);

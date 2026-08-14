@@ -1,4 +1,4 @@
-import { isLiveCadence, type RecordedEvent } from '@copalibre/domain';
+import { isLiveCadence, type RecordedEvent, type TagDeclaration } from '@copalibre/domain';
 import {
   foldStatistics,
   orderForFold,
@@ -9,6 +9,7 @@ import {
   CompetitionRepository,
   EnrollmentRepository,
   StatisticRepository,
+  TagRepository,
   TournamentRepository,
   type Database,
   type Refold,
@@ -23,6 +24,7 @@ import {
   type RosterRow,
 } from './actor-resolution.js';
 import { mergeFigures } from './merge-figures.js';
+import { buildRequiresTagFilter } from './tag-filter.js';
 
 export interface MatchFoldContext {
   readonly input: FoldInput;
@@ -97,6 +99,13 @@ export async function resolveMatchFold(
     clubOfTeam,
   });
 
+  const filter = await requiresTagFilter(
+    db,
+    tournament.organizationId,
+    descriptor.tags ?? [],
+    descriptor.collectors ?? [],
+  );
+
   return {
     organizationId: tournament.organizationId,
     input: {
@@ -107,8 +116,37 @@ export async function resolveMatchFold(
       context,
       definitions: descriptor.eventDefinitions,
       adjustments,
+      ...(filter ? { filter } : {}),
     },
   };
+}
+
+/**
+ * Fetches every fact a discipline's `requiresTag` collectors could need and
+ * delegates to `buildRequiresTagFilter` (pure, unit-tested independently).
+ * `undefined` when no collector declares `requiresTag` — the common case —
+ * so a fold that needs no tag data never pays for fetching any.
+ */
+async function requiresTagFilter(
+  db: Kysely<Database>,
+  organizationId: string,
+  declarations: readonly TagDeclaration[],
+  collectors: FoldInput['collectors'],
+): Promise<FoldInput['filter'] | undefined> {
+  const codes = [
+    ...new Set(
+      collectors
+        .map((collector) => collector.requiresTag?.code)
+        .filter((code): code is string => code !== undefined),
+    ),
+  ];
+  if (codes.length === 0) return undefined;
+
+  const tags = new TagRepository(db);
+  const factsByCode = await Promise.all(
+    codes.map((code) => tags.factsFor({ organizationId, code })),
+  );
+  return buildRequiresTagFilter(declarations, factsByCode.flat());
 }
 
 /**

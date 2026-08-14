@@ -44,6 +44,7 @@ import {
   thresholdReadable,
   type CollectorThresholdRule,
 } from '@copalibre/rules';
+import { tagFactsFrom } from '@copalibre/tournament-engine';
 import {
   AuditReader,
   CollectorThresholdConsumptionRepository,
@@ -52,6 +53,7 @@ import {
   MatchAssignmentRepository,
   MatchCommandIdempotencyRepository,
   ProjectionStore,
+  TagRepository,
   TournamentRepository,
   withTransaction,
   type Database,
@@ -659,6 +661,26 @@ export class MatchControlController {
           event: appended,
           projectionVersion: statisticsVersion,
         });
+      }
+
+      // Tag facts (0073, `declared-tagging`): a declared `{ kind: 'tag' }`
+      // effect on this one event produces a fact now, in the same
+      // transaction — commits with the event or not at all, the same
+      // reasoning `0082`'s live-cadence fold above already applies. Scoped to
+      // `[appended]`, not the whole log: every earlier event already
+      // produced its own facts when *it* was recorded.
+      if (foldContext) {
+        const tagFacts = tagFactsFrom({
+          declarations: descriptor.tags ?? [],
+          events: [appended],
+          definitions: descriptor.eventDefinitions,
+          actorOf: foldContext.input.actorOf,
+          context: foldContext.input.context,
+        });
+        const tags = new TagRepository(this.db);
+        for (const fact of tagFacts) {
+          await tags.record(uow, { fact, ...audit });
+        }
       }
 
       const log = [...(await competition.listEvents(matchId)), appended];

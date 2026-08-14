@@ -1,6 +1,7 @@
 import type { Attribution } from './attribution.js';
 import type { EventDefinition } from './event-definition.js';
 import type { StatisticCollector } from '../statistics/collector.js';
+import type { TagDeclaration } from '../statistics/tags.js';
 import type { ConfigFieldPolicies, RulesetConfig } from './override-policy.js';
 import type { LocalizedLabel } from '../i18n-label.js';
 
@@ -134,6 +135,12 @@ export interface DisciplineDescriptor {
    * what a result records.
    */
   readonly collectors?: readonly StatisticCollector[];
+  /**
+   * Labels a granularity on either hierarchy may carry — suspended, captain,
+   * under review (0073, `declared-tagging`). Absent means the discipline
+   * declares none; a collector's `requiresTag` must name one declared here.
+   */
+  readonly tags?: readonly TagDeclaration[];
   readonly scoringInputs: readonly ScoringInputDefinition[];
   /**
    * Points awarded by finishing position in a placement match, and the code the

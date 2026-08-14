@@ -21,6 +21,7 @@ export {
   type RosterRow,
 } from './actor-resolution.js';
 export { mergeFigures } from './merge-figures.js';
+export { buildRequiresTagFilter } from './tag-filter.js';
 export { readRolledUp, type ActorMembership } from './rollup.js';
 export { readRolledUpTotals, type RollupQuery } from './rollup-read.js';
 export { createRefold, foldLiveEvent, resolveMatchFold, type MatchFoldContext } from './refold.js';

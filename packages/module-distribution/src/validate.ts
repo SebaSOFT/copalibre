@@ -1,7 +1,9 @@
 import semver from 'semver';
 import {
   compileEffectiveRuleset,
+  validateCollectors,
   validateDisciplineDescriptorDocument,
+  validateTagDeclarations,
   validateTournamentProfileDocument,
   type DisciplineDescriptor,
   type DisciplineDescriptorDocument,
@@ -109,6 +111,25 @@ export async function validateModulePackage(
     const references = registry.validateDescriptorReferences(descriptor);
     if (!references.ok) {
       failures.push({ stage: 'registry-reference', message: references.error.message });
+    }
+
+    const tags = validateTagDeclarations(descriptor.tags ?? []);
+    if (!tags.ok) {
+      failures.push({ stage: 'tags', message: tags.error.message });
+    }
+
+    // Semantic collector checks (0073) — structurally valid per the ajv schema
+    // already, but a duplicate code, a circular collector-of-collector chain,
+    // an unregistered event/statistic/tag reference, or a ceiling under its
+    // own floor is a relationship between collectors (or between a collector
+    // and the discipline's own tags), not a property of one collector alone.
+    const collectors = validateCollectors(descriptor.collectors ?? [], {
+      eventCodes: descriptor.eventDefinitions.map((definition) => definition.code),
+      statisticCodes: descriptor.statistics.map((statistic) => statistic.code),
+      tagCodes: (descriptor.tags ?? []).map((tag) => tag.code),
+    });
+    if (!collectors.ok) {
+      failures.push({ stage: 'collectors', message: collectors.error.message });
     }
 
     // No override layer exists yet for a bare descriptor — compileEffectiveRuleset

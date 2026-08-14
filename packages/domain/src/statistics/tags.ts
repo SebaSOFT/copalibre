@@ -105,6 +105,31 @@ export class TagError extends DomainError {
   readonly code = 'TAG_INVALID';
 }
 
+/**
+ * Validates every declaration a discipline makes, together — a duplicate
+ * code is a relationship between two declarations, not a property of either
+ * alone, the same reason `validateCollectors` checks its collectors together
+ * (0073).
+ */
+export function validateTagDeclarations(
+  declarations: readonly TagDeclaration[],
+): Result<readonly TagDeclaration[], TagError> {
+  const seen = new Set<string>();
+  for (const declaration of declarations) {
+    if (seen.has(declaration.code)) {
+      return err(
+        new TagError(`Tag "${declaration.code}" is declared more than once`, {
+          code: declaration.code,
+        }),
+      );
+    }
+    seen.add(declaration.code);
+    const validated = validateTagDeclaration(declaration);
+    if (!validated.ok) return validated;
+  }
+  return ok(declarations);
+}
+
 /** Validates a declaration against the published hierarchies. */
 export function validateTagDeclaration(
   declaration: TagDeclaration,
