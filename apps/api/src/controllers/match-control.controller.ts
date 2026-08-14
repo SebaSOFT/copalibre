@@ -272,11 +272,14 @@ export class MatchControlController {
           await competition.recordResult(uow, {
             matchId,
             result: {
+              // resultReason is always written explicitly, never left to an
+              // implicit "absent means played" — a blob nobody is forced to
+              // touch again is a blob whose meaning nothing enforces (0076).
               sides: body.sides.map((side) => ({
                 entrantId: side.entrantId,
                 statistics: side.statistics,
                 ...(side.placement === undefined ? {} : { placement: side.placement }),
-                ...(side.resultReason === undefined ? {} : { resultReason: side.resultReason }),
+                resultReason: side.resultReason ?? 'played',
               })),
               ...(body.winnerEntrantId === undefined
                 ? {}
@@ -854,11 +857,12 @@ export class MatchControlController {
         actor: request.subject?.subjectId ?? 'unknown',
         ...(body.sourceReportId === undefined ? {} : { sourceReportId: body.sourceReportId }),
         replacement: {
+          // Same rationale as finalize: written explicitly, never implicit (0076).
           sides: body.sides.map((side) => ({
             entrantId: side.entrantId,
             statistics: side.statistics,
             ...(side.placement === undefined ? {} : { placement: side.placement }),
-            ...(side.resultReason === undefined ? {} : { resultReason: side.resultReason }),
+            resultReason: side.resultReason ?? 'played',
           })),
           ...(body.winnerEntrantId === undefined ? {} : { winnerEntrantId: body.winnerEntrantId }),
           recordedAt: new Date().toISOString(),

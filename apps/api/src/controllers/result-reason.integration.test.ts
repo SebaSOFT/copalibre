@@ -222,7 +222,8 @@ describe('result reason per competitor (integration, 0076)', () => {
     };
     const winner = result.sides.find((side) => side.entrantId === entrantIds[0]);
     const loser = result.sides.find((side) => side.entrantId === entrantIds[1]);
-    expect(winner?.resultReason).toBeUndefined();
+    // An omitted reason is written explicitly as 'played', never left implicit (0076 follow-up).
+    expect(winner?.resultReason).toBe('played');
     expect(loser?.resultReason).toBe('walkover');
   });
 
