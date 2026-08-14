@@ -18,7 +18,7 @@
     "@copalibre/tournament-engine": "workspace:^",
     "@nestjs/common": "^11.1.28",
     "@nestjs/core": "^11.1.28",
-    "@nestjs/platform-fastify": "^11.1.28",
+    "@nestjs/platform-fastify": "^11.1.29",
     "clamscan": "^2.4.0",
     "kysely": "^0.29",
     "nodemailer": "^9.0.3",
