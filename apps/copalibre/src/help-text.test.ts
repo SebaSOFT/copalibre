@@ -1,6 +1,4 @@
-import { readFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { commandClasses } from './commands/index.js';
 import {
   COMMAND_HELP,
   MODULE_SUBCOMMAND_HELP,
@@ -8,33 +6,30 @@ import {
   renderTopLevelHelp,
 } from './help-text.js';
 
-const SOURCE_DIRECTORY = dirname(fileURLToPath(import.meta.url));
-
 /**
- * Reads the real `cli-runner.ts` source and extracts the `case '...'` labels
- * from its top-level command switch (0044) — not a hardcoded duplicate of the
- * command list, so a new command with no `COMMAND_HELP` entry fails this test
- * instead of shipping silently undocumented (same technique 0043's
- * `control-help-links.test.tsx` used against `ControlRoutes.tsx`).
+ * Derived from the real registered `Command` classes' `paths`, so a new
+ * command with no `COMMAND_HELP` entry fails this test (the same technique
+ * `control-help-links.test.tsx` uses against `ControlRoutes.tsx`).
  */
 function realTopLevelCommands(): readonly string[] {
-  const source = readFileSync(resolve(SOURCE_DIRECTORY, 'cli-runner.ts'), 'utf8');
-  const switchStart = source.indexOf('switch (command) {');
-  const switchDefault = source.indexOf('default:', switchStart);
-  const switchBody = source.slice(switchStart, switchDefault);
-  return [...switchBody.matchAll(/case '([\w-]+)':/g)]
-    .map((match) => match[1])
-    .filter((name): name is string => name !== undefined);
+  const names = new Set<string>();
+  for (const commandClass of commandClasses) {
+    for (const path of commandClass.paths ?? []) {
+      const [first] = path;
+      if (first) names.add(first);
+    }
+  }
+  return [...names];
 }
 
 function realModuleSubcommands(): readonly string[] {
-  const source = readFileSync(resolve(SOURCE_DIRECTORY, 'cli-runner.ts'), 'utf8');
-  const switchStart = source.indexOf('switch (sub) {');
-  const switchDefault = source.indexOf('default:', switchStart);
-  const switchBody = source.slice(switchStart, switchDefault);
-  return [...switchBody.matchAll(/case '([\w-]+)':/g)]
-    .map((match) => match[1])
-    .filter((name): name is string => name !== undefined);
+  const names = new Set<string>();
+  for (const commandClass of commandClasses) {
+    for (const path of commandClass.paths ?? []) {
+      if (path[0] === 'module' && path[1]) names.add(path[1]);
+    }
+  }
+  return [...names];
 }
 
 describe('COMMAND_HELP stays in sync with the real CLI dispatch (0044)', () => {

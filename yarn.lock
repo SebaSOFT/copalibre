@@ -1567,16 +1567,13 @@ __metadata:
     "@copalibre/persistence": "workspace:^"
     "@copalibre/statistics-refold": "workspace:^"
     "@modelcontextprotocol/sdk": "npm:^1.30.0"
-    "@nestjs/common": "npm:^11.1.28"
-    "@nestjs/core": "npm:^11.1.28"
     "@types/jest": "npm:^30.0.0"
     "@types/semver": "npm:^7.7.1"
     ajv: "npm:^8.20.0"
+    clipanion: "npm:^3.2.1"
     jest: "npm:^30.4.2"
     jose: "npm:^6"
     kysely: "npm:^0.29"
-    reflect-metadata: "npm:^0.2.2"
-    rxjs: "npm:^7.8.2"
     semver: "npm:^7.8.5"
     tar: "npm:^7.4.3"
     ts-jest: "npm:^29.4.12"
@@ -6918,6 +6915,17 @@ __metadata:
   version: 2.4.0
   resolution: "clamscan@npm:2.4.0"
   checksum: 10c0/ac15ddc9debf597cf13d98362b62f722a8af087b210991dbabe5849a9fee53902968fc2ea254404296a31ac9dc0dd4c25174289b2b68d26cb4bba85ccfe8e441
+  languageName: node
+  linkType: hard
+
+"clipanion@npm:^3.2.1":
+  version: 3.2.1
+  resolution: "clipanion@npm:3.2.1"
+  dependencies:
+    typanion: "npm:^3.8.0"
+  peerDependencies:
+    typanion: "*"
+  checksum: 10c0/6c148bd01ae645031aeb6e9a1a16f3ce07eb754cd9981c91edcab82b09e063b805ac41e4f36039d07602334b6dbba036b030d1807c12acd7f90778a696b7ac6e
   languageName: node
   linkType: hard
 
@@ -15866,6 +15874,13 @@ __metadata:
     debug: "npm:^4.4.3"
     make-fetch-happen: "npm:^15.0.1"
   checksum: 10c0/38330b0b2d16f7f58eccd49b3a6ff0f87dd20743d6f2c26c2621089d8d83d807808e0e660c5be891122538d32db250e3e88267da4421537253e7aa99a45e5800
+  languageName: node
+  linkType: hard
+
+"typanion@npm:^3.8.0":
+  version: 3.14.0
+  resolution: "typanion@npm:3.14.0"
+  checksum: 10c0/8b03b19844e6955bfd906c31dc781bae6d7f1fb3ce4fe24b7501557013d4889ae5cefe671dafe98d87ead0adceb8afcb8bc16df7dc0bd2b7331bac96f3a7cae2
   languageName: node
   linkType: hard
 

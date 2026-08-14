@@ -126,8 +126,9 @@ export async function writeInstallationAssets(
   }
   // Always explicit, never left to Compose's own cwd-scanning discovery —
   // `-f` flags passed by hand at invocation time would override (not merge
-  // with) this, silently dropping the module-dev override, so cli-runner.ts's
-  // marker-aware dispatch relies on this instead of passing `-f` itself.
+  // with) this, silently dropping the module-dev override, so
+  // compose-target.ts's marker-aware dispatch relies on this instead of
+  // passing `-f` itself.
   const composeFile = options.moduleDev
     ? 'docker-compose.yml:docker-compose.module-dev.yml'
     : 'docker-compose.yml';
