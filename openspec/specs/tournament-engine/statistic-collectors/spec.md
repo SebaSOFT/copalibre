@@ -124,3 +124,24 @@ do not support, and recomputation never double-counts.
 #### Scenario: Replaying the log produces the same totals
 - **WHEN** the same facts are aggregated twice
 - **THEN** the totals are identical, and nothing is counted a second time
+
+### Requirement: A collector threshold rule is authorable ruleset config, delivered as a notification
+
+A tournament's ruleset config MAY declare collector-threshold rules — a collector, an actor
+granularity, a comparator/value threshold, and a window — evaluated as events are recorded, with each
+crossing delivered as a notification over the same realtime channel other match notifications use.
+Crossing a threshold SHALL NOT itself apply any suspension, block, or other enforcement.
+
+#### Scenario: A career-window rule fires once and does not reset
+
+- **WHEN** a rule with a `since-last-consequence` window fires because an actor's collector total
+  crosses the threshold
+- **THEN** a notification is raised, the rule's own consumed-window resets, and the actor's
+  underlying collector total is unaffected by the firing
+
+#### Scenario: Crossing the threshold enforces nothing by itself
+
+- **WHEN** a collector-threshold rule fires
+- **THEN** no roster, lineup, or match operation is blocked or altered as a result — only a
+  notification is raised, matching `declared-tagging`'s "a tag states what is true and enforces
+  nothing" principle applied to this rule type

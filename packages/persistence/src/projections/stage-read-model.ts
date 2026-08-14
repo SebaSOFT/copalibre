@@ -1,4 +1,4 @@
-import type { RecordedOutcome, TournamentFormat } from '@copalibre/domain';
+import type { RecordedOutcome, ResultReason, TournamentFormat } from '@copalibre/domain';
 import type { Kysely } from 'kysely';
 import type { Database } from '../schema.js';
 
@@ -39,6 +39,7 @@ export interface StageMatchRecord {
   readonly homeEntrantId?: string;
   readonly awayEntrantId?: string;
   readonly scores?: readonly (number | undefined)[];
+  readonly resultReasons?: readonly (ResultReason | undefined)[];
 }
 
 export class StageReadModel {
@@ -109,7 +110,10 @@ export class StageReadModel {
       const position = (positions.get(row.round) ?? 0) + 1;
       positions.set(row.round, position);
       const result = row.result as unknown as {
-        readonly sides?: readonly { readonly statistics?: Record<string, number> }[];
+        readonly sides?: readonly {
+          readonly statistics?: Record<string, number>;
+          readonly resultReason?: ResultReason;
+        }[];
       } | null;
 
       return {
@@ -120,6 +124,7 @@ export class StageReadModel {
         ...(row.home_entrant_id === null ? {} : { homeEntrantId: row.home_entrant_id }),
         ...(row.away_entrant_id === null ? {} : { awayEntrantId: row.away_entrant_id }),
         ...(result?.sides === undefined ? {} : { scores: scoresOf(result.sides) }),
+        ...(result?.sides === undefined ? {} : { resultReasons: resultReasonsOf(result.sides) }),
       };
     });
   }
@@ -166,4 +171,11 @@ function scoresOf(
     const values = Object.values(side.statistics ?? {});
     return values.length === 0 ? undefined : values[0];
   });
+}
+
+/** Parallel to `scoresOf` — why a side's result is what it is (0076). */
+function resultReasonsOf(
+  sides: readonly { readonly resultReason?: ResultReason }[],
+): readonly (ResultReason | undefined)[] {
+  return sides.map((side) => side.resultReason);
 }

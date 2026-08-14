@@ -17,6 +17,12 @@ export const messages: Record<string, string> = {
   'publicWeb.resultState.tbd': '待定',
   'publicWeb.resultState.cancelled': '已取消',
 
+  'publicWeb.resultReason.administrativeLoss': '判负',
+  'publicWeb.resultReason.walkover': '弃权',
+  'publicWeb.resultReason.forfeitAbandonment': '中途退赛',
+  'publicWeb.resultReason.disqualified': '取消资格',
+  'publicWeb.resultReason.didNotFinish': '未完成',
+
   'publicWeb.legend.heading': '图例',
 
   'publicWeb.ruleset.heading': '规则',

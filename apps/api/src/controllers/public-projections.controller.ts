@@ -272,6 +272,7 @@ export class PublicProjectionsController {
           abbreviation: s.entrantId ? names.get(s.entrantId)?.abbreviation : undefined,
           matchId: s.matchId,
           score: s.score,
+          resultReason: s.resultReason,
         })),
       })),
     };

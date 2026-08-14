@@ -23,6 +23,7 @@ import { organizationLocale } from './0012-organization-locale.js';
 import { nativeIdentity } from './0013-native-identity.js';
 import { matchEventNotes } from './0014-match-event-notes.js';
 import { collectorThresholdConsumption } from './0015-collector-threshold-consumption.js';
+import { resultReasonBackfill } from './0016-result-reason-backfill.js';
 
 /**
  * Migrations are explicit, ordered, and code-defined (no filesystem scanning),
@@ -46,6 +47,7 @@ export const MIGRATIONS: Readonly<Record<string, Migration>> = {
   '0013-native-identity': nativeIdentity,
   '0014-match-event-notes': matchEventNotes,
   '0015-collector-threshold-consumption': collectorThresholdConsumption,
+  '0016-result-reason-backfill': resultReasonBackfill,
 };
 
 /** The version `apps/api`'s readiness check expects to find applied. */

@@ -8,6 +8,7 @@ import {
   readAppliedSchemaVersion,
 } from './index.js';
 import { rosterTerminology } from './0004-roster-terminology.js';
+import { resultReasonBackfill } from './0016-result-reason-backfill.js';
 
 interface LegacyRosterSchema {
   match_lineups: {
@@ -15,6 +16,13 @@ interface LegacyRosterSchema {
     readonly entrant_id: string;
     readonly person_ids: string;
     readonly updated_at: Date;
+  };
+}
+
+interface MinimalMatchesSchema {
+  matches: {
+    readonly match_id: string;
+    result: string | null;
   };
 }
 
@@ -103,6 +111,12 @@ describe('migrations (integration)', () => {
       expect.arrayContaining([expect.objectContaining({ name: 'notes' })]),
     );
     expect(afterUp).toContain('collector_threshold_consumption');
+
+    // 0016 is a data-only backfill (no schema change); its own up/down
+    // behavior is exercised separately below, against seeded rows — here it
+    // only needs to not error mid-sequence.
+    const resultReasonBackfillDown = await migrateDownOneStep(scratch.db);
+    expect(resultReasonBackfillDown.error).toBeUndefined();
 
     const collectorThresholdConsumptionDown = await migrateDownOneStep(scratch.db);
     expect(collectorThresholdConsumptionDown.error).toBeUndefined();
@@ -326,6 +340,98 @@ describe('migrations (integration)', () => {
       .select('capabilities')
       .executeTakeFirstOrThrow();
     expect(assignmentAfterDown.capabilities).toEqual(['match.record-event', 'match.select-lineup']);
+  });
+
+  it('backfills an explicit resultReason and reverses only what it added (0076/0016)', async () => {
+    await scratch.db.schema
+      .createTable('matches')
+      .addColumn('match_id', 'uuid', (column) => column.primaryKey())
+      .addColumn('result', 'jsonb')
+      .execute();
+
+    const legacyDb = scratch.db as unknown as Kysely<MinimalMatchesSchema>;
+    const legacyMatchId = '00000000-0000-7000-8000-000000000005';
+    const alreadyExplicitMatchId = '00000000-0000-7000-8000-000000000006';
+    const otherReasonMatchId = '00000000-0000-7000-8000-000000000007';
+
+    await legacyDb
+      .insertInto('matches')
+      .values([
+        {
+          match_id: legacyMatchId,
+          result: JSON.stringify({
+            sides: [
+              { entrantId: 'e-1', statistics: {} },
+              { entrantId: 'e-2', statistics: {} },
+            ],
+          }),
+        },
+        {
+          match_id: alreadyExplicitMatchId,
+          result: JSON.stringify({
+            sides: [
+              { entrantId: 'e-1', statistics: {}, resultReason: 'played' },
+              { entrantId: 'e-2', statistics: {}, resultReason: 'played' },
+            ],
+          }),
+        },
+        {
+          match_id: otherReasonMatchId,
+          result: JSON.stringify({
+            sides: [
+              { entrantId: 'e-1', statistics: {} },
+              { entrantId: 'e-2', statistics: {}, resultReason: 'walkover' },
+            ],
+          }),
+        },
+      ])
+      .execute();
+
+    await resultReasonBackfill.up(scratch.db);
+
+    const afterUp = await scratch.db.selectFrom('matches').select(['match_id', 'result']).execute();
+    const sidesOf = (matchId: string): readonly { readonly resultReason?: string }[] =>
+      (
+        afterUp.find((row) => row.match_id === matchId)?.result as unknown as {
+          sides: readonly { readonly resultReason?: string }[];
+        } | null
+      )?.sides ?? [];
+
+    expect(sidesOf(legacyMatchId).every((side) => side.resultReason === 'played')).toBe(true);
+    expect(sidesOf(otherReasonMatchId).map((side) => side.resultReason)).toEqual([
+      'played',
+      'walkover',
+    ]);
+
+    if (!resultReasonBackfill.down) {
+      throw new Error('Result reason backfill migration must support rollback.');
+    }
+    await resultReasonBackfill.down(scratch.db);
+
+    const afterDown = await scratch.db
+      .selectFrom('matches')
+      .select(['match_id', 'result'])
+      .execute();
+    const sidesOfDown = (matchId: string): readonly { readonly resultReason?: string }[] =>
+      (
+        afterDown.find((row) => row.match_id === matchId)?.result as unknown as {
+          sides: readonly { readonly resultReason?: string }[];
+        } | null
+      )?.sides ?? [];
+
+    // Backfilled row reverts to no explicit reason — matches its pre-migration shape.
+    expect(sidesOfDown(legacyMatchId).every((side) => side.resultReason === undefined)).toBe(true);
+    // A row that already carried an explicit 'played' before `up` ran is
+    // indistinguishable from one the migration added it to — `down` strips it
+    // too, the documented, accepted limitation of this reversal.
+    expect(
+      sidesOfDown(alreadyExplicitMatchId).every((side) => side.resultReason === undefined),
+    ).toBe(true);
+    // A real non-played reason is never touched by `down`.
+    expect(sidesOfDown(otherReasonMatchId).map((side) => side.resultReason)).toEqual([
+      undefined,
+      'walkover',
+    ]);
   });
 });
 

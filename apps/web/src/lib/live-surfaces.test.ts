@@ -85,6 +85,23 @@ describe('a bracket that is not a tree', () => {
     expect(node.slots[0]?.score).toBe(3);
     expect(node.slots[0]?.pending).toBe(false);
   });
+
+  it('carries an unusual resultReason onto a slot and omits played/absent ones (0076)', () => {
+    const [decided] = matches;
+    if (!decided) throw new Error('the sample bracket is empty');
+    const node = toNode({ ...decided, resultReasons: ['walkover', 'played'] }, LABELS);
+
+    expect(node.slots[0]?.resultReason).toBe('walkover');
+    expect(node.slots[1]?.resultReason).toBeUndefined();
+  });
+
+  it('omits resultReason entirely when the match declares none', () => {
+    const [decided] = matches;
+    if (!decided) throw new Error('the sample bracket is empty');
+    const node = toNode(decided, LABELS);
+
+    expect(node.slots[0]?.resultReason).toBeUndefined();
+  });
 });
 
 describe('the series bar', () => {

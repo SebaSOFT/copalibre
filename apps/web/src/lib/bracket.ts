@@ -1,3 +1,4 @@
+import type { ResultReason } from '@copalibre/domain';
 import { presentState, type ResultState, type ResultStateLabels } from './result-state.js';
 
 /**
@@ -23,6 +24,8 @@ export interface BracketMatch {
   readonly branch: string;
   readonly slots: readonly SlotSource[];
   readonly scores?: readonly (number | undefined)[];
+  /** Parallel to `scores` — why a side's result is what it is (0076). */
+  readonly resultReasons?: readonly (ResultReason | undefined)[];
   readonly state: ResultState;
 }
 
@@ -35,6 +38,8 @@ export interface BracketRound {
 export interface NodeSlotView {
   readonly label: string;
   readonly score?: number;
+  /** Absent, or `played`, renders nothing — only an unusual reason is shown. */
+  readonly resultReason?: Exclude<ResultReason, 'played'>;
   readonly state: ResultState;
   /** True while the entrant is not known yet: rendered dashed, never blank. */
   readonly pending: boolean;
@@ -78,10 +83,12 @@ export function toNode(match: BracketMatch, labels: ResultStateLabels): MatchNod
     badge: presentState(match.state, labels),
     slots: match.slots.map((slot, index) => {
       const score = match.scores?.[index];
+      const resultReason = match.resultReasons?.[index];
       const pending = slot.kind !== 'entrant';
       return {
         label: describeSlot(slot),
         ...(score === undefined ? {} : { score }),
+        ...(resultReason === undefined || resultReason === 'played' ? {} : { resultReason }),
         state: pending ? 'tbd' : match.state,
         pending,
       };

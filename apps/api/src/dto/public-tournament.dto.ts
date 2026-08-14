@@ -147,6 +147,19 @@ export class PublicBracketSlotResponse {
 
   @ApiPropertyOptional({ description: 'Score recorded for this side, when the match is finalized' })
   score?: number;
+
+  @ApiPropertyOptional({
+    description: 'Why this side’s result is what it is; absent means an ordinarily played result',
+    enum: [
+      'played',
+      'administrative-loss',
+      'walkover',
+      'forfeit-abandonment',
+      'disqualified',
+      'did-not-finish',
+    ],
+  })
+  resultReason?: string;
 }
 
 export class PublicBracketMatchResponse {

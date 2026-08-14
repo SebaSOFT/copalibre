@@ -4564,7 +4564,7 @@
         "type": "object",
         "properties": {
           "sides": {
-            "description": "One entry per side: entrant id, its declared statistics, and placement for a heat",
+            "description": "One entry per side: entrant id, its declared statistics, placement for a heat, and why the result is what it is when not an ordinarily played one (0076)",
             "type": "array",
             "items": {
               "type": "object"
@@ -5017,6 +5017,18 @@
           "score": {
             "type": "number",
             "description": "Score recorded for this side, when the match is finalized"
+          },
+          "resultReason": {
+            "type": "string",
+            "description": "Why this side’s result is what it is; absent means an ordinarily played result",
+            "enum": [
+              "played",
+              "administrative-loss",
+              "walkover",
+              "forfeit-abandonment",
+              "disqualified",
+              "did-not-finish"
+            ]
           }
         },
         "required": [
@@ -6013,6 +6025,18 @@
           "score": {
             "type": "number",
             "description": "Score recorded for this side, when the match is finalized"
+          },
+          "resultReason": {
+            "type": "string",
+            "description": "Why this side’s result is what it is; absent means an ordinarily played result",
+            "enum": [
+              "played",
+              "administrative-loss",
+              "walkover",
+              "forfeit-abandonment",
+              "disqualified",
+              "did-not-finish"
+            ]
           }
         },
         "required": [
