@@ -429,3 +429,5 @@ export {
  */
 export { fixtureDescriptor } from './test-support/fixture-descriptor.js';
 export { fixtureProfile } from './test-support/fixture-profile.js';
+
+export { resolveAlias, type AliasRedirect, type AliasResolution } from './aliasing.js';
