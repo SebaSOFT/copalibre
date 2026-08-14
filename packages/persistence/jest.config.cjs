@@ -1,5 +1,6 @@
 const base = require('../../jest.config.base.cjs');
 const esmExtensionMapper = require('../../jest.esm-mapper.cjs');
+const generateJestWorkspaceMapper = require('../../scripts/generate-jest-workspace-mapper.cjs');
 
 module.exports = {
   ...base,
@@ -8,9 +9,8 @@ module.exports = {
   // jest.integration.config.cjs (real Postgres) via `yarn test:integration`.
   testPathIgnorePatterns: ['/node_modules/', '\\.integration\\.test\\.ts$'],
   moduleNameMapper: {
-    '^@copalibre/routing$': '<rootDir>/../../packages/routing/src/index.ts',
     ...esmExtensionMapper,
-    '^@copalibre/domain$': '<rootDir>/../domain/src/index.ts',
+    ...generateJestWorkspaceMapper(__dirname),
   },
   /**
    * Unit coverage is scoped to the modules that are meaningfully unit-testable:

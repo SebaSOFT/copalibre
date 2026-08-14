@@ -1,5 +1,6 @@
 const base = require('../../jest.config.base.cjs');
 const esmExtensionMapper = require('../../jest.esm-mapper.cjs');
+const generateJestWorkspaceMapper = require('../../scripts/generate-jest-workspace-mapper.cjs');
 
 module.exports = {
   ...base,
@@ -9,13 +10,7 @@ module.exports = {
   testPathIgnorePatterns: ['/node_modules/', '\\.integration\\.test\\.ts$'],
   moduleNameMapper: {
     ...esmExtensionMapper,
-    '^@copalibre/domain$': '<rootDir>/../domain/src/index.ts',
-    '^@copalibre/tournament-engine$': '<rootDir>/../tournament-engine/src/index.ts',
-    // tournament-engine's own src/standings/index.ts imports this — mapped
-    // to source for the same reason tournament-engine's own jest.config.cjs
-    // maps it, so this workspace's unit run doesn't depend on rules' dist/
-    // being built first.
-    '^@copalibre/rules$': '<rootDir>/../rules/src/index.ts',
+    ...generateJestWorkspaceMapper(__dirname),
   },
   /**
    * Only the pure resolution/aggregation cores are unit-testable — the rest is
