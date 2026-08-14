@@ -8,11 +8,9 @@ import {
   parseControlPath,
   publicPath,
   publicStreamPath,
-  resolveAlias,
   tvPath,
   tvStreamPath,
   viewQuery,
-  type AliasRedirect,
 } from './index.js';
 
 const BASE = { organizationAlias: 'liga-mendocina', tournamentAlias: 'apertura-2026' };
@@ -25,6 +23,10 @@ describe('canonical public paths', () => {
     [
       { ...BASE, stageNumber: 2, matchNumber: 7 },
       '/liga-mendocina/tournaments/apertura-2026/stages/2/matches/7',
+    ],
+    [
+      { ...BASE, stageNumber: 2, roundNumber: 3, matchNumber: 7 },
+      '/liga-mendocina/tournaments/apertura-2026/stages/2/rounds/3/matches/7',
     ],
     [
       { ...BASE, participantAlias: 'casa-de-italia' },
@@ -137,55 +139,9 @@ describe('view state is a query, never a path', () => {
   });
 });
 
-describe('a renamed alias', () => {
-  const current = new Set(['clausura-2026']);
-  const redirects: readonly AliasRedirect[] = [
-    { organizationId: 'org-1', oldAlias: 'apertura-2026', newAlias: 'clausura-2026' },
-    { organizationId: 'org-2', oldAlias: 'apertura-2026', newAlias: 'otra-cosa' },
-  ];
-
-  it('redirects permanently to the canonical alias', () => {
-    // The old URL is on a poster, in a WhatsApp message and on a federation
-    // page; 404 there is all three pointing at nothing.
-    expect(resolveAlias('org-1', 'apertura-2026', current, redirects)).toEqual({
-      kind: 'redirect',
-      to: 'clausura-2026',
-      status: 301,
-    });
-  });
-
-  it('says nothing about a current alias', () => {
-    expect(resolveAlias('org-1', 'clausura-2026', current, redirects)).toEqual({ kind: 'current' });
-  });
-
-  it('never resolves across organizations', () => {
-    // Two organizations both used "apertura"; crossing them hands a spectator
-    // somebody else's competition.
-    expect(resolveAlias('org-3', 'apertura-2026', current, redirects)).toEqual({ kind: 'unknown' });
-  });
-
-  it('follows a chain of renames', () => {
-    const chain: readonly AliasRedirect[] = [
-      { organizationId: 'org-1', oldAlias: 'a', newAlias: 'b' },
-      { organizationId: 'org-1', oldAlias: 'b', newAlias: 'c' },
-    ];
-
-    expect(resolveAlias('org-1', 'a', new Set(['c']), chain)).toMatchObject({ to: 'c' });
-  });
-
-  it('gives up on a cycle rather than looping', () => {
-    const cycle: readonly AliasRedirect[] = [
-      { organizationId: 'org-1', oldAlias: 'a', newAlias: 'b' },
-      { organizationId: 'org-1', oldAlias: 'b', newAlias: 'a' },
-    ];
-
-    expect(resolveAlias('org-1', 'a', new Set(['z']), cycle)).toEqual({ kind: 'unknown' });
-  });
-
-  it('is unknown when nothing matches', () => {
-    expect(resolveAlias('org-1', 'nunca-existio', current, redirects)).toEqual({ kind: 'unknown' });
-  });
-});
+// Alias-redirect resolution tests moved to packages/domain/src/aliasing.test.ts
+// (0080) — the logic itself moved there; `resolveAlias` is still re-exported
+// from this package's index for one release (see routing/src/index.ts).
 
 describe('what a crawler is told', () => {
   const sitemap = buildSitemap('https://copalibre.test/', [
@@ -227,7 +183,14 @@ describe('parseControlPath', () => {
     // stays an ordinary dashboard, not the callback screen (0062).
     ['/control/callback-league', { screen: 'dashboard', organizationAlias: 'callback-league' }],
     ['/control/liga-mendocina', { screen: 'dashboard', organizationAlias: 'liga-mendocina' }],
+    ['/control/login', { screen: 'login' }],
+    ['/control/forgot-password', { screen: 'forgot-password' }],
+    ['/control/reset-password', { screen: 'reset-password' }],
     ['/control/liga-mendocina/roles', { screen: 'roles', organizationAlias: 'liga-mendocina' }],
+    [
+      '/control/liga-mendocina/preferences',
+      { screen: 'preferences', organizationAlias: 'liga-mendocina' },
+    ],
     [
       '/control/liga-mendocina/tournaments/new',
       { screen: 'newTournament', organizationAlias: 'liga-mendocina' },

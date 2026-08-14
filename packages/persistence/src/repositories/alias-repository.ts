@@ -1,4 +1,4 @@
-import { resolveAlias, type AliasRedirect, type AliasResolution } from '@copalibre/routing';
+import { resolveAlias, type AliasRedirect, type AliasResolution } from '@copalibre/domain';
 import type { Kysely } from 'kysely';
 import { newId } from '../ids.js';
 import type { Database } from '../schema.js';

@@ -17,6 +17,12 @@ export {
   type RouteInput,
   type ViewMode,
 } from './paths.js';
-export { resolveAlias, type AliasRedirect, type AliasResolution } from './redirects.js';
+/**
+ * @deprecated Moved to `@copalibre/domain`'s `aliasing.ts` (0080) — alias
+ * redirect resolution is domain logic, not URL routing. Re-exported here for
+ * one release so this package's existing consumers need no simultaneous
+ * edit; import from `@copalibre/domain` directly instead.
+ */
+export { resolveAlias, type AliasRedirect, type AliasResolution } from '@copalibre/domain';
 export { buildSitemap, buildRobots, type SitemapEntry } from './discovery.js';
 export { parseControlPath, type ControlRoute } from './control-path-parser.js';
