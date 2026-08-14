@@ -139,9 +139,9 @@ describe('view state is a query, never a path', () => {
   });
 });
 
-// Alias-redirect resolution tests moved to packages/domain/src/aliasing.test.ts
-// (0080) — the logic itself moved there; `resolveAlias` is still re-exported
-// from this package's index for one release (see routing/src/index.ts).
+// Alias-redirect resolution moved to packages/domain/src/aliasing.ts (0080),
+// tests moved with it to packages/domain/src/aliasing.test.ts. This package
+// no longer exports resolveAlias/AliasRedirect/AliasResolution.
 
 describe('what a crawler is told', () => {
   const sitemap = buildSitemap('https://copalibre.test/', [
