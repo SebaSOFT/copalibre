@@ -3,6 +3,19 @@ title: Actualización
 description: Camino no-destructivo para actualizar el framework CopaLibre y sus módulos instalados.
 ---
 
+## Actualizar el CLI copalibre en sí
+
+`copalibre --version` imprime la versión del binario instalado. Volver a ejecutar el script de
+instalación descarga la última versión publicada y reemplaza el binario en el lugar — es
+idempotente: primero revisa la versión instalada y omite la descarga si ya coincide:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/SebaSOFT/copalibre/main/install.sh | bash
+```
+
+Esto solo reemplaza el binario `copalibre`. No afecta a una instalación en ejecución — ver abajo
+para actualizar el framework y sus módulos.
+
 ## Actualizar el framework
 
 Secuencia recomendada, no-destructiva:

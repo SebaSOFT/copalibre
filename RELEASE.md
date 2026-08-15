@@ -33,6 +33,25 @@ If the tag already exists (a merge to `main` that didn't carry a version bump �
 say), the workflow completes without doing any of the above. This is intentional, not a failure: a
 version-less merge to `main` is never a release.
 
+## CLI binary releases
+
+`copalibre-cli-release.yml` runs after `release.yml` finishes (chained via `workflow_run`, not a
+tag push directly — a raw tag push would race `release.yml`'s own `gh release create` step, the
+only place a release actually gets created). One job per target
+(`linux-x86_64`/`arm64`, `macos-x86_64`/`arm64`, `windows-x86_64`) bundles `apps/copalibre` with
+`esbuild`, turns that into a Node Single Executable Application binary
+(`apps/copalibre/scripts/build-binary.mjs`), and uploads it to the GitHub Release `release.yml`
+already tagged. Idempotent per-asset, same reasoning as `release.yml` itself: a re-run whose asset
+is already attached to the release is a no-op.
+
+`postject` (the tool that injects the SEA blob) patches a target binary's bytes without executing
+it, so every target builds regardless of the runner's own OS/arch — except macOS code-signing
+(`codesign`), which only runs where `codesign` exists, so the two macOS targets build on a
+`macos-latest` runner specifically. `copalibre-cli-build-check.yml` runs the same build (without
+uploading anything) on every pull request touching `apps/copalibre`, plus a smoke test on whichever
+target each runner can actually execute — see that workflow file's own comments for the exact
+runner-to-target mapping.
+
 ## What this does not do
 
 - No changelog is hand-maintained; the GitHub Release's auto-generated notes are what exists today.

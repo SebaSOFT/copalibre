@@ -5,7 +5,7 @@ description: Every copalibre CLI command, its usage, and its flags.
 
 Every command answers `--help`/`-h` with this exact usage text, generated from a single source
 inside the CLI itself — this page cannot describe a command differently from what the CLI actually
-does.
+does. `copalibre --version` prints the installed version alone, for scripting.
 
 ## init
 

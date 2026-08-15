@@ -46,32 +46,50 @@ a standings table instead of another match.
 ## Quickstart
 
 ```bash
-git clone https://github.com/SebaSOFT/copalibre.git
-cd copalibre
-./copalibre init      # writes a full installation (compose file, .env, marker) into the cwd
+curl -fsSL https://raw.githubusercontent.com/SebaSOFT/copalibre/main/install.sh | bash
+mkdir my-league && cd my-league
+copalibre init      # writes a full installation (compose file, .env, marker) into the cwd
 # edit .env: PostgreSQL password, COPALIBRE_BOOTSTRAP_TOKEN, OIDC JWKS/issuer/audience,
 # browser client ID, and one email provider
-./copalibre doctor    # validates configuration before anything starts
-./copalibre start     # docker compose up --detach --wait
-./copalibre create-admin --organization-alias my-league --organization-name "My League" --email admin@example.com
+copalibre doctor    # validates configuration before anything starts
+copalibre start     # docker compose up --detach --wait
+copalibre create-admin --organization-alias my-league --organization-name "My League" --email admin@example.com
 ```
 
-`init` doesn't have to run at the checkout's own root — `cd` into any directory first (a separate
-data/config directory, a second installation) and run it there; `doctor`/`start`/`migrate`/
-`upgrade-check` auto-detect that directory afterward from the marker `init` writes, the same way
-`.git` marks a checkout. `./copalibre init --module-dev` additionally sets up a `modules-dev/`
-bind mount for developing a discipline/tournament-profile module against a running instance — see
-[`docs/MODULES.md`](docs/MODULES.md).
+`copalibre` is a standalone binary — no Node.js install required, nothing else to run first.
+`init` doesn't have to run in the directory you installed the binary into — `cd` into any
+directory first (a separate data/config directory, a second installation) and run it there;
+`doctor`/`start`/`migrate`/`upgrade-check` auto-detect that directory afterward from the marker
+`init` writes, the same way `.git` marks a checkout. `copalibre init --module-dev` additionally
+sets up a `modules-dev/` bind mount for developing a discipline/tournament-profile module against
+a running instance — see [`docs/MODULES.md`](docs/MODULES.md).
 
 Managing an installation from a machine with no database access — including installing or
 upgrading the CLI after Docker is already running — works the same way: generate a personal access
-token from the control panel's preferences screen, then `./copalibre login --api-url
+token from the control panel's preferences screen, then `copalibre login --api-url
 https://api.example`. `statistics-rebuild` and `module add/list/remove/verify` then run over an
 authenticated HTTP connection.
 
 `docker-compose.yml` does not terminate TLS by design — put Caddy or NGINX at the edge (example
 configs in [`deploy/proxy/`](deploy/proxy/)) and verify it with
-`./copalibre doctor --check-proxy --proxy-url https://events.example/events/proxy-check`.
+`copalibre doctor --check-proxy --proxy-url https://events.example/events/proxy-check`.
+
+### Contributor / module-author checkout
+
+Building CopaLibre itself, or authoring a module against its own source, needs a full checkout —
+the same commands, run through the checkout's own `./copalibre` wrapper instead of the installed
+binary:
+
+```bash
+git clone https://github.com/SebaSOFT/copalibre.git
+cd copalibre
+./copalibre init
+./copalibre doctor
+./copalibre start
+./copalibre create-admin --organization-alias my-league --organization-name "My League" --email admin@example.com
+```
+
+See [`AGENTS.md`](AGENTS.md) for the full contributor guide.
 Full walkthrough, backup/restore, and persistent-data details: [`docs/self-hosting.md`](docs/self-hosting.md).
 
 ## Development

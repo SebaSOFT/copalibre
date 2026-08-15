@@ -5,7 +5,7 @@ description: Cada comando del CLI copalibre, su uso y sus flags.
 
 Cada comando responde `--help`/`-h` con este mismo texto de uso, generado desde una única fuente
 en el propio CLI — esta página no puede describir un comando distinto de lo que el CLI realmente
-hace.
+hace. `copalibre --version` imprime solo la versión instalada, para scripts.
 
 ## init
 
