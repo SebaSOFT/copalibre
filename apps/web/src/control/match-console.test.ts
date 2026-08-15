@@ -22,6 +22,7 @@ function definition(overrides: Partial<ConsoleEventDefinition> = {}): ConsoleEve
     actorRequirement: 'side',
     payloadSchema: {},
     display: {},
+    secondaryActorFields: [],
     ...overrides,
   };
 }

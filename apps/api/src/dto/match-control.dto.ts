@@ -87,6 +87,11 @@ export class ConsoleEventResponse {
 
   @ApiPropertyOptional({ description: 'Free-text operator note, if one was recorded' })
   notes?: string;
+
+  @ApiPropertyOptional({
+    description: "The active segment's running clock when this event was recorded, if timed",
+  })
+  segmentElapsedSeconds?: number;
 }
 
 export class ConsoleLiveScoreResponse {

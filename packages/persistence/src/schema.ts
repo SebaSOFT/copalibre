@@ -398,6 +398,8 @@ export interface MatchEventsTable {
   payload: JSONColumnType<Record<string, unknown>>;
   /** Optional free-text operator note, independent of the discipline and its payloadSchema. */
   notes: string | null;
+  /** The active segment's running clock at record time; null for a non-timed segment or a pre-existing row. */
+  segment_elapsed_seconds: number | null;
   created_at: Timestamp;
 }
 

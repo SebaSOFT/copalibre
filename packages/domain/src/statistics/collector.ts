@@ -27,11 +27,24 @@ import {
  * module document rather than a migration.
  */
 
+/**
+ * Which actor an event-sourced collector accumulates against — `'primary'`
+ * matches `resolvedActor`'s existing behavior (the event's own actor);
+ * `'every-other-side'` and `{ payloadField }` read the same way `EventEffect`'s
+ * `awardTo` does, so a collector can watch a victim, an assist provider, or an
+ * opposing side without the event's own effects needing to name that
+ * collector at all.
+ */
+export type CollectorActorSource =
+  'primary' | 'every-other-side' | { readonly payloadField: string };
+
 export type CollectorSource =
   | {
       readonly kind: 'event';
       readonly definitionCodes?: readonly string[];
       readonly categories?: readonly EventCategory[];
+      /** Absent means `'primary'` — exactly today's behavior. */
+      readonly actorSource?: CollectorActorSource;
     }
   /** A value a finalized result already carries. */
   | { readonly kind: 'statistic'; readonly statisticCode: string }

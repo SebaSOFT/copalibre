@@ -4,12 +4,15 @@ import {
   isCoarser,
   type ActorGranularity,
   type CompetitionGranularity,
+  type CollectorActorSource,
   type CollectorMeasure,
   type EventDefinition,
+  type EventEffect,
   type OutcomeContributor,
   type RecordedEvent,
   type StatisticAdjustment,
   type StatisticCollector,
+  type TargetAttribution,
 } from '@copalibre/domain';
 import { StatisticFoldError } from '../errors.js';
 
@@ -76,6 +79,12 @@ export interface FoldInput {
   readonly roster: readonly (ActorContext & { readonly role: string })[];
   /** Resolves the entrant a fact names to the actor that entered. */
   readonly actorOf: (entrantId: string) => ActorContext | undefined;
+  /**
+   * Every entrant contesting the match, so an `'every-other-side'`
+   * attribution has something to enumerate — mirrors `foldLiveScores`'s
+   * `entrantIds` parameter in `packages/domain/src/events/live-score.ts`.
+   */
+  readonly entrantIds: readonly string[];
   readonly context: CompetitionContext;
   /**
    * The definitions the events were recorded against, so a declared
@@ -148,13 +157,13 @@ export function foldStatistics(input: FoldInput): readonly CollectedFigure[] {
     if (collector.source.kind === 'statistic') {
       const statisticCode = collector.source.statisticCode;
       for (const event of input.events) {
-        for (const delta of declaredDeltas(event, statisticCode, definitions)) {
-          const resolved = resolvedActor(input, event);
-          if (!resolved) continue;
-          const actorId = actorIdAt(resolved, collector.granularity.actor);
-          if (actorId === undefined) continue;
-          if (input.filter && !input.filter(event, actorId, collector)) continue;
-          add(keyFor(collector, actorId, input.context), delta);
+        for (const { delta, awardTo } of declaredDeltas(event, statisticCode, definitions)) {
+          for (const resolved of resolveTargets(input, event, awardTo)) {
+            const actorId = actorIdAt(resolved, collector.granularity.actor);
+            if (actorId === undefined) continue;
+            if (input.filter && !input.filter(event, actorId, collector)) continue;
+            add(keyFor(collector, actorId, input.context), delta);
+          }
         }
       }
       continue;
@@ -189,17 +198,17 @@ export function foldStatistics(input: FoldInput): readonly CollectedFigure[] {
 
     if (collector.source.kind !== 'event') continue;
 
+    const actorSource = collector.source.actorSource ?? 'primary';
     for (const event of input.events) {
       if (!watches(collector, event)) continue;
 
-      const resolved = resolvedActor(input, event);
-      if (!resolved) continue;
+      for (const resolved of resolveTargets(input, event, actorSource)) {
+        const actorId = actorIdAt(resolved, collector.granularity.actor);
+        if (actorId === undefined) continue;
+        if (input.filter && !input.filter(event, actorId, collector)) continue;
 
-      const actorId = actorIdAt(resolved, collector.granularity.actor);
-      if (actorId === undefined) continue;
-      if (input.filter && !input.filter(event, actorId, collector)) continue;
-
-      add(keyFor(collector, actorId, input.context), measured(collector.measure, event));
+        add(keyFor(collector, actorId, input.context), measured(collector.measure, event));
+      }
     }
   }
 
@@ -418,7 +427,8 @@ function combine(existing: number, incoming: number): number {
 }
 
 /**
- * The deltas an event's definition declares for a statistic code.
+ * The deltas an event's definition declares for a statistic code, each paired
+ * with who it's awarded to.
  *
  * A collector sourced by `statistic` collects what a discipline *declared* the
  * event to be worth; one sourced by `event` counts occurrences. Two paths, one
@@ -429,16 +439,47 @@ function declaredDeltas(
   event: RecordedEvent,
   statisticCode: string,
   definitions: ReadonlyMap<string, EventDefinition>,
-): readonly number[] {
+): readonly { readonly delta: number; readonly awardTo: TargetAttribution }[] {
   const effects = definitions.get(event.definitionCode)?.effects ?? [];
   return effects
-    .filter((effect) => effect.kind === 'statistic' && effect.statisticCode === statisticCode)
-    .map((effect) => (effect.kind === 'statistic' ? effect.delta : 0));
+    .filter(
+      (effect): effect is Extract<EventEffect, { kind: 'statistic' }> =>
+        effect.kind === 'statistic' && effect.statisticCode === statisticCode,
+    )
+    .map((effect) => ({ delta: effect.delta, awardTo: effect.awardTo ?? 'actor' }));
 }
 
 function resolvedActor(input: FoldInput, event: RecordedEvent): ActorContext | undefined {
   const actor = event.side === undefined ? undefined : input.actorOf(event.side);
   return personOverride(actor, event.personId);
+}
+
+/**
+ * Every actor a `TargetAttribution`/`CollectorActorSource` resolves to for one
+ * event — zero (nothing to award, e.g. a missing payload field), one (the
+ * ordinary case), or several (`'every-other-side'` in a match with more than
+ * two entrants credits every one of them, not a split share — the same
+ * behavior `foldLiveScores`'s `scoreRecipients` already established for score
+ * effects).
+ */
+function resolveTargets(
+  input: FoldInput,
+  event: RecordedEvent,
+  attribution: TargetAttribution | CollectorActorSource,
+): readonly ActorContext[] {
+  if (attribution === 'actor' || attribution === 'primary') {
+    const actor = resolvedActor(input, event);
+    return actor ? [actor] : [];
+  }
+  if (attribution === 'every-other-side') {
+    if (event.side === undefined) return [];
+    return input.entrantIds
+      .filter((entrantId) => entrantId !== event.side)
+      .map((entrantId) => input.actorOf(entrantId))
+      .filter((actor): actor is ActorContext => actor !== undefined);
+  }
+  const personId = event.payload[attribution.payloadField];
+  return typeof personId === 'string' ? [{ personId }] : [];
 }
 
 /**

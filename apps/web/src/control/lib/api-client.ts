@@ -351,6 +351,8 @@ export interface ConsoleMatchEvent {
   readonly side?: string;
   readonly personId?: string;
   readonly notes?: string;
+  /** The active segment's running clock when this event was recorded, if timed. */
+  readonly segmentElapsedSeconds?: number;
 }
 
 export interface ConsoleEventDefinition {
@@ -368,6 +370,13 @@ export interface ConsoleEventDefinition {
       readonly label: string | LocalizedLabel;
     }[];
   };
+  /**
+   * Payload fields an `awardTo`/`target` effect names (an assist provider, a
+   * victim) — declared, not guessed from the payload schema's own property
+   * types, since a free-text field like `reason` is a string too but names
+   * nobody.
+   */
+  readonly secondaryActorFields: readonly string[];
 }
 
 export interface ConsoleLiveScore {

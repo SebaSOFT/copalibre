@@ -108,9 +108,22 @@ describe('migrations (integration)', () => {
       ]),
     );
     expect(afterUpTables.find((table) => table.name === 'match_events')?.columns).toEqual(
-      expect.arrayContaining([expect.objectContaining({ name: 'notes' })]),
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'notes' }),
+        expect.objectContaining({ name: 'segment_elapsed_seconds' }),
+      ]),
     );
     expect(afterUp).toContain('collector_threshold_consumption');
+
+    const matchEventSegmentElapsedSecondsDown = await migrateDownOneStep(scratch.db);
+    expect(matchEventSegmentElapsedSecondsDown.error).toBeUndefined();
+
+    const afterSegmentElapsedSecondsDownTables = await scratch.db.introspection.getTables();
+    expect(
+      afterSegmentElapsedSecondsDownTables.find((table) => table.name === 'match_events')?.columns,
+    ).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'segment_elapsed_seconds' })]),
+    );
 
     // 0016 is a data-only backfill (no schema change); its own up/down
     // behavior is exercised separately below, against seeded rows — here it

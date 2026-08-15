@@ -349,6 +349,18 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
                   type: 'array',
                   items: { enum: ['positive', 'negative', 'neutral'] },
                 },
+                // Absent means 'primary' — resolvedActor's existing behavior.
+                actorSource: {
+                  oneOf: [
+                    { enum: ['primary', 'every-other-side'] },
+                    {
+                      type: 'object',
+                      additionalProperties: false,
+                      required: ['payloadField'],
+                      properties: { payloadField: { type: 'string', minLength: 1 } },
+                    },
+                  ],
+                },
               },
             },
             {
@@ -525,6 +537,18 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
             kind: { const: 'statistic' },
             statisticCode: { type: 'string', minLength: 1 },
             delta: { type: 'number' },
+            // Absent means 'actor' — exactly the behavior before this field existed.
+            awardTo: {
+              oneOf: [
+                { enum: ['actor', 'every-other-side'] },
+                {
+                  type: 'object',
+                  additionalProperties: false,
+                  required: ['payloadField'],
+                  properties: { payloadField: { type: 'string', minLength: 1 } },
+                },
+              ],
+            },
           },
         },
         {
@@ -553,6 +577,19 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
             kind: { const: 'tag' },
             tagCode: { type: 'string', minLength: 1 },
             action: { enum: ['applied', 'lifted'] },
+            // No 'every-other-side': a tag labels one actor, not a side's whole
+            // roster. Absent means 'actor'.
+            target: {
+              oneOf: [
+                { const: 'actor' },
+                {
+                  type: 'object',
+                  additionalProperties: false,
+                  required: ['payloadField'],
+                  properties: { payloadField: { type: 'string', minLength: 1 } },
+                },
+              ],
+            },
           },
         },
       ],

@@ -63,6 +63,13 @@ export function MatchConsoleRoute({
   const [selectedSide, setSelectedSide] = useState('');
   const [selectedPersonId, setSelectedPersonId] = useState('');
   const [selectedStaffId, setSelectedStaffId] = useState('');
+  // Keyed by payload field name (e.g. 'assistedBy') rather than one fixed
+  // field, since which fields a definition declares varies by discipline —
+  // ambient state applied to whichever button gets clicked next, the same
+  // pattern the side/person/staff selectors above already use.
+  const [secondaryActorSelections, setSecondaryActorSelections] = useState<Record<string, string>>(
+    {},
+  );
   const [conditionalEvent, setConditionalEvent] = useState<ConsoleEventDefinition>();
   // Captured when the event-creation button is first pressed, not when a
   // workflow's confirm step (after picking an outcome, typing a note) fires —
@@ -155,6 +162,9 @@ export function MatchConsoleRoute({
   const permittedEvents = projection.eventDefinitions.filter((definition) =>
     isEventPermitted(definition, projection, activeSegment),
   );
+  const secondaryActorFieldNames = [
+    ...new Set(permittedEvents.flatMap((definition) => definition.secondaryActorFields)),
+  ];
   const canRecord = projection.capabilities.includes('match.record-event');
   const canControlClock = projection.capabilities.includes('match.control-clock');
   const canResolveTimer = projection.capabilities.includes('match.resolve-timer');
@@ -198,6 +208,15 @@ export function MatchConsoleRoute({
   function recordFinal(definition: ConsoleEventDefinition, occurredAt: number): void {
     if (!activeSegment) return;
     const payloadDescription = descriptionFor(definition, description);
+    const secondaryActorPayload = Object.fromEntries(
+      definition.secondaryActorFields
+        .map((field) => [field, secondaryActorSelections[field]] as const)
+        .filter((entry): entry is [string, string] => Boolean(entry[1])),
+    );
+    const payload = {
+      ...secondaryActorPayload,
+      ...(payloadDescription === undefined ? {} : { description: payloadDescription }),
+    };
     void mutate(
       () =>
         api.recordMatchEvent(organizationAlias, tournamentAlias, matchId, {
@@ -209,9 +228,7 @@ export function MatchConsoleRoute({
           definition.actorRequirement === 'person-or-staff'
             ? { personId: selectedPersonId || selectedStaffId }
             : {}),
-          ...(payloadDescription === undefined
-            ? {}
-            : { payload: { description: payloadDescription } }),
+          ...(Object.keys(payload).length === 0 ? {} : { payload }),
           ...(logNote.trim() === '' ? {} : { notes: logNote.trim() }),
         }),
       () =>
@@ -243,6 +260,7 @@ export function MatchConsoleRoute({
     setPendingOccurredAt(undefined);
     setDescription('');
     setLogNote('');
+    setSecondaryActorSelections({});
   }
 
   async function finalize(): Promise<void> {
@@ -463,6 +481,32 @@ export function MatchConsoleRoute({
                   ))}
                 </select>
               </label>
+              {secondaryActorFieldNames.map((field) => (
+                <label key={field} style={labelStyle}>
+                  {field}
+                  <select
+                    aria-label={field}
+                    disabled={!canRecord || projection.eligiblePersonIds.length === 0}
+                    onChange={(event) =>
+                      setSecondaryActorSelections((current) => ({
+                        ...current,
+                        [field]: event.target.value,
+                      }))
+                    }
+                    style={inputStyle}
+                    value={secondaryActorSelections[field] ?? ''}
+                  >
+                    <option value="">
+                      {intl.formatMessage(messages.matchConsoleNoAttribution)}
+                    </option>
+                    {projection.eligiblePersonIds.map((personId) => (
+                      <option key={personId} value={personId}>
+                        {personId.slice(-8)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ))}
             </div>
             <div style={eventGridStyle}>
               {permittedEvents.map((definition) => (
@@ -647,6 +691,9 @@ export function MatchConsoleRoute({
                       event.segmentId,
                       intl.formatMessage(messages.matchConsoleUnknownSegment),
                     )}
+                    {event.segmentElapsedSeconds === undefined
+                      ? null
+                      : ` · ${formatClock(event.segmentElapsedSeconds)}`}
                   </strong>
                   <span>{new Date(event.occurredAt).toLocaleTimeString(intl.locale)}</span>
                   {event.notes ? <p style={eventNoteStyle}>{event.notes}</p> : null}

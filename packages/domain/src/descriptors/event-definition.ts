@@ -34,6 +34,15 @@ export type PayloadJsonSchema = Readonly<Record<string, unknown>>;
  */
 export type ScoreAward = 'actor' | 'every-other-side';
 
+/**
+ * Who a statistic or tag effect targets — the same `'actor' | 'every-other-side'`
+ * vocabulary `ScoreAward` already established, plus a third option a score
+ * effect never needed: a person named in the event's own payload (an assist
+ * provider, a victim, a goalkeeper), read at fold time rather than pinned to
+ * the primary actor or a side.
+ */
+export type TargetAttribution = 'actor' | 'every-other-side' | { readonly payloadField: string };
+
 /** A descriptor-owned branch from a preliminary event choice to a final fact. */
 export interface EventWorkflow {
   readonly kind: 'outcome-choice';
@@ -46,7 +55,13 @@ export interface EventWorkflow {
 /** An explicit, configured effect. Never inferred from category. */
 export type EventEffect =
   | { readonly kind: 'score'; readonly awardTo: ScoreAward; readonly delta: number }
-  | { readonly kind: 'statistic'; readonly statisticCode: string; readonly delta: number }
+  | {
+      readonly kind: 'statistic';
+      readonly statisticCode: string;
+      readonly delta: number;
+      /** Absent means `'actor'` — the primary actor, exactly today's behavior. */
+      readonly awardTo?: TargetAttribution;
+    }
   | {
       readonly kind: 'timed-penalty';
       readonly durationSeconds: number;
@@ -64,6 +79,8 @@ export type EventEffect =
       readonly kind: 'tag';
       readonly tagCode: string;
       readonly action: 'applied' | 'lifted';
+      /** Absent means `'actor'`. `'every-other-side'` is not a tag target — a tag labels one actor, not a side's whole roster. */
+      readonly target?: 'actor' | { readonly payloadField: string };
     };
 
 export interface EventDefinition {

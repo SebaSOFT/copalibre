@@ -43,6 +43,8 @@ export interface RecordedEvent {
    * and its `payloadSchema` — available on any event, any discipline.
    */
   readonly notes?: string;
+  /** The active segment's running clock at the moment this event was recorded, when the segment is timed. */
+  readonly segmentElapsedSeconds?: number;
 }
 
 export interface RecordEventInput {
@@ -64,6 +66,8 @@ export interface RecordEventInput {
    * becomes a fact.
    */
   readonly entrantIds?: readonly string[];
+  /** The active segment's running clock at the moment this event is recorded, when the segment is timed. */
+  readonly segmentElapsedSeconds?: number;
 }
 
 export class EventLog {
@@ -113,6 +117,7 @@ export class EventLog {
       personId: input.personId,
       payload: Object.freeze({ ...payload }),
       notes: input.notes,
+      segmentElapsedSeconds: input.segmentElapsedSeconds,
     });
     this.events.push(event);
     return ok(event);

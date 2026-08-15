@@ -64,6 +64,28 @@ const COLLECTORS: readonly StatisticCollector[] = [
     measure: { kind: 'sum', field: 'unused' },
     granularity: { actor: 'person', competition: 'match' },
   },
+  // 0090: a payload-field-targeted collector (assists) and a statistic
+  // effect targeting every-other-side (goals-against, added to football's
+  // own 'goal' event) — the multi-actor attribution this change adds,
+  // exercised against real PostgreSQL rather than just the pure fold engine.
+  {
+    code: 'assists',
+    label: 'Assists',
+    source: {
+      kind: 'event',
+      definitionCodes: ['goal'],
+      actorSource: { payloadField: 'assistedBy' },
+    },
+    measure: { kind: 'count' },
+    granularity: { actor: 'person', competition: 'match' },
+  },
+  {
+    code: 'goals-against-collected',
+    label: 'Goals against (collected)',
+    source: { kind: 'statistic', statisticCode: 'goals-against' },
+    measure: { kind: 'count' },
+    granularity: { actor: 'team', competition: 'match' },
+  },
 ];
 
 describe('refold against real PostgreSQL (integration, 0082)', () => {
@@ -72,6 +94,7 @@ describe('refold against real PostgreSQL (integration, 0082)', () => {
   let matchId: string;
   let entrantAtlas: string;
   let entrantBoca: string;
+  let personBoca: string;
 
   beforeAll(async () => {
     scratch = await createMigratedDatabase('statistics-refold');
@@ -153,7 +176,7 @@ describe('refold against real PostgreSQL (integration, 0082)', () => {
         ...AUDIT,
       });
       const personAtlas = atlasPerson.personId;
-      const personBoca = bocaPerson.personId;
+      personBoca = bocaPerson.personId;
       await persons.enlist(uow, {
         personId: personAtlas,
         teamId: atlas.teamId,
@@ -250,7 +273,10 @@ describe('refold against real PostgreSQL (integration, 0082)', () => {
               occurredAt: new Date().toISOString(),
               side,
               personId,
-              payload: {},
+              // Atlas's first goal carries an assist — proves the
+              // payload-field-targeted 'assists' collector (0090) resolves
+              // against real persisted event rows, not just in-memory ones.
+              payload: side === entrantAtlas && i === 0 ? { assistedBy: personBoca } : {},
             },
             sequence: sequence++,
             organizationId,
@@ -381,6 +407,49 @@ describe('refold against real PostgreSQL (integration, 0082)', () => {
 
     expect(goalsAgain).toHaveLength(2);
     expect(goalsAgain.reduce((total, row) => total + row.value, 0)).toBe(3);
+  });
+
+  it('resolves a payload-field-targeted collector against real persisted events (0090)', async () => {
+    const statistics = new StatisticRepository(scratch.db);
+    const assists = await statistics.readTotals(
+      {
+        organizationId,
+        collectorCode: 'assists',
+        actorGranularity: 'person',
+        competitionGranularity: 'match',
+        competitionId: matchId,
+      },
+      { kind: 'count' },
+    );
+
+    // The assist on Atlas's first goal credits Boca's player, not the scorer —
+    // proves `assistedBy` round-trips through real Postgres rows into the fold.
+    expect(assists).toEqual([
+      { actorId: personBoca, competitionId: matchId, value: 1, samples: 1 },
+    ]);
+  });
+
+  it('credits an every-other-side statistic effect (goals-against) at team granularity (0090)', async () => {
+    const statistics = new StatisticRepository(scratch.db);
+    const goalsAgainst = await statistics.readTotals(
+      {
+        organizationId,
+        collectorCode: 'goals-against-collected',
+        actorGranularity: 'team',
+        competitionGranularity: 'match',
+        competitionId: matchId,
+      },
+      { kind: 'count' },
+    );
+
+    // Atlas scored 2, Boca scored 1: Atlas concedes 1, Boca concedes 2.
+    expect(goalsAgainst).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ value: 1 }),
+        expect.objectContaining({ value: 2 }),
+      ]),
+    );
+    expect(goalsAgainst).toHaveLength(2);
   });
 
   it('recomputes on a correction, leaving no stale total behind (task 7.5)', async () => {
