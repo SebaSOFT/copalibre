@@ -54,7 +54,9 @@ jobs:
       # pre-installed classic Yarn 1.x shim, so `setup-node`'s own yarn-cache
       # probe still finds 1.x and refuses (this project pins yarn@4 via
       # `packageManager`) — a current Corepack does override it correctly.
-      - run: npm install -g corepack@latest
+      # `--force`: npm's global install otherwise refuses to overwrite that
+      # same pre-installed `yarn` shim it needs to replace.
+      - run: npm install -g corepack@latest --force
       - run: corepack enable
       - uses: actions/setup-node@v4
         with:
