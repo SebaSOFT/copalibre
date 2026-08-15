@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { getAsset, isSea } from 'node:sea';
 
 /**
  * A fixed monogram evoking the chamfered "CL" mark (`apps/web/public/
@@ -19,15 +20,16 @@ interface PackageManifest {
 }
 
 /**
- * Reads `apps/copalibre/package.json` at process start via `fs.readFileSync`
- * + `JSON.parse` rather than a static JSON import (design.md): no
- * `resolveJsonModule`/import-attribute change to the shared tsconfig for one
- * call site, and the same relative path resolves correctly from both
- * `src/banner.ts` under ts-jest and the compiled `dist/banner.js` at
- * runtime — `dist/` sits one level under `apps/copalibre/`, the same depth
- * as `src/`.
+ * Reads `apps/copalibre/package.json`: `sea.getAsset()` when running as a
+ * packaged single-executable binary (`import.meta.url` isn't meaningful once
+ * bundled to CJS, so `build-binary.mjs`'s SEA config embeds `package.json`
+ * as an asset), otherwise `fs.readFileSync` against the real file —
+ * `dist/` sits one level under `apps/copalibre/`, the same depth as `src/`,
+ * so the same relative path resolves correctly from both `src/banner.ts`
+ * under ts-jest and the compiled `dist/banner.js`.
  */
 function readPackageManifest(): PackageManifest {
+  if (isSea()) return JSON.parse(getAsset('package.json', 'utf8')) as PackageManifest;
   const packageJsonUrl = new URL('../package.json', import.meta.url);
   const raw = readFileSync(packageJsonUrl, 'utf8');
   return JSON.parse(raw) as PackageManifest;
