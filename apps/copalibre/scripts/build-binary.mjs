@@ -150,9 +150,12 @@ async function main() {
     ];
     if (target.startsWith('macos-')) postjectArguments.push('--macho-segment-name', 'NODE_SEA');
     if (target.startsWith('windows-')) postjectArguments.push('--overwrite');
-    execFileSync(join(repoRoot, 'node_modules', '.bin', 'postject'), postjectArguments, {
-      stdio: 'inherit',
-    });
+    // Runs postject's real entry point via `node`, not the package manager's
+    // generated `.bin/postject` shim — that shim's file extension (`.cmd` on
+    // Windows, none on POSIX) differs per platform, so spawning it directly
+    // by a fixed path isn't portable.
+    const postjectCli = join(repoRoot, 'node_modules', 'postject', 'dist', 'cli.js');
+    execFileSync(process.execPath, [postjectCli, ...postjectArguments], { stdio: 'inherit' });
 
     if (target.startsWith('macos-') && process.platform === 'darwin') {
       execFileSync('codesign', ['-s', '-', outputPath]);
