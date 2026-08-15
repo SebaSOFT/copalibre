@@ -86,8 +86,16 @@ jobs:
       # dist/binaries/copalibre-<this-runner's-own-target> — true only for the
       # three `smoke: native` matrix entries, so this step is a real parity
       # check there and a fast no-op everywhere else.
+      #
+      # Runs Jest's real entry point directly rather than through
+      # `test:integration` (`node .../node_modules/.bin/jest ...`): that
+      # `.bin/jest` shim is a POSIX/Windows polyglot file meant to be run
+      # through a shell that understands its shebang line, not fed to `node`
+      # directly — works by accident on Linux/macOS, breaks on Windows.
       - name: Binary/node parity tests
-        run: yarn workspace @copalibre/copalibre run test:integration --testPathPatterns=binary
+        working-directory: apps/copalibre
+        run: |
+          node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config jest.integration.config.cjs --runInBand --testPathPatterns=binary
 
       - uses: docker/setup-qemu-action@v3
         if: matrix.smoke == 'qemu'
