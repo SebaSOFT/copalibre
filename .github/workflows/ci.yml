@@ -42,12 +42,27 @@ jobs:
   # so a *backend*-only PR's release-image build still runs even though its
   # e2e-tests input was skipped. Do not simplify build's `if:` back to a
   # bare `needs` cascade without re-checking that case.
+  #
+  # cli_only/docs_only are narrower still: true only when every changed path
+  # is confined to apps/copalibre (no other workspace consumes it) or to
+  # documentation (repo-level docs/ plus a few root prose files, unioned with
+  # the Starlight content collections backend_only already excludes above).
+  # Neither category can affect apps/api's OpenAPI surface, so they currently
+  # gate only openapi-contract-lint - see scripts/classify-ci-paths.mjs for
+  # the exact patterns and scripts/classify-ci-paths.test.mjs for their
+  # tested behavior. Nothing else in this file reads either output yet;
+  # widening their reach to skip more jobs (unit-tests, module-validation,
+  # etc.) is a deliberately deferred follow-up, not done here, since several
+  # of those jobs' skip conditions need the same care documented above for
+  # integration-tests/e2e-tests before changing.
   detect-changes:
     name: Detect change scope
     runs-on: ubuntu-latest
     outputs:
       frontend_only: ${{ steps.classify.outputs.frontend_only }}
       backend_only: ${{ steps.classify.outputs.backend_only }}
+      cli_only: ${{ steps.classify.outputs.cli_only }}
+      docs_only: ${{ steps.classify.outputs.docs_only }}
       # A release candidate is a PR targeting main, a push to main (a
       # develop->main PR merging — see release.yml, 0058), or a manual
       # dispatch. Everything else (routine develop-targeting PRs) is not,
@@ -63,8 +78,12 @@ jobs:
       - id: classify
         run: |
           if [ "${{ github.event_name }}" != "pull_request" ]; then
-            echo "frontend_only=false" >> "$GITHUB_OUTPUT"
-            echo "backend_only=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "frontend_only=false"
+              echo "backend_only=false"
+              echo "cli_only=false"
+              echo "docs_only=false"
+            } >> "$GITHUB_OUTPUT"
             exit 0
           fi
           # scripts/classify-ci-paths.mjs owns the patterns and the
@@ -783,7 +802,13 @@ jobs:
   openapi-contract-lint:
     name: OpenAPI contract lint
     runs-on: ubuntu-latest
-    needs: [install, typecheck, docs-build]
+    needs: [install, typecheck, docs-build, detect-changes]
+    # Skipped for a PR confined to apps/copalibre (no other workspace
+    # consumes it, and it defines no API endpoints of its own) or to
+    # documentation (prose can't change what apps/api generates) — see
+    # detect-changes above. No other job needs this one, so a plain if: is
+    # safe here.
+    if: needs.detect-changes.outputs.cli_only != 'true' && needs.detect-changes.outputs.docs_only != 'true'
     steps:
       - uses: actions/checkout@v4
       # corepack must be enabled before setup-node: its yarn-cache probe invokes the
