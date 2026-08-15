@@ -1,5 +1,5 @@
 import { Cli } from 'clipanion';
-import { renderBanner } from './banner.js';
+import { readCopalibreVersion, renderBanner } from './banner.js';
 import type { CliContext } from './cli-context.js';
 import { commandClasses } from './commands/index.js';
 import {
@@ -12,6 +12,7 @@ import {
 import type { ProcessRunner } from './process-runner.js';
 
 const HELP_FLAGS = new Set(['--help', '-h']);
+const VERSION_FLAGS = new Set(['--version']);
 const KNOWN_COMMANDS = new Set(COMMAND_HELP.map((command) => command.name));
 
 /**
@@ -31,6 +32,10 @@ export async function runCli(
   const command = arguments_[0];
   if (!command || HELP_FLAGS.has(command)) {
     process.stdout.write(renderTopLevelHelp());
+    return 0;
+  }
+  if (VERSION_FLAGS.has(command)) {
+    process.stdout.write(`${readCopalibreVersion()}\n`);
     return 0;
   }
   if (command === 'module') {

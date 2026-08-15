@@ -111,6 +111,21 @@ describe('runCli', () => {
     });
   });
 
+  describe('--version', () => {
+    it('prints only the version, on stdout, without running any command', async () => {
+      const run = jest.fn<ProcessRunner['run']>(async () => 0);
+      const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+      try {
+        const result = await runCli(['--version'], {}, { run });
+        expect(result).toBe(0);
+        expect(run).not.toHaveBeenCalled();
+        expect(stdout).toHaveBeenCalledWith(`${readCopalibreVersion()}\n`);
+      } finally {
+        stdout.mockRestore();
+      }
+    });
+  });
+
   describe('comprehensive help (0044)', () => {
     it.each([
       ['--help', ['--help']],
