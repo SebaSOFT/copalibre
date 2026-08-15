@@ -57,6 +57,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
       - id: classify
         run: |
           if [ "${{ github.event_name }}" != "pull_request" ]; then
@@ -64,29 +67,14 @@ jobs:
             echo "backend_only=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          changed=$(git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}")
-          # A workflow-file change is exactly the PR that must never trust
-          # either skip path — including this one, the first time it existed
-          # at all: skipping e2e-tests/integration-tests for a change to the
-          # logic that skips e2e-tests/integration-tests would mean the
-          # skip's own correctness goes unverified by the PR that changes it.
-          if [ -z "$changed" ] || echo "$changed" | grep -qE '^\.github/workflows/'; then
-            echo "frontend_only=false" >> "$GITHUB_OUTPUT"
-            echo "backend_only=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          frontend_pattern='^(apps/web/|e2e/|playwright\.config\.ts$|playwright\.compose\.config\.ts$)'
-          frontend_relevant_pattern='^(apps/web/|e2e/|playwright\.config\.ts$|playwright\.compose\.config\.ts$|packages/design-tokens/|packages/routing/|packages/realtime/)'
-          if echo "$changed" | grep -qvE "$frontend_pattern"; then
-            echo "frontend_only=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "frontend_only=true" >> "$GITHUB_OUTPUT"
-          fi
-          if echo "$changed" | grep -qE "$frontend_relevant_pattern"; then
-            echo "backend_only=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "backend_only=true" >> "$GITHUB_OUTPUT"
-          fi
+          # scripts/classify-ci-paths.mjs owns the patterns and the
+          # workflow-file escape hatch (a workflow-file change must never
+          # trust either skip path — including this one, the first time it
+          # existed at all — so the skip's own correctness always gets
+          # verified by the PR that changes it); see that file and its
+          # scripts/classify-ci-paths.test.mjs for the classification logic.
+          git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}" \
+            | node scripts/classify-ci-paths.mjs >> "$GITHUB_OUTPUT"
 
   install:
     name: Install
