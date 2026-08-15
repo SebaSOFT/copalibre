@@ -1,7 +1,12 @@
 import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { formatRequiredSecrets, readAsset, writeInstallationAssets, writeLocalDefaults } from './init.js';
+import {
+  formatRequiredSecrets,
+  readAsset,
+  writeInstallationAssets,
+  writeLocalDefaults,
+} from './init.js';
 
 describe('copalibre init', () => {
   it('writes only non-secret defaults into a new local file', async () => {

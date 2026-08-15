@@ -149,11 +149,7 @@ export async function writeInstallationAssets(
   }
 
   await mkdir(cwd, { recursive: true });
-  await writeFile(
-    composeTarget,
-    await readAsset('docker-compose.yml', options.assetsDir),
-    'utf8',
-  );
+  await writeFile(composeTarget, await readAsset('docker-compose.yml', options.assetsDir), 'utf8');
 
   if (options.moduleDev) {
     await writeFile(

@@ -2,7 +2,11 @@ import { parseArgs } from 'node:util';
 import { Command, Option } from 'clipanion';
 import type { CliContext } from '../cli-context.js';
 import { runCommand } from '../command-support.js';
-import { assertMarkerVersionCompatible, isContainer, requireComposeTarget } from '../compose-target.js';
+import {
+  assertMarkerVersionCompatible,
+  isContainer,
+  requireComposeTarget,
+} from '../compose-target.js';
 import { runUpgradeCheck } from '../upgrade-check.js';
 
 export class UpgradeCheckCommand extends Command<CliContext> {
@@ -29,7 +33,9 @@ export class UpgradeCheckCommand extends Command<CliContext> {
 
       const report = await runUpgradeCheck(targetVersion, environment);
       for (const failure of report.moduleFailures) {
-        process.stdout.write(`FAIL [${failure.stage}] ${failure.field ?? ''}: ${failure.message}\n`);
+        process.stdout.write(
+          `FAIL [${failure.stage}] ${failure.field ?? ''}: ${failure.message}\n`,
+        );
       }
       process.stdout.write(
         report.pendingMigrations.length === 0

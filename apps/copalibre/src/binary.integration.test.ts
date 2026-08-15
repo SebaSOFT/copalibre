@@ -27,7 +27,11 @@ function run(
   environment: NodeJS.ProcessEnv,
 ): Promise<ProcessResult> {
   return new Promise((resolveResult, reject) => {
-    const child = spawn(command, [...arguments_], { cwd, env: environment, stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn(command, [...arguments_], {
+      cwd,
+      env: environment,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
     let stdout = '';
     let stderr = '';
     child.stdout.on('data', (chunk: Buffer) => (stdout += chunk));
@@ -37,11 +41,19 @@ function run(
   });
 }
 
-function runNode(arguments_: readonly string[], cwd: string, environment = process.env): Promise<ProcessResult> {
+function runNode(
+  arguments_: readonly string[],
+  cwd: string,
+  environment = process.env,
+): Promise<ProcessResult> {
   return run(process.execPath, [CLI_EXECUTABLE, ...arguments_], cwd, environment);
 }
 
-function runBinary(arguments_: readonly string[], cwd: string, environment = process.env): Promise<ProcessResult> {
+function runBinary(
+  arguments_: readonly string[],
+  cwd: string,
+  environment = process.env,
+): Promise<ProcessResult> {
   return run(BINARY_EXECUTABLE, arguments_, cwd, environment);
 }
 

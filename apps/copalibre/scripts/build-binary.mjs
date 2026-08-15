@@ -64,7 +64,9 @@ async function verifyChecksum(filePath, fileName, checksumsUrl) {
   const line = checksums.split('\n').find((entry) => entry.trim().endsWith(fileName));
   if (!line) throw new Error(`No checksum entry for ${fileName} in ${checksumsUrl}`);
   const expected = line.trim().split(/\s+/)[0];
-  const actual = createHash('sha256').update(await readFile(filePath)).digest('hex');
+  const actual = createHash('sha256')
+    .update(await readFile(filePath))
+    .digest('hex');
   if (actual !== expected) {
     throw new Error(`Checksum mismatch for ${fileName}: expected ${expected}, got ${actual}`);
   }
@@ -96,7 +98,9 @@ async function main() {
   const target = parseTarget();
   const bundlePath = join(packageRoot, 'dist', 'bundle.cjs');
   if (!existsSync(bundlePath)) {
-    throw new Error(`${bundlePath} not found — run "yarn workspace @copalibre/copalibre run bundle" first`);
+    throw new Error(
+      `${bundlePath} not found — run "yarn workspace @copalibre/copalibre run bundle" first`,
+    );
   }
 
   const workDir = await mkdtemp(join(tmpdir(), 'copalibre-build-binary-'));
@@ -137,7 +141,13 @@ async function main() {
       execFileSync('codesign', ['--remove-signature', outputPath]);
     }
 
-    const postjectArguments = [outputPath, 'NODE_SEA_BLOB', blobPath, '--sentinel-fuse', SENTINEL_FUSE];
+    const postjectArguments = [
+      outputPath,
+      'NODE_SEA_BLOB',
+      blobPath,
+      '--sentinel-fuse',
+      SENTINEL_FUSE,
+    ];
     if (target.startsWith('macos-')) postjectArguments.push('--macho-segment-name', 'NODE_SEA');
     if (target.startsWith('windows-')) postjectArguments.push('--overwrite');
     execFileSync(join(repoRoot, 'node_modules', '.bin', 'postject'), postjectArguments, {

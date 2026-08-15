@@ -17,12 +17,7 @@ export function isContainer(environment: NodeJS.ProcessEnv): boolean {
 export async function requireComposeTarget(environment: NodeJS.ProcessEnv): Promise<void> {
   if (await readInstallationMarker(process.cwd())) return;
   if (environment.COMPOSE_FILE?.trim()) return;
-  const discoverable = [
-    'compose.yaml',
-    'compose.yml',
-    'docker-compose.yaml',
-    'docker-compose.yml',
-  ];
+  const discoverable = ['compose.yaml', 'compose.yml', 'docker-compose.yaml', 'docker-compose.yml'];
   if (discoverable.some((name) => existsSync(name))) return;
   throw new Error(
     'no CopaLibre instance found in the current directory — run "copalibre init" here, or run ' +

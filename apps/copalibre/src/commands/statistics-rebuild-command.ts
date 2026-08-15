@@ -1,8 +1,4 @@
-import {
-  createDatabase,
-  databaseConfigFromEnv,
-  type Database,
-} from '@copalibre/persistence';
+import { createDatabase, databaseConfigFromEnv, type Database } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
 import { Command, Option } from 'clipanion';
 import type { CliContext } from '../cli-context.js';

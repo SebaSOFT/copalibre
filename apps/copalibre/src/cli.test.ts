@@ -240,11 +240,7 @@ describe('runCli', () => {
         const run = jest.fn<ProcessRunner['run']>(async () => 0);
         const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
         try {
-          const result = await runCli(
-            ['restore', '--file', packetFile, '--confirm'],
-            {},
-            { run },
-          );
+          const result = await runCli(['restore', '--file', packetFile, '--confirm'], {}, { run });
           expect(result).toBe(1);
           expect(
             stderr.mock.calls.some((call) => String(call[0]).includes('--allow-newer-backup')),
@@ -271,11 +267,7 @@ describe('runCli', () => {
         });
         const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
         try {
-          const result = await runCli(
-            ['restore', '--file', packetFile, '--confirm'],
-            {},
-            { run },
-          );
+          const result = await runCli(['restore', '--file', packetFile, '--confirm'], {}, { run });
           expect(result).toBe(3);
           expect(run).toHaveBeenCalledWith(
             'docker',
@@ -302,11 +294,7 @@ describe('runCli', () => {
         // the restore/migrate test above.
         await writeFile('docker-compose.yml', '');
         const run = jest.fn<ProcessRunner['run']>().mockResolvedValueOnce(0);
-        const result = await runCli(
-          ['upgrade-check', '--target-version', '2.0.0'],
-          {},
-          { run },
-        );
+        const result = await runCli(['upgrade-check', '--target-version', '2.0.0'], {}, { run });
 
         expect(result).toBe(0);
         expect(run).toHaveBeenCalledWith('docker', [
@@ -342,11 +330,7 @@ describe('runCli', () => {
     it('requires --organization before ever opening a database connection', async () => {
       const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
       try {
-        const result = await runCli(
-          ['statistics-rebuild'],
-          {},
-          { run: jest.fn(async () => 0) },
-        );
+        const result = await runCli(['statistics-rebuild'], {}, { run: jest.fn(async () => 0) });
         expect(result).toBe(1);
         expect(stderr).toHaveBeenCalledWith(
           'copalibre statistics-rebuild failed: --organization is required\n',
@@ -367,9 +351,7 @@ describe('runCli', () => {
         expect(await runCli(['doctor'], {}, processes)).toBe(0);
         expect(await runCli(['start'], {}, processes)).toBe(0);
         expect(await runCli(['migrate'], {}, processes)).toBe(0);
-        expect(
-          await runCli(['upgrade-check', '--target-version', '2.0.0'], {}, processes),
-        ).toBe(0);
+        expect(await runCli(['upgrade-check', '--target-version', '2.0.0'], {}, processes)).toBe(0);
 
         // No hand-passed `-f` flag on any of them (3.1.1) — file selection is
         // left entirely to `.env`'s own COMPOSE_FILE, never overridden here.
@@ -435,11 +417,7 @@ describe('runCli', () => {
         const run = jest.fn<ProcessRunner['run']>(async () => 0);
         const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
         try {
-          const result = await runCli(
-            ['upgrade-check', '--target-version', '2.0.0'],
-            {},
-            { run },
-          );
+          const result = await runCli(['upgrade-check', '--target-version', '2.0.0'], {}, { run });
           expect(result).toBe(1);
           expect(
             stderr.mock.calls.some((call) => String(call[0]).includes('0.0.1-older-than-running')),
