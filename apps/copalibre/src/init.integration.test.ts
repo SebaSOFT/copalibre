@@ -93,7 +93,7 @@ describe('copalibre init (integration)', () => {
       expect(initResult.code).toBe(0);
 
       // `.env`'s own COMPOSE_FILE drives this (3.1.1's correction) — no `-f`
-      // flags passed here, matching how cli-runner.ts itself invokes Compose.
+      // flags passed here, matching how the CLI's own commands invoke Compose.
       const configResult = await run('docker', ['compose', 'config'], directory, withFakeSecrets());
       expect(configResult.code).toBe(0);
 
@@ -113,7 +113,7 @@ describe('copalibre init (integration)', () => {
   /**
    * Task 6.3: `migrate`/`upgrade-check` refuse end-to-end against a real,
    * fabricated version mismatch — not the unit-level `assertVersionCompatible`
-   * call already covered in `installation-marker.test.ts`/`cli-runner.test.ts`,
+   * call already covered in `installation-marker.test.ts`/`cli.test.ts`,
    * but the actual spawned CLI reading its own marker file off disk.
    */
   it('migrate refuses end-to-end on a real version-mismatched marker', async () => {

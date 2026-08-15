@@ -1,5 +1,6 @@
-import { chmod, copyFile, mkdir, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
+import { getAsset, isSea } from 'node:sea';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readCopalibreVersion } from './banner.js';
@@ -29,8 +30,8 @@ export const REQUIRED_SECRETS = [
 
 /**
  * The `.env` body `init` writes — pure, so the build-time asset generator
- * (`scripts/build-assets.mjs`, producing `.env.example`, 0084) can reuse the
- * exact same content without duplicating the format.
+ * (`scripts/build-assets.mjs`, producing `.env.example`) can reuse the exact
+ * same content without duplicating the format.
  */
 export function localDefaultsEnvFile(): string {
   return [
@@ -58,20 +59,51 @@ export function formatRequiredSecrets(): string {
 }
 
 /**
- * `apps/copalibre`'s own embedded copies of the compose files (0084) —
+ * `apps/copalibre`'s own embedded copies of the compose files —
  * `scripts/build-assets.mjs` copies them here at build time, alongside
- * `dist/init.js`, so a packaged CLI (eventually a single binary, `0086`)
- * still has something local to read without depending on a checkout.
+ * `dist/init.js`, so the CLI has something local to read without depending
+ * on a checkout when running as `node dist/main.js`. A packaged standalone
+ * binary never resolves this path at all (`import.meta.url` isn't meaningful
+ * once bundled to CJS) — `readAsset` reads its embedded SEA asset instead,
+ * so this is computed lazily, only on the non-`isSea()` branch.
  */
-const ASSETS_DIR = join(dirname(fileURLToPath(import.meta.url)), 'assets');
+function defaultAssetsDir(): string {
+  return join(dirname(fileURLToPath(import.meta.url)), 'assets');
+}
+
+export interface ReadAssetDependencies {
+  readonly isSea?: () => boolean;
+  readonly getAsset?: (key: string, encoding: string) => string;
+}
+
+/**
+ * Reads one of the embedded compose assets: `sea.getAsset()` when running as
+ * a packaged single-executable binary (the asset is bundled into the binary
+ * itself, `build-binary.mjs`'s SEA config), otherwise a plain read from
+ * `assetsDir` — the `node dist/main.js` and test cases, where `assetsDir`
+ * always has these files on disk. Exported so both branches are directly
+ * unit-testable without mocking the `node:sea` module.
+ */
+export async function readAsset(
+  name: string,
+  assetsDir?: string,
+  dependencies: ReadAssetDependencies = {},
+): Promise<string> {
+  const isSeaFunction = dependencies.isSea ?? isSea;
+  const getAssetFunction = dependencies.getAsset ?? getAsset;
+  if (isSeaFunction()) return getAssetFunction(name, 'utf8');
+  return readFile(join(assetsDir ?? defaultAssetsDir(), name), 'utf8');
+}
 
 export interface WriteInstallationAssetsOptions {
   readonly moduleDev?: boolean;
   /**
-   * Overrides where the embedded compose files are read from — real callers
-   * never set this (defaults to `ASSETS_DIR`, populated by
-   * `scripts/build-assets.mjs`); tests do, since a pure unit-test run against
-   * `src/init.ts` directly has no built `dist/assets/` to read from.
+   * Overrides where the embedded compose files are read from (ignored when
+   * running as a packaged binary, which always reads its embedded SEA asset)
+   * — real callers never set this (defaults to the directory
+   * `scripts/build-assets.mjs` populates); tests do, since a pure unit-test
+   * run against `src/init.ts` directly has no built `dist/assets/` to read
+   * from.
    */
   readonly assetsDir?: string;
 }
@@ -85,13 +117,13 @@ export interface WriteInstallationAssetsResult {
 }
 
 /**
- * `copalibre init`'s real work (0084): writes a complete, runnable
- * installation into `cwd` with no source checkout required — the compose
- * file, `.env`, and (opt-in) the module-dev override, plus the marker every
- * later command auto-detects. Every target checked for pre-existence before
- * any write begins, so a partial pre-existing state (e.g. a stray `.env`)
- * refuses cleanly, naming exactly what conflicts, rather than writing some
- * files and leaving others alone.
+ * `copalibre init`'s real work: writes a complete, runnable installation
+ * into `cwd` with no source checkout required — the compose file, `.env`,
+ * and (opt-in) the module-dev override, plus the marker every later command
+ * auto-detects. Every target checked for pre-existence before any write
+ * begins, so a partial pre-existing state (e.g. a stray `.env`) refuses
+ * cleanly, naming exactly what conflicts, rather than writing some files and
+ * leaving others alone.
  */
 export async function writeInstallationAssets(
   cwd: string,
@@ -116,18 +148,22 @@ export async function writeInstallationAssets(
     );
   }
 
-  const assetsDir = options.assetsDir ?? ASSETS_DIR;
   await mkdir(cwd, { recursive: true });
-  await copyFile(join(assetsDir, 'docker-compose.yml'), composeTarget);
+  await writeFile(composeTarget, await readAsset('docker-compose.yml', options.assetsDir), 'utf8');
 
   if (options.moduleDev) {
-    await copyFile(join(assetsDir, 'docker-compose.module-dev.yml'), moduleDevTarget);
+    await writeFile(
+      moduleDevTarget,
+      await readAsset('docker-compose.module-dev.yml', options.assetsDir),
+      'utf8',
+    );
     await mkdir(join(cwd, 'modules-dev'), { recursive: true });
   }
   // Always explicit, never left to Compose's own cwd-scanning discovery —
   // `-f` flags passed by hand at invocation time would override (not merge
-  // with) this, silently dropping the module-dev override, so cli-runner.ts's
-  // marker-aware dispatch relies on this instead of passing `-f` itself.
+  // with) this, silently dropping the module-dev override, so
+  // compose-target.ts's marker-aware dispatch relies on this instead of
+  // passing `-f` itself.
   const composeFile = options.moduleDev
     ? 'docker-compose.yml:docker-compose.module-dev.yml'
     : 'docker-compose.yml';

@@ -60,10 +60,10 @@ function parseAliasRange(spec: string): {
 /**
  * The single place every `module` subcommand decides HTTP vs.
  * direct-database (0085's dual-path, auto-detected exactly like
- * `statisticsRebuild`'s in `cli-runner.ts`): a stored credential in the
- * current directory's `.copalibre/credentials.json` (`login`'s write
- * target) means HTTP; its absence means an existing checkout/`DATABASE_URL`
- * workflow never has to opt into anything for this change to reach it.
+ * `StatisticsRebuildCommand`'s): a stored credential in the current
+ * directory's `.copalibre/credentials.json` (`login`'s write target) means
+ * HTTP; its absence means an existing checkout/`DATABASE_URL` workflow never
+ * has to opt into anything for this change to reach it.
  */
 async function credentialFor(): Promise<
   { readonly apiUrl: string; readonly token: string } | undefined
@@ -93,8 +93,8 @@ export async function moduleAdd(
 
   // Resolved (and, for the direct path, validated) before the try/catch
   // below on purpose: an invalid `--source` is a usage error, not a
-  // fetch/import failure — it propagates uncaught to cli-runner.ts's own
-  // top-level handler, exactly like it did before the dual-path split
+  // fetch/import failure — it propagates uncaught to the top-level command
+  // handler, exactly like it did before the dual-path split
   // (module-commands.integration.test.ts's allow-list refusal case depends
   // on this). The HTTP path never resolves `--source` against the CLI's own
   // environment at all — the allowlist that matters there is the server's,

@@ -1,0 +1,101 @@
+name: CopaLibre CLI release
+
+# Runs after the Release workflow (release.yml) finishes: that workflow owns
+# tagging and `gh release create` exclusively, so this one is chained off its
+# completion (`workflow_run`) rather than the tag push directly — a straight
+# tag-push trigger would race `gh release create` and could try uploading
+# assets to a release that doesn't exist yet.
+#
+# Idempotent by design, the same way release.yml is: if the asset for this
+# target and version is already attached to the release (a re-run, or this
+# push didn't cut a new version at all), it's a no-op rather than a wasted
+# rebuild.
+#
+# macOS targets build on a macOS runner specifically so `codesign` can
+# actually run (build-binary.mjs only re-signs when the *build host* is
+# darwin) — postject itself patches the target binary's bytes without
+# executing it, so linux/windows targets have no such constraint and build
+# on ubuntu-latest.
+
+on:
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
+
+concurrency:
+  group: copalibre-cli-release
+  cancel-in-progress: false
+
+jobs:
+  build-and-upload:
+    if: github.event.workflow_run.conclusion == 'success'
+    name: Build ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: linux-x86_64
+            runs-on: ubuntu-latest
+            asset: copalibre-linux-x86_64
+          - target: linux-arm64
+            runs-on: ubuntu-latest
+            asset: copalibre-linux-arm64
+          - target: windows-x86_64
+            runs-on: ubuntu-latest
+            asset: copalibre-windows-x86_64.exe
+          - target: macos-x86_64
+            runs-on: macos-latest
+            asset: copalibre-macos-x86_64
+          - target: macos-arm64
+            runs-on: macos-latest
+            asset: copalibre-macos-arm64
+    runs-on: ${{ matrix.runs-on }}
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      # apps/copalibre/package.json's version is the same one release.yml
+      # tags and creates the GitHub Release from.
+      - id: version
+        run: |
+          version=$(node -p "require('./apps/copalibre/package.json').version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="v${{ steps.version.outputs.version }}"
+          if gh release view "$tag" --json assets --jq '.assets[].name' 2>/dev/null \
+              | grep -qx "${{ matrix.asset }}"; then
+            echo "built=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "built=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - run: corepack enable
+        if: steps.check.outputs.built != 'true'
+      - uses: actions/setup-node@v4
+        if: steps.check.outputs.built != 'true'
+        with:
+          node-version: 24
+          cache: yarn
+      - run: yarn install --immutable
+        if: steps.check.outputs.built != 'true'
+      - run: yarn workspace @copalibre/copalibre run build
+        if: steps.check.outputs.built != 'true'
+      - run: yarn workspace @copalibre/copalibre run bundle
+        if: steps.check.outputs.built != 'true'
+      - run: yarn workspace @copalibre/copalibre run build:binary --target ${{ matrix.target }}
+        if: steps.check.outputs.built != 'true'
+
+      - name: Upload to the GitHub Release
+        if: steps.check.outputs.built != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "v${{ steps.version.outputs.version }}" \
+            "apps/copalibre/dist/binaries/${{ matrix.asset }}" --clobber

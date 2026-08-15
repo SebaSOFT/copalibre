@@ -12,7 +12,7 @@ export interface CommandHelp {
 
 /**
  * Single source of truth for top-level `copalibre` command help (0044). Both
- * `cli-runner.ts`'s `--help`/`-h` handling and the `/help/cli/commands.md` docs
+ * `cli.ts`'s `--help`/`-h` handling and the `/help/cli/commands.md` docs
  * page are checked against this table, so the CLI's own help output, the docs
  * page, and the real command set cannot silently drift apart from each other.
  */
@@ -226,6 +226,10 @@ export function renderTopLevelHelp(): string {
     '',
     'Commands:',
     ...COMMAND_HELP.map((command) => `  ${command.name.padEnd(14)}${command.summary}`),
+    '',
+    'Global options:',
+    '  --help, -h    Show this help (also accepted after any command)',
+    '  --version     Print the installed version',
     '',
     "Run 'copalibre <command> --help' for details on a specific command.",
   ];

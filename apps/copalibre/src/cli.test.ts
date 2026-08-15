@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createBackupPacket } from './backup-packet.js';
 import { readCopalibreVersion, renderBanner } from './banner.js';
-import { CliRunner } from './cli-runner.js';
+import { runCli } from './cli.js';
 import { COMMAND_HELP, MODULE_SUBCOMMAND_HELP } from './help-text.js';
 import { writeCredential } from './credentials.js';
 import { writeInstallationMarker } from './installation-marker.js';
@@ -65,7 +65,7 @@ function spyOnOutputOrder(): {
   };
 }
 
-describe('CliRunner', () => {
+describe('runCli', () => {
   describe('startup banner (0042)', () => {
     it.each([
       ['--help', ['--help']],
@@ -74,7 +74,7 @@ describe('CliRunner', () => {
     ] as const)('prints to stderr before any other output, for %s', async (_label, arguments_) => {
       const spy = spyOnOutputOrder();
       try {
-        await new CliRunner({ run: jest.fn(async () => 0) }).run([...arguments_], {});
+        await runCli([...arguments_], {}, { run: jest.fn(async () => 0) });
 
         expect(spy.writes.length).toBeGreaterThan(0);
         expect(spy.writes[0]).toMatchObject({ stream: 'stderr', chunk: renderBanner() });
@@ -86,7 +86,7 @@ describe('CliRunner', () => {
     it('prints to stderr before a normal command fails with its own error', async () => {
       const spy = spyOnOutputOrder();
       try {
-        await new CliRunner({ run: jest.fn(async () => 0) }).run(['create-admin'], {});
+        await runCli(['create-admin'], {}, { run: jest.fn(async () => 0) });
 
         expect(spy.writes[0]).toMatchObject({ stream: 'stderr', chunk: renderBanner() });
         expect(spy.writes.some((write) => write.chunk.includes('create-admin failed'))).toBe(true);
@@ -98,7 +98,7 @@ describe('CliRunner', () => {
     it('never writes the banner to stdout', async () => {
       const spy = spyOnOutputOrder();
       try {
-        await new CliRunner({ run: jest.fn(async () => 0) }).run([], {});
+        await runCli([], {}, { run: jest.fn(async () => 0) });
 
         expect(
           spy.writes.some(
@@ -111,6 +111,21 @@ describe('CliRunner', () => {
     });
   });
 
+  describe('--version', () => {
+    it('prints only the version, on stdout, without running any command', async () => {
+      const run = jest.fn<ProcessRunner['run']>(async () => 0);
+      const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+      try {
+        const result = await runCli(['--version'], {}, { run });
+        expect(result).toBe(0);
+        expect(run).not.toHaveBeenCalled();
+        expect(stdout).toHaveBeenCalledWith(`${readCopalibreVersion()}\n`);
+      } finally {
+        stdout.mockRestore();
+      }
+    });
+  });
+
   describe('comprehensive help (0044)', () => {
     it.each([
       ['--help', ['--help']],
@@ -119,10 +134,7 @@ describe('CliRunner', () => {
     ] as const)('%s lists every command', async (_label, arguments_) => {
       const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
       try {
-        const result = await new CliRunner({ run: jest.fn(async () => 0) }).run(
-          [...arguments_],
-          {},
-        );
+        const result = await runCli([...arguments_], {}, { run: jest.fn(async () => 0) });
         expect(result).toBe(0);
         const printed = stdout.mock.calls.map((call) => String(call[0])).join('');
         for (const command of COMMAND_HELP) {
@@ -139,7 +151,7 @@ describe('CliRunner', () => {
         const run = jest.fn<ProcessRunner['run']>(async () => 0);
         const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
         try {
-          const result = await new CliRunner({ run }).run([command, '--help'], {});
+          const result = await runCli([command, '--help'], {}, { run });
           expect(result).toBe(0);
           expect(run).not.toHaveBeenCalled();
         } finally {
@@ -151,10 +163,7 @@ describe('CliRunner', () => {
     it('"module --help" lists every module subcommand', async () => {
       const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
       try {
-        const result = await new CliRunner({ run: jest.fn(async () => 0) }).run(
-          ['module', '--help'],
-          {},
-        );
+        const result = await runCli(['module', '--help'], {}, { run: jest.fn(async () => 0) });
         expect(result).toBe(0);
         const printed = stdout.mock.calls.map((call) => String(call[0])).join('');
         for (const subcommand of MODULE_SUBCOMMAND_HELP) {
@@ -171,7 +180,7 @@ describe('CliRunner', () => {
         const run = jest.fn<ProcessRunner['run']>(async () => 0);
         const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
         try {
-          const result = await new CliRunner({ run }).run(['module', subcommand, '--help'], {});
+          const result = await runCli(['module', subcommand, '--help'], {}, { run });
           expect(result).toBe(0);
           expect(run).not.toHaveBeenCalled();
         } finally {
@@ -186,9 +195,10 @@ describe('CliRunner', () => {
       const run = jest.fn<ProcessRunner['run']>();
       const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
       try {
-        const result = await new CliRunner({ run }).run(
+        const result = await runCli(
           ['backup', '--file', 'backups/example.tar.gz', '--dry-run'],
           {},
+          { run },
         );
         expect(result).toBe(0);
         expect(run).not.toHaveBeenCalled();
@@ -204,9 +214,10 @@ describe('CliRunner', () => {
       const run = jest.fn<ProcessRunner['run']>();
       const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
       try {
-        const result = await new CliRunner({ run }).run(
+        const result = await runCli(
           ['restore', '--file', 'backups/example.tar.gz', '--dry-run'],
           {},
+          { run },
         );
         expect(result).toBe(0);
         expect(run).not.toHaveBeenCalled();
@@ -229,10 +240,7 @@ describe('CliRunner', () => {
         const run = jest.fn<ProcessRunner['run']>(async () => 0);
         const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
         try {
-          const result = await new CliRunner({ run }).run(
-            ['restore', '--file', packetFile, '--confirm'],
-            {},
-          );
+          const result = await runCli(['restore', '--file', packetFile, '--confirm'], {}, { run });
           expect(result).toBe(1);
           expect(
             stderr.mock.calls.some((call) => String(call[0]).includes('--allow-newer-backup')),
@@ -259,10 +267,7 @@ describe('CliRunner', () => {
         });
         const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
         try {
-          const result = await new CliRunner({ run }).run(
-            ['restore', '--file', packetFile, '--confirm'],
-            {},
-          );
+          const result = await runCli(['restore', '--file', packetFile, '--confirm'], {}, { run });
           expect(result).toBe(3);
           expect(run).toHaveBeenCalledWith(
             'docker',
@@ -289,10 +294,7 @@ describe('CliRunner', () => {
         // the restore/migrate test above.
         await writeFile('docker-compose.yml', '');
         const run = jest.fn<ProcessRunner['run']>().mockResolvedValueOnce(0);
-        const result = await new CliRunner({ run }).run(
-          ['upgrade-check', '--target-version', '2.0.0'],
-          {},
-        );
+        const result = await runCli(['upgrade-check', '--target-version', '2.0.0'], {}, { run });
 
         expect(result).toBe(0);
         expect(run).toHaveBeenCalledWith('docker', [
@@ -309,9 +311,11 @@ describe('CliRunner', () => {
     it('requires --target-version inside a container', async () => {
       const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
       try {
-        const result = await new CliRunner({ run: jest.fn(async () => 0) }).run(['upgrade-check'], {
-          COPALIBRE_IN_CONTAINER: 'true',
-        });
+        const result = await runCli(
+          ['upgrade-check'],
+          { COPALIBRE_IN_CONTAINER: 'true' },
+          { run: jest.fn(async () => 0) },
+        );
         expect(result).toBe(1);
         expect(stderr).toHaveBeenCalledWith(
           'copalibre upgrade-check failed: --target-version is required\n',
@@ -326,10 +330,7 @@ describe('CliRunner', () => {
     it('requires --organization before ever opening a database connection', async () => {
       const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
       try {
-        const result = await new CliRunner({ run: jest.fn(async () => 0) }).run(
-          ['statistics-rebuild'],
-          {},
-        );
+        const result = await runCli(['statistics-rebuild'], {}, { run: jest.fn(async () => 0) });
         expect(result).toBe(1);
         expect(stderr).toHaveBeenCalledWith(
           'copalibre statistics-rebuild failed: --organization is required\n',
@@ -345,12 +346,12 @@ describe('CliRunner', () => {
       await withTemporaryWorkingDirectory(async () => {
         await writeInstallationMarker(process.cwd(), readCopalibreVersion());
         const run = jest.fn<ProcessRunner['run']>(async () => 0);
-        const runner = new CliRunner({ run });
+        const processes = { run };
 
-        expect(await runner.run(['doctor'], {})).toBe(0);
-        expect(await runner.run(['start'], {})).toBe(0);
-        expect(await runner.run(['migrate'], {})).toBe(0);
-        expect(await runner.run(['upgrade-check', '--target-version', '2.0.0'], {})).toBe(0);
+        expect(await runCli(['doctor'], {}, processes)).toBe(0);
+        expect(await runCli(['start'], {}, processes)).toBe(0);
+        expect(await runCli(['migrate'], {}, processes)).toBe(0);
+        expect(await runCli(['upgrade-check', '--target-version', '2.0.0'], {}, processes)).toBe(0);
 
         // No hand-passed `-f` flag on any of them (3.1.1) — file selection is
         // left entirely to `.env`'s own COMPOSE_FILE, never overridden here.
@@ -365,7 +366,7 @@ describe('CliRunner', () => {
         const run = jest.fn<ProcessRunner['run']>(async () => 0);
         const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
         try {
-          const result = await new CliRunner({ run }).run(['doctor'], {});
+          const result = await runCli(['doctor'], {}, { run });
           expect(result).toBe(1);
           expect(
             stderr.mock.calls.some((call) =>
@@ -382,9 +383,7 @@ describe('CliRunner', () => {
     it('an explicit COMPOSE_FILE environment variable also counts as a valid target', async () => {
       await withTemporaryWorkingDirectory(async () => {
         const run = jest.fn<ProcessRunner['run']>(async () => 0);
-        const result = await new CliRunner({ run }).run(['doctor'], {
-          COMPOSE_FILE: 'docker-compose.yml',
-        });
+        const result = await runCli(['doctor'], { COMPOSE_FILE: 'docker-compose.yml' }, { run });
         expect(result).toBe(0);
         expect(run).toHaveBeenCalled();
       });
@@ -396,7 +395,7 @@ describe('CliRunner', () => {
         const run = jest.fn<ProcessRunner['run']>(async () => 0);
         const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
         try {
-          const result = await new CliRunner({ run }).run(['migrate'], {});
+          const result = await runCli(['migrate'], {}, { run });
           expect(result).toBe(1);
           expect(
             stderr.mock.calls.some(
@@ -418,10 +417,7 @@ describe('CliRunner', () => {
         const run = jest.fn<ProcessRunner['run']>(async () => 0);
         const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
         try {
-          const result = await new CliRunner({ run }).run(
-            ['upgrade-check', '--target-version', '2.0.0'],
-            {},
-          );
+          const result = await runCli(['upgrade-check', '--target-version', '2.0.0'], {}, { run });
           expect(result).toBe(1);
           expect(
             stderr.mock.calls.some((call) => String(call[0]).includes('0.0.1-older-than-running')),
@@ -436,7 +432,7 @@ describe('CliRunner', () => {
 
   it('waits for development infrastructure before running hybrid migrations', async () => {
     const run = jest.fn<ProcessRunner['run']>().mockResolvedValueOnce(0).mockResolvedValueOnce(7);
-    const result = await new CliRunner({ run }).run(['dev', '--hybrid'], {});
+    const result = await runCli(['dev', '--hybrid'], {}, { run });
 
     expect(result).toBe(7);
     expect(run).toHaveBeenNthCalledWith(1, 'docker', [
@@ -465,7 +461,7 @@ describe('CliRunner', () => {
     };
     const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
     try {
-      await expect(new CliRunner(processes).run(['create-admin'], {})).resolves.toBe(1);
+      await expect(runCli(['create-admin'], {}, processes)).resolves.toBe(1);
       expect(stderr).toHaveBeenCalledWith(
         'copalibre create-admin failed: --organization-alias is required\n',
       );
@@ -479,9 +475,10 @@ describe('CliRunner', () => {
       await withTemporaryWorkingDirectory(async () => {
         const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
         try {
-          const result = await new CliRunner({ run: jest.fn(async () => 0) }).run(
+          const result = await runCli(
             ['statistics-rebuild', '--organization', 'liga-orbital'],
             {},
+            { run: jest.fn(async () => 0) },
           );
           // DATABASE_URL is unset here — reaching that failure (rather than an
           // HTTP-path error) proves the direct-database branch was taken.
@@ -509,9 +506,10 @@ describe('CliRunner', () => {
           ),
         );
         try {
-          const result = await new CliRunner({ run: jest.fn(async () => 0) }).run(
+          const result = await runCli(
             ['statistics-rebuild', '--organization', 'liga-orbital'],
             {},
+            { run: jest.fn(async () => 0) },
           );
           expect(result).toBe(0);
           expect(fetchSpy).toHaveBeenCalledWith(
@@ -531,10 +529,7 @@ describe('CliRunner', () => {
       await withTemporaryWorkingDirectory(async () => {
         const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
         try {
-          const result = await new CliRunner({ run: jest.fn(async () => 0) }).run(
-            ['module', 'list'],
-            {},
-          );
+          const result = await runCli(['module', 'list'], {}, { run: jest.fn(async () => 0) });
           expect(result).toBe(1);
           expect(
             stderr.mock.calls.some((call) => String(call[0]).includes('DATABASE_URL is not set')),
@@ -553,10 +548,7 @@ describe('CliRunner', () => {
           .mockResolvedValue(new Response(JSON.stringify([]), { status: 200 }));
         const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
         try {
-          const result = await new CliRunner({ run: jest.fn(async () => 0) }).run(
-            ['module', 'list'],
-            {},
-          );
+          const result = await runCli(['module', 'list'], {}, { run: jest.fn(async () => 0) });
           expect(result).toBe(0);
           expect(fetchSpy).toHaveBeenCalledWith(
             new URL('/admin/modules', 'https://copalibre.example'),

@@ -33,7 +33,13 @@ export interface ModuleCatalogue {
   readonly reservedAliases: readonly string[];
 }
 
-const packageDirectory = dirname(dirname(fileURLToPath(import.meta.url)));
+// `import.meta.url` is `undefined` once bundled to CJS (apps/copalibre's
+// standalone-binary build) — this package's own callers there resolve a
+// module source some other way and never reach `DEFAULT_CATALOGUE_DIRECTORY`,
+// but the fallback keeps this top-level assignment itself from throwing.
+const packageDirectory = import.meta.url
+  ? dirname(dirname(fileURLToPath(import.meta.url)))
+  : process.cwd();
 export const DEFAULT_CATALOGUE_DIRECTORY = packageDirectory;
 
 /** Reads and validates the release's first-party catalogue. */

@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { getAsset, isSea } from 'node:sea';
 
 /**
  * A fixed monogram evoking the chamfered "CL" mark (`apps/web/public/
@@ -18,16 +19,30 @@ interface PackageManifest {
   readonly license: string;
 }
 
+export interface ReadPackageManifestDependencies {
+  readonly isSea?: () => boolean;
+  readonly getAsset?: (key: string, encoding: string) => string;
+}
+
 /**
- * Reads `apps/copalibre/package.json` at process start via `fs.readFileSync`
- * + `JSON.parse` rather than a static JSON import (design.md): no
- * `resolveJsonModule`/import-attribute change to the shared tsconfig for one
- * call site, and the same relative path resolves correctly from both
- * `src/banner.ts` under ts-jest and the compiled `dist/banner.js` at
- * runtime — `dist/` sits one level under `apps/copalibre/`, the same depth
- * as `src/`.
+ * Reads `apps/copalibre/package.json`: `sea.getAsset()` when running as a
+ * packaged single-executable binary (`import.meta.url` isn't meaningful once
+ * bundled to CJS, so `build-binary.mjs`'s SEA config embeds `package.json`
+ * as an asset), otherwise `fs.readFileSync` against the real file —
+ * `dist/` sits one level under `apps/copalibre/`, the same depth as `src/`,
+ * so the same relative path resolves correctly from both `src/banner.ts`
+ * under ts-jest and the compiled `dist/banner.js`. Exported (unlike
+ * `renderBanner`/`readCopalibreVersion`, which stay zero-argument) so both
+ * branches are directly unit-testable without mocking the `node:sea` module.
  */
-function readPackageManifest(): PackageManifest {
+export function readPackageManifest(
+  dependencies: ReadPackageManifestDependencies = {},
+): PackageManifest {
+  const isSeaFunction = dependencies.isSea ?? isSea;
+  const getAssetFunction = dependencies.getAsset ?? getAsset;
+  if (isSeaFunction()) {
+    return JSON.parse(getAssetFunction('package.json', 'utf8')) as PackageManifest;
+  }
   const packageJsonUrl = new URL('../package.json', import.meta.url);
   const raw = readFileSync(packageJsonUrl, 'utf8');
   return JSON.parse(raw) as PackageManifest;

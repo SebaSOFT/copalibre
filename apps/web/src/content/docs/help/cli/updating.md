@@ -3,6 +3,19 @@ title: Updating
 description: The non-destructive path to updating the CopaLibre framework and its installed modules.
 ---
 
+## Updating the copalibre CLI itself
+
+`copalibre --version` prints the installed binary's version. Re-running the install script fetches
+the latest release and replaces the binary in place — it's idempotent, checking the installed
+version first and skipping the download when it already matches:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/SebaSOFT/copalibre/main/install.sh | bash
+```
+
+This only replaces the `copalibre` binary. It has no effect on a running installation — see below
+for updating the framework and its modules.
+
 ## Updating the framework
 
 Recommended, non-destructive sequence:

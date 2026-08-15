@@ -1,0 +1,107 @@
+name: CopaLibre CLI build check
+
+# First-of-its-kind for this specific concern gets its own workflow file with
+# a top-level `paths:` filter (helm-lint.yml's own precedent) rather than
+# folding into ci.yml: builds every standalone binary target and smoke-tests
+# it on a pull request touching the CLI, so a broken bundle or SEA build
+# fails here — before a version tag ever reaches copalibre-cli-release.yml —
+# instead of surfacing only when someone runs the install script.
+#
+# Every target builds regardless of the runner's own OS/arch (postject
+# patches the target binary's bytes without executing it), but only the ones
+# a GitHub-hosted runner can actually run get executed: linux-x86_64,
+# macos-arm64, and windows-x86_64 natively on their matching runner;
+# linux-arm64 via QEMU-emulated Docker (the same mechanism this change's own
+# gating spike used). macos-x86_64 builds but isn't executed — the
+# macos-latest runner is Apple Silicon and running an x64 binary on it needs
+# Rosetta, not guaranteed present on a GitHub-hosted runner.
+
+on:
+  pull_request:
+    paths:
+      - 'apps/copalibre/**'
+      - '.github/workflows/copalibre-cli-build-check.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-smoke-test:
+    name: Build ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: linux-x86_64
+            runs-on: ubuntu-latest
+            smoke: native
+          - target: linux-arm64
+            runs-on: ubuntu-latest
+            smoke: qemu
+          - target: macos-arm64
+            runs-on: macos-latest
+            smoke: native
+          - target: macos-x86_64
+            runs-on: macos-latest
+            smoke: skip
+          - target: windows-x86_64
+            runs-on: windows-latest
+            smoke: native
+    runs-on: ${{ matrix.runs-on }}
+    steps:
+      - uses: actions/checkout@v4
+      # windows-latest's bundled Corepack doesn't override the runner image's
+      # pre-installed classic Yarn 1.x shim, so `setup-node`'s own yarn-cache
+      # probe still finds 1.x and refuses (this project pins yarn@4 via
+      # `packageManager`) — a current Corepack does override it correctly.
+      # `--force`: npm's global install otherwise refuses to overwrite that
+      # same pre-installed `yarn` shim it needs to replace.
+      - run: npm install -g corepack@latest --force
+      - run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+      - run: yarn install --immutable
+      - run: yarn workspace @copalibre/copalibre run build
+      - run: yarn workspace @copalibre/copalibre run bundle
+      - run: yarn workspace @copalibre/copalibre run build:binary --target ${{ matrix.target }}
+
+      - name: Smoke test (native, POSIX)
+        if: matrix.smoke == 'native' && runner.os != 'Windows'
+        run: |
+          set -euo pipefail
+          binary="apps/copalibre/dist/binaries/copalibre-${{ matrix.target }}"
+          "$binary" --version
+          "$binary" --help
+
+      - name: Smoke test (native, Windows)
+        if: matrix.smoke == 'native' && runner.os == 'Windows'
+        shell: cmd
+        run: |
+          apps\copalibre\dist\binaries\copalibre-${{ matrix.target }}.exe --version
+          apps\copalibre\dist\binaries\copalibre-${{ matrix.target }}.exe --help
+
+      # binary.integration.test.ts skips itself unless it finds a binary at
+      # dist/binaries/copalibre-<this-runner's-own-target> — true only for the
+      # three `smoke: native` matrix entries, so this step is a real parity
+      # check there and a fast no-op everywhere else.
+      #
+      # Runs Jest's real entry point directly rather than through
+      # `test:integration` (`node .../node_modules/.bin/jest ...`): that
+      # `.bin/jest` shim is a POSIX/Windows polyglot file meant to be run
+      # through a shell that understands its shebang line, not fed to `node`
+      # directly — works by accident on Linux/macOS, breaks on Windows.
+      - name: Binary/node parity tests
+        working-directory: apps/copalibre
+        run: |
+          node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config jest.integration.config.cjs --runInBand --testPathPatterns=binary
+
+      - uses: docker/setup-qemu-action@v3
+        if: matrix.smoke == 'qemu'
+      - name: Smoke test (QEMU-emulated)
+        if: matrix.smoke == 'qemu'
+        run: |
+          docker run --rm --platform linux/arm64 \
+            -v "$PWD/apps/copalibre/dist/binaries/copalibre-${{ matrix.target }}:/copalibre:ro" \
+            node:24-bookworm-slim sh -c '/copalibre --version && /copalibre --help'
