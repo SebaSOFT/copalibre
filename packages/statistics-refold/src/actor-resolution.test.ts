@@ -1,6 +1,6 @@
 import { resolveMatchRoster } from './actor-resolution.js';
 
-describe('resolving a match roster from raw rows (0082)', () => {
+describe('resolving a match roster from raw rows', () => {
   it('resolves a team-kind entrant’s roster member from the players row for that team', () => {
     const { roster } = resolveMatchRoster({
       rosterRows: [{ entrantId: 'en-atlas', personIds: ['pe-1'] }],

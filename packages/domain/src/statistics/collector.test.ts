@@ -96,7 +96,7 @@ describe('what a declaration is refused for', () => {
   });
 });
 
-describe('requiresTag (0073)', () => {
+describe('requiresTag', () => {
   it('accepts an event-sourced collector requiring a declared tag', () => {
     const result = validate([collector({ requiresTag: { code: 'captain' } })]);
     expect(result.ok).toBe(true);
@@ -244,7 +244,7 @@ describe('readableAt', () => {
   });
 });
 
-describe('cadence (0082)', () => {
+describe('cadence', () => {
   it('defaults to on-finalize when absent', () => {
     expect(cadenceOf(collector())).toEqual({ kind: 'on-finalize' });
     expect(isLiveCadence(collector())).toBe(false);

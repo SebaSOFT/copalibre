@@ -25,7 +25,7 @@ async function withTemporaryWorkingDirectory<T>(run: () => Promise<T>): Promise<
   }
 }
 
-describe('createBackupPacket (0046)', () => {
+describe('createBackupPacket', () => {
   it('runs pg_dump into a staging directory, packs it, and cleans up staging', async () => {
     await withTemporaryWorkingDirectory(async () => {
       const run = jest.fn<ProcessRunner['run']>(async (_command, arguments_) => {
@@ -100,7 +100,7 @@ describe('createBackupPacket (0046)', () => {
   });
 });
 
-describe('restoreBackupPacket (0046)', () => {
+describe('restoreBackupPacket', () => {
   it('extracts the packet and runs pg_restore, then cleans up staging', async () => {
     await withTemporaryWorkingDirectory(async () => {
       const setupRun = jest.fn<ProcessRunner['run']>(async (_command, arguments_) => {
@@ -173,7 +173,7 @@ describe('restoreBackupPacket (0046)', () => {
   });
 });
 
-describe('restoreBackupPacket version compatibility (0050)', () => {
+describe('restoreBackupPacket version compatibility', () => {
   it('refuses a backup newer than the running version before touching pg_restore', async () => {
     await withTemporaryWorkingDirectory(async () => {
       const setupRun = jest.fn<ProcessRunner['run']>(async (_command, arguments_) => {

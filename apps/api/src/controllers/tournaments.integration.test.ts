@@ -28,7 +28,7 @@ describe('organization-scoped tournament routes', () => {
     expect(response.statusCode).toBe(404);
   });
 
-  it('404s a tournament that is still in draft state (0067)', async () => {
+  it('404s a tournament that is still in draft state', async () => {
     const tournaments = new TournamentRepository(scratch.db);
     const descriptor = footballDescriptor();
 

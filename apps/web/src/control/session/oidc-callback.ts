@@ -20,7 +20,7 @@ interface TokenResponse {
 }
 
 /**
- * Completes the Authorization Code + PKCE exchange `beginOidcLogin` started (0062).
+ * Completes the Authorization Code + PKCE exchange `beginOidcLogin` started.
  *
  * A direct browser-to-identity-provider exchange, never routed through the
  * API: PKCE's verifier is the public-client substitute for a secret

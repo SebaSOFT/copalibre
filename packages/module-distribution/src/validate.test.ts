@@ -46,7 +46,7 @@ describe('validateModulePackage', () => {
     expect(result.ok).toBe(true);
   });
 
-  it('accepts a discipline module using locale-map labels (0071)', async () => {
+  it('accepts a discipline module using locale-map labels', async () => {
     const directory = await makeModuleDirectory(
       validManifest(),
       validDisciplineDocument({ name: { en: 'Orbital Frisbee', es: 'Frisbee Orbital' } }),

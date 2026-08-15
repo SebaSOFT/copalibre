@@ -29,7 +29,7 @@ import { streamEvents, type StreamSink } from './stream/stream-writer.js';
 import { SubscriptionService, type SubscriptionQuery } from './stream/subscription.js';
 
 /**
- * The two streams and the fallback (0018).
+ * The two streams and the fallback.
  *
  * One public channel serves the public web, the bracket views and the
  * TV/broadcast surfaces — the architecture doc is explicit that "the underlying
@@ -131,7 +131,7 @@ export class EventsController {
   }
 
   /**
-   * The `/tv/**` stream (0031): same public projection and same channel as
+   * The `/tv/**` stream: same public projection and same channel as
    * `publicStream` — "the underlying data is the same published projection,
    * only the rendering differs" — gated by a device-scoped display token
    * instead of being open to anyone, since a kiosk is a specific,

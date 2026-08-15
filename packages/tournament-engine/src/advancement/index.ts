@@ -154,7 +154,7 @@ export function playableMatches(
 }
 
 /**
- * The matches a finalization unlocked **inside one stage** (0014).
+ * The matches a finalization unlocked **inside one stage**.
  *
  * Advancement is computed from structure, so "unlocking" is not a write: it is
  * the difference between what was playable before an outcome existed and what
@@ -167,7 +167,7 @@ export function playableMatches(
  * semi-final plays that final, and no one decides it. Between stages there is a
  * decision — the cut, and a seeding that may be drawn, weighted or set by hand —
  * so a finished stage makes the *transition available*, never taken.
- * `previewStageTransition` (0010) stays the only path across, with an operator
+ * `previewStageTransition` stays the only path across, with an operator
  * committing it.
  */
 export function unlockedByFinalization(

@@ -10,7 +10,7 @@ import {
 import { messages } from '../i18n/messages.en.js';
 
 /**
- * A5 — standings with an expandable, engine-sourced tiebreak trace (0024).
+ * A5 — standings with an expandable, engine-sourced tiebreak trace.
  *
  * The trace lines are rendered exactly as received. This component has no
  * formatter of its own and must not grow one: the screen's promise is that an

@@ -29,12 +29,12 @@ import { reportEvidenceValidationHandler } from './jobs/report-evidence-handler.
 import { RelayService } from './relay.service.js';
 
 /**
- * The worker process (0017).
+ * The worker process.
  *
  * The dispatcher is built here and nowhere else, so "what does this deployment
  * actually run" is one list rather than a search for decorators.
  *
- * `refold` calls the real fold engine (0082), via `@copalibre/statistics-refold`
+ * `refold` calls the real fold engine, via `@copalibre/statistics-refold`
  * — the package that resolves a match's roster/competition context from
  * persistence and hands it to `@copalibre/tournament-engine`'s
  * `foldStatistics`, since neither of those packages may depend on the other.

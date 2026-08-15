@@ -122,7 +122,7 @@ describe('discipline descriptor schema', () => {
     ])('rejects at installation a rule that omits %s', (_label, rule) => {
       // Neuron's validateScript demands both arrays. Accepting the document and
       // failing at evaluation would let a module install and break during a
-      // match, which is the worst place to find out (0013).
+      // match, which is the worst place to find out.
       const result = validateDisciplineDescriptorDocument(
         asDocument({ winCondition: { id: 'half-declared', rules: [rule] } }),
       );
@@ -267,7 +267,7 @@ describe('discipline descriptor schema', () => {
       expect(withCollector({ ...goals, resetOn: 'segment' }).ok).toBe(false);
     });
 
-    describe('cadence (0082)', () => {
+    describe('cadence', () => {
       it('accepts a descriptor declaring none, absent reading as on-finalize', () => {
         expect(withCollector(goals).ok).toBe(true);
       });
@@ -297,7 +297,7 @@ describe('discipline descriptor schema', () => {
     expect(validateDisciplineDescriptorDocument('a descriptor').ok).toBe(false);
   });
 
-  describe('localized labels (0071)', () => {
+  describe('localized labels', () => {
     it('still accepts a plain-string label and name, unmodified', () => {
       // The reference descriptor already uses plain strings throughout; this
       // is what makes every module authored before 0071 stay valid forever.

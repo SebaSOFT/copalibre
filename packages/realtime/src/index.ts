@@ -1,6 +1,6 @@
 /**
  * @copalibre/realtime — the SSE wire contract, its envelope, and the client
- * both web surfaces share (0018-realtime-sse-contract). No Nest, no Fastify:
+ * both web surfaces share. No Nest, no Fastify:
  * the server encodes with it and the browser parses with it, which is the
  * point.
  */

@@ -32,7 +32,7 @@ export class CompetitionRepository {
   constructor(private readonly db: Kysely<Database>) {}
 
   /**
-   * One running of a tournament (0015). Every tournament has at least one, so
+   * One running of a tournament. Every tournament has at least one, so
    * no reader ever meets a stage without an edition.
    */
   async createSeason(
@@ -120,7 +120,7 @@ export class CompetitionRepository {
   }
 
   /**
-   * A stage in a competition that has one edition (0015).
+   * A stage in a competition that has one edition.
    *
    * Not a shortcut around the season: it *resolves* the tournament's current
    * edition, creating the implicit one the first time. A caller that runs a
@@ -248,8 +248,8 @@ export class CompetitionRepository {
   }
 
   /**
-   * Replaces a stage's fixture graph in place — the write side of reseeding
-   * (0040). Only reachable once `classifyEngineMutation` has already refused a
+   * Replaces a stage's fixture graph in place — the write side of reseeding.
+   * Only reachable once `classifyEngineMutation` has already refused a
    * `blocked_after_results` request, but a fixture with a match already
    * attached (started, even without a final result) is still a record this
    * would orphan, so that case is refused here too rather than trusted to the
@@ -373,7 +373,7 @@ export class CompetitionRepository {
   }
 
   /**
-   * Moves a match through the states `applyMatchCommand` permits (0014).
+   * Moves a match through the states `applyMatchCommand` permits.
    *
    * The transition itself was decided in the domain; this writes it and says
    * who was allowed to. A finalized match is refused here as well as there,
@@ -561,7 +561,7 @@ export class CompetitionRepository {
   }
 
   /**
-   * Supersedes a result, keeping the one it replaced (0014).
+   * Supersedes a result, keeping the one it replaced.
    *
    * The only write path over a finalized outcome, and it is not an update in
    * the ordinary sense: the audit row carries the prior state, the replacement
@@ -575,7 +575,7 @@ export class CompetitionRepository {
       readonly matchId: string;
       readonly result: MatchResult;
       readonly reason: string;
-      /** A participant report/dispute this correction cites (0032). */
+      /** A participant report/dispute this correction cites. */
       readonly sourceReportId?: string;
       readonly blockedPropagation?: { readonly stageId: string; readonly reason: string };
     } & AuditContext,
@@ -603,7 +603,7 @@ export class CompetitionRepository {
       actor: input.actor,
       authorizationContext: input.authorizationContext,
       previousState: { ...existing.result },
-      // Retained as supporting evidence in the audit trail (0032) — never
+      // Retained as supporting evidence in the audit trail — never
       // read back as authority for anything; the operator's own reason and
       // replacement above are what the correction actually rests on.
       resultingState:
@@ -634,7 +634,7 @@ export class CompetitionRepository {
   }
 
   /**
-   * The notification identities already published for a match (0014).
+   * The notification identities already published for a match.
    *
    * Threshold rules are a fold over the whole log, so recomputation after every
    * event re-derives every earlier crossing. Publishing only what is new is
@@ -658,7 +658,7 @@ export class CompetitionRepository {
   }
 
   /**
-   * The stage after this one, and whether it has started (0014).
+   * The stage after this one, and whether it has started.
    *
    * "Started" is read as *any match in it has been played or is being played*,
    * because that is what makes a rebuild destructive: a bracket nobody has
@@ -700,7 +700,7 @@ export class CompetitionRepository {
     };
   }
 
-  /** The stage a match belongs to, which is what scopes an appointment (0014). */
+  /** The stage a match belongs to, which is what scopes an appointment. */
   async stageOfMatch(matchId: string): Promise<string | undefined> {
     const row = await this.db
       .selectFrom('matches')
@@ -837,7 +837,7 @@ export class CompetitionRepository {
   }
 
   /**
-   * A collector-threshold rule's cross-match baseline (0074): every event in
+   * A collector-threshold rule's cross-match baseline: every event in
    * the stage's *other* matches whose definition code the collector watches.
    * A direct, scoped `match_events` read rather than a `statistic_totals`
    * read — the general fold engine (`0073`) does not exist yet, and this
@@ -982,7 +982,7 @@ export class CompetitionRepository {
   }
 
   /**
-   * Every finalized match in scope for a statistics rebuild (0082):
+   * Every finalized match in scope for a statistics rebuild:
    * organization-wide, or narrowed to one tournament. Ordered so a rebuild's
    * output is deterministic across runs, which is what idempotence is checked
    * against.

@@ -1,7 +1,7 @@
 import type { TraceNode } from './explanation-trace.js';
 
 /**
- * The one place a trace becomes text (0024).
+ * The one place a trace becomes text.
  *
  * The Standings screen promises an operator that what they read is what the
  * engine decided. If the screen formats comparator values into sentences of its

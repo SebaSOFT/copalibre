@@ -10,7 +10,7 @@ import { presentState, type ResultStateLabels } from '../lib/result-state.js';
 import { resolveTvBranding, tvStateColor, type TvBranding } from '../lib/tv-branding.js';
 
 /**
- * The `/tv/**` kiosk and overlay surface (0031).
+ * The `/tv/**` kiosk and overlay surface.
  *
  * Unlike `LiveMatchHero`, this renders no "showing last known state" banner
  * and no reconnect/error UI of any kind — the design decision is explicit:
@@ -20,7 +20,7 @@ import { resolveTvBranding, tvStateColor, type TvBranding } from '../lib/tv-bran
  *
  * The display token and `?mode=overlay` are read from the URL on mount
  * rather than passed as build-time props, because this page is statically
- * generated (0020) and the query string only exists at request time in the
+ * generated and the query string only exists at request time in the
  * browser. Neither is ever appended back onto the stream URL: the token goes
  * out only as an `Authorization` header (`display-token-auth.guard.ts`
  * rejects a `token` query parameter outright), matching the one-time
@@ -103,7 +103,7 @@ export function TvDashboard({
 }
 
 /**
- * Not localized (0055): `/tv/**` is a non-SEO surface the architecture doc
+ * Not localized: `/tv/**` is a non-SEO surface the architecture doc
  * explicitly allows "a simpler locale mechanism" than public-web's URL
  * prefixing — out of scope for this change, same boundary as `/control/**`.
  * Kept as the pre-existing Spanish text rather than switched to English, so

@@ -14,7 +14,7 @@ import {
 } from './hierarchies.js';
 
 /**
- * A collector is a declaration, not a function (0016).
+ * A collector is a declaration, not a function.
  *
  * Every statistic before this one was a fold somebody wrote: outcomes per
  * entrant, events per match scope, a position mapped to points, a count toward
@@ -54,7 +54,7 @@ export interface CollectorGranularity {
 }
 
 /**
- * When a collector's total is kept current (0082).
+ * When a collector's total is kept current.
  *
  * A field, not a boolean: `on-finalize`/`live` leaves room for a third cadence
  * later without a breaking rename. Absent reads as `on-finalize`, which is
@@ -85,7 +85,7 @@ export interface StatisticCollector {
   readonly cadence?: CollectorCadence;
   /**
    * The tag an acting actor must carry, at the moment the fact occurred, for
-   * that fact to count (0073). Filtering happens at fold time, not at read
+   * that fact to count. Filtering happens at fold time, not at read
    * time — a stored total never needs a join against tag facts to answer.
    *
    * Only meaningful for `event`- and `statistic`-sourced collectors, both of
@@ -118,7 +118,7 @@ export interface InertCollector {
 export interface CollectorVocabulary {
   readonly eventCodes: readonly string[];
   readonly statisticCodes: readonly string[];
-  /** Tag codes a `requiresTag` may name (0073) — the discipline's own `tags`. */
+  /** Tag codes a `requiresTag` may name — the discipline's own `tags`. */
   readonly tagCodes: readonly string[];
   /** Granularities nothing populates yet; empty since 0015. */
   readonly unpopulatedGranularities?: readonly (ActorGranularity | CompetitionGranularity)[];
@@ -336,7 +336,7 @@ export function readableAt(
   return actorOk && competitionOk;
 }
 
-/** A collector's cadence, absent reading as `on-finalize` (0082). */
+/** A collector's cadence, absent reading as `on-finalize`. */
 export function cadenceOf(collector: StatisticCollector): CollectorCadence {
   return collector.cadence ?? { kind: 'on-finalize' };
 }

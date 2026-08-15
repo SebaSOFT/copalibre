@@ -52,7 +52,7 @@ describe('validateCsvImport', () => {
     expect(preview.errors[0]?.message).toMatch(/^Malformed CSV/);
   });
 
-  describe('team-membership target (0065)', () => {
+  describe('team-membership target', () => {
     it('validates a row naming a known, already-registered team', () => {
       const preview = validateCsvImport({
         target: 'team-membership',

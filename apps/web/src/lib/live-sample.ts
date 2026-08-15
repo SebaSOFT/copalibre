@@ -1,5 +1,5 @@
 /**
- * Note (0067): This sample data now backs only `apps/web/src/pages/tv/**` routes
+ * Note: This sample data now backs only `apps/web/src/pages/tv/**` routes
  * and unit test fixtures, not the main public live page.
  */
 import type { LiveDashboard } from './live-state.js';

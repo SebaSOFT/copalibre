@@ -1,7 +1,7 @@
 import { messages } from '../i18n/messages.en.js';
 
 /**
- * The registration review table's state (0023).
+ * The registration review table's state.
  *
  * The selection and the filter are a model rather than component state so the
  * awkward parts — "select all" after a filter, a selected row that the filter

@@ -2,7 +2,7 @@ import type { MessageDescriptor } from 'react-intl';
 import { messages } from '../i18n/messages.en.js';
 
 /**
- * The organization dashboard's view models (0022).
+ * The organization dashboard's view models.
  *
  * Pure, and separate from the components, so what the dashboard *says* is
  * testable without mounting React — and so the organization scoping is a

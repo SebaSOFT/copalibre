@@ -1,5 +1,5 @@
 /**
- * Which failures are worth reconnecting after (0018).
+ * Which failures are worth reconnecting after.
  *
  * A client that retries everything hammers a server that told it to stop; one
  * that retries nothing goes dark on a dropped Wi-Fi frame. The distinction is

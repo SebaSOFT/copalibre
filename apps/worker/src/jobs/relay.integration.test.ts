@@ -8,7 +8,7 @@ import { JobDispatcher } from './dispatcher.js';
 import { runRelayPass } from './relay-runner.js';
 
 /**
- * The relay against real PostgreSQL (0017).
+ * The relay against real PostgreSQL.
  *
  * `FOR UPDATE SKIP LOCKED`, a claim that expires, and an idempotency marker are
  * all claims about what the *database* does under concurrency. A mock would

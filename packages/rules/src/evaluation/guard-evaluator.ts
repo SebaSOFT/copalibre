@@ -32,7 +32,7 @@ export interface GuardInput {
    * What the guard may read, placed at the root of `context.state`
    * (participant, roster, events…). Called `context` because that is what the
    * hook surface publishes and what a script author reads — one word for one
-   * thing (0013).
+   * thing.
    */
   readonly context: Readonly<Record<string, unknown>>;
 }

@@ -13,7 +13,7 @@ import type { UnitOfWork } from '../transaction.js';
 import type { AuditContext } from './enrollment-repository.js';
 
 /**
- * Storage for folded figures (0016-statistic-collectors-and-tags).
+ * Storage for folded figures.
  *
  * There is deliberately **no write path for a total**. Every number in
  * `statistic_totals` arrives from one call — `projectMatch` — carrying the
@@ -103,7 +103,7 @@ export class StatisticRepository {
   }
 
   /**
-   * The exact rows one match currently contributes (0082) — what a live-cadence
+   * The exact rows one match currently contributes — what a live-cadence
    * fold merges its next event's marginal figures on top of, since
    * `projectMatch` replaces a match's whole row set rather than upserting.
    */
@@ -118,7 +118,7 @@ export class StatisticRepository {
   }
 
   /**
-   * Every stored row at a collector's own grain, unaggregated (0082) — the raw
+   * Every stored row at a collector's own grain, unaggregated — the raw
    * material a read-time rollup folds upward with `aggregateTo`
    * (`@copalibre/statistics-refold`). `readTotals` combines rows with SQL at
    * exactly this grain; a rollup needs the rows themselves, because summing to

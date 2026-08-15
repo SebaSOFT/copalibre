@@ -43,13 +43,13 @@ const subjects: Record<string, AuthenticatedSubject> = {
 };
 
 /**
- * The authenticated HTTP path for `copalibre statistics-rebuild` (0085),
+ * The authenticated HTTP path for `copalibre statistics-rebuild`,
  * proving it against the same seeding `apps/copalibre/src/
- * statistics-rebuild.integration.test.ts` (0082) already uses for the
+ * statistics-rebuild.integration.test.ts` already uses for the
  * direct-database path — same organization/match/event shape, same
  * expected `matches`/`figures` result, over HTTP instead.
  */
-describe('AdminStatisticsController (integration, 0085)', () => {
+describe('AdminStatisticsController (integration)', () => {
   let app: INestApplication;
   let scratch: ScratchDatabase;
   let organizationId: string;

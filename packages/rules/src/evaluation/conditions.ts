@@ -7,7 +7,7 @@ import {
 import type { RulesRegistry } from '../registry/rules-registry.js';
 
 /**
- * The condition vocabulary beyond arithmetic (0013-scripting-hook-surface).
+ * The condition vocabulary beyond arithmetic.
  *
  * Until this change the whole vocabulary was Neuron's `compare_two_numbers`: a
  * rule language whose only test is a numeric comparison covers thresholds and

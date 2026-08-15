@@ -28,7 +28,7 @@ export default defineConfig({
       // versions).
       disable404Route: true,
       logo: { src: './src/assets/copalibre-logo.svg', alt: 'CopaLibre' },
-      // English is the default (unprefixed) locale (0051): `starlight-llms-txt`
+      // English is the default (unprefixed) locale: `starlight-llms-txt`
       // sources llms.txt/llms-full.txt from whichever locale is `defaultLocale`,
       // and LLM-facing docs must stay English regardless of how many other
       // interface languages this site later supports.

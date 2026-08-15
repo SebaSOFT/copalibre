@@ -1,5 +1,5 @@
 /**
- * Mandarin Chinese translations, keyed to match `messages.en.ts`'s IDs exactly (0057).
+ * Mandarin Chinese translations, keyed to match `messages.en.ts`'s IDs exactly.
  * Best-effort machine-quality translation (owner's explicit choice, 0051):
  * ship now, native-speaker review later.
  */

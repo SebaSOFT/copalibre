@@ -8,10 +8,10 @@ export interface LoginOptions {
 }
 
 /**
- * `--api-url`, else `COPALIBRE_API_URL` — which `copalibre init` (0084)
+ * `--api-url`, else `COPALIBRE_API_URL` — which `copalibre init`
  * already writes into `.env`, loaded by the `./copalibre` wrapper script
  * before this process starts, so a directory `init`'d covers this without
- * `login` itself needing to read `0084`'s installation marker (the marker
+ * `login` itself needing to read the installation marker (the marker
  * carries no API URL to read — only version/install-id/mode/timestamp).
  */
 export function parseLoginArguments(
@@ -88,7 +88,7 @@ export interface LoginDependencies {
 }
 
 /**
- * `copalibre login` (0085): stores a personal access token generated from an
+ * `copalibre login` stores a personal access token generated from an
  * already-authenticated control-panel session, validated with one
  * lightweight authenticated call (`GET /organizations?mine=true` —
  * `RequireSelf()`, the smallest existing route that only needs a verified

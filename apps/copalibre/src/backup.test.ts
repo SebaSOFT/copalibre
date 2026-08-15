@@ -108,7 +108,7 @@ describe('backup and restore options', () => {
   });
 });
 
-describe('defaultPacketFileName (0046)', () => {
+describe('defaultPacketFileName', () => {
   it('produces a colon-free, chronologically sortable packet name', () => {
     const first = defaultPacketFileName(new Date('2026-01-01T00:00:00.000Z'));
     const second = defaultPacketFileName(new Date('2026-06-01T00:00:00.000Z'));
@@ -117,7 +117,7 @@ describe('defaultPacketFileName (0046)', () => {
   });
 });
 
-describe('buildManifest (0046)', () => {
+describe('buildManifest', () => {
   it('records the given version and timestamp', () => {
     expect(buildManifest('1.2.3', new Date('2026-01-01T00:00:00.000Z'))).toEqual({
       createdAt: '2026-01-01T00:00:00.000Z',
@@ -126,7 +126,7 @@ describe('buildManifest (0046)', () => {
   });
 });
 
-describe('selectPacketsToPrune (0046)', () => {
+describe('selectPacketsToPrune', () => {
   it('keeps the newest N packets and returns the rest for deletion', () => {
     const packets = [
       'copalibre-2026-01-01T00-00-00-000Z.tar.gz',
@@ -151,7 +151,7 @@ describe('selectPacketsToPrune (0046)', () => {
   });
 });
 
-describe('evaluateRestoreCompatibility (0050)', () => {
+describe('evaluateRestoreCompatibility', () => {
   it('allows a backup older than the running version', () => {
     expect(evaluateRestoreCompatibility('1.0.0', '2.0.0', false)).toEqual({ ok: true });
   });

@@ -8,7 +8,7 @@ import type { ReadTotal, StoredFigure } from '@copalibre/persistence';
  *
  * `person`/`player` each roll up through the team they are on; `official` and
  * `venue` carry no entry here at all, which is what leaves them refused
- * exactly as `isCoarser` already refuses a cross-family read (0072) — an
+ * exactly as `isCoarser` already refuses a cross-family read — an
  * unresolved actor id is a figure `aggregateTo` drops, not an error.
  */
 export interface ActorMembership {

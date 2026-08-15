@@ -2,7 +2,7 @@ import type { MouseEvent } from 'react';
 import { useSyncExternalStore } from 'react';
 
 /**
- * Client-side navigation between control-panel screens (0061).
+ * Client-side navigation between control-panel screens.
  *
  * `window.location.pathname` modeled as external state via
  * `useSyncExternalStore` — the browser owns it, React only reads it. Plain
@@ -21,7 +21,7 @@ export function navigateControl(path: string): void {
 }
 
 /**
- * Where an unauthenticated visit to `path` sends the operator (0062) — a
+ * Where an unauthenticated visit to `path` sends the operator — a
  * pure function so the redirect target is testable without a real
  * `window.location.assign` (jsdom's `Location.assign` isn't mockable).
  */

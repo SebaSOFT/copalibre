@@ -9,7 +9,7 @@ import type { UnitOfWork } from '../transaction.js';
 /**
  * Long-lived, revocable API/MCP credentials bound to exactly one principal.
  * The raw token exists only transiently in the issuing response; the database
- * stores only its SHA-256 hash, identical to the display-token pattern (0031).
+ * stores only its SHA-256 hash, identical to the display-token pattern.
  */
 
 export interface PersonalAccessToken {

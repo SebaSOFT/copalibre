@@ -15,7 +15,7 @@ const realGitProcesses: ProcessRunner = {
   },
 };
 
-describe('validateLocalModule (0049)', () => {
+describe('validateLocalModule', () => {
   it('reports a scaffolded package as valid', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'copalibre-validate-local-test-'));
     try {

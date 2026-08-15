@@ -29,7 +29,7 @@ describe('the overview model', () => {
   });
 
   it('shows the abbreviation when there is one and the name when there is not', () => {
-    // Never a truncation invented here (0037).
+    // Never a truncation invented here.
     expect(shortLabel({ name: 'Talleres de Mendoza', abbreviation: 'TLL A' })).toBe('TLL A');
     expect(shortLabel({ name: 'Club Atlético San Martín' })).toBe('Club Atlético San Martín');
   });

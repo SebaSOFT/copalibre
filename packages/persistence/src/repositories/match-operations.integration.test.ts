@@ -209,7 +209,7 @@ describe('match operations (integration)', () => {
     });
   });
 
-  it('retains a cited report/dispute id as supporting evidence in the audit trail (0032)', async () => {
+  it('retains a cited report/dispute id as supporting evidence in the audit trail', async () => {
     const { match } = await playableMatch('cites-report');
     const competition = new CompetitionRepository(scratch.db);
     await withTransaction(scratch.db, (uow) =>

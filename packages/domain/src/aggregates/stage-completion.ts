@@ -2,8 +2,7 @@ import { DomainError } from '../errors.js';
 import { err, ok, type Result } from '../result.js';
 
 /**
- * Closing a stage, and what a later stage may assume once it is closed
- * (0010-stage-qualification-and-seeding).
+ * Closing a stage, and what a later stage may assume once it is closed.
  *
  * Completion is **not** "every match has a result". A stage whose results are
  * all in may still be open: a correction window may be running, a result may be

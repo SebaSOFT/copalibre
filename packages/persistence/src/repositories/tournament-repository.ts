@@ -137,7 +137,7 @@ export class TournamentRepository {
   }
 
   /**
-   * Every installed discipline, newest version of each (0023).
+   * Every installed discipline, newest version of each.
    *
    * The wizard reads its options from here rather than from a list in the
    * client: a hardcoded list is a list that disagrees with the installation the
@@ -423,7 +423,7 @@ export class TournamentRepository {
   }
 
   /**
-   * Archives a tournament (0033): `finished` → `archived` only. The state
+   * Archives a tournament: `finished` → `archived` only. The state
    * machine itself refuses every other starting state, so this never needs
    * its own separate "is this actually done?" check — `transitionTournament`
    * is the single source of truth `publish` predates and does not yet use.
@@ -484,7 +484,7 @@ export class TournamentRepository {
   }
 
   /**
-   * Every non-archived tournament in an organization (0033) — the shared
+   * Every non-archived tournament in an organization — the shared
    * "active only" filter every listing method is meant to go through. No
    * other listing method exists in this repository yet, so this is the
    * first one built with the filter in place, not a retrofit.
@@ -551,7 +551,7 @@ export class TournamentRepository {
    * Reads through the caller's own executor rather than `this.db`: called
    * from inside `createRuleset`'s open transaction, and a second connection
    * acquisition against the same underlying connection deadlocks under
-   * SQLite's single-connection test dialect (0040) — Postgres's pool masked
+   * SQLite's single-connection test dialect — Postgres's pool masked
    * this because a "second" connection was always available to hand out.
    */
   private async latestRulesetVersion(

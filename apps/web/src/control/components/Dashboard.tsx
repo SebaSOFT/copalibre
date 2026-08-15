@@ -21,7 +21,7 @@ interface DeviceEntry {
   readonly token: DisplayTokenResponse;
 }
 
-/** A1, the organization dashboard (0022). */
+/** A1, the organization dashboard. */
 export function Dashboard({
   model,
   organizationAlias,
@@ -77,7 +77,7 @@ function DashboardBody({
   const archive = (tournamentAlias: string) =>
     void api.archiveTournament?.(organizationAlias, tournamentAlias).then(() => {
       // Removed from view rather than re-fetched: this dashboard's tournament
-      // list is still build-time sample data (0033), so a live "active only"
+      // list is still build-time sample data, so a live "active only"
       // re-query isn't possible yet — the operator sees the result of their
       // own action immediately either way.
       setArchivedAliases((current) => new Set([...current, tournamentAlias]));
@@ -129,7 +129,7 @@ function DashboardBody({
           onClick={() => {
             controlTokenStore.clear();
             // A real navigation: /control/ (login) is a separate page from
-            // this shell (0062), same boundary as the unauthenticated-visit
+            // this shell, same boundary as the unauthenticated-visit
             // guard.
             window.location.assign('/control/');
           }}

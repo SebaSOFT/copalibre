@@ -30,7 +30,7 @@ test('navigates help content and searches through Starlight', async ({ page }) =
 });
 
 test('loads its rendering script and stylesheet same-origin, not from a CDN', async ({ page }) => {
-  // Vendored (0040): the reference's own script tag must point at this
+  // Vendored: the reference's own script tag must point at this
   // origin's build output, never a third-party host — the literal defect
   // this task fixes (a blank page on an install with no internet egress).
   const documentRequests: string[] = [];

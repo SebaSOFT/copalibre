@@ -1,6 +1,6 @@
 /**
  * @copalibre/statistics-refold — wires `@copalibre/tournament-engine`'s fold
- * engine (`foldStatistics`/`aggregateTo`) to real persistence (0082).
+ * engine (`foldStatistics`/`aggregateTo`) to real persistence.
  *
  * Neither package may do this itself: `@copalibre/persistence` is
  * deliberately fold-agnostic (`StatisticProjection`'s own doc comment —

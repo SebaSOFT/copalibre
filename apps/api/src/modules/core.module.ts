@@ -11,7 +11,7 @@ import { InstallationBootstrapController } from '../controllers/installation-boo
 
 /**
  * Platform-level providers every feature module depends on, and the two
- * controllers with no organization scope of their own (0079).
+ * controllers with no organization scope of their own.
  *
  * The database and `TokenVerifier` are provided behind tokens so tests can
  * override them with a scratch database and an in-memory key set — moved

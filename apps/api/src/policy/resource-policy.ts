@@ -142,7 +142,7 @@ export function enforcePolicy(request: PolicyRequest): void {
 }
 
 /**
- * Submitting a report or dispute for a match (0032).
+ * Submitting a report or dispute for a match.
  *
  * Ownership here is not "the resource already belongs to this subject" the
  * way a registration does — it is "the subject is a party to the match this
@@ -190,7 +190,7 @@ export async function enforceReportSubmission(request: ReportSubmissionRequest):
 }
 
 /**
- * Operating a match is a second question, asked after the first (0014).
+ * Operating a match is a second question, asked after the first.
  *
  * Organization scope says the subject belongs here; it never says they are the
  * one standing at *this* table. So a match command passes the org check and

@@ -11,7 +11,7 @@ export interface CommandHelp {
 }
 
 /**
- * Single source of truth for top-level `copalibre` command help (0044). Both
+ * Single source of truth for top-level `copalibre` command help. Both
  * `cli.ts`'s `--help`/`-h` handling and the `/help/cli/commands.md` docs
  * page are checked against this table, so the CLI's own help output, the docs
  * page, and the real command set cannot silently drift apart from each other.
@@ -163,7 +163,7 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
 ];
 
 /**
- * `copalibre module <subcommand>` help table (0044). Kept separate from
+ * `copalibre module <subcommand>` help table. Kept separate from
  * `COMMAND_HELP` because these only exist under the `module` command, not at
  * the top level.
  */

@@ -1,5 +1,5 @@
 /**
- * What CopaLibre must never ship (0019).
+ * What CopaLibre must never ship.
  *
  * sebasoft.app and CopaLibre must look unrelated, and "we reviewed it" is not a
  * control that survives a busy week. This list is scanned in CI against the

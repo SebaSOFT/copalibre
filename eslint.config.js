@@ -57,8 +57,8 @@ export default tseslint.config(
     },
   },
 
-  // Raw colour literals belong to packages/design-tokens and nowhere else
-  // (0019). A hex typed into a component is a value no theme can move and no
+  // Raw colour literals belong to packages/design-tokens and nowhere else.
+  // A hex typed into a component is a value no theme can move and no
   // forbidden-token scan can see, because the scan reads generated output.
   {
     files: ['**/*.ts', '**/*.tsx', '**/*.astro'],

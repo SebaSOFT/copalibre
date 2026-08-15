@@ -10,8 +10,7 @@ import {
 import { DomainError } from '../errors.js';
 
 /**
- * Three ways a schedule can be wrong, and one way of saying so
- * (0012-resource-scheduling-and-conflicts).
+ * Three ways a schedule can be wrong, and one way of saying so.
  *
  * Detection is pure and total: it returns every conflict rather than throwing
  * on the first, because the caller runs it twice for different reasons — once

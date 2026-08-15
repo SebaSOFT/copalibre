@@ -2,7 +2,7 @@ import type { MessageDescriptor } from 'react-intl';
 import { messages } from '../i18n/messages.en.js';
 
 /**
- * The pending participant reports/disputes queue's view model (0032).
+ * The pending participant reports/disputes queue's view model.
  *
  * Deliberately thin: unlike registration review, there is no bulk action and
  * no filter to preserve across a re-render — "pending reports/disputes

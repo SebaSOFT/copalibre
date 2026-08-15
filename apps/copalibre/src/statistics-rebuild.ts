@@ -35,7 +35,7 @@ export function parseStatisticsRebuildOptions(arguments_: readonly string[]): {
 }
 
 /**
- * The authenticated HTTP path (0085): mirrors `create-admin.ts`'s `fetch()`
+ * The authenticated HTTP path mirrors `create-admin.ts`'s `fetch()`
  * precedent — no database import at all. Used when a stored credential
  * exists for `apiUrl` (`StatisticsRebuildCommand`'s dual-path dispatch); the
  * direct-database `runStatisticsRebuild` above stays the fallback otherwise.

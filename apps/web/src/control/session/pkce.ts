@@ -1,5 +1,5 @@
 /**
- * Authorization Code + PKCE, browser side (0022).
+ * Authorization Code + PKCE, browser side.
  *
  * PKCE rather than a client secret because a browser cannot keep one: anything
  * shipped to the page is readable by anyone who opens the devtools. The

@@ -154,7 +154,7 @@ describe('CSV import validation handler', () => {
     );
   });
 
-  it('resolves the tournament’s registered team aliases for a team-membership session (0065)', async () => {
+  it('resolves the tournament’s registered team aliases for a team-membership session', async () => {
     imports.find.mockResolvedValue(session({ target: 'team-membership' }));
     imports.markValidating.mockResolvedValue(
       session({ target: 'team-membership', status: 'validating' }),

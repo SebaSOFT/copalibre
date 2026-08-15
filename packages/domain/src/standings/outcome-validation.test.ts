@@ -128,7 +128,7 @@ describe('recorded outcome validation', () => {
     expect(validateRecordedOutcome(tennis, document).ok).toBe(false);
   });
 
-  it('round-trips a duel result with one side’s reason set and the other omitted (0076)', () => {
+  it('round-trips a duel result with one side’s reason set and the other omitted', () => {
     const result = validateRecordedOutcome(tennis, {
       matchId: 'm-1',
       winnerEntrantId: 'alfa',
@@ -144,7 +144,7 @@ describe('recorded outcome validation', () => {
     expect(result.value.sides[0]?.resultReason).toBeUndefined();
   });
 
-  it('round-trips a free-for-all result with one competitor disqualified, per-entrant not per-match (0076)', () => {
+  it('round-trips a free-for-all result with one competitor disqualified, per-entrant not per-match', () => {
     const result = validateRecordedOutcome(
       heat,
       {

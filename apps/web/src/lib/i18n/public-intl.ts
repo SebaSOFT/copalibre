@@ -11,11 +11,11 @@ import { messages } from './public-messages.en.js';
 import type { ResultReason } from '@copalibre/domain';
 import type { ResultState, ResultStateLabels } from '../result-state.js';
 
-/** Labels for every non-`played` `ResultReason` (0076) — `played` never renders one. */
+/** Labels for every non-`played` `ResultReason` — `played` never renders one. */
 export type ResultReasonLabels = Readonly<Record<Exclude<ResultReason, 'played'>, string>>;
 
 /**
- * Build-time-only formatter for public-web's `.astro` frontmatter (0055).
+ * Build-time-only formatter for public-web's `.astro` frontmatter.
  *
  * Astro frontmatter runs in Node at build time and is stripped from the
  * client bundle for anything that isn't an explicit `client:*` island, so
@@ -69,7 +69,7 @@ export function resultStateLabels(intl: IntlShape): ResultStateLabels {
   };
 }
 
-/** Resolves every non-`played` result-reason label once (0076). */
+/** Resolves every non-`played` result-reason label once. */
 export function resultReasonLabels(intl: IntlShape): ResultReasonLabels {
   return {
     'administrative-loss': intl.formatMessage(messages.resultReasonAdministrativeLoss),

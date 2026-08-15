@@ -10,7 +10,7 @@ import {
 } from './functions.js';
 
 /**
- * Expressions over the context (0013-scripting-hook-surface).
+ * Expressions over the context.
  *
  * The gap the vocabulary left was never that rules cannot branch — rules branch
  * by being rules. It is that a rule could not ask about a value nobody
@@ -63,7 +63,7 @@ const REFUSAL_REASONS: Readonly<Record<string, string>> = {
  *
  * The source is kept beside the value because a surface shows the resolved
  * value and reveals the arithmetic behind it on demand — `3`, with
- * `{{ score.home - score.away }}` on hover (0023). Two fields, so the surface
+ * `{{ score.home - score.away }}` on hover. Two fields, so the surface
  * never has to parse a sentence back apart.
  */
 export interface ExpressionResolution {

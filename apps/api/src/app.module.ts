@@ -13,7 +13,7 @@ import { ReportingModule } from './modules/reporting.module.js';
 import { PublicModule } from './modules/public.module.js';
 
 /**
- * A table of contents, not an implementation (0079). Each feature module owns
+ * A table of contents, not an implementation. Each feature module owns
  * its own controllers; the two `APP_GUARD` providers stay here — Nest requires
  * a guard provided this way to be registered exactly once, and the root
  * module is the one place their global, cross-cutting nature is unambiguous.

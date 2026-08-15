@@ -1,5 +1,5 @@
 /**
- * French translations, keyed to match `messages.en.ts`'s IDs exactly (0054).
+ * French translations, keyed to match `messages.en.ts`'s IDs exactly.
  * Best-effort machine-quality translation; native-speaker review is a
  * separate, later pass (owner's explicit choice, 0051).
  */

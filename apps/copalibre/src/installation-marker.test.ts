@@ -16,7 +16,7 @@ async function withTemporaryDirectory<T>(run: (directory: string) => Promise<T>)
   }
 }
 
-describe('installation marker (0084)', () => {
+describe('installation marker', () => {
   it('round-trips through write and read', async () => {
     await withTemporaryDirectory(async (directory) => {
       const written = await writeInstallationMarker(directory, '0.5.0-beta');
@@ -80,7 +80,7 @@ describe('installation marker (0084)', () => {
   });
 });
 
-describe('assertVersionCompatible (0084)', () => {
+describe('assertVersionCompatible', () => {
   const marker = {
     version: '0.5.0-beta',
     installId: '01890000-0000-7000-8000-000000000001',

@@ -46,7 +46,7 @@ services:
     profiles: ['infrastructure', 'containerized']
 
   # Real S3-compatible endpoint for local object-storage integration tests
-  # (0041) — the production docker-compose.yml's own object-storage service
+  # — the production docker-compose.yml's own object-storage service
   # only exposes the admin console (9001); this dev profile exposes the S3
   # API port (9000) too, so `yarn workspace @copalibre/object-storage run
   # test:integration` can reach it directly from the host.

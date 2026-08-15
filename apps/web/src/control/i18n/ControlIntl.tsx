@@ -33,7 +33,7 @@ const CATALOGS: Partial<Record<SupportedLanguage, Record<string, string>>> = {
   zh: zhMessages,
 };
 
-/** Resolves the active interface language and provides its message catalog (0053). */
+/** Resolves the active interface language and provides its message catalog. */
 export function activeControlLanguage(): SupportedLanguage {
   return resolveLanguage({
     storedPreference: readStoredLanguagePreference(),

@@ -219,7 +219,7 @@ describe('summing rather than counting', () => {
   });
 });
 
-describe('reading collector-threshold rules out of ruleset config (0074)', () => {
+describe('reading collector-threshold rules out of ruleset config', () => {
   it('reads a declared list of rules', () => {
     expect(collectorThresholdRulesFrom({ collectorThresholdRules: [rule()] })).toEqual([rule()]);
   });
@@ -238,7 +238,7 @@ describe('reading collector-threshold rules out of ruleset config (0074)', () =>
   });
 });
 
-describe('folding a collector total across an event log (0074)', () => {
+describe('folding a collector total across an event log', () => {
   it('sums per actor, the same fold evaluateCollectorThreshold runs internally', () => {
     const totals = foldCollectorTotals(
       collector,

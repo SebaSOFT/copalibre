@@ -74,7 +74,7 @@ describe('a side is an entrant', () => {
   });
 });
 
-describe('an event may carry an optional note (0075)', () => {
+describe('an event may carry an optional note', () => {
   it('records the note regardless of discipline or event definition', () => {
     const log = new EventLog(fixtureDescriptor());
 

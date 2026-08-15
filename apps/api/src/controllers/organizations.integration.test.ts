@@ -112,7 +112,7 @@ describe('admin-control plane', () => {
     expect(response.json()).toMatchObject({ alias: 'club-cometa' });
   });
 
-  it('defaults a new organization to Spanish and UTC when not specified (0051)', async () => {
+  it('defaults a new organization to Spanish and UTC when not specified', async () => {
     const response = await request({
       method: 'POST',
       url: '/organizations',
@@ -123,7 +123,7 @@ describe('admin-control plane', () => {
     expect(response.json()).toMatchObject({ primaryLanguage: 'es', timezone: 'UTC' });
   });
 
-  it('creates an organization with an explicit primary language and timezone (0051)', async () => {
+  it('creates an organization with an explicit primary language and timezone', async () => {
     const response = await request({
       method: 'POST',
       url: '/organizations',
@@ -139,7 +139,7 @@ describe('admin-control plane', () => {
     expect(response.json()).toMatchObject({ primaryLanguage: 'de', timezone: 'Europe/Berlin' });
   });
 
-  it('409s an organization created with an unsupported primary language (0051)', async () => {
+  it('409s an organization created with an unsupported primary language', async () => {
     const response = await request({
       method: 'POST',
       url: '/organizations',

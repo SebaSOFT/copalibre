@@ -5,7 +5,7 @@ import { RequestMethod, type INestApplication } from '@nestjs/common';
  * does not declare in an exports map, so Node's ES module resolver cannot see
  * it. The values are part of Nest's decorator contract and stable across the
  * 11.x line, so they are declared here rather than reaching into package
- * internals (0006-esm-module-migration).
+ * internals.
  */
 const PATH_METADATA = 'path';
 const METHOD_METADATA = 'method';

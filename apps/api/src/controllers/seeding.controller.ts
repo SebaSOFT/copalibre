@@ -54,7 +54,7 @@ import { resolveTournament } from './standings.controller.js';
 import { DATABASE } from '../database.token.js';
 
 /**
- * Seeding and the bracket the engine builds from it (0024).
+ * Seeding and the bracket the engine builds from it.
  *
  * The bracket is generated here rather than read out of the fixtures table
  * because the persisted rows carry a round and two entrants and nothing about
@@ -210,7 +210,7 @@ export class SeedingController {
   }
 
   /**
-   * Resolves the stage plus its effective seeding record (0066).
+   * Resolves the stage plus its effective seeding record.
    *
    * `StageReadModel.stageRecord` derives `entrantIds` from the stage's own matches — correct once a
    * bracket exists, but a stage with none yet (freshly created, never seeded) has no matches to read,
@@ -256,7 +256,7 @@ export class SeedingController {
   }
 }
 
-/** The tournament's currently accepted registrations, in registration order (0066). */
+/** The tournament's currently accepted registrations, in registration order. */
 async function acceptedEntrantIds(
   db: Kysely<Database>,
   tournamentId: string,

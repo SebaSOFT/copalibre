@@ -3,7 +3,7 @@ import { DEFAULT_BACKOFF, delayForAttempt, isExhausted, type BackoffPolicy } fro
 import type { JobDispatcher } from './dispatcher.js';
 
 /**
- * One pass of the relay (0017).
+ * One pass of the relay.
  *
  * Written as a function over an injected relay and dispatcher rather than as a
  * loop with a timer inside it: "process what is due, once" is testable, and

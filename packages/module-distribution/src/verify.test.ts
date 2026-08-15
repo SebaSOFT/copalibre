@@ -4,7 +4,7 @@ function installed(requiresCopalibre: string) {
   return { alias: 'football', version: '1.0.0', requiresCopalibre };
 }
 
-describe('evaluateCoreVersionCompatibility (0045)', () => {
+describe('evaluateCoreVersionCompatibility', () => {
   it('returns undefined when the version satisfies the declared range', () => {
     expect(evaluateCoreVersionCompatibility('2.3.0', installed('^2.0.0'))).toBeUndefined();
   });
@@ -17,7 +17,7 @@ describe('evaluateCoreVersionCompatibility (0045)', () => {
     });
   });
 
-  it('evaluates a target version the installation is not currently running (0045)', () => {
+  it('evaluates a target version the installation is not currently running', () => {
     // The same function call shape used for a pre-upgrade check: the version
     // passed in need not be the version currently installed.
     expect(evaluateCoreVersionCompatibility('3.0.0', installed('^2.0.0'))).toEqual({

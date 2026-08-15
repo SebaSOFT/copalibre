@@ -3,7 +3,7 @@ import type { Database } from '../schema.js';
 import type { UnitOfWork } from '../transaction.js';
 
 /**
- * The `since-last-consequence` window's durable state (0074): how much of a
+ * The `since-last-consequence` window's durable state: how much of a
  * collector-threshold rule's total each actor has already answered with a
  * firing. Never edited by the collector total itself — only by a firing.
  */

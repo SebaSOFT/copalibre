@@ -9,7 +9,7 @@ import { SUPPORTED_LANGUAGES } from '../i18n.js';
  *
  * A descriptor is operator-authored JSON that arrives over HTTP or out of a
  * module archive, so its shape is validated as data before anything types it.
- * Two members carry this phase's changes (0009-discipline-driven-results):
+ * Two members carry this phase's changes:
  *
  * - `winCondition` is a rule script — a serializable Neuron-JS document — not
  *   an enumerated string, so "first to 2 sets, a set being first to 6 games by
@@ -79,7 +79,7 @@ export const RULE_SCRIPT_SCHEMA: JsonSchemaDocument = Object.freeze({
           type: 'object',
           // Both arrays are required because Neuron's `validateScript` demands
           // them: a rule omitting one passed installation and failed at
-          // evaluation, which is the worst place to learn it (0013). The schema
+          // evaluation, which is the worst place to learn it. The schema
           // tightens rather than the loader normalising, because a normalised
           // document differs from the submitted one and module identity is a
           // signature-adjacent concern in 0034. An empty array is fine — it
@@ -142,7 +142,7 @@ export const RECORDED_OUTCOME_SCHEMA: JsonSchemaDocument = Object.freeze({
 const AGGREGATION_MODES = ['sum', 'count', 'max', 'min', 'average'] as const;
 
 /**
- * A display string, in one language or several (0071). A plain string is
+ * A display string, in one language or several. A plain string is
  * still valid forever — every module authored before this schema is unaffected
  * — and an author who wants more than one language writes the object form
  * instead, requiring `en` as the guaranteed fallback every other localized
@@ -324,7 +324,7 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
   },
   definitions: {
     /**
-     * A collector (0016). The structure is checked here; whether it names an
+     * A collector. The structure is checked here; whether it names an
      * event this discipline defines, or a collector it declares, is a question
      * about the whole document and lives in `validateCollectors`.
      */
@@ -414,7 +414,7 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
             },
           },
         },
-        /** Absent reads as `{ kind: 'on-finalize' }` (0082). */
+        /** Absent reads as `{ kind: 'on-finalize' }`. */
         cadence: {
           type: 'object',
           additionalProperties: false,
@@ -424,8 +424,8 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
           },
         },
         /**
-         * The tag an actor must carry, at fact time, for a fact to count
-         * (0073). Only meaningful on an event-/statistic-sourced collector —
+         * The tag an actor must carry, at fact time, for a fact to count.
+         * Only meaningful on an event-/statistic-sourced collector —
          * `validateCollectors` refuses it on a participation-/collector-
          * sourced one, since neither has a fact-level instant to check.
          */

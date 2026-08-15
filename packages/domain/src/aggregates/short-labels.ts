@@ -2,7 +2,7 @@ import type { Club } from './organization.js';
 import type { Team } from './participant.js';
 
 /**
- * Resolving the short label, and reporting when two of them collide (0037).
+ * Resolving the short label, and reporting when two of them collide.
  *
  * Two functions, one rule each, because the two questions a surface asks are
  * "what do I show for this side" and "is anything about to look identical to

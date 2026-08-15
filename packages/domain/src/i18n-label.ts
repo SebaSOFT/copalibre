@@ -1,8 +1,8 @@
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from './i18n.js';
 
 /**
- * A display string in one or more of the platform's supported languages
- * (0071). `en` is required — the guaranteed fallback, matching the fallback
+ * A display string in one or more of the platform's supported languages.
+ * `en` is required — the guaranteed fallback, matching the fallback
  * chain every other localized surface in the platform already uses
  * (organization `primaryLanguage` -> browser language -> English) — every
  * other language is optional, so a module author who only cares about one

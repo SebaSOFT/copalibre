@@ -7,7 +7,7 @@ import {
 import type { NotificationInstance } from '../notifications/notification-rules.js';
 
 /**
- * Effects a script declares but never performs (0013-scripting-hook-surface).
+ * Effects a script declares but never performs.
  *
  * This is the load-bearing decision of the phase. The tournament-engine
  * decision record requires notification delivery to be idempotent "so

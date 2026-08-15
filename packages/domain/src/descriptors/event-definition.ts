@@ -56,7 +56,7 @@ export type EventEffect =
     }
   | { readonly kind: 'match-state'; readonly transition: string }
   /**
-   * Labels the actor, or removes a label (0016). A discipline that wants "an
+   * Labels the actor, or removes a label. A discipline that wants "an
    * expulsion marks the player" says so here rather than in code — and the tag
    * still refuses nothing: the organizer decides what carrying it means.
    */

@@ -2,7 +2,7 @@ import { useIntl } from 'react-intl';
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '../../lib/language-preference.js';
 import { messages } from './messages.en.js';
 
-/** Each language's own name, in its own language — never translated (0053). */
+/** Each language's own name, in its own language — never translated. */
 const LANGUAGE_NAMES: Readonly<Record<SupportedLanguage, string>> = {
   en: 'English',
   es: 'Español',
@@ -17,7 +17,7 @@ const LANGUAGE_NAMES: Readonly<Record<SupportedLanguage, string>> = {
 /**
  * Writes the chosen language to the caller's stored-preference mechanism and
  * re-renders — the caller (`ControlShell`/`Dashboard.tsx`) owns the actual
- * `useState` so `ControlIntl`'s active catalog updates immediately (0053).
+ * `useState` so `ControlIntl`'s active catalog updates immediately.
  */
 export function LanguageSwitcher({
   value,

@@ -1,7 +1,7 @@
 /**
  * @copalibre/design-tokens — one token source, generated into CSS custom
  * properties for the Astro surfaces and a Tailwind theme for the React control
- * app (0019). Hand-duplicating them is how a "live" cyan ends up two shades
+ * app. Hand-duplicating them is how a "live" cyan ends up two shades
  * apart on two screens showing the same match.
  */
 

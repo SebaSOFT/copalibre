@@ -17,7 +17,7 @@ export interface Team {
   readonly clubId?: string;
   readonly name: string;
   /**
-   * What this side plays (0015). The **discipline**, not a pinned module
+   * What this side plays. The **discipline**, not a pinned module
    * version: a club's football team plays football whichever descriptor version
    * a given tournament froze. Without it, a club fielding a football and a
    * futsal side has two rows the model cannot tell apart — and a match roster
@@ -27,7 +27,7 @@ export interface Team {
    */
   readonly disciplineId?: string;
   /**
-   * Overrides the club's short label (0037).
+   * Overrides the club's short label.
    *
    * One club fields two sides in one tournament, and `TLL A` / `TLL B` is the
    * only thing telling a spectator which one is on the court. Absent means the

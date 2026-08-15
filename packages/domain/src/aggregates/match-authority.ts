@@ -2,7 +2,7 @@ import { DomainError } from '../errors.js';
 import { err, ok, type Result } from '../result.js';
 
 /**
- * Who may operate a match (0014-live-match-operations-result-authority).
+ * Who may operate a match.
  *
  * The decision record asks for event entry, clock control, roster selection and
  * finalization to be *separate permissions, not a consequence of a generic

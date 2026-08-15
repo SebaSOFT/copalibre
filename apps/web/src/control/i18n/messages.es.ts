@@ -1,5 +1,5 @@
 /**
- * Spanish translations, keyed to match `messages.en.ts`'s IDs exactly (0053).
+ * Spanish translations, keyed to match `messages.en.ts`'s IDs exactly.
  * Reproduces today's pre-extraction wording so an organization defaulting to
  * `primaryLanguage: "es"` sees no behavior change from this refactor.
  */

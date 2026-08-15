@@ -3,7 +3,7 @@ import { err, ok, type Result } from '../result.js';
 
 /**
  * The things a fixture needs besides two entrants: somewhere to play and
- * someone to officiate (0012-resource-scheduling-and-conflicts).
+ * someone to officiate.
  *
  * Both are *referenceable entities* rather than free text on the fixture,
  * because the whole point of this phase is detecting that two fixtures want the

@@ -2,9 +2,9 @@ import { expect, test, type Page } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
- * A5 and A6 in a real browser (0024).
+ * A5 and A6 in a real browser.
  *
- * The API is stubbed at `window.fetch`, as the 0023 specs do: what these
+ * The API is stubbed at `window.fetch`, as the other control-panel e2e specs do: what these
  * assert is the screen — that a tied row opens its engine trace, that a locked
  * seed survives a randomize, that both halves of a double-elimination bracket
  * render with named placeholders, and that a refused reseed says so in the
@@ -135,7 +135,7 @@ async function mockControlApi(
       // `addInitScript` re-runs on every navigation, including a reload, so a
       // plain closure variable would not survive one — sessionStorage does,
       // letting a GET after a reload reflect what the server would have
-      // actually persisted (0040) rather than resetting to the page's
+      // actually persisted rather than resetting to the page's
       // starting fixture.
       const STORAGE_KEY = 'e2e-current-seeding';
       const readCurrent = (): typeof seeding => {
@@ -274,7 +274,7 @@ test('a published seed order survives a page reload', async ({ page }) => {
   await expect(page.getByRole('alert')).toContainText('sembrado guardado');
 
   await page.reload();
-  // The session is in-memory only (0062) and a reload discards it, same as a
+  // The session is in-memory only and a reload discards it, same as a
   // real browser refresh — log back in to return to this screen so the
   // assertion below is about the persisted seed order, not the session.
   await seedLoginTransaction(page, target);

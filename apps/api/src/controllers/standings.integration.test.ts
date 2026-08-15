@@ -21,7 +21,7 @@ import { SeedingController, toBracketMatch } from './seeding.controller.js';
 import { StandingsController } from './standings.controller.js';
 
 /**
- * Standings and seeding through the real HTTP stack (0024).
+ * Standings and seeding through the real HTTP stack.
  *
  * The two things worth proving with a database attached: the projection version
  * a client keys off is served, and a reseed after a result exists is refused
@@ -376,7 +376,7 @@ describe('standings and seeding routes (integration)', () => {
     const [winner = '', runnerUp = ''] = entrantIds;
     const competition = new CompetitionRepository(scratch.db);
     // A prior test republished this stage's seed order, which replaces its
-    // fixtures wholesale (0040) — `firstFixtureId` no longer names a live row,
+    // fixtures wholesale — `firstFixtureId` no longer names a live row,
     // so this reads the current one instead of trusting the captured id.
     const currentFixture = await scratch.db
       .selectFrom('fixtures')

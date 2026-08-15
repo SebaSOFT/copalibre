@@ -18,9 +18,9 @@ export function ControlShell({
   children,
 }: {
   readonly organizationAlias: string;
-  /** A `SIDENAV` item's stable `id`, e.g. `'roles'` — never its display label (0053). */
+  /** A `SIDENAV` item's stable `id`, e.g. `'roles'` — never its display label. */
   readonly active?: string;
-  /** Slug under `/help/control/`, e.g. `'seeding'` — required so a screen can never ship with no matching help page linked (0043). */
+  /** Slug under `/help/control/`, e.g. `'seeding'` — required so a screen can never ship with no matching help page linked. */
   readonly helpPath: string;
   readonly children: React.ReactNode;
 }): React.JSX.Element {
@@ -63,7 +63,7 @@ function ControlShellChrome({
   const logout = (): void => {
     controlTokenStore.clear();
     // A real navigation: /control/ (login) is a separate page from this
-    // shell (0062), same boundary as the unauthenticated-visit guard.
+    // shell, same boundary as the unauthenticated-visit guard.
     window.location.assign('/control/');
   };
   return (

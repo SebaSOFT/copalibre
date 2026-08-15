@@ -8,7 +8,7 @@ import type { StandingsData } from './lib/standings.js';
 import { withIntl } from './i18n/test-support.js';
 
 /**
- * The contract that makes "explainable" true rather than aspirational (0024).
+ * The contract that makes "explainable" true rather than aspirational.
  *
  * Not a snapshot of either side. A snapshot of the engine passes while the
  * screen renders something else entirely, and a snapshot of the screen passes

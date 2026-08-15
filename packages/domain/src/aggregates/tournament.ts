@@ -5,8 +5,7 @@ import { err, ok, type Result } from '../result.js';
 /**
  * `started` is a distinct status, not a derived "has a match begun?" predicate.
  * Modelling it as a transition gives one auditable moment to attach the start
- * validations to, and one clear condition for the module freeze
- * (0008-extensible-module-foundation).
+ * validations to, and one clear condition for the module freeze.
  *
  * `archived` (0033-competition-lifecycle-and-archival, TMS-014) is a fifth,
  * terminal state reachable only from `finished` — archival is a visibility
@@ -26,7 +25,7 @@ export interface Tournament {
   readonly status: TournamentStatus;
   /** Set when the tournament starts; discipline and profile versions freeze from here. */
   readonly startedAt?: string;
-  /** Set when the tournament is archived (0033); absent until then. */
+  /** Set when the tournament is archived; absent until then. */
   readonly archivedAt?: string;
   /** Profile this tournament instantiated, pinned at start. */
   readonly profileRef?: { readonly profileId: string; readonly version: string };
@@ -42,7 +41,7 @@ export function hasStarted(tournament: Tournament): boolean {
 }
 
 /**
- * The lifecycle's legal transitions (0033), one linear path plus the
+ * The lifecycle's legal transitions, one linear path plus the
  * terminal archival step. Each key lists exactly what it may become next —
  * a tournament earlier than `finished` cannot reach `archived` in one step,
  * which is the state machine's own enforcement of "archive only what is

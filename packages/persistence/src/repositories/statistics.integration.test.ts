@@ -11,7 +11,7 @@ import { TagRepository } from './tag-repository.js';
 import { createMigratedDatabase, type ScratchDatabase } from '../test-support/scratch-database.js';
 
 /**
- * Folded figures against a real database (0016).
+ * Folded figures against a real database.
  *
  * The promise under test is narrow and load-bearing: **every total is a fold**.
  * Nothing here increments a stored number, a correction recomputes rather than
@@ -643,7 +643,7 @@ describe('tags (integration)', () => {
     expect(elsewhere).toEqual([]);
   });
 
-  it('records and reads a tag on an official actor (0072)', async () => {
+  it('records and reads a tag on an official actor', async () => {
     const tags = new TagRepository(scratch.db);
     const applied = fact({
       code: 'certified',
@@ -666,7 +666,7 @@ describe('tags (integration)', () => {
     expect(facts[0]?.actorGranularity).toBe('official');
   });
 
-  it('records and reads a tag on a venue actor (0072)', async () => {
+  it('records and reads a tag on a venue actor', async () => {
     const tags = new TagRepository(scratch.db);
     const applied = fact({
       code: 'poor-lighting',

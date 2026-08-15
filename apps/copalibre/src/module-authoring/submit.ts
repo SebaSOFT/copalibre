@@ -16,7 +16,7 @@ const DEFAULT_BASE_BRANCH = 'main';
  * `submit.ts` needs both a per-call working directory (`gh repo fork`'s
  * clone target, `gh pr create` run from inside that clone) and stdout (the
  * created pull request's URL), so it defines its own small seam here rather
- * than widening `ProcessRunner`'s contract for every other caller (0049).
+ * than widening `ProcessRunner`'s contract for every other caller.
  */
 export interface GitCommandRunner {
   run(command: string, args: readonly string[], cwd?: string): Promise<{ readonly stdout: string }>;
@@ -46,7 +46,7 @@ export interface SubmitResult {
 
 /**
  * Forks `copalibre-modules`, copies the local module package onto a new
- * branch, pushes, and opens a pull request (0049). Copies, never moves —
+ * branch, pushes, and opens a pull request. Copies, never moves —
  * the local package stays usable for a further `module add --source` install
  * afterward.
  */

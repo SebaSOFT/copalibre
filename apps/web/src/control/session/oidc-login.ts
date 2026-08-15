@@ -5,7 +5,7 @@ export const TRANSACTION_KEY = 'copalibre.oidc.transaction';
 /**
  * Where an operator lands after login when no `returnTo` was requested.
  *
- * Exported (0063) so `ControlApp.tsx`'s `CompletingLogin` can tell this case
+ * Exported so `ControlApp.tsx`'s `CompletingLogin` can tell this case
  * apart from a guard-redirected login (which always carries a real
  * destination) without widening the transaction shape 0062 already shipped.
  */
@@ -22,7 +22,7 @@ interface OidcDiscovery {
   readonly token_endpoint: string;
 }
 
-/** What `/control/callback` needs to complete the exchange (0062). */
+/** What `/control/callback` needs to complete the exchange. */
 export interface OidcTransaction {
   readonly state: string;
   readonly verifier: string;

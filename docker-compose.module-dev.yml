@@ -1,4 +1,4 @@
-# Opt-in module-authoring overlay (0084): bind-mounts a local directory for
+# Opt-in module-authoring overlay: bind-mounts a local directory for
 # `copalibre module scaffold`/`module add --source file://...` against a
 # running self-hosted instance, with no source checkout required. Merged on
 # top of docker-compose.yml via multiple `-f` flags (or COMPOSE_FILE) — the

@@ -3,7 +3,7 @@ import type { Migration } from 'kysely/migration';
 import { suggestAvailableAlias } from '@copalibre/domain';
 import type { Database } from '../schema.js';
 
-/** Durable worker-owned preview state for reviewed CSV participant imports (0027). */
+/** Durable worker-owned preview state for reviewed CSV participant imports. */
 export const csvImportExport: Migration = {
   async up(db: Kysely<unknown>): Promise<void> {
     await db.schema.alterTable('teams').addColumn('alias', 'text').execute();

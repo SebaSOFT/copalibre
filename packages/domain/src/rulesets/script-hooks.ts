@@ -2,7 +2,7 @@ import { DomainError } from '../errors.js';
 import { err, ok, type Result } from '../result.js';
 
 /**
- * Where a script may run (0013-scripting-hook-surface).
+ * Where a script may run.
  *
  * 0010 needed hook points for the draw and defined them inside
  * `draw-constraints.ts`, as a detail of one feature. Four evaluations now
@@ -79,7 +79,7 @@ export const ENVIRONMENT_CONTEXT_PATHS = [
  * `sides.N.home` is `true`, `false`, or `null` where the concept does not
  * apply — neutral ground, a free-for-all heat. Home advantage is a property of
  * a side, not of a match: it is what venue assignment reads when it decides
- * whose ground a fixture is played at (0012), and that decision is per side.
+ * whose ground a fixture is played at, and that decision is per side.
  */
 const MATCH_CONTEXT_PATHS = [
   'match.id',
@@ -149,7 +149,7 @@ const EVENT_CONTEXT_PATHS = [
 ] as const;
 
 /**
- * Running totals for the declared collectors (0016), keyed by collector code.
+ * Running totals for the declared collectors, keyed by collector code.
  *
  * Published so a rule reasons about "the fifth yellow" without fetching
  * anything: a script has no I/O, and a threshold that had to be told its own

@@ -33,7 +33,7 @@ export interface InstalledModuleAsset {
 }
 
 /**
- * Community-installed modules (0036) — separate from
+ * Community-installed modules — separate from
  * `TournamentRepository`/`TournamentProfileRepository`, which own the
  * versioned artifact rows themselves. This tracks *that a module was
  * installed*, from where, and by whom it is attributed — the facts the

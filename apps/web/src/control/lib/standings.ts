@@ -1,5 +1,5 @@
 /**
- * The A5 standings view model (0024).
+ * The A5 standings view model.
  *
  * Everything here is arithmetic and column ordering. No ranking, no tiebreak
  * evaluation, and above all no trace text: the trace arrives from the API as

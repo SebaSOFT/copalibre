@@ -1,7 +1,7 @@
 import type { ClaimedJob } from '@copalibre/persistence';
 
 /**
- * What runs for a given `eventType` (0017).
+ * What runs for a given `eventType`.
  *
  * This phase builds the substrate; the jobs themselves belong to the phases
  * that need them — notification delivery, exports, media. So the dispatcher is

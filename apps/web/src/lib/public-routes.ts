@@ -1,7 +1,7 @@
 import type { SitemapEntry } from '@copalibre/routing';
 
 /**
- * Locale variants this build advertises for every route below (0055): English
+ * Locale variants this build advertises for every route below: English
  * (the primary locale, `input.locale` left unset so `publicPath` emits no
  * prefix) plus every non-primary locale with populated content (0056 added
  * the remaining five alongside 0055's Spanish; 0057 added Mandarin).

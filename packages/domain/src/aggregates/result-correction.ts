@@ -3,7 +3,7 @@ import { DomainError } from '../errors.js';
 import { err, ok, type Result } from '../result.js';
 
 /**
- * Correcting a result (0014-live-match-operations-result-authority).
+ * Correcting a result.
  *
  * The decision record is unambiguous: "The MVP permits no direct overwrite of
  * an outcome." So a correction is not an update — it is a new fact that
@@ -23,7 +23,7 @@ export interface CorrectionRequest {
   readonly reason: string;
   readonly actor: string;
   /**
-   * A participant report/dispute this correction cites (0032) — retained as
+   * A participant report/dispute this correction cites — retained as
    * supporting evidence in the audit trail. Citing one grants no authority of
    * its own; the operator still supplies their own `replacement` and `reason`
    * exactly as any other correction would.

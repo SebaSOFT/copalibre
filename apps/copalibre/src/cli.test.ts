@@ -10,7 +10,7 @@ import { writeCredential } from './credentials.js';
 import { writeInstallationMarker } from './installation-marker.js';
 import type { ProcessRunner } from './process-runner.js';
 
-/** Mirrors `backup-packet.test.ts`'s temp-cwd helper (0050): `restore` reads `backups/` relatively. */
+/** Mirrors `backup-packet.test.ts`'s temp-cwd helper: `restore` reads `backups/` relatively. */
 async function withTemporaryWorkingDirectory<T>(run: () => Promise<T>): Promise<T> {
   const originalCwd = process.cwd();
   const directory = await mkdtemp(join(tmpdir(), 'copalibre-cli-runner-'));
@@ -24,7 +24,7 @@ async function withTemporaryWorkingDirectory<T>(run: () => Promise<T>): Promise<
   }
 }
 
-/** Stages a real, extractable packet via `createBackupPacket` (0046), naming its manifest version. */
+/** Stages a real, extractable packet via `createBackupPacket`, naming its manifest version. */
 async function stageRestorablePacket(copalibreVersion: string): Promise<string> {
   const setupRun = jest.fn<ProcessRunner['run']>(async (_command, arguments_) => {
     const dumpArgumentIndex = (arguments_ as readonly string[]).indexOf('--file');
@@ -66,7 +66,7 @@ function spyOnOutputOrder(): {
 }
 
 describe('runCli', () => {
-  describe('startup banner (0042)', () => {
+  describe('startup banner', () => {
     it.each([
       ['--help', ['--help']],
       ['no arguments', []],
@@ -126,7 +126,7 @@ describe('runCli', () => {
     });
   });
 
-  describe('comprehensive help (0044)', () => {
+  describe('comprehensive help', () => {
     it.each([
       ['--help', ['--help']],
       ['-h', ['-h']],
@@ -190,7 +190,7 @@ describe('runCli', () => {
     );
   });
 
-  describe('backup/restore dry-run (0046)', () => {
+  describe('backup/restore dry-run', () => {
     it('backup --dry-run prints the plan without touching the filesystem or docker', async () => {
       const run = jest.fn<ProcessRunner['run']>();
       const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
@@ -230,10 +230,10 @@ describe('runCli', () => {
     });
   });
 
-  describe('restore migrate-then-verify sequencing (0050)', () => {
+  describe('restore migrate-then-verify sequencing', () => {
     it('refuses a backup newer than the running version before any migrate invocation', async () => {
       await withTemporaryWorkingDirectory(async () => {
-        // Deliberately far ahead of any real released version (0058), so this
+        // Deliberately far ahead of any real released version, so this
         // stays "newer than running" across future version bumps rather than
         // needing to be re-picked at each release.
         const packetFile = await stageRestorablePacket('99.0.0');
@@ -254,7 +254,7 @@ describe('runCli', () => {
 
     it('reports a migrate failure after a successful restore, without claiming success', async () => {
       await withTemporaryWorkingDirectory(async () => {
-        // A discoverable compose file (0084): this test simulates running
+        // A discoverable compose file: this test simulates running
         // from a checkout, not an `init`'d instance directory — no marker,
         // but `migrate`'s own requireComposeTarget check needs *something*
         // discoverable or it refuses before ever calling `run`.
@@ -287,10 +287,10 @@ describe('runCli', () => {
     });
   });
 
-  describe('upgrade-check (0045)', () => {
+  describe('upgrade-check', () => {
     it('proxies to a one-off container outside a container, like doctor', async () => {
       await withTemporaryWorkingDirectory(async () => {
-        // A discoverable compose file (0084) — see the equivalent comment on
+        // A discoverable compose file — see the equivalent comment on
         // the restore/migrate test above.
         await writeFile('docker-compose.yml', '');
         const run = jest.fn<ProcessRunner['run']>().mockResolvedValueOnce(0);
@@ -326,7 +326,7 @@ describe('runCli', () => {
     });
   });
 
-  describe('statistics-rebuild (0082)', () => {
+  describe('statistics-rebuild', () => {
     it('requires --organization before ever opening a database connection', async () => {
       const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
       try {
@@ -341,7 +341,7 @@ describe('runCli', () => {
     });
   });
 
-  describe('marker-aware compose dispatch (0084)', () => {
+  describe('marker-aware compose dispatch', () => {
     it('an installation marker alone (no discoverable compose file) is enough for doctor/start/migrate/upgrade-check to proceed', async () => {
       await withTemporaryWorkingDirectory(async () => {
         await writeInstallationMarker(process.cwd(), readCopalibreVersion());
@@ -470,7 +470,7 @@ describe('runCli', () => {
     }
   });
 
-  describe('statistics-rebuild / module dual-path dispatch (0085)', () => {
+  describe('statistics-rebuild / module dual-path dispatch', () => {
     it('statistics-rebuild uses the direct-database path when no credential is stored', async () => {
       await withTemporaryWorkingDirectory(async () => {
         const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);

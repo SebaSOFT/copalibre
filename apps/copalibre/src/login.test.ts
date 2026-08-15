@@ -22,7 +22,7 @@ function rejectedResponse(): Response {
   return new Response(JSON.stringify({ message: 'invalid token' }), { status: 401 });
 }
 
-describe('parseLoginArguments (0085)', () => {
+describe('parseLoginArguments', () => {
   it('takes --api-url over the environment', () => {
     expect(
       parseLoginArguments(['--api-url', 'https://flag.example'], {
@@ -48,7 +48,7 @@ describe('parseLoginArguments (0085)', () => {
   });
 });
 
-describe('login (0085)', () => {
+describe('login', () => {
   it('stores the token from --token into cwd, without reading stdin or prompting', async () => {
     await withTemporaryDirectory(async (directory) => {
       const requestFetch = jest.fn(async () => okResponse());

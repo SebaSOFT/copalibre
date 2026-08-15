@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { parse } from 'yaml';
 
 /**
- * The K3s Helm chart (0034) must expose the same environment-variable
+ * The K3s Helm chart must expose the same environment-variable
  * contract as docker-compose.yml's Level 1 install — no K3s-only variable for
  * application configuration. `x-application-environment` is the shared
  * contract api/events/worker/scheduler/migrate/doctor all merge in; `web`

@@ -41,7 +41,7 @@ export class EnrollmentRepository {
   constructor(private readonly db: Kysely<Database>) {}
 
   /**
-   * Creates a club (0037).
+   * Creates a club.
    *
    * The table has existed since `0004` with nothing to write to it — clubs
    * arrived through imports and fixtures. It gets a write path now because the
@@ -313,7 +313,7 @@ export class EnrollmentRepository {
   }
 
   /**
-   * The aliases a `team-membership` CSV import (0065) may reference: only
+   * The aliases a `team-membership` CSV import may reference: only
    * teams already registered as entrants in this tournament, never every team
    * in the organization. A team-membership row names a team that already
    * exists in the draw — this is what a worker resolves before validation, so
@@ -692,7 +692,7 @@ export class EnrollmentRepository {
   }
 
   /**
-   * Every player row for a set of teams, keyed by team then person (0082).
+   * Every player row for a set of teams, keyed by team then person.
    *
    * A match roster resolves several entrants at once, and each entrant may
    * carry a dozen players — a lookup per person would be a query per roster
@@ -719,7 +719,7 @@ export class EnrollmentRepository {
   }
 
   /**
-   * The team each of a set of players belongs to (0082) — a `player`-grain
+   * The team each of a set of players belongs to — a `player`-grain
    * figure's `actorId` is a `player_id`, and rolling it up to `team`/`club`
    * needs this hop; `listParticipantTeamMemberships` is keyed by person, not
    * by the player row a stored figure already names.
@@ -736,7 +736,7 @@ export class EnrollmentRepository {
   }
 
   /**
-   * The club fielding each of a set of teams (0082), the symmetric read
+   * The club fielding each of a set of teams, the symmetric read
    * `listParticipantTeamMemberships` does not offer: that method starts from
    * a person, this one starts from the team a fold already resolved.
    */
@@ -790,7 +790,7 @@ export class EnrollmentRepository {
 
   /**
    * Whether this participant is a party to this match — the ownership check a
-   * report or dispute submission needs (0032), extracted from
+   * report or dispute submission needs, extracted from
    * `listParticipantReportedResults`'s join so it is a real, reusable check
    * rather than logic that only exists inlined inside a read listing. A
    * roster is match-scoped and does not by itself grant this: the check is
@@ -829,7 +829,7 @@ export class EnrollmentRepository {
    * Entrant id to display name/abbreviation, for a surface that shows people
    * rather than ids (0067's public overview/live/bracket projections).
    *
-   * A person entrant has no abbreviation; only a team can carry one (0037).
+   * A person entrant has no abbreviation; only a team can carry one.
    * An entrant id this installation does not recognise is simply absent from
    * the returned map — the caller decides what to show for that, this method
    * does not invent a label.

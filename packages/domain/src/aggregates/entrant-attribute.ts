@@ -7,8 +7,7 @@ import type { Entrant } from './participant.js';
  *
  * A ranking, a region, an association: none of it is derivable from what
  * happened on the field, and all of it decides how a draw should come out.
- * Attributes are the seam where that knowledge enters
- * (0010-stage-qualification-and-seeding).
+ * Attributes are the seam where that knowledge enters.
  *
  * They are scoped to the entrant *within one tournament*, deliberately. An
  * organization-wide ranking table is the obvious instinct and the wrong one: it

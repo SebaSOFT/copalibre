@@ -32,8 +32,8 @@ import {
 import { resolveTournament } from './standings.controller.js';
 
 /**
- * Device-scoped display-token issuance and revocation for `/tv/**` surfaces
- * (0031). Operator-authenticated, organization-admin-only — a kiosk never
+ * Device-scoped display-token issuance and revocation for `/tv/**` surfaces.
+ * Operator-authenticated, organization-admin-only — a kiosk never
  * authenticates as a person, so this is the only path a token for it exists.
  */
 @ApiTags('broadcast')

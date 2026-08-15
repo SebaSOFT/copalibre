@@ -9,7 +9,7 @@ import { mutationFeedback } from '../lib/mutation-feedback.js';
 import { messages } from '../i18n/messages.en.js';
 
 /**
- * A6 — seed assignment beside the bracket it produces (0024).
+ * A6 — seed assignment beside the bracket it produces.
  *
  * Two panes because they answer different questions: the list is what the
  * operator changes, the canvas is what the change means. Locks live on the

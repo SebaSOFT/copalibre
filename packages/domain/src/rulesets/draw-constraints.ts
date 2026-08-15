@@ -4,7 +4,7 @@ import { err, ok, type Result } from '../result.js';
 import { findScriptHook, resolveHookAttachment, type ScriptHookId } from './script-hooks.js';
 
 /**
- * What an operator may impose on a draw (0010-stage-qualification-and-seeding).
+ * What an operator may impose on a draw.
  *
  * *Always put one Buenos Aires club in each group*; *never draw two San Juan
  * clubs against each other in the round of 16, because their level is far above

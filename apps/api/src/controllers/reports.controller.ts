@@ -66,7 +66,7 @@ import { resolveTournament } from './standings.controller.js';
 const MAX_EVIDENCE_BYTES = 25 * 1024 * 1024;
 
 interface UploadedEvidence extends EvidenceReference {
-  /** Which storage profile held this — `packages/object-storage`'s reference no longer carries a per-object bucket name (0041). */
+  /** Which storage profile held this — `packages/object-storage`'s reference no longer carries a per-object bucket name. */
   readonly storageProfile: string;
   readonly key: string;
 }
@@ -276,7 +276,7 @@ export class ParticipantReportsController {
 }
 
 /**
- * Operator review of pending reports/disputes (0032). Never applies a
+ * Operator review of pending reports/disputes. Never applies a
  * correction itself — see `MatchControlController.correct`, which an
  * operator calls separately, optionally citing one of these by id.
  */

@@ -28,7 +28,7 @@ function collected(overrides: Partial<CollectedFigure> = {}): CollectedFigure {
   };
 }
 
-describe('merging a live fold’s marginal figures onto what a match already stored (0082)', () => {
+describe('merging a live fold’s marginal figures onto what a match already stored', () => {
   it('adds a second event’s marginal figure onto the first’s, at the same key', () => {
     const merged = mergeFigures(
       [stored({ value: 1, samples: 1 })],

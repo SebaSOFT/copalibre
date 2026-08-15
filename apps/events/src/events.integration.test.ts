@@ -10,7 +10,7 @@ import { EventsController, LongPollController } from './events.controller.js';
 import { StreamAuthGuard } from './stream/stream-auth.guard.js';
 
 /**
- * The streams through the real HTTP stack (0018).
+ * The streams through the real HTTP stack.
  *
  * Token *verification* is stubbed — issuing RS256 tokens is the auth package's
  * own suite — so these tests are about the wiring: the headers a stream sets,

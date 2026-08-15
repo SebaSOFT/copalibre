@@ -1,7 +1,7 @@
 import type { ResultState } from './result-state.js';
 
 /**
- * A state's fixed color, by design-token custom property (0031).
+ * A state's fixed color, by design-token custom property.
  *
  * Takes no branding input — an organizer's accent color has no parameter to
  * arrive through — which is what makes "branding cannot override a state

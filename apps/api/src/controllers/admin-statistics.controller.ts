@@ -17,7 +17,7 @@ import { ProblemResponse } from '../dto/organization.dto.js';
 import { DATABASE } from '../database.token.js';
 
 /**
- * The authenticated HTTP path for `copalibre statistics-rebuild` (0085) —
+ * The authenticated HTTP path for `copalibre statistics-rebuild` —
  * wraps `runStatisticsRebuild` unchanged (moved to `@copalibre/statistics-refold`
  * so both this controller and the CLI's direct-database fallback call the
  * exact same function), so a self-hosted operator can rebuild statistics

@@ -1,5 +1,5 @@
 /**
- * The functions an expression may call (0013-scripting-hook-surface).
+ * The functions an expression may call.
  *
  * Core-owned, exactly like actions and conditions: a module composes functions
  * it cannot introduce, and a new one is a core release. `handlebars-helpers` is

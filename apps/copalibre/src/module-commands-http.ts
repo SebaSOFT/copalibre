@@ -1,5 +1,5 @@
 /**
- * The authenticated HTTP path for `module add/list/remove/verify` (0085) —
+ * The authenticated HTTP path for `module add/list/remove/verify` —
  * mirrors `create-admin.ts`'s `fetch()` precedent. Used when a stored
  * credential exists for the target API URL (`module-commands.ts`'s
  * dual-path dispatch); the direct-database path there stays the fallback

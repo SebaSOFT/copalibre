@@ -3,7 +3,7 @@ import type { Kysely } from 'kysely';
 import type { Database } from '../schema.js';
 
 /**
- * The read side of a stage: what standings and the bracket canvas need (0024).
+ * The read side of a stage: what standings and the bracket canvas need.
  *
  * Separate from `CompetitionRepository` because nothing here writes. The write
  * repository guards invariants on every path — a result may not be overwritten,
@@ -173,7 +173,7 @@ function scoresOf(
   });
 }
 
-/** Parallel to `scoresOf` — why a side's result is what it is (0076). */
+/** Parallel to `scoresOf` — why a side's result is what it is. */
 function resultReasonsOf(
   sides: readonly { readonly resultReason?: ResultReason }[],
 ): readonly (ResultReason | undefined)[] {

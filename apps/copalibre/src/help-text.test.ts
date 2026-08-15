@@ -32,7 +32,7 @@ function realModuleSubcommands(): readonly string[] {
   return [...names];
 }
 
-describe('COMMAND_HELP stays in sync with the real CLI dispatch (0044)', () => {
+describe('COMMAND_HELP stays in sync with the real CLI dispatch', () => {
   const commands = realTopLevelCommands();
 
   it('found at least one real command to check', () => {
@@ -50,7 +50,7 @@ describe('COMMAND_HELP stays in sync with the real CLI dispatch (0044)', () => {
   });
 });
 
-describe('MODULE_SUBCOMMAND_HELP stays in sync with the real module dispatch (0044)', () => {
+describe('MODULE_SUBCOMMAND_HELP stays in sync with the real module dispatch', () => {
   const subcommands = realModuleSubcommands();
 
   it('found at least one real module subcommand to check', () => {

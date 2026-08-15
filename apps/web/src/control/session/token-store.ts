@@ -1,5 +1,5 @@
 /**
- * Where the access token lives (0022): memory, and nowhere else.
+ * Where the access token lives: memory, and nowhere else.
  *
  * `localStorage` and `sessionStorage` are readable by any script that reaches
  * the page, and a cookie that JavaScript can set is a cookie XSS can read. A
@@ -41,7 +41,7 @@ export function createTokenStore(now: () => number = Date.now): TokenStore {
 }
 
 /**
- * The one instance every control-panel screen actually uses (0062): written
+ * The one instance every control-panel screen actually uses: written
  * by the `/control/callback` screen on a successful login, read by every
  * screen's `ControlApiClient` and by `ControlApp`'s route guard. A
  * module-level singleton rather than a React context — 0061's `ControlApp`

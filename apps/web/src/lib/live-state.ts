@@ -2,7 +2,7 @@ import type { EventEnvelope } from '@copalibre/realtime';
 import { decide, type ResultState } from './result-state.js';
 
 /**
- * Applying live events to what the server already rendered (0021).
+ * Applying live events to what the server already rendered.
  *
  * A pure reducer, deliberately: the page arrives complete from 0020's
  * server-rendered HTML, and the stream *patches* it. If the stream never

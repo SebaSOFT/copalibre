@@ -66,7 +66,7 @@ describe('every surface from one input', () => {
     expect(() => publicStreamPath({ organizationAlias: 'liga-mendocina' })).toThrow(RouteError);
   });
 
-  it('derives the TV stream the same way as the TV page (0031)', () => {
+  it('derives the TV stream the same way as the TV page', () => {
     expect(tvStreamPath(BASE)).toBe('/events/tv/liga-mendocina/tournaments/apertura-2026');
   });
 
@@ -134,12 +134,12 @@ describe('view state is a query, never a path', () => {
     expect(viewQuery({})).toBe('');
   });
 
-  it('carries the TV overlay mode for chroma-key capture (0031)', () => {
+  it('carries the TV overlay mode for chroma-key capture', () => {
     expect(viewQuery({ viewMode: 'overlay' })).toBe('?mode=overlay');
   });
 });
 
-// Alias-redirect resolution moved to packages/domain/src/aliasing.ts (0080),
+// Alias-redirect resolution moved to packages/domain/src/aliasing.ts,
 // tests moved with it to packages/domain/src/aliasing.test.ts. This package
 // no longer exports resolveAlias/AliasRedirect/AliasResolution.
 
@@ -180,7 +180,7 @@ describe('parseControlPath', () => {
   it.each([
     ['/control/callback', { screen: 'callback' }],
     // A real organization alias that merely starts with the reserved word
-    // stays an ordinary dashboard, not the callback screen (0062).
+    // stays an ordinary dashboard, not the callback screen.
     ['/control/callback-league', { screen: 'dashboard', organizationAlias: 'callback-league' }],
     ['/control/liga-mendocina', { screen: 'dashboard', organizationAlias: 'liga-mendocina' }],
     ['/control/login', { screen: 'login' }],

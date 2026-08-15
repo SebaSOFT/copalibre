@@ -139,7 +139,7 @@ export async function validatePublicUrls(
  * Resolvable is not the same as correct: a `COPALIBRE_JWKS_URI` that answers
  * with an unrelated 200 (a login page, an empty object) passes DNS
  * resolution and then breaks auth at runtime with nothing in `doctor` having
- * said so (0040). `jose`'s own remote-JWKS fetch is reused here rather than a
+ * said so. `jose`'s own remote-JWKS fetch is reused here rather than a
  * hand-rolled fetch-and-parse, so "valid JWKS" means exactly what the JWT
  * verification path itself will require.
  */
@@ -370,7 +370,7 @@ function systemDoctorDependencies(): DoctorDependencies {
     retirableModules: async (connectionString) => {
       const database = createDatabase({ connectionString, maxConnections: 1 });
       try {
-        // Scoped to community-installed modules (0036) — installed_modules
+        // Scoped to community-installed modules — installed_modules
         // only tracks those; the first-party catalogue's own aliases are
         // reserved, not candidates for retirement.
         const retirable = await new CompetitionRecordRepository(

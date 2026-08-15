@@ -13,7 +13,7 @@ function toolNamed(fetchImplementation: typeof fetch, name: string) {
   return tool;
 }
 
-describe('tournamentTools (0047)', () => {
+describe('tournamentTools', () => {
   it('registers exactly the five curated tournament-operational tools', () => {
     const tools = tournamentTools(fakeConfig(jest.fn<typeof fetch>()));
     expect(tools.map((tool) => tool.name)).toEqual([
@@ -117,7 +117,7 @@ describe('tournamentTools (0047)', () => {
     expect(fetchImplementation).not.toHaveBeenCalled();
   });
 
-  it('describes what each tool does, when to use it, and that it requires a token (0048)', () => {
+  it('describes what each tool does, when to use it, and that it requires a token', () => {
     for (const tool of tournamentTools(fakeConfig(jest.fn<typeof fetch>()))) {
       expect(tool.description.length).toBeGreaterThan(80);
       expect(tool.description).toContain('COPALIBRE_MCP_TOKEN');

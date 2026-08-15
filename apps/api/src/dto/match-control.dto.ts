@@ -2,7 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import type { ResultReason } from '@copalibre/domain';
 
 /**
- * Match-control wire shapes (0014).
+ * Match-control wire shapes.
  *
  * A side is an entrant id, never a position: the same request body describes a
  * duel and an eight-lane heat. Instants are epoch milliseconds, as everywhere
@@ -221,7 +221,7 @@ export class FinalizeRequest {
     type: [Object],
     description:
       'One entry per side: entrant id, its declared statistics, placement for a heat, and why the ' +
-      'result is what it is when not an ordinarily played one (0076)',
+      'result is what it is when not an ordinarily played one',
   })
   sides!: {
     entrantId: string;
@@ -252,7 +252,7 @@ export class CorrectionRequestDto {
   @ApiPropertyOptional({
     format: 'uuid',
     description:
-      'A participant report or dispute this correction cites (0032) — retained as supporting ' +
+      'A participant report or dispute this correction cites — retained as supporting ' +
       'evidence in the audit trail. Citing one grants no authority of its own.',
   })
   sourceReportId?: string;

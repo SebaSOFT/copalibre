@@ -384,7 +384,7 @@ describe('repositories (integration)', () => {
     });
   });
 
-  it('lists only aliases of teams registered as entrants in the given tournament (0065)', async () => {
+  it('lists only aliases of teams registered as entrants in the given tournament', async () => {
     const disciplineDescriptor = descriptor();
     const { tournamentId, otherTournamentId, registeredAlias, unregisteredAlias } =
       await withTransaction(scratch.db, async (uow) => {

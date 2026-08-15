@@ -34,7 +34,7 @@ import { DATABASE } from '../database.token.js';
 import { readStandings, storedTraceLinesForEntrant } from '../standings/read.js';
 
 /**
- * Standings, with the trace that justifies them (0024).
+ * Standings, with the trace that justifies them.
  *
  * The trace is passed through exactly as the rules engine produced it. The
  * screen renders these strings and formats nothing of its own — a second

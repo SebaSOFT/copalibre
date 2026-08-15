@@ -21,7 +21,7 @@ describe('copalibre doctor command (integration)', () => {
         'FAIL secret:COPALIBRE_BOOTSTRAP_TOKEN: COPALIBRE_BOOTSTRAP_TOKEN is required',
       );
       expect(result.stdout).toContain('FAIL oidc-config:');
-      // Only the startup banner (0042) — no stray diagnostic noise beyond it.
+      // Only the startup banner — no stray diagnostic noise beyond it.
       expect(result.stderr).toBe(renderBanner());
     } finally {
       await rm(dataDirectory, { force: true, recursive: true });

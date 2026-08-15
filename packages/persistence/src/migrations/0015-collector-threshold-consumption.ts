@@ -3,7 +3,7 @@ import type { Migration } from 'kysely/migration';
 
 /**
  * How much of a collector-threshold rule's total each actor has already
- * answered with a firing (0074) — the `since-last-consequence` window's
+ * answered with a firing — the `since-last-consequence` window's
  * durable state, read once per evaluation and written on every firing, kept
  * apart from the collector total it never edits.
  *

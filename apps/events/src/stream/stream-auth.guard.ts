@@ -8,7 +8,7 @@ import {
 import { TokenVerifier, TokenVerificationError, type RequestWithSubject } from '@copalibre/auth';
 
 /**
- * Authenticating a stream (0018).
+ * Authenticating a stream.
  *
  * The same verifier `apps/api` uses, from the same package, because two
  * implementations of "is this token valid" drift and the one that falls behind

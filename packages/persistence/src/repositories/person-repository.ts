@@ -16,7 +16,7 @@ import type { UnitOfWork } from '../transaction.js';
 import type { AuditContext } from './enrollment-repository.js';
 
 /**
- * People and their memberships (0015-competition-identity-and-seasons).
+ * People and their memberships.
  *
  * The one behaviour worth stating: registering somebody who is already known
  * **recognises** them rather than creating a second row. That is what a natural
@@ -288,7 +288,7 @@ export class PersonRepository {
   }
 
   /**
-   * Removes a membership (0064).
+   * Removes a membership.
    *
    * Hard delete, not a `deleted_at` flag: `players` carries none, and its
    * `players_person_team_unique(person_id, team_id)` constraint already

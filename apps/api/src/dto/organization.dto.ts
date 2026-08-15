@@ -131,7 +131,7 @@ export class TournamentResponse {
     enum: ['draft', 'published', 'started', 'finished', 'archived'],
     description:
       "Once started, the tournament's discipline and profile versions are frozen and its results " +
-      'are materialised. Archived is legal only from finished (0033) and changes default visibility ' +
+      'are materialised. Archived is legal only from finished and changes default visibility ' +
       'only — no data is affected.',
   })
   status!: 'draft' | 'published' | 'started' | 'finished' | 'archived';
@@ -144,7 +144,7 @@ export class TournamentResponse {
 
   @ApiPropertyOptional({
     format: 'date-time',
-    description: 'When the tournament was archived (0033); absent until then.',
+    description: 'When the tournament was archived; absent until then.',
   })
   archivedAt?: string;
 
@@ -214,7 +214,7 @@ export class StageResponse {
 
   @ApiProperty({
     format: 'uuid',
-    description: 'The tournament edition this stage belongs to (0015)',
+    description: 'The tournament edition this stage belongs to',
   })
   seasonId!: string;
 

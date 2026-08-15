@@ -2,7 +2,7 @@ import { TOUCH_TARGET } from './primitives.js';
 import type { SemanticColor } from './semantic.js';
 
 /**
- * Component token contracts (0019).
+ * Component token contracts.
  *
  * Declarations rather than CSS, so a rule like "a badge always carries a text
  * label" is something a test can check instead of something a reviewer has to

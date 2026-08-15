@@ -105,7 +105,7 @@ notice.
 Every user-facing control-panel string (labels, buttons, validation messages, status words) SHALL be
 sourced from a message catalog keyed by a stable ID, never hardcoded inline, so a screen's interface
 language can change without touching its logic. The active language SHALL resolve via the platform's
-client-side language-preference order (0051): an explicit stored preference, then a supported browser
+client-side language-preference order: an explicit stored preference, then a supported browser
 language, then English — with an explicit switcher available to change the stored preference.
 Organizer-entered content (tournament names, participant names, organization names) is never
 translated by this mechanism.
@@ -129,7 +129,7 @@ translated by this mechanism.
 
 ### Requirement: Control-panel chrome is available in all eight supported interface languages
 
-The control panel's message catalog (0053) SHALL have populated content for every language in the
+The control panel's message catalog SHALL have populated content for every language in the
 platform's supported-language contract (English, Spanish, French, Portuguese, Italian, German,
 Russian, Mandarin Chinese), not just English and Spanish, so the language switcher changes chrome for
 any selection rather than silently falling back to English for any of its non-English options.

@@ -10,7 +10,7 @@ const PROXY_DIR = join(ROOT, '../../../deploy/proxy');
  * against a running proxy; it cannot verify a config file an operator hasn't
  * deployed yet. These read the example configs directly so a trusted-proxy
  * allowlist directive regressing out of them — silently trusting every
- * upstream by default — fails here instead of only in production (0040).
+ * upstream by default — fails here instead of only in production.
  */
 describe('reverse-proxy example configs', () => {
   it('Caddyfile documents a trusted-proxy allowlist directive, not a default that trusts every upstream', () => {
