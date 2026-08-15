@@ -219,10 +219,13 @@ async function matchRosterRows(
 ): Promise<readonly RosterRow[]> {
   const rows = await db
     .selectFrom('match_rosters')
-    .select(['entrant_id', 'person_ids'])
+    .select(['entrant_id', 'roster_members'])
     .where('match_id', '=', matchId)
     .execute();
-  return rows.map((row) => ({ entrantId: row.entrant_id, personIds: row.person_ids }));
+  return rows.map((row) => ({
+    entrantId: row.entrant_id,
+    personIds: row.roster_members.map((member) => member.personId),
+  }));
 }
 
 async function matchEntrantRows(

@@ -116,6 +116,9 @@ describe('migrations (integration)', () => {
     expect(afterUpTables.find((table) => table.name === 'match_rosters')?.columns).toEqual(
       expect.arrayContaining([expect.objectContaining({ name: 'roster_members' })]),
     );
+    expect(afterUpTables.find((table) => table.name === 'match_rosters')?.columns).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'person_ids' })]),
+    );
     expect(afterUp).toContain('collector_threshold_consumption');
 
     const matchRosterMembersDown = await migrateDownOneStep(scratch.db);
@@ -125,6 +128,9 @@ describe('migrations (integration)', () => {
     expect(
       afterMatchRosterMembersDownTables.find((table) => table.name === 'match_rosters')?.columns,
     ).not.toEqual(expect.arrayContaining([expect.objectContaining({ name: 'roster_members' })]));
+    expect(
+      afterMatchRosterMembersDownTables.find((table) => table.name === 'match_rosters')?.columns,
+    ).toEqual(expect.arrayContaining([expect.objectContaining({ name: 'person_ids' })]));
 
     const matchEventSegmentElapsedSecondsDown = await migrateDownOneStep(scratch.db);
     expect(matchEventSegmentElapsedSecondsDown.error).toBeUndefined();

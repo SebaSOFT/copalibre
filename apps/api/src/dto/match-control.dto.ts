@@ -191,8 +191,7 @@ export class MatchConsoleResponse {
     type: [ConsoleRosterResponse],
     description:
       'Structured roster membership per entrant, with on-field state resolved from substitution ' +
-      'history. An entrant whose roster predates structured metadata falls back to bare ' +
-      'person id/name pairs, all on-field, with no jersey number or tactical role',
+      'history. An entrant with no roster row selected yet reads as an empty member list',
   })
   rosters!: ConsoleRosterResponse[];
 

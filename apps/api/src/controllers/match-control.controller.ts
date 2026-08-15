@@ -511,7 +511,7 @@ export class MatchControlController {
     const [rosters, fixture, descriptor, priorEvents] = await Promise.all([
       this.db
         .selectFrom('match_rosters')
-        .select(['entrant_id', 'person_ids', 'roster_members'])
+        .select(['entrant_id', 'roster_members'])
         .where('match_id', '=', matchId)
         .execute(),
       this.db
@@ -527,7 +527,7 @@ export class MatchControlController {
       (entrantId): entrantId is string => entrantId !== null && entrantId !== undefined,
     );
     const eligiblePersonIds = new Set(
-      rosters.flatMap((roster) => roster.person_ids as readonly string[]),
+      rosters.flatMap((roster) => roster.roster_members.map((member) => member.personId)),
     );
     const definition = descriptor.eventDefinitions.find(
       (candidate) => candidate.code === body.definitionCode,
@@ -1010,7 +1010,7 @@ export class MatchControlController {
         }),
         this.db
           .selectFrom('match_rosters')
-          .select(['entrant_id', 'person_ids', 'roster_members'])
+          .select(['entrant_id', 'roster_members'])
           .where('match_id', '=', matchId)
           .execute(),
         this.db
@@ -1021,7 +1021,6 @@ export class MatchControlController {
           .executeTakeFirst(),
         new ProjectionStore(this.db).versionOf('match-console', matchId),
       ]);
-    const rosterNames = await this.rosterMemberNames(rosters);
     const capabilities = [...new Set(assignments.flatMap((assignment) => assignment.capabilities))];
     if (capabilities.length === 0) {
       throw new ForbiddenException('Subject holds no match-control capability for this match');
@@ -1083,20 +1082,21 @@ export class MatchControlController {
             }),
       })),
       eligiblePersonIds: [
-        ...new Set(rosters.flatMap((roster) => roster.person_ids as readonly string[])),
+        ...new Set(
+          rosters.flatMap((roster) => roster.roster_members.map((member) => member.personId)),
+        ),
       ],
       rosters: rosters.map((roster) => ({
         entrantId: roster.entrant_id,
-        members: foldRosterLineup(
-          initialRosterOf(matchId, roster, rosterNames),
-          events,
-        ).members.map((member) => ({
-          personId: member.personId,
-          ...(member.number === undefined ? {} : { number: member.number }),
-          name: member.name,
-          ...(member.roles === undefined ? {} : { roles: [...member.roles] }),
-          onField: member.onField,
-        })),
+        members: foldRosterLineup(initialRosterOf(matchId, roster), events).members.map(
+          (member) => ({
+            personId: member.personId,
+            ...(member.number === undefined ? {} : { number: member.number }),
+            name: member.name,
+            ...(member.roles === undefined ? {} : { roles: [...member.roles] }),
+            onField: member.onField,
+          }),
+        ),
       })),
       rosterRoles: (descriptor.rosterRoles ?? []).map((role) => ({
         code: role.code,
@@ -1128,27 +1128,6 @@ export class MatchControlController {
       .where('role', 'in', ['coach', 'staff'])
       .execute();
     return new Set(staff.map((member) => member.person_id));
-  }
-
-  /**
-   * `display_name` for every person on a roster recorded before structured
-   * `roster_members` existed — a structured roster already carries its own
-   * `name` per member and needs no lookup.
-   */
-  private async rosterMemberNames(
-    rosters: readonly { readonly person_ids: unknown; readonly roster_members: unknown }[],
-  ): Promise<ReadonlyMap<string, string>> {
-    const legacyPersonIds = rosters
-      .filter((roster) => roster.roster_members === null)
-      .flatMap((roster) => roster.person_ids as readonly string[]);
-    if (legacyPersonIds.length === 0) return new Map();
-
-    const rows = await this.db
-      .selectFrom('persons')
-      .select(['person_id', 'display_name'])
-      .where('person_id', 'in', [...new Set(legacyPersonIds)])
-      .execute();
-    return new Map(rows.map((row) => [row.person_id, row.display_name]));
   }
 
   private async stageOf(matchId: string): Promise<string> {
@@ -1247,31 +1226,12 @@ type RosterMemberRow = {
 
 type RosterRow = {
   readonly entrant_id: string;
-  readonly person_ids: readonly string[];
-  readonly roster_members: readonly RosterMemberRow[] | null;
+  readonly roster_members: readonly RosterMemberRow[];
 };
 
-/**
- * One entrant's roster before folding substitution history: structured
- * members as stored, or — for a roster recorded before `roster_members`
- * existed — bare id/name pairs with everyone on-field, since no starter/
- * substitute distinction was ever captured for it. A legacy roster (`null`)
- * has no `roles` on any member, so a `roster-role-snapshot` effect
- * correctly resolves nothing for it rather than guessing.
- */
-function initialRosterOf(
-  matchId: string,
-  roster: RosterRow,
-  legacyNames: ReadonlyMap<string, string>,
-): MatchRoster {
-  const members: readonly RosterMemberRow[] =
-    roster.roster_members ??
-    roster.person_ids.map((personId) => ({
-      personId,
-      name: legacyNames.get(personId) ?? personId,
-      onField: true,
-    }));
-  return { matchId, entrantId: roster.entrant_id, members };
+/** One entrant's stored roster, before folding substitution history over it. */
+function initialRosterOf(matchId: string, roster: RosterRow): MatchRoster {
+  return { matchId, entrantId: roster.entrant_id, members: roster.roster_members };
 }
 
 /**
@@ -1312,10 +1272,7 @@ function rosterRoleSnapshotPayload(
       .map((entrantId) => rosters.find((roster) => roster.entrant_id === entrantId))
       .filter((roster): roster is RosterRow => roster !== undefined)
       .map((roster) =>
-        soleMemberWithRole(
-          foldRosterLineup(initialRosterOf(matchId, roster, new Map()), events),
-          effect.role,
-        ),
+        soleMemberWithRole(foldRosterLineup(initialRosterOf(matchId, roster), events), effect.role),
       )
       .filter((personId): personId is string => personId !== undefined);
     if (candidates.length === 1) payload[effect.payloadField] = candidates[0] as string;

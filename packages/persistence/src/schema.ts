@@ -407,14 +407,8 @@ export interface MatchEventsTable {
 export interface MatchRostersTable {
   match_id: string;
   entrant_id: string;
-  person_ids: JSONColumnType<readonly string[]>;
-  /**
-   * Structured member metadata (number, name, tactical roles, on-field-at-
-   * kickoff state) for the same people named in `person_ids`. Nullable: a
-   * roster set before this column existed, or set through a path that only
-   * names `person_ids`, has no structured metadata.
-   */
-  roster_members: JSONColumnType<readonly MatchRosterMemberRow[]> | null;
+  /** Structured member metadata: number, name, tactical roles, on-field state. */
+  roster_members: JSONColumnType<readonly MatchRosterMemberRow[]>;
   updated_at: Timestamp;
 }
 
@@ -423,7 +417,8 @@ export interface MatchRosterMemberRow {
   personId: string;
   number?: number | string;
   name: string;
-  roles?: readonly ('goalkeeper' | 'captain')[];
+  /** Codes naming discipline-declared `RosterRoleDeclaration`s — never a closed enum. */
+  roles?: readonly string[];
   onField: boolean;
 }
 

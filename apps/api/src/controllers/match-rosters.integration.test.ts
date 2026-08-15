@@ -232,7 +232,6 @@ describe('structured rosters and goalkeeper auto-population (integration, 0092)'
           {
             match_id: matchId,
             entrant_id: entrantHome,
-            person_ids: JSON.stringify([goalkeeperHome, benchGoalkeeperHome]),
             roster_members: JSON.stringify([
               {
                 personId: goalkeeperHome,
@@ -254,7 +253,6 @@ describe('structured rosters and goalkeeper auto-population (integration, 0092)'
           {
             match_id: matchId,
             entrant_id: entrantAway,
-            person_ids: JSON.stringify([strikerAway]),
             roster_members: JSON.stringify([
               { personId: strikerAway, number: 9, name: 'Delantero Visitante', onField: true },
             ]),

@@ -264,13 +264,16 @@ describe('target attribution inside the event-recording transaction (integration
           {
             match_id: matchId,
             entrant_id: entrantNorte,
-            person_ids: JSON.stringify([personScorer, personAssist]),
+            roster_members: JSON.stringify([
+              { personId: personScorer, name: 'Goleador', onField: true },
+              { personId: personAssist, name: 'Asistidor', onField: true },
+            ]),
             updated_at: new Date(),
           },
           {
             match_id: matchId,
             entrant_id: entrantSur,
-            person_ids: JSON.stringify([]),
+            roster_members: JSON.stringify([]),
             updated_at: new Date(),
           },
         ])

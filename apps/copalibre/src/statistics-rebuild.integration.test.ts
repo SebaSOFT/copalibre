@@ -172,7 +172,10 @@ describe('copalibre statistics-rebuild (integration, 0082)', () => {
           .values({
             match_id: match.matchId,
             entrant_id: homeEntrant.entrantId,
-            person_ids: JSON.stringify([personId, personAssist]),
+            roster_members: JSON.stringify([
+              { personId, name: 'Player', onField: true },
+              { personId: personAssist, name: 'Assist', onField: true },
+            ]),
             updated_at: new Date(),
           })
           .execute();

@@ -242,7 +242,7 @@ describe('collector-threshold notifications across a stage (integration, 0074)',
           .values({
             match_id: match.matchId,
             entrant_id: homeEntrant.entrantId,
-            person_ids: JSON.stringify([personId]),
+            roster_members: JSON.stringify([{ personId, name: 'Player', onField: true }]),
             updated_at: new Date(),
           })
           .execute();
@@ -305,7 +305,7 @@ describe('collector-threshold notifications across a stage (integration, 0074)',
         .values({
           match_id: stage2Match.matchId,
           entrant_id: homeEntrant.entrantId,
-          person_ids: JSON.stringify([personId]),
+          roster_members: JSON.stringify([{ personId, name: 'Player', onField: true }]),
           updated_at: new Date(),
         })
         .execute();

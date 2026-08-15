@@ -181,7 +181,9 @@ describe('live match console (integration)', () => {
         .values({
           match_id: matchId,
           entrant_id: entrants[0]?.entrantId ?? '',
-          person_ids: JSON.stringify([rosteredPersonId]),
+          roster_members: JSON.stringify([
+            { personId: rosteredPersonId, name: 'Player', onField: true },
+          ]),
           updated_at: new Date(),
         })
         .execute();

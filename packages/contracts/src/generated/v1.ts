@@ -1550,7 +1550,7 @@ export interface components {
             eventDefinitions: Record<string, never>[];
             /** @description Persons eligible for attribution from active match rosters */
             eligiblePersonIds: string[];
-            /** @description Structured roster membership per entrant, with on-field state resolved from substitution history. An entrant whose roster predates structured metadata falls back to bare person id/name pairs, all on-field, with no jersey number or tactical role */
+            /** @description Structured roster membership per entrant, with on-field state resolved from substitution history. An entrant with no roster row selected yet reads as an empty member list */
             rosters: components["schemas"]["ConsoleRosterResponse"][];
             /** @description The bound discipline's declared roster roles — a member's `roles` codes name these */
             rosterRoles: components["schemas"]["ConsoleRosterRoleResponse"][];
