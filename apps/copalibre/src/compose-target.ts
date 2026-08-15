@@ -36,3 +36,19 @@ export async function assertMarkerVersionCompatible(): Promise<void> {
   if (!marker) return;
   assertVersionCompatible(marker, readCopalibreVersion());
 }
+
+/**
+ * Refuses commands that only make sense against a Compose-managed
+ * installation (they'd otherwise try to invoke `docker compose`, or assume a
+ * `backups/` directory alongside a running Compose stack) when the current
+ * directory's marker records Kubernetes mode instead — naming the
+ * Kubernetes-native mechanism to use in its place where one exists. A
+ * directory with no marker at all, or a `compose`-mode marker, is a no-op.
+ */
+export async function refuseForKubernetesMode(alternative?: string): Promise<void> {
+  const marker = await readInstallationMarker(process.cwd());
+  if (marker?.mode !== 'kubernetes') return;
+  throw new Error(
+    `Not supported for kubernetes-mode instances${alternative ? ` — ${alternative}` : ''}.`,
+  );
+}

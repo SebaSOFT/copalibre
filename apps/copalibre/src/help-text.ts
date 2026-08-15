@@ -20,11 +20,29 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
   {
     name: 'init',
     summary: 'Write a new installation into the current directory — no checkout required',
-    usage: 'copalibre init [--module-dev]',
+    usage:
+      'copalibre init [--module-dev] | copalibre init --kubernetes [--namespace <ns>] ' +
+      '[--release <name>] [--context <ctx>]',
     flags: [
       {
         flag: '--module-dev',
         description: 'Also write docker-compose.module-dev.yml, for local module development',
+      },
+      {
+        flag: '--kubernetes',
+        description: 'Scaffold a Helm values.yaml instead of a compose installation',
+      },
+      {
+        flag: '--namespace <ns>',
+        description: 'Kubernetes namespace to record (default: "default")',
+      },
+      {
+        flag: '--release <name>',
+        description: 'Helm release name to record (default: "copalibre")',
+      },
+      {
+        flag: '--context <ctx>',
+        description: 'kube-context to record (default: none — supply explicitly each time)',
       },
     ],
   },

@@ -3,20 +3,48 @@ import { dirname, join } from 'node:path';
 import { newId } from '@copalibre/persistence';
 
 /**
- * Records that a directory holds a `copalibre init`-created installation
- * (0084) — the same role `.git` plays for a checkout: a marker every later
- * command auto-detects from the current working directory, with no flag
- * needed when you're standing in the directory you `init`'d.
+ * Records that a directory holds a `copalibre init`-created installation —
+ * the same role `.git` plays for a checkout: a marker every later command
+ * auto-detects from the current working directory, with no flag needed when
+ * you're standing in the directory you `init`'d.
  *
  * Non-secret by construction, unlike `.env` — safe if a `.copalibre/`
- * directory is accidentally committed to version control. Credentials
- * (0085) are deliberately never stored here.
+ * directory is accidentally committed to version control. Credentials are
+ * deliberately never stored here.
+ *
+ * `mode` discriminates two genuinely different installation shapes:
+ * `compose` (a `docker-compose.yml`/`.env` pair `init` also wrote) and
+ * `kubernetes` (a Helm `values.yaml` scaffold — no compose file, no `.env`;
+ * Kubernetes' own Secret/ConfigMap mechanism stays authoritative). A
+ * kubernetes-mode marker additionally records which release, namespace, and
+ * (optionally) kube-context this directory represents, so later commands
+ * don't need `--namespace`/`--release` repeated on every invocation — these
+ * fields are advisory, never used for cluster introspection: every command
+ * that reads them also accepts an explicit override.
  */
-export interface InstallationMarker {
+export type InstallationMarker = ComposeInstallationMarker | KubernetesInstallationMarker;
+
+interface InstallationMarkerBase {
   readonly version: string;
   readonly installId: string;
-  readonly mode: 'compose';
   readonly createdAt: string;
+}
+
+export interface ComposeInstallationMarker extends InstallationMarkerBase {
+  readonly mode: 'compose';
+}
+
+export interface KubernetesInstallationMarker extends InstallationMarkerBase {
+  readonly mode: 'kubernetes';
+  readonly release: string;
+  readonly namespace: string;
+  readonly context?: string;
+}
+
+export interface KubernetesMarkerFields {
+  readonly release: string;
+  readonly namespace: string;
+  readonly context?: string;
 }
 
 const MARKER_DIR = '.copalibre';
@@ -29,18 +57,28 @@ function markerPath(cwd: string): string {
 /**
  * `wx`-safe, matching `writeLocalDefaults`'s existing pattern for `.env` —
  * refuses to overwrite an existing marker rather than silently re-stamping
- * a directory that's already a real installation.
+ * a directory that's already a real installation. Omitting `kubernetes`
+ * writes a `compose`-mode marker; passing it writes a `kubernetes`-mode one.
  */
 export async function writeInstallationMarker(
   cwd: string,
   version: string,
+  kubernetes?: KubernetesMarkerFields,
 ): Promise<InstallationMarker> {
-  const marker: InstallationMarker = {
-    version,
-    installId: newId(),
-    mode: 'compose',
-    createdAt: new Date().toISOString(),
-  };
+  const marker: InstallationMarker = kubernetes
+    ? {
+        version,
+        installId: newId(),
+        mode: 'kubernetes',
+        createdAt: new Date().toISOString(),
+        ...kubernetes,
+      }
+    : {
+        version,
+        installId: newId(),
+        mode: 'compose',
+        createdAt: new Date().toISOString(),
+      };
   const path = markerPath(cwd);
   await mkdir(dirname(path), { recursive: true });
   await writeFile(path, `${JSON.stringify(marker, null, 2)}\n`, {

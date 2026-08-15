@@ -563,4 +563,139 @@ describe('runCli', () => {
       });
     });
   });
+
+  describe('kubernetes-mode instance dispatch', () => {
+    async function withKubernetesMarker<T>(run: () => Promise<T>): Promise<T> {
+      return withTemporaryWorkingDirectory(async () => {
+        await writeInstallationMarker(process.cwd(), readCopalibreVersion(), {
+          release: 'copalibre',
+          namespace: 'default',
+        });
+        return run();
+      });
+    }
+
+    it('doctor refuses, naming job-doctor.yaml', async () => {
+      await withKubernetesMarker(async () => {
+        const run = jest.fn<ProcessRunner['run']>(async () => 0);
+        const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+        try {
+          const result = await runCli(['doctor'], {}, { run });
+          expect(result).toBe(1);
+          expect(run).not.toHaveBeenCalled();
+          expect(
+            stderr.mock.calls.some((call) => String(call[0]).includes('job-doctor.yaml')),
+          ).toBe(true);
+        } finally {
+          stderr.mockRestore();
+        }
+      });
+    });
+
+    it('migrate refuses, naming job-migrate.yaml', async () => {
+      await withKubernetesMarker(async () => {
+        const run = jest.fn<ProcessRunner['run']>(async () => 0);
+        const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+        try {
+          const result = await runCli(['migrate'], {}, { run });
+          expect(result).toBe(1);
+          expect(run).not.toHaveBeenCalled();
+          expect(
+            stderr.mock.calls.some((call) => String(call[0]).includes('job-migrate.yaml')),
+          ).toBe(true);
+        } finally {
+          stderr.mockRestore();
+        }
+      });
+    });
+
+    it('backup refuses', async () => {
+      await withKubernetesMarker(async () => {
+        const run = jest.fn<ProcessRunner['run']>(async () => 0);
+        const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+        try {
+          const result = await runCli(['backup'], {}, { run });
+          expect(result).toBe(1);
+          expect(run).not.toHaveBeenCalled();
+          expect(
+            stderr.mock.calls.some((call) => String(call[0]).includes('kubernetes-mode')),
+          ).toBe(true);
+        } finally {
+          stderr.mockRestore();
+        }
+      });
+    });
+
+    it('restore refuses before touching the backup file or the database', async () => {
+      await withKubernetesMarker(async () => {
+        const run = jest.fn<ProcessRunner['run']>(async () => 0);
+        const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+        try {
+          const result = await runCli(
+            ['restore', '--file', 'backups/whatever.tar.gz', '--confirm'],
+            {},
+            { run },
+          );
+          expect(result).toBe(1);
+          expect(run).not.toHaveBeenCalled();
+          expect(
+            stderr.mock.calls.some((call) => String(call[0]).includes('kubernetes-mode')),
+          ).toBe(true);
+        } finally {
+          stderr.mockRestore();
+        }
+      });
+    });
+
+    it('statistics-rebuild dispatches over HTTP with a stored credential, exactly like compose mode', async () => {
+      await withKubernetesMarker(async () => {
+        await writeCredential(process.cwd(), 'https://copalibre.example', 'clpat_x');
+        const fetchSpy = jest
+          .spyOn(globalThis, 'fetch')
+          .mockResolvedValue(
+            new Response(
+              JSON.stringify({ organizationAlias: 'liga-orbital', matches: 0, figures: 0 }),
+              { status: 200 },
+            ),
+          );
+        try {
+          const result = await runCli(
+            ['statistics-rebuild', '--organization', 'liga-orbital'],
+            {},
+            { run: jest.fn(async () => 0) },
+          );
+          expect(result).toBe(0);
+          expect(fetchSpy).toHaveBeenCalledWith(
+            new URL('/organizations/liga-orbital/statistics/rebuild', 'https://copalibre.example'),
+            expect.objectContaining({ method: 'POST' }),
+          );
+        } finally {
+          fetchSpy.mockRestore();
+        }
+      });
+    });
+
+    it('module list dispatches over HTTP with a stored credential, exactly like compose mode', async () => {
+      await withKubernetesMarker(async () => {
+        await writeCredential(process.cwd(), 'https://copalibre.example', 'clpat_x');
+        const fetchSpy = jest
+          .spyOn(globalThis, 'fetch')
+          .mockResolvedValue(new Response(JSON.stringify([]), { status: 200 }));
+        const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+        try {
+          const result = await runCli(['module', 'list'], {}, { run: jest.fn(async () => 0) });
+          expect(result).toBe(0);
+          expect(fetchSpy).toHaveBeenCalledWith(
+            new URL('/admin/modules', 'https://copalibre.example'),
+            expect.objectContaining({
+              headers: expect.objectContaining({ authorization: 'Bearer clpat_x' }),
+            }),
+          );
+        } finally {
+          fetchSpy.mockRestore();
+          stdout.mockRestore();
+        }
+      });
+    });
+  });
 });

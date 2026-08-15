@@ -6,6 +6,7 @@ export const PRODUCT_ROLES = [
   'migrate',
   'doctor',
   'upgrade-check',
+  'create-admin',
   'web',
 ] as const;
 

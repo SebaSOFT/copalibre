@@ -13,8 +13,12 @@ on:
       - 'scripts/check-helm-compose-parity.mjs'
       - 'scripts/check-helm-enterprise-templates.test.mjs'
       - 'scripts/check-copalibre-cli-compose-parity.mjs'
+      - 'scripts/check-copalibre-kubernetes-init.test.mjs'
       - 'apps/copalibre/scripts/build-assets.mjs'
       - 'apps/copalibre/src/init.ts'
+      - 'apps/copalibre/src/kubernetes-init.ts'
+      - 'apps/copalibre/src/installation-marker.ts'
+      - 'apps/copalibre/src/commands/init-command.ts'
 
 permissions:
   contents: read
@@ -64,3 +68,4 @@ jobs:
       - run: yarn workspace @copalibre/copalibre run build
       - run: node --test scripts/check-copalibre-cli-compose-parity.test.mjs
       - run: node scripts/check-copalibre-cli-compose-parity.mjs
+      - run: node --test scripts/check-copalibre-kubernetes-init.test.mjs

@@ -9,6 +9,7 @@ const roleCommands: Record<ProductRole, readonly string[]> = {
   migrate: ['apps/migrate/dist/main.js'],
   doctor: ['apps/copalibre/dist/main.js', 'doctor'],
   'upgrade-check': ['apps/copalibre/dist/main.js', 'upgrade-check'],
+  'create-admin': ['apps/copalibre/dist/main.js', 'create-admin'],
   web: ['apps/web/dist/server/entry.mjs'],
 };
 

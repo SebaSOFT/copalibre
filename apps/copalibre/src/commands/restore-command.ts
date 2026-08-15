@@ -11,6 +11,7 @@ import { restoreBackupPacket } from '../backup-packet.js';
 import { readCopalibreVersion } from '../banner.js';
 import type { CliContext } from '../cli-context.js';
 import { runCommand } from '../command-support.js';
+import { refuseForKubernetesMode } from '../compose-target.js';
 import { runMigrate } from '../migrate-logic.js';
 
 export class RestoreCommand extends Command<CliContext> {
@@ -20,6 +21,7 @@ export class RestoreCommand extends Command<CliContext> {
 
   async execute(): Promise<number> {
     return runCommand('restore', async () => {
+      await refuseForKubernetesMode();
       const options = parseRestoreOptions(this.args);
       if (!options.dryRun && !options.confirmed) {
         throw new Error('restore requires --confirm (or use --dry-run)');
