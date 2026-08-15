@@ -103,6 +103,14 @@ pointed at it. Scaffold with `--output modules-dev/<alias>`, then `copalibre mod
 --source file:///var/lib/copalibre/modules-dev/<alias>` — no per-invocation environment variable
 needed.
 
+`--module-dev` is Compose-only — the Helm chart (`copalibre init --kubernetes`) has no equivalent
+values group, since a `hostPath` volume only reaches a laptop's filesystem when the pod is
+guaranteed to run on that one machine, true for a local single-node `kind`/`minikube` cluster but
+never a real multi-node one. Developing a module against a local `kind`/`minikube` cluster anyway is
+a manual patch, not a chart feature — see
+[`docs/deployment/enterprise-kubernetes.md`](deployment/enterprise-kubernetes.md#kubernetes-hosted-module-development-kindminikube-only)
+for the recipe.
+
 All five steps are also exposed as MCP tools (`copalibre_module_scaffold`,
 `copalibre_module_validate_local`, `copalibre_module_submit`) — see [`docs/MCP.md`](MCP.md) — so an
 AI agent can drive this whole flow: read a sport's rules, ask the operator any details it needs, and

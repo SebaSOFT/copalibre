@@ -112,6 +112,16 @@ migrate:
 doctor:
   enabled: false
 
+# Off by default. Enable with `--set createAdmin.enabled=true --set
+# createAdmin.organizationAlias=... --set createAdmin.organizationName=...
+# --set createAdmin.email=...` to bootstrap the first administrator as a
+# one-shot Job — no `kubectl exec` into a running pod required.
+createAdmin:
+  enabled: false
+  organizationAlias: ''
+  organizationName: ''
+  email: ''
+
 # --- Enterprise (Level 3) additions -------------------------------------
 # Every group below is additive to the base chart above and defaulted OFF, so
 # a default `helm install` with this values.yaml is byte-identical in

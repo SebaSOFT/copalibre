@@ -6,6 +6,72 @@ secrets, and managed external dependencies onto the K3s-validated Helm chart
 defaulted-off `values.yaml` group — see `deploy/helm/copalibre/README.md`
 for the full schema of each.
 
+## Using the copalibre CLI with a Kubernetes installation
+
+`copalibre init --kubernetes [--namespace <ns>] [--release <name>] [--context <ctx>]` scaffolds a
+`values.yaml` (a copy of this chart's own documented defaults, the same starting point `helm show
+values` gives) and records an installation marker in the current directory — no compose file, no
+`.env`; this chart's own Secret/ConfigMap mechanism stays authoritative for configuration. Later
+`copalibre` commands run from that directory pick up the recorded release and namespace
+automatically; `--namespace`/`--release` default to `default`/`copalibre` when omitted.
+
+Bootstrapping the first administrator runs as a one-shot Job instead of `kubectl exec` into a
+running pod:
+
+```bash
+helm install my-copalibre deploy/helm/copalibre -f values.yaml \
+  --set createAdmin.enabled=true \
+  --set createAdmin.organizationAlias=my-league \
+  --set createAdmin.organizationName="My League" \
+  --set createAdmin.email=admin@example.com
+```
+
+`doctor` and `migrate` continue to run as existing Jobs (`job-doctor.yaml`, `job-migrate.yaml`), not
+through the CLI directly: `copalibre doctor`, `copalibre migrate`, `copalibre backup`, and `copalibre
+restore` all refuse when run from a Kubernetes-mode directory, naming the Job to use instead where
+one exists. `statistics-rebuild` and `module add/list/remove/verify` work exactly as they do against
+a Compose-mode installation: run `copalibre login --api-url <the cluster's public API URL>` once,
+then every later invocation from that directory authenticates over HTTP — no `kubectl` access
+involved.
+
+### Kubernetes-hosted module development (kind/minikube only)
+
+The chart has no `module-dev` values group — `init --kubernetes` never sets one up. A `hostPath`
+volume only reaches a laptop's filesystem when the pod is guaranteed to run on that one machine,
+true for a local single-node `kind`/`minikube` cluster but never a real multi-node one, so this
+isn't a chart feature (see `design.md`'s Decisions). Against a local cluster anyway, the same
+bind-mount idea works as a manual patch:
+
+1. Mount your module workspace into the cluster node:
+   - **kind**: add an `extraMounts` entry to your `kind` cluster config before creating it:
+     ```yaml
+     nodes:
+       - role: control-plane
+         extraMounts:
+           - hostPath: /abs/path/to/modules-dev
+             containerPath: /var/lib/copalibre/modules-dev
+     ```
+   - **minikube**: `minikube start --mount --mount-string="/abs/path/to/modules-dev:/var/lib/copalibre/modules-dev"`
+2. After `helm install`, patch the `api` and `worker` Deployments to add the matching `hostPath`
+   volume/volumeMount and set `COPALIBRE_MODULE_SOURCE_ALLOWLIST` (repeat for both — the example
+   below shows `api`):
+   ```bash
+   kubectl patch deployment <release>-api --type=json -p '[
+     {"op": "add", "path": "/spec/template/spec/volumes/-",
+      "value": {"name": "modules-dev", "hostPath": {"path": "/var/lib/copalibre/modules-dev"}}},
+     {"op": "add", "path": "/spec/template/spec/containers/0/volumeMounts/-",
+      "value": {"name": "modules-dev", "mountPath": "/var/lib/copalibre/modules-dev"}},
+     {"op": "add", "path": "/spec/template/spec/containers/0/env/-",
+      "value": {"name": "COPALIBRE_MODULE_SOURCE_ALLOWLIST", "value": "file:///var/lib/copalibre/modules-dev"}}
+   ]'
+   ```
+3. Scaffold and install exactly as the Compose workflow (`docs/MODULES.md`) does:
+   `copalibre module scaffold ... --output modules-dev/<alias>`, then `copalibre module add <alias>
+--source file:///var/lib/copalibre/modules-dev/<alias>`.
+
+A manual, unsupported-by-the-chart recipe for local development only — never apply it against a
+real multi-node cluster.
+
 ## Cluster prerequisites
 
 These are prerequisites of the operator's cluster, not chart dependencies —

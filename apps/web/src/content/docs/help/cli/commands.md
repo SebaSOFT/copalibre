@@ -9,22 +9,34 @@ does. `copalibre --version` prints the installed version alone, for scripting.
 
 ## init
 
-`copalibre init [--module-dev]`
+`copalibre init [--module-dev]` or `copalibre init --kubernetes [--namespace <ns>] [--release
+<name>] [--context <ctx>]`
 
-Writes a complete installation — `docker-compose.yml`, `.env` with non-secret defaults, and an
-installation marker (`.copalibre/installation.json`) — into the current directory. No source
-checkout required: run it in any empty directory, and every later command (`doctor`, `start`,
-`migrate`, `upgrade-check`) auto-detects that directory from the marker, the same way `.git` marks
-a repository checkout. Refuses to run again in a directory that already holds an installation.
-Lists the required secrets to fill into `.env` afterward. A directory stays pinned to the CopaLibre
-version that `init` created it with — running several versions side by side means running the
-matching CLI version per directory (see [updating](/help/cli/updating/)).
+Writes a complete installation into the current directory. No source checkout required: run it in
+any empty directory, and every later command auto-detects that directory from the marker
+(`.copalibre/installation.json`) it writes, the same way `.git` marks a repository checkout.
+Refuses to run again in a directory that already holds an installation. A directory stays pinned
+to the CopaLibre version that `init` created it with — running several versions side by side means
+running the matching CLI version per directory (see [updating](/help/cli/updating/)).
+
+Without `--kubernetes`, writes `docker-compose.yml` and `.env` with non-secret defaults, and lists
+the required secrets to fill into `.env` afterward.
 
 - `--module-dev`: also writes `docker-compose.module-dev.yml` and a `modules-dev/` directory,
   bind-mounted into `api`/`worker` with `COPALIBRE_MODULE_SOURCE_ALLOWLIST` pre-set — pairs with
   `module scaffold --output modules-dev/<alias>` and `module add <alias> --source
 file:///var/lib/copalibre/modules-dev/<alias>` to develop a module against a running self-hosted
   instance with no source checkout.
+
+With `--kubernetes`, writes a Helm `values.yaml` scaffold instead — no compose file, no `.env`;
+Kubernetes' own Secret/ConfigMap mechanism stays authoritative for configuration. Full workflow,
+including bootstrapping the first administrator as a one-shot Helm Job:
+`docs/deployment/enterprise-kubernetes.md` in the repository.
+
+- `--kubernetes`: scaffold a Helm installation instead of a Compose one
+- `--namespace <ns>`: Kubernetes namespace to record (default: `default`)
+- `--release <name>`: Helm release name to record (default: `copalibre`)
+- `--context <ctx>`: kube-context to record (default: none — supply it explicitly each time)
 
 ## doctor
 

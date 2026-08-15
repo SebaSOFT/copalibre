@@ -4,6 +4,7 @@ import { createBackupPacket } from '../backup-packet.js';
 import { readCopalibreVersion } from '../banner.js';
 import type { CliContext } from '../cli-context.js';
 import { runCommand } from '../command-support.js';
+import { refuseForKubernetesMode } from '../compose-target.js';
 
 export class BackupCommand extends Command<CliContext> {
   static override paths = [['backup']];
@@ -12,6 +13,7 @@ export class BackupCommand extends Command<CliContext> {
 
   async execute(): Promise<number> {
     return runCommand('backup', async () => {
+      await refuseForKubernetesMode();
       const options = parseBackupOptions(this.args);
       assertBackupFile(options.file);
       if (options.dryRun) {

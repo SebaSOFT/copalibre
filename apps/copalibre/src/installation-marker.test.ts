@@ -49,6 +49,35 @@ describe('installation marker (0084)', () => {
       expect(another.installId).not.toBe(marker.installId);
     });
   });
+
+  it('round-trips a kubernetes-mode marker, including an optional context', async () => {
+    await withTemporaryDirectory(async (directory) => {
+      const written = await writeInstallationMarker(directory, '0.5.0-beta', {
+        release: 'my-copalibre',
+        namespace: 'tournaments',
+        context: 'prod-cluster',
+      });
+      const read = await readInstallationMarker(directory);
+      expect(read).toEqual(written);
+      expect(written.mode).toBe('kubernetes');
+      expect(written).toMatchObject({
+        release: 'my-copalibre',
+        namespace: 'tournaments',
+        context: 'prod-cluster',
+      });
+    });
+  });
+
+  it('writes a kubernetes-mode marker with no context field when none is given', async () => {
+    await withTemporaryDirectory(async (directory) => {
+      const written = await writeInstallationMarker(directory, '0.5.0-beta', {
+        release: 'copalibre',
+        namespace: 'default',
+      });
+      expect(written.mode).toBe('kubernetes');
+      expect('context' in written).toBe(false);
+    });
+  });
 });
 
 describe('assertVersionCompatible (0084)', () => {

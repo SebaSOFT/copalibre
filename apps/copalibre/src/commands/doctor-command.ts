@@ -2,7 +2,7 @@ import { parseArgs } from 'node:util';
 import { Command, Option } from 'clipanion';
 import type { CliContext } from '../cli-context.js';
 import { runCommand } from '../command-support.js';
-import { isContainer, requireComposeTarget } from '../compose-target.js';
+import { isContainer, refuseForKubernetesMode, requireComposeTarget } from '../compose-target.js';
 import { runDoctor, type DoctorOptions } from '../doctor.js';
 
 export class DoctorCommand extends Command<CliContext> {
@@ -14,6 +14,9 @@ export class DoctorCommand extends Command<CliContext> {
     return runCommand('doctor', async () => {
       const environment = this.context.env;
       if (!isContainer(environment)) {
+        await refuseForKubernetesMode(
+          'run job-doctor.yaml instead (helm install --set doctor.enabled=true, or equivalent)',
+        );
         await requireComposeTarget(environment);
         return this.context.processes.run('docker', [
           'compose',

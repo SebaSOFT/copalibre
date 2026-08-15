@@ -9,23 +9,35 @@ hace. `copalibre --version` imprime solo la versión instalada, para scripts.
 
 ## init
 
-`copalibre init [--module-dev]`
+`copalibre init [--module-dev]` o `copalibre init --kubernetes [--namespace <ns>] [--release
+<nombre>] [--context <ctx>]`
 
-Escribe una instalación completa — `docker-compose.yml`, `.env` con valores por defecto no
-secretos, y un marcador de instalación (`.copalibre/installation.json`) — en el directorio actual.
-No requiere un checkout del código fuente: ejecutalo en cualquier directorio vacío, y cada comando
-posterior (`doctor`, `start`, `migrate`, `upgrade-check`) detecta automáticamente ese directorio a
-partir del marcador, de la misma forma en que `.git` marca un checkout de repositorio. Se niega a
-ejecutarse de nuevo en un directorio que ya contiene una instalación. Lista los secretos requeridos
-para completar en `.env` después. Un directorio queda fijado a la versión de CopaLibre con la que
-`init` lo creó — ejecutar varias versiones en paralelo implica ejecutar la versión de CLI
-correspondiente por directorio (ver [actualización](/es/help/cli/updating/)).
+Escribe una instalación completa en el directorio actual. No requiere un checkout del código
+fuente: ejecutalo en cualquier directorio vacío, y cada comando posterior detecta automáticamente
+ese directorio a partir del marcador (`.copalibre/installation.json`) que escribe, de la misma
+forma en que `.git` marca un checkout de repositorio. Se niega a ejecutarse de nuevo en un
+directorio que ya contiene una instalación. Un directorio queda fijado a la versión de CopaLibre
+con la que `init` lo creó — ejecutar varias versiones en paralelo implica ejecutar la versión de
+CLI correspondiente por directorio (ver [actualización](/es/help/cli/updating/)).
+
+Sin `--kubernetes`, escribe `docker-compose.yml` y `.env` con valores por defecto no secretos, y
+lista los secretos requeridos para completar en `.env` después.
 
 - `--module-dev`: también escribe `docker-compose.module-dev.yml` y un directorio `modules-dev/`,
   montado en `api`/`worker` con `COPALIBRE_MODULE_SOURCE_ALLOWLIST` preconfigurado — se combina con
   `module scaffold --output modules-dev/<alias>` y `module add <alias> --source
 file:///var/lib/copalibre/modules-dev/<alias>` para desarrollar un módulo contra una instancia
   autoalojada en ejecución, sin checkout del código fuente.
+
+Con `--kubernetes`, escribe un scaffold de `values.yaml` de Helm en su lugar — sin archivo de
+compose, sin `.env`; el propio mecanismo de Secret/ConfigMap de Kubernetes sigue siendo autoritativo
+para la configuración. Flujo completo, incluyendo el bootstrap del primer administrador como un Job
+de Helm de un solo uso: `docs/deployment/enterprise-kubernetes.md` en el repositorio.
+
+- `--kubernetes`: scaffolds una instalación de Helm en lugar de una de Compose
+- `--namespace <ns>`: namespace de Kubernetes a registrar (por defecto: `default`)
+- `--release <nombre>`: nombre del release de Helm a registrar (por defecto: `copalibre`)
+- `--context <ctx>`: kube-context a registrar (por defecto: ninguno — pasarlo explícitamente cada vez)
 
 ## doctor
 

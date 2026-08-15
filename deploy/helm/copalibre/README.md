@@ -14,6 +14,11 @@ scheduler).
 `scripts/check-helm-compose-parity.mjs` fails CI if `env`/`secretKeys` drift
 from `docker-compose.yml`'s `x-application-environment` anchor.
 
+`createAdmin` (defaulted off, like `doctor`) runs `create-admin` as a one-shot
+Job — `organizationAlias`/`organizationName`/`email` become that Job's CLI
+arguments. See `docs/deployment/enterprise-kubernetes.md` for the full
+`copalibre init --kubernetes` workflow this pairs with.
+
 ## Enterprise (Level 3) values
 
 The groups below are additive, all defaulted to disabled, and layered on top
