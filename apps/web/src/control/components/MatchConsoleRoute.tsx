@@ -15,9 +15,11 @@ import {
   isEventPermitted,
   newIdempotencyKey,
   segmentLabel,
+  sentOffPersonIds,
 } from '../lib/match-console.js';
 import { controlTokenStore } from '../session/token-store.js';
 import { Button } from './ui/button.js';
+import { JerseyGrid } from './JerseyGrid.js';
 import { messages } from '../i18n/messages.en.js';
 
 const RECONCILIATION_TIMEOUT_MS = 8_000;
@@ -70,6 +72,10 @@ export function MatchConsoleRoute({
   const [secondaryActorSelections, setSecondaryActorSelections] = useState<Record<string, string>>(
     {},
   );
+  // Which field a JerseyGrid tap currently sets — undefined means the
+  // primary actor (selectedSide/selectedPersonId), a field name means that
+  // secondary field (see JerseyGrid.tsx's own "ambient selection" note).
+  const [activeSecondaryField, setActiveSecondaryField] = useState<string | undefined>(undefined);
   const [conditionalEvent, setConditionalEvent] = useState<ConsoleEventDefinition>();
   // Captured when the event-creation button is first pressed, not when a
   // workflow's confirm step (after picking an outcome, typing a note) fires —
@@ -165,6 +171,7 @@ export function MatchConsoleRoute({
   const secondaryActorFieldNames = [
     ...new Set(permittedEvents.flatMap((definition) => definition.secondaryActorFields)),
   ];
+  const sentOff = sentOffPersonIds(projection.events);
   const canRecord = projection.capabilities.includes('match.record-event');
   const canControlClock = projection.capabilities.includes('match.control-clock');
   const canResolveTimer = projection.capabilities.includes('match.resolve-timer');
@@ -261,6 +268,7 @@ export function MatchConsoleRoute({
     setDescription('');
     setLogNote('');
     setSecondaryActorSelections({});
+    setActiveSecondaryField(undefined);
   }
 
   async function finalize(): Promise<void> {
@@ -424,43 +432,29 @@ export function MatchConsoleRoute({
             <h2 style={sectionTitleStyle}>
               <FormattedMessage {...messages.matchConsoleRecordEvent} />
             </h2>
+            {projection.rosters.length > 0 ? (
+              <JerseyGrid
+                activeField={activeSecondaryField}
+                disabled={!canRecord}
+                onChangeActiveField={setActiveSecondaryField}
+                onSelectPrimary={(entrantId, personId) => {
+                  setSelectedSide(entrantId);
+                  setSelectedPersonId(personId);
+                  setSelectedStaffId('');
+                }}
+                onSelectSecondary={(field, personId) =>
+                  setSecondaryActorSelections((current) => ({ ...current, [field]: personId }))
+                }
+                primaryPersonId={selectedPersonId}
+                primarySide={selectedSide}
+                rosterRoles={projection.rosterRoles}
+                rosters={projection.rosters}
+                secondaryFields={secondaryActorFieldNames}
+                secondarySelections={secondaryActorSelections}
+                sentOffPersonIds={sentOff}
+              />
+            ) : null}
             <div style={attributionStyle}>
-              <label style={labelStyle}>
-                <FormattedMessage {...messages.matchConsoleParticipant} />
-                <select
-                  aria-label={intl.formatMessage(messages.matchConsoleEventParticipant)}
-                  disabled={!canRecord}
-                  onChange={(event) => setSelectedSide(event.target.value)}
-                  style={inputStyle}
-                  value={selectedSide}
-                >
-                  {projection.entrantIds.map((entrantId) => (
-                    <option key={entrantId} value={entrantId}>
-                      {entrantId.slice(-8)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label style={labelStyle}>
-                <FormattedMessage {...messages.matchConsolePerson} />
-                <select
-                  aria-label={intl.formatMessage(messages.matchConsoleEventPerson)}
-                  disabled={!canRecord || projection.eligiblePersonIds.length === 0}
-                  onChange={(event) => {
-                    setSelectedPersonId(event.target.value);
-                    if (event.target.value) setSelectedStaffId('');
-                  }}
-                  style={inputStyle}
-                  value={selectedPersonId}
-                >
-                  <option value="">{intl.formatMessage(messages.matchConsoleNoAttribution)}</option>
-                  {projection.eligiblePersonIds.map((personId) => (
-                    <option key={personId} value={personId}>
-                      {personId.slice(-8)}
-                    </option>
-                  ))}
-                </select>
-              </label>
               <label style={labelStyle}>
                 <FormattedMessage {...messages.matchConsoleStaff} />
                 <select
@@ -481,32 +475,6 @@ export function MatchConsoleRoute({
                   ))}
                 </select>
               </label>
-              {secondaryActorFieldNames.map((field) => (
-                <label key={field} style={labelStyle}>
-                  {field}
-                  <select
-                    aria-label={field}
-                    disabled={!canRecord || projection.eligiblePersonIds.length === 0}
-                    onChange={(event) =>
-                      setSecondaryActorSelections((current) => ({
-                        ...current,
-                        [field]: event.target.value,
-                      }))
-                    }
-                    style={inputStyle}
-                    value={secondaryActorSelections[field] ?? ''}
-                  >
-                    <option value="">
-                      {intl.formatMessage(messages.matchConsoleNoAttribution)}
-                    </option>
-                    {projection.eligiblePersonIds.map((personId) => (
-                      <option key={personId} value={personId}>
-                        {personId.slice(-8)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              ))}
             </div>
             <div style={eventGridStyle}>
               {permittedEvents.map((definition) => (

@@ -4743,6 +4743,77 @@
           "occurredAt"
         ]
       },
+      "ConsoleRosterMemberResponse": {
+        "type": "object",
+        "properties": {
+          "personId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "number": {
+            "type": "object",
+            "description": "Shirt number; not always numeric (e.g. \"00\", \"7B\")"
+          },
+          "name": {
+            "type": "string"
+          },
+          "roles": {
+            "description": "Codes naming discipline-declared roster roles (see `rosterRoles`) this member carries — zero, one, or several, independently combinable",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "onField": {
+            "type": "boolean",
+            "description": "Whether currently in play, resolved by folding recorded substitution events over the roster's starting state"
+          }
+        },
+        "required": [
+          "personId",
+          "name",
+          "onField"
+        ]
+      },
+      "ConsoleRosterResponse": {
+        "type": "object",
+        "properties": {
+          "entrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConsoleRosterMemberResponse"
+            }
+          }
+        },
+        "required": [
+          "entrantId",
+          "members"
+        ]
+      },
+      "ConsoleRosterRoleResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Stable code, referenced by a `ConsoleRosterMemberResponse.roles` entry"
+          },
+          "label": {
+            "type": "object"
+          },
+          "badge": {
+            "type": "string",
+            "description": "Short tactile-console badge text, e.g. 'GK', 'C'. Falls back to `code` when absent"
+          }
+        },
+        "required": [
+          "code",
+          "label"
+        ]
+      },
       "MatchConsoleResponse": {
         "type": "object",
         "properties": {
@@ -4800,6 +4871,20 @@
               "type": "string"
             }
           },
+          "rosters": {
+            "description": "Structured roster membership per entrant, with on-field state resolved from substitution history. An entrant with no roster row selected yet reads as an empty member list",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConsoleRosterResponse"
+            }
+          },
+          "rosterRoles": {
+            "description": "The bound discipline's declared roster roles — a member's `roles` codes name these",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConsoleRosterRoleResponse"
+            }
+          },
           "eligibleStaffIds": {
             "description": "Coaches and staff attached to an entrant contesting this match",
             "type": "array",
@@ -4836,6 +4921,8 @@
           "events",
           "eventDefinitions",
           "eligiblePersonIds",
+          "rosters",
+          "rosterRoles",
           "eligibleStaffIds",
           "entrantIds",
           "capabilities",

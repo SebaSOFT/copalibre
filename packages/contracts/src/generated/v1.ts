@@ -1512,6 +1512,29 @@ export interface components {
             /** @description The active segment's running clock when this event was recorded, if timed */
             segmentElapsedSeconds?: number;
         };
+        ConsoleRosterMemberResponse: {
+            /** Format: uuid */
+            personId: string;
+            /** @description Shirt number; not always numeric (e.g. "00", "7B") */
+            number?: Record<string, never>;
+            name: string;
+            /** @description Codes naming discipline-declared roster roles (see `rosterRoles`) this member carries — zero, one, or several, independently combinable */
+            roles?: string[];
+            /** @description Whether currently in play, resolved by folding recorded substitution events over the roster's starting state */
+            onField: boolean;
+        };
+        ConsoleRosterResponse: {
+            /** Format: uuid */
+            entrantId: string;
+            members: components["schemas"]["ConsoleRosterMemberResponse"][];
+        };
+        ConsoleRosterRoleResponse: {
+            /** @description Stable code, referenced by a `ConsoleRosterMemberResponse.roles` entry */
+            code: string;
+            label: Record<string, never>;
+            /** @description Short tactile-console badge text, e.g. 'GK', 'C'. Falls back to `code` when absent */
+            badge?: string;
+        };
         MatchConsoleResponse: {
             /** Format: uuid */
             matchId: string;
@@ -1527,6 +1550,10 @@ export interface components {
             eventDefinitions: Record<string, never>[];
             /** @description Persons eligible for attribution from active match rosters */
             eligiblePersonIds: string[];
+            /** @description Structured roster membership per entrant, with on-field state resolved from substitution history. An entrant with no roster row selected yet reads as an empty member list */
+            rosters: components["schemas"]["ConsoleRosterResponse"][];
+            /** @description The bound discipline's declared roster roles — a member's `roles` codes name these */
+            rosterRoles: components["schemas"]["ConsoleRosterRoleResponse"][];
             /** @description Coaches and staff attached to an entrant contesting this match */
             eligibleStaffIds: string[];
             /** @description Entrants contesting this match */

@@ -44,6 +44,8 @@ describe('discipline test builders', () => {
       expect(football.statistics.map((statistic) => statistic.code)).toEqual([
         'goals-for',
         'goals-against',
+        'player-own-goals',
+        'assists',
         'wins',
         'draws',
         'losses',

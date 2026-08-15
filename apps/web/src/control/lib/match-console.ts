@@ -5,7 +5,13 @@
  */
 
 import { v7 as uuidv7 } from 'uuid';
-import type { ConsoleEventDefinition, MatchConsoleResponse } from './api-client.js';
+import type {
+  ConsoleEventDefinition,
+  ConsoleMatchEvent,
+  ConsoleRoster,
+  ConsoleRosterMember,
+  MatchConsoleResponse,
+} from './api-client.js';
 
 export function newIdempotencyKey(): string {
   return uuidv7();
@@ -71,4 +77,34 @@ export function isEventPermitted(
     );
   }
   return true;
+}
+
+/** Persons a `red-card` event was recorded against — greyed out, not selectable. */
+export function sentOffPersonIds(events: readonly ConsoleMatchEvent[]): ReadonlySet<string> {
+  const ids = new Set<string>();
+  for (const event of events) {
+    if (event.definitionCode === 'red-card' && event.personId !== undefined) {
+      ids.add(event.personId);
+    }
+  }
+  return ids;
+}
+
+/**
+ * The unique roster member across both entrants whose jersey `number`
+ * matches the given digits — `undefined` when nobody matches or, since
+ * jersey numbers are unique per team but not across a match, more than one
+ * player shares the same number and a keypad shortcut can't disambiguate.
+ */
+export function memberByNumber(
+  rosters: readonly ConsoleRoster[],
+  digits: string,
+): { readonly entrantId: string; readonly member: ConsoleRosterMember } | undefined {
+  if (digits === '') return undefined;
+  const matches = rosters.flatMap((roster) =>
+    roster.members
+      .filter((member) => member.number !== undefined && String(member.number) === digits)
+      .map((member) => ({ entrantId: roster.entrantId, member })),
+  );
+  return matches.length === 1 ? matches[0] : undefined;
 }

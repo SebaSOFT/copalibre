@@ -9,8 +9,6 @@ import {
   MatchAssignmentRepository,
   OrganizationRepository,
   PersonRepository,
-  StatisticRepository,
-  TagRepository,
   TournamentRepository,
   newId,
   withTransaction,
@@ -24,27 +22,29 @@ import { DATABASE } from '../database.token.js';
 import { MatchControlController } from './match-control.controller.js';
 
 /**
- * A single recorded event with a declared `awardTo`/`target: { payloadField }`
- * attribution (0090) snapshots `segmentElapsedSeconds`, writes a `tag_facts`
- * row for the payload-named person (not the primary actor), and updates a
- * live-cadence collector's total for that same payload-named person — all
- * inside the one event-recording transaction `MatchControlController.recordEvent`
- * drives, proven through the real HTTP path rather than the pure fold engine.
+ * Structured rosters and goalkeeper auto-population (0092, tasks 3.2/3.3),
+ * proven through the real HTTP path: `consoleProjection` returns structured
+ * `rosters`/`rosterRoles` with on-field state resolved from substitution
+ * history, and recording a `goal` event auto-populates `payload.goalkeeperId`
+ * from the conceding side's active on-field goalkeeper — changing which
+ * goalkeeper subsequent goals attribute to once a substitution changes who
+ * is on the pitch.
  */
-describe('target attribution inside the event-recording transaction (integration, 0090)', () => {
+describe('structured rosters and goalkeeper auto-population (integration, 0092)', () => {
   let app: INestApplication;
   let scratch: Awaited<ReturnType<typeof createMigratedDatabase>>;
   let organizationId: string;
   let matchId: string;
   let segmentId: string;
-  let entrantNorte: string;
-  let entrantSur: string;
-  let personScorer: string;
-  let personAssist: string;
+  let entrantHome: string;
+  let entrantAway: string;
+  let goalkeeperHome: string;
+  let benchGoalkeeperHome: string;
+  let strikerAway: string;
   const AUDIT = { actor: 'user:seed', authorizationContext: 'seed' } as const;
 
   beforeAll(async () => {
-    scratch = await createMigratedDatabase('target-attribution');
+    scratch = await createMigratedDatabase('match-rosters');
     @Module({
       controllers: [MatchControlController],
       providers: [
@@ -71,8 +71,8 @@ describe('target attribution inside the event-recording transaction (integration
 
     const organization = await withTransaction(scratch.db, (uow) =>
       new OrganizationRepository(scratch.db).create(uow, {
-        alias: 'liga-target',
-        name: 'Liga Target',
+        alias: 'liga-rosters',
+        name: 'Liga Rosters',
         ...AUDIT,
       }),
     );
@@ -83,7 +83,7 @@ describe('target attribution inside the event-recording transaction (integration
       .insertInto('identity_principals')
       .values({
         principal_id: principalId,
-        email: 'referee@target-attribution-test',
+        email: 'referee@match-rosters-test',
         oidc_subject_id: 'referee',
         name: null,
         picture: null,
@@ -97,7 +97,7 @@ describe('target attribution inside the event-recording transaction (integration
         assignment_id: newId(),
         organization_id: organizationId,
         principal_id: principalId,
-        email: 'referee@target-attribution-test',
+        email: 'referee@match-rosters-test',
         role: 'referee',
         status: 'active',
         created_at: new Date(),
@@ -106,52 +106,10 @@ describe('target attribution inside the event-recording transaction (integration
       })
       .execute();
 
-    // The 'goal' event already declares `assistedBy` in its payloadSchema
-    // (football's real definition) — this fixture adds a targeted tag effect
-    // and a payload-field-targeted live collector on top of it, the same way
-    // tag-facts.integration.test.ts (0073) adds only what it needs.
-    const base = footballDescriptor();
-    const eventDefinitions = base.eventDefinitions.map((definition) =>
-      definition.code === 'goal'
-        ? {
-            ...definition,
-            effects: [
-              ...(definition.effects ?? []),
-              {
-                kind: 'tag' as const,
-                tagCode: 'credited-with-assist',
-                action: 'applied' as const,
-                target: { payloadField: 'assistedBy' },
-              },
-            ],
-          }
-        : definition,
-    );
-    const descriptor = footballDescriptor({
-      eventDefinitions,
-      tags: [
-        {
-          code: 'credited-with-assist',
-          label: 'Credited with assist',
-          appliesTo: ['person'],
-          producedAt: 'match',
-        },
-      ],
-      collectors: [
-        {
-          code: 'assists-live',
-          label: 'Assists (live)',
-          source: {
-            kind: 'event',
-            definitionCodes: ['goal'],
-            actorSource: { payloadField: 'assistedBy' },
-          },
-          measure: { kind: 'count' },
-          granularity: { actor: 'person', competition: 'match' },
-          cadence: { kind: 'live' },
-        },
-      ],
-    });
+    // Real football descriptor, unmodified: `goal`'s `roster-role-snapshot`
+    // effect and `rosterRoles: [{goalkeeper}, {captain}]` are already
+    // declared on it (0092, tasks 1.1a/1.3c).
+    const descriptor = footballDescriptor();
 
     const tournaments = new TournamentRepository(scratch.db);
     const enrollment = new EnrollmentRepository(scratch.db);
@@ -162,8 +120,8 @@ describe('target attribution inside the event-recording transaction (integration
       await tournaments.saveDescriptor(uow, descriptor, { organizationId, ...AUDIT });
       const tournament = await tournaments.create(uow, {
         organizationId,
-        alias: 'apertura-target',
-        name: 'Apertura Target',
+        alias: 'apertura-rosters',
+        name: 'Apertura Rosters',
         descriptor,
         ...AUDIT,
       });
@@ -184,31 +142,41 @@ describe('target attribution inside the event-recording transaction (integration
           ...AUDIT,
         }),
       ]);
-      entrantNorte = homeEntrant.entrantId;
-      entrantSur = awayEntrant.entrantId;
+      entrantHome = homeEntrant.entrantId;
+      entrantAway = awayEntrant.entrantId;
 
-      const { person: scorer } = await persons.register(uow, {
+      const { person: startingGoalkeeper } = await persons.register(uow, {
         organizationId,
-        displayName: 'Goleador',
+        displayName: 'Arquero Titular',
         ...AUDIT,
       });
-      personScorer = scorer.personId;
-      const { person: assist } = await persons.register(uow, {
+      goalkeeperHome = startingGoalkeeper.personId;
+      const { person: benchGoalkeeper } = await persons.register(uow, {
         organizationId,
-        displayName: 'Asistidor',
+        displayName: 'Arquero Suplente',
         ...AUDIT,
       });
-      personAssist = assist.personId;
+      benchGoalkeeperHome = benchGoalkeeper.personId;
+      const { person: striker } = await persons.register(uow, {
+        organizationId,
+        displayName: 'Delantero Visitante',
+        ...AUDIT,
+      });
+      strikerAway = striker.personId;
+      await Promise.all(
+        [goalkeeperHome, benchGoalkeeperHome].map((personId) =>
+          persons.enlist(uow, {
+            personId,
+            teamId: norte.teamId,
+            role: 'player',
+            organizationId,
+            ...AUDIT,
+          }),
+        ),
+      );
       await persons.enlist(uow, {
-        personId: personScorer,
-        teamId: norte.teamId,
-        role: 'player',
-        organizationId,
-        ...AUDIT,
-      });
-      await persons.enlist(uow, {
-        personId: personAssist,
-        teamId: norte.teamId,
+        personId: strikerAway,
+        teamId: sur.teamId,
         role: 'player',
         organizationId,
         ...AUDIT,
@@ -224,7 +192,7 @@ describe('target attribution inside the event-recording transaction (integration
       });
       const [fixture] = await competition.createFixtures(uow, {
         stageId: stage.stageId,
-        fixtures: [{ round: 1, homeEntrantId: entrantNorte, awayEntrantId: entrantSur }],
+        fixtures: [{ round: 1, homeEntrantId: entrantHome, awayEntrantId: entrantAway }],
         organizationId,
         ...AUDIT,
       });
@@ -263,17 +231,31 @@ describe('target attribution inside the event-recording transaction (integration
         .values([
           {
             match_id: matchId,
-            entrant_id: entrantNorte,
+            entrant_id: entrantHome,
             roster_members: JSON.stringify([
-              { personId: personScorer, name: 'Goleador', onField: true },
-              { personId: personAssist, name: 'Asistidor', onField: true },
+              {
+                personId: goalkeeperHome,
+                number: 1,
+                name: 'Arquero Titular',
+                roles: ['goalkeeper'],
+                onField: true,
+              },
+              {
+                personId: benchGoalkeeperHome,
+                number: 12,
+                name: 'Arquero Suplente',
+                roles: ['goalkeeper'],
+                onField: false,
+              },
             ]),
             updated_at: new Date(),
           },
           {
             match_id: matchId,
-            entrant_id: entrantSur,
-            roster_members: JSON.stringify([]),
+            entrant_id: entrantAway,
+            roster_members: JSON.stringify([
+              { personId: strikerAway, number: 9, name: 'Delantero Visitante', onField: true },
+            ]),
             updated_at: new Date(),
           },
         ])
@@ -293,64 +275,108 @@ describe('target attribution inside the event-recording transaction (integration
     await scratch?.drop();
   });
 
-  it('snapshots segmentElapsedSeconds, tags the payload-named assist provider, and updates their live total — all from one request', async () => {
-    const response = await (app as NestFastifyApplication).inject({
-      method: 'POST',
-      url: `/organizations/liga-target/tournaments/apertura-target/matches/${matchId}/events`,
-      headers: {
-        authorization: 'Bearer referee',
-        'idempotency-key': '01890000-0000-7000-8000-0000000000c1',
-      },
-      payload: {
-        definitionCode: 'goal',
-        segmentId,
-        occurredAt: Date.now(),
-        side: entrantNorte,
-        personId: personScorer,
-        payload: { assistedBy: personAssist },
-      },
+  it('returns structured roster members and the discipline-declared roster roles', async () => {
+    const response = await request('GET', `${base()}/console`, 'referee');
+    expect(response.statusCode).toBe(200);
+    const body = response.json();
+
+    const home = body.rosters.find(
+      (roster: { entrantId: string }) => roster.entrantId === entrantHome,
+    );
+    expect(home.members).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          personId: goalkeeperHome,
+          number: 1,
+          roles: ['goalkeeper'],
+          onField: true,
+        }),
+        expect.objectContaining({
+          personId: benchGoalkeeperHome,
+          roles: ['goalkeeper'],
+          onField: false,
+        }),
+      ]),
+    );
+    expect(body.rosterRoles).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'goalkeeper', badge: 'GK' }),
+        expect.objectContaining({ code: 'captain', badge: 'C' }),
+      ]),
+    );
+  });
+
+  it('auto-populates goalkeeperId on a goal from the conceding side’s active goalkeeper', async () => {
+    const response = await request('POST', `${base()}/events`, 'referee', {
+      definitionCode: 'goal',
+      segmentId,
+      occurredAt: Date.now(),
+      side: entrantAway,
+      personId: strikerAway,
     });
     expect(response.statusCode).toBe(201);
 
     const persisted = await scratch.db
       .selectFrom('match_events')
-      .select(['segment_elapsed_seconds', 'person_id'])
-      .where('match_id', '=', matchId)
+      .select('payload')
+      .where('event_id', '=', response.json().eventId)
       .executeTakeFirstOrThrow();
-    // A timed segment (football's 'half') always has a clock to snapshot,
-    // even freshly started at zero — the point is the column is populated,
-    // not any specific elapsed value.
-    expect(typeof persisted.segment_elapsed_seconds).toBe('number');
-    expect(persisted.person_id).toBe(personScorer);
-
-    const facts = await new TagRepository(scratch.db).factsFor({
-      organizationId,
-      code: 'credited-with-assist',
-    });
-    expect(facts).toHaveLength(1);
-    expect(facts[0]).toMatchObject({
-      code: 'credited-with-assist',
-      action: 'applied',
-      actorGranularity: 'person',
-      // The assist provider, not the scorer who recorded the event.
-      actorId: personAssist,
-      competitionGranularity: 'match',
-      competitionId: matchId,
-    });
-
-    const statistics = new StatisticRepository(scratch.db);
-    const assistsLive = await statistics.readTotals(
-      {
-        organizationId,
-        collectorCode: 'assists-live',
-        actorGranularity: 'person',
-        competitionGranularity: 'match',
-        competitionId: matchId,
-      },
-      { kind: 'count' },
-    );
-    expect(assistsLive).toEqual([
-      { actorId: personAssist, competitionId: matchId, value: 1, samples: 1 },
-    ]);
+    expect(persisted.payload).toMatchObject({ goalkeeperId: goalkeeperHome });
   });
+
+  it('attributes to the new goalkeeper after a substitution changes who is on the pitch', async () => {
+    const substitution = await request('POST', `${base()}/events`, 'referee', {
+      definitionCode: 'substitution',
+      segmentId,
+      occurredAt: Date.now(),
+      side: entrantHome,
+      payload: { playerOutId: goalkeeperHome, playerInId: benchGoalkeeperHome },
+    });
+    expect(substitution.statusCode).toBe(201);
+
+    const projection = await request('GET', `${base()}/console`, 'referee');
+    const home = projection
+      .json()
+      .rosters.find((roster: { entrantId: string }) => roster.entrantId === entrantHome);
+    expect(home.members).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ personId: goalkeeperHome, onField: false }),
+        expect.objectContaining({ personId: benchGoalkeeperHome, onField: true }),
+      ]),
+    );
+
+    const secondGoal = await request('POST', `${base()}/events`, 'referee', {
+      definitionCode: 'goal',
+      segmentId,
+      occurredAt: Date.now(),
+      side: entrantAway,
+      personId: strikerAway,
+    });
+    expect(secondGoal.statusCode).toBe(201);
+
+    const persisted = await scratch.db
+      .selectFrom('match_events')
+      .select('payload')
+      .where('event_id', '=', secondGoal.json().eventId)
+      .executeTakeFirstOrThrow();
+    expect(persisted.payload).toMatchObject({ goalkeeperId: benchGoalkeeperHome });
+  });
+
+  const base = () => `/organizations/liga-rosters/tournaments/apertura-rosters/matches/${matchId}`;
+
+  function request(method: 'GET' | 'POST', url: string, token?: string, payload?: unknown) {
+    return (app as NestFastifyApplication).inject({
+      method,
+      url,
+      headers: token
+        ? {
+            authorization: `Bearer ${token}`,
+            ...(method === 'POST'
+              ? { 'idempotency-key': '01890000-0000-7000-8000-00000000b1a1' }
+              : {}),
+          }
+        : {},
+      payload: payload as never,
+    });
+  }
 });

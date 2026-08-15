@@ -94,6 +94,17 @@ const projection: MatchConsoleResponse = {
     },
   ],
   eligiblePersonIds: [],
+  rosters: [
+    {
+      entrantId: 'entrant-a',
+      members: [{ personId: 'person-a1', name: 'Home One', onField: true }],
+    },
+    {
+      entrantId: 'entrant-b',
+      members: [{ personId: 'person-b1', name: 'Away One', onField: true }],
+    },
+  ],
+  rosterRoles: [],
   eligibleStaffIds: ['staff-1'],
   entrantIds: ['entrant-a', 'entrant-b'],
   capabilities: ['match.record-event', 'match.control-clock', 'match.finalize'],
@@ -305,6 +316,16 @@ describe('MatchConsoleRoute', () => {
         },
       ],
       eligiblePersonIds: ['person-scorer', 'person-assist'],
+      rosters: [
+        {
+          entrantId: 'entrant-a',
+          members: [{ personId: 'person-scorer', name: 'Scorer', onField: true }],
+        },
+        {
+          entrantId: 'entrant-b',
+          members: [{ personId: 'person-assist', name: 'Assist', onField: true }],
+        },
+      ],
     };
     const requests: unknown[] = [];
     await act(async () => {
@@ -331,9 +352,8 @@ describe('MatchConsoleRoute', () => {
       );
     });
 
-    fireEvent.change(screen.getByLabelText('assistedBy'), {
-      target: { value: 'person-assist' },
-    });
+    fireEvent.click(screen.getByRole('button', { name: 'assistedBy' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Assist' }));
     await act(async () => {
       fireEvent.click(screen.getAllByRole('button', { name: 'Gol' })[0] as HTMLButtonElement);
     });
@@ -706,6 +726,9 @@ describe('MatchConsoleRoute', () => {
     const personProjection: MatchConsoleResponse = {
       ...projection,
       eligiblePersonIds: ['person-1'],
+      rosters: [
+        { entrantId: 'entrant-a', members: [{ personId: 'person-1', name: 'One', onField: true }] },
+      ],
       eventDefinitions: [
         { ...projection.eventDefinitions[3], actorRequirement: 'person' },
         {
@@ -739,9 +762,7 @@ describe('MatchConsoleRoute', () => {
         ),
       );
     });
-    fireEvent.change(screen.getByLabelText('Event person'), {
-      target: { value: 'person-1' },
-    });
+    fireEvent.click(screen.getByRole('button', { name: 'One' }));
     await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Gol' })));
     expect(requests).toEqual([expect.objectContaining({ personId: 'person-1' })]);
   });
@@ -761,16 +782,17 @@ describe('MatchConsoleRoute', () => {
     });
 
     fireEvent.change(screen.getByLabelText('Active segment'), { target: { value: 'segment-1' } });
-    fireEvent.change(screen.getByLabelText('Event participant'), {
-      target: { value: 'entrant-b' },
-    });
     fireEvent.change(screen.getByLabelText('Event staff'), { target: { value: 'staff-1' } });
+    // A jersey click (primary actor selection) intentionally clears any staff
+    // selection, mirroring the mutual exclusivity the removed dropdowns had —
+    // so it must come after the staff change to assert its own effect below.
+    fireEvent.click(screen.getByRole('button', { name: 'Away One' }));
     fireEvent.change(screen.getByLabelText('Log note'), {
       target: { value: 'Verificado por mesa' },
     });
 
-    expect((screen.getByLabelText('Event participant') as HTMLSelectElement).value).toBe(
-      'entrant-b',
+    expect(screen.getByRole('button', { name: 'Away One' }).getAttribute('aria-pressed')).toBe(
+      'true',
     );
     expect((screen.getByLabelText('Log note') as HTMLTextAreaElement).value).toBe(
       'Verificado por mesa',

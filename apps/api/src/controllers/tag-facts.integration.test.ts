@@ -214,7 +214,7 @@ describe('tag facts inside the event-recording transaction (integration, 0073)',
         .values({
           match_id: matchId,
           entrant_id: entrantId,
-          person_ids: JSON.stringify([personId]),
+          roster_members: JSON.stringify([{ personId, name: 'Player', onField: true }]),
           updated_at: new Date(),
         })
         .execute();

@@ -407,8 +407,19 @@ export interface MatchEventsTable {
 export interface MatchRostersTable {
   match_id: string;
   entrant_id: string;
-  person_ids: JSONColumnType<readonly string[]>;
+  /** Structured member metadata: number, name, tactical roles, on-field state. */
+  roster_members: JSONColumnType<readonly MatchRosterMemberRow[]>;
   updated_at: Timestamp;
+}
+
+/** JSON-serialized shape of one `MatchRosterMember` inside `roster_members`. */
+export interface MatchRosterMemberRow {
+  personId: string;
+  number?: number | string;
+  name: string;
+  /** Codes naming discipline-declared `RosterRoleDeclaration`s — never a closed enum. */
+  roles?: readonly string[];
+  onField: boolean;
 }
 
 /**

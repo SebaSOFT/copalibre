@@ -203,3 +203,23 @@ total SHALL be a plain, pre-computed value — reading it SHALL NOT join against
 - **WHEN** a collector's `requiresTag` names a tag code the same discipline/tournament document does
   not declare
 - **THEN** module validation refuses the document, naming the unresolved tag code
+
+### Requirement: An event-sourced collector may specify an actor extraction source
+
+A discipline or tournament MAY declare an event-sourced `StatisticCollector` that extracts its target actor from an explicit source (`'primary'`, `'every-other-side'`, or `{ payloadField: string }`), evaluated at fold time. The resulting total SHALL be aggregated against the extracted actor identity at the collector's declared granularity.
+
+#### Scenario: A collector aggregates against a payload-specified actor
+- **WHEN** a collector declares `source: { kind: 'event', definitionCodes: ['kill'], actorSource: { payloadField: 'victimId' } }`
+- **THEN** recorded `kill` events contribute to the `deaths` figure keyed to `payload.victimId` rather than `event.personId`
+
+#### Scenario: An omitted actor source defaults to the primary actor
+- **WHEN** an event-sourced collector omits the `actorSource` field
+- **THEN** it resolves the primary actor (`event.personId` and `event.side`), retaining exact backward compatibility with all existing collectors
+
+#### Scenario: An opposing side actor source resolves to the opponent
+- **WHEN** a team-granularity collector declares `actorSource: 'every-other-side'` and an event is recorded for a side in a match
+- **THEN** the folded figure accumulates against the opposing entrant side(s) in that match
+
+#### Scenario: A missing payload field in an event produces no candidate figure
+- **WHEN** an event-sourced collector targets an optional `payloadField` that is absent from a recorded event's payload
+- **THEN** the fold safely ignores that event for that specific collector without error and without producing an empty key

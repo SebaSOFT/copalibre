@@ -242,13 +242,15 @@ describe('refold against real PostgreSQL (integration, 0082)', () => {
           {
             match_id: matchId,
             entrant_id: entrantAtlas,
-            person_ids: JSON.stringify([personAtlas]),
+            roster_members: JSON.stringify([
+              { personId: personAtlas, name: 'Atlas', onField: true },
+            ]),
             updated_at: new Date(),
           },
           {
             match_id: matchId,
             entrant_id: entrantBoca,
-            person_ids: JSON.stringify([personBoca]),
+            roster_members: JSON.stringify([{ personId: personBoca, name: 'Boca', onField: true }]),
             updated_at: new Date(),
           },
         ])

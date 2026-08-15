@@ -32,7 +32,11 @@
       "actorRequirement": "person",
       "payloadSchema": {
         "type": "object",
-        "properties": { "assistedBy": { "type": "string" }, "penalty": { "type": "boolean" } }
+        "properties": {
+          "assistedBy": { "type": "string" },
+          "penalty": { "type": "boolean" },
+          "goalkeeperId": { "type": "string" }
+        }
       },
       "effects": [
         { "kind": "score", "awardTo": "actor", "delta": 1 },
@@ -42,8 +46,55 @@
           "statisticCode": "goals-against",
           "delta": 1,
           "awardTo": "every-other-side"
+        },
+        {
+          "kind": "statistic",
+          "statisticCode": "assists",
+          "delta": 1,
+          "awardTo": { "payloadField": "assistedBy" }
+        },
+        {
+          "kind": "roster-role-snapshot",
+          "payloadField": "goalkeeperId",
+          "role": "goalkeeper",
+          "side": "every-other-side"
         }
       ]
+    },
+    {
+      "code": "own-goal",
+      "label": { "en": "Own goal", "es": "Gol en contra" },
+      "category": "negative",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "person",
+      "payloadSchema": { "type": "object", "properties": {} },
+      "effects": [
+        { "kind": "score", "awardTo": "every-other-side", "delta": 1 },
+        {
+          "kind": "statistic",
+          "statisticCode": "goals-for",
+          "delta": 1,
+          "awardTo": "every-other-side"
+        },
+        { "kind": "statistic", "statisticCode": "goals-against", "delta": 1 },
+        { "kind": "statistic", "statisticCode": "player-own-goals", "delta": 1 }
+      ]
+    },
+    {
+      "code": "substitution",
+      "label": { "en": "Substitution", "es": "Cambio" },
+      "category": "neutral",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "side",
+      "payloadSchema": {
+        "type": "object",
+        "properties": {
+          "playerOutId": { "type": "string" },
+          "playerInId": { "type": "string" }
+        },
+        "required": ["playerOutId", "playerInId"]
+      },
+      "personPayloadFields": ["playerOutId", "playerInId"]
     },
     {
       "code": "yellow-card",
@@ -145,11 +196,21 @@
       "label": { "en": "Goals against", "es": "Goles en contra" },
       "aggregation": "sum"
     },
+    {
+      "code": "player-own-goals",
+      "label": { "en": "Own goals", "es": "Goles en contra" },
+      "aggregation": "sum"
+    },
+    { "code": "assists", "label": { "en": "Assists", "es": "Asistencias" }, "aggregation": "sum" },
     { "code": "wins", "label": { "en": "Wins", "es": "Victorias" }, "aggregation": "sum" },
     { "code": "draws", "label": { "en": "Draws", "es": "Empates" }, "aggregation": "sum" },
     { "code": "losses", "label": { "en": "Losses", "es": "Derrotas" }, "aggregation": "sum" },
     { "code": "points", "label": { "en": "Points", "es": "Puntos" }, "aggregation": "sum" },
     { "code": "played", "label": { "en": "Played", "es": "Jugados" }, "aggregation": "count" }
+  ],
+  "rosterRoles": [
+    { "code": "goalkeeper", "label": { "en": "Goalkeeper", "es": "Arquero" }, "badge": "GK" },
+    { "code": "captain", "label": { "en": "Captain", "es": "Capitán" }, "badge": "C" }
   ],
   "scoringInputs": [
     { "code": "goals", "label": { "en": "Goals", "es": "Goles" }, "source": "event-derived" }

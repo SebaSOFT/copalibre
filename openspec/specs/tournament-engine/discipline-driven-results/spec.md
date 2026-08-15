@@ -110,3 +110,35 @@ apply to every side of a match.
 - **THEN** it is read as an ordinarily played result, identical to every result recorded before this
   requirement existed
 
+### Requirement: Statistic and tag effects support target attribution
+
+An `EventDefinition`'s declared `effects` SHALL support target attribution for `statistic` and `tag` effects, allowing a single recorded event to modify statistics and tags for actors other than the primary acting participant.
+
+#### Scenario: A statistic effect targets an opposing side
+- **WHEN** an event declares an effect `{ kind: 'statistic', statisticCode: 'goals-against', delta: 1, awardTo: 'every-other-side' }`
+- **THEN** the fold applies the statistic delta of +1 to the opponent's side rather than the acting side
+
+#### Scenario: A statistic effect targets a person named in the event payload
+- **WHEN** an event declares an effect `{ kind: 'statistic', statisticCode: 'assists', delta: 1, awardTo: { payloadField: 'assistedBy' } }`
+- **THEN** when an event is recorded with `payload.assistedBy: 'person-123'`, the fold awards the +1 assist delta to `'person-123'`
+
+#### Scenario: A tag effect targets a person named in the event payload
+- **WHEN** an event declares a tag effect `{ kind: 'tag', tagCode: 'eliminated', action: 'applied', target: { payloadField: 'victimId' } }`
+- **THEN** recording the event produces a `tag_facts` row with `actorId: payload.victimId` and `action: 'applied'`
+
+#### Scenario: An undeclared payloadField in an effect is rejected during descriptor validation
+- **WHEN** an event effect references a `payloadField` that is not declared in the event's `payloadSchema.properties`
+- **THEN** module distribution validation rejects the discipline descriptor with an informative validation error
+
+### Requirement: Recorded match events snapshot active segment elapsed clock
+
+The event recording system SHALL automatically snapshot the active segment's `elapsedSeconds` onto the `RecordedEvent` when an event occurs in a timed segment.
+
+#### Scenario: Event recorded in an active timed segment captures elapsed seconds
+- **WHEN** an operator records an event while a match segment with `elapsedSeconds: 842` is active
+- **THEN** the persisted `RecordedEvent` carries `segmentElapsedSeconds: 842`
+
+#### Scenario: Event recorded in a non-timed segment omits elapsed seconds
+- **WHEN** an event is recorded in a non-timed segment (e.g. tennis set) with no active running clock
+- **THEN** the persisted `RecordedEvent` has `segmentElapsedSeconds: null` or omitted
+

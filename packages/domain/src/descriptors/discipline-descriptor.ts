@@ -108,6 +108,20 @@ export interface ScoringInputDefinition {
   readonly source: 'event-derived' | 'operator-entered';
 }
 
+/**
+ * A tactical/positional tag a match roster member may carry — a goalkeeper,
+ * a captain, a designated hitter, a jungler. Never core-hardcoded: which
+ * roles exist and what each one means belongs to the discipline, the same
+ * way `tags` and `statistics` do. A sport with no exclusive roster roles
+ * (an eight-lane heat) simply declares none.
+ */
+export interface RosterRoleDeclaration {
+  readonly code: string;
+  readonly label: string | LocalizedLabel;
+  /** Short tactile-console badge text, e.g. `'GK'`, `'C'`. Falls back to `code` when absent. */
+  readonly badge?: string;
+}
+
 export interface DisciplineDescriptor {
   readonly descriptorId: string;
   /** Stable catalogue identity, unique with `version` within an installation. */
@@ -139,6 +153,13 @@ export interface DisciplineDescriptor {
    * declares none; a collector's `requiresTag` must name one declared here.
    */
   readonly tags?: readonly TagDeclaration[];
+  /**
+   * Roster roles a match roster member may carry — see `RosterRoleDeclaration`.
+   * Absent means the discipline declares none; a `MatchRosterMember.roles`
+   * entry and a `roster-role-snapshot` effect's `role` must both name one
+   * declared here.
+   */
+  readonly rosterRoles?: readonly RosterRoleDeclaration[];
   readonly scoringInputs: readonly ScoringInputDefinition[];
   /**
    * Points awarded by finishing position in a placement match, and the code the

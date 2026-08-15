@@ -4,11 +4,15 @@ import {
   descriptionFor,
   formatClock,
   isEventPermitted,
+  memberByNumber,
   newIdempotencyKey,
   segmentLabel,
+  sentOffPersonIds,
 } from './lib/match-console.js';
 import type {
   ConsoleEventDefinition,
+  ConsoleMatchEvent,
+  ConsoleRoster,
   ConsoleSegment,
   MatchConsoleResponse,
 } from './lib/api-client.js';
@@ -146,5 +150,78 @@ describe('isEventPermitted', () => {
   it('permits an unattributed definition whenever the segment matches', () => {
     const def = definition({ actorRequirement: 'none' });
     expect(isEventPermitted(def, { ...base, entrantIds: [] }, segment())).toBe(true);
+  });
+});
+
+function matchEvent(overrides: Partial<ConsoleMatchEvent> = {}): ConsoleMatchEvent {
+  return {
+    eventId: 'event-1',
+    definitionCode: 'goal',
+    segmentId: 'segment-1',
+    sequence: 1,
+    occurredAt: '2026-08-15T20:00:00.000Z',
+    ...overrides,
+  };
+}
+
+describe('sentOffPersonIds', () => {
+  it('collects persons a red-card event was recorded against', () => {
+    const ids = sentOffPersonIds([
+      matchEvent({ definitionCode: 'red-card', personId: 'p1' }),
+      matchEvent({ definitionCode: 'goal', personId: 'p2' }),
+      matchEvent({ definitionCode: 'red-card', personId: 'p3' }),
+    ]);
+    expect(ids).toEqual(new Set(['p1', 'p3']));
+  });
+
+  it('ignores a red-card event with no person attributed', () => {
+    expect(sentOffPersonIds([matchEvent({ definitionCode: 'red-card' })])).toEqual(new Set());
+  });
+
+  it('returns an empty set for no matching events', () => {
+    expect(sentOffPersonIds([])).toEqual(new Set());
+  });
+});
+
+function roster(entrantId: string, members: ConsoleRoster['members']): ConsoleRoster {
+  return { entrantId, members };
+}
+
+describe('memberByNumber', () => {
+  const rosters: readonly ConsoleRoster[] = [
+    roster('entrant-a', [
+      { personId: 'a1', number: 1, name: 'A One', onField: true },
+      { personId: 'a10', number: 10, name: 'A Ten', onField: true },
+    ]),
+    roster('entrant-b', [
+      { personId: 'b1', number: 1, name: 'B One', onField: true },
+      { personId: 'b7', number: '7B', name: 'B Seven', onField: false },
+    ]),
+  ];
+
+  it('returns the unique member across both rosters matching the digits', () => {
+    expect(memberByNumber(rosters, '10')).toEqual({
+      entrantId: 'entrant-a',
+      member: rosters[0]?.members[1],
+    });
+  });
+
+  it('matches a non-numeric jersey number by exact string', () => {
+    expect(memberByNumber(rosters, '7B')).toEqual({
+      entrantId: 'entrant-b',
+      member: rosters[1]?.members[1],
+    });
+  });
+
+  it('returns undefined when both teams share the same number, ambiguously', () => {
+    expect(memberByNumber(rosters, '1')).toBeUndefined();
+  });
+
+  it('returns undefined when nothing matches', () => {
+    expect(memberByNumber(rosters, '99')).toBeUndefined();
+  });
+
+  it('returns undefined for an empty digit buffer', () => {
+    expect(memberByNumber(rosters, '')).toBeUndefined();
   });
 });
