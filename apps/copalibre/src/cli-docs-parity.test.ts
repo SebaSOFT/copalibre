@@ -7,12 +7,12 @@ const SOURCE_DIRECTORY = dirname(fileURLToPath(import.meta.url));
 
 /**
  * Reads the real `/help/cli/commands.md` content and the real `COMMAND_HELP`/
- * `MODULE_SUBCOMMAND_HELP` tables (0044) — not a duplicated list of either —
+ * `MODULE_SUBCOMMAND_HELP` tables — not a duplicated list of either —
  * so a command added to the CLI without a matching docs entry fails this test
- * instead of shipping a silently stale reference page (same technique 0043's
- * `control-help-links.test.tsx` used for control-panel help pages).
+ * instead of shipping a silently stale reference page (same technique
+ * `control-help-links.test.tsx` uses for control-panel help pages).
  */
-describe('the CLI command reference docs page stays in sync with COMMAND_HELP (0044)', () => {
+describe('the CLI command reference docs page stays in sync with COMMAND_HELP', () => {
   const commandsPage = readFileSync(
     resolve(SOURCE_DIRECTORY, '../../web/src/content/docs/help/cli/commands.md'),
     'utf8',

@@ -67,7 +67,7 @@ import { OBJECT_STORAGE } from '../object-storage.token.js';
 
 /**
  * The authenticated HTTP path for `copalibre module add/list/remove/verify`
- * (0085) — installation-wide, never organization-scoped, matching
+ * — installation-wide, never organization-scoped, matching
  * `module-commands.ts`'s own `SYSTEM_ORGANIZATION` audit scoping today.
  * Reuses the same domain logic the CLI's direct-database path calls
  * (`fetchModule`/`validateModulePackageOrThrow`/`importValidatedModule`/

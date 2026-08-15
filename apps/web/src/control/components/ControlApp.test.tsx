@@ -62,7 +62,7 @@ describe('ControlApp', () => {
       },
     });
     // Every screen except `callback` redirects to login with no session
-    // (0062) — these tests render as an authenticated operator.
+    // — these tests render as an authenticated operator.
     controlTokenStore.write('test-access-token', Date.now() + 60_000);
   });
 
@@ -155,7 +155,7 @@ describe('ControlApp', () => {
   });
 });
 
-describe('ControlApp session guard and callback (0062)', () => {
+describe('ControlApp session guard and callback', () => {
   let originalFetch: typeof fetch;
 
   beforeEach(() => {
@@ -223,7 +223,7 @@ describe('ControlApp session guard and callback (0062)', () => {
   });
 });
 
-describe('ControlApp default-returnTo login landing (0063)', () => {
+describe('ControlApp default-returnTo login landing', () => {
   let originalFetch: typeof fetch;
 
   function membership(overrides: Partial<Record<string, unknown>> = {}) {

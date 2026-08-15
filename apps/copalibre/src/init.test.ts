@@ -34,7 +34,7 @@ async function stubAssetsDir(): Promise<string> {
   return directory;
 }
 
-describe('writeInstallationAssets (0084)', () => {
+describe('writeInstallationAssets', () => {
   it('writes the compose file, .env, and the marker into an empty directory', async () => {
     const cwd = await mkdtemp(join(tmpdir(), 'copalibre-instance-'));
     const assetsDir = await stubAssetsDir();

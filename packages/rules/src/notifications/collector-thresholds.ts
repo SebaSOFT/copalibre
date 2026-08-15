@@ -8,7 +8,7 @@ import type { TraceNode } from '../trace/explanation-trace.js';
 import type { NotificationEvaluation, NotificationInstance } from './notification-rules.js';
 
 /**
- * Thresholds over a declared collector (0016-statistic-collectors-and-tags).
+ * Thresholds over a declared collector.
  *
  * `evaluateNotificationRule` counts events inside one match. A discipline's
  * real question is rarely bounded that way — "the fifth yellow of the
@@ -159,7 +159,7 @@ export function evaluateCollectorThreshold(input: CollectorThresholdInput): Noti
  * read a collector kept per team, and answering it with the team's number would
  * sanction the wrong human.
  *
- * Delegates to `isCoarser` (0072) rather than comparing `order.indexOf(...)`
+ * Delegates to `isCoarser` rather than comparing `order.indexOf(...)`
  * directly, so this stays correct once `official`/`venue` exist alongside the
  * person→player→team→club chain — those two are never "coarser than" a
  * chain-member granularity, and a raw index comparison would have gotten that
@@ -177,7 +177,7 @@ export function thresholdReadable(
 }
 
 /**
- * The collector-threshold rules a compiled ruleset configures (0074), read
+ * The collector-threshold rules a compiled ruleset configures, read
  * the same defensive way `notificationRulesFrom` reads its sibling field: a
  * malformed entry is skipped rather than throwing, since one bad rule must
  * not stop a match from being operated.
@@ -209,7 +209,7 @@ function isCollectorThresholdRule(candidate: unknown): candidate is CollectorThr
  * Sums a collector's contribution across an event log, grouped by actor — the
  * same fold `evaluateCollectorThreshold` runs internally over its own `events`
  * input, exposed so a caller can supply the result as `carriedIn`: a baseline
- * computed over events *outside* the ones being evaluated (0074), such as a
+ * computed over events *outside* the ones being evaluated, such as a
  * stage's other matches, ahead of the general fold engine 0073 would
  * otherwise provide.
  */

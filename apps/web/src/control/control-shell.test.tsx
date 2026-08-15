@@ -21,7 +21,7 @@ import { TournamentSetupWizard } from './components/TournamentSetupWizard.js';
 import { withIntl } from './i18n/test-support.js';
 
 /**
- * The shell, the routes and the wizard's later steps (0023).
+ * The shell, the routes and the wizard's later steps.
  *
  * The model tests cover the decisions; these cover the wiring, which is where a
  * route that renders nothing or a select that sets the wrong field hides.
@@ -50,7 +50,7 @@ function jsonResponse(body: unknown, status = 200): Response {
 }
 
 // `ControlShell` resolves its interface language through the real
-// `ControlIntl` (0053) — no stored preference in a test's jsdom environment,
+// `ControlIntl` — no stored preference in a test's jsdom environment,
 // so it falls back to the organization-primary-language placeholder ('es'),
 // exactly matching today's Spanish-only behavior. Assertions in this describe
 // block and "the control routes" below stay Spanish for that reason — only
@@ -88,7 +88,7 @@ describe('the control shell', () => {
     expect(active.getAttribute('style')).not.toBe(other.getAttribute('style'));
   });
 
-  it('links to the matching help page, in a new tab that never loses in-progress work (0043)', () => {
+  it('links to the matching help page, in a new tab that never loses in-progress work', () => {
     render(
       <ControlShell helpPath="seeding" organizationAlias="liga-mendocina">
         <p>contenido</p>

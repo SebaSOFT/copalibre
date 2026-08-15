@@ -11,7 +11,7 @@ import type { McpToolDefinition } from './tool.js';
 /**
  * The three admin tools are always present; the five tournament-operational
  * tools are only added when both `COPALIBRE_MCP_TOKEN` and
- * `COPALIBRE_API_URL` are configured (0047) — a pure-installation MCP
+ * `COPALIBRE_API_URL` are configured — a pure-installation MCP
  * session never sees them in `tools/list`, let alone attempts an
  * unauthenticated HTTP call.
  */
@@ -29,7 +29,7 @@ export function buildTools(environment: NodeJS.ProcessEnv): readonly McpToolDefi
 }
 
 /**
- * The SDK's own `instructions` field (0048) — an AI client reads this before
+ * The SDK's own `instructions` field — an AI client reads this before
  * choosing which tool to call, so it states what CopaLibre is, the two tool
  * categories, and when each applies, rather than leaving that only to each
  * tool's own description.

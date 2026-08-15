@@ -27,8 +27,8 @@ export interface DisplayTokenRequest {
 }
 
 /**
- * Authorizes `/tv/**`'s SSE stream against a device-scoped display token
- * (0031), never a person's JWT. Same "header only, never a query parameter"
+ * Authorizes `/tv/**`'s SSE stream against a device-scoped display token,
+ * never a person's JWT. Same "header only, never a query parameter"
  * rule as `StreamAuthGuard` — the token's presence in the device's own launch
  * URL is a provisioning-time exception (see `broadcast.controller.ts`), not a
  * license for the stream request itself to repeat that pattern.

@@ -24,12 +24,12 @@ export const initialSchema: Migration = {
       .addColumn('organization_id', 'uuid', (col) =>
         col.notNull().references('organizations.organization_id'),
       )
-      // Path identifier (0037), unique within the organization. Suggestible
+      // Path identifier, unique within the organization. Suggestible
       // from the name, unlike the abbreviation: a transformation with no
       // judgement in it, and nobody reads a URL from the stands.
       .addColumn('alias', 'text')
       .addColumn('name', 'text', (col) => col.notNull())
-      // The short label a bracket cell or a scoreboard shows (0037). Nullable
+      // The short label a bracket cell or a scoreboard shows. Nullable
       // and never derived: an abbreviation nobody chose is one nobody can
       // explain when the club asks about it.
       .addColumn('abbreviation', 'text')
@@ -89,7 +89,7 @@ export const initialSchema: Migration = {
       .addPrimaryKeyConstraint('tournament_rulesets_pk', ['ruleset_id', 'version'])
       .execute();
 
-    // A season is one running of a tournament (0015). Stages hang off the
+    // A season is one running of a tournament. Stages hang off the
     // edition rather than off the competition that repeats, so "what did we
     // play in 2025" is a relation and not a substring of a name.
     await db.schema
@@ -133,7 +133,7 @@ export const initialSchema: Migration = {
       .addPrimaryKeyConstraint('stage_configurations_pk', ['stage_configuration_id', 'version'])
       .execute();
 
-    // The human, and their membership in a team (0015). Uniqueness is on the
+    // The human, and their membership in a team. Uniqueness is on the
     // normalised key, scoped to the organization that holds it — two spellings
     // of one document are one person, and recognising that is what stops an
     // import creating a second.
@@ -166,11 +166,11 @@ export const initialSchema: Migration = {
       )
       .addColumn('club_id', 'uuid', (col) => col.references('clubs.club_id'))
       .addColumn('name', 'text', (col) => col.notNull())
-      // The discipline the side plays (0015), so a club's football and futsal
+      // The discipline the side plays, so a club's football and futsal
       // teams are distinguishable. No FK: a discipline is a module that may be
-      // retired, and a finished competition stays readable without it (0008).
+      // retired, and a finished competition stays readable without it.
       .addColumn('discipline_id', 'uuid')
-      // Overrides the club's (0037), which is how two sides of one club are
+      // Overrides the club's abbreviation, which is how two sides of one club are
       // told apart on a board with room for five characters.
       .addColumn('abbreviation', 'text')
       .addColumn('created_at', 'timestamptz', (col) =>
@@ -208,7 +208,7 @@ export const initialSchema: Migration = {
       .execute();
 
     // Operator knowledge the results cannot supply: a ranking, a region, an
-    // association. Scoped to the entrant within one tournament (0010), and the
+    // association. Scoped to the entrant within one tournament, and the
     // value is split by kind so weighted seeding can order in SQL and a
     // categorical value can never be sorted as a number by accident.
     await db.schema
@@ -241,7 +241,7 @@ export const initialSchema: Migration = {
       )
       .execute();
 
-    // Schedulable resources (0012). A venue's concurrent capacity is what makes
+    // Schedulable resources. A venue's concurrent capacity is what makes
     // a three-court club one venue rather than three, and it is the number the
     // double-booking check compares against.
     await db.schema
@@ -345,7 +345,7 @@ export const initialSchema: Migration = {
       .addUniqueConstraint('match_events_match_sequence_unique', ['match_id', 'sequence'])
       .execute();
 
-    // Who takes the field (0014). One row per entrant per match, replaced when
+    // Who takes the field. One row per entrant per match, replaced when
     // the match roster changes and audited every time. Migration 0004 renames
     // this historical table to match_rosters; the original name stays here so
     // established databases retain a valid migration chain.
@@ -360,7 +360,7 @@ export const initialSchema: Migration = {
       .addPrimaryKeyConstraint('match_lineups_pk', ['match_id', 'entrant_id'])
       .execute();
 
-    // Who may operate a match (0014). The scope is one of two columns and
+    // Who may operate a match. The scope is one of two columns and
     // exactly one is set: a grant names a match or a stage, and a stage grant
     // resolves downward so a referee appointed to a matchday is one row rather
     // than one per fixture. Nothing here names a role — a role is what a console
@@ -425,7 +425,7 @@ export const initialSchema: Migration = {
         col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
       )
       .addColumn('consumed_at', 'timestamptz')
-      // Claim and retry state (0017), on the row rather than in a queue table:
+      // Claim and retry state, on the row rather than in a queue table:
       // the row is the unit of work, and a second table would let the two
       // disagree about whether something was done.
       .addColumn('claimed_by', 'text')
@@ -444,7 +444,7 @@ export const initialSchema: Migration = {
       .columns(['created_at', 'consumed_at'])
       .execute();
 
-    // The claim query's own index (0017): unconsumed, not dead-lettered, due
+    // The claim query's own index: unconsumed, not dead-lettered, due
     // now, oldest first.
     await db.schema
       .createIndex('outbox_events_claim_idx')
@@ -452,7 +452,7 @@ export const initialSchema: Migration = {
       .columns(['consumed_at', 'dead_lettered_at', 'next_attempt_at', 'created_at'])
       .execute();
 
-    // What a consumer has already applied (0017). The key is the row's own id:
+    // What a consumer has already applied. The key is the row's own id:
     // the producer already generated a UUIDv7, and hashing a payload to
     // rediscover an identity that exists is work with a worse failure mode.
     await db.schema
@@ -467,7 +467,7 @@ export const initialSchema: Migration = {
       .addPrimaryKeyConstraint('processed_markers_pk', ['consumer', 'event_id'])
       .execute();
 
-    // One logical scheduler, elected by holding a row (0017).
+    // One logical scheduler, elected by holding a row.
     await db.schema
       .createTable('scheduler_leases')
       .addColumn('lease_name', 'text', (col) => col.primaryKey())
@@ -576,7 +576,7 @@ export const initialSchema: Migration = {
       .addUniqueConstraint('materialised_standings_match_unique', ['match_id'])
       .execute();
 
-    // Folded figures (0016). The key carries the match the row was folded from,
+    // Folded figures. The key carries the match the row was folded from,
     // so correcting one result recomputes exactly the rows that result produced
     // and leaves every other match's figures untouched. Coarser totals are the
     // aggregate of these rows at read: one number, one place it comes from.
@@ -646,7 +646,7 @@ export const initialSchema: Migration = {
       .columns(['match_id'])
       .execute();
 
-    // Tags (0016): applied and lifted, both recorded, neither ever removed.
+    // Tags: applied and lifted, both recorded, neither ever removed.
     // Whether one applies now is derived from these rows — a stored flag would
     // need a job to expire it, and the day the job does not run is the day a
     // cleared player reads as suspended.
@@ -677,7 +677,7 @@ export const initialSchema: Migration = {
       .columns(['organization_id', 'actor_granularity', 'actor_id', 'code'])
       .execute();
 
-    // Renamed aliases (0020). A renamed tournament whose old URL 404s is a
+    // Renamed aliases. A renamed tournament whose old URL 404s is a
     // poster, a message thread and a federation page all pointing at nothing.
     await db.schema
       .createTable('alias_redirects')

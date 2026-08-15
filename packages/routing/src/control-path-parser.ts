@@ -1,5 +1,5 @@
 /**
- * Reading a control-panel path back into what screen it names (0061).
+ * Reading a control-panel path back into what screen it names.
  *
  * The reverse of a responsibility this package already owns: `controlPath()`
  * builds a generic mirror of the public path, but the eight screens the

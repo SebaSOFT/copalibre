@@ -4,7 +4,7 @@ import { existsSync, readFileSync } from 'node:fs';
  * `apps/copalibre`'s build (`scripts/build-assets.mjs`) copies the root
  * `docker-compose.yml`/`docker-compose.module-dev.yml` into
  * `dist/assets/` byte-for-byte, so the embedded copy `copalibre init`
- * writes can never hand-drift from the canonical root files (0084). Unlike
+ * writes can never hand-drift from the canonical root files. Unlike
  * `check-helm-compose-parity.mjs` (two independently hand-authored files
  * that really can disagree), a `copyFile` cannot introduce content drift —
  * what this guards against is a *stale* build artifact: `dist/assets/`

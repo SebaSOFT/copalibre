@@ -2,7 +2,7 @@ import type { MessageDescriptor } from 'react-intl';
 import { messages } from '../i18n/messages.en.js';
 
 /**
- * The tournament setup wizard (0023).
+ * The tournament setup wizard.
  *
  * Four steps, and a step may not be left until it is valid — a wizard that lets
  * you reach the end with an empty field is a wizard that fails on submit, after

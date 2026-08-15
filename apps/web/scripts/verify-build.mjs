@@ -1,14 +1,14 @@
 import { readFileSync } from 'node:fs';
 
 /**
- * Asserts the built output over the built output (0020).
+ * Asserts the built output over the built output.
  *
  * The claims worth checking here are about what the *build* produced — that the
  * page is complete without JavaScript, that the sitemap advertises no operator
  * route — and a unit test over the model cannot see any of them. This is the
  * cheap half of section 7 that needs no browser.
  *
- * English is the primary locale (0055): the unprefixed path carries English
+ * English is the primary locale: the unprefixed path carries English
  * chrome, and every other supported language carries the same content
  * translated under its own `/{locale}/` prefix (0056 populated the five
  * beyond 0055's Spanish; 0057 added Mandarin). `describeSlot`'s bracket-slot

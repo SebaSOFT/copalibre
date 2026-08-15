@@ -1,6 +1,6 @@
 import { isSupportedLanguage, SUPPORTED_LANGUAGES } from './i18n.js';
 
-describe('isSupportedLanguage (0051)', () => {
+describe('isSupportedLanguage', () => {
   it.each(SUPPORTED_LANGUAGES)('accepts the supported code "%s"', (code) => {
     expect(isSupportedLanguage(code)).toBe(true);
   });

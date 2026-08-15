@@ -6,7 +6,7 @@ import { systemProcessRunner } from '../../process-runner.js';
 import type { McpToolDefinition } from '../tool.js';
 
 /**
- * The three module-authoring tools (0049): scaffold a structurally-valid
+ * The three module-authoring tools scaffold a structurally-valid
  * package, validate it locally, and submit it as a pull request. Always
  * available — no API token, since these operate on the local filesystem and
  * Git, never `apps/api`.

@@ -79,7 +79,7 @@ import { enforceMatchCommand } from '../policy/resource-policy.js';
 import { DATABASE } from '../database.token.js';
 
 /**
- * Running a match (0014-live-match-operations-result-authority).
+ * Running a match.
  *
  * Every write here answers two questions before it touches anything: does the
  * subject belong to this organization, and were they appointed to *this* match
@@ -277,7 +277,7 @@ export class MatchControlController {
             result: {
               // resultReason is always written explicitly, never left to an
               // implicit "absent means played" — a blob nobody is forced to
-              // touch again is a blob whose meaning nothing enforces (0076).
+              // touch again is a blob whose meaning nothing enforces.
               sides: body.sides.map((side) => ({
                 entrantId: side.entrantId,
                 statistics: side.statistics,
@@ -571,11 +571,11 @@ export class MatchControlController {
     const rules = notificationRulesFrom(ruleset?.config);
     const alreadyRaised = await competition.publishedNotificationKeys(matchId);
 
-    // Collector-threshold rules (0074): the same wiring one step further —
+    // Collector-threshold rules: the same wiring one step further —
     // a rule about a career/stage total rather than one match, sourced from
     // `descriptor.collectors` instead of the discipline's event predicates.
     // Actor resolution below only answers "person"; the general fold engine
-    // (0073) that would resolve every actor granularity does not exist yet,
+    // that would resolve every actor granularity does not exist yet,
     // so a rule declared at a coarser granularity is skipped rather than
     // silently attributed to the wrong actor.
     const actorOf = (event: RecordedEvent): string | undefined => event.personId;
@@ -610,7 +610,7 @@ export class MatchControlController {
       }),
     );
 
-    // Live-cadence collectors (0082): resolved once, read-only, ahead of the
+    // Live-cadence collectors: resolved once, read-only, ahead of the
     // transaction — the same roster/competition-context resolution `refold`
     // uses at match-finalization, reused here so a `live` collector's total
     // is computed by the identical logic, just scoped to one event.
@@ -903,7 +903,7 @@ export class MatchControlController {
         actor: request.subject?.subjectId ?? 'unknown',
         ...(body.sourceReportId === undefined ? {} : { sourceReportId: body.sourceReportId }),
         replacement: {
-          // Same rationale as finalize: written explicitly, never implicit (0076).
+          // Same rationale as finalize: written explicitly, never implicit.
           sides: body.sides.map((side) => ({
             entrantId: side.entrantId,
             statistics: side.statistics,

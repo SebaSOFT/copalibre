@@ -1274,7 +1274,7 @@ export interface components {
             /** @example Copa Verano */
             name: string;
             /**
-             * @description Once started, the tournament's discipline and profile versions are frozen and its results are materialised. Archived is legal only from finished (0033) and changes default visibility only — no data is affected.
+             * @description Once started, the tournament's discipline and profile versions are frozen and its results are materialised. Archived is legal only from finished and changes default visibility only — no data is affected.
              * @enum {string}
              */
             status: "draft" | "published" | "started" | "finished" | "archived";
@@ -1285,7 +1285,7 @@ export interface components {
             startedAt?: string;
             /**
              * Format: date-time
-             * @description When the tournament was archived (0033); absent until then.
+             * @description When the tournament was archived; absent until then.
              */
             archivedAt?: string;
             /**
@@ -1535,7 +1535,7 @@ export interface components {
             projectionVersion: number;
         };
         FinalizeRequest: {
-            /** @description One entry per side: entrant id, its declared statistics, placement for a heat, and why the result is what it is when not an ordinarily played one (0076) */
+            /** @description One entry per side: entrant id, its declared statistics, placement for a heat, and why the result is what it is when not an ordinarily played one */
             sides: Record<string, never>[];
             /**
              * Format: uuid
@@ -1602,7 +1602,7 @@ export interface components {
             winnerEntrantId?: string;
             /**
              * Format: uuid
-             * @description A participant report or dispute this correction cites (0032) — retained as supporting evidence in the audit trail. Citing one grants no authority of its own.
+             * @description A participant report or dispute this correction cites — retained as supporting evidence in the audit trail. Citing one grants no authority of its own.
              */
             sourceReportId?: string;
         };
@@ -1801,7 +1801,7 @@ export interface components {
             stageId: string;
             /**
              * Format: uuid
-             * @description The tournament edition this stage belongs to (0015)
+             * @description The tournament edition this stage belongs to
              */
             seasonId: string;
             /**

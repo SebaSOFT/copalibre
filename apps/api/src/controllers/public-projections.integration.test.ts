@@ -19,7 +19,7 @@ afterAll(async () => {
   await scratch?.drop();
 });
 
-describe('public projections routes (0067)', () => {
+describe('public projections routes', () => {
   let publishedTournament: Awaited<ReturnType<TournamentRepository['create']>>;
   let draftTournament: Awaited<ReturnType<TournamentRepository['create']>>;
 

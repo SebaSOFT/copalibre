@@ -2,7 +2,7 @@ import type { Kysely } from 'kysely';
 import type { Migration } from 'kysely/migration';
 import type { Database } from '../schema.js';
 
-/** Alias identity for versioned catalogue modules (0029). */
+/** Alias identity for versioned catalogue modules. */
 export const defaultModuleCatalogue: Migration = {
   async up(db: Kysely<unknown>): Promise<void> {
     await db.schema.alterTable('discipline_descriptors').addColumn('alias', 'text').execute();

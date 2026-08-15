@@ -86,7 +86,7 @@ describe('a bracket that is not a tree', () => {
     expect(node.slots[0]?.pending).toBe(false);
   });
 
-  it('carries an unusual resultReason onto a slot and omits played/absent ones (0076)', () => {
+  it('carries an unusual resultReason onto a slot and omits played/absent ones', () => {
     const [decided] = matches;
     if (!decided) throw new Error('the sample bracket is empty');
     const node = toNode({ ...decided, resultReasons: ['walkover', 'played'] }, LABELS);

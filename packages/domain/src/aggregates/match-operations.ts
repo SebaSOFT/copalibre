@@ -4,7 +4,7 @@ import { DomainError } from '../errors.js';
 import { err, ok, type Result } from '../result.js';
 
 /**
- * Running a match (0014-live-match-operations-result-authority).
+ * Running a match.
  *
  * Two things live here and nothing else: which transitions are legal, and what
  * a timer *is*. Both are pure, because both must give the same answer when a
@@ -171,7 +171,7 @@ function timerKey(event: RecordedEvent): string {
 }
 
 /**
- * A roster: who takes the field for one entrant in one match (0014).
+ * A roster: who takes the field for one entrant in one match.
  *
  * **It refuses a roster that is incoherent, and reports everything else.**
  * CopaLibre enforces the integrity of its own records and what this organizer

@@ -1,5 +1,5 @@
 /**
- * Who may hold a public connection open, and how many (0018).
+ * Who may hold a public connection open, and how many.
  *
  * A public SSE endpoint is a long-lived connection anybody can open without
  * credentials, which makes "how many at once" a question the server has to

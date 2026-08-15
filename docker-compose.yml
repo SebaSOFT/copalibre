@@ -245,7 +245,7 @@ services:
     ports:
       - '9001:9001'
 
-  # Async media processing's malware scanner (0041) — only started when a
+  # Async media processing's malware scanner — only started when a
   # capability that opts into scanning (participant-reporting's evidence
   # uploads) is actually enabled, mirroring object-storage's own
   # optional-adapters profile.

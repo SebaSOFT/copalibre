@@ -15,7 +15,7 @@ import { runRelayPass } from './relay-runner.js';
 import { statisticsHandler } from './statistics-handler.js';
 
 /**
- * The loop 0016 left open, closed (0017).
+ * The loop 0016 left open, closed.
  *
  * 0016 built the statistics projection with its fold injected and nothing
  * calling it outside a test. This proves the relay is that caller: publish a

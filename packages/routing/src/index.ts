@@ -1,6 +1,6 @@
 /**
  * @copalibre/routing — one place that knows what a thing's URL is, on every
- * surface (0020).
+ * surface.
  */
 
 export {

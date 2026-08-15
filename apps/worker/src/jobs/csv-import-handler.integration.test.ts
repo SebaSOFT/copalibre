@@ -116,7 +116,7 @@ maria-perez,Maria Perez,dni,12345678
     );
   });
 
-  it('resolves registered team aliases so a team-membership row validates against them (0065)', async () => {
+  it('resolves registered team aliases so a team-membership row validates against them', async () => {
     const enrollment = new EnrollmentRepository(scratch.db);
     const teamAlias = await withTransaction(scratch.db, async (uow) => {
       const team = await enrollment.createTeam(uow, {

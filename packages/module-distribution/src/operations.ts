@@ -11,7 +11,7 @@ import { CURATED_MODULE_REPOSITORY, alternateModuleSource, type ModuleSource } f
 
 /**
  * Shared between `apps/copalibre`'s direct-database CLI path and `apps/api`'s
- * admin HTTP surface (0085) — each process reads its own environment's
+ * admin HTTP surface — each process reads its own environment's
  * `COPALIBRE_VERSION`/`COPALIBRE_MODULE_SOURCE_ALLOWLIST`, so this cannot
  * live in either app without the other duplicating it.
  */

@@ -113,7 +113,7 @@ describe('publicIntl formats real translated text, not an English fallback (0055
     expect(labels.cancelled).toBe('CANCELADO');
   });
 
-  it('resolves every non-played result-reason label at once (0076)', () => {
+  it('resolves every non-played result-reason label at once', () => {
     const labels = resultReasonLabels(publicIntl('es'));
     expect(labels.walkover).toBe('W/O');
     expect(labels.disqualified).toBe('DESCALIFICADO');

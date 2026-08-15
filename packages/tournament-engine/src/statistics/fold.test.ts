@@ -598,7 +598,7 @@ describe('a declared delta and a hand adjustment both reproduce on a replay', ()
   });
 });
 
-describe('a collector-sourced collector (0082)', () => {
+describe('a collector-sourced collector', () => {
   it('folds another collector’s own figures, in the order the caller supplies', () => {
     const figures = fold({
       collectors: [
@@ -670,7 +670,7 @@ describe('a collector-sourced collector (0082)', () => {
   });
 });
 
-describe('the filter seam (0082)', () => {
+describe('the filter seam', () => {
   it('excludes a fact the predicate returns false for', () => {
     const figures = fold({
       events: [

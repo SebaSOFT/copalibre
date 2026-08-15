@@ -163,7 +163,7 @@ describe('MatchConsoleRoute', () => {
     ]);
   });
 
-  it('captures occurredAt at the initial button press, not the workflow confirm step (0075)', async () => {
+  it('captures occurredAt at the initial button press, not the workflow confirm step', async () => {
     const requests: unknown[] = [];
     const now = jest.spyOn(Date, 'now');
     now.mockReturnValueOnce(1_000); // the "Penal" press that opens the workflow
@@ -206,7 +206,7 @@ describe('MatchConsoleRoute', () => {
     now.mockRestore();
   });
 
-  it('sends and clears the log note when recording an event (0075)', async () => {
+  it('sends and clears the log note when recording an event', async () => {
     const requests: unknown[] = [];
     await act(async () => {
       render(
@@ -242,7 +242,7 @@ describe('MatchConsoleRoute', () => {
     expect((screen.getByLabelText('Log note') as HTMLTextAreaElement).value).toBe('');
   });
 
-  it("resolves a locale-map event label to the viewer's interface language (0071)", async () => {
+  it("resolves a locale-map event label to the viewer's interface language", async () => {
     const bilingualProjection: MatchConsoleResponse = {
       ...projection,
       eventDefinitions: [

@@ -1,5 +1,5 @@
 # A local multi-node K3s cluster (via k3d) used only to validate the Helm
-# chart's release contract (0034) — never a production target. `servers: 1` +
+# chart's release contract — never a production target. `servers: 1` +
 # `agents: 2` gives three schedulable nodes so the single-logical-scheduler
 # test (5.2) exercises real cross-node pod placement, not a single-node
 # scheduler that trivially always picks the same pod.

@@ -8,7 +8,7 @@ export interface ValidateLocalResult {
 /**
  * Runs the exact validation `module add`/`module verify` already apply
  * (`validateModulePackage`) directly against a local directory — no fetch,
- * no install (0049).
+ * no install.
  */
 export async function validateLocalModule(
   path: string,

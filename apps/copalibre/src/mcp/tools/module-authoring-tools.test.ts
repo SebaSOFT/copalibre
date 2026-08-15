@@ -9,7 +9,7 @@ function toolNamed(name: string) {
   return tool;
 }
 
-describe('moduleAuthoringTools (0049)', () => {
+describe('moduleAuthoringTools', () => {
   it('always registers exactly the three module-authoring tools', () => {
     const names = moduleAuthoringTools({}).map((tool) => tool.name);
     expect(names).toEqual([

@@ -8,8 +8,8 @@ import type { StageConfiguration, TournamentRuleset } from './tournament-ruleset
 /**
  * Compiles DisciplineDescriptor defaults + the permitted override chain into
  * one validated, immutable MatchRuleset. This is the single compilation
- * entry point — fixture generation (phase 0006), the rules engine (0003), and
- * live match operations (0008) all call it and never re-implement it.
+ * entry point — fixture generation, the rules engine, and
+ * live match operations all call it and never re-implement it.
  */
 export function compileEffectiveRuleset(
   descriptor: DisciplineDescriptor,

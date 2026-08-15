@@ -113,7 +113,7 @@ advertises, not only the primary-locale entry.
 
 ### Requirement: Public-web chrome is available in all eight supported interface languages
 
-The public-web message catalog (0055) SHALL have populated content for every language in the
+The public-web message catalog SHALL have populated content for every language in the
 platform's supported-language contract (English, Spanish, French, Portuguese, Italian, German,
 Russian, Mandarin Chinese), not just English and Spanish, with a reachable locale-prefixed static
 variant of every public page for each.

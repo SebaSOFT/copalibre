@@ -2,7 +2,7 @@ import { tagsAt, type TagDeclaration, type TagFact } from '@copalibre/domain';
 import type { FoldInput } from '@copalibre/tournament-engine';
 
 /**
- * Resolves every `requiresTag` a discipline's collectors declare (0073) into
+ * Resolves every `requiresTag` a discipline's collectors declare into
  * `foldStatistics`'s `filter` seam — checking tag state as of each
  * candidate fact's own `occurredAt`, per `declared-tagging`'s "what was true
  * last April is still answerable" guarantee, not the fold's own run time.

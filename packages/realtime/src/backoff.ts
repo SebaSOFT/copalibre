@@ -1,5 +1,5 @@
 /**
- * How long a client waits before reconnecting (0018).
+ * How long a client waits before reconnecting.
  *
  * Separate from the client for the same reason the worker's retry curve is
  * separate from its loop: this is the part somebody will want to argue about

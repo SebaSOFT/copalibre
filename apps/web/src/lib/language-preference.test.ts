@@ -1,6 +1,6 @@
 import { resolveLanguage } from './language-preference.js';
 
-describe('resolveLanguage (0051)', () => {
+describe('resolveLanguage', () => {
   it('prefers an explicit stored preference over everything else', () => {
     expect(
       resolveLanguage({

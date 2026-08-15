@@ -9,7 +9,7 @@ import { DisplayTokenAuthGuard } from './stream/display-token-auth.guard.js';
 import { StreamAuthGuard } from './stream/stream-auth.guard.js';
 
 /**
- * The events process (0018). The database and the verifier are behind tokens so
+ * The events process. The database and the verifier are behind tokens so
  * a test can hand over a scratch database and an in-memory key set — the same
  * shape `apps/api` uses, and for the same reason.
  */

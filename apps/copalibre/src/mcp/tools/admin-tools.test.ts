@@ -27,7 +27,7 @@ function fakeDoctorDependencies(overrides: Partial<DoctorDependencies> = {}): Do
   };
 }
 
-describe('adminTools (0047)', () => {
+describe('adminTools', () => {
   it('always registers exactly the three installation-action tools', () => {
     const tools = adminTools({});
     expect(tools.map((tool) => tool.name)).toEqual([
@@ -37,7 +37,7 @@ describe('adminTools (0047)', () => {
     ]);
   });
 
-  it('describes what each tool does, when to use it, and that no token is required (0048)', () => {
+  it('describes what each tool does, when to use it, and that no token is required', () => {
     for (const tool of adminTools({})) {
       expect(tool.description.length).toBeGreaterThan(80);
       expect(tool.description.toLowerCase()).toContain('token');
@@ -45,7 +45,7 @@ describe('adminTools (0047)', () => {
   });
 });
 
-describe('doctorTool (0047)', () => {
+describe('doctorTool', () => {
   it('reports OK when every check passes, using injected dependencies', async () => {
     const tool = doctorTool(environment, fakeDoctorDependencies());
     const text = await tool.handler({});
@@ -67,7 +67,7 @@ describe('doctorTool (0047)', () => {
   });
 });
 
-describe('moduleListTool (0047)', () => {
+describe('moduleListTool', () => {
   it('is a well-formed tool definition requiring no arguments', () => {
     const tool = moduleListTool({});
     expect(tool.name).toBe('copalibre_module_list');
@@ -75,7 +75,7 @@ describe('moduleListTool (0047)', () => {
   });
 });
 
-describe('upgradeCheckTool (0047)', () => {
+describe('upgradeCheckTool', () => {
   it('requires target_version to be a string, without opening a database connection', async () => {
     const tool = upgradeCheckTool({});
     await expect(tool.handler({})).rejects.toThrow('target_version must be a string');

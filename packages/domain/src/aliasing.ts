@@ -1,5 +1,5 @@
 /**
- * What happens when an alias changes (0020).
+ * What happens when an alias changes.
  *
  * A renamed tournament whose old URL 404s is a poster, a WhatsApp message and a
  * federation page all pointing at nothing. The old alias is kept and redirected

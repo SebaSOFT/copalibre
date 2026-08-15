@@ -2,7 +2,7 @@ import type { ResultReason } from '@copalibre/domain';
 import { presentState, type ResultState, type ResultStateLabels } from './result-state.js';
 
 /**
- * The bracket, as a list of rounds rather than a tree (0021).
+ * The bracket, as a list of rounds rather than a tree.
  *
  * A tree can only describe single elimination. Double elimination has a losers'
  * bracket whose matches take entrants from two different places, and a grand
@@ -24,7 +24,7 @@ export interface BracketMatch {
   readonly branch: string;
   readonly slots: readonly SlotSource[];
   readonly scores?: readonly (number | undefined)[];
-  /** Parallel to `scores` — why a side's result is what it is (0076). */
+  /** Parallel to `scores` — why a side's result is what it is. */
   readonly resultReasons?: readonly (ResultReason | undefined)[];
   readonly state: ResultState;
 }
@@ -97,7 +97,7 @@ export function toNode(match: BracketMatch, labels: ResultStateLabels): MatchNod
 }
 
 /**
- * Not extracted to the message catalog (0055) — same shape as the control
+ * Not extracted to the message catalog — same shape as the control
  * panel's own deferred `describeSlot` (`apps/web/src/control/lib/bracket-
  * canvas.ts`, 0053 task 4.4): pure geometry computation with a dynamic match/
  * seed number and no `intl` in scope at the call site, a genuinely different

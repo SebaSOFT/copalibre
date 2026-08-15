@@ -22,7 +22,7 @@ export interface CreatePacketResult {
 
 /**
  * Stages `pg_dump`'s output plus a manifest, then tars/gzips the staging
- * directory into `options.file` before applying retention (0046). `pg_dump`
+ * directory into `options.file` before applying retention. `pg_dump`
  * runs via the existing `database-tools` Compose service — staging happens
  * under `backups/`, the only host directory that container can see.
  */
@@ -66,8 +66,8 @@ export interface RestorePacketResult {
 }
 
 /**
- * Extracts and restores a packet created by `createBackupPacket` (0046). Reads the packet's
- * manifest before touching the database (0050): a backup newer than the running installation is
+ * Extracts and restores a packet created by `createBackupPacket`. Reads the packet's
+ * manifest before touching the database: a backup newer than the running installation is
  * refused — via `evaluateRestoreCompatibility` — before any `pg_restore` invocation.
  */
 export async function restoreBackupPacket(

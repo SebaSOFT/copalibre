@@ -5,7 +5,7 @@ import type { StandingsData } from './standings.js';
 import type { DisciplineOption } from './wizard.js';
 
 export interface ControlApiClient {
-  /** Every organization the authenticated caller belongs to, with their role (0063). */
+  /** Every organization the authenticated caller belongs to, with their role. */
   readonly listMyOrganizations: () => Promise<readonly MyOrganizationResponse[]>;
   readonly listDisciplines: () => Promise<readonly DisciplineOption[]>;
   readonly createTournament: (
@@ -98,7 +98,7 @@ export interface ControlApiClient {
     organizationAlias: string,
     tournamentAlias: string,
   ) => Promise<readonly DisplayTokenResponse[]>;
-  /** The pending participant reports/disputes queue (0032). */
+  /** The pending participant reports/disputes queue. */
   readonly listPendingReports?: (
     organizationAlias: string,
     tournamentAlias: string,
@@ -109,7 +109,7 @@ export interface ControlApiClient {
     reportId: string,
     request: ReviewReportRequest,
   ) => Promise<ParticipantReportResponse>;
-  /** Archives a finished tournament (0033); legal only from finished. */
+  /** Archives a finished tournament; legal only from finished. */
   readonly archiveTournament?: (
     organizationAlias: string,
     tournamentAlias: string,
@@ -216,7 +216,7 @@ export interface SeedingClassificationResponse {
   readonly mutationClass: 'safe' | 'requires_rebuild' | 'blocked_after_results';
   readonly reason: string;
   readonly invalidates: readonly string[];
-  /** True once the new seed order and fixtures are durably persisted (0040). */
+  /** True once the new seed order and fixtures are durably persisted. */
   readonly persisted: boolean;
 }
 
@@ -309,7 +309,7 @@ export interface InvitationResponse {
   readonly expiresAt: string;
 }
 
-/** One organization the authenticated caller belongs to, with their role (0063). */
+/** One organization the authenticated caller belongs to, with their role. */
 export interface MyOrganizationResponse {
   readonly organizationId: string;
   readonly organizationAlias: string;
@@ -754,7 +754,7 @@ async function reasonOf(response: Response): Promise<string> {
   } catch {
     // A body that is not JSON tells us nothing; the status still does.
   }
-  // Not extracted to the message catalog (0053): react-intl's createIntl/
+  // Not extracted to the message catalog: react-intl's createIntl/
   // createIntlCache — the only API for formatting outside a component tree —
   // pulled a Node-only `Buffer` reference into this module's bundle, crashing
   // every client:only control route at hydration. This fallback only fires

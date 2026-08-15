@@ -79,7 +79,7 @@ each field in \`${category}/${options.alias}/artifact.json\` means.
 /**
  * Produces a tagged local Git repository in exactly the layout `fetchModule`
  * (module-distribution) already expects, so installing it locally needs no
- * new code path — `module add --source file://...` (0036) installs it
+ * new code path — `module add --source file://...` installs it
  * unmodified (0049 design).
  */
 export async function scaffoldModule(

@@ -2,7 +2,7 @@ import { DomainError } from '../errors.js';
 import { err, ok, type Result } from '../result.js';
 
 /**
- * A season is one running of a tournament (0015-competition-identity-and-seasons).
+ * A season is one running of a tournament.
  *
  * The tournament names the recurring competition — "Torneo Apertura Nacional A"
  * — and the season names the edition: 2026. Other systems collapse the two and

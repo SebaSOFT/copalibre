@@ -76,17 +76,17 @@ check(
   llmsFullTxt.includes('copalibre init') && llmsFullTxt.includes('copalibre mcp'),
 );
 check(
-  'llms-full.txt stays English-only as more locales are added (0051)',
+  'llms-full.txt stays English-only as more locales are added',
   !llmsFullTxt.includes('Panel de control') && !llmsFullTxt.includes('Referencia de comandos'),
 );
 
 const esGettingStarted = readOutput('es/help/getting-started/index.html');
 check(
-  'the Spanish locale still builds and is reachable at /es/ (0051)',
+  'the Spanish locale still builds and is reachable at /es/',
   esGettingStarted.includes('En esta página'),
 );
 
-// Seven-language parity (0052): each new locale's own root heading confirms
+// Seven-language parity: each new locale's own root heading confirms
 // its content built and is reachable under its own prefix, not just that the
 // build didn't crash.
 const LOCALE_HEADINGS = {
@@ -99,10 +99,7 @@ const LOCALE_HEADINGS = {
 };
 for (const [locale, heading] of Object.entries(LOCALE_HEADINGS)) {
   const page = readOutput(`${locale}/help/index.html`);
-  check(
-    `the ${locale} locale builds and is reachable at /${locale}/ (0052)`,
-    page.includes(heading),
-  );
+  check(`the ${locale} locale builds and is reachable at /${locale}/`, page.includes(heading));
 }
 
 const TOTAL_CHECKS = 27;

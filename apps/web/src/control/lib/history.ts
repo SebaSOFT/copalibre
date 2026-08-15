@@ -1,5 +1,5 @@
 /**
- * Undo/redo over an immutable value (0024).
+ * Undo/redo over an immutable value.
  *
  * A seeding session is a sequence of small, reversible decisions — lock, swap,
  * randomize, randomize again — and the one thing an operator will reach for is

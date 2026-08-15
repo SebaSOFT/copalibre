@@ -10,7 +10,7 @@ import { Button } from './ui/button.js';
 import { messages } from '../i18n/messages.en.js';
 
 /**
- * A6 — the bracket canvas (0024).
+ * A6 — the bracket canvas.
  *
  * Draws the engine's structure and nothing else. Connectors come from the slot
  * sources the engine declared, so a losers' bracket that takes an entrant from
@@ -18,7 +18,7 @@ import { messages } from '../i18n/messages.en.js';
  * knows what a losers' bracket is.
  *
  * Per-slot labels (`describeSlot` in `lib/bracket-canvas.ts`: "Bye", "Winner
- * of <match>", "Loser of <match>") are not yet extracted (0053) — they embed a
+ * of <match>", "Loser of <match>") are not yet extracted — they embed a
  * dynamic match ID and need ICU interpolation at the point they are computed,
  * a genuinely different pattern from this file's static chrome; tracked as a
  * follow-up rather than rushed here.

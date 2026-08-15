@@ -1,6 +1,6 @@
 import { SERVER_INSTRUCTIONS, buildServer, buildTools } from './server.js';
 
-describe('buildTools (0047)', () => {
+describe('buildTools', () => {
   it('registers the six always-on tools when no token/API URL is configured', () => {
     const names = buildTools({}).map((tool) => tool.name);
     expect(names).toEqual([
@@ -39,13 +39,13 @@ describe('buildTools (0047)', () => {
   });
 });
 
-describe('buildServer (0047)', () => {
+describe('buildServer', () => {
   it('constructs without throwing given a tool list', () => {
     expect(() => buildServer({}, buildTools({}))).not.toThrow();
   });
 });
 
-describe('SERVER_INSTRUCTIONS (0048)', () => {
+describe('SERVER_INSTRUCTIONS', () => {
   it('mentions both tool categories and the token requirement', () => {
     expect(SERVER_INSTRUCTIONS).toContain('copalibre_doctor');
     expect(SERVER_INSTRUCTIONS).toContain('copalibre_create_tournament');

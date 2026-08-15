@@ -34,7 +34,7 @@ import { resolveTournament } from './standings.controller.js';
 import { DATABASE } from '../database.token.js';
 
 /**
- * Stage creation (0066).
+ * Stage creation.
  *
  * The step between "accepted registrations exist" and "a stage exists, ready to be seeded" — the
  * gap the 0059 walkthrough found: `CompetitionRepository.createStageInTournament` was real, tested,

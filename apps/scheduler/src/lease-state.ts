@@ -1,5 +1,5 @@
 /**
- * When to renew, and when to admit the lease is gone (0017).
+ * When to renew, and when to admit the lease is gone.
  *
  * Pure, and separate from the store that talks to PostgreSQL, because the
  * dangerous part of a lease is not the SQL — it is the arithmetic that decides

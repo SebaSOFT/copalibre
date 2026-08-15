@@ -2,11 +2,11 @@ import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
 /**
- * Lives inside the installation directory, alongside `0084`'s
- * `.copalibre/installation.json` marker — corrected during implementation
- * (0085): a single global `~/.config/copalibre/credentials.json` keyed by
- * API URL was tried first, but that conflicts with the whole reason `0084`
- * put every installation's own files in one directory in the first place —
+ * Lives inside the installation directory, alongside the installation
+ * marker's `.copalibre/installation.json` file — corrected during
+ * implementation: a single global `~/.config/copalibre/credentials.json`
+ * keyed by API URL was tried first, but that conflicts with the whole reason
+ * every installation's own files live in one directory in the first place —
  * a token should move/copy with the installation directory it belongs to,
  * and a leaked file should expose one installation's credential, not every
  * installation's at once. `installation.json` stays non-secret and safe to
@@ -65,7 +65,7 @@ export async function writeCredential(
 
 /**
  * Duck-typed, not `error instanceof Error` — see `installation-marker.ts`'s
- * identical note (0084): under this project's Jest `--experimental-vm-modules`
+ * identical note: under this project's Jest `--experimental-vm-modules`
  * setup, a real `fs` error can cross a VM-realm boundary where `instanceof`
  * fails despite the error being structurally correct.
  */

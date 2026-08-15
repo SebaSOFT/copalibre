@@ -7,7 +7,7 @@ import type { Kysely } from 'kysely';
 import { SubscriptionService } from './subscription.js';
 
 /**
- * Replay against real PostgreSQL (0018).
+ * Replay against real PostgreSQL.
  *
  * Every claim here is about ordering, cursors and windows — three things a fake
  * would get right by construction and a database gets right only if the query

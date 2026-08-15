@@ -22,7 +22,7 @@ import {
 } from './lease-state.js';
 
 /**
- * One logical scheduler across any number of replicas (0017).
+ * One logical scheduler across any number of replicas.
  *
  * Every replica runs this. Every replica tries to take the lease on each tick,
  * and the one that has it enqueues; the rest do nothing and stay warm. Failover

@@ -4,7 +4,7 @@ import type { EventEnvelope } from './envelope.js';
 import { REPLAY_EXPIRED_EVENT, SseParser } from './wire.js';
 
 /**
- * The shared realtime client (0018).
+ * The shared realtime client.
  *
  * Both web surfaces consume this rather than each writing their own reconnect
  * loop, because every one of the hard parts — where the cursor lives, when a

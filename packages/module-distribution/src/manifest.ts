@@ -2,8 +2,8 @@ import { Ajv, type ValidateFunction } from 'ajv';
 import type { Attribution } from '@copalibre/domain';
 
 /**
- * The wrapper document every module package carries alongside its artifact
- * (0036-community-module-distribution). Kept deliberately small and
+ * The wrapper document every module package carries alongside its artifact.
+ * Kept deliberately small and
  * duplicate-free of the artifact it wraps — `alias`/`version` are restated
  * here (not inferred by parsing the, potentially large, artifact document)
  * so tooling can identify a module before reading it, the same reason a

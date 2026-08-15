@@ -108,7 +108,7 @@ describe('organization access guards (integration)', () => {
     expect(response.json()).toHaveLength(2);
   });
 
-  describe('GET /organizations?mine=true (0063)', () => {
+  describe('GET /organizations?mine=true', () => {
     it('lists exactly the organizations with an active assignment, with roles', async () => {
       const response = await request('admin', '/organizations?mine=true');
       expect(response.statusCode).toBe(200);
@@ -143,7 +143,7 @@ describe('organization access guards (integration)', () => {
     });
   });
 
-  describe('organization settings (0051)', () => {
+  describe('organization settings', () => {
     it('lets the active organization admin update the primary language', async () => {
       const response = await patch('admin', `/organizations/liga-segura/settings`, {
         primaryLanguage: 'fr',

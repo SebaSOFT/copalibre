@@ -1,7 +1,7 @@
 import type { ActorGranularity } from '../statistics/hierarchies.js';
 
 /**
- * What one person contributed to a side's figures (0016).
+ * What one person contributed to a side's figures.
  *
  * The side's `statistics` are the totals; these are the rows they were folded
  * from, stored verbatim rather than recomputed later. A finalized result that
@@ -17,7 +17,7 @@ export interface OutcomeContributor {
 }
 
 /**
- * Why a side's result is what it is (0076). Independent per side: a
+ * Why a side's result is what it is. Independent per side: a
  * free-for-all's disqualified competitor and its normally-finishing rest each
  * carry their own reason, because the outcome was already per-entrant before
  * this field existed. Absent (or `played`) means an ordinarily played result

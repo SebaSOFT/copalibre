@@ -1,7 +1,7 @@
 import { Alias, type AliasScope } from './alias.js';
 
 /**
- * Deriving an alias from a name (0037).
+ * Deriving an alias from a name.
  *
  * The abbreviation is deliberately never derived; the alias is, and the
  * difference is worth stating because the two look like the same problem.

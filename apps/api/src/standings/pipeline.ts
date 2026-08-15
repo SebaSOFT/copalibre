@@ -2,7 +2,7 @@ import type { DisciplineDescriptor } from '@copalibre/domain';
 import type { TiebreakParameterDefinition, TiebreakPipeline } from '@copalibre/rules';
 
 /**
- * Where a stage's comparator chain comes from (0024).
+ * Where a stage's comparator chain comes from.
  *
  * CopaLibre enforces what *this* organizer configured and nothing a sport
  * "usually" does, so the order of precedence is: what the stage declares, then

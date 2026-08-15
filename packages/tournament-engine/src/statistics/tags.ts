@@ -10,7 +10,7 @@ import type {
 import type { ActorContext, CompetitionContext } from './fold.js';
 
 /**
- * Tag facts produced by recorded events (0016).
+ * Tag facts produced by recorded events.
  *
  * A discipline that says "an expulsion marks the player" declares it as an
  * `EventEffect`, and the fact this produces is the same shape an operator's

@@ -75,7 +75,7 @@ describe('one step coarser is a fact about the axis', () => {
   });
 });
 
-describe('officials and venues are roll-up-terminal actor granularities (0072)', () => {
+describe('officials and venues are roll-up-terminal actor granularities', () => {
   it('recognises official and venue as published actor granularities', () => {
     expect(isActorGranularity('official')).toBe(true);
     expect(isActorGranularity('venue')).toBe(true);

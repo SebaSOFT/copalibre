@@ -12,7 +12,7 @@ async function withTemporaryDirectory<T>(run: (directory: string) => Promise<T>)
   }
 }
 
-describe('credentials (0085)', () => {
+describe('credentials', () => {
   it('round-trips through write and read for the directory it was written into', async () => {
     await withTemporaryDirectory(async (directory) => {
       const written = await writeCredential(directory, 'https://copalibre.example', 'clpat_abc123');

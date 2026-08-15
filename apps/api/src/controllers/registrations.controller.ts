@@ -57,7 +57,7 @@ import { enforcePolicy } from '../policy/resource-policy.js';
 import { DATABASE } from '../database.token.js';
 
 /**
- * A team-membership edit's request body carries no per-person role (0064) —
+ * A team-membership edit's request body carries no per-person role —
  * extending it to `{ personId, role }[]` is a larger, separable change this
  * endpoint's gap did not ask for. 'player' is the unmarked, common-case
  * membership; reconciliation only adds and removes, so this default cannot
@@ -66,7 +66,7 @@ import { DATABASE } from '../database.token.js';
 const DEFAULT_TEAM_MEMBERSHIP_ROLE: PlayerRole = 'player';
 
 /**
- * Registration review (0023).
+ * Registration review.
  *
  * The console's disabled buttons are a courtesy; this is the authority. A tab
  * left open through the check-in deadline still has yesterday's actions

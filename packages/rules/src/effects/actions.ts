@@ -178,7 +178,7 @@ export class StopTimerAction extends AbstractAction {
 }
 
 /**
- * Declares a statistic adjustment (0016).
+ * Declares a statistic adjustment.
  *
  * A script may move a total the collectors do not produce on their own — a
  * bonus point, a deduction, a figure a discipline computes from something no
@@ -235,7 +235,7 @@ export class AdjustStatisticAction extends AbstractAction {
 }
 
 /**
- * Declares a tag (0016).
+ * Declares a tag.
  *
  * It labels and enforces nothing: a script may mark a player suspended, and the
  * organizer still decides whether they take the field. That is the whole

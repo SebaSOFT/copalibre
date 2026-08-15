@@ -31,9 +31,9 @@ import { messages } from '../i18n/messages.en.js';
 import type { SupportedLanguage } from '../../lib/language-preference.js';
 
 /**
- * The one persistent root for every control-panel screen (0061), now also
+ * The one persistent root for every control-panel screen, now also
  * the one place that owns the session: guards every screen except the
- * `callback` route itself, and completes the OIDC exchange there (0062).
+ * `callback` route itself, and completes the OIDC exchange there.
  * Resolves the real browser path on every render — mount, back/forward, and
  * client-side navigation alike — and mounts the matching screen from
  * `ControlRoutes.tsx`, unchanged. Replaces eight separate Astro pages that
@@ -203,7 +203,7 @@ type LandingState =
   | { readonly kind: 'error'; readonly message: string };
 
 /**
- * The `/control/callback` screen (0062): completes the PKCE exchange, writes
+ * The `/control/callback` screen: completes the PKCE exchange, writes
  * the session, then hands off to `returnTo` via `navigateControl` — never a
  * real navigation, which would discard the token just written.
  *
@@ -268,7 +268,7 @@ function CompletingLogin(): React.JSX.Element {
 
 /**
  * What a default (no real destination) login lands on once the organization
- * lookup resolves to zero or more-than-one organization (0063) — exactly one
+ * lookup resolves to zero or more-than-one organization — exactly one
  * organization never reaches here, `CompletingLogin` navigates straight to it.
  * Colocated with `CompletingLogin`/`NotFound` rather than a new `ControlRoute`:
  * it is a transient render on `/control/callback`, not a screen that needs its

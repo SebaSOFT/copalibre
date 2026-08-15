@@ -3,7 +3,7 @@ import { err, ok, type Result } from '../result.js';
 import type { EntrantStatus } from './participant.js';
 
 /**
- * Reviewing registrations, and when team memberships stop being editable (0023).
+ * Reviewing registrations, and when team memberships stop being editable.
  *
  * The decision lives here rather than in the console because the console is a
  * *hint*: a tab left open through the check-in deadline still has yesterday's
@@ -124,8 +124,7 @@ export function teamMembershipsApply(kind: 'person' | 'team'): Result<true, Regi
 }
 
 /**
- * The diff between a team's current membership and the set an edit submits
- * (0064).
+ * The diff between a team's current membership and the set an edit submits.
  *
  * A team-membership edit names the *desired end state*, not an instruction —
  * the same submission adds whoever is new and removes whoever was left out,

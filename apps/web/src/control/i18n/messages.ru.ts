@@ -1,5 +1,5 @@
 /**
- * Russian translations, keyed to match `messages.en.ts`'s IDs exactly (0054).
+ * Russian translations, keyed to match `messages.en.ts`'s IDs exactly.
  * Best-effort machine-quality translation; native-speaker review is a
  * separate, later pass (owner's explicit choice, 0051). The plural block
  * uses Russian's four ICU categories (one/few/many/other), not English's

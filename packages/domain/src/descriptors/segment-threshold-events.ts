@@ -39,7 +39,7 @@ export function segmentThresholdEventDefinitions(
     code,
     label: LABELS[code],
     // Neutral: a threshold states where the score is, and category must never
-    // imply an effect — effects are configured explicitly or not at all (0002).
+    // imply an effect — effects are configured explicitly or not at all.
     category: 'neutral',
     permittedSegmentTypes: [...permittedSegmentTypes],
     actorRequirement: 'none',

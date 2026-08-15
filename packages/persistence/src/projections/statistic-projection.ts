@@ -2,7 +2,7 @@ import type { StatisticRepository, StoredFigure } from '../repositories/statisti
 import type { UnitOfWork } from '../transaction.js';
 
 /**
- * The projection that keeps folded figures current (0016).
+ * The projection that keeps folded figures current.
  *
  * It consumes exactly two events and treats them identically: **recompute the
  * match**. Applying a delta on `match.finalized` and a compensating delta on

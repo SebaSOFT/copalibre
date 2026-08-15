@@ -10,7 +10,7 @@ import {
 } from '../../../packages/persistence/src/test-support/scratch-database.js';
 
 /**
- * One logical scheduler across replicas, against real PostgreSQL (0017).
+ * One logical scheduler across replicas, against real PostgreSQL.
  *
  * Every claim here is about what the database does when three processes ask at
  * once. Simulated with three stores over one scratch database — which is what

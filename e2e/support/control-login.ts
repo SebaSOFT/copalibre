@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test';
 
 /**
- * Drives the real `/control/callback` flow (0062) so e2e specs land on a
+ * Drives the real `/control/callback` flow so e2e specs land on a
  * genuinely authenticated screen — not a bypass. A spec using this:
  *
  * 1. Extends its own `window.fetch` mock with a branch for {@link TOKEN_ENDPOINT}

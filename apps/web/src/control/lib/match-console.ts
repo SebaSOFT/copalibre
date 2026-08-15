@@ -1,6 +1,6 @@
 /**
- * Pure derivation logic for the live match console (0025), extracted from
- * `MatchConsoleRoute.tsx` (0040) so it is unit-testable in isolation rather
+ * Pure derivation logic for the live match console, extracted from
+ * `MatchConsoleRoute.tsx` so it is unit-testable in isolation rather
  * than only reachable through a full component render.
  */
 
@@ -36,7 +36,7 @@ export function descriptionFor(
  * `unknownSegmentLabel` is caller-supplied (rather than a fixed fallback
  * string here) so this stays a plain, `intl`-free function testable without
  * a React context — the caller resolves the translated fallback via
- * `useIntl().formatMessage()` (0053).
+ * `useIntl().formatMessage()`.
  */
 export function segmentLabel(
   projection: MatchConsoleResponse,

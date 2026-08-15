@@ -2,7 +2,7 @@ import { BUTTON_VARIANTS, CARD_STATES } from '../components.js';
 import { SEMANTIC_COLORS } from '../semantic.js';
 
 /**
- * The style guide, generated from the same tokens it documents (0019).
+ * The style guide, generated from the same tokens it documents.
  *
  * A hand-written page would drift from the tokens the moment one changed, and
  * the page whose job is to show what the tokens look like would be the last

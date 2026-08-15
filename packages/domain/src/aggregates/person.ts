@@ -2,7 +2,7 @@ import { DomainError } from '../errors.js';
 import { err, ok, type Result } from '../result.js';
 
 /**
- * A person and their memberships (0015-competition-identity-and-seasons).
+ * A person and their memberships.
  *
  * `Participant` was both: the human, and the human as a member of a team. That
  * made "the same person plays for two teams" inexpressible — they entered
@@ -113,7 +113,7 @@ export function isDuplicateMembership(left: Player, right: Player): boolean {
 }
 
 /**
- * The squad a discipline's constraint applies to (0015).
+ * The squad a discipline's constraint applies to.
  *
  * A club fielding a football and a futsal side has two teams, and "between five
  * and eleven players" is a claim about one of them. Selecting by discipline is

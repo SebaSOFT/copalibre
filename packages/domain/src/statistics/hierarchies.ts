@@ -4,7 +4,7 @@ import { DomainError } from '../errors.js';
 import { err, ok, type Result } from '../result.js';
 
 /**
- * The two axes a statistic is collected over (0016-statistic-collectors-and-tags).
+ * The two axes a statistic is collected over.
  *
  * Every statistic question is "what happened, to whom, over what stretch of
  * competition". Naming the two hierarchies once is what lets a collector answer
@@ -38,7 +38,7 @@ export const COMPETITION_GRANULARITIES = [
  * what lets a club's totals cross tournaments while an entrant cannot: an
  * entrant lives inside one.
  *
- * **`official` and `venue` (0072) are roll-up-terminal, not links in the
+ * **`official` and `venue` are roll-up-terminal, not links in the
  * person→player→team→club chain.** An official's tag does not roll up into a
  * club's totals, and neither does a venue's — each is its own single-member
  * family. See `ACTOR_ROLLUP_CHAINS` below for how `granularitiesAbove`/
@@ -55,7 +55,7 @@ export const ACTOR_GRANULARITIES = [
 ] as const;
 
 /**
- * The actor axis's roll-up families (0072). `person → player → team → club` is
+ * The actor axis's roll-up families. `person → player → team → club` is
  * a real containment chain: a player's stats roll up to their team, which
  * rolls up to their club. `official` and `venue` are each their own,
  * single-member family — comparing across families answers "not comparable"
@@ -123,7 +123,7 @@ export function isActorGranularity(value: string): value is ActorGranularity {
  * sits above a stage.
  *
  * On the actor axis, this resolves within `granularity`'s own roll-up family
- * (0072) — `official` and `venue` each have nothing above them, and neither is
+ * — `official` and `venue` each have nothing above them, and neither is
  * "above" `person`/`player`/`team`/`club` just because of where it sits in
  * `ACTOR_GRANULARITIES`' published order.
  */
@@ -143,7 +143,7 @@ export function granularitiesAbove<G extends CompetitionGranularity | ActorGranu
 /**
  * Whether `candidate` is coarser than `granularity`.
  *
- * On the actor axis, two granularities from different roll-up families (0072)
+ * On the actor axis, two granularities from different roll-up families
  * — e.g. `club` and `official` — are never coarser than one another: that
  * comparison is "not comparable," not a value derived from
  * `ACTOR_GRANULARITIES`' incidental array position.
@@ -198,7 +198,7 @@ export function actorOfEntrant(entrant: Pick<Entrant, 'entrantRef'>): ResolvedAc
 }
 
 /**
- * Resolves an official to its `official`-granularity actor reference (0072).
+ * Resolves an official to its `official`-granularity actor reference.
  * An official is already the addressable unit — no unwrapping, unlike an
  * entrant naming a person or team underneath it.
  */
@@ -207,7 +207,7 @@ export function actorOfOfficial(official: Pick<Official, 'officialId'>): Resolve
 }
 
 /**
- * Resolves a venue to its `venue`-granularity actor reference (0072). Same
+ * Resolves a venue to its `venue`-granularity actor reference. Same
  * shape as `actorOfOfficial` — a venue is already the addressable unit.
  */
 export function actorOfVenue(venue: Pick<Venue, 'venueId'>): ResolvedActor {

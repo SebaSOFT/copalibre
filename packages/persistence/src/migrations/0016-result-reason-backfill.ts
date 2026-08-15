@@ -4,7 +4,7 @@ import type { Database } from '../schema.js';
 
 /**
  * Backfills an explicit `resultReason: 'played'` onto every side of every
- * already-recorded result (0076).
+ * already-recorded result.
  *
  * `matches.result` is a `jsonb` blob, so Postgres never enforces its shape —
  * nothing forces an old row to gain a field a later release started writing.

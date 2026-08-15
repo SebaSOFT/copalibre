@@ -297,7 +297,7 @@ describe('live match console (integration)', () => {
     expect(refused.json().message).toContain('match roster');
   });
 
-  it('records an optional note with an event and reflects it in the console projection (0075)', async () => {
+  it('records an optional note with an event and reflects it in the console projection', async () => {
     const withNote = await request('POST', `${base()}/events`, 'referee', {
       definitionCode: 'manual-penalty',
       segmentId,

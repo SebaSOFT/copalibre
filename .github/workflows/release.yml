@@ -35,7 +35,7 @@ jobs:
       # apps/copalibre/package.json is the one version actually read at
       # runtime (its banner/--version output) — the single source of truth
       # this workflow reads from. Every other package.json is kept in
-      # lockstep with it by convention (0058), not re-derived here.
+      # lockstep with it by convention, not re-derived here.
       - id: version
         run: |
           version=$(node -p "require('./apps/copalibre/package.json').version")

@@ -3,7 +3,7 @@ import { err, ok, type Result } from '../result.js';
 import type { FixtureRef, MutationDecision } from '../rulesets/mutation.js';
 
 /**
- * What kind of change a reschedule is (0012-resource-scheduling-and-conflicts).
+ * What kind of change a reschedule is.
  *
  * `evaluateMutation` classifies a change to a *configuration field* against the
  * policy a discipline declared for it. A reschedule has no field and no policy:

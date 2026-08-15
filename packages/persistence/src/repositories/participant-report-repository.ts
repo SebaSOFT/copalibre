@@ -7,7 +7,7 @@ import type { Database } from '../schema.js';
 import type { UnitOfWork } from '../transaction.js';
 
 /**
- * Participant self-service reports/disputes (0032) — a fact type, never a
+ * Participant self-service reports/disputes — a fact type, never a
  * mutation path. Nothing in this repository writes to `matches.result`; the
  * only door over a finalized outcome remains `CompetitionRepository.
  * supersedeResult`, which a review of one of these may cite but never calls

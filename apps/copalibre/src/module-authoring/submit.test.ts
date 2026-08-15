@@ -45,7 +45,7 @@ async function writeManifest(
   );
 }
 
-describe('submitModule (0049)', () => {
+describe('submitModule', () => {
   it('forks, branches, copies the module, pushes, and opens a PR with the right shape', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'copalibre-submit-test-'));
     try {

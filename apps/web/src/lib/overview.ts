@@ -1,7 +1,7 @@
 import { publicPath, publicStreamPath, type RouteInput } from '@copalibre/routing';
 
 /**
- * The public overview's view model (0020).
+ * The public overview's view model.
  *
  * Separated from the `.astro` file so what the page *says* is testable without
  * a browser or a build. The template stays a template.
@@ -72,13 +72,13 @@ export function buildOverview(input: OverviewInput): OverviewModel {
 
 /**
  * What a side is called when space is short: the abbreviation if somebody chose
- * one, otherwise the name. Never a truncation invented here (0037).
+ * one, otherwise the name. Never a truncation invented here.
  */
 export function shortLabel(side: SideView | StandingsRowView): string {
   return side.abbreviation ?? side.name;
 }
 
-/** The competition's display name, composed rather than stored (0015). */
+/** The competition's display name, composed rather than stored. */
 export function displayName(model: OverviewModel): string {
   return model.seasonName === undefined
     ? model.tournamentName

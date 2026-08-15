@@ -3,9 +3,9 @@ import type { Database } from '../schema.js';
 import { toIsoString } from '../mapping.js';
 
 /**
- * The read side of a tournament's public overview/live pages (0067).
+ * The read side of a tournament's public overview/live pages.
  *
- * Separate from `StageReadModel` (0024) because that projection is scoped to
+ * Separate from `StageReadModel` because that projection is scoped to
  * one stage and answers the bracket/standings question; this one is scoped to
  * a whole tournament and answers "every match across every stage, with when
  * it is scheduled" — the one extra fact (`scheduledAt`) neither

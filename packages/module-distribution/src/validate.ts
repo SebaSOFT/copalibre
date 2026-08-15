@@ -118,7 +118,7 @@ export async function validateModulePackage(
       failures.push({ stage: 'tags', message: tags.error.message });
     }
 
-    // Semantic collector checks (0073) — structurally valid per the ajv schema
+    // Semantic collector checks — structurally valid per the ajv schema
     // already, but a duplicate code, a circular collector-of-collector chain,
     // an unregistered event/statistic/tag reference, or a ceiling under its
     // own floor is a relationship between collectors (or between a collector

@@ -19,7 +19,7 @@ import { SeedingController } from './seeding.controller.js';
 import { StagesController } from './stages.controller.js';
 
 /**
- * Stage creation through the real HTTP stack (0066).
+ * Stage creation through the real HTTP stack.
  *
  * The proof that matters here is end-to-end: an operator with only accepted
  * registrations and no stage yet can reach a real generated bracket entirely through
@@ -61,7 +61,7 @@ function descriptor(): DisciplineDescriptor {
   return {
     descriptorId: '01890000-0000-7000-8000-0000000066a1',
     version: '1.0.0',
-    name: 'Liga de prueba (0066)',
+    name: 'Liga de prueba',
     attribution: { author: 'CopaLibre', licence: 'AGPL-3.0-only' },
     participantTypes: ['team'],
     rosterConstraints: { minPlayers: 1, maxPlayers: 11 },

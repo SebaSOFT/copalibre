@@ -17,7 +17,7 @@ import { registerCopalibreConditions } from './conditions.js';
  */
 
 /**
- * Two parameters, two modes (0013).
+ * Two parameters, two modes.
  *
  * A field holds what the author wrote, in `value`, and `options.expression`
  * says how to read it: a literal, or an expression over the context. Flipping

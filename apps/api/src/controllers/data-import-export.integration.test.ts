@@ -228,7 +228,7 @@ describe('CSV import routes', () => {
   });
 });
 
-describe('team-membership CSV import target (0065)', () => {
+describe('team-membership CSV import target', () => {
   async function seedTwoRegisteredTeams(tournamentAlias: string) {
     const tournaments = new TournamentRepository(scratch.db);
     const enrollment = new EnrollmentRepository(scratch.db);

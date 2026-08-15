@@ -13,10 +13,10 @@ const HELP_CONTENT_DIRECTORY = resolve(SOURCE_DIRECTORY, '../content/docs/help/c
 /**
  * Reads the real `ControlRoutes.tsx` source and the real content directory —
  * the delta spec's "a screen without a matching help page fails the build"
- * scenario (0043) — rather than a hardcoded duplicate of either that could
+ * scenario — rather than a hardcoded duplicate of either that could
  * drift out of sync with the file it is meant to check.
  */
-describe('every control-panel route links to a real help page (0043)', () => {
+describe('every control-panel route links to a real help page', () => {
   const helpPaths = [...CONTROL_ROUTES_SOURCE.matchAll(/helpPath="([\w-]+)"/g)].map(
     (match) => match[1],
   );

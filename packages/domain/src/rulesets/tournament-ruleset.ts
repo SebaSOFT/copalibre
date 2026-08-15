@@ -28,7 +28,7 @@ export interface StageConfiguration {
   readonly rulesetId: string;
   readonly overrides: OverrideSet;
   /**
-   * Where this stage's seed order comes from (0010). Absent means the caller
+   * Where this stage's seed order comes from. Absent means the caller
    * supplies the order, which is phase 7's original contract and remains valid
    * for a single-stage tournament.
    */

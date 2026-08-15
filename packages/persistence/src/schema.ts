@@ -17,9 +17,9 @@ export interface OrganizationsTable {
   organization_id: string;
   alias: string;
   name: string;
-  /** ISO 639-1 code from `SUPPORTED_LANGUAGES` (0051); presentation default only. */
+  /** ISO 639-1 code from `SUPPORTED_LANGUAGES`; presentation default only. */
   primary_language: string;
-  /** IANA time zone identifier (0051); presentation default only. */
+  /** IANA time zone identifier; presentation default only. */
   timezone: string;
   created_at: Timestamp;
 }
@@ -96,7 +96,7 @@ export interface OrganizationInvitesTable {
 
 /**
  * Device-scoped, revocable credentials for `/tv/**` kiosk and overlay
- * surfaces (0031) — deliberately not a person's JWT. Bound to exactly one
+ * surfaces — deliberately not a person's JWT. Bound to exactly one
  * route (tournament, optionally one match); never stored or logged raw.
  */
 export interface DisplayTokensTable {
@@ -114,7 +114,7 @@ export interface DisplayTokensTable {
   created_by: string;
 }
 
-/** A participant self-service report or dispute (0032) — a fact, never a mutation path. */
+/** A participant self-service report or dispute — a fact, never a mutation path. */
 export interface ParticipantReportsTable {
   report_id: string;
   organization_id: string;
@@ -154,10 +154,10 @@ export interface ReportEvidenceTable {
 export interface ClubsTable {
   club_id: string;
   organization_id: string;
-  /** Path identifier, unique within the organization (0037). */
+  /** Path identifier, unique within the organization. */
   alias: string | null;
   name: string;
-  /** Short label for constrained surfaces (0037); `C I` for "Casa de Italia". */
+  /** Short label for constrained surfaces; `C I` for "Casa de Italia". */
   abbreviation: string | null;
   created_at: Timestamp;
 }
@@ -208,12 +208,12 @@ export interface TournamentsTable {
   profile_id: string | null;
   profile_version: string | null;
   created_at: Timestamp;
-  /** Set when the tournament is archived (0033); null until then. */
+  /** Set when the tournament is archived; null until then. */
   archived_at: Timestamp | null;
 }
 
 /**
- * The human (0015). `natural_key_normalised` is what uniqueness is enforced on
+ * The human. `natural_key_normalised` is what uniqueness is enforced on
  * — `12.345.678` and `12345678` are one document, and the column that decides
  * has to agree.
  */
@@ -237,7 +237,7 @@ export interface ParticipantIdentityLinksTable {
   created_by: string;
 }
 
-/** One person's membership in one team (0015). Several per person, one per team. */
+/** One person's membership in one team. Several per person, one per team. */
 export interface PlayersTable {
   player_id: string;
   person_id: string;
@@ -252,9 +252,9 @@ export interface TeamsTable {
   alias: string | null;
   club_id: string | null;
   name: string;
-  /** The discipline this side plays (0015); null on teams predating it. */
+  /** The discipline this side plays; null on teams predating it. */
   discipline_id: string | null;
-  /** Overrides the club's short label (0037): `TLL A` beside `TLL B`. */
+  /** Overrides the club's short label: `TLL A` beside `TLL B`. */
   abbreviation: string | null;
   created_at: Timestamp;
 }
@@ -283,7 +283,7 @@ export interface EntrantAttributesTable {
   created_at: Timestamp;
 }
 
-/** Source and review state for one asynchronous participant CSV import (0027). */
+/** Source and review state for one asynchronous participant CSV import. */
 export interface CsvImportSessionsTable {
   import_id: string;
   organization_id: string;
@@ -300,7 +300,7 @@ export interface CsvImportSessionsTable {
   committed_at: Timestamp | null;
 }
 
-/** One running of a tournament (0015). Every tournament has at least one. */
+/** One running of a tournament. Every tournament has at least one. */
 export interface SeasonsTable {
   season_id: string;
   tournament_id: string;
@@ -396,12 +396,12 @@ export interface MatchEventsTable {
   side: string | null;
   person_id: string | null;
   payload: JSONColumnType<Record<string, unknown>>;
-  /** Optional free-text operator note (0075), independent of the discipline and its payloadSchema. */
+  /** Optional free-text operator note, independent of the discipline and its payloadSchema. */
   notes: string | null;
   created_at: Timestamp;
 }
 
-/** The selected players for one entrant in one match (0014). */
+/** The selected players for one entrant in one match. */
 export interface MatchRostersTable {
   match_id: string;
   entrant_id: string;
@@ -410,7 +410,7 @@ export interface MatchRostersTable {
 }
 
 /**
- * A match-operating appointment (0014). Exactly one of `match_id`/`stage_id` is
+ * A match-operating appointment. Exactly one of `match_id`/`stage_id` is
  * set, enforced by a check constraint: a grant covers what it names, and a
  * stage grant resolves down to its matches.
  */
@@ -462,7 +462,7 @@ export interface AuditLogTable {
  * architecture doc's SSE contract section.
  */
 /**
- * Durable claim and retry state on an outbox row (0017).
+ * Durable claim and retry state on an outbox row.
  *
  * On the row rather than in a separate queue table: the row *is* the unit of
  * work, and a second table would let the two disagree about whether something
@@ -491,7 +491,7 @@ export interface OutboxEventsTable {
 }
 
 /**
- * What a consumer has already applied (0017).
+ * What a consumer has already applied.
  *
  * The idempotency key is the outbox row's own id — a UUIDv7 the producer
  * already generated — rather than a hash of the payload. Two consumers may each
@@ -504,7 +504,7 @@ export interface ProcessedMarkersTable {
 }
 
 /**
- * The single logical scheduler, elected by holding a row (0017).
+ * The single logical scheduler, elected by holding a row.
  *
  * A lease rather than a leader-election service: a second coordination system
  * to decide which replica runs a cron loop is a lot of machinery for a question
@@ -593,7 +593,7 @@ export interface MaterialisedStandingsTable {
 
 /**
  * One folded figure, kept at the granularity its collector declares and
- * attributed to the match it was folded from (0016).
+ * attributed to the match it was folded from.
  *
  * The match is part of the key rather than metadata: a total that cannot be
  * traced to the facts that produced it cannot be recomputed when one of them is
@@ -619,7 +619,7 @@ export interface StatisticTotalsTable {
 
 /**
  * How much of a collector-threshold rule's total each actor has already
- * answered with a firing (0074) — the `since-last-consequence` window's
+ * answered with a firing — the `since-last-consequence` window's
  * durable state, apart from the collector total (`statistic_totals`) it never
  * edits.
  */
@@ -632,8 +632,8 @@ export interface CollectorThresholdConsumptionTable {
 }
 
 /**
- * A number moved by hand or by a script's declaration, recorded as a fact
- * (0016). Folded like any other fact, so a replay reproduces the total.
+ * A number moved by hand or by a script's declaration, recorded as a fact.
+ * Folded like any other fact, so a replay reproduces the total.
  */
 export interface StatisticAdjustmentsTable {
   adjustment_id: string;
@@ -650,7 +650,7 @@ export interface StatisticAdjustmentsTable {
 }
 
 /**
- * Application and lifting of a tag, both recorded (0016).
+ * Application and lifting of a tag, both recorded.
  *
  * There is no update and no delete: "was he suspended when that match was
  * played?" is a question a protest asks months later, and a row that was
@@ -675,7 +675,7 @@ export interface TagFactsTable {
 }
 
 /**
- * Aliases a resource used to answer to (0020).
+ * Aliases a resource used to answer to.
  *
  * Scoped to the organization: two organizations may both have used `apertura`,
  * and resolving one's old alias to the other's tournament hands a spectator
@@ -697,7 +697,7 @@ export interface SchemaVersionTable {
 }
 
 /**
- * One installed community module (0036) — its source (curated or
+ * One installed community module — its source (curated or
  * allow-listed alternate) and which `discipline_descriptors`/
  * `tournament_profiles` row (`document_id`, matching `kind`) it installed.
  */
@@ -733,7 +733,7 @@ export interface ModuleAssetsTable {
 }
 
 /**
- * The object-storage capability's own metadata registry (0041) — one row per
+ * The object-storage capability's own metadata registry — one row per
  * object stored through `@copalibre/object-storage`, pointing at its
  * profile-agnostic storage key. A domain-specific table that already records
  * its own storage reference and status (`report_evidence`, `module_assets`)

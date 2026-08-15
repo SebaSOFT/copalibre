@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 
 /**
- * Every copied component has a notice entry (0022).
+ * Every copied component has a notice entry.
  *
  * Copying a file is how the control app keeps control of its own interaction
  * surface, and it is also how an MIT notice quietly disappears. This makes the

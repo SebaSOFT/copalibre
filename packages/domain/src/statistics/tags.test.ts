@@ -33,7 +33,7 @@ function fact(overrides: Partial<TagFact> = {}): TagFact {
   };
 }
 
-describe('every declaration validated together (0073)', () => {
+describe('every declaration validated together', () => {
   it('accepts distinct codes', () => {
     const result = validateTagDeclarations([declaration(), declaration({ code: 'captain' })]);
     expect(result.ok).toBe(true);

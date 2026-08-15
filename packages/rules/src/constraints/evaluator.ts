@@ -33,7 +33,7 @@ export interface ScriptedConstraintInput {
   /**
    * The proposed assignment: entrants, their attributes, and where this draw
    * would put them. Placed under `state.draw`, and named `context` for the
-   * same reason the guard's is (0013).
+   * same reason the guard's is.
    */
   readonly context: Readonly<Record<string, unknown>>;
 }

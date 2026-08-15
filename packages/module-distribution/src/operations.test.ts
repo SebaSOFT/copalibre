@@ -24,7 +24,7 @@ function installedModule(overrides: Partial<InstalledModule> = {}): InstalledMod
   };
 }
 
-describe('runningCopalibreVersion (0085)', () => {
+describe('runningCopalibreVersion', () => {
   it('reads COPALIBRE_VERSION from the given environment', () => {
     expect(runningCopalibreVersion({ COPALIBRE_VERSION: '1.2.3' })).toBe('1.2.3');
   });
@@ -34,7 +34,7 @@ describe('runningCopalibreVersion (0085)', () => {
   });
 });
 
-describe('allowListedSources (0085)', () => {
+describe('allowListedSources', () => {
   it('parses a comma-separated list, trimming whitespace', () => {
     expect(
       allowListedSources({
@@ -54,7 +54,7 @@ describe('allowListedSources (0085)', () => {
   });
 });
 
-describe('resolveSource (0085)', () => {
+describe('resolveSource', () => {
   it('resolves to the curated repository when no source flag is given', () => {
     expect(resolveSource(undefined, {})).toEqual(CURATED_MODULE_REPOSITORY);
   });
@@ -72,7 +72,7 @@ describe('resolveSource (0085)', () => {
   });
 });
 
-describe('sourceFor (0085)', () => {
+describe('sourceFor', () => {
   it('resolves a curated-sourced module back to the curated repository', () => {
     expect(sourceFor(installedModule({ sourceKind: 'curated' }))).toEqual(
       CURATED_MODULE_REPOSITORY,
@@ -88,7 +88,7 @@ describe('sourceFor (0085)', () => {
   });
 });
 
-describe('latestPerAlias (0085)', () => {
+describe('latestPerAlias', () => {
   it('keeps only the highest semver version installed per alias', () => {
     const older = installedModule({ alias: 'orbital-frisbee', version: '1.0.0' });
     const newer = installedModule({ alias: 'orbital-frisbee', version: '1.2.0' });

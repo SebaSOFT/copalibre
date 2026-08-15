@@ -10,7 +10,7 @@ import type { TournamentFormat } from '../descriptors/discipline-descriptor.js';
 export interface Stage {
   readonly stageId: string;
   /**
-   * The edition this stage belongs to (0015). It was the tournament until then,
+   * The edition this stage belongs to. It was the tournament until then,
    * which is the season collapsed into the competition that repeats — and which
    * made "what did we play in 2025" answerable only by filtering on a name.
    */

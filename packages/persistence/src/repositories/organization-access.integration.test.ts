@@ -212,7 +212,7 @@ describe('organization invitation acceptance (integration)', () => {
   });
 });
 
-describe('listing every organization a principal belongs to (0063)', () => {
+describe('listing every organization a principal belongs to', () => {
   let scratch: ScratchDatabase;
   let orgAlpha: string;
   let orgBeta: string;

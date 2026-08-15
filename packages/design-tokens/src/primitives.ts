@@ -1,5 +1,5 @@
 /**
- * Primitive values (0019). The only place a raw hex appears outside
+ * Primitive values. The only place a raw hex appears outside
  * documentation; everything else names a semantic or component token.
  *
  * Values come from chaos-vault's `copalibre-visual-identity.md`. CopaLibre is

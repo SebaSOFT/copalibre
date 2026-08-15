@@ -1,6 +1,6 @@
 /**
  * Spanish translations, keyed to match `public-messages.en.ts`'s IDs exactly
- * (0055). Reproduces today's pre-extraction wording so the `/es/` variant
+ *. Reproduces today's pre-extraction wording so the `/es/` variant
  * reads exactly as the site did before this change.
  */
 export const messages: Record<string, string> = {

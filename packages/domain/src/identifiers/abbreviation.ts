@@ -2,7 +2,7 @@ import { DomainError } from '../errors.js';
 import { err, ok, type Result } from '../result.js';
 
 /**
- * The short label a constrained surface shows (0037).
+ * The short label a constrained surface shows.
  *
  * A bracket cell has room for four characters, a scoreboard for six, a
  * broadcast lower third for whatever the score left over. None of them fits

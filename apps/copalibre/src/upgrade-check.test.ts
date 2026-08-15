@@ -4,7 +4,7 @@ function installed(alias: string, requiresCopalibre: string) {
   return { alias, version: '1.0.0', requiresCopalibre };
 }
 
-describe('evaluateUpgrade (0045)', () => {
+describe('evaluateUpgrade', () => {
   it('reports no failures and ok:true when every module is compatible', () => {
     const report = evaluateUpgrade(
       '2.5.0',

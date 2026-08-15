@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-/** Wire DTOs are camelCase, per the naming-conventions casing rule (0085). */
+/** Wire DTOs are camelCase, per the naming-conventions casing rule. */
 export class StatisticsRebuildRequest {
   @ApiPropertyOptional({
     description: 'Narrows the rebuild to one tournament within the organization',

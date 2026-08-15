@@ -21,7 +21,7 @@ describe('renderBanner', () => {
   });
 });
 
-describe('readCopalibreVersion (0046)', () => {
+describe('readCopalibreVersion', () => {
   it("matches package.json's current version", () => {
     const manifest = JSON.parse(
       readFileSync(new URL('../package.json', import.meta.url), 'utf8'),

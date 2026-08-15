@@ -23,12 +23,12 @@ const subjects: Record<string, AuthenticatedSubject> = {
 };
 
 /**
- * The authenticated HTTP path for `copalibre module add/list/remove/verify`
- * (0085), against the real curated repository — the same network-dependent
- * precedent `module-commands.integration.test.ts` (0036) already sets for
+ * The authenticated HTTP path for `copalibre module add/list/remove/verify`,
+ * against the real curated repository — the same network-dependent
+ * precedent `module-commands.integration.test.ts` already sets for
  * the direct-database path, exercised here over HTTP instead.
  */
-describe('AdminModulesController (integration, 0085)', () => {
+describe('AdminModulesController (integration)', () => {
   let app: INestApplication;
   let scratch: ScratchDatabase;
 

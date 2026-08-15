@@ -39,7 +39,7 @@ export interface RecordedEvent {
   readonly personId?: string;
   readonly payload: Readonly<Record<string, unknown>>;
   /**
-   * Optional free-text operator note (0075), independent of the discipline
+   * Optional free-text operator note, independent of the discipline
    * and its `payloadSchema` — available on any event, any discipline.
    */
   readonly notes?: string;
@@ -55,7 +55,7 @@ export interface RecordEventInput {
   readonly side?: string;
   readonly personId?: string;
   readonly payload?: Readonly<Record<string, unknown>>;
-  /** Optional free-text operator note (0075), available regardless of discipline. */
+  /** Optional free-text operator note, available regardless of discipline. */
   readonly notes?: string;
   /**
    * The entrants contesting this match. When given, a recorded side must be one

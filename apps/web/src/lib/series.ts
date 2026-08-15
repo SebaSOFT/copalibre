@@ -1,5 +1,5 @@
 /**
- * The series bar (0021): won, current, still to play.
+ * The series bar: won, current, still to play.
  *
  * A best-of-five is five segments whether or not five are played, because a bar
  * that grows as the series goes hides the thing a spectator wants to know —

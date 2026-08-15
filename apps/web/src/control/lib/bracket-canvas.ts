@@ -1,5 +1,5 @@
 /**
- * Bracket canvas geometry (0024).
+ * Bracket canvas geometry.
  *
  * A renderer, not a bracket builder. The structure — which match feeds which,
  * how many rounds a losers' bracket has, whether there is a reset final — is

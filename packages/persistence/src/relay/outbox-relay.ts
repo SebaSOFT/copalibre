@@ -4,7 +4,7 @@ import type { OutboxRecord } from '../outbox.js';
 import type { Database } from '../schema.js';
 
 /**
- * The claim side of the transactional outbox (0017-worker-scheduler-async-jobs).
+ * The claim side of the transactional outbox.
  *
  * `SELECT ... FOR UPDATE SKIP LOCKED` is the whole coordination mechanism: any
  * number of workers may poll, each takes rows nobody else holds, and no broker

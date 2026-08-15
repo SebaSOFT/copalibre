@@ -18,7 +18,7 @@ const realGitProcesses: ProcessRunner = {
   },
 };
 
-describe('scaffoldModule (0049)', () => {
+describe('scaffoldModule', () => {
   it.each(['discipline', 'tournament-profile'] as const)(
     'produces a %s package that passes validateModulePackage unmodified',
     async (kind) => {

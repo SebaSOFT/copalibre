@@ -34,7 +34,7 @@ import type { EvaluationRecord, TraceNode } from '../trace/explanation-trace.js'
 import type { GuardState } from './vocabulary.js';
 
 /**
- * Evaluating a script at a hook (0013-scripting-hook-surface).
+ * Evaluating a script at a hook.
  *
  * The four evaluations that existed before this phase each built a context,
  * executed, and normalised into the trace contract, differing only in what they

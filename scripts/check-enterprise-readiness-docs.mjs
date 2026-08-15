@@ -2,9 +2,8 @@ import { readFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-// Enforces design.md's "Enterprise-ready is an evidence-gated claim,
-// enforced structurally, not just by convention" decision
-// (0035-kubernetes-enterprise-deployment): docs/deployment/
+// Enforces the "Enterprise-ready is an evidence-gated claim, enforced
+// structurally, not just by convention" decision: docs/deployment/
 // enterprise-kubernetes.md must not assert Kubernetes enterprise-readiness
 // without linking a dated, passing evidence report from BOTH the
 // multi-node-failover and backup-restore validations (spec.md's

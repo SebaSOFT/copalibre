@@ -19,8 +19,7 @@ export type ParticipantType = 'individual' | 'team';
  * The formats the engine supports. The decision record's "must not advertise or
  * simulate support for formats outside this list" still holds — the list simply
  * grew, and it grew because the duel-only constraint was always about
- * *advancement* rather than about competition
- * (0011-placement-stage-format).
+ * *advancement* rather than about competition.
  */
 export type TournamentFormat = DuelFormat | PlacementFormat;
 
@@ -116,8 +115,7 @@ export interface DisciplineDescriptor {
   /**
    * Semver. Identifies a release, not a compatibility contract: profiles
    * declare capabilities rather than version ranges, so a new discipline
-   * version never invalidates a profile
-   * (0008-extensible-module-foundation).
+   * version never invalidates a profile.
    */
   readonly version: string;
   readonly name: string | LocalizedLabel;
@@ -129,7 +127,7 @@ export interface DisciplineDescriptor {
   readonly eventDefinitions: readonly EventDefinition[];
   readonly statistics: readonly StatisticDefinition[];
   /**
-   * Declared aggregations over the competition and actor hierarchies (0016).
+   * Declared aggregations over the competition and actor hierarchies.
    * Absent on a descriptor written before collectors existed, which stays valid:
    * a discipline that declares none simply answers no statistic question beyond
    * what a result records.
@@ -144,8 +142,7 @@ export interface DisciplineDescriptor {
   readonly scoringInputs: readonly ScoringInputDefinition[];
   /**
    * Points awarded by finishing position in a placement match, and the code the
-   * award is recorded under. Absent for a discipline that never places
-   * (0011-placement-stage-format).
+   * award is recorded under. Absent for a discipline that never places.
    */
   readonly placementScoring?: {
     /** The declared statistic the points are recorded as. */

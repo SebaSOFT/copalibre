@@ -3,8 +3,7 @@ import type { Database } from '../schema.js';
 import { newId } from '../ids.js';
 
 /**
- * Recurring work, registered by later phases and enqueued by the scheduler
- * (0017).
+ * Recurring work, registered by later phases and enqueued by the scheduler.
  *
  * The scheduler **only enqueues**. It never runs a job, because a scheduler
  * that also executes is a scheduler whose slow job delays every other job's

@@ -1,7 +1,7 @@
 import { defineMessages } from 'react-intl';
 
 /**
- * Every control-panel interface string, keyed by a stable ID (0053). English is the
+ * Every control-panel interface string, keyed by a stable ID. English is the
  * catalog's default/source language — `defaultMessage` here is also what
  * `react-intl` falls back to for any locale missing a translation.
  *

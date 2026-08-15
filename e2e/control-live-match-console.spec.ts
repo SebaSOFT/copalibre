@@ -272,7 +272,7 @@ test('renders clock and declared timer resolution from refreshed authoritative s
   await expect(page.getByText('Sin timers activos.')).toBeVisible();
   await page.reload();
   await page.waitForURL('**/control/login?returnTo=**');
-  // The session is in-memory only (0062) and a reload discards it, same as a
+  // The session is in-memory only and a reload discards it, same as a
   // real browser refresh — log back in to return to this screen so the
   // assertion below is about the persisted match state, not the session.
   await seedLoginTransaction(page, target);
