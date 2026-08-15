@@ -113,6 +113,7 @@ export async function resolveMatchFold(
       events,
       roster,
       actorOf,
+      entrantIds: entrantRows.map((entrant) => entrant.entrantId),
       context,
       definitions: descriptor.eventDefinitions,
       adjustments,

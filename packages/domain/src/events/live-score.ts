@@ -32,11 +32,19 @@ export function foldLiveScores(
         }
       }
 
-      if (effect.kind === 'statistic' && event.side) {
-        const total = totals.get(event.side);
-        if (total) {
-          total.statistics[effect.statisticCode] =
-            (total.statistics[effect.statisticCode] ?? 0) + effect.delta;
+      if (effect.kind === 'statistic') {
+        const awardTo = effect.awardTo ?? 'actor';
+        // A `{ payloadField }` target names a person, not a side — this fold
+        // is side/entrant granularity only, so it has nothing to resolve that
+        // against and skips it, same as an event with no side at all.
+        const recipients =
+          typeof awardTo === 'string' ? scoreRecipients(awardTo, event.side, entrantIds) : [];
+        for (const entrantId of recipients) {
+          const total = totals.get(entrantId);
+          if (total) {
+            total.statistics[effect.statisticCode] =
+              (total.statistics[effect.statisticCode] ?? 0) + effect.delta;
+          }
         }
       }
     }

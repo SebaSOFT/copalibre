@@ -784,6 +784,7 @@ export class CompetitionRepository {
         person_id: event.personId ?? null,
         payload: JSON.stringify(event.payload),
         notes: event.notes ?? null,
+        segment_elapsed_seconds: event.segmentElapsedSeconds ?? null,
         created_at: new Date(),
       })
       .returningAll()

@@ -4729,6 +4729,10 @@
           "notes": {
             "type": "string",
             "description": "Free-text operator note, if one was recorded"
+          },
+          "segmentElapsedSeconds": {
+            "type": "number",
+            "description": "The active segment's running clock when this event was recorded, if timed"
           }
         },
         "required": [

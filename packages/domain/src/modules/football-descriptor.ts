@@ -46,6 +46,12 @@ export function footballDescriptor(
         effects: [
           { kind: 'score', awardTo: 'actor', delta: 1 },
           { kind: 'statistic', statisticCode: 'goals-for', delta: 1 },
+          {
+            kind: 'statistic',
+            statisticCode: 'goals-against',
+            delta: 1,
+            awardTo: 'every-other-side',
+          },
         ],
       },
       {

@@ -181,11 +181,65 @@ describe('discipline descriptor schema', () => {
       expect(withEffect({ kind: 'score', side: 'opponent', delta: 1 }).ok).toBe(false);
     });
 
+    it('accepts a statistic effect declaring awardTo, in every shape', () => {
+      expect(
+        withEffect({ kind: 'statistic', statisticCode: 'fouls', delta: 1, awardTo: 'actor' }).ok,
+      ).toBe(true);
+      expect(
+        withEffect({
+          kind: 'statistic',
+          statisticCode: 'goals-against',
+          delta: 1,
+          awardTo: 'every-other-side',
+        }).ok,
+      ).toBe(true);
+      expect(
+        withEffect({
+          kind: 'statistic',
+          statisticCode: 'assists',
+          delta: 1,
+          awardTo: { payloadField: 'assistedBy' },
+        }).ok,
+      ).toBe(true);
+    });
+
+    it('accepts a tag effect declaring target, but not every-other-side', () => {
+      expect(withEffect({ kind: 'tag', tagCode: 'expelled', action: 'applied' }).ok).toBe(true);
+      expect(
+        withEffect({ kind: 'tag', tagCode: 'expelled', action: 'applied', target: 'actor' }).ok,
+      ).toBe(true);
+      expect(
+        withEffect({
+          kind: 'tag',
+          tagCode: 'eliminated',
+          action: 'applied',
+          target: { payloadField: 'victimId' },
+        }).ok,
+      ).toBe(true);
+    });
+
     it.each([
       ['an unknown kind', { kind: 'summon-var', delta: 1 }],
       ['a score with no recipient', { kind: 'score', delta: 1 }],
       ['a score awarding to nobody named', { kind: 'score', awardTo: 'referee', delta: 1 }],
       ['a statistic naming no code', { kind: 'statistic', delta: 1 }],
+      [
+        'a statistic awardTo naming an empty payload field',
+        { kind: 'statistic', statisticCode: 'assists', delta: 1, awardTo: { payloadField: '' } },
+      ],
+      [
+        'a statistic awardTo of every-other-side spelled as a payload object with an extra member',
+        {
+          kind: 'statistic',
+          statisticCode: 'assists',
+          delta: 1,
+          awardTo: { payloadField: 'x', extra: 1 },
+        },
+      ],
+      [
+        'a tag target of every-other-side, which names no one actor',
+        { kind: 'tag', tagCode: 'expelled', action: 'applied', target: 'every-other-side' },
+      ],
       ['a penalty of no duration', { kind: 'timed-penalty', durationSeconds: 0, affects: 'side' }],
       ['a transition of no name', { kind: 'match-state', transition: '' }],
       ['an effect carrying an undeclared member', { kind: 'match-state', transition: 'x', y: 1 }],
@@ -224,6 +278,32 @@ describe('discipline descriptor schema', () => {
       ]) {
         expect(withCollector({ ...goals, source }).ok).toBe(true);
       }
+    });
+
+    it('accepts an event-sourced collector declaring actorSource, in every shape', () => {
+      for (const actorSource of ['primary', 'every-other-side', { payloadField: 'victimId' }]) {
+        expect(
+          withCollector({
+            ...goals,
+            source: { kind: 'event', definitionCodes: ['strike'], actorSource },
+          }).ok,
+        ).toBe(true);
+      }
+    });
+
+    it('rejects actorSource on a non-event source, and an empty payload field', () => {
+      expect(
+        withCollector({
+          ...goals,
+          source: { kind: 'statistic', statisticCode: 'strikes', actorSource: 'primary' },
+        }).ok,
+      ).toBe(false);
+      expect(
+        withCollector({
+          ...goals,
+          source: { kind: 'event', definitionCodes: ['strike'], actorSource: { payloadField: '' } },
+        }).ok,
+      ).toBe(false);
     });
 
     it('accepts a ceiling, and a measure over a field', () => {

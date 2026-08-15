@@ -43,6 +43,7 @@ const projection: MatchConsoleResponse = {
       actorRequirement: 'side',
       payloadSchema: { type: 'object' },
       display: {},
+      secondaryActorFields: [],
       workflow: {
         kind: 'outcome-choice',
         options: [
@@ -59,6 +60,7 @@ const projection: MatchConsoleResponse = {
       actorRequirement: 'side',
       payloadSchema: { type: 'object', properties: { description: { type: 'string' } } },
       display: {},
+      secondaryActorFields: [],
     },
     {
       code: 'penalty-missed',
@@ -68,6 +70,7 @@ const projection: MatchConsoleResponse = {
       actorRequirement: 'side',
       payloadSchema: { type: 'object' },
       display: {},
+      secondaryActorFields: [],
     },
     {
       code: 'goal',
@@ -77,6 +80,7 @@ const projection: MatchConsoleResponse = {
       actorRequirement: 'side',
       payloadSchema: { type: 'object' },
       display: {},
+      secondaryActorFields: [],
     },
     {
       code: 'technical-warning',
@@ -86,6 +90,7 @@ const projection: MatchConsoleResponse = {
       actorRequirement: 'person-or-staff',
       payloadSchema: { type: 'object' },
       display: {},
+      secondaryActorFields: [],
     },
   ],
   eligiblePersonIds: [],
@@ -240,6 +245,145 @@ describe('MatchConsoleRoute', () => {
 
     expect(requests).toEqual([expect.objectContaining({ notes: 'Confirmado por árbitro' })]);
     expect((screen.getByLabelText('Log note') as HTMLTextAreaElement).value).toBe('');
+  });
+
+  it('shows the timecode badge for an event carrying segmentElapsedSeconds', async () => {
+    const timedProjection: MatchConsoleResponse = {
+      ...projection,
+      events: [{ ...projection.events[0], segmentElapsedSeconds: 754 }],
+    };
+    await act(async () => {
+      render(
+        withIntl(
+          <MatchConsoleRoute
+            client={client({ fetchMatchConsole: async () => timedProjection })}
+            matchId="match-1"
+            organizationAlias="liga"
+            tournamentAlias="apertura"
+          />,
+        ),
+      );
+    });
+
+    expect(
+      screen.getByText(
+        (_text, element) =>
+          element?.tagName === 'STRONG' && element.textContent === 'goal · half 1 · 12:34',
+      ),
+    ).toBeDefined();
+  });
+
+  it('omits the timecode badge for an event with no segmentElapsedSeconds', async () => {
+    await act(async () => {
+      render(
+        withIntl(
+          <MatchConsoleRoute
+            client={client()}
+            matchId="match-1"
+            organizationAlias="liga"
+            tournamentAlias="apertura"
+          />,
+        ),
+      );
+    });
+
+    expect(
+      screen.getByText(
+        (_text, element) =>
+          element?.tagName === 'STRONG' && element.textContent === 'goal · half 1',
+      ),
+    ).toBeDefined();
+  });
+
+  it('sends a secondary actor selection under its declared payload field', async () => {
+    const projectionWithSecondaryField: MatchConsoleResponse = {
+      ...projection,
+      eventDefinitions: [
+        {
+          ...projection.eventDefinitions[3],
+          secondaryActorFields: ['assistedBy'],
+        },
+      ],
+      eligiblePersonIds: ['person-scorer', 'person-assist'],
+    };
+    const requests: unknown[] = [];
+    await act(async () => {
+      render(
+        withIntl(
+          <MatchConsoleRoute
+            client={client({
+              fetchMatchConsole: async () => projectionWithSecondaryField,
+              recordMatchEvent: async (_organization, _tournament, _match, request) => {
+                requests.push(request);
+                return {
+                  eventId: 'event-2',
+                  definitionCode: request.definitionCode,
+                  sequence: 2,
+                  notifications: [],
+                };
+              },
+            })}
+            matchId="match-1"
+            organizationAlias="liga"
+            tournamentAlias="apertura"
+          />,
+        ),
+      );
+    });
+
+    fireEvent.change(screen.getByLabelText('assistedBy'), {
+      target: { value: 'person-assist' },
+    });
+    await act(async () => {
+      fireEvent.click(screen.getAllByRole('button', { name: 'Gol' })[0] as HTMLButtonElement);
+    });
+
+    expect(requests).toEqual([
+      expect.objectContaining({ payload: { assistedBy: 'person-assist' } }),
+    ]);
+  });
+
+  it('omits the secondary actor payload field when nothing is selected', async () => {
+    const projectionWithSecondaryField: MatchConsoleResponse = {
+      ...projection,
+      eventDefinitions: [
+        {
+          ...projection.eventDefinitions[3],
+          secondaryActorFields: ['assistedBy'],
+        },
+      ],
+      eligiblePersonIds: ['person-scorer', 'person-assist'],
+    };
+    const requests: unknown[] = [];
+    await act(async () => {
+      render(
+        withIntl(
+          <MatchConsoleRoute
+            client={client({
+              fetchMatchConsole: async () => projectionWithSecondaryField,
+              recordMatchEvent: async (_organization, _tournament, _match, request) => {
+                requests.push(request);
+                return {
+                  eventId: 'event-2',
+                  definitionCode: request.definitionCode,
+                  sequence: 2,
+                  notifications: [],
+                };
+              },
+            })}
+            matchId="match-1"
+            organizationAlias="liga"
+            tournamentAlias="apertura"
+          />,
+        ),
+      );
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getAllByRole('button', { name: 'Gol' })[0] as HTMLButtonElement);
+    });
+
+    expect(requests).toEqual([expect.not.objectContaining({ payload: expect.anything() })]);
   });
 
   it("resolves a locale-map event label to the viewer's interface language", async () => {

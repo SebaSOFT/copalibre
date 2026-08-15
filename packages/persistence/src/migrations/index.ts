@@ -24,6 +24,7 @@ import { nativeIdentity } from './0013-native-identity.js';
 import { matchEventNotes } from './0014-match-event-notes.js';
 import { collectorThresholdConsumption } from './0015-collector-threshold-consumption.js';
 import { resultReasonBackfill } from './0016-result-reason-backfill.js';
+import { matchEventSegmentElapsedSeconds } from './0017-match-event-segment-elapsed-seconds.js';
 
 /**
  * Migrations are explicit, ordered, and code-defined (no filesystem scanning),
@@ -48,6 +49,7 @@ export const MIGRATIONS: Readonly<Record<string, Migration>> = {
   '0014-match-event-notes': matchEventNotes,
   '0015-collector-threshold-consumption': collectorThresholdConsumption,
   '0016-result-reason-backfill': resultReasonBackfill,
+  '0017-match-event-segment-elapsed-seconds': matchEventSegmentElapsedSeconds,
 };
 
 /** The version `apps/api`'s readiness check expects to find applied. */

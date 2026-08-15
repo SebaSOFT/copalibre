@@ -121,6 +121,119 @@ describe('validateModulePackage', () => {
     }
   });
 
+  it('accepts an event effect awarding to a payload field the event declares', async () => {
+    const directory = await makeModuleDirectory(
+      validManifest(),
+      validDisciplineDocument({
+        eventDefinitions: [
+          {
+            code: 'goal',
+            label: 'Goal',
+            category: 'positive',
+            permittedSegmentTypes: ['half'],
+            actorRequirement: 'person',
+            payloadSchema: { type: 'object', properties: { assistedBy: { type: 'string' } } },
+            effects: [
+              {
+                kind: 'statistic',
+                statisticCode: 'assists',
+                delta: 1,
+                awardTo: { payloadField: 'assistedBy' },
+              },
+            ],
+          },
+        ],
+        statistics: [
+          { code: 'points', label: 'Points', aggregation: 'sum' },
+          { code: 'assists', label: 'Assists', aggregation: 'sum' },
+        ],
+      }),
+    );
+    directories.push(directory);
+
+    const result = await validateModulePackage(directory, OPTIONS);
+    expect(result.ok).toBe(true);
+  });
+
+  it('rejects an event effect awarding to a payload field the event does not declare', async () => {
+    const directory = await makeModuleDirectory(
+      validManifest(),
+      validDisciplineDocument({
+        eventDefinitions: [
+          {
+            code: 'goal',
+            label: 'Goal',
+            category: 'positive',
+            permittedSegmentTypes: ['half'],
+            actorRequirement: 'person',
+            payloadSchema: { type: 'object' },
+            effects: [
+              {
+                kind: 'statistic',
+                statisticCode: 'assists',
+                delta: 1,
+                awardTo: { payloadField: 'assistedBy' },
+              },
+            ],
+          },
+        ],
+        statistics: [
+          { code: 'points', label: 'Points', aggregation: 'sum' },
+          { code: 'assists', label: 'Assists', aggregation: 'sum' },
+        ],
+      }),
+    );
+    directories.push(directory);
+
+    const result = await validateModulePackage(directory, OPTIONS);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.failures.some((failure) => failure.stage === 'payload-field-reference')).toBe(
+        true,
+      );
+    }
+  });
+
+  it('rejects a collector extracting its actor from a payload field the watched event does not declare', async () => {
+    const directory = await makeModuleDirectory(
+      validManifest(),
+      validDisciplineDocument({
+        eventDefinitions: [
+          {
+            code: 'kill',
+            label: 'Kill',
+            category: 'positive',
+            permittedSegmentTypes: ['half'],
+            actorRequirement: 'person',
+            payloadSchema: { type: 'object' },
+          },
+        ],
+        collectors: [
+          {
+            code: 'deaths',
+            label: 'Deaths',
+            source: {
+              kind: 'event',
+              definitionCodes: ['kill'],
+              actorSource: { payloadField: 'victimId' },
+            },
+            measure: { kind: 'count' },
+            granularity: { actor: 'person', competition: 'match' },
+          },
+        ],
+      }),
+    );
+    directories.push(directory);
+
+    const result = await validateModulePackage(directory, OPTIONS);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.failures.some((failure) => failure.stage === 'payload-field-reference')).toBe(
+        true,
+      );
+    }
+  });
+
   it('rejects a module reserved by the first-party catalogue', async () => {
     const directory = await makeModuleDirectory(
       validManifest({ alias: 'football' }),

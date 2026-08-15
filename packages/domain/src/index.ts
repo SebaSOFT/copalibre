@@ -89,6 +89,8 @@ export type {
   EventEffect,
   EventWorkflow,
   EventDefinition,
+  ScoreAward,
+  TargetAttribution,
 } from './descriptors/event-definition.js';
 export {
   MVP_FORMATS,
@@ -162,6 +164,7 @@ export {
   CollectorError,
   type StatisticCollector,
   type CollectorSource,
+  type CollectorActorSource,
   type CollectorMeasure,
   type CollectorGranularity,
   type CollectorCadence,

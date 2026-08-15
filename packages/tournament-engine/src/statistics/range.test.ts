@@ -97,6 +97,7 @@ function fold(events: readonly RecordedEvent[]) {
     ],
     actorOf: (entrantId) =>
       entrantId === 'en-home' ? HOME : entrantId === 'en-away' ? AWAY : undefined,
+    entrantIds: ['en-home', 'en-away'],
     context: CONTEXT,
   });
 }
@@ -177,6 +178,7 @@ describe('the same collectors under a deliberately unlike discipline', () => {
       ],
       actorOf: (entrantId) =>
         entrantId === 'en-a' ? SWIMMER : entrantId === 'en-b' ? RIVAL : undefined,
+      entrantIds: ['en-a', 'en-b'],
       context: CONTEXT,
     });
 
@@ -205,6 +207,7 @@ describe('the same collectors under a deliberately unlike discipline', () => {
       events: [event(1, 'score', 'en-a', 'sw-1')],
       roster: [],
       actorOf: () => SWIMMER,
+      entrantIds: ['en-a'],
       context: CONTEXT,
     });
 

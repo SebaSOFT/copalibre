@@ -96,6 +96,28 @@ describe('an event may carry an optional note', () => {
   });
 });
 
+describe('an event may carry a snapshot of the active segment clock', () => {
+  it('records segmentElapsedSeconds when the caller supplies one', () => {
+    const log = new EventLog(fixtureDescriptor());
+
+    const result = log.record(strikeInput({ segmentElapsedSeconds: 842 }));
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.segmentElapsedSeconds).toBe(842);
+  });
+
+  it('leaves segmentElapsedSeconds absent for a non-timed segment, which never supplies one', () => {
+    const log = new EventLog(fixtureDescriptor());
+
+    const result = log.record(strikeInput());
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.segmentElapsedSeconds).toBeUndefined();
+  });
+});
+
 describe('EventLog', () => {
   it('records a valid event and assigns a monotonic sequence', () => {
     const log = new EventLog(fixtureDescriptor());

@@ -33,6 +33,20 @@ const COLLECTORS: readonly StatisticCollector[] = [
     measure: { kind: 'count' },
     granularity: { actor: 'person', competition: 'match' },
   },
+  // 0090: a payload-field-targeted collector — proves backfilling historical
+  // multi-actor events (recorded before this collector existed) resolves the
+  // attribution correctly and reproducibly, not just newly-recorded ones.
+  {
+    code: 'assists',
+    label: 'Assists',
+    source: {
+      kind: 'event',
+      definitionCodes: ['goal'],
+      actorSource: { payloadField: 'assistedBy' },
+    },
+    measure: { kind: 'count' },
+    granularity: { actor: 'person', competition: 'match' },
+  },
 ];
 
 describe('copalibre statistics-rebuild (integration, 0082)', () => {
@@ -40,6 +54,7 @@ describe('copalibre statistics-rebuild (integration, 0082)', () => {
   let db: Kysely<Database>;
   let organizationAlias: string;
   let personId: string;
+  let personAssist: string;
 
   beforeAll(async () => {
     scratch = await createMigratedDatabase('statistics-rebuild-cli');
@@ -87,6 +102,19 @@ describe('copalibre statistics-rebuild (integration, 0082)', () => {
       personId = person.personId;
       await persons.enlist(uow, {
         personId,
+        teamId: norte.teamId,
+        role: 'player',
+        organizationId,
+        ...AUDIT,
+      });
+      const { person: assistPerson } = await persons.register(uow, {
+        organizationId,
+        displayName: 'Jugador Rebuild (assist)',
+        ...AUDIT,
+      });
+      personAssist = assistPerson.personId;
+      await persons.enlist(uow, {
+        personId: personAssist,
         teamId: norte.teamId,
         role: 'player',
         organizationId,
@@ -144,7 +172,7 @@ describe('copalibre statistics-rebuild (integration, 0082)', () => {
           .values({
             match_id: match.matchId,
             entrant_id: homeEntrant.entrantId,
-            person_ids: JSON.stringify([personId]),
+            person_ids: JSON.stringify([personId, personAssist]),
             updated_at: new Date(),
           })
           .execute();
@@ -157,7 +185,10 @@ describe('copalibre statistics-rebuild (integration, 0082)', () => {
             occurredAt: new Date().toISOString(),
             side: homeEntrant.entrantId,
             personId,
-            payload: {},
+            // Round 1's goal carries a historical assist, recorded before any
+            // collector ever read `assistedBy` — exactly what "backfilling"
+            // means: the data was always there, nothing was there to fold it.
+            payload: round === 1 ? { assistedBy: personAssist } : {},
           },
           sequence: 1,
           organizationId,
@@ -203,8 +234,19 @@ describe('copalibre statistics-rebuild (integration, 0082)', () => {
       .execute();
 
     expect(afterFirst.length).toBeGreaterThan(0);
-    expect(afterFirst.every((row) => row.collector_code === 'goals')).toBe(true);
-    expect(afterFirst.reduce((total, row) => total + Number(row.value), 0)).toBe(2);
+    expect(
+      afterFirst.every((row) => row.collector_code === 'goals' || row.collector_code === 'assists'),
+    ).toBe(true);
+    expect(
+      afterFirst
+        .filter((row) => row.collector_code === 'goals')
+        .reduce((total, row) => total + Number(row.value), 0),
+    ).toBe(2);
+    // The historical assist on round 1's goal, backfilled by a rebuild that
+    // runs long after the event was recorded — proves the payload-field
+    // attribution resolves the same way whether folded live or backfilled.
+    const assistRows = afterFirst.filter((row) => row.collector_code === 'assists');
+    expect(assistRows).toEqual([expect.objectContaining({ actor_id: personAssist, value: 1 })]);
 
     const second = await runStatisticsRebuild(db, { organization: organizationAlias });
     expect(second.matches).toBe(2);

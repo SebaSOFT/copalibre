@@ -7,6 +7,7 @@ import {
   validateTournamentProfileDocument,
   type DisciplineDescriptor,
   type DisciplineDescriptorDocument,
+  type PayloadJsonSchema,
   type TournamentProfileDocument,
 } from '@copalibre/domain';
 import { loadDefaultModuleCatalogue } from '@copalibre/module-catalogue';
@@ -132,6 +133,10 @@ export async function validateModulePackage(
       failures.push({ stage: 'collectors', message: collectors.error.message });
     }
 
+    for (const message of validatePayloadFieldReferences(descriptor)) {
+      failures.push({ stage: 'payload-field-reference', message });
+    }
+
     // No override layer exists yet for a bare descriptor — compileEffectiveRuleset
     // only produces a violation while applying one — so neither branch below is
     // reachable via any input this function can construct today. Run anyway so a
@@ -223,4 +228,68 @@ export async function validateModulePackageOrThrow(
 
 function fieldFrom(details: Record<string, unknown> | undefined): string | undefined {
   return typeof details?.field === 'string' ? details.field : undefined;
+}
+
+/**
+ * An `awardTo`/`target`/`actorSource` naming `{ payloadField }` is only
+ * resolvable if the event that produces the fact actually declares that
+ * property — the ajv schema checks the shape (0090's descriptor-schema.ts
+ * change), not whether the name means anything. An effect's own event
+ * definition is unambiguous; a collector's `actorSource` is checked against
+ * every event `definitionCodes` names (a collector watching more than one
+ * event must have the field on all of them), and skipped when
+ * `definitionCodes` is absent — there is no bounded set of schemas to check
+ * a collector watching every event in the discipline against.
+ */
+function validatePayloadFieldReferences(descriptor: DisciplineDescriptor): readonly string[] {
+  const messages: string[] = [];
+
+  for (const definition of descriptor.eventDefinitions) {
+    for (const effect of definition.effects ?? []) {
+      if (effect.kind === 'statistic' && typeof effect.awardTo === 'object') {
+        if (!declaresProperty(definition.payloadSchema, effect.awardTo.payloadField)) {
+          messages.push(
+            `Event "${definition.code}"'s statistic effect for "${effect.statisticCode}" ` +
+              `awards to payload field "${effect.awardTo.payloadField}", which its own ` +
+              'payloadSchema does not declare',
+          );
+        }
+      }
+      if (effect.kind === 'tag' && typeof effect.target === 'object') {
+        if (!declaresProperty(definition.payloadSchema, effect.target.payloadField)) {
+          messages.push(
+            `Event "${definition.code}"'s tag effect for "${effect.tagCode}" targets payload ` +
+              `field "${effect.target.payloadField}", which its own payloadSchema does not declare`,
+          );
+        }
+      }
+    }
+  }
+
+  const definitionsByCode = new Map(
+    descriptor.eventDefinitions.map((definition) => [definition.code, definition]),
+  );
+  for (const collector of descriptor.collectors ?? []) {
+    if (collector.source.kind !== 'event' || typeof collector.source.actorSource !== 'object') {
+      continue;
+    }
+    const payloadField = collector.source.actorSource.payloadField;
+    for (const code of collector.source.definitionCodes ?? []) {
+      const definition = definitionsByCode.get(code);
+      // An unregistered event code is already reported by validateCollectors.
+      if (definition && !declaresProperty(definition.payloadSchema, payloadField)) {
+        messages.push(
+          `Collector "${collector.code}" extracts its actor from payload field ` +
+            `"${payloadField}", which event "${code}"'s payloadSchema does not declare`,
+        );
+      }
+    }
+  }
+
+  return messages;
+}
+
+function declaresProperty(schema: PayloadJsonSchema, field: string): boolean {
+  const properties = (schema as { properties?: unknown }).properties;
+  return typeof properties === 'object' && properties !== null && field in properties;
 }

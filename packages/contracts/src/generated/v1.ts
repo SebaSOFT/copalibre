@@ -1509,6 +1509,8 @@ export interface components {
             personId?: string;
             /** @description Free-text operator note, if one was recorded */
             notes?: string;
+            /** @description The active segment's running clock when this event was recorded, if timed */
+            segmentElapsedSeconds?: number;
         };
         MatchConsoleResponse: {
             /** Format: uuid */

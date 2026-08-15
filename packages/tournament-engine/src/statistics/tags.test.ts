@@ -177,3 +177,64 @@ describe('a discipline can label from a recorded event', () => {
     expect(facts({ scope: undefined })).toEqual([]);
   });
 });
+
+describe('a tag effect targeting a payload-named actor', () => {
+  const victimTagged = [
+    {
+      code: 'kill',
+      label: 'Kill',
+      category: 'positive',
+      actorRequirement: 'person',
+      payloadSchema: { type: 'object', properties: { victimId: { type: 'string' } } },
+      effects: [
+        {
+          kind: 'tag',
+          tagCode: 'eliminated',
+          action: 'applied',
+          target: { payloadField: 'victimId' },
+        },
+      ],
+    },
+  ] as unknown as readonly EventDefinition[];
+  const eliminated: TagDeclaration = {
+    code: 'eliminated',
+    label: 'Eliminated',
+    appliesTo: ['person'],
+  };
+
+  it('labels the person named in the payload, not the primary actor', () => {
+    const produced = tagFactsFrom({
+      declarations: [eliminated],
+      events: [
+        event({
+          sequence: 1,
+          definitionCode: 'kill',
+          side: 'en-atlas',
+          personId: 'pe-1',
+          payload: { victimId: 'pe-9' },
+        }),
+      ],
+      definitions: victimTagged,
+      actorOf: (entrantId) => (entrantId === 'en-atlas' ? ATLAS : undefined),
+      context: CONTEXT,
+      scope: 'match',
+    });
+
+    expect(produced).toEqual([
+      expect.objectContaining({ code: 'eliminated', actorId: 'pe-9', action: 'applied' }),
+    ]);
+  });
+
+  it('produces nothing when the named payload field is absent', () => {
+    const produced = tagFactsFrom({
+      declarations: [eliminated],
+      events: [event({ sequence: 1, definitionCode: 'kill', side: 'en-atlas', personId: 'pe-1' })],
+      definitions: victimTagged,
+      actorOf: (entrantId) => (entrantId === 'en-atlas' ? ATLAS : undefined),
+      context: CONTEXT,
+      scope: 'match',
+    });
+
+    expect(produced).toEqual([]);
+  });
+});

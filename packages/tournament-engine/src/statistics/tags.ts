@@ -53,9 +53,18 @@ export function tagFactsFrom(input: TagEventInput): readonly TagFact[] {
       // the fact anyway would put a label on somebody that nothing defines.
       if (!declaration) continue;
 
-      const actor = event.side === undefined ? undefined : input.actorOf(event.side);
-      const personId = event.personId ?? actor?.personId;
-      if (personId === undefined && actor === undefined) continue;
+      // A `{ payloadField }` target names a person directly — a tag applied to
+      // `payload.victimId` has nothing to do with who caused the event, so it
+      // skips the actor/side resolution entirely. `'actor'` (the default) is
+      // the pre-existing behavior, unchanged.
+      const target = effect.target ?? 'actor';
+      const actor =
+        target === 'actor' && event.side !== undefined ? input.actorOf(event.side) : undefined;
+      const personId =
+        target === 'actor'
+          ? (event.personId ?? actor?.personId)
+          : asString(event.payload[target.payloadField]);
+      if (personId === undefined) continue;
 
       const granularity = declaration.appliesTo[0];
       if (granularity === undefined) continue;
@@ -83,6 +92,10 @@ export function tagFactsFrom(input: TagEventInput): readonly TagFact[] {
   }
 
   return facts;
+}
+
+function asString(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined;
 }
 
 function actorIdAt(

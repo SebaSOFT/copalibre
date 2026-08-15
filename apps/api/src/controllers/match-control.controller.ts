@@ -29,6 +29,7 @@ import {
   planCorrection,
   runningTimers,
   type DisciplineDescriptor,
+  type EventDefinition,
   type MatchCommand,
   type RecordedEvent,
   type RunningTimer,
@@ -549,6 +550,15 @@ export class MatchControlController {
       );
     }
 
+    // Only a timed segment (SegmentTypeDefinition.timed) has a running clock
+    // to snapshot — a tennis set, for instance, does not.
+    const segmentType = descriptor.segmentTypes.find(
+      (candidate) => candidate.name === segment.type,
+    );
+    const segmentElapsedSeconds = segmentType?.timed
+      ? elapsedSecondsOf(segment, Date.now())
+      : undefined;
+
     const validated = new EventLog(descriptor).record({
       eventId: crypto.randomUUID(),
       matchId,
@@ -559,6 +569,7 @@ export class MatchControlController {
       ...(body.personId === undefined ? {} : { personId: body.personId }),
       ...(body.payload === undefined ? {} : { payload: body.payload }),
       ...(body.notes === undefined ? {} : { notes: body.notes }),
+      ...(segmentElapsedSeconds === undefined ? {} : { segmentElapsedSeconds }),
       entrantIds,
     });
     if (!validated.ok) {
@@ -1027,6 +1038,9 @@ export class MatchControlController {
         ...(event.side === undefined ? {} : { side: event.side }),
         ...(event.personId === undefined ? {} : { personId: event.personId }),
         ...(event.notes === undefined ? {} : { notes: event.notes }),
+        ...(event.segmentElapsedSeconds === undefined
+          ? {}
+          : { segmentElapsedSeconds: event.segmentElapsedSeconds }),
       })),
       eventDefinitions: descriptor.eventDefinitions.map((definition) => ({
         code: definition.code,
@@ -1036,6 +1050,7 @@ export class MatchControlController {
         actorRequirement: definition.actorRequirement,
         payloadSchema: { ...definition.payloadSchema },
         display: definition.display ? { ...definition.display } : {},
+        secondaryActorFields: secondaryActorFieldsOf(definition),
         ...(definition.workflow === undefined
           ? {}
           : {
@@ -1135,6 +1150,25 @@ function toTimerDto(timer: RunningTimer) {
     durationSeconds: timer.durationSeconds,
     remainingSeconds: timer.remainingSeconds,
   };
+}
+
+/**
+ * Which payload fields a console must prompt for as a secondary person
+ * selection — read from the definition's own `awardTo`/`target` effects
+ * rather than guessed from `payloadSchema`'s property types, since a
+ * free-text field (`reason`) is a string too but names nobody.
+ */
+function secondaryActorFieldsOf(definition: EventDefinition): string[] {
+  const fields = new Set<string>();
+  for (const effect of definition.effects ?? []) {
+    if (effect.kind === 'statistic' && typeof effect.awardTo === 'object') {
+      fields.add(effect.awardTo.payloadField);
+    }
+    if (effect.kind === 'tag' && typeof effect.target === 'object') {
+      fields.add(effect.target.payloadField);
+    }
+  }
+  return [...fields];
 }
 
 function elapsedSecondsOf(
