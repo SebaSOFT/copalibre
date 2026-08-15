@@ -48,7 +48,9 @@ file, unchanged.
 ### Requirement: copalibre administrative CLI
 The release SHALL provide a `copalibre` CLI with `init`, `doctor`, `dev`, `dev --hybrid`, `start`,
 `migrate`, `create-admin`, `login`, `statistics-rebuild`, `backup`, `restore`, `upgrade-check`, and
-`mcp` subcommands. Every invocation SHALL print a startup banner identifying the product, its version, and
+`mcp` subcommands, distributed both as a standalone executable (downloadable via a documented install
+script, one per supported OS/architecture) and as source runnable from a checkout — the two SHALL
+behave identically for every subcommand. Every invocation SHALL print a startup banner identifying the product, its version, and
 its license before running the requested subcommand, and that banner SHALL be written to a stream that
 never mixes with a subcommand's own stdout output. Running `copalibre --help`/`-h` with no subcommand
 SHALL list every subcommand with a one-line summary, and running `copalibre <subcommand> --help`/`-h`
@@ -171,6 +173,16 @@ SHALL operate over a direct database connection.
   `copalibre statistics-rebuild --organization <alias>` with `DATABASE_URL` unset
 - **THEN** the rebuild completes over the authenticated HTTP call, identically to the direct-database
   path's result for the same input
+
+#### Scenario: The standalone binary requires no local Node.js installation
+- **WHEN** an operator installs `copalibre` via the documented install script on a machine with no
+  Node.js, Yarn, or any CopaLibre source present
+- **THEN** every subcommand documented in this requirement runs successfully
+
+#### Scenario: The standalone binary and a source checkout behave identically
+- **WHEN** the same subcommand and flags are run once via the standalone binary and once via `node
+  dist/main.js` from a checkout, against the same target installation
+- **THEN** both produce the same output and the same exit code
 
 ### Requirement: Module management subcommands
 The `copalibre` CLI SHALL provide `module add`, `module list`, `module remove`, `module verify`,
