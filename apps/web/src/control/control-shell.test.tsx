@@ -159,6 +159,8 @@ describe('the control routes', () => {
       events: [],
       eventDefinitions: [],
       eligiblePersonIds: [],
+      rosters: [],
+      rosterRoles: [],
       eligibleStaffIds: [],
       entrantIds: [],
       capabilities: [],

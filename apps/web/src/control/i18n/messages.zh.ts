@@ -133,6 +133,12 @@ export const messages: Record<string, string> = {
   'control.matchConsole.viewers': '观众数',
   'control.matchConsole.uptime': '正常运行时间',
   'control.matchConsole.unavailable': '不可用',
+  'control.matchConsole.jerseyGridLabel': '球衣网格',
+  'control.matchConsole.onField': '场上',
+  'control.matchConsole.bench': '替补席',
+  'control.matchConsole.goalkeeperBadge': '守门员',
+  'control.matchConsole.captainBadge': '队长',
+  'control.matchConsole.sentOff': '被罚下',
 
   'control.registration.loading': '正在加载报名...',
   'control.registration.loadFailed': '无法加载报名。',

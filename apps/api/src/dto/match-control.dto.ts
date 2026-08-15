@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import type { ResultReason } from '@copalibre/domain';
+import type { LocalizedLabel, ResultReason } from '@copalibre/domain';
 
 /**
  * Match-control wire shapes.
@@ -94,6 +94,56 @@ export class ConsoleEventResponse {
   segmentElapsedSeconds?: number;
 }
 
+export class ConsoleRosterMemberResponse {
+  @ApiProperty({ format: 'uuid' })
+  personId!: string;
+
+  @ApiPropertyOptional({ description: 'Shirt number; not always numeric (e.g. "00", "7B")' })
+  number?: number | string;
+
+  @ApiProperty()
+  name!: string;
+
+  @ApiPropertyOptional({
+    type: [String],
+    description:
+      'Codes naming discipline-declared roster roles (see `rosterRoles`) this member ' +
+      'carries — zero, one, or several, independently combinable',
+  })
+  roles?: string[];
+
+  @ApiProperty({
+    description:
+      'Whether currently in play, resolved by folding recorded substitution events over the ' +
+      "roster's starting state",
+  })
+  onField!: boolean;
+}
+
+export class ConsoleRosterResponse {
+  @ApiProperty({ format: 'uuid' })
+  entrantId!: string;
+
+  @ApiProperty({ type: [ConsoleRosterMemberResponse] })
+  members!: ConsoleRosterMemberResponse[];
+}
+
+export class ConsoleRosterRoleResponse {
+  @ApiProperty({
+    description: 'Stable code, referenced by a `ConsoleRosterMemberResponse.roles` entry',
+  })
+  code!: string;
+
+  @ApiProperty()
+  label!: string | LocalizedLabel;
+
+  @ApiPropertyOptional({
+    description:
+      "Short tactile-console badge text, e.g. 'GK', 'C'. Falls back to `code` when absent",
+  })
+  badge?: string;
+}
+
 export class ConsoleLiveScoreResponse {
   @ApiProperty({ format: 'uuid' })
   entrantId!: string;
@@ -136,6 +186,22 @@ export class MatchConsoleResponse {
     description: 'Persons eligible for attribution from active match rosters',
   })
   eligiblePersonIds!: string[];
+
+  @ApiProperty({
+    type: [ConsoleRosterResponse],
+    description:
+      'Structured roster membership per entrant, with on-field state resolved from substitution ' +
+      'history. An entrant whose roster predates structured metadata falls back to bare ' +
+      'person id/name pairs, all on-field, with no jersey number or tactical role',
+  })
+  rosters!: ConsoleRosterResponse[];
+
+  @ApiProperty({
+    type: [ConsoleRosterRoleResponse],
+    description:
+      "The bound discipline's declared roster roles — a member's `roles` codes name these",
+  })
+  rosterRoles!: ConsoleRosterRoleResponse[];
 
   @ApiProperty({
     type: [String],

@@ -355,6 +355,23 @@ export const messages = defineMessages({
     defaultMessage: 'Unavailable',
   },
 
+  // JerseyGrid.tsx
+  matchConsoleJerseyGridLabel: {
+    id: 'control.matchConsole.jerseyGridLabel',
+    defaultMessage: 'Jersey grid',
+  },
+  matchConsoleOnField: { id: 'control.matchConsole.onField', defaultMessage: 'On field' },
+  matchConsoleBench: { id: 'control.matchConsole.bench', defaultMessage: 'Bench' },
+  matchConsoleGoalkeeperBadge: {
+    id: 'control.matchConsole.goalkeeperBadge',
+    defaultMessage: 'Goalkeeper',
+  },
+  matchConsoleCaptainBadge: {
+    id: 'control.matchConsole.captainBadge',
+    defaultMessage: 'Captain',
+  },
+  matchConsoleSentOff: { id: 'control.matchConsole.sentOff', defaultMessage: 'Sent off' },
+
   // RegistrationReviewRoute.tsx
   registrationLoading: {
     id: 'control.registration.loading',

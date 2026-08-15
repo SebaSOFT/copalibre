@@ -107,6 +107,7 @@ export {
   type StatisticDefinition,
   type PlacementPoints,
   type ScoringInputDefinition,
+  type RosterRoleDeclaration,
   type DisciplineDescriptor,
   type DisciplineDescriptorDocument,
   type RuleScript,
@@ -275,6 +276,7 @@ export {
   type TimerEventCodes,
 } from './aggregates/match-operations.js';
 export { foldLiveScores, type LiveScore } from './events/live-score.js';
+export { foldRosterLineup, soleMemberWithRole } from './events/roster-lineup.js';
 export {
   authorizeMatchCommand,
   validateAssignment,
@@ -408,6 +410,8 @@ export type {
   MatchResult,
   Match,
   Segment,
+  MatchRosterMember,
+  MatchRoster,
 } from './aggregates/competition.js';
 
 export {

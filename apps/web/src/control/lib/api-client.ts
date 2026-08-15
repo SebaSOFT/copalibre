@@ -385,6 +385,35 @@ export interface ConsoleLiveScore {
   readonly statistics: Readonly<Record<string, number>>;
 }
 
+export interface ConsoleRosterMember {
+  readonly personId: string;
+  /** Shirt number; not always numeric (e.g. '00', '7B'). */
+  readonly number?: number | string;
+  readonly name: string;
+  /**
+   * Codes naming discipline-declared roster roles (see `rosterRoles` on
+   * `MatchConsoleResponse`) this member carries — zero, one, or several,
+   * independently combinable. Never a closed set here: which roles exist
+   * is entirely the bound discipline's to declare.
+   */
+  readonly roles?: readonly string[];
+  /** Resolved by folding recorded substitution events over the roster's starting state. */
+  readonly onField: boolean;
+}
+
+export interface ConsoleRoster {
+  readonly entrantId: string;
+  readonly members: readonly ConsoleRosterMember[];
+}
+
+export interface ConsoleRosterRole {
+  /** Referenced by a `ConsoleRosterMember.roles` entry. */
+  readonly code: string;
+  readonly label: string | LocalizedLabel;
+  /** Short tactile-console badge text, e.g. 'GK', 'C'. Falls back to `code` when absent. */
+  readonly badge?: string;
+}
+
 export interface MatchConsoleResponse {
   readonly matchId: string;
   readonly status: 'scheduled' | 'in-progress' | 'finalized';
@@ -395,6 +424,8 @@ export interface MatchConsoleResponse {
   readonly events: readonly ConsoleMatchEvent[];
   readonly eventDefinitions: readonly ConsoleEventDefinition[];
   readonly eligiblePersonIds: readonly string[];
+  readonly rosters: readonly ConsoleRoster[];
+  readonly rosterRoles: readonly ConsoleRosterRole[];
   readonly eligibleStaffIds: readonly string[];
   readonly entrantIds: readonly string[];
   readonly capabilities: readonly MatchCapability[];

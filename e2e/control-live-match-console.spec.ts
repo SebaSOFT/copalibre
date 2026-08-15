@@ -49,6 +49,7 @@ function projection(input: { readonly capabilities?: readonly string[] } = {}) {
         actorRequirement: 'side',
         payloadSchema: { type: 'object' },
         display: {},
+        secondaryActorFields: [],
       },
       {
         code: 'penalty',
@@ -58,6 +59,7 @@ function projection(input: { readonly capabilities?: readonly string[] } = {}) {
         actorRequirement: 'side',
         payloadSchema: { type: 'object' },
         display: {},
+        secondaryActorFields: [],
         workflow: {
           kind: 'outcome-choice',
           options: [
@@ -74,6 +76,7 @@ function projection(input: { readonly capabilities?: readonly string[] } = {}) {
         actorRequirement: 'side',
         payloadSchema: { type: 'object' },
         display: {},
+        secondaryActorFields: [],
       },
       {
         code: 'penalty-missed',
@@ -83,9 +86,12 @@ function projection(input: { readonly capabilities?: readonly string[] } = {}) {
         actorRequirement: 'side',
         payloadSchema: { type: 'object' },
         display: {},
+        secondaryActorFields: [],
       },
     ],
     eligiblePersonIds: [],
+    rosters: [],
+    rosterRoles: [],
     eligibleStaffIds: [],
     entrantIds: ['entrant-a', 'entrant-b'],
     capabilities: input.capabilities ?? [

@@ -81,6 +81,20 @@ export type EventEffect =
       readonly action: 'applied' | 'lifted';
       /** Absent means `'actor'`. `'every-other-side'` is not a tag target — a tag labels one actor, not a side's whole roster. */
       readonly target?: 'actor' | { readonly payloadField: string };
+    }
+  /**
+   * Snapshots the person currently on-field for `side` carrying the
+   * discipline-declared roster role `role` (see `RosterRoleDeclaration`)
+   * into `payloadField`, at recording time — the same auto-snapshot pattern
+   * `segmentElapsedSeconds` establishes for the segment clock. Left absent
+   * from the recorded payload when zero or more than one on-field member
+   * on that side currently carries the role: nothing here guesses.
+   */
+  | {
+      readonly kind: 'roster-role-snapshot';
+      readonly payloadField: string;
+      readonly role: string;
+      readonly side: ScoreAward;
     };
 
 export interface EventDefinition {
@@ -99,6 +113,16 @@ export interface EventDefinition {
   readonly payloadSchema: PayloadJsonSchema;
   /** Explicit effects; empty/omitted means recording it changes nothing derived. */
   readonly effects?: readonly EventEffect[];
+  /**
+   * Payload fields that name a person but carry no behavioral effect of
+   * their own — a substitution's `playerOutId`/`playerInId`, say — so a
+   * console still knows to prompt for a person there, the same as it would
+   * for an `awardTo`/`target`-declared field, without inventing a fake
+   * effect just to get UI attention. Both must already be declared in
+   * `payloadSchema.properties` (checked the same way an `awardTo`/`target`
+   * payload field already is).
+   */
+  readonly personPayloadFields?: readonly string[];
   /** Optional data-driven branch a console resolves before recording a final fact. */
   readonly workflow?: EventWorkflow;
   /** Presentation metadata for consoles/public surfaces — never behavior. */

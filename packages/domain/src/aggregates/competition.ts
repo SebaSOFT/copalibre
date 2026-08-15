@@ -79,3 +79,37 @@ export interface Segment {
   /** Present only while this segment's authoritative clock is running. */
   readonly clockStartedAt?: string;
 }
+
+/** A person named to a match's roster for one entrant, tactile-console-facing. */
+export interface MatchRosterMember {
+  readonly personId: string;
+  /** Shirt number; not always numeric (e.g. '00', '7B'). */
+  readonly number?: number | string;
+  readonly name: string;
+  /**
+   * Codes naming discipline-declared `RosterRoleDeclaration`s this member
+   * carries this match — a goalkeeper, a captain, a designated hitter.
+   * Never a closed enum here: which roles exist and what they mean is the
+   * discipline's to declare (`DisciplineDescriptor.rosterRoles`), the same
+   * way an event or statistic code is. Zero, one, or several — nothing here
+   * is mutually exclusive unless the discipline's own rules make it so.
+   * Distinct from `PlayerRole` (person.ts), which names a person's
+   * season-long team membership rather than a tactical designation for one
+   * match.
+   */
+  readonly roles?: readonly string[];
+  /**
+   * Whether this member is currently in play. Seeded at roster creation from
+   * starter/substitute status, then kept current by folding `substitution`
+   * events — the single source of truth for who can be tactile-targeted
+   * right now, so nothing needs a separate starter/substitute classification
+   * that could drift from it after a substitution.
+   */
+  readonly onField: boolean;
+}
+
+export interface MatchRoster {
+  readonly matchId: string;
+  readonly entrantId: string;
+  readonly members: readonly MatchRosterMember[];
+}

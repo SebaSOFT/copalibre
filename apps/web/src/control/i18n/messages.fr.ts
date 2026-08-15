@@ -134,6 +134,12 @@ export const messages: Record<string, string> = {
   'control.matchConsole.viewers': 'Spectateurs',
   'control.matchConsole.uptime': 'Disponibilité',
   'control.matchConsole.unavailable': 'Indisponible',
+  'control.matchConsole.jerseyGridLabel': 'Grille des maillots',
+  'control.matchConsole.onField': 'Sur le terrain',
+  'control.matchConsole.bench': 'Banc',
+  'control.matchConsole.goalkeeperBadge': 'Gardien',
+  'control.matchConsole.captainBadge': 'Capitaine',
+  'control.matchConsole.sentOff': 'Expulsé',
 
   'control.registration.loading': 'Chargement des inscriptions...',
   'control.registration.loadFailed': 'Impossible de charger les inscriptions.',

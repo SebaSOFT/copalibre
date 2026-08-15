@@ -266,6 +266,163 @@ describe('validateModulePackage', () => {
     }
   });
 
+  it('accepts a roster-role-snapshot effect writing a declared field and naming a declared role', async () => {
+    const directory = await makeModuleDirectory(
+      validManifest(),
+      validDisciplineDocument({
+        eventDefinitions: [
+          {
+            code: 'goal',
+            label: 'Goal',
+            category: 'positive',
+            permittedSegmentTypes: ['half'],
+            actorRequirement: 'person',
+            payloadSchema: { type: 'object', properties: { goalkeeperId: { type: 'string' } } },
+            effects: [
+              {
+                kind: 'roster-role-snapshot',
+                payloadField: 'goalkeeperId',
+                role: 'goalkeeper',
+                side: 'every-other-side',
+              },
+            ],
+          },
+        ],
+        rosterRoles: [{ code: 'goalkeeper', label: 'Goalkeeper' }],
+      }),
+    );
+    directories.push(directory);
+
+    const result = await validateModulePackage(directory, OPTIONS);
+    expect(result.ok).toBe(true);
+  });
+
+  it('rejects a roster-role-snapshot effect writing a payload field the event does not declare', async () => {
+    const directory = await makeModuleDirectory(
+      validManifest(),
+      validDisciplineDocument({
+        eventDefinitions: [
+          {
+            code: 'goal',
+            label: 'Goal',
+            category: 'positive',
+            permittedSegmentTypes: ['half'],
+            actorRequirement: 'person',
+            payloadSchema: { type: 'object' },
+            effects: [
+              {
+                kind: 'roster-role-snapshot',
+                payloadField: 'goalkeeperId',
+                role: 'goalkeeper',
+                side: 'every-other-side',
+              },
+            ],
+          },
+        ],
+        rosterRoles: [{ code: 'goalkeeper', label: 'Goalkeeper' }],
+      }),
+    );
+    directories.push(directory);
+
+    const result = await validateModulePackage(directory, OPTIONS);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.failures.some((failure) => failure.stage === 'payload-field-reference')).toBe(
+        true,
+      );
+    }
+  });
+
+  it('rejects a roster-role-snapshot effect naming a role the discipline does not declare', async () => {
+    const directory = await makeModuleDirectory(
+      validManifest(),
+      validDisciplineDocument({
+        eventDefinitions: [
+          {
+            code: 'goal',
+            label: 'Goal',
+            category: 'positive',
+            permittedSegmentTypes: ['half'],
+            actorRequirement: 'person',
+            payloadSchema: { type: 'object', properties: { goalkeeperId: { type: 'string' } } },
+            effects: [
+              {
+                kind: 'roster-role-snapshot',
+                payloadField: 'goalkeeperId',
+                role: 'goalkeeper',
+                side: 'every-other-side',
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    directories.push(directory);
+
+    const result = await validateModulePackage(directory, OPTIONS);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.failures.some((failure) => failure.stage === 'payload-field-reference')).toBe(
+        true,
+      );
+    }
+  });
+
+  it('accepts personPayloadFields naming payload properties the event declares', async () => {
+    const directory = await makeModuleDirectory(
+      validManifest(),
+      validDisciplineDocument({
+        eventDefinitions: [
+          {
+            code: 'substitution',
+            label: 'Substitution',
+            category: 'neutral',
+            permittedSegmentTypes: ['half'],
+            actorRequirement: 'side',
+            payloadSchema: {
+              type: 'object',
+              properties: { playerOutId: { type: 'string' }, playerInId: { type: 'string' } },
+              required: ['playerOutId', 'playerInId'],
+            },
+            personPayloadFields: ['playerOutId', 'playerInId'],
+          },
+        ],
+      }),
+    );
+    directories.push(directory);
+
+    const result = await validateModulePackage(directory, OPTIONS);
+    expect(result.ok).toBe(true);
+  });
+
+  it('rejects personPayloadFields naming a payload property the event does not declare', async () => {
+    const directory = await makeModuleDirectory(
+      validManifest(),
+      validDisciplineDocument({
+        eventDefinitions: [
+          {
+            code: 'substitution',
+            label: 'Substitution',
+            category: 'neutral',
+            permittedSegmentTypes: ['half'],
+            actorRequirement: 'side',
+            payloadSchema: { type: 'object' },
+            personPayloadFields: ['playerOutId'],
+          },
+        ],
+      }),
+    );
+    directories.push(directory);
+
+    const result = await validateModulePackage(directory, OPTIONS);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.failures.some((failure) => failure.stage === 'payload-field-reference')).toBe(
+        true,
+      );
+    }
+  });
+
   it('accepts a non-event-sourced collector and a string actorSource, neither needing a payload field check', async () => {
     const directory = await makeModuleDirectory(
       validManifest(),

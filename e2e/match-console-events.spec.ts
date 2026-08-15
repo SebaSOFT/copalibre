@@ -52,6 +52,17 @@ function projection() {
       },
     ],
     eligiblePersonIds: ['person-scorer', 'person-assist'],
+    rosters: [
+      {
+        entrantId: 'entrant-a',
+        members: [
+          { personId: 'person-scorer', name: 'Scorer', onField: true },
+          { personId: 'person-assist', name: 'Assist', onField: true },
+        ],
+      },
+      { entrantId: 'entrant-b', members: [] },
+    ],
+    rosterRoles: [],
     eligibleStaffIds: [],
     entrantIds: ['entrant-a', 'entrant-b'],
     capabilities: ['match.record-event', 'match.control-clock', 'match.finalize'],
@@ -144,12 +155,15 @@ test('records a secondary target actor selection, shows the timecode, and update
   page,
 }) => {
   await mockMatchConsole(page);
-  await seedLoginTransaction(page);
+  await seedLoginTransaction(
+    page,
+    `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`,
+  );
   await page.goto(loginCallbackUrl());
 
-  await page.getByLabel('Participant').selectOption('entrant-a');
-  await page.getByLabel('Person').selectOption('person-scorer');
-  await page.getByLabel('assistedBy').selectOption('person-assist');
+  await page.getByRole('button', { name: 'Scorer', exact: true }).click();
+  await page.getByRole('button', { name: 'assistedBy', exact: true }).click();
+  await page.getByRole('button', { name: 'Assist', exact: true }).click();
   await page.getByRole('button', { name: 'Gol', exact: true }).click();
 
   const requests = await capturedRequests(page);

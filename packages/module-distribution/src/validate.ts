@@ -263,6 +263,28 @@ function validatePayloadFieldReferences(descriptor: DisciplineDescriptor): reado
           );
         }
       }
+      if (effect.kind === 'roster-role-snapshot') {
+        if (!declaresProperty(definition.payloadSchema, effect.payloadField)) {
+          messages.push(
+            `Event "${definition.code}"'s roster-role-snapshot effect writes payload field ` +
+              `"${effect.payloadField}", which its own payloadSchema does not declare`,
+          );
+        }
+        if (!(descriptor.rosterRoles ?? []).some((role) => role.code === effect.role)) {
+          messages.push(
+            `Event "${definition.code}"'s roster-role-snapshot effect names role ` +
+              `"${effect.role}", which this discipline does not declare in rosterRoles`,
+          );
+        }
+      }
+    }
+    for (const field of definition.personPayloadFields ?? []) {
+      if (!declaresProperty(definition.payloadSchema, field)) {
+        messages.push(
+          `Event "${definition.code}"'s personPayloadFields names "${field}", which its own ` +
+            'payloadSchema does not declare',
+        );
+      }
     }
   }
 

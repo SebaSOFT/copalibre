@@ -26,11 +26,14 @@ import {
   applyMatchCommand,
   EventLog,
   foldLiveScores,
+  foldRosterLineup,
   planCorrection,
   runningTimers,
+  soleMemberWithRole,
   type DisciplineDescriptor,
   type EventDefinition,
   type MatchCommand,
+  type MatchRoster,
   type RecordedEvent,
   type RunningTimer,
   type StatisticCollector,
@@ -505,10 +508,10 @@ export class MatchControlController {
     const segment = segments.find((candidate) => candidate.segmentId === body.segmentId);
     if (!segment) throw new NotFoundException(`No segment "${body.segmentId}" in this match`);
 
-    const [rosters, fixture, descriptor] = await Promise.all([
+    const [rosters, fixture, descriptor, priorEvents] = await Promise.all([
       this.db
         .selectFrom('match_rosters')
-        .select('person_ids')
+        .select(['entrant_id', 'person_ids', 'roster_members'])
         .where('match_id', '=', matchId)
         .execute(),
       this.db
@@ -518,6 +521,7 @@ export class MatchControlController {
         .where('matches.match_id', '=', matchId)
         .executeTakeFirst(),
       this.descriptorFor(organizationAlias, tournamentAlias),
+      competition.listEvents(matchId),
     ]);
     const entrantIds = [fixture?.home_entrant_id, fixture?.away_entrant_id].filter(
       (entrantId): entrantId is string => entrantId !== null && entrantId !== undefined,
@@ -559,6 +563,23 @@ export class MatchControlController {
       ? elapsedSecondsOf(segment, Date.now())
       : undefined;
 
+    // An event never asks the operator who currently holds a roster role for
+    // a side (a goalkeeper, or whatever else a discipline declares) — it is
+    // derived from the roster and the substitution history, the same
+    // auto-snapshot pattern `segmentElapsedSeconds` already establishes.
+    const rosterRoleSnapshots = rosterRoleSnapshotPayload(
+      matchId,
+      definition,
+      body.side,
+      entrantIds,
+      rosters,
+      priorEvents,
+    );
+    const payload =
+      Object.keys(rosterRoleSnapshots).length === 0
+        ? body.payload
+        : { ...rosterRoleSnapshots, ...body.payload };
+
     const validated = new EventLog(descriptor).record({
       eventId: crypto.randomUUID(),
       matchId,
@@ -567,7 +588,7 @@ export class MatchControlController {
       occurredAt: new Date(body.occurredAt).toISOString(),
       ...(body.side === undefined ? {} : { side: body.side }),
       ...(body.personId === undefined ? {} : { personId: body.personId }),
-      ...(body.payload === undefined ? {} : { payload: body.payload }),
+      ...(payload === undefined ? {} : { payload }),
       ...(body.notes === undefined ? {} : { notes: body.notes }),
       ...(segmentElapsedSeconds === undefined ? {} : { segmentElapsedSeconds }),
       entrantIds,
@@ -989,7 +1010,7 @@ export class MatchControlController {
         }),
         this.db
           .selectFrom('match_rosters')
-          .select('person_ids')
+          .select(['entrant_id', 'person_ids', 'roster_members'])
           .where('match_id', '=', matchId)
           .execute(),
         this.db
@@ -1000,6 +1021,7 @@ export class MatchControlController {
           .executeTakeFirst(),
         new ProjectionStore(this.db).versionOf('match-console', matchId),
       ]);
+    const rosterNames = await this.rosterMemberNames(rosters);
     const capabilities = [...new Set(assignments.flatMap((assignment) => assignment.capabilities))];
     if (capabilities.length === 0) {
       throw new ForbiddenException('Subject holds no match-control capability for this match');
@@ -1063,6 +1085,24 @@ export class MatchControlController {
       eligiblePersonIds: [
         ...new Set(rosters.flatMap((roster) => roster.person_ids as readonly string[])),
       ],
+      rosters: rosters.map((roster) => ({
+        entrantId: roster.entrant_id,
+        members: foldRosterLineup(
+          initialRosterOf(matchId, roster, rosterNames),
+          events,
+        ).members.map((member) => ({
+          personId: member.personId,
+          ...(member.number === undefined ? {} : { number: member.number }),
+          name: member.name,
+          ...(member.roles === undefined ? {} : { roles: [...member.roles] }),
+          onField: member.onField,
+        })),
+      })),
+      rosterRoles: (descriptor.rosterRoles ?? []).map((role) => ({
+        code: role.code,
+        label: role.label,
+        ...(role.badge === undefined ? {} : { badge: role.badge }),
+      })),
       eligibleStaffIds: [...eligibleStaffIds],
       entrantIds,
       capabilities,
@@ -1088,6 +1128,27 @@ export class MatchControlController {
       .where('role', 'in', ['coach', 'staff'])
       .execute();
     return new Set(staff.map((member) => member.person_id));
+  }
+
+  /**
+   * `display_name` for every person on a roster recorded before structured
+   * `roster_members` existed — a structured roster already carries its own
+   * `name` per member and needs no lookup.
+   */
+  private async rosterMemberNames(
+    rosters: readonly { readonly person_ids: unknown; readonly roster_members: unknown }[],
+  ): Promise<ReadonlyMap<string, string>> {
+    const legacyPersonIds = rosters
+      .filter((roster) => roster.roster_members === null)
+      .flatMap((roster) => roster.person_ids as readonly string[]);
+    if (legacyPersonIds.length === 0) return new Map();
+
+    const rows = await this.db
+      .selectFrom('persons')
+      .select(['person_id', 'display_name'])
+      .where('person_id', 'in', [...new Set(legacyPersonIds)])
+      .execute();
+    return new Map(rows.map((row) => [row.person_id, row.display_name]));
   }
 
   private async stageOf(matchId: string): Promise<string> {
@@ -1154,12 +1215,16 @@ function toTimerDto(timer: RunningTimer) {
 
 /**
  * Which payload fields a console must prompt for as a secondary person
- * selection — read from the definition's own `awardTo`/`target` effects
- * rather than guessed from `payloadSchema`'s property types, since a
- * free-text field (`reason`) is a string too but names nobody.
+ * selection — read from the definition's own `awardTo`/`target` effects and
+ * its declared `personPayloadFields`, rather than guessed from
+ * `payloadSchema`'s property types, since a free-text field (`reason`) is a
+ * string too but names nobody. `personPayloadFields` covers a field that
+ * names a person but carries no behavioral effect of its own — a
+ * substitution's `playerOutId`/`playerInId`, say — which an `awardTo`/
+ * `target` effect has nothing to attach to.
  */
 function secondaryActorFieldsOf(definition: EventDefinition): string[] {
-  const fields = new Set<string>();
+  const fields = new Set<string>(definition.personPayloadFields ?? []);
   for (const effect of definition.effects ?? []) {
     if (effect.kind === 'statistic' && typeof effect.awardTo === 'object') {
       fields.add(effect.awardTo.payloadField);
@@ -1169,6 +1234,93 @@ function secondaryActorFieldsOf(definition: EventDefinition): string[] {
     }
   }
   return [...fields];
+}
+
+type RosterMemberRow = {
+  readonly personId: string;
+  readonly number?: number | string;
+  readonly name: string;
+  /** Codes naming discipline-declared `RosterRoleDeclaration`s — never a closed enum. */
+  readonly roles?: readonly string[];
+  readonly onField: boolean;
+};
+
+type RosterRow = {
+  readonly entrant_id: string;
+  readonly person_ids: readonly string[];
+  readonly roster_members: readonly RosterMemberRow[] | null;
+};
+
+/**
+ * One entrant's roster before folding substitution history: structured
+ * members as stored, or — for a roster recorded before `roster_members`
+ * existed — bare id/name pairs with everyone on-field, since no starter/
+ * substitute distinction was ever captured for it. A legacy roster (`null`)
+ * has no `roles` on any member, so a `roster-role-snapshot` effect
+ * correctly resolves nothing for it rather than guessing.
+ */
+function initialRosterOf(
+  matchId: string,
+  roster: RosterRow,
+  legacyNames: ReadonlyMap<string, string>,
+): MatchRoster {
+  const members: readonly RosterMemberRow[] =
+    roster.roster_members ??
+    roster.person_ids.map((personId) => ({
+      personId,
+      name: legacyNames.get(personId) ?? personId,
+      onField: true,
+    }));
+  return { matchId, entrantId: roster.entrant_id, members };
+}
+
+/**
+ * Which entrants a `ScoreAward` ('actor' | 'every-other-side') resolves to —
+ * the same vocabulary and semantics `foldLiveScores`'s `scoreRecipients`
+ * already establishes for score effects, reused here for roster-role
+ * resolution.
+ */
+function scoreAwardEntrantIds(
+  awardTo: 'actor' | 'every-other-side',
+  side: string | undefined,
+  entrantIds: readonly string[],
+): readonly string[] {
+  if (side === undefined) return [];
+  return awardTo === 'actor' ? [side] : entrantIds.filter((entrantId) => entrantId !== side);
+}
+
+/**
+ * Every `payloadField` a `roster-role-snapshot` effect on this event
+ * definition resolves to, from the roster and substitution history — the
+ * generic form of "who currently holds role X for side Y", not specific to
+ * football or to a goalkeeper. A field is present only when exactly one
+ * on-field member across every entrant `side` resolves to matches the
+ * declared role; otherwise nothing here guesses.
+ */
+function rosterRoleSnapshotPayload(
+  matchId: string,
+  definition: EventDefinition | undefined,
+  side: string | undefined,
+  entrantIds: readonly string[],
+  rosters: readonly RosterRow[],
+  events: readonly RecordedEvent[],
+): Record<string, string> {
+  const payload: Record<string, string> = {};
+  for (const effect of definition?.effects ?? []) {
+    if (effect.kind !== 'roster-role-snapshot') continue;
+    const candidates = scoreAwardEntrantIds(effect.side, side, entrantIds)
+      .map((entrantId) => rosters.find((roster) => roster.entrant_id === entrantId))
+      .filter((roster): roster is RosterRow => roster !== undefined)
+      .map((roster) =>
+        soleMemberWithRole(
+          foldRosterLineup(initialRosterOf(matchId, roster, new Map()), events),
+          effect.role,
+        ),
+      )
+      .filter((personId): personId is string => personId !== undefined);
+    if (candidates.length === 1) payload[effect.payloadField] = candidates[0] as string;
+  }
+  return payload;
 }
 
 function elapsedSecondsOf(

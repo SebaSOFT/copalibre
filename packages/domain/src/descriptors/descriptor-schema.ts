@@ -235,6 +235,7 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
           actorRequirement: { enum: ['none', 'side', 'person', 'person-or-staff'] },
           payloadSchema: { type: 'object' },
           effects: { type: 'array', items: { $ref: '#/definitions/eventEffect' } },
+          personPayloadFields: { type: 'array', items: { type: 'string', minLength: 1 } },
           workflow: { $ref: '#/definitions/eventWorkflow' },
         },
       },
@@ -316,6 +317,24 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
      * `validateDisciplineDescriptorDocument`.
      */
     tags: { type: 'array', items: { $ref: '#/definitions/tagDeclaration' } },
+    // Which roster roles exist, and their badge, is entirely the discipline's
+    // to declare — never a core-hardcoded enum. Codes are unique for the same
+    // reason a statistic code is: a `MatchRosterMember.roles` entry and a
+    // `roster-role-snapshot` effect's `role` both resolve by exact match.
+    rosterRoles: {
+      type: 'array',
+      uniqueItemProperties: ['code'],
+      items: {
+        type: 'object',
+        required: ['code', 'label'],
+        additionalProperties: false,
+        properties: {
+          code: { type: 'string', minLength: 1 },
+          label: LOCALIZED_LABEL_SCHEMA,
+          badge: { type: 'string', minLength: 1 },
+        },
+      },
+    },
     notificationRuleCapabilities: { type: 'array', items: { type: 'string', minLength: 1 } },
     winCondition: { $ref: RULE_SCRIPT_SCHEMA_ID },
     uiMetadata: { type: 'object' },
@@ -590,6 +609,16 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
                 },
               ],
             },
+          },
+        },
+        {
+          additionalProperties: false,
+          required: ['kind', 'payloadField', 'role', 'side'],
+          properties: {
+            kind: { const: 'roster-role-snapshot' },
+            payloadField: { type: 'string', minLength: 1 },
+            role: { type: 'string', minLength: 1 },
+            side: { enum: ['actor', 'every-other-side'] },
           },
         },
       ],
