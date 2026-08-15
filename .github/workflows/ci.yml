@@ -362,7 +362,7 @@ jobs:
       # verifies the schema before reporting success — named separately so a
       # reviewer finds this capability's own signal directly, matching the
       # precedent set for tv-surfaces (0031) onward.
-      - run: yarn workspace @copalibre/copalibre test --testPathPatterns 'backup-packet|backup\.test|cli-runner'
+      - run: yarn workspace @copalibre/copalibre test --testPathPatterns 'backup-packet|backup\.test|cli\.test'
       # copalibre mcp (0047): a local stdio MCP server exposing installation
       # actions in-process and a curated set of tournament-operational
       # actions gated behind an explicit token — named separately so a
