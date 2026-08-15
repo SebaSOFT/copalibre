@@ -227,6 +227,10 @@ export function renderTopLevelHelp(): string {
     'Commands:',
     ...COMMAND_HELP.map((command) => `  ${command.name.padEnd(14)}${command.summary}`),
     '',
+    'Global options:',
+    '  --help, -h    Show this help (also accepted after any command)',
+    '  --version     Print the installed version',
+    '',
     "Run 'copalibre <command> --help' for details on a specific command.",
   ];
   return `${lines.join('\n')}\n`;

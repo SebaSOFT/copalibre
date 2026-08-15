@@ -50,6 +50,11 @@ jobs:
     runs-on: ${{ matrix.runs-on }}
     steps:
       - uses: actions/checkout@v4
+      # windows-latest's bundled Corepack doesn't override the runner image's
+      # pre-installed classic Yarn 1.x shim, so `setup-node`'s own yarn-cache
+      # probe still finds 1.x and refuses (this project pins yarn@4 via
+      # `packageManager`) — a current Corepack does override it correctly.
+      - run: npm install -g corepack@latest
       - run: corepack enable
       - uses: actions/setup-node@v4
         with:

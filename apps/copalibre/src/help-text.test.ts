@@ -69,6 +69,10 @@ describe('renderTopLevelHelp', () => {
       expect(rendered).toContain(command.name);
     }
   });
+
+  it('documents the global --version flag', () => {
+    expect(renderTopLevelHelp()).toContain('--version');
+  });
 });
 
 describe('renderCommandHelp', () => {
