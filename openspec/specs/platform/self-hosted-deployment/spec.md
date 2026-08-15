@@ -184,6 +184,46 @@ SHALL operate over a direct database connection.
   dist/main.js` from a checkout, against the same target installation
 - **THEN** both produce the same output and the same exit code
 
+### Requirement: Kubernetes instance mode
+
+`copalibre init --kubernetes` SHALL scaffold a Helm `values.yaml` and record an installation marker
+identifying the target release, namespace, and (optionally) kube-context, without writing a Compose
+file or `.env` — Kubernetes' own Secret/ConfigMap mechanism stays authoritative for installation
+configuration. `statistics-rebuild` and `module` subcommands run from a directory with a
+Kubernetes-mode marker SHALL operate over the same authenticated HTTP surface Compose-mode instances
+use once a stored login credential exists for that directory, never from cluster introspection.
+`doctor`, `migrate`, `backup`, and `restore` SHALL refuse for a Kubernetes-mode marker rather than
+attempting a Compose-shaped action, naming the existing Helm Job or documented mechanism to use
+instead where one exists. The Helm chart SHALL provide a one-shot `create-admin` Job, matching the
+existing `doctor`/`migrate` Jobs' pattern, so installation bootstrap does not require `kubectl exec`
+into a running pod.
+
+#### Scenario: init --kubernetes records an installation without a Compose file
+- **WHEN** `copalibre init --kubernetes --namespace <ns> --release <name>` is run in an empty
+  directory
+- **THEN** it writes a `values.yaml` scaffold and an installation marker recording the namespace and
+  release, and writes no `docker-compose.yml` or `.env`
+
+#### Scenario: Admin operations work identically against a Kubernetes instance
+- **WHEN** an operator has run `copalibre login` against a Kubernetes-hosted installation's public API
+  URL and then runs `copalibre statistics-rebuild --organization <alias>`
+- **THEN** the rebuild completes over the authenticated HTTP call, with no `kubectl` access or
+  cluster-local execution involved
+
+#### Scenario: create-admin runs as a one-shot cluster Job
+- **WHEN** an operator enables the chart's `create-admin` Job against a fresh Kubernetes installation
+  with no existing organization
+- **THEN** the Job completes successfully, creating exactly one administrator account, without the
+  operator needing `kubectl exec` into any running pod
+
+#### Scenario: doctor, migrate, backup, and restore are not offered through the CLI for Kubernetes instances
+- **WHEN** `copalibre doctor`, `copalibre migrate`, `copalibre backup`, or `copalibre restore` is run
+  from a directory with a Kubernetes-mode marker
+- **THEN** the CLI refuses rather than attempting a Compose-shaped action against a Kubernetes
+  target — `doctor` and `migrate` name the existing Helm Job to use instead
+  (`job-doctor.yaml`/`job-migrate.yaml`); `backup` and `restore` state plainly that no CLI or
+  Helm-based equivalent exists yet
+
 ### Requirement: Module management subcommands
 The `copalibre` CLI SHALL provide `module add`, `module list`, `module remove`, `module verify`,
 `module scaffold`, and `module validate-local`. Running `copalibre module --help`/`-h` SHALL list
