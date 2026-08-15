@@ -23,7 +23,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const packageRoot = join(here, '..');
 const repoRoot = join(packageRoot, '..', '..');
 
-/** Names match the release-asset naming this project settled on (0086's design.md). */
+/** Names match this project's release-asset naming. */
 export const TARGETS = {
   'linux-x86_64': { nodePlatform: 'linux', nodeArch: 'x64', archiveExt: 'tar.gz' },
   'linux-arm64': { nodePlatform: 'linux', nodeArch: 'arm64', archiveExt: 'tar.gz' },

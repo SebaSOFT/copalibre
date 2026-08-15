@@ -6,9 +6,9 @@ import { requireComposeTarget } from '../compose-target.js';
 export class StartCommand extends Command<CliContext> {
   static override paths = [['start']];
 
-  // `start` takes no options of its own (unchanged from before 0086) — the
-  // proxy exists only so stray trailing arguments don't trip clipanion's own
-  // "unknown option" validation, matching the original's silent no-op.
+  // `start` takes no options of its own — the proxy exists only so stray
+  // trailing arguments are silently ignored rather than tripping clipanion's
+  // own "unknown option" validation.
   args = Option.Proxy();
 
   async execute(): Promise<number> {
