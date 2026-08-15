@@ -75,6 +75,13 @@ jobs:
           apps\copalibre\dist\binaries\copalibre-${{ matrix.target }}.exe --version
           apps\copalibre\dist\binaries\copalibre-${{ matrix.target }}.exe --help
 
+      # binary.integration.test.ts skips itself unless it finds a binary at
+      # dist/binaries/copalibre-<this-runner's-own-target> — true only for the
+      # three `smoke: native` matrix entries, so this step is a real parity
+      # check there and a fast no-op everywhere else.
+      - name: Binary/node parity tests
+        run: yarn workspace @copalibre/copalibre run test:integration --testPathPatterns=binary
+
       - uses: docker/setup-qemu-action@v3
         if: matrix.smoke == 'qemu'
       - name: Smoke test (QEMU-emulated)
