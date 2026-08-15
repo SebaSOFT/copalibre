@@ -71,15 +71,27 @@ function defaultAssetsDir(): string {
   return join(dirname(fileURLToPath(import.meta.url)), 'assets');
 }
 
+export interface ReadAssetDependencies {
+  readonly isSea?: () => boolean;
+  readonly getAsset?: (key: string, encoding: string) => string;
+}
+
 /**
  * Reads one of the embedded compose assets: `sea.getAsset()` when running as
  * a packaged single-executable binary (the asset is bundled into the binary
  * itself, `build-binary.mjs`'s SEA config), otherwise a plain read from
  * `assetsDir` — the `node dist/main.js` and test cases, where `assetsDir`
- * always has these files on disk.
+ * always has these files on disk. Exported so both branches are directly
+ * unit-testable without mocking the `node:sea` module.
  */
-async function readAsset(name: string, assetsDir?: string): Promise<string> {
-  if (isSea()) return getAsset(name, 'utf8');
+export async function readAsset(
+  name: string,
+  assetsDir?: string,
+  dependencies: ReadAssetDependencies = {},
+): Promise<string> {
+  const isSeaFunction = dependencies.isSea ?? isSea;
+  const getAssetFunction = dependencies.getAsset ?? getAsset;
+  if (isSeaFunction()) return getAssetFunction(name, 'utf8');
   return readFile(join(assetsDir ?? defaultAssetsDir(), name), 'utf8');
 }
 

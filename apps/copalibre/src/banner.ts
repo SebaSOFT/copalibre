@@ -19,6 +19,11 @@ interface PackageManifest {
   readonly license: string;
 }
 
+export interface ReadPackageManifestDependencies {
+  readonly isSea?: () => boolean;
+  readonly getAsset?: (key: string, encoding: string) => string;
+}
+
 /**
  * Reads `apps/copalibre/package.json`: `sea.getAsset()` when running as a
  * packaged single-executable binary (`import.meta.url` isn't meaningful once
@@ -26,10 +31,18 @@ interface PackageManifest {
  * as an asset), otherwise `fs.readFileSync` against the real file —
  * `dist/` sits one level under `apps/copalibre/`, the same depth as `src/`,
  * so the same relative path resolves correctly from both `src/banner.ts`
- * under ts-jest and the compiled `dist/banner.js`.
+ * under ts-jest and the compiled `dist/banner.js`. Exported (unlike
+ * `renderBanner`/`readCopalibreVersion`, which stay zero-argument) so both
+ * branches are directly unit-testable without mocking the `node:sea` module.
  */
-function readPackageManifest(): PackageManifest {
-  if (isSea()) return JSON.parse(getAsset('package.json', 'utf8')) as PackageManifest;
+export function readPackageManifest(
+  dependencies: ReadPackageManifestDependencies = {},
+): PackageManifest {
+  const isSeaFunction = dependencies.isSea ?? isSea;
+  const getAssetFunction = dependencies.getAsset ?? getAsset;
+  if (isSeaFunction()) {
+    return JSON.parse(getAssetFunction('package.json', 'utf8')) as PackageManifest;
+  }
   const packageJsonUrl = new URL('../package.json', import.meta.url);
   const raw = readFileSync(packageJsonUrl, 'utf8');
   return JSON.parse(raw) as PackageManifest;

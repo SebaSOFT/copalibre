@@ -1,7 +1,7 @@
 import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { formatRequiredSecrets, writeInstallationAssets, writeLocalDefaults } from './init.js';
+import { formatRequiredSecrets, readAsset, writeInstallationAssets, writeLocalDefaults } from './init.js';
 
 describe('copalibre init', () => {
   it('writes only non-secret defaults into a new local file', async () => {
@@ -75,5 +75,24 @@ describe('writeInstallationAssets (0084)', () => {
     await writeInstallationAssets(cwd, { assetsDir });
 
     await expect(writeInstallationAssets(cwd, { assetsDir })).rejects.toThrow();
+  });
+});
+
+describe('readAsset SEA-vs-relative-path resolution', () => {
+  it('reads the SEA-embedded asset when isSea() is true, ignoring assetsDir entirely', async () => {
+    const content = await readAsset('docker-compose.yml', '/does/not/exist', {
+      isSea: () => true,
+      getAsset: (key) => `fake content for ${key}`,
+    });
+
+    expect(content).toBe('fake content for docker-compose.yml');
+  });
+
+  it('reads the file off disk when isSea() is false', async () => {
+    const assetsDir = await stubAssetsDir();
+
+    const content = await readAsset('docker-compose.yml', assetsDir, { isSea: () => false });
+
+    expect(content).toBe('services: {}\n');
   });
 });
