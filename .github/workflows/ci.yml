@@ -69,10 +69,10 @@ jobs:
       # and skips the expensive e2e/deploy-verification chain below.
       release_candidate: ${{ github.base_ref == 'main' || (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
       - id: classify
@@ -99,11 +99,11 @@ jobs:
     name: Install
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # corepack must be enabled before setup-node: its yarn-cache probe invokes the
       # global yarn, which errors on the packageManager pin if it's still Yarn 1.x.
       - run: corepack enable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: yarn
@@ -114,11 +114,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: install
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # corepack must be enabled before setup-node: its yarn-cache probe invokes the
       # global yarn, which errors on the packageManager pin if it's still Yarn 1.x.
       - run: corepack enable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: yarn
@@ -131,11 +131,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: install
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # corepack must be enabled before setup-node: its yarn-cache probe invokes the
       # global yarn, which errors on the packageManager pin if it's still Yarn 1.x.
       - run: corepack enable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: yarn
@@ -149,9 +149,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: install
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: corepack enable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: yarn
@@ -163,11 +163,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: install
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # corepack must be enabled before setup-node: its yarn-cache probe invokes the
       # global yarn, which errors on the packageManager pin if it's still Yarn 1.x.
       - run: corepack enable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: yarn
@@ -187,9 +187,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: install
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: corepack enable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: yarn
@@ -205,11 +205,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: install
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # corepack must be enabled before setup-node: its yarn-cache probe invokes the
       # global yarn, which errors on the packageManager pin if it's still Yarn 1.x.
       - run: corepack enable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: yarn
@@ -380,49 +380,49 @@ jobs:
       # submit it as a pull request to copalibre-modules — named separately
       # so a reviewer finds this capability's own signal directly.
       - run: yarn workspace @copalibre/copalibre test --testPathPatterns 'module-authoring'
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: coverage-domain
           path: packages/domain/coverage
           retention-days: 14
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: coverage-module-catalogue
           path: packages/module-catalogue/coverage
           retention-days: 14
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: coverage-rules
           path: packages/rules/coverage
           retention-days: 14
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: coverage-api
           path: apps/api/coverage
           retention-days: 14
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: coverage-tournament-engine
           path: packages/tournament-engine/coverage
           retention-days: 14
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: coverage-worker
           path: apps/worker/coverage
           retention-days: 14
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: coverage-scheduler
           path: apps/scheduler/coverage
           retention-days: 14
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: coverage-events
@@ -450,7 +450,7 @@ jobs:
     name: Third-party notices
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: node scripts/check-third-party-notices.mjs
 
   # Added by 0020: the public site is built and its output inspected — the page
@@ -465,9 +465,9 @@ jobs:
     # here (unlike e2e-tests, which build also needs).
     if: needs.detect-changes.outputs.backend_only != 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: corepack enable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: yarn
@@ -492,9 +492,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [install, typecheck]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: corepack enable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: yarn
@@ -529,9 +529,9 @@ jobs:
       needs.detect-changes.outputs.backend_only != 'true' &&
       needs.detect-changes.outputs.release_candidate == 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: corepack enable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: yarn
@@ -551,7 +551,7 @@ jobs:
       # always runs (the apt-installed OS deps aren't cacheable), but it
       # skips redownloading the browser binary itself when the cache below
       # already has it at the same version.
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('yarn.lock') }}
@@ -575,7 +575,7 @@ jobs:
             --sample-interval-seconds=5 \
             --growth-threshold=0.25 \
             --report=tv-soak-report.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: tv-soak-report
@@ -591,9 +591,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: install
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: corepack enable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: yarn
@@ -611,9 +611,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: install
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: corepack enable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: yarn
@@ -658,11 +658,11 @@ jobs:
     env:
       DATABASE_URL: postgres://copalibre:copalibre_ci_only@localhost:5432/copalibre
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # corepack must be enabled before setup-node: its yarn-cache probe invokes the
       # global yarn, which errors on the packageManager pin if it's still Yarn 1.x.
       - run: corepack enable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: yarn
@@ -810,11 +810,11 @@ jobs:
     # safe here.
     if: needs.detect-changes.outputs.cli_only != 'true' && needs.detect-changes.outputs.docs_only != 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # corepack must be enabled before setup-node: its yarn-cache probe invokes the
       # global yarn, which errors on the packageManager pin if it's still Yarn 1.x.
       - run: corepack enable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: yarn
@@ -867,8 +867,8 @@ jobs:
       needs.e2e-tests.result != 'failure' &&
       needs.e2e-tests.result != 'cancelled'
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
       # buildx's own GitHub Actions cache backend (type=gha) — no extra
       # action needed beyond setup-buildx-action, it talks to the runner's
       # built-in cache API directly. Every GitHub-hosted runner is a fresh
@@ -889,7 +889,7 @@ jobs:
             --load .
       - name: Export tested images
         run: docker save copalibre:ci copalibre-web:ci | gzip > copalibre-images.tar.gz
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: copalibre-images
           path: copalibre-images.tar.gz
@@ -930,19 +930,19 @@ jobs:
       COPALIBRE_EMAIL_FROM: e2e@copalibre.invalid
       COPALIBRE_SMTP_URL: smtp://host.docker.internal:1025
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: corepack enable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: yarn
       - run: yarn install --immutable
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('yarn.lock') }}
       - run: yarn playwright install --with-deps chromium
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: copalibre-images
       - run: gzip --decompress --stdout copalibre-images.tar.gz | docker load
@@ -987,8 +987,8 @@ jobs:
       COPALIBRE_EMAIL_FROM: noreply@copalibre.invalid
       COPALIBRE_SMTP_URL: smtp://postgres:5432
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
           name: copalibre-images
       - name: Load tested images
