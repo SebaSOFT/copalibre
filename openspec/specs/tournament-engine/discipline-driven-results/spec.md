@@ -142,3 +142,11 @@ The event recording system SHALL automatically snapshot the active segment's `el
 - **WHEN** an event is recorded in a non-timed segment (e.g. tennis set) with no active running clock
 - **THEN** the persisted `RecordedEvent` has `segmentElapsedSeconds: null` or omitted
 
+### Requirement: Discipline descriptors declare own-goal and counter-goal event mechanics
+
+A discipline descriptor SHALL support declaring an `own-goal` event definition whose effects award score to the opposing side while attributing statistics to the faulting player and team.
+
+#### Scenario: An own goal awards a point to the opponent
+- **WHEN** an `own-goal` event is recorded for a player of Team A
+- **THEN** the match score awards +1 point to Team B (`awardTo: 'every-other-side'`), increments `goals-against` for Team A, and increments `player-own-goals` for the player
+

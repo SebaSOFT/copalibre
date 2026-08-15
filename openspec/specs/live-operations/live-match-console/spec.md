@@ -124,3 +124,19 @@ shown as unavailable and SHALL NOT be replaced with an estimated or placeholder 
 #### Scenario: Telemetry source is unavailable
 - **WHEN** no telemetry source provides packet-loss data for a match
 - **THEN** the packet-loss tile is labelled unavailable rather than displaying a fabricated value
+
+### Requirement: Match console renders tactile dual jersey number grids
+
+The match console (Screen A2) SHALL render side-by-side interactive jersey number button grids for competing entrants, displaying jersey numbers, names, tactical roles, and active on-field status.
+
+#### Scenario: Operator selects an active player via jersey button
+- **WHEN** an operator taps a player's jersey button (e.g. `[ #10 Palmer ]`) on Team B's grid
+- **THEN** the console sets the selected entrant side to Team B and the primary actor to the corresponding player ID
+
+#### Scenario: Ambient field selection assigns the primary actor and a secondary payload field
+- **WHEN** an operator taps a primary player's jersey, switches to a declared secondary field via a chip row (e.g. `assistedBy` for a goal), and taps a teammate's jersey
+- **THEN** the recorded event payload sets `personId` to the primary player and `payload.assistedBy` to the selected teammate
+
+#### Scenario: Substitutes on the bench are visually distinguished
+- **WHEN** viewing the team jersey grid
+- **THEN** players with `onField: false` are rendered in a distinct bench section with a visual substitute indicator
