@@ -38,6 +38,7 @@ import { DATABASE } from '../database.token.js';
 import { OBJECT_STORAGE } from '../object-storage.token.js';
 import {
   PersonNationalityResponse,
+  PersonResponse,
   SetPersonNationalityRequest,
   UploadImageRequest,
   UploadImageResponse,
@@ -66,6 +67,33 @@ export class PersonMediaController {
     @Inject(DATABASE) private readonly db: Kysely<Database>,
     @Inject(OBJECT_STORAGE) private readonly storage: ObjectStorageAdapter,
   ) {}
+
+  @Get()
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Read a person’s profile (display name, nationality, photo, natural key)',
+  })
+  @ApiOkResponse({ type: PersonResponse })
+  async getPerson(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('personId') personId: string,
+    @Req() request: RequestWithSubject,
+  ): Promise<PersonResponse> {
+    const organizationId = await resolveAdminOrganization(this.db, organizationAlias, request);
+    const person = await new PersonRepository(this.db).findPerson(personId);
+    if (!person || person.organizationId !== organizationId) {
+      throw new NotFoundException(`No person "${personId}" in this organization`);
+    }
+    return {
+      personId: person.personId,
+      displayName: person.displayName,
+      ...(person.nationality === undefined ? {} : { nationality: person.nationality }),
+      ...(person.photoObjectId === undefined ? {} : { photoObjectId: person.photoObjectId }),
+      ...(person.naturalKey === undefined ? {} : { naturalKey: person.naturalKey }),
+    };
+  }
 
   @Post('photo')
   @SecurityPlaneTag('admin-control')
@@ -273,8 +301,9 @@ async function streamStoredObject(
   objectId: string,
   reply: FastifyReply,
 ): Promise<Buffer | undefined> {
-  const metadata: ObjectMetadata | undefined =
-    await new ObjectMetadataRepository(db).findById(objectId);
+  const metadata: ObjectMetadata | undefined = await new ObjectMetadataRepository(db).findById(
+    objectId,
+  );
   if (!metadata) throw new NotFoundException('No such stored object');
   if (metadata.status === 'failed') throw new NotFoundException('Object failed validation');
   if (metadata.status === 'pending') {

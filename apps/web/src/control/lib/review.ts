@@ -16,6 +16,10 @@ export interface RegistrationRow {
   readonly displayName: string;
   readonly status: RegistrationStatus;
   readonly submittedAt: string;
+  /** Present for a person-kind entrant; absent for a team entrant. */
+  readonly personId?: string;
+  readonly nationality?: string;
+  readonly photoObjectId?: string;
 }
 
 export interface ReviewState {

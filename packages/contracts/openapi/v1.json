@@ -4444,6 +4444,50 @@
         ]
       }
     },
+    "/organizations/{organizationAlias}/persons/{personId}": {
+      "get": {
+        "operationId": "PersonMediaController_getPerson",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "personId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read a person’s profile (display name, nationality, photo, natural key)",
+        "tags": [
+          "persons"
+        ]
+      }
+    },
     "/organizations/{organizationAlias}/persons/{personId}/photo": {
       "post": {
         "operationId": "PersonMediaController_uploadPhoto",
@@ -7884,6 +7928,52 @@
           "version",
           "ok",
           "failures"
+        ]
+      },
+      "NaturalKeyResponse": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "example": "dni"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "value"
+        ]
+      },
+      "PersonResponse": {
+        "type": "object",
+        "properties": {
+          "personId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string",
+            "example": "Elías Salomón"
+          },
+          "nationality": {
+            "type": "string",
+            "description": "ISO 3166-1 alpha-2 country code",
+            "example": "AR"
+          },
+          "photoObjectId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "object_metadata.object_id of the photo"
+          },
+          "naturalKey": {
+            "$ref": "#/components/schemas/NaturalKeyResponse"
+          }
+        },
+        "required": [
+          "personId",
+          "displayName"
         ]
       },
       "UploadImageRequest": {

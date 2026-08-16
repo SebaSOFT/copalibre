@@ -279,6 +279,31 @@ describe('person photo / club emblem upload and public serve (integration)', () 
     expect(cleared.json()).toMatchObject({ personId, nationality: null });
   });
 
+  it('reads a person’s profile for an admin, refusing an unauthenticated request', async () => {
+    const anonymous = await inject({
+      method: 'GET',
+      url: `/organizations/${organizationAlias}/persons/${personId}`,
+    });
+    expect(anonymous.statusCode).toBe(401);
+
+    const response = await inject({
+      method: 'GET',
+      url: `/organizations/${organizationAlias}/persons/${personId}`,
+      headers: { authorization: 'Bearer organizer' },
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({ personId, displayName: 'Retrato Pendiente' });
+  });
+
+  it('404s a person profile request for an unknown person', async () => {
+    const response = await inject({
+      method: 'GET',
+      url: `/organizations/${organizationAlias}/persons/00000000-0000-7000-8000-000000000099`,
+      headers: { authorization: 'Bearer organizer' },
+    });
+    expect(response.statusCode).toBe(404);
+  });
+
   it('refuses an unauthenticated nationality change', async () => {
     const response = await inject({
       method: 'PATCH',

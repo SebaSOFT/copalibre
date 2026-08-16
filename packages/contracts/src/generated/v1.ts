@@ -1294,6 +1294,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/persons/{personId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read a person’s profile (display name, nationality, photo, natural key) */
+        get: operations["PersonMediaController_getPerson"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{organizationAlias}/persons/{personId}/photo": {
         parameters: {
             query?: never;
@@ -2558,6 +2575,28 @@ export interface components {
             /** @example true */
             ok: boolean;
             failures: components["schemas"]["ModuleVerifyFailureResponse"][];
+        };
+        NaturalKeyResponse: {
+            /** @example dni */
+            kind: string;
+            value: string;
+        };
+        PersonResponse: {
+            /** Format: uuid */
+            personId: string;
+            /** @example Elías Salomón */
+            displayName: string;
+            /**
+             * @description ISO 3166-1 alpha-2 country code
+             * @example AR
+             */
+            nationality?: string;
+            /**
+             * Format: uuid
+             * @description object_metadata.object_id of the photo
+             */
+            photoObjectId?: string;
+            naturalKey?: components["schemas"]["NaturalKeyResponse"];
         };
         UploadImageRequest: {
             filename: string;
@@ -5035,6 +5074,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    PersonMediaController_getPerson: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                personId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonResponse"];
                 };
             };
         };

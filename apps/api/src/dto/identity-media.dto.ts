@@ -35,3 +35,28 @@ export class PersonNationalityResponse {
   })
   nationality!: string | null;
 }
+
+export class NaturalKeyResponse {
+  @ApiProperty({ example: 'dni' })
+  kind!: string;
+
+  @ApiProperty()
+  value!: string;
+}
+
+export class PersonResponse {
+  @ApiProperty({ format: 'uuid' })
+  personId!: string;
+
+  @ApiProperty({ example: 'Elías Salomón' })
+  displayName!: string;
+
+  @ApiPropertyOptional({ description: 'ISO 3166-1 alpha-2 country code', example: 'AR' })
+  nationality?: string;
+
+  @ApiPropertyOptional({ format: 'uuid', description: 'object_metadata.object_id of the photo' })
+  photoObjectId?: string;
+
+  @ApiPropertyOptional({ type: NaturalKeyResponse })
+  naturalKey?: NaturalKeyResponse;
+}

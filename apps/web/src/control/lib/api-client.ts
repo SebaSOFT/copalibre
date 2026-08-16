@@ -307,12 +307,33 @@ export interface TournamentResponse {
   readonly rulesetId?: string;
 }
 
+export interface TeamMemberResponse {
+  readonly personId: string;
+  readonly displayName: string;
+  readonly role: 'player' | 'substitute' | 'coach' | 'staff';
+  readonly nationality?: string;
+  readonly photoObjectId?: string;
+}
+
 export interface RegistrationResponse {
   readonly entrantId: string;
   readonly tournamentId: string;
   readonly status: RegistrationStatus;
   readonly teamId?: string;
   readonly personId?: string;
+  /** A person entrant's display name; absent for a team entrant. */
+  readonly displayName?: string;
+  readonly nationality?: string;
+  readonly photoObjectId?: string;
+  readonly teamMembers?: readonly TeamMemberResponse[];
+}
+
+export interface PersonResponse {
+  readonly personId: string;
+  readonly displayName: string;
+  readonly nationality?: string;
+  readonly photoObjectId?: string;
+  readonly naturalKey?: { readonly kind: string; readonly value: string };
 }
 
 export interface BulkReviewRequest {
