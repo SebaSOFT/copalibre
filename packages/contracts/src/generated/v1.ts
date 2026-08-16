@@ -1294,6 +1294,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/persons/{personId}/photo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stream a person's photo, once it has passed validation */
+        get: operations["PersonMediaController_servePhoto"];
+        put?: never;
+        /** Upload a person's photo */
+        post: operations["PersonMediaController_uploadPhoto"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/persons/{personId}/nationality": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Set or clear a person's nationality */
+        patch: operations["PersonMediaController_setNationality"];
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/clubs/{clubId}/emblem": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stream a club's emblem, once it has passed validation */
+        get: operations["ClubMediaController_serveEmblem"];
+        put?: never;
+        /** Upload a club's emblem */
+        post: operations["ClubMediaController_uploadEmblem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1464,6 +1517,16 @@ export interface components {
             displayName: string;
             /** @enum {string} */
             role: "player" | "substitute" | "coach" | "staff";
+            /**
+             * @description ISO 3166-1 alpha-2 country code
+             * @example AR
+             */
+            nationality?: string;
+            /**
+             * Format: uuid
+             * @description object_metadata.object_id of the photo
+             */
+            photoObjectId?: string;
         };
         RegistrationResponse: {
             /** Format: uuid */
@@ -1476,6 +1539,21 @@ export interface components {
             teamId?: string;
             /** Format: uuid */
             personId?: string;
+            /**
+             * @description The person entrant’s display name — absent for a team entrant.
+             * @example Elías Salomón
+             */
+            displayName?: string;
+            /**
+             * @description ISO 3166-1 alpha-2 country code
+             * @example AR
+             */
+            nationality?: string;
+            /**
+             * Format: uuid
+             * @description object_metadata.object_id of the photo
+             */
+            photoObjectId?: string;
             /** @description The team entrant’s resulting membership. Populated only by a team-membership edit response. */
             teamMembers?: components["schemas"]["TeamMemberResponse"][];
         };
@@ -2471,6 +2549,35 @@ export interface components {
             /** @example true */
             ok: boolean;
             failures: components["schemas"]["ModuleVerifyFailureResponse"][];
+        };
+        UploadImageRequest: {
+            filename: string;
+            contentType: string;
+            /** @description Base64-encoded file content */
+            contentBase64: string;
+        };
+        UploadImageResponse: {
+            /**
+             * Format: uuid
+             * @description object_metadata.object_id of the stored image
+             */
+            objectId: string;
+        };
+        SetPersonNationalityRequest: {
+            /**
+             * @description ISO 3166-1 alpha-2 country code; omitted or null clears it.
+             * @example AR
+             */
+            nationality?: Record<string, never> | null;
+        };
+        PersonNationalityResponse: {
+            /** Format: uuid */
+            personId: string;
+            /**
+             * @description ISO 3166-1 alpha-2 country code, or null when cleared.
+             * @example AR
+             */
+            nationality?: Record<string, never> | null;
         };
     };
     responses: never;
@@ -4919,6 +5026,128 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    PersonMediaController_servePhoto: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                personId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Image bytes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+        };
+    };
+    PersonMediaController_uploadPhoto: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                personId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UploadImageRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadImageResponse"];
+                };
+            };
+        };
+    };
+    PersonMediaController_setNationality: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                personId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetPersonNationalityRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonNationalityResponse"];
+                };
+            };
+        };
+    };
+    ClubMediaController_serveEmblem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                clubId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Image bytes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+        };
+    };
+    ClubMediaController_uploadEmblem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                clubId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UploadImageRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadImageResponse"];
                 };
             };
         };
