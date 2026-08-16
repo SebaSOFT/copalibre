@@ -437,6 +437,7 @@ export function MatchConsoleRoute({
                 activeField={activeSecondaryField}
                 disabled={!canRecord}
                 onChangeActiveField={setActiveSecondaryField}
+                organizationAlias={organizationAlias}
                 onSelectPrimary={(entrantId, personId) => {
                   setSelectedSide(entrantId);
                   setSelectedPersonId(personId);

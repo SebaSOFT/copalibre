@@ -807,6 +807,15 @@ export function createControlApiClient(input: {
   };
 }
 
+/** Public, unauthenticated image routes — safe to use directly as an `<img src>`. */
+export function personPhotoUrl(organizationAlias: string, personId: string, baseUrl = ''): string {
+  return `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/persons/${encodeURIComponent(personId)}/photo`;
+}
+
+export function clubEmblemUrl(organizationAlias: string, clubId: string, baseUrl = ''): string {
+  return `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/clubs/${encodeURIComponent(clubId)}/emblem`;
+}
+
 async function requestText(
   fetcher: typeof fetch,
   url: string,

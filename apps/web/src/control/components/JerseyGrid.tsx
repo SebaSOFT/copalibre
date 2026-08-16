@@ -1,9 +1,16 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
 import { isSupportedLanguage, resolveLabel, type SupportedLanguage } from '@copalibre/domain';
-import type { ConsoleRoster, ConsoleRosterMember, ConsoleRosterRole } from '../lib/api-client.js';
+import {
+  clubEmblemUrl,
+  type ConsoleRoster,
+  type ConsoleRosterMember,
+  type ConsoleRosterRole,
+} from '../lib/api-client.js';
+import { countryFlag } from '../lib/country.js';
 import { memberByNumber } from '../lib/match-console.js';
 import { Badge } from './ui/badge.js';
+import { ClubEmblemPlaceholder } from './placeholders.js';
 import { messages } from '../i18n/messages.en.js';
 
 const NUMPAD_BUFFER_TIMEOUT_MS = 600;
@@ -35,8 +42,11 @@ export function JerseyGrid({
   onChangeActiveField,
   onSelectPrimary,
   onSelectSecondary,
+  organizationAlias,
 }: {
   readonly rosters: readonly ConsoleRoster[];
+  /** Builds the club emblem's image URL; absent in tests that stub rosters with no clubId. */
+  readonly organizationAlias?: string;
   readonly rosterRoles: readonly ConsoleRosterRole[];
   readonly sentOffPersonIds: ReadonlySet<string>;
   readonly disabled: boolean;
@@ -133,6 +143,7 @@ export function JerseyGrid({
             key={roster.entrantId}
             language={language}
             onSelect={(personId) => select(roster.entrantId, personId)}
+            organizationAlias={organizationAlias}
             primaryPersonId={roster.entrantId === primarySide ? primaryPersonId : ''}
             roleByCode={roleByCode}
             roster={roster}
@@ -156,6 +167,7 @@ function TeamPanel({
   sentOffPersonIds,
   disabled,
   onSelect,
+  organizationAlias,
 }: {
   readonly roster: ConsoleRoster;
   readonly roleByCode: ReadonlyMap<string, ConsoleRosterRole>;
@@ -165,6 +177,7 @@ function TeamPanel({
   readonly sentOffPersonIds: ReadonlySet<string>;
   readonly disabled: boolean;
   readonly onSelect: (personId: string) => void;
+  readonly organizationAlias?: string;
 }): React.JSX.Element {
   const intl = useIntl();
   const onField = roster.members.filter((member) => member.onField);
@@ -189,7 +202,10 @@ function TeamPanel({
 
   return (
     <div style={teamPanelStyle}>
-      <h3 style={teamHeaderStyle}>{roster.entrantId.slice(-8)}</h3>
+      <div style={teamHeaderRowStyle}>
+        <TeamEmblem clubId={roster.clubId} organizationAlias={organizationAlias} />
+        <h3 style={teamHeaderStyle}>{roster.teamName ?? roster.entrantId.slice(-8)}</h3>
+      </div>
       <p style={sectionLabelStyle}>{intl.formatMessage(messages.matchConsoleOnField)}</p>
       <div style={jerseyGridStyle}>{onField.map(jersey)}</div>
       {bench.length > 0 && (
@@ -234,7 +250,12 @@ function JerseyButton({
       type="button"
     >
       <span style={jerseyNumberStyle}>{member.number ?? '—'}</span>
-      <span style={jerseyNameStyle}>{member.name}</span>
+      <span style={jerseyNameStyle}>
+        {member.nationality !== undefined && (
+          <span aria-hidden="true">{countryFlag(member.nationality)} </span>
+        )}
+        {member.name}
+      </span>
       {member.roles && member.roles.length > 0 && (
         <span style={badgeRowStyle}>
           {member.roles.map((code) => {
@@ -253,7 +274,50 @@ function JerseyButton({
   );
 }
 
+/**
+ * The team header's emblem: a placeholder when the entrant has no club or
+ * `organizationAlias` was not supplied (a test double), otherwise the club's
+ * emblem image — falling back to the same placeholder on any non-200
+ * response (no emblem uploaded yet, or one still pending/failed scan), so
+ * this never shows a broken image (identity-visuals spec).
+ */
+function TeamEmblem({
+  clubId,
+  organizationAlias,
+}: {
+  readonly clubId: string | undefined;
+  readonly organizationAlias: string | undefined;
+}): React.JSX.Element {
+  const intl = useIntl();
+  const [failed, setFailed] = useState(false);
+  const alt = intl.formatMessage(messages.jerseyGridEmblemAlt);
+
+  if (clubId === undefined || organizationAlias === undefined || failed) {
+    return (
+      <ClubEmblemPlaceholder
+        size={32}
+        title={intl.formatMessage(messages.jerseyGridEmblemPlaceholderAlt)}
+      />
+    );
+  }
+
+  return (
+    <img
+      alt={alt}
+      height={32}
+      onError={() => setFailed(true)}
+      src={clubEmblemUrl(organizationAlias, clubId)}
+      width={32}
+    />
+  );
+}
+
 const gridStyle: React.CSSProperties = { display: 'grid', gap: 'var(--cl-space-3)' };
+const teamHeaderRowStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 'var(--cl-space-2)',
+};
 const chipRowStyle: React.CSSProperties = {
   display: 'flex',
   gap: 'var(--cl-space-2)',
