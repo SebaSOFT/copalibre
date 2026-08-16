@@ -54,6 +54,7 @@ import {
   CollectorThresholdConsumptionRepository,
   CompetitionRecordRepository,
   CompetitionRepository,
+  EnrollmentRepository,
   MatchAssignmentRepository,
   MatchCommandIdempotencyRepository,
   ProjectionStore,
@@ -1030,6 +1031,7 @@ export class MatchControlController {
       (entrantId): entrantId is string => entrantId !== null && entrantId !== undefined,
     );
     const eligibleStaffIds = await this.eligibleStaffIds(entrantIds);
+    const { teamNameByEntrant, clubEmblemByEntrant } = await this.teamIdentityByEntrant(entrantIds);
 
     return {
       matchId,
@@ -1088,11 +1090,18 @@ export class MatchControlController {
       ],
       rosters: rosters.map((roster) => ({
         entrantId: roster.entrant_id,
+        ...(teamNameByEntrant.get(roster.entrant_id) === undefined
+          ? {}
+          : { teamName: teamNameByEntrant.get(roster.entrant_id) }),
+        ...(clubEmblemByEntrant.get(roster.entrant_id) === undefined
+          ? {}
+          : { clubEmblemObjectId: clubEmblemByEntrant.get(roster.entrant_id) }),
         members: foldRosterLineup(initialRosterOf(matchId, roster), events).members.map(
           (member) => ({
             personId: member.personId,
             ...(member.number === undefined ? {} : { number: member.number }),
             name: member.name,
+            ...(member.nationality === undefined ? {} : { nationality: member.nationality }),
             ...(member.roles === undefined ? {} : { roles: [...member.roles] }),
             onField: member.onField,
           }),
@@ -1128,6 +1137,65 @@ export class MatchControlController {
       .where('role', 'in', ['coach', 'staff'])
       .execute();
     return new Set(staff.map((member) => member.person_id));
+  }
+
+  /**
+   * A team entrant's name and its club's emblem, keyed by entrant id — what
+   * `JerseyGrid.tsx`'s team header needs to replace the raw
+   * `entrantId.slice(-8)` it renders today (0093 task 4.7).
+   */
+  private async teamIdentityByEntrant(entrantIds: readonly string[]): Promise<{
+    readonly teamNameByEntrant: ReadonlyMap<string, string>;
+    readonly clubEmblemByEntrant: ReadonlyMap<string, string>;
+  }> {
+    if (entrantIds.length === 0) {
+      return { teamNameByEntrant: new Map(), clubEmblemByEntrant: new Map() };
+    }
+
+    const enrollment = new EnrollmentRepository(this.db);
+    const [entrantNames, entrantTeams] = await Promise.all([
+      enrollment.resolveEntrantNames(entrantIds),
+      this.db
+        .selectFrom('entrants')
+        .select(['entrant_id', 'team_id'])
+        .where('entrant_id', 'in', entrantIds)
+        .execute(),
+    ]);
+
+    const teamIdByEntrant = new Map(
+      entrantTeams.flatMap((entrant) =>
+        entrant.team_id === null ? [] : [[entrant.entrant_id, entrant.team_id] as const],
+      ),
+    );
+    const teamIds = [...new Set(teamIdByEntrant.values())];
+    const clubIdByTeam = await enrollment.clubsOfTeams(teamIds);
+    const clubIds = [...new Set(clubIdByTeam.values())];
+    const clubs =
+      clubIds.length === 0
+        ? []
+        : await this.db
+            .selectFrom('clubs')
+            .select(['club_id', 'emblem_object_id'])
+            .where('club_id', 'in', clubIds)
+            .execute();
+    const emblemByClub = new Map(
+      clubs.flatMap((club) =>
+        club.emblem_object_id === null ? [] : [[club.club_id, club.emblem_object_id] as const],
+      ),
+    );
+
+    const teamNameByEntrant = new Map(
+      [...entrantNames.entries()].map(([entrantId, entry]) => [entrantId, entry.name] as const),
+    );
+    const clubEmblemByEntrant = new Map(
+      [...teamIdByEntrant.entries()].flatMap(([entrantId, teamId]) => {
+        const clubId = clubIdByTeam.get(teamId);
+        const emblemObjectId = clubId === undefined ? undefined : emblemByClub.get(clubId);
+        return emblemObjectId === undefined ? [] : [[entrantId, emblemObjectId] as const];
+      }),
+    );
+
+    return { teamNameByEntrant, clubEmblemByEntrant };
   }
 
   private async stageOf(matchId: string): Promise<string> {

@@ -104,6 +104,9 @@ export class ConsoleRosterMemberResponse {
   @ApiProperty()
   name!: string;
 
+  @ApiPropertyOptional({ description: 'ISO 3166-1 alpha-2 country code, snapshotted at roster-selection time' })
+  nationality?: string;
+
   @ApiPropertyOptional({
     type: [String],
     description:
@@ -123,6 +126,15 @@ export class ConsoleRosterMemberResponse {
 export class ConsoleRosterResponse {
   @ApiProperty({ format: 'uuid' })
   entrantId!: string;
+
+  @ApiPropertyOptional({ description: 'The entrant’s team name, when the entrant is a team' })
+  teamName?: string;
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: "The team's club's emblem object_metadata.object_id, when set",
+  })
+  clubEmblemObjectId?: string;
 
   @ApiProperty({ type: [ConsoleRosterMemberResponse] })
   members!: ConsoleRosterMemberResponse[];

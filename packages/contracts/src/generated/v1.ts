@@ -1732,6 +1732,8 @@ export interface components {
             /** @description Shirt number; not always numeric (e.g. "00", "7B") */
             number?: Record<string, never>;
             name: string;
+            /** @description ISO 3166-1 alpha-2 country code, snapshotted at roster-selection time */
+            nationality?: string;
             /** @description Codes naming discipline-declared roster roles (see `rosterRoles`) this member carries — zero, one, or several, independently combinable */
             roles?: string[];
             /** @description Whether currently in play, resolved by folding recorded substitution events over the roster's starting state */
@@ -1740,6 +1742,13 @@ export interface components {
         ConsoleRosterResponse: {
             /** Format: uuid */
             entrantId: string;
+            /** @description The entrant’s team name, when the entrant is a team */
+            teamName?: string;
+            /**
+             * Format: uuid
+             * @description The team's club's emblem object_metadata.object_id, when set
+             */
+            clubEmblemObjectId?: string;
             members: components["schemas"]["ConsoleRosterMemberResponse"][];
         };
         ConsoleRosterRoleResponse: {
