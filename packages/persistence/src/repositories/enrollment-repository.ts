@@ -75,6 +75,7 @@ export class EnrollmentRepository {
         alias: alias ?? null,
         name: input.name,
         abbreviation: input.abbreviation ?? null,
+        emblem_object_id: null,
         created_at: new Date(),
       })
       .returningAll()
@@ -123,6 +124,7 @@ export class EnrollmentRepository {
       readonly name?: string;
       readonly alias?: string;
       readonly abbreviation?: string | null;
+      readonly emblemObjectId?: string;
     } & Omit<AuditContext, 'organizationId'>,
   ): Promise<Club> {
     if (input.abbreviation !== null) assertAbbreviation(input.abbreviation);
@@ -135,6 +137,7 @@ export class EnrollmentRepository {
         ...(input.name === undefined ? {} : { name: input.name }),
         ...(input.alias === undefined ? {} : { alias: input.alias }),
         ...(input.abbreviation === undefined ? {} : { abbreviation: input.abbreviation }),
+        ...(input.emblemObjectId === undefined ? {} : { emblem_object_id: input.emblemObjectId }),
       })
       .where('club_id', '=', input.clubId)
       .returningAll()

@@ -159,6 +159,8 @@ export interface ClubsTable {
   name: string;
   /** Short label for constrained surfaces; `C I` for "Casa de Italia". */
   abbreviation: string | null;
+  /** FK into `object_metadata.object_id`; null until an emblem is uploaded. */
+  emblem_object_id: string | null;
   created_at: Timestamp;
 }
 
@@ -225,6 +227,10 @@ export interface PersonsTable {
   natural_key_kind: string | null;
   natural_key_value: string | null;
   natural_key_normalised: string | null;
+  /** ISO 3166-1 alpha-2 country code; null until an operator records one. */
+  nationality: string | null;
+  /** FK into `object_metadata.object_id`; null until a photo is uploaded. */
+  photo_object_id: string | null;
   created_at: Timestamp;
 }
 
@@ -417,6 +423,8 @@ export interface MatchRosterMemberRow {
   personId: string;
   number?: number | string;
   name: string;
+  /** Snapshotted at roster-selection time, alongside number/name/roles/onField. */
+  nationality?: string;
   /** Codes naming discipline-declared `RosterRoleDeclaration`s — never a closed enum. */
   roles?: readonly string[];
   onField: boolean;

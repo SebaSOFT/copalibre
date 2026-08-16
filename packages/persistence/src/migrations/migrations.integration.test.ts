@@ -120,6 +120,34 @@ describe('migrations (integration)', () => {
       expect.arrayContaining([expect.objectContaining({ name: 'person_ids' })]),
     );
     expect(afterUp).toContain('collector_threshold_consumption');
+    expect(afterUpTables.find((table) => table.name === 'persons')?.columns).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'nationality' }),
+        expect.objectContaining({ name: 'photo_object_id' }),
+      ]),
+    );
+    expect(afterUpTables.find((table) => table.name === 'clubs')?.columns).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'emblem_object_id' })]),
+    );
+
+    const personClubImagesAndNationalityDown = await migrateDownOneStep(scratch.db);
+    expect(personClubImagesAndNationalityDown.error).toBeUndefined();
+
+    const afterPersonClubImagesAndNationalityDownTables =
+      await scratch.db.introspection.getTables();
+    expect(
+      afterPersonClubImagesAndNationalityDownTables.find((table) => table.name === 'persons')
+        ?.columns,
+    ).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'nationality' }),
+        expect.objectContaining({ name: 'photo_object_id' }),
+      ]),
+    );
+    expect(
+      afterPersonClubImagesAndNationalityDownTables.find((table) => table.name === 'clubs')
+        ?.columns,
+    ).not.toEqual(expect.arrayContaining([expect.objectContaining({ name: 'emblem_object_id' })]));
 
     const matchRosterMembersDown = await migrateDownOneStep(scratch.db);
     expect(matchRosterMembersDown.error).toBeUndefined();

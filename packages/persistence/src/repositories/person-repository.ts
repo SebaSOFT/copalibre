@@ -1,6 +1,7 @@
 import type { Kysely } from 'kysely';
 import {
   Alias,
+  isValidCountryCode,
   normaliseNaturalKey,
   suggestAvailableAlias,
   validatePerson,
@@ -77,6 +78,8 @@ export class PersonRepository {
         natural_key_normalised: person.naturalKey
           ? normaliseNaturalKey(person.naturalKey.value)
           : null,
+        nationality: null,
+        photo_object_id: null,
         created_at: new Date(),
       })
       .execute();
@@ -140,6 +143,78 @@ export class PersonRepository {
     });
 
     return toPerson(row);
+  }
+
+  /** Sets or clears a person's nationality — an operator correcting or removing it. */
+  async setNationality(
+    uow: UnitOfWork,
+    input: {
+      readonly personId: string;
+      readonly organizationId: string;
+      readonly nationality: string | null;
+    } & AuditContext,
+  ): Promise<Person> {
+    if (input.nationality !== null && !isValidCountryCode(input.nationality)) {
+      throw new InvariantViolationError(
+        `"${input.nationality}" is not a valid ISO 3166-1 alpha-2 country code`,
+        { personId: input.personId },
+      );
+    }
+
+    const previous = await this.findPerson(input.personId);
+    const row = await uow.tx
+      .updateTable('persons')
+      .set({ nationality: input.nationality })
+      .where('person_id', '=', input.personId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const person = toPerson(row);
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'person',
+      entityId: input.personId,
+      action: 'person.nationality-set',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      ...(previous === undefined
+        ? {}
+        : { previousState: { nationality: previous.nationality ?? null } }),
+      resultingState: { nationality: person.nationality ?? null },
+    });
+    return person;
+  }
+
+  /**
+   * Attaches an uploaded photo's object-storage reference, in the same
+   * transaction as the `object_metadata` insert (0093 design.md Decision 3).
+   */
+  async setPhoto(
+    uow: UnitOfWork,
+    input: {
+      readonly personId: string;
+      readonly organizationId: string;
+      readonly photoObjectId: string;
+    } & AuditContext,
+  ): Promise<Person> {
+    const row = await uow.tx
+      .updateTable('persons')
+      .set({ photo_object_id: input.photoObjectId })
+      .where('person_id', '=', input.personId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const person = toPerson(row);
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'person',
+      entityId: input.personId,
+      action: 'person.photo-set',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      resultingState: { photoObjectId: person.photoObjectId },
+    });
+    return person;
   }
 
   async findByNaturalKey(
@@ -366,6 +441,8 @@ interface PersonRow {
   readonly display_name: string;
   readonly natural_key_kind: string | null;
   readonly natural_key_value: string | null;
+  readonly nationality?: string | null;
+  readonly photo_object_id?: string | null;
 }
 
 function toPerson(row: PersonRow): Person {
@@ -377,6 +454,12 @@ function toPerson(row: PersonRow): Person {
     ...(row.natural_key_kind === null || row.natural_key_value === null
       ? {}
       : { naturalKey: { kind: row.natural_key_kind, value: row.natural_key_value } }),
+    ...(row.nationality === null || row.nationality === undefined
+      ? {}
+      : { nationality: row.nationality }),
+    ...(row.photo_object_id === null || row.photo_object_id === undefined
+      ? {}
+      : { photoObjectId: row.photo_object_id }),
   };
 }
 

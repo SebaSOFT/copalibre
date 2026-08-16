@@ -146,6 +146,7 @@ export function toClub(row: ClubRow): Club {
     alias: row.alias ?? undefined,
     name: row.name,
     abbreviation: row.abbreviation ?? undefined,
+    emblemObjectId: row.emblem_object_id ?? undefined,
   };
 }
 
