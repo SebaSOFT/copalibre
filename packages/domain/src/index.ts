@@ -112,6 +112,19 @@ export {
   type DisciplineDescriptorDocument,
   type RuleScript,
 } from './descriptors/discipline-descriptor.js';
+export type {
+  TableTarget,
+  ColumnSource,
+  ColumnFormat,
+  TableSortRule,
+  TableQualificationFilter,
+  TableColumnDefinition,
+  TableLayoutDefinition,
+} from './descriptors/table-layout.js';
+export {
+  resolveEffectiveTableLayouts,
+  findTableLayout,
+} from './descriptors/table-layout-resolution.js';
 export {
   segmentThresholdEventDefinitions,
   SEGMENT_THRESHOLD_EVENT_CODES,

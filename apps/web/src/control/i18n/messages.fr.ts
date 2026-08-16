@@ -267,6 +267,8 @@ export const messages: Record<string, string> = {
   'control.standings.distributionEmpty': 'Aucune donnée à représenter.',
   'control.standings.sharedRank': 'Position partagée',
   'control.standings.tieBroken': 'Départage appliqué',
+  'control.standings.exportCsv': 'Exporter en CSV',
+  'control.standings.noLayouts': 'Cette discipline ne déclare aucune table pour ce tournoi.',
 
   'control.landing.emptyTitle': 'Aucune organisation pour le moment',
   'control.landing.emptyBody':

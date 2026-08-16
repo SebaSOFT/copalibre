@@ -141,6 +141,63 @@
     },
     { "code": "played", "label": { "en": "Played", "es": "Jugados" }, "aggregation": "count" }
   ],
+  "tableLayouts": [
+    {
+      "code": "group-standings-default",
+      "target": "group-phase",
+      "label": { "en": "Group Standings", "es": "Tabla de Posiciones" },
+      "entityGranularity": "team",
+      "defaultSort": [
+        { "columnCode": "matches-won", "direction": "desc" },
+        { "columnCode": "sets-diff", "direction": "desc" }
+      ],
+      "columns": [
+        { "code": "rank", "header": { "en": "Pos", "es": "#" }, "source": { "kind": "rank" }, "format": "number" },
+        {
+          "code": "name",
+          "header": { "en": "Player", "es": "Jugador" },
+          "source": { "kind": "entrant-name" },
+          "format": "text"
+        },
+        {
+          "code": "played",
+          "header": { "en": "P", "es": "PJ" },
+          "source": { "kind": "collector", "code": "played" },
+          "format": "number"
+        },
+        {
+          "code": "matches-won",
+          "header": { "en": "MW", "es": "PG" },
+          "source": { "kind": "collector", "code": "matches-won" },
+          "format": "number"
+        },
+        {
+          "code": "matches-lost",
+          "header": { "en": "ML", "es": "PP" },
+          "source": { "kind": "collector", "code": "matches-lost" },
+          "format": "number"
+        },
+        {
+          "code": "sw",
+          "header": { "en": "SW", "es": "SG" },
+          "source": { "kind": "collector", "code": "sets-won" },
+          "format": "number"
+        },
+        {
+          "code": "sl",
+          "header": { "en": "SL", "es": "SP" },
+          "source": { "kind": "collector", "code": "sets-lost" },
+          "format": "number"
+        },
+        {
+          "code": "sets-diff",
+          "header": { "en": "Diff", "es": "Dif" },
+          "source": { "kind": "computed", "expression": "sw - sl" },
+          "format": "number"
+        }
+      ]
+    }
+  ],
   "scoringInputs": [
     { "code": "games", "label": { "en": "Games", "es": "Juegos" }, "source": "event-derived" },
     { "code": "sets", "label": { "en": "Sets", "es": "Sets" }, "source": "event-derived" }
@@ -259,6 +316,7 @@
     "segments": { "bestOf": 3, "tiebreakInFinalSet": true }
   },
   "fieldPolicies": {
+    "tableLayouts": { "permission": { "kind": "replaced" }, "mutationClass": "safe" },
     "format": { "permission": { "kind": "replaced" }, "mutationClass": "blocked_after_results" },
     "registration.publicOpen": { "permission": { "kind": "replaced" }, "mutationClass": "safe" },
     "registration.requiresCheckIn": {

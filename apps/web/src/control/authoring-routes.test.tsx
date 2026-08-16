@@ -29,6 +29,10 @@ function client(overrides: Partial<ControlApiClient> = {}): ControlApiClient {
       trace: [],
     }),
     fetchTiebreakTrace: async () => ({ entrantId: 'e-1', lines: [] }),
+    fetchTableLayouts: async () => [],
+    fetchTableProjection: async () => {
+      throw new Error('fetchTableProjection not stubbed in this test');
+    },
     fetchSeeding: async () => ({
       stageId: 's-1',
       format: 'round-robin',

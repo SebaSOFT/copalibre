@@ -3,6 +3,7 @@ import type { EventDefinition } from './event-definition.js';
 import type { StatisticCollector } from '../statistics/collector.js';
 import type { TagDeclaration } from '../statistics/tags.js';
 import type { ConfigFieldPolicies, RulesetConfig } from './override-policy.js';
+import type { TableLayoutDefinition } from './table-layout.js';
 import type { LocalizedLabel } from '../i18n-label.js';
 
 /**
@@ -160,6 +161,14 @@ export interface DisciplineDescriptor {
    * declared here.
    */
   readonly rosterRoles?: readonly RosterRoleDeclaration[];
+  /**
+   * Standard tables and rankings this discipline declares — group standings,
+   * top scorers, goalkeeper rankings, and the like. A tournament ruleset may
+   * replace this set (`fieldPolicies['tableLayouts']`); absent means the
+   * discipline offers no standard tables beyond the standings engine's own
+   * declared statistics.
+   */
+  readonly tableLayouts?: readonly TableLayoutDefinition[];
   readonly scoringInputs: readonly ScoringInputDefinition[];
   /**
    * Points awarded by finishing position in a placement match, and the code the

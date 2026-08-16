@@ -1,55 +1,79 @@
 import { useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
+import type { TableLayoutSummaryResponse, TableProjectionResponseData } from '../lib/api-client.js';
 import {
   distributionBars,
-  standingsColumns,
-  toRowViews,
-  type EntrantNames,
-  type StandingsData,
-} from '../lib/standings.js';
+  nextSort,
+  sortRows,
+  tableColumns,
+  tableLayoutTabs,
+  tiebreakIndicator,
+  type ActiveSort,
+} from '../lib/table-projections.js';
 import { messages } from '../i18n/messages.en.js';
 
 /**
- * A5 — standings with an expandable, engine-sourced tiebreak trace.
+ * A5 — every declared table layout (group standings, top scorers, goalkeeper
+ * rankings, …) behind one tab bar, rendering whichever columns the active
+ * layout's own API response carries. Cells arrive pre-formatted; this
+ * component sorts and lays out, and formats nothing of its own.
  *
- * The trace lines are rendered exactly as received. This component has no
- * formatter of its own and must not grow one: the screen's promise is that an
- * operator is reading the engine's own reasoning, and a second formatter is a
- * second answer to the question of why somebody finished second.
+ * The tiebreak trace only applies to a `group-phase` layout — the one target
+ * this endpoint's rows have a rank a comparator chain actually produced —
+ * fetched lazily per row, the same way it always was.
  */
 export function StandingsPage({
-  standings,
-  names = {},
+  layouts,
+  activeLayoutCode,
+  onSelectLayout,
+  projection,
+  status,
   tournamentName,
   organizationAlias,
   onExpand,
+  onExportCsv,
 }: {
-  readonly standings: StandingsData;
-  readonly names?: EntrantNames;
+  readonly layouts: readonly TableLayoutSummaryResponse[];
+  readonly activeLayoutCode?: string;
+  readonly onSelectLayout?: (code: string) => void;
+  readonly projection?: TableProjectionResponseData;
+  /** A load-in-progress or load-failure message; absent once `projection` is ready. */
+  readonly status?: string;
   readonly tournamentName: string;
   readonly organizationAlias: string;
-  /** Fetches one row's trace lines; called the first time a row is expanded. */
+  /** Fetches one row's trace lines; called the first time a `group-phase` row is expanded. */
   readonly onExpand?: (entrantId: string) => Promise<readonly string[]>;
+  readonly onExportCsv?: () => void;
 }): React.JSX.Element {
   const intl = useIntl();
   const [traces, setTraces] = useState<Readonly<Record<string, readonly string[]>>>({});
   const [pending, setPending] = useState<readonly string[]>([]);
-  const columns = standingsColumns(standings.rows);
-  const rows = toRowViews(standings.rows, names);
-  const bars = distributionBars(standings.rows, { names });
+  const [sort, setSort] = useState<ActiveSort | undefined>(undefined);
 
-  const expand = (entrantId: string): void => {
-    if (traces[entrantId] !== undefined || pending.includes(entrantId)) return;
-    setPending((current) => [...current, entrantId]);
-    void Promise.resolve(onExpand?.(entrantId) ?? [])
-      .then((lines) => setTraces((current) => ({ ...current, [entrantId]: lines })))
+  const tabs = tableLayoutTabs(layouts, intl.locale);
+  const columns = projection ? tableColumns(projection.columns, intl.locale) : [];
+  const rows = projection ? sortRows(projection.rows, sort) : [];
+  const nameColumnCode = projection?.columns.find((column) =>
+    ['entrant-name', 'actor-name'].includes(column.code),
+  )?.code;
+  const primaryNameColumn = columns[0]?.code;
+  const bars = projection
+    ? distributionBars(projection, { nameColumnCode: nameColumnCode ?? primaryNameColumn })
+    : [];
+  const isGroupPhase = projection?.target === 'group-phase';
+
+  const expand = (actorId: string): void => {
+    if (traces[actorId] !== undefined || pending.includes(actorId)) return;
+    setPending((current) => [...current, actorId]);
+    void Promise.resolve(onExpand?.(actorId) ?? [])
+      .then((lines) => setTraces((current) => ({ ...current, [actorId]: lines })))
       .catch(() =>
         setTraces((current) => ({
           ...current,
-          [entrantId]: [intl.formatMessage(messages.standingsTraceFetchFailed)],
+          [actorId]: [intl.formatMessage(messages.standingsTraceFetchFailed)],
         })),
       )
-      .finally(() => setPending((current) => current.filter((id) => id !== entrantId)));
+      .finally(() => setPending((current) => current.filter((id) => id !== actorId)));
   };
 
   return (
@@ -63,87 +87,129 @@ export function StandingsPage({
             <FormattedMessage {...messages.standingsTitle} />
           </h1>
         </div>
-        <p style={smallStyle}>
-          {intl.formatMessage(messages.standingsProjectionVersion, {
-            version: standings.projectionVersion,
-          })}
-          {standings.fullyResolved ? '' : intl.formatMessage(messages.standingsUnresolvedTie)}
-        </p>
-      </header>
-
-      <PointsDistribution bars={bars} />
-
-      <div className="cl-card cl-chamfer cl-chamfer--control" style={tableStyle}>
-        <div style={{ ...gridStyle(columns.length), ...tableHeaderStyle }}>
-          <span>#</span>
-          <span>
-            <FormattedMessage {...messages.standingsParticipant} />
-          </span>
-          {columns.map((column) => (
-            <span key={column.code} title={column.label}>
-              {column.shortLabel}
-            </span>
-          ))}
-          <span>
-            <FormattedMessage {...messages.standingsTiebreak} />
-          </span>
-        </div>
-
-        {rows.map((row) => (
-          <details
-            className="cl-focusable"
-            key={row.entrantId}
-            onToggle={(event) => {
-              if (event.currentTarget.open) expand(row.entrantId);
-            }}
-            style={rowStyle}
-          >
-            <summary style={{ ...gridStyle(columns.length), ...summaryStyle }}>
-              <strong>{row.rank}</strong>
-              <span>
-                <strong>{row.name}</strong>
-                {row.abbreviation === undefined ? null : (
-                  <small style={smallStyle}>{row.abbreviation}</small>
-                )}
-              </span>
-              {columns.map((column) => (
-                <span key={column.code}>{row.statistics[column.code] ?? '—'}</span>
-              ))}
-              <span>
-                {row.indicator.kind === 'none' ? (
-                  <span style={smallStyle}>—</span>
-                ) : (
-                  // Icon and text together: the printed sheet on the venue wall
-                  // is grayscale, and so is a colour-blind operator's screen.
-                  <span className="cl-badge">
-                    <span aria-hidden="true">{row.indicator.icon}</span>{' '}
-                    {row.indicator.label && intl.formatMessage(row.indicator.label)}
-                  </span>
-                )}
-              </span>
-            </summary>
-
-            <div style={detailStyle}>
-              {row.expandable ? (
-                <TiebreakTrace
-                  lines={traces[row.entrantId]}
-                  loading={pending.includes(row.entrantId)}
-                />
-              ) : (
-                <p style={smallStyle}>
-                  <FormattedMessage {...messages.standingsNoTiebreak} />
-                </p>
-              )}
-            </div>
-          </details>
-        ))}
-
-        {rows.length === 0 && (
-          <p style={emptyStyle}>
-            <FormattedMessage {...messages.standingsNoResultsYet} />
+        {projection && (
+          <p style={smallStyle}>
+            {intl.formatMessage(messages.standingsProjectionVersion, {
+              version: projection.projectionVersion,
+            })}
           </p>
         )}
-      </div>
+      </header>
+
+      {tabs.length > 1 && (
+        <div role="tablist" style={tabListStyle}>
+          {tabs.map((tab) => (
+            <button
+              aria-selected={tab.code === activeLayoutCode}
+              className="cl-focusable"
+              key={tab.code}
+              onClick={() => onSelectLayout?.(tab.code)}
+              role="tab"
+              style={tab.code === activeLayoutCode ? activeTabStyle : tabStyle}
+              type="button"
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {tabs.length === 0 && status === undefined && (
+        <p style={emptyStyle}>
+          <FormattedMessage {...messages.standingsNoLayouts} />
+        </p>
+      )}
+
+      {status !== undefined && <p style={smallStyle}>{status}</p>}
+
+      {projection && (
+        <>
+          <PointsDistribution bars={bars} />
+
+          {onExportCsv && (
+            <button
+              className="cl-focusable cl-button"
+              onClick={onExportCsv}
+              style={exportButtonStyle}
+              type="button"
+            >
+              <FormattedMessage {...messages.standingsExportCsv} />
+            </button>
+          )}
+
+          <div className="cl-card cl-chamfer cl-chamfer--control" style={tableStyle}>
+            <div style={{ ...gridStyle(columns.length), ...tableHeaderStyle }}>
+              {columns.map((column) => (
+                <button
+                  className="cl-focusable"
+                  key={column.code}
+                  onClick={() => setSort(nextSort(sort, column.code))}
+                  style={headerButtonStyle}
+                  title={column.label}
+                  type="button"
+                >
+                  {column.shortLabel}
+                  {sort?.columnCode === column.code ? (sort.direction === 'desc' ? ' ▾' : ' ▴') : ''}
+                </button>
+              ))}
+              {isGroupPhase && (
+                <span>
+                  <FormattedMessage {...messages.standingsTiebreak} />
+                </span>
+              )}
+            </div>
+
+            {rows.map((row) => {
+              const indicator = tiebreakIndicator(row);
+              return (
+                <details
+                  className="cl-focusable"
+                  key={row.actorId}
+                  onToggle={(event) => {
+                    if (isGroupPhase && event.currentTarget.open) expand(row.actorId);
+                  }}
+                  style={rowStyle}
+                >
+                  <summary style={{ ...gridStyle(columns.length), ...summaryStyle }}>
+                    {columns.map((column) => (
+                      <span key={column.code}>{row.cells[column.code]?.formatted ?? '—'}</span>
+                    ))}
+                    {isGroupPhase && (
+                      <span>
+                        {indicator.kind === 'none' ? (
+                          <span style={smallStyle}>—</span>
+                        ) : (
+                          // Icon and text together: the printed sheet on the venue
+                          // wall is grayscale, and so is a colour-blind operator's screen.
+                          <span className="cl-badge">
+                            <span aria-hidden="true">{indicator.icon}</span>{' '}
+                            {intl.formatMessage(messages.standingsSharedRank)}
+                          </span>
+                        )}
+                      </span>
+                    )}
+                  </summary>
+
+                  {isGroupPhase && (
+                    <div style={detailStyle}>
+                      <TiebreakTrace
+                        lines={traces[row.actorId]}
+                        loading={pending.includes(row.actorId)}
+                      />
+                    </div>
+                  )}
+                </details>
+              );
+            })}
+
+            {rows.length === 0 && (
+              <p style={emptyStyle}>
+                <FormattedMessage {...messages.standingsNoResultsYet} />
+              </p>
+            )}
+          </div>
+        </>
+      )}
     </section>
   );
 }
@@ -201,17 +267,18 @@ export function TiebreakTrace({
 }
 
 /**
- * Top-five distribution bars.
+ * Top-five distribution bars, scaled against the active layout's own
+ * primary sort metric.
  *
- * CSS widths, no charting library: the bars are a comparison of five numbers,
- * and a dependency that ships a canvas renderer to draw five rectangles is
- * weight an operator on venue Wi-Fi pays for on every load.
+ * CSS widths, no charting library: the bars are a comparison of five
+ * numbers, and a dependency that ships a canvas renderer to draw five
+ * rectangles is weight an operator on venue Wi-Fi pays for on every load.
  */
 export function PointsDistribution({
   bars,
 }: {
   readonly bars: readonly {
-    readonly entrantId: string;
+    readonly actorId: string;
     readonly label: string;
     readonly value: number;
     readonly widthPercent: number;
@@ -228,7 +295,7 @@ export function PointsDistribution({
         {intl.formatMessage(messages.standingsDistributionTitle, { count: bars.length })}
       </h2>
       {bars.map((bar) => (
-        <div key={bar.entrantId} style={barRowStyle}>
+        <div key={bar.actorId} style={barRowStyle}>
           <span style={barLabelStyle}>{bar.label}</span>
           <span style={barTrackStyle}>
             <span aria-hidden="true" style={{ ...barFillStyle, width: `${bar.widthPercent}%` }} />
@@ -248,7 +315,7 @@ export function PointsDistribution({
 function gridStyle(columnCount: number): React.CSSProperties {
   return {
     display: 'grid',
-    gridTemplateColumns: `3rem 2fr repeat(${columnCount}, 3.5rem) 10rem`,
+    gridTemplateColumns: `repeat(${columnCount}, minmax(3rem, 1fr)) 10rem`,
     gap: 'var(--cl-space-3)',
     alignItems: 'center',
   };
@@ -280,6 +347,28 @@ const smallStyle: React.CSSProperties = {
   fontFamily: 'var(--cl-font-mono)',
   fontSize: '0.75rem',
 };
+const tabListStyle: React.CSSProperties = {
+  display: 'flex',
+  gap: 'var(--cl-space-2)',
+  flexWrap: 'wrap',
+};
+const tabStyle: React.CSSProperties = {
+  padding: 'var(--cl-space-2) var(--cl-space-4)',
+  border: '1px solid var(--cl-border-muted)',
+  background: 'transparent',
+  color: 'var(--cl-text-muted)',
+  fontFamily: 'var(--cl-font-mono)',
+  fontSize: '0.75rem',
+  textTransform: 'uppercase',
+  cursor: 'pointer',
+};
+const activeTabStyle: React.CSSProperties = {
+  ...tabStyle,
+  background: 'var(--cl-surface-raised)',
+  color: 'var(--cl-text)',
+  borderColor: 'var(--cl-state-live)',
+};
+const exportButtonStyle: React.CSSProperties = { justifySelf: 'start' };
 const tableStyle: React.CSSProperties = { display: 'grid', gap: 0, padding: 0, overflow: 'hidden' };
 const tableHeaderStyle: React.CSSProperties = {
   padding: 'var(--cl-space-3) var(--cl-space-4)',
@@ -288,6 +377,16 @@ const tableHeaderStyle: React.CSSProperties = {
   fontFamily: 'var(--cl-font-mono)',
   textTransform: 'uppercase',
   fontSize: '0.75rem',
+};
+const headerButtonStyle: React.CSSProperties = {
+  background: 'transparent',
+  border: 'none',
+  color: 'inherit',
+  font: 'inherit',
+  textTransform: 'inherit',
+  cursor: 'pointer',
+  padding: 0,
+  textAlign: 'left',
 };
 const rowStyle: React.CSSProperties = { borderBottom: '1px solid var(--cl-border-muted)' };
 const summaryStyle: React.CSSProperties = { padding: 'var(--cl-space-4)', cursor: 'pointer' };

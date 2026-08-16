@@ -58,6 +58,29 @@ describe('ControlApp', () => {
             trace: [],
           });
         }
+        if (url.endsWith('/tables')) {
+          return json({
+            layouts: [
+              {
+                code: 'group-standings-default',
+                target: 'group-phase',
+                label: 'Group Standings',
+                entityGranularity: 'team',
+              },
+            ],
+          });
+        }
+        if (url.includes('/tables/')) {
+          return json({
+            layoutCode: 'group-standings-default',
+            target: 'group-phase',
+            label: 'Group Standings',
+            columns: [],
+            defaultSort: [],
+            rows: [],
+            projectionVersion: 1,
+          });
+        }
         return json([]);
       },
     });

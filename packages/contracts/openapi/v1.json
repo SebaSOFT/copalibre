@@ -2185,6 +2185,426 @@
         ]
       }
     },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/tables": {
+      "get": {
+        "operationId": "TableProjectionsController_tableLayouts",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableLayoutListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Every table layout in effect for this tournament, for building a tab bar",
+        "tags": [
+          "table-projections"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/tables/{layoutCode}": {
+      "get": {
+        "operationId": "TableProjectionsController_tournamentTable",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "layoutCode",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableProjectionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A tournament-wide table projection (player/team rankings across every stage)",
+        "tags": [
+          "table-projections"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/tables/{layoutCode}/csv": {
+      "get": {
+        "operationId": "TableProjectionsController_tournamentTableCsv",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "layoutCode",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV table export",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The same tournament-wide table projection, as a CSV download",
+        "tags": [
+          "table-projections"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/tables/{layoutCode}": {
+      "get": {
+        "operationId": "TableProjectionsController_stageTable",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "layoutCode",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableProjectionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A stage-scoped table projection (group standings, match rosters, schedule tables)",
+        "tags": [
+          "table-projections"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/tables/{layoutCode}/csv": {
+      "get": {
+        "operationId": "TableProjectionsController_stageTableCsv",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "layoutCode",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV table export",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The same stage-scoped table projection, as a CSV download",
+        "tags": [
+          "table-projections"
+        ]
+      }
+    },
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/seeding": {
       "get": {
         "description": "Structure comes from the engine; status and scores from the recorded matches.",
@@ -3403,6 +3823,147 @@
           }
         },
         "summary": "Bracket for a stage",
+        "tags": [
+          "Public Projections"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/public/tables": {
+      "get": {
+        "operationId": "PublicProjectionsController_tableLayouts",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableLayoutListResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Every table layout in effect for this tournament",
+        "tags": [
+          "Public Projections"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/public/tables/{layoutCode}": {
+      "get": {
+        "operationId": "PublicProjectionsController_tournamentTable",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "layoutCode",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableProjectionResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "A tournament-wide table projection (player/team rankings)",
+        "tags": [
+          "Public Projections"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/public/tables/{layoutCode}": {
+      "get": {
+        "operationId": "PublicProjectionsController_stageTable",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "layoutCode",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableProjectionResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "A stage-scoped table projection (group standings, schedule tables)",
         "tags": [
           "Public Projections"
         ]
@@ -5342,6 +5903,220 @@
         "required": [
           "entrantId",
           "lines"
+        ]
+      },
+      "TableLayoutSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string",
+            "enum": [
+              "group-phase",
+              "match-roster",
+              "player-ranking",
+              "team-ranking",
+              "schedule-timeframe"
+            ]
+          },
+          "label": {
+            "type": "object"
+          },
+          "entityGranularity": {
+            "type": "string",
+            "enum": [
+              "person",
+              "player",
+              "team",
+              "club",
+              "official",
+              "venue"
+            ]
+          }
+        },
+        "required": [
+          "code",
+          "target",
+          "label",
+          "entityGranularity"
+        ]
+      },
+      "TableLayoutListResponse": {
+        "type": "object",
+        "properties": {
+          "layouts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TableLayoutSummaryResponse"
+            }
+          }
+        },
+        "required": [
+          "layouts"
+        ]
+      },
+      "TableColumnResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "header": {
+            "type": "object"
+          },
+          "shortHeader": {
+            "type": "object"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "text",
+              "number",
+              "decimal-1",
+              "decimal-2",
+              "percentage",
+              "fraction"
+            ]
+          }
+        },
+        "required": [
+          "code",
+          "header",
+          "format"
+        ]
+      },
+      "TableSortRuleResponse": {
+        "type": "object",
+        "properties": {
+          "columnCode": {
+            "type": "string"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "asc",
+              "desc"
+            ]
+          }
+        },
+        "required": [
+          "columnCode",
+          "direction"
+        ]
+      },
+      "TableCellResponse": {
+        "type": "object",
+        "properties": {
+          "raw": {
+            "type": "object",
+            "description": "Absent when the underlying figure has no value yet"
+          },
+          "formatted": {
+            "type": "string",
+            "description": "Column-format-rendered text, e.g. \"2.50\", \"4/5\", \"35%\""
+          },
+          "numerator": {
+            "type": "number",
+            "description": "Present only for a `composite` column source"
+          },
+          "denominator": {
+            "type": "number",
+            "description": "Present only for a `composite` column source"
+          }
+        },
+        "required": [
+          "formatted"
+        ]
+      },
+      "TableRowResponse": {
+        "type": "object",
+        "properties": {
+          "actorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "entrantId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Present at team/entrant granularity"
+          },
+          "rank": {
+            "type": "number",
+            "description": "1-based; rows sharing a rank were not separated by `defaultSort`"
+          },
+          "sharedRank": {
+            "type": "boolean",
+            "description": "True when another row holds the same rank"
+          },
+          "cells": {
+            "description": "One cell per declared column, keyed by column code",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TableCellResponse"
+              }
+            ]
+          }
+        },
+        "required": [
+          "actorId",
+          "rank",
+          "sharedRank",
+          "cells"
+        ]
+      },
+      "TableProjectionResponse": {
+        "type": "object",
+        "properties": {
+          "layoutCode": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string",
+            "enum": [
+              "group-phase",
+              "match-roster",
+              "player-ranking",
+              "team-ranking",
+              "schedule-timeframe"
+            ]
+          },
+          "label": {
+            "type": "object"
+          },
+          "columns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TableColumnResponse"
+            }
+          },
+          "defaultSort": {
+            "description": "The layout’s declared ranking order — a client scaling a chart against \"the primary metric\" reads its first entry",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TableSortRuleResponse"
+            }
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TableRowResponse"
+            }
+          },
+          "projectionVersion": {
+            "type": "number",
+            "description": "Freshest `statistic-totals` projection version among this scope’s matches; 0 when none has been folded yet"
+          }
+        },
+        "required": [
+          "layoutCode",
+          "target",
+          "label",
+          "columns",
+          "defaultSort",
+          "rows",
+          "projectionVersion"
         ]
       },
       "SeedAssignmentResponse": {

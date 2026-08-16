@@ -211,6 +211,10 @@ function minimalControlClient(overrides: Partial<ControlApiClient>): ControlApiC
       trace: [],
     }),
     fetchTiebreakTrace: async () => ({ entrantId: 'entrant', lines: [] }),
+    fetchTableLayouts: async () => [],
+    fetchTableProjection: async () => {
+      throw new Error('fetchTableProjection not stubbed in this test');
+    },
     fetchSeeding: async () => ({
       stageId: 'stage',
       format: 'single-elimination',

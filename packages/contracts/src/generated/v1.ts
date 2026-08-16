@@ -636,6 +636,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/tables": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every table layout in effect for this tournament, for building a tab bar */
+        get: operations["TableProjectionsController_tableLayouts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/tables/{layoutCode}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A tournament-wide table projection (player/team rankings across every stage) */
+        get: operations["TableProjectionsController_tournamentTable"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/tables/{layoutCode}/csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The same tournament-wide table projection, as a CSV download */
+        get: operations["TableProjectionsController_tournamentTableCsv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/tables/{layoutCode}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A stage-scoped table projection (group standings, match rosters, schedule tables) */
+        get: operations["TableProjectionsController_stageTable"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/tables/{layoutCode}/csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The same stage-scoped table projection, as a CSV download */
+        get: operations["TableProjectionsController_stageTableCsv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/seeding": {
         parameters: {
             query?: never;
@@ -992,6 +1077,57 @@ export interface paths {
         };
         /** Bracket for a stage */
         get: operations["PublicProjectionsController_bracket"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/public/tables": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every table layout in effect for this tournament */
+        get: operations["PublicProjectionsController_tableLayouts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/public/tables/{layoutCode}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A tournament-wide table projection (player/team rankings) */
+        get: operations["PublicProjectionsController_tournamentTable"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/public/tables/{layoutCode}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A stage-scoped table projection (group standings, schedule tables) */
+        get: operations["PublicProjectionsController_stageTable"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1735,6 +1871,66 @@ export interface components {
             entrantId: string;
             /** @description Empty when no comparator had to separate this entrant */
             lines: string[];
+        };
+        TableLayoutSummaryResponse: {
+            code: string;
+            /** @enum {string} */
+            target: "group-phase" | "match-roster" | "player-ranking" | "team-ranking" | "schedule-timeframe";
+            label: Record<string, never>;
+            /** @enum {string} */
+            entityGranularity: "person" | "player" | "team" | "club" | "official" | "venue";
+        };
+        TableLayoutListResponse: {
+            layouts: components["schemas"]["TableLayoutSummaryResponse"][];
+        };
+        TableColumnResponse: {
+            code: string;
+            header: Record<string, never>;
+            shortHeader?: Record<string, never>;
+            /** @enum {string} */
+            format: "text" | "number" | "decimal-1" | "decimal-2" | "percentage" | "fraction";
+        };
+        TableSortRuleResponse: {
+            columnCode: string;
+            /** @enum {string} */
+            direction: "asc" | "desc";
+        };
+        TableCellResponse: {
+            /** @description Absent when the underlying figure has no value yet */
+            raw?: Record<string, never>;
+            /** @description Column-format-rendered text, e.g. "2.50", "4/5", "35%" */
+            formatted: string;
+            /** @description Present only for a `composite` column source */
+            numerator?: number;
+            /** @description Present only for a `composite` column source */
+            denominator?: number;
+        };
+        TableRowResponse: {
+            /** Format: uuid */
+            actorId: string;
+            /**
+             * Format: uuid
+             * @description Present at team/entrant granularity
+             */
+            entrantId?: string;
+            /** @description 1-based; rows sharing a rank were not separated by `defaultSort` */
+            rank: number;
+            /** @description True when another row holds the same rank */
+            sharedRank: boolean;
+            /** @description One cell per declared column, keyed by column code */
+            cells: components["schemas"]["TableCellResponse"];
+        };
+        TableProjectionResponse: {
+            layoutCode: string;
+            /** @enum {string} */
+            target: "group-phase" | "match-roster" | "player-ranking" | "team-ranking" | "schedule-timeframe";
+            label: Record<string, never>;
+            columns: components["schemas"]["TableColumnResponse"][];
+            /** @description The layout’s declared ranking order — a client scaling a chart against "the primary metric" reads its first entry */
+            defaultSort: components["schemas"]["TableSortRuleResponse"][];
+            rows: components["schemas"]["TableRowResponse"][];
+            /** @description Freshest `statistic-totals` projection version among this scope’s matches; 0 when none has been folded yet */
+            projectionVersion: number;
         };
         SeedAssignmentResponse: {
             /**
@@ -3461,6 +3657,244 @@ export interface operations {
             };
         };
     };
+    TableProjectionsController_tableLayouts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TableLayoutListResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    TableProjectionsController_tournamentTable: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                layoutCode: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TableProjectionResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    TableProjectionsController_tournamentTableCsv: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                layoutCode: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CSV table export */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": components["schemas"]["ProblemResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    TableProjectionsController_stageTable: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                stageNumber: string;
+                layoutCode: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TableProjectionResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    TableProjectionsController_stageTableCsv: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                stageNumber: string;
+                layoutCode: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CSV table export */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": components["schemas"]["ProblemResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
     SeedingController_seeding: {
         parameters: {
             query?: never;
@@ -4096,6 +4530,75 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PublicBracketResponse"];
+                };
+            };
+        };
+    };
+    PublicProjectionsController_tableLayouts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TableLayoutListResponse"];
+                };
+            };
+        };
+    };
+    PublicProjectionsController_tournamentTable: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                layoutCode: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TableProjectionResponse"];
+                };
+            };
+        };
+    };
+    PublicProjectionsController_stageTable: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                stageNumber: string;
+                layoutCode: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TableProjectionResponse"];
                 };
             };
         };

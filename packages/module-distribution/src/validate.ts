@@ -11,7 +11,7 @@ import {
   type TournamentProfileDocument,
 } from '@copalibre/domain';
 import { loadDefaultModuleCatalogue } from '@copalibre/module-catalogue';
-import type { RuleScript } from '@copalibre/rules';
+import { splitTemplate, validateExpression, type RuleScript } from '@copalibre/rules';
 import { validateModuleAssets } from './assets.js';
 import { ModuleValidationError, type ModuleValidationFailure } from './errors.js';
 import { validateModuleManifest, type ModuleManifest } from './manifest.js';
@@ -135,6 +135,10 @@ export async function validateModulePackage(
 
     for (const message of validatePayloadFieldReferences(descriptor)) {
       failures.push({ stage: 'payload-field-reference', message });
+    }
+
+    for (const message of validateTableLayoutReferences(descriptor)) {
+      failures.push({ stage: 'table-layout-reference', message });
     }
 
     // No override layer exists yet for a bare descriptor — compileEffectiveRuleset
@@ -304,6 +308,70 @@ function validatePayloadFieldReferences(descriptor: DisciplineDescriptor): reado
           `Collector "${collector.code}" extracts its actor from payload field ` +
             `"${payloadField}", which event "${code}"'s payloadSchema does not declare`,
         );
+      }
+    }
+  }
+
+  return messages;
+}
+
+/**
+ * A table layout's `collector`/`composite` column sources name a code the
+ * discipline must actually produce a figure for — either a declared
+ * collector or a declared statistic (a result-recorded value, per
+ * `discipline-driven-results`), the same two vocabularies every other
+ * figure-reading concern in this codebase already resolves against.
+ * `computed`/`template` expressions are vetted the same way any other
+ * Neuron-JS expression is — at install time, not at first table read.
+ */
+function validateTableLayoutReferences(descriptor: DisciplineDescriptor): readonly string[] {
+  const messages: string[] = [];
+  const knownCodes = new Set([
+    ...(descriptor.collectors ?? []).map((collector) => collector.code),
+    ...descriptor.statistics.map((statistic) => statistic.code),
+  ]);
+
+  for (const layout of descriptor.tableLayouts ?? []) {
+    const minSamplesCode = layout.filter?.minSamples?.collectorCode;
+    if (minSamplesCode !== undefined && !knownCodes.has(minSamplesCode)) {
+      messages.push(
+        `Table layout "${layout.code}"'s qualification filter names "${minSamplesCode}", which ` +
+          'this discipline declares neither as a collector nor as a statistic',
+      );
+    }
+
+    for (const column of layout.columns) {
+      const codes: readonly string[] =
+        column.source.kind === 'collector'
+          ? [column.source.code]
+          : column.source.kind === 'composite'
+            ? [column.source.numerator, column.source.denominator]
+            : [];
+      for (const code of codes) {
+        if (!knownCodes.has(code)) {
+          messages.push(
+            `Table layout "${layout.code}"'s column "${column.code}" names "${code}", which this ` +
+              'discipline declares neither as a collector nor as a statistic',
+          );
+        }
+      }
+
+      const expressions =
+        column.source.kind === 'computed'
+          ? [column.source.expression]
+          : column.source.kind === 'template'
+            ? splitTemplate(column.source.template)
+                .filter((segment) => segment.kind === 'expression')
+                .map((segment) => segment.source)
+            : [];
+      for (const expression of expressions) {
+        const validated = validateExpression(expression);
+        if (!validated.ok) {
+          messages.push(
+            `Table layout "${layout.code}"'s column "${column.code}" declares an invalid ` +
+              `expression: ${validated.error.message}`,
+          );
+        }
       }
     }
   }

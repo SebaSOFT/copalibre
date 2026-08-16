@@ -11,44 +11,79 @@ import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './suppor
  * server's own words.
  */
 
-const STAGE = '/organizations/liga-mendocina/tournaments/apertura-2026/stages/1';
+const TOURNAMENT = '/organizations/liga-mendocina/tournaments/apertura-2026';
+const STAGE = `${TOURNAMENT}/stages/1`;
 
-const standingsFixture = {
-  stageId: 'stage-001',
-  projectionVersion: 12,
-  fullyResolved: true,
-  rows: [
+/** The declared layouts a tab bar reads (0091) — one 'group-phase' layout is enough for this spec. */
+const tableLayoutsFixture = {
+  layouts: [
     {
-      rank: 1,
-      entrantId: 'Deportivo Norte',
-      sharedRank: false,
-      statistics: { played: 6, points: 13, 'goals-for': 28 },
-      tieBroken: true,
-    },
-    {
-      rank: 2,
-      entrantId: 'Atlético Sur',
-      sharedRank: false,
-      statistics: { played: 6, points: 13, 'goals-for': 24 },
-      tieBroken: true,
-    },
-    {
-      rank: 3,
-      entrantId: 'Club Cometa',
-      sharedRank: false,
-      statistics: { played: 6, points: 4, 'goals-for': 9 },
-      tieBroken: false,
+      code: 'group-standings-default',
+      target: 'group-phase',
+      label: 'Group Standings',
+      entityGranularity: 'team',
     },
   ],
-  trace: ['Rule 1 (Puntos): Deportivo Norte=13, Atlético Sur=13 → sin resolver'],
 };
 
-const traceFixture = {
-  entrantId: 'Deportivo Norte',
-  lines: [
-    'Rule 1 (Puntos): Deportivo Norte=13, Atlético Sur=13 → Tie not fully resolved by Puntos; proceed to next comparator',
-    'Rule 2 (A favor): Deportivo Norte=28, Atlético Sur=24 → A favor resolved the tie',
+const groupStandingsProjectionFixture = {
+  layoutCode: 'group-standings-default',
+  target: 'group-phase',
+  label: 'Group Standings',
+  columns: [
+    { code: 'name', header: 'Team', format: 'text' },
+    { code: 'points', header: 'Points', format: 'number' },
   ],
+  defaultSort: [{ columnCode: 'points', direction: 'desc' }],
+  rows: [
+    {
+      actorId: 'Deportivo Norte',
+      entrantId: 'Deportivo Norte',
+      rank: 1,
+      sharedRank: true,
+      cells: {
+        name: { raw: 'Deportivo Norte', formatted: 'Deportivo Norte' },
+        points: { raw: 13, formatted: '13' },
+      },
+    },
+    {
+      actorId: 'Atlético Sur',
+      entrantId: 'Atlético Sur',
+      rank: 1,
+      sharedRank: true,
+      cells: {
+        name: { raw: 'Atlético Sur', formatted: 'Atlético Sur' },
+        points: { raw: 13, formatted: '13' },
+      },
+    },
+    {
+      actorId: 'Club Cometa',
+      entrantId: 'Club Cometa',
+      rank: 3,
+      sharedRank: false,
+      cells: {
+        name: { raw: 'Club Cometa', formatted: 'Club Cometa' },
+        points: { raw: 4, formatted: '4' },
+      },
+    },
+  ],
+  projectionVersion: 12,
+};
+
+/**
+ * Per-entrant trace, keyed the way the server actually answers each row's
+ * lazy fetch — 'Club Cometa' isn't tied with anyone, so its own real answer
+ * is an empty comparator chain, not the leaders' trace repeated.
+ */
+const traceByEntrant: Record<string, { readonly entrantId: string; readonly lines: readonly string[] }> = {
+  'Deportivo Norte': {
+    entrantId: 'Deportivo Norte',
+    lines: [
+      'Rule 1 (Puntos): Deportivo Norte=13, Atlético Sur=13 → Tie not fully resolved by Puntos; proceed to next comparator',
+      'Rule 2 (A favor): Deportivo Norte=28, Atlético Sur=24 → A favor resolved the tie',
+    ],
+  },
+  'Club Cometa': { entrantId: 'Club Cometa', lines: [] },
 };
 
 /** A double-elimination stage: winners, losers and a grand final. */
@@ -131,7 +166,7 @@ async function mockControlApi(
   options: { readonly reseedBlocked?: boolean } = {},
 ): Promise<void> {
   await page.addInitScript(
-    ({ stage, standings, trace, seeding, reseedBlocked, tokenEndpoint }) => {
+    ({ tournament, stage, layouts, projection, trace, seeding, reseedBlocked, tokenEndpoint }) => {
       // `addInitScript` re-runs on every navigation, including a reload, so a
       // plain closure variable would not survive one — sessionStorage does,
       // letting a GET after a reload reflect what the server would have
@@ -154,8 +189,13 @@ async function mockControlApi(
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
 
-        if (url === `${stage}/standings`) return Response.json(standings);
-        if (url.startsWith(`${stage}/standings/entrants/`)) return Response.json(trace);
+        if (url === `${tournament}/tables`) return Response.json(layouts);
+        if (url === `${stage}/tables/group-standings-default`) return Response.json(projection);
+        if (url.startsWith(`${stage}/standings/entrants/`) && url.endsWith('/trace')) {
+          const withoutTrace = url.slice(0, -'/trace'.length);
+          const entrantId = decodeURIComponent(withoutTrace.slice(withoutTrace.lastIndexOf('/') + 1));
+          return Response.json(trace[entrantId] ?? { entrantId, lines: [] });
+        }
         if (url === `${stage}/seeding` && method === 'GET') return Response.json(readCurrent());
         if (url === `${stage}/seeding` && method === 'POST') {
           if (reseedBlocked) {
@@ -180,9 +220,11 @@ async function mockControlApi(
       };
     },
     {
+      tournament: TOURNAMENT,
       stage: STAGE,
-      standings: standingsFixture,
-      trace: traceFixture,
+      layouts: tableLayoutsFixture,
+      projection: groupStandingsProjectionFixture,
+      trace: traceByEntrant,
       seeding: seedingFixture,
       reseedBlocked: options.reseedBlocked ?? false,
       tokenEndpoint: TOKEN_ENDPOINT,
@@ -203,15 +245,15 @@ test('expands a tied standings row and shows the engine’s trace', async ({ pag
 
   const trace = page.getByLabel('Traza de desempate');
   await expect(trace).toBeVisible();
-  for (const line of traceFixture.lines) {
+  for (const line of traceByEntrant['Deportivo Norte'].lines) {
     await expect(trace.getByText(line, { exact: true })).toBeVisible();
   }
 
-  // The row nobody had to break a tie for offers no trace at all.
+  // The row nobody had to break a tie for fetches its own real (empty) trace
+  // — every row is a candidate to expand now, not only the ones a
+  // precomputed flag marked in advance.
   await page.locator('summary').filter({ hasText: 'Club Cometa' }).click();
-  await expect(
-    page.getByText('Ningún comparador de desempate intervino en esta posición.'),
-  ).toBeVisible();
+  await expect(page.getByText('El motor no registró comparadores.')).toBeVisible();
 });
 
 test('keeps locked seeds through a randomize', async ({ page }) => {

@@ -95,6 +95,14 @@ export {
 } from './statistics/fold.js';
 export { tagFactsFrom, type TagEventInput } from './statistics/tags.js';
 export {
+  projectTableLayout,
+  type TableProjectionActor,
+  type TableProjectionContext,
+  type TableCell,
+  type TableRow,
+  type TableProjection,
+} from './statistics/table-projection.js';
+export {
   resolveAdvancement,
   unlockedByFinalization,
   playableMatches,

@@ -264,6 +264,8 @@ export const messages: Record<string, string> = {
   'control.standings.distributionEmpty': '没有可供绘图的数据。',
   'control.standings.sharedRank': '并列名次',
   'control.standings.tieBroken': '已决出胜负',
+  'control.standings.exportCsv': '导出 CSV',
+  'control.standings.noLayouts': '该项目未为此赛事声明任何表格。',
 
   'control.landing.emptyTitle': '暂无组织',
   'control.landing.emptyBody': '此账户尚未在任何组织中拥有角色。需要管理员发送邀请。',

@@ -265,6 +265,8 @@ export const messages: Record<string, string> = {
   'control.standings.distributionEmpty': 'Sin datos para graficar.',
   'control.standings.sharedRank': 'Posición compartida',
   'control.standings.tieBroken': 'Desempatado',
+  'control.standings.exportCsv': 'Exportar CSV',
+  'control.standings.noLayouts': 'Esta disciplina no declara tablas para este torneo.',
 
   'control.landing.emptyTitle': 'Sin organizaciones todavía',
   'control.landing.emptyBody':

@@ -42,6 +42,8 @@ export {
   isExpressionMode,
   type TemplateSegment,
 } from './expressions/expression.js';
+/** Re-exported so a caller of `evaluateExpression`/`resolveExpressionField` outside this package can construct one without depending on `@sebasoft/neuron-js` directly. */
+export type { ExecutionContext } from '@sebasoft/neuron-js';
 export {
   EXPRESSION_FUNCTION_NAMES,
   isExpressionFunction,
