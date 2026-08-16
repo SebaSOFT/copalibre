@@ -132,9 +132,9 @@ export class ConsoleRosterResponse {
 
   @ApiPropertyOptional({
     format: 'uuid',
-    description: "The team's club's emblem object_metadata.object_id, when set",
+    description: "The team's club id, when it has one — resolves the club emblem serve route",
   })
-  clubEmblemObjectId?: string;
+  clubId?: string;
 
   @ApiProperty({ type: [ConsoleRosterMemberResponse] })
   members!: ConsoleRosterMemberResponse[];

@@ -1031,7 +1031,7 @@ export class MatchControlController {
       (entrantId): entrantId is string => entrantId !== null && entrantId !== undefined,
     );
     const eligibleStaffIds = await this.eligibleStaffIds(entrantIds);
-    const { teamNameByEntrant, clubEmblemByEntrant } = await this.teamIdentityByEntrant(entrantIds);
+    const { teamNameByEntrant, clubIdByEntrant } = await this.teamIdentityByEntrant(entrantIds);
 
     return {
       matchId,
@@ -1093,9 +1093,9 @@ export class MatchControlController {
         ...(teamNameByEntrant.get(roster.entrant_id) === undefined
           ? {}
           : { teamName: teamNameByEntrant.get(roster.entrant_id) }),
-        ...(clubEmblemByEntrant.get(roster.entrant_id) === undefined
+        ...(clubIdByEntrant.get(roster.entrant_id) === undefined
           ? {}
-          : { clubEmblemObjectId: clubEmblemByEntrant.get(roster.entrant_id) }),
+          : { clubId: clubIdByEntrant.get(roster.entrant_id) }),
         members: foldRosterLineup(initialRosterOf(matchId, roster), events).members.map(
           (member) => ({
             personId: member.personId,
@@ -1140,16 +1140,17 @@ export class MatchControlController {
   }
 
   /**
-   * A team entrant's name and its club's emblem, keyed by entrant id — what
+   * A team entrant's name and its club id, keyed by entrant id — what
    * `JerseyGrid.tsx`'s team header needs to replace the raw
-   * `entrantId.slice(-8)` it renders today (0093 task 4.7).
+   * `entrantId.slice(-8)` it renders today, and to resolve the club's
+   * emblem via the entity-scoped serve route (0093 task 4.7).
    */
   private async teamIdentityByEntrant(entrantIds: readonly string[]): Promise<{
     readonly teamNameByEntrant: ReadonlyMap<string, string>;
-    readonly clubEmblemByEntrant: ReadonlyMap<string, string>;
+    readonly clubIdByEntrant: ReadonlyMap<string, string>;
   }> {
     if (entrantIds.length === 0) {
-      return { teamNameByEntrant: new Map(), clubEmblemByEntrant: new Map() };
+      return { teamNameByEntrant: new Map(), clubIdByEntrant: new Map() };
     }
 
     const enrollment = new EnrollmentRepository(this.db);
@@ -1169,33 +1170,18 @@ export class MatchControlController {
     );
     const teamIds = [...new Set(teamIdByEntrant.values())];
     const clubIdByTeam = await enrollment.clubsOfTeams(teamIds);
-    const clubIds = [...new Set(clubIdByTeam.values())];
-    const clubs =
-      clubIds.length === 0
-        ? []
-        : await this.db
-            .selectFrom('clubs')
-            .select(['club_id', 'emblem_object_id'])
-            .where('club_id', 'in', clubIds)
-            .execute();
-    const emblemByClub = new Map(
-      clubs.flatMap((club) =>
-        club.emblem_object_id === null ? [] : [[club.club_id, club.emblem_object_id] as const],
-      ),
-    );
 
     const teamNameByEntrant = new Map(
       [...entrantNames.entries()].map(([entrantId, entry]) => [entrantId, entry.name] as const),
     );
-    const clubEmblemByEntrant = new Map(
+    const clubIdByEntrant = new Map(
       [...teamIdByEntrant.entries()].flatMap(([entrantId, teamId]) => {
         const clubId = clubIdByTeam.get(teamId);
-        const emblemObjectId = clubId === undefined ? undefined : emblemByClub.get(clubId);
-        return emblemObjectId === undefined ? [] : [[entrantId, emblemObjectId] as const];
+        return clubId === undefined ? [] : [[entrantId, clubId] as const];
       }),
     );
 
-    return { teamNameByEntrant, clubEmblemByEntrant };
+    return { teamNameByEntrant, clubIdByEntrant };
   }
 
   private async stageOf(matchId: string): Promise<string> {

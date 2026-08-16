@@ -459,6 +459,8 @@ export interface ConsoleRosterMember {
   /** Shirt number; not always numeric (e.g. '00', '7B'). */
   readonly number?: number | string;
   readonly name: string;
+  /** ISO 3166-1 alpha-2 country code, snapshotted at roster-selection time. */
+  readonly nationality?: string;
   /**
    * Codes naming discipline-declared roster roles (see `rosterRoles` on
    * `MatchConsoleResponse`) this member carries — zero, one, or several,
@@ -472,6 +474,10 @@ export interface ConsoleRosterMember {
 
 export interface ConsoleRoster {
   readonly entrantId: string;
+  /** The entrant's team name, when the entrant is a team. */
+  readonly teamName?: string;
+  /** The team's club id, when the team has one — resolves the emblem serve route. */
+  readonly clubId?: string;
   readonly members: readonly ConsoleRosterMember[];
 }
 
