@@ -187,6 +187,25 @@ export const messages: Record<string, string> = {
   'control.review.revoke': 'Revoca',
   'control.review.emptyFilter': 'Non ci sono iscrizioni per questo filtro.',
   'control.review.pagination': 'Pagina {page} di {pageCount}',
+  'control.review.nationalityLabel': 'Nazionalità',
+  'control.review.nationalityNone': 'Non impostata',
+  'control.review.saveNationality': 'Salva',
+  'control.review.uploadPhoto': 'Carica foto',
+  'control.review.viewProfile': 'Vedi profilo',
+
+  'control.country.label': 'Paese',
+  'control.country.searchPlaceholder': 'Cerca paese…',
+
+  'control.personProfile.title': 'Profilo della persona',
+  'control.personProfile.photoAlt': 'Foto di {displayName}',
+  'control.personProfile.photoPlaceholderAlt': 'Nessuna foto caricata',
+  'control.personProfile.naturalKeyLabel': 'Documento',
+  'control.personProfile.naturalKeyUnavailable': 'Non registrato',
+  'control.personProfile.nationalityLabel': 'Nazionalità',
+  'control.personProfile.back': 'Torna alle iscrizioni',
+
+  'control.jerseyGrid.emblemAlt': 'Stemma del club',
+  'control.jerseyGrid.emblemPlaceholderAlt': 'Nessuno stemma',
 
   'control.roles.loadFailed': 'Impossibile caricare gli utenti.',
   'control.roles.changeFailed': 'Impossibile applicare la modifica.',

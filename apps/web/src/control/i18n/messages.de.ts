@@ -188,6 +188,25 @@ export const messages: Record<string, string> = {
   'control.review.revoke': 'Widerrufen',
   'control.review.emptyFilter': 'Für diesen Filter gibt es keine Anmeldungen.',
   'control.review.pagination': 'Seite {page} von {pageCount}',
+  'control.review.nationalityLabel': 'Staatsangehörigkeit',
+  'control.review.nationalityNone': 'Nicht festgelegt',
+  'control.review.saveNationality': 'Speichern',
+  'control.review.uploadPhoto': 'Foto hochladen',
+  'control.review.viewProfile': 'Profil ansehen',
+
+  'control.country.label': 'Land',
+  'control.country.searchPlaceholder': 'Land suchen…',
+
+  'control.personProfile.title': 'Personenprofil',
+  'control.personProfile.photoAlt': 'Foto von {displayName}',
+  'control.personProfile.photoPlaceholderAlt': 'Kein Foto hochgeladen',
+  'control.personProfile.naturalKeyLabel': 'Dokument',
+  'control.personProfile.naturalKeyUnavailable': 'Nicht erfasst',
+  'control.personProfile.nationalityLabel': 'Staatsangehörigkeit',
+  'control.personProfile.back': 'Zurück zu den Anmeldungen',
+
+  'control.jerseyGrid.emblemAlt': 'Vereinswappen',
+  'control.jerseyGrid.emblemPlaceholderAlt': 'Kein Wappen',
 
   'control.roles.loadFailed': 'Die Benutzer konnten nicht geladen werden.',
   'control.roles.changeFailed': 'Die Änderung konnte nicht angewendet werden.',

@@ -188,6 +188,25 @@ export const messages: Record<string, string> = {
   'control.review.revoke': 'Отозвать',
   'control.review.emptyFilter': 'Для этого фильтра нет регистраций.',
   'control.review.pagination': 'Страница {page} из {pageCount}',
+  'control.review.nationalityLabel': 'Гражданство',
+  'control.review.nationalityNone': 'Не указано',
+  'control.review.saveNationality': 'Сохранить',
+  'control.review.uploadPhoto': 'Загрузить фото',
+  'control.review.viewProfile': 'Смотреть профиль',
+
+  'control.country.label': 'Страна',
+  'control.country.searchPlaceholder': 'Поиск страны…',
+
+  'control.personProfile.title': 'Профиль участника',
+  'control.personProfile.photoAlt': 'Фото {displayName}',
+  'control.personProfile.photoPlaceholderAlt': 'Фото не загружено',
+  'control.personProfile.naturalKeyLabel': 'Документ',
+  'control.personProfile.naturalKeyUnavailable': 'Не указан',
+  'control.personProfile.nationalityLabel': 'Гражданство',
+  'control.personProfile.back': 'Назад к заявкам',
+
+  'control.jerseyGrid.emblemAlt': 'Эмблема клуба',
+  'control.jerseyGrid.emblemPlaceholderAlt': 'Нет эмблемы',
 
   'control.roles.loadFailed': 'Не удалось загрузить пользователей.',
   'control.roles.changeFailed': 'Не удалось применить изменение.',

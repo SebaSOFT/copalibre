@@ -187,6 +187,25 @@ export const messages: Record<string, string> = {
   'control.review.revoke': 'Revocar',
   'control.review.emptyFilter': 'No hay inscripciones para este filtro.',
   'control.review.pagination': 'Página {page} de {pageCount}',
+  'control.review.nationalityLabel': 'Nacionalidad',
+  'control.review.nationalityNone': 'Sin definir',
+  'control.review.saveNationality': 'Guardar',
+  'control.review.uploadPhoto': 'Subir foto',
+  'control.review.viewProfile': 'Ver perfil',
+
+  'control.country.label': 'País',
+  'control.country.searchPlaceholder': 'Buscar país…',
+
+  'control.personProfile.title': 'Perfil de la persona',
+  'control.personProfile.photoAlt': 'Foto de {displayName}',
+  'control.personProfile.photoPlaceholderAlt': 'Sin foto cargada',
+  'control.personProfile.naturalKeyLabel': 'Documento',
+  'control.personProfile.naturalKeyUnavailable': 'No registrado',
+  'control.personProfile.nationalityLabel': 'Nacionalidad',
+  'control.personProfile.back': 'Volver a inscripciones',
+
+  'control.jerseyGrid.emblemAlt': 'Escudo del club',
+  'control.jerseyGrid.emblemPlaceholderAlt': 'Sin escudo',
 
   'control.roles.loadFailed': 'No se pudieron cargar los usuarios.',
   'control.roles.changeFailed': 'No se pudo aplicar el cambio.',
