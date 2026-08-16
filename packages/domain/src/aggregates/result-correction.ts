@@ -122,6 +122,20 @@ export function planCorrection(
     );
   }
 
+  const replacementIds = request.replacement.sides.map((side) => side.entrantId);
+  const distinctReplacementIds = new Set(replacementIds);
+  if (distinctReplacementIds.size !== replacementIds.length) {
+    const duplicated = replacementIds.find(
+      (id, index) => replacementIds.indexOf(id) !== index,
+    ) as string;
+    return err(
+      new CorrectionError(
+        `A correction may not name "${duplicated}" more than once among the match's sides`,
+        { matchId: request.matchId, entrantId: duplicated },
+      ),
+    );
+  }
+
   const changedEntrantIds = request.replacement.sides
     .filter((side) => !sameNumbers(priorById.get(side.entrantId)?.statistics, side.statistics))
     .map((side) => side.entrantId);
