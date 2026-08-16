@@ -136,6 +136,24 @@ export interface ControlApiClient {
     organizationAlias: string,
     tournamentAlias: string,
   ) => Promise<{ readonly status: string }>;
+  /** A person's profile — display name, nationality, photo, natural key (0093). */
+  readonly getPerson?: (organizationAlias: string, personId: string) => Promise<PersonResponse>;
+  readonly setPersonNationality?: (
+    organizationAlias: string,
+    personId: string,
+    nationality: string | null,
+  ) => Promise<{ readonly personId: string; readonly nationality: string | null }>;
+  readonly uploadPersonPhoto?: (
+    organizationAlias: string,
+    personId: string,
+    request: UploadImageRequest,
+  ) => Promise<{ readonly objectId: string }>;
+}
+
+export interface UploadImageRequest {
+  readonly filename: string;
+  readonly contentType: string;
+  readonly contentBase64: string;
 }
 
 export interface DisplayTokenResponse {
@@ -825,6 +843,27 @@ export function createControlApiClient(input: {
       url: `${baseUrl}/events/control/${encodeURIComponent(organizationAlias)}`,
       accessToken: input.accessToken,
     }),
+
+    getPerson: (organizationAlias, personId) =>
+      requestJson<PersonResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/persons/${encodeURIComponent(personId)}`,
+        { token: input.accessToken?.() },
+      ),
+
+    setPersonNationality: (organizationAlias, personId, nationality) =>
+      requestJson(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/persons/${encodeURIComponent(personId)}/nationality`,
+        { method: 'PATCH', body: { nationality }, token: input.accessToken?.() },
+      ),
+
+    uploadPersonPhoto: (organizationAlias, personId, body) =>
+      requestJson(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/persons/${encodeURIComponent(personId)}/photo`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
   };
 }
 
