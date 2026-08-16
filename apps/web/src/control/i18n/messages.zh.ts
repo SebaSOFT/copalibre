@@ -196,6 +196,8 @@ export const messages: Record<string, string> = {
   'control.country.searchPlaceholder': '搜索国家…',
 
   'control.personProfile.title': '人员资料',
+  'control.personProfile.loading': '正在加载资料…',
+  'control.personProfile.loadFailed': '无法加载此资料。',
   'control.personProfile.photoAlt': '{displayName}的照片',
   'control.personProfile.photoPlaceholderAlt': '未上传照片',
   'control.personProfile.naturalKeyLabel': '证件',

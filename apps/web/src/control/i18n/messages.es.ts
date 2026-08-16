@@ -197,6 +197,8 @@ export const messages: Record<string, string> = {
   'control.country.searchPlaceholder': 'Buscar país…',
 
   'control.personProfile.title': 'Perfil de la persona',
+  'control.personProfile.loading': 'Cargando perfil…',
+  'control.personProfile.loadFailed': 'No se pudo cargar este perfil.',
   'control.personProfile.photoAlt': 'Foto de {displayName}',
   'control.personProfile.photoPlaceholderAlt': 'Sin foto cargada',
   'control.personProfile.naturalKeyLabel': 'Documento',

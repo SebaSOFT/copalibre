@@ -498,6 +498,14 @@ export const messages = defineMessages({
 
   // PersonProfileRoute.tsx
   personProfileTitle: { id: 'control.personProfile.title', defaultMessage: 'Person profile' },
+  personProfileLoading: {
+    id: 'control.personProfile.loading',
+    defaultMessage: 'Loading profile…',
+  },
+  personProfileLoadFailed: {
+    id: 'control.personProfile.loadFailed',
+    defaultMessage: 'Could not load this profile.',
+  },
   personProfilePhotoAlt: {
     id: 'control.personProfile.photoAlt',
     defaultMessage: '{displayName}’s photo',
