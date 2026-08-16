@@ -19,6 +19,11 @@ export type ControlRoute =
   | { readonly screen: 'preferences'; readonly organizationAlias: string }
   | { readonly screen: 'newTournament'; readonly organizationAlias: string }
   | {
+      readonly screen: 'personProfile';
+      readonly organizationAlias: string;
+      readonly personId: string;
+    }
+  | {
       readonly screen: 'registrations';
       readonly organizationAlias: string;
       readonly tournamentAlias: string;
@@ -69,6 +74,11 @@ export function parseControlPath(pathname: string): ControlRoute | undefined {
   if (rest.length === 1 && rest[0] === 'roles') return { screen: 'roles', organizationAlias };
   if (rest.length === 1 && rest[0] === 'preferences')
     return { screen: 'preferences', organizationAlias };
+  if (rest.length === 2 && rest[0] === 'persons') {
+    const personId = rest[1];
+    if (personId === undefined) return undefined;
+    return { screen: 'personProfile', organizationAlias, personId };
+  }
 
   if (rest[0] !== 'tournaments') return undefined;
   if (rest.length === 2 && rest[1] === 'new') {
