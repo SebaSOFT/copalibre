@@ -77,6 +77,23 @@ describe('validatePerson', () => {
     if (result.ok) return;
     expect(result.error.code).toBe('PERSON_INVALID');
   });
+
+  it('accepts a person with no nationality', () => {
+    expect(validatePerson(person()).ok).toBe(true);
+  });
+
+  it('accepts a person carrying a valid nationality', () => {
+    expect(validatePerson(person({ nationality: 'AR' })).ok).toBe(true);
+  });
+
+  it('refuses a nationality that is not a valid ISO 3166-1 alpha-2 code', () => {
+    const result = validatePerson(person({ nationality: 'ZZ' }));
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe('PERSON_INVALID');
+    expect(result.error.message).toContain('ZZ');
+  });
 });
 
 describe('one person, several memberships', () => {

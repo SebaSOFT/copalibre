@@ -33,4 +33,6 @@ export interface Club {
    * surface with no room decides for itself what to show instead.
    */
   readonly abbreviation?: string;
+  /** Object-storage reference for the club's crest/shield; absent until uploaded. */
+  readonly emblemObjectId?: string;
 }
