@@ -35,3 +35,19 @@ label), consistent with the accessibility rules in `copalibre-visual-identity.md
 - **WHEN** the standings table is rendered in grayscale
 - **THEN** every tiebreak indicator remains distinguishable via its icon and text label
 
+### Requirement: Table layout projections evaluate compound metrics and multi-column sorting
+
+The system SHALL evaluate declared `TableLayoutDefinition` rules dynamically against precomputed `statistic_totals` and competition records, computing ratios, fractions, and multi-column sort rankings on demand.
+
+#### Scenario: A table layout computes composite fraction cells
+- **WHEN** a table column defines `source: { kind: 'composite', numerator: 'penalties-scored', denominator: 'penalties-taken' }` and `format: 'fraction'`
+- **THEN** the rendered row outputs `"4/5"` corresponding to the actor's folded totals
+
+#### Scenario: A table layout applies qualification filters
+- **WHEN** a goalkeeper ranking layout specifies `filter: { minSamples: { collectorCode: 'player-appearances', min: 3 } }`
+- **THEN** actors with fewer than 3 matches played are excluded from the ranking table
+
+#### Scenario: A table layout resolves multi-column sort precedence
+- **WHEN** a layout specifies `defaultSort: [{ columnCode: 'goals', direction: 'desc' }, { columnCode: 'goals-per-match', direction: 'desc' }, { columnCode: 'penalties', direction: 'asc' }]`
+- **THEN** tied goal scorers are ordered secondarily by goals-per-match and tertiarily by fewest penalty goals
+

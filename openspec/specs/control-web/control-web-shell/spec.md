@@ -206,3 +206,15 @@ land them on a useful destination rather than an unreachable default path.
 - **WHEN** an operator is redirected to login from a specific protected screen and completes
   authentication successfully
 - **THEN** they land on that original screen directly, with no organization-membership lookup performed
+
+### Requirement: Control web renders dynamic table layouts and rankings
+
+The control web shell and tournament screens SHALL render declared table layouts (group standings, player rankings, goalkeeper leaderboards, and schedule summaries) dynamically from the table projection API rather than static column definitions.
+
+#### Scenario: Standings page renders columns from the declared layout
+- **WHEN** an operator views a stage standings page for a football tournament
+- **THEN** the rendered table columns (`PJ, PG, PE, PP, GF, GC, Dif, Pts`) match the effective table layout configuration for that stage
+
+#### Scenario: Operator toggles between declared tournament ranking views
+- **WHEN** an operator navigates between Top Scorers and Goalkeeper rankings
+- **THEN** each view renders its corresponding declared columns, formatted fractions, and multi-column sort rankings

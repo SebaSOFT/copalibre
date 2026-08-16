@@ -130,3 +130,11 @@ variant of every public page for each.
 - **THEN** each of the seven non-English catalogs has exactly the same set of message IDs as
   `public-messages.en.ts`, with no empty translation values
 
+### Requirement: Public web surfaces render discipline-tailored table layouts
+
+Public spectator pages SHALL render standings and leaderboards according to the tournament's effective table layout definitions.
+
+#### Scenario: Public spectator views stage standings
+- **WHEN** a public visitor opens a tournament's standings page
+- **THEN** the table displays the discipline's declared columns and pre-sorted ranking order, server-rendered from the effective table layout without client-side column filtering
+
