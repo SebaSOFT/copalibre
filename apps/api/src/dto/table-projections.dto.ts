@@ -98,7 +98,8 @@ export class TableProjectionResponse {
   @ApiProperty({
     type: TableSortRuleResponse,
     isArray: true,
-    description: 'The layout’s declared ranking order — a client scaling a chart against "the primary metric" reads its first entry',
+    description:
+      'The layout’s declared ranking order — a client scaling a chart against "the primary metric" reads its first entry',
   })
   defaultSort!: TableSortRuleResponse[];
 

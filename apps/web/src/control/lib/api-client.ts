@@ -225,11 +225,7 @@ export interface TiebreakTraceResponse {
 export interface TableLayoutSummaryResponse {
   readonly code: string;
   readonly target:
-    | 'group-phase'
-    | 'match-roster'
-    | 'player-ranking'
-    | 'team-ranking'
-    | 'schedule-timeframe';
+    'group-phase' | 'match-roster' | 'player-ranking' | 'team-ranking' | 'schedule-timeframe';
   readonly label: string | LocalizedLabel;
   readonly entityGranularity: string;
 }

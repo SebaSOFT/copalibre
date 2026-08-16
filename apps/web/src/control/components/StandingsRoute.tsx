@@ -83,7 +83,8 @@ export function StandingsRoute({
   // A pending fetch, derived rather than tracked as its own flag: either the
   // layout list hasn't resolved yet, or the displayed projection still
   // belongs to a tab the operator has since switched away from.
-  const projectionStale = activeLayoutCode !== undefined && projection?.layoutCode !== activeLayoutCode;
+  const projectionStale =
+    activeLayoutCode !== undefined && projection?.layoutCode !== activeLayoutCode;
   const status =
     errorStatus ?? (!layoutsLoaded || projectionStale ? 'Cargando posiciones...' : undefined);
 

@@ -149,7 +149,11 @@ export function StandingsPage({
                   type="button"
                 >
                   {column.shortLabel}
-                  {sort?.columnCode === column.code ? (sort.direction === 'desc' ? ' ▾' : ' ▴') : ''}
+                  {sort?.columnCode === column.code
+                    ? sort.direction === 'desc'
+                      ? ' ▾'
+                      : ' ▴'
+                    : ''}
                 </button>
               ))}
               {isGroupPhase && (

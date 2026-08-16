@@ -15,7 +15,9 @@ interface Props {
 }
 const { layout, projection, intl } = Astro.props;
 
-const heading = layout ? localizedText(layout.label, intl.locale) : intl.formatMessage(messages.standingsHeading);
+const heading = layout
+  ? localizedText(layout.label, intl.locale)
+  : intl.formatMessage(messages.standingsHeading);
 const columns = projection?.columns ?? [];
 const rows = projection?.rows ?? [];
 ---

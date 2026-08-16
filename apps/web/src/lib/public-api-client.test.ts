@@ -197,9 +197,7 @@ describe('public-api-client', () => {
         status: 404,
       } as unknown as Response);
 
-      expect(
-        await fetchPublicTableProjection('org1', 'tourney1', 'nonexistent'),
-      ).toBeUndefined();
+      expect(await fetchPublicTableProjection('org1', 'tourney1', 'nonexistent')).toBeUndefined();
     });
   });
 

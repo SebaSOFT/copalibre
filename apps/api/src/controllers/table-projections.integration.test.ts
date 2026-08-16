@@ -267,7 +267,9 @@ describe('table projections (integration, 0091)', () => {
       });
       const [fixture] = await competition.createFixtures(uow, {
         stageId: stage.stageId,
-        fixtures: [{ round: 1, homeEntrantId: entrantTalleres, awayEntrantId: entrantIndependiente }],
+        fixtures: [
+          { round: 1, homeEntrantId: entrantTalleres, awayEntrantId: entrantIndependiente },
+        ],
         organizationId,
         ...AUDIT,
       });
@@ -395,9 +397,7 @@ describe('table projections (integration, 0091)', () => {
   }
 
   it('lists every table layout in effect for a tab bar to render', async () => {
-    const response = await get(
-      '/organizations/liga-tablas/tournaments/apertura-tablas/tables',
-    );
+    const response = await get('/organizations/liga-tablas/tournaments/apertura-tablas/tables');
 
     expect(response.statusCode).toBe(200);
     expect(response.json().layouts).toEqual([
@@ -425,7 +425,9 @@ describe('table projections (integration, 0091)', () => {
     const body = response.json();
     expect(body.layoutCode).toBe('group-standings-default');
     expect(body.rows).toHaveLength(2);
-    const talleresRow = body.rows.find((row: { actorId: string }) => row.actorId === entrantTalleres);
+    const talleresRow = body.rows.find(
+      (row: { actorId: string }) => row.actorId === entrantTalleres,
+    );
     expect(talleresRow.rank).toBe(1);
     expect(talleresRow.cells.name.formatted).toBe('Talleres');
     expect(talleresRow.cells.points).toEqual({ raw: 3, formatted: '3' });

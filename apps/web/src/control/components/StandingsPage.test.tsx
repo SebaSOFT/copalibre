@@ -1,9 +1,6 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import type {
-  TableLayoutSummaryResponse,
-  TableProjectionResponseData,
-} from '../lib/api-client.js';
+import type { TableLayoutSummaryResponse, TableProjectionResponseData } from '../lib/api-client.js';
 import { withIntl } from '../i18n/test-support.js';
 import { StandingsPage } from './StandingsPage.js';
 

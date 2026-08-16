@@ -152,7 +152,12 @@
         { "columnCode": "sets-diff", "direction": "desc" }
       ],
       "columns": [
-        { "code": "rank", "header": { "en": "Pos", "es": "#" }, "source": { "kind": "rank" }, "format": "number" },
+        {
+          "code": "rank",
+          "header": { "en": "Pos", "es": "#" },
+          "source": { "kind": "rank" },
+          "format": "number"
+        },
         {
           "code": "name",
           "header": { "en": "Player", "es": "Jugador" },

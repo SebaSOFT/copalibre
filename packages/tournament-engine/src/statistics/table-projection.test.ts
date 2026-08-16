@@ -9,7 +9,12 @@ import type { CollectedFigure } from './fold.js';
  * that could hide what a column actually reads.
  */
 
-function figure(actorId: string, collectorCode: string, value: number, samples = 1): CollectedFigure {
+function figure(
+  actorId: string,
+  collectorCode: string,
+  value: number,
+  samples = 1,
+): CollectedFigure {
   return {
     collectorCode,
     actorGranularity: 'team',
@@ -33,14 +38,24 @@ const GROUP_STANDINGS: TableLayoutDefinition = {
   columns: [
     { code: 'rank', header: { en: 'Pos' }, source: { kind: 'rank' }, format: 'number' },
     { code: 'name', header: { en: 'Team' }, source: { kind: 'entrant-name' }, format: 'text' },
-    { code: 'gf', header: { en: 'GF' }, source: { kind: 'collector', code: 'goals-for' }, format: 'number' },
+    {
+      code: 'gf',
+      header: { en: 'GF' },
+      source: { kind: 'collector', code: 'goals-for' },
+      format: 'number',
+    },
     {
       code: 'ga',
       header: { en: 'GA' },
       source: { kind: 'collector', code: 'goals-against' },
       format: 'number',
     },
-    { code: 'gd', header: { en: 'GD' }, source: { kind: 'computed', expression: 'gf - ga' }, format: 'number' },
+    {
+      code: 'gd',
+      header: { en: 'GD' },
+      source: { kind: 'computed', expression: 'gf - ga' },
+      format: 'number',
+    },
     {
       code: 'points',
       header: { en: 'Pts' },
@@ -92,7 +107,9 @@ describe('projectTableLayout', () => {
       figure('a-2', 'player-appearances', 0),
     ];
 
-    const projection = projectTableLayout(figures, layout, { actors: [team('a-1', 'Alice'), team('a-2', 'Bob')] });
+    const projection = projectTableLayout(figures, layout, {
+      actors: [team('a-1', 'Alice'), team('a-2', 'Bob')],
+    });
 
     expect(projection.rows[0]?.cells['goals-per-match']).toEqual({ raw: 2.5, formatted: '2.50' });
     expect(projection.rows[1]?.cells['goals-per-match']).toEqual({ raw: 1, formatted: '1.00' });
@@ -109,7 +126,11 @@ describe('projectTableLayout', () => {
         {
           code: 'penalties',
           header: { en: 'Penalties' },
-          source: { kind: 'composite', numerator: 'penalties-scored', denominator: 'penalties-taken' },
+          source: {
+            kind: 'composite',
+            numerator: 'penalties-scored',
+            denominator: 'penalties-taken',
+          },
           format: 'fraction',
         },
       ],
@@ -133,7 +154,11 @@ describe('projectTableLayout', () => {
         {
           code: 'penalties',
           header: { en: 'Penalties' },
-          source: { kind: 'composite', numerator: 'penalties-scored', denominator: 'penalties-taken' },
+          source: {
+            kind: 'composite',
+            numerator: 'penalties-scored',
+            denominator: 'penalties-taken',
+          },
           format: 'fraction',
         },
       ],
@@ -199,7 +224,10 @@ describe('projectTableLayout', () => {
       target: 'player-ranking',
       label: { en: 'Zamora' },
       entityGranularity: 'team',
-      filter: { requiresRole: 'goalkeeper', minSamples: { collectorCode: 'player-appearances', min: 3 } },
+      filter: {
+        requiresRole: 'goalkeeper',
+        minSamples: { collectorCode: 'player-appearances', min: 3 },
+      },
       defaultSort: [{ columnCode: 'conceded', direction: 'asc' }],
       columns: [
         {

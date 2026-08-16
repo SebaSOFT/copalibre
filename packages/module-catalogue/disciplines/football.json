@@ -275,7 +275,12 @@
         { "columnCode": "gd", "direction": "desc" }
       ],
       "columns": [
-        { "code": "rank", "header": { "en": "Pos", "es": "#" }, "source": { "kind": "rank" }, "format": "number" },
+        {
+          "code": "rank",
+          "header": { "en": "Pos", "es": "#" },
+          "source": { "kind": "rank" },
+          "format": "number"
+        },
         {
           "code": "name",
           "header": { "en": "Team", "es": "Equipo" },

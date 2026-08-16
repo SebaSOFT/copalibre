@@ -490,7 +490,13 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
       properties: {
         code: { type: 'string', minLength: 1 },
         target: {
-          enum: ['group-phase', 'match-roster', 'player-ranking', 'team-ranking', 'schedule-timeframe'],
+          enum: [
+            'group-phase',
+            'match-roster',
+            'player-ranking',
+            'team-ranking',
+            'schedule-timeframe',
+          ],
         },
         label: LOCALIZED_LABEL_SCHEMA,
         entityGranularity: { enum: ['person', 'player', 'team', 'club', 'official', 'venue'] },

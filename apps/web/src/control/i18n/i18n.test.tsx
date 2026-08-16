@@ -12,10 +12,7 @@ import { messages as itMessages } from './messages.it.js';
 import { messages as deMessages } from './messages.de.js';
 import { messages as ruMessages } from './messages.ru.js';
 import { messages as zhMessages } from './messages.zh.js';
-import type {
-  TableLayoutSummaryResponse,
-  TableProjectionResponseData,
-} from '../lib/api-client.js';
+import type { TableLayoutSummaryResponse, TableProjectionResponseData } from '../lib/api-client.js';
 
 const EMPTY_LAYOUT: TableLayoutSummaryResponse = {
   code: 'group-standings-default',

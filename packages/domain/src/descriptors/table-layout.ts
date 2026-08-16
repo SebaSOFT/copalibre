@@ -11,11 +11,7 @@ import type { ActorGranularity } from '../statistics/hierarchies.js';
  */
 
 export type TableTarget =
-  | 'group-phase'
-  | 'match-roster'
-  | 'player-ranking'
-  | 'team-ranking'
-  | 'schedule-timeframe';
+  'group-phase' | 'match-roster' | 'player-ranking' | 'team-ranking' | 'schedule-timeframe';
 
 /**
  * Where a column's value comes from. `computed` and `template` both route
@@ -34,7 +30,8 @@ export type ColumnSource =
   | { readonly kind: 'computed'; readonly expression: string }
   | { readonly kind: 'template'; readonly template: string };
 
-export type ColumnFormat = 'text' | 'number' | 'decimal-1' | 'decimal-2' | 'percentage' | 'fraction';
+export type ColumnFormat =
+  'text' | 'number' | 'decimal-1' | 'decimal-2' | 'percentage' | 'fraction';
 
 export interface TableSortRule {
   readonly columnCode: string;

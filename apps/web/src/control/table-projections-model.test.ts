@@ -78,7 +78,12 @@ describe('tableColumns', () => {
   });
 });
 
-function row(actorId: string, rank: number, sharedRank: boolean, raw: number): TableRowResponseData {
+function row(
+  actorId: string,
+  rank: number,
+  sharedRank: boolean,
+  raw: number,
+): TableRowResponseData {
   return {
     actorId,
     rank,
@@ -95,16 +100,15 @@ describe('sortRows', () => {
   });
 
   it('sorts descending by the given column', () => {
-    expect(sortRows(rows, { columnCode: 'points', direction: 'desc' }).map((r) => r.actorId)).toEqual(
-      ['a', 'b'],
-    );
+    expect(
+      sortRows(rows, { columnCode: 'points', direction: 'desc' }).map((r) => r.actorId),
+    ).toEqual(['a', 'b']);
   });
 
   it('sorts ascending by the given column', () => {
-    expect(sortRows(rows, { columnCode: 'points', direction: 'asc' }).map((r) => r.actorId)).toEqual([
-      'b',
-      'a',
-    ]);
+    expect(
+      sortRows(rows, { columnCode: 'points', direction: 'asc' }).map((r) => r.actorId),
+    ).toEqual(['b', 'a']);
   });
 
   it('ranks a row with no value for the sorted column last, regardless of direction', () => {

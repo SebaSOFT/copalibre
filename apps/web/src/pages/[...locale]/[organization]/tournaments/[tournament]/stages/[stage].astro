@@ -60,7 +60,9 @@ const standingsProjection = groupPhaseLayout
   <h1>{intl.formatMessage(messages.bracketPageTitle)}</h1>
   <BracketView matches={bracketData.matches} intl={intl} />
   <ResultLegend intl={intl} />
-  {standingsProjection && (
-    <StandingsPreview layout={groupPhaseLayout} projection={standingsProjection} intl={intl} />
-  )}
+  {
+    standingsProjection && (
+      <StandingsPreview layout={groupPhaseLayout} projection={standingsProjection} intl={intl} />
+    )
+  }
 </PublicLayout>

@@ -879,7 +879,12 @@ describe('validateModulePackage', () => {
       entityGranularity: 'team',
       defaultSort: [{ columnCode: 'points', direction: 'desc' }],
       columns: [
-        { code: 'points', header: 'Points', source: { kind: 'collector', code: 'points' }, format: 'number' },
+        {
+          code: 'points',
+          header: 'Points',
+          source: { kind: 'collector', code: 'points' },
+          format: 'number',
+        },
       ],
     };
 
@@ -920,7 +925,9 @@ describe('validateModulePackage', () => {
       if (!result.ok) {
         expect(
           result.failures.some(
-            (failure) => failure.stage === 'table-layout-reference' && failure.message.includes('player-goals'),
+            (failure) =>
+              failure.stage === 'table-layout-reference' &&
+              failure.message.includes('player-goals'),
           ),
         ).toBe(true);
       }

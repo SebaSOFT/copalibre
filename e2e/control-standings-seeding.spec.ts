@@ -75,7 +75,10 @@ const groupStandingsProjectionFixture = {
  * lazy fetch — 'Club Cometa' isn't tied with anyone, so its own real answer
  * is an empty comparator chain, not the leaders' trace repeated.
  */
-const traceByEntrant: Record<string, { readonly entrantId: string; readonly lines: readonly string[] }> = {
+const traceByEntrant: Record<
+  string,
+  { readonly entrantId: string; readonly lines: readonly string[] }
+> = {
   'Deportivo Norte': {
     entrantId: 'Deportivo Norte',
     lines: [
@@ -193,7 +196,9 @@ async function mockControlApi(
         if (url === `${stage}/tables/group-standings-default`) return Response.json(projection);
         if (url.startsWith(`${stage}/standings/entrants/`) && url.endsWith('/trace')) {
           const withoutTrace = url.slice(0, -'/trace'.length);
-          const entrantId = decodeURIComponent(withoutTrace.slice(withoutTrace.lastIndexOf('/') + 1));
+          const entrantId = decodeURIComponent(
+            withoutTrace.slice(withoutTrace.lastIndexOf('/') + 1),
+          );
           return Response.json(trace[entrantId] ?? { entrantId, lines: [] });
         }
         if (url === `${stage}/seeding` && method === 'GET') return Response.json(readCurrent());
