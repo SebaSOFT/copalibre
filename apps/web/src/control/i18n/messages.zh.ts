@@ -186,6 +186,27 @@ export const messages: Record<string, string> = {
   'control.review.revoke': '撤销',
   'control.review.emptyFilter': '此筛选条件下没有报名记录。',
   'control.review.pagination': '第 {page} / {pageCount} 页',
+  'control.review.nationalityLabel': '国籍',
+  'control.review.nationalityNone': '未设置',
+  'control.review.saveNationality': '保存',
+  'control.review.uploadPhoto': '上传照片',
+  'control.review.viewProfile': '查看资料',
+
+  'control.country.label': '国家',
+  'control.country.searchPlaceholder': '搜索国家…',
+
+  'control.personProfile.title': '人员资料',
+  'control.personProfile.loading': '正在加载资料…',
+  'control.personProfile.loadFailed': '无法加载此资料。',
+  'control.personProfile.photoAlt': '{displayName}的照片',
+  'control.personProfile.photoPlaceholderAlt': '未上传照片',
+  'control.personProfile.naturalKeyLabel': '证件',
+  'control.personProfile.naturalKeyUnavailable': '未登记',
+  'control.personProfile.nationalityLabel': '国籍',
+  'control.personProfile.back': '返回报名列表',
+
+  'control.jerseyGrid.emblemAlt': '俱乐部徽章',
+  'control.jerseyGrid.emblemPlaceholderAlt': '无徽章',
 
   'control.roles.loadFailed': '无法加载用户。',
   'control.roles.changeFailed': '无法应用此更改。',

@@ -4,6 +4,7 @@ import { OrganizationRepository } from './organization-repository.js';
 import { EnrollmentRepository } from './enrollment-repository.js';
 import { squadOfDiscipline } from '@copalibre/domain';
 import { PersonRepository } from './person-repository.js';
+import { ObjectMetadataRepository } from './object-metadata-repository.js';
 import { createMigratedDatabase, type ScratchDatabase } from '../test-support/scratch-database.js';
 
 /**
@@ -317,6 +318,76 @@ describe('people and their memberships (integration)', () => {
     );
 
     expect(await people.findPersons([])).toEqual([]);
+  });
+
+  it('sets and clears a nationality, refusing an invalid country code', async () => {
+    const people = new PersonRepository(scratch.db);
+    const { person } = await withTransaction(scratch.db, (uow) =>
+      people.register(uow, { organizationId, displayName: 'Nadia Farías', ...AUDIT }),
+    );
+    expect(person.nationality).toBeUndefined();
+
+    const withNationality = await withTransaction(scratch.db, (uow) =>
+      people.setNationality(uow, {
+        personId: person.personId,
+        organizationId,
+        nationality: 'AR',
+        ...AUDIT,
+      }),
+    );
+    expect(withNationality.nationality).toBe('AR');
+    expect((await people.findPerson(person.personId))?.nationality).toBe('AR');
+
+    const cleared = await withTransaction(scratch.db, (uow) =>
+      people.setNationality(uow, {
+        personId: person.personId,
+        organizationId,
+        nationality: null,
+        ...AUDIT,
+      }),
+    );
+    expect(cleared.nationality).toBeUndefined();
+
+    await expect(
+      withTransaction(scratch.db, (uow) =>
+        people.setNationality(uow, {
+          personId: person.personId,
+          organizationId,
+          nationality: 'ZZ',
+          ...AUDIT,
+        }),
+      ),
+    ).rejects.toBeInstanceOf(InvariantViolationError);
+  });
+
+  it('attaches an uploaded photo reference', async () => {
+    const people = new PersonRepository(scratch.db);
+    const { person } = await withTransaction(scratch.db, (uow) =>
+      people.register(uow, { organizationId, displayName: 'Diego Yapura', ...AUDIT }),
+    );
+    expect(person.photoObjectId).toBeUndefined();
+
+    const objectMetadata = await withTransaction(scratch.db, (uow) =>
+      new ObjectMetadataRepository(scratch.db).save(uow, {
+        organizationId,
+        profile: 'filesystem',
+        storageKey: `${organizationId}/photo.jpg`,
+        contentType: 'image/jpeg',
+        sizeBytes: 1024,
+        uploadedBy: AUDIT.actor,
+      }),
+    );
+
+    const withPhoto = await withTransaction(scratch.db, (uow) =>
+      people.setPhoto(uow, {
+        personId: person.personId,
+        organizationId,
+        photoObjectId: objectMetadata.objectId,
+        ...AUDIT,
+      }),
+    );
+    expect(withPhoto.photoObjectId).toBe(objectMetadata.objectId);
+    expect((await people.findPerson(person.personId))?.photoObjectId).toBe(objectMetadata.objectId);
   });
 
   it('keeps the document out of the audit trail', async () => {

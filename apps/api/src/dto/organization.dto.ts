@@ -351,6 +351,12 @@ export class TeamMemberResponse {
 
   @ApiProperty({ enum: ['player', 'substitute', 'coach', 'staff'] })
   role!: 'player' | 'substitute' | 'coach' | 'staff';
+
+  @ApiPropertyOptional({ description: 'ISO 3166-1 alpha-2 country code', example: 'AR' })
+  nationality?: string;
+
+  @ApiPropertyOptional({ format: 'uuid', description: 'object_metadata.object_id of the photo' })
+  photoObjectId?: string;
 }
 
 export class RegistrationResponse {
@@ -368,6 +374,18 @@ export class RegistrationResponse {
 
   @ApiPropertyOptional({ format: 'uuid' })
   personId?: string;
+
+  @ApiPropertyOptional({
+    description: 'The person entrant’s display name — absent for a team entrant.',
+    example: 'Elías Salomón',
+  })
+  displayName?: string;
+
+  @ApiPropertyOptional({ description: 'ISO 3166-1 alpha-2 country code', example: 'AR' })
+  nationality?: string;
+
+  @ApiPropertyOptional({ format: 'uuid', description: 'object_metadata.object_id of the photo' })
+  photoObjectId?: string;
 
   @ApiPropertyOptional({
     isArray: true,

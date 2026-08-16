@@ -87,6 +87,59 @@ describe('JerseyGrid', () => {
     expect(onChangeActiveField).toHaveBeenCalledWith('assistedBy');
   });
 
+  it("renders a member's nationality flag next to their jersey name", () => {
+    renderGrid({
+      rosters: [
+        {
+          entrantId: 'entrant-a',
+          members: [{ personId: 'a1', number: 1, name: 'A One', nationality: 'AR', onField: true }],
+        },
+      ],
+    });
+    expect(screen.getByText('🇦🇷')).toBeDefined();
+  });
+
+  it('renders no flag when a member has no nationality', () => {
+    renderGrid();
+    expect(screen.queryByText('🇦🇷')).toBeNull();
+  });
+
+  it('shows the team name in the header instead of the raw entrant id', () => {
+    renderGrid({
+      rosters: [{ entrantId: 'entrant-a', teamName: 'Talleres', members: [] }],
+    });
+    expect(screen.getByText('Talleres')).toBeDefined();
+    expect(screen.queryByText('entrant-a'.slice(-8))).toBeNull();
+  });
+
+  it('falls back to the raw entrant id suffix when no team name is known', () => {
+    renderGrid({ rosters: [{ entrantId: 'entrant-abcdefgh', members: [] }] });
+    expect(screen.getByText('abcdefgh')).toBeDefined();
+  });
+
+  it('shows a placeholder emblem when the entrant has no club', () => {
+    renderGrid({ rosters: [{ entrantId: 'entrant-a', members: [] }] });
+    expect(screen.getByTitle('No emblem')).toBeDefined();
+  });
+
+  it('renders the club emblem image when a clubId and organizationAlias are known', () => {
+    renderGrid({
+      organizationAlias: 'liga-orbital',
+      rosters: [{ entrantId: 'entrant-a', clubId: 'club-1', members: [] }],
+    });
+    const image = screen.getByAltText('Club emblem') as HTMLImageElement;
+    expect(image.src).toContain('/organizations/liga-orbital/clubs/club-1/emblem');
+  });
+
+  it('falls back to the placeholder if the emblem image fails to load', () => {
+    renderGrid({
+      organizationAlias: 'liga-orbital',
+      rosters: [{ entrantId: 'entrant-a', clubId: 'club-1', members: [] }],
+    });
+    fireEvent.error(screen.getByAltText('Club emblem'));
+    expect(screen.getByTitle('No emblem')).toBeDefined();
+  });
+
   it('disables and labels a sent-off member, and does not dispatch a selection for it', () => {
     const { onSelectPrimary } = renderGrid({ sentOffPersonIds: new Set(['a10']) });
     const button = screen.getByLabelText('A Ten — Sent off') as HTMLButtonElement;

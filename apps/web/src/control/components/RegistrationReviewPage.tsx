@@ -1,7 +1,14 @@
 import { useState } from 'react';
 import { FormattedMessage, useIntl, type MessageDescriptor } from 'react-intl';
 import { Button } from './ui/button.js';
-import type { BulkReviewRequest, ReviewRegistrationRequest } from '../lib/api-client.js';
+import { CountrySelect } from './CountrySelect.js';
+import type {
+  BulkReviewRequest,
+  ReviewRegistrationRequest,
+  UploadImageRequest,
+} from '../lib/api-client.js';
+import { controlLinkClick } from '../lib/control-navigation.js';
+import { countryFlag } from '../lib/country.js';
 import {
   LOCK_EXPLANATION,
   initialReview,
@@ -46,6 +53,8 @@ export function RegistrationReviewPage({
   now,
   onBulkReview,
   onReview,
+  onSetNationality,
+  onUploadPhoto,
 }: {
   readonly organizationAlias: string;
   readonly tournamentName: string;
@@ -56,9 +65,16 @@ export function RegistrationReviewPage({
     entrantId: string,
     request: ReviewRegistrationRequest,
   ) => Promise<void> | void;
+  /** Absent on a team-kind row; set only for a person entrant. */
+  readonly onSetNationality?: (
+    personId: string,
+    nationality: string | null,
+  ) => Promise<void> | void;
+  readonly onUploadPhoto?: (personId: string, request: UploadImageRequest) => Promise<void> | void;
 }): React.JSX.Element {
   const intl = useIntl();
   const [state, setState] = useState(() => initialReview(10));
+  const [nationalityDraft, setNationalityDraft] = useState<Record<string, string>>({});
   const visible = visibleRows(rows, state) as readonly ReviewRegistrationRow[];
   const selected = new Set(state.selected);
   const allVisibleSelected =
@@ -140,6 +156,7 @@ export function RegistrationReviewPage({
             status: row.status,
             now,
           });
+          const personId = row.personId;
           return (
             <details className="cl-focusable" key={row.entrantId} style={rowStyle}>
               <summary style={summaryStyle}>
@@ -153,7 +170,12 @@ export function RegistrationReviewPage({
                   type="checkbox"
                 />
                 <span>
-                  <strong>{row.displayName}</strong>
+                  <strong>
+                    {row.nationality !== undefined && (
+                      <span aria-hidden="true">{countryFlag(row.nationality)} </span>
+                    )}
+                    {row.displayName}
+                  </strong>
                   <small style={smallStyle}>
                     {intl.formatMessage(messages.reviewIdLabel, { entrantId: row.entrantId })}
                   </small>
@@ -180,6 +202,58 @@ export function RegistrationReviewPage({
                   label={intl.formatMessage(messages.reviewExperience)}
                   value={row.experience}
                 />
+                {personId !== undefined && (
+                  <div style={fieldValueStyle}>
+                    <span style={smallStyle}>
+                      {intl.formatMessage(messages.reviewNationalityLabel)}
+                    </span>
+                    <CountrySelect
+                      onChange={(code) =>
+                        setNationalityDraft((current) => ({ ...current, [personId]: code }))
+                      }
+                      value={nationalityDraft[personId] ?? row.nationality}
+                    />
+                    <Button
+                      onClick={() =>
+                        void onSetNationality?.(
+                          personId,
+                          nationalityDraft[personId] ?? row.nationality ?? null,
+                        )
+                      }
+                      type="button"
+                      variant="secondary"
+                    >
+                      <FormattedMessage {...messages.reviewSaveNationality} />
+                    </Button>
+                    <label>
+                      <FormattedMessage {...messages.reviewUploadPhoto} />
+                      <input
+                        accept="image/*"
+                        onChange={(event) => {
+                          const file = event.currentTarget.files?.[0];
+                          if (!file) return;
+                          void readAsBase64(file).then((contentBase64) =>
+                            onUploadPhoto?.(personId, {
+                              filename: file.name,
+                              contentType: file.type || 'application/octet-stream',
+                              contentBase64,
+                            }),
+                          );
+                        }}
+                        type="file"
+                      />
+                    </label>
+                    <a
+                      className="cl-focusable"
+                      href={`/control/${organizationAlias}/persons/${personId}`}
+                      onClick={controlLinkClick(
+                        `/control/${organizationAlias}/persons/${personId}`,
+                      )}
+                    >
+                      <FormattedMessage {...messages.reviewViewProfile} />
+                    </a>
+                  </div>
+                )}
                 <div style={detailActionsStyle}>
                   <Button type="button" variant="secondary">
                     <FormattedMessage {...messages.reviewMessage} />
@@ -226,6 +300,23 @@ export function RegistrationReviewPage({
       </footer>
     </section>
   );
+}
+
+/** Reads a File as base64, stripping the `data:...;base64,` prefix the FileReader result URL carries. */
+function readAsBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      if (typeof result !== 'string') {
+        reject(new Error('Unexpected FileReader result'));
+        return;
+      }
+      resolve(result.slice(result.indexOf(',') + 1));
+    };
+    reader.onerror = () => reject(reader.error ?? new Error('Could not read file'));
+    reader.readAsDataURL(file);
+  });
 }
 
 function FieldValue({

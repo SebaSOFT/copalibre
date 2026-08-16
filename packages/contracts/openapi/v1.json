@@ -4443,6 +4443,272 @@
           "admin"
         ]
       }
+    },
+    "/organizations/{organizationAlias}/persons/{personId}": {
+      "get": {
+        "operationId": "PersonMediaController_getPerson",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "personId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read a person’s profile (display name, nationality, photo, natural key)",
+        "tags": [
+          "persons"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/persons/{personId}/photo": {
+      "post": {
+        "operationId": "PersonMediaController_uploadPhoto",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "personId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadImageRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadImageResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upload a person's photo",
+        "tags": [
+          "persons"
+        ]
+      },
+      "get": {
+        "operationId": "PersonMediaController_servePhoto",
+        "parameters": [
+          {
+            "name": "personId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Image bytes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Stream a person's photo, once it has passed validation",
+        "tags": [
+          "persons"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/persons/{personId}/nationality": {
+      "patch": {
+        "operationId": "PersonMediaController_setNationality",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "personId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPersonNationalityRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonNationalityResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set or clear a person's nationality",
+        "tags": [
+          "persons"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/clubs/{clubId}/emblem": {
+      "post": {
+        "operationId": "ClubMediaController_uploadEmblem",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "clubId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadImageRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadImageResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upload a club's emblem",
+        "tags": [
+          "clubs"
+        ]
+      },
+      "get": {
+        "operationId": "ClubMediaController_serveEmblem",
+        "parameters": [
+          {
+            "name": "clubId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Image bytes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Stream a club's emblem, once it has passed validation",
+        "tags": [
+          "clubs"
+        ]
+      }
     }
   },
   "info": {
@@ -4800,6 +5066,16 @@
               "coach",
               "staff"
             ]
+          },
+          "nationality": {
+            "type": "string",
+            "description": "ISO 3166-1 alpha-2 country code",
+            "example": "AR"
+          },
+          "photoObjectId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "object_metadata.object_id of the photo"
           }
         },
         "required": [
@@ -4836,6 +5112,21 @@
           "personId": {
             "type": "string",
             "format": "uuid"
+          },
+          "displayName": {
+            "type": "string",
+            "description": "The person entrant’s display name — absent for a team entrant.",
+            "example": "Elías Salomón"
+          },
+          "nationality": {
+            "type": "string",
+            "description": "ISO 3166-1 alpha-2 country code",
+            "example": "AR"
+          },
+          "photoObjectId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "object_metadata.object_id of the photo"
           },
           "teamMembers": {
             "description": "The team entrant’s resulting membership. Populated only by a team-membership edit response.",
@@ -5318,6 +5609,10 @@
           "name": {
             "type": "string"
           },
+          "nationality": {
+            "type": "string",
+            "description": "ISO 3166-1 alpha-2 country code, snapshotted at roster-selection time"
+          },
           "roles": {
             "description": "Codes naming discipline-declared roster roles (see `rosterRoles`) this member carries — zero, one, or several, independently combinable",
             "type": "array",
@@ -5342,6 +5637,15 @@
           "entrantId": {
             "type": "string",
             "format": "uuid"
+          },
+          "teamName": {
+            "type": "string",
+            "description": "The entrant’s team name, when the entrant is a team"
+          },
+          "clubId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The team's club id, when it has one — resolves the club emblem serve route"
           },
           "members": {
             "type": "array",
@@ -7624,6 +7928,114 @@
           "version",
           "ok",
           "failures"
+        ]
+      },
+      "NaturalKeyResponse": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "example": "dni"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "value"
+        ]
+      },
+      "PersonResponse": {
+        "type": "object",
+        "properties": {
+          "personId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string",
+            "example": "Elías Salomón"
+          },
+          "nationality": {
+            "type": "string",
+            "description": "ISO 3166-1 alpha-2 country code",
+            "example": "AR"
+          },
+          "photoObjectId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "object_metadata.object_id of the photo"
+          },
+          "naturalKey": {
+            "$ref": "#/components/schemas/NaturalKeyResponse"
+          }
+        },
+        "required": [
+          "personId",
+          "displayName"
+        ]
+      },
+      "UploadImageRequest": {
+        "type": "object",
+        "properties": {
+          "filename": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "contentBase64": {
+            "type": "string",
+            "description": "Base64-encoded file content"
+          }
+        },
+        "required": [
+          "filename",
+          "contentType",
+          "contentBase64"
+        ]
+      },
+      "UploadImageResponse": {
+        "type": "object",
+        "properties": {
+          "objectId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "object_metadata.object_id of the stored image"
+          }
+        },
+        "required": [
+          "objectId"
+        ]
+      },
+      "SetPersonNationalityRequest": {
+        "type": "object",
+        "properties": {
+          "nationality": {
+            "type": "object",
+            "description": "ISO 3166-1 alpha-2 country code; omitted or null clears it.",
+            "example": "AR",
+            "nullable": true
+          }
+        }
+      },
+      "PersonNationalityResponse": {
+        "type": "object",
+        "properties": {
+          "personId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nationality": {
+            "type": "object",
+            "description": "ISO 3166-1 alpha-2 country code, or null when cleared.",
+            "example": "AR",
+            "nullable": true
+          }
+        },
+        "required": [
+          "personId"
         ]
       }
     }

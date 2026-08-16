@@ -150,3 +150,19 @@ A discipline descriptor SHALL support declaring an `own-goal` event definition w
 - **WHEN** an `own-goal` event is recorded for a player of Team A
 - **THEN** the match score awards +1 point to Team B (`awardTo: 'every-other-side'`), increments `goals-against` for Team A, and increments `player-own-goals` for the player
 
+### Requirement: Discipline descriptors and tournament rulesets declare table layouts
+
+A `DisciplineDescriptor` and a `TournamentRuleset` SHALL support declarative `tableLayouts` defining the columns, sources, formats, multi-column sorting, and qualification filters for standings and ranking views across match, stage, schedule, and tournament contexts.
+
+#### Scenario: A discipline declares custom table layouts
+- **WHEN** a discipline descriptor declares a `tableLayouts` array containing `group-phase` and `player-ranking` table definitions
+- **THEN** descriptor validation accepts the layout definitions and registers them for projection evaluation
+
+#### Scenario: A tournament ruleset overrides a discipline table layout
+- **WHEN** a tournament ruleset specifies `tableLayouts` modifying column order or enabling optional statistical columns
+- **THEN** the tournament's effective configuration adopts the tournament's table layout overrides
+
+#### Scenario: A table layout referencing an undeclared collector is rejected
+- **WHEN** a table layout column declares `source: { kind: 'collector', code: 'unknown-code' }` and that collector code is not declared in the discipline
+- **THEN** descriptor validation rejects the document with an error identifying the missing collector
+

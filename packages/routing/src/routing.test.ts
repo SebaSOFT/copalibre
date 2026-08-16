@@ -196,6 +196,14 @@ describe('parseControlPath', () => {
       { screen: 'newTournament', organizationAlias: 'liga-mendocina' },
     ],
     [
+      '/control/liga-mendocina/persons/00000000-0000-7000-8000-000000000001',
+      {
+        screen: 'personProfile',
+        organizationAlias: 'liga-mendocina',
+        personId: '00000000-0000-7000-8000-000000000001',
+      },
+    ],
+    [
       '/control/liga-mendocina/tournaments/apertura-2026/registrations',
       {
         screen: 'registrations',
@@ -249,6 +257,7 @@ describe('parseControlPath', () => {
     ['/control/liga-mendocina/tournaments/apertura-2026/stages/1'],
     ['/control/liga-mendocina/tournaments/apertura-2026/stages/1/unknown'],
     ['/control/liga-mendocina/tournaments/apertura-2026/matches'],
+    ['/control/liga-mendocina/persons'],
   ])('finds no match for %s', (pathname) => {
     expect(parseControlPath(pathname)).toBeUndefined();
   });

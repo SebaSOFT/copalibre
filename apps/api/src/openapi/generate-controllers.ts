@@ -34,6 +34,10 @@ import {
   NativeAuthController,
   PersonalAccessTokenController,
 } from '../controllers/auth.controller.js';
+import {
+  ClubMediaController,
+  PersonMediaController,
+} from '../controllers/identity-media.controller.js';
 
 /**
  * The controllers the OpenAPI artifact is generated from.
@@ -70,4 +74,6 @@ export const OPENAPI_CONTROLLERS = [
   PersonalAccessTokenController,
   AdminStatisticsController,
   AdminModulesController,
+  PersonMediaController,
+  ClubMediaController,
 ] as const;

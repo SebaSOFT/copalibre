@@ -54,6 +54,7 @@ import {
   CollectorThresholdConsumptionRepository,
   CompetitionRecordRepository,
   CompetitionRepository,
+  EnrollmentRepository,
   MatchAssignmentRepository,
   MatchCommandIdempotencyRepository,
   ProjectionStore,
@@ -1030,6 +1031,7 @@ export class MatchControlController {
       (entrantId): entrantId is string => entrantId !== null && entrantId !== undefined,
     );
     const eligibleStaffIds = await this.eligibleStaffIds(entrantIds);
+    const { teamNameByEntrant, clubIdByEntrant } = await this.teamIdentityByEntrant(entrantIds);
 
     return {
       matchId,
@@ -1088,11 +1090,18 @@ export class MatchControlController {
       ],
       rosters: rosters.map((roster) => ({
         entrantId: roster.entrant_id,
+        ...(teamNameByEntrant.get(roster.entrant_id) === undefined
+          ? {}
+          : { teamName: teamNameByEntrant.get(roster.entrant_id) }),
+        ...(clubIdByEntrant.get(roster.entrant_id) === undefined
+          ? {}
+          : { clubId: clubIdByEntrant.get(roster.entrant_id) }),
         members: foldRosterLineup(initialRosterOf(matchId, roster), events).members.map(
           (member) => ({
             personId: member.personId,
             ...(member.number === undefined ? {} : { number: member.number }),
             name: member.name,
+            ...(member.nationality === undefined ? {} : { nationality: member.nationality }),
             ...(member.roles === undefined ? {} : { roles: [...member.roles] }),
             onField: member.onField,
           }),
@@ -1128,6 +1137,51 @@ export class MatchControlController {
       .where('role', 'in', ['coach', 'staff'])
       .execute();
     return new Set(staff.map((member) => member.person_id));
+  }
+
+  /**
+   * A team entrant's name and its club id, keyed by entrant id — what
+   * `JerseyGrid.tsx`'s team header needs to replace the raw
+   * `entrantId.slice(-8)` it renders today, and to resolve the club's
+   * emblem via the entity-scoped serve route (0093 task 4.7).
+   */
+  private async teamIdentityByEntrant(entrantIds: readonly string[]): Promise<{
+    readonly teamNameByEntrant: ReadonlyMap<string, string>;
+    readonly clubIdByEntrant: ReadonlyMap<string, string>;
+  }> {
+    if (entrantIds.length === 0) {
+      return { teamNameByEntrant: new Map(), clubIdByEntrant: new Map() };
+    }
+
+    const enrollment = new EnrollmentRepository(this.db);
+    const [entrantNames, entrantTeams] = await Promise.all([
+      enrollment.resolveEntrantNames(entrantIds),
+      this.db
+        .selectFrom('entrants')
+        .select(['entrant_id', 'team_id'])
+        .where('entrant_id', 'in', entrantIds)
+        .execute(),
+    ]);
+
+    const teamIdByEntrant = new Map(
+      entrantTeams.flatMap((entrant) =>
+        entrant.team_id === null ? [] : [[entrant.entrant_id, entrant.team_id] as const],
+      ),
+    );
+    const teamIds = [...new Set(teamIdByEntrant.values())];
+    const clubIdByTeam = await enrollment.clubsOfTeams(teamIds);
+
+    const teamNameByEntrant = new Map(
+      [...entrantNames.entries()].map(([entrantId, entry]) => [entrantId, entry.name] as const),
+    );
+    const clubIdByEntrant = new Map(
+      [...teamIdByEntrant.entries()].flatMap(([entrantId, teamId]) => {
+        const clubId = clubIdByTeam.get(teamId);
+        return clubId === undefined ? [] : [[entrantId, clubId] as const];
+      }),
+    );
+
+    return { teamNameByEntrant, clubIdByEntrant };
   }
 
   private async stageOf(matchId: string): Promise<string> {

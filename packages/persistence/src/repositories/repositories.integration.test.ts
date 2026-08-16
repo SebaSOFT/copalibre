@@ -10,6 +10,7 @@ import { CompetitionRepository } from './competition-repository.js';
 import { PersonRepository } from './person-repository.js';
 import { OrganizationRepository } from './organization-repository.js';
 import { EnrollmentRepository } from './enrollment-repository.js';
+import { ObjectMetadataRepository } from './object-metadata-repository.js';
 import { AliasRepository } from './alias-repository.js';
 import { TournamentRepository } from './tournament-repository.js';
 
@@ -907,6 +908,43 @@ describe('short labels (integration)', () => {
     // The override survives storage, which is what makes two sides of one club
     // distinguishable on a board with room for five characters.
     expect((await participants.findTeam(team.teamId))?.abbreviation).toBe('TLL A');
+  });
+
+  it('round-trips a club emblem reference', async () => {
+    const participants = new EnrollmentRepository(scratch.db);
+
+    const club = await withTransaction(scratch.db, (uow) =>
+      participants.createClub(uow, {
+        organizationId,
+        name: 'Deportivo Godoy Cruz',
+        ...AUDIT_CONTEXT,
+      }),
+    );
+    expect(club.emblemObjectId).toBeUndefined();
+
+    const objectMetadata = await withTransaction(scratch.db, (uow) =>
+      new ObjectMetadataRepository(scratch.db).save(uow, {
+        organizationId,
+        profile: 'filesystem',
+        storageKey: `${organizationId}/emblem.svg`,
+        contentType: 'image/svg+xml',
+        sizeBytes: 512,
+        uploadedBy: AUDIT_CONTEXT.actor,
+      }),
+    );
+
+    const updated = await withTransaction(scratch.db, (uow) =>
+      participants.updateClub(uow, {
+        clubId: club.clubId,
+        organizationId,
+        emblemObjectId: objectMetadata.objectId,
+        ...AUDIT_CONTEXT,
+      }),
+    );
+    expect(updated.emblemObjectId).toBe(objectMetadata.objectId);
+    expect((await participants.findClub(club.clubId))?.emblemObjectId).toBe(
+      objectMetadata.objectId,
+    );
   });
 
   it('suggests an alias from the name when none is given', async () => {

@@ -1,5 +1,6 @@
 import { DomainError } from '../errors.js';
 import { err, ok, type Result } from '../result.js';
+import { isValidCountryCode } from '../countries.js';
 
 /**
  * A person and their memberships.
@@ -39,6 +40,10 @@ export interface Person {
    * creation is a model whose operators invent fake ones.
    */
   readonly naturalKey?: NaturalKey;
+  /** ISO 3166-1 alpha-2 country code. Absent until an operator records one. */
+  readonly nationality?: string;
+  /** Object-storage reference; absent until a photo is uploaded. */
+  readonly photoObjectId?: string;
 }
 
 export type PlayerRole = 'player' | 'substitute' | 'coach' | 'staff';
@@ -97,6 +102,14 @@ export function validatePerson(person: Person): Result<Person, PersonError> {
         }),
       );
     }
+  }
+
+  if (person.nationality !== undefined && !isValidCountryCode(person.nationality)) {
+    return err(
+      new PersonError(`"${person.nationality}" is not a valid ISO 3166-1 alpha-2 country code`, {
+        personId: person.personId,
+      }),
+    );
   }
 
   return ok(person);

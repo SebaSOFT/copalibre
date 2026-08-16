@@ -26,6 +26,7 @@ import { collectorThresholdConsumption } from './0015-collector-threshold-consum
 import { resultReasonBackfill } from './0016-result-reason-backfill.js';
 import { matchEventSegmentElapsedSeconds } from './0017-match-event-segment-elapsed-seconds.js';
 import { matchRosterMembers } from './0018-match-roster-members.js';
+import { personClubImagesAndNationality } from './0019-person-club-images-and-nationality.js';
 
 /**
  * Migrations are explicit, ordered, and code-defined (no filesystem scanning),
@@ -52,6 +53,7 @@ export const MIGRATIONS: Readonly<Record<string, Migration>> = {
   '0016-result-reason-backfill': resultReasonBackfill,
   '0017-match-event-segment-elapsed-seconds': matchEventSegmentElapsedSeconds,
   '0018-match-roster-members': matchRosterMembers,
+  '0019-person-club-images-and-nationality': personClubImagesAndNationality,
 };
 
 /** The version `apps/api`'s readiness check expects to find applied. */

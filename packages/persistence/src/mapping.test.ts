@@ -95,6 +95,7 @@ describe('snake_case row → camelCase domain mapping', () => {
       alias: 'casa-de-italia',
       name: 'Casa de Italia',
       abbreviation: 'C I',
+      emblem_object_id: null,
       created_at: CREATED,
     };
 
@@ -106,6 +107,7 @@ describe('snake_case row → camelCase domain mapping', () => {
       abbreviation: 'C I',
     });
     expect(toClub({ ...club, abbreviation: null }).abbreviation).toBeUndefined();
+    expect(toClub({ ...club, emblem_object_id: 'ob-1' }).emblemObjectId).toBe('ob-1');
   });
 
   it('maps an entrant row into the discriminated entrantRef union', () => {

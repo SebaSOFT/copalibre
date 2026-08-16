@@ -136,6 +136,24 @@ export interface ControlApiClient {
     organizationAlias: string,
     tournamentAlias: string,
   ) => Promise<{ readonly status: string }>;
+  /** A person's profile — display name, nationality, photo, natural key (0093). */
+  readonly getPerson?: (organizationAlias: string, personId: string) => Promise<PersonResponse>;
+  readonly setPersonNationality?: (
+    organizationAlias: string,
+    personId: string,
+    nationality: string | null,
+  ) => Promise<{ readonly personId: string; readonly nationality: string | null }>;
+  readonly uploadPersonPhoto?: (
+    organizationAlias: string,
+    personId: string,
+    request: UploadImageRequest,
+  ) => Promise<{ readonly objectId: string }>;
+}
+
+export interface UploadImageRequest {
+  readonly filename: string;
+  readonly contentType: string;
+  readonly contentBase64: string;
 }
 
 export interface DisplayTokenResponse {
@@ -307,12 +325,33 @@ export interface TournamentResponse {
   readonly rulesetId?: string;
 }
 
+export interface TeamMemberResponse {
+  readonly personId: string;
+  readonly displayName: string;
+  readonly role: 'player' | 'substitute' | 'coach' | 'staff';
+  readonly nationality?: string;
+  readonly photoObjectId?: string;
+}
+
 export interface RegistrationResponse {
   readonly entrantId: string;
   readonly tournamentId: string;
   readonly status: RegistrationStatus;
   readonly teamId?: string;
   readonly personId?: string;
+  /** A person entrant's display name; absent for a team entrant. */
+  readonly displayName?: string;
+  readonly nationality?: string;
+  readonly photoObjectId?: string;
+  readonly teamMembers?: readonly TeamMemberResponse[];
+}
+
+export interface PersonResponse {
+  readonly personId: string;
+  readonly displayName: string;
+  readonly nationality?: string;
+  readonly photoObjectId?: string;
+  readonly naturalKey?: { readonly kind: string; readonly value: string };
 }
 
 export interface BulkReviewRequest {
@@ -459,6 +498,8 @@ export interface ConsoleRosterMember {
   /** Shirt number; not always numeric (e.g. '00', '7B'). */
   readonly number?: number | string;
   readonly name: string;
+  /** ISO 3166-1 alpha-2 country code, snapshotted at roster-selection time. */
+  readonly nationality?: string;
   /**
    * Codes naming discipline-declared roster roles (see `rosterRoles` on
    * `MatchConsoleResponse`) this member carries — zero, one, or several,
@@ -472,6 +513,10 @@ export interface ConsoleRosterMember {
 
 export interface ConsoleRoster {
   readonly entrantId: string;
+  /** The entrant's team name, when the entrant is a team. */
+  readonly teamName?: string;
+  /** The team's club id, when the team has one — resolves the emblem serve route. */
+  readonly clubId?: string;
   readonly members: readonly ConsoleRosterMember[];
 }
 
@@ -798,7 +843,37 @@ export function createControlApiClient(input: {
       url: `${baseUrl}/events/control/${encodeURIComponent(organizationAlias)}`,
       accessToken: input.accessToken,
     }),
+
+    getPerson: (organizationAlias, personId) =>
+      requestJson<PersonResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/persons/${encodeURIComponent(personId)}`,
+        { token: input.accessToken?.() },
+      ),
+
+    setPersonNationality: (organizationAlias, personId, nationality) =>
+      requestJson(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/persons/${encodeURIComponent(personId)}/nationality`,
+        { method: 'PATCH', body: { nationality }, token: input.accessToken?.() },
+      ),
+
+    uploadPersonPhoto: (organizationAlias, personId, body) =>
+      requestJson(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/persons/${encodeURIComponent(personId)}/photo`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
   };
+}
+
+/** Public, unauthenticated image routes — safe to use directly as an `<img src>`. */
+export function personPhotoUrl(organizationAlias: string, personId: string, baseUrl = ''): string {
+  return `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/persons/${encodeURIComponent(personId)}/photo`;
+}
+
+export function clubEmblemUrl(organizationAlias: string, clubId: string, baseUrl = ''): string {
+  return `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/clubs/${encodeURIComponent(clubId)}/emblem`;
 }
 
 async function requestText(

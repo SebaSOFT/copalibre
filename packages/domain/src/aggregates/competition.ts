@@ -86,6 +86,8 @@ export interface MatchRosterMember {
   /** Shirt number; not always numeric (e.g. '00', '7B'). */
   readonly number?: number | string;
   readonly name: string;
+  /** Snapshotted at roster-selection time, alongside `number`/`name`/`roles`/`onField`. */
+  readonly nationality?: string;
   /**
    * Codes naming discipline-declared `RosterRoleDeclaration`s this member
    * carries this match — a goalkeeper, a captain, a designated hitter.

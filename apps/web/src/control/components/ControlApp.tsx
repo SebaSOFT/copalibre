@@ -3,6 +3,7 @@ import { FormattedMessage, useIntl } from 'react-intl';
 import { parseControlPath } from '@copalibre/routing';
 import {
   MatchConsoleControlRoute,
+  PersonProfileControlRoute,
   PreferencesControlRoute,
   RegistrationReviewControlRoute,
   ReportReviewControlRoute,
@@ -106,6 +107,13 @@ export function ControlApp(): React.JSX.Element | null {
       return <PreferencesControlRoute organizationAlias={route.organizationAlias} />;
     case 'newTournament':
       return <TournamentAuthoringControlRoute organizationAlias={route.organizationAlias} />;
+    case 'personProfile':
+      return (
+        <PersonProfileControlRoute
+          organizationAlias={route.organizationAlias}
+          personId={route.personId}
+        />
+      );
     case 'registrations':
       return (
         <RegistrationReviewControlRoute
@@ -165,6 +173,8 @@ function titleFor(route: ReturnType<typeof parseControlPath>): string {
       return `Roles y permisos - ${route.organizationAlias}`;
     case 'newTournament':
       return `Crear torneo — ${route.organizationAlias}`;
+    case 'personProfile':
+      return `Perfil de la persona — ${route.organizationAlias}`;
     case 'registrations':
       return `Inscripciones — ${route.tournamentAlias}`;
     case 'reports':

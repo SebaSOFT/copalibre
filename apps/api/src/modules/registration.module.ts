@@ -7,6 +7,10 @@ import {
   ParticipantIdentityLinksController,
   ParticipantsController,
 } from '../controllers/participants.controller.js';
+import {
+  ClubMediaController,
+  PersonMediaController,
+} from '../controllers/identity-media.controller.js';
 import { CoreModule } from './core.module.js';
 
 @Module({
@@ -16,6 +20,8 @@ import { CoreModule } from './core.module.js';
     DisciplinesController,
     ParticipantsController,
     ParticipantIdentityLinksController,
+    PersonMediaController,
+    ClubMediaController,
   ],
 })
 export class RegistrationModule {}

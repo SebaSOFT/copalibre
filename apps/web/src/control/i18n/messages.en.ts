@@ -480,6 +480,63 @@ export const messages = defineMessages({
     id: 'control.review.pagination',
     defaultMessage: 'Page {page} of {pageCount}',
   },
+  reviewNationalityLabel: {
+    id: 'control.review.nationalityLabel',
+    defaultMessage: 'Nationality',
+  },
+  reviewNationalityNone: { id: 'control.review.nationalityNone', defaultMessage: 'Not set' },
+  reviewSaveNationality: { id: 'control.review.saveNationality', defaultMessage: 'Save' },
+  reviewUploadPhoto: { id: 'control.review.uploadPhoto', defaultMessage: 'Upload photo' },
+  reviewViewProfile: { id: 'control.review.viewProfile', defaultMessage: 'View profile' },
+
+  // CountrySelect.tsx
+  countrySelectLabel: { id: 'control.country.label', defaultMessage: 'Country' },
+  countrySelectSearchPlaceholder: {
+    id: 'control.country.searchPlaceholder',
+    defaultMessage: 'Search country…',
+  },
+
+  // PersonProfileRoute.tsx
+  personProfileTitle: { id: 'control.personProfile.title', defaultMessage: 'Person profile' },
+  personProfileLoading: {
+    id: 'control.personProfile.loading',
+    defaultMessage: 'Loading profile…',
+  },
+  personProfileLoadFailed: {
+    id: 'control.personProfile.loadFailed',
+    defaultMessage: 'Could not load this profile.',
+  },
+  personProfilePhotoAlt: {
+    id: 'control.personProfile.photoAlt',
+    defaultMessage: '{displayName}’s photo',
+  },
+  personProfilePhotoPlaceholderAlt: {
+    id: 'control.personProfile.photoPlaceholderAlt',
+    defaultMessage: 'No photo uploaded',
+  },
+  personProfileNaturalKeyLabel: {
+    id: 'control.personProfile.naturalKeyLabel',
+    defaultMessage: 'Document',
+  },
+  personProfileNaturalKeyUnavailable: {
+    id: 'control.personProfile.naturalKeyUnavailable',
+    defaultMessage: 'Not recorded',
+  },
+  personProfileNationalityLabel: {
+    id: 'control.personProfile.nationalityLabel',
+    defaultMessage: 'Nationality',
+  },
+  personProfileBack: {
+    id: 'control.personProfile.back',
+    defaultMessage: 'Back to registrations',
+  },
+
+  // JerseyGrid.tsx
+  jerseyGridEmblemAlt: { id: 'control.jerseyGrid.emblemAlt', defaultMessage: 'Club emblem' },
+  jerseyGridEmblemPlaceholderAlt: {
+    id: 'control.jerseyGrid.emblemPlaceholderAlt',
+    defaultMessage: 'No emblem',
+  },
 
   // RolesPermissionsRoute.tsx, RolesPermissionsPage.tsx
   rolesLoadFailed: {

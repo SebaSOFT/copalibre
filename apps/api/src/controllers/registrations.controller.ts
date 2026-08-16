@@ -97,10 +97,20 @@ export class RegistrationsController {
   ): Promise<RegistrationResponse[]> {
     const { tournament } = await this.resolve(organizationAlias, tournamentAlias, request);
     const entrants = await new EnrollmentRepository(this.db).listEntrants(tournament.tournamentId);
+    const visible = entrants.filter(
+      (entrant) => status === undefined || status === 'all' || entrant.status === status,
+    );
 
-    return entrants
-      .filter((entrant) => status === undefined || status === 'all' || entrant.status === status)
-      .map(toResponse);
+    const personIds = visible
+      .map((entrant) => entrant.entrantRef)
+      .filter(
+        (ref): ref is Extract<Entrant['entrantRef'], { kind: 'person' }> => ref.kind === 'person',
+      )
+      .map((ref) => ref.personId);
+    const persons = await new PersonRepository(this.db).findPersons(personIds);
+    const personById = new Map(persons.map((person) => [person.personId, person]));
+
+    return visible.map((entrant) => toResponse(entrant, personById));
   }
 
   @Post(':entrantId/review')
@@ -287,17 +297,22 @@ export class RegistrationsController {
     const resultingPersons = await people.findPersons(
       resultingSquad.map((player) => player.personId),
     );
-    const displayNameByPersonId = new Map(
-      resultingPersons.map((person) => [person.personId, person.displayName]),
+    const personByIdForTeamMembers = new Map(
+      resultingPersons.map((person) => [person.personId, person]),
     );
 
     return {
       ...toResponse(entrant),
-      teamMembers: resultingSquad.map((player) => ({
-        personId: player.personId,
-        displayName: displayNameByPersonId.get(player.personId) ?? '',
-        role: player.role,
-      })),
+      teamMembers: resultingSquad.map((player) => {
+        const person = personByIdForTeamMembers.get(player.personId);
+        return {
+          personId: player.personId,
+          displayName: person?.displayName ?? '',
+          role: player.role,
+          ...(person?.nationality === undefined ? {} : { nationality: person.nationality }),
+          ...(person?.photoObjectId === undefined ? {} : { photoObjectId: person.photoObjectId }),
+        };
+      }),
     };
   }
 
@@ -377,14 +392,35 @@ export class DisciplinesController {
   }
 }
 
-function toResponse(entrant: Entrant): RegistrationResponse {
+function toResponse(
+  entrant: Entrant,
+  personById: ReadonlyMap<
+    string,
+    { displayName: string; nationality?: string; photoObjectId?: string }
+  > = new Map(),
+): RegistrationResponse {
+  if (entrant.entrantRef.kind === 'team') {
+    return {
+      entrantId: entrant.entrantId,
+      tournamentId: entrant.tournamentId,
+      status: entrant.status,
+      teamId: entrant.entrantRef.teamId,
+    };
+  }
+
+  const person = personById.get(entrant.entrantRef.personId);
   return {
     entrantId: entrant.entrantId,
     tournamentId: entrant.tournamentId,
     status: entrant.status,
-    ...(entrant.entrantRef.kind === 'team'
-      ? { teamId: entrant.entrantRef.teamId }
-      : { personId: entrant.entrantRef.personId }),
+    personId: entrant.entrantRef.personId,
+    ...(person === undefined
+      ? {}
+      : {
+          displayName: person.displayName,
+          ...(person.nationality === undefined ? {} : { nationality: person.nationality }),
+          ...(person.photoObjectId === undefined ? {} : { photoObjectId: person.photoObjectId }),
+        }),
   };
 }
 

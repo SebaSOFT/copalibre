@@ -340,6 +340,7 @@ export {
 } from './rulesets/mutation.js';
 
 export { SUPPORTED_LANGUAGES, isSupportedLanguage, type SupportedLanguage } from './i18n.js';
+export { ISO_3166_ALPHA_2_CODES, isValidCountryCode } from './countries.js';
 export { resolveLabel, isLocalizedLabel, type LocalizedLabel } from './i18n-label.js';
 export type { Organization, Club } from './aggregates/organization.js';
 export {
