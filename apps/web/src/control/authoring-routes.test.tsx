@@ -290,4 +290,94 @@ describe('the registration review route container', () => {
     ]);
     expect(screen.getByText('Withdrawn')).toBeDefined();
   });
+
+  it('shows a load-failure message when registrations fail to load', async () => {
+    await act(async () => {
+      render(
+        withIntl(
+          <RegistrationReviewRoute
+            organizationAlias="liga-mendocina"
+            tournamentAlias="apertura-2026"
+            client={client({
+              listRegistrations: async () => {
+                throw new Error('network down');
+              },
+            })}
+          />,
+        ),
+      );
+    });
+
+    expect(screen.getByText('Could not load the registrations.')).toBeDefined();
+  });
+
+  it('shows a create-import failure message when the CSV upload is rejected', async () => {
+    await act(async () => {
+      render(
+        withIntl(
+          <RegistrationReviewRoute
+            organizationAlias="liga-mendocina"
+            tournamentAlias="apertura-2026"
+            client={client({
+              createCsvImport: async () => {
+                throw new Error('rejected');
+              },
+            })}
+          />,
+        ),
+      );
+    });
+
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText('Participants CSV'), {
+        target: { files: [{ text: async () => 'alias,name\nclub-atletico,Club Atletico\n' }] },
+      });
+    });
+
+    await waitFor(() => expect(screen.getByText('Could not create the import.')).toBeDefined());
+  });
+
+  it('sets a nationality and uploads a photo through the API when the client supports it', async () => {
+    const nationalityCalls: unknown[] = [];
+    const photoCalls: unknown[] = [];
+
+    await act(async () => {
+      render(
+        withIntl(
+          <RegistrationReviewRoute
+            organizationAlias="liga-mendocina"
+            tournamentAlias="apertura-2026"
+            client={client({
+              listRegistrations: async () => [
+                { entrantId: 'e-1', tournamentId: 't-1', status: 'pending', personId: 'person-1' },
+              ],
+              setPersonNationality: async (organizationAlias, personId, nationality) => {
+                nationalityCalls.push({ organizationAlias, personId, nationality });
+                return { personId, nationality };
+              },
+              uploadPersonPhoto: async (organizationAlias, personId, request) => {
+                photoCalls.push({ organizationAlias, personId, request });
+                return { objectId: 'object-1' };
+              },
+            })}
+          />,
+        ),
+      );
+    });
+
+    fireEvent.click(screen.getByText('person-1'));
+    fireEvent.click(screen.getByText('Argentina'));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    });
+    expect(nationalityCalls).toEqual([
+      { organizationAlias: 'liga-mendocina', personId: 'person-1', nationality: 'AR' },
+    ]);
+
+    const file = new File(['bytes'], 'photo.png', { type: 'image/png' });
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText('Upload photo'), { target: { files: [file] } });
+    });
+    await waitFor(() => expect(photoCalls).toHaveLength(1));
+  });
 });

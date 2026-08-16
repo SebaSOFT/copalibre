@@ -1,5 +1,6 @@
 import { jest } from '@jest/globals';
 import { fireEvent, render, screen } from '@testing-library/react';
+import { IntlProvider } from 'react-intl';
 import { CountrySelect } from './CountrySelect.js';
 import { withIntl } from '../i18n/test-support.js';
 
@@ -40,5 +41,16 @@ describe('CountrySelect', () => {
     expect(screen.getByRole('option', { name: /Argentina/ }).getAttribute('aria-selected')).toBe(
       'true',
     );
+  });
+
+  it('falls back to English names for an unsupported active locale', () => {
+    const onChange = jest.fn();
+    render(
+      <IntlProvider defaultLocale="en" locale="xx">
+        <CountrySelect onChange={onChange} />
+      </IntlProvider>,
+    );
+
+    expect(screen.getByText('Argentina')).toBeDefined();
   });
 });
