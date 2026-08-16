@@ -45,6 +45,28 @@ export interface ControlApiClient {
     stageNumber: number,
     entrantId: string,
   ) => Promise<TiebreakTraceResponse>;
+  /** Every declared table layout in effect, for building a tab bar (0091). */
+  readonly fetchTableLayouts: (
+    organizationAlias: string,
+    tournamentAlias: string,
+  ) => Promise<readonly TableLayoutSummaryResponse[]>;
+  /**
+   * One projected table. `stageNumber` absent reads a tournament-wide layout
+   * (`player-ranking`/`team-ranking`); present reads a stage-scoped one
+   * (`group-phase`/`match-roster`/`schedule-timeframe`).
+   */
+  readonly fetchTableProjection: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    layoutCode: string,
+    scope: { readonly stageNumber?: number },
+  ) => Promise<TableProjectionResponseData>;
+  readonly downloadTableProjectionCsv?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    layoutCode: string,
+    scope: { readonly stageNumber?: number },
+  ) => Promise<string>;
   readonly fetchSeeding: (
     organizationAlias: string,
     tournamentAlias: string,
@@ -198,6 +220,53 @@ export interface MatchConsoleStream {
 export interface TiebreakTraceResponse {
   readonly entrantId: string;
   readonly lines: readonly string[];
+}
+
+export interface TableLayoutSummaryResponse {
+  readonly code: string;
+  readonly target:
+    'group-phase' | 'match-roster' | 'player-ranking' | 'team-ranking' | 'schedule-timeframe';
+  readonly label: string | LocalizedLabel;
+  readonly entityGranularity: string;
+}
+
+export interface TableCellResponse {
+  readonly raw?: number | string | boolean;
+  readonly formatted: string;
+  /** Present only for a `composite` column source. */
+  readonly numerator?: number;
+  readonly denominator?: number;
+}
+
+export interface TableRowResponseData {
+  readonly actorId: string;
+  readonly entrantId?: string;
+  readonly rank: number;
+  readonly sharedRank: boolean;
+  readonly cells: Readonly<Record<string, TableCellResponse>>;
+}
+
+export interface TableColumnResponseData {
+  readonly code: string;
+  readonly header: string | LocalizedLabel;
+  readonly shortHeader?: string | LocalizedLabel;
+  readonly format: 'text' | 'number' | 'decimal-1' | 'decimal-2' | 'percentage' | 'fraction';
+}
+
+export interface TableSortRuleResponse {
+  readonly columnCode: string;
+  readonly direction: 'asc' | 'desc';
+}
+
+export interface TableProjectionResponseData {
+  readonly layoutCode: string;
+  readonly target: TableLayoutSummaryResponse['target'];
+  readonly label: string | LocalizedLabel;
+  readonly columns: readonly TableColumnResponseData[];
+  /** The layout's declared ranking order; `[0]` is the chart's scaling metric. */
+  readonly defaultSort: readonly TableSortRuleResponse[];
+  readonly rows: readonly TableRowResponseData[];
+  readonly projectionVersion: number;
 }
 
 export interface SeedingResponse {
@@ -562,6 +631,29 @@ export function createControlApiClient(input: {
         { token: input.accessToken?.() },
       ),
 
+    fetchTableLayouts: (organizationAlias, tournamentAlias) =>
+      requestJson<{ readonly layouts: readonly TableLayoutSummaryResponse[] }>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
+          tournamentAlias,
+        )}/tables`,
+        { token: input.accessToken?.() },
+      ).then((response) => response.layouts),
+
+    fetchTableProjection: (organizationAlias, tournamentAlias, layoutCode, scope) =>
+      requestJson<TableProjectionResponseData>(
+        input.fetch,
+        tablePath(baseUrl, organizationAlias, tournamentAlias, layoutCode, scope),
+        { token: input.accessToken?.() },
+      ),
+
+    downloadTableProjectionCsv: (organizationAlias, tournamentAlias, layoutCode, scope) =>
+      requestText(
+        input.fetch,
+        `${tablePath(baseUrl, organizationAlias, tournamentAlias, layoutCode, scope)}/csv`,
+        input.accessToken?.(),
+      ),
+
     fetchSeeding: (organizationAlias, tournamentAlias, stageNumber) =>
       requestJson<SeedingResponse>(
         input.fetch,
@@ -741,6 +833,23 @@ function stagePath(
   return `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
     tournamentAlias,
   )}/stages/${stageNumber}`;
+}
+
+/** `scope.stageNumber` absent reads the tournament-wide table route. */
+function tablePath(
+  baseUrl: string,
+  organizationAlias: string,
+  tournamentAlias: string,
+  layoutCode: string,
+  scope: { readonly stageNumber?: number },
+): string {
+  const scoped =
+    scope.stageNumber === undefined
+      ? `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
+          tournamentAlias,
+        )}`
+      : stagePath(baseUrl, organizationAlias, tournamentAlias, scope.stageNumber);
+  return `${scoped}/tables/${encodeURIComponent(layoutCode)}`;
 }
 
 async function requestJson<T>(

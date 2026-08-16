@@ -5,6 +5,10 @@ import type {
   PublicBracketResponse,
   PublicStandingsRowResponse,
 } from '@copalibre/api/src/dto/public-tournament.dto.js';
+import type {
+  TableLayoutListResponse,
+  TableProjectionResponse,
+} from '@copalibre/api/src/dto/table-projections.dto.js';
 import type { ResultReason } from '@copalibre/domain';
 import type { OverviewInput, MatchState } from './overview.js';
 import type { LiveDashboard } from './live-state.js';
@@ -57,6 +61,31 @@ export async function fetchBracket(
   const baseUrl = getApiBaseUrl();
   const url = `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/stages/${encodeURIComponent(stageNumber.toString())}/bracket`;
   return fetchOr404<PublicBracketResponse>(url);
+}
+
+export async function fetchPublicTableLayouts(
+  organizationAlias: string,
+  tournamentAlias: string,
+): Promise<TableLayoutListResponse | undefined> {
+  const baseUrl = getApiBaseUrl();
+  const url = `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/public/tables`;
+  return fetchOr404<TableLayoutListResponse>(url);
+}
+
+/** `stageNumber` absent reads a tournament-wide layout; present reads a stage-scoped one. */
+export async function fetchPublicTableProjection(
+  organizationAlias: string,
+  tournamentAlias: string,
+  layoutCode: string,
+  stageNumber?: number,
+): Promise<TableProjectionResponse | undefined> {
+  const baseUrl = getApiBaseUrl();
+  const scoped =
+    stageNumber === undefined
+      ? `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}`
+      : `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/stages/${encodeURIComponent(stageNumber.toString())}`;
+  const url = `${scoped}/public/tables/${encodeURIComponent(layoutCode)}`;
+  return fetchOr404<TableProjectionResponse>(url);
 }
 
 export function mapOverviewResponse(response: PublicOverviewResponse): OverviewInput {

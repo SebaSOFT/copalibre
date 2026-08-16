@@ -268,6 +268,8 @@ export const messages: Record<string, string> = {
   'control.standings.distributionEmpty': 'Keine Daten zum Darstellen.',
   'control.standings.sharedRank': 'Geteilte Position',
   'control.standings.tieBroken': 'Stichentscheid angewendet',
+  'control.standings.exportCsv': 'CSV exportieren',
+  'control.standings.noLayouts': 'Diese Disziplin deklariert keine Tabellen für dieses Turnier.',
 
   'control.landing.emptyTitle': 'Noch keine Organisationen',
   'control.landing.emptyBody':

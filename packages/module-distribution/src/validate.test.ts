@@ -870,4 +870,216 @@ describe('validateModulePackage', () => {
       expect(result.failures.some((failure) => failure.field === 'requiresCopalibre')).toBe(true);
     }
   });
+
+  describe('table layout references', () => {
+    const VALID_LAYOUT = {
+      code: 'group-standings',
+      target: 'group-phase',
+      label: 'Group Standings',
+      entityGranularity: 'team',
+      defaultSort: [{ columnCode: 'points', direction: 'desc' }],
+      columns: [
+        {
+          code: 'points',
+          header: 'Points',
+          source: { kind: 'collector', code: 'points' },
+          format: 'number',
+        },
+      ],
+    };
+
+    it('accepts a column sourced from a declared statistic', async () => {
+      const directory = await makeModuleDirectory(
+        validManifest(),
+        validDisciplineDocument({ tableLayouts: [VALID_LAYOUT] }),
+      );
+      directories.push(directory);
+
+      const result = await validateModulePackage(directory, OPTIONS);
+      expect(result.ok).toBe(true);
+    });
+
+    it('rejects a collector-sourced column naming a code the discipline declares nowhere', async () => {
+      const directory = await makeModuleDirectory(
+        validManifest(),
+        validDisciplineDocument({
+          tableLayouts: [
+            {
+              ...VALID_LAYOUT,
+              columns: [
+                {
+                  code: 'goals',
+                  header: 'Goals',
+                  source: { kind: 'collector', code: 'player-goals' },
+                  format: 'number',
+                },
+              ],
+            },
+          ],
+        }),
+      );
+      directories.push(directory);
+
+      const result = await validateModulePackage(directory, OPTIONS);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(
+          result.failures.some(
+            (failure) =>
+              failure.stage === 'table-layout-reference' &&
+              failure.message.includes('player-goals'),
+          ),
+        ).toBe(true);
+      }
+    });
+
+    it('rejects a composite column whose numerator or denominator names an undeclared code', async () => {
+      const directory = await makeModuleDirectory(
+        validManifest(),
+        validDisciplineDocument({
+          tableLayouts: [
+            {
+              ...VALID_LAYOUT,
+              columns: [
+                {
+                  code: 'penalties',
+                  header: 'Penalties',
+                  source: {
+                    kind: 'composite',
+                    numerator: 'penalties-scored',
+                    denominator: 'penalties-taken',
+                  },
+                  format: 'fraction',
+                },
+              ],
+            },
+          ],
+        }),
+      );
+      directories.push(directory);
+
+      const result = await validateModulePackage(directory, OPTIONS);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(
+          result.failures.filter((failure) => failure.stage === 'table-layout-reference'),
+        ).toHaveLength(2);
+      }
+    });
+
+    it('rejects a qualification filter naming an undeclared minSamples collector', async () => {
+      const directory = await makeModuleDirectory(
+        validManifest(),
+        validDisciplineDocument({
+          tableLayouts: [
+            {
+              ...VALID_LAYOUT,
+              filter: { minSamples: { collectorCode: 'player-appearances', min: 3 } },
+            },
+          ],
+        }),
+      );
+      directories.push(directory);
+
+      const result = await validateModulePackage(directory, OPTIONS);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(
+          result.failures.some(
+            (failure) =>
+              failure.stage === 'table-layout-reference' &&
+              failure.message.includes('player-appearances'),
+          ),
+        ).toBe(true);
+      }
+    });
+
+    it('accepts a computed column expression built only from permitted nodes', async () => {
+      const directory = await makeModuleDirectory(
+        validManifest(),
+        validDisciplineDocument({
+          tableLayouts: [
+            {
+              ...VALID_LAYOUT,
+              columns: [
+                ...VALID_LAYOUT.columns,
+                {
+                  code: 'ratio',
+                  header: 'Ratio',
+                  source: { kind: 'computed', expression: 'points / max(points, 1)' },
+                  format: 'decimal-2',
+                },
+              ],
+            },
+          ],
+        }),
+      );
+      directories.push(directory);
+
+      const result = await validateModulePackage(directory, OPTIONS);
+      expect(result.ok).toBe(true);
+    });
+
+    it('rejects a computed column expression using a ternary, which the evaluator refuses', async () => {
+      const directory = await makeModuleDirectory(
+        validManifest(),
+        validDisciplineDocument({
+          tableLayouts: [
+            {
+              ...VALID_LAYOUT,
+              columns: [
+                ...VALID_LAYOUT.columns,
+                {
+                  code: 'ratio',
+                  header: 'Ratio',
+                  source: { kind: 'computed', expression: 'points > 0 ? points : 1' },
+                  format: 'decimal-2',
+                },
+              ],
+            },
+          ],
+        }),
+      );
+      directories.push(directory);
+
+      const result = await validateModulePackage(directory, OPTIONS);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.failures.some((failure) => failure.stage === 'table-layout-reference')).toBe(
+          true,
+        );
+      }
+    });
+
+    it('rejects a template column interpolating an invalid expression', async () => {
+      const directory = await makeModuleDirectory(
+        validManifest(),
+        validDisciplineDocument({
+          tableLayouts: [
+            {
+              ...VALID_LAYOUT,
+              columns: [
+                ...VALID_LAYOUT.columns,
+                {
+                  code: 'summary',
+                  header: 'Summary',
+                  source: { kind: 'template', template: '{{ points > 0 ? points : 1 }} pts' },
+                  format: 'text',
+                },
+              ],
+            },
+          ],
+        }),
+      );
+      directories.push(directory);
+
+      const result = await validateModulePackage(directory, OPTIONS);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.failures.some((failure) => failure.stage === 'table-layout-reference')).toBe(
+          true,
+        );
+      }
+    });
+  });
 });

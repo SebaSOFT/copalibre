@@ -3,6 +3,8 @@ import {
   fetchOverview,
   fetchLive,
   fetchBracket,
+  fetchPublicTableLayouts,
+  fetchPublicTableProjection,
   mapOverviewResponse,
   mapLiveResponse,
   mapBracketResponse,
@@ -134,6 +136,71 @@ describe('public-api-client', () => {
       );
     });
   });
+  describe('fetchPublicTableLayouts', () => {
+    it('returns parsed json on 200', async () => {
+      const mockData = { layouts: [] };
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockData,
+      } as unknown as Response);
+
+      const result = await fetchPublicTableLayouts('org1', 'tourney1');
+      expect(result).toEqual(mockData);
+      expect(fetch).toHaveBeenCalledWith(
+        'http://api.test/organizations/org1/tournaments/tourney1/public/tables',
+      );
+    });
+
+    it('returns undefined on 404', async () => {
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+      } as unknown as Response);
+
+      expect(await fetchPublicTableLayouts('org1', 'tourney1')).toBeUndefined();
+    });
+  });
+
+  describe('fetchPublicTableProjection', () => {
+    it('reads a tournament-wide layout when no stage number is given', async () => {
+      const mockData = { layoutCode: 'top-scorers', rows: [] };
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockData,
+      } as unknown as Response);
+
+      const result = await fetchPublicTableProjection('org1', 'tourney1', 'top-scorers');
+      expect(result).toEqual(mockData);
+      expect(fetch).toHaveBeenCalledWith(
+        'http://api.test/organizations/org1/tournaments/tourney1/public/tables/top-scorers',
+      );
+    });
+
+    it('reads a stage-scoped layout when a stage number is given', async () => {
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ layoutCode: 'group-standings-default', rows: [] }),
+      } as unknown as Response);
+
+      await fetchPublicTableProjection('org1', 'tourney1', 'group-standings-default', 2);
+      expect(fetch).toHaveBeenCalledWith(
+        'http://api.test/organizations/org1/tournaments/tourney1/stages/2/public/tables/group-standings-default',
+      );
+    });
+
+    it('returns undefined on 404', async () => {
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+      } as unknown as Response);
+
+      expect(await fetchPublicTableProjection('org1', 'tourney1', 'nonexistent')).toBeUndefined();
+    });
+  });
+
   describe('mapOverviewResponse', () => {
     it('maps correctly', () => {
       const response = {

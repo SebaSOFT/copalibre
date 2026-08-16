@@ -16,11 +16,14 @@ import {
   PublicBracketResponse,
   PublicOverviewMatchResponse,
 } from '../dto/public-tournament.dto.js';
+import { TableLayoutListResponse, TableProjectionResponse } from '../dto/table-projections.dto.js';
 import { Kysely } from 'kysely';
 import { DATABASE } from '../database.token.js';
 import { readStandings } from '../standings/read.js';
+import { listEffectiveTableLayouts, readTableProjection } from '../table-projections/read.js';
 
 import { toBracketMatch, ambiguousRoundPositions } from './seeding.controller.js';
+import { tableResponse } from './table-projections.controller.js';
 import { generateFixtures } from '@copalibre/tournament-engine';
 
 @ApiTags('Public Projections')
@@ -276,5 +279,92 @@ export class PublicProjectionsController {
         })),
       })),
     };
+  }
+
+  // 'public/tables', not 'tables': the admin `TableProjectionsController`
+  // already claims that exact path (same controller-level prefix) behind
+  // `RequireOrganizationRole('admin')` — Fastify's router refuses two
+  // handlers on one method+path, so the same leaf name cannot be reused
+  // unauthenticated here.
+  @Get('public/tables')
+  @SecurityPlaneTag('public-read')
+  @ApiOperation({ summary: 'Every table layout in effect for this tournament' })
+  @ApiOkResponse({ type: TableLayoutListResponse })
+  async tableLayouts(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+  ): Promise<TableLayoutListResponse> {
+    const { tournament } = await this.resolvePublishedTournament(
+      organizationAlias,
+      tournamentAlias,
+    );
+    const layouts = await listEffectiveTableLayouts(this.db, {
+      tournamentId: tournament.tournamentId,
+      disciplineRef: tournament.disciplineRef,
+    });
+    return { layouts: layouts.map((layout) => ({ ...layout })) };
+  }
+
+  @Get('public/tables/:layoutCode')
+  @SecurityPlaneTag('public-read')
+  @ApiOperation({ summary: 'A tournament-wide table projection (player/team rankings)' })
+  @ApiOkResponse({ type: TableProjectionResponse })
+  async tournamentTable(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('layoutCode') layoutCode: string,
+  ): Promise<TableProjectionResponse> {
+    const { tournament } = await this.resolvePublishedTournament(
+      organizationAlias,
+      tournamentAlias,
+    );
+    const result = await readTableProjection(
+      this.db,
+      {
+        organizationId: tournament.organizationId,
+        tournament: {
+          tournamentId: tournament.tournamentId,
+          disciplineRef: tournament.disciplineRef,
+        },
+      },
+      layoutCode,
+    );
+    return tableResponse(result);
+  }
+
+  @Get('stages/:stageNumber/public/tables/:layoutCode')
+  @SecurityPlaneTag('public-read')
+  @ApiOperation({ summary: 'A stage-scoped table projection (group standings, schedule tables)' })
+  @ApiOkResponse({ type: TableProjectionResponse })
+  async stageTable(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('stageNumber') stageNumberStr: string,
+    @Param('layoutCode') layoutCode: string,
+  ): Promise<TableProjectionResponse> {
+    const { tournament } = await this.resolvePublishedTournament(
+      organizationAlias,
+      tournamentAlias,
+    );
+    const stageNumber = parseInt(stageNumberStr, 10);
+    const stages = await new CompetitionRepository(this.db).listStagesOfTournament(
+      tournament.tournamentId,
+    );
+    const stage = stages.find((candidate) => candidate.number === stageNumber);
+    if (!stage) throw new NotFoundException(`No stage ${stageNumberStr} in tournament`);
+
+    const result = await readTableProjection(
+      this.db,
+      {
+        organizationId: tournament.organizationId,
+        tournament: {
+          tournamentId: tournament.tournamentId,
+          disciplineRef: tournament.disciplineRef,
+        },
+        stageId: stage.stageId,
+      },
+      layoutCode,
+    );
+    return tableResponse(result);
   }
 }

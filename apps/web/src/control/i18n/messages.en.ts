@@ -644,6 +644,11 @@ export const messages = defineMessages({
   },
   standingsSharedRank: { id: 'control.standings.sharedRank', defaultMessage: 'Shared position' },
   standingsTieBroken: { id: 'control.standings.tieBroken', defaultMessage: 'Tiebreak applied' },
+  standingsExportCsv: { id: 'control.standings.exportCsv', defaultMessage: 'Export CSV' },
+  standingsNoLayouts: {
+    id: 'control.standings.noLayouts',
+    defaultMessage: 'This discipline declares no tables for this tournament.',
+  },
 
   // Post-login landing (ControlApp.tsx's LoginLanding, 0063)
   landingEmptyTitle: { id: 'control.landing.emptyTitle', defaultMessage: 'No organizations yet' },

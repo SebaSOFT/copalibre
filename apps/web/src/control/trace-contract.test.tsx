@@ -4,7 +4,7 @@ import type { DisciplineDescriptor, RecordedOutcome } from '@copalibre/domain';
 import { traceForEntrant, traceLines, type TiebreakPipeline } from '@copalibre/rules';
 import { computeStandings } from '@copalibre/tournament-engine';
 import { StandingsPage } from './components/StandingsPage.js';
-import type { StandingsData } from './lib/standings.js';
+import type { TableLayoutSummaryResponse, TableProjectionResponseData } from './lib/api-client.js';
 import { withIntl } from './i18n/test-support.js';
 
 /**
@@ -118,35 +118,55 @@ describe('tiebreak trace contract', () => {
     );
     expect(expected.length).toBeGreaterThan(0);
 
-    const data: StandingsData = {
-      stageId: 'stage-1',
-      projectionVersion: 4,
-      fullyResolved: standings.fullyResolved,
+    // Exactly the shape `TableProjectionsController` serves for a
+    // `group-phase` layout: a `name` column (defaulting to the entrant id,
+    // as this screen always did with no separate name mapping) and a
+    // `points` column, both pre-formatted.
+    const layout: TableLayoutSummaryResponse = {
+      code: 'group-standings-default',
+      target: 'group-phase',
+      label: 'Group Standings',
+      entityGranularity: 'team',
+    };
+    const projection: TableProjectionResponseData = {
+      layoutCode: layout.code,
+      target: layout.target,
+      label: layout.label,
+      columns: [
+        { code: 'name', header: 'Team', format: 'text' },
+        { code: 'points', header: 'Points', format: 'number' },
+      ],
+      defaultSort: [{ columnCode: 'points', direction: 'desc' }],
       rows: standings.rows.map((row) => ({
-        rank: row.rank,
+        actorId: row.entrantId,
         entrantId: row.entrantId,
+        rank: row.rank,
         sharedRank: row.sharedRank,
-        statistics: { ...row.statistics },
-        tieBroken: traceForEntrant(standings.trace, row.entrantId).length > 0,
+        cells: {
+          name: { formatted: row.entrantId },
+          points: { raw: row.statistics.points, formatted: String(row.statistics.points ?? 0) },
+        },
       })),
-      trace: traceLines(standings.trace),
+      projectionVersion: 4,
     };
 
     render(
       withIntl(
         <StandingsPage
-          onExpand={(entrantId) =>
+          activeLayoutCode={layout.code}
+          layouts={[layout]}
+          onExpand={(actorId) =>
             Promise.resolve(
               traceLines(
-                traceForEntrant(standings.trace, entrantId, {
+                traceForEntrant(standings.trace, actorId, {
                   stillTied:
-                    standings.rows.find((row) => row.entrantId === entrantId)?.sharedRank ?? false,
+                    standings.rows.find((row) => row.entrantId === actorId)?.sharedRank ?? false,
                 }),
               ),
             )
           }
           organizationAlias="liga-mendocina"
-          standings={data}
+          projection={projection}
           tournamentName="Apertura 2026"
         />,
       ),

@@ -1,37 +1,52 @@
 ---
 import type { IntlShape } from 'react-intl';
-import { shortLabel, type OverviewModel } from '../lib/overview.ts';
+import type {
+  TableLayoutSummaryResponse,
+  TableProjectionResponse,
+} from '@copalibre/api/src/dto/table-projections.dto.js';
+import { localizedText } from '../lib/localized-label.ts';
 import { messages } from '../lib/i18n/public-messages.en.ts';
 
 interface Props {
-  readonly model: OverviewModel;
+  /** The declared layout this projection came from — its own label replaces the generic heading. */
+  readonly layout?: TableLayoutSummaryResponse;
+  readonly projection?: TableProjectionResponse;
   readonly intl: IntlShape;
 }
-const { model, intl } = Astro.props;
+const { layout, projection, intl } = Astro.props;
+
+const heading = layout
+  ? localizedText(layout.label, intl.locale)
+  : intl.formatMessage(messages.standingsHeading);
+const columns = projection?.columns ?? [];
+const rows = projection?.rows ?? [];
 ---
 
 <section aria-labelledby="standings-heading">
-  <h2 id="standings-heading">{intl.formatMessage(messages.standingsHeading)}</h2>
-  {model.standings.length === 0 && <p>{intl.formatMessage(messages.standingsEmpty)}</p>}
-  <table>
-    <thead>
-      <tr
-        ><th scope="col">#</th><th scope="col">{intl.formatMessage(messages.standingsTeam)}</th><th
-          scope="col">{intl.formatMessage(messages.standingsPlayed)}</th
-        ><th scope="col">{intl.formatMessage(messages.standingsPoints)}</th></tr
-      >
-    </thead>
-    <tbody>
-      {
-        model.standings.map((row) => (
+  <h2 id="standings-heading">{heading}</h2>
+  {rows.length === 0 && <p>{intl.formatMessage(messages.standingsEmpty)}</p>}
+  {
+    rows.length > 0 && (
+      <table>
+        <thead>
           <tr>
-            <td>{row.position}</td>
-            <td>{shortLabel(row)}</td>
-            <td class="cl-stat-tile__value">{row.played}</td>
-            <td class="cl-stat-tile__value">{row.points}</td>
+            {columns.map((column) => (
+              <th scope="col" title={localizedText(column.header, intl.locale)}>
+                {localizedText(column.shortHeader ?? column.header, intl.locale)}
+              </th>
+            ))}
           </tr>
-        ))
-      }
-    </tbody>
-  </table>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr>
+              {columns.map((column) => (
+                <td class="cl-stat-tile__value">{row.cells[column.code]?.formatted ?? '—'}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )
+  }
 </section>

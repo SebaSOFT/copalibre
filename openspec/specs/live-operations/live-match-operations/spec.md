@@ -54,3 +54,19 @@ fixtures unlock correctly for the match's format.
 #### Scenario: Elimination match finalization populates the next round
 - **WHEN** an elimination-format match is finalized
 - **THEN** the winner (and, for double elimination, the loser) is routed to the correct downstream fixture per the advancement engine
+
+### Requirement: Substitution events update on-field active lineup state
+
+The match operations system SHALL maintain active on-field participation state for match roster members, updating `onField` status dynamically upon recording substitution events and restricting goalkeeper auto-targeting to active on-field goalkeepers.
+
+#### Scenario: Recording a substitution swaps active on-field status
+- **WHEN** a `substitution` event is recorded with `playerOutId` and `playerInId`
+- **THEN** the match state marks `playerOutId` as `onField: false` and `playerInId` as `onField: true`
+
+#### Scenario: Auto-targeting goalkeeper selects active on-field goalkeeper
+- **WHEN** a `goal` event is recorded against a team with multiple goalkeepers on the roster
+- **THEN** the system auto-selects the goalkeeper who currently has `onField: true`, ignoring bench substitute goalkeepers, and writes their id into `payload.goalkeeperId`
+
+#### Scenario: A substitution changes which goalkeeper subsequent goals attribute to
+- **WHEN** a goalkeeper substitution is recorded mid-match, then a further goal is conceded
+- **THEN** the recorded goal's `payload.goalkeeperId` names the newly on-field goalkeeper, not the one who was substituted off

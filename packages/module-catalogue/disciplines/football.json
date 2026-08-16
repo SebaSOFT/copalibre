@@ -212,6 +212,248 @@
     { "code": "goalkeeper", "label": { "en": "Goalkeeper", "es": "Arquero" }, "badge": "GK" },
     { "code": "captain", "label": { "en": "Captain", "es": "Capitán" }, "badge": "C" }
   ],
+  "collectors": [
+    {
+      "code": "player-goals",
+      "label": { "en": "Goals", "es": "Goles" },
+      "source": { "kind": "event", "definitionCodes": ["goal"], "actorSource": "primary" },
+      "measure": { "kind": "count" },
+      "granularity": { "actor": "person", "competition": "match" }
+    },
+    {
+      "code": "player-assists",
+      "label": { "en": "Assists", "es": "Asistencias" },
+      "source": {
+        "kind": "event",
+        "definitionCodes": ["goal"],
+        "actorSource": { "payloadField": "assistedBy" }
+      },
+      "measure": { "kind": "count" },
+      "granularity": { "actor": "person", "competition": "match" }
+    },
+    {
+      "code": "player-appearances",
+      "label": { "en": "Appearances", "es": "Partidos jugados" },
+      "source": { "kind": "participation" },
+      "measure": { "kind": "count" },
+      "granularity": { "actor": "person", "competition": "match" }
+    },
+    {
+      "code": "player-yellow-cards",
+      "label": { "en": "Yellow cards", "es": "Tarjetas amarillas" },
+      "source": { "kind": "event", "definitionCodes": ["yellow-card"], "actorSource": "primary" },
+      "measure": { "kind": "count" },
+      "granularity": { "actor": "person", "competition": "match" }
+    },
+    {
+      "code": "player-red-cards",
+      "label": { "en": "Red cards", "es": "Tarjetas rojas" },
+      "source": { "kind": "event", "definitionCodes": ["red-card"], "actorSource": "primary" },
+      "measure": { "kind": "count" },
+      "granularity": { "actor": "person", "competition": "match" }
+    },
+    {
+      "code": "goalkeeper-goals-conceded",
+      "label": { "en": "Goals conceded", "es": "Goles recibidos" },
+      "source": {
+        "kind": "event",
+        "definitionCodes": ["goal"],
+        "actorSource": { "payloadField": "goalkeeperId" }
+      },
+      "measure": { "kind": "count" },
+      "granularity": { "actor": "person", "competition": "match" }
+    }
+  ],
+  "tableLayouts": [
+    {
+      "code": "group-standings-default",
+      "target": "group-phase",
+      "label": { "en": "Group Standings", "es": "Tabla de Posiciones" },
+      "entityGranularity": "team",
+      "defaultSort": [
+        { "columnCode": "points", "direction": "desc" },
+        { "columnCode": "gd", "direction": "desc" }
+      ],
+      "columns": [
+        {
+          "code": "rank",
+          "header": { "en": "Pos", "es": "#" },
+          "source": { "kind": "rank" },
+          "format": "number"
+        },
+        {
+          "code": "name",
+          "header": { "en": "Team", "es": "Equipo" },
+          "source": { "kind": "entrant-name" },
+          "format": "text"
+        },
+        {
+          "code": "played",
+          "header": { "en": "P", "es": "PJ" },
+          "source": { "kind": "collector", "code": "played" },
+          "format": "number"
+        },
+        {
+          "code": "wins",
+          "header": { "en": "W", "es": "PG" },
+          "source": { "kind": "collector", "code": "wins" },
+          "format": "number"
+        },
+        {
+          "code": "draws",
+          "header": { "en": "D", "es": "PE" },
+          "source": { "kind": "collector", "code": "draws" },
+          "format": "number"
+        },
+        {
+          "code": "losses",
+          "header": { "en": "L", "es": "PP" },
+          "source": { "kind": "collector", "code": "losses" },
+          "format": "number"
+        },
+        {
+          "code": "gf",
+          "header": { "en": "GF", "es": "GF" },
+          "source": { "kind": "collector", "code": "goals-for" },
+          "format": "number"
+        },
+        {
+          "code": "ga",
+          "header": { "en": "GA", "es": "GC" },
+          "source": { "kind": "collector", "code": "goals-against" },
+          "format": "number"
+        },
+        {
+          "code": "gd",
+          "header": { "en": "GD", "es": "Dif" },
+          "source": { "kind": "computed", "expression": "gf - ga" },
+          "format": "number"
+        },
+        {
+          "code": "points",
+          "header": { "en": "Pts", "es": "Pts" },
+          "source": { "kind": "collector", "code": "points" },
+          "format": "number"
+        }
+      ]
+    },
+    {
+      "code": "top-scorers",
+      "target": "player-ranking",
+      "label": { "en": "Top Scorers", "es": "Tabla de Goleadores" },
+      "entityGranularity": "person",
+      "defaultSort": [
+        { "columnCode": "goals", "direction": "desc" },
+        { "columnCode": "goals-per-match", "direction": "desc" }
+      ],
+      "columns": [
+        {
+          "code": "rank",
+          "header": { "en": "Rank", "es": "Pos" },
+          "source": { "kind": "rank" },
+          "format": "number"
+        },
+        {
+          "code": "player",
+          "header": { "en": "Player", "es": "Jugador" },
+          "source": { "kind": "actor-name" },
+          "format": "text"
+        },
+        {
+          "code": "team",
+          "header": { "en": "Team", "es": "Equipo" },
+          "source": { "kind": "team-name" },
+          "format": "text"
+        },
+        {
+          "code": "goals",
+          "header": { "en": "Goals", "es": "Goles" },
+          "source": { "kind": "collector", "code": "player-goals" },
+          "format": "number"
+        },
+        {
+          "code": "played",
+          "header": { "en": "Matches", "es": "PJ" },
+          "source": { "kind": "collector", "code": "player-appearances" },
+          "format": "number"
+        },
+        {
+          "code": "goals-per-match",
+          "header": { "en": "Goals/M", "es": "Goles/PJ" },
+          "source": { "kind": "computed", "expression": "goals / max(played, 1)" },
+          "format": "decimal-2"
+        },
+        {
+          "code": "assists",
+          "header": { "en": "Assists", "es": "Asistencias" },
+          "source": { "kind": "collector", "code": "player-assists" },
+          "format": "number"
+        },
+        {
+          "code": "cards",
+          "header": { "en": "Y/R Cards", "es": "Tarjetas A/R" },
+          "source": {
+            "kind": "composite",
+            "numerator": "player-yellow-cards",
+            "denominator": "player-red-cards"
+          },
+          "format": "fraction"
+        }
+      ]
+    },
+    {
+      "code": "goalkeeper-zamora",
+      "target": "player-ranking",
+      "label": { "en": "Goalkeeper Rankings (Zamora)", "es": "Valla Menos Vencida" },
+      "entityGranularity": "person",
+      "filter": {
+        "requiresRole": "goalkeeper",
+        "minSamples": { "collectorCode": "player-appearances", "min": 3 }
+      },
+      "defaultSort": [
+        { "columnCode": "ratio", "direction": "asc" },
+        { "columnCode": "conceded", "direction": "asc" }
+      ],
+      "columns": [
+        {
+          "code": "rank",
+          "header": { "en": "Rank", "es": "Pos" },
+          "source": { "kind": "rank" },
+          "format": "number"
+        },
+        {
+          "code": "goalkeeper",
+          "header": { "en": "Goalkeeper", "es": "Arquero" },
+          "source": { "kind": "actor-name" },
+          "format": "text"
+        },
+        {
+          "code": "team",
+          "header": { "en": "Team", "es": "Equipo" },
+          "source": { "kind": "team-name" },
+          "format": "text"
+        },
+        {
+          "code": "conceded",
+          "header": { "en": "Goals Conceded", "es": "Goles Recibidos" },
+          "source": { "kind": "collector", "code": "goalkeeper-goals-conceded" },
+          "format": "number"
+        },
+        {
+          "code": "played",
+          "header": { "en": "Matches", "es": "PJ" },
+          "source": { "kind": "collector", "code": "player-appearances" },
+          "format": "number"
+        },
+        {
+          "code": "ratio",
+          "header": { "en": "Goals/Match", "es": "Promedio" },
+          "source": { "kind": "computed", "expression": "conceded / max(played, 1)" },
+          "format": "decimal-2"
+        }
+      ]
+    }
+  ],
   "scoringInputs": [
     { "code": "goals", "label": { "en": "Goals", "es": "Goles" }, "source": "event-derived" }
   ],
@@ -260,6 +502,7 @@
     "venuePolicy": { "neutralGround": false }
   },
   "fieldPolicies": {
+    "tableLayouts": { "permission": { "kind": "replaced" }, "mutationClass": "safe" },
     "format": { "permission": { "kind": "replaced" }, "mutationClass": "blocked_after_results" },
     "registration.publicOpen": { "permission": { "kind": "replaced" }, "mutationClass": "safe" },
     "registration.requiresCheckIn": {

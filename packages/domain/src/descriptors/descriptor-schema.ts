@@ -335,6 +335,11 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
         },
       },
     },
+    // Standard tables/rankings this discipline declares — column sources are
+    // checked here for shape; whether a `collector`/`composite` source names
+    // a collector or statistic this discipline actually declares is a
+    // whole-document question and lives in `validateDisciplineDescriptorDocument`.
+    tableLayouts: { type: 'array', items: { $ref: '#/definitions/tableLayout' } },
     notificationRuleCapabilities: { type: 'array', items: { type: 'string', minLength: 1 } },
     winCondition: { $ref: RULE_SCRIPT_SCHEMA_ID },
     uiMetadata: { type: 'object' },
@@ -472,6 +477,122 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
           },
         },
       },
+    },
+    /**
+     * A standard table/ranking (0091). Structure only — whether a
+     * `collector`/`composite` source's code names something this discipline
+     * declares is a whole-document question, in `validateDisciplineDescriptorDocument`.
+     */
+    tableLayout: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['code', 'target', 'label', 'entityGranularity', 'defaultSort', 'columns'],
+      properties: {
+        code: { type: 'string', minLength: 1 },
+        target: {
+          enum: [
+            'group-phase',
+            'match-roster',
+            'player-ranking',
+            'team-ranking',
+            'schedule-timeframe',
+          ],
+        },
+        label: LOCALIZED_LABEL_SCHEMA,
+        entityGranularity: { enum: ['person', 'player', 'team', 'club', 'official', 'venue'] },
+        filter: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            minSamples: {
+              type: 'object',
+              additionalProperties: false,
+              required: ['collectorCode', 'min'],
+              properties: {
+                collectorCode: { type: 'string', minLength: 1 },
+                min: { type: 'number' },
+              },
+            },
+            requiresRole: { type: 'string', minLength: 1 },
+            requiresTag: { type: 'string', minLength: 1 },
+          },
+        },
+        defaultSort: {
+          type: 'array',
+          minItems: 1,
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['columnCode', 'direction'],
+            properties: {
+              columnCode: { type: 'string', minLength: 1 },
+              direction: { enum: ['asc', 'desc'] },
+            },
+          },
+        },
+        columns: {
+          type: 'array',
+          minItems: 1,
+          uniqueItemProperties: ['code'],
+          items: { $ref: '#/definitions/tableColumn' },
+        },
+      },
+    },
+    tableColumn: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['code', 'header', 'source', 'format'],
+      properties: {
+        code: { type: 'string', minLength: 1 },
+        header: LOCALIZED_LABEL_SCHEMA,
+        shortHeader: LOCALIZED_LABEL_SCHEMA,
+        source: { $ref: '#/definitions/columnSource' },
+        format: { enum: ['text', 'number', 'decimal-1', 'decimal-2', 'percentage', 'fraction'] },
+        visibleByDefault: { type: 'boolean' },
+      },
+    },
+    columnSource: {
+      type: 'object',
+      required: ['kind'],
+      oneOf: [
+        {
+          additionalProperties: false,
+          required: ['kind'],
+          properties: { kind: { const: 'rank' } },
+        },
+        {
+          additionalProperties: false,
+          required: ['kind'],
+          properties: { kind: { enum: ['entrant-name', 'actor-name', 'team-name', 'role'] } },
+        },
+        {
+          additionalProperties: false,
+          required: ['kind', 'code'],
+          properties: { kind: { const: 'collector' }, code: { type: 'string', minLength: 1 } },
+        },
+        {
+          additionalProperties: false,
+          required: ['kind', 'numerator', 'denominator'],
+          properties: {
+            kind: { const: 'composite' },
+            numerator: { type: 'string', minLength: 1 },
+            denominator: { type: 'string', minLength: 1 },
+          },
+        },
+        {
+          additionalProperties: false,
+          required: ['kind', 'expression'],
+          properties: {
+            kind: { const: 'computed' },
+            expression: { type: 'string', minLength: 1 },
+          },
+        },
+        {
+          additionalProperties: false,
+          required: ['kind', 'template'],
+          properties: { kind: { const: 'template' }, template: { type: 'string', minLength: 1 } },
+        },
+      ],
     },
     /**
      * A tag declaration (0073, `declared-tagging`). `label` is a plain string

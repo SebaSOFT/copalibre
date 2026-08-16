@@ -6,7 +6,12 @@ import StandingsPreview from '../../../../components/StandingsPreview.astro';
 import BroadcastStatusPanel from '../../../../components/BroadcastStatusPanel.astro';
 import RulesetBriefing from '../../../../components/RulesetBriefing.astro';
 import { buildOverview, displayName } from '../../../../lib/overview.ts';
-import { fetchOverview, mapOverviewResponse } from '../../../../lib/public-api-client.ts';
+import {
+  fetchOverview,
+  fetchPublicTableLayouts,
+  fetchPublicTableProjection,
+  mapOverviewResponse,
+} from '../../../../lib/public-api-client.ts';
 import { publicIntl } from '../../../../lib/i18n/public-intl.ts';
 import { messages } from '../../../../lib/i18n/public-messages.en.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
@@ -38,6 +43,26 @@ if (!overviewData) {
 }
 
 const model = buildOverview(mapOverviewResponse(overviewData));
+
+// The default table shown on the tournament landing page — the earliest
+// stage's own group-phase layout, matching what a spectator lands here
+// expecting to see. A tournament whose discipline declares no group-phase
+// layout (or that has not played a match yet) simply renders no table.
+const layoutsResponse = await fetchPublicTableLayouts(organization!, tournament!);
+const groupPhaseLayout = layoutsResponse?.layouts.find((one) => one.target === 'group-phase');
+const earliestStageNumber = overviewData.matches.reduce(
+  (earliest, match) => Math.min(earliest, match.stageNumber),
+  Infinity,
+);
+const standingsProjection =
+  groupPhaseLayout && Number.isFinite(earliestStageNumber)
+    ? await fetchPublicTableProjection(
+        organization!,
+        tournament!,
+        groupPhaseLayout.code,
+        earliestStageNumber,
+      )
+    : undefined;
 ---
 
 <PublicLayout
@@ -51,6 +76,6 @@ const model = buildOverview(mapOverviewResponse(overviewData));
   <TournamentHero model={model} intl={intl} />
   <BroadcastStatusPanel model={model} intl={intl} />
   <ScoreTicker model={model} intl={intl} />
-  <StandingsPreview model={model} intl={intl} />
+  <StandingsPreview layout={groupPhaseLayout} projection={standingsProjection} intl={intl} />
   <RulesetBriefing model={model} intl={intl} />
 </PublicLayout>
