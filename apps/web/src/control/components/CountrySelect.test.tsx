@@ -37,8 +37,8 @@ describe('CountrySelect', () => {
     const onChange = jest.fn();
     render(withIntl(<CountrySelect onChange={onChange} value="AR" />));
 
-    expect(
-      screen.getByRole('option', { name: /Argentina/ }).getAttribute('aria-selected'),
-    ).toBe('true');
+    expect(screen.getByRole('option', { name: /Argentina/ }).getAttribute('aria-selected')).toBe(
+      'true',
+    );
   });
 });

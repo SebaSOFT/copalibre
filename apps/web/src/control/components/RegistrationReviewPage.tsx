@@ -156,6 +156,7 @@ export function RegistrationReviewPage({
             status: row.status,
             now,
           });
+          const personId = row.personId;
           return (
             <details className="cl-focusable" key={row.entrantId} style={rowStyle}>
               <summary style={summaryStyle}>
@@ -201,25 +202,22 @@ export function RegistrationReviewPage({
                   label={intl.formatMessage(messages.reviewExperience)}
                   value={row.experience}
                 />
-                {row.personId !== undefined && (
+                {personId !== undefined && (
                   <div style={fieldValueStyle}>
                     <span style={smallStyle}>
                       {intl.formatMessage(messages.reviewNationalityLabel)}
                     </span>
                     <CountrySelect
                       onChange={(code) =>
-                        setNationalityDraft((current) => ({
-                          ...current,
-                          [row.personId as string]: code,
-                        }))
+                        setNationalityDraft((current) => ({ ...current, [personId]: code }))
                       }
-                      value={nationalityDraft[row.personId] ?? row.nationality}
+                      value={nationalityDraft[personId] ?? row.nationality}
                     />
                     <Button
                       onClick={() =>
                         void onSetNationality?.(
-                          row.personId as string,
-                          nationalityDraft[row.personId] ?? row.nationality ?? null,
+                          personId,
+                          nationalityDraft[personId] ?? row.nationality ?? null,
                         )
                       }
                       type="button"
@@ -233,8 +231,7 @@ export function RegistrationReviewPage({
                         accept="image/*"
                         onChange={(event) => {
                           const file = event.currentTarget.files?.[0];
-                          const personId = row.personId;
-                          if (!file || personId === undefined) return;
+                          if (!file) return;
                           void readAsBase64(file).then((contentBase64) =>
                             onUploadPhoto?.(personId, {
                               filename: file.name,
@@ -248,9 +245,9 @@ export function RegistrationReviewPage({
                     </label>
                     <a
                       className="cl-focusable"
-                      href={`/control/${organizationAlias}/persons/${row.personId}`}
+                      href={`/control/${organizationAlias}/persons/${personId}`}
                       onClick={controlLinkClick(
-                        `/control/${organizationAlias}/persons/${row.personId}`,
+                        `/control/${organizationAlias}/persons/${personId}`,
                       )}
                     >
                       <FormattedMessage {...messages.reviewViewProfile} />

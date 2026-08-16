@@ -2,6 +2,7 @@ import { jest } from '@jest/globals';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { RegistrationReviewPage, type ReviewRegistrationRow } from './RegistrationReviewPage.js';
 import { withIntl } from '../i18n/test-support.js';
+import type { UploadImageRequest } from '../lib/api-client.js';
 
 function row(overrides: Partial<ReviewRegistrationRow> = {}): ReviewRegistrationRow {
   return {
@@ -18,8 +19,8 @@ function row(overrides: Partial<ReviewRegistrationRow> = {}): ReviewRegistration
 }
 
 function renderPage(overrides: Partial<Parameters<typeof RegistrationReviewPage>[0]> = {}) {
-  const onSetNationality = jest.fn();
-  const onUploadPhoto = jest.fn();
+  const onSetNationality = jest.fn<(personId: string, nationality: string | null) => void>();
+  const onUploadPhoto = jest.fn<(personId: string, request: UploadImageRequest) => void>();
   render(
     withIntl(
       <RegistrationReviewPage

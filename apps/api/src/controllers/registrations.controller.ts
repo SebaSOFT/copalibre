@@ -103,7 +103,9 @@ export class RegistrationsController {
 
     const personIds = visible
       .map((entrant) => entrant.entrantRef)
-      .filter((ref): ref is Extract<Entrant['entrantRef'], { kind: 'person' }> => ref.kind === 'person')
+      .filter(
+        (ref): ref is Extract<Entrant['entrantRef'], { kind: 'person' }> => ref.kind === 'person',
+      )
       .map((ref) => ref.personId);
     const persons = await new PersonRepository(this.db).findPersons(personIds);
     const personById = new Map(persons.map((person) => [person.personId, person]));
@@ -392,7 +394,10 @@ export class DisciplinesController {
 
 function toResponse(
   entrant: Entrant,
-  personById: ReadonlyMap<string, { displayName: string; nationality?: string; photoObjectId?: string }> = new Map(),
+  personById: ReadonlyMap<
+    string,
+    { displayName: string; nationality?: string; photoObjectId?: string }
+  > = new Map(),
 ): RegistrationResponse {
   if (entrant.entrantRef.kind === 'team') {
     return {

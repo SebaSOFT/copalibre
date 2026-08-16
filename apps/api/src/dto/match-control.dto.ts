@@ -104,7 +104,9 @@ export class ConsoleRosterMemberResponse {
   @ApiProperty()
   name!: string;
 
-  @ApiPropertyOptional({ description: 'ISO 3166-1 alpha-2 country code, snapshotted at roster-selection time' })
+  @ApiPropertyOptional({
+    description: 'ISO 3166-1 alpha-2 country code, snapshotted at roster-selection time',
+  })
   nationality?: string;
 
   @ApiPropertyOptional({
