@@ -186,6 +186,30 @@ export function RegistrationReviewRoute({
               ),
             )
         }
+        onSetNationality={
+          api.setPersonNationality &&
+          ((personId, nationality) =>
+            api.setPersonNationality?.(organizationAlias, personId, nationality).then((next) => {
+              setRows((current) =>
+                current.map((row) =>
+                  row.personId === personId
+                    ? { ...row, nationality: next.nationality ?? undefined }
+                    : row,
+                ),
+              );
+            }))
+        }
+        onUploadPhoto={
+          api.uploadPersonPhoto &&
+          ((personId, request) =>
+            api.uploadPersonPhoto?.(organizationAlias, personId, request).then((next) => {
+              setRows((current) =>
+                current.map((row) =>
+                  row.personId === personId ? { ...row, photoObjectId: next.objectId } : row,
+                ),
+              );
+            }))
+        }
       />
     </>
   );
@@ -196,13 +220,18 @@ function toReviewRow(
   contactUnavailableLabel: string,
   experienceUnrecordedLabel: string,
 ): ReviewRegistrationRow {
-  const displayName = row.teamId ?? row.personId ?? row.entrantId;
+  // The API now supplies a person entrant's real displayName (0093); a team
+  // entrant still has none to show, so this placeholder stays the fallback.
+  const displayName = row.displayName ?? row.teamId ?? row.personId ?? row.entrantId;
   return {
     entrantId: row.entrantId,
     displayName,
     status: row.status,
     submittedAt: '',
     contactEmail: contactUnavailableLabel,
+    ...(row.personId === undefined ? {} : { personId: row.personId }),
+    ...(row.nationality === undefined ? {} : { nationality: row.nationality }),
+    ...(row.photoObjectId === undefined ? {} : { photoObjectId: row.photoObjectId }),
     // RegistrationResponse identifies the entrant, not its members. Do not
     // present the team identifier as a person until the API supplies members.
     teamMembers: [],
