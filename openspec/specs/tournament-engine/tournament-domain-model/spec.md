@@ -104,7 +104,8 @@ determines whether a tournament profile may replace it.
 
 ### Requirement: Started tournaments freeze their modules
 A tournament SHALL have a `started` status, entered through a validated transition, after which its
-discipline and profile versions cannot change.
+discipline and profile versions cannot change. This freeze applies for every status reachable only
+through `started` — `finished` and `archived` included — not to `started` alone.
 
 #### Scenario: Starting the first match starts the tournament
 - **WHEN** the first match of a tournament begins
@@ -118,6 +119,11 @@ discipline and profile versions cannot change.
 - **WHEN** a caller attempts to change the discipline or profile version of a started tournament
 - **THEN** the change is refused as `blocked_after_results`, directing the caller to the audited
   correction workflow
+
+#### Scenario: A module version change is refused on an archived tournament
+- **WHEN** a caller attempts to change the discipline or profile version of an `archived` tournament
+- **THEN** the change is refused the same way it would be for a `started` or `finished` tournament,
+  because archiving never lifts a freeze that already applied
 
 ### Requirement: The outcome type carries per-side statistics
 `RecordedOutcome` SHALL model a side as an entrant with a map of declared statistic values and an
