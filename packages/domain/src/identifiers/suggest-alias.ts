@@ -83,7 +83,7 @@ export function suggestAvailableAlias(
 }
 
 /** Whether a suggestion would survive `Alias.create`, for a caller that wants to check. */
-export function isSuggestable(name: string, scope: AliasScope = 'participant'): boolean {
+export function isSuggestable(name: string, scope: AliasScope = 'club'): boolean {
   const suggestion = suggestAlias(name);
   return suggestion !== undefined && Alias.create(scope, suggestion).ok;
 }

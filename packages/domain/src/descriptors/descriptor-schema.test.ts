@@ -64,6 +64,91 @@ describe('discipline descriptor schema', () => {
     expect(result.error.details?.code).toBe('points');
   });
 
+  it('rejects a duplicated roster role code', () => {
+    const result = validateDisciplineDescriptorDocument(
+      asDocument({
+        rosterRoles: [
+          { code: 'captain', label: 'Captain' },
+          { code: 'captain', label: 'Capitán' },
+        ],
+      }),
+    );
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.message).toContain('more than once');
+    expect(result.error.details?.code).toBe('captain');
+  });
+
+  it('rejects a duplicated column code within one table', () => {
+    const result = validateDisciplineDescriptorDocument(
+      asDocument({
+        tableLayouts: [
+          {
+            code: 'group-standings-default',
+            target: 'group-phase',
+            label: { en: 'Group Standings' },
+            entityGranularity: 'team',
+            defaultSort: [{ columnCode: 'points', direction: 'desc' }],
+            columns: [
+              {
+                code: 'points',
+                header: { en: 'Points' },
+                source: { kind: 'collector', code: 'points' },
+                format: 'number',
+              },
+              {
+                code: 'points',
+                header: { en: 'Pts' },
+                source: { kind: 'collector', code: 'points' },
+                format: 'number',
+              },
+            ],
+          },
+        ],
+      }),
+    );
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.message).toContain('more than once');
+    expect(result.error.details?.table).toBe('group-standings-default');
+    expect(result.error.details?.code).toBe('points');
+  });
+
+  it('accepts the same column code reused across two different tables', () => {
+    const column = {
+      code: 'points',
+      header: { en: 'Points' },
+      source: { kind: 'collector', code: 'points' },
+      format: 'number',
+    };
+    const result = validateDisciplineDescriptorDocument(
+      asDocument({
+        tableLayouts: [
+          {
+            code: 'group-standings',
+            target: 'group-phase',
+            label: { en: 'Group Standings' },
+            entityGranularity: 'team',
+            defaultSort: [{ columnCode: 'points', direction: 'desc' }],
+            columns: [column],
+          },
+          {
+            code: 'team-ranking-table',
+            target: 'team-ranking',
+            label: { en: 'Team Ranking' },
+            entityGranularity: 'team',
+            defaultSort: [{ columnCode: 'points', direction: 'desc' }],
+            columns: [column],
+          },
+        ],
+      }),
+    );
+
+    expect(result.ok).toBe(true);
+  });
+
   describe('winCondition as a rule script', () => {
     it('rejects the pre-0009 enumerated string', () => {
       const result = validateDisciplineDescriptorDocument(

@@ -1,4 +1,5 @@
 import {
+  Alias,
   detectConflicts,
   ScheduleConflictError,
   validateOfficial,
@@ -43,6 +44,7 @@ export class ScheduleRepository {
   constructor(private readonly db: Kysely<Database>) {}
 
   async createVenue(uow: UnitOfWork, input: Omit<Venue, 'venueId'> & AuditContext): Promise<Venue> {
+    assertVenueAlias(input.alias);
     const venueId = newId();
     const venue: Venue = {
       venueId,
@@ -359,5 +361,12 @@ export class ScheduleRepository {
       .where('fixture_schedules.published', '=', true)
       .execute();
     return rows.map((row) => row.fixture_id);
+  }
+}
+
+function assertVenueAlias(value: string): void {
+  const alias = Alias.create('venue', value);
+  if (!alias.ok) {
+    throw new InvariantViolationError(alias.error.message, { alias: value });
   }
 }

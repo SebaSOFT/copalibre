@@ -189,6 +189,27 @@ describe('scheduling (integration)', () => {
     expect(rows).toEqual([]);
   });
 
+  it('refuses a venue with a malformed alias, writing nothing', async () => {
+    await expect(
+      withTransaction(scratch.db, (uow) =>
+        schedules.createVenue(uow, {
+          organizationId,
+          alias: 'Court One',
+          name: 'Cancha Uno',
+          concurrentCapacity: 1,
+          ...AUDIT,
+        }),
+      ),
+    ).rejects.toBeInstanceOf(InvariantViolationError);
+
+    const rows = await scratch.db
+      .selectFrom('venues')
+      .select('venue_id')
+      .where('alias', '=', 'Court One')
+      .execute();
+    expect(rows).toEqual([]);
+  });
+
   it('publishes a whole schedule and emits one event', async () => {
     const { stage, fixtures, venue, referee } = await seedStage('copa-publicada');
 

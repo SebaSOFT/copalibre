@@ -6,7 +6,7 @@ import {
 import type { DisciplineDescriptor, RuleScript } from '../descriptors/discipline-descriptor.js';
 import { RulesetCompilationError, type PolicyViolation } from '../errors.js';
 import { err, ok, type Result } from '../result.js';
-import { compileEffectiveRuleset } from '../rulesets/compiler.js';
+import { compileEffectiveRuleset, mergeWithStrategy } from '../rulesets/compiler.js';
 import type { MatchRuleset } from '../rulesets/match-ruleset.js';
 import type { StageConfiguration, TournamentRuleset } from '../rulesets/tournament-ruleset.js';
 import type { TournamentProfile } from './tournament-profile.js';
@@ -70,14 +70,32 @@ function checkWinConditionOverride(
   return undefined;
 }
 
-/** The win condition in force: the profile's where permitted, else the discipline's. */
+/**
+ * The win condition in force: the profile's where permitted, else the discipline's.
+ *
+ * `merged` actually merges, via the same strategy vocabulary
+ * `compileEffectiveRuleset` enforces for the general config tree — it does not
+ * behave like `replaced`. A merge that can't apply its declared strategy to
+ * the two values fails explicitly rather than silently falling back to
+ * either one.
+ */
 export function effectiveWinCondition(
   descriptor: DisciplineDescriptor,
   profile?: TournamentProfile,
-): RuleScript {
-  if (!profile?.winConditionOverride) return descriptor.winCondition;
+): Result<RuleScript, PolicyViolation> {
+  if (!profile?.winConditionOverride) return ok(descriptor.winCondition);
   const policy = descriptor.fieldPolicies.winCondition;
-  return policy?.permission.kind === 'replaced' || policy?.permission.kind === 'merged'
-    ? profile.winConditionOverride
-    : descriptor.winCondition;
+  if (policy?.permission.kind === 'replaced') {
+    return ok(profile.winConditionOverride);
+  }
+  if (policy?.permission.kind === 'merged') {
+    const merged = mergeWithStrategy(
+      policy.permission.strategy,
+      descriptor.winCondition,
+      profile.winConditionOverride,
+      'winCondition',
+    );
+    return merged.ok ? ok(merged.value as RuleScript) : merged;
+  }
+  return ok(descriptor.winCondition);
 }

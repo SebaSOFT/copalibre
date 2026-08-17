@@ -18,7 +18,7 @@ describe('suggesting an alias from a name', () => {
   it('produces something Alias accepts, which is the whole point', () => {
     for (const name of ['Casa de Italia', 'Ñuñorco', '9 de Julio', 'Peñarol (Reserva)']) {
       const suggestion = suggestAlias(name) ?? '';
-      expect(Alias.create('participant', suggestion).ok).toBe(true);
+      expect(Alias.create('club', suggestion).ok).toBe(true);
       expect(isSuggestable(name)).toBe(true);
     }
   });
@@ -35,7 +35,7 @@ describe('suggesting an alias from a name', () => {
     const suggestion = suggestAlias('A'.repeat(200)) ?? '';
 
     expect(suggestion.length).toBeLessThanOrEqual(64);
-    expect(Alias.create('participant', suggestion).ok).toBe(true);
+    expect(Alias.create('club', suggestion).ok).toBe(true);
   });
 });
 

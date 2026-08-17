@@ -86,10 +86,11 @@ function applyOverrideLayer(
           getAtPath(config, field),
           value,
           field,
-          violations,
         );
-        if (merged !== MERGE_FAILED) {
-          setAtPath(config, field, merged);
+        if (merged.ok) {
+          setAtPath(config, field, merged.value);
+        } else {
+          violations.push(merged.error);
         }
         break;
       }
@@ -98,47 +99,49 @@ function applyOverrideLayer(
   return config;
 }
 
-const MERGE_FAILED = Symbol('merge-failed');
-
-function mergeWithStrategy(
+/**
+ * Applies one named merge strategy to a current/override value pair, or
+ * reports why it couldn't. Shared by `compileEffectiveRuleset`'s `defaults`
+ * override path and `compile-profile.ts`'s win-condition override path, so
+ * the two can't independently decide what "merged" means the way they once
+ * did.
+ */
+export function mergeWithStrategy(
   strategy: MergeStrategyName,
   current: unknown,
   override: unknown,
   field: string,
-  violations: PolicyViolation[],
-): unknown {
+): Result<unknown, PolicyViolation> {
   switch (strategy) {
     case 'append-list':
       if (Array.isArray(current) && Array.isArray(override)) {
-        return [...current, ...structuredClone(override)];
+        return ok([...current, ...structuredClone(override)]);
       }
       break;
     case 'union-list':
       if (Array.isArray(current) && Array.isArray(override)) {
         const seen = new Set(current.map((v) => JSON.stringify(v)));
         const additions = override.filter((v) => !seen.has(JSON.stringify(v)));
-        return [...current, ...structuredClone(additions)];
+        return ok([...current, ...structuredClone(additions)]);
       }
       break;
     case 'shallow-object':
       if (isPlainObject(current) && isPlainObject(override)) {
-        return { ...current, ...structuredClone(override) };
+        return ok({ ...current, ...structuredClone(override) });
       }
       break;
     default:
-      violations.push({
+      return err({
         field,
         reason: 'unknown-merge-strategy',
         message: `Merge strategy "${String(strategy)}" is not a defined strategy`,
       });
-      return MERGE_FAILED;
   }
-  violations.push({
+  return err({
     field,
     reason: 'missing-merge-strategy',
     message: `Strategy "${strategy}" cannot merge the value shapes at "${field}"`,
   });
-  return MERGE_FAILED;
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {

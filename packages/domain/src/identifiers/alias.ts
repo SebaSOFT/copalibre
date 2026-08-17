@@ -7,7 +7,7 @@ import { err, ok, type Result } from '../result.js';
  * per installation, everything else is unique within its organization.
  * Source: chaos-vault 2026-07-28-copalibre-naming-conventions.md.
  */
-export type AliasScope = 'organization' | 'tournament' | 'circuit' | 'participant';
+export type AliasScope = 'organization' | 'tournament' | 'circuit' | 'entrant' | 'club' | 'venue';
 
 const ALIAS_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const MAX_ALIAS_LENGTH = 64;
