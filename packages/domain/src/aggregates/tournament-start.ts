@@ -1,7 +1,7 @@
 import type { CapabilityBinding } from '../capabilities/capability.js';
 import { DomainError } from '../errors.js';
 import { err, ok, type Result } from '../result.js';
-import type { Tournament } from './tournament.js';
+import { hasStarted, type Tournament } from './tournament.js';
 
 export class StartValidationError extends DomainError {
   readonly code = 'TOURNAMENT_START_REFUSED';
@@ -70,7 +70,7 @@ export function validateStart(
  * Once started, it cannot: the audited correction workflow is the only path.
  */
 export function canChangeModuleVersion(tournament: Tournament): Result<true, ModuleFrozenError> {
-  if (tournament.status === 'started' || tournament.status === 'finished') {
+  if (hasStarted(tournament)) {
     return err(
       new ModuleFrozenError(
         `Tournament is ${tournament.status}; its discipline and profile versions are frozen. ` +
