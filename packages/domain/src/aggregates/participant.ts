@@ -1,14 +1,3 @@
-import type { ParticipantType } from '../descriptors/discipline-descriptor.js';
-
-export interface Participant {
-  readonly personId: string;
-  readonly organizationId: string;
-  /** Optional public alias (Alias, scope 'participant'), unique within its organization. */
-  readonly alias?: string;
-  readonly displayName: string;
-  readonly type: ParticipantType;
-}
-
 export interface Team {
   readonly teamId: string;
   readonly organizationId: string;
