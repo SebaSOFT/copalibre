@@ -15,7 +15,9 @@ ranking, or advancement outcome once calculated.
 
 ### Requirement: A correction requires actor, reason, and full state transition
 Every correction SHALL record the acting user, a timestamp, an explicit reason, the prior state, and
-the replacement state.
+the replacement state. The replacement state SHALL name exactly the same set of entrants as the prior
+state — no entrant duplicated, none dropped — since a correction changes what happened to the match's
+existing sides, not which sides existed.
 
 #### Scenario: Correction without a reason is rejected
 - **WHEN** a correction request omits a reason
@@ -24,6 +26,12 @@ the replacement state.
 #### Scenario: Correction preserves the prior fact
 - **WHEN** a correction is committed
 - **THEN** the original fact and its prior calculation trace remain retrievable, not deleted or overwritten in place
+
+#### Scenario: A replacement that duplicates or drops an entrant is rejected
+- **WHEN** a correction's replacement state names an entrant more than once, or omits an entrant the
+  prior state had
+- **THEN** the request is rejected before any state changes, naming the mismatch, rather than committed
+  with one entrant counted twice and another silently absent
 
 ### Requirement: Corrections preview downstream impact before commit
 Before a correction commits, the system SHALL show which standings and future fixtures would change
