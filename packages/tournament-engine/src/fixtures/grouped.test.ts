@@ -7,8 +7,17 @@ const entrants = (prefix: string): GenerateFixturesInput['entrants'] =>
   [1, 2, 3, 4].map((seed) => ({ entrantId: `${prefix}-${seed}`, seed }));
 
 describe('group-scoped fixture generation', () => {
-  it('keeps a one-group round robin byte-for-byte identical to the core generator', () => {
-    const input = { format: 'round-robin' as const, entrants: entrants('a') };
+  it.each([
+    'single-elimination',
+    'double-elimination',
+    'round-robin',
+    'round-robin-single-leg',
+    'round-robin-home-away',
+    'league',
+    'free-for-all',
+    'heats',
+  ] as const)('keeps one implicit group byte-for-byte identical for %s', (format) => {
+    const input = { format, entrants: entrants('a') };
     const core = generateFixtures(input);
     const grouped = generateGroupedFixtures({
       stageId: 'stage-1',

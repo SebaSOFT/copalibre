@@ -71,7 +71,7 @@
       groups and each group's entrants (from section 3's draw, or the implicit default), call the
       existing, **unmodified** single-elimination/double-elimination/round-robin/placement generator
       once per group, tagging each generated fixture with its group's (and zone's, and stage's) id.
-- [ ] 4.2 Regression proof: golden-fixture tests for all six duel formats plus the two placement
+- [x] 4.2 Regression proof: golden-fixture tests for all six duel formats plus the two placement
       formats, generated through the new group-aware entry point with exactly one implicit group,
       asserted byte-for-byte identical to the pre-change golden fixtures (the concrete check
       design.md's "Duel format generation is unaffected" claim rests on).
