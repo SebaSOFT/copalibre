@@ -146,4 +146,12 @@ describe('roundNumberFor', () => {
     if (result.ok) return;
     expect(result.error.message).toContain('never plays');
   });
+
+  it('rejects a non-power-of-two bracket size rather than returning a fractional round', () => {
+    const result = roundNumberFor('quarter-final', 12);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.message).toContain('power of two');
+  });
 });

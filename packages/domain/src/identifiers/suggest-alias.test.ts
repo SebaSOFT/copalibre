@@ -63,4 +63,15 @@ describe('a name somebody already used', () => {
   it('suggests nothing when the name yields nothing', () => {
     expect(suggestAvailableAlias('...', [])).toBeUndefined();
   });
+
+  it('stays within the alias length limit when the base is already at it', () => {
+    const base = 'a'.repeat(64);
+    const suggestion = suggestAvailableAlias('A'.repeat(64), [base]);
+
+    expect(suggestion).toBeDefined();
+    if (!suggestion) return;
+    expect(suggestion.length).toBeLessThanOrEqual(64);
+    expect(suggestion).not.toBe(base);
+    expect(Alias.create('club', suggestion).ok).toBe(true);
+  });
 });
