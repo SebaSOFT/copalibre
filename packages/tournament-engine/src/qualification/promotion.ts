@@ -1,0 +1,203 @@
+import { resolveTiebreak, type TiebreakPipeline, type TraceNode } from '@copalibre/rules';
+import { QualificationError } from '../errors.js';
+import { toEntrantValues, type EntrantAccounting } from '../standings/index.js';
+import { evaluateQualification, type QualificationOutcome } from './index.js';
+
+export interface PromotionPlan {
+  readonly zoneId: string;
+  readonly nextStageId: string;
+  readonly perGroupAdvance: number | Readonly<Record<number, number>>;
+  readonly combination:
+    | { readonly mode: 'ranked'; readonly pipeline: TiebreakPipeline }
+    | { readonly mode: 'manual'; readonly order: readonly string[] }
+    | { readonly mode: 'group-order' };
+  /** Ordered, contiguous destination slices of the combined promotion order. */
+  readonly bands?: readonly { readonly zoneRef: string; readonly count: number }[];
+}
+
+export interface QualifiedEntrant {
+  readonly entrantId: string;
+  readonly groupId: string;
+  /** 1-based within the group’s resolved promotion order. */
+  readonly rank: number;
+}
+
+export interface GroupPromotionOutcome {
+  readonly perGroup: ReadonlyMap<string, QualificationOutcome>;
+  readonly combined: readonly QualifiedEntrant[];
+  readonly bands?: Readonly<Record<string, readonly QualifiedEntrant[]>>;
+  readonly trace: readonly TraceNode[];
+}
+
+/**
+ * Evaluates group promotion without persisting or generating a later stage.
+ *
+ * Each source group first resolves its own cut. Only then can its qualifiers be
+ * compared with qualifiers from other groups; otherwise a cross-group order
+ * would silently choose an entrant that did not qualify from their own group.
+ */
+export function evaluateGroupPromotion(
+  plan: PromotionPlan,
+  groupAccountings: ReadonlyMap<string, readonly EntrantAccounting[]>,
+  pipeline: TiebreakPipeline,
+  groupNumbers: ReadonlyMap<string, number> = new Map(),
+): GroupPromotionOutcome {
+  if (groupAccountings.size === 0) {
+    throw new QualificationError('A promotion plan needs at least one source group', {});
+  }
+
+  const groups = [...groupAccountings.entries()]
+    .map(([groupId, accounting], index) => ({
+      groupId,
+      accounting,
+      number: groupNumbers.get(groupId) ?? index + 1,
+    }))
+    .sort((left, right) => left.number - right.number);
+
+  const perGroup = new Map<string, QualificationOutcome>();
+  const qualified: QualifiedEntrant[] = [];
+  const accountingByEntrant = new Map<string, EntrantAccounting>();
+  const trace: TraceNode[] = [];
+
+  for (const group of groups) {
+    const outcome = evaluateQualification({
+      accounting: group.accounting,
+      pipeline,
+      advance: advanceFor(plan.perGroupAdvance, group.number),
+    });
+    perGroup.set(group.groupId, outcome);
+    trace.push(...outcome.trace);
+    if (!outcome.resolved) {
+      throw new QualificationError('A source group has an unresolved promotion cut', {
+        groupId: group.groupId,
+        contested: outcome.contested,
+      });
+    }
+
+    for (const [index, entrantId] of outcome.qualified.entries()) {
+      const accounting = group.accounting.find((candidate) => candidate.entrantId === entrantId);
+      if (!accounting)
+        throw new QualificationError('Qualified entrant is absent from group accounting', {
+          entrantId,
+        });
+      accountingByEntrant.set(entrantId, accounting);
+      qualified.push({ entrantId, groupId: group.groupId, rank: index + 1 });
+    }
+  }
+
+  const combined = combine(plan.combination, qualified, accountingByEntrant, trace);
+  return {
+    perGroup,
+    combined,
+    ...(plan.bands === undefined ? {} : { bands: applyBands(plan.bands, combined) }),
+    trace,
+  };
+}
+
+function advanceFor(configured: PromotionPlan['perGroupAdvance'], groupNumber: number): number {
+  const advance = typeof configured === 'number' ? configured : configured[groupNumber];
+  if (!Number.isInteger(advance) || advance === undefined || advance < 1) {
+    throw new QualificationError(`Group ${groupNumber} has no positive promotion count`, {
+      groupNumber,
+    });
+  }
+  return advance;
+}
+
+function combine(
+  combination: PromotionPlan['combination'],
+  qualified: readonly QualifiedEntrant[],
+  accountingByEntrant: ReadonlyMap<string, EntrantAccounting>,
+  trace: TraceNode[],
+): readonly QualifiedEntrant[] {
+  if (combination.mode === 'group-order') {
+    // `qualified` is assembled after source groups are sorted by declared number,
+    // and each cut is already best-first inside its own group.
+    return qualified;
+  }
+
+  if (combination.mode === 'manual') {
+    const expected = qualified.map((entry) => entry.entrantId).sort();
+    const supplied = [...combination.order].sort();
+    if (
+      expected.length !== supplied.length ||
+      expected.some((entrantId, index) => entrantId !== supplied[index])
+    ) {
+      throw new QualificationError(
+        'Manual promotion order must name every qualified entrant exactly once',
+        {
+          expected,
+          supplied: combination.order,
+        },
+      );
+    }
+    const byEntrant = new Map(qualified.map((entry) => [entry.entrantId, entry]));
+    return combination.order.map((entrantId) => byEntrant.get(entrantId) as QualifiedEntrant);
+  }
+
+  const combined: QualifiedEntrant[] = [];
+  const byRank = new Map<number, QualifiedEntrant[]>();
+  for (const entry of qualified) {
+    const cohort = byRank.get(entry.rank) ?? [];
+    cohort.push(entry);
+    byRank.set(entry.rank, cohort);
+  }
+  for (const rank of [...byRank.keys()].sort((left, right) => left - right)) {
+    const cohort = byRank.get(rank) ?? [];
+    const values = toEntrantValues(
+      cohort.map((entry) => accountingByEntrant.get(entry.entrantId) as EntrantAccounting),
+    );
+    const resolved = resolveTiebreak(
+      combination.pipeline,
+      cohort.map((entry) => entry.entrantId),
+      values,
+    );
+    trace.push(...resolved.trace);
+    if (!resolved.fullyResolved) {
+      throw new QualificationError('Cross-group promotion cohort is unresolved', {
+        rank,
+        entrantIds: cohort.map((entry) => entry.entrantId),
+      });
+    }
+    const byEntrant = new Map(cohort.map((entry) => [entry.entrantId, entry]));
+    combined.push(
+      ...resolved.rankedGroups.flatMap((group) =>
+        group.map((entrantId) => byEntrant.get(entrantId) as QualifiedEntrant),
+      ),
+    );
+  }
+  return combined;
+}
+
+function applyBands(
+  bands: readonly { readonly zoneRef: string; readonly count: number }[],
+  combined: readonly QualifiedEntrant[],
+): Readonly<Record<string, readonly QualifiedEntrant[]>> {
+  const destination: Record<string, readonly QualifiedEntrant[]> = {};
+  let offset = 0;
+  for (const band of bands) {
+    if (
+      band.zoneRef.trim() === '' ||
+      !Number.isInteger(band.count) ||
+      band.count < 1 ||
+      destination[band.zoneRef]
+    ) {
+      throw new QualificationError(
+        'Promotion bands need unique zone references and positive counts',
+        { band },
+      );
+    }
+    destination[band.zoneRef] = combined.slice(offset, offset + band.count);
+    offset += band.count;
+  }
+  if (offset !== combined.length) {
+    throw new QualificationError(
+      'Promotion band counts must exactly cover the combined qualifiers',
+      {
+        bandCount: offset,
+        qualified: combined.length,
+      },
+    );
+  }
+  return destination;
+}

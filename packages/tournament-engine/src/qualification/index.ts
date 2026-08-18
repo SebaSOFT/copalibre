@@ -162,6 +162,13 @@ export function applyCutResolution(
   };
 }
 
+export {
+  evaluateGroupPromotion,
+  type GroupPromotionOutcome,
+  type PromotionPlan,
+  type QualifiedEntrant,
+} from './promotion.js';
+
 function cutNode(advance: number, contested?: ContestedCut): TraceNode {
   if (!contested) {
     return {
