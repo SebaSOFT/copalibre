@@ -183,5 +183,10 @@ export function roundNumberFor(name: string, size: number): Result<number, DrawC
       ),
     );
   }
+  if (!Number.isInteger(Math.log2(size))) {
+    return err(
+      new DrawConstraintError(`A bracket size must be a power of two, not ${size}`, { name, size }),
+    );
+  }
   return ok(Math.log2(size) - Math.log2(entrantsInRound) + 1);
 }
