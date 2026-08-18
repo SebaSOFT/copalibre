@@ -23,15 +23,15 @@
       references zones NULL`, `ADD COLUMN group_id uuid references groups NULL`.
 - [x] 2.2 `packages/persistence/src/schema.ts`: `ZonesTable`, `GroupsTable`; extend `FixturesTable`
       with the two new nullable columns; register both new tables on `Database`.
-- [ ] 2.3 `packages/persistence/src/repositories/competition-repository.ts`: `createZone`,
+- [x] 2.3 `packages/persistence/src/repositories/competition-repository.ts`: `createZone`,
       `listZonesOfStage`, `currentOrImplicitZone` (mirrors `currentSeason`'s lazy-create shape);
       `createGroup`, `listGroupsOfZone`, `currentOrImplicitGroup`.
-- [ ] 2.4 `createFixtures`/`replaceFixtures`: accept optional `zoneId`/`groupId` per fixture; when
+- [x] 2.4 `createFixtures`/`replaceFixtures`: accept optional `zoneId`/`groupId` per fixture; when
       absent, resolve (creating if needed) the stage's implicit zone and that zone's implicit group,
       and write those ids — never `NULL` — matching design.md's stated decision.
-- [ ] 2.5 `packages/persistence/src/mapping.ts`: `toZone`, `toGroup`; extend `toFixture`-equivalent
+- [x] 2.5 `packages/persistence/src/mapping.ts`: `toZone`, `toGroup`; extend `toFixture`-equivalent
       mapping to carry `zoneId`/`groupId`.
-- [ ] 2.6 Integration tests (`*.integration.test.ts`, Postgres + SQLite dual-dialect per this repo's
+- [x] 2.6 Integration tests (`*.integration.test.ts`, Postgres + SQLite dual-dialect per this repo's
       `dual-dialect-persistence-testing` convention): creating explicit zones/groups; generating
       fixtures with no explicit zone/group falls back to the implicit ones; generating fixtures a
       second time for the same stage without explicit ids resolves to the *same* implicit ids, not new

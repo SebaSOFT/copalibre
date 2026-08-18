@@ -633,6 +633,71 @@ describe('repositories (integration)', () => {
       ),
     ).rejects.toBeInstanceOf(InvariantViolationError);
   });
+
+  it('persists explicit zones/groups and reuses a stage implicit scope', async () => {
+    const descriptorDocument = descriptor();
+    const result = await withTransaction(scratch.db, async (uow) => {
+      await tournaments.saveDescriptor(uow, descriptorDocument, { organizationId, ...AUDIT });
+      const tournament = await tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-zonas',
+        name: 'Copa Zonas',
+        descriptor: descriptorDocument,
+        ...AUDIT,
+      });
+      const explicitStage = await competition.createStageInTournament(uow, {
+        tournamentId: tournament.tournamentId,
+        number: 1,
+        name: 'Fase explícita',
+        format: 'round-robin',
+        organizationId,
+        ...AUDIT,
+      });
+      const zone = await competition.createZone(uow, {
+        stageId: explicitStage.stageId,
+        number: 1,
+        name: 'Zona Norte',
+        organizationId,
+        ...AUDIT,
+      });
+      const group = await competition.createGroup(uow, {
+        zoneId: zone.zoneId,
+        number: 1,
+        name: 'Grupo A',
+        organizationId,
+        ...AUDIT,
+      });
+      const implicitStage = await competition.createStageInTournament(uow, {
+        tournamentId: tournament.tournamentId,
+        number: 2,
+        name: 'Fase implícita',
+        format: 'round-robin',
+        organizationId,
+        ...AUDIT,
+      });
+      const first = await competition.createFixtures(uow, {
+        stageId: implicitStage.stageId,
+        fixtures: [{ round: 1 }],
+        organizationId,
+        ...AUDIT,
+      });
+      const second = await competition.createFixtures(uow, {
+        stageId: implicitStage.stageId,
+        fixtures: [{ round: 2 }],
+        organizationId,
+        ...AUDIT,
+      });
+      return { explicitStage, zone, group, first, second };
+    });
+
+    await expect(competition.listZonesOfStage(result.explicitStage.stageId)).resolves.toEqual([
+      result.zone,
+    ]);
+    await expect(competition.listGroupsOfZone(result.zone.zoneId)).resolves.toEqual([result.group]);
+    expect(result.first[0]?.zoneId).toBe(result.second[0]?.zoneId);
+    expect(result.first[0]?.groupId).toBe(result.second[0]?.groupId);
+  });
+
 });
 
 describe('entrant attributes (integration)', () => {

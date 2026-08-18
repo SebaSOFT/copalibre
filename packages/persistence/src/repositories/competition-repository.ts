@@ -1,6 +1,14 @@
-import { IMPLICIT_SEASON_NAME, validateSeason } from '@copalibre/domain';
+import {
+  IMPLICIT_GROUP_NAME,
+  IMPLICIT_SEASON_NAME,
+  IMPLICIT_ZONE_NAME,
+  validateGroup,
+  validateSeason,
+  validateZone,
+} from '@copalibre/domain';
 import type {
   Fixture,
+  Group,
   Match,
   MatchCommand,
   MatchResult,
@@ -10,11 +18,21 @@ import type {
   Segment,
   Stage,
   TournamentFormat,
+  Zone,
 } from '@copalibre/domain';
 import type { Kysely, Transaction } from 'kysely';
 import { InvariantViolationError, NotFoundError } from '../errors.js';
 import { newId } from '../ids.js';
-import { toIsoString, toMatch, toRecordedEvent, toSegment, toStage } from '../mapping.js';
+import {
+  toFixture,
+  toGroup,
+  toIsoString,
+  toMatch,
+  toRecordedEvent,
+  toSegment,
+  toStage,
+  toZone,
+} from '../mapping.js';
 import type { Database } from '../schema.js';
 import type { UnitOfWork } from '../transaction.js';
 import type { AuditContext } from './enrollment-repository.js';
@@ -119,6 +137,168 @@ export class CompetitionRepository {
     }));
   }
 
+  async createZone(
+    uow: UnitOfWork,
+    input: { readonly stageId: string; readonly number: number; readonly name: string } & AuditContext,
+  ): Promise<Zone> {
+    const zone: Zone = { zoneId: newId(), ...input };
+    const valid = validateZone(zone);
+    if (!valid.ok) throw new InvariantViolationError(valid.error.message, valid.error.details);
+    const row = await uow.tx
+      .insertInto('zones')
+      .values({
+        zone_id: zone.zoneId,
+        stage_id: zone.stageId,
+        number: zone.number,
+        name: zone.name,
+        draw_seed: null,
+        draw_constraints: null,
+        created_at: new Date(),
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'zone',
+      entityId: zone.zoneId,
+      action: 'zone.created',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      resultingState: { ...zone },
+    });
+    return toZone(row);
+  }
+
+  async listZonesOfStage(stageId: string): Promise<readonly Zone[]> {
+    const rows = await this.db
+      .selectFrom('zones')
+      .selectAll()
+      .where('stage_id', '=', stageId)
+      .orderBy('number')
+      .execute();
+    return rows.map(toZone);
+  }
+
+  async currentOrImplicitZone(
+    uow: UnitOfWork,
+    input: { readonly stageId: string } & AuditContext,
+  ): Promise<Zone> {
+    const row = await uow.tx
+      .selectFrom('zones')
+      .selectAll()
+      .where('stage_id', '=', input.stageId)
+      .orderBy('number')
+      .limit(1)
+      .executeTakeFirst();
+    return row
+      ? toZone(row)
+      : this.createZone(uow, { ...input, number: 1, name: IMPLICIT_ZONE_NAME });
+  }
+
+  async createGroup(
+    uow: UnitOfWork,
+    input: { readonly zoneId: string; readonly number: number; readonly name: string } & AuditContext,
+  ): Promise<Group> {
+    const group: Group = { groupId: newId(), ...input };
+    const valid = validateGroup(group);
+    if (!valid.ok) throw new InvariantViolationError(valid.error.message, valid.error.details);
+    const row = await uow.tx
+      .insertInto('groups')
+      .values({
+        group_id: group.groupId,
+        zone_id: group.zoneId,
+        number: group.number,
+        name: group.name,
+        draw_seed: null,
+        draw_constraints: null,
+        created_at: new Date(),
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'group',
+      entityId: group.groupId,
+      action: 'group.created',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      resultingState: { ...group },
+    });
+    return toGroup(row);
+  }
+
+  async listGroupsOfZone(zoneId: string): Promise<readonly Group[]> {
+    const rows = await this.db
+      .selectFrom('groups')
+      .selectAll()
+      .where('zone_id', '=', zoneId)
+      .orderBy('number')
+      .execute();
+    return rows.map(toGroup);
+  }
+
+  async currentOrImplicitGroup(
+    uow: UnitOfWork,
+    input: { readonly zoneId: string } & AuditContext,
+  ): Promise<Group> {
+    const row = await uow.tx
+      .selectFrom('groups')
+      .selectAll()
+      .where('zone_id', '=', input.zoneId)
+      .orderBy('number')
+      .limit(1)
+      .executeTakeFirst();
+    return row
+      ? toGroup(row)
+      : this.createGroup(uow, { ...input, number: 1, name: IMPLICIT_GROUP_NAME });
+  }
+
+  private async resolveFixtureScope(
+    uow: UnitOfWork,
+    input: { readonly stageId: string } & AuditContext,
+    fixture: { readonly zoneId?: string; readonly groupId?: string },
+  ): Promise<{ readonly zoneId: string; readonly groupId: string }> {
+    if (fixture.groupId) {
+      const group = await uow.tx
+        .selectFrom('groups')
+        .innerJoin('zones', 'zones.zone_id', 'groups.zone_id')
+        .select(['groups.group_id', 'groups.zone_id', 'zones.stage_id'])
+        .where('groups.group_id', '=', fixture.groupId)
+        .executeTakeFirst();
+      if (!group || group.stage_id !== input.stageId) {
+        throw new NotFoundError(`Group ${fixture.groupId} does not belong to stage ${input.stageId}`, {
+          groupId: fixture.groupId,
+          stageId: input.stageId,
+        });
+      }
+      if (fixture.zoneId && fixture.zoneId !== group.zone_id) {
+        throw new InvariantViolationError('Fixture group does not belong to its declared zone', {
+          groupId: fixture.groupId,
+          zoneId: fixture.zoneId,
+        });
+      }
+      return { zoneId: group.zone_id, groupId: group.group_id };
+    }
+
+    const zoneId = fixture.zoneId ?? (await this.currentOrImplicitZone(uow, input)).zoneId;
+    if (fixture.zoneId) {
+      const zone = await uow.tx
+        .selectFrom('zones')
+        .select('zone_id')
+        .where('zone_id', '=', zoneId)
+        .where('stage_id', '=', input.stageId)
+        .executeTakeFirst();
+      if (!zone) {
+        throw new NotFoundError(`Zone ${zoneId} does not belong to stage ${input.stageId}`, {
+          zoneId,
+          stageId: input.stageId,
+        });
+      }
+    }
+    const group = await this.currentOrImplicitGroup(uow, { ...input, zoneId });
+    return { zoneId, groupId: group.groupId };
+  }
+
   /**
    * A stage in a competition that has one edition.
    *
@@ -192,6 +372,8 @@ export class CompetitionRepository {
         readonly homeEntrantId?: string;
         readonly awayEntrantId?: string;
         readonly scheduledAt?: string;
+        readonly zoneId?: string;
+        readonly groupId?: string;
       }[];
     } & AuditContext,
   ): Promise<readonly Fixture[]> {
@@ -201,12 +383,20 @@ export class CompetitionRepository {
       });
     }
 
+    const scopedFixtures = await Promise.all(
+      input.fixtures.map(async (fixture) => ({
+        ...fixture,
+        ...(await this.resolveFixtureScope(uow, input, fixture)),
+      })),
+    );
     const rows = await uow.tx
       .insertInto('fixtures')
       .values(
-        input.fixtures.map((fixture) => ({
+        scopedFixtures.map((fixture) => ({
           fixture_id: newId(),
           stage_id: input.stageId,
+          zone_id: fixture.zoneId,
+          group_id: fixture.groupId,
           round: fixture.round,
           home_entrant_id: fixture.homeEntrantId ?? null,
           away_entrant_id: fixture.awayEntrantId ?? null,
@@ -217,14 +407,7 @@ export class CompetitionRepository {
       .returningAll()
       .execute();
 
-    const fixtures: Fixture[] = rows.map((row) => ({
-      fixtureId: row.fixture_id,
-      stageId: row.stage_id,
-      round: row.round,
-      homeEntrantId: row.home_entrant_id ?? undefined,
-      awayEntrantId: row.away_entrant_id ?? undefined,
-      scheduledAt: row.scheduled_at ? toIsoString(row.scheduled_at) : undefined,
-    }));
+    const fixtures = rows.map(toFixture);
 
     await uow.recordAudit({
       organizationId: input.organizationId,
@@ -264,6 +447,8 @@ export class CompetitionRepository {
         readonly homeEntrantId?: string;
         readonly awayEntrantId?: string;
         readonly scheduledAt?: string;
+        readonly zoneId?: string;
+        readonly groupId?: string;
       }[];
     } & AuditContext,
   ): Promise<readonly Fixture[]> {
@@ -294,12 +479,20 @@ export class CompetitionRepository {
 
     await uow.tx.deleteFrom('fixtures').where('stage_id', '=', input.stageId).execute();
 
+    const scopedFixtures = await Promise.all(
+      input.fixtures.map(async (fixture) => ({
+        ...fixture,
+        ...(await this.resolveFixtureScope(uow, input, fixture)),
+      })),
+    );
     const rows = await uow.tx
       .insertInto('fixtures')
       .values(
-        input.fixtures.map((fixture) => ({
+        scopedFixtures.map((fixture) => ({
           fixture_id: newId(),
           stage_id: input.stageId,
+          zone_id: fixture.zoneId,
+          group_id: fixture.groupId,
           round: fixture.round,
           home_entrant_id: fixture.homeEntrantId ?? null,
           away_entrant_id: fixture.awayEntrantId ?? null,
@@ -310,14 +503,7 @@ export class CompetitionRepository {
       .returningAll()
       .execute();
 
-    const fixtures: Fixture[] = rows.map((row) => ({
-      fixtureId: row.fixture_id,
-      stageId: row.stage_id,
-      round: row.round,
-      homeEntrantId: row.home_entrant_id ?? undefined,
-      awayEntrantId: row.away_entrant_id ?? undefined,
-      scheduledAt: row.scheduled_at ? toIsoString(row.scheduled_at) : undefined,
-    }));
+    const fixtures = rows.map(toFixture);
 
     await uow.recordAudit({
       organizationId: input.organizationId,
