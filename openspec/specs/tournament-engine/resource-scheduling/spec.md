@@ -44,3 +44,18 @@ domain's mutation model, and the system SHALL enforce that classification.
 - **WHEN** an operator attempts to change the scheduled time of a fixture whose match has already concluded
 - **THEN** the system rejects the change as `blocked_after_results`, directing the operator to the audited correction workflow
 
+### Requirement: A venue carries a validated alias
+
+A venue's alias SHALL be validated as a well-formed, URL-safe identifier before it is stored, the same
+way every other aliased entity's is — kebab-case, within the platform's alias length limit — and SHALL
+be unique within its organization.
+
+#### Scenario: A malformed venue alias is refused before it is stored
+- **WHEN** a venue is created or its alias is changed to a value containing uppercase letters, spaces,
+  or punctuation other than a single interior hyphen, or exceeding the platform's alias length limit
+- **THEN** the write is refused, naming the reason, and no row is written
+
+#### Scenario: A well-formed venue alias is accepted
+- **WHEN** a venue is created with a lowercase, kebab-case alias unique within its organization
+- **THEN** the venue is stored and reachable by that alias
+

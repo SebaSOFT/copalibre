@@ -17,7 +17,10 @@ pulling in an HTTP framework.
 ### Requirement: Configuration inheritance hierarchy
 The domain SHALL model configuration as `DisciplineDescriptor → TournamentRuleset →
 StageConfiguration → MatchRuleset`, where each level may only override fields the level above
-explicitly marks as overridable.
+explicitly marks as overridable. This applies uniformly to every overridable field, including the win
+condition (see the win-condition requirement below): a field policy of `merged` SHALL always mean an
+actual merge by the declared strategy, never a silent full replacement, regardless of which override
+path resolves that field.
 
 #### Scenario: Compiling an effective ruleset from a valid override chain
 - **WHEN** a `TournamentRuleset` overrides only fields its `DisciplineDescriptor` marks `replaced` or `merged`
@@ -154,6 +157,19 @@ to replace it only where the descriptor's field policy permits.
 #### Scenario: A profile cannot override a locked win condition
 - **WHEN** a profile attempts to replace a win condition whose field policy forbids override
 - **THEN** compilation fails identifying the locked path
+
+#### Scenario: A profile merges a win condition where policy declares a merge strategy
+- **WHEN** a discipline marks its win condition `merged` with a declared strategy and a profile supplies
+  an override
+- **THEN** the effective win condition is the result of applying that strategy to the discipline's win
+  condition and the profile's override — never the profile's override standing in wholesale for the
+  discipline's
+
+#### Scenario: A win-condition merge that can't apply its declared strategy fails explicitly
+- **WHEN** a win condition's declared merge strategy cannot apply to the discipline's and profile's
+  values (e.g. an `append-list` strategy where neither value is an array)
+- **THEN** resolving the effective win condition fails, naming the field, rather than falling back to
+  either value silently
 
 ### Requirement: A submitted rule script is validated against what the runtime demands
 The descriptor schema SHALL accept only rule scripts the evaluation runtime can execute, so a module
