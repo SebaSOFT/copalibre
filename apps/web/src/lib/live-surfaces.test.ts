@@ -62,7 +62,7 @@ describe('a bracket that is not a tree', () => {
     expect(describeSlot({ kind: 'loser-of', matchNumber: 1 })).toBe('Perdedor del 1');
     expect(describeSlot({ kind: 'seed', seed: 4 })).toBe('Sembrado 4');
     expect(describeSlot({ kind: 'entrant', name: 'Casa de Italia', abbreviation: 'C I' })).toBe(
-      'C I',
+      'Casa de Italia',
     );
     expect(describeSlot({ kind: 'entrant', name: 'Casa de Italia' })).toBe('Casa de Italia');
   });
@@ -75,6 +75,16 @@ describe('a bracket that is not a tree', () => {
     expect(isResolved(final)).toBe(false);
     expect(node.slots.every((slot) => slot.pending)).toBe(true);
     expect(node.badge.label).toBe('TBD');
+  });
+
+  it('retains an entrant’s full and compact labels for responsive rendering', () => {
+    const match = matches.find((candidate) => candidate.branch === 'winners');
+    if (!match) throw new Error('the sample bracket has no winners match');
+
+    expect(toNode(match, LABELS).slots[0]).toMatchObject({
+      fullName: 'Talleres de Mendoza',
+      abbreviation: 'TLL A',
+    });
   });
 
   it('carries scores onto a decided node', () => {

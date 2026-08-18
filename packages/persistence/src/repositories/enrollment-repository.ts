@@ -1,6 +1,8 @@
 import {
   Abbreviation,
   Alias,
+  abbreviationOf,
+  deriveEntrantAbbreviation,
   suggestAvailableAlias,
   validateAttributes,
   type Club,
@@ -362,10 +364,12 @@ export class EnrollmentRepository {
     input: {
       readonly tournamentId: string;
       readonly entrantRef: Entrant['entrantRef'];
+      readonly abbreviation?: string;
       readonly seed?: number;
     } & AuditContext,
   ): Promise<Entrant> {
     const entrantId = newId();
+    const abbreviation = await this.resolveRegistrationAbbreviation(uow.tx, input);
     const row = await uow.tx
       .insertInto('entrants')
       .values({
@@ -374,6 +378,7 @@ export class EnrollmentRepository {
         entrant_kind: input.entrantRef.kind,
         person_id: input.entrantRef.kind === 'person' ? input.entrantRef.personId : null,
         team_id: input.entrantRef.kind === 'team' ? input.entrantRef.teamId : null,
+        abbreviation: abbreviation ?? null,
         seed: input.seed ?? null,
         status: 'pending',
         created_at: new Date(),
@@ -400,6 +405,83 @@ export class EnrollmentRepository {
       payload: { entrantId, tournamentId: input.tournamentId, status: entrant.status },
     });
     return entrant;
+  }
+
+  /** Explicit officer override for a tournament-scoped entrant label. */
+  async setEntrantAbbreviation(
+    uow: UnitOfWork,
+    input: {
+      readonly entrantId: string;
+      readonly abbreviation: string;
+    } & AuditContext,
+  ): Promise<Entrant> {
+    assertAbbreviation(input.abbreviation);
+    const beforeRow = await uow.tx
+      .selectFrom('entrants')
+      .selectAll()
+      .where('entrant_id', '=', input.entrantId)
+      .executeTakeFirst();
+    if (!beforeRow) {
+      throw new InvariantViolationError(`Entrant ${input.entrantId} does not exist`, {
+        entrantId: input.entrantId,
+      });
+    }
+    const before = toEntrant(beforeRow);
+    if (
+      !(await this.isEntrantAbbreviationAvailable(
+        uow.tx,
+        before.tournamentId,
+        input.abbreviation,
+        input.entrantId,
+      ))
+    ) {
+      throw new InvariantViolationError(
+        `Abbreviation "${input.abbreviation}" is already used by another entrant in this tournament`,
+        { abbreviation: input.abbreviation, tournamentId: before.tournamentId },
+      );
+    }
+
+    const row = await uow.tx
+      .updateTable('entrants')
+      .set({ abbreviation: input.abbreviation })
+      .where('entrant_id', '=', input.entrantId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    const entrant = toEntrant(row);
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'entrant',
+      entityId: input.entrantId,
+      action: 'entrant.abbreviation-set',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      previousState: { abbreviation: before.abbreviation },
+      resultingState: { abbreviation: entrant.abbreviation },
+    });
+    await uow.publishEvent({
+      organizationId: input.organizationId,
+      stream: `tournament:${entrant.tournamentId}`,
+      entityId: input.entrantId,
+      eventType: 'entrant.abbreviation-set',
+      projectionVersion: 1,
+      payload: {
+        entrantId: input.entrantId,
+        tournamentId: entrant.tournamentId,
+        abbreviation: entrant.abbreviation,
+      },
+    });
+    return entrant;
+  }
+
+  async listEntrantsNeedingAbbreviation(tournamentId: string): Promise<readonly Entrant[]> {
+    const rows = await this.db
+      .selectFrom('entrants')
+      .selectAll()
+      .where('tournament_id', '=', tournamentId)
+      .where('abbreviation', 'is', null)
+      .orderBy('created_at')
+      .execute();
+    return rows.map(toEntrant);
   }
 
   async setEntrantStatus(
@@ -652,6 +734,84 @@ export class EnrollmentRepository {
     return rows.map(toEntrant);
   }
 
+  private async resolveRegistrationAbbreviation(
+    executor: Kysely<Database> | Transaction<Database>,
+    input: {
+      readonly tournamentId: string;
+      readonly entrantRef: Entrant['entrantRef'];
+      readonly abbreviation?: string;
+    },
+  ): Promise<string | undefined> {
+    if (input.abbreviation !== undefined) {
+      const explicit = Abbreviation.create(input.abbreviation);
+      if (
+        explicit.ok &&
+        (await this.isEntrantAbbreviationAvailable(
+          executor,
+          input.tournamentId,
+          explicit.value.toString(),
+        ))
+      ) {
+        return explicit.value.toString();
+      }
+    }
+
+    const candidate = await this.derivedEntrantAbbreviation(executor, input.entrantRef);
+    if (candidate === undefined) return undefined;
+    return (await this.isEntrantAbbreviationAvailable(executor, input.tournamentId, candidate))
+      ? candidate
+      : undefined;
+  }
+
+  private async derivedEntrantAbbreviation(
+    executor: Kysely<Database> | Transaction<Database>,
+    entrantRef: Entrant['entrantRef'],
+  ): Promise<string | undefined> {
+    if (entrantRef.kind === 'person') {
+      const person = await executor
+        .selectFrom('persons')
+        .select('display_name')
+        .where('person_id', '=', entrantRef.personId)
+        .executeTakeFirst();
+      return person ? deriveEntrantAbbreviation(person.display_name) : undefined;
+    }
+
+    const team = await executor
+      .selectFrom('teams')
+      .leftJoin('clubs', 'clubs.club_id', 'teams.club_id')
+      .select([
+        'teams.name as name',
+        'teams.abbreviation as team_abbreviation',
+        'clubs.abbreviation as club_abbreviation',
+      ])
+      .where('teams.team_id', '=', entrantRef.teamId)
+      .executeTakeFirst();
+    return team
+      ? deriveEntrantAbbreviation(
+          team.name,
+          team.team_abbreviation ?? undefined,
+          team.club_abbreviation ?? undefined,
+        )
+      : undefined;
+  }
+
+  private async isEntrantAbbreviationAvailable(
+    executor: Kysely<Database> | Transaction<Database>,
+    tournamentId: string,
+    abbreviation: string,
+    excludingEntrantId?: string,
+  ): Promise<boolean> {
+    let query = executor
+      .selectFrom('entrants')
+      .select('entrant_id')
+      .where('tournament_id', '=', tournamentId)
+      .where('abbreviation', '=', abbreviation);
+    if (excludingEntrantId !== undefined) {
+      query = query.where('entrant_id', '!=', excludingEntrantId);
+    }
+    return (await query.executeTakeFirst()) === undefined;
+  }
+
   /** Entrants owned by one participant, never a whole tournament's registration list. */
   async listParticipantEntrants(
     organizationId: string,
@@ -832,7 +992,8 @@ export class EnrollmentRepository {
    * Entrant id to display name/abbreviation, for a surface that shows people
    * rather than ids (0067's public overview/live/bracket projections).
    *
-   * A person entrant has no abbreviation; only a team can carry one.
+   * An entrant's own abbreviation wins in tournament scope; a team or club
+   * label remains the fallback for legacy entrants without one.
    * An entrant id this installation does not recognise is simply absent from
    * the returned map — the caller decides what to show for that, this method
    * does not invent a label.
@@ -845,7 +1006,7 @@ export class EnrollmentRepository {
 
     const entrants = await this.db
       .selectFrom('entrants')
-      .select(['entrant_id', 'entrant_kind', 'person_id', 'team_id'])
+      .select(['entrant_id', 'entrant_kind', 'person_id', 'team_id', 'abbreviation'])
       .where('entrant_id', 'in', entrantIds)
       .execute();
 
@@ -868,7 +1029,13 @@ export class EnrollmentRepository {
         ? []
         : this.db
             .selectFrom('teams')
-            .select(['team_id', 'name', 'abbreviation'])
+            .leftJoin('clubs', 'clubs.club_id', 'teams.club_id')
+            .select([
+              'teams.team_id as team_id',
+              'teams.name as name',
+              'teams.abbreviation as team_abbreviation',
+              'clubs.abbreviation as club_abbreviation',
+            ])
             .where('team_id', 'in', teamIds)
             .execute(),
     ]);
@@ -880,16 +1047,27 @@ export class EnrollmentRepository {
       if (entrant.entrant_kind === 'team' && entrant.team_id !== null) {
         const team = teamById.get(entrant.team_id);
         if (team) {
+          const abbreviation =
+            entrant.abbreviation ??
+            abbreviationOf(
+              { abbreviation: team.team_abbreviation ?? undefined },
+              { abbreviation: team.club_abbreviation ?? undefined },
+            );
           names.set(entrant.entrant_id, {
             name: team.name,
-            ...(team.abbreviation === null ? {} : { abbreviation: team.abbreviation }),
+            ...(abbreviation === undefined ? {} : { abbreviation }),
           });
         }
         continue;
       }
       if (entrant.person_id !== null) {
         const person = personById.get(entrant.person_id);
-        if (person) names.set(entrant.entrant_id, { name: person.display_name });
+        if (person) {
+          names.set(entrant.entrant_id, {
+            name: person.display_name,
+            ...(entrant.abbreviation === null ? {} : { abbreviation: entrant.abbreviation }),
+          });
+        }
       }
     }
 

@@ -167,6 +167,7 @@ export function toEntrant(row: EntrantRow): Entrant {
       row.entrant_kind === 'team'
         ? { kind: 'team', teamId: row.team_id as string }
         : { kind: 'person', personId: row.person_id as string },
+    abbreviation: row.abbreviation ?? undefined,
     seed: row.seed ?? undefined,
     status: row.status as Entrant['status'],
   };

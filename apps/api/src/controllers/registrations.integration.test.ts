@@ -10,7 +10,11 @@ import {
 } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
 import { buildTestApp } from './test-support/integration-harness.js';
-import { DisciplinesController, RegistrationsController } from './registrations.controller.js';
+import {
+  DisciplinesController,
+  EntrantsController,
+  RegistrationsController,
+} from './registrations.controller.js';
 
 let app: INestApplication;
 let scratch: Awaited<ReturnType<typeof buildTestApp>>['scratch'];
@@ -20,6 +24,7 @@ let request: Awaited<ReturnType<typeof buildTestApp>>['request'];
 beforeAll(async () => {
   ({ app, scratch, organizationId, request } = await buildTestApp([
     RegistrationsController,
+    EntrantsController,
     DisciplinesController,
   ]));
 });
@@ -30,6 +35,89 @@ afterAll(async () => {
 });
 
 describe('registration review routes', () => {
+  it('lists unresolved abbreviations and lets an administrator resolve one without accepting duplicates', async () => {
+    const tournaments = new TournamentRepository(scratch.db);
+    const enrollment = new EnrollmentRepository(scratch.db);
+    const descriptor = footballDescriptor();
+    const seeded = await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+      await tournaments.saveDescriptor(uow, descriptor, {
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      const tournament = await tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-abreviaturas-rutas',
+        name: 'Copa Abreviaturas Rutas',
+        descriptor,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      const firstTeam = await enrollment.createTeam(uow, {
+        organizationId,
+        name: 'Casa de Italia',
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      const secondTeam = await enrollment.createTeam(uow, {
+        organizationId,
+        name: 'Casa de Italia',
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      const first = await enrollment.registerEntrant(uow, {
+        organizationId,
+        tournamentId: tournament.tournamentId,
+        entrantRef: { kind: 'team', teamId: firstTeam.teamId },
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      const unresolved = await enrollment.registerEntrant(uow, {
+        organizationId,
+        tournamentId: tournament.tournamentId,
+        entrantRef: { kind: 'team', teamId: secondTeam.teamId },
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      return { first, unresolved };
+    });
+
+    const needs = await request({
+      method: 'GET',
+      url: '/organizations/liga-orbital/tournaments/copa-abreviaturas-rutas/entrants/needing-abbreviation',
+      token: 'organizer-org1',
+    });
+    expect(needs.statusCode).toBe(200);
+    expect(needs.json().map((entry: { entrantId: string }) => entry.entrantId)).toEqual([
+      seeded.unresolved.entrantId,
+    ]);
+
+    const duplicate = await request({
+      method: 'PATCH',
+      url: `/organizations/liga-orbital/tournaments/copa-abreviaturas-rutas/entrants/${seeded.unresolved.entrantId}/abbreviation`,
+      token: 'organizer-org1',
+      payload: { abbreviation: seeded.first.abbreviation },
+    });
+    expect(duplicate.statusCode).toBe(409);
+
+    const resolved = await request({
+      method: 'PATCH',
+      url: `/organizations/liga-orbital/tournaments/copa-abreviaturas-rutas/entrants/${seeded.unresolved.entrantId}/abbreviation`,
+      token: 'organizer-org1',
+      payload: { abbreviation: 'C I 2' },
+    });
+    expect(resolved.statusCode).toBe(200);
+    expect(resolved.json()).toMatchObject({ abbreviation: 'C I 2' });
+
+    const malformed = await request({
+      method: 'PATCH',
+      url: `/organizations/liga-orbital/tournaments/copa-abreviaturas-rutas/entrants/${seeded.unresolved.entrantId}/abbreviation`,
+      token: 'organizer-org1',
+      payload: { abbreviation: 'not valid' },
+    });
+    expect(malformed.statusCode).toBe(400);
+  });
+
   it('lists only this tournament registrations, and bulk review audits every entrant touched', async () => {
     const tournaments = new TournamentRepository(scratch.db);
     const enrollment = new EnrollmentRepository(scratch.db);

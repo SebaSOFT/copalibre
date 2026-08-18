@@ -24,6 +24,14 @@ export class TableRowResponse {
   @ApiPropertyOptional({ format: 'uuid', description: 'Present at team/entrant granularity' })
   entrantId?: string;
 
+  @ApiPropertyOptional({
+    description: 'Resolved full entrant name for responsive team/entrant rows',
+  })
+  entrantName?: string;
+
+  @ApiPropertyOptional({ description: 'Tournament-scoped entrant abbreviation, when resolved' })
+  entrantAbbreviation?: string;
+
   @ApiProperty({ description: '1-based; rows sharing a rank were not separated by `defaultSort`' })
   rank!: number;
 

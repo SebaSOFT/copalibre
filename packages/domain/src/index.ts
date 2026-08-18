@@ -44,6 +44,7 @@ export {
 } from './identifiers/abbreviation.js';
 export {
   abbreviationOf,
+  deriveEntrantAbbreviation,
   labelCollisions,
   type LabelledSide,
   type LabelCollision,

@@ -33,6 +33,9 @@ import type { CollectedFigure } from './fold.js';
 export interface TableProjectionActor {
   readonly actorId: string;
   readonly entrantId?: string;
+  /** Resolved tournament-scoped labels for team/entrant rows. */
+  readonly entrantName?: string;
+  readonly entrantAbbreviation?: string;
   readonly name: string;
   readonly teamName?: string;
   readonly roles?: readonly string[];
@@ -54,6 +57,8 @@ export interface TableCell {
 export interface TableRow {
   readonly actorId: string;
   readonly entrantId?: string;
+  readonly entrantName?: string;
+  readonly entrantAbbreviation?: string;
   /** 1-based; rows sharing a rank were not separated by `defaultSort`. */
   readonly rank: number;
   readonly sharedRank: boolean;
@@ -269,6 +274,10 @@ function assignRanks(
     return {
       actorId: row.actor.actorId,
       entrantId: row.actor.entrantId,
+      ...(row.actor.entrantName === undefined ? {} : { entrantName: row.actor.entrantName }),
+      ...(row.actor.entrantAbbreviation === undefined
+        ? {}
+        : { entrantAbbreviation: row.actor.entrantAbbreviation }),
       rank,
       sharedRank: (rankCounts.get(rank) ?? 1) > 1,
       cells,

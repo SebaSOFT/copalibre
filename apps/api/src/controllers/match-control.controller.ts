@@ -1031,7 +1031,8 @@ export class MatchControlController {
       (entrantId): entrantId is string => entrantId !== null && entrantId !== undefined,
     );
     const eligibleStaffIds = await this.eligibleStaffIds(entrantIds);
-    const { teamNameByEntrant, clubIdByEntrant } = await this.teamIdentityByEntrant(entrantIds);
+    const { teamNameByEntrant, teamAbbreviationByEntrant, clubIdByEntrant } =
+      await this.teamIdentityByEntrant(entrantIds);
 
     return {
       matchId,
@@ -1093,6 +1094,9 @@ export class MatchControlController {
         ...(teamNameByEntrant.get(roster.entrant_id) === undefined
           ? {}
           : { teamName: teamNameByEntrant.get(roster.entrant_id) }),
+        ...(teamAbbreviationByEntrant.get(roster.entrant_id) === undefined
+          ? {}
+          : { teamAbbreviation: teamAbbreviationByEntrant.get(roster.entrant_id) }),
         ...(clubIdByEntrant.get(roster.entrant_id) === undefined
           ? {}
           : { clubId: clubIdByEntrant.get(roster.entrant_id) }),
@@ -1147,10 +1151,15 @@ export class MatchControlController {
    */
   private async teamIdentityByEntrant(entrantIds: readonly string[]): Promise<{
     readonly teamNameByEntrant: ReadonlyMap<string, string>;
+    readonly teamAbbreviationByEntrant: ReadonlyMap<string, string>;
     readonly clubIdByEntrant: ReadonlyMap<string, string>;
   }> {
     if (entrantIds.length === 0) {
-      return { teamNameByEntrant: new Map(), clubIdByEntrant: new Map() };
+      return {
+        teamNameByEntrant: new Map(),
+        teamAbbreviationByEntrant: new Map(),
+        clubIdByEntrant: new Map(),
+      };
     }
 
     const enrollment = new EnrollmentRepository(this.db);
@@ -1174,6 +1183,11 @@ export class MatchControlController {
     const teamNameByEntrant = new Map(
       [...entrantNames.entries()].map(([entrantId, entry]) => [entrantId, entry.name] as const),
     );
+    const teamAbbreviationByEntrant = new Map(
+      [...entrantNames.entries()].flatMap(([entrantId, entry]) =>
+        entry.abbreviation === undefined ? [] : [[entrantId, entry.abbreviation] as const],
+      ),
+    );
     const clubIdByEntrant = new Map(
       [...teamIdByEntrant.entries()].flatMap(([entrantId, teamId]) => {
         const clubId = clubIdByTeam.get(teamId);
@@ -1181,7 +1195,7 @@ export class MatchControlController {
       }),
     );
 
-    return { teamNameByEntrant, clubIdByEntrant };
+    return { teamNameByEntrant, teamAbbreviationByEntrant, clubIdByEntrant };
   }
 
   private async stageOf(matchId: string): Promise<string> {

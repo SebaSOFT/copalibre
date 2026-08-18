@@ -259,6 +259,8 @@ export interface TableCellResponse {
 export interface TableRowResponseData {
   readonly actorId: string;
   readonly entrantId?: string;
+  readonly entrantName?: string;
+  readonly entrantAbbreviation?: string;
   readonly rank: number;
   readonly sharedRank: boolean;
   readonly cells: Readonly<Record<string, TableCellResponse>>;
@@ -515,6 +517,8 @@ export interface ConsoleRoster {
   readonly entrantId: string;
   /** The entrant's team name, when the entrant is a team. */
   readonly teamName?: string;
+  /** The resolved tournament-scoped abbreviation for the team entrant. */
+  readonly teamAbbreviation?: string;
   /** The team's club id, when the team has one — resolves the emblem serve route. */
   readonly clubId?: string;
   readonly members: readonly ConsoleRosterMember[];

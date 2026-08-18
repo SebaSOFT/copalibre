@@ -132,6 +132,9 @@ export class ConsoleRosterResponse {
   @ApiPropertyOptional({ description: 'The entrant’s team name, when the entrant is a team' })
   teamName?: string;
 
+  @ApiPropertyOptional({ description: 'Tournament-scoped abbreviation for the team entrant' })
+  teamAbbreviation?: string;
+
   @ApiPropertyOptional({
     format: 'uuid',
     description: "The team's club id, when it has one — resolves the club emblem serve route",

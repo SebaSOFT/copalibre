@@ -60,7 +60,7 @@ export async function buildTestApp(controllers: Type<unknown>[]): Promise<{
   scratch: Awaited<ReturnType<typeof createMigratedDatabase>>;
   organizationId: string;
   request: (options: {
-    method: 'GET' | 'POST';
+    method: 'GET' | 'POST' | 'PATCH';
     url: string;
     token?: string;
     payload?: unknown;
@@ -99,7 +99,7 @@ export async function buildTestApp(controllers: Type<unknown>[]): Promise<{
   organizationId = organization.organizationId;
 
   function request(options: {
-    method: 'GET' | 'POST';
+    method: 'GET' | 'POST' | 'PATCH';
     url: string;
     token?: string;
     payload?: unknown;

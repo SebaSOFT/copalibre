@@ -193,8 +193,10 @@ test.describe('B2: public tournament page', () => {
           status: 'finalized',
           homeEntrantId: 'Talleres',
           homeName: 'Talleres',
+          homeAbbreviation: 'TAL',
           awayEntrantId: 'Independiente',
           awayName: 'Independiente',
+          awayAbbreviation: 'IND',
           homeScore: 2,
           awayScore: 1,
           scheduledAt: '2026-01-01T00:00:00.000Z',
@@ -235,5 +237,18 @@ test.describe('B2: public tournament page', () => {
     await expect(page.getByRole('columnheader', { name: 'GC' })).toBeVisible();
     await expect(page.getByRole('columnheader', { name: 'Dif' })).toBeVisible();
     await expect(page.getByRole('cell', { name: 'Talleres' })).toBeVisible();
+  });
+
+  test('switches a constrained entrant name to its persisted abbreviation with a tooltip', async ({
+    page,
+  }) => {
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+
+    const entrantName = page.getByTestId('entrant-name').first();
+    await entrantName.evaluate((element) => {
+      element.setAttribute('style', 'display: block; min-width: 0; width: 1px');
+    });
+
+    await expect(entrantName.getByTitle('Talleres')).toHaveText('TAL');
   });
 });

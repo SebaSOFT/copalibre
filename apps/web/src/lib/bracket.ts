@@ -37,6 +37,9 @@ export interface BracketRound {
 
 export interface NodeSlotView {
   readonly label: string;
+  /** Entrant labels retain full and compact forms for responsive rendering. */
+  readonly fullName?: string;
+  readonly abbreviation?: string;
   readonly score?: number;
   /** Absent, or `played`, renders nothing — only an unusual reason is shown. */
   readonly resultReason?: Exclude<ResultReason, 'played'>;
@@ -87,6 +90,12 @@ export function toNode(match: BracketMatch, labels: ResultStateLabels): MatchNod
       const pending = slot.kind !== 'entrant';
       return {
         label: describeSlot(slot),
+        ...(slot.kind === 'entrant'
+          ? {
+              fullName: slot.name,
+              ...(slot.abbreviation === undefined ? {} : { abbreviation: slot.abbreviation }),
+            }
+          : {}),
         ...(score === undefined ? {} : { score }),
         ...(resultReason === undefined || resultReason === 'played' ? {} : { resultReason }),
         state: pending ? 'tbd' : match.state,
@@ -107,7 +116,7 @@ export function toNode(match: BracketMatch, labels: ResultStateLabels): MatchNod
 export function describeSlot(slot: SlotSource): string {
   switch (slot.kind) {
     case 'entrant':
-      return slot.abbreviation ?? slot.name;
+      return slot.name;
     case 'winner-of':
       return `Ganador del ${slot.matchNumber}`;
     case 'loser-of':

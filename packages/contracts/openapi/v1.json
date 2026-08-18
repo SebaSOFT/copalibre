@@ -790,6 +790,175 @@
         ]
       }
     },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/entrants/{entrantId}/abbreviation": {
+      "patch": {
+        "operationId": "EntrantsController_setAbbreviation",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entrantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetEntrantAbbreviationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistrationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set one entrant’s tournament-scoped abbreviation",
+        "tags": [
+          "entrants"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/entrants/needing-abbreviation": {
+      "get": {
+        "operationId": "EntrantsController_needingAbbreviation",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RegistrationResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List entrants awaiting an officer-chosen abbreviation",
+        "tags": [
+          "entrants"
+        ]
+      }
+    },
     "/disciplines": {
       "get": {
         "description": "The wizard filters formats from this response. A client-side list disagrees with the installation the day a module is added.",
@@ -6055,6 +6224,10 @@
               "checked-in"
             ]
           },
+          "abbreviation": {
+            "type": "string",
+            "description": "Tournament-scoped, distinct entrant short label."
+          },
           "teamId": {
             "type": "string",
             "format": "uuid"
@@ -6175,6 +6348,19 @@
         },
         "required": [
           "personIds"
+        ]
+      },
+      "SetEntrantAbbreviationRequest": {
+        "type": "object",
+        "properties": {
+          "abbreviation": {
+            "type": "string",
+            "example": "CDI",
+            "description": "Uppercase short label, unique within this tournament."
+          }
+        },
+        "required": [
+          "abbreviation"
         ]
       },
       "DisciplineSummaryResponse": {
@@ -6591,6 +6777,10 @@
           "teamName": {
             "type": "string",
             "description": "The entrant’s team name, when the entrant is a team"
+          },
+          "teamAbbreviation": {
+            "type": "string",
+            "description": "Tournament-scoped abbreviation for the team entrant"
           },
           "clubId": {
             "type": "string",
@@ -7295,6 +7485,14 @@
             "type": "string",
             "format": "uuid",
             "description": "Present at team/entrant granularity"
+          },
+          "entrantName": {
+            "type": "string",
+            "description": "Resolved full entrant name for responsive team/entrant rows"
+          },
+          "entrantAbbreviation": {
+            "type": "string",
+            "description": "Tournament-scoped entrant abbreviation, when resolved"
           },
           "rank": {
             "type": "number",

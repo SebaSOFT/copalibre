@@ -385,6 +385,131 @@ describe('repositories (integration)', () => {
     });
   });
 
+  it('resolves entrant abbreviations once, rejects duplicate officer changes, and lists unresolved entrants', async () => {
+    const disciplineDescriptor = descriptor();
+    const ids = await withTransaction(scratch.db, async (uow) => {
+      await tournaments.saveDescriptor(uow, disciplineDescriptor, { organizationId, ...AUDIT });
+      const tournament = await tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-abreviaturas',
+        name: 'Copa Abreviaturas',
+        descriptor: disciplineDescriptor,
+        ...AUDIT,
+      });
+      const otherTournament = await tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-abreviaturas-otra',
+        name: 'Copa Abreviaturas Otra',
+        descriptor: disciplineDescriptor,
+        ...AUDIT,
+      });
+      const people = await Promise.all(
+        ['Casa de Italia', 'Elección Explícita', 'Entrada Malformada', 'Club Órbita'].map(
+          async (displayName) =>
+            new PersonRepository(scratch.db).register(uow, {
+              organizationId,
+              displayName,
+              ...AUDIT,
+            }),
+        ),
+      );
+      const [casaDeItalia, explicitChoice, malformedEntry, clubOrbita] = people;
+      if (!casaDeItalia || !explicitChoice || !malformedEntry || !clubOrbita) {
+        throw new Error('Expected four participants');
+      }
+      const first = await participants.registerEntrant(uow, {
+        tournamentId: tournament.tournamentId,
+        entrantRef: { kind: 'person', personId: casaDeItalia.person.personId },
+        organizationId,
+        ...AUDIT,
+      });
+      const colliding = await participants.registerEntrant(uow, {
+        tournamentId: tournament.tournamentId,
+        entrantRef: { kind: 'person', personId: casaDeItalia.person.personId },
+        organizationId,
+        ...AUDIT,
+      });
+      const explicit = await participants.registerEntrant(uow, {
+        tournamentId: tournament.tournamentId,
+        entrantRef: { kind: 'person', personId: explicitChoice.person.personId },
+        abbreviation: 'CUSTOM',
+        organizationId,
+        ...AUDIT,
+      });
+      const malformed = await participants.registerEntrant(uow, {
+        tournamentId: tournament.tournamentId,
+        entrantRef: { kind: 'person', personId: malformedEntry.person.personId },
+        abbreviation: 'not valid',
+        organizationId,
+        ...AUDIT,
+      });
+      const collidingInput = await participants.registerEntrant(uow, {
+        tournamentId: tournament.tournamentId,
+        entrantRef: { kind: 'person', personId: clubOrbita.person.personId },
+        abbreviation: 'CI',
+        organizationId,
+        ...AUDIT,
+      });
+      const other = await participants.registerEntrant(uow, {
+        tournamentId: otherTournament.tournamentId,
+        entrantRef: { kind: 'person', personId: clubOrbita.person.personId },
+        organizationId,
+        ...AUDIT,
+      });
+      return {
+        tournamentId: tournament.tournamentId,
+        first: first.entrantId,
+        colliding: colliding.entrantId,
+        explicit: explicit.entrantId,
+        malformed: malformed.entrantId,
+        collidingInput: collidingInput.entrantId,
+        other: other.entrantId,
+      };
+    });
+
+    expect((await participants.findEntrant(ids.first))?.abbreviation).toBe('CI');
+    expect((await participants.findEntrant(ids.colliding))?.abbreviation).toBeUndefined();
+    expect((await participants.findEntrant(ids.explicit))?.abbreviation).toBe('CUSTOM');
+    expect((await participants.findEntrant(ids.malformed))?.abbreviation).toBe('EM');
+    expect((await participants.findEntrant(ids.collidingInput))?.abbreviation).toBe('CO');
+    expect((await participants.findEntrant(ids.other))?.abbreviation).toBe('CO');
+    expect(
+      (await participants.listEntrantsNeedingAbbreviation(ids.tournamentId)).map(
+        (entrant) => entrant.entrantId,
+      ),
+    ).toEqual([ids.colliding]);
+    await expect(
+      withTransaction(scratch.db, (uow) =>
+        participants.setEntrantAbbreviation(uow, {
+          entrantId: ids.colliding,
+          abbreviation: 'CI',
+          organizationId,
+          ...AUDIT,
+        }),
+      ),
+    ).rejects.toThrow('already used by another entrant');
+    await withTransaction(scratch.db, (uow) =>
+      participants.setEntrantAbbreviation(uow, {
+        entrantId: ids.colliding,
+        abbreviation: 'C I 2',
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+
+    expect(
+      (await participants.listEntrantsNeedingAbbreviation(ids.tournamentId)).map(
+        (entrant) => entrant.entrantId,
+      ),
+    ).toEqual([]);
+    const audit = await new AuditReader(scratch.db).historyFor('entrant', ids.colliding);
+    expect(audit.at(-1)).toMatchObject({
+      action: 'entrant.abbreviation-set',
+      previousState: { abbreviation: undefined },
+      resultingState: { abbreviation: 'C I 2' },
+    });
+  });
+
   it('lists only aliases of teams registered as entrants in the given tournament', async () => {
     const disciplineDescriptor = descriptor();
     const { tournamentId, otherTournamentId, registeredAlias, unregisteredAlias } =
@@ -1503,6 +1628,7 @@ describe('public overview projection (integration)', () => {
       const teamEntrant = await participants.registerEntrant(uow, {
         tournamentId: tournament.tournamentId,
         entrantRef: { kind: 'team', teamId: team.teamId },
+        abbreviation: 'TOUR',
         organizationId,
         ...AUDIT,
       });
@@ -1529,9 +1655,9 @@ describe('public overview projection (integration)', () => {
 
     expect(names.get(teamEntrantId)).toEqual({
       name: 'Talleres de Mendoza',
-      abbreviation: 'TLL A',
+      abbreviation: 'TOUR',
     });
-    expect(names.get(personEntrantId)).toEqual({ name: 'Ana Pérez' });
+    expect(names.get(personEntrantId)).toEqual({ name: 'Ana Pérez', abbreviation: 'AP' });
     expect(names.has(unknownEntrantId)).toBe(false);
   });
 

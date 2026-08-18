@@ -194,6 +194,9 @@ export class DataImportExportController {
               organizationId,
               tournamentId,
               entrantRef,
+              ...(values.abbreviation?.trim() === '' || values.abbreviation === undefined
+                ? {}
+                : { abbreviation: values.abbreviation.trim() }),
               actor: actorOf(request),
               authorizationContext: authorizationContextOf(request),
             });
@@ -213,6 +216,9 @@ export class DataImportExportController {
               organizationId,
               tournamentId,
               entrantRef,
+              ...(values.abbreviation?.trim() === '' || values.abbreviation === undefined
+                ? {}
+                : { abbreviation: values.abbreviation.trim() }),
               actor: actorOf(request),
               authorizationContext: authorizationContextOf(request),
             });
