@@ -93,7 +93,9 @@ The abbreviation SHALL NOT be derived from the name, and SHALL NOT be substitute
 ### Requirement: A club is reachable by a path identifier that may be suggested
 A club SHALL be able to carry an alias, unique within its organization, and the system SHALL be able
 to suggest one from the club's name — which the abbreviation is deliberately never derived from,
-because an alias is a transformation and an abbreviation is a choice.
+because an alias is a transformation and an abbreviation is a choice. Every suggestion the system
+offers SHALL itself be a valid alias — never a value that would fail the same validation an organizer's
+own input is subject to.
 
 #### Scenario: An alias is suggested from the name
 - **WHEN** a club named "Club Atlético San Martín" is created without an alias
@@ -106,4 +108,62 @@ because an alias is a transformation and an abbreviation is a choice.
 #### Scenario: What the organizer typed wins over what would be suggested
 - **WHEN** an organizer supplies an alias
 - **THEN** it is validated and stored as given, and nothing is suggested over it
+
+#### Scenario: A near-maximum-length name still gets a valid suggested suffix
+- **WHEN** a club's folded name is already at the platform's alias length limit, and an organization
+  already has a club whose alias equals that full-length base
+- **THEN** the second club is offered a suggestion that still satisfies the length limit, not a
+  suggestion that exceeds it
+
+### Requirement: A person may declare a nationality
+
+A person SHALL be able to carry an optional nationality, stored as an ISO 3166-1 alpha-2 country code.
+A person without one is valid and unaffected by every existing requirement.
+
+#### Scenario: A person is registered with a nationality
+- **WHEN** a person is registered supplying a nationality code
+- **THEN** the code is stored and returned on every subsequent read of that person
+
+#### Scenario: A person is registered without a nationality
+- **WHEN** a person is registered with no nationality supplied
+- **THEN** registration succeeds and the person's nationality reads as absent, not a default or a guess
+
+#### Scenario: An invalid country code is refused
+- **WHEN** a nationality is supplied that is not a valid ISO 3166-1 alpha-2 code
+- **THEN** the write is rejected, naming the invalid code
+
+### Requirement: A person may carry an optional photo
+
+A person SHALL be able to carry an optional photo, stored as an object-storage reference rather than
+inline bytes. A person without one is valid; every surface that displays a person's photo SHALL show a
+placeholder rather than a broken image or an empty gap.
+
+#### Scenario: A photo is attached to a person
+- **WHEN** an operator uploads a photo for a person
+- **THEN** the person's photo reference is stored and resolvable to the uploaded image on every
+  subsequent read
+
+#### Scenario: A person's photo is replaced
+- **WHEN** an operator uploads a new photo for a person who already has one
+- **THEN** the stored reference is replaced and the previous image is no longer referenced from that
+  person
+
+#### Scenario: A person with no photo shows a placeholder
+- **WHEN** a person's profile is displayed and no photo was ever uploaded
+- **THEN** a placeholder image renders in its place, distinguishable from a real photo
+
+### Requirement: A club may carry an optional emblem
+
+A club SHALL be able to carry an optional emblem (crest/shield), stored as an object-storage reference.
+A club without one is valid; every surface that displays a club's emblem SHALL show a placeholder
+rather than a broken image or an empty gap.
+
+#### Scenario: An emblem is attached to a club
+- **WHEN** an organizer uploads an emblem for a club
+- **THEN** the club's emblem reference is stored and resolvable to the uploaded image on every
+  subsequent read
+
+#### Scenario: A club with no emblem shows a placeholder
+- **WHEN** a club's emblem is displayed and none was ever uploaded
+- **THEN** a placeholder image renders in its place, distinguishable from a real emblem
 

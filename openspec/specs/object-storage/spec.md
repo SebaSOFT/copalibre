@@ -5,9 +5,7 @@
 Provides the S3-compatible object-storage adapter, asynchronous media processing, and the real
 backup/health checks the architecture doc names as a first-class stateful dependency, so every other
 capability that stores a file (evidence, module assets, exports) has one real place to do it.
-
 ## Requirements
-
 ### Requirement: S3-compatible storage adapter
 The system SHALL store binary objects through an S3-compatible adapter, with a Postgres metadata row
 per object pointing at its storage location rather than the object's bytes living in the database.
@@ -54,3 +52,27 @@ configured endpoint or filesystem profile, not only that the configured URL is r
   actually write to (wrong credentials, missing bucket, read-only mount)
 - **THEN** doctor reports a clear failure naming the object-storage check, rather than passing on
   reachability alone
+
+### Requirement: A capability may mark an object kind as publicly servable
+
+An object-storage caller SHALL be able to declare an object kind (e.g. a person photo, a club emblem)
+as publicly servable, distinct from the default — every other stored object (report evidence, module
+assets) remains reachable only through its owning capability's own authorized path, never through a
+generic unauthenticated read.
+
+#### Scenario: A publicly servable object is retrievable by reference without authentication
+- **WHEN** an anonymous client requests a stored object of a kind marked publicly servable, by its
+  storage reference
+- **THEN** the object's bytes and content type are returned, with no organization membership or
+  capability check
+
+#### Scenario: A non-public object kind refuses the same unauthenticated path
+- **WHEN** an anonymous client requests a stored object of a kind not marked publicly servable (e.g.
+  report evidence) through the public-serve path
+- **THEN** the request is rejected; that object remains reachable only through its own capability's
+  authorized endpoint
+
+#### Scenario: An unknown or deleted reference returns not-found, not an error
+- **WHEN** a public-serve request names a storage reference that does not resolve to a stored object
+- **THEN** the response is a not-found result, not a server error
+
