@@ -151,7 +151,11 @@ export class CompetitionRepository {
 
   async createZone(
     uow: UnitOfWork,
-    input: { readonly stageId: string; readonly number: number; readonly name: string } & AuditContext,
+    input: {
+      readonly stageId: string;
+      readonly number: number;
+      readonly name: string;
+    } & AuditContext,
   ): Promise<Zone> {
     const zone: Zone = { zoneId: newId(), ...input };
     const valid = validateZone(zone);
@@ -209,7 +213,11 @@ export class CompetitionRepository {
 
   async createGroup(
     uow: UnitOfWork,
-    input: { readonly zoneId: string; readonly number: number; readonly name: string } & AuditContext,
+    input: {
+      readonly zoneId: string;
+      readonly number: number;
+      readonly name: string;
+    } & AuditContext,
   ): Promise<Group> {
     const group: Group = { groupId: newId(), ...input };
     const valid = validateGroup(group);
@@ -247,6 +255,101 @@ export class CompetitionRepository {
       .orderBy('number')
       .execute();
     return rows.map(toGroup);
+  }
+
+  async listEntrantIdsOfZone(zoneId: string): Promise<readonly string[]> {
+    const rows = await this.db
+      .selectFrom('zone_entrants')
+      .select('entrant_id')
+      .where('zone_id', '=', zoneId)
+      .orderBy('entrant_id')
+      .execute();
+    return rows.map((row) => row.entrant_id);
+  }
+
+  async listEntrantIdsOfGroup(groupId: string): Promise<readonly string[]> {
+    const rows = await this.db
+      .selectFrom('group_entrants')
+      .select('entrant_id')
+      .where('group_id', '=', groupId)
+      .orderBy('entrant_id')
+      .execute();
+    return rows.map((row) => row.entrant_id);
+  }
+
+  async createPromotionPlan(
+    uow: UnitOfWork,
+    input: {
+      readonly zoneId: string;
+      readonly nextStageId: string;
+      readonly plan: Record<string, unknown>;
+    } & AuditContext,
+  ): Promise<{
+    readonly promotionPlanId: string;
+    readonly zoneId: string;
+    readonly nextStageId: string;
+    readonly plan: Record<string, unknown>;
+  }> {
+    const row = await uow.tx
+      .insertInto('promotion_plans')
+      .values({
+        promotion_plan_id: newId(),
+        zone_id: input.zoneId,
+        next_stage_id: input.nextStageId,
+        plan: JSON.stringify(input.plan),
+        created_at: new Date(),
+      })
+      .onConflict((conflict) =>
+        conflict
+          .column('zone_id')
+          .doUpdateSet({
+            next_stage_id: input.nextStageId,
+            plan: JSON.stringify(input.plan),
+          }),
+      )
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'zone',
+      entityId: input.zoneId,
+      action: 'promotion-plan.saved',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      resultingState: { nextStageId: input.nextStageId, plan: input.plan },
+    });
+    return {
+      promotionPlanId: row.promotion_plan_id,
+      zoneId: row.zone_id,
+      nextStageId: row.next_stage_id,
+      plan: row.plan as Record<string, unknown>,
+    };
+  }
+
+  async findPromotionPlan(
+    zoneId: string,
+  ): Promise<
+    | {
+        readonly promotionPlanId: string;
+        readonly zoneId: string;
+        readonly nextStageId: string;
+        readonly plan: Record<string, unknown>;
+      }
+    | undefined
+  > {
+    const row = await this.db
+      .selectFrom('promotion_plans')
+      .selectAll()
+      .where('zone_id', '=', zoneId)
+      .executeTakeFirst();
+    return row === undefined
+      ? undefined
+      : {
+          promotionPlanId: row.promotion_plan_id,
+          zoneId: row.zone_id,
+          nextStageId: row.next_stage_id,
+          plan: row.plan as Record<string, unknown>,
+        };
   }
 
   async currentOrImplicitGroup(
@@ -358,6 +461,16 @@ export class CompetitionRepository {
       .returningAll()
       .execute();
     const zones = rows.map(toZone);
+    const zoneByNumber = new Map(zones.map((zone) => [zone.number, zone.zoneId]));
+    await uow.tx
+      .insertInto('zone_entrants')
+      .values(
+        Object.entries(assignment.groups).map(([entrantId, zoneNumber]) => ({
+          zone_id: zoneByNumber.get(zoneNumber) as string,
+          entrant_id: entrantId,
+        })),
+      )
+      .execute();
     await uow.recordAudit({
       organizationId: input.organizationId,
       entityType: 'stage',
@@ -383,7 +496,8 @@ export class CompetitionRepository {
       .select(['zone_id', 'stage_id'])
       .where('zone_id', '=', input.zoneId)
       .executeTakeFirst();
-    if (!zone) throw new NotFoundError(`Zone ${input.zoneId} does not exist`, { zoneId: input.zoneId });
+    if (!zone)
+      throw new NotFoundError(`Zone ${input.zoneId} does not exist`, { zoneId: input.zoneId });
     await this.assertStageHasNoFixtures(uow, zone.stage_id);
     const existing = await uow.tx
       .selectFrom('groups')
@@ -395,6 +509,16 @@ export class CompetitionRepository {
         zoneId: input.zoneId,
       });
     }
+    const zoneEntrants = await uow.tx
+      .selectFrom('zone_entrants')
+      .select('entrant_id')
+      .where('zone_id', '=', input.zoneId)
+      .execute();
+    this.assertAssignmentEntrants(
+      assignment,
+      zoneEntrants.map((entry) => entry.entrant_id),
+      'group',
+    );
     const rows = await uow.tx
       .insertInto('groups')
       .values(
@@ -411,6 +535,16 @@ export class CompetitionRepository {
       .returningAll()
       .execute();
     const groups = rows.map(toGroup);
+    const groupByNumber = new Map(groups.map((group) => [group.number, group.groupId]));
+    await uow.tx
+      .insertInto('group_entrants')
+      .values(
+        Object.entries(assignment.groups).map(([entrantId, groupNumber]) => ({
+          group_id: groupByNumber.get(groupNumber) as string,
+          entrant_id: entrantId,
+        })),
+      )
+      .execute();
     await uow.recordAudit({
       organizationId: input.organizationId,
       entityType: 'zone',
@@ -425,17 +559,41 @@ export class CompetitionRepository {
 
   private assertGroupAssignment(assignment: GroupAssignment, count: number): void {
     if (!Number.isInteger(count) || count < 1 || Object.keys(assignment.groups).length === 0) {
-      throw new InvariantViolationError('A zone/group assignment needs at least one numbered group', {
-        count,
-      });
+      throw new InvariantViolationError(
+        'A zone/group assignment needs at least one numbered group',
+        {
+          count,
+        },
+      );
     }
     for (const position of Object.values(assignment.groups)) {
       if (!Number.isInteger(position) || position < 1 || position > count) {
-        throw new InvariantViolationError(`Assignment position ${position} is outside 1..${count}`, {
-          position,
-          count,
-        });
+        throw new InvariantViolationError(
+          `Assignment position ${position} is outside 1..${count}`,
+          {
+            position,
+            count,
+          },
+        );
       }
+    }
+  }
+
+  private assertAssignmentEntrants(
+    assignment: GroupAssignment,
+    expectedEntrantIds: readonly string[],
+    kind: 'group',
+  ): void {
+    const supplied = Object.keys(assignment.groups).sort();
+    const expected = [...expectedEntrantIds].sort();
+    if (
+      supplied.length !== expected.length ||
+      supplied.some((entrantId, index) => entrantId !== expected[index])
+    ) {
+      throw new InvariantViolationError(
+        `A ${kind} draw must assign every entrant in its source zone exactly once`,
+        { expectedEntrantIds: expected, assignedEntrantIds: supplied },
+      );
     }
   }
 
@@ -446,7 +604,9 @@ export class CompetitionRepository {
       .where('stage_id', '=', stageId)
       .executeTakeFirst();
     if (fixture) {
-      throw new InvariantViolationError('Cannot assign zones or groups after fixtures exist', { stageId });
+      throw new InvariantViolationError('Cannot assign zones or groups after fixtures exist', {
+        stageId,
+      });
     }
   }
 
@@ -463,10 +623,13 @@ export class CompetitionRepository {
         .where('groups.group_id', '=', fixture.groupId)
         .executeTakeFirst();
       if (!group || group.stage_id !== input.stageId) {
-        throw new NotFoundError(`Group ${fixture.groupId} does not belong to stage ${input.stageId}`, {
-          groupId: fixture.groupId,
-          stageId: input.stageId,
-        });
+        throw new NotFoundError(
+          `Group ${fixture.groupId} does not belong to stage ${input.stageId}`,
+          {
+            groupId: fixture.groupId,
+            stageId: input.stageId,
+          },
+        );
       }
       if (fixture.zoneId && fixture.zoneId !== group.zone_id) {
         throw new InvariantViolationError('Fixture group does not belong to its declared zone', {

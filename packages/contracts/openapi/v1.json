@@ -5449,6 +5449,216 @@
           "zones and groups"
         ]
       }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/promotion-plan": {
+      "post": {
+        "operationId": "ZonesGroupsController_savePromotionPlan",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "zoneNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SavePromotionPlanRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromotionPlanResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save a zone promotion plan without seeding its next stage",
+        "tags": [
+          "zones and groups"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/promotion-preview": {
+      "get": {
+        "operationId": "ZonesGroupsController_previewPromotion",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "zoneNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromotionPreviewResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Preview a zone promotion plan without writing or generating fixtures",
+        "tags": [
+          "zones and groups"
+        ]
+      }
     }
   },
   "info": {
@@ -9070,6 +9280,144 @@
           "seed",
           "steps",
           "groups"
+        ]
+      },
+      "PromotionBandRequest": {
+        "type": "object",
+        "properties": {
+          "zoneRef": {
+            "type": "string",
+            "example": "Copa Oro"
+          },
+          "count": {
+            "type": "number",
+            "minimum": 1,
+            "example": 4
+          }
+        },
+        "required": [
+          "zoneRef",
+          "count"
+        ]
+      },
+      "SavePromotionPlanRequest": {
+        "type": "object",
+        "properties": {
+          "nextStageNumber": {
+            "type": "number",
+            "description": "1-based number of the stage that receives the promotion"
+          },
+          "perGroupAdvance": {
+            "oneOf": [
+              {
+                "type": "number",
+                "minimum": 1
+              },
+              {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "number",
+                  "minimum": 1
+                }
+              }
+            ]
+          },
+          "combination": {
+            "type": "object",
+            "description": "ranked with a tiebreak pipeline, manual with an entrant order, or group-order",
+            "additionalProperties": true
+          },
+          "bands": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PromotionBandRequest"
+            }
+          }
+        },
+        "required": [
+          "nextStageNumber",
+          "perGroupAdvance",
+          "combination"
+        ]
+      },
+      "PromotionPlanResponse": {
+        "type": "object",
+        "properties": {
+          "promotionPlanId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "zoneId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nextStageId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "plan": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "promotionPlanId",
+          "zoneId",
+          "nextStageId",
+          "plan"
+        ]
+      },
+      "QualifiedEntrantResponse": {
+        "type": "object",
+        "properties": {
+          "entrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "groupId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "rank": {
+            "type": "number",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "entrantId",
+          "groupId",
+          "rank"
+        ]
+      },
+      "PromotionPreviewResponse": {
+        "type": "object",
+        "properties": {
+          "combined": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QualifiedEntrantResponse"
+            }
+          },
+          "bands": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/QualifiedEntrantResponse"
+              }
+            }
+          },
+          "trace": {
+            "additionalProperties": true,
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "required": [
+          "combined",
+          "trace"
         ]
       }
     }

@@ -346,6 +346,24 @@ export interface GroupsTable {
   created_at: Timestamp;
 }
 
+export interface PromotionPlansTable {
+  promotion_plan_id: string;
+  zone_id: string;
+  next_stage_id: string;
+  plan: JSONColumnType<Record<string, unknown>>;
+  created_at: Timestamp;
+}
+
+export interface ZoneEntrantsTable {
+  zone_id: string;
+  entrant_id: string;
+}
+
+export interface GroupEntrantsTable {
+  group_id: string;
+  entrant_id: string;
+}
+
 export interface FixturesTable {
   fixture_id: string;
   stage_id: string;
@@ -827,6 +845,9 @@ export interface Database {
   stages: StagesTable;
   zones: ZonesTable;
   groups: GroupsTable;
+  promotion_plans: PromotionPlansTable;
+  zone_entrants: ZoneEntrantsTable;
+  group_entrants: GroupEntrantsTable;
   fixtures: FixturesTable;
   matches: MatchesTable;
   segments: SegmentsTable;

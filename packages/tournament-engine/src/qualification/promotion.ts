@@ -29,6 +29,79 @@ export interface GroupPromotionOutcome {
   readonly trace: readonly TraceNode[];
 }
 
+export interface PromotionPlanGroup {
+  readonly groupId: string;
+  readonly number: number;
+  readonly entrantCount: number;
+}
+
+/**
+ * Validates the durable rule against the groups and destination zones that
+ * currently exist. Evaluation performs the same checks again against current
+ * standings, so a saved plan cannot become a silent invalid action later.
+ */
+export function validatePromotionPlan(
+  plan: PromotionPlan,
+  groups: readonly PromotionPlanGroup[],
+  destinationZoneRefs: readonly string[] = [],
+): void {
+  if (plan.zoneId.trim() === '' || plan.nextStageId.trim() === '') {
+    throw new QualificationError('A promotion plan needs source and destination stages', {});
+  }
+  if (groups.length === 0) {
+    throw new QualificationError('A promotion plan needs at least one source group', {});
+  }
+
+  const groupNumbers = new Set(groups.map((group) => group.number));
+  if (typeof plan.perGroupAdvance !== 'number') {
+    for (const key of Object.keys(plan.perGroupAdvance)) {
+      const groupNumber = Number(key);
+      if (!Number.isInteger(groupNumber) || !groupNumbers.has(groupNumber)) {
+        throw new QualificationError('Promotion count names a group outside the source zone', {
+          groupNumber: key,
+        });
+      }
+    }
+  }
+
+  let combinedCount = 0;
+  for (const group of groups) {
+    const advance = advanceFor(plan.perGroupAdvance, group.number);
+    if (advance > group.entrantCount) {
+      throw new QualificationError(
+        `Group ${group.number} cannot promote ${advance} of ${group.entrantCount} entrant(s)`,
+        { groupNumber: group.number, advance, entrantCount: group.entrantCount },
+      );
+    }
+    combinedCount += advance;
+  }
+
+  if (plan.bands === undefined || destinationZoneRefs.length === 0) return;
+  const destinations = new Set(destinationZoneRefs);
+  let bandCount = 0;
+  const used = new Set<string>();
+  for (const band of plan.bands) {
+    if (!destinations.has(band.zoneRef)) {
+      throw new QualificationError('Promotion band names an undeclared destination zone', {
+        zoneRef: band.zoneRef,
+      });
+    }
+    if (!Number.isInteger(band.count) || band.count < 1 || used.has(band.zoneRef)) {
+      throw new QualificationError('Promotion bands need unique zone references and positive counts', {
+        band,
+      });
+    }
+    used.add(band.zoneRef);
+    bandCount += band.count;
+  }
+  if (bandCount !== combinedCount) {
+    throw new QualificationError('Promotion band counts must exactly cover the combined qualifiers', {
+      bandCount,
+      qualified: combinedCount,
+    });
+  }
+}
+
 /**
  * Evaluates group promotion without persisting or generating a later stage.
  *
@@ -53,6 +126,15 @@ export function evaluateGroupPromotion(
       number: groupNumbers.get(groupId) ?? index + 1,
     }))
     .sort((left, right) => left.number - right.number);
+
+  validatePromotionPlan(
+    plan,
+    groups.map((group) => ({
+      groupId: group.groupId,
+      number: group.number,
+      entrantCount: group.accounting.length,
+    })),
+  );
 
   const perGroup = new Map<string, QualificationOutcome>();
   const qualified: QualifiedEntrant[] = [];

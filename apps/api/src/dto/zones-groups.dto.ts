@@ -131,3 +131,73 @@ export class ConfirmGroupDrawResponse extends DrawPreviewResponse {
   @ApiProperty({ type: GroupResponse, isArray: true })
   groups!: GroupResponse[];
 }
+
+export class PromotionBandRequest {
+  @ApiProperty({ example: 'Copa Oro' })
+  zoneRef!: string;
+
+  @ApiProperty({ minimum: 1, example: 4 })
+  count!: number;
+}
+
+export class SavePromotionPlanRequest {
+  @ApiProperty({ description: '1-based number of the stage that receives the promotion' })
+  nextStageNumber!: number;
+
+  @ApiProperty({
+    oneOf: [
+      { type: 'number', minimum: 1 },
+      { type: 'object', additionalProperties: { type: 'number', minimum: 1 } },
+    ],
+  })
+  perGroupAdvance!: number | Record<string, number>;
+
+  @ApiProperty({
+    description: 'ranked with a tiebreak pipeline, manual with an entrant order, or group-order',
+    type: 'object',
+    additionalProperties: true,
+  })
+  combination!: Record<string, unknown>;
+
+  @ApiPropertyOptional({ type: PromotionBandRequest, isArray: true })
+  bands?: PromotionBandRequest[];
+}
+
+export class PromotionPlanResponse {
+  @ApiProperty({ format: 'uuid' })
+  promotionPlanId!: string;
+
+  @ApiProperty({ format: 'uuid' })
+  zoneId!: string;
+
+  @ApiProperty({ format: 'uuid' })
+  nextStageId!: string;
+
+  @ApiProperty({ type: 'object', additionalProperties: true })
+  plan!: Record<string, unknown>;
+}
+
+export class QualifiedEntrantResponse {
+  @ApiProperty({ format: 'uuid' })
+  entrantId!: string;
+
+  @ApiProperty({ format: 'uuid' })
+  groupId!: string;
+
+  @ApiProperty({ minimum: 1 })
+  rank!: number;
+}
+
+export class PromotionPreviewResponse {
+  @ApiProperty({ type: QualifiedEntrantResponse, isArray: true })
+  combined!: QualifiedEntrantResponse[];
+
+  @ApiPropertyOptional({
+    type: 'object',
+    additionalProperties: { type: 'array', items: { $ref: '#/components/schemas/QualifiedEntrantResponse' } },
+  })
+  bands?: Record<string, QualifiedEntrantResponse[]>;
+
+  @ApiProperty({ type: 'object', isArray: true, additionalProperties: true })
+  trace!: Record<string, unknown>[];
+}

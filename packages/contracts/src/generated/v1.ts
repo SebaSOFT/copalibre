@@ -1468,6 +1468,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/promotion-plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Save a zone promotion plan without seeding its next stage */
+        post: operations["ZonesGroupsController_savePromotionPlan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/promotion-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Preview a zone promotion plan without writing or generating fixtures */
+        get: operations["ZonesGroupsController_previewPromotion"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2845,6 +2879,49 @@ export interface components {
             /** @description Search steps taken by the deterministic draw */
             steps: number;
             groups: components["schemas"]["GroupResponse"][];
+        };
+        PromotionBandRequest: {
+            /** @example Copa Oro */
+            zoneRef: string;
+            /** @example 4 */
+            count: number;
+        };
+        SavePromotionPlanRequest: {
+            /** @description 1-based number of the stage that receives the promotion */
+            nextStageNumber: number;
+            perGroupAdvance: number | {
+                [key: string]: number;
+            };
+            /** @description ranked with a tiebreak pipeline, manual with an entrant order, or group-order */
+            combination: {
+                [key: string]: unknown;
+            };
+            bands?: components["schemas"]["PromotionBandRequest"][];
+        };
+        PromotionPlanResponse: {
+            /** Format: uuid */
+            promotionPlanId: string;
+            /** Format: uuid */
+            zoneId: string;
+            /** Format: uuid */
+            nextStageId: string;
+            plan: {
+                [key: string]: unknown;
+            };
+        };
+        QualifiedEntrantResponse: {
+            /** Format: uuid */
+            entrantId: string;
+            /** Format: uuid */
+            groupId: string;
+            rank: number;
+        };
+        PromotionPreviewResponse: {
+            combined: components["schemas"]["QualifiedEntrantResponse"][];
+            bands?: {
+                [key: string]: components["schemas"]["QualifiedEntrantResponse"][];
+            };
+            trace: Record<string, never>[];
         };
     };
     responses: never;
@@ -5836,6 +5913,122 @@ export interface operations {
                 };
             };
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    ZonesGroupsController_savePromotionPlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                stageNumber: number;
+                zoneNumber: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SavePromotionPlanRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromotionPlanResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    ZonesGroupsController_previewPromotion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                stageNumber: number;
+                zoneNumber: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromotionPreviewResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

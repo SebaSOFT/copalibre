@@ -54,6 +54,14 @@ export {
   type CutResolution,
 } from './qualification/index.js';
 export {
+  evaluateGroupPromotion,
+  validatePromotionPlan,
+  type PromotionPlan,
+  type PromotionPlanGroup,
+  type QualifiedEntrant,
+  type GroupPromotionOutcome,
+} from './qualification/promotion.js';
+export {
   allocateSeeds,
   drawGroups,
   drawZones,
