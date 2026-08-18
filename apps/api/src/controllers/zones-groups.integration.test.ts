@@ -10,7 +10,7 @@ import { buildTestApp } from './test-support/integration-harness.js';
 import { ZonesGroupsController } from './zones-groups.controller.js';
 
 const AUDIT = { actor: 'user:seed', authorizationContext: 'seed' } as const;
-const organizationAlias = 'liga-zonas';
+const organizationAlias = 'liga-orbital';
 const tournamentAlias = 'copa-zonas';
 
 function descriptor(): DisciplineDescriptor {
@@ -283,7 +283,10 @@ describe('zone and group draw routes (integration)', () => {
                   entrantId: homeEntrantId,
                   statistics: { points: 6 - groupIndex * 2 - offset },
                 },
-                { entrantId: awayEntrantId, statistics: { points: 0 } },
+                {
+                  entrantId: awayEntrantId,
+                  statistics: { points: 5 - groupIndex * 2 - offset },
+                },
               ],
               winnerEntrantId: homeEntrantId,
               recordedAt: '2026-08-18T12:00:00.000Z',

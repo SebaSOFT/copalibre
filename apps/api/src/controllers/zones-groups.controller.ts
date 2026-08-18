@@ -369,17 +369,22 @@ export class ZonesGroupsController {
         context.tournament.disciplineRef.version,
       );
       if (!descriptor) throw new NotFoundException('Tournament discipline is not installed');
-      if (records.some((entry) => entry.record === undefined)) {
+      const groupRecords = records.flatMap(({ group, record }) =>
+        record === undefined ? [] : [{ group, record }],
+      );
+      if (groupRecords.length !== records.length) {
         throw new NotFoundException(`No source group records for zone ${zoneNumber}`);
       }
       const groupAccountings = new Map(
-        records.map((entry) => [
+        groupRecords.map((entry) => [
           entry.group.groupId,
-          computeAccounting(descriptor, entry.record!.entrantIds, entry.record!.outcomes),
+          computeAccounting(descriptor, entry.record.entrantIds, entry.record.outcomes),
         ]),
       );
-      const groupNumbers = new Map(records.map((entry) => [entry.group.groupId, entry.group.number]));
-      const pipeline = standingsPipeline(descriptor, records[0]?.record?.overrides ?? {});
+      const groupNumbers = new Map(
+        groupRecords.map((entry) => [entry.group.groupId, entry.group.number]),
+      );
+      const pipeline = standingsPipeline(descriptor, groupRecords[0]?.record.overrides ?? {});
       await this.validatePromotionPlan(context.stage.stageId, plan, groupAccountings);
       const outcome = evaluateGroupPromotion(plan, groupAccountings, pipeline, groupNumbers);
       return {

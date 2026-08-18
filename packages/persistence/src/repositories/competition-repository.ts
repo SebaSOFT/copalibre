@@ -27,7 +27,6 @@ import { newId } from '../ids.js';
 import {
   toFixture,
   toGroup,
-  toIsoString,
   toMatch,
   toRecordedEvent,
   toSegment,
@@ -753,12 +752,18 @@ export class CompetitionRepository {
       });
     }
 
-    const scopedFixtures = await Promise.all(
-      input.fixtures.map(async (fixture) => ({
+    // Scope creation is intentionally ordered: the first unscoped fixture may
+    // create the implicit zone/group, which every later fixture in this same
+    // transaction must then reuse.
+    const scopedFixtures = [] as Array<
+      (typeof input.fixtures)[number] & { readonly zoneId: string; readonly groupId: string }
+    >;
+    for (const fixture of input.fixtures) {
+      scopedFixtures.push({
         ...fixture,
         ...(await this.resolveFixtureScope(uow, input, fixture)),
-      })),
-    );
+      });
+    }
     const rows = await uow.tx
       .insertInto('fixtures')
       .values(

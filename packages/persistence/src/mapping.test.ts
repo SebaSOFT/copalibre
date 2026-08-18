@@ -1,8 +1,14 @@
 import {
   toEntrant,
+  toEntrantAttribute,
+  toFixture,
+  toGroup,
+  toIdentityPrincipal,
   toIsoString,
   toMatch,
   toOfficial,
+  toOrganizationInvitation,
+  toOrganizationRoleAssignment,
   toResourceAssignment,
   toVenue,
   toOrganization,
@@ -11,11 +17,18 @@ import {
   toStage,
   toTeam,
   toClub,
+  toZone,
   type ClubRow,
+  type EntrantAttributeRow,
   toTournament,
   type EntrantRow,
   type MatchEventRow,
   type MatchRow,
+  type FixtureRow,
+  type GroupRow,
+  type IdentityPrincipalRow,
+  type OrganizationInviteRow,
+  type OrganizationRoleAssignmentRow,
   type OrganizationRow,
   type SegmentRow,
   type OfficialRow,
@@ -23,6 +36,7 @@ import {
   type VenueRow,
   type TeamRow,
   type TournamentRow,
+  type ZoneRow,
 } from './mapping.js';
 
 const CREATED = new Date('2026-07-29T12:00:00.000Z');
@@ -44,6 +58,61 @@ describe('snake_case row → camelCase domain mapping', () => {
       primaryLanguage: 'es',
       timezone: 'UTC',
     });
+  });
+
+  it('maps organization access rows and omits nullable identity fields', () => {
+    const assignment = toOrganizationRoleAssignment({
+      assignment_id: 'assignment-1',
+      organization_id: 'org-1',
+      principal_id: 'principal-1',
+      email: 'organizer@example.test',
+      role: 'admin',
+      status: 'active',
+      created_at: CREATED,
+      updated_at: CREATED,
+      deleted_at: CREATED,
+    } as OrganizationRoleAssignmentRow);
+    const identity = toIdentityPrincipal({
+      principal_id: 'principal-1',
+      email: 'organizer@example.test',
+      oidc_subject_id: null,
+      name: null,
+      picture: null,
+      created_at: CREATED,
+      updated_at: CREATED,
+    } as IdentityPrincipalRow);
+    const invitation = toOrganizationInvitation({
+      invitation_id: 'invite-1',
+      organization_id: 'org-1',
+      recipient_email: 'referee@example.test',
+      role: 'referee',
+      status: 'pending',
+      token_hash: 'hash',
+      expires_at: CREATED,
+      accepted_at: null,
+      accepted_principal_id: null,
+      created_at: CREATED,
+    } as OrganizationInviteRow);
+
+    expect(assignment).toMatchObject({
+      assignmentId: 'assignment-1',
+      deletedAt: '2026-07-29T12:00:00.000Z',
+    });
+    expect(identity).toEqual({ principalId: 'principal-1', email: 'organizer@example.test' });
+    expect(invitation.expiresAt).toBe('2026-07-29T12:00:00.000Z');
+    expect(
+      toIdentityPrincipal({
+        ...({
+          principal_id: 'principal-2',
+          email: 'complete@example.test',
+          oidc_subject_id: 'oidc-2',
+          name: 'Complete Identity',
+          picture: 'https://example.test/avatar.png',
+          created_at: CREATED,
+          updated_at: CREATED,
+        } as IdentityPrincipalRow),
+      }),
+    ).toMatchObject({ oidcSubjectId: 'oidc-2', name: 'Complete Identity' });
   });
 
   it('maps a tournament row, lifting descriptor columns into disciplineRef', () => {
@@ -135,6 +204,25 @@ describe('snake_case row → camelCase domain mapping', () => {
     expect(mapped.seed).toBeUndefined();
   });
 
+  it('maps numeric and categorical entrant attributes', () => {
+    expect(
+      toEntrantAttribute({
+        kind: 'numeric',
+        key: 'ranking',
+        value_numeric: 42,
+        value_text: null,
+      } as EntrantAttributeRow),
+    ).toEqual({ key: 'ranking', kind: 'numeric', value: 42 });
+    expect(
+      toEntrantAttribute({
+        kind: 'categorical',
+        key: 'region',
+        value_numeric: null,
+        value_text: 'cuyo',
+      } as EntrantAttributeRow),
+    ).toEqual({ key: 'region', kind: 'categorical', value: 'cuyo' });
+  });
+
   it('maps a stage row', () => {
     const row: StageRow = {
       stage_id: 's-1',
@@ -152,6 +240,33 @@ describe('snake_case row → camelCase domain mapping', () => {
       name: 'Group Stage',
       format: 'round-robin',
       stageConfigurationId: undefined,
+    });
+  });
+
+  it('maps zone, group, and fixture scope fields without leaking nulls', () => {
+    expect(
+      toZone({ zone_id: 'z-1', stage_id: 's-1', number: 1, name: 'Zona Norte' } as ZoneRow),
+    ).toEqual({ zoneId: 'z-1', stageId: 's-1', number: 1, name: 'Zona Norte' });
+    expect(
+      toGroup({ group_id: 'g-1', zone_id: 'z-1', number: 2, name: 'Grupo B' } as GroupRow),
+    ).toEqual({ groupId: 'g-1', zoneId: 'z-1', number: 2, name: 'Grupo B' });
+    expect(
+      toFixture({
+        fixture_id: 'f-1',
+        stage_id: 's-1',
+        zone_id: 'z-1',
+        group_id: 'g-1',
+        round: 1,
+        home_entrant_id: 'e-1',
+        away_entrant_id: null,
+        scheduled_at: CREATED,
+        created_at: CREATED,
+      } as FixtureRow),
+    ).toMatchObject({
+      zoneId: 'z-1',
+      groupId: 'g-1',
+      homeEntrantId: 'e-1',
+      scheduledAt: '2026-07-29T12:00:00.000Z',
     });
   });
 
@@ -272,6 +387,9 @@ describe('mapping edge cases', () => {
       archived_at: null,
     };
     expect(toTournament(row).rulesetId).toBe('rs-1');
+    expect(toTournament({ ...row, archived_at: CREATED }).archivedAt).toBe(
+      '2026-07-29T12:00:00.000Z',
+    );
   });
 
   it('maps a stage that already has a configuration attached', () => {
@@ -285,6 +403,34 @@ describe('mapping edge cases', () => {
       created_at: CREATED,
     };
     expect(toStage(row).stageConfigurationId).toBe('sc-1');
+  });
+
+  it('omits absent fixture scope and inactive segment clock fields', () => {
+    expect(
+      toFixture({
+        fixture_id: 'f-2',
+        stage_id: 's-1',
+        zone_id: null,
+        group_id: null,
+        round: 2,
+        home_entrant_id: null,
+        away_entrant_id: null,
+        scheduled_at: null,
+        created_at: CREATED,
+      } as FixtureRow),
+    ).toEqual({ fixtureId: 'f-2', stageId: 's-1', round: 2 });
+    expect(
+      toSegment({
+        segment_id: 'sg-2',
+        match_id: 'm-1',
+        segment_type: 'half',
+        number: 2,
+        state: 'pending',
+        elapsed_seconds: 0,
+        clock_started_at: null,
+        created_at: CREATED,
+      } as SegmentRow).clockStartedAt,
+    ).toBeUndefined();
   });
 });
 

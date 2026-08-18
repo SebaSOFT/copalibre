@@ -260,10 +260,12 @@ describe('evaluateGroupPromotion', () => {
   });
 
   it('ranks uneven groups by average points per game, rather than raw points totals', () => {
+    const [pointParameter] = points.parameters;
+    if (!pointParameter) throw new Error('Expected the points tiebreak parameter');
     const pointsPerGame: TiebreakPipeline = {
       ...points,
       id: 'points-per-game',
-      parameters: [{ ...points.parameters[0]!, id: 'points-per-game', label: 'Points per game' }],
+      parameters: [{ ...pointParameter, id: 'points-per-game', label: 'Points per game' }],
     };
     const groups = new Map([
       [
