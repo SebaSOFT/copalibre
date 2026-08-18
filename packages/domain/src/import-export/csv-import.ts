@@ -125,7 +125,7 @@ function validateRow(
   const alias = values.alias?.trim();
   if (!alias) {
     errors.push({ column: 'alias', message: 'Alias is required' });
-  } else if (!Alias.create('participant', alias).ok) {
+  } else if (!Alias.create('entrant', alias).ok) {
     errors.push({ column: 'alias', message: 'Alias must be lowercase kebab-case' });
   }
 
@@ -149,7 +149,7 @@ function validateRow(
     const teamAlias = values.teamAlias?.trim();
     if (!teamAlias) {
       errors.push({ column: 'teamAlias', message: 'teamAlias is required' });
-    } else if (!Alias.create('participant', teamAlias).ok) {
+    } else if (!Alias.create('entrant', teamAlias).ok) {
       errors.push({ column: 'teamAlias', message: 'teamAlias must be lowercase kebab-case' });
     } else if (!knownTeamAliases.includes(teamAlias)) {
       errors.push({

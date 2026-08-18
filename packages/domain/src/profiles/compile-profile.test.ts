@@ -38,6 +38,18 @@ const locked = () => {
   });
 };
 
+/** Discipline permitting its win condition to be merged, by the given strategy. */
+const mergeable = (strategy: 'shallow-object' | 'append-list') => {
+  const base = fixtureDescriptor(scoring);
+  return fixtureDescriptor({
+    ...scoring,
+    fieldPolicies: {
+      ...base.fieldPolicies,
+      winCondition: { permission: { kind: 'merged', strategy }, mutationClass: 'requires_rebuild' },
+    },
+  });
+};
+
 describe('compileProfile', () => {
   it('compiles and freezes the binding onto the snapshot', () => {
     const compiled = compileProfile(flexible(), fixtureProfile());
@@ -95,24 +107,58 @@ describe('compileProfile', () => {
 
 describe('effectiveWinCondition', () => {
   it('uses the discipline value when the profile does not override', () => {
-    expect(effectiveWinCondition(flexible(), fixtureProfile())).toEqual(
-      fixtureDescriptor().winCondition,
-    );
+    const result = effectiveWinCondition(flexible(), fixtureProfile());
+    expect(result.ok && result.value).toEqual(fixtureDescriptor().winCondition);
   });
 
   it('uses the profile value where permitted — timed race over competition race', () => {
-    expect(
-      effectiveWinCondition(flexible(), fixtureProfile({ winConditionOverride: timedRace })),
-    ).toEqual(timedRace);
+    const result = effectiveWinCondition(
+      flexible(),
+      fixtureProfile({ winConditionOverride: timedRace }),
+    );
+    expect(result.ok && result.value).toEqual(timedRace);
   });
 
   it('keeps the discipline value where the override is forbidden', () => {
-    expect(
-      effectiveWinCondition(locked(), fixtureProfile({ winConditionOverride: timedRace })),
-    ).toEqual(fixtureDescriptor().winCondition);
+    const result = effectiveWinCondition(
+      locked(),
+      fixtureProfile({ winConditionOverride: timedRace }),
+    );
+    expect(result.ok && result.value).toEqual(fixtureDescriptor().winCondition);
   });
 
   it('uses the discipline value when no profile is supplied', () => {
-    expect(effectiveWinCondition(flexible())).toEqual(fixtureDescriptor().winCondition);
+    const result = effectiveWinCondition(flexible());
+    expect(result.ok && result.value).toEqual(fixtureDescriptor().winCondition);
+  });
+
+  it('merges, rather than replaces, a win condition whose policy declares a merge strategy', () => {
+    // Only overrides `id` — a full replacement would lose `rules` entirely;
+    // a real shallow-object merge keeps the discipline's `rules` alongside it.
+    const override = { id: 'custom-timing' };
+    const result = effectiveWinCondition(
+      mergeable('shallow-object'),
+      fixtureProfile({ winConditionOverride: override }),
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value).toEqual({
+      ...fixtureDescriptor().winCondition,
+      id: 'custom-timing',
+    });
+  });
+
+  it('fails explicitly when the declared merge strategy cannot apply to the two values', () => {
+    // `append-list` requires both sides to be arrays; a RuleScript is a plain object.
+    const result = effectiveWinCondition(
+      mergeable('append-list'),
+      fixtureProfile({ winConditionOverride: { id: 'custom-timing' } }),
+    );
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error).toMatchObject({
+      field: 'winCondition',
+      reason: 'missing-merge-strategy',
+    });
   });
 });

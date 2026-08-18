@@ -823,6 +823,28 @@ export function validateDisciplineDescriptorDocument(
       ),
     );
   }
+  const duplicateRosterRole = firstDuplicate(
+    (descriptor.rosterRoles ?? []).map((role) => role.code),
+  );
+  if (duplicateRosterRole) {
+    return err(
+      new DescriptorValidationError(
+        `Discipline descriptor declares roster role "${duplicateRosterRole}" more than once`,
+        { field: 'rosterRoles', code: duplicateRosterRole },
+      ),
+    );
+  }
+  for (const table of descriptor.tableLayouts ?? []) {
+    const duplicateColumn = firstDuplicate(table.columns.map((column) => column.code));
+    if (duplicateColumn) {
+      return err(
+        new DescriptorValidationError(
+          `Table "${table.code}" declares column "${duplicateColumn}" more than once`,
+          { field: 'tableLayouts', table: table.code, code: duplicateColumn },
+        ),
+      );
+    }
+  }
   return ok(descriptor);
 }
 

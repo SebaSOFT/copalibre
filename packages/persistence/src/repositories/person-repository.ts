@@ -50,7 +50,7 @@ export class PersonRepository {
 
     const alias =
       input.alias ?? (await this.suggestPersonAlias(input.organizationId, input.displayName));
-    const validatedAlias = Alias.create('participant', alias);
+    const validatedAlias = Alias.create('entrant', alias);
     if (!validatedAlias.ok) {
       throw new InvariantViolationError(validatedAlias.error.message, { alias });
     }

@@ -64,7 +64,7 @@ export class EnrollmentRepository {
     // named "Talleres" is ordinary, and making the second one's organizer
     // invent a suffix by hand is not.
     const alias = input.alias ?? (await this.suggestClubAlias(input.organizationId, input.name));
-    assertAlias(alias);
+    assertClubAlias(alias);
 
     const clubId = newId();
     const row = await uow.tx
@@ -128,7 +128,7 @@ export class EnrollmentRepository {
     } & Omit<AuditContext, 'organizationId'>,
   ): Promise<Club> {
     if (input.abbreviation !== null) assertAbbreviation(input.abbreviation);
-    assertAlias(input.alias);
+    assertClubAlias(input.alias);
 
     const previous = await this.findClub(input.clubId);
     const row = await uow.tx
@@ -180,7 +180,7 @@ export class EnrollmentRepository {
     assertAbbreviation(input.abbreviation);
     const alias =
       input.alias ?? (await this.suggestTeamAlias(uow.tx, input.organizationId, input.name));
-    assertAlias(alias);
+    assertEntrantAlias(alias);
 
     const teamId = newId();
     const row = await uow.tx
@@ -912,10 +912,19 @@ function assertAbbreviation(value: string | undefined): void {
   }
 }
 
-/** Refuses a malformed alias with the reason, rather than with a unique-index error. */
-function assertAlias(value: string | undefined): void {
+/** Refuses a malformed club alias with the reason, rather than with a unique-index error. */
+function assertClubAlias(value: string | undefined): void {
   if (value === undefined) return;
-  const alias = Alias.create('participant', value);
+  const alias = Alias.create('club', value);
+  if (!alias.ok) {
+    throw new InvariantViolationError(alias.error.message, { alias: value });
+  }
+}
+
+/** Refuses a malformed team alias with the reason, rather than with a unique-index error. */
+function assertEntrantAlias(value: string | undefined): void {
+  if (value === undefined) return;
+  const alias = Alias.create('entrant', value);
   if (!alias.ok) {
     throw new InvariantViolationError(alias.error.message, { alias: value });
   }
