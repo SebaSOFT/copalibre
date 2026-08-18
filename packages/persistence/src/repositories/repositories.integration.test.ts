@@ -505,7 +505,7 @@ describe('repositories (integration)', () => {
     const audit = await new AuditReader(scratch.db).historyFor('entrant', ids.colliding);
     expect(audit.at(-1)).toMatchObject({
       action: 'entrant.abbreviation-set',
-      previousState: { abbreviation: undefined },
+      previousState: { abbreviation: null },
       resultingState: { abbreviation: 'C I 2' },
     });
   });

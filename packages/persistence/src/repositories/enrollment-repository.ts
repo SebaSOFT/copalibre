@@ -455,7 +455,7 @@ export class EnrollmentRepository {
       action: 'entrant.abbreviation-set',
       actor: input.actor,
       authorizationContext: input.authorizationContext,
-      previousState: { abbreviation: before.abbreviation },
+      previousState: { abbreviation: before.abbreviation ?? null },
       resultingState: { abbreviation: entrant.abbreviation },
     });
     await uow.publishEvent({
