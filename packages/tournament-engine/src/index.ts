@@ -55,6 +55,8 @@ export {
 } from './qualification/index.js';
 export {
   allocateSeeds,
+  drawGroups,
+  drawZones,
   type AllocationEntrant,
   type AllocationInput,
   type AllocationOutcome,

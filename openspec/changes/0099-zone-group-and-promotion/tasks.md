@@ -39,7 +39,7 @@
 
 ## 3. Entrant assignment — constrained draw into zones and groups
 
-- [ ] 3.1 `packages/tournament-engine/src/allocation/` (or alongside `qualification/` — implementer's
+- [x] 3.1 `packages/tournament-engine/src/allocation/` (or alongside `qualification/` — implementer's
       call): `drawZones(entrants, constraints, zoneCount, seed): DrawOutcome` — a thin wrapper calling
       `runDraw({ entrants, constraints, shape: {kind:'groups', count: zoneCount}, seed })` unchanged, no
       new solver logic. `drawGroups(zoneEntrants, constraints, groupCount, seed): DrawOutcome` — the
@@ -54,7 +54,7 @@
       groups/draw`. A preview variant (mirroring the existing schedule/qualification preview pattern):
       runs the draw, returns the assignment and trace, commits nothing until a separate confirm call —
       an operator should see *which* draw a seed produced before it is final.
-- [ ] 3.4 Unit tests: a region-`SeparationConstraint` produces a zone/group assignment with no two
+- [x] 3.4 Unit tests: a region-`SeparationConstraint` produces a zone/group assignment with no two
       same-region entrants sharing a zone/group (property-checked across several seeds, not one
       example); a tier-`DistributionConstraint` (`max: 1` per group) never places two same-tier
       entrants together; an unsatisfiable constraint set (more same-region entrants than zones can
