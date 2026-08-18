@@ -45,7 +45,7 @@ export interface StageMatchRecord {
 export class StageReadModel {
   constructor(private readonly db: Kysely<Database>) {}
 
-  async stageRecord(stageId: string): Promise<StageRecord | undefined> {
+  async stageRecord(stageId: string, groupId?: string): Promise<StageRecord | undefined> {
     const stage = await this.db
       .selectFrom('stages')
       .leftJoin(
@@ -58,7 +58,7 @@ export class StageReadModel {
       .executeTakeFirst();
     if (!stage) return undefined;
 
-    const matches = await this.matches(stageId);
+    const matches = await this.matches(stageId, groupId);
     const entrantIds: string[] = [];
     for (const match of matches) {
       for (const entrantId of [match.homeEntrantId, match.awayEntrantId]) {
@@ -66,7 +66,7 @@ export class StageReadModel {
       }
     }
 
-    const outcomes = await this.outcomes(stageId);
+    const outcomes = await this.outcomes(stageId, groupId);
     return {
       stageId: stage.stage_id,
       format: stage.format as TournamentFormat,
@@ -85,8 +85,8 @@ export class StageReadModel {
    * fixtures are inserted in one statement, in generation order, so their order
    * *is* the generated bracket's order.
    */
-  async matches(stageId: string): Promise<readonly StageMatchRecord[]> {
-    const rows = await this.db
+  async matches(stageId: string, groupId?: string): Promise<readonly StageMatchRecord[]> {
+    let query = this.db
       .selectFrom('fixtures')
       .leftJoin('matches', 'matches.fixture_id', 'fixtures.fixture_id')
       .select([
@@ -99,7 +99,9 @@ export class StageReadModel {
         'matches.status',
         'matches.result',
       ])
-      .where('fixtures.stage_id', '=', stageId)
+      .where('fixtures.stage_id', '=', stageId);
+    if (groupId !== undefined) query = query.where('fixtures.group_id', '=', groupId);
+    const rows = await query
       .orderBy('fixtures.round')
       .orderBy('fixtures.created_at')
       .orderBy('fixtures.fixture_id')
@@ -130,15 +132,15 @@ export class StageReadModel {
   }
 
   /** Finalized results as the accounting engine reads them. */
-  async outcomes(stageId: string): Promise<readonly RecordedOutcome[]> {
-    const rows = await this.db
+  async outcomes(stageId: string, groupId?: string): Promise<readonly RecordedOutcome[]> {
+    let query = this.db
       .selectFrom('matches')
       .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
       .select(['matches.match_id', 'matches.result'])
       .where('fixtures.stage_id', '=', stageId)
-      .where('matches.result', 'is not', null)
-      .orderBy('matches.number')
-      .execute();
+      .where('matches.result', 'is not', null);
+    if (groupId !== undefined) query = query.where('fixtures.group_id', '=', groupId);
+    const rows = await query.orderBy('matches.number').execute();
 
     return rows.flatMap((row) => {
       const result = row.result as unknown as RecordedOutcome | null;

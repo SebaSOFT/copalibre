@@ -35,6 +35,8 @@ export interface TableProjectionScope {
   };
   /** Absent reads the whole tournament; present narrows to one stage. */
   readonly stageId?: string;
+  /** Optional pool within a stage; its fixture membership is the read boundary. */
+  readonly groupId?: string;
 }
 
 export interface TableProjectionResult {
@@ -120,7 +122,9 @@ export async function readTableProjection(
   const competitionId = scope.stageId ?? scope.tournament.tournamentId;
 
   const matchIds = scope.stageId
-    ? (await new StageReadModel(db).matches(scope.stageId)).map((match) => match.matchId)
+    ? (await new StageReadModel(db).matches(scope.stageId, scope.groupId)).map(
+        (match) => match.matchId,
+      )
     : await new CompetitionRepository(db).listFinalizedMatches({
         organizationId: scope.organizationId,
         tournamentId: scope.tournament.tournamentId,
@@ -132,7 +136,13 @@ export async function readTableProjection(
 
   const collectorFigures = await figuresForCollectors(db, {
     organizationId: scope.organizationId,
-    codes: [...referencedCodes].filter((code) => collectorByCode.has(code)),
+    codes: [...referencedCodes].filter((code) => {
+      const collector = collectorByCode.get(code);
+      return (
+        collector !== undefined &&
+        (scope.groupId === undefined || collector.granularity.competition === 'match')
+      );
+    }),
     collectorByCode,
     entityGranularity: layout.entityGranularity,
     competitionGranularity,
@@ -145,6 +155,7 @@ export async function readTableProjection(
       ? await statisticsBridgeFigures(db, {
           descriptor,
           stageId: scope.stageId,
+          groupId: scope.groupId,
           codes: [...referencedCodes].filter(
             (code) => !collectorByCode.has(code) && statisticCodes.has(code),
           ),
@@ -264,12 +275,13 @@ async function statisticsBridgeFigures(
   input: {
     readonly descriptor: DisciplineDescriptor;
     readonly stageId: string;
+    readonly groupId?: string;
     readonly codes: readonly string[];
   },
 ): Promise<readonly CollectedFigure[]> {
   if (input.codes.length === 0) return [];
 
-  const record = await new StageReadModel(db).stageRecord(input.stageId);
+  const record = await new StageReadModel(db).stageRecord(input.stageId, input.groupId);
   if (!record) return [];
 
   const standings = computeStandings(

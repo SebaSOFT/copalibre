@@ -5,6 +5,7 @@ import {
   NotFoundException,
   Param,
   ParseIntPipe,
+  Query,
   Req,
 } from '@nestjs/common';
 import {
@@ -67,6 +68,7 @@ export class StandingsController {
     @Param('organizationAlias') organizationAlias: string,
     @Param('tournamentAlias') tournamentAlias: string,
     @Param('stageNumber', ParseIntPipe) stageNumber: number,
+    @Query('groupId') groupId: string | undefined,
     @Req() request: RequestWithSubject,
   ): Promise<StandingsResponse> {
     const { tournament } = await resolveTournament(this.db, {
@@ -75,7 +77,7 @@ export class StandingsController {
       request,
     });
 
-    const result = await readStandings(this.db, tournament, stageNumber);
+    const result = await readStandings(this.db, tournament, stageNumber, groupId);
     return {
       stageId: result.stageId,
       projectionVersion: result.projectionVersion,
@@ -102,6 +104,7 @@ export class StandingsController {
     @Param('organizationAlias') organizationAlias: string,
     @Param('tournamentAlias') tournamentAlias: string,
     @Param('stageNumber', ParseIntPipe) stageNumber: number,
+    @Query('groupId') groupId: string | undefined,
     @Param('entrantId') entrantId: string,
     @Req() request: RequestWithSubject,
   ): Promise<TiebreakTraceResponse> {
@@ -111,7 +114,7 @@ export class StandingsController {
       request,
     });
 
-    const result = await readStandings(this.db, tournament, stageNumber);
+    const result = await readStandings(this.db, tournament, stageNumber, groupId);
     const row = result.rows.find((candidate) => candidate.entrantId === entrantId);
     if (!row) throw new NotFoundException(`No entrant ${entrantId} in this stage’s standings`);
 

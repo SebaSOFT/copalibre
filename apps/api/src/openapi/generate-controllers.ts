@@ -17,6 +17,7 @@ import { DisplayTokenController } from '../controllers/broadcast.controller.js';
 import { StandingsController } from '../controllers/standings.controller.js';
 import { TableProjectionsController } from '../controllers/table-projections.controller.js';
 import { TournamentsController } from '../controllers/tournaments.controller.js';
+import { ZonesGroupsController } from '../controllers/zones-groups.controller.js';
 import {
   InvitationAcceptanceController,
   OrganizationAccessController,
@@ -76,4 +77,5 @@ export const OPENAPI_CONTROLLERS = [
   AdminModulesController,
   PersonMediaController,
   ClubMediaController,
+  ZonesGroupsController,
 ] as const;

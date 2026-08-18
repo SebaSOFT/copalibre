@@ -1,4 +1,13 @@
-import { Controller, Get, Header, Inject, NotFoundException, Param, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Header,
+  Inject,
+  NotFoundException,
+  Param,
+  Query,
+  Req,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiForbiddenResponse,
@@ -139,6 +148,7 @@ export class TableProjectionsController {
     @Param('tournamentAlias') tournamentAlias: string,
     @Param('stageNumber') stageNumberParam: string,
     @Param('layoutCode') layoutCode: string,
+    @Query('groupId') groupId: string | undefined,
     @Req() request: RequestWithSubject,
   ): Promise<TableProjectionResponse> {
     return tableResponse(
@@ -147,6 +157,7 @@ export class TableProjectionsController {
         tournamentAlias,
         stageNumberParam,
         layoutCode,
+        groupId,
         request,
       ),
     );
@@ -168,6 +179,7 @@ export class TableProjectionsController {
     @Param('tournamentAlias') tournamentAlias: string,
     @Param('stageNumber') stageNumberParam: string,
     @Param('layoutCode') layoutCode: string,
+    @Query('groupId') groupId: string | undefined,
     @Req() request: RequestWithSubject,
   ): Promise<string> {
     return tableCsv(
@@ -176,6 +188,7 @@ export class TableProjectionsController {
         tournamentAlias,
         stageNumberParam,
         layoutCode,
+        groupId,
         request,
       ),
     );
@@ -211,6 +224,7 @@ export class TableProjectionsController {
     tournamentAlias: string,
     stageNumberParam: string,
     layoutCode: string,
+    groupId: string | undefined,
     request: RequestWithSubject,
   ): Promise<TableProjectionResult> {
     const stageNumber = Number.parseInt(stageNumberParam, 10);
@@ -235,6 +249,7 @@ export class TableProjectionsController {
           disciplineRef: tournament.disciplineRef,
         },
         stageId: stage.stageId,
+        groupId,
       },
       layoutCode,
     );
