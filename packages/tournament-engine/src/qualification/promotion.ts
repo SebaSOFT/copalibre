@@ -24,6 +24,12 @@ export interface QualifiedEntrant {
 
 export interface GroupPromotionOutcome {
   readonly perGroup: ReadonlyMap<string, QualificationOutcome>;
+  /** Matches QualificationOutcome: promoted entrant ids in final seed order. */
+  readonly qualified: readonly string[];
+  /** Entrants left behind by their source-group promotion cut. */
+  readonly eliminated: readonly string[];
+  /** A group promotion only returns after every source cut and cohort is resolved. */
+  readonly resolved: true;
   readonly combined: readonly QualifiedEntrant[];
   readonly bands?: Readonly<Record<string, readonly QualifiedEntrant[]>>;
   readonly trace: readonly TraceNode[];
@@ -170,6 +176,9 @@ export function evaluateGroupPromotion(
   const combined = combine(plan.combination, qualified, accountingByEntrant, trace);
   return {
     perGroup,
+    qualified: combined.map((entry) => entry.entrantId),
+    eliminated: [...perGroup.values()].flatMap((outcome) => outcome.eliminated),
+    resolved: true,
     combined,
     ...(plan.bands === undefined ? {} : { bands: applyBands(plan.bands, combined) }),
     trace,

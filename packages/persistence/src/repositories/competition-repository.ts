@@ -157,6 +157,7 @@ export class CompetitionRepository {
       readonly name: string;
     } & AuditContext,
   ): Promise<Zone> {
+    await this.assertStageHasNoFixtures(uow, input.stageId);
     const zone: Zone = { zoneId: newId(), ...input };
     const valid = validateZone(zone);
     if (!valid.ok) throw new InvariantViolationError(valid.error.message, valid.error.details);
@@ -219,6 +220,15 @@ export class CompetitionRepository {
       readonly name: string;
     } & AuditContext,
   ): Promise<Group> {
+    const zoneRow = await uow.tx
+      .selectFrom('zones')
+      .select('stage_id')
+      .where('zone_id', '=', input.zoneId)
+      .executeTakeFirst();
+    if (!zoneRow) {
+      throw new NotFoundError(`Zone ${input.zoneId} does not exist`, { zoneId: input.zoneId });
+    }
+    await this.assertStageHasNoFixtures(uow, zoneRow.stage_id);
     const group: Group = { groupId: newId(), ...input };
     const valid = validateGroup(group);
     if (!valid.ok) throw new InvariantViolationError(valid.error.message, valid.error.details);

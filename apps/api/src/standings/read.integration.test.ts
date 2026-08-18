@@ -221,4 +221,131 @@ describe('readStandings (integration)', () => {
     expect(materialised.trace).toEqual(live.trace);
     expect(materialised.fullyResolved).toBe(live.fullyResolved);
   });
+
+  it('keeps standings independent for two groups in one stage', async () => {
+    const AUDIT = { actor: 'user:groups', authorizationContext: 'seed' } as const;
+    const disciplineDescriptor = descriptor();
+    const result = await withTransaction(scratch.db, async (uow) => {
+      const organization = await new OrganizationRepository(scratch.db).create(uow, {
+        alias: 'org-groups',
+        name: 'Org Groups',
+        ...AUDIT,
+      });
+      const organizationId = organization.organizationId;
+      const tournaments = new TournamentRepository(scratch.db);
+      await tournaments.saveDescriptor(uow, disciplineDescriptor, { organizationId, ...AUDIT });
+      const tournament = await tournaments.create(uow, {
+        alias: 'standings-groups',
+        name: 'Standings Groups',
+        descriptor: disciplineDescriptor,
+        organizationId,
+        ...AUDIT,
+      });
+      const enrollment = new EnrollmentRepository(scratch.db);
+      const entrantIds: string[] = [];
+      for (const name of ['A1', 'A2', 'B1', 'B2']) {
+        const team = await enrollment.createTeam(uow, { name, organizationId, ...AUDIT });
+        const entrant = await enrollment.registerEntrant(uow, {
+          tournamentId: tournament.tournamentId,
+          entrantRef: { kind: 'team', teamId: team.teamId },
+          organizationId,
+          ...AUDIT,
+        });
+        entrantIds.push(entrant.entrantId);
+      }
+      const competition = new CompetitionRepository(scratch.db);
+      const season = await competition.currentSeason(uow, {
+        tournamentId: tournament.tournamentId,
+        organizationId,
+        ...AUDIT,
+      });
+      const stage = await competition.createStage(uow, {
+        seasonId: season.seasonId,
+        number: 1,
+        name: 'Groups',
+        format: 'round-robin',
+        organizationId,
+        ...AUDIT,
+      });
+      const zone = await competition.createZone(uow, {
+        stageId: stage.stageId,
+        number: 1,
+        name: 'Zona única',
+        organizationId,
+        ...AUDIT,
+      });
+      const groupA = await competition.createGroup(uow, {
+        zoneId: zone.zoneId,
+        number: 1,
+        name: 'Grupo A',
+        organizationId,
+        ...AUDIT,
+      });
+      const groupB = await competition.createGroup(uow, {
+        zoneId: zone.zoneId,
+        number: 2,
+        name: 'Grupo B',
+        organizationId,
+        ...AUDIT,
+      });
+      const fixtures = await competition.createFixtures(uow, {
+        stageId: stage.stageId,
+        fixtures: [
+          {
+            round: 1,
+            zoneId: zone.zoneId,
+            groupId: groupA.groupId,
+            homeEntrantId: entrantIds[0],
+            awayEntrantId: entrantIds[1],
+          },
+          {
+            round: 1,
+            zoneId: zone.zoneId,
+            groupId: groupB.groupId,
+            homeEntrantId: entrantIds[2],
+            awayEntrantId: entrantIds[3],
+          },
+        ],
+        organizationId,
+        ...AUDIT,
+      });
+      for (const [index, fixture] of fixtures.entries()) {
+        const match = await competition.createMatch(uow, {
+          fixtureId: fixture.fixtureId,
+          number: index + 1,
+          organizationId,
+          ...AUDIT,
+        });
+        const winner = entrantIds[index * 2] as string;
+        const loser = entrantIds[index * 2 + 1] as string;
+        await competition.recordResult(uow, {
+          matchId: match.matchId,
+          result: {
+            sides: [
+              { entrantId: winner, statistics: { points: 3, 'goals-for': 2, played: 1 } },
+              { entrantId: loser, statistics: { points: 0, 'goals-for': 1, played: 1 } },
+            ],
+            winnerEntrantId: winner,
+            recordedAt: new Date().toISOString(),
+          },
+          organizationId,
+          ...AUDIT,
+        });
+      }
+      return { tournament, groupA, groupB, entrantIds };
+    });
+
+    const tournament = {
+      tournamentId: result.tournament.tournamentId,
+      disciplineRef: {
+        descriptorId: result.tournament.disciplineRef.descriptorId,
+        version: String(result.tournament.disciplineRef.version),
+      },
+    };
+    const groupA = await readStandings(scratch.db, tournament, 1, result.groupA.groupId);
+    const groupB = await readStandings(scratch.db, tournament, 1, result.groupB.groupId);
+
+    expect(groupA.rows.map((row) => row.entrantId)).toEqual(result.entrantIds.slice(0, 2));
+    expect(groupB.rows.map((row) => row.entrantId)).toEqual(result.entrantIds.slice(2, 4));
+  });
 });
