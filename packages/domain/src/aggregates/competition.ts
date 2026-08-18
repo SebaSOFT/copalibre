@@ -26,6 +26,8 @@ export interface Stage {
 export interface Fixture {
   readonly fixtureId: string;
   readonly stageId: string;
+  readonly zoneId?: string;
+  readonly groupId?: string;
   /** 1-based round number within the stage. */
   readonly round: number;
   readonly homeEntrantId?: string;

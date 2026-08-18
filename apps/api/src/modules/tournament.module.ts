@@ -4,6 +4,7 @@ import { StagesController } from '../controllers/stages.controller.js';
 import { SeedingController } from '../controllers/seeding.controller.js';
 import { StandingsController } from '../controllers/standings.controller.js';
 import { TableProjectionsController } from '../controllers/table-projections.controller.js';
+import { ZonesGroupsController } from '../controllers/zones-groups.controller.js';
 import { CoreModule } from './core.module.js';
 
 @Module({
@@ -14,6 +15,7 @@ import { CoreModule } from './core.module.js';
     SeedingController,
     StandingsController,
     TableProjectionsController,
+    ZonesGroupsController,
   ],
 })
 export class TournamentModule {}

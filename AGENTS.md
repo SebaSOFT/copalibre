@@ -30,7 +30,9 @@ Yarn must use the conventional `node-modules` linker with the global cache. Do n
 
 Use TypeScript with Prettier and ESLint. Follow existing two-space indentation, single quotes, semicolons, camelCase values, PascalCase components/classes, and nearby file naming conventions. Keep domain code framework-free: `packages/domain` and `packages/rules` must not import NestJS or Fastify.
 
-Before editing an existing source file, use CodeGraph to locate the relevant symbol and read the exact current block, including imports and decorators. After every patch, inspect its focused `git diff` before compiling or testing; do not rely on a partial patch context to infer surrounding code.
+Before editing an existing source file, use CodeGraph to locate the relevant symbol and read the exact current block, including imports and decorators. Prefer CodeGraph over grep, find, or sed for exploring or locating code generally, not only immediately before an edit — one `codegraph_explore` call typically returns verbatim source, call paths, and blast radius together, at a fraction of the round-trips a grep/read loop costs. Fall back to grep/find/sed only for what CodeGraph genuinely cannot answer. After every patch, inspect its focused `git diff` before compiling or testing; do not rely on a partial patch context to infer surrounding code.
+
+Before adding a new domain primitive or abstraction, check whether an existing declarative mechanism already generalizes to the need — an `EventEffect`/`TargetAttribution` variant, a `ColumnSource` kind, an `ActorGranularity`/`CompetitionGranularity` value, an `EventWorkflow` branch. This codebase's mechanisms are frequently more general than any one discipline currently exercises; extending one at a setting it already supports is usually the right-sized change, not a new type.
 
 Preserve system traceability. Mutations that affect tournament state require explicit authorization, audit records, and durable outbox events in the same transaction. Model sport behavior through `DisciplineDescriptor` data and rules; do not hardcode sport-specific UI or controller logic. Prefer UUIDs for identifiers and do not expose personal data unnecessarily.
 
@@ -76,3 +78,18 @@ Crucially, if you modify **any** infrastructure or deployment file, you MUST exp
 ## Changes and Reviews
 
 Use scoped Conventional Commit subjects, such as `feat(api): add match projection` or `fix(persistence): preserve elapsed clock`. Keep commits narrowly focused. PRs must describe behavior, OpenSpec change ID, tests run, migration/configuration impact, and screenshots for UI changes. `openspec/changes/` is ignored, so explicitly add approved change artifacts to commits. Never commit `.env` files, credentials, or production connection strings.
+
+## Feature Delivery Pipeline
+
+Follow the `feature-delivery` skill for the full shape of shipping a change. The concrete cycle in this
+repo: one OpenSpec change per branch, named `change/00NN-slug`, branched from `develop`. Implement its
+tasks, then run the full local gate suite (`yarn lint`, `yarn typecheck`, `yarn test`/`yarn
+test:integration`, `yarn test:e2e` as applicable, plus the infra validation scripts above if
+infrastructure files changed) and confirm every one is green before opening a PR against `develop`. Wait
+for every required CI check to pass, then wait for explicit merge approval — do not merge a PR on your
+own initiative, and an earlier approval does not carry forward to the next PR. Once merged, sync
+`develop`, delete the local branch, archive the change (`openspec archive <change> --yes`), and promote
+its spec deltas into `openspec/specs/` in the same close-out step, committed directly to `develop`
+(matching this repo's own `docs(openspec): promote NNNN specs into the accepted baseline` convention —
+this promotion commit does not go through its own PR). Only then start the next queued change, unless
+told to work ahead.

@@ -54,7 +54,17 @@ export {
   type CutResolution,
 } from './qualification/index.js';
 export {
+  evaluateGroupPromotion,
+  validatePromotionPlan,
+  type PromotionPlan,
+  type PromotionPlanGroup,
+  type QualifiedEntrant,
+  type GroupPromotionOutcome,
+} from './qualification/promotion.js';
+export {
   allocateSeeds,
+  drawGroups,
+  drawZones,
   type AllocationEntrant,
   type AllocationInput,
   type AllocationOutcome,
@@ -62,12 +72,16 @@ export {
 export { assertSupportedFormat, isEliminationFormat, isRoundRobinFormat } from './formats.js';
 export {
   generateFixtures,
+  generateGroupedFixtures,
   buildEliminationTree,
   buildDoubleElimination,
   buildRoundRobin,
   pruneEmptyMatches,
   seedSlotOrder,
   nextPowerOfTwo,
+  type FixtureGroupInput,
+  type GenerateGroupedFixturesInput,
+  type ScopedGeneratedFixture,
 } from './fixtures/index.js';
 export {
   computeStandings,

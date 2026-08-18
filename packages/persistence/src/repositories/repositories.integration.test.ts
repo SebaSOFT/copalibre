@@ -633,6 +633,271 @@ describe('repositories (integration)', () => {
       ),
     ).rejects.toBeInstanceOf(InvariantViolationError);
   });
+
+  it('persists explicit zones/groups and reuses a stage implicit scope', async () => {
+    const descriptorDocument = descriptor();
+    const result = await withTransaction(scratch.db, async (uow) => {
+      await tournaments.saveDescriptor(uow, descriptorDocument, { organizationId, ...AUDIT });
+      const tournament = await tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-zonas',
+        name: 'Copa Zonas',
+        descriptor: descriptorDocument,
+        ...AUDIT,
+      });
+      const explicitStage = await competition.createStageInTournament(uow, {
+        tournamentId: tournament.tournamentId,
+        number: 1,
+        name: 'Fase explícita',
+        format: 'round-robin',
+        organizationId,
+        ...AUDIT,
+      });
+      const zone = await competition.createZone(uow, {
+        stageId: explicitStage.stageId,
+        number: 1,
+        name: 'Zona Norte',
+        organizationId,
+        ...AUDIT,
+      });
+      const group = await competition.createGroup(uow, {
+        zoneId: zone.zoneId,
+        number: 1,
+        name: 'Grupo A',
+        organizationId,
+        ...AUDIT,
+      });
+      const implicitStage = await competition.createStageInTournament(uow, {
+        tournamentId: tournament.tournamentId,
+        number: 2,
+        name: 'Fase implícita',
+        format: 'round-robin',
+        organizationId,
+        ...AUDIT,
+      });
+      const first = await competition.createFixtures(uow, {
+        stageId: implicitStage.stageId,
+        fixtures: [{ round: 1 }],
+        organizationId,
+        ...AUDIT,
+      });
+      const second = await competition.createFixtures(uow, {
+        stageId: implicitStage.stageId,
+        fixtures: [{ round: 2 }],
+        organizationId,
+        ...AUDIT,
+      });
+      return { explicitStage, zone, group, first, second };
+    });
+
+    await expect(competition.listZonesOfStage(result.explicitStage.stageId)).resolves.toEqual([
+      result.zone,
+    ]);
+    await expect(competition.listGroupsOfZone(result.zone.zoneId)).resolves.toEqual([result.group]);
+    expect(result.first[0]?.zoneId).toBe(result.second[0]?.zoneId);
+    expect(result.first[0]?.groupId).toBe(result.second[0]?.groupId);
+  });
+
+  it('upserts a zone promotion plan and records its declared rule in the audit trail', async () => {
+    const descriptorDocument = descriptor();
+    const result = await withTransaction(scratch.db, async (uow) => {
+      await tournaments.saveDescriptor(uow, descriptorDocument, { organizationId, ...AUDIT });
+      const tournament = await tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-promocion',
+        name: 'Copa Promoción',
+        descriptor: descriptorDocument,
+        ...AUDIT,
+      });
+      const source = await competition.createStageInTournament(uow, {
+        tournamentId: tournament.tournamentId,
+        number: 1,
+        name: 'Grupos',
+        format: 'round-robin',
+        organizationId,
+        ...AUDIT,
+      });
+      const destination = await competition.createStageInTournament(uow, {
+        tournamentId: tournament.tournamentId,
+        number: 2,
+        name: 'Final',
+        format: 'single-elimination',
+        organizationId,
+        ...AUDIT,
+      });
+      const zone = await competition.createZone(uow, {
+        stageId: source.stageId,
+        number: 1,
+        name: 'Zona Norte',
+        organizationId,
+        ...AUDIT,
+      });
+      const first = await competition.createPromotionPlan(uow, {
+        zoneId: zone.zoneId,
+        nextStageId: destination.stageId,
+        plan: { perGroupAdvance: 2, combination: { mode: 'group-order' } },
+        organizationId,
+        ...AUDIT,
+      });
+      const replacement = await competition.createPromotionPlan(uow, {
+        zoneId: zone.zoneId,
+        nextStageId: destination.stageId,
+        plan: { perGroupAdvance: 1, combination: { mode: 'group-order' } },
+        organizationId,
+        ...AUDIT,
+      });
+      return { zone, first, replacement };
+    });
+
+    expect(result.replacement.promotionPlanId).toBe(result.first.promotionPlanId);
+    await expect(competition.findPromotionPlan(result.zone.zoneId)).resolves.toMatchObject({
+      promotionPlanId: result.first.promotionPlanId,
+      zoneId: result.zone.zoneId,
+      plan: { perGroupAdvance: 1, combination: { mode: 'group-order' } },
+    });
+    const audits = await scratch.db
+      .selectFrom('audit_log')
+      .select('action')
+      .where('entity_id', '=', result.zone.zoneId)
+      .where('action', '=', 'promotion-plan.saved')
+      .execute();
+    expect(audits).toHaveLength(2);
+  });
+
+  it('records automatic draw metadata and leaves manual placement metadata empty', async () => {
+    const descriptorDocument = descriptor();
+    const result = await withTransaction(scratch.db, async (uow) => {
+      await tournaments.saveDescriptor(uow, descriptorDocument, { organizationId, ...AUDIT });
+      const tournament = await tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-sorteo-zonas',
+        name: 'Copa Sorteo Zonas',
+        descriptor: descriptorDocument,
+        ...AUDIT,
+      });
+      const entrantIds: string[] = [];
+      for (const name of ['Andes', 'Caucete', 'Pocito', 'Rawson']) {
+        const team = await participants.createTeam(uow, { organizationId, name, ...AUDIT });
+        const entrant = await participants.registerEntrant(uow, {
+          tournamentId: tournament.tournamentId,
+          entrantRef: { kind: 'team', teamId: team.teamId },
+          organizationId,
+          ...AUDIT,
+        });
+        entrantIds.push(entrant.entrantId);
+      }
+      const stage = await competition.createStageInTournament(uow, {
+        tournamentId: tournament.tournamentId,
+        number: 1,
+        name: 'Fase de sorteo',
+        format: 'round-robin',
+        organizationId,
+        ...AUDIT,
+      });
+      const constraints = [
+        {
+          kind: 'separation' as const,
+          hook: 'draw.assign-group' as const,
+          attribute: 'region',
+          scope: 'group' as const,
+        },
+      ];
+      const zones = await competition.assignZones(uow, {
+        stageId: stage.stageId,
+        assignment: {
+          groups: {
+            [entrantIds[0] as string]: 1,
+            [entrantIds[1] as string]: 2,
+            [entrantIds[2] as string]: 1,
+            [entrantIds[3] as string]: 2,
+          },
+        },
+        constraints,
+        zoneCount: 2,
+        seed: 91,
+        organizationId,
+        ...AUDIT,
+      });
+      const automaticGroups = await competition.assignGroups(uow, {
+        zoneId: zones.entities[0]?.zoneId as string,
+        assignment: {
+          groups: {
+            [entrantIds[0] as string]: 1,
+            [entrantIds[2] as string]: 2,
+          },
+        },
+        constraints,
+        groupCount: 2,
+        seed: 92,
+        organizationId,
+        ...AUDIT,
+      });
+      const manualGroups = await competition.assignGroupsManually(uow, {
+        zoneId: zones.entities[1]?.zoneId as string,
+        assignment: {
+          groups: {
+            [entrantIds[1] as string]: 1,
+            [entrantIds[3] as string]: 2,
+          },
+        },
+        groupCount: 2,
+        organizationId,
+        ...AUDIT,
+      });
+      return { zones, automaticGroups, manualGroups, entrantIds };
+    });
+
+    const zoneRows = await scratch.db
+      .selectFrom('zones')
+      .select(['draw_seed', 'draw_constraints'])
+      .where(
+        'zone_id',
+        'in',
+        result.zones.entities.map((zone) => zone.zoneId),
+      )
+      .orderBy('number')
+      .execute();
+    const automaticRows = await scratch.db
+      .selectFrom('groups')
+      .select(['draw_seed', 'draw_constraints'])
+      .where(
+        'group_id',
+        'in',
+        result.automaticGroups.entities.map((group) => group.groupId),
+      )
+      .execute();
+    const manualRows = await scratch.db
+      .selectFrom('groups')
+      .select(['draw_seed', 'draw_constraints'])
+      .where(
+        'group_id',
+        'in',
+        result.manualGroups.entities.map((group) => group.groupId),
+      )
+      .execute();
+
+    expect(zoneRows).toEqual(
+      expect.arrayContaining([expect.objectContaining({ draw_constraints: expect.any(Array) })]),
+    );
+    expect(zoneRows.map((row) => Number(row.draw_seed))).toEqual([91, 91]);
+    expect(automaticRows).toEqual(
+      expect.arrayContaining([expect.objectContaining({ draw_constraints: expect.any(Array) })]),
+    );
+    expect(automaticRows.map((row) => Number(row.draw_seed))).toEqual([92, 92]);
+    expect(manualRows).toEqual([
+      { draw_seed: null, draw_constraints: null },
+      { draw_seed: null, draw_constraints: null },
+    ]);
+    await expect(
+      competition.listEntrantIdsOfZone(result.zones.entities[0]?.zoneId as string),
+    ).resolves.toEqual([result.entrantIds[0], result.entrantIds[2]].sort());
+    await expect(
+      competition.listEntrantIdsOfGroup(result.automaticGroups.entities[0]?.groupId as string),
+    ).resolves.toEqual([result.entrantIds[0]]);
+    await expect(
+      competition.listEntrantIdsOfGroup(result.manualGroups.entities[1]?.groupId as string),
+    ).resolves.toEqual([result.entrantIds[3]]);
+  });
 });
 
 describe('entrant attributes (integration)', () => {

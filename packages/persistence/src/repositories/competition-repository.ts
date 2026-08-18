@@ -1,6 +1,15 @@
-import { IMPLICIT_SEASON_NAME, validateSeason } from '@copalibre/domain';
+import {
+  type DrawConstraint,
+  IMPLICIT_GROUP_NAME,
+  IMPLICIT_SEASON_NAME,
+  IMPLICIT_ZONE_NAME,
+  validateGroup,
+  validateSeason,
+  validateZone,
+} from '@copalibre/domain';
 import type {
   Fixture,
+  Group,
   Match,
   MatchCommand,
   MatchResult,
@@ -10,14 +19,34 @@ import type {
   Segment,
   Stage,
   TournamentFormat,
+  Zone,
 } from '@copalibre/domain';
 import type { Kysely, Transaction } from 'kysely';
 import { InvariantViolationError, NotFoundError } from '../errors.js';
 import { newId } from '../ids.js';
-import { toIsoString, toMatch, toRecordedEvent, toSegment, toStage } from '../mapping.js';
+import {
+  toFixture,
+  toGroup,
+  toMatch,
+  toRecordedEvent,
+  toSegment,
+  toStage,
+  toZone,
+} from '../mapping.js';
 import type { Database } from '../schema.js';
 import type { UnitOfWork } from '../transaction.js';
 import type { AuditContext } from './enrollment-repository.js';
+
+export interface PersistedDraw<T> {
+  readonly assignment: GroupAssignment;
+  readonly entities: readonly T[];
+  readonly seed?: number;
+}
+
+/** Structural output shared with the pure tournament-engine group draw. */
+export interface GroupAssignment {
+  readonly groups: Readonly<Record<string, number>>;
+}
 
 /**
  * Stage/Fixture/Match/Segment plus the append-only match-event log.
@@ -119,6 +148,522 @@ export class CompetitionRepository {
     }));
   }
 
+  async createZone(
+    uow: UnitOfWork,
+    input: {
+      readonly stageId: string;
+      readonly number: number;
+      readonly name: string;
+    } & AuditContext,
+  ): Promise<Zone> {
+    await this.assertStageHasNoFixtures(uow, input.stageId);
+    const zone: Zone = { zoneId: newId(), ...input };
+    const valid = validateZone(zone);
+    if (!valid.ok) throw new InvariantViolationError(valid.error.message, valid.error.details);
+    const row = await uow.tx
+      .insertInto('zones')
+      .values({
+        zone_id: zone.zoneId,
+        stage_id: zone.stageId,
+        number: zone.number,
+        name: zone.name,
+        draw_seed: null,
+        draw_constraints: null,
+        created_at: new Date(),
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'zone',
+      entityId: zone.zoneId,
+      action: 'zone.created',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      resultingState: { ...zone },
+    });
+    return toZone(row);
+  }
+
+  async listZonesOfStage(stageId: string): Promise<readonly Zone[]> {
+    const rows = await this.db
+      .selectFrom('zones')
+      .selectAll()
+      .where('stage_id', '=', stageId)
+      .orderBy('number')
+      .execute();
+    return rows.map(toZone);
+  }
+
+  async currentOrImplicitZone(
+    uow: UnitOfWork,
+    input: { readonly stageId: string } & AuditContext,
+  ): Promise<Zone> {
+    const row = await uow.tx
+      .selectFrom('zones')
+      .selectAll()
+      .where('stage_id', '=', input.stageId)
+      .orderBy('number')
+      .limit(1)
+      .executeTakeFirst();
+    return row
+      ? toZone(row)
+      : this.createZone(uow, { ...input, number: 1, name: IMPLICIT_ZONE_NAME });
+  }
+
+  async createGroup(
+    uow: UnitOfWork,
+    input: {
+      readonly zoneId: string;
+      readonly number: number;
+      readonly name: string;
+    } & AuditContext,
+  ): Promise<Group> {
+    const zoneRow = await uow.tx
+      .selectFrom('zones')
+      .select('stage_id')
+      .where('zone_id', '=', input.zoneId)
+      .executeTakeFirst();
+    if (!zoneRow) {
+      throw new NotFoundError(`Zone ${input.zoneId} does not exist`, { zoneId: input.zoneId });
+    }
+    await this.assertStageHasNoFixtures(uow, zoneRow.stage_id);
+    const group: Group = { groupId: newId(), ...input };
+    const valid = validateGroup(group);
+    if (!valid.ok) throw new InvariantViolationError(valid.error.message, valid.error.details);
+    const row = await uow.tx
+      .insertInto('groups')
+      .values({
+        group_id: group.groupId,
+        zone_id: group.zoneId,
+        number: group.number,
+        name: group.name,
+        draw_seed: null,
+        draw_constraints: null,
+        created_at: new Date(),
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'group',
+      entityId: group.groupId,
+      action: 'group.created',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      resultingState: { ...group },
+    });
+    return toGroup(row);
+  }
+
+  async listGroupsOfZone(zoneId: string): Promise<readonly Group[]> {
+    const rows = await this.db
+      .selectFrom('groups')
+      .selectAll()
+      .where('zone_id', '=', zoneId)
+      .orderBy('number')
+      .execute();
+    return rows.map(toGroup);
+  }
+
+  async listEntrantIdsOfZone(zoneId: string): Promise<readonly string[]> {
+    const rows = await this.db
+      .selectFrom('zone_entrants')
+      .select('entrant_id')
+      .where('zone_id', '=', zoneId)
+      .orderBy('entrant_id')
+      .execute();
+    return rows.map((row) => row.entrant_id);
+  }
+
+  async listEntrantIdsOfGroup(groupId: string): Promise<readonly string[]> {
+    const rows = await this.db
+      .selectFrom('group_entrants')
+      .select('entrant_id')
+      .where('group_id', '=', groupId)
+      .orderBy('entrant_id')
+      .execute();
+    return rows.map((row) => row.entrant_id);
+  }
+
+  async createPromotionPlan(
+    uow: UnitOfWork,
+    input: {
+      readonly zoneId: string;
+      readonly nextStageId: string;
+      readonly plan: Record<string, unknown>;
+    } & AuditContext,
+  ): Promise<{
+    readonly promotionPlanId: string;
+    readonly zoneId: string;
+    readonly nextStageId: string;
+    readonly plan: Record<string, unknown>;
+  }> {
+    const row = await uow.tx
+      .insertInto('promotion_plans')
+      .values({
+        promotion_plan_id: newId(),
+        zone_id: input.zoneId,
+        next_stage_id: input.nextStageId,
+        plan: JSON.stringify(input.plan),
+        created_at: new Date(),
+      })
+      .onConflict((conflict) =>
+        conflict.column('zone_id').doUpdateSet({
+          next_stage_id: input.nextStageId,
+          plan: JSON.stringify(input.plan),
+        }),
+      )
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'zone',
+      entityId: input.zoneId,
+      action: 'promotion-plan.saved',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      resultingState: { nextStageId: input.nextStageId, plan: input.plan },
+    });
+    return {
+      promotionPlanId: row.promotion_plan_id,
+      zoneId: row.zone_id,
+      nextStageId: row.next_stage_id,
+      plan: row.plan as Record<string, unknown>,
+    };
+  }
+
+  async findPromotionPlan(zoneId: string): Promise<
+    | {
+        readonly promotionPlanId: string;
+        readonly zoneId: string;
+        readonly nextStageId: string;
+        readonly plan: Record<string, unknown>;
+      }
+    | undefined
+  > {
+    const row = await this.db
+      .selectFrom('promotion_plans')
+      .selectAll()
+      .where('zone_id', '=', zoneId)
+      .executeTakeFirst();
+    return row === undefined
+      ? undefined
+      : {
+          promotionPlanId: row.promotion_plan_id,
+          zoneId: row.zone_id,
+          nextStageId: row.next_stage_id,
+          plan: row.plan as Record<string, unknown>,
+        };
+  }
+
+  async currentOrImplicitGroup(
+    uow: UnitOfWork,
+    input: { readonly zoneId: string } & AuditContext,
+  ): Promise<Group> {
+    const row = await uow.tx
+      .selectFrom('groups')
+      .selectAll()
+      .where('zone_id', '=', input.zoneId)
+      .orderBy('number')
+      .limit(1)
+      .executeTakeFirst();
+    return row
+      ? toGroup(row)
+      : this.createGroup(uow, { ...input, number: 1, name: IMPLICIT_GROUP_NAME });
+  }
+
+  async assignZones(
+    uow: UnitOfWork,
+    input: {
+      readonly stageId: string;
+      readonly assignment: GroupAssignment;
+      readonly constraints: readonly DrawConstraint[];
+      readonly zoneCount: number;
+      readonly seed: number;
+    } & AuditContext,
+  ): Promise<PersistedDraw<Zone>> {
+    const zones = await this.persistZoneDraw(uow, input, input.assignment, input.zoneCount, {
+      seed: input.seed,
+      constraints: input.constraints,
+    });
+    return { assignment: input.assignment, entities: zones, seed: input.seed };
+  }
+
+  async assignZonesManually(
+    uow: UnitOfWork,
+    input: {
+      readonly stageId: string;
+      readonly assignment: GroupAssignment;
+      readonly zoneCount: number;
+    } & AuditContext,
+  ): Promise<PersistedDraw<Zone>> {
+    const zones = await this.persistZoneDraw(uow, input, input.assignment, input.zoneCount);
+    return { assignment: input.assignment, entities: zones };
+  }
+
+  async assignGroups(
+    uow: UnitOfWork,
+    input: {
+      readonly zoneId: string;
+      readonly assignment: GroupAssignment;
+      readonly constraints: readonly DrawConstraint[];
+      readonly groupCount: number;
+      readonly seed: number;
+    } & AuditContext,
+  ): Promise<PersistedDraw<Group>> {
+    const groups = await this.persistGroupDraw(uow, input, input.assignment, input.groupCount, {
+      seed: input.seed,
+      constraints: input.constraints,
+    });
+    return { assignment: input.assignment, entities: groups, seed: input.seed };
+  }
+
+  async assignGroupsManually(
+    uow: UnitOfWork,
+    input: {
+      readonly zoneId: string;
+      readonly assignment: GroupAssignment;
+      readonly groupCount: number;
+    } & AuditContext,
+  ): Promise<PersistedDraw<Group>> {
+    const groups = await this.persistGroupDraw(uow, input, input.assignment, input.groupCount);
+    return { assignment: input.assignment, entities: groups };
+  }
+
+  private async persistZoneDraw(
+    uow: UnitOfWork,
+    input: { readonly stageId: string } & AuditContext,
+    assignment: GroupAssignment,
+    zoneCount: number,
+    replay?: { readonly seed: number; readonly constraints: readonly DrawConstraint[] },
+  ): Promise<readonly Zone[]> {
+    this.assertGroupAssignment(assignment, zoneCount);
+    await this.assertStageHasNoFixtures(uow, input.stageId);
+    const existing = await uow.tx
+      .selectFrom('zones')
+      .select('zone_id')
+      .where('stage_id', '=', input.stageId)
+      .executeTakeFirst();
+    if (existing) {
+      throw new InvariantViolationError('Zones have already been assigned for this stage', {
+        stageId: input.stageId,
+      });
+    }
+    const rows = await uow.tx
+      .insertInto('zones')
+      .values(
+        Array.from({ length: zoneCount }, (_unused, index) => ({
+          zone_id: newId(),
+          stage_id: input.stageId,
+          number: index + 1,
+          name: `Zona ${index + 1}`,
+          draw_seed: replay?.seed ?? null,
+          draw_constraints: replay ? JSON.stringify(replay.constraints) : null,
+          created_at: new Date(),
+        })),
+      )
+      .returningAll()
+      .execute();
+    const zones = rows.map(toZone);
+    const zoneByNumber = new Map(zones.map((zone) => [zone.number, zone.zoneId]));
+    await uow.tx
+      .insertInto('zone_entrants')
+      .values(
+        Object.entries(assignment.groups).map(([entrantId, zoneNumber]) => ({
+          zone_id: zoneByNumber.get(zoneNumber) as string,
+          entrant_id: entrantId,
+        })),
+      )
+      .execute();
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'stage',
+      entityId: input.stageId,
+      action: replay ? 'zones.drawn' : 'zones.manually-assigned',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      resultingState: { assignment, ...(replay ?? {}) },
+    });
+    return zones;
+  }
+
+  private async persistGroupDraw(
+    uow: UnitOfWork,
+    input: { readonly zoneId: string } & AuditContext,
+    assignment: GroupAssignment,
+    groupCount: number,
+    replay?: { readonly seed: number; readonly constraints: readonly DrawConstraint[] },
+  ): Promise<readonly Group[]> {
+    this.assertGroupAssignment(assignment, groupCount);
+    const zone = await uow.tx
+      .selectFrom('zones')
+      .select(['zone_id', 'stage_id'])
+      .where('zone_id', '=', input.zoneId)
+      .executeTakeFirst();
+    if (!zone)
+      throw new NotFoundError(`Zone ${input.zoneId} does not exist`, { zoneId: input.zoneId });
+    await this.assertStageHasNoFixtures(uow, zone.stage_id);
+    const existing = await uow.tx
+      .selectFrom('groups')
+      .select('group_id')
+      .where('zone_id', '=', input.zoneId)
+      .executeTakeFirst();
+    if (existing) {
+      throw new InvariantViolationError('Groups have already been assigned for this zone', {
+        zoneId: input.zoneId,
+      });
+    }
+    const zoneEntrants = await uow.tx
+      .selectFrom('zone_entrants')
+      .select('entrant_id')
+      .where('zone_id', '=', input.zoneId)
+      .execute();
+    this.assertAssignmentEntrants(
+      assignment,
+      zoneEntrants.map((entry) => entry.entrant_id),
+      'group',
+    );
+    const rows = await uow.tx
+      .insertInto('groups')
+      .values(
+        Array.from({ length: groupCount }, (_unused, index) => ({
+          group_id: newId(),
+          zone_id: input.zoneId,
+          number: index + 1,
+          name: `Grupo ${index + 1}`,
+          draw_seed: replay?.seed ?? null,
+          draw_constraints: replay ? JSON.stringify(replay.constraints) : null,
+          created_at: new Date(),
+        })),
+      )
+      .returningAll()
+      .execute();
+    const groups = rows.map(toGroup);
+    const groupByNumber = new Map(groups.map((group) => [group.number, group.groupId]));
+    await uow.tx
+      .insertInto('group_entrants')
+      .values(
+        Object.entries(assignment.groups).map(([entrantId, groupNumber]) => ({
+          group_id: groupByNumber.get(groupNumber) as string,
+          entrant_id: entrantId,
+        })),
+      )
+      .execute();
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'zone',
+      entityId: input.zoneId,
+      action: replay ? 'groups.drawn' : 'groups.manually-assigned',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      resultingState: { assignment, ...(replay ?? {}) },
+    });
+    return groups;
+  }
+
+  private assertGroupAssignment(assignment: GroupAssignment, count: number): void {
+    if (!Number.isInteger(count) || count < 1 || Object.keys(assignment.groups).length === 0) {
+      throw new InvariantViolationError(
+        'A zone/group assignment needs at least one numbered group',
+        {
+          count,
+        },
+      );
+    }
+    for (const position of Object.values(assignment.groups)) {
+      if (!Number.isInteger(position) || position < 1 || position > count) {
+        throw new InvariantViolationError(
+          `Assignment position ${position} is outside 1..${count}`,
+          {
+            position,
+            count,
+          },
+        );
+      }
+    }
+  }
+
+  private assertAssignmentEntrants(
+    assignment: GroupAssignment,
+    expectedEntrantIds: readonly string[],
+    kind: 'group',
+  ): void {
+    const supplied = Object.keys(assignment.groups).sort();
+    const expected = [...expectedEntrantIds].sort();
+    if (
+      supplied.length !== expected.length ||
+      supplied.some((entrantId, index) => entrantId !== expected[index])
+    ) {
+      throw new InvariantViolationError(
+        `A ${kind} draw must assign every entrant in its source zone exactly once`,
+        { expectedEntrantIds: expected, assignedEntrantIds: supplied },
+      );
+    }
+  }
+
+  private async assertStageHasNoFixtures(uow: UnitOfWork, stageId: string): Promise<void> {
+    const fixture = await uow.tx
+      .selectFrom('fixtures')
+      .select('fixture_id')
+      .where('stage_id', '=', stageId)
+      .executeTakeFirst();
+    if (fixture) {
+      throw new InvariantViolationError('Cannot assign zones or groups after fixtures exist', {
+        stageId,
+      });
+    }
+  }
+
+  private async resolveFixtureScope(
+    uow: UnitOfWork,
+    input: { readonly stageId: string } & AuditContext,
+    fixture: { readonly zoneId?: string; readonly groupId?: string },
+  ): Promise<{ readonly zoneId: string; readonly groupId: string }> {
+    if (fixture.groupId) {
+      const group = await uow.tx
+        .selectFrom('groups')
+        .innerJoin('zones', 'zones.zone_id', 'groups.zone_id')
+        .select(['groups.group_id', 'groups.zone_id', 'zones.stage_id'])
+        .where('groups.group_id', '=', fixture.groupId)
+        .executeTakeFirst();
+      if (!group || group.stage_id !== input.stageId) {
+        throw new NotFoundError(
+          `Group ${fixture.groupId} does not belong to stage ${input.stageId}`,
+          {
+            groupId: fixture.groupId,
+            stageId: input.stageId,
+          },
+        );
+      }
+      if (fixture.zoneId && fixture.zoneId !== group.zone_id) {
+        throw new InvariantViolationError('Fixture group does not belong to its declared zone', {
+          groupId: fixture.groupId,
+          zoneId: fixture.zoneId,
+        });
+      }
+      return { zoneId: group.zone_id, groupId: group.group_id };
+    }
+
+    const zoneId = fixture.zoneId ?? (await this.currentOrImplicitZone(uow, input)).zoneId;
+    if (fixture.zoneId) {
+      const zone = await uow.tx
+        .selectFrom('zones')
+        .select('zone_id')
+        .where('zone_id', '=', zoneId)
+        .where('stage_id', '=', input.stageId)
+        .executeTakeFirst();
+      if (!zone) {
+        throw new NotFoundError(`Zone ${zoneId} does not belong to stage ${input.stageId}`, {
+          zoneId,
+          stageId: input.stageId,
+        });
+      }
+    }
+    const group = await this.currentOrImplicitGroup(uow, { ...input, zoneId });
+    return { zoneId, groupId: group.groupId };
+  }
+
   /**
    * A stage in a competition that has one edition.
    *
@@ -192,6 +737,8 @@ export class CompetitionRepository {
         readonly homeEntrantId?: string;
         readonly awayEntrantId?: string;
         readonly scheduledAt?: string;
+        readonly zoneId?: string;
+        readonly groupId?: string;
       }[];
     } & AuditContext,
   ): Promise<readonly Fixture[]> {
@@ -201,12 +748,26 @@ export class CompetitionRepository {
       });
     }
 
+    // Scope creation is intentionally ordered: the first unscoped fixture may
+    // create the implicit zone/group, which every later fixture in this same
+    // transaction must then reuse.
+    const scopedFixtures = [] as Array<
+      (typeof input.fixtures)[number] & { readonly zoneId: string; readonly groupId: string }
+    >;
+    for (const fixture of input.fixtures) {
+      scopedFixtures.push({
+        ...fixture,
+        ...(await this.resolveFixtureScope(uow, input, fixture)),
+      });
+    }
     const rows = await uow.tx
       .insertInto('fixtures')
       .values(
-        input.fixtures.map((fixture) => ({
+        scopedFixtures.map((fixture) => ({
           fixture_id: newId(),
           stage_id: input.stageId,
+          zone_id: fixture.zoneId,
+          group_id: fixture.groupId,
           round: fixture.round,
           home_entrant_id: fixture.homeEntrantId ?? null,
           away_entrant_id: fixture.awayEntrantId ?? null,
@@ -217,14 +778,7 @@ export class CompetitionRepository {
       .returningAll()
       .execute();
 
-    const fixtures: Fixture[] = rows.map((row) => ({
-      fixtureId: row.fixture_id,
-      stageId: row.stage_id,
-      round: row.round,
-      homeEntrantId: row.home_entrant_id ?? undefined,
-      awayEntrantId: row.away_entrant_id ?? undefined,
-      scheduledAt: row.scheduled_at ? toIsoString(row.scheduled_at) : undefined,
-    }));
+    const fixtures = rows.map(toFixture);
 
     await uow.recordAudit({
       organizationId: input.organizationId,
@@ -264,6 +818,8 @@ export class CompetitionRepository {
         readonly homeEntrantId?: string;
         readonly awayEntrantId?: string;
         readonly scheduledAt?: string;
+        readonly zoneId?: string;
+        readonly groupId?: string;
       }[];
     } & AuditContext,
   ): Promise<readonly Fixture[]> {
@@ -294,12 +850,20 @@ export class CompetitionRepository {
 
     await uow.tx.deleteFrom('fixtures').where('stage_id', '=', input.stageId).execute();
 
+    const scopedFixtures = await Promise.all(
+      input.fixtures.map(async (fixture) => ({
+        ...fixture,
+        ...(await this.resolveFixtureScope(uow, input, fixture)),
+      })),
+    );
     const rows = await uow.tx
       .insertInto('fixtures')
       .values(
-        input.fixtures.map((fixture) => ({
+        scopedFixtures.map((fixture) => ({
           fixture_id: newId(),
           stage_id: input.stageId,
+          zone_id: fixture.zoneId,
+          group_id: fixture.groupId,
           round: fixture.round,
           home_entrant_id: fixture.homeEntrantId ?? null,
           away_entrant_id: fixture.awayEntrantId ?? null,
@@ -310,14 +874,7 @@ export class CompetitionRepository {
       .returningAll()
       .execute();
 
-    const fixtures: Fixture[] = rows.map((row) => ({
-      fixtureId: row.fixture_id,
-      stageId: row.stage_id,
-      round: row.round,
-      homeEntrantId: row.home_entrant_id ?? undefined,
-      awayEntrantId: row.away_entrant_id ?? undefined,
-      scheduledAt: row.scheduled_at ? toIsoString(row.scheduled_at) : undefined,
-    }));
+    const fixtures = rows.map(toFixture);
 
     await uow.recordAudit({
       organizationId: input.organizationId,

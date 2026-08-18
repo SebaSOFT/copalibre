@@ -1,3 +1,4 @@
+import type { DrawConstraint } from '@copalibre/domain';
 import type { ColumnType, JSONColumnType } from 'kysely';
 
 /**
@@ -325,9 +326,49 @@ export interface StagesTable {
   created_at: Timestamp;
 }
 
+export interface ZonesTable {
+  zone_id: string;
+  stage_id: string;
+  number: number;
+  name: string;
+  draw_seed: number | null;
+  draw_constraints: JSONColumnType<readonly DrawConstraint[]> | null;
+  created_at: Timestamp;
+}
+
+export interface GroupsTable {
+  group_id: string;
+  zone_id: string;
+  number: number;
+  name: string;
+  draw_seed: number | null;
+  draw_constraints: JSONColumnType<readonly DrawConstraint[]> | null;
+  created_at: Timestamp;
+}
+
+export interface PromotionPlansTable {
+  promotion_plan_id: string;
+  zone_id: string;
+  next_stage_id: string;
+  plan: JSONColumnType<Record<string, unknown>>;
+  created_at: Timestamp;
+}
+
+export interface ZoneEntrantsTable {
+  zone_id: string;
+  entrant_id: string;
+}
+
+export interface GroupEntrantsTable {
+  group_id: string;
+  entrant_id: string;
+}
+
 export interface FixturesTable {
   fixture_id: string;
   stage_id: string;
+  zone_id: string | null;
+  group_id: string | null;
   round: number;
   home_entrant_id: string | null;
   away_entrant_id: string | null;
@@ -802,6 +843,11 @@ export interface Database {
   fixture_schedule_officials: FixtureScheduleOfficialsTable;
   seasons: SeasonsTable;
   stages: StagesTable;
+  zones: ZonesTable;
+  groups: GroupsTable;
+  promotion_plans: PromotionPlansTable;
+  zone_entrants: ZoneEntrantsTable;
+  group_entrants: GroupEntrantsTable;
   fixtures: FixturesTable;
   matches: MatchesTable;
   segments: SegmentsTable;

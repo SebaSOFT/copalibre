@@ -2,6 +2,8 @@ import type {
   Club,
   Entrant,
   EntrantAttribute,
+  Fixture,
+  Group,
   Match,
   Official,
   ResourceAssignment,
@@ -16,6 +18,7 @@ import type {
   SupportedLanguage,
   Team,
   Tournament,
+  Zone,
 } from '@copalibre/domain';
 import type { Selectable } from 'kysely';
 import type {
@@ -23,6 +26,8 @@ import type {
   EntrantAttributesTable,
   EntrantsTable,
   FixtureSchedulesTable,
+  FixturesTable,
+  GroupsTable,
   OfficialsTable,
   VenuesTable,
   MatchEventsTable,
@@ -35,6 +40,7 @@ import type {
   StagesTable,
   TeamsTable,
   TournamentsTable,
+  ZonesTable,
 } from './schema.js';
 
 /**
@@ -53,6 +59,9 @@ export type TournamentRow = Selectable<TournamentsTable>;
 export type TeamRow = Selectable<TeamsTable>;
 export type EntrantRow = Selectable<EntrantsTable>;
 export type StageRow = Selectable<StagesTable>;
+export type ZoneRow = Selectable<ZonesTable>;
+export type GroupRow = Selectable<GroupsTable>;
+export type FixtureRow = Selectable<FixturesTable>;
 export type EntrantAttributeRow = Selectable<EntrantAttributesTable>;
 export type VenueRow = Selectable<VenuesTable>;
 export type OfficialRow = Selectable<OfficialsTable>;
@@ -214,6 +223,37 @@ export function toStage(row: StageRow): Stage {
     name: row.name,
     format: row.format as Stage['format'],
     stageConfigurationId: row.stage_configuration_id ?? undefined,
+  };
+}
+
+export function toZone(row: ZoneRow): Zone {
+  return {
+    zoneId: row.zone_id,
+    stageId: row.stage_id,
+    number: row.number,
+    name: row.name,
+  };
+}
+
+export function toGroup(row: GroupRow): Group {
+  return {
+    groupId: row.group_id,
+    zoneId: row.zone_id,
+    number: row.number,
+    name: row.name,
+  };
+}
+
+export function toFixture(row: FixtureRow): Fixture {
+  return {
+    fixtureId: row.fixture_id,
+    stageId: row.stage_id,
+    ...(row.zone_id === null ? {} : { zoneId: row.zone_id }),
+    ...(row.group_id === null ? {} : { groupId: row.group_id }),
+    round: row.round,
+    ...(row.home_entrant_id === null ? {} : { homeEntrantId: row.home_entrant_id }),
+    ...(row.away_entrant_id === null ? {} : { awayEntrantId: row.away_entrant_id }),
+    ...(row.scheduled_at === null ? {} : { scheduledAt: toIsoString(row.scheduled_at) }),
   };
 }
 
