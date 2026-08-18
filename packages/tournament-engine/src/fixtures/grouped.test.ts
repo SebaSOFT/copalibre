@@ -54,12 +54,16 @@ describe('group-scoped fixture generation', () => {
       const expectedPrefix = fixture.groupId === 'group-a' ? 'a-' : 'b-';
       expect(slotsOf(fixture.match)).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ entrantId: expect.stringMatching(new RegExp(`^${expectedPrefix}`)) }),
+          expect.objectContaining({
+            entrantId: expect.stringMatching(new RegExp(`^${expectedPrefix}`)),
+          }),
         ]),
       );
       expect(slotsOf(fixture.match)).not.toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ entrantId: expect.stringMatching(new RegExp(`^(?!${expectedPrefix})`)) }),
+          expect.objectContaining({
+            entrantId: expect.stringMatching(new RegExp(`^(?!${expectedPrefix})`)),
+          }),
         ]),
       );
     }

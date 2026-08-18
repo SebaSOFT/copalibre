@@ -850,39 +850,47 @@ describe('repositories (integration)', () => {
     const zoneRows = await scratch.db
       .selectFrom('zones')
       .select(['draw_seed', 'draw_constraints'])
-      .where('zone_id', 'in', result.zones.entities.map((zone) => zone.zoneId))
+      .where(
+        'zone_id',
+        'in',
+        result.zones.entities.map((zone) => zone.zoneId),
+      )
       .orderBy('number')
       .execute();
     const automaticRows = await scratch.db
       .selectFrom('groups')
       .select(['draw_seed', 'draw_constraints'])
-      .where('group_id', 'in', result.automaticGroups.entities.map((group) => group.groupId))
+      .where(
+        'group_id',
+        'in',
+        result.automaticGroups.entities.map((group) => group.groupId),
+      )
       .execute();
     const manualRows = await scratch.db
       .selectFrom('groups')
       .select(['draw_seed', 'draw_constraints'])
-      .where('group_id', 'in', result.manualGroups.entities.map((group) => group.groupId))
+      .where(
+        'group_id',
+        'in',
+        result.manualGroups.entities.map((group) => group.groupId),
+      )
       .execute();
 
     expect(zoneRows).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ draw_constraints: expect.any(Array) }),
-      ]),
+      expect.arrayContaining([expect.objectContaining({ draw_constraints: expect.any(Array) })]),
     );
     expect(zoneRows.map((row) => Number(row.draw_seed))).toEqual([91, 91]);
     expect(automaticRows).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ draw_constraints: expect.any(Array) }),
-      ]),
+      expect.arrayContaining([expect.objectContaining({ draw_constraints: expect.any(Array) })]),
     );
     expect(automaticRows.map((row) => Number(row.draw_seed))).toEqual([92, 92]);
     expect(manualRows).toEqual([
       { draw_seed: null, draw_constraints: null },
       { draw_seed: null, draw_constraints: null },
     ]);
-    await expect(competition.listEntrantIdsOfZone(result.zones.entities[0]?.zoneId as string)).resolves.toEqual(
-      [result.entrantIds[0], result.entrantIds[2]].sort(),
-    );
+    await expect(
+      competition.listEntrantIdsOfZone(result.zones.entities[0]?.zoneId as string),
+    ).resolves.toEqual([result.entrantIds[0], result.entrantIds[2]].sort());
     await expect(
       competition.listEntrantIdsOfGroup(result.automaticGroups.entities[0]?.groupId as string),
     ).resolves.toEqual([result.entrantIds[0]]);
@@ -890,7 +898,6 @@ describe('repositories (integration)', () => {
       competition.listEntrantIdsOfGroup(result.manualGroups.entities[1]?.groupId as string),
     ).resolves.toEqual([result.entrantIds[3]]);
   });
-
 });
 
 describe('entrant attributes (integration)', () => {

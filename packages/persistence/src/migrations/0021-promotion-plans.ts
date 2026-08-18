@@ -8,7 +8,9 @@ export const promotionPlans: Migration = {
       .createTable('promotion_plans')
       .addColumn('promotion_plan_id', 'uuid', (column) => column.primaryKey())
       .addColumn('zone_id', 'uuid', (column) => column.notNull().references('zones.zone_id'))
-      .addColumn('next_stage_id', 'uuid', (column) => column.notNull().references('stages.stage_id'))
+      .addColumn('next_stage_id', 'uuid', (column) =>
+        column.notNull().references('stages.stage_id'),
+      )
       .addColumn('plan', 'jsonb', (column) => column.notNull())
       .addColumn('created_at', 'timestamptz', (column) =>
         column.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),

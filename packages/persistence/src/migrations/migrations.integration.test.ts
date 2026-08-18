@@ -155,9 +155,7 @@ describe('migrations (integration)', () => {
     expect(promotionPlansDown.error).toBeUndefined();
 
     const afterPromotionPlansDownTables = await scratch.db.introspection.getTables();
-    const afterPromotionPlansDown = afterPromotionPlansDownTables.map(
-      (table) => table.name,
-    );
+    const afterPromotionPlansDown = afterPromotionPlansDownTables.map((table) => table.name);
     expect(afterPromotionPlansDown).not.toContain('promotion_plans');
     expect(afterPromotionPlansDown).toContain('zones');
     expect(afterPromotionPlansDown).toContain('groups');

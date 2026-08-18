@@ -93,18 +93,24 @@ export function validatePromotionPlan(
       });
     }
     if (!Number.isInteger(band.count) || band.count < 1 || used.has(band.zoneRef)) {
-      throw new QualificationError('Promotion bands need unique zone references and positive counts', {
-        band,
-      });
+      throw new QualificationError(
+        'Promotion bands need unique zone references and positive counts',
+        {
+          band,
+        },
+      );
     }
     used.add(band.zoneRef);
     bandCount += band.count;
   }
   if (bandCount !== combinedCount) {
-    throw new QualificationError('Promotion band counts must exactly cover the combined qualifiers', {
-      bandCount,
-      qualified: combinedCount,
-    });
+    throw new QualificationError(
+      'Promotion band counts must exactly cover the combined qualifiers',
+      {
+        bandCount,
+        qualified: combinedCount,
+      },
+    );
   }
 }
 

@@ -194,7 +194,10 @@ export class PromotionPreviewResponse {
 
   @ApiPropertyOptional({
     type: 'object',
-    additionalProperties: { type: 'array', items: { $ref: '#/components/schemas/QualifiedEntrantResponse' } },
+    additionalProperties: {
+      type: 'array',
+      items: { $ref: '#/components/schemas/QualifiedEntrantResponse' },
+    },
   })
   bands?: Record<string, QualifiedEntrantResponse[]>;
 

@@ -228,7 +228,9 @@ describe('zone and group draw routes (integration)', () => {
       payload: { groupCount: 2, seed: 100 },
     });
     expect(preview.statusCode).toBe(200);
-    expect(Object.keys(preview.json().assignment.groups).sort()).toEqual([...firstZoneEntrants].sort());
+    expect(Object.keys(preview.json().assignment.groups).sort()).toEqual(
+      [...firstZoneEntrants].sort(),
+    );
 
     const confirmedGroups = await harness.request({
       method: 'POST',

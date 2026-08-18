@@ -361,7 +361,10 @@ export class ZonesGroupsController {
       const records = await Promise.all(
         groups.map(async (group) => ({
           group,
-          record: await new StageReadModel(this.db).stageRecord(context.stage.stageId, group.groupId),
+          record: await new StageReadModel(this.db).stageRecord(
+            context.stage.stageId,
+            group.groupId,
+          ),
         })),
       );
       const descriptor = await new TournamentRepository(this.db).findDescriptor(
@@ -393,7 +396,10 @@ export class ZonesGroupsController {
           ? {}
           : {
               bands: Object.fromEntries(
-                Object.entries(outcome.bands).map(([zoneRef, entrants]) => [zoneRef, [...entrants]]),
+                Object.entries(outcome.bands).map(([zoneRef, entrants]) => [
+                  zoneRef,
+                  [...entrants],
+                ]),
               ),
             }),
         trace: outcome.trace as unknown as Record<string, unknown>[],
@@ -531,9 +537,12 @@ export class ZonesGroupsController {
       records.map((entry) => ({
         groupId: entry.group.groupId,
         number: entry.group.number,
-        entrantCount: accountings?.get(entry.group.groupId)?.length ?? entry.record?.entrantIds.length ?? 0,
+        entrantCount:
+          accountings?.get(entry.group.groupId)?.length ?? entry.record?.entrantIds.length ?? 0,
       })),
-      destinationZones.length === 0 ? [IMPLICIT_ZONE_NAME] : destinationZones.map((zone) => zone.name),
+      destinationZones.length === 0
+        ? [IMPLICIT_ZONE_NAME]
+        : destinationZones.map((zone) => zone.name),
     );
   }
 }
@@ -612,19 +621,23 @@ function promotionPlanFromUnknown(
       : combination.mode === 'manual' && Array.isArray(combination.order)
         ? {
             mode: 'manual' as const,
-            order: combination.order.filter((entrantId): entrantId is string => typeof entrantId === 'string'),
+            order: combination.order.filter(
+              (entrantId): entrantId is string => typeof entrantId === 'string',
+            ),
           }
         : combination.mode === 'group-order'
           ? { mode: 'group-order' as const }
           : undefined;
-  if (!parsedCombination) throw new BadRequestException('Promotion plan has an invalid combination');
+  if (!parsedCombination)
+    throw new BadRequestException('Promotion plan has an invalid combination');
 
   const bands = value.bands;
   if (
     bands !== undefined &&
     (!Array.isArray(bands) ||
       !bands.every(
-        (band) => isRecord(band) && typeof band.zoneRef === 'string' && typeof band.count === 'number',
+        (band) =>
+          isRecord(band) && typeof band.zoneRef === 'string' && typeof band.count === 'number',
       ))
   ) {
     throw new BadRequestException('Promotion plan has invalid destination bands');

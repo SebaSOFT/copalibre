@@ -309,12 +309,10 @@ export class CompetitionRepository {
         created_at: new Date(),
       })
       .onConflict((conflict) =>
-        conflict
-          .column('zone_id')
-          .doUpdateSet({
-            next_stage_id: input.nextStageId,
-            plan: JSON.stringify(input.plan),
-          }),
+        conflict.column('zone_id').doUpdateSet({
+          next_stage_id: input.nextStageId,
+          plan: JSON.stringify(input.plan),
+        }),
       )
       .returningAll()
       .executeTakeFirstOrThrow();
@@ -335,9 +333,7 @@ export class CompetitionRepository {
     };
   }
 
-  async findPromotionPlan(
-    zoneId: string,
-  ): Promise<
+  async findPromotionPlan(zoneId: string): Promise<
     | {
         readonly promotionPlanId: string;
         readonly zoneId: string;

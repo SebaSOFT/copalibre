@@ -296,9 +296,7 @@ describe('evaluateGroupPromotion', () => {
       combination: { mode: 'ranked' as const, pipeline: pointsPerGame },
     };
 
-    expect(
-      evaluateGroupPromotion(plan, groups, pointsPerGame).qualified,
-    ).toEqual(['a1', 'b1']);
+    expect(evaluateGroupPromotion(plan, groups, pointsPerGame).qualified).toEqual(['a1', 'b1']);
     expect(
       evaluateGroupPromotion(
         { ...plan, combination: { mode: 'ranked' as const, pipeline: points } },
