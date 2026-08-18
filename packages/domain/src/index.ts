@@ -258,6 +258,20 @@ export {
   type Season,
 } from './aggregates/season.js';
 export {
+  validateZone,
+  isImplicitZone,
+  ZoneError,
+  IMPLICIT_ZONE_NAME,
+  type Zone,
+} from './aggregates/zone.js';
+export {
+  validateGroup,
+  isImplicitGroup,
+  GroupError,
+  IMPLICIT_GROUP_NAME,
+  type Group,
+} from './aggregates/group.js';
+export {
   planCorrection,
   CorrectionError,
   type CorrectionRequest,

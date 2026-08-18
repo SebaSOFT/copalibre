@@ -120,6 +120,14 @@ describe('migrations (integration)', () => {
       expect.arrayContaining([expect.objectContaining({ name: 'person_ids' })]),
     );
     expect(afterUp).toContain('collector_threshold_consumption');
+    expect(afterUp).toContain('zones');
+    expect(afterUp).toContain('groups');
+    expect(afterUpTables.find((table) => table.name === 'fixtures')?.columns).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'zone_id' }),
+        expect.objectContaining({ name: 'group_id' }),
+      ]),
+    );
     expect(afterUpTables.find((table) => table.name === 'persons')?.columns).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ name: 'nationality' }),
@@ -128,6 +136,24 @@ describe('migrations (integration)', () => {
     );
     expect(afterUpTables.find((table) => table.name === 'clubs')?.columns).toEqual(
       expect.arrayContaining([expect.objectContaining({ name: 'emblem_object_id' })]),
+    );
+
+    const zoneGroupAndPromotionDown = await migrateDownOneStep(scratch.db);
+    expect(zoneGroupAndPromotionDown.error).toBeUndefined();
+
+    const afterZoneGroupAndPromotionDownTables = await scratch.db.introspection.getTables();
+    const afterZoneGroupAndPromotionDown = afterZoneGroupAndPromotionDownTables.map(
+      (table) => table.name,
+    );
+    expect(afterZoneGroupAndPromotionDown).not.toContain('zones');
+    expect(afterZoneGroupAndPromotionDown).not.toContain('groups');
+    expect(
+      afterZoneGroupAndPromotionDownTables.find((table) => table.name === 'fixtures')?.columns,
+    ).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'zone_id' }),
+        expect.objectContaining({ name: 'group_id' }),
+      ]),
     );
 
     const personClubImagesAndNationalityDown = await migrateDownOneStep(scratch.db);
