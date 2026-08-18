@@ -44,7 +44,7 @@
       `runDraw({ entrants, constraints, shape: {kind:'groups', count: zoneCount}, seed })` unchanged, no
       new solver logic. `drawGroups(zoneEntrants, constraints, groupCount, seed): DrawOutcome` — the
       identical call, scoped to one zone's entrants, called once per zone.
-- [ ] 3.2 `packages/persistence/src/repositories/competition-repository.ts`: `assignZones`/
+- [x] 3.2 `packages/persistence/src/repositories/competition-repository.ts`: `assignZones`/
       `assignGroups` — run the draw, persist the resulting `Zone`/`Group` rows with `draw_seed`/
       `draw_constraints` set, and (for manual placement) an equivalent path that writes a
       caller-supplied `DrawAssignment` directly with both columns `NULL`.

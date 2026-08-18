@@ -1,3 +1,4 @@
+import type { DrawConstraint } from '@copalibre/domain';
 import type { ColumnType, JSONColumnType } from 'kysely';
 
 /**
@@ -331,7 +332,7 @@ export interface ZonesTable {
   number: number;
   name: string;
   draw_seed: number | null;
-  draw_constraints: JSONColumnType<Record<string, unknown>> | null;
+  draw_constraints: JSONColumnType<readonly DrawConstraint[]> | null;
   created_at: Timestamp;
 }
 
@@ -341,7 +342,7 @@ export interface GroupsTable {
   number: number;
   name: string;
   draw_seed: number | null;
-  draw_constraints: JSONColumnType<Record<string, unknown>> | null;
+  draw_constraints: JSONColumnType<readonly DrawConstraint[]> | null;
   created_at: Timestamp;
 }
 

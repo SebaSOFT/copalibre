@@ -698,6 +698,96 @@ describe('repositories (integration)', () => {
     expect(result.first[0]?.groupId).toBe(result.second[0]?.groupId);
   });
 
+  it('records automatic draw metadata and leaves manual placement metadata empty', async () => {
+    const descriptorDocument = descriptor();
+    const result = await withTransaction(scratch.db, async (uow) => {
+      await tournaments.saveDescriptor(uow, descriptorDocument, { organizationId, ...AUDIT });
+      const tournament = await tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-sorteo-zonas',
+        name: 'Copa Sorteo Zonas',
+        descriptor: descriptorDocument,
+        ...AUDIT,
+      });
+      const stage = await competition.createStageInTournament(uow, {
+        tournamentId: tournament.tournamentId,
+        number: 1,
+        name: 'Fase de sorteo',
+        format: 'round-robin',
+        organizationId,
+        ...AUDIT,
+      });
+      const constraints = [
+        {
+          kind: 'separation' as const,
+          hook: 'draw.assign-group' as const,
+          attribute: 'region',
+          scope: 'group' as const,
+        },
+      ];
+      const zones = await competition.assignZones(uow, {
+        stageId: stage.stageId,
+        assignment: { groups: { andes: 1, caucete: 2 } },
+        constraints,
+        zoneCount: 2,
+        seed: 91,
+        organizationId,
+        ...AUDIT,
+      });
+      const automaticGroups = await competition.assignGroups(uow, {
+        zoneId: zones.entities[0]?.zoneId as string,
+        assignment: { groups: { andes: 1, pocito: 2 } },
+        constraints,
+        groupCount: 2,
+        seed: 92,
+        organizationId,
+        ...AUDIT,
+      });
+      const manualGroups = await competition.assignGroupsManually(uow, {
+        zoneId: zones.entities[1]?.zoneId as string,
+        assignment: { groups: { caucete: 1, rawson: 2 } },
+        groupCount: 2,
+        organizationId,
+        ...AUDIT,
+      });
+      return { zones, automaticGroups, manualGroups };
+    });
+
+    const zoneRows = await scratch.db
+      .selectFrom('zones')
+      .select(['draw_seed', 'draw_constraints'])
+      .where('zone_id', 'in', result.zones.entities.map((zone) => zone.zoneId))
+      .orderBy('number')
+      .execute();
+    const automaticRows = await scratch.db
+      .selectFrom('groups')
+      .select(['draw_seed', 'draw_constraints'])
+      .where('group_id', 'in', result.automaticGroups.entities.map((group) => group.groupId))
+      .execute();
+    const manualRows = await scratch.db
+      .selectFrom('groups')
+      .select(['draw_seed', 'draw_constraints'])
+      .where('group_id', 'in', result.manualGroups.entities.map((group) => group.groupId))
+      .execute();
+
+    expect(zoneRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ draw_constraints: expect.any(Array) }),
+      ]),
+    );
+    expect(zoneRows.map((row) => Number(row.draw_seed))).toEqual([91, 91]);
+    expect(automaticRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ draw_constraints: expect.any(Array) }),
+      ]),
+    );
+    expect(automaticRows.map((row) => Number(row.draw_seed))).toEqual([92, 92]);
+    expect(manualRows).toEqual([
+      { draw_seed: null, draw_constraints: null },
+      { draw_seed: null, draw_constraints: null },
+    ]);
+  });
+
 });
 
 describe('entrant attributes (integration)', () => {
