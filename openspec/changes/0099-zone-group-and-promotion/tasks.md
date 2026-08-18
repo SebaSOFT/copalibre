@@ -66,7 +66,7 @@
 
 ## 4. Tournament engine — group-scoped fixture generation
 
-- [ ] 4.1 `packages/tournament-engine/src/fixtures/index.ts` (or the stage-level entry point that
+- [x] 4.1 `packages/tournament-engine/src/fixtures/index.ts` (or the stage-level entry point that
       currently calls the per-format generators): add an entrant-partitioning step — given a stage's
       groups and each group's entrants (from section 3's draw, or the implicit default), call the
       existing, **unmodified** single-elimination/double-elimination/round-robin/placement generator

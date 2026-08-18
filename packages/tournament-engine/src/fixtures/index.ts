@@ -14,6 +14,12 @@ export { buildDoubleElimination } from './double-elimination.js';
 export { buildRoundRobin } from './round-robin.js';
 export { buildPlacementStage, roundSeed, type PlacementOptions } from './placement.js';
 export { pruneEmptyMatches } from './prune.js';
+export {
+  generateGroupedFixtures,
+  type FixtureGroupInput,
+  type GenerateGroupedFixturesInput,
+  type ScopedGeneratedFixture,
+} from './grouped.js';
 
 /**
  * The single generation entry point. Pure: entrants + seeds + format in, fixture

@@ -64,12 +64,16 @@ export {
 export { assertSupportedFormat, isEliminationFormat, isRoundRobinFormat } from './formats.js';
 export {
   generateFixtures,
+  generateGroupedFixtures,
   buildEliminationTree,
   buildDoubleElimination,
   buildRoundRobin,
   pruneEmptyMatches,
   seedSlotOrder,
   nextPowerOfTwo,
+  type FixtureGroupInput,
+  type GenerateGroupedFixturesInput,
+  type ScopedGeneratedFixture,
 } from './fixtures/index.js';
 export {
   computeStandings,
