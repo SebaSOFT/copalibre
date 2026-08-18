@@ -65,6 +65,7 @@ Modifying cross-cutting infrastructure files (`docker-compose.yml`, `Dockerfile`
 Before creating or updating a PR, you MUST guarantee the CI will pass by running the baseline monorepo validations locally:
 
 - `yarn lint`
+- `yarn format:check`
 - `yarn typecheck`
 - `yarn test` and/or `yarn test:integration` (for backend)
 - `yarn test:e2e` (for frontend)
@@ -77,19 +78,20 @@ Crucially, if you modify **any** infrastructure or deployment file, you MUST exp
 
 ## Changes and Reviews
 
-Use scoped Conventional Commit subjects, such as `feat(api): add match projection` or `fix(persistence): preserve elapsed clock`. Keep commits narrowly focused. PRs must describe behavior, OpenSpec change ID, tests run, migration/configuration impact, and screenshots for UI changes. `openspec/changes/` is ignored, so explicitly add approved change artifacts to commits. Never commit `.env` files, credentials, or production connection strings.
+Use scoped Conventional Commit subjects, such as `feat(api): add match projection` or `fix(persistence): preserve elapsed clock`. Keep commits narrowly focused. PRs must describe behavior, OpenSpec change ID, tests run, migration/configuration impact, and screenshots for UI changes. `openspec/changes/` is ignored, so explicitly add approved active-change artifacts to their feature commit. Archive directories remain ignored: never force-add archived artifacts. Never commit `.env` files, credentials, or production connection strings.
 
 ## Feature Delivery Pipeline
 
 Follow the `feature-delivery` skill for the full shape of shipping a change. The concrete cycle in this
 repo: one OpenSpec change per branch, named `change/00NN-slug`, branched from `develop`. Implement its
-tasks, then run the full local gate suite (`yarn lint`, `yarn typecheck`, `yarn test`/`yarn
+tasks, then run the full local gate suite (`yarn lint`, `yarn format:check`, `yarn typecheck`, `yarn test`/`yarn
 test:integration`, `yarn test:e2e` as applicable, plus the infra validation scripts above if
 infrastructure files changed) and confirm every one is green before opening a PR against `develop`. Wait
 for every required CI check to pass, then wait for explicit merge approval — do not merge a PR on your
 own initiative, and an earlier approval does not carry forward to the next PR. Once merged, sync
-`develop`, delete the local branch, archive the change (`openspec archive <change> --yes`), and promote
-its spec deltas into `openspec/specs/` in the same close-out step, committed directly to `develop`
-(matching this repo's own `docs(openspec): promote NNNN specs into the accepted baseline` convention —
-this promotion commit does not go through its own PR). Only then start the next queued change, unless
-told to work ahead.
+`develop`, delete the local and remote feature branches, then archive the change with
+`openspec archive <change> --yes --skip-specs`. Do not force-add its ignored archive directory. If its
+active-change artifacts were explicitly tracked, commit only their removals to `develop`. On the next
+feature branch, make promotion of the preceding change's spec deltas into `openspec/specs/` the first
+commit (`docs(openspec): promote NNNN specs into the accepted baseline`); do not create a standalone PR
+for promotion. Only then implement the next queued change, unless told to work ahead.
