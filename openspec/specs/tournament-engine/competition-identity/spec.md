@@ -214,3 +214,31 @@ nothing usable was explicitly supplied.
 #### Scenario: The same label is legal across different tournaments
 - **WHEN** two entrants in two different tournaments carry the identical label
 - **THEN** neither registration nor label change is affected by the other tournament's usage
+
+### Requirement: A person may declare a birth date, exposed publicly only as a computed age
+
+A person SHALL be able to carry an optional birth date. A person without one is valid and unaffected
+by every existing requirement. A surface that may read public competition data SHALL NOT receive the
+raw birth date; it SHALL receive, at most, an age computed from it.
+
+#### Scenario: A person is registered with a birth date
+- **WHEN** a person is registered supplying a birth date
+- **THEN** the date is stored and returned to an authorized (non-public) reader on every subsequent
+  read of that person
+
+#### Scenario: A person is registered without a birth date
+- **WHEN** a person is registered with no birth date supplied
+- **THEN** registration succeeds and the person's birth date reads as absent, not a default or a guess
+
+#### Scenario: An implausible birth date is refused
+- **WHEN** a birth date in the future is supplied
+- **THEN** the write is rejected, naming the reason
+
+#### Scenario: A public read receives a computed age, never the birth date
+- **WHEN** a surface that may read public competition data requests a person who has a birth date set
+- **THEN** it receives a computed age and does not receive the birth date itself, extending the same
+  boundary that already withholds a natural key from such a surface
+
+#### Scenario: A public read of a person with no birth date shows no age
+- **WHEN** a surface that may read public competition data requests a person with no birth date set
+- **THEN** no age is present in what it receives, rather than a default or a guess
