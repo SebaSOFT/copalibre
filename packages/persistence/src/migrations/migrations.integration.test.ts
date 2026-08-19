@@ -134,6 +134,7 @@ describe('migrations (integration)', () => {
     expect(afterUpTables.find((table) => table.name === 'persons')?.columns).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ name: 'nationality' }),
+        expect.objectContaining({ name: 'birth_date' }),
         expect.objectContaining({ name: 'photo_object_id' }),
       ]),
     );
@@ -143,6 +144,14 @@ describe('migrations (integration)', () => {
     expect(afterUpTables.find((table) => table.name === 'entrants')?.columns).toEqual(
       expect.arrayContaining([expect.objectContaining({ name: 'abbreviation' })]),
     );
+
+    const personBirthDateDown = await migrateDownOneStep(scratch.db);
+    expect(personBirthDateDown.error).toBeUndefined();
+
+    const afterPersonBirthDateDownTables = await scratch.db.introspection.getTables();
+    expect(
+      afterPersonBirthDateDownTables.find((table) => table.name === 'persons')?.columns,
+    ).not.toEqual(expect.arrayContaining([expect.objectContaining({ name: 'birth_date' })]));
 
     const entrantAbbreviationsDown = await migrateDownOneStep(scratch.db);
     expect(entrantAbbreviationsDown.error).toBeUndefined();

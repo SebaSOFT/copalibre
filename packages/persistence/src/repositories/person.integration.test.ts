@@ -2,7 +2,10 @@ import { InvariantViolationError } from '../errors.js';
 import { withTransaction } from '../transaction.js';
 import { OrganizationRepository } from './organization-repository.js';
 import { EnrollmentRepository } from './enrollment-repository.js';
-import { squadOfDiscipline } from '@copalibre/domain';
+import { TournamentRepository } from './tournament-repository.js';
+import { CompetitionRepository } from './competition-repository.js';
+import { StatisticRepository } from './statistic-repository.js';
+import { squadOfDiscipline, footballDescriptor } from '@copalibre/domain';
 import { PersonRepository } from './person-repository.js';
 import { ObjectMetadataRepository } from './object-metadata-repository.js';
 import { createMigratedDatabase, type ScratchDatabase } from '../test-support/scratch-database.js';
@@ -410,5 +413,259 @@ describe('people and their memberships (integration)', () => {
     // An audit trail is read by more people than a registration form.
     expect(JSON.stringify(rows)).not.toContain('56789012');
     expect(JSON.stringify(rows)).not.toContain('56.789.012');
+  });
+
+  it('stores, updates, and clears a birth date with validation', async () => {
+    const people = new PersonRepository(scratch.db);
+    const { person } = await withTransaction(scratch.db, (uow) =>
+      people.register(uow, {
+        organizationId,
+        displayName: 'Camila Navarro',
+        birthDate: '1998-04-12',
+        ...AUDIT,
+      }),
+    );
+    expect(person.birthDate).toBe('1998-04-12');
+    expect((await people.findPerson(person.personId))?.birthDate).toBe('1998-04-12');
+
+    const updated = await withTransaction(scratch.db, (uow) =>
+      people.setBirthDate(uow, {
+        personId: person.personId,
+        organizationId,
+        birthDate: '1999-01-01',
+        ...AUDIT,
+      }),
+    );
+    expect(updated.birthDate).toBe('1999-01-01');
+
+    const cleared = await withTransaction(scratch.db, (uow) =>
+      people.setBirthDate(uow, {
+        personId: person.personId,
+        organizationId,
+        birthDate: null,
+        ...AUDIT,
+      }),
+    );
+    expect(cleared.birthDate).toBeUndefined();
+
+    await expect(
+      withTransaction(scratch.db, (uow) =>
+        people.setBirthDate(uow, {
+          personId: person.personId,
+          organizationId,
+          birthDate: '2099-01-01',
+          ...AUDIT,
+        }),
+      ),
+    ).rejects.toBeInstanceOf(InvariantViolationError);
+  });
+
+  it('reads a chronological competition history across tournaments and teams', async () => {
+    const people = new PersonRepository(scratch.db);
+    const enrollment = new EnrollmentRepository(scratch.db);
+    const tournaments = new TournamentRepository(scratch.db);
+    const descriptor = footballDescriptor();
+
+    const { person } = await withTransaction(scratch.db, (uow) =>
+      people.register(uow, { organizationId, displayName: 'Franco Rossi', ...AUDIT }),
+    );
+
+    const [teamA, teamB] = await Promise.all([team('Franco FC A'), team('Franco FC B')]);
+
+    await withTransaction(scratch.db, async (uow) => {
+      await people.enlist(uow, {
+        personId: person.personId,
+        teamId: teamA.teamId,
+        role: 'player',
+        organizationId,
+        ...AUDIT,
+      });
+      await people.enlist(uow, {
+        personId: person.personId,
+        teamId: teamB.teamId,
+        role: 'player',
+        organizationId,
+        ...AUDIT,
+      });
+      await tournaments.saveDescriptor(uow, descriptor, { organizationId, ...AUDIT });
+    });
+
+    const tourney1 = await withTransaction(scratch.db, (uow) =>
+      tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-franco-1',
+        name: 'Copa Franco 1',
+        descriptor,
+        ...AUDIT,
+      }),
+    );
+    await withTransaction(scratch.db, (uow) =>
+      tournaments.publish(uow, {
+        tournamentId: tourney1.tournamentId,
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+    await withTransaction(scratch.db, (uow) =>
+      enrollment.registerEntrant(uow, {
+        organizationId,
+        tournamentId: tourney1.tournamentId,
+        entrantRef: { kind: 'team', teamId: teamA.teamId },
+        ...AUDIT,
+      }),
+    );
+
+    const tourney2 = await withTransaction(scratch.db, (uow) =>
+      tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-franco-2',
+        name: 'Copa Franco 2',
+        descriptor,
+        ...AUDIT,
+      }),
+    );
+    await withTransaction(scratch.db, (uow) =>
+      tournaments.publish(uow, {
+        tournamentId: tourney2.tournamentId,
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+    await withTransaction(scratch.db, (uow) =>
+      enrollment.registerEntrant(uow, {
+        organizationId,
+        tournamentId: tourney2.tournamentId,
+        entrantRef: { kind: 'team', teamId: teamB.teamId },
+        ...AUDIT,
+      }),
+    );
+
+    const history = await people.competitionHistory(organizationId, person.personId);
+    expect(history).toHaveLength(2);
+    expect(history[0]?.tournamentAlias).toBe('copa-franco-1');
+    expect(history[0]?.teamName).toBe('Franco FC A');
+    expect(history[1]?.tournamentAlias).toBe('copa-franco-2');
+    expect(history[1]?.teamName).toBe('Franco FC B');
+  });
+
+  it('reads career statistic totals grouped by discipline', async () => {
+    const people = new PersonRepository(scratch.db);
+    const statistics = new StatisticRepository(scratch.db);
+    const tournaments = new TournamentRepository(scratch.db);
+    const enrollment = new EnrollmentRepository(scratch.db);
+    const competition = new CompetitionRepository(scratch.db);
+    const descriptor = footballDescriptor();
+
+    const { person } = await withTransaction(scratch.db, (uow) =>
+      people.register(uow, { organizationId, displayName: 'Matías Goleador', ...AUDIT }),
+    );
+
+    // Empty totals for player with no records
+    expect(await people.careerTotals(organizationId, person.personId)).toEqual([]);
+
+    const t1 = await team('Matías FC 1');
+    const t2 = await team('Matías FC 2');
+
+    const tournament = await withTransaction(scratch.db, async (uow) => {
+      await tournaments.saveDescriptor(uow, descriptor, { organizationId, ...AUDIT });
+      return tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-matias',
+        name: 'Copa Matías',
+        descriptor,
+        ...AUDIT,
+      });
+    });
+
+    const [entrant1, entrant2] = await withTransaction(scratch.db, async (uow) => {
+      const e1 = await enrollment.registerEntrant(uow, {
+        organizationId,
+        tournamentId: tournament.tournamentId,
+        entrantRef: { kind: 'team', teamId: t1.teamId },
+        ...AUDIT,
+      });
+      const e2 = await enrollment.registerEntrant(uow, {
+        organizationId,
+        tournamentId: tournament.tournamentId,
+        entrantRef: { kind: 'team', teamId: t2.teamId },
+        ...AUDIT,
+      });
+      return [e1, e2];
+    });
+
+    const [match1, match2] = await withTransaction(scratch.db, async (uow) => {
+      const stage = await competition.createStageInTournament(uow, {
+        tournamentId: tournament.tournamentId,
+        number: 1,
+        name: 'Regular Phase',
+        format: 'round-robin',
+        organizationId,
+        ...AUDIT,
+      });
+      const [f1, f2] = await competition.createFixtures(uow, {
+        stageId: stage.stageId,
+        fixtures: [
+          { round: 1, homeEntrantId: entrant1.entrantId, awayEntrantId: entrant2.entrantId },
+          { round: 2, homeEntrantId: entrant2.entrantId, awayEntrantId: entrant1.entrantId },
+        ],
+        organizationId,
+        ...AUDIT,
+      });
+      if (!f1 || !f2) {
+        throw new Error('Fixtures not created in test');
+      }
+      const m1 = await competition.createMatch(uow, {
+        fixtureId: f1.fixtureId,
+        number: 1,
+        organizationId,
+        ...AUDIT,
+      });
+      const m2 = await competition.createMatch(uow, {
+        fixtureId: f2.fixtureId,
+        number: 2,
+        organizationId,
+        ...AUDIT,
+      });
+      return [m1, m2];
+    });
+
+    await withTransaction(scratch.db, async (uow) => {
+      await statistics.projectMatch(uow, {
+        organizationId,
+        matchId: match1.matchId,
+        projectionVersion: 1,
+        figures: [
+          {
+            collectorCode: 'career-goals',
+            actorGranularity: 'person',
+            actorId: person.personId,
+            competitionGranularity: 'organization',
+            competitionId: organizationId,
+            value: 3,
+            samples: 1,
+          },
+        ],
+      });
+      await statistics.projectMatch(uow, {
+        organizationId,
+        matchId: match2.matchId,
+        projectionVersion: 1,
+        figures: [
+          {
+            collectorCode: 'career-goals',
+            actorGranularity: 'person',
+            actorId: person.personId,
+            competitionGranularity: 'organization',
+            competitionId: organizationId,
+            value: 2,
+            samples: 1,
+          },
+        ],
+      });
+    });
+
+    const totals = await people.careerTotals(organizationId, person.personId);
+    expect(totals).toHaveLength(1);
+    expect(totals[0]?.totals).toEqual([{ collectorCode: 'career-goals', value: 5, samples: 2 }]);
   });
 });
