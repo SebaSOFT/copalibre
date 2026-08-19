@@ -1073,6 +1073,101 @@ export class EnrollmentRepository {
 
     return names;
   }
+
+  /**
+   * Resolves entrants into display names, abbreviations, club IDs, and emblem
+   * object IDs for winner/runner-up podium presentation.
+   */
+  async resolveEntrantPodiumDetails(entrantIds: readonly string[]): Promise<
+    ReadonlyMap<
+      string,
+      {
+        readonly name: string;
+        readonly abbreviation?: string;
+        readonly clubId?: string;
+        readonly emblemObjectId?: string;
+      }
+    >
+  > {
+    const details = new Map<
+      string,
+      { name: string; abbreviation?: string; clubId?: string; emblemObjectId?: string }
+    >();
+    if (entrantIds.length === 0) return details;
+
+    const entrants = await this.db
+      .selectFrom('entrants')
+      .select(['entrant_id', 'entrant_kind', 'person_id', 'team_id', 'abbreviation'])
+      .where('entrant_id', 'in', entrantIds)
+      .execute();
+
+    const personIds = entrants
+      .map((entrant) => entrant.person_id)
+      .filter((id): id is string => id !== null);
+    const teamIds = entrants
+      .map((entrant) => entrant.team_id)
+      .filter((id): id is string => id !== null);
+
+    const [persons, teams] = await Promise.all([
+      personIds.length === 0
+        ? []
+        : this.db
+            .selectFrom('persons')
+            .select(['person_id', 'display_name'])
+            .where('person_id', 'in', personIds)
+            .execute(),
+      teamIds.length === 0
+        ? []
+        : this.db
+            .selectFrom('teams')
+            .leftJoin('clubs', 'clubs.club_id', 'teams.club_id')
+            .select([
+              'teams.team_id as team_id',
+              'teams.name as name',
+              'teams.abbreviation as team_abbreviation',
+              'teams.club_id as club_id',
+              'clubs.abbreviation as club_abbreviation',
+              'clubs.emblem_object_id as emblem_object_id',
+            ])
+            .where('team_id', 'in', teamIds)
+            .execute(),
+    ]);
+
+    const personById = new Map(persons.map((person) => [person.person_id, person]));
+    const teamById = new Map(teams.map((team) => [team.team_id, team]));
+
+    for (const entrant of entrants) {
+      if (entrant.entrant_kind === 'team' && entrant.team_id !== null) {
+        const team = teamById.get(entrant.team_id);
+        if (team) {
+          const abbreviation =
+            entrant.abbreviation ??
+            abbreviationOf(
+              { abbreviation: team.team_abbreviation ?? undefined },
+              { abbreviation: team.club_abbreviation ?? undefined },
+            );
+          details.set(entrant.entrant_id, {
+            name: team.name,
+            ...(abbreviation === undefined ? {} : { abbreviation }),
+            ...(team.club_id === null ? {} : { clubId: team.club_id }),
+            ...(team.emblem_object_id === null ? {} : { emblemObjectId: team.emblem_object_id }),
+          });
+        }
+        continue;
+      }
+      if (entrant.person_id !== null) {
+        const person = personById.get(entrant.person_id);
+        if (person) {
+          details.set(entrant.entrant_id, {
+            name: person.display_name,
+            ...(entrant.abbreviation === null ? {} : { abbreviation: entrant.abbreviation }),
+          });
+        }
+      }
+    }
+
+    return details;
+  }
 }
 
 /**
