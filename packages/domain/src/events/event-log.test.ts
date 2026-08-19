@@ -196,6 +196,42 @@ describe('EventLog', () => {
     expect(result.ok).toBe(true);
   });
 
+  it('records a declared outcome independently of its workflow choice', () => {
+    const descriptor = fixtureDescriptor({
+      eventDefinitions: [
+        ...fixtureDescriptor().eventDefinitions,
+        {
+          code: 'outcome-decision',
+          label: 'Outcome decision',
+          category: 'neutral',
+          permittedSegmentTypes: ['half'],
+          actorRequirement: 'none',
+          payloadSchema: { type: 'object' },
+          workflow: {
+            kind: 'outcome-choice',
+            options: [{ definitionCode: 'outcome-recorded', label: 'Outcome recorded' }],
+          },
+        },
+        {
+          code: 'outcome-recorded',
+          label: 'Outcome recorded',
+          category: 'neutral',
+          permittedSegmentTypes: ['half'],
+          actorRequirement: 'none',
+          payloadSchema: { type: 'object' },
+        },
+      ],
+    });
+    const log = new EventLog(descriptor);
+
+    const result = log.record(
+      strikeInput({ definitionCode: 'outcome-recorded', personId: undefined, payload: {} }),
+    );
+
+    expect(result.ok).toBe(true);
+    expect(log.list()).toHaveLength(1);
+  });
+
   it('exposes an append-only view — mutating the list does not alter the log', () => {
     const log = new EventLog(fixtureDescriptor());
     log.record(strikeInput());

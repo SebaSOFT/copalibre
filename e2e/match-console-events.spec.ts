@@ -41,6 +41,30 @@ function projection() {
     events: [],
     eventDefinitions: [
       {
+        code: 'outcome-decision',
+        label: 'Record outcome',
+        category: 'neutral',
+        permittedSegmentTypes: ['half'],
+        actorRequirement: 'none',
+        payloadSchema: { type: 'object' },
+        display: {},
+        secondaryActorFields: [],
+        workflow: {
+          kind: 'outcome-choice',
+          options: [{ definitionCode: 'outcome-recorded', label: 'Outcome recorded' }],
+        },
+      },
+      {
+        code: 'outcome-recorded',
+        label: 'Outcome recorded',
+        category: 'neutral',
+        permittedSegmentTypes: ['half'],
+        actorRequirement: 'none',
+        payloadSchema: { type: 'object' },
+        display: {},
+        secondaryActorFields: [],
+      },
+      {
         code: 'goal',
         label: 'Gol',
         category: 'positive',
@@ -177,4 +201,24 @@ test('records a secondary target actor selection, shows the timecode, and update
 
   // The timeline entry shows the segment clock snapshot alongside the event.
   await expect(page.getByText('goal · half 1 · 12:34')).toBeVisible();
+});
+
+test('records only selected generic outcome after opening outcome workflow', async ({ page }) => {
+  await mockMatchConsole(page);
+  await seedLoginTransaction(
+    page,
+    `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`,
+  );
+  await page.goto(loginCallbackUrl());
+
+  await page.getByRole('button', { name: 'Record outcome', exact: true }).click();
+  const beforeChoice = await capturedRequests(page);
+  expect(beforeChoice.some((request) => request.url.endsWith('/events'))).toBe(false);
+
+  await page.getByRole('button', { name: 'Outcome recorded', exact: true }).last().click();
+  const requests = await capturedRequests(page);
+  const recorded = requests.find(
+    (request) => request.url.endsWith('/events') && request.method === 'POST',
+  );
+  expect(recorded?.body).toMatchObject({ definitionCode: 'outcome-recorded' });
 });
