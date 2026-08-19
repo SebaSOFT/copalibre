@@ -90,8 +90,8 @@ infrastructure files changed) and confirm every one is green before opening a PR
 for every required CI check to pass, then wait for explicit merge approval — do not merge a PR on your
 own initiative, and an earlier approval does not carry forward to the next PR. Once merged, sync
 `develop`, delete the local and remote feature branches, then archive the change with
-`openspec archive <change> --yes --skip-specs`. Do not force-add its ignored archive directory. If its
-active-change artifacts were explicitly tracked, commit only their removals to `develop`. On the next
-feature branch, make promotion of the preceding change's spec deltas into `openspec/specs/` the first
-commit (`docs(openspec): promote NNNN specs into the accepted baseline`); do not create a standalone PR
-for promotion. Only then implement the next queued change, unless told to work ahead.
+`openspec archive <change> --yes`. Do not force-add its ignored archive directory. Keep the resulting
+accepted-spec delta and removals of any explicitly tracked active-change artifacts uncommitted on
+`develop`. On the next feature branch, commit that complete preceding-change close-out first
+(`docs(openspec): promote NNNN specs into the accepted baseline`); do not create a standalone PR for
+promotion. Only then implement the next queued change, unless told to work ahead.
