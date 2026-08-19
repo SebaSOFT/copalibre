@@ -217,6 +217,46 @@ describe('public-api-client', () => {
       );
     });
 
+    it('reads a tournament-wide layout with clubId when supplied', async () => {
+      const mockData = { layoutCode: 'top-scorers', rows: [] };
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockData,
+      } as unknown as Response);
+
+      const result = await fetchPublicTableProjection(
+        'org1',
+        'tourney1',
+        'top-scorers',
+        undefined,
+        'club-123',
+      );
+      expect(result).toEqual(mockData);
+      expect(fetch).toHaveBeenCalledWith(
+        'http://api.test/organizations/org1/tournaments/tourney1/public/tables/top-scorers?clubId=club-123',
+      );
+    });
+
+    it('reads a stage-scoped layout with clubId when supplied', async () => {
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ layoutCode: 'group-standings-default', rows: [] }),
+      } as unknown as Response);
+
+      await fetchPublicTableProjection(
+        'org1',
+        'tourney1',
+        'group-standings-default',
+        2,
+        'club-123',
+      );
+      expect(fetch).toHaveBeenCalledWith(
+        'http://api.test/organizations/org1/tournaments/tourney1/stages/2/public/tables/group-standings-default?clubId=club-123',
+      );
+    });
+
     it('returns undefined on 404', async () => {
       (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
         ok: false,

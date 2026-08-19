@@ -37,6 +37,8 @@ export interface TableProjectionScope {
   readonly stageId?: string;
   /** Optional pool within a stage; its fixture membership is the read boundary. */
   readonly groupId?: string;
+  /** Optional club filter: only include rows for entrants belonging to this club. */
+  readonly clubId?: string;
 }
 
 export interface TableProjectionResult {
@@ -174,7 +176,19 @@ export async function readTableProjection(
   const projection = projectTableLayout(figures, layout, { actors });
   const projectionVersion = await maxStatisticProjectionVersion(db, matchIds);
 
-  return { layout, rows: projection.rows, projectionVersion };
+  let rows = projection.rows;
+  if (scope.clubId !== undefined) {
+    const matchingEntrantIds = await resolveClubEntrantIds(
+      db,
+      scope.tournament.tournamentId,
+      scope.clubId,
+    );
+    rows = rows.filter(
+      (row) => row.entrantId !== undefined && matchingEntrantIds.has(row.entrantId),
+    );
+  }
+
+  return { layout, rows, projectionVersion };
 }
 
 /** Every collector/statistic code a layout's columns or filter could resolve. */
@@ -380,11 +394,40 @@ async function personActors(
     const roles = rolesOf.get(personId);
     return {
       actorId: personId,
+      ...(entrantId === undefined ? {} : { entrantId }),
       name: nameOf.get(personId) ?? personId,
       ...(teamName === undefined ? {} : { teamName }),
       ...(roles && roles.size > 0 ? { roles: [...roles] } : {}),
     };
   });
+}
+
+async function resolveClubEntrantIds(
+  db: Kysely<Database>,
+  tournamentId: string,
+  clubId: string,
+): Promise<ReadonlySet<string>> {
+  const teamEntrants = await db
+    .selectFrom('entrants')
+    .innerJoin('teams', 'teams.team_id', 'entrants.team_id')
+    .select('entrants.entrant_id')
+    .where('entrants.tournament_id', '=', tournamentId)
+    .where('teams.club_id', '=', clubId)
+    .execute();
+
+  const personEntrants = await db
+    .selectFrom('entrants')
+    .innerJoin('players', 'players.person_id', 'entrants.person_id')
+    .innerJoin('teams', 'teams.team_id', 'players.team_id')
+    .select('entrants.entrant_id')
+    .where('entrants.tournament_id', '=', tournamentId)
+    .where('teams.club_id', '=', clubId)
+    .execute();
+
+  const matchingIds = new Set<string>();
+  for (const row of teamEntrants) matchingIds.add(row.entrant_id);
+  for (const row of personEntrants) matchingIds.add(row.entrant_id);
+  return matchingIds;
 }
 
 async function maxStatisticProjectionVersion(

@@ -1,4 +1,4 @@
-import { Controller, Get, Param, NotFoundException, Inject } from '@nestjs/common';
+import { Controller, Get, Param, Query, NotFoundException, Inject } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiOkResponse } from '@nestjs/swagger';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
 import {
@@ -120,6 +120,21 @@ export class PublicProjectionsController {
       }
     }
 
+    const clubRows = await this.db
+      .selectFrom('entrants')
+      .innerJoin('teams', 'teams.team_id', 'entrants.team_id')
+      .innerJoin('clubs', 'clubs.club_id', 'teams.club_id')
+      .select([
+        'clubs.club_id as clubId',
+        'clubs.name',
+        'clubs.alias',
+        'clubs.emblem_object_id as emblemObjectId',
+      ])
+      .where('entrants.tournament_id', '=', tournament.tournamentId)
+      .distinct()
+      .orderBy('clubs.name')
+      .execute();
+
     return {
       organizationAlias,
       organizationName,
@@ -143,6 +158,12 @@ export class PublicProjectionsController {
         scheduledAt: m.scheduledAt,
       })),
       standingsPreview,
+      clubs: clubRows.map((c) => ({
+        clubId: c.clubId,
+        name: c.name,
+        ...(c.alias ? { alias: c.alias } : {}),
+        ...(c.emblemObjectId ? { emblemObjectId: c.emblemObjectId } : {}),
+      })),
       ruleset,
     };
   }
@@ -494,6 +515,7 @@ export class PublicProjectionsController {
     @Param('organizationAlias') organizationAlias: string,
     @Param('tournamentAlias') tournamentAlias: string,
     @Param('layoutCode') layoutCode: string,
+    @Query('clubId') clubId?: string,
   ): Promise<TableProjectionResponse> {
     const { tournament } = await this.resolvePublishedTournament(
       organizationAlias,
@@ -507,6 +529,7 @@ export class PublicProjectionsController {
           tournamentId: tournament.tournamentId,
           disciplineRef: tournament.disciplineRef,
         },
+        clubId,
       },
       layoutCode,
     );
@@ -522,6 +545,7 @@ export class PublicProjectionsController {
     @Param('tournamentAlias') tournamentAlias: string,
     @Param('stageNumber') stageNumberStr: string,
     @Param('layoutCode') layoutCode: string,
+    @Query('clubId') clubId?: string,
   ): Promise<TableProjectionResponse> {
     const { tournament } = await this.resolvePublishedTournament(
       organizationAlias,
@@ -543,6 +567,7 @@ export class PublicProjectionsController {
           disciplineRef: tournament.disciplineRef,
         },
         stageId: stage.stageId,
+        clubId,
       },
       layoutCode,
     );

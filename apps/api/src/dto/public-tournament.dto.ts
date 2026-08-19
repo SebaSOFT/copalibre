@@ -67,6 +67,20 @@ export class PublicOverviewMatchResponse {
   scheduledAt?: string;
 }
 
+export class PublicOverviewClubResponse {
+  @ApiProperty({ format: 'uuid' })
+  clubId!: string;
+
+  @ApiProperty()
+  name!: string;
+
+  @ApiPropertyOptional()
+  alias?: string;
+
+  @ApiPropertyOptional()
+  emblemObjectId?: string;
+}
+
 export class PublicOverviewResponse {
   @ApiProperty()
   organizationAlias!: string;
@@ -88,6 +102,9 @@ export class PublicOverviewResponse {
 
   @ApiPropertyOptional({ type: [PublicStandingsRowResponse] })
   standingsPreview?: PublicStandingsRowResponse[];
+
+  @ApiPropertyOptional({ type: [PublicOverviewClubResponse] })
+  clubs?: PublicOverviewClubResponse[];
 
   @ApiProperty({ type: 'object', additionalProperties: { type: 'string' } })
   ruleset!: Record<string, string>;

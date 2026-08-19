@@ -6,15 +6,32 @@ import type {
 } from '@copalibre/api/src/dto/table-projections.dto.js';
 import { localizedText } from '../lib/localized-label.ts';
 import { messages } from '../lib/i18n/public-messages.en.ts';
+import type { ClubView } from '../lib/overview.ts';
 
 interface Props {
+  /** The declared layouts for building the tab strip. */
+  readonly layouts?: readonly TableLayoutSummaryResponse[];
   /** The declared layout this projection came from — its own label replaces the generic heading. */
   readonly layout?: TableLayoutSummaryResponse;
   readonly projection?: TableProjectionResponse;
+  readonly activeLayoutCode?: string;
+  readonly activeClubId?: string;
+  readonly clubs?: readonly ClubView[];
   readonly intl: IntlShape;
+  readonly canonicalPath?: string;
 }
-const { layout, projection, intl } = Astro.props;
+const {
+  layouts = [],
+  layout,
+  projection,
+  activeLayoutCode,
+  activeClubId,
+  clubs = [],
+  intl,
+  canonicalPath = '',
+} = Astro.props;
 
+const effectiveLayoutCode = activeLayoutCode ?? layout?.code;
 const heading = layout
   ? localizedText(layout.label, intl.locale)
   : intl.formatMessage(messages.standingsHeading);
@@ -22,31 +39,141 @@ const columns = projection?.columns ?? [];
 const rows = projection?.rows ?? [];
 ---
 
-<section aria-labelledby="standings-heading">
+<section aria-labelledby="standings-heading" class="cl-standings-section">
   <h2 id="standings-heading">{heading}</h2>
-  {rows.length === 0 && <p>{intl.formatMessage(messages.standingsEmpty)}</p>}
+
   {
-    rows.length > 0 && (
-      <table>
-        <thead>
-          <tr>
-            {columns.map((column) => (
-              <th scope="col" title={localizedText(column.header, intl.locale)}>
-                {localizedText(column.shortHeader ?? column.header, intl.locale)}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr>
-              {columns.map((column) => (
-                <td class="cl-stat-tile__value">{row.cells[column.code]?.formatted ?? '—'}</td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    layouts.length > 1 && (
+      <nav class="cl-table-tabs" aria-label="Table Layouts">
+        <ul role="tablist">
+          {layouts.map((l) => {
+            const isActive = l.code === effectiveLayoutCode;
+            const tabUrl = `${canonicalPath}?tab=${encodeURIComponent(l.code)}${activeClubId ? `&clubId=${encodeURIComponent(activeClubId)}` : ''}`;
+            return (
+              <li role="presentation">
+                <a
+                  role="tab"
+                  aria-selected={isActive ? 'true' : 'false'}
+                  class={`cl-table-tab ${isActive ? 'cl-table-tab--active' : ''}`}
+                  href={tabUrl}
+                  data-layout-code={l.code}
+                >
+                  {localizedText(l.label, intl.locale)}
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
     )
   }
+
+  {
+    clubs.length > 0 && (
+      <div class="cl-club-filter" role="group" aria-label="Filter by club">
+        <span class="cl-club-filter__label">Club:</span>
+        <a
+          href={`${canonicalPath}${effectiveLayoutCode ? `?tab=${encodeURIComponent(effectiveLayoutCode)}` : ''}`}
+          class={`cl-club-filter__btn ${!activeClubId ? 'cl-club-filter__btn--active' : ''}`}
+          aria-pressed={!activeClubId ? 'true' : 'false'}
+          data-club-filter="all"
+        >
+          All
+        </a>
+        {clubs.map((club) => {
+          const isClubActive = club.clubId === activeClubId;
+          const clubUrl = `${canonicalPath}?${effectiveLayoutCode ? `tab=${encodeURIComponent(effectiveLayoutCode)}&` : ''}clubId=${encodeURIComponent(club.clubId)}`;
+          return (
+            <a
+              href={clubUrl}
+              class={`cl-club-filter__btn ${isClubActive ? 'cl-club-filter__btn--active' : ''}`}
+              aria-pressed={isClubActive ? 'true' : 'false'}
+              data-club-filter={club.clubId}
+              title={club.name}
+            >
+              {club.name}
+            </a>
+          );
+        })}
+      </div>
+    )
+  }
+
+  <div class="cl-table-container">
+    {rows.length === 0 && <p>{intl.formatMessage(messages.standingsEmpty)}</p>}
+    {
+      rows.length > 0 && (
+        <table>
+          <thead>
+            <tr>
+              {columns.map((column) => (
+                <th scope="col" title={localizedText(column.header, intl.locale)}>
+                  {localizedText(column.shortHeader ?? column.header, intl.locale)}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr>
+                {columns.map((column) => (
+                  <td class="cl-stat-tile__value">{row.cells[column.code]?.formatted ?? '—'}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )
+    }
+  </div>
 </section>
+
+<style>
+  .cl-table-tabs ul {
+    display: flex;
+    gap: 8px;
+    list-style: none;
+    padding: 0;
+    margin: 0 0 16px 0;
+    border-bottom: 1px solid var(--cl-color-border, #e5e7eb);
+    overflow-x: auto;
+  }
+  .cl-table-tab {
+    display: inline-block;
+    padding: 8px 16px;
+    text-decoration: none;
+    color: inherit;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+  }
+  .cl-table-tab--active {
+    border-bottom-color: var(--cl-color-primary, #2563eb);
+    color: var(--cl-color-primary, #2563eb);
+  }
+  .cl-club-filter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .cl-club-filter__label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--cl-color-text-subtle, #6b7280);
+  }
+  .cl-club-filter__btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    text-decoration: none;
+    background: var(--cl-color-surface-subtle, #f3f4f6);
+    color: inherit;
+  }
+  .cl-club-filter__btn--active {
+    background: var(--cl-color-primary, #2563eb);
+    color: #ffffff;
+  }
+</style>

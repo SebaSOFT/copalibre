@@ -3,7 +3,9 @@
 ## Purpose
 Delivers CopaLibre's anonymous, spectator-facing tournament pages as a fast, cacheable, mostly-static
 site that stays usable without JavaScript and is indexable only on its intended public routes.
+
 ## Requirements
+
 ### Requirement: Organization-scoped tournament overview page
 The public site SHALL serve a tournament overview page at `/{organization}/tournaments/{tournament}`
 showing tournament identity, schedule/format facts, a standings preview, and rules access, matching
@@ -138,3 +140,77 @@ Public spectator pages SHALL render standings and leaderboards according to the 
 - **WHEN** a public visitor opens a tournament's standings page
 - **THEN** the table displays the discipline's declared columns and pre-sorted ranking order, server-rendered from the effective table layout without client-side column filtering
 
+### Requirement: Per-match public report page
+
+The public site SHALL serve a per-match report page at
+`/{organization}/tournaments/{tournament}/stages/{stageNumber}/matches/{matchNumber}`, keyed by the
+stage number and match's stage-scoped sequential number, showing the match header
+(competition/stage/round identity, both entrants, current score,
+status, scheduled date/time and venue when a schedule exists), the officials assigned to it, each side's
+roster as recorded, and the full event timeline in match order. This page SHALL be rendered per request
+from current backend state, matching the existing overview page's "reachable without a site rebuild"
+guarantee.
+
+#### Scenario: Visiting a finished match's report
+- **WHEN** an anonymous visitor requests the report page for a finalized match
+- **THEN** the page renders the match header with final score, the officials who were assigned, both
+  sides' recorded rosters, and every recorded event in order
+
+#### Scenario: Visiting an upcoming match's report
+- **WHEN** an anonymous visitor requests the report page for a scheduled match that has not started
+- **THEN** the page renders the header with scheduled date/time and venue and any assigned officials,
+  and shows the roster and event timeline sections as not yet available, rather than 404ing or omitting
+  them from the page entirely
+
+#### Scenario: An unknown stage or match number 404s
+- **WHEN** an anonymous visitor requests a stage number or stage-scoped match number that does not
+  exist for the given organization/tournament alias pair
+- **THEN** the public site returns a not-found response
+
+#### Scenario: An unpublished tournament's match report is not exposed
+- **WHEN** an anonymous visitor requests a match report for a tournament the organizer has not
+  published
+- **THEN** the public site returns a not-found response, matching the existing overview page's
+  unpublished-tournament behavior
+
+### Requirement: Officials assigned to a fixture are shown on its match report
+
+The match report page SHALL show every official assigned via the fixture's published schedule, each
+with their declared role, for a match already played or still upcoming.
+
+#### Scenario: An upcoming match's assigned officials are visible before kickoff
+- **WHEN** a fixture has a published schedule naming two officials with roles `referee` and
+  `table-official`
+- **THEN** the match report for that (not-yet-played) match lists both officials with their roles
+
+#### Scenario: A finished match still shows who officiated it
+- **WHEN** a match has been finalized and its fixture's schedule named assigned officials
+- **THEN** the match report continues to show those officials, unaffected by the match's completed
+  status
+
+#### Scenario: An unpublished schedule shows no officials, distinguishably from none assigned
+- **WHEN** a fixture's schedule exists but has not been published
+- **THEN** the match report shows the schedule as not yet published, rather than presenting an empty
+  officials list indistinguishably from a published schedule with none assigned
+
+### Requirement: The event timeline renders labels from the bound discipline descriptor
+
+The match report's event timeline SHALL label each recorded event using the tournament's bound
+`DisciplineDescriptor`'s own `EventDefinition.label`, and SHALL group a workflow-linked foul and its
+outcome event as one visual unit when the discipline declares that relationship, rendering every other
+event individually.
+
+#### Scenario: A goal event is labeled from the discipline descriptor
+- **WHEN** the event timeline includes a recorded `goal` event for a discipline that declares
+  `label: 'Goal'` on that event definition
+- **THEN** the timeline entry displays "Goal", not the raw definition code
+
+#### Scenario: A foul and its declared outcome render as one unit
+- **WHEN** the event timeline includes a foul event whose definition declares a `workflow` naming a
+  subsequently recorded outcome event as one of its options, and that outcome event is present in the
+  same match's log
+- **THEN** the two events render together as one visual unit rather than two unrelated timeline entries
+
+#### Scenario: An event with no declared workflow renders individually
+- **WHEN** the event timeline includes an event whose definition declares no `workflow`
+- **THEN** it renders as its own, independent timeline entry

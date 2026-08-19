@@ -43,6 +43,7 @@ describe('table projections (integration, 0091)', () => {
   let entrantTalleres: string;
   let entrantIndependiente: string;
   let personScorer: string;
+  let clubTalleresId: string;
   const AUDIT = { actor: 'user:seed', authorizationContext: 'seed' } as const;
 
   const GROUP_STANDINGS_LAYOUT = {
@@ -216,8 +217,16 @@ describe('table projections (integration, 0091)', () => {
       });
       tournamentId = tournament.tournamentId;
 
+      const clubTalleres = await enrollment.createClub(uow, {
+        organizationId,
+        name: 'Club Atlético Talleres',
+        ...AUDIT,
+      });
+      clubTalleresId = clubTalleres.clubId;
+
       const talleres = await enrollment.createTeam(uow, {
         organizationId,
+        clubId: clubTalleres.clubId,
         name: 'Talleres',
         abbreviation: 'TAL',
         ...AUDIT,
@@ -555,6 +564,21 @@ describe('table projections (integration, 0091)', () => {
       expect(response.json().rows[0]).toMatchObject({ actorId: personScorer });
     });
 
+    it('filters a tournament-wide table by clubId without changing computed ranking', async () => {
+      const matching = await getAnonymous(
+        `/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers?clubId=${clubTalleresId}`,
+      );
+      expect(matching.statusCode).toBe(200);
+      expect(matching.json().rows).toHaveLength(1);
+      expect(matching.json().rows[0]).toMatchObject({ actorId: personScorer, rank: 1 });
+
+      const nonMatching = await getAnonymous(
+        '/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers?clubId=00000000-0000-0000-0000-000000000000',
+      );
+      expect(nonMatching.statusCode).toBe(200);
+      expect(nonMatching.json().rows).toHaveLength(0);
+    });
+
     it('projects a stage-scoped table with no token at all', async () => {
       const response = await getAnonymous(
         '/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default',
@@ -562,6 +586,21 @@ describe('table projections (integration, 0091)', () => {
 
       expect(response.statusCode).toBe(200);
       expect(response.json().rows).toHaveLength(2);
+    });
+
+    it('filters a stage-scoped table by clubId without throwing', async () => {
+      const matching = await getAnonymous(
+        `/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default?clubId=${clubTalleresId}`,
+      );
+      expect(matching.statusCode).toBe(200);
+      expect(matching.json().rows).toHaveLength(1);
+      expect(matching.json().rows[0]).toMatchObject({ actorId: entrantTalleres });
+
+      const nonMatching = await getAnonymous(
+        '/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default?clubId=00000000-0000-0000-0000-000000000000',
+      );
+      expect(nonMatching.statusCode).toBe(200);
+      expect(nonMatching.json().rows).toHaveLength(0);
     });
 
     it('is a genuinely different route from the admin one, not a shared shadowed path', async () => {

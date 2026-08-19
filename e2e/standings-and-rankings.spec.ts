@@ -187,10 +187,10 @@ test.describe('B2: public tournament page', () => {
       seasonName: 'Apertura 2026',
       matches: [
         {
-          matchId: 'm-1',
           stageNumber: 1,
           round: 1,
-          status: 'finalized',
+          matchNumber: 1,
+          status: 'final',
           homeEntrantId: 'Talleres',
           homeName: 'Talleres',
           homeAbbreviation: 'TAL',
@@ -201,6 +201,10 @@ test.describe('B2: public tournament page', () => {
           awayScore: 1,
           scheduledAt: '2026-01-01T00:00:00.000Z',
         },
+      ],
+      clubs: [
+        { clubId: 'club-talleres', name: 'Club Atlético Talleres' },
+        { clubId: 'club-independiente', name: 'Club Atlético Independiente' },
       ],
       ruleset: {},
     };
@@ -273,6 +277,18 @@ test.describe('B2: public tournament page', () => {
         res.end(JSON.stringify(groupStandingsFixture));
         return;
       }
+      if (req.url === `${TOURNAMENT}/public/tables/top-scorers`) {
+        res.end(JSON.stringify(topScorersFixture));
+        return;
+      }
+      if (req.url === `${TOURNAMENT}/public/tables/top-scorers?clubId=club-talleres`) {
+        res.end(JSON.stringify(topScorersFixture));
+        return;
+      }
+      if (req.url === `${TOURNAMENT}/public/tables/top-scorers?clubId=club-independiente`) {
+        res.end(JSON.stringify({ ...topScorersFixture, rows: [] }));
+        return;
+      }
       if (req.url === `${STAGE}/matches/1`) {
         res.end(JSON.stringify(finishedReport));
         return;
@@ -335,5 +351,21 @@ test.describe('B2: public tournament page', () => {
     await expect(page.getByText('No officials assigned.')).toBeVisible();
     await expect(page.getByText('Rosters are not yet available.')).toBeVisible();
     await expect(page.getByText('Events are not yet available.')).toBeVisible();
+  });
+
+  test('switches to a leaderboard tab and filters by club', async ({ page }) => {
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+
+    // Click Top Scorers tab
+    await page.getByRole('tab', { name: 'Top Scorers' }).click();
+    await expect(page.getByRole('heading', { name: 'Top Scorers' })).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'Goleador Uno' })).toBeVisible();
+
+    // Click club filter button
+    await page.getByRole('link', { name: 'Club Atlético Independiente' }).click();
+    await expect(page.getByText('Standings appear once the first match is played.')).toBeVisible();
+
+    // Matches / ticker is unaffected
+    await expect(page.getByRole('heading', { name: 'Matches' })).toBeVisible();
   });
 });

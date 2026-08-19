@@ -2572,6 +2572,13 @@ export interface components {
                 [key: string]: number;
             };
         };
+        PublicOverviewClubResponse: {
+            /** Format: uuid */
+            clubId: string;
+            name: string;
+            alias?: string;
+            emblemObjectId?: string;
+        };
         PublicOverviewResponse: {
             organizationAlias: string;
             organizationName: string;
@@ -2580,6 +2587,7 @@ export interface components {
             seasonName: string;
             matches: components["schemas"]["PublicOverviewMatchResponse"][];
             standingsPreview?: components["schemas"]["PublicStandingsRowResponse"][];
+            clubs?: components["schemas"]["PublicOverviewClubResponse"][];
             ruleset: {
                 [key: string]: string;
             };
@@ -5262,7 +5270,9 @@ export interface operations {
     };
     PublicProjectionsController_tournamentTable: {
         parameters: {
-            query?: never;
+            query: {
+                clubId: string;
+            };
             header?: never;
             path: {
                 organizationAlias: string;
@@ -5285,7 +5295,9 @@ export interface operations {
     };
     PublicProjectionsController_stageTable: {
         parameters: {
-            query?: never;
+            query: {
+                clubId: string;
+            };
             header?: never;
             path: {
                 organizationAlias: string;

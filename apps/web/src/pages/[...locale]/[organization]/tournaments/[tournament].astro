@@ -49,20 +49,33 @@ const model = buildOverview(mapOverviewResponse(overviewData));
 // expecting to see. A tournament whose discipline declares no group-phase
 // layout (or that has not played a match yet) simply renders no table.
 const layoutsResponse = await fetchPublicTableLayouts(organization!, tournament!);
-const groupPhaseLayout = layoutsResponse?.layouts.find((one) => one.target === 'group-phase');
+const declaredLayouts = layoutsResponse?.layouts ?? [];
+
 const earliestStageNumber = overviewData.matches.reduce(
   (earliest, match) => Math.min(earliest, match.stageNumber),
   Infinity,
 );
-const standingsProjection =
-  groupPhaseLayout && Number.isFinite(earliestStageNumber)
-    ? await fetchPublicTableProjection(
-        organization!,
-        tournament!,
-        groupPhaseLayout.code,
-        earliestStageNumber,
-      )
-    : undefined;
+
+const requestedTab = Astro.url.searchParams.get('tab');
+const activeClubId = Astro.url.searchParams.get('clubId') ?? undefined;
+
+const defaultLayout =
+  declaredLayouts.find((one) => one.target === 'group-phase') ?? declaredLayouts[0];
+const activeLayout =
+  (requestedTab ? declaredLayouts.find((one) => one.code === requestedTab) : undefined) ??
+  defaultLayout;
+
+const activeProjection = activeLayout
+  ? await fetchPublicTableProjection(
+      organization!,
+      tournament!,
+      activeLayout.code,
+      activeLayout.target === 'group-phase' && Number.isFinite(earliestStageNumber)
+        ? earliestStageNumber
+        : undefined,
+      activeClubId,
+    )
+  : undefined;
 ---
 
 <PublicLayout
@@ -76,6 +89,15 @@ const standingsProjection =
   <TournamentHero model={model} intl={intl} />
   <BroadcastStatusPanel model={model} intl={intl} />
   <ScoreTicker model={model} intl={intl} localePrefix={locale ? `/${locale}` : ''} />
-  <StandingsPreview layout={groupPhaseLayout} projection={standingsProjection} intl={intl} />
+  <StandingsPreview
+    layouts={declaredLayouts}
+    layout={activeLayout}
+    projection={activeProjection}
+    activeLayoutCode={activeLayout?.code}
+    activeClubId={activeClubId}
+    clubs={model.clubs}
+    intl={intl}
+    canonicalPath={`${locale ? `/${locale}` : ''}${model.canonicalPath}`}
+  />
   <RulesetBriefing model={model} intl={intl} />
 </PublicLayout>
