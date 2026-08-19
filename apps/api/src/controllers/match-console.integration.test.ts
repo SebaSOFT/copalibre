@@ -285,9 +285,7 @@ describe('live match console (integration)', () => {
   });
 
   it('audits clock changes, emits projection outbox events, and rejects undeclared timer resolution', async () => {
-    const projectionEventsBefore = (
-      await new OutboxReader(scratch.db).pending()
-    ).filter(
+    const projectionEventsBefore = (await new OutboxReader(scratch.db).pending()).filter(
       (event) => event.entityId === matchId && event.eventType === 'match.console-projection',
     ).length;
     const clock = await request('POST', `${base()}/clock`, 'referee', {
