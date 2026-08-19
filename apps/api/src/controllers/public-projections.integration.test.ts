@@ -3,6 +3,9 @@ import { footballDescriptor } from '@copalibre/domain';
 import {
   CompetitionRepository,
   TournamentRepository,
+  PersonRepository,
+  EnrollmentRepository,
+  StatisticRepository,
   newId,
   withTransaction,
   type Database,
@@ -405,5 +408,153 @@ describe('public projections routes', () => {
       rosters: { home: [{ personId: playerId, name: 'Lucía Gómez', number: 9 }], away: [] },
       timeline: [{ definitionCode: 'goal', label: 'Goal', personId: playerId }],
     });
+  });
+
+  it("serves a person's public profile with computed age and no private fields", async () => {
+    const people = new PersonRepository(scratch.db as Kysely<Database>);
+    const enrollment = new EnrollmentRepository(scratch.db as Kysely<Database>);
+    const statistics = new StatisticRepository(scratch.db as Kysely<Database>);
+    const competition = new CompetitionRepository(scratch.db as Kysely<Database>);
+
+    const { person } = await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+      const { person } = await people.register(uow, {
+        organizationId,
+        displayName: 'Esteban Paredes',
+        birthDate: '1995-05-20',
+        naturalKey: { kind: 'dni', value: '38.999.888' },
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      await people.setNationality(uow, {
+        personId: person.personId,
+        organizationId,
+        nationality: 'CL',
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+
+      const team = await enrollment.createTeam(uow, {
+        organizationId,
+        name: 'Colo-Colo',
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      await people.enlist(uow, {
+        personId: person.personId,
+        teamId: team.teamId,
+        role: 'player',
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+
+      const entrant = await enrollment.registerEntrant(uow, {
+        organizationId,
+        tournamentId: publishedTournament.tournamentId,
+        entrantRef: { kind: 'team', teamId: team.teamId },
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+
+      const stage = await competition.createStageInTournament(uow, {
+        tournamentId: publishedTournament.tournamentId,
+        number: 10,
+        name: 'Playoffs',
+        format: 'single-elimination',
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      const [fixture] = await competition.createFixtures(uow, {
+        stageId: stage.stageId,
+        fixtures: [{ round: 1, homeEntrantId: entrant.entrantId }],
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      if (!fixture) {
+        throw new Error('Fixture creation failed in test setup');
+      }
+      const match = await competition.createMatch(uow, {
+        fixtureId: fixture.fixtureId,
+        number: 1,
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+
+      await statistics.projectMatch(uow, {
+        organizationId,
+        matchId: match.matchId,
+        projectionVersion: 1,
+        figures: [
+          {
+            collectorCode: 'career-goals',
+            actorGranularity: 'person',
+            actorId: person.personId,
+            competitionGranularity: 'organization',
+            competitionId: organizationId,
+            value: 12,
+            samples: 4,
+          },
+        ],
+      });
+
+      return { person };
+    });
+
+    const response = await request({
+      method: 'GET',
+      url: `/organizations/liga-orbital/tournaments/${publishedTournament.alias}/persons/${person.personId}/public/profile`,
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.payload as string);
+    expect(body.personId).toBe(person.personId);
+    expect(body.displayName).toBe('Esteban Paredes');
+    expect(body.nationality).toBe('CL');
+    expect(typeof body.age).toBe('number');
+    expect(body.age).toBeGreaterThanOrEqual(30);
+
+    // Negative assertions: raw private fields MUST NOT be present
+    expect(body.birthDate).toBeUndefined();
+    expect(body.birth_date).toBeUndefined();
+    expect(body.naturalKey).toBeUndefined();
+    expect(body.natural_key).toBeUndefined();
+    expect(JSON.stringify(body)).not.toContain('38999888');
+    expect(JSON.stringify(body)).not.toContain('1995-05-20');
+
+    // History and career totals
+    expect(body.competitionHistory).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          tournamentAlias: publishedTournament.alias,
+          teamName: 'Colo-Colo',
+          role: 'player',
+        }),
+      ]),
+    );
+
+    expect(body.careerStatistics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          disciplineDescriptorId: publishedTournament.disciplineRef.descriptorId,
+          statistics: expect.arrayContaining([
+            expect.objectContaining({
+              code: 'career-goals',
+              value: 12,
+            }),
+          ]),
+        }),
+      ]),
+    );
+  });
+
+  it('404s on player profile when person is not found or belongs to another organization', async () => {
+    const unknownResponse = await request({
+      method: 'GET',
+      url: `/organizations/liga-orbital/tournaments/${publishedTournament.alias}/persons/01890000-0000-7000-8000-999999999999/public/profile`,
+    });
+    expect(unknownResponse.statusCode).toBe(404);
   });
 });

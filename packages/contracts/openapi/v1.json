@@ -4209,6 +4209,53 @@
         ]
       }
     },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/persons/{personId}/public/profile": {
+      "get": {
+        "operationId": "PublicProjectionsController_playerProfile",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "personId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicPersonProfileResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "A person's public career and competition profile",
+        "tags": [
+          "Public Projections"
+        ]
+      }
+    },
     "/auth/login": {
       "post": {
         "operationId": "NativeAuthController_login",
@@ -9028,6 +9075,154 @@
         },
         "required": [
           "matches"
+        ]
+      },
+      "PublicPersonCompetitionHistoryResponse": {
+        "type": "object",
+        "properties": {
+          "tournamentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tournamentName": {
+            "type": "string"
+          },
+          "tournamentAlias": {
+            "type": "string"
+          },
+          "teamId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "teamName": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "player",
+              "substitute",
+              "coach",
+              "staff"
+            ]
+          },
+          "entrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "entrantName": {
+            "type": "string"
+          },
+          "entrantAbbreviation": {
+            "type": "string"
+          },
+          "disciplineDescriptorId": {
+            "type": "string"
+          },
+          "disciplineDescriptorVersion": {
+            "type": "string"
+          },
+          "disciplineName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tournamentId",
+          "tournamentName",
+          "tournamentAlias",
+          "teamId",
+          "teamName",
+          "role",
+          "disciplineDescriptorId",
+          "disciplineDescriptorVersion"
+        ]
+      },
+      "PublicPersonCareerStatisticResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number"
+          },
+          "samples": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "code",
+          "label",
+          "value"
+        ]
+      },
+      "PublicPersonCareerDisciplineTotalsResponse": {
+        "type": "object",
+        "properties": {
+          "disciplineDescriptorId": {
+            "type": "string"
+          },
+          "disciplineName": {
+            "type": "string"
+          },
+          "statistics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicPersonCareerStatisticResponse"
+            }
+          }
+        },
+        "required": [
+          "disciplineDescriptorId",
+          "statistics"
+        ]
+      },
+      "PublicPersonProfileResponse": {
+        "type": "object",
+        "properties": {
+          "personId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "alias": {
+            "type": "string"
+          },
+          "nationality": {
+            "type": "string",
+            "description": "ISO 3166-1 alpha-2 country code"
+          },
+          "photoObjectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "age": {
+            "type": "number",
+            "description": "Age in completed full years (derived from birth date; raw birth date is never exposed)"
+          },
+          "competitionHistory": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicPersonCompetitionHistoryResponse"
+            }
+          },
+          "careerStatistics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicPersonCareerDisciplineTotalsResponse"
+            }
+          }
+        },
+        "required": [
+          "personId",
+          "displayName",
+          "competitionHistory",
+          "careerStatistics"
         ]
       },
       "LoginRequest": {
