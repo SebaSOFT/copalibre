@@ -3,6 +3,7 @@ import {
   fetchOverview,
   fetchLive,
   fetchBracket,
+  fetchMatchReport,
   fetchPublicTableLayouts,
   fetchPublicTableProjection,
   mapOverviewResponse,
@@ -134,6 +135,31 @@ describe('public-api-client', () => {
       await expect(fetchBracket('org1', 'tourney1', 1)).rejects.toThrow(
         /500 Internal Server Error/,
       );
+    });
+  });
+
+  describe('fetchMatchReport', () => {
+    it('reads one stage-scoped match report', async () => {
+      const mockData = { matchNumber: 3 };
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockData,
+      } as unknown as Response);
+
+      expect(await fetchMatchReport('org1', 'tourney1', 2, 3)).toEqual(mockData);
+      expect(fetch).toHaveBeenCalledWith(
+        'http://api.test/organizations/org1/tournaments/tourney1/stages/2/matches/3',
+      );
+    });
+
+    it('returns undefined for an unknown report', async () => {
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+      } as unknown as Response);
+
+      expect(await fetchMatchReport('org1', 'tourney1', 2, 3)).toBeUndefined();
     });
   });
   describe('fetchPublicTableLayouts', () => {

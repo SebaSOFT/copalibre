@@ -325,7 +325,9 @@ test('a published seed order survives a page reload', async ({ page }) => {
   // real browser refresh — log back in to return to this screen so the
   // assertion below is about the persisted seed order, not the session.
   await seedLoginTransaction(page, target);
-  await page.goto(loginCallbackUrl());
+  await page.goto(loginCallbackUrl()).catch((error: Error) => {
+    if (!error.message.includes('is interrupted by another navigation')) throw error;
+  });
   await page.waitForURL(`**${target}`);
   await expect(seedList.getByRole('listitem')).toHaveCount(shuffled.length);
   const afterReload = await seedList.getByRole('listitem').allTextContents();

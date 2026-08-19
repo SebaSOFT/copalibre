@@ -26,4 +26,23 @@ export const PUBLIC_ROUTES: readonly SitemapEntry[] = [
     input: { organizationAlias: 'liga-mendocina', tournamentAlias: 'apertura-2026', locale },
     changeFrequency: 'hourly',
   })),
+  {
+    input: {
+      organizationAlias: 'liga-mendocina',
+      tournamentAlias: 'apertura-2026',
+      stageNumber: 1,
+      matchNumber: 1,
+    },
+    changeFrequency: 'hourly',
+  },
+  ...NON_PRIMARY_LOCALES.map((locale): SitemapEntry => ({
+    input: {
+      organizationAlias: 'liga-mendocina',
+      tournamentAlias: 'apertura-2026',
+      stageNumber: 1,
+      matchNumber: 1,
+      locale,
+    },
+    changeFrequency: 'hourly',
+  })),
 ];

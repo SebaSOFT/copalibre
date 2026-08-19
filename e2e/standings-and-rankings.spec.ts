@@ -204,6 +204,60 @@ test.describe('B2: public tournament page', () => {
       ],
       ruleset: {},
     };
+    const finishedReport = {
+      organizationAlias: ORGANIZATION,
+      organizationName: 'Liga Mendocina',
+      tournamentAlias: TOURNAMENT_ALIAS,
+      tournamentName: 'Apertura 2026',
+      stageNumber: 1,
+      round: 1,
+      matchNumber: 1,
+      status: 'final',
+      homeEntrantId: 'Talleres',
+      homeName: 'Talleres',
+      homeAbbreviation: 'TAL',
+      homeScore: 2,
+      awayEntrantId: 'Independiente',
+      awayName: 'Independiente',
+      awayAbbreviation: 'IND',
+      awayScore: 1,
+      scheduledAt: '2026-01-01T00:00:00.000Z',
+      venueName: 'Estadio Central',
+      schedulePublished: true,
+      officials: [{ name: 'Marta Referee', roles: ['referee'] }],
+      rosters: {
+        home: [
+          {
+            personId: 'person-home',
+            number: 9,
+            name: 'Sofía Gómez',
+            roles: ['forward'],
+            onField: true,
+          },
+        ],
+        away: [],
+      },
+      timeline: [
+        {
+          eventId: 'event-goal',
+          definitionCode: 'goal',
+          label: 'Goal',
+          occurredAt: '2026-01-01T00:10:00.000Z',
+          side: 'home',
+          personId: 'person-home',
+          payload: {},
+        },
+      ],
+    };
+    const upcomingReport = {
+      ...finishedReport,
+      matchNumber: 2,
+      status: 'upcoming',
+      scheduledAt: '2026-01-02T18:00:00.000Z',
+      officials: [],
+      rosters: { home: [], away: [] },
+      timeline: [],
+    };
 
     apiServer = createServer((req, res) => {
       res.setHeader('content-type', 'application/json');
@@ -217,6 +271,14 @@ test.describe('B2: public tournament page', () => {
       }
       if (req.url === `${STAGE}/public/tables/group-standings-default`) {
         res.end(JSON.stringify(groupStandingsFixture));
+        return;
+      }
+      if (req.url === `${STAGE}/matches/1`) {
+        res.end(JSON.stringify(finishedReport));
+        return;
+      }
+      if (req.url === `${STAGE}/matches/2`) {
+        res.end(JSON.stringify(upcomingReport));
         return;
       }
       res.statusCode = 404;
@@ -245,10 +307,33 @@ test.describe('B2: public tournament page', () => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
 
     const entrantName = page.getByTestId('entrant-name').first();
+    await expect(entrantName).toBeVisible({ timeout: 15_000 });
+    await expect(
+      page.locator('astro-island').filter({ has: entrantName }).first(),
+    ).not.toHaveAttribute('ssr', '', { timeout: 15_000 });
     await entrantName.evaluate((element) => {
       element.setAttribute('style', 'display: block; min-width: 0; width: 1px');
     });
 
     await expect(entrantName.getByTitle('Talleres')).toHaveText('TAL');
+  });
+
+  test('renders finished match report header, officials, roster, and timeline', async ({
+    page,
+  }) => {
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/1/matches/1`);
+
+    await expect(page.getByRole('heading', { name: /TAL.*2.*1.*IND/ })).toBeVisible();
+    await expect(page.getByText('Marta Referee — referee')).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'Sofía Gómez' })).toBeVisible();
+    await expect(page.getByText('Goal')).toBeVisible();
+  });
+
+  test('renders upcoming match report empty roster and timeline states', async ({ page }) => {
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/1/matches/2`);
+
+    await expect(page.getByText('No officials assigned.')).toBeVisible();
+    await expect(page.getByText('Rosters are not yet available.')).toBeVisible();
+    await expect(page.getByText('Events are not yet available.')).toBeVisible();
   });
 });

@@ -1,6 +1,12 @@
 import type { INestApplication } from '@nestjs/common';
 import { footballDescriptor } from '@copalibre/domain';
-import { TournamentRepository, withTransaction, type Database } from '@copalibre/persistence';
+import {
+  CompetitionRepository,
+  TournamentRepository,
+  newId,
+  withTransaction,
+  type Database,
+} from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
 import { buildTestApp } from './test-support/integration-harness.js';
 import { PublicProjectionsController } from './public-projections.controller.js';
@@ -65,7 +71,7 @@ describe('public projections routes', () => {
   });
 
   it('404s on draft tournament for every route', async () => {
-    const routes = ['overview', 'live', 'stages/1/bracket'];
+    const routes = ['overview', 'live', 'stages/1/bracket', 'stages/1/matches/1'];
     for (const route of routes) {
       const response = await request({
         method: 'GET',
@@ -105,5 +111,299 @@ describe('public projections routes', () => {
     expect(data.tournamentAlias).toBe(publishedTournament.alias);
     expect(data.organizationAlias).toBe('liga-orbital');
     expect(Array.isArray(data.matches)).toBe(true);
+  });
+
+  it('returns an upcoming stage-scoped match report and 404s for unknown stage or match numbers', async () => {
+    const competition = new CompetitionRepository(scratch.db);
+    const { stage, match } = await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+      const stage = await competition.createStageInTournament(uow, {
+        tournamentId: publishedTournament.tournamentId,
+        number: 1,
+        name: 'Opening stage',
+        format: 'single-elimination',
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      const fixtures = await competition.createFixtures(uow, {
+        stageId: stage.stageId,
+        fixtures: [{ round: 1 }],
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      const fixture = fixtures[0];
+      if (!fixture) throw new Error('Expected one fixture');
+      const match = await competition.createMatch(uow, {
+        fixtureId: fixture.fixtureId,
+        number: 1,
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      return { stage, match };
+    });
+
+    const base = `/organizations/liga-orbital/tournaments/${publishedTournament.alias}/stages/${stage.number}/matches`;
+    const response = await request({ method: 'GET', url: `${base}/${match.number}` });
+    expect(response.statusCode).toBe(200);
+    expect(JSON.parse(response.payload as string)).toMatchObject({
+      stageNumber: stage.number,
+      matchNumber: match.number,
+      status: 'upcoming',
+      schedulePublished: false,
+      rosters: { home: [], away: [] },
+      timeline: [],
+    });
+
+    expect((await request({ method: 'GET', url: `${base}/999` })).statusCode).toBe(404);
+    expect(
+      (
+        await request({
+          method: 'GET',
+          url: `/organizations/liga-orbital/tournaments/${publishedTournament.alias}/stages/999/matches/1`,
+        })
+      ).statusCode,
+    ).toBe(404);
+  });
+
+  it('returns a finished report with named sides, schedule officials, roster, and timeline', async () => {
+    const competition = new CompetitionRepository(scratch.db);
+    const { stage, match, playerId } = await withTransaction(
+      scratch.db as Kysely<Database>,
+      async (uow) => {
+        const now = new Date();
+        const homeTeamId = newId();
+        const awayTeamId = newId();
+        const homeEntrantId = newId();
+        const awayEntrantId = newId();
+        const playerId = newId();
+        await uow.tx
+          .insertInto('teams')
+          .values([
+            {
+              team_id: homeTeamId,
+              organization_id: organizationId,
+              alias: 'atlas',
+              club_id: null,
+              name: 'Atlas',
+              discipline_id: null,
+              abbreviation: 'ATL',
+              created_at: now,
+            },
+            {
+              team_id: awayTeamId,
+              organization_id: organizationId,
+              alias: 'boreal',
+              club_id: null,
+              name: 'Boreal',
+              discipline_id: null,
+              abbreviation: 'BOR',
+              created_at: now,
+            },
+          ])
+          .execute();
+        await uow.tx
+          .insertInto('entrants')
+          .values([
+            {
+              entrant_id: homeEntrantId,
+              tournament_id: publishedTournament.tournamentId,
+              entrant_kind: 'team',
+              person_id: null,
+              team_id: homeTeamId,
+              abbreviation: 'ATL',
+              seed: null,
+              status: 'accepted',
+              created_at: now,
+            },
+            {
+              entrant_id: awayEntrantId,
+              tournament_id: publishedTournament.tournamentId,
+              entrant_kind: 'team',
+              person_id: null,
+              team_id: awayTeamId,
+              abbreviation: 'BOR',
+              seed: null,
+              status: 'accepted',
+              created_at: now,
+            },
+          ])
+          .execute();
+        await uow.tx
+          .insertInto('persons')
+          .values({
+            person_id: playerId,
+            organization_id: organizationId,
+            alias: 'lucia-gomez',
+            display_name: 'Lucía Gómez',
+            natural_key_kind: null,
+            natural_key_value: null,
+            natural_key_normalised: null,
+            nationality: null,
+            photo_object_id: null,
+            created_at: now,
+          })
+          .execute();
+
+        const stage = await competition.createStageInTournament(uow, {
+          tournamentId: publishedTournament.tournamentId,
+          number: 2,
+          name: 'Final stage',
+          format: 'single-elimination',
+          organizationId,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+        const fixtures = await competition.createFixtures(uow, {
+          stageId: stage.stageId,
+          fixtures: [{ round: 1, homeEntrantId, awayEntrantId }],
+          organizationId,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+        const fixture = fixtures[0];
+        if (!fixture) throw new Error('Expected one fixture');
+        const match = await competition.createMatch(uow, {
+          fixtureId: fixture.fixtureId,
+          number: 1,
+          organizationId,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+        const venueId = newId();
+        const officialId = newId();
+        const scheduleId = newId();
+        await uow.tx
+          .insertInto('venues')
+          .values({
+            venue_id: venueId,
+            organization_id: organizationId,
+            alias: 'central-stadium',
+            name: 'Central Stadium',
+            concurrent_capacity: 1,
+            address: null,
+            created_at: now,
+          })
+          .execute();
+        await uow.tx
+          .insertInto('officials')
+          .values({
+            official_id: officialId,
+            organization_id: organizationId,
+            display_name: 'María Referee',
+            roles: JSON.stringify(['referee']),
+            created_at: now,
+          })
+          .execute();
+        await uow.tx
+          .insertInto('fixture_schedules')
+          .values({
+            fixture_schedule_id: scheduleId,
+            fixture_id: fixture.fixtureId,
+            venue_id: venueId,
+            starts_at: '1767225600000',
+            duration_minutes: 90,
+            published: true,
+            created_at: now,
+          })
+          .execute();
+        await uow.tx
+          .insertInto('fixture_schedule_officials')
+          .values({ fixture_schedule_id: scheduleId, official_id: officialId })
+          .execute();
+        await uow.tx
+          .insertInto('match_rosters')
+          .values({
+            match_id: match.matchId,
+            entrant_id: homeEntrantId,
+            roster_members: JSON.stringify([
+              {
+                personId: playerId,
+                number: 9,
+                name: 'Lucía Gómez',
+                roles: ['forward'],
+                onField: true,
+              },
+            ]),
+            updated_at: now,
+          })
+          .execute();
+        const segment = await competition.createSegment(uow, {
+          matchId: match.matchId,
+          type: 'half',
+          number: 1,
+          organizationId,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+        await competition.setSegmentState(uow, {
+          segmentId: segment.segmentId,
+          state: 'active',
+          organizationId,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+        await competition.applyCommand(uow, {
+          matchId: match.matchId,
+          command: 'start',
+          status: 'in-progress',
+          grantedBy: 'seed',
+          organizationId,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+        await competition.appendEvent(uow, {
+          event: {
+            eventId: newId(),
+            matchId: match.matchId,
+            segmentId: segment.segmentId,
+            definitionCode: 'goal',
+            occurredAt: '2026-01-01T00:10:00.000Z',
+            side: homeEntrantId,
+            personId: playerId,
+            payload: {},
+          },
+          sequence: 1,
+          organizationId,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+        await competition.recordResult(uow, {
+          matchId: match.matchId,
+          result: {
+            sides: [
+              { entrantId: homeEntrantId, statistics: { goals: 2 } },
+              { entrantId: awayEntrantId, statistics: { goals: 1 } },
+            ],
+            recordedAt: '2026-01-01T01:00:00.000Z',
+          },
+          organizationId,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+        return { stage, match, playerId };
+      },
+    );
+
+    const response = await request({
+      method: 'GET',
+      url: `/organizations/liga-orbital/tournaments/${publishedTournament.alias}/stages/${stage.number}/matches/${match.number}`,
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(JSON.parse(response.payload as string)).toMatchObject({
+      status: 'final',
+      homeName: 'Atlas',
+      homeAbbreviation: 'ATL',
+      homeScore: 2,
+      awayName: 'Boreal',
+      awayScore: 1,
+      venueName: 'Central Stadium',
+      schedulePublished: true,
+      officials: [{ name: 'María Referee', roles: ['referee'] }],
+      rosters: { home: [{ personId: playerId, name: 'Lucía Gómez', number: 9 }], away: [] },
+      timeline: [{ definitionCode: 'goal', label: 'Goal', personId: playerId }],
+    });
   });
 });

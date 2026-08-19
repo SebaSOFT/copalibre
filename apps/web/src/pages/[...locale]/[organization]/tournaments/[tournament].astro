@@ -75,7 +75,7 @@ const standingsProjection =
 >
   <TournamentHero model={model} intl={intl} />
   <BroadcastStatusPanel model={model} intl={intl} />
-  <ScoreTicker model={model} intl={intl} />
+  <ScoreTicker model={model} intl={intl} localePrefix={locale ? `/${locale}` : ''} />
   <StandingsPreview layout={groupPhaseLayout} projection={standingsProjection} intl={intl} />
   <RulesetBriefing model={model} intl={intl} />
 </PublicLayout>

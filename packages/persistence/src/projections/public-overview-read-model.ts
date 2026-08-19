@@ -15,6 +15,8 @@ import { toIsoString } from '../mapping.js';
 
 export interface PublicOverviewMatch {
   readonly matchId: string;
+  /** The match's stage-local public number, absent before a fixture becomes a match. */
+  readonly matchNumber?: number;
   readonly stageNumber: number;
   readonly round: number;
   readonly status: string;
@@ -42,6 +44,7 @@ export class PublicOverviewReadModel {
         'fixtures.scheduled_at',
         'stages.number as stage_number',
         'matches.match_id',
+        'matches.number as match_number',
         'matches.status',
         'matches.result',
       ])
@@ -58,6 +61,7 @@ export class PublicOverviewReadModel {
 
       return {
         matchId: row.match_id ?? row.fixture_id,
+        ...(row.match_number === null ? {} : { matchNumber: row.match_number }),
         stageNumber: row.stage_number,
         round: row.round,
         status: row.status ?? 'scheduled',

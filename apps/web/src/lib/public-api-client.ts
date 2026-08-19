@@ -4,6 +4,7 @@ import type {
   PublicLiveResponse,
   PublicBracketResponse,
   PublicStandingsRowResponse,
+  PublicMatchReportResponse,
 } from '@copalibre/api/src/dto/public-tournament.dto.js';
 import type {
   TableLayoutListResponse,
@@ -63,6 +64,17 @@ export async function fetchBracket(
   return fetchOr404<PublicBracketResponse>(url);
 }
 
+export async function fetchMatchReport(
+  organizationAlias: string,
+  tournamentAlias: string,
+  stageNumber: number | string,
+  matchNumber: number | string,
+): Promise<PublicMatchReportResponse | undefined> {
+  const baseUrl = getApiBaseUrl();
+  const url = `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/stages/${encodeURIComponent(stageNumber.toString())}/matches/${encodeURIComponent(matchNumber.toString())}`;
+  return fetchOr404<PublicMatchReportResponse>(url);
+}
+
 export async function fetchPublicTableLayouts(
   organizationAlias: string,
   tournamentAlias: string,
@@ -97,7 +109,7 @@ export function mapOverviewResponse(response: PublicOverviewResponse): OverviewI
     seasonName: response.seasonName,
     ruleset: Object.entries(response.ruleset).map(([label, value]) => ({ label, value })),
     matches: response.matches.map((m: PublicOverviewMatchResponse) => ({
-      matchNumber: 1,
+      matchNumber: m.matchNumber,
       stageNumber: m.stageNumber,
       home: {
         name: m.homeName ?? 'TBD',
@@ -128,6 +140,7 @@ export function mapLiveResponse(response: PublicLiveResponse): LiveDashboard {
     usingLastKnown: true,
     matches: response.matches.map((m) => ({
       matchId: m.matchId,
+      stageNumber: m.stageNumber,
       matchNumber: m.matchNumber,
       state: m.state as MatchState,
       projectionVersion: m.projectionVersion,

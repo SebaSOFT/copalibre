@@ -3911,6 +3911,61 @@
         ]
       }
     },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/matches/{matchNumber}": {
+      "get": {
+        "operationId": "PublicProjectionsController_matchReport",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "matchNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicMatchReportResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Public report for one match",
+        "tags": [
+          "Public Projections"
+        ]
+      }
+    },
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/live": {
       "get": {
         "operationId": "PublicProjectionsController_live",
@@ -8390,6 +8445,10 @@
             "type": "string",
             "format": "uuid"
           },
+          "matchNumber": {
+            "type": "number",
+            "description": "1-based sequential number within the stage"
+          },
           "stageNumber": {
             "type": "number"
           },
@@ -8523,6 +8582,234 @@
           "ruleset"
         ]
       },
+      "PublicMatchOfficialResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "roles"
+        ]
+      },
+      "PublicMatchRosterMemberResponse": {
+        "type": "object",
+        "properties": {
+          "personId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "number": {
+            "oneOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "nationality": {
+            "type": "string"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "onField": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "personId",
+          "name",
+          "onField"
+        ]
+      },
+      "PublicMatchRostersResponse": {
+        "type": "object",
+        "properties": {
+          "home": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicMatchRosterMemberResponse"
+            }
+          },
+          "away": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicMatchRosterMemberResponse"
+            }
+          }
+        },
+        "required": [
+          "home",
+          "away"
+        ]
+      },
+      "PublicMatchEventResponse": {
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "definitionCode": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "workflowOutcomeCodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sequence": {
+            "type": "number"
+          },
+          "segmentNumber": {
+            "type": "number"
+          },
+          "side": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "personId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "eventId",
+          "definitionCode",
+          "label",
+          "occurredAt",
+          "sequence",
+          "payload"
+        ]
+      },
+      "PublicMatchReportResponse": {
+        "type": "object",
+        "properties": {
+          "organizationAlias": {
+            "type": "string"
+          },
+          "organizationName": {
+            "type": "string"
+          },
+          "tournamentAlias": {
+            "type": "string"
+          },
+          "tournamentName": {
+            "type": "string"
+          },
+          "stageNumber": {
+            "type": "number"
+          },
+          "matchNumber": {
+            "type": "number"
+          },
+          "round": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "upcoming",
+              "live",
+              "final"
+            ]
+          },
+          "homeEntrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "homeName": {
+            "type": "string"
+          },
+          "homeAbbreviation": {
+            "type": "string"
+          },
+          "awayEntrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "awayName": {
+            "type": "string"
+          },
+          "awayAbbreviation": {
+            "type": "string"
+          },
+          "homeScore": {
+            "type": "number"
+          },
+          "awayScore": {
+            "type": "number"
+          },
+          "scheduledAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "venueName": {
+            "type": "string"
+          },
+          "schedulePublished": {
+            "type": "boolean"
+          },
+          "officials": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicMatchOfficialResponse"
+            }
+          },
+          "rosters": {
+            "$ref": "#/components/schemas/PublicMatchRostersResponse"
+          },
+          "timeline": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicMatchEventResponse"
+            }
+          }
+        },
+        "required": [
+          "organizationAlias",
+          "organizationName",
+          "tournamentAlias",
+          "tournamentName",
+          "stageNumber",
+          "matchNumber",
+          "round",
+          "status",
+          "schedulePublished",
+          "officials",
+          "rosters",
+          "timeline"
+        ]
+      },
       "PublicLiveMatchSideResponse": {
         "type": "object",
         "properties": {
@@ -8553,6 +8840,9 @@
             "type": "string",
             "format": "uuid"
           },
+          "stageNumber": {
+            "type": "number"
+          },
           "matchNumber": {
             "type": "number"
           },
@@ -8571,6 +8861,7 @@
         },
         "required": [
           "matchId",
+          "stageNumber",
           "matchNumber",
           "state",
           "projectionVersion",

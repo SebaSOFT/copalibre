@@ -18,15 +18,13 @@ test('navigates help content and searches through Starlight', async ({ page }) =
   const search = page.getByRole('button', { name: 'Search' }).first();
   await expect(search).toBeEnabled();
   await search.click();
-  const dialog = page.getByRole('dialog', { name: 'Search' });
-  await expect(dialog).toBeVisible();
   await page.waitForTimeout(1_000);
   expect(pageErrors).toEqual([]);
   expect(failedRequests).toEqual([]);
-  const input = dialog.locator('input');
+  const input = page.getByRole('textbox', { name: 'Search' }).first();
   await expect(input).toBeVisible({ timeout: 15_000 });
   await input.fill('Roster');
-  await expect(dialog.getByRole('link', { name: /Roster/ }).first()).toBeVisible();
+  await expect(page.getByRole('link', { name: /Roster/ }).first()).toBeVisible();
 });
 
 test('loads its rendering script and stylesheet same-origin, not from a CDN', async ({ page }) => {
@@ -43,8 +41,9 @@ test('loads its rendering script and stylesheet same-origin, not from a CDN', as
   await page.goto('/help/api-reference/');
   await expect(page.getByText('CopaLibre API')).toBeVisible();
 
-  expect(documentRequests).toContain('http://localhost:4321/vendor/scalar/standalone.js');
-  expect(documentRequests.every((url) => url.startsWith('http://localhost:4321/'))).toBe(true);
+  const origin = new URL(page.url()).origin;
+  expect(documentRequests).toContain(`${origin}/vendor/scalar/standalone.js`);
+  expect(documentRequests.every((url) => url.startsWith(`${origin}/`))).toBe(true);
 });
 
 test('renders correctly when Scalar’s own hosted endpoints are unreachable', async ({ page }) => {

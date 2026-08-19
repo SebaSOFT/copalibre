@@ -15,6 +15,7 @@ import {
   PublicLiveResponse,
   PublicBracketResponse,
   PublicOverviewMatchResponse,
+  PublicMatchReportResponse,
 } from '../dto/public-tournament.dto.js';
 import { TableLayoutListResponse, TableProjectionResponse } from '../dto/table-projections.dto.js';
 import { Kysely } from 'kysely';
@@ -25,6 +26,7 @@ import { listEffectiveTableLayouts, readTableProjection } from '../table-project
 import { toBracketMatch, ambiguousRoundPositions } from './seeding.controller.js';
 import { tableResponse } from './table-projections.controller.js';
 import { generateFixtures } from '@copalibre/tournament-engine';
+import { resolveLabel } from '@copalibre/domain';
 
 @ApiTags('Public Projections')
 @Controller('organizations/:organizationAlias/tournaments/:tournamentAlias')
@@ -126,6 +128,7 @@ export class PublicProjectionsController {
       seasonName: season.name,
       matches: matches.map((m) => ({
         matchId: m.matchId,
+        matchNumber: m.matchNumber,
         stageNumber: m.stageNumber,
         round: m.round,
         status: m.status as PublicOverviewMatchResponse['status'],
@@ -141,6 +144,183 @@ export class PublicProjectionsController {
       })),
       standingsPreview,
       ruleset,
+    };
+  }
+
+  @Get('stages/:stageNumber/matches/:matchNumber')
+  @SecurityPlaneTag('public-read')
+  @ApiOperation({ summary: 'Public report for one match' })
+  @ApiOkResponse({ type: PublicMatchReportResponse })
+  async matchReport(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('stageNumber') stageNumberValue: string,
+    @Param('matchNumber') matchNumberValue: string,
+  ): Promise<PublicMatchReportResponse> {
+    const { tournament, organizationName } = await this.resolvePublishedTournament(
+      organizationAlias,
+      tournamentAlias,
+    );
+    const stageNumber = Number(stageNumberValue);
+    const matchNumber = Number(matchNumberValue);
+    if (
+      !Number.isSafeInteger(stageNumber) ||
+      stageNumber < 1 ||
+      !Number.isSafeInteger(matchNumber) ||
+      matchNumber < 1
+    ) {
+      throw new NotFoundException();
+    }
+
+    const competition = new CompetitionRepository(this.db);
+    const stage = (await competition.listStagesOfTournament(tournament.tournamentId)).find(
+      (candidate) => candidate.number === stageNumber,
+    );
+    if (!stage) throw new NotFoundException(`No stage ${stageNumberValue} in tournament`);
+
+    const match = await this.db
+      .selectFrom('matches')
+      .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
+      .select([
+        'matches.match_id',
+        'matches.number',
+        'matches.status',
+        'matches.result',
+        'fixtures.fixture_id',
+        'fixtures.round',
+        'fixtures.home_entrant_id',
+        'fixtures.away_entrant_id',
+      ])
+      .where('fixtures.stage_id', '=', stage.stageId)
+      .where('matches.number', '=', matchNumber)
+      .executeTakeFirst();
+    if (!match)
+      throw new NotFoundException(`No match ${matchNumberValue} in stage ${stageNumberValue}`);
+
+    const [schedule, officials, rosterRows, segments, events, descriptor] = await Promise.all([
+      this.db
+        .selectFrom('fixture_schedules')
+        .leftJoin('venues', 'venues.venue_id', 'fixture_schedules.venue_id')
+        .select([
+          'fixture_schedules.starts_at',
+          'fixture_schedules.published',
+          'venues.name as venue_name',
+        ])
+        .where('fixture_schedules.fixture_id', '=', match.fixture_id)
+        .executeTakeFirst(),
+      this.db
+        .selectFrom('fixture_schedules')
+        .innerJoin(
+          'fixture_schedule_officials',
+          'fixture_schedule_officials.fixture_schedule_id',
+          'fixture_schedules.fixture_schedule_id',
+        )
+        .innerJoin('officials', 'officials.official_id', 'fixture_schedule_officials.official_id')
+        .select(['officials.display_name', 'officials.roles'])
+        .where('fixture_schedules.fixture_id', '=', match.fixture_id)
+        .where('fixture_schedules.published', '=', true)
+        .orderBy('officials.display_name')
+        .execute(),
+      this.db
+        .selectFrom('match_rosters')
+        .select(['entrant_id', 'roster_members'])
+        .where('match_id', '=', match.match_id)
+        .execute(),
+      competition.listSegments(match.match_id),
+      competition.listEvents(match.match_id),
+      new TournamentRepository(this.db).findDescriptor(
+        tournament.disciplineRef.descriptorId,
+        tournament.disciplineRef.version,
+      ),
+    ]);
+    if (!descriptor) throw new NotFoundException('Tournament discipline descriptor is unavailable');
+
+    const entrantIds = [match.home_entrant_id, match.away_entrant_id].filter(
+      (entrantId): entrantId is string => entrantId !== null,
+    );
+    const entrantNames = await new EnrollmentRepository(this.db).resolveEntrantNames(entrantIds);
+    const rosterByEntrant = new Map(
+      rosterRows.map((roster) => [roster.entrant_id, roster.roster_members]),
+    );
+    const segmentNumberById = new Map(
+      segments.map((segment) => [segment.segmentId, segment.number]),
+    );
+    const definitionByCode = new Map(
+      descriptor.eventDefinitions.map((definition) => [definition.code, definition]),
+    );
+    const result = match.result as unknown as {
+      readonly sides?: readonly { readonly statistics?: Record<string, number> }[];
+    } | null;
+    const scores = result?.sides === undefined ? undefined : publicScores(result.sides);
+
+    return {
+      organizationAlias,
+      organizationName,
+      tournamentAlias,
+      tournamentName: tournament.name,
+      stageNumber,
+      matchNumber,
+      round: match.round,
+      status: publicMatchStatus(match.status),
+      ...(match.home_entrant_id === null ? {} : { homeEntrantId: match.home_entrant_id }),
+      ...(match.home_entrant_id === null
+        ? {}
+        : { homeName: entrantNames.get(match.home_entrant_id)?.name ?? 'Unknown' }),
+      ...(match.home_entrant_id === null
+        ? {}
+        : { homeAbbreviation: entrantNames.get(match.home_entrant_id)?.abbreviation }),
+      ...(match.away_entrant_id === null ? {} : { awayEntrantId: match.away_entrant_id }),
+      ...(match.away_entrant_id === null
+        ? {}
+        : { awayName: entrantNames.get(match.away_entrant_id)?.name ?? 'Unknown' }),
+      ...(match.away_entrant_id === null
+        ? {}
+        : { awayAbbreviation: entrantNames.get(match.away_entrant_id)?.abbreviation }),
+      ...(scores?.[0] === undefined ? {} : { homeScore: scores[0] }),
+      ...(scores?.[1] === undefined ? {} : { awayScore: scores[1] }),
+      ...(schedule === undefined ? {} : { scheduledAt: scheduleStartsAt(schedule.starts_at) }),
+      ...(schedule?.venue_name === null || schedule?.venue_name === undefined
+        ? {}
+        : { venueName: schedule.venue_name }),
+      schedulePublished: schedule?.published ?? false,
+      officials: officials.map((official) => ({
+        name: official.display_name,
+        roles: [...official.roles],
+      })),
+      rosters: {
+        home: match.home_entrant_id
+          ? (rosterByEntrant.get(match.home_entrant_id) ?? []).map(({ roles, ...member }) => ({
+              ...member,
+              ...(roles === undefined ? {} : { roles: [...roles] }),
+            }))
+          : [],
+        away: match.away_entrant_id
+          ? (rosterByEntrant.get(match.away_entrant_id) ?? []).map(({ roles, ...member }) => ({
+              ...member,
+              ...(roles === undefined ? {} : { roles: [...roles] }),
+            }))
+          : [],
+      },
+      timeline: events.map((event) => {
+        const definition = definitionByCode.get(event.definitionCode);
+        const workflowOutcomeCodes = definition?.workflow?.options.map(
+          (option) => option.definitionCode,
+        );
+        return {
+          eventId: event.eventId,
+          definitionCode: event.definitionCode,
+          label: definition ? resolveLabel(definition.label, 'en') : event.definitionCode,
+          ...(workflowOutcomeCodes === undefined ? {} : { workflowOutcomeCodes }),
+          occurredAt: event.occurredAt,
+          sequence: event.sequence,
+          ...(event.segmentId === undefined
+            ? {}
+            : { segmentNumber: segmentNumberById.get(event.segmentId) }),
+          ...(event.side === undefined ? {} : { side: event.side }),
+          ...(event.personId === undefined ? {} : { personId: event.personId }),
+          payload: event.payload,
+        };
+      }),
     };
   }
 
@@ -173,7 +353,8 @@ export class PublicProjectionsController {
     return {
       matches: liveMatches.map((m) => ({
         matchId: m.matchId,
-        matchNumber: m.round,
+        stageNumber: m.stageNumber,
+        matchNumber: m.matchNumber ?? m.round,
         state: 'in_progress',
         projectionVersion: 1,
         sides: [
@@ -367,4 +548,20 @@ export class PublicProjectionsController {
     );
     return tableResponse(result);
   }
+}
+
+function publicScores(
+  sides: readonly { readonly statistics?: Record<string, number> }[],
+): readonly (number | undefined)[] {
+  return sides.map((side) => Object.values(side.statistics ?? {})[0]);
+}
+
+function publicMatchStatus(status: string): PublicMatchReportResponse['status'] {
+  if (status === 'finalized') return 'final';
+  if (status === 'in-progress') return 'live';
+  return 'upcoming';
+}
+
+function scheduleStartsAt(startsAt: string): string {
+  return new Date(Number(startsAt)).toISOString();
 }

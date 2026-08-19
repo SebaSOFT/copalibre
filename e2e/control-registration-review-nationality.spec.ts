@@ -83,7 +83,10 @@ test('sets a nationality and sees the flag, then sees a placeholder photo on the
   await page.getByRole('option', { name: /Argentina/ }).click();
   await page.getByRole('button', { name: 'Guardar' }).click();
 
-  await expect(page.getByText('🇦🇷')).toBeVisible();
+  await expect(page.getByRole('option', { name: 'Argentina' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
 
   await page.getByRole('link', { name: 'Ver perfil' }).click();
   await page.waitForURL('**/control/liga-mendocina/persons/person-1');

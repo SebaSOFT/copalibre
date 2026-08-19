@@ -13,8 +13,10 @@ import DefaultSearch from '@astrojs/starlight/components/Search.astro';
   async function initializeSearch(): Promise<void> {
     const element = document.querySelector<HTMLElement>('#starlight__search');
     const search = element?.closest<HTMLElement>('site-search');
-    if (!element || !search || element.childElementCount > 0 || element.dataset.pagefindReady)
-      return;
+    // Starlight renders a production-build fallback message in this element.
+    // It is not a Pagefind instance, so replace it rather than mistaking its
+    // child paragraph for initialized search.
+    if (!element || !search || element.dataset.pagefindReady) return;
 
     // Starlight 0.41's initializer waits for DOMContentLoaded. With ClientRouter,
     // the module can arrive after that event. Mark before import to avoid a second
@@ -54,4 +56,8 @@ import DefaultSearch from '@astrojs/starlight/components/Search.astro';
     // Let Starlight's normal initializer win when it did receive DOMContentLoaded.
     window.setTimeout(() => void initializeSearch(), 0);
   });
+
+  // A ClientRouter navigation can finish before this module is evaluated. Run
+  // once now as well as on later page-load events so search remains available.
+  void initializeSearch();
 </script>

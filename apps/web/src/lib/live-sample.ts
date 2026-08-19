@@ -10,6 +10,7 @@ export function sampleDashboard(): LiveDashboard {
     matches: [
       {
         matchId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        stageNumber: 1,
         matchNumber: 1,
         state: 'live',
         projectionVersion: 3,
