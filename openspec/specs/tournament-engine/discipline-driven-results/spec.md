@@ -168,6 +168,13 @@ A `DisciplineDescriptor` and a `TournamentRuleset` SHALL support declarative `ta
 - **WHEN** a table layout column declares `source: { kind: 'collector', code: 'unknown-code' }` and that collector code is not declared in the discipline
 - **THEN** descriptor validation rejects the document with an error identifying the missing collector
 
+#### Scenario: A shipped discipline declares a real, tournament-wide player leaderboard
+- **WHEN** `football-descriptor.ts` declares a `tableLayouts` entry with `entityGranularity: 'person'`,
+  `target: 'tournament'`, and a `collector`-sourced column summing the `goals-for` statistic per player
+- **THEN** descriptor validation accepts it, and projecting it against a tournament's recorded events
+  produces a ranked list of players by total goals across every stage — the first shipped descriptor to
+  exercise the `tableLayouts` mechanism with real content rather than an illustrative example
+
 ### Requirement: A discipline-defined event may offer explicitly declared outcomes
 
 An `EventDefinition` MAY declare `workflow: { kind: 'outcome-choice', options: [...] }`. A match-control
