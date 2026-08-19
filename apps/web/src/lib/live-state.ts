@@ -21,6 +21,7 @@ export interface LiveSide {
 
 export interface LiveMatch {
   readonly matchId: string;
+  readonly stageNumber: number;
   readonly matchNumber: number;
   readonly state: ResultState;
   readonly sides: readonly LiveSide[];

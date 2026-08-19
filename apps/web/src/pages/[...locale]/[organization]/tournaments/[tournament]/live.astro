@@ -40,6 +40,9 @@ if (!overviewData || !dashboard) {
 }
 
 const model = buildOverview(mapOverviewResponse(overviewData));
+const localePrefix = locale ? `/${locale}` : '';
+const reportPath = (stageNumber: number, matchNumber: number) =>
+  `${localePrefix}${model.canonicalPath}/stages/${stageNumber}/matches/${matchNumber}`;
 ---
 
 <PublicLayout
@@ -52,15 +55,17 @@ const model = buildOverview(mapOverviewResponse(overviewData));
   <section>
     {
       dashboard.matches.map((match) => (
-        <article class="cl-card cl-chamfer">
-          <StateBadge state={match.state} intl={intl} />
-          {match.sides.map((side) => (
-            <p>
-              <EntrantName client:load fullName={side.name} abbreviation={side.abbreviation} />{' '}
-              {side.score}
-            </p>
-          ))}
-        </article>
+        <a href={reportPath(match.stageNumber, match.matchNumber)}>
+          <article class="cl-card cl-chamfer">
+            <StateBadge state={match.state} intl={intl} />
+            {match.sides.map((side) => (
+              <p>
+                <EntrantName client:load fullName={side.name} abbreviation={side.abbreviation} />{' '}
+                {side.score}
+              </p>
+            ))}
+          </article>
+        </a>
       ))
     }
   </section>
@@ -72,8 +77,17 @@ const model = buildOverview(mapOverviewResponse(overviewData));
         .filter((match) => match.state === 'upcoming')
         .map((match) => (
           <li>
-            {match.home.name} vs {match.away.name} —{' '}
-            <time datetime={match.startsAt}>{match.startsAt}</time>
+            {match.matchNumber === undefined ? (
+              <>
+                {match.home.name} vs {match.away.name} —{' '}
+                <time datetime={match.startsAt}>{match.startsAt}</time>
+              </>
+            ) : (
+              <a href={reportPath(match.stageNumber, match.matchNumber)}>
+                {match.home.name} vs {match.away.name} —{' '}
+                <time datetime={match.startsAt}>{match.startsAt}</time>
+              </a>
+            )}
           </li>
         ))
     }

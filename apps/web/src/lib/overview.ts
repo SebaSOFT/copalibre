@@ -10,7 +10,8 @@ import { publicPath, publicStreamPath, type RouteInput } from '@copalibre/routin
 export type MatchState = 'live' | 'upcoming' | 'final' | 'disputed';
 
 export interface OverviewMatch {
-  readonly matchNumber: number;
+  /** Absent while a generated fixture has not become a persisted match. */
+  readonly matchNumber?: number;
   readonly stageNumber: number;
   readonly home: SideView;
   readonly away: SideView;

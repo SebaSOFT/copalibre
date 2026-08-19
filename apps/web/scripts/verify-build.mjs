@@ -40,6 +40,10 @@ check(
   'the sitemap lists the tournament',
   sitemap.includes('/liga-mendocina/tournaments/apertura-2026'),
 );
+check(
+  'the sitemap lists the published match report',
+  sitemap.includes('/liga-mendocina/tournaments/apertura-2026/stages/1/matches/1'),
+);
 
 const NON_PRIMARY_LOCALES = [
   { locale: 'es', name: 'Spanish' },
@@ -55,6 +59,10 @@ for (const { locale, name } of NON_PRIMARY_LOCALES) {
   check(
     `the sitemap lists the ${name} tournament variant`,
     sitemap.includes(`/${locale}/liga-mendocina/tournaments/apertura-2026`),
+  );
+  check(
+    `the sitemap lists the ${name} match-report variant`,
+    sitemap.includes(`/${locale}/liga-mendocina/tournaments/apertura-2026/stages/1/matches/1`),
   );
 }
 

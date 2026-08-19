@@ -27,6 +27,9 @@ export class PublicOverviewMatchResponse {
   @ApiProperty({ format: 'uuid' })
   matchId!: string;
 
+  @ApiPropertyOptional({ description: '1-based sequential number within the stage' })
+  matchNumber?: number;
+
   @ApiProperty()
   stageNumber!: number;
 
@@ -109,6 +112,9 @@ export class PublicLiveMatchResponse {
   matchId!: string;
 
   @ApiProperty()
+  stageNumber!: number;
+
+  @ApiProperty()
   matchNumber!: number;
 
   @ApiProperty()
@@ -124,6 +130,142 @@ export class PublicLiveMatchResponse {
 export class PublicLiveResponse {
   @ApiProperty({ type: [PublicLiveMatchResponse] })
   matches!: PublicLiveMatchResponse[];
+}
+
+export class PublicMatchOfficialResponse {
+  @ApiProperty()
+  name!: string;
+
+  @ApiProperty({ type: [String] })
+  roles!: string[];
+}
+
+export class PublicMatchRosterMemberResponse {
+  @ApiProperty({ format: 'uuid' })
+  personId!: string;
+
+  @ApiPropertyOptional({ oneOf: [{ type: 'number' }, { type: 'string' }] })
+  number?: number | string;
+
+  @ApiProperty()
+  name!: string;
+
+  @ApiPropertyOptional()
+  nationality?: string;
+
+  @ApiPropertyOptional({ type: [String] })
+  roles?: string[];
+
+  @ApiProperty()
+  onField!: boolean;
+}
+
+export class PublicMatchRostersResponse {
+  @ApiProperty({ type: [PublicMatchRosterMemberResponse] })
+  home!: PublicMatchRosterMemberResponse[];
+
+  @ApiProperty({ type: [PublicMatchRosterMemberResponse] })
+  away!: PublicMatchRosterMemberResponse[];
+}
+
+export class PublicMatchEventResponse {
+  @ApiProperty({ format: 'uuid' })
+  eventId!: string;
+
+  @ApiProperty()
+  definitionCode!: string;
+
+  @ApiProperty()
+  label!: string;
+
+  @ApiPropertyOptional({ type: [String] })
+  workflowOutcomeCodes?: string[];
+
+  @ApiProperty({ format: 'date-time' })
+  occurredAt!: string;
+
+  @ApiProperty()
+  sequence!: number;
+
+  @ApiPropertyOptional()
+  segmentNumber?: number;
+
+  @ApiPropertyOptional({ format: 'uuid' })
+  side?: string;
+
+  @ApiPropertyOptional({ format: 'uuid' })
+  personId?: string;
+
+  @ApiProperty({ type: 'object', additionalProperties: true })
+  payload!: Record<string, unknown>;
+}
+
+export class PublicMatchReportResponse {
+  @ApiProperty()
+  organizationAlias!: string;
+
+  @ApiProperty()
+  organizationName!: string;
+
+  @ApiProperty()
+  tournamentAlias!: string;
+
+  @ApiProperty()
+  tournamentName!: string;
+
+  @ApiProperty()
+  stageNumber!: number;
+
+  @ApiProperty()
+  matchNumber!: number;
+
+  @ApiProperty()
+  round!: number;
+
+  @ApiProperty({ enum: ['upcoming', 'live', 'final'] })
+  status!: 'upcoming' | 'live' | 'final';
+
+  @ApiPropertyOptional({ format: 'uuid' })
+  homeEntrantId?: string;
+
+  @ApiPropertyOptional()
+  homeName?: string;
+
+  @ApiPropertyOptional()
+  homeAbbreviation?: string;
+
+  @ApiPropertyOptional({ format: 'uuid' })
+  awayEntrantId?: string;
+
+  @ApiPropertyOptional()
+  awayName?: string;
+
+  @ApiPropertyOptional()
+  awayAbbreviation?: string;
+
+  @ApiPropertyOptional()
+  homeScore?: number;
+
+  @ApiPropertyOptional()
+  awayScore?: number;
+
+  @ApiPropertyOptional({ format: 'date-time' })
+  scheduledAt?: string;
+
+  @ApiPropertyOptional()
+  venueName?: string;
+
+  @ApiProperty()
+  schedulePublished!: boolean;
+
+  @ApiProperty({ type: [PublicMatchOfficialResponse] })
+  officials!: PublicMatchOfficialResponse[];
+
+  @ApiProperty({ type: PublicMatchRostersResponse })
+  rosters!: PublicMatchRostersResponse;
+
+  @ApiProperty({ type: [PublicMatchEventResponse] })
+  timeline!: PublicMatchEventResponse[];
 }
 
 export class PublicBracketSlotResponse {

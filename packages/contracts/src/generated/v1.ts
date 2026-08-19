@@ -1085,6 +1085,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/matches/{matchNumber}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Public report for one match */
+        get: operations["PublicProjectionsController_matchReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/live": {
         parameters: {
             query?: never;
@@ -2525,6 +2542,8 @@ export interface components {
         PublicOverviewMatchResponse: {
             /** Format: uuid */
             matchId: string;
+            /** @description 1-based sequential number within the stage */
+            matchNumber?: number;
             stageNumber: number;
             round: number;
             /** @enum {string} */
@@ -2565,6 +2584,69 @@ export interface components {
                 [key: string]: string;
             };
         };
+        PublicMatchOfficialResponse: {
+            name: string;
+            roles: string[];
+        };
+        PublicMatchRosterMemberResponse: {
+            /** Format: uuid */
+            personId: string;
+            number?: number | string;
+            name: string;
+            nationality?: string;
+            roles?: string[];
+            onField: boolean;
+        };
+        PublicMatchRostersResponse: {
+            home: components["schemas"]["PublicMatchRosterMemberResponse"][];
+            away: components["schemas"]["PublicMatchRosterMemberResponse"][];
+        };
+        PublicMatchEventResponse: {
+            /** Format: uuid */
+            eventId: string;
+            definitionCode: string;
+            label: string;
+            workflowOutcomeCodes?: string[];
+            /** Format: date-time */
+            occurredAt: string;
+            sequence: number;
+            segmentNumber?: number;
+            /** Format: uuid */
+            side?: string;
+            /** Format: uuid */
+            personId?: string;
+            payload: {
+                [key: string]: unknown;
+            };
+        };
+        PublicMatchReportResponse: {
+            organizationAlias: string;
+            organizationName: string;
+            tournamentAlias: string;
+            tournamentName: string;
+            stageNumber: number;
+            matchNumber: number;
+            round: number;
+            /** @enum {string} */
+            status: "upcoming" | "live" | "final";
+            /** Format: uuid */
+            homeEntrantId?: string;
+            homeName?: string;
+            homeAbbreviation?: string;
+            /** Format: uuid */
+            awayEntrantId?: string;
+            awayName?: string;
+            awayAbbreviation?: string;
+            homeScore?: number;
+            awayScore?: number;
+            /** Format: date-time */
+            scheduledAt?: string;
+            venueName?: string;
+            schedulePublished: boolean;
+            officials: components["schemas"]["PublicMatchOfficialResponse"][];
+            rosters: components["schemas"]["PublicMatchRostersResponse"];
+            timeline: components["schemas"]["PublicMatchEventResponse"][];
+        };
         PublicLiveMatchSideResponse: {
             /** Format: uuid */
             entrantId: string;
@@ -2575,6 +2657,7 @@ export interface components {
         PublicLiveMatchResponse: {
             /** Format: uuid */
             matchId: string;
+            stageNumber: number;
             matchNumber: number;
             state: string;
             projectionVersion: number;
@@ -5082,6 +5165,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PublicOverviewResponse"];
+                };
+            };
+        };
+    };
+    PublicProjectionsController_matchReport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                stageNumber: string;
+                matchNumber: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicMatchReportResponse"];
                 };
             };
         };

@@ -5,7 +5,9 @@ Makes the recorded result model belong to the discipline rather than to the engi
 the statistics its discipline declares, for any number of sides, and declares in a script how it is
 won — so a nested-scoring discipline (tennis) and a non-duel discipline (battle royale, swimming)
 are both expressible without engine changes.
+
 ## Requirements
+
 ### Requirement: A result records the statistics the discipline declares
 A recorded outcome SHALL carry, per side, values keyed by the statistic codes the bound discipline
 declares, rather than a single fixed score. A discipline MAY additionally declare **collectors**,
@@ -166,3 +168,46 @@ A `DisciplineDescriptor` and a `TournamentRuleset` SHALL support declarative `ta
 - **WHEN** a table layout column declares `source: { kind: 'collector', code: 'unknown-code' }` and that collector code is not declared in the discipline
 - **THEN** descriptor validation rejects the document with an error identifying the missing collector
 
+### Requirement: A discipline-defined event may offer explicitly declared outcomes
+
+An `EventDefinition` MAY declare `workflow: { kind: 'outcome-choice', options: [...] }`. A match-control
+console SHALL expose those options after operator selects workflow-bearing definition. The preliminary
+selection is console interaction metadata, not separately persisted event; console SHALL record only
+chosen outcome as ordinary event validated against its own definition.
+
+#### Scenario: Selecting an outcome records only selected final event
+- **WHEN** operator selects workflow-bearing definition and then selects one declared outcome option
+- **THEN** console records selected outcome definition once, with no persisted preliminary event or
+  workflow linkage
+
+#### Scenario: Workflow outcome is not dependent on preliminary record
+- **WHEN** operator records definition that is listed as a workflow option without first selecting its
+  workflow-bearing definition
+- **THEN** event records successfully under its own validation rules
+
+#### Scenario: Operator abandons an outcome choice
+- **WHEN** operator opens workflow outcome choices and does not select an outcome
+- **THEN** no event is recorded from preliminary selection
+
+### Requirement: Outcome workflow preserves event occurrence time and requires explicit attribution
+
+Console SHALL capture occurrence time when operator first selects workflow-bearing definition and use that
+time for chosen outcome. Workflow SHALL NOT copy, derive, or preselect actor, side, person, victim,
+goalkeeper, deflecting person, or secondary payload fields for outcome; outcome uses ordinary explicit
+console attribution controls and its own declared payload schema.
+
+#### Scenario: Outcome keeps preliminary-selection time
+- **WHEN** operator selects workflow-bearing definition, spends time selecting an outcome or entering
+  notes, and then records outcome
+- **THEN** recorded outcome's occurrence time equals time preliminary definition was selected, not time
+  outcome confirmation completed
+
+#### Scenario: Workflow does not infer outcome attribution
+- **WHEN** preliminary selection included a selected side, person, victim, or secondary payload field
+- **THEN** workflow does not copy or derive those values specifically for chosen outcome, and outcome
+  receives only attribution operator explicitly supplies through its ordinary controls
+
+#### Scenario: Deflected outcome needs no named player
+- **WHEN** a future discipline declares outcome representing deflected or missed attempt
+- **THEN** generic workflow requires neither `deflectedToPersonId` nor any player-specific deflection
+  attribution; descriptor decides only its own independently declared payload and effects
