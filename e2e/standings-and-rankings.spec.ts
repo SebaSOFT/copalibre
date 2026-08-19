@@ -84,6 +84,7 @@ const topScorersFixture = {
   rows: [
     {
       actorId: 'p-1',
+      entityId: 'p-1',
       rank: 1,
       sharedRank: false,
       cells: {
@@ -94,6 +95,33 @@ const topScorersFixture = {
     },
   ],
   projectionVersion: 3,
+};
+
+const playerProfileFixture = {
+  personId: 'p-1',
+  displayName: 'Goleador Uno',
+  nationality: 'AR',
+  age: 28,
+  competitionHistory: [
+    {
+      tournamentId: 't-1',
+      tournamentName: 'Apertura 2026',
+      tournamentAlias: TOURNAMENT_ALIAS,
+      teamId: 'tm-1',
+      teamName: 'Talleres',
+      role: 'player',
+      entrantAbbreviation: 'TAL',
+      disciplineDescriptorId: 'football',
+      disciplineDescriptorVersion: '1.2.0',
+    },
+  ],
+  careerStatistics: [
+    {
+      disciplineDescriptorId: 'football',
+      disciplineName: 'Football',
+      statistics: [{ code: 'career-goals', label: 'Career goals', value: 9 }],
+    },
+  ],
 };
 
 async function mockControlApi(page: Page): Promise<void> {
@@ -297,6 +325,10 @@ test.describe('B2: public tournament page', () => {
         res.end(JSON.stringify(upcomingReport));
         return;
       }
+      if (req.url === `${TOURNAMENT}/persons/p-1/public/profile`) {
+        res.end(JSON.stringify(playerProfileFixture));
+        return;
+      }
       res.statusCode = 404;
       res.end(JSON.stringify({ message: 'not found' }));
     });
@@ -367,5 +399,34 @@ test.describe('B2: public tournament page', () => {
 
     // Matches / ticker is unaffected
     await expect(page.getByRole('heading', { name: 'Matches' })).toBeVisible();
+  });
+
+  test('opens player career popup on leaderboard player click and allows standalone navigation', async ({
+    page,
+  }) => {
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+
+    // Switch to Top Scorers tab
+    await page.getByRole('tab', { name: 'Top Scorers' }).click();
+    const playerLink = page.getByRole('link', { name: 'Goleador Uno' });
+    await expect(playerLink).toBeVisible();
+
+    // Click player name to open modal popup
+    await playerLink.click();
+    const dialog = page.locator('#cl-player-dialog');
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByText('AR', { exact: true })).toBeVisible();
+    await expect(dialog.getByText('Age: 28')).toBeVisible();
+    await expect(dialog.getByText('Career Statistics')).toBeVisible();
+    await expect(dialog.getByText('Competition History')).toBeVisible();
+
+    // Close modal
+    await dialog.getByRole('button', { name: 'Close dialog' }).click();
+    await expect(dialog).not.toBeVisible();
+
+    // Direct standalone URL navigation
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/players/p-1`);
+    await expect(page.getByRole('heading', { name: 'Goleador Uno' })).toBeVisible();
+    await expect(page.getByText('Age: 28')).toBeVisible();
   });
 });

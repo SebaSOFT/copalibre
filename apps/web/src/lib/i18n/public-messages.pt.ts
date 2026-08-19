@@ -58,4 +58,13 @@ export const messages: Record<string, string> = {
   'publicWeb.livePage.leadersHeading': 'Líderes',
 
   'publicWeb.bracketPage.title': 'Chave',
+
+  'publicWeb.playerProfile.heading': 'Perfil do Jogador',
+  'publicWeb.playerProfile.age': 'Idade: {age}',
+  'publicWeb.playerProfile.nationality': 'Nacionalidade: {country}',
+  'publicWeb.playerProfile.historyHeading': 'Histórico de Competições',
+  'publicWeb.playerProfile.careerStatsHeading': 'Estatísticas da Carreira',
+  'publicWeb.playerProfile.noHistory': 'Nenhum histórico de competições registrado.',
+  'publicWeb.playerProfile.noStats': 'Nenhuma estatística da carreira registrada.',
+  'publicWeb.playerProfile.close': 'Fechar',
 };

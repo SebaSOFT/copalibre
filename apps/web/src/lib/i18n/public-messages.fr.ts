@@ -57,4 +57,13 @@ export const messages: Record<string, string> = {
   'publicWeb.livePage.leadersHeading': 'Meneurs',
 
   'publicWeb.bracketPage.title': 'Tableau',
+
+  'publicWeb.playerProfile.heading': 'Profil du Joueur',
+  'publicWeb.playerProfile.age': 'Âge : {age}',
+  'publicWeb.playerProfile.nationality': 'Nationalité : {country}',
+  'publicWeb.playerProfile.historyHeading': 'Historique des Compétitions',
+  'publicWeb.playerProfile.careerStatsHeading': 'Statistiques en Carrière',
+  'publicWeb.playerProfile.noHistory': 'Aucun historique de compétition enregistré.',
+  'publicWeb.playerProfile.noStats': 'Aucune statistique en carrière enregistrée.',
+  'publicWeb.playerProfile.close': 'Fermer',
 };

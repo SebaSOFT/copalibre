@@ -5,6 +5,7 @@ import type {
   PublicBracketResponse,
   PublicStandingsRowResponse,
   PublicMatchReportResponse,
+  PublicPersonProfileResponse,
 } from '@copalibre/api/src/dto/public-tournament.dto.js';
 import type {
   TableLayoutListResponse,
@@ -100,6 +101,16 @@ export async function fetchPublicTableProjection(
   const query = clubId ? `?clubId=${encodeURIComponent(clubId)}` : '';
   const url = `${scoped}/public/tables/${encodeURIComponent(layoutCode)}${query}`;
   return fetchOr404<TableProjectionResponse>(url);
+}
+
+export async function fetchPlayerProfile(
+  organizationAlias: string,
+  tournamentAlias: string,
+  personId: string,
+): Promise<PublicPersonProfileResponse | undefined> {
+  const baseUrl = getApiBaseUrl();
+  const url = `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/persons/${encodeURIComponent(personId)}/public/profile`;
+  return fetchOr404<PublicPersonProfileResponse>(url);
 }
 
 export function mapOverviewResponse(response: PublicOverviewResponse): OverviewInput {

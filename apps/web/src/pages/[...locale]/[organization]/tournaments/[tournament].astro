@@ -98,6 +98,8 @@ const activeProjection = activeLayout
     clubs={model.clubs}
     intl={intl}
     canonicalPath={`${locale ? `/${locale}` : ''}${model.canonicalPath}`}
+    organizationAlias={organization}
+    tournamentAlias={tournament}
   />
   <RulesetBriefing model={model} intl={intl} />
 </PublicLayout>
