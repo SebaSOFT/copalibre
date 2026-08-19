@@ -78,7 +78,7 @@ Crucially, if you modify **any** infrastructure or deployment file, you MUST exp
 
 ## Changes and Reviews
 
-Use scoped Conventional Commit subjects, such as `feat(api): add match projection` or `fix(persistence): preserve elapsed clock`. Keep commits narrowly focused. PRs must describe behavior, OpenSpec change ID, tests run, migration/configuration impact, and screenshots for UI changes. `openspec/changes/` is ignored, so explicitly add approved active-change artifacts to their feature commit. Archive directories remain ignored: never force-add archived artifacts. Never commit `.env` files, credentials, or production connection strings.
+Use scoped Conventional Commit subjects, such as `feat(api): add match projection` or `fix(persistence): preserve elapsed clock`. Keep commits narrowly focused. PRs must describe behavior, OpenSpec change ID, tests run, migration/configuration impact, and screenshots for UI changes. Git ignore rules are authoritative: never force-add anything under `openspec/changes/`, whether active or archived. Commit only accepted specification deltas under `openspec/specs/`. Never commit `.env` files, credentials, or production connection strings.
 
 ## Feature Delivery Pipeline
 
@@ -90,8 +90,8 @@ infrastructure files changed) and confirm every one is green before opening a PR
 for every required CI check to pass, then wait for explicit merge approval — do not merge a PR on your
 own initiative, and an earlier approval does not carry forward to the next PR. Once merged, sync
 `develop`, delete the local and remote feature branches, then archive the change with
-`openspec archive <change> --yes --skip-specs`. Do not force-add its ignored archive directory. If its
-active-change artifacts were explicitly tracked, commit only their removals to `develop`. On the next
-feature branch, make promotion of the preceding change's spec deltas into `openspec/specs/` the first
-commit (`docs(openspec): promote NNNN specs into the accepted baseline`); do not create a standalone PR
-for promotion. Only then implement the next queued change, unless told to work ahead.
+`openspec archive <change> --yes`. Git ignore rules are authoritative: never force-add active or archived
+change artifacts. Keep resulting accepted-spec deltas uncommitted on `develop`; on the next feature
+branch, commit only those `openspec/specs/` deltas first
+(`docs(openspec): promote NNNN specs into the accepted baseline`). Do not create a standalone PR for
+promotion. Only then implement the next queued change, unless told to work ahead.

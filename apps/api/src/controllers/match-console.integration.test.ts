@@ -104,6 +104,26 @@ describe('live match console (integration)', () => {
               },
             ],
           },
+          {
+            code: 'outcome-decision',
+            label: 'Outcome decision',
+            category: 'neutral',
+            permittedSegmentTypes: ['half'],
+            actorRequirement: 'none',
+            payloadSchema: { type: 'object' },
+            workflow: {
+              kind: 'outcome-choice',
+              options: [{ definitionCode: 'outcome-recorded', label: 'Outcome recorded' }],
+            },
+          },
+          {
+            code: 'outcome-recorded',
+            label: 'Outcome recorded',
+            category: 'neutral',
+            permittedSegmentTypes: ['half'],
+            actorRequirement: 'none',
+            payloadSchema: { type: 'object' },
+          },
         ],
       });
       await tournaments.saveDescriptor(uow, descriptor, { organizationId, ...audit });
@@ -241,7 +261,33 @@ describe('live match console (integration)', () => {
     expect((await request('GET', `${base()}/console`, 'inactive')).statusCode).toBe(403);
   });
 
+  it('projects a descriptor-owned outcome workflow while final outcomes stay independently recordable', async () => {
+    const consoleRead = await request('GET', `${base()}/console`, 'referee');
+    expect(consoleRead.statusCode).toBe(200);
+    expect(consoleRead.json().eventDefinitions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'outcome-decision',
+          workflow: {
+            kind: 'outcome-choice',
+            options: [{ definitionCode: 'outcome-recorded', label: 'Outcome recorded' }],
+          },
+        }),
+      ]),
+    );
+
+    const finalOutcome = await request('POST', `${base()}/events`, 'referee', {
+      definitionCode: 'outcome-recorded',
+      segmentId,
+      occurredAt: Date.now(),
+    });
+    expect(finalOutcome.statusCode).toBe(201);
+  });
+
   it('audits clock changes, emits projection outbox events, and rejects undeclared timer resolution', async () => {
+    const projectionEventsBefore = (await new OutboxReader(scratch.db).pending()).filter(
+      (event) => event.entityId === matchId && event.eventType === 'match.console-projection',
+    ).length;
     const clock = await request('POST', `${base()}/clock`, 'referee', {
       segmentId,
       elapsedSeconds: 90,
@@ -275,7 +321,7 @@ describe('live match console (integration)', () => {
       (await new OutboxReader(scratch.db).pending()).filter(
         (event) => event.entityId === matchId && event.eventType === 'match.console-projection',
       ),
-    ).toHaveLength(3);
+    ).toHaveLength(projectionEventsBefore + 3);
   });
 
   it('accepts attribution from match rosters and rejects people outside them', async () => {
