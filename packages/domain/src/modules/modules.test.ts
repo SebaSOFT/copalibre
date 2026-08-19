@@ -72,6 +72,14 @@ describe('discipline test builders', () => {
       ]);
     });
 
+    it('declares organization-granularity collector for career goals', () => {
+      const careerGoals = football.collectors?.find(
+        (collector) => collector.code === 'career-goals',
+      );
+      expect(careerGoals).toBeDefined();
+      expect(careerGoals?.granularity).toEqual({ actor: 'person', competition: 'organization' });
+    });
+
     it('counts matches played rather than summing them', () => {
       const played = football.statistics.find((statistic) => statistic.code === 'played');
       expect(played?.aggregation).toBe('count');

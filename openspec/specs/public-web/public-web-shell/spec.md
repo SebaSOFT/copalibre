@@ -214,3 +214,49 @@ event individually.
 #### Scenario: An event with no declared workflow renders individually
 - **WHEN** the event timeline includes an event whose definition declares no `workflow`
 - **THEN** it renders as its own, independent timeline entry
+
+### Requirement: A public, tournament-wide table route serves any declared table layout across every stage
+
+The public site SHALL serve a tournament-wide table projection for any layout the tournament's
+discipline declares, at a public route requiring no admin authentication, mirroring the existing public
+stage-scoped table route's reachability guarantee (no site rebuild required, published tournaments
+only).
+
+#### Scenario: A public visitor views a tournament-wide leaderboard
+- **WHEN** an anonymous visitor requests the public tournament-wide table route for a layout code the
+  tournament's discipline declares (e.g. a top-scorers leaderboard)
+- **THEN** the response carries every row across every stage of the tournament, in the layout's declared
+  columns and default sort, identical in shape to the equivalent admin-only route's response
+
+#### Scenario: An unknown layout code 404s
+- **WHEN** an anonymous visitor requests the tournament-wide table route with a layout code the
+  tournament's discipline does not declare
+- **THEN** the public site returns a not-found response
+
+#### Scenario: An unpublished tournament's tables are not exposed
+- **WHEN** an anonymous visitor requests a tournament-wide table for a tournament the organizer has not
+  published
+- **THEN** the public site returns a not-found response
+
+### Requirement: A table projection may be filtered to one club's entrants
+
+Both the public tournament-wide table route and the existing public stage-scoped table route SHALL
+accept an optional `clubId` query parameter; when present, the response SHALL include only rows for
+entrants resolved to that club, and SHALL NOT alter the layout's declared columns, sort order, or
+ranking computation.
+
+#### Scenario: Filtering a leaderboard to one club
+- **WHEN** a table projection is requested with `clubId` naming a club fielding three of the
+  tournament's registered entrants
+- **THEN** the response's rows are limited to those three entrants' players, ranked exactly as they
+  would be within the unfiltered table (rank numbers reflect standing in the full table, not
+  renumbered within the filtered subset)
+
+#### Scenario: An absent clubId returns every entrant
+- **WHEN** a table projection is requested with no `clubId` parameter
+- **THEN** the response is unchanged from this route's behavior before the parameter existed
+
+#### Scenario: A clubId matching no entrant returns an empty row set, not an error
+- **WHEN** a table projection is requested with a `clubId` that fields no entrant in this tournament
+- **THEN** the response carries the layout's columns and an empty `rows` array, rather than a 404 or
+  other error

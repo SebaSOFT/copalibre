@@ -111,4 +111,29 @@ export const messages = defineMessages({
 
   // pages/[organization]/tournaments/[tournament]/stages/[stage].astro
   bracketPageTitle: { id: 'publicWeb.bracketPage.title', defaultMessage: 'Bracket' },
+
+  // Player profile / career popup
+  playerProfileHeading: { id: 'publicWeb.playerProfile.heading', defaultMessage: 'Player Profile' },
+  playerProfileAge: { id: 'publicWeb.playerProfile.age', defaultMessage: 'Age: {age}' },
+  playerProfileNationality: {
+    id: 'publicWeb.playerProfile.nationality',
+    defaultMessage: 'Nationality: {country}',
+  },
+  playerProfileHistoryHeading: {
+    id: 'publicWeb.playerProfile.historyHeading',
+    defaultMessage: 'Competition History',
+  },
+  playerProfileCareerStatsHeading: {
+    id: 'publicWeb.playerProfile.careerStatsHeading',
+    defaultMessage: 'Career Statistics',
+  },
+  playerProfileNoHistory: {
+    id: 'publicWeb.playerProfile.noHistory',
+    defaultMessage: 'No competition history recorded.',
+  },
+  playerProfileNoStats: {
+    id: 'publicWeb.playerProfile.noStats',
+    defaultMessage: 'No career statistics recorded.',
+  },
+  playerProfileClose: { id: 'publicWeb.playerProfile.close', defaultMessage: 'Close' },
 });

@@ -57,4 +57,13 @@ export const messages: Record<string, string> = {
   'publicWeb.livePage.leadersHeading': 'Лидеры',
 
   'publicWeb.bracketPage.title': 'Сетка',
+
+  'publicWeb.playerProfile.heading': 'Профиль игрока',
+  'publicWeb.playerProfile.age': 'Возраст: {age}',
+  'publicWeb.playerProfile.nationality': 'Гражданство: {country}',
+  'publicWeb.playerProfile.historyHeading': 'История соревнований',
+  'publicWeb.playerProfile.careerStatsHeading': 'Статистика за карьеру',
+  'publicWeb.playerProfile.noHistory': 'История соревнований отсутствует.',
+  'publicWeb.playerProfile.noStats': 'Статистика за карьеру отсутствует.',
+  'publicWeb.playerProfile.close': 'Закрыть',
 };

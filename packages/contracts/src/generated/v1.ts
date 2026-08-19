@@ -1187,6 +1187,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/persons/{personId}/public/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A person's public career and competition profile */
+        get: operations["PublicProjectionsController_playerProfile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/login": {
         parameters: {
             query?: never;
@@ -2706,6 +2723,49 @@ export interface components {
         };
         PublicBracketResponse: {
             matches: components["schemas"]["PublicBracketMatchResponse"][];
+        };
+        PublicPersonCompetitionHistoryResponse: {
+            /** Format: uuid */
+            tournamentId: string;
+            tournamentName: string;
+            tournamentAlias: string;
+            /** Format: uuid */
+            teamId: string;
+            teamName: string;
+            /** @enum {string} */
+            role: "player" | "substitute" | "coach" | "staff";
+            /** Format: uuid */
+            entrantId?: string;
+            entrantName?: string;
+            entrantAbbreviation?: string;
+            disciplineDescriptorId: string;
+            disciplineDescriptorVersion: string;
+            disciplineName?: string;
+        };
+        PublicPersonCareerStatisticResponse: {
+            code: string;
+            label: string;
+            value: number;
+            samples?: number;
+        };
+        PublicPersonCareerDisciplineTotalsResponse: {
+            disciplineDescriptorId: string;
+            disciplineName?: string;
+            statistics: components["schemas"]["PublicPersonCareerStatisticResponse"][];
+        };
+        PublicPersonProfileResponse: {
+            /** Format: uuid */
+            personId: string;
+            displayName: string;
+            alias?: string;
+            /** @description ISO 3166-1 alpha-2 country code */
+            nationality?: string;
+            /** Format: uuid */
+            photoObjectId?: string;
+            /** @description Age in completed full years (derived from birth date; raw birth date is never exposed) */
+            age?: number;
+            competitionHistory: components["schemas"]["PublicPersonCompetitionHistoryResponse"][];
+            careerStatistics: components["schemas"]["PublicPersonCareerDisciplineTotalsResponse"][];
         };
         LoginRequest: {
             /** Format: email */
@@ -5315,6 +5375,29 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TableProjectionResponse"];
+                };
+            };
+        };
+    };
+    PublicProjectionsController_playerProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                personId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPersonProfileResponse"];
                 };
             };
         };

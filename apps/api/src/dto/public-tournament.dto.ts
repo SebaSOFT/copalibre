@@ -348,3 +348,95 @@ export class PublicBracketResponse {
   @ApiProperty({ type: [PublicBracketMatchResponse] })
   matches!: PublicBracketMatchResponse[];
 }
+
+export class PublicPersonCompetitionHistoryResponse {
+  @ApiProperty({ format: 'uuid' })
+  tournamentId!: string;
+
+  @ApiProperty()
+  tournamentName!: string;
+
+  @ApiProperty()
+  tournamentAlias!: string;
+
+  @ApiProperty({ format: 'uuid' })
+  teamId!: string;
+
+  @ApiProperty()
+  teamName!: string;
+
+  @ApiProperty({ enum: ['player', 'substitute', 'coach', 'staff'] })
+  role!: 'player' | 'substitute' | 'coach' | 'staff';
+
+  @ApiPropertyOptional({ format: 'uuid' })
+  entrantId?: string;
+
+  @ApiPropertyOptional()
+  entrantName?: string;
+
+  @ApiPropertyOptional()
+  entrantAbbreviation?: string;
+
+  @ApiProperty()
+  disciplineDescriptorId!: string;
+
+  @ApiProperty()
+  disciplineDescriptorVersion!: string;
+
+  @ApiPropertyOptional()
+  disciplineName?: string;
+}
+
+export class PublicPersonCareerStatisticResponse {
+  @ApiProperty()
+  code!: string;
+
+  @ApiProperty()
+  label!: string;
+
+  @ApiProperty()
+  value!: number;
+
+  @ApiPropertyOptional()
+  samples?: number;
+}
+
+export class PublicPersonCareerDisciplineTotalsResponse {
+  @ApiProperty()
+  disciplineDescriptorId!: string;
+
+  @ApiPropertyOptional()
+  disciplineName?: string;
+
+  @ApiProperty({ type: [PublicPersonCareerStatisticResponse] })
+  statistics!: PublicPersonCareerStatisticResponse[];
+}
+
+export class PublicPersonProfileResponse {
+  @ApiProperty({ format: 'uuid' })
+  personId!: string;
+
+  @ApiProperty()
+  displayName!: string;
+
+  @ApiPropertyOptional()
+  alias?: string;
+
+  @ApiPropertyOptional({ description: 'ISO 3166-1 alpha-2 country code' })
+  nationality?: string;
+
+  @ApiPropertyOptional({ format: 'uuid' })
+  photoObjectId?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Age in completed full years (derived from birth date; raw birth date is never exposed)',
+  })
+  age?: number;
+
+  @ApiProperty({ type: [PublicPersonCompetitionHistoryResponse] })
+  competitionHistory!: PublicPersonCompetitionHistoryResponse[];
+
+  @ApiProperty({ type: [PublicPersonCareerDisciplineTotalsResponse] })
+  careerStatistics!: PublicPersonCareerDisciplineTotalsResponse[];
+}

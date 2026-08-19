@@ -230,6 +230,8 @@ export interface PersonsTable {
   natural_key_normalised: string | null;
   /** ISO 3166-1 alpha-2 country code; null until an operator records one. */
   nationality: string | null;
+  /** ISO 8601 calendar date (YYYY-MM-DD); null until supplied. */
+  birth_date: string | null;
   /** FK into `object_metadata.object_id`; null until a photo is uploaded. */
   photo_object_id: string | null;
   created_at: Timestamp;

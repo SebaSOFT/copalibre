@@ -19,6 +19,8 @@ interface Props {
   readonly clubs?: readonly ClubView[];
   readonly intl: IntlShape;
   readonly canonicalPath?: string;
+  readonly organizationAlias?: string;
+  readonly tournamentAlias?: string;
 }
 const {
   layouts = [],
@@ -29,6 +31,8 @@ const {
   clubs = [],
   intl,
   canonicalPath = '',
+  organizationAlias,
+  tournamentAlias,
 } = Astro.props;
 
 const effectiveLayoutCode = activeLayoutCode ?? layout?.code;
@@ -37,6 +41,10 @@ const heading = layout
   : intl.formatMessage(messages.standingsHeading);
 const columns = projection?.columns ?? [];
 const rows = projection?.rows ?? [];
+const isPlayerRanking =
+  layout?.target === 'player-ranking' ||
+  layout?.entityGranularity === 'person' ||
+  layout?.entityGranularity === 'player';
 ---
 
 <section aria-labelledby="standings-heading" class="cl-standings-section">
@@ -116,9 +124,37 @@ const rows = projection?.rows ?? [];
           <tbody>
             {rows.map((row) => (
               <tr>
-                {columns.map((column) => (
-                  <td class="cl-stat-tile__value">{row.cells[column.code]?.formatted ?? '—'}</td>
-                ))}
+                {columns.map((column) => {
+                  const isPlayerNameCell =
+                    isPlayerRanking &&
+                    (column.code === 'person' ||
+                      column.code === 'player' ||
+                      column.code === 'entrant' ||
+                      column.code === 'name');
+                  const cellFormatted = row.cells[column.code]?.formatted ?? '—';
+                  const playerPageUrl = `${canonicalPath}/players/${row.actorId}`;
+                  const apiProfileUrl =
+                    organizationAlias && tournamentAlias && row.actorId
+                      ? `/api/player-profile?organization=${encodeURIComponent(organizationAlias)}&tournament=${encodeURIComponent(tournamentAlias)}&personId=${encodeURIComponent(row.actorId)}`
+                      : playerPageUrl;
+
+                  return (
+                    <td class="cl-stat-tile__value">
+                      {isPlayerNameCell && row.actorId ? (
+                        <a
+                          href={playerPageUrl}
+                          class="cl-player-link"
+                          data-player-id={row.actorId}
+                          data-profile-url={apiProfileUrl}
+                        >
+                          {cellFormatted}
+                        </a>
+                      ) : (
+                        cellFormatted
+                      )}
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>
@@ -126,7 +162,134 @@ const rows = projection?.rows ?? [];
       )
     }
   </div>
+
+  <dialog id="cl-player-dialog" class="cl-player-dialog" aria-labelledby="cl-player-dialog-title">
+    <div class="cl-player-dialog__content">
+      <div class="cl-player-dialog__header">
+        <h3 id="cl-player-dialog-title" class="cl-player-dialog__title">Player Profile</h3>
+        <button
+          type="button"
+          class="cl-player-dialog__close"
+          aria-label="Close dialog"
+          data-close-dialog>✕</button
+        >
+      </div>
+      <div id="cl-player-dialog-body" class="cl-player-dialog__body" aria-live="polite">
+        <p class="cl-player-dialog__loading">Loading player details...</p>
+      </div>
+    </div>
+  </dialog>
 </section>
+
+<script>
+  function initPlayerDialog() {
+    const dialog = document.getElementById('cl-player-dialog') as HTMLDialogElement | null;
+    if (!dialog) return;
+
+    const body = document.getElementById('cl-player-dialog-body');
+    const title = document.getElementById('cl-player-dialog-title');
+    const closeBtn = dialog.querySelector('[data-close-dialog]');
+
+    closeBtn?.addEventListener('click', () => dialog.close());
+    dialog.addEventListener('click', (e) => {
+      if (e.target === dialog) dialog.close();
+    });
+
+    document.querySelectorAll<HTMLAnchorElement>('.cl-player-link').forEach((link) => {
+      link.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const profileUrl = link.dataset.profileUrl || link.href;
+        if (body) body.innerHTML = '<p class="cl-player-dialog__loading">Loading...</p>';
+        if (typeof dialog.showModal === 'function') {
+          dialog.showModal();
+        }
+
+        try {
+          interface HistoryItem {
+            tournamentName: string;
+            teamName: string;
+            role: string;
+            entrantAbbreviation?: string;
+          }
+          interface StatItem {
+            label: string;
+            value: number;
+          }
+          interface DisciplineTotals {
+            statistics?: StatItem[];
+          }
+          interface ProfileData {
+            displayName?: string;
+            nationality?: string;
+            age?: number;
+            careerStatistics?: DisciplineTotals[];
+            competitionHistory?: HistoryItem[];
+          }
+
+          const res = await fetch(profileUrl);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data: ProfileData = await res.json();
+          if (title) title.textContent = data.displayName || 'Player Profile';
+          if (body) {
+            const metaTags = [
+              data.nationality
+                ? `<span class="cl-player-profile__tag">${data.nationality}</span>`
+                : '',
+              data.age !== undefined
+                ? `<span class="cl-player-profile__tag">Age: ${data.age}</span>`
+                : '',
+            ]
+              .filter(Boolean)
+              .join(' ');
+
+            const statsItems = (data.careerStatistics || [])
+              .flatMap((d: DisciplineTotals) =>
+                (d.statistics || []).map(
+                  (s: StatItem) => `
+                  <div class="cl-stat-item">
+                    <span class="cl-stat-label">${s.label}</span>
+                    <strong class="cl-stat-val">${s.value}</strong>
+                  </div>
+                `,
+                ),
+              )
+              .join('');
+
+            const historyRows = (data.competitionHistory || [])
+              .map(
+                (h: HistoryItem) => `
+                <tr>
+                  <td><strong>${h.tournamentName}</strong></td>
+                  <td>${h.teamName}${h.entrantAbbreviation ? ` (${h.entrantAbbreviation})` : ''}</td>
+                  <td>${h.role}</td>
+                </tr>
+              `,
+              )
+              .join('');
+
+            body.innerHTML = `
+              <div class="cl-modal-profile">
+                ${metaTags ? `<div class="cl-modal-meta">${metaTags}</div>` : ''}
+                ${statsItems ? `<h4 class="cl-modal-section-title">Career Statistics</h4><div class="cl-modal-stats-grid">${statsItems}</div>` : ''}
+                ${historyRows ? `<h4 class="cl-modal-section-title">Competition History</h4><table class="cl-modal-history-table"><thead><tr><th>Tournament</th><th>Team</th><th>Role</th></tr></thead><tbody>${historyRows}</tbody></table>` : ''}
+              </div>
+            `;
+          }
+        } catch {
+          if (body) {
+            body.innerHTML = '<p class="cl-inline-alert">Unable to load player details.</p>';
+          }
+        }
+      });
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initPlayerDialog);
+  } else {
+    initPlayerDialog();
+  }
+</script>
 
 <style>
   .cl-table-tabs ul {
@@ -175,5 +338,114 @@ const rows = projection?.rows ?? [];
   .cl-club-filter__btn--active {
     background: var(--cl-color-primary, #2563eb);
     color: #ffffff;
+  }
+  .cl-player-link {
+    color: var(--cl-color-primary, #2563eb);
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .cl-player-link:hover {
+    text-decoration: underline;
+  }
+  .cl-player-dialog {
+    border: none;
+    border-radius: 12px;
+    padding: 0;
+    max-width: 600px;
+    width: 90vw;
+    box-shadow:
+      0 20px 25px -5px rgba(0, 0, 0, 0.1),
+      0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    background: var(--cl-color-surface, #ffffff);
+    color: inherit;
+  }
+  .cl-player-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+  }
+  .cl-player-dialog__content {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  .cl-player-dialog__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--cl-color-border, #e5e7eb);
+    padding-bottom: 12px;
+  }
+  .cl-player-dialog__title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+  }
+  .cl-player-dialog__close {
+    background: none;
+    border: none;
+    font-size: 1.25rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    color: var(--cl-color-text-subtle, #6b7280);
+    border-radius: 4px;
+  }
+  .cl-player-dialog__close:hover {
+    background: var(--cl-color-surface-subtle, #f3f4f6);
+  }
+  .cl-player-profile__tag {
+    display: inline-block;
+    background: var(--cl-color-surface-subtle, #f3f4f6);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+  }
+  .cl-modal-meta {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .cl-modal-section-title {
+    margin: 16px 0 8px 0;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+  .cl-modal-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .cl-stat-item {
+    background: var(--cl-color-surface-subtle, #f3f4f6);
+    padding: 10px;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+  }
+  .cl-stat-label {
+    font-size: 0.75rem;
+    color: var(--cl-color-text-subtle, #6b7280);
+  }
+  .cl-stat-val {
+    font-size: 1.25rem;
+    font-weight: 700;
+  }
+  .cl-modal-history-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+    text-align: left;
+  }
+  .cl-modal-history-table th,
+  .cl-modal-history-table td {
+    padding: 8px;
+    border-bottom: 1px solid var(--cl-color-border, #e5e7eb);
+  }
+  .cl-modal-history-table th {
+    background: var(--cl-color-surface-subtle, #f3f4f6);
   }
 </style>

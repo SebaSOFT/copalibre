@@ -224,6 +224,7 @@ export {
 } from './statistics/adjustment.js';
 export {
   validatePerson,
+  ageAt,
   normaliseNaturalKey,
   sameNaturalKey,
   isDuplicateMembership,

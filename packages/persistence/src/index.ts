@@ -104,7 +104,12 @@ export {
   MatchCommandIdempotencyRepository,
   type StoredMatchCommandResponse,
 } from './repositories/match-command-idempotency-repository.js';
-export { PersonRepository } from './repositories/person-repository.js';
+export {
+  PersonRepository,
+  type PersonCompetitionHistoryItem,
+  type PersonCareerStatisticTotal,
+  type PersonCareerDisciplineTotals,
+} from './repositories/person-repository.js';
 export {
   CsvImportRepository,
   hashSource,

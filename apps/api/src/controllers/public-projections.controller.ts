@@ -6,6 +6,7 @@ import {
   TournamentRepository,
   EnrollmentRepository,
   CompetitionRepository,
+  PersonRepository,
   withTransaction,
   StageReadModel,
   PublicOverviewReadModel,
@@ -16,6 +17,7 @@ import {
   PublicBracketResponse,
   PublicOverviewMatchResponse,
   PublicMatchReportResponse,
+  PublicPersonProfileResponse,
 } from '../dto/public-tournament.dto.js';
 import { TableLayoutListResponse, TableProjectionResponse } from '../dto/table-projections.dto.js';
 import { Kysely } from 'kysely';
@@ -26,7 +28,12 @@ import { listEffectiveTableLayouts, readTableProjection } from '../table-project
 import { toBracketMatch, ambiguousRoundPositions } from './seeding.controller.js';
 import { tableResponse } from './table-projections.controller.js';
 import { generateFixtures } from '@copalibre/tournament-engine';
-import { resolveLabel } from '@copalibre/domain';
+import {
+  resolveLabel,
+  ageAt,
+  type DisciplineDescriptor,
+  type StatisticCollector,
+} from '@copalibre/domain';
 
 @ApiTags('Public Projections')
 @Controller('organizations/:organizationAlias/tournaments/:tournamentAlias')
@@ -572,6 +579,99 @@ export class PublicProjectionsController {
       layoutCode,
     );
     return tableResponse(result);
+  }
+
+  @Get('persons/:personId/public/profile')
+  @SecurityPlaneTag('public-read')
+  @ApiOperation({ summary: "A person's public career and competition profile" })
+  @ApiOkResponse({ type: PublicPersonProfileResponse })
+  async playerProfile(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('personId') personId: string,
+  ): Promise<PublicPersonProfileResponse> {
+    const { tournament } = await this.resolvePublishedTournament(
+      organizationAlias,
+      tournamentAlias,
+    );
+    const people = new PersonRepository(this.db);
+    const person = await people.findPerson(personId);
+    if (!person || person.organizationId !== tournament.organizationId) {
+      throw new NotFoundException(
+        `No person "${personId}" found in organization "${organizationAlias}"`,
+      );
+    }
+
+    const [history, careerDisciplineTotals] = await Promise.all([
+      people.competitionHistory(tournament.organizationId, personId),
+      people.careerTotals(tournament.organizationId, personId),
+    ]);
+
+    const descriptorRows = await this.db
+      .selectFrom('discipline_descriptors')
+      .select(['descriptor_id as descriptorId', 'document'])
+      .execute();
+    const descriptorMap = new Map<string, DisciplineDescriptor>();
+    for (const d of descriptorRows) {
+      const parsed = (
+        typeof d.document === 'string' ? JSON.parse(d.document) : d.document
+      ) as DisciplineDescriptor;
+      descriptorMap.set(d.descriptorId, parsed);
+    }
+
+    const careerStatistics = careerDisciplineTotals.map((disc) => {
+      const desc = descriptorMap.get(disc.descriptorId);
+      const collectorMap = new Map<string, StatisticCollector>();
+      if (desc?.collectors) {
+        for (const c of desc.collectors) {
+          collectorMap.set(c.code, c);
+        }
+      }
+      return {
+        disciplineDescriptorId: disc.descriptorId,
+        disciplineName:
+          disc.disciplineName ?? (desc?.name ? resolveLabel(desc.name, 'en') : undefined),
+        statistics: disc.totals.map((tot) => {
+          const colDef = collectorMap.get(tot.collectorCode);
+          const label = colDef?.label ? resolveLabel(colDef.label, 'en') : tot.collectorCode;
+          return {
+            code: tot.collectorCode,
+            label,
+            value: tot.value,
+            samples: tot.samples,
+          };
+        }),
+      };
+    });
+
+    const competitionHistory = history.map((item) => {
+      const desc = descriptorMap.get(item.disciplineRef.descriptorId);
+      return {
+        tournamentId: item.tournamentId,
+        tournamentName: item.tournamentName,
+        tournamentAlias: item.tournamentAlias,
+        teamId: item.teamId,
+        teamName: item.teamName,
+        role: item.role,
+        entrantId: item.entrantId,
+        entrantName: item.entrantName,
+        entrantAbbreviation: item.entrantAbbreviation,
+        disciplineDescriptorId: item.disciplineRef.descriptorId,
+        disciplineDescriptorVersion: item.disciplineRef.version,
+        disciplineName: desc?.name ? resolveLabel(desc.name, 'en') : undefined,
+      };
+    });
+
+    return {
+      personId: person.personId,
+      displayName: person.displayName,
+      alias: person.alias,
+      nationality: person.nationality,
+      photoObjectId: person.photoObjectId,
+      age: person.birthDate ? ageAt(person.birthDate) : undefined,
+      competitionHistory,
+      careerStatistics,
+    };
   }
 }
 

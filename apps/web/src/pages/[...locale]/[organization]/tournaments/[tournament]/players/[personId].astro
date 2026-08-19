@@ -1,0 +1,68 @@
+---
+import PublicLayout from '../../../../../../layouts/PublicLayout.astro';
+import PlayerProfileView from '../../../../../../components/PlayerProfileView.astro';
+import {
+  fetchOverview,
+  fetchPlayerProfile,
+  mapOverviewResponse,
+} from '../../../../../../lib/public-api-client.ts';
+import { buildOverview, displayName } from '../../../../../../lib/overview.ts';
+import { publicIntl } from '../../../../../../lib/i18n/public-intl.ts';
+import { messages } from '../../../../../../lib/i18n/public-messages.en.ts';
+import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
+
+export const prerender = false;
+
+const { locale, organization, tournament, personId } = Astro.params;
+const resolvedLocale: SupportedLanguage = isSupportedLanguage(locale) ? locale : 'en';
+const intl = publicIntl(resolvedLocale);
+
+const [overviewData, profile] = await Promise.all([
+  fetchOverview(organization!, tournament!),
+  fetchPlayerProfile(organization!, tournament!, personId!),
+]);
+
+if (!overviewData || !profile) {
+  return Astro.rewrite('/404');
+}
+
+const model = buildOverview(mapOverviewResponse(overviewData));
+const title = `${profile.displayName} — ${displayName(model)}`;
+---
+
+<PublicLayout
+  title={title}
+  description={intl.formatMessage(messages.playerProfileHeading)}
+  canonicalPath={`${model.canonicalPath}/players/${personId}`}
+  intl={intl}
+>
+  <main class="cl-player-profile-page">
+    <nav class="cl-player-profile-page__back">
+      <a href={`${locale ? `/${locale}` : ''}${model.canonicalPath}`}>
+        ← Back to {displayName(model)}
+      </a>
+    </nav>
+    <div class="cl-card">
+      <PlayerProfileView profile={profile} intl={intl} />
+    </div>
+  </main>
+</PublicLayout>
+
+<style>
+  .cl-player-profile-page {
+    max-width: 800px;
+    margin: 32px auto;
+    padding: 0 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .cl-player-profile-page__back a {
+    color: var(--cl-color-primary, #2563eb);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .cl-player-profile-page__back a:hover {
+    text-decoration: underline;
+  }
+</style>

@@ -4,6 +4,7 @@ import {
   normaliseNaturalKey,
   sameNaturalKey,
   validatePerson,
+  ageAt,
   type Person,
   type Player,
 } from './person.js';
@@ -93,6 +94,49 @@ describe('validatePerson', () => {
     if (result.ok) return;
     expect(result.error.code).toBe('PERSON_INVALID');
     expect(result.error.message).toContain('ZZ');
+  });
+
+  it('accepts a person with a valid birth date', () => {
+    expect(validatePerson(person({ birthDate: '1995-06-15' })).ok).toBe(true);
+  });
+
+  it('refuses an invalid birth date format', () => {
+    const result = validatePerson(person({ birthDate: '15/06/1995' }));
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.message).toContain('YYYY-MM-DD');
+  });
+
+  it('refuses a birth date in the future', () => {
+    const result = validatePerson(person({ birthDate: '2099-01-01' }));
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.message).toContain('future');
+  });
+
+  it('refuses an implausibly old birth date', () => {
+    const result = validatePerson(person({ birthDate: '1850-01-01' }));
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.message).toContain('130 years');
+  });
+});
+
+describe('ageAt', () => {
+  it('computes exact age when birthday has passed in target year', () => {
+    expect(ageAt('1990-05-10', '2026-08-19')).toBe(36);
+  });
+
+  it('computes exact age when birthday has not yet arrived in target year', () => {
+    expect(ageAt('1990-11-25', '2026-08-19')).toBe(35);
+  });
+
+  it('computes exact age on birthday itself', () => {
+    expect(ageAt('1990-08-19', '2026-08-19')).toBe(36);
+  });
+
+  it('returns 0 for born in current year', () => {
+    expect(ageAt('2026-01-01', '2026-08-19')).toBe(0);
   });
 });
 

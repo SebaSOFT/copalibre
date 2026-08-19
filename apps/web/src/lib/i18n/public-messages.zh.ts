@@ -56,4 +56,13 @@ export const messages: Record<string, string> = {
   'publicWeb.livePage.leadersHeading': '领先者',
 
   'publicWeb.bracketPage.title': '对阵表',
+
+  'publicWeb.playerProfile.heading': '球员档案',
+  'publicWeb.playerProfile.age': '年龄: {age}',
+  'publicWeb.playerProfile.nationality': '国籍: {country}',
+  'publicWeb.playerProfile.historyHeading': '参赛历史',
+  'publicWeb.playerProfile.careerStatsHeading': '生涯数据',
+  'publicWeb.playerProfile.noHistory': '暂无参赛历史记录。',
+  'publicWeb.playerProfile.noStats': '暂无生涯数据记录。',
+  'publicWeb.playerProfile.close': '关闭',
 };
