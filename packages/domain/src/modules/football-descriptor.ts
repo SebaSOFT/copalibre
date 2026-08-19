@@ -19,7 +19,7 @@ export function footballDescriptor(
   return {
     descriptorId: '01890000-0000-7000-8000-00000000f001',
     alias: 'football',
-    version: '1.1.0',
+    version: '1.2.0',
     name: 'Football',
     attribution: {
       author: 'CopaLibre',
@@ -203,6 +203,22 @@ export function footballDescriptor(
         source: { kind: 'event', definitionCodes: ['red-card'], actorSource: 'primary' },
         measure: { kind: 'count' },
         granularity: { actor: 'person', competition: 'match' },
+      },
+      {
+        code: 'career-goals',
+        label: {
+          en: 'Career goals',
+          es: 'Goles en carrera',
+          fr: 'Buts en carrière',
+          de: 'Karrieretore',
+          it: 'Gol in carriera',
+          pt: 'Gols na carreira',
+          ru: 'Голы за карьеру',
+          zh: '生涯进球',
+        },
+        source: { kind: 'event', definitionCodes: ['goal'], actorSource: 'primary' },
+        measure: { kind: 'count' },
+        granularity: { actor: 'person', competition: 'organization' },
       },
     ],
     tableLayouts: [
