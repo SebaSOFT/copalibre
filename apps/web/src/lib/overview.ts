@@ -34,12 +34,20 @@ export interface StandingsRowView {
   readonly points: number;
 }
 
+export interface ClubView {
+  readonly clubId: string;
+  readonly name: string;
+  readonly alias?: string;
+  readonly emblemObjectId?: string;
+}
+
 export interface OverviewModel {
   readonly organizationName: string;
   readonly tournamentName: string;
   readonly seasonName?: string;
   readonly matches: readonly OverviewMatch[];
   readonly standings: readonly StandingsRowView[];
+  readonly clubs?: readonly ClubView[];
   readonly ruleset: readonly { readonly label: string; readonly value: string }[];
   readonly canonicalPath: string;
   readonly streamPath: string;
@@ -52,6 +60,7 @@ export interface OverviewInput extends RouteInput {
   readonly seasonName?: string;
   readonly matches: readonly OverviewMatch[];
   readonly standings: readonly StandingsRowView[];
+  readonly clubs?: readonly ClubView[];
   readonly ruleset: readonly { readonly label: string; readonly value: string }[];
 }
 
@@ -62,6 +71,7 @@ export function buildOverview(input: OverviewInput): OverviewModel {
     ...(input.seasonName === undefined ? {} : { seasonName: input.seasonName }),
     matches: input.matches,
     standings: input.standings,
+    ...(input.clubs === undefined ? {} : { clubs: input.clubs }),
     ruleset: input.ruleset,
     canonicalPath: publicPath(input),
     // Derived from the same input as the page's own path, so a page cannot

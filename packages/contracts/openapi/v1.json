@@ -4118,6 +4118,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "clubId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -4170,6 +4178,14 @@
             "name": "layoutCode",
             "required": true,
             "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "clubId",
+            "required": true,
+            "in": "query",
             "schema": {
               "type": "string"
             }
@@ -8535,6 +8551,28 @@
           "statistics"
         ]
       },
+      "PublicOverviewClubResponse": {
+        "type": "object",
+        "properties": {
+          "clubId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "alias": {
+            "type": "string"
+          },
+          "emblemObjectId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "clubId",
+          "name"
+        ]
+      },
       "PublicOverviewResponse": {
         "type": "object",
         "properties": {
@@ -8563,6 +8601,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PublicStandingsRowResponse"
+            }
+          },
+          "clubs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicOverviewClubResponse"
             }
           },
           "ruleset": {

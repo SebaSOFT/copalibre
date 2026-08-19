@@ -46,11 +46,29 @@ describe('discipline test builders', () => {
         'goals-against',
         'player-own-goals',
         'assists',
+        'yellow-cards',
+        'red-cards',
         'wins',
         'draws',
         'losses',
         'points',
         'played',
+      ]);
+    });
+
+    it('declares player-ranking table layouts for top scorers, assists, and cards', () => {
+      expect(football.tableLayouts?.map((layout) => layout.code)).toEqual([
+        'top-scorers',
+        'assists',
+        'cards',
+      ]);
+      const topScorers = football.tableLayouts?.find((layout) => layout.code === 'top-scorers');
+      expect(topScorers?.target).toBe('player-ranking');
+      expect(topScorers?.entityGranularity).toBe('person');
+      const cards = football.tableLayouts?.find((layout) => layout.code === 'cards');
+      expect(cards?.defaultSort).toEqual([
+        { columnCode: 'red-cards', direction: 'desc' },
+        { columnCode: 'yellow-cards', direction: 'desc' },
       ]);
     });
 

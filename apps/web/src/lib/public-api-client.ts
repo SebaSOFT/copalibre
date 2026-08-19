@@ -90,13 +90,15 @@ export async function fetchPublicTableProjection(
   tournamentAlias: string,
   layoutCode: string,
   stageNumber?: number,
+  clubId?: string,
 ): Promise<TableProjectionResponse | undefined> {
   const baseUrl = getApiBaseUrl();
   const scoped =
     stageNumber === undefined
       ? `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}`
       : `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/stages/${encodeURIComponent(stageNumber.toString())}`;
-  const url = `${scoped}/public/tables/${encodeURIComponent(layoutCode)}`;
+  const query = clubId ? `?clubId=${encodeURIComponent(clubId)}` : '';
+  const url = `${scoped}/public/tables/${encodeURIComponent(layoutCode)}${query}`;
   return fetchOr404<TableProjectionResponse>(url);
 }
 
@@ -130,6 +132,12 @@ export function mapOverviewResponse(response: PublicOverviewResponse): OverviewI
       abbreviation: s.abbreviation,
       played: s.statistics['played'] ?? 0,
       points: s.statistics['points'] ?? 0,
+    })),
+    clubs: response.clubs?.map((c) => ({
+      clubId: c.clubId,
+      name: c.name,
+      alias: c.alias,
+      emblemObjectId: c.emblemObjectId,
     })),
   } as OverviewInput;
 }

@@ -1,4 +1,4 @@
-import type { TableLayoutDefinition } from '@copalibre/domain';
+import { footballDescriptor, findTableLayout, type TableLayoutDefinition } from '@copalibre/domain';
 import { validateExpression } from '@copalibre/rules';
 import { projectTableLayout, type TableProjectionActor } from './table-projection.js';
 import type { CollectedFigure } from './fold.js';
@@ -259,5 +259,134 @@ describe('projectTableLayout', () => {
     const result = validateExpression('played > 0 ? played : 1');
 
     expect(result.ok).toBe(false);
+  });
+
+  it('projects football top-scorers layout directly with cross-stage person figures', () => {
+    const descriptor = footballDescriptor();
+    const topScorers = findTableLayout(descriptor, 'top-scorers');
+    expect(topScorers).toBeDefined();
+    if (!topScorers) return;
+
+    const tournamentFigures: CollectedFigure[] = [
+      {
+        collectorCode: 'goals-for',
+        actorGranularity: 'person',
+        actorId: 'p-1',
+        competitionGranularity: 'tournament',
+        competitionId: 'tr-1',
+        value: 7,
+        samples: 4,
+      },
+      {
+        collectorCode: 'goals-for',
+        actorGranularity: 'person',
+        actorId: 'p-2',
+        competitionGranularity: 'tournament',
+        competitionId: 'tr-1',
+        value: 5,
+        samples: 2,
+      },
+      {
+        collectorCode: 'goals-for',
+        actorGranularity: 'person',
+        actorId: 'p-3',
+        competitionGranularity: 'tournament',
+        competitionId: 'tr-1',
+        value: 2,
+        samples: 1,
+      },
+    ];
+
+    const actors: readonly TableProjectionActor[] = [
+      { actorId: 'p-1', name: 'Alice Striker', teamName: 'Atlas FC', entrantId: 'en-atlas' },
+      { actorId: 'p-2', name: 'Bob Forward', teamName: 'Boca Juniors', entrantId: 'en-boca' },
+      { actorId: 'p-3', name: 'Charlie Winger', teamName: 'Colo Colo', entrantId: 'en-colo' },
+    ];
+
+    const projection = projectTableLayout(tournamentFigures, topScorers, { actors });
+
+    expect(projection.rows.map((row) => row.actorId)).toEqual(['p-1', 'p-2', 'p-3']);
+    expect(projection.rows.map((row) => row.rank)).toEqual([1, 2, 3]);
+    expect(projection.rows[0]?.cells['goals']).toEqual({ raw: 7, formatted: '7' });
+    expect(projection.rows[1]?.cells['goals']).toEqual({ raw: 5, formatted: '5' });
+    expect(projection.rows[2]?.cells['goals']).toEqual({ raw: 2, formatted: '2' });
+    expect(projection.rows[0]?.entrantId).toBe('en-atlas');
+  });
+
+  it('projects football cards layout sorting first by red cards then yellow cards', () => {
+    const descriptor = footballDescriptor();
+    const cardsLayout = findTableLayout(descriptor, 'cards');
+    expect(cardsLayout).toBeDefined();
+    if (!cardsLayout) return;
+
+    const figures: CollectedFigure[] = [
+      {
+        collectorCode: 'red-cards',
+        actorGranularity: 'person',
+        actorId: 'p-1',
+        competitionGranularity: 'tournament',
+        competitionId: 'tr-1',
+        value: 1,
+        samples: 3,
+      },
+      {
+        collectorCode: 'yellow-cards',
+        actorGranularity: 'person',
+        actorId: 'p-1',
+        competitionGranularity: 'tournament',
+        competitionId: 'tr-1',
+        value: 2,
+        samples: 3,
+      },
+      {
+        collectorCode: 'red-cards',
+        actorGranularity: 'person',
+        actorId: 'p-2',
+        competitionGranularity: 'tournament',
+        competitionId: 'tr-1',
+        value: 2,
+        samples: 3,
+      },
+      {
+        collectorCode: 'yellow-cards',
+        actorGranularity: 'person',
+        actorId: 'p-2',
+        competitionGranularity: 'tournament',
+        competitionId: 'tr-1',
+        value: 1,
+        samples: 3,
+      },
+      {
+        collectorCode: 'red-cards',
+        actorGranularity: 'person',
+        actorId: 'p-3',
+        competitionGranularity: 'tournament',
+        competitionId: 'tr-1',
+        value: 1,
+        samples: 3,
+      },
+      {
+        collectorCode: 'yellow-cards',
+        actorGranularity: 'person',
+        actorId: 'p-3',
+        competitionGranularity: 'tournament',
+        competitionId: 'tr-1',
+        value: 4,
+        samples: 3,
+      },
+    ];
+
+    const actors: readonly TableProjectionActor[] = [
+      { actorId: 'p-1', name: 'Player 1' },
+      { actorId: 'p-2', name: 'Player 2' },
+      { actorId: 'p-3', name: 'Player 3' },
+    ];
+
+    const projection = projectTableLayout(figures, cardsLayout, { actors });
+
+    // p-2 (2 RC) > p-3 (1 RC, 4 YC) > p-1 (1 RC, 2 YC)
+    expect(projection.rows.map((row) => row.actorId)).toEqual(['p-2', 'p-3', 'p-1']);
+    expect(projection.rows[0]?.cells['red-cards']).toEqual({ raw: 2, formatted: '2' });
+    expect(projection.rows[1]?.cells['yellow-cards']).toEqual({ raw: 4, formatted: '4' });
   });
 });
