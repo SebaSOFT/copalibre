@@ -369,6 +369,9 @@ export class RegistrationResponse {
   @ApiProperty({ enum: ['pending', 'accepted', 'refused', 'withdrawn', 'checked-in'] })
   status!: 'pending' | 'accepted' | 'refused' | 'withdrawn' | 'checked-in';
 
+  @ApiPropertyOptional({ description: 'Tournament-scoped, distinct entrant short label.' })
+  abbreviation?: string;
+
   @ApiPropertyOptional({ format: 'uuid' })
   teamId?: string;
 
@@ -449,6 +452,14 @@ export class ReviewRegistrationRequest {
       'Recorded on the audit row. A refusal an entrant cannot be told about is one they will ask about.',
   })
   reason?: string;
+}
+
+export class SetEntrantAbbreviationRequest {
+  @ApiProperty({
+    example: 'CDI',
+    description: 'Uppercase short label, unique within this tournament.',
+  })
+  abbreviation!: string;
 }
 
 export class BulkReviewRequest {

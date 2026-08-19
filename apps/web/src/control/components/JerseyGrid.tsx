@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
 import { isSupportedLanguage, resolveLabel, type SupportedLanguage } from '@copalibre/domain';
+import { EntrantName } from '../../components/EntrantName.js';
 import {
   clubEmblemUrl,
   type ConsoleRoster,
@@ -204,7 +205,12 @@ function TeamPanel({
     <div style={teamPanelStyle}>
       <div style={teamHeaderRowStyle}>
         <TeamEmblem clubId={roster.clubId} organizationAlias={organizationAlias} />
-        <h3 style={teamHeaderStyle}>{roster.teamName ?? roster.entrantId.slice(-8)}</h3>
+        <h3 style={teamHeaderStyle}>
+          <EntrantName
+            abbreviation={roster.teamAbbreviation}
+            fullName={roster.teamName ?? roster.entrantId.slice(-8)}
+          />
+        </h3>
       </div>
       <p style={sectionLabelStyle}>{intl.formatMessage(messages.matchConsoleOnField)}</p>
       <div style={jerseyGridStyle}>{onField.map(jersey)}</div>

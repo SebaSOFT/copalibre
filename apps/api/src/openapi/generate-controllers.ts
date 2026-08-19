@@ -8,6 +8,7 @@ import { MatchControlController } from '../controllers/match-control.controller.
 import { OrganizationsController } from '../controllers/organizations.controller.js';
 import {
   DisciplinesController,
+  EntrantsController,
   RegistrationsController,
 } from '../controllers/registrations.controller.js';
 import { SchedulesController } from '../controllers/schedules.controller.js';
@@ -53,6 +54,7 @@ export const OPENAPI_CONTROLLERS = [
   OrganizationsController,
   TournamentsController,
   RegistrationsController,
+  EntrantsController,
   DisciplinesController,
   SchedulesController,
   MatchControlController,

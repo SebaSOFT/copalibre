@@ -219,6 +219,7 @@ describe('table projections (integration, 0091)', () => {
       const talleres = await enrollment.createTeam(uow, {
         organizationId,
         name: 'Talleres',
+        abbreviation: 'TAL',
         ...AUDIT,
       });
       const independiente = await enrollment.createTeam(uow, {
@@ -231,6 +232,7 @@ describe('table projections (integration, 0091)', () => {
           organizationId,
           tournamentId: tournament.tournamentId,
           entrantRef: { kind: 'team', teamId: talleres.teamId },
+          abbreviation: 'TALR',
           ...AUDIT,
         }),
         enrollment.registerEntrant(uow, {
@@ -517,6 +519,20 @@ describe('table projections (integration, 0091)', () => {
     function getAnonymous(url: string) {
       return (app as NestFastifyApplication).inject({ method: 'GET', url });
     }
+
+    it('prefers a tournament entrant abbreviation over the team abbreviation in overview data', async () => {
+      const response = await getAnonymous(
+        '/organizations/liga-tablas/tournaments/apertura-tablas/overview',
+      );
+
+      expect(response.statusCode).toBe(200);
+      const home = response
+        .json()
+        .matches.find(
+          (match: { homeEntrantId: string }) => match.homeEntrantId === entrantTalleres,
+        );
+      expect(home).toMatchObject({ homeName: 'Talleres', homeAbbreviation: 'TALR' });
+    });
 
     it('lists table layouts with no token at all', async () => {
       const response = await getAnonymous(

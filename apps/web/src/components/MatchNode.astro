@@ -1,5 +1,6 @@
 ---
 import type { IntlShape } from 'react-intl';
+import { EntrantName } from './EntrantName.tsx';
 import StateBadge from './StateBadge.astro';
 import { toNode, type BracketMatch } from '../lib/bracket.ts';
 import { resultReasonLabels, resultStateLabels } from '../lib/i18n/public-intl.ts';
@@ -21,7 +22,11 @@ const reasonLabels = resultReasonLabels(intl);
         <li class={slot.pending ? 'cl-slot--pending' : 'cl-slot'}>
           {/* Named, never blank: a blank cell reads as a bug, "Ganador del 3"
               tells a spectator what has to happen first. */}
-          <span>{slot.label}</span>
+          {slot.fullName === undefined ? (
+            <span>{slot.label}</span>
+          ) : (
+            <EntrantName abbreviation={slot.abbreviation} client:load fullName={slot.fullName} />
+          )}
           {slot.resultReason && (
             // A walkover 0-10 must not read like an actual 10-goal win — the
             // reason a result looks the way it does is shown, not just the

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
+import { EntrantName } from '../../components/EntrantName.js';
 import type { TableLayoutSummaryResponse, TableProjectionResponseData } from '../lib/api-client.js';
 import {
   distributionBars,
@@ -175,9 +176,23 @@ export function StandingsPage({
                   style={rowStyle}
                 >
                   <summary style={{ ...gridStyle(columns.length), ...summaryStyle }}>
-                    {columns.map((column) => (
-                      <span key={column.code}>{row.cells[column.code]?.formatted ?? '—'}</span>
-                    ))}
+                    {columns.map((column) => {
+                      const cell = row.cells[column.code];
+                      const isEntrantName =
+                        row.entrantName !== undefined && cell?.formatted === row.entrantName;
+                      return (
+                        <span key={column.code}>
+                          {isEntrantName ? (
+                            <EntrantName
+                              abbreviation={row.entrantAbbreviation}
+                              fullName={row.entrantName}
+                            />
+                          ) : (
+                            (cell?.formatted ?? '—')
+                          )}
+                        </span>
+                      );
+                    })}
                     {isGroupPhase && (
                       <span>
                         {indicator.kind === 'none' ? (

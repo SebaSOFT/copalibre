@@ -1,4 +1,9 @@
-import { abbreviationOf, labelCollisions, type LabelledSide } from './short-labels.js';
+import {
+  abbreviationOf,
+  deriveEntrantAbbreviation,
+  labelCollisions,
+  type LabelledSide,
+} from './short-labels.js';
 
 const casaDeItalia = {
   clubId: 'cl-1',
@@ -37,6 +42,40 @@ describe('which label a side shows', () => {
 
   it('works for a team with no club at all', () => {
     expect(abbreviationOf({ abbreviation: 'IND' })).toBe('IND');
+  });
+});
+
+describe('entrant abbreviation derivation', () => {
+  it('prefers the team abbreviation, then the club abbreviation', () => {
+    expect(deriveEntrantAbbreviation('Casa de Italia', 'CDI', 'C I')).toBe('CDI');
+    expect(deriveEntrantAbbreviation('Casa de Italia', undefined, 'C I')).toBe('C I');
+  });
+
+  it('derives initials of significant words and preserves meaningful single-letter suffixes', () => {
+    expect(deriveEntrantAbbreviation('San Francisco A')).toBe('SFA');
+    expect(deriveEntrantAbbreviation('San Francisco B')).toBe('SFB');
+  });
+
+  it.each([
+    ['Casa de Italia', 'CI'],
+    ['Real do Porto', 'RP'],
+    ['Les Bleus', 'B'],
+    ['Città di Torino', 'CT'],
+    ['Bayern von München', 'BM'],
+  ])('filters covered-language stop words in %s', (displayName, expected) => {
+    expect(deriveEntrantAbbreviation(displayName)).toBe(expected);
+  });
+
+  it('limits derived initials to ten characters', () => {
+    expect(
+      deriveEntrantAbbreviation(
+        'Alpha Bravo Charlie Delta Echo Foxtrot Golf Hotel India Juliet Kilo',
+      ),
+    ).toBe('ABCDEFGHIJ');
+  });
+
+  it('leaves a name with no foldable characters unresolved', () => {
+    expect(deriveEntrantAbbreviation('東京')).toBeUndefined();
   });
 });
 

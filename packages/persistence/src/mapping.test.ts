@@ -186,6 +186,7 @@ describe('snake_case row → camelCase domain mapping', () => {
       entrant_kind: 'team',
       person_id: null,
       team_id: 'tm-1',
+      abbreviation: null,
       seed: 4,
       status: 'accepted',
       created_at: CREATED,

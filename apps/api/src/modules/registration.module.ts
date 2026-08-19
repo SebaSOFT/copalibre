@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import {
   DisciplinesController,
+  EntrantsController,
   RegistrationsController,
 } from '../controllers/registrations.controller.js';
 import {
@@ -17,6 +18,7 @@ import { CoreModule } from './core.module.js';
   imports: [CoreModule],
   controllers: [
     RegistrationsController,
+    EntrantsController,
     DisciplinesController,
     ParticipantsController,
     ParticipantIdentityLinksController,

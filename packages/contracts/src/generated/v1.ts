@@ -272,6 +272,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/entrants/{entrantId}/abbreviation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Set one entrant’s tournament-scoped abbreviation */
+        patch: operations["EntrantsController_setAbbreviation"];
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/entrants/needing-abbreviation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List entrants awaiting an officer-chosen abbreviation */
+        get: operations["EntrantsController_needingAbbreviation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/disciplines": {
         parameters: {
             query?: never;
@@ -1690,6 +1724,8 @@ export interface components {
             tournamentId: string;
             /** @enum {string} */
             status: "pending" | "accepted" | "refused" | "withdrawn" | "checked-in";
+            /** @description Tournament-scoped, distinct entrant short label. */
+            abbreviation?: string;
             /** Format: uuid */
             teamId?: string;
             /** Format: uuid */
@@ -1732,6 +1768,13 @@ export interface components {
         EditTeamMembershipsRequest: {
             /** @description The team’s full desired membership. Anyone currently a member but not named here is removed. */
             personIds: unknown[][];
+        };
+        SetEntrantAbbreviationRequest: {
+            /**
+             * @description Uppercase short label, unique within this tournament.
+             * @example CDI
+             */
+            abbreviation: string;
         };
         DisciplineSummaryResponse: {
             /** Format: uuid */
@@ -1899,6 +1942,8 @@ export interface components {
             entrantId: string;
             /** @description The entrant’s team name, when the entrant is a team */
             teamName?: string;
+            /** @description Tournament-scoped abbreviation for the team entrant */
+            teamAbbreviation?: string;
             /**
              * Format: uuid
              * @description The team's club id, when it has one — resolves the club emblem serve route
@@ -2155,6 +2200,10 @@ export interface components {
              * @description Present at team/entrant granularity
              */
             entrantId?: string;
+            /** @description Resolved full entrant name for responsive team/entrant rows */
+            entrantName?: string;
+            /** @description Tournament-scoped entrant abbreviation, when resolved */
+            entrantAbbreviation?: string;
             /** @description 1-based; rows sharing a rank were not separated by `defaultSort` */
             rank: number;
             /** @description True when another row holds the same rank */
@@ -3400,6 +3449,103 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RegistrationResponse"];
+                };
+            };
+        };
+    };
+    EntrantsController_setAbbreviation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                entrantId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetEntrantAbbreviationRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistrationResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    EntrantsController_needingAbbreviation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistrationResponse"][];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
                 };
             };
         };

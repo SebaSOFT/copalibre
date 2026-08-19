@@ -8,12 +8,15 @@ import {
   Inject,
   NotFoundException,
   Param,
+  Patch,
   Post,
   Query,
   Req,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiBadRequestResponse,
+  ApiConflictResponse,
   ApiForbiddenResponse,
   ApiOkResponse,
   ApiOperation,
@@ -52,6 +55,7 @@ import {
   ProblemResponse,
   RegistrationResponse,
   ReviewRegistrationRequest,
+  SetEntrantAbbreviationRequest,
 } from '../dto/organization.dto.js';
 import { enforcePolicy } from '../policy/resource-policy.js';
 import { DATABASE } from '../database.token.js';
@@ -405,6 +409,7 @@ function toResponse(
       tournamentId: entrant.tournamentId,
       status: entrant.status,
       teamId: entrant.entrantRef.teamId,
+      ...(entrant.abbreviation === undefined ? {} : { abbreviation: entrant.abbreviation }),
     };
   }
 
@@ -414,6 +419,7 @@ function toResponse(
     tournamentId: entrant.tournamentId,
     status: entrant.status,
     personId: entrant.entrantRef.personId,
+    ...(entrant.abbreviation === undefined ? {} : { abbreviation: entrant.abbreviation }),
     ...(person === undefined
       ? {}
       : {
@@ -426,4 +432,101 @@ function toResponse(
 
 function actorOf(request: RequestWithSubject): string {
   return `user:${request.subject?.subjectId ?? 'unknown'}`;
+}
+
+@ApiTags('entrants')
+@Controller('organizations/:organizationAlias/tournaments/:tournamentAlias/entrants')
+export class EntrantsController {
+  constructor(@Inject(DATABASE) private readonly db: Kysely<Database>) {}
+
+  @Patch(':entrantId/abbreviation')
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Set one entrant’s tournament-scoped abbreviation' })
+  @ApiOkResponse({ type: RegistrationResponse })
+  @ApiBadRequestResponse({ type: ProblemResponse })
+  @ApiConflictResponse({ type: ProblemResponse })
+  @ApiUnauthorizedResponse({ type: ProblemResponse })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  async setAbbreviation(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('entrantId') entrantId: string,
+    @Body() body: SetEntrantAbbreviationRequest,
+    @Req() request: RequestWithSubject,
+  ): Promise<RegistrationResponse> {
+    const { organizationId, tournament } = await this.resolve(
+      organizationAlias,
+      tournamentAlias,
+      request,
+    );
+    const enrollment = new EnrollmentRepository(this.db);
+    const entrant = await enrollment.findEntrant(entrantId);
+    if (!entrant || entrant.tournamentId !== tournament.tournamentId) {
+      throw new NotFoundException(`No registration ${entrantId} in this tournament`);
+    }
+    try {
+      const updated = await withTransaction(this.db, (uow) =>
+        enrollment.setEntrantAbbreviation(uow, {
+          entrantId,
+          abbreviation: body.abbreviation,
+          organizationId,
+          actor: actorOf(request),
+          authorizationContext: (request.subject?.scopes ?? []).join(' '),
+        }),
+      );
+      return toResponse(updated);
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message.includes('already used')) throw new ConflictException(error.message);
+        if (error.message.toLowerCase().includes('abbreviation')) {
+          throw new BadRequestException(error.message);
+        }
+      }
+      throw error;
+    }
+  }
+
+  @Get('needing-abbreviation')
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List entrants awaiting an officer-chosen abbreviation' })
+  @ApiOkResponse({ type: RegistrationResponse, isArray: true })
+  @ApiUnauthorizedResponse({ type: ProblemResponse })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  async needingAbbreviation(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Req() request: RequestWithSubject,
+  ): Promise<RegistrationResponse[]> {
+    const { tournament } = await this.resolve(organizationAlias, tournamentAlias, request);
+    return (
+      await new EnrollmentRepository(this.db).listEntrantsNeedingAbbreviation(
+        tournament.tournamentId,
+      )
+    ).map((entrant) => toResponse(entrant));
+  }
+
+  private async resolve(
+    organizationAlias: string,
+    tournamentAlias: string,
+    request: RequestWithSubject,
+  ): Promise<{ readonly organizationId: string; readonly tournament: { tournamentId: string } }> {
+    const organization = await new OrganizationRepository(this.db).findByAlias(organizationAlias);
+    if (!organization)
+      throw new NotFoundException(`No organization with alias "${organizationAlias}"`);
+    enforcePolicy({
+      plane: 'admin-control',
+      subject: request.subject,
+      resource: { organizationId: organization.organizationId },
+    });
+    const tournament = await new TournamentRepository(this.db).findByScopedAlias(
+      organizationAlias,
+      tournamentAlias,
+    );
+    if (!tournament) throw new NotFoundException(`No tournament "${tournamentAlias}"`);
+    return { organizationId: organization.organizationId, tournament };
+  }
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { RealtimeClient } from '@copalibre/realtime';
+import { EntrantName } from './EntrantName.js';
 import {
   applyEvent,
   markConnected,
@@ -132,7 +133,11 @@ function TvMatchCard({ match }: { readonly match: LiveMatch }): React.JSX.Elemen
       <div className="tv-match__sides">
         {match.sides.map((side) => (
           <div className="tv-match__side" key={side.entrantId}>
-            <span className="tv-match__name">{side.abbreviation ?? side.name}</span>
+            <EntrantName
+              abbreviation={side.abbreviation}
+              className="tv-match__name"
+              fullName={side.name}
+            />
             <span className="tv-match__score">{side.score}</span>
           </div>
         ))}

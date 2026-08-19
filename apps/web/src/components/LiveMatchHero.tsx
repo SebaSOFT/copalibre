@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { RealtimeClient } from '@copalibre/realtime';
+import { EntrantName } from './EntrantName.js';
 import { applyEvent, markConnected, type LiveDashboard } from '../lib/live-state.js';
 import { presentState, type ResultStateLabels } from '../lib/result-state.js';
 
@@ -58,7 +59,7 @@ export function LiveMatchHero({
             <div aria-live="polite">
               {match.sides.map((side) => (
                 <p key={side.entrantId}>
-                  <span>{side.abbreviation ?? side.name}</span>
+                  <EntrantName abbreviation={side.abbreviation} fullName={side.name} />
                   <span className="cl-stat-tile__value">{side.score}</span>
                 </p>
               ))}

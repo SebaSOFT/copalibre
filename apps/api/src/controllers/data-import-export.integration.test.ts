@@ -177,6 +177,56 @@ describe('CSV import routes', () => {
     expect(committed.statusCode).toBe(409);
   });
 
+  it('uses CSV abbreviations when valid and falls back for malformed or colliding values', async () => {
+    const sourceCsv = [
+      'alias,name,abbreviation',
+      'club-milan,Club Milan,CM',
+      'casa-italia,Casa de Italia,not valid',
+      'casa-italia-b,Casa de Italia,CI',
+      '',
+    ].join('\n');
+    const created = await request({
+      method: 'POST',
+      url: '/organizations/liga-orbital/tournaments/copa-importacion/imports',
+      token: 'organizer-org1',
+      payload: { target: 'team', sourceCsv },
+    });
+    expect(created.statusCode).toBe(202);
+
+    await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+      new CsvImportRepository(scratch.db).storePreview(uow, {
+        importId: created.json().importId,
+        preview: validateCsvImport({
+          target: 'team',
+          allowedParticipantTypes: ['team'],
+          csv: sourceCsv,
+        }),
+      }),
+    );
+
+    const committed = await request({
+      method: 'POST',
+      url: `/organizations/liga-orbital/tournaments/copa-importacion/imports/${created.json().importId}/commit`,
+      token: 'organizer-org1',
+      payload: { sourceHash: created.json().sourceHash },
+    });
+    expect(committed.statusCode).toBe(200);
+
+    const abbreviations = await scratch.db
+      .selectFrom('entrants')
+      .innerJoin('teams', 'teams.team_id', 'entrants.team_id')
+      .select(['teams.alias', 'entrants.abbreviation'])
+      .where('teams.alias', 'in', ['club-milan', 'casa-italia', 'casa-italia-b'])
+      .orderBy('teams.alias')
+      .execute();
+
+    expect(abbreviations).toEqual([
+      { alias: 'casa-italia', abbreviation: 'CI' },
+      { alias: 'casa-italia-b', abbreviation: null },
+      { alias: 'club-milan', abbreviation: 'CM' },
+    ]);
+  });
+
   it('rejects a source larger than 4 MiB before creating a durable job', async () => {
     const response = await request({
       method: 'POST',

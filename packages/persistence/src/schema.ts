@@ -272,6 +272,7 @@ export interface EntrantsTable {
   entrant_kind: string;
   person_id: string | null;
   team_id: string | null;
+  abbreviation: string | null;
   seed: number | null;
   status: string;
   created_at: Timestamp;

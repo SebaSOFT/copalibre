@@ -30,6 +30,7 @@ import { personClubImagesAndNationality } from './0019-person-club-images-and-na
 import { zoneGroupAndPromotion } from './0020-zone-group-and-promotion.js';
 import { promotionPlans } from './0021-promotion-plans.js';
 import { zoneGroupEntrants } from './0022-zone-group-entrants.js';
+import { entrantAbbreviations } from './0023-entrant-abbreviations.js';
 
 /**
  * Migrations are explicit, ordered, and code-defined (no filesystem scanning),
@@ -60,6 +61,7 @@ export const MIGRATIONS: Readonly<Record<string, Migration>> = {
   '0020-zone-group-and-promotion': zoneGroupAndPromotion,
   '0021-promotion-plans': promotionPlans,
   '0022-zone-group-entrants': zoneGroupEntrants,
+  '0023-entrant-abbreviations': entrantAbbreviations,
 };
 
 /** The version `apps/api`'s readiness check expects to find applied. */

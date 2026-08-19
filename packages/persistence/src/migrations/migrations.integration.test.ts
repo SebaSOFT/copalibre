@@ -140,6 +140,17 @@ describe('migrations (integration)', () => {
     expect(afterUpTables.find((table) => table.name === 'clubs')?.columns).toEqual(
       expect.arrayContaining([expect.objectContaining({ name: 'emblem_object_id' })]),
     );
+    expect(afterUpTables.find((table) => table.name === 'entrants')?.columns).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'abbreviation' })]),
+    );
+
+    const entrantAbbreviationsDown = await migrateDownOneStep(scratch.db);
+    expect(entrantAbbreviationsDown.error).toBeUndefined();
+
+    const afterEntrantAbbreviationsDownTables = await scratch.db.introspection.getTables();
+    expect(
+      afterEntrantAbbreviationsDownTables.find((table) => table.name === 'entrants')?.columns,
+    ).not.toEqual(expect.arrayContaining([expect.objectContaining({ name: 'abbreviation' })]));
 
     const membershipDown = await migrateDownOneStep(scratch.db);
     expect(membershipDown.error).toBeUndefined();

@@ -34,6 +34,8 @@ export interface Entrant {
   readonly entrantRef:
     | { readonly kind: 'person'; readonly personId: string }
     | { readonly kind: 'team'; readonly teamId: string };
+  /** Tournament-scoped, collision-free short label when it has been resolved. */
+  readonly abbreviation?: string;
   readonly seed?: number;
   readonly status: EntrantStatus;
 }

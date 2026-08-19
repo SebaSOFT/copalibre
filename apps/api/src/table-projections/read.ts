@@ -318,11 +318,17 @@ async function teamActors(
   if (entrantIds.length === 0) return [];
 
   const names = await new EnrollmentRepository(db).resolveEntrantNames(entrantIds);
-  return entrantIds.map((entrantId) => ({
-    actorId: entrantId,
-    entrantId,
-    name: names.get(entrantId)?.name ?? entrantId,
-  }));
+  return entrantIds.map((entrantId) => {
+    const entry = names.get(entrantId);
+    const name = entry?.name ?? entrantId;
+    return {
+      actorId: entrantId,
+      entrantId,
+      name,
+      entrantName: name,
+      ...(entry?.abbreviation === undefined ? {} : { entrantAbbreviation: entry.abbreviation }),
+    };
+  });
 }
 
 /**
