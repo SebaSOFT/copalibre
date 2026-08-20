@@ -70,3 +70,69 @@ The match operations system SHALL maintain active on-field participation state f
 #### Scenario: A substitution changes which goalkeeper subsequent goals attribute to
 - **WHEN** a goalkeeper substitution is recorded mid-match, then a further goal is conceded
 - **THEN** the recorded goal's `payload.goalkeeperId` names the newly on-field goalkeeper, not the one who was substituted off
+
+### Requirement: A match roster is an authorized, audited, revisable write per entrant
+
+The system SHALL provide an authorized write that records one entrant's roster for one match, as an
+ordered set of members each carrying the person, a shirt number, the roster roles the discipline
+declares, and a starter-or-bench on-field state. The write SHALL be authorized by the `match.select-roster`
+capability, SHALL replace any prior selection for that same match and entrant rather than accumulating,
+and SHALL be audited on every write with its prior and resulting state.
+
+Member identity fields that duplicate a person's own record — display name and nationality — SHALL be
+snapshotted at selection time rather than resolved on read, so a later change to the person never
+rewrites a played match's roster.
+
+#### Scenario: Selecting a roster for one side
+- **WHEN** a subject holding `match.select-roster` submits a roster for one entrant of a match
+- **THEN** the roster is stored for that match and entrant, and an audit entry records the write
+
+#### Scenario: Revising a roster replaces the prior selection
+- **WHEN** a roster is submitted a second time for the same match and entrant
+- **THEN** the stored roster is the second submission, not the union of both, and both writes are audited
+
+#### Scenario: An unauthorized subject is refused
+- **WHEN** a subject without `match.select-roster` submits a roster
+- **THEN** the write is refused
+
+#### Scenario: A person who is not registered to the entrant is refused
+- **WHEN** a submitted member names a person who is not a registered player of the team behind that
+  entrant
+- **THEN** the write is refused, naming the person
+
+#### Scenario: An entrant not playing this match is refused
+- **WHEN** a roster is submitted for an entrant that is not one of the match fixture's two sides
+- **THEN** the write is refused
+
+#### Scenario: Duplicate members or numbers within one side are refused
+- **WHEN** a submitted roster repeats a person, or assigns the same shirt number to two members of the
+  same side
+- **THEN** the write is refused
+
+#### Scenario: A roster short of what a sport conventionally requires is accepted
+- **WHEN** a submitted roster has fewer members, or no member holding a role, than the discipline's
+  declared roster constraints describe
+- **THEN** the write is accepted, because the platform enforces only record integrity and what this
+  organizer configured, never what a sport usually requires
+
+### Requirement: Recorded-event person eligibility derives from the selected roster
+
+An event whose definition declares a person actor requirement SHALL be accepted only when the named
+person appears on the selected roster of a side of that match, and SHALL be refused otherwise.
+
+#### Scenario: An event attributed to a rostered player is recorded
+- **WHEN** an event requiring a person actor names a person on the match's selected roster
+- **THEN** the event is recorded with that attribution
+
+#### Scenario: An event attributed to a player absent from the roster is refused
+- **WHEN** an event requiring a person actor names a person absent from both sides' selected rosters
+- **THEN** the event is refused
+
+#### Scenario: Removing an attributed member is refused
+- **WHEN** a roster revision would remove a person to whom an already-recorded event in that match is
+  attributed
+- **THEN** the revision is refused, naming the recorded event
+
+#### Scenario: Adding a member during a match is permitted
+- **WHEN** a roster revision adds a member while the match is in progress
+- **THEN** the revision is accepted

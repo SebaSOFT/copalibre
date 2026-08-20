@@ -140,3 +140,35 @@ The match console (Screen A2) SHALL render side-by-side interactive jersey numbe
 #### Scenario: Substitutes on the bench are visually distinguished
 - **WHEN** viewing the team jersey grid
 - **THEN** players with `onField: false` are rendered in a distinct bench section with a visual substitute indicator
+
+### Requirement: The console provides a roster-selection step that produces what the jersey grid renders
+
+The match console SHALL provide a roster-selection step, reachable before event recording begins and
+re-openable while the match is in progress, offering each side's registered players as candidates and
+capturing per member a shirt number, the roster roles the discipline declares, and a starter-or-bench
+state. The selection SHALL be the source of the tactile jersey grid's contents and of the console's
+person-attribution eligibility.
+
+#### Scenario: Selecting each side's roster before recording events
+- **WHEN** an operator opens a scheduled match's console and chooses the roster-selection step
+- **THEN** each side offers that entrant's registered players as candidates, and a submitted selection
+  becomes the jersey grid's contents
+
+#### Scenario: A match with no roster selected is stated, not shown as an empty grid
+- **WHEN** an operator opens the console for a match whose roster has never been selected
+- **THEN** the console states that no roster is selected and offers the selection step, rather than
+  rendering an empty jersey grid
+
+#### Scenario: Starters and substitutes are distinguished at selection
+- **WHEN** an operator marks some members as starters and others as substitutes
+- **THEN** starters are recorded on-field and substitutes off-field, which is the state the console's
+  existing substitution handling then swaps during the match
+
+#### Scenario: A refused selection preserves the operator's entered data
+- **WHEN** a submitted selection is refused
+- **THEN** the console surfaces the refusal against the offending member and keeps the rest of the
+  entered selection in place
+
+#### Scenario: Re-opening the step during a match shows the current selection
+- **WHEN** an operator re-opens the roster-selection step after events have been recorded
+- **THEN** the current selection is shown for revision, not an empty form
