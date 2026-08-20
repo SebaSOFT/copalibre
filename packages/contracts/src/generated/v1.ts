@@ -541,6 +541,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/bulk-load": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Load a whole match’s roster, event history, and result in one submission
+         * @description For a match played without a live console session: roster selection, segment creation, and every event are sequenced inside one transaction, through the same unmodified validation and finalization the live console already uses. Commits entirely or not at all.
+         */
+        post: operations["MatchControlController_bulkLoad"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/corrections/preview": {
         parameters: {
             query?: never;
@@ -2175,6 +2195,70 @@ export interface components {
             notes?: string;
             /** @description Identity keys of notifications this event declared, deduplicated on delivery */
             notifications: string[];
+        };
+        BulkRosterMemberInput: {
+            /** Format: uuid */
+            personId: string;
+            /** @description Shirt number; not always numeric (e.g. "00", "7B") */
+            number?: Record<string, never>;
+            name: string;
+            /** @description ISO 3166-1 alpha-2 country code */
+            nationality?: string;
+            /** @description Discipline-declared roster role codes */
+            roles?: string[];
+            /** @description Whether this member was on the field, as opposed to bench */
+            onField: boolean;
+        };
+        BulkRosterInput: {
+            /** Format: uuid */
+            entrantId: string;
+            members: components["schemas"]["BulkRosterMemberInput"][];
+        };
+        BulkSegmentInput: {
+            /** @description A segment type the bound discipline declares, e.g. "first-half" */
+            type: string;
+            /** @description Elapsed seconds when the segment ended; discipline default when omitted */
+            elapsedSeconds?: number;
+        };
+        BulkEventInput: {
+            /** @description Event definition code the discipline declares */
+            definitionCode: string;
+            /** @description Which submitted segment this event belongs to, 1-based, in submission order */
+            segmentNumber: number;
+            /** @description When it actually happened, epoch milliseconds — may be historical */
+            occurredAt: number;
+            /**
+             * Format: uuid
+             * @description The entrant it belongs to — an id, never "home"/"away"
+             */
+            side?: string;
+            /**
+             * Format: uuid
+             * @description The person, when the discipline needs one
+             */
+            personId?: string;
+            /** @description Payload validated against the definition */
+            payload?: Record<string, never>;
+            /** @description Free-text operator note, available regardless of discipline */
+            notes?: string;
+        };
+        BulkLoadMatchDataRequest: {
+            /** @description One entry per side; each entrant’s full roster as selected for this match */
+            rosters: components["schemas"]["BulkRosterInput"][];
+            /** @description Every segment this match had, in play order — created and marked completed */
+            segments: components["schemas"]["BulkSegmentInput"][];
+            /** @description The match’s full event history, in the order it actually happened */
+            events: components["schemas"]["BulkEventInput"][];
+            /** @description One entry per side, matching FinalizeRequest’s existing shape */
+            result: Record<string, never>[];
+        };
+        BulkLoadMatchDataResponse: {
+            /** Format: uuid */
+            matchId: string;
+            /** @enum {string} */
+            status: "finalized";
+            /** @description How many events were recorded from the submitted batch */
+            eventCount: number;
         };
         CorrectionRequestDto: {
             /** @description Why the result is being corrected, in the operator’s words */
@@ -4286,6 +4370,65 @@ export interface operations {
                 };
             };
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    MatchControlController_bulkLoad: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                matchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkLoadMatchDataRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkLoadMatchDataResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
