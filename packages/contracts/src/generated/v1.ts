@@ -1068,6 +1068,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/public/tournaments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List published tournaments for an organization */
+        get: operations["PublicTournamentListingController_listTournaments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/overview": {
         parameters: {
             query?: never;
@@ -2555,6 +2572,50 @@ export interface components {
              * @description One-time OIDC invitation setup link.
              */
             setupUrl: string;
+        };
+        PublicTournamentDisciplineSummaryResponse: {
+            descriptorId: string;
+            version: string;
+            name?: string;
+        };
+        PublicTournamentDatesResponse: {
+            /** Format: date-time */
+            startedAt?: string;
+            /** Format: date-time */
+            archivedAt?: string;
+        };
+        PublicTournamentEntrantPodiumResponse: {
+            /** Format: uuid */
+            entrantId: string;
+            name: string;
+            abbreviation?: string;
+            /** Format: uuid */
+            clubId?: string;
+            /** Format: uuid */
+            emblemObjectId?: string;
+        };
+        PublicTournamentWinnerZoneResponse: {
+            /** Format: uuid */
+            zoneId?: string;
+            zoneName?: string;
+            champion: components["schemas"]["PublicTournamentEntrantPodiumResponse"];
+            runnerUp?: components["schemas"]["PublicTournamentEntrantPodiumResponse"];
+        };
+        PublicTournamentListingItemResponse: {
+            /** Format: uuid */
+            tournamentId: string;
+            alias: string;
+            name: string;
+            /** @enum {string} */
+            status: "upcoming" | "live" | "finished";
+            discipline: components["schemas"]["PublicTournamentDisciplineSummaryResponse"];
+            dates?: components["schemas"]["PublicTournamentDatesResponse"];
+            winners?: components["schemas"]["PublicTournamentWinnerZoneResponse"][];
+        };
+        PublicOrganizationTournamentListResponse: {
+            organizationAlias: string;
+            organizationName: string;
+            tournaments: components["schemas"]["PublicTournamentListingItemResponse"][];
         };
         PublicOverviewMatchResponse: {
             /** Format: uuid */
@@ -5211,6 +5272,27 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    PublicTournamentListingController_listTournaments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicOrganizationTournamentListResponse"];
                 };
             };
         };
