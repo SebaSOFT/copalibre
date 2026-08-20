@@ -114,6 +114,9 @@ const projection: MatchConsoleResponse = {
 function client(overrides: Partial<MatchConsoleApiClient> = {}): MatchConsoleApiClient {
   return {
     fetchMatchConsole: async () => projection,
+    fetchMatchRosters: async () => [],
+    fetchRosterCandidates: async () => [],
+    setMatchRoster: async () => projection,
     adjustMatchClock: async () => projection,
     resolveMatchTimer: async () => projection,
     recordMatchEvent: async () => ({

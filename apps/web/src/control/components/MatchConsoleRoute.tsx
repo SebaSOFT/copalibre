@@ -20,6 +20,7 @@ import {
 import { controlTokenStore } from '../session/token-store.js';
 import { Button } from './ui/button.js';
 import { JerseyGrid } from './JerseyGrid.js';
+import { RosterSelectionStep } from './RosterSelectionStep.js';
 import { messages } from '../i18n/messages.en.js';
 
 const RECONCILIATION_TIMEOUT_MS = 8_000;
@@ -60,6 +61,7 @@ export function MatchConsoleRoute({
   const [confirmingFinalize, setConfirmingFinalize] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
   const [finalizeIdempotencyKey, setFinalizeIdempotencyKey] = useState<string>();
+  const [rosterStepOpen, setRosterStepOpen] = useState(false);
   const [selectedSegmentId, setSelectedSegmentId] = useState('');
   const [elapsedSeconds, setElapsedSeconds] = useState('0');
   const [selectedSide, setSelectedSide] = useState('');
@@ -173,6 +175,7 @@ export function MatchConsoleRoute({
   ];
   const sentOff = sentOffPersonIds(projection.events);
   const canRecord = projection.capabilities.includes('match.record-event');
+  const canSelectRoster = projection.capabilities.includes('match.select-roster');
   const canControlClock = projection.capabilities.includes('match.control-clock');
   const canResolveTimer = projection.capabilities.includes('match.resolve-timer');
   const canFinalize = projection.capabilities.includes('match.finalize');
@@ -429,9 +432,38 @@ export function MatchConsoleRoute({
           </section>
 
           <section style={panelStyle}>
-            <h2 style={sectionTitleStyle}>
-              <FormattedMessage {...messages.matchConsoleRecordEvent} />
-            </h2>
+            <div style={rosterHeaderStyle}>
+              <h2 style={sectionTitleStyle}>
+                <FormattedMessage {...messages.matchConsoleRecordEvent} />
+              </h2>
+              {canSelectRoster && (
+                <Button
+                  onClick={() => setRosterStepOpen((open) => !open)}
+                  type="button"
+                  variant="secondary"
+                >
+                  <FormattedMessage
+                    {...(rosterStepOpen
+                      ? messages.matchConsoleHideRosterStep
+                      : projection.rosters.length > 0
+                        ? messages.matchConsoleEditRoster
+                        : messages.matchConsoleSelectRoster)}
+                  />
+                </Button>
+              )}
+            </div>
+            {rosterStepOpen && (
+              <RosterSelectionStep
+                api={api}
+                entrantIds={projection.entrantIds}
+                existingRosters={projection.rosters}
+                matchId={matchId}
+                onSaved={() => void reload()}
+                organizationAlias={organizationAlias}
+                rosterRoles={projection.rosterRoles}
+                tournamentAlias={tournamentAlias}
+              />
+            )}
             {projection.rosters.length > 0 ? (
               <JerseyGrid
                 activeField={activeSecondaryField}
@@ -454,7 +486,25 @@ export function MatchConsoleRoute({
                 secondarySelections={secondaryActorSelections}
                 sentOffPersonIds={sentOff}
               />
-            ) : null}
+            ) : (
+              !rosterStepOpen && (
+                <p className="cl-inline-alert">
+                  <FormattedMessage {...messages.matchConsoleNoRosterSelected} />
+                  {canSelectRoster && (
+                    <>
+                      {' '}
+                      <Button
+                        onClick={() => setRosterStepOpen(true)}
+                        type="button"
+                        variant="secondary"
+                      >
+                        <FormattedMessage {...messages.matchConsoleSelectRoster} />
+                      </Button>
+                    </>
+                  )}
+                </p>
+              )
+            )}
             <div style={attributionStyle}>
               <label style={labelStyle}>
                 <FormattedMessage {...messages.matchConsoleStaff} />
@@ -818,6 +868,12 @@ const panelStyle: React.CSSProperties = {
 const sectionTitleStyle: React.CSSProperties = {
   margin: '0 0 var(--cl-space-4)',
   fontFamily: 'var(--cl-font-display)',
+};
+const rosterHeaderStyle: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  gap: 'var(--cl-space-3)',
 };
 const controlGridStyle: React.CSSProperties = {
   display: 'grid',

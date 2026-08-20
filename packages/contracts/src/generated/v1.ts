@@ -464,6 +464,63 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/rosters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the current roster selection for both sides
+         * @description On-field state is folded from recorded substitution events over the selection’s starting state — the same resolution the console projection applies.
+         */
+        get: operations["MatchControlController_rosters"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/rosters/{entrantId}/candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List an entrant’s registered players, eligible to be named to its match roster */
+        get: operations["MatchControlController_rosterCandidates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/rosters/{entrantId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Select or revise one entrant’s roster for this match
+         * @description Replaces the entrant’s prior selection, audited on every write. Refuses a person absent from the entrant’s registered players, a duplicate person or shirt number within the submission, and removing a person already attributed by a recorded event — adding is always permitted, at any point in the match.
+         */
+        put: operations["MatchControlController_setRoster"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/events": {
         parameters: {
             query?: never;
@@ -2052,6 +2109,29 @@ export interface components {
             elapsedSeconds: number;
             /** @description Make the selected segment the active clock segment */
             activate?: boolean;
+        };
+        RosterCandidateResponse: {
+            /** Format: uuid */
+            personId: string;
+            name: string;
+            /** @description ISO 3166-1 alpha-2 country code */
+            nationality?: string;
+        };
+        SetMatchRosterMemberRequest: {
+            /**
+             * Format: uuid
+             * @description Must be a registered player of the target entrant
+             */
+            personId: string;
+            /** @description Shirt number; not always numeric (e.g. "00", "7B") */
+            number?: Record<string, never>;
+            /** @description Codes naming discipline-declared roster roles this member carries this match */
+            roles?: string[];
+            /** @description Starter (true) or bench (false) at roster selection */
+            onField: boolean;
+        };
+        SetMatchRosterRequest: {
+            members: components["schemas"]["SetMatchRosterMemberRequest"][];
         };
         RecordEventRequest: {
             /**
@@ -4053,6 +4133,113 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MatchConsoleResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    MatchControlController_rosters: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                matchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsoleRosterResponse"][];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    MatchControlController_rosterCandidates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                matchId: string;
+                entrantId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RosterCandidateResponse"][];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    MatchControlController_setRoster: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                matchId: string;
+                entrantId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetMatchRosterRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MatchConsoleResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
                 };
             };
             403: {

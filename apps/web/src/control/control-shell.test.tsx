@@ -168,6 +168,9 @@ describe('the control routes', () => {
     };
     const client: MatchConsoleApiClient = {
       fetchMatchConsole: async () => projection,
+      fetchMatchRosters: async () => [],
+      fetchRosterCandidates: async () => [],
+      setMatchRoster: async () => projection,
       adjustMatchClock: async () => projection,
       resolveMatchTimer: async () => projection,
       recordMatchEvent: async () => {
