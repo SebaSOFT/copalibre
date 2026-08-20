@@ -298,6 +298,37 @@ describe('runCli', () => {
         }
       });
     });
+
+    it('reports success once migrate succeeds, with no DATABASE_URL set on the host (0117)', async () => {
+      await withTemporaryWorkingDirectory(async () => {
+        // Same discoverable-compose-file setup as the migrate-failure case
+        // above, and deliberately no DATABASE_URL in the environment passed
+        // to runCli — the whole point of this case. Before 0117, restore's
+        // own post-migration schema check opened a second, direct database
+        // connection from the host CLI process, which requires DATABASE_URL
+        // there and always failed in exactly this shape: a real
+        // installation's Postgres lives in Compose, reachable by every
+        // containerized process (including the migrate container `run`
+        // simulates succeeding below) but never by the bare host binary.
+        await writeFile('docker-compose.yml', '');
+        const packetFile = await stageRestorablePacket('0.0.0');
+        const run = jest.fn<ProcessRunner['run']>(async () => 0);
+        const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+        try {
+          const result = await runCli(['restore', '--file', packetFile, '--confirm'], {}, { run });
+          expect(result).toBe(0);
+          expect(run).toHaveBeenCalledWith(
+            'docker',
+            expect.arrayContaining(['compose', 'run', '--rm', 'migrate']),
+          );
+          expect(
+            stdout.mock.calls.some((call) => String(call[0]).includes('Migrations applied')),
+          ).toBe(true);
+        } finally {
+          stdout.mockRestore();
+        }
+      });
+    });
   });
 
   describe('upgrade-check', () => {

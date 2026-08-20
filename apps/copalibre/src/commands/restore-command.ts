@@ -1,11 +1,4 @@
 import { Command, Option } from 'clipanion';
-import {
-  createDatabase,
-  databaseConfigFromEnv,
-  EXPECTED_SCHEMA_VERSION,
-  isSchemaReady,
-  readAppliedSchemaVersion,
-} from '@copalibre/persistence';
 import { assertBackupFile, parseRestoreOptions, restoreDryRunMessage } from '../backup.js';
 import { restoreBackupPacket } from '../backup-packet.js';
 import { readCopalibreVersion } from '../banner.js';
@@ -53,22 +46,13 @@ export class RestoreCommand extends Command<CliContext> {
         );
         return migrateResult;
       }
+      // migrateResult === 0 already means the applied schema matches what
+      // this installation expects — apps/migrate's own entrypoint checks
+      // that and sets a non-zero exit code otherwise (design.md). A second,
+      // host-side connection to re-confirm it would need DATABASE_URL set on
+      // the host, which nothing about running this CLI against a
+      // Compose-hosted Postgres requires or provides.
       process.stdout.write('Migrations applied.\n');
-
-      const db = createDatabase(databaseConfigFromEnv(environment));
-      try {
-        const applied = await readAppliedSchemaVersion(db);
-        if (!(await isSchemaReady(db))) {
-          process.stderr.write(
-            `Schema check failed after restore: applied schema is ${applied ?? 'unmigrated'}, ` +
-              `expected ${EXPECTED_SCHEMA_VERSION}. Run "copalibre doctor" before serving traffic.\n`,
-          );
-          return 1;
-        }
-        process.stdout.write(`Schema verified: ${applied} matches this installation.\n`);
-      } finally {
-        await db.destroy();
-      }
       return 0;
     });
   }
