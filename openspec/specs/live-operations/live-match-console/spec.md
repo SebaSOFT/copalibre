@@ -172,3 +172,53 @@ person-attribution eligibility.
 #### Scenario: Re-opening the step during a match shows the current selection
 - **WHEN** an operator re-opens the roster-selection step after events have been recorded
 - **THEN** the current selection is shown for revision, not an empty form
+
+### Requirement: A dedicated screen loads match data without a live console session
+
+The console SHALL offer a "load match data" screen, distinct from the live match console, for entering
+a match's roster, ordered event list, and result in one review-then-submit action, with no requirement
+to step through segment clocks or record events in real time.
+
+#### Scenario: An operator transcribes a scoresheet after the fact
+- **WHEN** an operator opens the load-match-data screen for a scheduled match with no prior console
+  activity
+- **THEN** they can enter the roster, build an ordered event list, and review it before submitting,
+  with no live clock or active-segment requirement anywhere in the flow
+
+#### Scenario: A rejected submission is correctable, not lost
+- **WHEN** a submission is rejected because one event entry is invalid
+- **THEN** the screen retains the operator's entered data (roster and every event, including the
+  invalid one) so it can be corrected and resubmitted, rather than requiring the whole entry to be
+  redone
+
+#### Scenario: The live console is unaffected
+- **WHEN** an operator uses the live match console for a different match, or the same match before this
+  screen exists in their workflow
+- **THEN** its real-time behavior is unchanged — this screen is an additional path, not a modification
+  of the existing one
+
+### Requirement: The load-match-data screen accepts a CSV import as an alternative to manual entry
+
+The load-match-data screen SHALL accept a CSV file describing one match's roster, ordered events, and
+result, parsing it into the same structured submission manual entry produces. Imported content SHALL load
+into the screen's event-list builder for review before submission, and SHALL be submitted through the same
+batch endpoint under the same validation and the same all-or-nothing transaction. Parse and validation
+problems SHALL be reported for every offending row at once, before anything is submitted.
+
+#### Scenario: Importing a well-formed file
+- **WHEN** an operator imports a CSV describing a match's roster, events and result
+- **THEN** the content loads into the event-list builder for review, and submitting it records the match
+  exactly as the same content entered by hand would
+
+#### Scenario: A malformed file reports every bad row
+- **WHEN** an imported CSV has problems in several rows
+- **THEN** every offending row is reported at once, and nothing is submitted
+
+#### Scenario: An import is reviewable before it commits
+- **WHEN** an operator imports a file
+- **THEN** nothing is written until the operator submits the reviewed content
+
+#### Scenario: An import is subject to identical validation
+- **WHEN** an imported batch contains an event the discipline's definitions reject
+- **THEN** it is refused exactly as the same event entered by hand would be, and no part of the match is
+  written

@@ -4,7 +4,9 @@
 Lets an authorized official record what actually happened in a match — events, segments, timers —
 through a discipline-configured, capability-scoped interface, producing the auditable operational
 facts the engine calculates results from.
+
 ## Requirements
+
 ### Requirement: Match-scoped capability-based authorization
 Event entry, clock control, roster selection, and match finalization SHALL each be separate,
 independently grantable permissions scoped to one match, not implied by a generic organizer role. A
@@ -136,3 +138,39 @@ person appears on the selected roster of a side of that match, and SHALL be refu
 #### Scenario: Adding a member during a match is permitted
 - **WHEN** a roster revision adds a member while the match is in progress
 - **THEN** the revision is accepted
+
+### Requirement: A match's roster, events, and result may be submitted as one batch
+
+The system SHALL accept a single submission carrying a match's full roster, its ordered event list
+(each with an organizer-supplied `occurredAt`), and its final result, applying the identical
+per-event validation (`EventDefinition.payloadSchema`, `actorRequirement`, `permittedSegmentTypes`)
+and the identical once-only-finalization rule that already govern events and results recorded live.
+The submission SHALL commit entirely or not at all.
+
+#### Scenario: A complete, valid batch commits as one match
+- **WHEN** an authorized subject submits a batch carrying a valid roster, a sequence of events each
+  legal for the discipline, and a result
+- **THEN** the match's roster, every event in submitted order, and the result are all persisted, and
+  the match reads as `finalized`, indistinguishable in shape from a live-recorded match
+
+#### Scenario: An invalid event anywhere in the batch aborts the whole submission
+- **WHEN** a submitted batch's tenth event references an `EventDefinition` code the discipline does not
+  declare, or fails its `payloadSchema`
+- **THEN** the entire submission is rejected, identifying which entry failed, and nothing from the
+  batch — not the roster, not the nine valid events before it — is persisted
+
+#### Scenario: A batch submission is subject to the same authorization as live recording
+- **WHEN** a subject with no `match.record-event`/`match.finalize` capability for the match attempts a
+  batch submission
+- **THEN** it is refused, the same way an individual live command would be refused for the same subject
+
+#### Scenario: A batch cannot finalize a match that already has a result
+- **WHEN** a batch submission targets a match that already carries a recorded result
+- **THEN** it is refused, directing the caller to the audited correction workflow, the same refusal a
+  second live finalization attempt already produces
+
+#### Scenario: Event timestamps in a batch are historical, not constrained to the present
+- **WHEN** a batch submission's events carry `occurredAt` values from a date in the past, matching when
+  the match was actually played
+- **THEN** they are accepted and persisted as given — no recency constraint is applied to a batch
+  submission's timestamps that would not already apply to a live one

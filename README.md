@@ -46,7 +46,7 @@ a standings table instead of another match.
 ## Quickstart
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/SebaSOFT/copalibre/main/install.sh | bash
+curl -fsSL https://www.copalibre.app/install.sh | bash
 mkdir my-league && cd my-league
 copalibre init      # writes a full installation (compose file, .env, marker) into the cwd
 # edit .env: PostgreSQL password, COPALIBRE_BOOTSTRAP_TOKEN, OIDC JWKS/issuer/audience,
