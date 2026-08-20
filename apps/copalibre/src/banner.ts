@@ -4,41 +4,18 @@ import { getAsset, isSea } from 'node:sea';
 /**
  * A fixed monogram evoking the chamfered "CL" mark (`apps/web/public/
  * copalibre-logo.svg`) — hand-authored once, not generated (design.md:
- * this is a constant, not a general text-to-ASCII-art problem).
+ * this is a constant, not a general text-to-ASCII-art problem). Printed on
+ * every invocation (`renderBanner`), so it stays this small deliberately —
+ * see `readLogoText`/`renderFullLogo` for the larger, `--version`-only mark.
  */
 const MARK = `
-  ____   /
- /       |
-|        |
-|        |
- \\____   |____
-`;
-
-/**
- * A larger rendering of the same mark, copied verbatim from `docs/LOGO.txt`
- * — `--version`-only (0118 design.md), never printed on every invocation the
- * way `MARK` deliberately is. Hand-copied, not read from the file at
- * runtime, so the packaged single-executable binary needs no new SEA asset.
- */
-const FULL_LOGO = `
-
-            ##############
-            ###############
-                      ####
-      ############    ####
-    ##############   ####
-    ####      ####   ####
-   ####       ####   ####
-   ####             ####
-   ####             ####
-  #####             ####
-  ####      #####  ####
-  ####      ####   ####
- ###############   ##############
-  #############   ##############
-                  ####
-        ##############
-        #############
+   _____
+  ___   \\
+ /      |
+|       |
+|      |
+ \\___  |____
+  ____/
 `;
 
 interface PackageManifest {
@@ -75,16 +52,33 @@ export function readPackageManifest(
   return JSON.parse(raw) as PackageManifest;
 }
 
+/**
+ * Reads `docs/LOGO.txt`, the single source for the larger, `--version`-only
+ * mark (0118/0119) — same SEA-asset-vs-filesystem branching as
+ * `readPackageManifest`, so the source text lives in exactly one place
+ * (0119: it previously also lived as a hand-copied constant here, which
+ * could silently drift from the file it was copied from).
+ */
+export function readLogoText(dependencies: ReadPackageManifestDependencies = {}): string {
+  const isSeaFunction = dependencies.isSea ?? isSea;
+  const getAssetFunction = dependencies.getAsset ?? getAsset;
+  if (isSeaFunction()) {
+    return getAssetFunction('logo.txt', 'utf8');
+  }
+  const logoUrl = new URL('../../../docs/LOGO.txt', import.meta.url);
+  return readFileSync(logoUrl, 'utf8');
+}
+
 /** Product self-identification printed on every invocation (task 1.1/2.1). */
 export function renderBanner(): string {
   const { version, license } = readPackageManifest();
   return `${MARK}  CopaLibre v${version} · ${license}\n\n`;
 }
 
-/** The larger mark, `--version`-only — see `FULL_LOGO`. */
+/** The larger mark, `--version`-only — see `readLogoText`. */
 export function renderFullLogo(): string {
   const { version, license } = readPackageManifest();
-  return `${FULL_LOGO}  CopaLibre v${version} · ${license}\n\n`;
+  return `${readLogoText()}\n  CopaLibre v${version} · ${license}\n\n`;
 }
 
 /** The running CopaLibre version, for callers that need it outside the banner. */

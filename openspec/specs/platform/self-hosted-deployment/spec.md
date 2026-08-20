@@ -4,7 +4,9 @@
 Makes CopaLibre an installable, self-hostable product: one Docker image runs every process role, a
 `copalibre` CLI operates it, and backups are provably restorable — realizing TMS-011 and product
 invariant 5 (no mandatory hosted account).
+
 ## Requirements
+
 ### Requirement: Single multi-role image
 The release SHALL ship one Docker image capable of running as any documented process role (`api`,
 `events`, `worker`, `scheduler`, `migrate`, `doctor`, `web`), selected at container start without
@@ -107,6 +109,12 @@ SHALL operate over a direct database connection.
   `copalibre doctor | grep FAIL`)
 - **THEN** the piped/redirected stream contains only the subcommand's own output — the startup
   banner appears on stderr, not stdout
+
+#### Scenario: --version prints a larger, distinct mark
+
+- **WHEN** an operator runs `copalibre --version`
+- **THEN** the CLI writes a larger ASCII-art rendering of the CopaLibre mark to stderr, in place of
+  the compact per-invocation banner, while stdout still receives only the version number
 
 #### Scenario: Top-level help lists every subcommand
 - **WHEN** an operator runs `copalibre --help`, `copalibre -h`, or `copalibre` with no arguments
@@ -350,4 +358,3 @@ request can merge.
 - **WHEN** a pull request introduces a change that prevents one process role's container from
   reaching a healthy state under Compose
 - **THEN** the `deploy-smoke-test` CI job fails and the pull request shows a failing check
-

@@ -120,6 +120,7 @@ async function main() {
             'docker-compose.module-dev.yml': join(assetsDir, 'docker-compose.module-dev.yml'),
             'values.yaml': join(assetsDir, 'values.yaml'),
             'package.json': join(packageRoot, 'package.json'),
+            'logo.txt': join(repoRoot, 'docs', 'LOGO.txt'),
           },
         },
         null,
