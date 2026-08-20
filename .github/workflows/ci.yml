@@ -174,6 +174,15 @@ jobs:
       - run: yarn install --immutable
       - run: yarn license:check
 
+  # No Node/Yarn install needed — `ubuntu-latest` ships shellcheck preinstalled,
+  # and this only ever lints one file (0120).
+  shellcheck-install-script:
+    name: Shellcheck install.sh
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: shellcheck apps/copalibre/install.sh
+
   # Added by 0035-kubernetes-enterprise-deployment: structurally enforces
   # design.md's "enterprise-ready is an evidence-gated claim" decision —
   # fails the build if docs/deployment/enterprise-kubernetes.md asserts

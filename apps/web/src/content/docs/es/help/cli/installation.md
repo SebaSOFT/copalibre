@@ -15,7 +15,7 @@ Rosetta) y Windows (x86_64).
 ## Pasos
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/SebaSOFT/copalibre/main/install.sh | bash
+curl -fsSL https://www.copalibre.app/install.sh | bash
 mkdir mi-liga && cd mi-liga
 copalibre init      # escribe valores por defecto no secretos en .env
 ```
