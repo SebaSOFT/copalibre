@@ -13,6 +13,7 @@ import type {
   Match,
   MatchCommand,
   MatchResult,
+  MatchRosterMember,
   MatchStatus,
   RecordedEvent,
   Season,
@@ -1255,6 +1256,48 @@ export class CompetitionRepository {
       started: rows.some((row) => row.status !== 'scheduled'),
       qualifiedEntrantIds: [...qualified],
     };
+  }
+
+  /**
+   * Selects (or replaces) one entrant's roster for a match. One row per
+   * `(matchId, entrantId)` — a second call for the same pair overwrites the
+   * prior selection, audited each time; a match's roster is a match-time
+   * fact the console can revise, not an append-only log the way events are.
+   */
+  async setMatchRoster(
+    uow: UnitOfWork,
+    input: {
+      readonly matchId: string;
+      readonly entrantId: string;
+      readonly members: readonly MatchRosterMember[];
+    } & AuditContext,
+  ): Promise<void> {
+    await uow.tx
+      .insertInto('match_rosters')
+      .values({
+        match_id: input.matchId,
+        entrant_id: input.entrantId,
+        roster_members: JSON.stringify(input.members),
+        updated_at: new Date(),
+      })
+      .onConflict((conflict) =>
+        conflict.columns(['match_id', 'entrant_id']).doUpdateSet({
+          roster_members: JSON.stringify(input.members),
+          updated_at: new Date(),
+        }),
+      )
+      .execute();
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'match-roster',
+      // No dedicated roster id exists — the match itself is the audited
+      // entity, with the entrant it was set for carried in resultingState.
+      entityId: input.matchId,
+      action: 'match-roster.set',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      resultingState: { entrantId: input.entrantId, members: input.members },
+    });
   }
 
   /** The stage a match belongs to, which is what scopes an appointment. */

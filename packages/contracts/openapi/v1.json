@@ -1642,6 +1642,109 @@
         ]
       }
     },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/bulk-load": {
+      "post": {
+        "description": "For a match played without a live console session: roster selection, segment creation, and every event are sequenced inside one transaction, through the same unmodified validation and finalization the live console already uses. Commits entirely or not at all.",
+        "operationId": "MatchControlController_bulkLoad",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "matchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkLoadMatchDataRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkLoadMatchDataResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Load a whole match’s roster, event history, and result in one submission",
+        "tags": [
+          "match-control"
+        ]
+      }
+    },
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/corrections/preview": {
       "post": {
         "description": "Reports whose numbers move and whether a started downstream stage blocks the rebuild — from the same function the commit uses, so a preview cannot promise what the commit refuses.",
@@ -7205,6 +7308,180 @@
           "definitionCode",
           "sequence",
           "notifications"
+        ]
+      },
+      "BulkRosterMemberInput": {
+        "type": "object",
+        "properties": {
+          "personId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "number": {
+            "type": "object",
+            "description": "Shirt number; not always numeric (e.g. \"00\", \"7B\")"
+          },
+          "name": {
+            "type": "string"
+          },
+          "nationality": {
+            "type": "string",
+            "description": "ISO 3166-1 alpha-2 country code"
+          },
+          "roles": {
+            "description": "Discipline-declared roster role codes",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "onField": {
+            "type": "boolean",
+            "description": "Whether this member was on the field, as opposed to bench"
+          }
+        },
+        "required": [
+          "personId",
+          "name",
+          "onField"
+        ]
+      },
+      "BulkRosterInput": {
+        "type": "object",
+        "properties": {
+          "entrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BulkRosterMemberInput"
+            }
+          }
+        },
+        "required": [
+          "entrantId",
+          "members"
+        ]
+      },
+      "BulkSegmentInput": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "A segment type the bound discipline declares, e.g. \"first-half\""
+          },
+          "elapsedSeconds": {
+            "type": "number",
+            "description": "Elapsed seconds when the segment ended; discipline default when omitted"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "BulkEventInput": {
+        "type": "object",
+        "properties": {
+          "definitionCode": {
+            "type": "string",
+            "description": "Event definition code the discipline declares"
+          },
+          "segmentNumber": {
+            "type": "number",
+            "description": "Which submitted segment this event belongs to, 1-based, in submission order"
+          },
+          "occurredAt": {
+            "type": "number",
+            "description": "When it actually happened, epoch milliseconds — may be historical"
+          },
+          "side": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The entrant it belongs to — an id, never \"home\"/\"away\""
+          },
+          "personId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The person, when the discipline needs one"
+          },
+          "payload": {
+            "type": "object",
+            "description": "Payload validated against the definition"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Free-text operator note, available regardless of discipline"
+          }
+        },
+        "required": [
+          "definitionCode",
+          "segmentNumber",
+          "occurredAt"
+        ]
+      },
+      "BulkLoadMatchDataRequest": {
+        "type": "object",
+        "properties": {
+          "rosters": {
+            "description": "One entry per side; each entrant’s full roster as selected for this match",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BulkRosterInput"
+            }
+          },
+          "segments": {
+            "description": "Every segment this match had, in play order — created and marked completed",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BulkSegmentInput"
+            }
+          },
+          "events": {
+            "description": "The match’s full event history, in the order it actually happened",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BulkEventInput"
+            }
+          },
+          "result": {
+            "description": "One entry per side, matching FinalizeRequest’s existing shape",
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "required": [
+          "rosters",
+          "segments",
+          "events",
+          "result"
+        ]
+      },
+      "BulkLoadMatchDataResponse": {
+        "type": "object",
+        "properties": {
+          "matchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "finalized"
+            ]
+          },
+          "eventCount": {
+            "type": "number",
+            "description": "How many events were recorded from the submitted batch"
+          }
+        },
+        "required": [
+          "matchId",
+          "status",
+          "eventCount"
         ]
       },
       "CorrectionRequestDto": {

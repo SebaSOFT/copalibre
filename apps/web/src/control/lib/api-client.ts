@@ -226,6 +226,16 @@ export interface MatchConsoleApiClient {
     request: FinalizeMatchRequest,
     idempotencyKey: string,
   ) => Promise<MatchStateResponse>;
+  /**
+   * A whole match — roster, event history, result — submitted as one batch,
+   * for a match played with no live console session (0106).
+   */
+  readonly bulkLoadMatch: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    matchId: string,
+    request: BulkLoadMatchDataRequest,
+  ) => Promise<BulkLoadMatchDataResponse>;
   /** Authenticated stream configuration; events never carry console details. */
   readonly matchConsoleStream?: (organizationAlias: string) => MatchConsoleStream;
 }
@@ -592,6 +602,48 @@ export interface MatchStateResponse {
   readonly runningTimers: readonly ConsoleTimer[];
 }
 
+export interface BulkLoadRosterMemberInput {
+  readonly personId: string;
+  readonly number?: number | string;
+  readonly name: string;
+  readonly nationality?: string;
+  readonly roles?: readonly string[];
+  readonly onField: boolean;
+}
+
+export interface BulkLoadRosterInput {
+  readonly entrantId: string;
+  readonly members: readonly BulkLoadRosterMemberInput[];
+}
+
+export interface BulkLoadSegmentInput {
+  readonly type: string;
+  readonly elapsedSeconds?: number;
+}
+
+export interface BulkLoadEventInput {
+  readonly definitionCode: string;
+  readonly segmentNumber: number;
+  readonly occurredAt: number;
+  readonly side?: string;
+  readonly personId?: string;
+  readonly payload?: Record<string, unknown>;
+  readonly notes?: string;
+}
+
+export interface BulkLoadMatchDataRequest {
+  readonly rosters: readonly BulkLoadRosterInput[];
+  readonly segments: readonly BulkLoadSegmentInput[];
+  readonly events: readonly BulkLoadEventInput[];
+  readonly result: FinalizeMatchRequest;
+}
+
+export interface BulkLoadMatchDataResponse {
+  readonly matchId: string;
+  readonly status: 'finalized';
+  readonly eventCount: number;
+}
+
 export function createControlApiClient(input: {
   readonly fetch: typeof fetch;
   readonly baseUrl?: string;
@@ -841,6 +893,13 @@ export function createControlApiClient(input: {
         input.fetch,
         `${matchPath(baseUrl, organizationAlias, tournamentAlias, matchId)}/commands/finalize`,
         { method: 'POST', body, token: input.accessToken?.(), idempotencyKey },
+      ),
+
+    bulkLoadMatch: (organizationAlias, tournamentAlias, matchId, body) =>
+      requestJson<BulkLoadMatchDataResponse>(
+        input.fetch,
+        `${matchPath(baseUrl, organizationAlias, tournamentAlias, matchId)}/bulk-load`,
+        { method: 'POST', body, token: input.accessToken?.() },
       ),
 
     matchConsoleStream: (organizationAlias) => ({
