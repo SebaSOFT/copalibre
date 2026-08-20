@@ -8,6 +8,7 @@ import { StandingsRoute } from './StandingsRoute.js';
 import { TournamentAuthoringPage } from './TournamentAuthoringPage.js';
 import { RolesPermissionsRoute } from './RolesPermissionsRoute.js';
 import { MatchConsoleRoute } from './MatchConsoleRoute.js';
+import { LoadMatchDataRoute } from './LoadMatchDataRoute.js';
 import { PreferencesRoute } from './PreferencesRoute.js';
 
 export function PreferencesControlRoute({
@@ -169,6 +170,29 @@ export function MatchConsoleControlRoute({
   return (
     <ControlShell helpPath="match-console" organizationAlias={organizationAlias}>
       <MatchConsoleRoute
+        client={client}
+        matchId={matchId}
+        organizationAlias={organizationAlias}
+        tournamentAlias={tournamentAlias}
+      />
+    </ControlShell>
+  );
+}
+
+export function LoadMatchDataControlRoute({
+  organizationAlias,
+  tournamentAlias,
+  matchId,
+  client,
+}: {
+  readonly organizationAlias: string;
+  readonly tournamentAlias: string;
+  readonly matchId: string;
+  readonly client?: MatchConsoleApiClient;
+}): React.JSX.Element {
+  return (
+    <ControlShell helpPath="load-match-data" organizationAlias={organizationAlias}>
+      <LoadMatchDataRoute
         client={client}
         matchId={matchId}
         organizationAlias={organizationAlias}

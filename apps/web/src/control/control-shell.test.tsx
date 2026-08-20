@@ -179,6 +179,9 @@ describe('the control routes', () => {
       finalizeMatch: async () => {
         throw new Error('not used in this test');
       },
+      bulkLoadMatch: async () => {
+        throw new Error('not used in this test');
+      },
     };
     render(
       <MatchConsoleControlRoute

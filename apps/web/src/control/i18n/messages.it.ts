@@ -144,6 +144,7 @@ export const messages: Record<string, string> = {
   'control.matchConsole.selectRoster': 'Seleziona rosa',
   'control.matchConsole.editRoster': 'Modifica rosa',
   'control.matchConsole.hideRosterStep': 'Nascondi editor rosa',
+  'control.matchConsole.loadMatchData': 'Carica dati della partita',
   'control.matchConsole.rosterStepLabel': 'Selezione rosa',
   'control.matchConsole.rosterLoading': 'Caricamento giocatori candidati...',
   'control.matchConsole.rosterLoadFailed': 'Impossibile caricare i giocatori candidati.',
@@ -306,4 +307,54 @@ export const messages: Record<string, string> = {
   'control.landing.emptyBody':
     'Questo account non ha ancora un ruolo in nessuna organizzazione. È necessario un invito da un amministratore.',
   'control.landing.pickerTitle': "Scegliere un'organizzazione",
+
+  'control.loadMatchData.title': 'Carica dati della partita',
+  'control.loadMatchData.breadcrumb': '{tournamentAlias} · Partita {matchId}',
+  'control.loadMatchData.sectionLabel': 'Carica dati della partita',
+  'control.loadMatchData.loading': 'Caricamento…',
+  'control.loadMatchData.loadFailed': 'Impossibile caricare questa partita.',
+  'control.loadMatchData.forbidden':
+    'Non hai le capacità richieste da questa schermata per questa partita.',
+  'control.loadMatchData.notScheduled':
+    'Questa partita ha già attività registrata o un risultato. Usa invece la console live — caricare dati qui creerebbe una seconda cronologia eventi in conflitto.',
+  'control.loadMatchData.rosterHeading': 'Rosa',
+  'control.loadMatchData.rosterCandidatesLoading': 'Caricamento candidati per la rosa…',
+  'control.loadMatchData.segmentsHeading': 'Segmenti',
+  'control.loadMatchData.addSegment': 'Aggiungi segmento',
+  'control.loadMatchData.removeSegment': 'Rimuovi segmento',
+  'control.loadMatchData.segmentType': 'Tipo',
+  'control.loadMatchData.segmentTypePlaceholder': 'es. tempo, periodo, set',
+  'control.loadMatchData.segmentElapsedSeconds': 'Durata (secondi)',
+  'control.loadMatchData.eventsHeading': 'Eventi',
+  'control.loadMatchData.addEvent': 'Aggiungi evento',
+  'control.loadMatchData.removeEvent': 'Rimuovi evento',
+  'control.loadMatchData.moveEventUp': 'Sposta su',
+  'control.loadMatchData.moveEventDown': 'Sposta giù',
+  'control.loadMatchData.eventDefinition': 'Evento',
+  'control.loadMatchData.eventSegment': 'Segmento',
+  'control.loadMatchData.eventOccurredAt': 'Quando',
+  'control.loadMatchData.eventSide': 'Lato',
+  'control.loadMatchData.eventPerson': 'Persona',
+  'control.loadMatchData.eventNoAttribution': 'Nessuna attribuzione',
+  'control.loadMatchData.eventNotes': 'Note',
+  'control.loadMatchData.noEvents':
+    'Nessun evento ancora. Aggiungine uno, oppure importa un CSV qui sotto.',
+  'control.loadMatchData.resultHeading': 'Risultato',
+  'control.loadMatchData.winner': 'Vincitore',
+  'control.loadMatchData.noWinnerDraw': 'Nessun vincitore / pareggio',
+  'control.loadMatchData.submit': 'Invia dati della partita',
+  'control.loadMatchData.submitting': 'Invio…',
+  'control.loadMatchData.submitSucceeded':
+    'Partita caricata e finalizzata — {eventCount} evento/i registrato/i.',
+  'control.loadMatchData.submitFailed':
+    "L'invio è stato rifiutato. Non è stato registrato nulla — correggi la voce qui sotto e reinvia.",
+  'control.loadMatchData.backToConsole': 'Apri console della partita',
+  'control.loadMatchData.csvHeading': 'Importa da CSV',
+  'control.loadMatchData.csvHelp':
+    'Carica un foglio di calcolo nell\'editor sopra per la revisione — nulla viene inviato finché non lo rivedi e premi tu stesso "Invia dati della partita".',
+  'control.loadMatchData.csvChooseFile': 'Scegli file CSV',
+  'control.loadMatchData.csvDownloadTemplate': 'Scarica modello',
+  'control.loadMatchData.csvErrorsHeading':
+    '{count} problema/i trovato/i — correggili nel foglio di calcolo e reimporta.',
+  'control.loadMatchData.csvLoaded': "CSV caricato nell'editor sotto per la revisione.",
 };

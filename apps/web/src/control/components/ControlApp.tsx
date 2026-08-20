@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { parseControlPath } from '@copalibre/routing';
 import {
+  LoadMatchDataControlRoute,
   MatchConsoleControlRoute,
   PersonProfileControlRoute,
   PreferencesControlRoute,
@@ -139,6 +140,14 @@ export function ControlApp(): React.JSX.Element | null {
           tournamentAlias={route.tournamentAlias}
         />
       );
+    case 'loadMatchData':
+      return (
+        <LoadMatchDataControlRoute
+          matchId={route.matchId}
+          organizationAlias={route.organizationAlias}
+          tournamentAlias={route.tournamentAlias}
+        />
+      );
     case 'seeding':
       return (
         <SeedingControlRoute
@@ -181,6 +190,8 @@ function titleFor(route: ReturnType<typeof parseControlPath>): string {
       return `Reportes y disputas — ${route.tournamentAlias}`;
     case 'matchConsole':
       return `Operar partido — ${route.tournamentAlias}`;
+    case 'loadMatchData':
+      return `Cargar datos del partido — ${route.tournamentAlias}`;
     case 'seeding':
       return `Sembrado — ${route.tournamentAlias}`;
     case 'standings':

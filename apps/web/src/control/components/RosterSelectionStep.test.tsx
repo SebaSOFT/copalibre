@@ -44,6 +44,9 @@ function client(overrides: Partial<MatchConsoleApiClient> = {}): MatchConsoleApi
     finalizeMatch: async () => {
       throw new Error('not used in this test');
     },
+    bulkLoadMatch: async () => {
+      throw new Error('not used in this test');
+    },
     ...overrides,
   };
 }

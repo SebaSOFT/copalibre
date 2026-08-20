@@ -145,6 +145,7 @@ export const messages: Record<string, string> = {
   'control.matchConsole.selectRoster': 'Kader auswählen',
   'control.matchConsole.editRoster': 'Kader bearbeiten',
   'control.matchConsole.hideRosterStep': 'Kadereditor ausblenden',
+  'control.matchConsole.loadMatchData': 'Spieldaten laden',
   'control.matchConsole.rosterStepLabel': 'Kaderauswahl',
   'control.matchConsole.rosterLoading': 'Infrage kommende Spieler werden geladen...',
   'control.matchConsole.rosterLoadFailed': 'Infrage kommende Spieler konnten nicht geladen werden.',
@@ -308,4 +309,54 @@ export const messages: Record<string, string> = {
   'control.landing.emptyBody':
     'Dieses Konto hat noch keine Rolle in einer Organisation. Eine Einladung durch eine Administratorin oder einen Administrator ist erforderlich.',
   'control.landing.pickerTitle': 'Organisation auswählen',
+
+  'control.loadMatchData.title': 'Spieldaten laden',
+  'control.loadMatchData.breadcrumb': '{tournamentAlias} · Spiel {matchId}',
+  'control.loadMatchData.sectionLabel': 'Spieldaten laden',
+  'control.loadMatchData.loading': 'Wird geladen…',
+  'control.loadMatchData.loadFailed': 'Dieses Spiel konnte nicht geladen werden.',
+  'control.loadMatchData.forbidden':
+    'Sie verfügen nicht über die für diesen Bildschirm erforderlichen Berechtigungen für dieses Spiel.',
+  'control.loadMatchData.notScheduled':
+    'Für dieses Spiel liegen bereits Aktivitäten oder ein Ergebnis vor. Verwenden Sie stattdessen die Live-Konsole — das Laden von Daten hier würde eine zweite, widersprüchliche Ereignishistorie erzeugen.',
+  'control.loadMatchData.rosterHeading': 'Kader',
+  'control.loadMatchData.rosterCandidatesLoading': 'Kaderkandidaten werden geladen…',
+  'control.loadMatchData.segmentsHeading': 'Abschnitte',
+  'control.loadMatchData.addSegment': 'Abschnitt hinzufügen',
+  'control.loadMatchData.removeSegment': 'Abschnitt entfernen',
+  'control.loadMatchData.segmentType': 'Typ',
+  'control.loadMatchData.segmentTypePlaceholder': 'z. B. Halbzeit, Periode, Satz',
+  'control.loadMatchData.segmentElapsedSeconds': 'Dauer (Sekunden)',
+  'control.loadMatchData.eventsHeading': 'Ereignisse',
+  'control.loadMatchData.addEvent': 'Ereignis hinzufügen',
+  'control.loadMatchData.removeEvent': 'Ereignis entfernen',
+  'control.loadMatchData.moveEventUp': 'Nach oben verschieben',
+  'control.loadMatchData.moveEventDown': 'Nach unten verschieben',
+  'control.loadMatchData.eventDefinition': 'Ereignis',
+  'control.loadMatchData.eventSegment': 'Abschnitt',
+  'control.loadMatchData.eventOccurredAt': 'Wann',
+  'control.loadMatchData.eventSide': 'Seite',
+  'control.loadMatchData.eventPerson': 'Person',
+  'control.loadMatchData.eventNoAttribution': 'Keine Zuordnung',
+  'control.loadMatchData.eventNotes': 'Notizen',
+  'control.loadMatchData.noEvents':
+    'Noch keine Ereignisse. Fügen Sie eines hinzu oder importieren Sie unten eine CSV-Datei.',
+  'control.loadMatchData.resultHeading': 'Ergebnis',
+  'control.loadMatchData.winner': 'Sieger',
+  'control.loadMatchData.noWinnerDraw': 'Kein Sieger / Unentschieden',
+  'control.loadMatchData.submit': 'Spieldaten senden',
+  'control.loadMatchData.submitting': 'Wird gesendet…',
+  'control.loadMatchData.submitSucceeded':
+    'Spiel geladen und abgeschlossen — {eventCount} Ereignis(se) erfasst.',
+  'control.loadMatchData.submitFailed':
+    'Die Übermittlung wurde abgelehnt. Es wurde nichts gespeichert — korrigieren Sie den Eintrag unten und senden Sie erneut.',
+  'control.loadMatchData.backToConsole': 'Spielkonsole öffnen',
+  'control.loadMatchData.csvHeading': 'Aus CSV importieren',
+  'control.loadMatchData.csvHelp':
+    'Lädt eine Tabelle zur Überprüfung in den obigen Editor — nichts wird gesendet, bis Sie es selbst überprüft und auf „Spieldaten senden“ gedrückt haben.',
+  'control.loadMatchData.csvChooseFile': 'CSV-Datei auswählen',
+  'control.loadMatchData.csvDownloadTemplate': 'Vorlage herunterladen',
+  'control.loadMatchData.csvErrorsHeading':
+    '{count} Problem(e) gefunden — korrigieren Sie diese in der Tabelle und importieren Sie erneut.',
+  'control.loadMatchData.csvLoaded': 'CSV zur Überprüfung in den Editor unten geladen.',
 };
