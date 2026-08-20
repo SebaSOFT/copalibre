@@ -1,0 +1,403 @@
+---
+import type { IntlShape } from 'react-intl';
+import type { PublicTournamentListingItemResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
+import { messages } from '../lib/i18n/public-messages.en.ts';
+
+interface Props {
+  readonly tournament: PublicTournamentListingItemResponse;
+  readonly organizationAlias: string;
+  readonly localePrefix?: string;
+  readonly intl: IntlShape;
+  readonly featured?: boolean;
+}
+
+const { tournament, organizationAlias, localePrefix = '', intl, featured = false } = Astro.props;
+
+const tournamentUrl = `${localePrefix}/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournament.alias)}`;
+const liveUrl = `${tournamentUrl}/live`;
+const isLive = tournament.status === 'live';
+const isFinished = tournament.status === 'finished';
+const isUpcoming = tournament.status === 'upcoming';
+const winners = tournament.winners ?? [];
+---
+
+<article
+  class:list={[
+    'cl-tournament-card',
+    {
+      'cl-card-live': isLive,
+      'cl-card-featured': featured,
+      'cl-card-finished': isFinished,
+      'cl-card-upcoming': isUpcoming,
+    },
+  ]}
+  data-tournament-alias={tournament.alias}
+>
+  <header class="cl-card-header">
+    <div class="cl-card-meta">
+      {
+        tournament.discipline.name && (
+          <span class="cl-discipline-badge">{tournament.discipline.name}</span>
+        )
+      }
+      <span
+        class:list={[
+          'cl-status-badge',
+          {
+            'cl-badge-live': isLive,
+            'cl-badge-upcoming': isUpcoming,
+            'cl-badge-finished': isFinished,
+          },
+        ]}
+      >
+        {isLive && <span class="cl-live-pulse" aria-hidden="true" />}
+        {isLive && intl.formatMessage(messages.resultStateLive)}
+        {isUpcoming && intl.formatMessage(messages.resultStateUpcoming)}
+        {isFinished && intl.formatMessage(messages.resultStateFinal)}
+      </span>
+    </div>
+
+    <h3 class="cl-tournament-name">
+      <a href={tournamentUrl} class="cl-tournament-link">{tournament.name}</a>
+    </h3>
+  </header>
+
+  {
+    isFinished && winners.length > 0 && (
+      <div
+        class="cl-podium-container"
+        aria-label={intl.formatMessage(messages.tournamentsFinishedHeading)}
+      >
+        {winners.map((zone) => (
+          <div class="cl-zone-podium">
+            {zone.zoneName && <div class="cl-zone-title">{zone.zoneName}</div>}
+            <div class="cl-podium-grid">
+              {/* Champion */}
+              <div
+                class="cl-podium-spot cl-champion-spot"
+                data-entrant-id={zone.champion.entrantId}
+              >
+                <div class="cl-medal-badge cl-gold-medal" aria-hidden="true">
+                  1
+                </div>
+                <div class="cl-entrant-info">
+                  <span class="cl-podium-label">
+                    {intl.formatMessage(messages.tournamentsChampion)}
+                  </span>
+                  <span class="cl-entrant-name" title={zone.champion.name}>
+                    {zone.champion.name}
+                    {zone.champion.abbreviation && (
+                      <span class="cl-entrant-abbr" title={zone.champion.name}>
+                        {' '}
+                        ({zone.champion.abbreviation})
+                      </span>
+                    )}
+                  </span>
+                </div>
+              </div>
+
+              {/* Runner-Up */}
+              {zone.runnerUp && (
+                <div
+                  class="cl-podium-spot cl-runner-spot"
+                  data-entrant-id={zone.runnerUp.entrantId}
+                >
+                  <div class="cl-medal-badge cl-silver-medal" aria-hidden="true">
+                    2
+                  </div>
+                  <div class="cl-entrant-info">
+                    <span class="cl-podium-label">
+                      {intl.formatMessage(messages.tournamentsRunnerUp)}
+                    </span>
+                    <span class="cl-entrant-name" title={zone.runnerUp.name}>
+                      {zone.runnerUp.name}
+                      {zone.runnerUp.abbreviation && (
+                        <span class="cl-entrant-abbr" title={zone.runnerUp.name}>
+                          {' '}
+                          ({zone.runnerUp.abbreviation})
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  <footer class="cl-card-footer">
+    <div class="cl-card-actions">
+      <a href={tournamentUrl} class="cl-action-button cl-button-primary">
+        {intl.formatMessage(messages.tournamentsViewDetails)}
+      </a>
+      {
+        isLive && (
+          <a href={liveUrl} class="cl-action-button cl-button-live">
+            {intl.formatMessage(messages.livePageTitle)} &rarr;
+          </a>
+        )
+      }
+    </div>
+  </footer>
+</article>
+
+<style>
+  .cl-tournament-card {
+    background-color: var(--cl-surface, #1e293b);
+    border: 1px solid var(--cl-border, #334155);
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease,
+      border-color 0.2s ease;
+  }
+
+  .cl-tournament-card:hover {
+    border-color: var(--cl-border-hover, #64748b);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  }
+
+  .cl-card-live {
+    border-color: rgba(239, 68, 68, 0.4);
+  }
+
+  .cl-card-featured {
+    background: linear-gradient(135deg, rgba(30, 41, 59, 1) 0%, rgba(15, 23, 42, 1) 100%);
+    border-color: rgba(239, 68, 68, 0.6);
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.15);
+  }
+
+  .cl-card-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .cl-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .cl-discipline-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--cl-text-muted, #94a3b8);
+  }
+
+  .cl-status-badge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .cl-badge-live {
+    background-color: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+  }
+
+  .cl-live-pulse {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #ef4444;
+    box-shadow: 0 0 8px #ef4444;
+    animation: cl-pulse 1.5s infinite;
+  }
+
+  @keyframes cl-pulse {
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.4;
+      transform: scale(1.3);
+    }
+  }
+
+  .cl-badge-upcoming {
+    background-color: rgba(59, 130, 246, 0.2);
+    color: #60a5fa;
+  }
+
+  .cl-badge-finished {
+    background-color: rgba(148, 163, 184, 0.2);
+    color: #cbd5e1;
+  }
+
+  .cl-tournament-name {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+
+  .cl-tournament-link {
+    color: var(--cl-text, #f8fafc);
+    text-decoration: none;
+  }
+
+  .cl-tournament-link:hover {
+    color: var(--cl-primary-hover, #38bdf8);
+    text-decoration: underline;
+  }
+
+  .cl-podium-container {
+    background-color: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 8px;
+    padding: 0.85rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .cl-zone-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #fbbf24;
+    margin-bottom: 0.35rem;
+  }
+
+  .cl-podium-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+  }
+
+  @media (min-width: 480px) {
+    .cl-podium-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .cl-podium-spot {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.5rem;
+    border-radius: 6px;
+    background-color: rgba(255, 255, 255, 0.03);
+  }
+
+  .cl-medal-badge {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+
+  .cl-gold-medal {
+    background: linear-gradient(135deg, #fbbf24, #d97706);
+    color: #451a03;
+    box-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
+  }
+
+  .cl-silver-medal {
+    background: linear-gradient(135deg, #e2e8f0, #94a3b8);
+    color: #0f172a;
+    box-shadow: 0 0 6px rgba(226, 232, 240, 0.3);
+  }
+
+  .cl-entrant-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .cl-podium-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--cl-text-muted, #94a3b8);
+  }
+
+  .cl-entrant-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #f8fafc;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .cl-entrant-abbr {
+    color: #94a3b8;
+    font-weight: normal;
+    margin-left: 0.25rem;
+  }
+
+  .cl-card-footer {
+    margin-top: auto;
+  }
+
+  .cl-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .cl-action-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border-radius: 6px;
+    text-decoration: none;
+    transition:
+      background-color 0.2s,
+      color 0.2s;
+  }
+
+  .cl-button-primary {
+    background-color: var(--cl-primary, #0284c7);
+    color: #ffffff;
+  }
+
+  .cl-button-primary:hover {
+    background-color: var(--cl-primary-hover, #0369a1);
+  }
+
+  .cl-button-live {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+  }
+
+  .cl-button-live:hover {
+    background-color: rgba(239, 68, 68, 0.25);
+    color: #fca5a5;
+  }
+</style>

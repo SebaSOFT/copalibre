@@ -65,4 +65,13 @@ export const messages: Record<string, string> = {
   'publicWeb.playerProfile.noHistory': '暂无参赛历史记录。',
   'publicWeb.playerProfile.noStats': '暂无生涯数据记录。',
   'publicWeb.playerProfile.close': '关闭',
+
+  'publicWeb.tournamentsPage.title': '赛事列表',
+  'publicWeb.tournamentsPage.liveHeading': '正在进行与活跃赛事',
+  'publicWeb.tournamentsPage.upcomingHeading': '即将开始',
+  'publicWeb.tournamentsPage.finishedHeading': '已完赛与归档',
+  'publicWeb.tournamentsPage.empty': '未找到已发布的赛事。',
+  'publicWeb.tournamentsPage.champion': '冠军',
+  'publicWeb.tournamentsPage.runnerUp': '亚军',
+  'publicWeb.tournamentsPage.viewDetails': '查看赛事',
 };
