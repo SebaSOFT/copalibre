@@ -157,7 +157,13 @@ function EntrantRosterEditor({
   if (!candidates) {
     return (
       <div className="cl-card cl-chamfer cl-chamfer--control" style={editorStyle}>
-        <p>{intl.formatMessage(messages.matchConsoleRosterLoading)}</p>
+        {status.error ? (
+          <p className="cl-inline-alert" role="alert">
+            {status.error}
+          </p>
+        ) : (
+          <p>{intl.formatMessage(messages.matchConsoleRosterLoading)}</p>
+        )}
       </div>
     );
   }
