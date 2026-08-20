@@ -288,3 +288,55 @@ discipline.
 - **WHEN** an anonymous visitor requests a profile for a person id that does not exist, or that
   belongs to a different organization than the requested public path
 - **THEN** the public site returns a not-found response
+
+### Requirement: Organization-scoped tournament listing page
+
+The public site SHALL serve a tournament listing page at `/{organization}/tournaments`, showing every
+published tournament for that organization — name, discipline, status, and season/dates — reachable
+without already knowing a specific tournament's alias. This page SHALL be rendered per request from
+current backend state, matching the existing overview page's "reachable without a site rebuild"
+guarantee.
+
+#### Scenario: Visiting an organization's tournament listing
+- **WHEN** an anonymous visitor requests `/{organization}/tournaments`
+- **THEN** the page lists every published tournament for that organization, with name, discipline,
+  status, and season/dates for each
+
+#### Scenario: An unpublished tournament is not listed
+- **WHEN** an organization has both published and unpublished tournaments
+- **THEN** the listing includes only the published ones
+
+#### Scenario: An unknown organization 404s
+- **WHEN** an anonymous visitor requests the listing for an organization alias that does not exist
+- **THEN** the public site returns a not-found response
+
+### Requirement: A finished tournament's listing card shows its winner and runner-up, per zone
+
+A finished tournament's entry on the listing page SHALL show its champion and runner-up, one pair per
+zone of its terminal phase — a single, unlabeled pair when the terminal phase has only the implicit
+default zone, and one labeled pair per zone when it declares more than one. Winner/runner-up SHALL be
+determined from the zone's own final match result (duel formats) or final standings (placement
+formats), not a separately stored value.
+
+#### Scenario: A single-zone tournament shows one winner pair
+- **WHEN** a finished tournament's terminal phase has only the implicit default zone
+- **THEN** the listing card shows exactly one champion and one runner-up, unlabeled
+
+#### Scenario: A multi-zone terminal phase shows every zone's own winner
+- **WHEN** a finished tournament's terminal phase declares two zones (e.g. "Copa Oro" and
+  "Copa Plata")
+- **THEN** the listing card shows two labeled champion/runner-up pairs, one per zone
+
+#### Scenario: A duel-format zone's winner comes from its final match
+- **WHEN** a zone's terminal round is a single-elimination final with a recorded result
+- **THEN** the winning entrant is shown as champion and the losing entrant as runner-up
+
+#### Scenario: A placement-format zone's winner comes from its final standings
+- **WHEN** a zone's format is round-robin or league
+- **THEN** the entrant ranked first in that zone's final standings is shown as champion and the entrant
+  ranked second as runner-up
+
+#### Scenario: An unfinished tournament shows no winner
+- **WHEN** a tournament's status is not `finished`
+- **THEN** its listing card shows no champion or runner-up, regardless of how far its terminal phase has
+  progressed
