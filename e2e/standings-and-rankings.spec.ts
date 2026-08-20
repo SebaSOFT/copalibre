@@ -291,8 +291,57 @@ test.describe('B2: public tournament page', () => {
       timeline: [],
     };
 
+    const organizationTournaments = {
+      organizationAlias: ORGANIZATION,
+      organizationName: 'Liga Mendocina',
+      tournaments: [
+        {
+          tournamentId: 't-live',
+          alias: 'torneo-relampago-2026',
+          name: 'Torneo Relámpago 2026',
+          status: 'live',
+          discipline: { disciplineId: 'disc-fb', name: 'Football' },
+          dates: { startedAt: '2026-01-01T00:00:00.000Z' },
+        },
+        {
+          tournamentId: 't-upcoming',
+          alias: 'clausura-2026',
+          name: 'Clausura 2026',
+          status: 'upcoming',
+          discipline: { disciplineId: 'disc-fb', name: 'Football' },
+          dates: {},
+        },
+        {
+          tournamentId: 't-finished',
+          alias: 'apertura-2026',
+          name: 'Apertura 2026',
+          status: 'finished',
+          discipline: { disciplineId: 'disc-fb', name: 'Football' },
+          dates: { startedAt: '2026-01-01T00:00:00.000Z', archivedAt: '2026-02-01T00:00:00.000Z' },
+          winners: [
+            {
+              champion: {
+                entrantId: 'Talleres',
+                name: 'Club Atlético Talleres',
+                abbreviation: 'TAL',
+              },
+              runnerUp: {
+                entrantId: 'Independiente',
+                name: 'Club Atlético Independiente',
+                abbreviation: 'IND',
+              },
+            },
+          ],
+        },
+      ],
+    };
+
     apiServer = createServer((req, res) => {
       res.setHeader('content-type', 'application/json');
+      if (req.url === `/organizations/${ORGANIZATION}/public/tournaments`) {
+        res.end(JSON.stringify(organizationTournaments));
+        return;
+      }
       if (req.url === `${TOURNAMENT}/overview`) {
         res.end(JSON.stringify(overview));
         return;
@@ -428,5 +477,26 @@ test.describe('B2: public tournament page', () => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/players/p-1`);
     await expect(page.getByRole('heading', { name: 'Goleador Uno' })).toBeVisible();
     await expect(page.getByText('Age: 28')).toBeVisible();
+  });
+
+  test('renders organization tournament listing with live, upcoming, and finished podium', async ({
+    page,
+  }) => {
+    await page.goto(`/${ORGANIZATION}/tournaments`);
+
+    await expect(page.getByRole('heading', { name: 'Liga Mendocina' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Live & Active' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Upcoming' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Finished & Archive' })).toBeVisible();
+
+    // Check Live tournament
+    await expect(page.getByRole('link', { name: 'Torneo Relámpago 2026' })).toBeVisible();
+
+    // Check Finished tournament & Podium
+    await expect(page.getByRole('link', { name: 'Apertura 2026' })).toBeVisible();
+    await expect(page.getByText('Club Atlético Talleres (TAL)')).toBeVisible();
+    await expect(page.getByText('Club Atlético Independiente (IND)')).toBeVisible();
+    await expect(page.getByText('Champion')).toBeVisible();
+    await expect(page.getByText('Runner-up')).toBeVisible();
   });
 });
