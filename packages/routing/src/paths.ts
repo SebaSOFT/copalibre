@@ -24,6 +24,7 @@ export interface RouteInput {
   readonly participantAlias?: string;
   readonly viewMode?: ViewMode;
   readonly locale?: string;
+  readonly listing?: 'tournaments';
 }
 
 export class RouteError extends Error {}
@@ -77,7 +78,11 @@ export function publicPath(input: RouteInput): string {
   validateRouteInput(input);
 
   const segments = [input.organizationAlias];
-  if (input.tournamentAlias !== undefined) segments.push('tournaments', input.tournamentAlias);
+  if (input.tournamentAlias !== undefined) {
+    segments.push('tournaments', input.tournamentAlias);
+  } else if (input.listing === 'tournaments') {
+    segments.push('tournaments');
+  }
   if (input.stageNumber !== undefined) segments.push('stages', String(input.stageNumber));
   if (input.roundNumber !== undefined) segments.push('rounds', String(input.roundNumber));
   if (input.matchNumber !== undefined) segments.push('matches', String(input.matchNumber));
