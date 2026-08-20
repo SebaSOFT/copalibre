@@ -170,6 +170,101 @@ describe('parseMatchDataCsv', () => {
     if (result.ok) return;
     expect(result.errors[0]?.message).toContain('only 0 segment row(s)');
   });
+
+  it('surfaces a genuine parse error from a structurally broken file', () => {
+    const malformed = `${MATCH_DATA_CSV_COLUMNS.join(',')}\nroster,too,few`;
+
+    const result = parseMatchDataCsv(malformed, CANDIDATES);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.errors.length).toBeGreaterThan(0);
+  });
+
+  it('refuses an ambiguous personName that matches more than one candidate', () => {
+    const ambiguous: ReadonlyMap<string, readonly RosterCandidate[]> = new Map([
+      [
+        ENTRANT_HOME,
+        [
+          { personId: PLAYER_ONE, name: 'Same Name' },
+          { personId: PLAYER_TWO, name: 'Same Name' },
+        ],
+      ],
+    ]);
+    const file = csv([{ type: 'roster', entrantId: ENTRANT_HOME, personName: 'Same Name' }]);
+
+    const result = parseMatchDataCsv(file, ambiguous);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.errors[0]?.message).toContain('matches more than one');
+  });
+
+  it('refuses a roster row missing entrantId or personName', () => {
+    const file = csv([{ type: 'roster', personName: 'Ada Lovelace' }]);
+
+    const result = parseMatchDataCsv(file, CANDIDATES);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.errors[0]?.message).toContain('needs entrantId and personName');
+  });
+
+  it('reads semicolon-separated roles off a roster row', () => {
+    const file = csv([
+      {
+        type: 'roster',
+        entrantId: ENTRANT_HOME,
+        personName: 'Ada Lovelace',
+        roles: 'captain; vice-captain',
+      },
+    ]);
+
+    const result = parseMatchDataCsv(file, CANDIDATES);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.rosters[0]?.members[0]?.roles).toEqual(['captain', 'vice-captain']);
+  });
+
+  it('refuses an event row with a non-positive or non-integer segment number', () => {
+    const file = csv([
+      {
+        type: 'event',
+        definitionCode: 'goal',
+        segmentNumber: '0',
+        occurredAt: '2025-03-15T15:32:00Z',
+      },
+    ]);
+
+    const result = parseMatchDataCsv(file, CANDIDATES);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.errors[0]?.message).toContain('is not a valid segment number');
+  });
+
+  it('refuses an event row with an unparsable occurredAt', () => {
+    const file = csv([
+      { type: 'event', definitionCode: 'goal', segmentNumber: '1', occurredAt: 'not-a-real-date' },
+    ]);
+
+    const result = parseMatchDataCsv(file, CANDIDATES);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.errors[0]?.message).toContain('is not a valid date/time');
+  });
+
+  it('refuses an unrecognized row type', () => {
+    const file = csv([{ type: 'not-a-real-type' }]);
+
+    const result = parseMatchDataCsv(file, CANDIDATES);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.errors[0]?.message).toContain('Unknown row type');
+  });
 });
 
 describe('matchDataCsvTemplate', () => {
