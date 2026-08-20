@@ -114,6 +114,9 @@ const projection: MatchConsoleResponse = {
 function client(overrides: Partial<MatchConsoleApiClient> = {}): MatchConsoleApiClient {
   return {
     fetchMatchConsole: async () => projection,
+    fetchMatchRosters: async () => [],
+    fetchRosterCandidates: async () => [],
+    setMatchRoster: async () => projection,
     adjustMatchClock: async () => projection,
     resolveMatchTimer: async () => projection,
     recordMatchEvent: async () => ({
@@ -950,5 +953,59 @@ describe('MatchConsoleRoute', () => {
     } finally {
       globalThis.fetch = originalFetch;
     }
+  });
+
+  it('toggles the roster-selection step open and closed, labeled by whether a roster already exists', async () => {
+    const withRosterCapability = {
+      ...projection,
+      capabilities: [...projection.capabilities, 'match.select-roster' as const],
+    };
+    render(
+      withIntl(
+        <MatchConsoleRoute
+          client={client({ fetchMatchConsole: async () => withRosterCapability })}
+          matchId="match-1"
+          organizationAlias="liga"
+          tournamentAlias="apertura"
+        />,
+      ),
+    );
+
+    // A roster already exists on this fixture, so the toggle reads "Edit roster".
+    const toggle = await screen.findByRole('button', { name: 'Edit roster' });
+    fireEvent.click(toggle);
+    await screen.findByRole('region', { name: 'Roster selection' });
+    expect(screen.getByRole('button', { name: 'Hide roster editor' })).toBeDefined();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Hide roster editor' }));
+    await waitFor(() =>
+      expect(screen.queryByRole('region', { name: 'Roster selection' })).toBeNull(),
+    );
+  });
+
+  it('shows an explicit no-roster state with its own action when neither side has one yet', async () => {
+    const noRosterYet = {
+      ...projection,
+      capabilities: [...projection.capabilities, 'match.select-roster' as const],
+      rosters: [],
+      eligiblePersonIds: [],
+    };
+    render(
+      withIntl(
+        <MatchConsoleRoute
+          client={client({ fetchMatchConsole: async () => noRosterYet })}
+          matchId="match-1"
+          organizationAlias="liga"
+          tournamentAlias="apertura"
+        />,
+      ),
+    );
+
+    await screen.findByText('No roster selected for this match yet.');
+    // Two "Select roster" entry points at this state: the header toggle and the alert's own action.
+    const selectButtons = await screen.findAllByRole('button', { name: 'Select roster' });
+    expect(selectButtons).toHaveLength(2);
+    fireEvent.click(selectButtons.at(0) as HTMLElement);
+    await screen.findByRole('region', { name: 'Roster selection' });
   });
 });

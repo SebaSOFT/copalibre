@@ -303,6 +303,45 @@ export class RecordedEventResponse {
   notifications!: string[];
 }
 
+/** One registered player eligible to be named to an entrant's match roster. */
+export class RosterCandidateResponse {
+  @ApiProperty({ format: 'uuid' })
+  personId!: string;
+
+  @ApiProperty()
+  name!: string;
+
+  @ApiPropertyOptional({ description: 'ISO 3166-1 alpha-2 country code' })
+  nationality?: string;
+}
+
+export class SetMatchRosterMemberRequest {
+  @ApiProperty({ format: 'uuid', description: 'Must be a registered player of the target entrant' })
+  personId!: string;
+
+  @ApiPropertyOptional({ description: 'Shirt number; not always numeric (e.g. "00", "7B")' })
+  number?: number | string;
+
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'Codes naming discipline-declared roster roles this member carries this match',
+  })
+  roles?: string[];
+
+  @ApiProperty({ description: 'Starter (true) or bench (false) at roster selection' })
+  onField!: boolean;
+}
+
+/**
+ * `name`/`nationality` are deliberately absent — the handler snapshots both
+ * from `Person` (0107 design.md), so the stored record cannot disagree with
+ * the identity it names.
+ */
+export class SetMatchRosterRequest {
+  @ApiProperty({ type: [SetMatchRosterMemberRequest] })
+  members!: SetMatchRosterMemberRequest[];
+}
+
 export class FinalizeRequest {
   @ApiProperty({
     type: [Object],

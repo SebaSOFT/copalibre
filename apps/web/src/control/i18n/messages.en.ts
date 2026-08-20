@@ -372,6 +372,56 @@ export const messages = defineMessages({
   },
   matchConsoleSentOff: { id: 'control.matchConsole.sentOff', defaultMessage: 'Sent off' },
 
+  // RosterSelectionStep.tsx (0107)
+  matchConsoleNoRosterSelected: {
+    id: 'control.matchConsole.noRosterSelected',
+    defaultMessage: 'No roster selected for this match yet.',
+  },
+  matchConsoleSelectRoster: {
+    id: 'control.matchConsole.selectRoster',
+    defaultMessage: 'Select roster',
+  },
+  matchConsoleEditRoster: {
+    id: 'control.matchConsole.editRoster',
+    defaultMessage: 'Edit roster',
+  },
+  matchConsoleHideRosterStep: {
+    id: 'control.matchConsole.hideRosterStep',
+    defaultMessage: 'Hide roster editor',
+  },
+  matchConsoleRosterStepLabel: {
+    id: 'control.matchConsole.rosterStepLabel',
+    defaultMessage: 'Roster selection',
+  },
+  matchConsoleRosterLoading: {
+    id: 'control.matchConsole.rosterLoading',
+    defaultMessage: 'Loading roster candidates...',
+  },
+  matchConsoleRosterLoadFailed: {
+    id: 'control.matchConsole.rosterLoadFailed',
+    defaultMessage: 'Could not load roster candidates.',
+  },
+  matchConsoleRosterSaveFailed: {
+    id: 'control.matchConsole.rosterSaveFailed',
+    defaultMessage: 'Could not save the roster.',
+  },
+  matchConsoleRosterSave: {
+    id: 'control.matchConsole.rosterSave',
+    defaultMessage: 'Save roster',
+  },
+  matchConsoleRosterNumber: {
+    id: 'control.matchConsole.rosterNumber',
+    defaultMessage: 'Shirt number for {name}',
+  },
+  matchConsoleRosterNumberPlaceholder: {
+    id: 'control.matchConsole.rosterNumberPlaceholder',
+    defaultMessage: 'No.',
+  },
+  matchConsoleRosterNoCandidates: {
+    id: 'control.matchConsole.rosterNoCandidates',
+    defaultMessage: 'This entrant has no registered players yet.',
+  },
+
   // RegistrationReviewRoute.tsx
   registrationLoading: {
     id: 'control.registration.loading',

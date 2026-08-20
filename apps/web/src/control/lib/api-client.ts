@@ -201,6 +201,24 @@ export interface MatchConsoleApiClient {
     tournamentAlias: string,
     matchId: string,
   ) => Promise<MatchConsoleResponse>;
+  readonly fetchMatchRosters: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    matchId: string,
+  ) => Promise<readonly ConsoleRoster[]>;
+  readonly fetchRosterCandidates: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    matchId: string,
+    entrantId: string,
+  ) => Promise<readonly RosterCandidate[]>;
+  readonly setMatchRoster: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    matchId: string,
+    entrantId: string,
+    request: SetMatchRosterRequest,
+  ) => Promise<MatchConsoleResponse>;
   readonly adjustMatchClock: (
     organizationAlias: string,
     tournamentAlias: string,
@@ -524,6 +542,13 @@ export interface ConsoleRoster {
   readonly members: readonly ConsoleRosterMember[];
 }
 
+/** One registered player eligible to be named to an entrant's match roster. */
+export interface RosterCandidate {
+  readonly personId: string;
+  readonly name: string;
+  readonly nationality?: string;
+}
+
 export interface ConsoleRosterRole {
   /** Referenced by a `ConsoleRosterMember.roles` entry. */
   readonly code: string;
@@ -554,6 +579,18 @@ export interface ClockAdjustmentRequest {
   readonly segmentId: string;
   readonly elapsedSeconds: number;
   readonly activate?: boolean;
+}
+
+export interface SetMatchRosterMemberRequest {
+  readonly personId: string;
+  readonly number?: number | string;
+  readonly roles?: readonly string[];
+  readonly onField: boolean;
+}
+
+/** `name`/`nationality` are never sent — the server snapshots both from `Person`. */
+export interface SetMatchRosterRequest {
+  readonly members: readonly SetMatchRosterMemberRequest[];
 }
 
 export interface RecordMatchEventRequest {
@@ -815,6 +852,27 @@ export function createControlApiClient(input: {
         { token: input.accessToken?.() },
       ),
 
+    fetchMatchRosters: (organizationAlias, tournamentAlias, matchId) =>
+      requestJson<readonly ConsoleRoster[]>(
+        input.fetch,
+        `${matchPath(baseUrl, organizationAlias, tournamentAlias, matchId)}/rosters`,
+        { token: input.accessToken?.() },
+      ),
+
+    fetchRosterCandidates: (organizationAlias, tournamentAlias, matchId, entrantId) =>
+      requestJson<readonly RosterCandidate[]>(
+        input.fetch,
+        `${matchPath(baseUrl, organizationAlias, tournamentAlias, matchId)}/rosters/${encodeURIComponent(entrantId)}/candidates`,
+        { token: input.accessToken?.() },
+      ),
+
+    setMatchRoster: (organizationAlias, tournamentAlias, matchId, entrantId, body) =>
+      requestJson<MatchConsoleResponse>(
+        input.fetch,
+        `${matchPath(baseUrl, organizationAlias, tournamentAlias, matchId)}/rosters/${encodeURIComponent(entrantId)}`,
+        { method: 'PUT', body, token: input.accessToken?.() },
+      ),
+
     adjustMatchClock: (organizationAlias, tournamentAlias, matchId, body) =>
       requestJson<MatchConsoleResponse>(
         input.fetch,
@@ -935,7 +993,7 @@ async function requestJson<T>(
   fetcher: typeof fetch,
   url: string,
   options: {
-    readonly method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+    readonly method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
     readonly body?: unknown;
     readonly token?: string;
     readonly idempotencyKey?: string;

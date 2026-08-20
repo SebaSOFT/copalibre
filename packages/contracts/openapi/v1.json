@@ -1559,6 +1559,236 @@
         ]
       }
     },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/rosters": {
+      "get": {
+        "description": "On-field state is folded from recorded substitution events over the selection’s starting state — the same resolution the console projection applies.",
+        "operationId": "MatchControlController_rosters",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "matchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ConsoleRosterResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read the current roster selection for both sides",
+        "tags": [
+          "match-control"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/rosters/{entrantId}/candidates": {
+      "get": {
+        "operationId": "MatchControlController_rosterCandidates",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "matchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entrantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RosterCandidateResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List an entrant’s registered players, eligible to be named to its match roster",
+        "tags": [
+          "match-control"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/rosters/{entrantId}": {
+      "put": {
+        "description": "Replaces the entrant’s prior selection, audited on every write. Refuses a person absent from the entrant’s registered players, a duplicate person or shirt number within the submission, and removing a person already attributed by a recorded event — adding is always permitted, at any point in the match.",
+        "operationId": "MatchControlController_setRoster",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "matchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entrantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetMatchRosterRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchConsoleResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Select or revise one entrant’s roster for this match",
+        "tags": [
+          "match-control"
+        ]
+      }
+    },
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches/{matchId}/events": {
       "post": {
         "description": "Validated against the discipline’s own event definitions: permitted segment, required actor, and a payload matching the declared schema. A side is an entrant id.",
@@ -7122,6 +7352,69 @@
         "required": [
           "segmentId",
           "elapsedSeconds"
+        ]
+      },
+      "RosterCandidateResponse": {
+        "type": "object",
+        "properties": {
+          "personId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "nationality": {
+            "type": "string",
+            "description": "ISO 3166-1 alpha-2 country code"
+          }
+        },
+        "required": [
+          "personId",
+          "name"
+        ]
+      },
+      "SetMatchRosterMemberRequest": {
+        "type": "object",
+        "properties": {
+          "personId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Must be a registered player of the target entrant"
+          },
+          "number": {
+            "type": "object",
+            "description": "Shirt number; not always numeric (e.g. \"00\", \"7B\")"
+          },
+          "roles": {
+            "description": "Codes naming discipline-declared roster roles this member carries this match",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "onField": {
+            "type": "boolean",
+            "description": "Starter (true) or bench (false) at roster selection"
+          }
+        },
+        "required": [
+          "personId",
+          "onField"
+        ]
+      },
+      "SetMatchRosterRequest": {
+        "type": "object",
+        "properties": {
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SetMatchRosterMemberRequest"
+            }
+          }
+        },
+        "required": [
+          "members"
         ]
       },
       "RecordEventRequest": {

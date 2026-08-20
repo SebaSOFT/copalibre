@@ -11,6 +11,7 @@ import {
   NotFoundException,
   Param,
   Post,
+  Put,
   Req,
 } from '@nestjs/common';
 import {
@@ -34,6 +35,7 @@ import {
   type EventDefinition,
   type MatchCommand,
   type MatchRoster,
+  type MatchRosterMember,
   type RecordedEvent,
   type RunningTimer,
   type StatisticCollector,
@@ -57,6 +59,7 @@ import {
   EnrollmentRepository,
   MatchAssignmentRepository,
   MatchCommandIdempotencyRepository,
+  PersonRepository,
   ProjectionStore,
   TagRepository,
   TournamentRepository,
@@ -73,11 +76,14 @@ import {
   CorrectionPreviewResponse,
   CorrectionRequestDto,
   ClockAdjustmentRequest,
+  ConsoleRosterResponse,
   FinalizeRequest,
   MatchConsoleResponse,
   MatchStateResponse,
   RecordEventRequest,
   RecordedEventResponse,
+  RosterCandidateResponse,
+  SetMatchRosterRequest,
 } from '../dto/match-control.dto.js';
 import { ProblemResponse } from '../dto/organization.dto.js';
 import { enforceMatchCommand } from '../policy/resource-policy.js';
@@ -457,6 +463,196 @@ export class MatchControlController {
         payload: { matchId, command: 'timer-resolved', timerId },
       });
     });
+    return this.consoleProjection(organizationAlias, tournamentAlias, matchId, request);
+  }
+
+  @Get('rosters')
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin', 'referee')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Read the current roster selection for both sides',
+    description:
+      'On-field state is folded from recorded substitution events over the selection’s starting ' +
+      'state — the same resolution the console projection applies.',
+  })
+  @ApiOkResponse({ type: [ConsoleRosterResponse] })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  async rosters(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('matchId') matchId: string,
+  ): Promise<ConsoleRosterResponse[]> {
+    await this.resolveTournament(organizationAlias, tournamentAlias);
+    const competition = new CompetitionRepository(this.db);
+    const [rosters, events] = await Promise.all([
+      this.db
+        .selectFrom('match_rosters')
+        .select(['entrant_id', 'roster_members'])
+        .where('match_id', '=', matchId)
+        .execute(),
+      competition.listEvents(matchId),
+    ]);
+    const identity = await this.teamIdentityByEntrant(rosters.map((roster) => roster.entrant_id));
+    return this.buildRosterResponses(matchId, rosters, events, identity);
+  }
+
+  @Get('rosters/:entrantId/candidates')
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin', 'referee')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'List an entrant’s registered players, eligible to be named to its match roster',
+  })
+  @ApiOkResponse({ type: [RosterCandidateResponse] })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  async rosterCandidates(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('matchId') matchId: string,
+    @Param('entrantId') entrantId: string,
+  ): Promise<RosterCandidateResponse[]> {
+    await this.resolveTournament(organizationAlias, tournamentAlias);
+    const entrant = await this.resolveRosterEntrant(matchId, entrantId);
+    const eligiblePersonIds = await this.eligiblePersonIdsFor(entrant);
+    const persons = await new PersonRepository(this.db).findPersons([...eligiblePersonIds]);
+    return persons.map((person) => ({
+      personId: person.personId,
+      name: person.displayName,
+      ...(person.nationality === undefined ? {} : { nationality: person.nationality }),
+    }));
+  }
+
+  @Put('rosters/:entrantId')
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin', 'referee')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Select or revise one entrant’s roster for this match',
+    description:
+      'Replaces the entrant’s prior selection, audited on every write. Refuses a person absent ' +
+      'from the entrant’s registered players, a duplicate person or shirt number within the ' +
+      'submission, and removing a person already attributed by a recorded event — adding is ' +
+      'always permitted, at any point in the match.',
+  })
+  @ApiOkResponse({ type: MatchConsoleResponse })
+  @ApiUnauthorizedResponse({ type: ProblemResponse })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  async setRoster(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('matchId') matchId: string,
+    @Param('entrantId') entrantId: string,
+    @Body() body: SetMatchRosterRequest,
+    @Req() request: RequestWithSubject,
+  ): Promise<MatchConsoleResponse> {
+    const tournament = await this.resolveTournament(organizationAlias, tournamentAlias);
+    const competition = new CompetitionRepository(this.db);
+    const match = await competition.findMatch(matchId);
+    if (!match) throw new NotFoundException(`No match "${matchId}"`);
+
+    const stageId = await this.stageOf(matchId);
+    const granted = enforceMatchCommand({
+      plane: 'admin-control',
+      subject: request.subject,
+      resource: { organizationId: tournament.organizationId },
+      assignments: await new MatchAssignmentRepository(this.db).forSubject({
+        organizationId: tournament.organizationId,
+        subjectId: request.subject?.subjectId ?? '',
+        matchId,
+        stageId,
+      }),
+      capability: 'match.select-roster',
+      match: { organizationId: tournament.organizationId, matchId, stageId },
+    });
+
+    const entrant = await this.resolveRosterEntrant(matchId, entrantId);
+    const eligiblePersonIds = await this.eligiblePersonIdsFor(entrant);
+
+    const members = body.members ?? [];
+    for (const member of members) {
+      if (!eligiblePersonIds.has(member.personId)) {
+        throw new BadRequestException(
+          `Person "${member.personId}" is not a registered player of entrant "${entrantId}"`,
+        );
+      }
+    }
+    if (new Set(members.map((member) => member.personId)).size !== members.length) {
+      throw new BadRequestException('A roster cannot name the same person twice');
+    }
+    const numbers = members.flatMap((member) =>
+      member.number === undefined ? [] : [member.number],
+    );
+    if (new Set(numbers).size !== numbers.length) {
+      throw new BadRequestException('A roster cannot assign the same number twice');
+    }
+
+    const priorRoster = (await competition.matchRoster(matchId)).find(
+      (roster) => roster.entrantId === entrantId,
+    );
+    if (priorRoster) {
+      const submittedPersonIds = new Set(members.map((member) => member.personId));
+      const removed = priorRoster.members
+        .map((member) => member.personId)
+        .filter((personId) => !submittedPersonIds.has(personId));
+      if (removed.length > 0) {
+        const events = await competition.listEvents(matchId);
+        const attributingEvent = events.find(
+          (event) => event.personId && removed.includes(event.personId),
+        );
+        if (attributingEvent) {
+          throw new BadRequestException(
+            `Cannot remove person "${attributingEvent.personId}" from the roster — event ` +
+              `"${attributingEvent.definitionCode}" (sequence ${attributingEvent.sequence}) is ` +
+              'already attributed to them',
+          );
+        }
+      }
+    }
+
+    const persons = await new PersonRepository(this.db).findPersons(
+      members.map((member) => member.personId),
+    );
+    const personById = new Map(persons.map((person) => [person.personId, person]));
+    const rosterMembers: MatchRosterMember[] = members.map((member) => {
+      const person = personById.get(member.personId);
+      if (!person) throw new NotFoundException(`No person "${member.personId}"`);
+      return {
+        personId: member.personId,
+        ...(member.number === undefined ? {} : { number: member.number }),
+        name: person.displayName,
+        ...(person.nationality === undefined ? {} : { nationality: person.nationality }),
+        ...(member.roles === undefined ? {} : { roles: member.roles }),
+        onField: member.onField,
+      };
+    });
+
+    const audit = {
+      organizationId: tournament.organizationId,
+      actor: request.subject?.subjectId ?? 'unknown',
+      authorizationContext: `capability:${granted.capability} via ${granted.grantedBy}`,
+    };
+    await withTransaction(this.db, async (uow) => {
+      await competition.setMatchRoster(uow, {
+        matchId,
+        entrantId,
+        members: rosterMembers,
+        ...audit,
+      });
+      const projectionVersion = await new ProjectionStore(this.db).nextVersion(uow, {
+        projectionType: 'match-console',
+        entityId: matchId,
+      });
+      await uow.publishEvent({
+        organizationId: tournament.organizationId,
+        stream: `match:${matchId}`,
+        entityId: matchId,
+        eventType: 'match.console-projection',
+        projectionVersion,
+        payload: { matchId, command: 'roster-set', entrantId },
+      });
+    });
+
     return this.consoleProjection(organizationAlias, tournamentAlias, matchId, request);
   }
 
@@ -1089,28 +1285,11 @@ export class MatchControlController {
           rosters.flatMap((roster) => roster.roster_members.map((member) => member.personId)),
         ),
       ],
-      rosters: rosters.map((roster) => ({
-        entrantId: roster.entrant_id,
-        ...(teamNameByEntrant.get(roster.entrant_id) === undefined
-          ? {}
-          : { teamName: teamNameByEntrant.get(roster.entrant_id) }),
-        ...(teamAbbreviationByEntrant.get(roster.entrant_id) === undefined
-          ? {}
-          : { teamAbbreviation: teamAbbreviationByEntrant.get(roster.entrant_id) }),
-        ...(clubIdByEntrant.get(roster.entrant_id) === undefined
-          ? {}
-          : { clubId: clubIdByEntrant.get(roster.entrant_id) }),
-        members: foldRosterLineup(initialRosterOf(matchId, roster), events).members.map(
-          (member) => ({
-            personId: member.personId,
-            ...(member.number === undefined ? {} : { number: member.number }),
-            name: member.name,
-            ...(member.nationality === undefined ? {} : { nationality: member.nationality }),
-            ...(member.roles === undefined ? {} : { roles: [...member.roles] }),
-            onField: member.onField,
-          }),
-        ),
-      })),
+      rosters: this.buildRosterResponses(matchId, rosters, events, {
+        teamNameByEntrant,
+        teamAbbreviationByEntrant,
+        clubIdByEntrant,
+      }),
       rosterRoles: (descriptor.rosterRoles ?? []).map((role) => ({
         code: role.code,
         label: role.label,
@@ -1196,6 +1375,89 @@ export class MatchControlController {
     );
 
     return { teamNameByEntrant, teamAbbreviationByEntrant, clubIdByEntrant };
+  }
+
+  /** Confirms `entrantId` plays this match and resolves what determines its roster eligibility. */
+  private async resolveRosterEntrant(
+    matchId: string,
+    entrantId: string,
+  ): Promise<{
+    readonly entrant_kind: string;
+    readonly team_id: string | null;
+    readonly person_id: string | null;
+  }> {
+    const fixture = await this.db
+      .selectFrom('matches')
+      .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
+      .select(['fixtures.home_entrant_id', 'fixtures.away_entrant_id'])
+      .where('matches.match_id', '=', matchId)
+      .executeTakeFirst();
+    if (fixture?.home_entrant_id !== entrantId && fixture?.away_entrant_id !== entrantId) {
+      throw new BadRequestException(`Entrant "${entrantId}" is not one of this match’s two sides`);
+    }
+
+    const entrant = await this.db
+      .selectFrom('entrants')
+      .select(['entrant_kind', 'team_id', 'person_id'])
+      .where('entrant_id', '=', entrantId)
+      .executeTakeFirst();
+    if (!entrant) throw new NotFoundException(`No entrant "${entrantId}"`);
+    return entrant;
+  }
+
+  /**
+   * A team entrant's roster candidates are its registered players; a person
+   * entrant (an individual competitor) rosters exactly themselves (0107
+   * design.md).
+   */
+  private async eligiblePersonIdsFor(entrant: {
+    readonly entrant_kind: string;
+    readonly team_id: string | null;
+    readonly person_id: string | null;
+  }): Promise<ReadonlySet<string>> {
+    if (entrant.entrant_kind === 'team' && entrant.team_id) {
+      const byTeam = await new EnrollmentRepository(this.db).playersByTeams([entrant.team_id]);
+      return new Set((byTeam.get(entrant.team_id) ?? []).map((player) => player.personId));
+    }
+    return new Set(entrant.person_id ? [entrant.person_id] : []);
+  }
+
+  /**
+   * Shared by `console` and `rosters`: folds each entrant's stored roster
+   * through recorded substitution history for current on-field state, and
+   * attaches team identity for display — the one place this shape is built,
+   * so the two reads cannot silently diverge (0107).
+   */
+  private buildRosterResponses(
+    matchId: string,
+    rosters: readonly RosterRow[],
+    events: readonly RecordedEvent[],
+    identity: {
+      readonly teamNameByEntrant: ReadonlyMap<string, string>;
+      readonly teamAbbreviationByEntrant: ReadonlyMap<string, string>;
+      readonly clubIdByEntrant: ReadonlyMap<string, string>;
+    },
+  ): ConsoleRosterResponse[] {
+    return rosters.map((roster) => ({
+      entrantId: roster.entrant_id,
+      ...(identity.teamNameByEntrant.get(roster.entrant_id) === undefined
+        ? {}
+        : { teamName: identity.teamNameByEntrant.get(roster.entrant_id) }),
+      ...(identity.teamAbbreviationByEntrant.get(roster.entrant_id) === undefined
+        ? {}
+        : { teamAbbreviation: identity.teamAbbreviationByEntrant.get(roster.entrant_id) }),
+      ...(identity.clubIdByEntrant.get(roster.entrant_id) === undefined
+        ? {}
+        : { clubId: identity.clubIdByEntrant.get(roster.entrant_id) }),
+      members: foldRosterLineup(initialRosterOf(matchId, roster), events).members.map((member) => ({
+        personId: member.personId,
+        ...(member.number === undefined ? {} : { number: member.number }),
+        name: member.name,
+        ...(member.nationality === undefined ? {} : { nationality: member.nationality }),
+        ...(member.roles === undefined ? {} : { roles: [...member.roles] }),
+        onField: member.onField,
+      })),
+    }));
   }
 
   private async stageOf(matchId: string): Promise<string> {
