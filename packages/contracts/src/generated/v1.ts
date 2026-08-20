@@ -2201,9 +2201,6 @@ export interface components {
             personId: string;
             /** @description Shirt number; not always numeric (e.g. "00", "7B") */
             number?: Record<string, never>;
-            name: string;
-            /** @description ISO 3166-1 alpha-2 country code */
-            nationality?: string;
             /** @description Discipline-declared roster role codes */
             roles?: string[];
             /** @description Whether this member was on the field, as opposed to bench */

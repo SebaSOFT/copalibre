@@ -1035,7 +1035,11 @@ export class MatchControlController {
     });
     const matchContext = { organizationId: tournament.organizationId, matchId, stageId };
     let granted: { readonly capability: string; readonly grantedBy: string } | undefined;
-    for (const capability of ['match.select-roster', 'match.record-event', 'match.finalize'] as const) {
+    for (const capability of [
+      'match.select-roster',
+      'match.record-event',
+      'match.finalize',
+    ] as const) {
       granted = enforceMatchCommand({
         plane: 'admin-control',
         subject: request.subject,
@@ -1055,8 +1059,33 @@ export class MatchControlController {
     const entrantIds = body.rosters.map((roster) => roster.entrantId);
     const baseSequence = await competition.nextEventSequence(matchId);
 
+    // Name/nationality are snapshotted from Person, never taken from the
+    // submission — the same policy 0107's live roster-selection route
+    // enforces, so a bulk-loaded match's roster can never disagree with the
+    // identity it names, whether it arrived live or after the fact.
+    const rosterPersonIds = body.rosters.flatMap((roster) =>
+      roster.members.map((member) => member.personId),
+    );
+    const rosterPersons = await new PersonRepository(this.db).findPersons(rosterPersonIds);
+    const rosterPersonById = new Map(rosterPersons.map((person) => [person.personId, person]));
+    const rostersByEntrant = body.rosters.map((roster) => ({
+      entrantId: roster.entrantId,
+      members: roster.members.map((member): MatchRosterMember => {
+        const person = rosterPersonById.get(member.personId);
+        if (!person) throw new NotFoundException(`No person "${member.personId}"`);
+        return {
+          personId: member.personId,
+          ...(member.number === undefined ? {} : { number: member.number }),
+          name: person.displayName,
+          ...(person.nationality === undefined ? {} : { nationality: person.nationality }),
+          ...(member.roles === undefined ? {} : { roles: member.roles }),
+          onField: member.onField,
+        };
+      }),
+    }));
+
     const eventCount = await withTransaction(this.db, async (uow) => {
-      for (const roster of body.rosters) {
+      for (const roster of rostersByEntrant) {
         await competition.setMatchRoster(uow, {
           matchId,
           entrantId: roster.entrantId,

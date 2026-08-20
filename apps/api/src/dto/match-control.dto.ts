@@ -360,18 +360,18 @@ export class FinalizeRequest {
   winnerEntrantId?: string;
 }
 
+/**
+ * `name`/`nationality` are deliberately absent — the handler snapshots both
+ * from `Person`, the same policy 0107's live roster-selection route
+ * enforces, so a bulk-loaded roster can never disagree with the identity
+ * it names.
+ */
 export class BulkRosterMemberInput {
   @ApiProperty({ format: 'uuid' })
   personId!: string;
 
   @ApiPropertyOptional({ description: 'Shirt number; not always numeric (e.g. "00", "7B")' })
   number?: number | string;
-
-  @ApiProperty()
-  name!: string;
-
-  @ApiPropertyOptional({ description: 'ISO 3166-1 alpha-2 country code' })
-  nationality?: string;
 
   @ApiPropertyOptional({ type: [String], description: 'Discipline-declared roster role codes' })
   roles?: string[];

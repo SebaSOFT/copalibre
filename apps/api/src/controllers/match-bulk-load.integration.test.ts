@@ -246,14 +246,18 @@ describe('retroactive match data entry (integration, 0106)', () => {
   }) {
     const kickoff = Date.parse('2025-03-15T18:00:00.000Z');
     return {
+      // Names are never submitted — the server snapshots them from the
+      // already-registered Person ('Jugador Norte'/'Jugador Sur' in
+      // beforeAll), the same policy 0107's live roster-selection route
+      // enforces.
       rosters: [
         {
           entrantId: entries.home,
-          members: [{ personId: entries.personHome, number: 10, name: 'Jugador Norte', onField: true }],
+          members: [{ personId: entries.personHome, number: 10, onField: true }],
         },
         {
           entrantId: entries.away,
-          members: [{ personId: entries.personAway, number: 9, name: 'Jugador Sur', onField: true }],
+          members: [{ personId: entries.personAway, number: 9, onField: true }],
         },
       ],
       segments: [{ type: 'half' }, { type: 'half' }],
@@ -302,6 +306,13 @@ describe('retroactive match data entry (integration, 0106)', () => {
       .where('match_id', '=', matchId)
       .execute();
     expect(rosters).toHaveLength(2);
+    const home = rosters.find((roster) => roster.entrant_id === entrantHome);
+    // The stored name is the registered Person's own displayName,
+    // snapshotted server-side — never something the request could have
+    // supplied, since the request no longer carries a name field at all.
+    expect(home?.roster_members).toEqual([
+      expect.objectContaining({ personId: personHome, name: 'Jugador Norte', number: 10 }),
+    ]);
 
     const segments = await scratch.db
       .selectFrom('segments')
@@ -331,7 +342,10 @@ describe('retroactive match data entry (integration, 0106)', () => {
     const batch = validBatch({ home: entrantHome, away: entrantAway, personHome, personAway });
     const response = await request(`${base(matchId)}/bulk-load`, 'referee', {
       ...batch,
-      events: [...batch.events, { definitionCode: 'not-a-real-event', segmentNumber: 1, occurredAt: Date.now() }],
+      events: [
+        ...batch.events,
+        { definitionCode: 'not-a-real-event', segmentNumber: 1, occurredAt: Date.now() },
+      ],
     });
     expect(response.statusCode).toBe(400);
     expect(response.json().message).toContain('not-a-real-event');

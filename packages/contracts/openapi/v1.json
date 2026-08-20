@@ -7614,13 +7614,6 @@
             "type": "object",
             "description": "Shirt number; not always numeric (e.g. \"00\", \"7B\")"
           },
-          "name": {
-            "type": "string"
-          },
-          "nationality": {
-            "type": "string",
-            "description": "ISO 3166-1 alpha-2 country code"
-          },
           "roles": {
             "description": "Discipline-declared roster role codes",
             "type": "array",
@@ -7635,7 +7628,6 @@
         },
         "required": [
           "personId",
-          "name",
           "onField"
         ]
       },

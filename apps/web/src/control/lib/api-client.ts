@@ -639,11 +639,10 @@ export interface MatchStateResponse {
   readonly runningTimers: readonly ConsoleTimer[];
 }
 
+/** `name`/`nationality` are never sent — the server snapshots both from `Person`. */
 export interface BulkLoadRosterMemberInput {
   readonly personId: string;
   readonly number?: number | string;
-  readonly name: string;
-  readonly nationality?: string;
   readonly roles?: readonly string[];
   readonly onField: boolean;
 }
