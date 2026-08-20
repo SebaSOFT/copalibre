@@ -1,5 +1,5 @@
 import { Cli } from 'clipanion';
-import { readCopalibreVersion, renderBanner } from './banner.js';
+import { readCopalibreVersion, renderBanner, renderFullLogo } from './banner.js';
 import type { CliContext } from './cli-context.js';
 import { commandClasses } from './commands/index.js';
 import {
@@ -28,14 +28,18 @@ export async function runCli(
   environment: NodeJS.ProcessEnv,
   processes: ProcessRunner,
 ): Promise<number> {
-  process.stderr.write(renderBanner());
   const command = arguments_[0];
-  if (!command || HELP_FLAGS.has(command)) {
-    process.stdout.write(renderTopLevelHelp());
+  if (command && VERSION_FLAGS.has(command)) {
+    // The larger, deliberately-invoked-only mark, in place of the compact
+    // per-invocation banner (0118 design.md) — stdout still carries only the
+    // version, unchanged, so nothing parsing it sees any difference.
+    process.stderr.write(renderFullLogo());
+    process.stdout.write(`${readCopalibreVersion()}\n`);
     return 0;
   }
-  if (VERSION_FLAGS.has(command)) {
-    process.stdout.write(`${readCopalibreVersion()}\n`);
+  process.stderr.write(renderBanner());
+  if (!command || HELP_FLAGS.has(command)) {
+    process.stdout.write(renderTopLevelHelp());
     return 0;
   }
   if (command === 'module') {
