@@ -18,6 +18,9 @@ import {
   PublicOverviewMatchResponse,
   PublicMatchReportResponse,
   PublicPersonProfileResponse,
+  PublicOrganizationTournamentListResponse,
+  PublicTournamentListingItemResponse,
+  PublicTournamentWinnerZoneResponse,
 } from '../dto/public-tournament.dto.js';
 import { TableLayoutListResponse, TableProjectionResponse } from '../dto/table-projections.dto.js';
 import { Kysely } from 'kysely';
@@ -33,7 +36,244 @@ import {
   ageAt,
   type DisciplineDescriptor,
   type StatisticCollector,
+  type Tournament,
+  type MatchResult,
 } from '@copalibre/domain';
+
+@ApiTags('Public Projections')
+@Controller('organizations/:organizationAlias/public/tournaments')
+export class PublicTournamentListingController {
+  constructor(@Inject(DATABASE) private readonly db: Kysely<Database>) {}
+
+  @Get()
+  @SecurityPlaneTag('public-read')
+  @ApiOperation({ summary: 'List published tournaments for an organization' })
+  @ApiOkResponse({ type: PublicOrganizationTournamentListResponse })
+  async listTournaments(
+    @Param('organizationAlias') organizationAlias: string,
+  ): Promise<PublicOrganizationTournamentListResponse> {
+    const organization = await this.db
+      .selectFrom('organizations')
+      .select(['organization_id as organizationId', 'name', 'alias'])
+      .where('alias', '=', organizationAlias)
+      .executeTakeFirst();
+
+    if (!organization) {
+      throw new NotFoundException(`No organization "${organizationAlias}"`);
+    }
+
+    const tournamentRepo = new TournamentRepository(this.db);
+    const publishedTournaments = await tournamentRepo.listPublishedByOrganization(
+      organization.organizationId,
+    );
+
+    const descriptorRows = await this.db
+      .selectFrom('discipline_descriptors')
+      .select(['descriptor_id as descriptorId', 'document'])
+      .execute();
+    const descriptorMap = new Map<string, DisciplineDescriptor>();
+    for (const d of descriptorRows) {
+      const parsed = (
+        typeof d.document === 'string' ? JSON.parse(d.document) : d.document
+      ) as DisciplineDescriptor;
+      descriptorMap.set(d.descriptorId, parsed);
+    }
+
+    const overviewReadModel = new PublicOverviewReadModel(this.db);
+    const tournamentItems: PublicTournamentListingItemResponse[] = [];
+
+    for (const t of publishedTournaments) {
+      let status: 'upcoming' | 'live' | 'finished';
+      if (t.status === 'finished' || t.status === 'archived') {
+        status = 'finished';
+      } else if (t.status === 'started') {
+        status = 'live';
+      } else {
+        const matches = await overviewReadModel.matchesForTournament(t.tournamentId);
+        const isLive = matches.some((m) => m.status === 'in-progress' || m.status === 'finalized');
+        status = isLive ? 'live' : 'upcoming';
+      }
+
+      const desc = descriptorMap.get(t.disciplineRef.descriptorId);
+      const discipline = {
+        descriptorId: t.disciplineRef.descriptorId,
+        version: t.disciplineRef.version,
+        name: desc?.name ? resolveLabel(desc.name, 'en') : undefined,
+      };
+
+      const dates =
+        t.startedAt || t.archivedAt
+          ? {
+              startedAt: t.startedAt,
+              archivedAt: t.archivedAt,
+            }
+          : undefined;
+
+      let winners: PublicTournamentWinnerZoneResponse[] | undefined = undefined;
+      if (status === 'finished') {
+        winners = await this.resolveTournamentWinners(t);
+      }
+
+      tournamentItems.push({
+        tournamentId: t.tournamentId,
+        alias: t.alias,
+        name: t.name,
+        status,
+        discipline,
+        ...(dates ? { dates } : {}),
+        ...(winners && winners.length > 0 ? { winners } : {}),
+      });
+    }
+
+    return {
+      organizationAlias: organization.alias,
+      organizationName: organization.name,
+      tournaments: tournamentItems,
+    };
+  }
+
+  private async resolveTournamentWinners(
+    tournament: Tournament,
+  ): Promise<PublicTournamentWinnerZoneResponse[]> {
+    const competitionRepo = new CompetitionRepository(this.db);
+    const enrollmentRepo = new EnrollmentRepository(this.db);
+    const stages = await competitionRepo.listStagesOfTournament(tournament.tournamentId);
+    if (stages.length === 0) return [];
+
+    const sortedStages = [...stages].sort((a, b) => a.number - b.number);
+    const terminalStage = sortedStages[sortedStages.length - 1];
+    if (!terminalStage) return [];
+
+    const zoneRows = await this.db
+      .selectFrom('zones')
+      .selectAll()
+      .where('stage_id', '=', terminalStage.stageId)
+      .orderBy('number')
+      .execute();
+
+    const zonesToProcess: { zoneId?: string; zoneName?: string }[] =
+      zoneRows.length > 0
+        ? zoneRows.map((z) => ({
+            zoneId: z.zone_id,
+            zoneName: z.name,
+          }))
+        : [{ zoneId: undefined, zoneName: undefined }];
+
+    const results: PublicTournamentWinnerZoneResponse[] = [];
+
+    for (const zone of zonesToProcess) {
+      const isDuel =
+        terminalStage.format === 'single-elimination' ||
+        terminalStage.format === 'double-elimination';
+
+      if (isDuel) {
+        let matchQuery = this.db
+          .selectFrom('matches')
+          .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
+          .selectAll('matches')
+          .where('fixtures.stage_id', '=', terminalStage.stageId)
+          .where('matches.status', '=', 'finalized');
+
+        if (zone.zoneId) {
+          matchQuery = matchQuery.where('fixtures.zone_id', '=', zone.zoneId);
+        }
+
+        const matches = await matchQuery
+          .orderBy('fixtures.round', 'desc')
+          .orderBy('matches.number', 'desc')
+          .execute();
+
+        if (matches.length > 0 && matches[0]) {
+          const finalMatch = matches[0];
+          const result = (
+            typeof finalMatch.result === 'string'
+              ? JSON.parse(finalMatch.result)
+              : finalMatch.result
+          ) as MatchResult | null;
+
+          if (result?.winnerEntrantId) {
+            const championId = result.winnerEntrantId;
+            const runnerUpId = result.sides.find((s) => s.entrantId !== championId)?.entrantId;
+            const entrantIds = runnerUpId ? [championId, runnerUpId] : [championId];
+            const podiumDetails = await enrollmentRepo.resolveEntrantPodiumDetails(entrantIds);
+            const championDetails = podiumDetails.get(championId);
+
+            if (championDetails) {
+              const runnerUpDetails = runnerUpId ? podiumDetails.get(runnerUpId) : undefined;
+              results.push({
+                ...(zone.zoneId ? { zoneId: zone.zoneId } : {}),
+                ...(zone.zoneName ? { zoneName: zone.zoneName } : {}),
+                champion: {
+                  entrantId: championId,
+                  name: championDetails.name,
+                  abbreviation: championDetails.abbreviation,
+                  clubId: championDetails.clubId,
+                  emblemObjectId: championDetails.emblemObjectId,
+                },
+                ...(runnerUpDetails && runnerUpId
+                  ? {
+                      runnerUp: {
+                        entrantId: runnerUpId,
+                        name: runnerUpDetails.name,
+                        abbreviation: runnerUpDetails.abbreviation,
+                        clubId: runnerUpDetails.clubId,
+                        emblemObjectId: runnerUpDetails.emblemObjectId,
+                      },
+                    }
+                  : {}),
+              });
+            }
+          }
+        }
+      } else {
+        try {
+          const standings = await readStandings(this.db, tournament, terminalStage.number);
+          if (standings.rows.length > 0) {
+            const rank1 = standings.rows.find((r) => r.rank === 1) ?? standings.rows[0];
+            const rank2 =
+              standings.rows.find((r) => r.rank === 2) ??
+              (standings.rows.length > 1 ? standings.rows[1] : undefined);
+            if (rank1) {
+              const entrantIds = rank2 ? [rank1.entrantId, rank2.entrantId] : [rank1.entrantId];
+              const podiumDetails = await enrollmentRepo.resolveEntrantPodiumDetails(entrantIds);
+              const championDetails = podiumDetails.get(rank1.entrantId);
+
+              if (championDetails) {
+                const runnerUpDetails = rank2 ? podiumDetails.get(rank2.entrantId) : undefined;
+                results.push({
+                  ...(zone.zoneId ? { zoneId: zone.zoneId } : {}),
+                  ...(zone.zoneName ? { zoneName: zone.zoneName } : {}),
+                  champion: {
+                    entrantId: rank1.entrantId,
+                    name: championDetails.name,
+                    abbreviation: championDetails.abbreviation,
+                    clubId: championDetails.clubId,
+                    emblemObjectId: championDetails.emblemObjectId,
+                  },
+                  ...(runnerUpDetails && rank2
+                    ? {
+                        runnerUp: {
+                          entrantId: rank2.entrantId,
+                          name: runnerUpDetails.name,
+                          abbreviation: runnerUpDetails.abbreviation,
+                          clubId: runnerUpDetails.clubId,
+                          emblemObjectId: runnerUpDetails.emblemObjectId,
+                        },
+                      }
+                    : {}),
+                });
+              }
+            }
+          }
+        } catch {
+          // Fallback if standings cannot be computed
+        }
+      }
+    }
+
+    return results;
+  }
+}
 
 @ApiTags('Public Projections')
 @Controller('organizations/:organizationAlias/tournaments/:tournamentAlias')

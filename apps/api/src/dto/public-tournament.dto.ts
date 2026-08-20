@@ -440,3 +440,87 @@ export class PublicPersonProfileResponse {
   @ApiProperty({ type: [PublicPersonCareerDisciplineTotalsResponse] })
   careerStatistics!: PublicPersonCareerDisciplineTotalsResponse[];
 }
+
+export class PublicTournamentEntrantPodiumResponse {
+  @ApiProperty({ format: 'uuid' })
+  entrantId!: string;
+
+  @ApiProperty()
+  name!: string;
+
+  @ApiPropertyOptional()
+  abbreviation?: string;
+
+  @ApiPropertyOptional({ format: 'uuid' })
+  clubId?: string;
+
+  @ApiPropertyOptional({ format: 'uuid' })
+  emblemObjectId?: string;
+}
+
+export class PublicTournamentWinnerZoneResponse {
+  @ApiPropertyOptional({ format: 'uuid' })
+  zoneId?: string;
+
+  @ApiPropertyOptional()
+  zoneName?: string;
+
+  @ApiProperty({ type: PublicTournamentEntrantPodiumResponse })
+  champion!: PublicTournamentEntrantPodiumResponse;
+
+  @ApiPropertyOptional({ type: PublicTournamentEntrantPodiumResponse })
+  runnerUp?: PublicTournamentEntrantPodiumResponse;
+}
+
+export class PublicTournamentDisciplineSummaryResponse {
+  @ApiProperty()
+  descriptorId!: string;
+
+  @ApiProperty()
+  version!: string;
+
+  @ApiPropertyOptional()
+  name?: string;
+}
+
+export class PublicTournamentDatesResponse {
+  @ApiPropertyOptional({ format: 'date-time' })
+  startedAt?: string;
+
+  @ApiPropertyOptional({ format: 'date-time' })
+  archivedAt?: string;
+}
+
+export class PublicTournamentListingItemResponse {
+  @ApiProperty({ format: 'uuid' })
+  tournamentId!: string;
+
+  @ApiProperty()
+  alias!: string;
+
+  @ApiProperty()
+  name!: string;
+
+  @ApiProperty({ enum: ['upcoming', 'live', 'finished'] })
+  status!: 'upcoming' | 'live' | 'finished';
+
+  @ApiProperty({ type: PublicTournamentDisciplineSummaryResponse })
+  discipline!: PublicTournamentDisciplineSummaryResponse;
+
+  @ApiPropertyOptional({ type: PublicTournamentDatesResponse })
+  dates?: PublicTournamentDatesResponse;
+
+  @ApiPropertyOptional({ type: [PublicTournamentWinnerZoneResponse] })
+  winners?: PublicTournamentWinnerZoneResponse[];
+}
+
+export class PublicOrganizationTournamentListResponse {
+  @ApiProperty()
+  organizationAlias!: string;
+
+  @ApiProperty()
+  organizationName!: string;
+
+  @ApiProperty({ type: [PublicTournamentListingItemResponse] })
+  tournaments!: PublicTournamentListingItemResponse[];
+}
