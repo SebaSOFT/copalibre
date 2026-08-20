@@ -260,3 +260,31 @@ ranking computation.
 - **WHEN** a table projection is requested with a `clubId` that fields no entrant in this tournament
 - **THEN** the response carries the layout's columns and an empty `rows` array, rather than a 404 or
   other error
+
+### Requirement: Public player profile popup
+
+The public site SHALL serve a per-person competition profile, reachable from wherever a player's name
+is rendered on a public page, showing display name, nationality flag, photo or placeholder, computed
+age when set, competition history (every tournament and team the person has been entered under, within
+the person's organization), and career statistic totals aggregated across every tournament, per
+discipline.
+
+#### Scenario: Visiting a player's public profile
+- **WHEN** an anonymous visitor opens a player's name on a public page
+- **THEN** the profile shows the player's display name, nationality flag if set, photo or placeholder,
+  computed age if a birth date is set, their competition history, and their career statistic totals
+
+#### Scenario: A player with no career statistics still has a valid profile
+- **WHEN** a player's discipline declares no organization-granularity collector, or the player has none
+  accumulated yet
+- **THEN** the profile renders with an empty career-statistics section rather than an error
+
+#### Scenario: Career totals are grouped by discipline
+- **WHEN** a player has competed in tournaments under two different disciplines within the same
+  organization
+- **THEN** each discipline's career totals are shown separately, never combined into one number
+
+#### Scenario: An unknown person 404s
+- **WHEN** an anonymous visitor requests a profile for a person id that does not exist, or that
+  belongs to a different organization than the requested public path
+- **THEN** the public site returns a not-found response

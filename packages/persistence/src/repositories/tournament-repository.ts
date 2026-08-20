@@ -500,6 +500,21 @@ export class TournamentRepository {
     return rows.map(toTournament);
   }
 
+  /**
+   * Published, started, finished, or archived tournaments in an organization
+   * (public read surface).
+   */
+  async listPublishedByOrganization(organizationId: string): Promise<readonly Tournament[]> {
+    const rows = await this.db
+      .selectFrom('tournaments')
+      .selectAll()
+      .where('organization_id', '=', organizationId)
+      .where('status', 'in', ['published', 'started', 'finished', 'archived'])
+      .orderBy('created_at', 'desc')
+      .execute();
+    return rows.map(toTournament);
+  }
+
   async findById(tournamentId: string): Promise<Tournament | undefined> {
     const row = await this.db
       .selectFrom('tournaments')

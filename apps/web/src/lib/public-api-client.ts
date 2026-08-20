@@ -6,6 +6,7 @@ import type {
   PublicStandingsRowResponse,
   PublicMatchReportResponse,
   PublicPersonProfileResponse,
+  PublicOrganizationTournamentListResponse,
 } from '@copalibre/api/src/dto/public-tournament.dto.js';
 import type {
   TableLayoutListResponse,
@@ -194,4 +195,12 @@ export function mapBracketResponse(response: PublicBracketResponse): {
       }),
     })),
   };
+}
+
+export async function fetchOrganizationTournaments(
+  organizationAlias: string,
+): Promise<PublicOrganizationTournamentListResponse | undefined> {
+  const baseUrl = getApiBaseUrl();
+  const url = `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/public/tournaments`;
+  return fetchOr404<PublicOrganizationTournamentListResponse>(url);
 }

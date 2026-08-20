@@ -136,4 +136,29 @@ export const messages = defineMessages({
     defaultMessage: 'No career statistics recorded.',
   },
   playerProfileClose: { id: 'publicWeb.playerProfile.close', defaultMessage: 'Close' },
+
+  // Organization tournament listing
+  tournamentsPageTitle: { id: 'publicWeb.tournamentsPage.title', defaultMessage: 'Tournaments' },
+  tournamentsLiveHeading: {
+    id: 'publicWeb.tournamentsPage.liveHeading',
+    defaultMessage: 'Live & Active',
+  },
+  tournamentsUpcomingHeading: {
+    id: 'publicWeb.tournamentsPage.upcomingHeading',
+    defaultMessage: 'Upcoming',
+  },
+  tournamentsFinishedHeading: {
+    id: 'publicWeb.tournamentsPage.finishedHeading',
+    defaultMessage: 'Finished & Archive',
+  },
+  tournamentsEmpty: {
+    id: 'publicWeb.tournamentsPage.empty',
+    defaultMessage: 'No published tournaments found.',
+  },
+  tournamentsChampion: { id: 'publicWeb.tournamentsPage.champion', defaultMessage: 'Champion' },
+  tournamentsRunnerUp: { id: 'publicWeb.tournamentsPage.runnerUp', defaultMessage: 'Runner-up' },
+  tournamentsViewDetails: {
+    id: 'publicWeb.tournamentsPage.viewDetails',
+    defaultMessage: 'View tournament',
+  },
 });

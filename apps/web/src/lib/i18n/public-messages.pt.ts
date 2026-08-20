@@ -67,4 +67,13 @@ export const messages: Record<string, string> = {
   'publicWeb.playerProfile.noHistory': 'Nenhum histórico de competições registrado.',
   'publicWeb.playerProfile.noStats': 'Nenhuma estatística da carreira registrada.',
   'publicWeb.playerProfile.close': 'Fechar',
+
+  'publicWeb.tournamentsPage.title': 'Torneios',
+  'publicWeb.tournamentsPage.liveHeading': 'Ao Vivo e Ativos',
+  'publicWeb.tournamentsPage.upcomingHeading': 'Próximos',
+  'publicWeb.tournamentsPage.finishedHeading': 'Encerrados e Arquivo',
+  'publicWeb.tournamentsPage.empty': 'Nenhum torneio publicado encontrado.',
+  'publicWeb.tournamentsPage.champion': 'Campeão',
+  'publicWeb.tournamentsPage.runnerUp': 'Vice-campeão',
+  'publicWeb.tournamentsPage.viewDetails': 'Ver torneio',
 };

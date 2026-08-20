@@ -3872,6 +3872,37 @@
         ]
       }
     },
+    "/organizations/{organizationAlias}/public/tournaments": {
+      "get": {
+        "operationId": "PublicTournamentListingController_listTournaments",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicOrganizationTournamentListResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "List published tournaments for an organization",
+        "tags": [
+          "Public Projections"
+        ]
+      }
+    },
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/overview": {
       "get": {
         "operationId": "PublicProjectionsController_overview",
@@ -8499,6 +8530,149 @@
           "invitationId",
           "expiresAt",
           "setupUrl"
+        ]
+      },
+      "PublicTournamentDisciplineSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "descriptorId": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "descriptorId",
+          "version"
+        ]
+      },
+      "PublicTournamentDatesResponse": {
+        "type": "object",
+        "properties": {
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "archivedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PublicTournamentEntrantPodiumResponse": {
+        "type": "object",
+        "properties": {
+          "entrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "abbreviation": {
+            "type": "string"
+          },
+          "clubId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "emblemObjectId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "entrantId",
+          "name"
+        ]
+      },
+      "PublicTournamentWinnerZoneResponse": {
+        "type": "object",
+        "properties": {
+          "zoneId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "zoneName": {
+            "type": "string"
+          },
+          "champion": {
+            "$ref": "#/components/schemas/PublicTournamentEntrantPodiumResponse"
+          },
+          "runnerUp": {
+            "$ref": "#/components/schemas/PublicTournamentEntrantPodiumResponse"
+          }
+        },
+        "required": [
+          "champion"
+        ]
+      },
+      "PublicTournamentListingItemResponse": {
+        "type": "object",
+        "properties": {
+          "tournamentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "alias": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "upcoming",
+              "live",
+              "finished"
+            ]
+          },
+          "discipline": {
+            "$ref": "#/components/schemas/PublicTournamentDisciplineSummaryResponse"
+          },
+          "dates": {
+            "$ref": "#/components/schemas/PublicTournamentDatesResponse"
+          },
+          "winners": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicTournamentWinnerZoneResponse"
+            }
+          }
+        },
+        "required": [
+          "tournamentId",
+          "alias",
+          "name",
+          "status",
+          "discipline"
+        ]
+      },
+      "PublicOrganizationTournamentListResponse": {
+        "type": "object",
+        "properties": {
+          "organizationAlias": {
+            "type": "string"
+          },
+          "organizationName": {
+            "type": "string"
+          },
+          "tournaments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicTournamentListingItemResponse"
+            }
+          }
+        },
+        "required": [
+          "organizationAlias",
+          "organizationName",
+          "tournaments"
         ]
       },
       "PublicOverviewMatchResponse": {

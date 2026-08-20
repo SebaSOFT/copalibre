@@ -66,4 +66,13 @@ export const messages: Record<string, string> = {
   'publicWeb.playerProfile.noHistory': 'История соревнований отсутствует.',
   'publicWeb.playerProfile.noStats': 'Статистика за карьеру отсутствует.',
   'publicWeb.playerProfile.close': 'Закрыть',
+
+  'publicWeb.tournamentsPage.title': 'Турниры',
+  'publicWeb.tournamentsPage.liveHeading': 'В прямом эфире и активные',
+  'publicWeb.tournamentsPage.upcomingHeading': 'Предстоящие',
+  'publicWeb.tournamentsPage.finishedHeading': 'Завершенные и архив',
+  'publicWeb.tournamentsPage.empty': 'Опубликованных турниров не найдено.',
+  'publicWeb.tournamentsPage.champion': 'Чемпион',
+  'publicWeb.tournamentsPage.runnerUp': 'Финалист',
+  'publicWeb.tournamentsPage.viewDetails': 'Смотреть турнир',
 };

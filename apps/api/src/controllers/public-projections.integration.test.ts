@@ -12,7 +12,10 @@ import {
 } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
 import { buildTestApp } from './test-support/integration-harness.js';
-import { PublicProjectionsController } from './public-projections.controller.js';
+import {
+  PublicProjectionsController,
+  PublicTournamentListingController,
+} from './public-projections.controller.js';
 
 let app: INestApplication;
 let scratch: Awaited<ReturnType<typeof buildTestApp>>['scratch'];
@@ -20,7 +23,10 @@ let organizationId = '';
 let request: Awaited<ReturnType<typeof buildTestApp>>['request'];
 
 beforeAll(async () => {
-  ({ app, scratch, organizationId, request } = await buildTestApp([PublicProjectionsController]));
+  ({ app, scratch, organizationId, request } = await buildTestApp([
+    PublicProjectionsController,
+    PublicTournamentListingController,
+  ]));
 });
 
 afterAll(async () => {
@@ -556,5 +562,367 @@ describe('public projections routes', () => {
       url: `/organizations/liga-orbital/tournaments/${publishedTournament.alias}/persons/01890000-0000-7000-8000-999999999999/public/profile`,
     });
     expect(unknownResponse.statusCode).toBe(404);
+  });
+
+  describe('organization tournaments listing', () => {
+    it('returns only published tournaments and excludes drafts', async () => {
+      const response = await request({
+        method: 'GET',
+        url: `/organizations/liga-orbital/public/tournaments`,
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.payload as string);
+      expect(body.organizationAlias).toBe('liga-orbital');
+      expect(body.organizationName).toBeDefined();
+      expect(Array.isArray(body.tournaments)).toBe(true);
+
+      const aliases = body.tournaments.map((t: { alias: string }) => t.alias);
+      expect(aliases).toContain(publishedTournament.alias);
+      expect(aliases).not.toContain(draftTournament.alias);
+    });
+
+    it('404s on unknown organization', async () => {
+      const response = await request({
+        method: 'GET',
+        url: `/organizations/nonexistent-org-alias/public/tournaments`,
+      });
+      expect(response.statusCode).toBe(404);
+    });
+
+    it('resolves champions and runners-up for finished duel tournaments', async () => {
+      const tournaments = new TournamentRepository(scratch.db);
+      const competition = new CompetitionRepository(scratch.db);
+      const enrollments = new EnrollmentRepository(scratch.db);
+      const descriptor = footballDescriptor();
+
+      const created = await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        tournaments.create(uow, {
+          organizationId,
+          alias: 'copa-duel-finished',
+          name: 'Copa Duel Finished',
+          descriptor,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        }),
+      );
+      await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        tournaments.publish(uow, {
+          tournamentId: created.tournamentId,
+          organizationId,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        }),
+      );
+      await scratch.db
+        .updateTable('tournaments')
+        .set({ status: 'started' })
+        .where('tournament_id', '=', created.tournamentId)
+        .execute();
+
+      const { champEntrant, runnerEntrant } = await withTransaction(
+        scratch.db as Kysely<Database>,
+        async (uow) => {
+          const club1 = await enrollments.createClub(uow, {
+            organizationId,
+            alias: 'club-alpha',
+            name: 'Club Alpha',
+            abbreviation: 'ALP',
+            actor: 'user:seed',
+            authorizationContext: 'seed',
+          });
+          const club2 = await enrollments.createClub(uow, {
+            organizationId,
+            alias: 'club-beta',
+            name: 'Club Beta',
+            abbreviation: 'BET',
+            actor: 'user:seed',
+            authorizationContext: 'seed',
+          });
+
+          const team1 = await enrollments.createTeam(uow, {
+            organizationId,
+            alias: 'team-alpha',
+            name: 'Team Alpha',
+            clubId: club1.clubId,
+            actor: 'user:seed',
+            authorizationContext: 'seed',
+          });
+          const team2 = await enrollments.createTeam(uow, {
+            organizationId,
+            alias: 'team-beta',
+            name: 'Team Beta',
+            clubId: club2.clubId,
+            actor: 'user:seed',
+            authorizationContext: 'seed',
+          });
+
+          const entrant1 = await enrollments.registerEntrant(uow, {
+            tournamentId: created.tournamentId,
+            organizationId,
+            entrantRef: { kind: 'team', teamId: team1.teamId },
+            actor: 'user:seed',
+            authorizationContext: 'seed',
+          });
+          const entrant2 = await enrollments.registerEntrant(uow, {
+            tournamentId: created.tournamentId,
+            organizationId,
+            entrantRef: { kind: 'team', teamId: team2.teamId },
+            actor: 'user:seed',
+            authorizationContext: 'seed',
+          });
+
+          const stage = await competition.createStageInTournament(uow, {
+            tournamentId: created.tournamentId,
+            number: 1,
+            name: 'Playoffs',
+            format: 'single-elimination',
+            organizationId,
+            actor: 'user:seed',
+            authorizationContext: 'seed',
+          });
+
+          const fixtures = await competition.createFixtures(uow, {
+            stageId: stage.stageId,
+            fixtures: [
+              { round: 1, homeEntrantId: entrant1.entrantId, awayEntrantId: entrant2.entrantId },
+            ],
+            organizationId,
+            actor: 'user:seed',
+            authorizationContext: 'seed',
+          });
+          const fixture = fixtures[0];
+          if (!fixture) throw new Error('Expected fixture');
+
+          const match = await competition.createMatch(uow, {
+            fixtureId: fixture.fixtureId,
+            number: 1,
+            organizationId,
+            actor: 'user:seed',
+            authorizationContext: 'seed',
+          });
+
+          await competition.recordResult(uow, {
+            matchId: match.matchId,
+            result: {
+              sides: [
+                { entrantId: entrant1.entrantId, statistics: { score: 3 } },
+                { entrantId: entrant2.entrantId, statistics: { score: 1 } },
+              ],
+              winnerEntrantId: entrant1.entrantId,
+              recordedAt: new Date().toISOString(),
+            },
+            organizationId,
+            actor: 'user:seed',
+            authorizationContext: 'seed',
+          });
+
+          return { champEntrant: entrant1, runnerEntrant: entrant2 };
+        },
+      );
+
+      await scratch.db
+        .updateTable('tournaments')
+        .set({ status: 'finished' })
+        .where('tournament_id', '=', created.tournamentId)
+        .execute();
+
+      const response = await request({
+        method: 'GET',
+        url: `/organizations/liga-orbital/public/tournaments`,
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.payload as string);
+      const found = body.tournaments.find(
+        (t: { tournamentId: string }) => t.tournamentId === created.tournamentId,
+      );
+      expect(found).toBeDefined();
+      expect(found.status).toBe('finished');
+      expect(found.winners).toBeDefined();
+      expect(found.winners.length).toBe(1);
+      expect(found.winners[0].champion.entrantId).toBe(champEntrant.entrantId);
+      expect(found.winners[0].champion.name).toBe('Team Alpha');
+      expect(found.winners[0].champion.abbreviation).toBe('ALP');
+      expect(found.winners[0].runnerUp.entrantId).toBe(runnerEntrant.entrantId);
+      expect(found.winners[0].runnerUp.name).toBe('Team Beta');
+      expect(found.winners[0].runnerUp.abbreviation).toBe('BET');
+    });
+
+    it('resolves champions and runners-up for finished placement/round-robin tournaments', async () => {
+      const tournaments = new TournamentRepository(scratch.db);
+      const competition = new CompetitionRepository(scratch.db);
+      const enrollments = new EnrollmentRepository(scratch.db);
+      const descriptor = footballDescriptor();
+
+      const created = await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        tournaments.create(uow, {
+          organizationId,
+          alias: 'copa-placement-finished',
+          name: 'Copa Placement Finished',
+          descriptor,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        }),
+      );
+      await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        tournaments.publish(uow, {
+          tournamentId: created.tournamentId,
+          organizationId,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        }),
+      );
+      await scratch.db
+        .updateTable('tournaments')
+        .set({ status: 'started' })
+        .where('tournament_id', '=', created.tournamentId)
+        .execute();
+
+      const { rank1Entrant, rank2Entrant } = await withTransaction(
+        scratch.db as Kysely<Database>,
+        async (uow) => {
+          const teamA = await enrollments.createTeam(uow, {
+            organizationId,
+            alias: 'team-placement-a',
+            name: 'Placement A',
+            actor: 'user:seed',
+            authorizationContext: 'seed',
+          });
+          const teamB = await enrollments.createTeam(uow, {
+            organizationId,
+            alias: 'team-placement-b',
+            name: 'Placement B',
+            actor: 'user:seed',
+            authorizationContext: 'seed',
+          });
+
+          const entrantA = await enrollments.registerEntrant(uow, {
+            tournamentId: created.tournamentId,
+            organizationId,
+            entrantRef: { kind: 'team', teamId: teamA.teamId },
+            actor: 'user:seed',
+            authorizationContext: 'seed',
+          });
+          const entrantB = await enrollments.registerEntrant(uow, {
+            tournamentId: created.tournamentId,
+            organizationId,
+            entrantRef: { kind: 'team', teamId: teamB.teamId },
+            actor: 'user:seed',
+            authorizationContext: 'seed',
+          });
+
+          const stage = await competition.createStageInTournament(uow, {
+            tournamentId: created.tournamentId,
+            number: 1,
+            name: 'League',
+            format: 'league',
+            organizationId,
+            actor: 'user:seed',
+            authorizationContext: 'seed',
+          });
+
+          const fixtures = await competition.createFixtures(uow, {
+            stageId: stage.stageId,
+            fixtures: [
+              { round: 1, homeEntrantId: entrantA.entrantId, awayEntrantId: entrantB.entrantId },
+            ],
+            organizationId,
+            actor: 'user:seed',
+            authorizationContext: 'seed',
+          });
+          const fixture = fixtures[0];
+          if (!fixture) throw new Error('Expected fixture');
+
+          const match = await competition.createMatch(uow, {
+            fixtureId: fixture.fixtureId,
+            number: 1,
+            organizationId,
+            actor: 'user:seed',
+            authorizationContext: 'seed',
+          });
+
+          await competition.recordResult(uow, {
+            matchId: match.matchId,
+            result: {
+              sides: [
+                { entrantId: entrantA.entrantId, statistics: { goals: 2 } },
+                { entrantId: entrantB.entrantId, statistics: { goals: 0 } },
+              ],
+              winnerEntrantId: entrantA.entrantId,
+              recordedAt: new Date().toISOString(),
+            },
+            organizationId,
+            actor: 'user:seed',
+            authorizationContext: 'seed',
+          });
+
+          return { rank1Entrant: entrantA, rank2Entrant: entrantB };
+        },
+      );
+
+      await scratch.db
+        .updateTable('tournaments')
+        .set({ status: 'finished' })
+        .where('tournament_id', '=', created.tournamentId)
+        .execute();
+
+      const response = await request({
+        method: 'GET',
+        url: `/organizations/liga-orbital/public/tournaments`,
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.payload as string);
+      const found = body.tournaments.find(
+        (t: { tournamentId: string }) => t.tournamentId === created.tournamentId,
+      );
+      expect(found).toBeDefined();
+      expect(found.status).toBe('finished');
+      expect(found.winners).toBeDefined();
+      expect(found.winners.length).toBe(1);
+      expect(found.winners[0].champion.entrantId).toBe(rank1Entrant.entrantId);
+      expect(found.winners[0].champion.name).toBe('Placement A');
+      expect(found.winners[0].runnerUp.entrantId).toBe(rank2Entrant.entrantId);
+      expect(found.winners[0].runnerUp.name).toBe('Placement B');
+    });
+
+    it('returns no winners on unfinished tournaments', async () => {
+      const tournaments = new TournamentRepository(scratch.db);
+      const descriptor = footballDescriptor();
+
+      const created = await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        tournaments.create(uow, {
+          organizationId,
+          alias: 'copa-upcoming-clean',
+          name: 'Copa Upcoming Clean',
+          descriptor,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        }),
+      );
+      await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        tournaments.publish(uow, {
+          tournamentId: created.tournamentId,
+          organizationId,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        }),
+      );
+
+      const response = await request({
+        method: 'GET',
+        url: `/organizations/liga-orbital/public/tournaments`,
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.payload as string);
+      const found = body.tournaments.find(
+        (t: { tournamentId: string }) => t.tournamentId === created.tournamentId,
+      );
+      expect(found).toBeDefined();
+      expect(found.status).toBe('upcoming');
+      expect(found.winners).toBeUndefined();
+    });
   });
 });

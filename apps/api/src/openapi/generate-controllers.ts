@@ -31,7 +31,10 @@ import {
   ParticipantReportsController,
   ReportReviewController,
 } from '../controllers/reports.controller.js';
-import { PublicProjectionsController } from '../controllers/public-projections.controller.js';
+import {
+  PublicProjectionsController,
+  PublicTournamentListingController,
+} from '../controllers/public-projections.controller.js';
 import {
   NativeAuthController,
   PersonalAccessTokenController,
@@ -72,6 +75,7 @@ export const OPENAPI_CONTROLLERS = [
   ParticipantReportsController,
   ReportReviewController,
   InstallationBootstrapController,
+  PublicTournamentListingController,
   PublicProjectionsController,
   NativeAuthController,
   PersonalAccessTokenController,
