@@ -14,6 +14,33 @@ const MARK = `
  \\____   |____
 `;
 
+/**
+ * A larger rendering of the same mark, copied verbatim from `docs/LOGO.txt`
+ * — `--version`-only (0118 design.md), never printed on every invocation the
+ * way `MARK` deliberately is. Hand-copied, not read from the file at
+ * runtime, so the packaged single-executable binary needs no new SEA asset.
+ */
+const FULL_LOGO = `
+
+            ##############
+            ###############
+                      ####
+      ############    ####
+    ##############   ####
+    ####      ####   ####
+   ####       ####   ####
+   ####             ####
+   ####             ####
+  #####             ####
+  ####      #####  ####
+  ####      ####   ####
+ ###############   ##############
+  #############   ##############
+                  ####
+        ##############
+        #############
+`;
+
 interface PackageManifest {
   readonly version: string;
   readonly license: string;
@@ -52,6 +79,12 @@ export function readPackageManifest(
 export function renderBanner(): string {
   const { version, license } = readPackageManifest();
   return `${MARK}  CopaLibre v${version} · ${license}\n\n`;
+}
+
+/** The larger mark, `--version`-only — see `FULL_LOGO`. */
+export function renderFullLogo(): string {
+  const { version, license } = readPackageManifest();
+  return `${FULL_LOGO}  CopaLibre v${version} · ${license}\n\n`;
 }
 
 /** The running CopaLibre version, for callers that need it outside the banner. */

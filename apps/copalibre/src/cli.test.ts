@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createBackupPacket } from './backup-packet.js';
-import { readCopalibreVersion, renderBanner } from './banner.js';
+import { readCopalibreVersion, renderBanner, renderFullLogo } from './banner.js';
 import { runCli } from './cli.js';
 import { COMMAND_HELP, MODULE_SUBCOMMAND_HELP } from './help-text.js';
 import { writeCredential } from './credentials.js';
@@ -122,6 +122,19 @@ describe('runCli', () => {
         expect(stdout).toHaveBeenCalledWith(`${readCopalibreVersion()}\n`);
       } finally {
         stdout.mockRestore();
+      }
+    });
+
+    it('prints the larger logo to stderr, in place of the compact banner (0118)', async () => {
+      const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+      const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+      try {
+        await runCli(['--version'], {}, { run: jest.fn(async () => 0) });
+        expect(stderr).toHaveBeenCalledWith(renderFullLogo());
+        expect(stderr).not.toHaveBeenCalledWith(renderBanner());
+      } finally {
+        stdout.mockRestore();
+        stderr.mockRestore();
       }
     });
   });
