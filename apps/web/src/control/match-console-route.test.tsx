@@ -131,6 +131,7 @@ function client(overrides: Partial<MatchConsoleApiClient> = {}): MatchConsoleApi
       clockRunning: false,
       runningTimers: [],
     }),
+    bulkLoadMatch: async () => ({ matchId: 'match-1', status: 'finalized', eventCount: 0 }),
     ...overrides,
   };
 }
@@ -953,6 +954,46 @@ describe('MatchConsoleRoute', () => {
     } finally {
       globalThis.fetch = originalFetch;
     }
+  });
+
+  it('links to the load-match-data screen only for a scheduled match with no prior activity', async () => {
+    render(
+      withIntl(
+        <MatchConsoleRoute
+          client={client()}
+          matchId="match-1"
+          organizationAlias="liga"
+          tournamentAlias="apertura"
+        />,
+      ),
+    );
+    await screen.findByText(/apertura/);
+
+    expect(screen.queryByText('Load match data')).toBeNull();
+  });
+
+  it('shows the load-match-data link for a scheduled match with no segments or events yet', async () => {
+    const scheduledNoActivity = {
+      ...projection,
+      status: 'scheduled' as const,
+      segments: [],
+      events: [],
+    };
+    render(
+      withIntl(
+        <MatchConsoleRoute
+          client={client({ fetchMatchConsole: async () => scheduledNoActivity })}
+          matchId="match-1"
+          organizationAlias="liga"
+          tournamentAlias="apertura"
+        />,
+      ),
+    );
+
+    const link = await screen.findByText('Load match data');
+    expect(link.getAttribute('href')).toBe(
+      '/control/liga/tournaments/apertura/matches/match-1/load',
+    );
   });
 
   it('toggles the roster-selection step open and closed, labeled by whether a roster already exists', async () => {

@@ -15,7 +15,9 @@ import {
   Req,
 } from '@nestjs/common';
 import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiConflictResponse,
   ApiForbiddenResponse,
   ApiOkResponse,
   ApiOperation,
@@ -38,6 +40,7 @@ import {
   type MatchRosterMember,
   type RecordedEvent,
   type RunningTimer,
+  type Segment,
   type StatisticCollector,
 } from '@copalibre/domain';
 import {
@@ -57,6 +60,7 @@ import {
   CompetitionRecordRepository,
   CompetitionRepository,
   EnrollmentRepository,
+  InvariantViolationError,
   MatchAssignmentRepository,
   MatchCommandIdempotencyRepository,
   PersonRepository,
@@ -72,6 +76,8 @@ import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
 import { RequireOrganizationRole } from '../auth/access-requirement.js';
 import {
+  BulkLoadMatchDataRequest,
+  BulkLoadMatchDataResponse,
   CorrectionHistoryResponse,
   CorrectionPreviewResponse,
   CorrectionRequestDto,
@@ -973,6 +979,214 @@ export class MatchControlController {
       ...(recorded.notes === undefined ? {} : { notes: recorded.notes }),
       notifications,
     };
+  }
+
+  @Post('bulk-load')
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin', 'referee')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Load a whole match’s roster, event history, and result in one submission',
+    description:
+      'For a match played without a live console session: roster selection, segment creation, and ' +
+      'every event are sequenced inside one transaction, through the same unmodified validation and ' +
+      'finalization the live console already uses. Commits entirely or not at all.',
+  })
+  @ApiOkResponse({ type: BulkLoadMatchDataResponse })
+  @ApiBadRequestResponse({ type: ProblemResponse })
+  @ApiConflictResponse({ type: ProblemResponse })
+  @ApiUnauthorizedResponse({ type: ProblemResponse })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  async bulkLoad(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('matchId') matchId: string,
+    @Body() body: BulkLoadMatchDataRequest,
+    @Req() request: RequestWithSubject,
+  ): Promise<BulkLoadMatchDataResponse> {
+    const tournament = await this.resolveTournament(organizationAlias, tournamentAlias);
+    const competition = new CompetitionRepository(this.db);
+    const match = await competition.findMatch(matchId);
+    if (!match) throw new NotFoundException(`No match "${matchId}"`);
+    if (match.result) {
+      throw new ConflictException(
+        `Match ${matchId} already has a result; use the audited correction workflow to supersede it`,
+      );
+    }
+    if (!body.result?.sides?.length) {
+      throw new BadRequestException('A batch must include one result entry per side');
+    }
+    const invalidSegment = body.events.find(
+      (event) => event.segmentNumber < 1 || event.segmentNumber > body.segments.length,
+    );
+    if (invalidSegment) {
+      throw new BadRequestException(
+        `Event "${invalidSegment.definitionCode}" names segment ${invalidSegment.segmentNumber}, ` +
+          `but only ${body.segments.length} segment(s) were submitted`,
+      );
+    }
+
+    const stageId = await this.stageOf(matchId);
+    const assignments = await new MatchAssignmentRepository(this.db).forSubject({
+      organizationId: tournament.organizationId,
+      subjectId: request.subject?.subjectId ?? '',
+      matchId,
+      stageId,
+    });
+    const matchContext = { organizationId: tournament.organizationId, matchId, stageId };
+    let granted: { readonly capability: string; readonly grantedBy: string } | undefined;
+    for (const capability of [
+      'match.select-roster',
+      'match.record-event',
+      'match.finalize',
+    ] as const) {
+      granted = enforceMatchCommand({
+        plane: 'admin-control',
+        subject: request.subject,
+        resource: { organizationId: tournament.organizationId },
+        assignments,
+        capability,
+        match: matchContext,
+      });
+    }
+    const audit = {
+      organizationId: tournament.organizationId,
+      actor: request.subject?.subjectId ?? 'unknown',
+      authorizationContext: `capability:${granted?.capability} via ${granted?.grantedBy}`,
+    };
+
+    const descriptor = await this.descriptorFor(organizationAlias, tournamentAlias);
+    const entrantIds = body.rosters.map((roster) => roster.entrantId);
+    const baseSequence = await competition.nextEventSequence(matchId);
+
+    // Name/nationality are snapshotted from Person, never taken from the
+    // submission — the same policy 0107's live roster-selection route
+    // enforces, so a bulk-loaded match's roster can never disagree with the
+    // identity it names, whether it arrived live or after the fact.
+    const rosterPersonIds = body.rosters.flatMap((roster) =>
+      roster.members.map((member) => member.personId),
+    );
+    const rosterPersons = await new PersonRepository(this.db).findPersons(rosterPersonIds);
+    const rosterPersonById = new Map(rosterPersons.map((person) => [person.personId, person]));
+    const rostersByEntrant = body.rosters.map((roster) => ({
+      entrantId: roster.entrantId,
+      members: roster.members.map((member): MatchRosterMember => {
+        const person = rosterPersonById.get(member.personId);
+        if (!person) throw new NotFoundException(`No person "${member.personId}"`);
+        return {
+          personId: member.personId,
+          ...(member.number === undefined ? {} : { number: member.number }),
+          name: person.displayName,
+          ...(person.nationality === undefined ? {} : { nationality: person.nationality }),
+          ...(member.roles === undefined ? {} : { roles: member.roles }),
+          onField: member.onField,
+        };
+      }),
+    }));
+
+    const eventCount = await withTransaction(this.db, async (uow) => {
+      for (const roster of rostersByEntrant) {
+        await competition.setMatchRoster(uow, {
+          matchId,
+          entrantId: roster.entrantId,
+          members: roster.members,
+          ...audit,
+        });
+      }
+
+      const segments: Segment[] = [];
+      for (const [index, input] of body.segments.entries()) {
+        const created = await competition.createSegment(uow, {
+          matchId,
+          type: input.type,
+          number: index + 1,
+          ...audit,
+        });
+        await competition.setSegmentState(uow, {
+          segmentId: created.segmentId,
+          state: 'completed',
+          ...audit,
+        });
+        const elapsedSeconds =
+          input.elapsedSeconds ??
+          descriptor.segmentTypes.find((candidate) => candidate.name === input.type)
+            ?.defaultDurationSeconds ??
+          0;
+        const adjusted = await competition.adjustSegmentClock(uow, {
+          segmentId: created.segmentId,
+          elapsedSeconds,
+          ...audit,
+        });
+        segments.push(adjusted);
+      }
+
+      for (const [index, input] of body.events.entries()) {
+        const segment = segments[input.segmentNumber - 1] as Segment;
+        const validated = new EventLog(descriptor).record({
+          eventId: crypto.randomUUID(),
+          matchId,
+          segment,
+          definitionCode: input.definitionCode,
+          occurredAt: new Date(input.occurredAt).toISOString(),
+          ...(input.side === undefined ? {} : { side: input.side }),
+          ...(input.personId === undefined ? {} : { personId: input.personId }),
+          ...(input.payload === undefined ? {} : { payload: input.payload }),
+          ...(input.notes === undefined ? {} : { notes: input.notes }),
+          entrantIds,
+        });
+        if (!validated.ok) {
+          throw new BadRequestException(
+            `Entry ${index + 1} ("${input.definitionCode}"): ${validated.error.message}`,
+          );
+        }
+        await competition.appendEvent(uow, {
+          event: validated.value,
+          sequence: baseSequence + index,
+          ...audit,
+        });
+      }
+
+      try {
+        await competition.recordResult(uow, {
+          matchId,
+          result: {
+            sides: body.result.sides.map((side) => ({
+              entrantId: side.entrantId,
+              statistics: side.statistics,
+              ...(side.placement === undefined ? {} : { placement: side.placement }),
+              resultReason: side.resultReason ?? 'played',
+            })),
+            ...(body.result.winnerEntrantId === undefined
+              ? {}
+              : { winnerEntrantId: body.result.winnerEntrantId }),
+            recordedAt: new Date().toISOString(),
+          },
+          ...audit,
+        });
+      } catch (error) {
+        if (error instanceof InvariantViolationError) {
+          throw new ConflictException(error.message);
+        }
+        throw error;
+      }
+
+      const projectionVersion = await new ProjectionStore(this.db).nextVersion(uow, {
+        projectionType: 'match-console',
+        entityId: matchId,
+      });
+      await uow.publishEvent({
+        organizationId: tournament.organizationId,
+        stream: `match:${matchId}`,
+        entityId: matchId,
+        eventType: 'match.console-projection',
+        projectionVersion,
+        payload: { matchId, status: 'finalized' },
+      });
+
+      return body.events.length;
+    });
+
+    return { matchId, status: 'finalized', eventCount };
   }
 
   @Post('corrections/preview')

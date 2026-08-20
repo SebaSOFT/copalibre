@@ -144,6 +144,7 @@ export const messages: Record<string, string> = {
   'control.matchConsole.selectRoster': 'Seleccionar plantel',
   'control.matchConsole.editRoster': 'Editar plantel',
   'control.matchConsole.hideRosterStep': 'Ocultar editor de plantel',
+  'control.matchConsole.loadMatchData': 'Cargar datos del partido',
   'control.matchConsole.rosterStepLabel': 'Selección de plantel',
   'control.matchConsole.rosterLoading': 'Cargando jugadores candidatos...',
   'control.matchConsole.rosterLoadFailed': 'No se pudieron cargar los jugadores candidatos.',
@@ -305,4 +306,54 @@ export const messages: Record<string, string> = {
   'control.landing.emptyBody':
     'Esta cuenta todavía no tiene un rol en ninguna organización. Se necesita una invitación de un administrador.',
   'control.landing.pickerTitle': 'Elegir una organización',
+
+  'control.loadMatchData.title': 'Cargar datos del partido',
+  'control.loadMatchData.breadcrumb': '{tournamentAlias} · Partido {matchId}',
+  'control.loadMatchData.sectionLabel': 'Cargar datos del partido',
+  'control.loadMatchData.loading': 'Cargando…',
+  'control.loadMatchData.loadFailed': 'No se pudo cargar este partido.',
+  'control.loadMatchData.forbidden':
+    'No tenés las capacidades que requiere esta pantalla para este partido.',
+  'control.loadMatchData.notScheduled':
+    'Este partido ya tiene actividad registrada o un resultado. Usá la consola en vivo en su lugar — cargar datos acá crearía un historial de eventos duplicado y en conflicto.',
+  'control.loadMatchData.rosterHeading': 'Plantel',
+  'control.loadMatchData.rosterCandidatesLoading': 'Cargando candidatos de plantel…',
+  'control.loadMatchData.segmentsHeading': 'Segmentos',
+  'control.loadMatchData.addSegment': 'Agregar segmento',
+  'control.loadMatchData.removeSegment': 'Quitar segmento',
+  'control.loadMatchData.segmentType': 'Tipo',
+  'control.loadMatchData.segmentTypePlaceholder': 'ej. tiempo, período, set',
+  'control.loadMatchData.segmentElapsedSeconds': 'Duración (segundos)',
+  'control.loadMatchData.eventsHeading': 'Eventos',
+  'control.loadMatchData.addEvent': 'Agregar evento',
+  'control.loadMatchData.removeEvent': 'Quitar evento',
+  'control.loadMatchData.moveEventUp': 'Mover arriba',
+  'control.loadMatchData.moveEventDown': 'Mover abajo',
+  'control.loadMatchData.eventDefinition': 'Evento',
+  'control.loadMatchData.eventSegment': 'Segmento',
+  'control.loadMatchData.eventOccurredAt': 'Cuándo',
+  'control.loadMatchData.eventSide': 'Lado',
+  'control.loadMatchData.eventPerson': 'Persona',
+  'control.loadMatchData.eventNoAttribution': 'Sin atribución',
+  'control.loadMatchData.eventNotes': 'Notas',
+  'control.loadMatchData.noEvents':
+    'Todavía no hay eventos. Agregá uno, o importá un CSV más abajo.',
+  'control.loadMatchData.resultHeading': 'Resultado',
+  'control.loadMatchData.winner': 'Ganador',
+  'control.loadMatchData.noWinnerDraw': 'Sin ganador / empate',
+  'control.loadMatchData.submit': 'Enviar datos del partido',
+  'control.loadMatchData.submitting': 'Enviando…',
+  'control.loadMatchData.submitSucceeded':
+    'Partido cargado y finalizado — se registraron {eventCount} evento(s).',
+  'control.loadMatchData.submitFailed':
+    'Se rechazó el envío. No se registró nada — corregí la entrada abajo y reenviá.',
+  'control.loadMatchData.backToConsole': 'Abrir consola del partido',
+  'control.loadMatchData.csvHeading': 'Importar desde CSV',
+  'control.loadMatchData.csvHelp':
+    'Carga una planilla en el editor de arriba para revisión — nada se envía hasta que revises y presiones «Enviar datos del partido» vos mismo.',
+  'control.loadMatchData.csvChooseFile': 'Elegir archivo CSV',
+  'control.loadMatchData.csvDownloadTemplate': 'Descargar plantilla',
+  'control.loadMatchData.csvErrorsHeading':
+    '{count} problema(s) encontrado(s) — corregilos en la planilla y volvé a importar.',
+  'control.loadMatchData.csvLoaded': 'CSV cargado en el editor de abajo para revisión.',
 };

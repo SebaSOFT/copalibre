@@ -40,6 +40,18 @@ export type ControlRoute =
       readonly matchId: string;
     }
   | {
+      /**
+       * The bulk/structured entry screen (0106): a sibling of `matchConsole`
+       * for a match played with no live console present, at `.../matches/
+       * {matchId}/load` — one segment deeper than the console's own URL, not
+       * a separate top-level screen, since both operate on the same match.
+       */
+      readonly screen: 'loadMatchData';
+      readonly organizationAlias: string;
+      readonly tournamentAlias: string;
+      readonly matchId: string;
+    }
+  | {
       readonly screen: 'seeding';
       readonly organizationAlias: string;
       readonly tournamentAlias: string;
@@ -98,6 +110,11 @@ export function parseControlPath(pathname: string): ControlRoute | undefined {
     const matchId = rest[3];
     if (matchId === undefined) return undefined;
     return { screen: 'matchConsole', organizationAlias, tournamentAlias, matchId };
+  }
+  if (rest.length === 5 && rest[2] === 'matches' && rest[4] === 'load') {
+    const matchId = rest[3];
+    if (matchId === undefined) return undefined;
+    return { screen: 'loadMatchData', organizationAlias, tournamentAlias, matchId };
   }
   if (rest.length === 5 && rest[2] === 'stages') {
     const stageNumber = Number(rest[3]);

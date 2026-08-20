@@ -360,6 +360,119 @@ export class FinalizeRequest {
   winnerEntrantId?: string;
 }
 
+/**
+ * `name`/`nationality` are deliberately absent — the handler snapshots both
+ * from `Person`, the same policy 0107's live roster-selection route
+ * enforces, so a bulk-loaded roster can never disagree with the identity
+ * it names.
+ */
+export class BulkRosterMemberInput {
+  @ApiProperty({ format: 'uuid' })
+  personId!: string;
+
+  @ApiPropertyOptional({ description: 'Shirt number; not always numeric (e.g. "00", "7B")' })
+  number?: number | string;
+
+  @ApiPropertyOptional({ type: [String], description: 'Discipline-declared roster role codes' })
+  roles?: string[];
+
+  @ApiProperty({ description: 'Whether this member was on the field, as opposed to bench' })
+  onField!: boolean;
+}
+
+export class BulkRosterInput {
+  @ApiProperty({ format: 'uuid' })
+  entrantId!: string;
+
+  @ApiProperty({ type: [BulkRosterMemberInput] })
+  members!: BulkRosterMemberInput[];
+}
+
+export class BulkSegmentInput {
+  @ApiProperty({ description: 'A segment type the bound discipline declares, e.g. "first-half"' })
+  type!: string;
+
+  @ApiPropertyOptional({
+    description: 'Elapsed seconds when the segment ended; discipline default when omitted',
+  })
+  elapsedSeconds?: number;
+}
+
+export class BulkEventInput {
+  @ApiProperty({ description: 'Event definition code the discipline declares' })
+  definitionCode!: string;
+
+  @ApiProperty({
+    description: 'Which submitted segment this event belongs to, 1-based, in submission order',
+  })
+  segmentNumber!: number;
+
+  @ApiProperty({ description: 'When it actually happened, epoch milliseconds — may be historical' })
+  occurredAt!: number;
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'The entrant it belongs to — an id, never "home"/"away"',
+  })
+  side?: string;
+
+  @ApiPropertyOptional({ format: 'uuid', description: 'The person, when the discipline needs one' })
+  personId?: string;
+
+  @ApiPropertyOptional({ type: Object, description: 'Payload validated against the definition' })
+  payload?: Record<string, unknown>;
+
+  @ApiPropertyOptional({
+    description: 'Free-text operator note, available regardless of discipline',
+  })
+  notes?: string;
+}
+
+export class BulkLoadMatchDataRequest {
+  @ApiProperty({
+    type: [BulkRosterInput],
+    description: 'One entry per side; each entrant’s full roster as selected for this match',
+  })
+  rosters!: BulkRosterInput[];
+
+  @ApiProperty({
+    type: [BulkSegmentInput],
+    description: 'Every segment this match had, in play order — created and marked completed',
+  })
+  segments!: BulkSegmentInput[];
+
+  @ApiProperty({
+    type: [BulkEventInput],
+    description: 'The match’s full event history, in the order it actually happened',
+  })
+  events!: BulkEventInput[];
+
+  @ApiProperty({
+    type: [Object],
+    description: 'One entry per side, matching FinalizeRequest’s existing shape',
+  })
+  result!: {
+    sides: {
+      entrantId: string;
+      statistics: Record<string, number>;
+      placement?: number;
+      resultReason?: ResultReason;
+    }[];
+    winnerEntrantId?: string;
+  };
+}
+
+export class BulkLoadMatchDataResponse {
+  @ApiProperty({ format: 'uuid' })
+  matchId!: string;
+
+  @ApiProperty({ enum: ['finalized'] })
+  status!: string;
+
+  @ApiProperty({ description: 'How many events were recorded from the submitted batch' })
+  eventCount!: number;
+}
+
 export class CorrectionRequestDto {
   @ApiProperty({ description: 'Why the result is being corrected, in the operator’s words' })
   reason!: string;

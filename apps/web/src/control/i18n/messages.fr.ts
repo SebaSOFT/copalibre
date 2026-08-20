@@ -145,6 +145,7 @@ export const messages: Record<string, string> = {
   'control.matchConsole.selectRoster': "Sélectionner l'effectif",
   'control.matchConsole.editRoster': "Modifier l'effectif",
   'control.matchConsole.hideRosterStep': "Masquer l'éditeur d'effectif",
+  'control.matchConsole.loadMatchData': 'Charger les données du match',
   'control.matchConsole.rosterStepLabel': "Sélection de l'effectif",
   'control.matchConsole.rosterLoading': 'Chargement des joueurs éligibles...',
   'control.matchConsole.rosterLoadFailed': 'Impossible de charger les joueurs éligibles.',
@@ -308,4 +309,54 @@ export const messages: Record<string, string> = {
   'control.landing.emptyBody':
     "Ce compte n'a pas encore de rôle dans une organisation. Une invitation d'un administrateur est nécessaire.",
   'control.landing.pickerTitle': 'Choisir une organisation',
+
+  'control.loadMatchData.title': 'Charger les données du match',
+  'control.loadMatchData.breadcrumb': '{tournamentAlias} · Match {matchId}',
+  'control.loadMatchData.sectionLabel': 'Charger les données du match',
+  'control.loadMatchData.loading': 'Chargement…',
+  'control.loadMatchData.loadFailed': 'Impossible de charger ce match.',
+  'control.loadMatchData.forbidden':
+    "Vous n'avez pas les capacités requises par cet écran pour ce match.",
+  'control.loadMatchData.notScheduled':
+    "Ce match a déjà une activité enregistrée ou un résultat. Utilisez plutôt la console en direct — charger des données ici créerait un second historique d'événements en conflit.",
+  'control.loadMatchData.rosterHeading': 'Effectif',
+  'control.loadMatchData.rosterCandidatesLoading': "Chargement des candidats à l'effectif…",
+  'control.loadMatchData.segmentsHeading': 'Segments',
+  'control.loadMatchData.addSegment': 'Ajouter un segment',
+  'control.loadMatchData.removeSegment': 'Retirer le segment',
+  'control.loadMatchData.segmentType': 'Type',
+  'control.loadMatchData.segmentTypePlaceholder': 'ex. mi-temps, période, set',
+  'control.loadMatchData.segmentElapsedSeconds': 'Durée (secondes)',
+  'control.loadMatchData.eventsHeading': 'Événements',
+  'control.loadMatchData.addEvent': 'Ajouter un événement',
+  'control.loadMatchData.removeEvent': "Retirer l'événement",
+  'control.loadMatchData.moveEventUp': 'Monter',
+  'control.loadMatchData.moveEventDown': 'Descendre',
+  'control.loadMatchData.eventDefinition': 'Événement',
+  'control.loadMatchData.eventSegment': 'Segment',
+  'control.loadMatchData.eventOccurredAt': 'Quand',
+  'control.loadMatchData.eventSide': 'Côté',
+  'control.loadMatchData.eventPerson': 'Personne',
+  'control.loadMatchData.eventNoAttribution': 'Aucune attribution',
+  'control.loadMatchData.eventNotes': 'Notes',
+  'control.loadMatchData.noEvents':
+    "Aucun événement pour l'instant. Ajoutez-en un, ou importez un CSV ci-dessous.",
+  'control.loadMatchData.resultHeading': 'Résultat',
+  'control.loadMatchData.winner': 'Vainqueur',
+  'control.loadMatchData.noWinnerDraw': 'Pas de vainqueur / match nul',
+  'control.loadMatchData.submit': 'Envoyer les données du match',
+  'control.loadMatchData.submitting': 'Envoi…',
+  'control.loadMatchData.submitSucceeded':
+    'Match chargé et finalisé — {eventCount} événement(s) enregistré(s).',
+  'control.loadMatchData.submitFailed':
+    "L'envoi a été refusé. Rien n'a été enregistré — corrigez l'entrée ci-dessous et renvoyez.",
+  'control.loadMatchData.backToConsole': 'Ouvrir la console du match',
+  'control.loadMatchData.csvHeading': 'Importer depuis un CSV',
+  'control.loadMatchData.csvHelp':
+    "Charge une feuille de calcul dans l'éditeur ci-dessus pour révision — rien n'est envoyé tant que vous n'avez pas révisé et appuyé vous-même sur « Envoyer les données du match ».",
+  'control.loadMatchData.csvChooseFile': 'Choisir un fichier CSV',
+  'control.loadMatchData.csvDownloadTemplate': 'Télécharger le modèle',
+  'control.loadMatchData.csvErrorsHeading':
+    '{count} problème(s) trouvé(s) — corrigez-les dans la feuille de calcul et réimportez.',
+  'control.loadMatchData.csvLoaded': "CSV chargé dans l'éditeur ci-dessous pour révision.",
 };

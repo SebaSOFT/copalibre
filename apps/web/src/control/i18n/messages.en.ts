@@ -389,6 +389,10 @@ export const messages = defineMessages({
     id: 'control.matchConsole.hideRosterStep',
     defaultMessage: 'Hide roster editor',
   },
+  matchConsoleLoadMatchData: {
+    id: 'control.matchConsole.loadMatchData',
+    defaultMessage: 'Load match data',
+  },
   matchConsoleRosterStepLabel: {
     id: 'control.matchConsole.rosterStepLabel',
     defaultMessage: 'Roster selection',
@@ -767,5 +771,156 @@ export const messages = defineMessages({
   landingPickerTitle: {
     id: 'control.landing.pickerTitle',
     defaultMessage: 'Choose an organization',
+  },
+
+  // Load match data (0106) — bulk/structured entry for a match played with no live console.
+  loadMatchDataTitle: { id: 'control.loadMatchData.title', defaultMessage: 'Load match data' },
+  loadMatchDataBreadcrumb: {
+    id: 'control.loadMatchData.breadcrumb',
+    defaultMessage: '{tournamentAlias} · Match {matchId}',
+  },
+  loadMatchDataSectionLabel: {
+    id: 'control.loadMatchData.sectionLabel',
+    defaultMessage: 'Load match data',
+  },
+  loadMatchDataLoading: { id: 'control.loadMatchData.loading', defaultMessage: 'Loading…' },
+  loadMatchDataLoadFailed: {
+    id: 'control.loadMatchData.loadFailed',
+    defaultMessage: 'Could not load this match.',
+  },
+  loadMatchDataForbidden: {
+    id: 'control.loadMatchData.forbidden',
+    defaultMessage: 'You do not hold the capabilities this screen requires for this match.',
+  },
+  loadMatchDataNotScheduled: {
+    id: 'control.loadMatchData.notScheduled',
+    defaultMessage:
+      'This match already has recorded activity or a result. Use the live console instead — ' +
+      'bulk-loading here would create a second, conflicting event history.',
+  },
+  loadMatchDataRosterHeading: {
+    id: 'control.loadMatchData.rosterHeading',
+    defaultMessage: 'Roster',
+  },
+  loadMatchDataRosterCandidatesLoading: {
+    id: 'control.loadMatchData.rosterCandidatesLoading',
+    defaultMessage: 'Loading roster candidates…',
+  },
+  loadMatchDataSegmentsHeading: {
+    id: 'control.loadMatchData.segmentsHeading',
+    defaultMessage: 'Segments',
+  },
+  loadMatchDataAddSegment: {
+    id: 'control.loadMatchData.addSegment',
+    defaultMessage: 'Add segment',
+  },
+  loadMatchDataRemoveSegment: {
+    id: 'control.loadMatchData.removeSegment',
+    defaultMessage: 'Remove segment',
+  },
+  loadMatchDataSegmentType: {
+    id: 'control.loadMatchData.segmentType',
+    defaultMessage: 'Type',
+  },
+  loadMatchDataSegmentTypePlaceholder: {
+    id: 'control.loadMatchData.segmentTypePlaceholder',
+    defaultMessage: 'e.g. half, period, set',
+  },
+  loadMatchDataSegmentElapsedSeconds: {
+    id: 'control.loadMatchData.segmentElapsedSeconds',
+    defaultMessage: 'Duration (seconds)',
+  },
+  loadMatchDataEventsHeading: {
+    id: 'control.loadMatchData.eventsHeading',
+    defaultMessage: 'Events',
+  },
+  loadMatchDataAddEvent: { id: 'control.loadMatchData.addEvent', defaultMessage: 'Add event' },
+  loadMatchDataRemoveEvent: {
+    id: 'control.loadMatchData.removeEvent',
+    defaultMessage: 'Remove event',
+  },
+  loadMatchDataMoveEventUp: {
+    id: 'control.loadMatchData.moveEventUp',
+    defaultMessage: 'Move up',
+  },
+  loadMatchDataMoveEventDown: {
+    id: 'control.loadMatchData.moveEventDown',
+    defaultMessage: 'Move down',
+  },
+  loadMatchDataEventDefinition: {
+    id: 'control.loadMatchData.eventDefinition',
+    defaultMessage: 'Event',
+  },
+  loadMatchDataEventSegment: {
+    id: 'control.loadMatchData.eventSegment',
+    defaultMessage: 'Segment',
+  },
+  loadMatchDataEventOccurredAt: {
+    id: 'control.loadMatchData.eventOccurredAt',
+    defaultMessage: 'When',
+  },
+  loadMatchDataEventSide: { id: 'control.loadMatchData.eventSide', defaultMessage: 'Side' },
+  loadMatchDataEventPerson: { id: 'control.loadMatchData.eventPerson', defaultMessage: 'Person' },
+  loadMatchDataEventNoAttribution: {
+    id: 'control.loadMatchData.eventNoAttribution',
+    defaultMessage: 'No attribution',
+  },
+  loadMatchDataEventNotes: { id: 'control.loadMatchData.eventNotes', defaultMessage: 'Notes' },
+  loadMatchDataNoEvents: {
+    id: 'control.loadMatchData.noEvents',
+    defaultMessage: 'No events yet. Add one, or import a CSV below.',
+  },
+  loadMatchDataResultHeading: {
+    id: 'control.loadMatchData.resultHeading',
+    defaultMessage: 'Result',
+  },
+  loadMatchDataWinner: { id: 'control.loadMatchData.winner', defaultMessage: 'Winner' },
+  loadMatchDataNoWinnerDraw: {
+    id: 'control.loadMatchData.noWinnerDraw',
+    defaultMessage: 'No winner / draw',
+  },
+  loadMatchDataSubmit: { id: 'control.loadMatchData.submit', defaultMessage: 'Submit match data' },
+  loadMatchDataSubmitting: {
+    id: 'control.loadMatchData.submitting',
+    defaultMessage: 'Submitting…',
+  },
+  loadMatchDataSubmitSucceeded: {
+    id: 'control.loadMatchData.submitSucceeded',
+    defaultMessage: 'Match loaded and finalized — {eventCount} event(s) recorded.',
+  },
+  loadMatchDataSubmitFailed: {
+    id: 'control.loadMatchData.submitFailed',
+    defaultMessage:
+      'Submission was refused. Nothing was recorded — fix the entry below and resubmit.',
+  },
+  loadMatchDataBackToConsole: {
+    id: 'control.loadMatchData.backToConsole',
+    defaultMessage: 'Open match console',
+  },
+  loadMatchDataCsvHeading: {
+    id: 'control.loadMatchData.csvHeading',
+    defaultMessage: 'Import from CSV',
+  },
+  loadMatchDataCsvHelp: {
+    id: 'control.loadMatchData.csvHelp',
+    defaultMessage:
+      'Loads a spreadsheet into the builder above for review — nothing submits until you review ' +
+      'and press "Submit match data" yourself.',
+  },
+  loadMatchDataCsvChooseFile: {
+    id: 'control.loadMatchData.csvChooseFile',
+    defaultMessage: 'Choose CSV file',
+  },
+  loadMatchDataCsvDownloadTemplate: {
+    id: 'control.loadMatchData.csvDownloadTemplate',
+    defaultMessage: 'Download template',
+  },
+  loadMatchDataCsvErrorsHeading: {
+    id: 'control.loadMatchData.csvErrorsHeading',
+    defaultMessage: '{count} problem(s) found — fix these in the spreadsheet and re-import.',
+  },
+  loadMatchDataCsvLoaded: {
+    id: 'control.loadMatchData.csvLoaded',
+    defaultMessage: 'CSV loaded into the builder below for review.',
   },
 });

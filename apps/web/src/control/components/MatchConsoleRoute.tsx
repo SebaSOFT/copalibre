@@ -17,6 +17,7 @@ import {
   segmentLabel,
   sentOffPersonIds,
 } from '../lib/match-console.js';
+import { controlLinkClick } from '../lib/control-navigation.js';
 import { controlTokenStore } from '../session/token-store.js';
 import { Button } from './ui/button.js';
 import { JerseyGrid } from './JerseyGrid.js';
@@ -322,6 +323,19 @@ export function MatchConsoleRoute({
           <h1 style={titleStyle}>
             <FormattedMessage {...messages.matchConsoleTitle} />
           </h1>
+          {projection.status === 'scheduled' &&
+            projection.segments.length === 0 &&
+            projection.events.length === 0 && (
+              <a
+                className="cl-focusable"
+                href={`/control/${organizationAlias}/tournaments/${tournamentAlias}/matches/${matchId}/load`}
+                onClick={controlLinkClick(
+                  `/control/${organizationAlias}/tournaments/${tournamentAlias}/matches/${matchId}/load`,
+                )}
+              >
+                <FormattedMessage {...messages.matchConsoleLoadMatchData} />
+              </a>
+            )}
         </div>
         <div style={statusStyle}>
           <strong>
