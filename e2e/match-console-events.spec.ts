@@ -190,14 +190,17 @@ test('records a secondary target actor selection, shows the timecode, and update
   await page.getByRole('button', { name: 'Assist', exact: true }).click();
   await page.getByRole('button', { name: 'Gol', exact: true }).click();
 
-  const requests = await capturedRequests(page);
-  const recorded = requests.find(
-    (request) => request.url.endsWith('/events') && request.method === 'POST',
-  );
-  expect(recorded?.body).toMatchObject({
-    personId: 'person-scorer',
-    payload: { assistedBy: 'person-assist' },
-  });
+  await expect
+    .poll(async () => {
+      const requests = await capturedRequests(page);
+      return requests.find(
+        (request) => request.url.endsWith('/events') && request.method === 'POST',
+      )?.body;
+    })
+    .toMatchObject({
+      personId: 'person-scorer',
+      payload: { assistedBy: 'person-assist' },
+    });
 
   // The timeline entry shows the segment clock snapshot alongside the event.
   await expect(page.getByText('goal · half 1 · 12:34')).toBeVisible();
@@ -216,9 +219,12 @@ test('records only selected generic outcome after opening outcome workflow', asy
   expect(beforeChoice.some((request) => request.url.endsWith('/events'))).toBe(false);
 
   await page.getByRole('button', { name: 'Outcome recorded', exact: true }).last().click();
-  const requests = await capturedRequests(page);
-  const recorded = requests.find(
-    (request) => request.url.endsWith('/events') && request.method === 'POST',
-  );
-  expect(recorded?.body).toMatchObject({ definitionCode: 'outcome-recorded' });
+  await expect
+    .poll(async () => {
+      const requests = await capturedRequests(page);
+      return requests.find(
+        (request) => request.url.endsWith('/events') && request.method === 'POST',
+      )?.body;
+    })
+    .toMatchObject({ definitionCode: 'outcome-recorded' });
 });

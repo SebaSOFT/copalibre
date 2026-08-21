@@ -231,6 +231,31 @@ export const messages = defineMessages({
     id: 'control.matchConsole.awaitingProjection',
     defaultMessage: 'Awaiting authoritative projection...',
   },
+  // Sync status (0123) — always visible, not only surfaced on failure.
+  matchConsoleSyncStatus: {
+    id: 'control.matchConsole.syncStatus',
+    defaultMessage: 'Sync status',
+  },
+  matchConsoleOnline: { id: 'control.matchConsole.online', defaultMessage: 'Online' },
+  matchConsoleOffline: { id: 'control.matchConsole.offline', defaultMessage: 'Offline' },
+  matchConsoleQueuedCount: {
+    id: 'control.matchConsole.queuedCount',
+    defaultMessage:
+      '{count, plural, =0 {No queued actions} one {# queued action} other {# queued actions}}',
+  },
+  matchConsoleLastSynced: {
+    id: 'control.matchConsole.lastSynced',
+    defaultMessage: 'Last synced {time}',
+  },
+  matchConsoleNeverSynced: {
+    id: 'control.matchConsole.neverSynced',
+    defaultMessage: 'Not yet synced',
+  },
+  matchConsoleRefusedAction: {
+    id: 'control.matchConsole.refusedAction',
+    defaultMessage: 'Refused ({kind}): {reason}',
+  },
+  matchConsoleDismiss: { id: 'control.matchConsole.dismiss', defaultMessage: 'Dismiss' },
   matchConsoleControls: {
     id: 'control.matchConsole.controls',
     defaultMessage: 'Match controls',

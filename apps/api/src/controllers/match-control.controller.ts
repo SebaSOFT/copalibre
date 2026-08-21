@@ -19,6 +19,7 @@ import {
   ApiBearerAuth,
   ApiConflictResponse,
   ApiForbiddenResponse,
+  ApiHeader,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
@@ -205,14 +206,20 @@ export class MatchControlController {
     const match = await competition.findMatch(matchId);
     if (!match) throw new NotFoundException(`No match "${matchId}"`);
 
-    const fingerprint = command === 'finalize' ? finalizeFingerprint(body) : undefined;
+    // Finalize alone requires a key (irreversible, so "just resend it" must be
+    // safe by construction); start/pause/resume accept one but don't require
+    // it — additive only, per design.md's Migration Plan — and fingerprint on
+    // the command name itself, since they carry no meaningful request body.
+    const fingerprint =
+      command === 'finalize' ? finalizeFingerprint(body) : fingerprintOf({ command });
     const idempotency = new MatchCommandIdempotencyRepository(this.db);
-    if (command === 'finalize') {
-      if (!idempotencyKey) {
-        throw new BadRequestException('Finalizing a match requires an Idempotency-Key header');
-      }
+    if (command === 'finalize' && !idempotencyKey) {
+      throw new BadRequestException('Finalizing a match requires an Idempotency-Key header');
+    }
+    if (idempotencyKey) {
       const previous = await idempotency.find(idempotencyKey);
-      if (previous) return replayFinalize(previous, matchId, fingerprint ?? '');
+      if (previous)
+        return replayCommand<MatchStateResponse>(previous, matchId, command, fingerprint);
     }
 
     const stageId = await this.stageOf(matchId);
@@ -318,15 +325,27 @@ export class MatchControlController {
         }
       });
     } catch (error) {
-      if (command !== 'finalize' || !idempotencyKey) throw error;
+      if (!idempotencyKey) throw error;
       const previous = await idempotency.find(idempotencyKey);
       if (!previous) throw error;
-      return replayFinalize(previous, matchId, fingerprint ?? '');
+      return replayCommand<MatchStateResponse>(previous, matchId, command, fingerprint);
     }
 
-    return command === 'finalize'
-      ? finalizeResponse
-      : this.state(organizationAlias, tournamentAlias, matchId);
+    if (command === 'finalize') return finalizeResponse;
+
+    const state = await this.state(organizationAlias, tournamentAlias, matchId);
+    if (idempotencyKey) {
+      await withTransaction(this.db, (uow) =>
+        idempotency.record(uow, {
+          idempotencyKey,
+          matchId,
+          operation: command,
+          requestFingerprint: fingerprint,
+          response: state as unknown as Record<string, unknown>,
+        }),
+      );
+    }
+    return state;
   }
 
   @Post('clock')
@@ -334,6 +353,11 @@ export class MatchControlController {
   @RequireOrganizationRole('admin', 'referee')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Adjust the authoritative elapsed time or active segment' })
+  @ApiHeader({
+    name: 'idempotency-key',
+    required: false,
+    description: 'A retried request with the same key and body replays the prior response.',
+  })
   @ApiOkResponse({ type: MatchConsoleResponse })
   @ApiForbiddenResponse({ type: ProblemResponse })
   async adjustClock(
@@ -342,6 +366,19 @@ export class MatchControlController {
     @Param('matchId') matchId: string,
     @Body() body: ClockAdjustmentRequest,
     @Req() request: RequestWithSubject,
+    @Headers('idempotency-key') idempotencyKey?: string,
+  ): Promise<MatchConsoleResponse> {
+    return this.withIdempotency(idempotencyKey, matchId, 'clock-adjust', body, () =>
+      this.adjustClockOnce(organizationAlias, tournamentAlias, matchId, body, request),
+    );
+  }
+
+  private async adjustClockOnce(
+    organizationAlias: string,
+    tournamentAlias: string,
+    matchId: string,
+    body: ClockAdjustmentRequest,
+    request: RequestWithSubject,
   ): Promise<MatchConsoleResponse> {
     const tournament = await this.resolveTournament(organizationAlias, tournamentAlias);
     const competition = new CompetitionRepository(this.db);
@@ -415,6 +452,11 @@ export class MatchControlController {
   @RequireOrganizationRole('admin', 'referee')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Resolve a discipline-declared timer early' })
+  @ApiHeader({
+    name: 'idempotency-key',
+    required: false,
+    description: 'A retried request with the same key and body replays the prior response.',
+  })
   @ApiOkResponse({ type: MatchConsoleResponse })
   @ApiForbiddenResponse({ type: ProblemResponse })
   async resolveTimer(
@@ -423,6 +465,19 @@ export class MatchControlController {
     @Param('matchId') matchId: string,
     @Param('timerId') timerId: string,
     @Req() request: RequestWithSubject,
+    @Headers('idempotency-key') idempotencyKey?: string,
+  ): Promise<MatchConsoleResponse> {
+    return this.withIdempotency(idempotencyKey, matchId, 'timer-resolve', { timerId }, () =>
+      this.resolveTimerOnce(organizationAlias, tournamentAlias, matchId, timerId, request),
+    );
+  }
+
+  private async resolveTimerOnce(
+    organizationAlias: string,
+    tournamentAlias: string,
+    matchId: string,
+    timerId: string,
+    request: RequestWithSubject,
   ): Promise<MatchConsoleResponse> {
     const tournament = await this.resolveTournament(organizationAlias, tournamentAlias);
     const competition = new CompetitionRepository(this.db);
@@ -541,6 +596,11 @@ export class MatchControlController {
       'submission, and removing a person already attributed by a recorded event — adding is ' +
       'always permitted, at any point in the match.',
   })
+  @ApiHeader({
+    name: 'idempotency-key',
+    required: false,
+    description: 'A retried request with the same key and body replays the prior response.',
+  })
   @ApiOkResponse({ type: MatchConsoleResponse })
   @ApiUnauthorizedResponse({ type: ProblemResponse })
   @ApiForbiddenResponse({ type: ProblemResponse })
@@ -551,11 +611,33 @@ export class MatchControlController {
     @Param('entrantId') entrantId: string,
     @Body() body: SetMatchRosterRequest,
     @Req() request: RequestWithSubject,
+    @Headers('idempotency-key') idempotencyKey?: string,
+  ): Promise<MatchConsoleResponse> {
+    return this.withIdempotency(idempotencyKey, matchId, 'roster-select', { entrantId, body }, () =>
+      this.setRosterOnce(organizationAlias, tournamentAlias, matchId, entrantId, body, request),
+    );
+  }
+
+  private async setRosterOnce(
+    organizationAlias: string,
+    tournamentAlias: string,
+    matchId: string,
+    entrantId: string,
+    body: SetMatchRosterRequest,
+    request: RequestWithSubject,
   ): Promise<MatchConsoleResponse> {
     const tournament = await this.resolveTournament(organizationAlias, tournamentAlias);
     const competition = new CompetitionRepository(this.db);
     const match = await competition.findMatch(matchId);
     if (!match) throw new NotFoundException(`No match "${matchId}"`);
+    // Mirrors `recordEvent`'s own status guard (0123): a queued roster
+    // selection reaching a match that finalized in the meantime is refused
+    // the same way a live submission would be, not silently accepted.
+    if (match.status !== 'in-progress') {
+      throw new BadRequestException(
+        `Match "${matchId}" is ${match.status}; roster selection happens while it is in progress`,
+      );
+    }
 
     const stageId = await this.stageOf(matchId);
     const granted = enforceMatchCommand({
@@ -672,6 +754,11 @@ export class MatchControlController {
       'Validated against the discipline’s own event definitions: permitted segment, required ' +
       'actor, and a payload matching the declared schema. A side is an entrant id.',
   })
+  @ApiHeader({
+    name: 'idempotency-key',
+    required: false,
+    description: 'A retried request with the same key and body replays the prior response.',
+  })
   @ApiOkResponse({ type: RecordedEventResponse })
   @ApiUnauthorizedResponse({ type: ProblemResponse })
   @ApiForbiddenResponse({ type: ProblemResponse })
@@ -681,6 +768,19 @@ export class MatchControlController {
     @Param('matchId') matchId: string,
     @Body() body: RecordEventRequest,
     @Req() request: RequestWithSubject,
+    @Headers('idempotency-key') idempotencyKey?: string,
+  ): Promise<RecordedEventResponse> {
+    return this.withIdempotency(idempotencyKey, matchId, 'record-event', body, () =>
+      this.recordEventOnce(organizationAlias, tournamentAlias, matchId, body, request),
+    );
+  }
+
+  private async recordEventOnce(
+    organizationAlias: string,
+    tournamentAlias: string,
+    matchId: string,
+    body: RecordEventRequest,
+    request: RequestWithSubject,
   ): Promise<RecordedEventResponse> {
     const tournament = await this.resolveTournament(organizationAlias, tournamentAlias);
     const competition = new CompetitionRepository(this.db);
@@ -1679,6 +1779,54 @@ export class MatchControlController {
     if (!stageId) throw new NotFoundException(`Match "${matchId}" belongs to no stage`);
     return stageId;
   }
+
+  /**
+   * The generalized form of `finalize`'s own idempotency handling (0123):
+   * every other mutating console command now shares this one check/record
+   * path instead of each carrying its own copy. An omitted key runs `run()`
+   * unguarded — additive only, matching how `finalize` already behaves for a
+   * caller sending no key today. A cache hit replays without ever calling
+   * `run()`, so a retried request skips re-validation and re-authorization
+   * exactly the way `finalize`'s own early check already does.
+   *
+   * `run()`'s result is recorded in its own short transaction after `run()`
+   * completes, not folded into `run()`'s own transaction — most of these
+   * routes' responses come from a post-commit read (`consoleProjection()`),
+   * so there is no single transaction that already contains the exact
+   * response object to persist atomically the way `finalize`'s pre-computed
+   * response does.
+   */
+  private async withIdempotency<T>(
+    idempotencyKey: string | undefined,
+    matchId: string,
+    operation: string,
+    requestBody: unknown,
+    run: () => Promise<T>,
+  ): Promise<T> {
+    if (!idempotencyKey) return run();
+    const idempotency = new MatchCommandIdempotencyRepository(this.db);
+    const fingerprint = fingerprintOf(requestBody);
+    const previous = await idempotency.find(idempotencyKey);
+    if (previous) return replayCommand<T>(previous, matchId, operation, fingerprint);
+
+    try {
+      const result = await run();
+      await withTransaction(this.db, (uow) =>
+        idempotency.record(uow, {
+          idempotencyKey,
+          matchId,
+          operation,
+          requestFingerprint: fingerprint,
+          response: result as unknown as Record<string, unknown>,
+        }),
+      );
+      return result;
+    } catch (error) {
+      const raced = await idempotency.find(idempotencyKey);
+      if (!raced) throw error;
+      return replayCommand<T>(raced, matchId, operation, fingerprint);
+    }
+  }
 }
 
 function isMatchCommand(value: string): value is MatchCommand {
@@ -1834,12 +1982,26 @@ function elapsedSecondsOf(
 }
 
 function finalizeFingerprint(body: FinalizeRequest | undefined): string {
+  return fingerprintOf(body);
+}
+
+/**
+ * Every mutating console command fingerprints its own request body the same
+ * way (0123): a retried idempotency key with an identical body replays the
+ * stored response; the same key with a different body is a conflict, not a
+ * silent re-application of the new one.
+ */
+function fingerprintOf(body: unknown): string {
   return createHash('sha256')
     .update(JSON.stringify(body ?? {}))
     .digest('hex');
 }
 
-function replayFinalize(
+/**
+ * Every idempotent route (0123, finalize included) shares this same
+ * replay-or-conflict check, not a copy of it per route.
+ */
+function replayCommand<T>(
   stored: {
     readonly matchId: string;
     readonly operation: string;
@@ -1847,16 +2009,17 @@ function replayFinalize(
     readonly response: Readonly<Record<string, unknown>>;
   },
   matchId: string,
+  operation: string,
   fingerprint: string,
-): MatchStateResponse {
+): T {
   if (
-    stored.operation !== 'finalize' ||
+    stored.operation !== operation ||
     stored.matchId !== matchId ||
     stored.requestFingerprint !== fingerprint
   ) {
-    throw new ConflictException('Idempotency-Key was already used for a different finalization');
+    throw new ConflictException(`Idempotency-Key was already used for a different ${operation}`);
   }
-  return stored.response as unknown as MatchStateResponse;
+  return stored.response as unknown as T;
 }
 
 export type { RecordedEvent };

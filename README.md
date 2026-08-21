@@ -103,6 +103,11 @@ Full walkthrough, backup/restore, and persistent-data details: [`docs/self-hosti
   rendered from the same trace the rules engine produced — never a hidden calculation.
 - **Live match console** — real-time event recording, idempotent commands, clock/timer control,
   and audited result correction instead of silent overwrites.
+- **Offline-resilient by design** — every console action writes ahead to a durable client-side
+  queue before it's ever sent, so a dropped connection at the pitch never loses a recorded event, a
+  clock adjustment, or a finalization. The queue survives a hard refresh and drains automatically
+  the moment connectivity returns, replaying each action through the same validation a live one
+  goes through — no separate reconciliation logic, no silently lost work.
 - **Public leaderboards, match reports, and player careers** — tournament-wide statistic tables,
   per-match event timelines and rosters, and a player's cross-tournament history, reusing the
   same standings/statistics engine driving the control panel.

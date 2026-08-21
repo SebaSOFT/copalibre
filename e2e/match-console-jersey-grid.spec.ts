@@ -203,22 +203,26 @@ test('scores a goal and credits an assist via the jersey grid', async ({ page })
   await page.getByRole('button', { name: 'Playmaker', exact: true }).click();
   await page.getByRole('button', { name: 'Gol', exact: true }).click();
 
-  expect((await lastRecordedEvent(page))?.body).toMatchObject({
-    definitionCode: 'goal',
-    personId: 'person-a1',
-    payload: { assistedBy: 'person-a2' },
-  });
+  await expect
+    .poll(async () => (await lastRecordedEvent(page))?.body)
+    .toMatchObject({
+      definitionCode: 'goal',
+      personId: 'person-a1',
+      payload: { assistedBy: 'person-a2' },
+    });
 });
 
 test('sanctions an opposing player selected from the opponent grid', async ({ page }) => {
   await page.getByRole('button', { name: 'Defender', exact: true }).click();
   await page.getByRole('button', { name: 'Tarjeta amarilla', exact: true }).click();
 
-  expect((await lastRecordedEvent(page))?.body).toMatchObject({
-    definitionCode: 'yellow-card',
-    personId: 'person-b1',
-    side: 'entrant-b',
-  });
+  await expect
+    .poll(async () => (await lastRecordedEvent(page))?.body)
+    .toMatchObject({
+      definitionCode: 'yellow-card',
+      personId: 'person-b1',
+      side: 'entrant-b',
+    });
 });
 
 test('records a substitution by tapping the outgoing and incoming jerseys', async ({ page }) => {
@@ -230,11 +234,13 @@ test('records a substitution by tapping the outgoing and incoming jerseys', asyn
   await page.getByRole('button', { name: 'Bench Sub', exact: true }).click();
   await page.getByRole('button', { name: 'Cambio', exact: true }).click();
 
-  expect((await lastRecordedEvent(page))?.body).toMatchObject({
-    definitionCode: 'substitution',
-    side: 'entrant-a',
-    payload: { playerOutId: 'person-a2', playerInId: 'person-a-bench' },
-  });
+  await expect
+    .poll(async () => (await lastRecordedEvent(page))?.body)
+    .toMatchObject({
+      definitionCode: 'substitution',
+      side: 'entrant-a',
+      payload: { playerOutId: 'person-a2', playerInId: 'person-a-bench' },
+    });
 });
 
 test('logs an own goal through the same generic event palette, no dedicated workflow', async ({
@@ -243,8 +249,10 @@ test('logs an own goal through the same generic event palette, no dedicated work
   await page.getByRole('button', { name: 'Defender', exact: true }).click();
   await page.getByRole('button', { name: 'Gol en contra', exact: true }).click();
 
-  expect((await lastRecordedEvent(page))?.body).toMatchObject({
-    definitionCode: 'own-goal',
-    personId: 'person-b1',
-  });
+  await expect
+    .poll(async () => (await lastRecordedEvent(page))?.body)
+    .toMatchObject({
+      definitionCode: 'own-goal',
+      personId: 'person-b1',
+    });
 });

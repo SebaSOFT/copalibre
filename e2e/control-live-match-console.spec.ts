@@ -398,7 +398,11 @@ test('guards duplicate finalization and retries a lost response with the same ke
 
   await page.getByRole('button', { name: 'Finalizar partido' }).click();
   await page.getByRole('button', { name: 'Confirmar finalización' }).dblclick();
-  await expect(page.getByText('network lost')).toBeVisible();
+  // A lost response is a network-level failure, not a refusal — 0123's
+  // queue leaves it queued silently (no error banner); the retry below is
+  // exactly that silent-requeue path, the same key reused, now getting
+  // through.
+  await expect(page.getByText('1 acción en cola')).toBeVisible();
   await page.getByRole('button', { name: 'Confirmar finalización' }).click();
   await expect(page.getByText('FINALIZED')).toBeVisible();
 

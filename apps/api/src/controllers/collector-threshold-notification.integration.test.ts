@@ -332,7 +332,10 @@ describe('collector-threshold notifications across a stage (integration, 0074)',
       url: `${base(matchId)}/events`,
       headers: {
         authorization: 'Bearer referee',
-        'idempotency-key': `01890000-0000-7000-8000-00000000${matchId.slice(-4)}`,
+        // A fresh key per call (0123: `recordEvent` now checks one) — the
+        // fourth blue card in the same match is a genuinely distinct event,
+        // not a retry of an earlier one, so it must not collide with it.
+        'idempotency-key': crypto.randomUUID(),
       },
       payload: {
         definitionCode: 'blue-card',

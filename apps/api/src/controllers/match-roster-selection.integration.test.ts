@@ -271,6 +271,9 @@ describe('match roster selection (integration, 0107)', () => {
   const base = () =>
     `/organizations/liga-roster-selection/tournaments/apertura-roster-selection/matches/${matchId}`;
 
+  // A fresh key per call (0123: recordEvent/setRoster now check one too, not
+  // just finalize) — a fixed key would make every subsequent POST/PUT here
+  // collide against whatever the first one recorded.
   function request(method: 'GET' | 'PUT' | 'POST', url: string, token?: string, payload?: unknown) {
     return (app as NestFastifyApplication).inject({
       method,
@@ -278,8 +281,8 @@ describe('match roster selection (integration, 0107)', () => {
       headers: token
         ? {
             authorization: `Bearer ${token}`,
-            ...(method === 'POST'
-              ? { 'idempotency-key': '01890000-0000-7000-8000-00000000c1a1' }
+            ...(method === 'POST' || method === 'PUT'
+              ? { 'idempotency-key': crypto.randomUUID() }
               : {}),
           }
         : {},

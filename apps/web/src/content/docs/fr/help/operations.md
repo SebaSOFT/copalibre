@@ -6,7 +6,10 @@ description: Règles pour gérer les matchs et corriger les données de tournoi.
 ## Console de match
 
 Enregistrez les événements et le chronomètre depuis une console autorisée. La projection publique se
-met à jour à partir d'événements durables et conserve une version pour la récupération.
+met à jour à partir d'événements durables et conserve une version pour la récupération. Chaque
+action s'écrit d'abord dans une file d'attente locale avant d'être envoyée, pour qu'une connexion
+coupée la laisse en attente pour une nouvelle tentative automatique plutôt que de la perdre — voir
+[Console de match en direct](/fr/help/control/match-console/) pour le comportement complet.
 
 ## Corrections
 

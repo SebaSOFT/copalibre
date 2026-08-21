@@ -397,24 +397,28 @@ export interface MatchConsoleApiClient {
     matchId: string,
     entrantId: string,
     request: SetMatchRosterRequest,
+    idempotencyKey: string,
   ) => Promise<MatchConsoleResponse>;
   readonly adjustMatchClock: (
     organizationAlias: string,
     tournamentAlias: string,
     matchId: string,
     request: ClockAdjustmentRequest,
+    idempotencyKey: string,
   ) => Promise<MatchConsoleResponse>;
   readonly resolveMatchTimer: (
     organizationAlias: string,
     tournamentAlias: string,
     matchId: string,
     timerId: string,
+    idempotencyKey: string,
   ) => Promise<MatchConsoleResponse>;
   readonly recordMatchEvent: (
     organizationAlias: string,
     tournamentAlias: string,
     matchId: string,
     request: RecordMatchEventRequest,
+    idempotencyKey: string,
   ) => Promise<RecordedMatchEventResponse>;
   readonly finalizeMatch: (
     organizationAlias: string,
@@ -1353,32 +1357,39 @@ export function createControlApiClient(input: {
         { token: input.accessToken?.() },
       ),
 
-    setMatchRoster: (organizationAlias, tournamentAlias, matchId, entrantId, body) =>
+    setMatchRoster: (
+      organizationAlias,
+      tournamentAlias,
+      matchId,
+      entrantId,
+      body,
+      idempotencyKey,
+    ) =>
       requestJson<MatchConsoleResponse>(
         input.fetch,
         `${matchPath(baseUrl, organizationAlias, tournamentAlias, matchId)}/rosters/${encodeURIComponent(entrantId)}`,
-        { method: 'PUT', body, token: input.accessToken?.() },
+        { method: 'PUT', body, token: input.accessToken?.(), idempotencyKey },
       ),
 
-    adjustMatchClock: (organizationAlias, tournamentAlias, matchId, body) =>
+    adjustMatchClock: (organizationAlias, tournamentAlias, matchId, body, idempotencyKey) =>
       requestJson<MatchConsoleResponse>(
         input.fetch,
         `${matchPath(baseUrl, organizationAlias, tournamentAlias, matchId)}/clock`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body, token: input.accessToken?.(), idempotencyKey },
       ),
 
-    resolveMatchTimer: (organizationAlias, tournamentAlias, matchId, timerId) =>
+    resolveMatchTimer: (organizationAlias, tournamentAlias, matchId, timerId, idempotencyKey) =>
       requestJson<MatchConsoleResponse>(
         input.fetch,
         `${matchPath(baseUrl, organizationAlias, tournamentAlias, matchId)}/timers/${encodeURIComponent(timerId)}/resolve`,
-        { method: 'POST', token: input.accessToken?.() },
+        { method: 'POST', token: input.accessToken?.(), idempotencyKey },
       ),
 
-    recordMatchEvent: (organizationAlias, tournamentAlias, matchId, body) =>
+    recordMatchEvent: (organizationAlias, tournamentAlias, matchId, body, idempotencyKey) =>
       requestJson<RecordedMatchEventResponse>(
         input.fetch,
         `${matchPath(baseUrl, organizationAlias, tournamentAlias, matchId)}/events`,
-        { method: 'POST', body, token: input.accessToken?.() },
+        { method: 'POST', body, token: input.accessToken?.(), idempotencyKey },
       ),
 
     finalizeMatch: (organizationAlias, tournamentAlias, matchId, body, idempotencyKey) =>

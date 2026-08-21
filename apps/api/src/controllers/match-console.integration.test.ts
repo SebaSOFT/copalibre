@@ -374,17 +374,79 @@ describe('live match console (integration)', () => {
     expect(recorded?.notes).toBe('Contested by home captain');
   });
 
+  it('replays a retried event recording without re-applying it, and refuses the same key with a different body (0123)', async () => {
+    const key = crypto.randomUUID();
+    const payload = {
+      definitionCode: 'manual-penalty',
+      segmentId,
+      occurredAt: Date.now(),
+      side: entrantIds[0],
+    };
+    const first = await request('POST', `${base()}/events`, 'referee', payload, key);
+    const replay = await request('POST', `${base()}/events`, 'referee', payload, key);
+    const conflict = await request(
+      'POST',
+      `${base()}/events`,
+      'referee',
+      { ...payload, side: entrantIds[1] },
+      key,
+    );
+    expect(first.statusCode).toBe(201);
+    expect(replay.json()).toEqual(first.json());
+    expect(conflict.statusCode).toBe(409);
+
+    const projection = await request('GET', `${base()}/console`, 'referee');
+    expect(
+      projection
+        .json()
+        .events.filter((event: { eventId: string }) => event.eventId === first.json().eventId),
+    ).toHaveLength(1);
+  });
+
+  it('replays a retried clock adjustment without re-applying it, and refuses the same key with a different body (0123)', async () => {
+    const key = crypto.randomUUID();
+    const payload = { segmentId, elapsedSeconds: 45, activate: true };
+    const first = await request('POST', `${base()}/clock`, 'referee', payload, key);
+    const replay = await request('POST', `${base()}/clock`, 'referee', payload, key);
+    const conflict = await request(
+      'POST',
+      `${base()}/clock`,
+      'referee',
+      { ...payload, elapsedSeconds: 999 },
+      key,
+    );
+    expect(first.statusCode).toBe(201);
+    expect(replay.json()).toEqual(first.json());
+    expect(conflict.statusCode).toBe(409);
+  });
+
+  it('replays a retried start/pause/resume command without re-applying it, and refuses the same key with a different command (0123)', async () => {
+    const key = crypto.randomUUID();
+    const first = await request('POST', `${base()}/commands/pause`, 'referee', undefined, key);
+    const replay = await request('POST', `${base()}/commands/pause`, 'referee', undefined, key);
+    const conflict = await request('POST', `${base()}/commands/resume`, 'referee', undefined, key);
+    expect(first.statusCode).toBe(201);
+    expect(replay.json()).toEqual(first.json());
+    expect(conflict.statusCode).toBe(409);
+    // Leave the match running again for the tests that follow.
+    await request('POST', `${base()}/commands/resume`, 'referee');
+  });
+
   it('persists one finalization per idempotency key and rejects altered retries', async () => {
     const payload = {
       sides: entrantIds.map((entrantId) => ({ entrantId, statistics: {} })),
       winnerEntrantId: entrantIds[0],
     };
-    const first = await request('POST', `${base()}/commands/finalize`, 'referee', payload);
-    const replay = await request('POST', `${base()}/commands/finalize`, 'referee', payload);
-    const conflict = await request('POST', `${base()}/commands/finalize`, 'referee', {
-      ...payload,
-      winnerEntrantId: entrantIds[1],
-    });
+    const key = '01890000-0000-7000-8000-00000000a025';
+    const first = await request('POST', `${base()}/commands/finalize`, 'referee', payload, key);
+    const replay = await request('POST', `${base()}/commands/finalize`, 'referee', payload, key);
+    const conflict = await request(
+      'POST',
+      `${base()}/commands/finalize`,
+      'referee',
+      { ...payload, winnerEntrantId: entrantIds[1] },
+      key,
+    );
     expect(first.statusCode).toBe(201);
     expect(replay.json()).toEqual(first.json());
     expect(conflict.statusCode).toBe(409);
@@ -402,6 +464,18 @@ describe('live match console (integration)', () => {
       occurredAt: Date.now(),
     });
     expect(response.statusCode).toBe(400);
+  });
+
+  it('refuses a roster selection replayed after the match already finalized, exactly as a live one would be (0123)', async () => {
+    const response = await request(
+      'PUT',
+      `${base()}/rosters/${entrantIds[0]}`,
+      'referee',
+      { members: [] },
+      crypto.randomUUID(),
+    );
+    expect(response.statusCode).toBe(400);
+    expect(response.json().message).toContain('roster selection happens while it is in progress');
   });
 
   async function seedRole(
@@ -438,15 +512,27 @@ describe('live match console (integration)', () => {
       .execute();
   }
 
-  function request(method: 'GET' | 'POST', url: string, token?: string, payload?: unknown) {
+  // Every POST/PUT now carries its own fresh idempotency key by default
+  // (0123: recordEvent/clock/roster/timer-resolve all check one, not just
+  // finalize) — an unrelated call reusing the same key would otherwise 409
+  // against whatever the first one recorded. A test exercising idempotency
+  // itself passes an explicit `idempotencyKey` to force a collision on
+  // purpose.
+  function request(
+    method: 'GET' | 'POST' | 'PUT',
+    url: string,
+    token?: string,
+    payload?: unknown,
+    idempotencyKey?: string,
+  ) {
     return (app as NestFastifyApplication).inject({
       method,
       url,
       headers: token
         ? {
             authorization: `Bearer ${token}`,
-            ...(method === 'POST'
-              ? { 'idempotency-key': '01890000-0000-7000-8000-00000000a025' }
+            ...(method === 'POST' || method === 'PUT'
+              ? { 'idempotency-key': idempotencyKey ?? crypto.randomUUID() }
               : {}),
           }
         : {},
@@ -661,7 +747,15 @@ describe('live match console — real catalogue foul/throw-in vocabulary (0115)'
     await scratch?.drop();
   });
 
-  function request(method: 'GET' | 'POST', url: string, token?: string, payload?: unknown) {
+  // See the sibling `request()` above (0123): a fresh key per call by
+  // default, since every POST checks one now, not just finalize.
+  function request(
+    method: 'GET' | 'POST',
+    url: string,
+    token?: string,
+    payload?: unknown,
+    idempotencyKey?: string,
+  ) {
     return (app as NestFastifyApplication).inject({
       method,
       url,
@@ -669,7 +763,7 @@ describe('live match console — real catalogue foul/throw-in vocabulary (0115)'
         ? {
             authorization: `Bearer ${token}`,
             ...(method === 'POST'
-              ? { 'idempotency-key': '01890000-0000-7000-8000-00000000b025' }
+              ? { 'idempotency-key': idempotencyKey ?? crypto.randomUUID() }
               : {}),
           }
         : {},
