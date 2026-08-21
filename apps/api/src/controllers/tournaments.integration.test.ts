@@ -120,4 +120,61 @@ describe('organization-scoped tournament routes', () => {
     });
     expect(response.statusCode).toBe(404);
   });
+
+  it("lists the organization's active tournaments, excluding archived (0113)", async () => {
+    const tournaments = new TournamentRepository(scratch.db);
+    const descriptor = footballDescriptor();
+    await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+      tournaments.saveDescriptor(uow, descriptor, {
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      }),
+    );
+
+    const draft = await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+      tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-active-draft',
+        name: 'Copa Active Draft',
+        descriptor,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      }),
+    );
+
+    const toArchive = await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+      tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-archived',
+        name: 'Copa Archived',
+        descriptor,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      }),
+    );
+    await scratch.db
+      .updateTable('tournaments')
+      .set({ status: 'archived' })
+      .where('tournament_id', '=', toArchive.tournamentId)
+      .execute();
+
+    const noToken = await request({
+      method: 'GET',
+      url: '/organizations/liga-orbital/tournaments',
+    });
+    expect(noToken.statusCode).toBe(401);
+
+    const response = await request({
+      method: 'GET',
+      url: '/organizations/liga-orbital/tournaments',
+      token: 'organizer-org1',
+    });
+    expect(response.statusCode).toBe(200);
+    const aliases = (JSON.parse(response.payload as string) as { alias: string }[]).map(
+      (t) => t.alias,
+    );
+    expect(aliases).toContain(draft.alias);
+    expect(aliases).not.toContain(toArchive.alias);
+  });
 });

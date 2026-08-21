@@ -6,7 +6,9 @@ import type {
 } from '@copalibre/api/src/dto/table-projections.dto.js';
 import { localizedText } from '../lib/localized-label.ts';
 import { messages } from '../lib/i18n/public-messages.en.ts';
+import { clubEmblemUrl } from '../lib/public-api-client.ts';
 import type { ClubView } from '../lib/overview.ts';
+import EmblemImage from './EmblemImage.astro';
 
 interface Props {
   /** The declared layouts for building the tab strip. */
@@ -99,6 +101,24 @@ const isPlayerRanking =
               data-club-filter={club.clubId}
               title={club.name}
             >
+              {
+                // The interaction 0103 named as its motivation: a rendered
+                // club emblem, clickable to filter — this link is that
+                // click target. Every club gets one (placeholder or real),
+                // matching the organization page's own club grid (0110).
+                organizationAlias && (
+                  <EmblemImage
+                    alt={intl.formatMessage(messages.orgPageEmblemAlt, { name: club.name })}
+                    placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
+                    size={20}
+                    src={
+                      club.emblemObjectId
+                        ? clubEmblemUrl(organizationAlias, club.clubId)
+                        : undefined
+                    }
+                  />
+                )
+              }
               {club.name}
             </a>
           );
@@ -328,6 +348,7 @@ const isPlayerRanking =
   .cl-club-filter__btn {
     display: inline-flex;
     align-items: center;
+    gap: 6px;
     padding: 4px 10px;
     border-radius: 9999px;
     font-size: 0.875rem;

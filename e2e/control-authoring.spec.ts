@@ -36,6 +36,9 @@ async function mockControlApi(page: Page): Promise<void> {
     ({ disciplines, registrations, tokenEndpoint }) => {
       const captured: CapturedRequest[] = [];
       Object.assign(window, { __controlRequests: captured });
+      // Stateful across requests within this test: the dashboard's real
+      // tournament list (0113) reads back whatever the wizard just created.
+      const createdTournaments: unknown[] = [];
 
       window.fetch = async (input, init) => {
         const url = String(input);
@@ -51,13 +54,28 @@ async function mockControlApi(page: Page): Promise<void> {
           return Response.json(disciplines);
         }
 
-        if (url === '/organizations/liga-mendocina/tournaments') {
-          return Response.json({
+        if (url === '/organizations/liga-mendocina/tournaments' && method === 'GET') {
+          return Response.json(createdTournaments);
+        }
+
+        if (url === '/organizations/liga-mendocina/tournaments' && method === 'POST') {
+          const created = {
             tournamentId: 'tournament-002',
+            organizationId: 'org-liga-mendocina',
             alias: 'apertura-local',
             name: 'Apertura Local',
             rulesetId: 'ruleset-002',
-          });
+            status: 'draft',
+          };
+          createdTournaments.push(created);
+          return Response.json(created);
+        }
+
+        if (
+          url ===
+          '/organizations/liga-mendocina/tournaments/apertura-local/registrations?status=pending'
+        ) {
+          return Response.json([]);
         }
 
         if (url === '/organizations/liga-mendocina/tournaments/apertura-2026/registrations') {
@@ -135,6 +153,14 @@ test('creates a tournament from the control authoring wizard', async ({ page }) 
         }),
       }),
     );
+
+  // The dashboard's tournament list is real data now (0113), not sample
+  // data — the tournament this test just created through the real write
+  // path shows up on it. Client-side navigation (no reload) keeps the
+  // in-memory session.
+  await page.getByRole('link', { name: 'Panel' }).click();
+  await page.waitForURL('**/control/liga-mendocina');
+  await expect(page.getByText('Apertura Local')).toBeVisible();
 });
 
 test('bulk-approves visible registrations from the review queue', async ({ page }) => {

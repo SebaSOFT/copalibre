@@ -16,7 +16,6 @@ import {
   type MatchConsoleResponse,
 } from './lib/api-client.js';
 import { mutationFeedback } from './lib/mutation-feedback.js';
-import { sampleDashboardData } from './lib/sample.js';
 import { TournamentSetupWizard } from './components/TournamentSetupWizard.js';
 import { withIntl } from './i18n/test-support.js';
 
@@ -452,13 +451,3 @@ function formatDescriptor(
   render(withIntl(<Probe />));
   return formatted;
 }
-
-describe('the sample data', () => {
-  it('describes one organization', () => {
-    const sample = sampleDashboardData();
-
-    expect(sample.tournaments.every((one) => one.organizationId === sample.organizationId)).toBe(
-      true,
-    );
-  });
-});

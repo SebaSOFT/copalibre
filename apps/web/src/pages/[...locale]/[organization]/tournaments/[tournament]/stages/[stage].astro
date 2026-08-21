@@ -42,6 +42,8 @@ if (!overviewData || !bracketData) {
 
 const model = buildOverview(mapOverviewResponse(overviewData));
 const localePrefix = locale ? `/${locale}` : '';
+const stagePath = `${localePrefix}${model.canonicalPath}/stages/${stageNumber}`;
+const activeClubId = Astro.url.searchParams.get('clubId') ?? undefined;
 
 // This stage's own group-phase table (e.g. a round-robin group's standings),
 // when its discipline declares one — an elimination stage naturally has
@@ -49,7 +51,13 @@ const localePrefix = locale ? `/${locale}` : '';
 const layoutsResponse = await fetchPublicTableLayouts(organization!, tournament!);
 const groupPhaseLayout = layoutsResponse?.layouts.find((one) => one.target === 'group-phase');
 const standingsProjection = groupPhaseLayout
-  ? await fetchPublicTableProjection(organization!, tournament!, groupPhaseLayout.code, stageNumber)
+  ? await fetchPublicTableProjection(
+      organization!,
+      tournament!,
+      groupPhaseLayout.code,
+      stageNumber,
+      activeClubId,
+    )
   : undefined;
 ---
 
@@ -70,7 +78,16 @@ const standingsProjection = groupPhaseLayout
   <ResultLegend intl={intl} />
   {
     standingsProjection && (
-      <StandingsPreview layout={groupPhaseLayout} projection={standingsProjection} intl={intl} />
+      <StandingsPreview
+        activeClubId={activeClubId}
+        canonicalPath={stagePath}
+        clubs={model.clubs}
+        intl={intl}
+        layout={groupPhaseLayout}
+        organizationAlias={organization}
+        projection={standingsProjection}
+        tournamentAlias={tournament}
+      />
     )
   }
 </PublicLayout>
