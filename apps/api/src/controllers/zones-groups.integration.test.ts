@@ -361,4 +361,80 @@ describe('zone and group draw routes (integration)', () => {
     if (!nextStage.ok) throw nextStage.error;
     expect(nextStage.value.matches).toHaveLength(7);
   });
+
+  it('manually assigns zones and groups without a draw (0108)', async () => {
+    const competition = new CompetitionRepository(harness.scratch.db);
+    const manualStage = await withTransaction(harness.scratch.db, (uow) =>
+      competition.createStageInTournament(uow, {
+        tournamentId,
+        number: 3,
+        name: 'Manual',
+        format: 'round-robin',
+        organizationId: harness.organizationId,
+        ...AUDIT,
+      }),
+    );
+    const manualStageBase = `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages/3`;
+    const entrantIds = (
+      await new EnrollmentRepository(harness.scratch.db).listEntrants(tournamentId)
+    )
+      .filter((entrant) => entrant.status === 'accepted')
+      .map((entrant) => entrant.entrantId);
+
+    const unauthorized = await harness.request({
+      method: 'POST',
+      url: `${manualStageBase}/zones/assign`,
+      payload: { assignment: { groups: {} }, zoneCount: 1 },
+    });
+    expect(unauthorized.statusCode).toBe(401);
+
+    const assignment = Object.fromEntries(entrantIds.map((id) => [id, 1]));
+    const assignedZones = await harness.request({
+      method: 'POST',
+      url: `${manualStageBase}/zones/assign`,
+      token: 'organizer-org1',
+      payload: { assignment: { groups: assignment }, zoneCount: 1 },
+    });
+    expect(assignedZones.statusCode).toBe(200);
+    expect(assignedZones.json().assignment.groups).toEqual(assignment);
+    const [manualZone] = assignedZones.json().zones as Array<{ zoneId: string; number: number }>;
+    expect(manualZone).toMatchObject({ number: 1 });
+
+    // A second manual zone-assign for the same stage refuses — mirrors the
+    // existing draw-confirm route's own "already assigned" invariant.
+    const repeatZoneAssign = await harness.request({
+      method: 'POST',
+      url: `${manualStageBase}/zones/assign`,
+      token: 'organizer-org1',
+      payload: { assignment: { groups: assignment }, zoneCount: 1 },
+    });
+    expect(repeatZoneAssign.statusCode).toBe(409);
+
+    const groupAssignment = Object.fromEntries(
+      entrantIds.map((id, index) => [id, (index % 2) + 1]),
+    );
+    const assignedGroups = await harness.request({
+      method: 'POST',
+      url: `${manualStageBase}/zones/${manualZone?.number}/groups/assign`,
+      token: 'organizer-org1',
+      payload: { assignment: { groups: groupAssignment }, groupCount: 2 },
+    });
+    expect(assignedGroups.statusCode).toBe(200);
+    expect(assignedGroups.json().assignment.groups).toEqual(groupAssignment);
+    const groups = assignedGroups.json().groups as Array<{ groupId: string }>;
+    expect(groups).toHaveLength(2);
+
+    const groupEntrants = await Promise.all(
+      groups.map((group) => competition.listEntrantIdsOfGroup(group.groupId)),
+    );
+    expect(groupEntrants.flat().sort()).toEqual([...entrantIds].sort());
+    expect(manualStage.number).toBe(3);
+
+    const zoneEntrants = await harness.request({
+      method: 'GET',
+      url: `${manualStageBase}/zones/${manualZone?.number}/entrants`,
+    });
+    expect(zoneEntrants.statusCode).toBe(200);
+    expect((zoneEntrants.json() as string[]).sort()).toEqual([...entrantIds].sort());
+  });
 });

@@ -760,6 +760,123 @@ export const messages = defineMessages({
     id: 'control.standings.noLayouts',
     defaultMessage: 'This discipline declares no tables for this tournament.',
   },
+  standingsGroupSelector: { id: 'control.standings.groupSelector', defaultMessage: 'Group' },
+
+  // Zone/Group management, entrant assignment, and promotion plans (0108).
+  zoneGroupLoading: { id: 'control.zoneGroup.loading', defaultMessage: 'Loading…' },
+  zoneGroupLoadFailed: {
+    id: 'control.zoneGroup.loadFailed',
+    defaultMessage: 'Could not load zones and groups.',
+  },
+  zoneGroupSaveFailed: {
+    id: 'control.zoneGroup.saveFailed',
+    defaultMessage: 'The request was refused.',
+  },
+  zoneGroupSectionLabel: {
+    id: 'control.zoneGroup.sectionLabel',
+    defaultMessage: 'Zones and groups',
+  },
+  zoneGroupBreadcrumb: {
+    id: 'control.zoneGroup.breadcrumb',
+    defaultMessage: '{tournamentAlias} · Stage {stageNumber}',
+  },
+  zoneGroupTitle: { id: 'control.zoneGroup.title', defaultMessage: 'Zones and groups' },
+  zoneGroupZonesHeading: { id: 'control.zoneGroup.zonesHeading', defaultMessage: 'Zones' },
+  zoneGroupNewZoneName: { id: 'control.zoneGroup.newZoneName', defaultMessage: 'New zone name' },
+  zoneGroupAddZone: { id: 'control.zoneGroup.addZone', defaultMessage: 'Add zone' },
+  zoneGroupAssignZonesHeading: {
+    id: 'control.zoneGroup.assignZonesHeading',
+    defaultMessage: 'Assign entrants to zones',
+  },
+  zoneGroupAutomaticDraw: {
+    id: 'control.zoneGroup.automaticDraw',
+    defaultMessage: 'Automatic draw',
+  },
+  zoneGroupManualPlacement: {
+    id: 'control.zoneGroup.manualPlacement',
+    defaultMessage: 'Manual placement',
+  },
+  zoneGroupZoneCount: { id: 'control.zoneGroup.zoneCount', defaultMessage: 'Number of zones' },
+  zoneGroupGroupCount: { id: 'control.zoneGroup.groupCount', defaultMessage: 'Number of groups' },
+  zoneGroupSeed: { id: 'control.zoneGroup.seed', defaultMessage: 'Draw seed' },
+  zoneGroupPreviewDraw: { id: 'control.zoneGroup.previewDraw', defaultMessage: 'Preview draw' },
+  zoneGroupConfirmDraw: { id: 'control.zoneGroup.confirmDraw', defaultMessage: 'Confirm draw' },
+  zoneGroupPlacementNumber: {
+    id: 'control.zoneGroup.placementNumber',
+    defaultMessage: '{name} — number',
+  },
+  zoneGroupSaveAssignment: {
+    id: 'control.zoneGroup.saveAssignment',
+    defaultMessage: 'Save assignment',
+  },
+  zoneGroupPreviewResult: {
+    id: 'control.zoneGroup.previewResult',
+    defaultMessage: 'Preview ready — {count} entrant(s) assigned.',
+  },
+  zoneGroupAssignmentSaved: {
+    id: 'control.zoneGroup.assignmentSaved',
+    defaultMessage: 'Assignment saved.',
+  },
+  zoneGroupSelectZone: { id: 'control.zoneGroup.selectZone', defaultMessage: 'Zone' },
+  zoneGroupGroupsHeading: { id: 'control.zoneGroup.groupsHeading', defaultMessage: 'Groups' },
+  zoneGroupNewGroupName: { id: 'control.zoneGroup.newGroupName', defaultMessage: 'New group name' },
+  zoneGroupAddGroup: { id: 'control.zoneGroup.addGroup', defaultMessage: 'Add group' },
+  zoneGroupAssignGroupsHeading: {
+    id: 'control.zoneGroup.assignGroupsHeading',
+    defaultMessage: 'Assign entrants to groups',
+  },
+  zoneGroupOpenPromotionPlan: {
+    id: 'control.zoneGroup.openPromotionPlan',
+    defaultMessage: 'Open promotion plan',
+  },
+
+  promotionLoading: { id: 'control.promotion.loading', defaultMessage: 'Loading…' },
+  promotionSectionLabel: {
+    id: 'control.promotion.sectionLabel',
+    defaultMessage: 'Promotion plan',
+  },
+  promotionBreadcrumb: {
+    id: 'control.promotion.breadcrumb',
+    defaultMessage: '{tournamentAlias} · {zoneName}',
+  },
+  promotionTitle: { id: 'control.promotion.title', defaultMessage: 'Promotion plan' },
+  promotionConfigHeading: {
+    id: 'control.promotion.configHeading',
+    defaultMessage: 'Configuration',
+  },
+  promotionNextStageNumber: {
+    id: 'control.promotion.nextStageNumber',
+    defaultMessage: 'Next stage number',
+  },
+  promotionPerGroupAdvance: {
+    id: 'control.promotion.perGroupAdvance',
+    defaultMessage: 'Entrants advancing per group',
+  },
+  promotionBandsHeading: {
+    id: 'control.promotion.bandsHeading',
+    defaultMessage: 'Bands (only if the next stage has more than one zone)',
+  },
+  promotionBandZoneRef: {
+    id: 'control.promotion.bandZoneRef',
+    defaultMessage: 'Destination zone name',
+  },
+  promotionBandCount: { id: 'control.promotion.bandCount', defaultMessage: 'Count' },
+  promotionRemoveBand: { id: 'control.promotion.removeBand', defaultMessage: 'Remove band' },
+  promotionAddBand: { id: 'control.promotion.addBand', defaultMessage: 'Add band' },
+  promotionSavePlan: { id: 'control.promotion.savePlan', defaultMessage: 'Save promotion plan' },
+  promotionReviewHeading: {
+    id: 'control.promotion.reviewHeading',
+    defaultMessage: 'Review — computed candidate order',
+  },
+  promotionPlanSaved: { id: 'control.promotion.planSaved', defaultMessage: 'Plan saved.' },
+  promotionSaveFailed: {
+    id: 'control.promotion.saveFailed',
+    defaultMessage: 'The plan was refused.',
+  },
+  promotionNoPlanYet: {
+    id: 'control.promotion.noPlanYet',
+    defaultMessage: 'No promotion plan saved for this zone yet.',
+  },
 
   // Post-login landing (ControlApp.tsx's LoginLanding, 0063)
   landingEmptyTitle: { id: 'control.landing.emptyTitle', defaultMessage: 'No organizations yet' },

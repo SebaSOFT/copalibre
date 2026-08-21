@@ -255,6 +255,25 @@ describe('parseControlPath', () => {
         stageNumber: 2,
       },
     ],
+    [
+      '/control/liga-mendocina/tournaments/apertura-2026/stages/1/zones',
+      {
+        screen: 'zoneGroups',
+        organizationAlias: 'liga-mendocina',
+        tournamentAlias: 'apertura-2026',
+        stageNumber: 1,
+      },
+    ],
+    [
+      '/control/liga-mendocina/tournaments/apertura-2026/stages/1/zones/2/promotion',
+      {
+        screen: 'promotionPlan',
+        organizationAlias: 'liga-mendocina',
+        tournamentAlias: 'apertura-2026',
+        stageNumber: 1,
+        zoneNumber: 2,
+      },
+    ],
   ] as const)('matches %s', (pathname, expected) => {
     expect(parseControlPath(pathname)).toEqual(expected);
   });

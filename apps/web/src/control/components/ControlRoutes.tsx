@@ -9,6 +9,8 @@ import { TournamentAuthoringPage } from './TournamentAuthoringPage.js';
 import { RolesPermissionsRoute } from './RolesPermissionsRoute.js';
 import { MatchConsoleRoute } from './MatchConsoleRoute.js';
 import { LoadMatchDataRoute } from './LoadMatchDataRoute.js';
+import { ZoneGroupRoute } from './ZoneGroupRoute.js';
+import { PromotionPlanRoute } from './PromotionPlanRoute.js';
 import { PreferencesRoute } from './PreferencesRoute.js';
 
 export function PreferencesControlRoute({
@@ -197,6 +199,55 @@ export function LoadMatchDataControlRoute({
         matchId={matchId}
         organizationAlias={organizationAlias}
         tournamentAlias={tournamentAlias}
+      />
+    </ControlShell>
+  );
+}
+
+export function ZoneGroupControlRoute({
+  organizationAlias,
+  tournamentAlias,
+  stageNumber,
+  client,
+}: {
+  readonly organizationAlias: string;
+  readonly tournamentAlias: string;
+  readonly stageNumber: number;
+  readonly client?: ControlApiClient;
+}): React.JSX.Element {
+  return (
+    <ControlShell helpPath="zone-groups" organizationAlias={organizationAlias}>
+      <ZoneGroupRoute
+        client={client}
+        organizationAlias={organizationAlias}
+        stageNumber={stageNumber}
+        tournamentAlias={tournamentAlias}
+      />
+    </ControlShell>
+  );
+}
+
+export function PromotionPlanControlRoute({
+  organizationAlias,
+  tournamentAlias,
+  stageNumber,
+  zoneNumber,
+  client,
+}: {
+  readonly organizationAlias: string;
+  readonly tournamentAlias: string;
+  readonly stageNumber: number;
+  readonly zoneNumber: number;
+  readonly client?: ControlApiClient;
+}): React.JSX.Element {
+  return (
+    <ControlShell helpPath="promotion-plan" organizationAlias={organizationAlias}>
+      <PromotionPlanRoute
+        client={client}
+        organizationAlias={organizationAlias}
+        stageNumber={stageNumber}
+        tournamentAlias={tournamentAlias}
+        zoneNumber={zoneNumber}
       />
     </ControlShell>
   );
