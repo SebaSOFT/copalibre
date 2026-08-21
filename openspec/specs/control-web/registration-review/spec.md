@@ -3,7 +3,9 @@
 ## Purpose
 Lets organizers review, approve, deny, and check in tournament registrations individually or in
 bulk, and locks eligibility edits once check-in closes.
+
 ## Requirements
+
 ### Requirement: Registrations are filterable by status
 The registration review screen SHALL let an organizer filter the registrations table by status
 (All, Pending, Accepted, Refused).
@@ -100,3 +102,30 @@ recorded without a separate read.
 - **WHEN** a team-membership edit adds one person and removes another
 - **THEN** the response's membership list includes the added person, excludes the removed one, and
   includes everyone else who was already a member
+
+### Requirement: Entrants needing an abbreviation are visible and resolvable
+
+For a tournament with at least one entrant that has no resolved abbreviation, control-web SHALL show a
+list of those entrants, and SHALL let an officer set each one's abbreviation directly, rejecting a
+value already taken by another entrant in the same tournament with an inline error rather than a
+generic failure.
+
+#### Scenario: No entrant needs an abbreviation
+- **WHEN** an officer opens the entrants-needing-abbreviation screen for a tournament where every
+  entrant already has one (supplied or derived)
+- **THEN** the screen shows an empty state, not an error
+
+#### Scenario: An entrant collided on derivation is listed
+- **WHEN** an entrant registered with no abbreviation because its derived candidate was already taken
+  in the tournament
+- **THEN** that entrant appears on the list until an officer sets one
+
+#### Scenario: Setting a colliding value is rejected inline
+- **WHEN** an officer attempts to set an entrant's abbreviation to a value another entrant in the same
+  tournament already has
+- **THEN** the screen shows the collision inline, naming the conflicting value, and the entrant remains
+  on the list
+
+#### Scenario: A successfully set abbreviation removes the entrant from the list
+- **WHEN** an officer sets a free, valid abbreviation for a listed entrant
+- **THEN** that entrant no longer appears on the list on the next read
