@@ -1,7 +1,12 @@
 # CopaLibre
 
+<img src="copalibre-logo.svg" alt="CopaLibre" width="96" height="96" />
+
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
 [![CI](https://github.com/SebaSOFT/copalibre/actions/workflows/ci.yml/badge.svg)](https://github.com/SebaSOFT/copalibre/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/SebaSOFT/copalibre)](https://github.com/SebaSOFT/copalibre/releases)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)](tsconfig.json)
+[![Discussions](https://img.shields.io/github/discussions/SebaSOFT/copalibre)](https://github.com/SebaSOFT/copalibre/discussions)
 
 > **Self-hosted tournament management for clubs, leagues, federations, and competitive communities.**
 
@@ -15,35 +20,19 @@ Built with NestJS + Fastify on PostgreSQL (Kysely), Astro + React for the web su
 declarative rules engine ([`@sebasoft/neuron-js`](https://github.com/SebaSOFT/neuron-js)) for
 discipline logic — shipped as a single multi-role Docker image driven by the `copalibre` CLI.
 
-## Features
+## Get Started
 
-- **Tournament authoring & registration** — discipline configuration, ruleset versioning,
-  registration review, and check-in.
-- **Seeding & bracket builder** — lock/randomize seeds, inspect the exact bracket the fixture
-  engine generated (single/double elimination, round-robin, league).
-- **Explainable standings** — every ranking exposes the tiebreak comparator that decided it,
-  rendered from the same trace the rules engine produced — never a hidden calculation.
-- **Live match console** — real-time event recording, idempotent commands, clock/timer control,
-  and audited result correction instead of silent overwrites.
-- **Roles & permissions** — organization-scoped RBAC, server-enforced independent of the UI.
-- **Data ownership** — reviewed CSV import/export keyed by stable aliases, not raw IDs.
-- **Public coverage** — schedules, live outcomes, brackets, and standings, separate from operator
-  controls.
-- **Self-hosted deployment** — one Docker image runs every process role; the `copalibre` CLI
-  handles init, health checks (`doctor`), start, admin bootstrap, and verified backup/restore.
+```bash
+curl -fsSL https://www.copalibre.app/install.sh | bash
+mkdir my-league && cd my-league && copalibre init
+# edit .env — see the comments copalibre init writes into it
+copalibre doctor && copalibre start
+copalibre create-admin --organization-alias my-league --organization-name "My League" --email admin@example.com
+```
 
-## Disciplines and formats
+Full walkthrough, remote management, TLS, and the contributor checkout: see Full walkthrough below.
 
-A competition is two independently versioned, attributed JSON documents — never code — so adding
-a sport is a data submission, not a patch: a **discipline** (segments, events, statistics, scoring,
-available formats) and a **tournament profile** (stages, formats, points, tiebreak order). See
-[`docs/MODULES.md`](docs/MODULES.md).
-
-Seeded today: **football**, **tennis**. Supported formats: single- and double-elimination,
-round-robin (single-leg and home/away), league, and placement stages (free-for-all/heats) that feed
-a standings table instead of another match.
-
-## Quickstart
+### Full walkthrough
 
 ```bash
 curl -fsSL https://www.copalibre.app/install.sh | bash
@@ -70,11 +59,23 @@ token from the control panel's preferences screen, then `copalibre login --api-u
 https://api.example`. `statistics-rebuild` and `module add/list/remove/verify` then run over an
 authenticated HTTP connection.
 
+Day-two operations run through the same binary: `backup`/`restore` a compressed,
+retention-managed data packet, and `upgrade-check` to verify module and migration compatibility
+before moving a running installation to a newer version non-destructively (`copalibre start`
+applies pending migrations automatically once you do). `copalibre mcp` runs a local stdio MCP
+server so an AI agent can drive the same operations — see [`docs/MCP.md`](docs/MCP.md). The full
+command reference, generated from the CLI's own metadata and checked at build time against every
+shipped command, lives at `/help/cli/commands/` on a running instance.
+
+Prefer Kubernetes over Docker Compose? A Helm chart ([`deploy/helm/copalibre/`](deploy/helm/copalibre/))
+covers that path too — see `/help/self-hosting.md`'s Option B on a running instance for the
+`helm install` walkthrough and autoscaling caveats.
+
 `docker-compose.yml` does not terminate TLS by design — put Caddy or NGINX at the edge (example
 configs in [`deploy/proxy/`](deploy/proxy/)) and verify it with
 `copalibre doctor --check-proxy --proxy-url https://events.example/events/proxy-check`.
 
-### Contributor / module-author checkout
+#### Contributor / module-author checkout
 
 Building CopaLibre itself, or authoring a module against its own source, needs a full checkout —
 the same commands, run through the checkout's own `./copalibre` wrapper instead of the installed
@@ -91,6 +92,37 @@ cd copalibre
 
 See [`AGENTS.md`](AGENTS.md) for the full contributor guide.
 Full walkthrough, backup/restore, and persistent-data details: [`docs/self-hosting.md`](docs/self-hosting.md).
+
+## Features
+
+- **Tournament authoring & registration** — discipline configuration, ruleset versioning,
+  registration review, check-in, and zone/group tournament structures with cross-group promotion.
+- **Seeding & bracket builder** — lock/randomize seeds, inspect the exact bracket the fixture
+  engine generated (single/double elimination, round-robin, league).
+- **Explainable standings** — every ranking exposes the tiebreak comparator that decided it,
+  rendered from the same trace the rules engine produced — never a hidden calculation.
+- **Live match console** — real-time event recording, idempotent commands, clock/timer control,
+  and audited result correction instead of silent overwrites.
+- **Public leaderboards, match reports, and player careers** — tournament-wide statistic tables,
+  per-match event timelines and rosters, and a player's cross-tournament history, reusing the
+  same standings/statistics engine driving the control panel.
+- **Roles & permissions** — organization-scoped RBAC, server-enforced independent of the UI.
+- **Data ownership** — reviewed CSV import/export keyed by stable aliases, not raw IDs.
+- **Public coverage** — schedules, live outcomes, brackets, and standings, separate from operator
+  controls.
+- **Self-hosted deployment** — one Docker image runs every process role; the `copalibre` CLI
+  handles init, health checks (`doctor`), start, admin bootstrap, and verified backup/restore.
+
+## Disciplines and formats
+
+A competition is two independently versioned, attributed JSON documents — never code — so adding
+a sport is a data submission, not a patch: a **discipline** (segments, events, statistics, scoring,
+available formats) and a **tournament profile** (stages, formats, points, tiebreak order). See
+[`docs/MODULES.md`](docs/MODULES.md).
+
+Seeded today: **football**, **tennis**. Supported formats: single- and double-elimination,
+round-robin (single-leg and home/away), league, and placement stages (free-for-all/heats) that feed
+a standings table instead of another match.
 
 ## Development
 
@@ -115,21 +147,34 @@ authentication contract). Every change is planned and tracked as an OpenSpec pro
 ## Documentation
 
 - [`docs/self-hosting.md`](docs/self-hosting.md) — deployment, persistent data, backup/restore
+- [`docs/deployment/kamal.md`](docs/deployment/kamal.md) — deploying the same container images to
+  plain managed VMs over SSH with Kamal, an alternative to the Kubernetes/Compose path
+- [`docs/deployment/enterprise-kubernetes.md`](docs/deployment/enterprise-kubernetes.md) — HA,
+  autoscaling, and the evidence gate behind an "enterprise-ready" claim
+- [`docs/deployment/community-modules.md`](docs/deployment/community-modules.md) — publishing and
+  installing community discipline/profile modules
 - [`docs/MCP.md`](docs/MCP.md) — `copalibre mcp`, its tool set, and how an AI agent connects
 - [`docs/MODULES.md`](docs/MODULES.md) — discipline and tournament-profile authoring
 - [`docs/AUTH.md`](docs/AUTH.md) — JWT/OIDC authentication contract
 - [`docs/TESTING.md`](docs/TESTING.md) — testing conventions
+- [`docs/BROADCAST-TV.md`](docs/BROADCAST-TV.md) — the `/tv/` kiosk/overlay surface and
+  device-token pairing
 - [`docs/deployment/reverse-proxy/`](docs/deployment/reverse-proxy/) — Caddy and NGINX examples
+- [`CHANGELOG.md`](CHANGELOG.md) — release history, generated from commit history
 - `/help/` and `/help/api-reference/` on a running instance — operator help and the interactive,
   fully static OpenAPI reference (no live-API or internet dependency)
 
 ## Roadmap
 
-Near-term direction: broadcast/venue TV surfaces, participant reporting and disputes, competition
-lifecycle and archival, community module distribution, and Kubernetes deployment (k3s and
-enterprise) alongside the existing Docker Compose ladder. Every change is planned as an OpenSpec
-proposal before implementation — see [`openspec/specs/`](openspec/specs/) for the accepted,
-currently-implemented capability baseline.
+Active, unimplemented proposals — see [`openspec/changes/`](openspec/changes/) for each one's full
+design:
+
+- Pre-filling the seeding builder from a reviewed zone promotion plan's ordered list
+- Client-side crop/resize and a consistent framed display for organization emblems, club emblems,
+  and player profile pictures
+
+Every change is planned as an OpenSpec proposal before implementation — see
+[`openspec/specs/`](openspec/specs/) for the accepted, currently-implemented capability baseline.
 
 ## Contributing
 

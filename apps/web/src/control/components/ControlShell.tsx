@@ -60,6 +60,9 @@ function ControlShellChrome({
   readonly children: React.ReactNode;
 }): React.JSX.Element {
   const intl = useIntl();
+  // Same locale-prefix routing Starlight's own pages already use for every
+  // locale but the default (0116): the root/English pages are unprefixed.
+  const helpLocalePrefix = locale === 'en' ? '' : `/${locale}`;
   const logout = (): void => {
     controlTokenStore.clear();
     // A real navigation: /control/ (login) is a separate page from this
@@ -78,7 +81,7 @@ function ControlShellChrome({
         </div>
         <a
           className="cl-focusable"
-          href={`/help/control/${helpPath}`}
+          href={`${helpLocalePrefix}/help/control/${helpPath}`}
           target="_blank"
           rel="noopener noreferrer"
           style={helpLinkStyle}

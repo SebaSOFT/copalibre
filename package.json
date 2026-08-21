@@ -20,7 +20,8 @@
     "test:integration": "node --env-file-if-exists=.env.test --experimental-vm-modules ./node_modules/.bin/jest --passWithNoTests --config jest.integration.config.js",
     "test:e2e": "playwright test --pass-with-no-tests",
     "license:check": "license-checker-rseidelsohn --excludePrivatePackages --onlyAllow \"MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;0BSD;BlueOak-1.0.0;CC0-1.0;CC-BY-4.0;Unlicense;Python-2.0;MPL-2.0;LGPL-3.0-or-later;CC-BY-3.0;(MIT OR CC0-1.0);(MIT AND CC-BY-3.0)\"",
-    "test:verify-discovery": "node --experimental-vm-modules ./node_modules/.bin/jest --listTests | wc -l | awk '{ if ($1 < 20) { print \"ERROR: only \" $1 \" test files discovered (expected >= 20); \"   \"the Jest/ESM config is probably broken and --passWithNoTests is hiding it\"; exit 1 } else { print $1 \" test files discovered\" } }'"
+    "test:verify-discovery": "node --experimental-vm-modules ./node_modules/.bin/jest --listTests | wc -l | awk '{ if ($1 < 20) { print \"ERROR: only \" $1 \" test files discovered (expected >= 20); \"   \"the Jest/ESM config is probably broken and --passWithNoTests is hiding it\"; exit 1 } else { print $1 \" test files discovered\" } }'",
+    "changelog": "conventional-changelog -p conventionalcommits -i CHANGELOG.md -s -r 0"
   },
   "packageManager": "yarn@4.18.0+sha512.fcb8716fe7cd0eece141ffc18b92193a9df9204c1ba83189c288835223fc0bbe64af473bab0d5e9927a7daeb5caf2bb07eb2787cc9338ca040ea125f2a1f2f7e",
   "devDependencies": {
@@ -28,6 +29,7 @@
     "@playwright/test": "^1.62.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^26.1.2",
+    "conventional-changelog-cli": "^5.0.0",
     "eslint": "^10.8.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-astro": "^3.0.1",

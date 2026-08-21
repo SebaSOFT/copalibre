@@ -20,6 +20,7 @@ yarn workspace @copalibre/contracts run generate
 yarn workspace @copalibre/web verify:docs
 yarn test:e2e e2e/help-and-api-reference.spec.ts
 yarn workspace @copalibre/seed test:sqlite
+yarn test:verify-discovery
 ```
 
 Use focused commands while iterating, for example `yarn workspace @copalibre/web test --testPathPatterns 'match-console'`. Integration tests use PostgreSQL through `DATABASE_URL`; `yarn workspace @copalibre/persistence test:sqlite` is portable fast feedback, not replacement for PostgreSQL behavior. Before pushing, run `yarn workspace @copalibre/<workspace> test:coverage` for every touched workspace. Root `yarn test` does not enforce CI coverage thresholds.
@@ -62,6 +63,8 @@ execution, authentication, client generation, telemetry, developer tools, and do
 ## CI and Infrastructure
 
 Modifying cross-cutting infrastructure files (`docker-compose.yml`, `Dockerfile`, Helm chart in `deploy/helm/`) or other global configuration has cascading effects that are validated by custom repository scripts in `scripts/`. Do not assume an infrastructure change is isolated.
+
+`.github/workflows/ci.yml`'s job ids, if you need to find a failing check directly: `detect-changes`, `guard-coverage`, `license-scan`, `enterprise-readiness-doc-lint` (runs the infra-validation scripts named below), `module-validation`, `third-party-notices`, `contract-tests`, `openapi-contract-lint`, `deploy-smoke-test`.
 Before creating or updating a PR, you MUST guarantee the CI will pass by running the baseline monorepo validations locally:
 
 - `yarn lint`

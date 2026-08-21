@@ -95,9 +95,43 @@ describe('the control shell', () => {
     );
 
     const help = screen.getByRole('link', { name: '¿Qué es esta pantalla?' });
-    expect(help.getAttribute('href')).toBe('/help/control/seeding');
+    // Locale-prefixed (0116): the test environment's default resolved
+    // language is 'es' (see the block comment above), so the link matches
+    // Starlight's own `/es/...` routing for that locale.
+    expect(help.getAttribute('href')).toBe('/es/help/control/seeding');
     expect(help.getAttribute('target')).toBe('_blank');
     expect(help.getAttribute('rel')).toBe('noopener noreferrer');
+  });
+
+  it('locale-prefixes the help link for every supported language, and leaves English unprefixed (0116)', () => {
+    const cases = [
+      ['en', '/help/control/seeding'],
+      ['es', '/es/help/control/seeding'],
+      ['fr', '/fr/help/control/seeding'],
+      ['pt', '/pt/help/control/seeding'],
+      ['it', '/it/help/control/seeding'],
+      ['de', '/de/help/control/seeding'],
+      ['ru', '/ru/help/control/seeding'],
+      ['zh', '/zh/help/control/seeding'],
+    ] as const;
+
+    for (const [locale, expectedHref] of cases) {
+      localStorage.setItem('copalibre.language', locale);
+      const { unmount } = render(
+        <ControlShell helpPath="seeding" organizationAlias="liga-mendocina">
+          <p>contenido</p>
+        </ControlShell>,
+      );
+      // Same locale-routing convention Starlight itself uses: matches
+      // `/help/control/${helpPath}` regardless of link text, which is
+      // localized per language and not what this test is about.
+      const help = screen
+        .getAllByRole('link')
+        .find((link) => link.getAttribute('href')?.includes('/help/control/seeding'));
+      expect(help?.getAttribute('href')).toBe(expectedHref);
+      unmount();
+      localStorage.removeItem('copalibre.language');
+    }
   });
 });
 
