@@ -73,3 +73,24 @@ itself, create or modify the next stage's seeding.
 - **WHEN** one group in the zone has an unresolved tie at its own cut line
 - **THEN** the promotion screen shows this group's cut as unresolved and does not present a completed
   combined list until an operator resolves it
+
+### Requirement: Seeding builder pre-fill from a reviewed promotion plan
+
+When an operator opens the seeding builder for a stage that has no seeds drawn or manually placed yet,
+and one or more zones of a prior stage have a stored promotion plan targeting this stage, the seeding
+builder's initial seed order SHALL be pre-filled from those zones' promotion-preview results (combined
+per band, when more than one zone targets this stage). This pre-fill SHALL NOT itself persist anything;
+the operator still explicitly publishes through the seeding builder's existing workflow before any
+seed order takes effect. A stage that already has seeds SHALL NOT have them overridden by this pre-fill.
+
+#### Scenario: A reviewed promotion plan pre-fills the next stage's seeding
+- **WHEN** an operator, having reviewed a zone's promotion plan, opens the next stage's seeding builder
+  for the first time (no draw or manual placement has run there yet)
+- **THEN** the seeding builder is pre-filled from the reviewed promotion plan's ordered list, and the
+  operator still explicitly publishes that seeding through the existing seeding-builder workflow
+  before it takes effect
+
+#### Scenario: An existing seed order is not overridden
+- **WHEN** an operator opens the seeding builder for a stage that already has a draw or manual
+  placement recorded, and a promotion plan also targets that stage
+- **THEN** the seeding builder shows the already-recorded seed order, unaffected by the promotion plan
