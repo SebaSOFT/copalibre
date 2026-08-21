@@ -368,3 +368,35 @@ formats), not a separately stored value.
 - **WHEN** a tournament's status is not `finished`
 - **THEN** its listing card shows no champion or runner-up, regardless of how far its terminal phase has
   progressed
+
+### Requirement: A table projection's club filter is reachable from the page and addressable in the URL
+
+The public table surfaces SHALL provide a control that applies the club filter the table routes already
+accept, and SHALL carry the selected club in the page URL so a filtered table is linkable. Where a club
+emblem is rendered beside a row, activating it SHALL apply that club's filter. Selecting all clubs SHALL
+clear the filter.
+
+#### Scenario: Filtering a leaderboard from the page
+- **WHEN** a visitor selects a club on a public table view
+- **THEN** the table shows only that club's rows, and the page URL carries the selected club
+
+#### Scenario: A linked filtered table renders filtered
+- **WHEN** a visitor opens a public table URL that names a club
+- **THEN** the table renders filtered to that club without further interaction
+
+#### Scenario: Activating a club emblem filters to that club
+- **WHEN** a visitor activates a club emblem rendered beside a table row
+- **THEN** the table filters to that club
+
+#### Scenario: Clearing the filter restores every entrant
+- **WHEN** a visitor selects all clubs
+- **THEN** the table shows every row, and the URL no longer names a club
+
+#### Scenario: Rank numbers are whole-table ranks under a filter
+- **WHEN** a table is filtered to one club
+- **THEN** each row's rank number is its standing in the full table, not renumbered within the filtered
+  subset
+
+#### Scenario: A club with no entrants renders an empty state
+- **WHEN** a visitor filters to a club fielding no entrant in this tournament
+- **THEN** the page renders an explicit empty state rather than an error
