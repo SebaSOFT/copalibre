@@ -42,13 +42,14 @@ import {
 const CREATED = new Date('2026-07-29T12:00:00.000Z');
 
 describe('snake_case row → camelCase domain mapping', () => {
-  it('maps an organization row', () => {
+  it('maps an organization row with no emblem', () => {
     const row: OrganizationRow = {
       organization_id: 'org-1',
       alias: 'club-atlas',
       name: 'Club Atlas',
       primary_language: 'es',
       timezone: 'UTC',
+      emblem_object_id: null,
       created_at: CREATED,
     };
     expect(toOrganization(row)).toEqual({
@@ -57,6 +58,26 @@ describe('snake_case row → camelCase domain mapping', () => {
       name: 'Club Atlas',
       primaryLanguage: 'es',
       timezone: 'UTC',
+    });
+  });
+
+  it('maps an organization row with an emblem', () => {
+    const row: OrganizationRow = {
+      organization_id: 'org-1',
+      alias: 'club-atlas',
+      name: 'Club Atlas',
+      primary_language: 'es',
+      timezone: 'UTC',
+      emblem_object_id: 'object-1',
+      created_at: CREATED,
+    };
+    expect(toOrganization(row)).toEqual({
+      organizationId: 'org-1',
+      alias: 'club-atlas',
+      name: 'Club Atlas',
+      primaryLanguage: 'es',
+      timezone: 'UTC',
+      emblemObjectId: 'object-1',
     });
   });
 

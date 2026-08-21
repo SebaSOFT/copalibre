@@ -181,7 +181,7 @@
     },
     "/organizations/{organizationAlias}/settings": {
       "patch": {
-        "description": "Requires the organization admin role. Presentation-layer defaults only; never reinterprets stored data.",
+        "description": "Requires the organization admin role. Language/timezone are presentation-layer defaults only; never reinterprets stored data.",
         "operationId": "OrganizationsController_updateSettings",
         "parameters": [
           {
@@ -240,7 +240,7 @@
             "bearer": []
           }
         ],
-        "summary": "Update an organization's primary language and/or timezone",
+        "summary": "Update an organization's name, primary language and/or timezone",
         "tags": [
           "organizations"
         ]
@@ -5361,6 +5361,219 @@
         ]
       }
     },
+    "/organizations/{organizationAlias}/emblem": {
+      "post": {
+        "operationId": "OrganizationMediaController_uploadEmblem",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadImageRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadImageResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upload an organization's emblem",
+        "tags": [
+          "organizations"
+        ]
+      },
+      "get": {
+        "operationId": "OrganizationMediaController_serveEmblem",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Image bytes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Stream an organization's emblem, once it has passed validation",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/clubs": {
+      "get": {
+        "operationId": "ClubsController_list",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ClubResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List an organization's clubs",
+        "tags": [
+          "clubs"
+        ]
+      },
+      "post": {
+        "operationId": "ClubsController_create",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateClubRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClubResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a club",
+        "tags": [
+          "clubs"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/clubs/{clubId}": {
+      "patch": {
+        "operationId": "ClubsController_update",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "clubId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateClubRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClubResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Edit a club's name, alias, or abbreviation",
+        "tags": [
+          "clubs"
+        ]
+      }
+    },
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones": {
       "get": {
         "operationId": "ZonesGroupsController_listZones",
@@ -6753,6 +6966,11 @@
             "type": "string",
             "description": "IANA time zone identifier; presentation-layer default only",
             "example": "America/Argentina/San_Juan"
+          },
+          "emblemObjectId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "object_metadata.object_id of the emblem"
           }
         },
         "required": [
@@ -6804,6 +7022,10 @@
       "UpdateOrganizationSettingsRequest": {
         "type": "object",
         "properties": {
+          "name": {
+            "type": "string",
+            "example": "Liga Orbital"
+          },
           "primaryLanguage": {
             "type": "string",
             "enum": [
@@ -10731,6 +10953,80 @@
         "required": [
           "personId"
         ]
+      },
+      "ClubResponse": {
+        "type": "object",
+        "properties": {
+          "clubId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "organizationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "alias": {
+            "type": "string",
+            "description": "Path identifier, unique within the organization.",
+            "example": "casa-de-italia"
+          },
+          "name": {
+            "type": "string",
+            "example": "Casa de Italia"
+          },
+          "abbreviation": {
+            "type": "string",
+            "example": "C I"
+          },
+          "emblemObjectId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "object_metadata.object_id of the emblem"
+          }
+        },
+        "required": [
+          "clubId",
+          "organizationId",
+          "name"
+        ]
+      },
+      "CreateClubRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Casa de Italia"
+          },
+          "alias": {
+            "type": "string",
+            "description": "Defaults to a suggestion derived from the name when omitted.",
+            "example": "casa-de-italia"
+          },
+          "abbreviation": {
+            "type": "string",
+            "example": "C I"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateClubRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Casa de Italia"
+          },
+          "alias": {
+            "type": "string",
+            "example": "casa-de-italia"
+          },
+          "abbreviation": {
+            "type": "string",
+            "example": "C I"
+          }
+        }
       },
       "ZoneResponse": {
         "type": "object",

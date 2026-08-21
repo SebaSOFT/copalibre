@@ -22,6 +22,8 @@ export interface OrganizationsTable {
   primary_language: string;
   /** IANA time zone identifier; presentation default only. */
   timezone: string;
+  /** FK into `object_metadata.object_id`; null until an emblem is uploaded. */
+  emblem_object_id: string | null;
   created_at: Timestamp;
 }
 

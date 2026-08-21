@@ -31,6 +31,9 @@ export class OrganizationResponse {
     example: 'America/Argentina/San_Juan',
   })
   timezone!: string;
+
+  @ApiPropertyOptional({ format: 'uuid', description: 'object_metadata.object_id of the emblem' })
+  emblemObjectId?: string;
 }
 
 export class CreateOrganizationRequest {
@@ -79,11 +82,62 @@ export class MyOrganizationResponse {
 }
 
 export class UpdateOrganizationSettingsRequest {
+  @ApiPropertyOptional({ example: 'Liga Orbital' })
+  name?: string;
+
   @ApiPropertyOptional({ enum: SUPPORTED_LANGUAGES, example: 'en' })
   primaryLanguage?: string;
 
   @ApiPropertyOptional({ example: 'America/Argentina/San_Juan' })
   timezone?: string;
+}
+
+export class ClubResponse {
+  @ApiProperty({ format: 'uuid' })
+  clubId!: string;
+
+  @ApiProperty({ format: 'uuid' })
+  organizationId!: string;
+
+  @ApiPropertyOptional({
+    description: 'Path identifier, unique within the organization.',
+    example: 'casa-de-italia',
+  })
+  alias?: string;
+
+  @ApiProperty({ example: 'Casa de Italia' })
+  name!: string;
+
+  @ApiPropertyOptional({ example: 'C I' })
+  abbreviation?: string;
+
+  @ApiPropertyOptional({ format: 'uuid', description: 'object_metadata.object_id of the emblem' })
+  emblemObjectId?: string;
+}
+
+export class CreateClubRequest {
+  @ApiProperty({ example: 'Casa de Italia' })
+  name!: string;
+
+  @ApiPropertyOptional({
+    description: 'Defaults to a suggestion derived from the name when omitted.',
+    example: 'casa-de-italia',
+  })
+  alias?: string;
+
+  @ApiPropertyOptional({ example: 'C I' })
+  abbreviation?: string;
+}
+
+export class UpdateClubRequest {
+  @ApiPropertyOptional({ example: 'Casa de Italia' })
+  name?: string;
+
+  @ApiPropertyOptional({ example: 'casa-de-italia' })
+  alias?: string;
+
+  @ApiPropertyOptional({ example: 'C I' })
+  abbreviation?: string;
 }
 
 export class BootstrapAdministratorRequest {

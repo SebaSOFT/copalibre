@@ -80,6 +80,7 @@ export function toOrganization(row: OrganizationRow): Organization {
     name: row.name,
     primaryLanguage: row.primary_language as SupportedLanguage,
     timezone: row.timezone,
+    emblemObjectId: row.emblem_object_id ?? undefined,
   };
 }
 

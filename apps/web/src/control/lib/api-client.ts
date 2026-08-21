@@ -232,6 +232,68 @@ export interface ControlApiClient {
     personId: string,
     request: UploadImageRequest,
   ) => Promise<{ readonly objectId: string }>;
+  /** An organization's public identity — name, locale defaults, emblem (0109). */
+  readonly getOrganization?: (organizationAlias: string) => Promise<OrganizationResponse>;
+  readonly updateOrganizationSettings?: (
+    organizationAlias: string,
+    request: UpdateOrganizationSettingsRequest,
+  ) => Promise<OrganizationResponse>;
+  readonly uploadOrganizationEmblem?: (
+    organizationAlias: string,
+    request: UploadImageRequest,
+  ) => Promise<{ readonly objectId: string }>;
+  /** An organization's clubs — list/create/edit identity; emblem upload is `uploadClubEmblem`. */
+  readonly listClubs?: (organizationAlias: string) => Promise<readonly ClubResponse[]>;
+  readonly createClub?: (
+    organizationAlias: string,
+    request: CreateClubRequest,
+  ) => Promise<ClubResponse>;
+  readonly updateClub?: (
+    organizationAlias: string,
+    clubId: string,
+    request: UpdateClubRequest,
+  ) => Promise<ClubResponse>;
+  readonly uploadClubEmblem?: (
+    organizationAlias: string,
+    clubId: string,
+    request: UploadImageRequest,
+  ) => Promise<{ readonly objectId: string }>;
+}
+
+export interface OrganizationResponse {
+  readonly organizationId: string;
+  readonly alias: string;
+  readonly name: string;
+  readonly primaryLanguage: string;
+  readonly timezone: string;
+  readonly emblemObjectId?: string;
+}
+
+export interface UpdateOrganizationSettingsRequest {
+  readonly name?: string;
+  readonly primaryLanguage?: string;
+  readonly timezone?: string;
+}
+
+export interface ClubResponse {
+  readonly clubId: string;
+  readonly organizationId: string;
+  readonly alias?: string;
+  readonly name: string;
+  readonly abbreviation?: string;
+  readonly emblemObjectId?: string;
+}
+
+export interface CreateClubRequest {
+  readonly name: string;
+  readonly alias?: string;
+  readonly abbreviation?: string;
+}
+
+export interface UpdateClubRequest {
+  readonly name?: string;
+  readonly alias?: string;
+  readonly abbreviation?: string;
 }
 
 export interface UploadImageRequest {
@@ -1273,6 +1335,55 @@ export function createControlApiClient(input: {
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/persons/${encodeURIComponent(personId)}/photo`,
         { method: 'POST', body, token: input.accessToken?.() },
       ),
+
+    getOrganization: (organizationAlias) =>
+      requestJson<OrganizationResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}`,
+        {},
+      ),
+
+    updateOrganizationSettings: (organizationAlias, body) =>
+      requestJson<OrganizationResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/settings`,
+        { method: 'PATCH', body, token: input.accessToken?.() },
+      ),
+
+    uploadOrganizationEmblem: (organizationAlias, body) =>
+      requestJson(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/emblem`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    listClubs: (organizationAlias) =>
+      requestJson<readonly ClubResponse[]>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/clubs`,
+        { token: input.accessToken?.() },
+      ),
+
+    createClub: (organizationAlias, body) =>
+      requestJson<ClubResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/clubs`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    updateClub: (organizationAlias, clubId, body) =>
+      requestJson<ClubResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/clubs/${encodeURIComponent(clubId)}`,
+        { method: 'PATCH', body, token: input.accessToken?.() },
+      ),
+
+    uploadClubEmblem: (organizationAlias, clubId, body) =>
+      requestJson(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/clubs/${encodeURIComponent(clubId)}/emblem`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
   };
 }
 
@@ -1283,6 +1394,10 @@ export function personPhotoUrl(organizationAlias: string, personId: string, base
 
 export function clubEmblemUrl(organizationAlias: string, clubId: string, baseUrl = ''): string {
   return `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/clubs/${encodeURIComponent(clubId)}/emblem`;
+}
+
+export function organizationEmblemUrl(organizationAlias: string, baseUrl = ''): string {
+  return `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/emblem`;
 }
 
 async function requestText(

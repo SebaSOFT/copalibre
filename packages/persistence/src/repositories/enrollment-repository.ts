@@ -168,6 +168,17 @@ export class EnrollmentRepository {
     return row ? toClub(row) : undefined;
   }
 
+  /** Every club of an organization, for a management screen listing. */
+  async listClubs(organizationId: string): Promise<readonly Club[]> {
+    const rows = await this.db
+      .selectFrom('clubs')
+      .selectAll()
+      .where('organization_id', '=', organizationId)
+      .orderBy('name')
+      .execute();
+    return rows.map(toClub);
+  }
+
   async createTeam(
     uow: UnitOfWork,
     input: {
