@@ -102,3 +102,33 @@ discovering a collision on its own.
   the catalogue is seeded
 - **THEN** the operation reports the alias and the conflicting attribution, installs nothing, and
   leaves the installed module untouched
+
+### Requirement: The reference football discipline declares foul and throw-in vocabulary
+
+The default catalogue's football discipline SHALL declare a foul event and a throw-in event, each using
+the descriptor-owned outcome-choice workflow, listing the outcomes that event resolves to as ordinary
+event definitions. Card outcomes SHALL reuse the discipline's existing card events rather than declaring
+parallel copies. The declarations SHALL introduce no new statistic collector and SHALL carry no victim,
+goalkeeper, or deflecting-player attribution.
+
+#### Scenario: A foul offers its declared outcomes
+- **WHEN** an official records a foul in a football match
+- **THEN** the console presents the outcomes the descriptor declares, and the chosen outcome is recorded
+  as an ordinary event
+
+#### Scenario: A foul resolving to no further action is still recorded
+- **WHEN** a foul's chosen outcome is that play continues
+- **THEN** the foul remains a recorded timeline entry
+
+#### Scenario: Occurrence time comes from the preliminary selection
+- **WHEN** an official records a foul and then takes time to choose its outcome
+- **THEN** the recorded occurrence time is that of the preliminary selection
+
+#### Scenario: A card reached through a foul counts once, in the existing collectors
+- **WHEN** a foul's chosen outcome is a card
+- **THEN** the discipline's existing card collectors are incremented, exactly as for a directly recorded
+  card
+
+#### Scenario: A started tournament keeps its frozen module version
+- **WHEN** a tournament was started on a descriptor version predating these declarations
+- **THEN** its event vocabulary is unchanged
