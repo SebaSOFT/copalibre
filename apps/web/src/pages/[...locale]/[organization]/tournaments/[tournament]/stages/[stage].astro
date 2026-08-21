@@ -41,6 +41,7 @@ if (!overviewData || !bracketData) {
 }
 
 const model = buildOverview(mapOverviewResponse(overviewData));
+const localePrefix = locale ? `/${locale}` : '';
 
 // This stage's own group-phase table (e.g. a round-robin group's standings),
 // when its discipline declares one — an elimination stage naturally has
@@ -58,7 +59,14 @@ const standingsProjection = groupPhaseLayout
   intl={intl}
 >
   <h1>{intl.formatMessage(messages.bracketPageTitle)}</h1>
-  <BracketView matches={bracketData.matches} intl={intl} />
+  <BracketView
+    intl={intl}
+    localePrefix={localePrefix}
+    matches={bracketData.matches}
+    organizationAlias={organization!}
+    stageNumber={stageNumber}
+    tournamentAlias={tournament!}
+  />
   <ResultLegend intl={intl} />
   {
     standingsProjection && (

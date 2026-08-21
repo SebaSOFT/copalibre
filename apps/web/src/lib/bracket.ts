@@ -130,3 +130,21 @@ export function describeSlot(slot: SlotSource): string {
 export function isResolved(match: BracketMatch): boolean {
   return match.slots.every((slot) => slot.kind === 'entrant');
 }
+
+/**
+ * A bracket card's own report page (0112) — resolved or not. `0102`'s report
+ * page already renders correctly for a not-yet-played match, so this needs
+ * nothing about the match beyond its number.
+ */
+export function matchReportUrl(input: {
+  readonly organizationAlias: string;
+  readonly tournamentAlias: string;
+  readonly stageNumber: number;
+  readonly matchNumber: number;
+  readonly localePrefix?: string;
+}): string {
+  const { organizationAlias, tournamentAlias, stageNumber, matchNumber, localePrefix = '' } = input;
+  return `${localePrefix}/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
+    tournamentAlias,
+  )}/stages/${stageNumber}/matches/${matchNumber}`;
+}

@@ -1,6 +1,6 @@
 import type { EventEnvelope } from '@copalibre/realtime';
 import { decide, presentState, resultLegend, type ResultStateLabels } from './result-state.js';
-import { describeSlot, isResolved, toNode, toRounds } from './bracket.js';
+import { describeSlot, isResolved, matchReportUrl, toNode, toRounds } from './bracket.js';
 import { sampleBracket } from './bracket-sample.js';
 import { seriesDecided, seriesScore, seriesSegments } from './series.js';
 import { applyEvent, applyEvents, markConnected } from './live-state.js';
@@ -111,6 +111,47 @@ describe('a bracket that is not a tree', () => {
     const node = toNode(decided, LABELS);
 
     expect(node.slots[0]?.resultReason).toBeUndefined();
+  });
+
+  it('links a played match card to its report page (0112)', () => {
+    const [decided] = matches;
+    if (!decided) throw new Error('the sample bracket is empty');
+
+    expect(
+      matchReportUrl({
+        organizationAlias: 'liga-mendocina',
+        tournamentAlias: 'apertura-2026',
+        stageNumber: 1,
+        matchNumber: decided.matchNumber,
+      }),
+    ).toBe(`/liga-mendocina/tournaments/apertura-2026/stages/1/matches/${decided.matchNumber}`);
+  });
+
+  it('links an undetermined match card too, by its own match number', () => {
+    const final = matches.find((match) => match.branch === 'final');
+    if (!final) throw new Error('the sample bracket has no grand final');
+    expect(isResolved(final)).toBe(false);
+
+    expect(
+      matchReportUrl({
+        organizationAlias: 'liga-mendocina',
+        tournamentAlias: 'apertura-2026',
+        stageNumber: 1,
+        matchNumber: final.matchNumber,
+      }),
+    ).toBe(`/liga-mendocina/tournaments/apertura-2026/stages/1/matches/${final.matchNumber}`);
+  });
+
+  it('prefixes the locale segment and encodes the alias when given', () => {
+    expect(
+      matchReportUrl({
+        organizationAlias: 'liga mendocina',
+        tournamentAlias: 'apertura-2026',
+        stageNumber: 1,
+        matchNumber: 3,
+        localePrefix: '/es',
+      }),
+    ).toBe('/es/liga%20mendocina/tournaments/apertura-2026/stages/1/matches/3');
   });
 });
 
