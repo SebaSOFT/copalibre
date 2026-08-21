@@ -4,7 +4,9 @@
 Gives an operator a country selector with flags wherever a country is chosen, shows a small flag next
 to every person's name the console already displays, and shows a person's photo (or a placeholder) on
 their profile — the visual half of recording nationality and portrait/emblem images.
+
 ## Requirements
+
 ### Requirement: A country selector shows a flag and a localized name per option
 
 Wherever the console lets an operator choose a country, it SHALL render a searchable selector listing
@@ -64,3 +66,44 @@ when the entrant has a club with no emblem set) in its team header, in place of 
 - **WHEN** the jersey grid renders a team panel for an entrant with no club, or a club with no emblem set
 - **THEN** the team's name renders with a placeholder emblem, not a broken image
 
+### Requirement: Clubs are managed from a control-panel screen that drives emblem upload
+
+The control panel SHALL provide a club-management screen listing an organization's clubs and allowing an
+authorized organizer to create a club, edit its name, alias and abbreviation, and upload or replace its
+emblem. A club with no emblem SHALL render a placeholder, never a broken image or an empty gap.
+
+#### Scenario: Listing and creating clubs
+- **WHEN** an authorized organizer opens the club-management screen
+- **THEN** the organization's clubs are listed, and a new club can be created with a name, alias and
+  abbreviation
+
+#### Scenario: Uploading a club emblem
+- **WHEN** an organizer uploads an image for a club
+- **THEN** the emblem is stored and rendered for that club wherever clubs are shown
+
+#### Scenario: Replacing an existing emblem
+- **WHEN** an organizer uploads a second image for a club that already has one
+- **THEN** the club's emblem becomes the new image
+
+#### Scenario: A club without an emblem shows a placeholder
+- **WHEN** a club with no emblem is rendered
+- **THEN** a placeholder is shown
+
+### Requirement: An organization's identity, including its emblem, is editable in the control panel
+
+The control panel's organization settings surface SHALL allow an authorized organizer to edit the
+organization's name and to upload or replace its emblem, alongside the existing language and timezone
+settings.
+
+#### Scenario: Uploading an organization emblem
+- **WHEN** an authorized organizer uploads an image for the organization
+- **THEN** the emblem is stored and rendered for that organization
+
+#### Scenario: An organization without an emblem shows a placeholder
+- **WHEN** an organization with no emblem is rendered
+- **THEN** a placeholder is shown
+
+#### Scenario: An unauthorized subject cannot change organization identity
+- **WHEN** a subject without organizer authorization attempts to change the organization's name or
+  emblem
+- **THEN** the change is refused
