@@ -590,6 +590,41 @@ describe('public projections routes', () => {
       expect(response.statusCode).toBe(404);
     });
 
+    it("includes the organization's clubs, ordered by name", async () => {
+      const enrollments = new EnrollmentRepository(scratch.db);
+      await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+        await enrollments.createClub(uow, {
+          organizationId,
+          alias: 'club-listing-zulu',
+          name: 'Zulu Listing Club',
+          abbreviation: 'ZLC',
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+        await enrollments.createClub(uow, {
+          organizationId,
+          alias: 'club-listing-alfa',
+          name: 'Alfa Listing Club',
+          abbreviation: 'ALC',
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+      });
+
+      const response = await request({
+        method: 'GET',
+        url: `/organizations/liga-orbital/public/tournaments`,
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.payload as string);
+      const clubNames = body.clubs.map((c: { name: string }) => c.name);
+      expect(clubNames).toEqual(expect.arrayContaining(['Alfa Listing Club', 'Zulu Listing Club']));
+      expect(clubNames.indexOf('Alfa Listing Club')).toBeLessThan(
+        clubNames.indexOf('Zulu Listing Club'),
+      );
+    });
+
     it('resolves champions and runners-up for finished duel tournaments', async () => {
       const tournaments = new TournamentRepository(scratch.db);
       const competition = new CompetitionRepository(scratch.db);

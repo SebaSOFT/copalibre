@@ -75,4 +75,11 @@ export const messages: Record<string, string> = {
   'publicWeb.tournamentsPage.champion': 'Champion',
   'publicWeb.tournamentsPage.runnerUp': 'Deuxième',
   'publicWeb.tournamentsPage.viewDetails': 'Voir le tournoi',
+  'publicWeb.orgPage.featuredHeading': 'À la une',
+  'publicWeb.orgPage.clubsHeading': 'Clubs',
+  'publicWeb.orgPage.noClubs': "Aucun club enregistré pour l'instant.",
+  'publicWeb.orgPage.emblemAlt': 'Emblème de {name}',
+  'publicWeb.orgPage.emblemPlaceholderAlt': 'Aucun emblème téléversé',
+  'publicWeb.orgPage.notFoundTitle': 'Organisation introuvable',
+  'publicWeb.orgPage.notFoundBody': "Aucune organisation n'existe à cette adresse.",
 };

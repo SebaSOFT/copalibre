@@ -204,3 +204,17 @@ export async function fetchOrganizationTournaments(
   const url = `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/public/tournaments`;
   return fetchOr404<PublicOrganizationTournamentListResponse>(url);
 }
+
+/**
+ * Public, unauthenticated image routes (0109/0110) — safe to use directly as
+ * an `<img src>`. Same-origin relative paths, like every other public route
+ * this app serves; unlike the fetchers above, the browser requests these
+ * directly, not this SSR-only client.
+ */
+export function organizationEmblemUrl(organizationAlias: string): string {
+  return `/organizations/${encodeURIComponent(organizationAlias)}/emblem`;
+}
+
+export function clubEmblemUrl(organizationAlias: string, clubId: string): string {
+  return `/organizations/${encodeURIComponent(organizationAlias)}/clubs/${encodeURIComponent(clubId)}/emblem`;
+}

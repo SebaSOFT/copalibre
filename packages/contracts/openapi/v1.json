@@ -9717,6 +9717,28 @@
           "discipline"
         ]
       },
+      "PublicOverviewClubResponse": {
+        "type": "object",
+        "properties": {
+          "clubId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "alias": {
+            "type": "string"
+          },
+          "emblemObjectId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "clubId",
+          "name"
+        ]
+      },
       "PublicOrganizationTournamentListResponse": {
         "type": "object",
         "properties": {
@@ -9726,17 +9748,28 @@
           "organizationName": {
             "type": "string"
           },
+          "organizationEmblemObjectId": {
+            "type": "string",
+            "description": "object_metadata.object_id of the organization emblem"
+          },
           "tournaments": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PublicTournamentListingItemResponse"
+            }
+          },
+          "clubs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicOverviewClubResponse"
             }
           }
         },
         "required": [
           "organizationAlias",
           "organizationName",
-          "tournaments"
+          "tournaments",
+          "clubs"
         ]
       },
       "PublicOverviewMatchResponse": {
@@ -9834,28 +9867,6 @@
           "name",
           "sharedRank",
           "statistics"
-        ]
-      },
-      "PublicOverviewClubResponse": {
-        "type": "object",
-        "properties": {
-          "clubId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "type": "string"
-          },
-          "alias": {
-            "type": "string"
-          },
-          "emblemObjectId": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "clubId",
-          "name"
         ]
       },
       "PublicOverviewResponse": {

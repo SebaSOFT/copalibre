@@ -54,7 +54,7 @@ export class PublicTournamentListingController {
   ): Promise<PublicOrganizationTournamentListResponse> {
     const organization = await this.db
       .selectFrom('organizations')
-      .select(['organization_id as organizationId', 'name', 'alias'])
+      .select(['organization_id as organizationId', 'name', 'alias', 'emblem_object_id'])
       .where('alias', '=', organizationAlias)
       .executeTakeFirst();
 
@@ -62,6 +62,7 @@ export class PublicTournamentListingController {
       throw new NotFoundException(`No organization "${organizationAlias}"`);
     }
 
+    const clubs = await new EnrollmentRepository(this.db).listClubs(organization.organizationId);
     const tournamentRepo = new TournamentRepository(this.db);
     const publishedTournaments = await tournamentRepo.listPublishedByOrganization(
       organization.organizationId,
@@ -128,7 +129,16 @@ export class PublicTournamentListingController {
     return {
       organizationAlias: organization.alias,
       organizationName: organization.name,
+      ...(organization.emblem_object_id
+        ? { organizationEmblemObjectId: organization.emblem_object_id }
+        : {}),
       tournaments: tournamentItems,
+      clubs: clubs.map((club) => ({
+        clubId: club.clubId,
+        name: club.name,
+        ...(club.alias ? { alias: club.alias } : {}),
+        ...(club.emblemObjectId ? { emblemObjectId: club.emblemObjectId } : {}),
+      })),
     };
   }
 

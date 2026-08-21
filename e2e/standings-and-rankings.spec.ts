@@ -294,6 +294,10 @@ test.describe('B2: public tournament page', () => {
     const organizationTournaments = {
       organizationAlias: ORGANIZATION,
       organizationName: 'Liga Mendocina',
+      clubs: [
+        { clubId: 'club-talleres', name: 'Club Atlético Talleres', abbreviation: 'TAL' },
+        { clubId: 'club-independiente', name: 'Club Atlético Independiente', abbreviation: 'IND' },
+      ],
       tournaments: [
         {
           tournamentId: 't-live',
@@ -482,21 +486,36 @@ test.describe('B2: public tournament page', () => {
   test('renders organization tournament listing with live, upcoming, and finished podium', async ({
     page,
   }) => {
-    await page.goto(`/${ORGANIZATION}/tournaments`);
+    await page.goto(`/${ORGANIZATION}`);
 
     await expect(page.getByRole('heading', { name: 'Liga Mendocina' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Live & Active' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Upcoming' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Finished & Archive' })).toBeVisible();
 
+    // Featured block names the live tournament (0110) — it also appears in
+    // its normal "Live & Active" section below, so both the heading and the
+    // now-doubled tournament link are the evidence.
+    await expect(page.getByRole('heading', { name: 'Featured' })).toBeVisible();
+
     // Check Live tournament
-    await expect(page.getByRole('link', { name: 'Torneo Relámpago 2026' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Torneo Relámpago 2026' }).first()).toBeVisible();
 
     // Check Finished tournament & Podium
-    await expect(page.getByRole('link', { name: 'Apertura 2026' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Apertura 2026' }).first()).toBeVisible();
     await expect(page.getByText('Club Atlético Talleres (TAL)')).toBeVisible();
     await expect(page.getByText('Club Atlético Independiente (IND)')).toBeVisible();
     await expect(page.getByText('Champion')).toBeVisible();
     await expect(page.getByText('Runner-up')).toBeVisible();
+
+    // Club grid (0110).
+    await expect(page.getByRole('heading', { name: 'Clubs' })).toBeVisible();
+    await expect(page.getByText('Club Atlético Talleres').first()).toBeVisible();
+    await expect(page.getByText('Club Atlético Independiente').first()).toBeVisible();
+  });
+
+  test('the former organization tournament listing path is no longer served', async ({ page }) => {
+    const response = await page.goto(`/${ORGANIZATION}/tournaments`);
+    expect(response?.status()).toBe(404);
   });
 });

@@ -521,6 +521,12 @@ export class PublicOrganizationTournamentListResponse {
   @ApiProperty()
   organizationName!: string;
 
+  @ApiPropertyOptional({ description: 'object_metadata.object_id of the organization emblem' })
+  organizationEmblemObjectId?: string;
+
   @ApiProperty({ type: [PublicTournamentListingItemResponse] })
   tournaments!: PublicTournamentListingItemResponse[];
+
+  @ApiProperty({ type: [PublicOverviewClubResponse] })
+  clubs!: PublicOverviewClubResponse[];
 }

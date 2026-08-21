@@ -12,6 +12,21 @@
 		reverse_proxy web-ssr:3005
 	}
 
+	# The organization landing page (0110) — same on-demand renderer as
+	# @ssr above, matched separately because it has no /tournaments/
+	# segment to anchor on: just an optional locale prefix plus one alias
+	# segment. That shape would otherwise also swallow every reserved
+	# top-level path below (/control, /help, /tv, /api,
+	# /runtime-config.json), so those are excluded explicitly rather than
+	# relied upon to lose priority by file order.
+	@ssrOrg {
+		path_regexp ^(?:/(?:es|fr|pt|it|de|ru|zh))?/[^/]+/?$
+		not path /control /control/* /help /help/* /tv /tv/* /api /api/* /runtime-config.json
+	}
+	handle @ssrOrg {
+		reverse_proxy web-ssr:3005
+	}
+
 	# Every authenticated control-panel screen beyond the login page shares
 	# one client-routed shell (0061) — real files (the login page at
 	# /control/, its own static assets, and /control/callback once 0062

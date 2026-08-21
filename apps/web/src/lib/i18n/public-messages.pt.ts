@@ -76,4 +76,11 @@ export const messages: Record<string, string> = {
   'publicWeb.tournamentsPage.champion': 'Campeão',
   'publicWeb.tournamentsPage.runnerUp': 'Vice-campeão',
   'publicWeb.tournamentsPage.viewDetails': 'Ver torneio',
+  'publicWeb.orgPage.featuredHeading': 'Destaque',
+  'publicWeb.orgPage.clubsHeading': 'Clubes',
+  'publicWeb.orgPage.noClubs': 'Ainda não há clubes registrados.',
+  'publicWeb.orgPage.emblemAlt': 'Escudo de {name}',
+  'publicWeb.orgPage.emblemPlaceholderAlt': 'Nenhum escudo enviado',
+  'publicWeb.orgPage.notFoundTitle': 'Organização não encontrada',
+  'publicWeb.orgPage.notFoundBody': 'Não existe nenhuma organização neste endereço.',
 };
