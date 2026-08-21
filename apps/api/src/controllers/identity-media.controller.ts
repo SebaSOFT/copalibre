@@ -20,6 +20,7 @@ import {
 } from '@nestjs/swagger';
 import type { FastifyReply } from 'fastify';
 import type { Kysely } from 'kysely';
+import sharp from 'sharp';
 import type { ObjectStorageAdapter } from '@copalibre/object-storage';
 import {
   EnrollmentRepository,
@@ -99,7 +100,7 @@ export class PersonMediaController {
   @SecurityPlaneTag('admin-control')
   @RequireOrganizationRole('admin')
   @ApiBearerAuth()
-  @ApiOperation({ summary: "Upload a person's photo" })
+  @ApiOperation({ summary: "Upload a person's photo (must be exactly 410×512px, ±1%)" })
   @ApiCreatedResponse({ type: UploadImageResponse })
   async uploadPhoto(
     @Param('organizationAlias') organizationAlias: string,
@@ -113,7 +114,7 @@ export class PersonMediaController {
       throw new NotFoundException(`No person "${personId}" in this organization`);
     }
 
-    const bytes = decodeImage(body);
+    const bytes = await decodeImage(body);
     const reference = await this.storage.put(
       `${organizationId}/persons/${personId}/${newId()}-${body.filename}`,
       bytes,
@@ -199,7 +200,7 @@ export class ClubMediaController {
   @SecurityPlaneTag('admin-control')
   @RequireOrganizationRole('admin')
   @ApiBearerAuth()
-  @ApiOperation({ summary: "Upload a club's emblem" })
+  @ApiOperation({ summary: "Upload a club's emblem (must be exactly 410×512px, ±1%)" })
   @ApiCreatedResponse({ type: UploadImageResponse })
   async uploadEmblem(
     @Param('organizationAlias') organizationAlias: string,
@@ -213,7 +214,7 @@ export class ClubMediaController {
       throw new NotFoundException(`No club "${clubId}" in this organization`);
     }
 
-    const bytes = decodeImage(body);
+    const bytes = await decodeImage(body);
     const reference = await this.storage.put(
       `${organizationId}/clubs/${clubId}/${newId()}-${body.filename}`,
       bytes,
@@ -269,7 +270,7 @@ export class OrganizationMediaController {
   @SecurityPlaneTag('admin-control')
   @RequireOrganizationRole('admin')
   @ApiBearerAuth()
-  @ApiOperation({ summary: "Upload an organization's emblem" })
+  @ApiOperation({ summary: "Upload an organization's emblem (must be exactly 410×512px, ±1%)" })
   @ApiCreatedResponse({ type: UploadImageResponse })
   async uploadEmblem(
     @Param('organizationAlias') organizationAlias: string,
@@ -278,7 +279,7 @@ export class OrganizationMediaController {
   ): Promise<UploadImageResponse> {
     const organizationId = await resolveAdminOrganization(this.db, organizationAlias, request);
 
-    const bytes = decodeImage(body);
+    const bytes = await decodeImage(body);
     const reference = await this.storage.put(
       `${organizationId}/emblem/${newId()}-${body.filename}`,
       bytes,
@@ -345,11 +346,41 @@ function actorOf(request: RequestWithSubject): string {
   return `user:${request.subject?.subjectId ?? 'unknown'}`;
 }
 
-function decodeImage(upload: UploadImageRequest): Buffer {
+/**
+ * Every profile image (organization emblem, club emblem, person photo) is
+ * exactly this size on the wire — the client-side crop tool (0122) always
+ * outputs it, so a mismatch here means a non-conforming client, not a
+ * legitimate source photo that merely needs scaling.
+ */
+const REQUIRED_IMAGE_WIDTH = 410;
+const REQUIRED_IMAGE_HEIGHT = 512;
+const DIMENSION_TOLERANCE = 0.01;
+
+function withinTolerance(actual: number, expected: number): boolean {
+  return Math.abs(actual - expected) <= expected * DIMENSION_TOLERANCE;
+}
+
+async function decodeImage(upload: UploadImageRequest): Promise<Buffer> {
   const bytes = Buffer.from(upload.contentBase64, 'base64');
   if (bytes.length === 0 || bytes.length > MAX_IMAGE_BYTES) {
     throw new BadRequestException(
       `Image "${upload.filename}" is not a valid size (0 < bytes <= ${MAX_IMAGE_BYTES})`,
+    );
+  }
+
+  const dimensions = await sharp(bytes)
+    .metadata()
+    .catch(() => ({ width: undefined, height: undefined }));
+  const { width, height } = dimensions;
+  if (
+    width === undefined ||
+    height === undefined ||
+    !withinTolerance(width, REQUIRED_IMAGE_WIDTH) ||
+    !withinTolerance(height, REQUIRED_IMAGE_HEIGHT)
+  ) {
+    throw new BadRequestException(
+      `Image "${upload.filename}" must be ${REQUIRED_IMAGE_WIDTH}×${REQUIRED_IMAGE_HEIGHT} ` +
+        `(within ${DIMENSION_TOLERANCE * 100}% tolerance); received ${width ?? '?'}×${height ?? '?'}`,
     );
   }
   return bytes;

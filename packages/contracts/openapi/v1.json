@@ -5187,7 +5187,7 @@
             "bearer": []
           }
         ],
-        "summary": "Upload a person's photo",
+        "summary": "Upload a person's photo (must be exactly 410×512px, ±1%)",
         "tags": [
           "persons"
         ]
@@ -5325,7 +5325,7 @@
             "bearer": []
           }
         ],
-        "summary": "Upload a club's emblem",
+        "summary": "Upload a club's emblem (must be exactly 410×512px, ±1%)",
         "tags": [
           "clubs"
         ]
@@ -5401,7 +5401,7 @@
             "bearer": []
           }
         ],
-        "summary": "Upload an organization's emblem",
+        "summary": "Upload an organization's emblem (must be exactly 410×512px, ±1%)",
         "tags": [
           "organizations"
         ]

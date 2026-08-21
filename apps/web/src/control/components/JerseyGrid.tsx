@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useIntl } from 'react-intl';
 import { isSupportedLanguage, resolveLabel, type SupportedLanguage } from '@copalibre/domain';
 import { EntrantName } from '../../components/EntrantName.js';
@@ -11,6 +11,7 @@ import {
 import { countryFlag } from '../lib/country.js';
 import { memberByNumber } from '../lib/match-console.js';
 import { Badge } from './ui/badge.js';
+import { FramedImage } from './FramedImage.js';
 import { ClubEmblemPlaceholder } from './placeholders.js';
 import { messages } from '../i18n/messages.en.js';
 
@@ -295,25 +296,24 @@ function TeamEmblem({
   readonly organizationAlias: string | undefined;
 }): React.JSX.Element {
   const intl = useIntl();
-  const [failed, setFailed] = useState(false);
   const alt = intl.formatMessage(messages.jerseyGridEmblemAlt);
-
-  if (clubId === undefined || organizationAlias === undefined || failed) {
-    return (
-      <ClubEmblemPlaceholder
-        size={32}
-        title={intl.formatMessage(messages.jerseyGridEmblemPlaceholderAlt)}
-      />
-    );
-  }
+  const placeholder = (
+    <ClubEmblemPlaceholder
+      size={32}
+      title={intl.formatMessage(messages.jerseyGridEmblemPlaceholderAlt)}
+    />
+  );
 
   return (
-    <img
+    <FramedImage
       alt={alt}
-      height={32}
-      onError={() => setFailed(true)}
-      src={clubEmblemUrl(organizationAlias, clubId)}
-      width={32}
+      placeholder={placeholder}
+      size={32}
+      src={
+        clubId !== undefined && organizationAlias !== undefined
+          ? clubEmblemUrl(organizationAlias, clubId)
+          : undefined
+      }
     />
   );
 }

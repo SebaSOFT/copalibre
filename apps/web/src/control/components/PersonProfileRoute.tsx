@@ -10,6 +10,7 @@ import { controlLinkClick } from '../lib/control-navigation.js';
 import { countryFlag, countryName } from '../lib/country.js';
 import { isSupportedLanguage } from '@copalibre/domain';
 import { controlTokenStore } from '../session/token-store.js';
+import { FramedImage } from './FramedImage.js';
 import { PersonPhotoPlaceholder } from './placeholders.js';
 import { messages } from '../i18n/messages.en.js';
 
@@ -44,7 +45,6 @@ export function PersonProfileRoute({
   );
   const [person, setPerson] = useState<PersonResponse>();
   const [status, setStatus] = useState<LoadStatus>('loading');
-  const [photoFailed, setPhotoFailed] = useState(false);
 
   useEffect(() => {
     let live = true;
@@ -93,21 +93,23 @@ export function PersonProfileRoute({
       </a>
 
       <div className="cl-card cl-chamfer cl-chamfer--control" style={cardStyle}>
-        {person.photoObjectId !== undefined && !photoFailed ? (
-          <img
-            alt={intl.formatMessage(messages.personProfilePhotoAlt, {
-              displayName: person.displayName,
-            })}
-            height={96}
-            onError={() => setPhotoFailed(true)}
-            src={personPhotoUrl(organizationAlias, personId)}
-            width={96}
-          />
-        ) : (
-          <PersonPhotoPlaceholder
-            title={intl.formatMessage(messages.personProfilePhotoPlaceholderAlt)}
-          />
-        )}
+        <FramedImage
+          key={person.photoObjectId ?? 'none'}
+          alt={intl.formatMessage(messages.personProfilePhotoAlt, {
+            displayName: person.displayName,
+          })}
+          placeholder={
+            <PersonPhotoPlaceholder
+              title={intl.formatMessage(messages.personProfilePhotoPlaceholderAlt)}
+            />
+          }
+          size={96}
+          src={
+            person.photoObjectId !== undefined
+              ? personPhotoUrl(organizationAlias, personId)
+              : undefined
+          }
+        />
 
         <h1 style={nameStyle}>
           {person.nationality !== undefined && (

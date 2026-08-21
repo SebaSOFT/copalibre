@@ -8,8 +8,9 @@ import {
   type OrganizationResponse,
   type StatisticsRebuildResponse,
 } from '../lib/api-client.js';
-import { readAsBase64 } from '../lib/image-upload.js';
 import { controlTokenStore } from '../session/token-store.js';
+import { FramedImage } from './FramedImage.js';
+import { ImageCropModal } from './ImageCropModal.js';
 import { ClubEmblemPlaceholder } from './placeholders.js';
 import { Button } from './ui/button.js';
 import { messages as controlMessages } from '../i18n/messages.en.js';
@@ -152,7 +153,7 @@ export function PreferencesRoute({
   const [orgLoadError, setOrgLoadError] = useState<string | undefined>(undefined);
   const [orgNotice, setOrgNotice] = useState<string | undefined>(undefined);
   const [orgName, setOrgName] = useState('');
-  const [emblemFailed, setEmblemFailed] = useState(false);
+  const [emblemCropSrc, setEmblemCropSrc] = useState<string | undefined>(undefined);
 
   const reloadOrganization = useCallback(async (): Promise<void> => {
     if (organizationAlias === undefined) return;
@@ -214,16 +215,17 @@ export function PreferencesRoute({
     }
   }
 
-  async function uploadOrganizationEmblem(file: File): Promise<void> {
+  async function uploadOrganizationEmblem(output: {
+    contentBase64: string;
+    contentType: 'image/png';
+  }): Promise<void> {
     if (!api.uploadOrganizationEmblem || organizationAlias === undefined) return;
     try {
-      const contentBase64 = await readAsBase64(file);
       await api.uploadOrganizationEmblem(organizationAlias, {
-        filename: file.name,
-        contentType: file.type || 'application/octet-stream',
-        contentBase64,
+        filename: 'emblem.png',
+        contentType: output.contentType,
+        contentBase64: output.contentBase64,
       });
-      setEmblemFailed(false);
       setOrgNotice(intl.formatMessage(controlMessages.orgIdentityEmblemUploaded));
       void reloadOrganization();
     } catch (error) {
@@ -442,20 +444,22 @@ export function PreferencesRoute({
             </p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {organization?.emblemObjectId !== undefined && !emblemFailed ? (
-                <img
-                  alt={intl.formatMessage(controlMessages.orgIdentityEmblemAlt)}
-                  height={64}
-                  onError={() => setEmblemFailed(true)}
-                  src={organizationEmblemUrl(organizationAlias)}
-                  width={64}
-                />
-              ) : (
-                <ClubEmblemPlaceholder
-                  size={64}
-                  title={intl.formatMessage(controlMessages.orgIdentityEmblemPlaceholderAlt)}
-                />
-              )}
+              <FramedImage
+                key={organization?.emblemObjectId ?? 'none'}
+                alt={intl.formatMessage(controlMessages.orgIdentityEmblemAlt)}
+                placeholder={
+                  <ClubEmblemPlaceholder
+                    size={64}
+                    title={intl.formatMessage(controlMessages.orgIdentityEmblemPlaceholderAlt)}
+                  />
+                }
+                size={64}
+                src={
+                  organization?.emblemObjectId !== undefined
+                    ? organizationEmblemUrl(organizationAlias)
+                    : undefined
+                }
+              />
 
               {api.uploadOrganizationEmblem && (
                 <label>
@@ -465,7 +469,8 @@ export function PreferencesRoute({
                     aria-label={intl.formatMessage(controlMessages.orgIdentityUploadEmblem)}
                     onChange={(event) => {
                       const file = event.currentTarget.files?.[0];
-                      if (file) void uploadOrganizationEmblem(file);
+                      if (file) setEmblemCropSrc(URL.createObjectURL(file));
+                      event.currentTarget.value = '';
                     }}
                     type="file"
                   />
@@ -569,6 +574,21 @@ export function PreferencesRoute({
             </p>
           )}
         </section>
+      )}
+
+      {emblemCropSrc !== undefined && (
+        <ImageCropModal
+          imageSrc={emblemCropSrc}
+          onCancel={() => {
+            URL.revokeObjectURL(emblemCropSrc);
+            setEmblemCropSrc(undefined);
+          }}
+          onConfirm={(output) => {
+            URL.revokeObjectURL(emblemCropSrc);
+            setEmblemCropSrc(undefined);
+            void uploadOrganizationEmblem(output);
+          }}
+        />
       )}
     </div>
   );

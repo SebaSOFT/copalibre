@@ -1483,7 +1483,7 @@ export interface paths {
         /** Stream a person's photo, once it has passed validation */
         get: operations["PersonMediaController_servePhoto"];
         put?: never;
-        /** Upload a person's photo */
+        /** Upload a person's photo (must be exactly 410×512px, ±1%) */
         post: operations["PersonMediaController_uploadPhoto"];
         delete?: never;
         options?: never;
@@ -1518,7 +1518,7 @@ export interface paths {
         /** Stream a club's emblem, once it has passed validation */
         get: operations["ClubMediaController_serveEmblem"];
         put?: never;
-        /** Upload a club's emblem */
+        /** Upload a club's emblem (must be exactly 410×512px, ±1%) */
         post: operations["ClubMediaController_uploadEmblem"];
         delete?: never;
         options?: never;
@@ -1536,7 +1536,7 @@ export interface paths {
         /** Stream an organization's emblem, once it has passed validation */
         get: operations["OrganizationMediaController_serveEmblem"];
         put?: never;
-        /** Upload an organization's emblem */
+        /** Upload an organization's emblem (must be exactly 410×512px, ±1%) */
         post: operations["OrganizationMediaController_uploadEmblem"];
         delete?: never;
         options?: never;

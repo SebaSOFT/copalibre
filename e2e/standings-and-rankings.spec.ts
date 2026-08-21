@@ -14,6 +14,10 @@ const TOURNAMENT_ALIAS = 'apertura-2026';
 const TOURNAMENT = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
 const STAGE = `${TOURNAMENT}/stages/1`;
 
+/** A real, tiny, decodable PNG (1×1) — for the framed player-photo GET below. */
+const ONE_PIXEL_PNG_BASE64 =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+
 const layoutsFixture = {
   layouts: [
     {
@@ -120,6 +124,7 @@ const playerProfileFixture = {
   displayName: 'Goleador Uno',
   nationality: 'AR',
   age: 28,
+  photoObjectId: 'photo-1',
   competitionHistory: [
     {
       tournamentId: 't-1',
@@ -566,6 +571,17 @@ test.describe('B2: public tournament page', () => {
   test('opens player career popup on leaderboard player click and allows standalone navigation', async ({
     page,
   }) => {
+    // The `<img>` tag's own GET goes through the network stack, not any
+    // in-page fetch mock — this stands in for the real photo-serving route
+    // (0122 task 8.3: a real photo renders framed on the public page).
+    await page.route(`**/organizations/${ORGANIZATION}/persons/p-1/photo`, (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'image/png',
+        body: Buffer.from(ONE_PIXEL_PNG_BASE64, 'base64'),
+      }),
+    );
+
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
 
     // Switch to Top Scorers tab
@@ -590,6 +606,7 @@ test.describe('B2: public tournament page', () => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/players/p-1`);
     await expect(page.getByRole('heading', { name: 'Goleador Uno' })).toBeVisible();
     await expect(page.getByText('Age: 28')).toBeVisible();
+    await expect(page.locator('.cl-image-frame img')).toBeVisible();
   });
 
   test('states an absence, not zeroes, for a player with no roster history (0114)', async ({
@@ -616,6 +633,10 @@ test.describe('B2: public tournament page', () => {
     await expect(page.getByRole('heading', { name: 'Goleador Dos' })).toBeVisible();
     await expect(page.getByText('No career statistics recorded.')).toBeVisible();
     await expect(page.getByText('No competition history recorded.')).toBeVisible();
+
+    // No photo was uploaded for this player (0122 task 8.3): the frame
+    // renders the placeholder, not a broken image or an empty gap.
+    await expect(page.getByRole('img', { name: 'No photo uploaded' })).toBeVisible();
   });
 
   test('renders organization tournament listing with live, upcoming, and finished podium', async ({

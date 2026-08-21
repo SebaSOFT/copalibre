@@ -45,6 +45,8 @@ export function generateCss(): string {
     '',
     chamfer(),
     '',
+    imageFrame(),
+    '',
     components(),
   ].join('\n');
 }
@@ -119,6 +121,66 @@ function chamfer(): string {
     '/* Operator surfaces cut less: density over drama. */',
     '.cl-chamfer--control {',
     `  --cl-chamfer-size: ${RADIUS['chamfer-control']};`,
+    '}',
+  ].join('\n');
+}
+
+/**
+ * A fixed 4:5 frame for a profile image (organization/club emblem, person
+ * picture) or its placeholder — chamfered the same way `.cl-chamfer` already
+ * is, `object-fit: cover` so a source whose stored aspect isn't exactly 4:5
+ * (an image saved before this existed) still fills the frame without
+ * distortion (0122).
+ */
+function imageFrame(): string {
+  return [
+    '.cl-image-frame {',
+    `  --cl-chamfer-size: ${RADIUS['image-frame']};`,
+    '  aspect-ratio: 4 / 5;',
+    '  max-height: 512px;',
+    '  border: 1px solid var(--cl-border-muted);',
+    '  border-radius: 0;',
+    '  overflow: hidden;',
+    '  display: flex;',
+    '  align-items: center;',
+    '  justify-content: center;',
+    '  background: var(--cl-surface-raised);',
+    '}',
+    '',
+    '.cl-image-frame img {',
+    '  width: 100%;',
+    '  height: 100%;',
+    '  object-fit: cover;',
+    '  display: block;',
+    '}',
+    '',
+    '.cl-image-frame svg {',
+    '  width: 55%;',
+    '  height: 55%;',
+    '}',
+    '',
+    '@supports (clip-path: polygon(0 0)) {',
+    '  .cl-image-frame {',
+    '    clip-path: polygon(',
+    '      var(--cl-chamfer-size) 0%, 100% 0%,',
+    '      100% calc(100% - var(--cl-chamfer-size)),',
+    '      calc(100% - var(--cl-chamfer-size)) 100%,',
+    '      0% 100%, 0% var(--cl-chamfer-size)',
+    '    );',
+    '  }',
+    '}',
+    '',
+    '@supports (corner-shape: bevel) {',
+    '  .cl-image-frame {',
+    '    clip-path: none;',
+    '    corner-shape: bevel;',
+    '    border-radius: var(--cl-chamfer-size);',
+    '  }',
+    '}',
+    '',
+    '/* Operator surfaces cut less: density over drama. */',
+    '.cl-image-frame--control {',
+    `  --cl-chamfer-size: ${RADIUS['image-frame-control']};`,
     '}',
   ].join('\n');
 }

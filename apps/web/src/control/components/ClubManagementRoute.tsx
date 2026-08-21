@@ -7,8 +7,9 @@ import {
   type ClubResponse,
   type ControlApiClient,
 } from '../lib/api-client.js';
-import { readAsBase64 } from '../lib/image-upload.js';
 import { controlTokenStore } from '../session/token-store.js';
+import { FramedImage } from './FramedImage.js';
+import { ImageCropModal } from './ImageCropModal.js';
 import { ClubEmblemPlaceholder } from './placeholders.js';
 import { Button } from './ui/button.js';
 import { messages } from '../i18n/messages.en.js';
@@ -50,7 +51,7 @@ export function ClubManagementRoute({
   const [editName, setEditName] = useState('');
   const [editAlias, setEditAlias] = useState('');
   const [editAbbreviation, setEditAbbreviation] = useState('');
-  const [emblemFailed, setEmblemFailed] = useState(false);
+  const [emblemCropSrc, setEmblemCropSrc] = useState<string | undefined>(undefined);
 
   const reload = useCallback(async (): Promise<void> => {
     setLoading(true);
@@ -96,7 +97,6 @@ export function ClubManagementRoute({
     setEditName(club.name);
     setEditAlias(club.alias ?? '');
     setEditAbbreviation(club.abbreviation ?? '');
-    setEmblemFailed(false);
     setNotice(undefined);
   }
 
@@ -143,16 +143,17 @@ export function ClubManagementRoute({
     }
   }
 
-  async function uploadEmblem(file: File): Promise<void> {
+  async function uploadEmblem(output: {
+    contentBase64: string;
+    contentType: 'image/png';
+  }): Promise<void> {
     if (!api.uploadClubEmblem || selectedClubId === undefined) return;
     try {
-      const contentBase64 = await readAsBase64(file);
       await api.uploadClubEmblem(organizationAlias, selectedClubId, {
-        filename: file.name,
-        contentType: file.type || 'application/octet-stream',
-        contentBase64,
+        filename: 'emblem.png',
+        contentType: output.contentType,
+        contentBase64: output.contentBase64,
       });
-      setEmblemFailed(false);
       setNotice(intl.formatMessage(messages.clubManagementEmblemUploaded));
       void reload();
     } catch (error) {
@@ -191,19 +192,21 @@ export function ClubManagementRoute({
         <ul style={listStyle}>
           {clubs.map((club) => (
             <li key={club.clubId} style={rowStyle}>
-              {club.emblemObjectId !== undefined ? (
-                <img
-                  alt={intl.formatMessage(messages.clubManagementEmblemAlt, { name: club.name })}
-                  height={32}
-                  src={clubEmblemUrl(organizationAlias, club.clubId)}
-                  width={32}
-                />
-              ) : (
-                <ClubEmblemPlaceholder
-                  size={32}
-                  title={intl.formatMessage(messages.clubManagementEmblemPlaceholderAlt)}
-                />
-              )}
+              <FramedImage
+                alt={intl.formatMessage(messages.clubManagementEmblemAlt, { name: club.name })}
+                placeholder={
+                  <ClubEmblemPlaceholder
+                    size={32}
+                    title={intl.formatMessage(messages.clubManagementEmblemPlaceholderAlt)}
+                  />
+                }
+                size={32}
+                src={
+                  club.emblemObjectId !== undefined
+                    ? clubEmblemUrl(organizationAlias, club.clubId)
+                    : undefined
+                }
+              />
               <span>{club.name}</span>
               <Button onClick={() => selectClub(club)} type="button" variant="secondary">
                 <FormattedMessage {...messages.clubManagementEdit} />
@@ -262,22 +265,24 @@ export function ClubManagementRoute({
             <FormattedMessage {...messages.clubManagementEditHeading} />
           </h2>
 
-          {selectedClub.emblemObjectId !== undefined && !emblemFailed ? (
-            <img
-              alt={intl.formatMessage(messages.clubManagementEmblemAlt, {
-                name: selectedClub.name,
-              })}
-              height={64}
-              onError={() => setEmblemFailed(true)}
-              src={clubEmblemUrl(organizationAlias, selectedClub.clubId)}
-              width={64}
-            />
-          ) : (
-            <ClubEmblemPlaceholder
-              size={64}
-              title={intl.formatMessage(messages.clubManagementEmblemPlaceholderAlt)}
-            />
-          )}
+          <FramedImage
+            key={selectedClub.emblemObjectId ?? 'none'}
+            alt={intl.formatMessage(messages.clubManagementEmblemAlt, {
+              name: selectedClub.name,
+            })}
+            placeholder={
+              <ClubEmblemPlaceholder
+                size={64}
+                title={intl.formatMessage(messages.clubManagementEmblemPlaceholderAlt)}
+              />
+            }
+            size={64}
+            src={
+              selectedClub.emblemObjectId !== undefined
+                ? clubEmblemUrl(organizationAlias, selectedClub.clubId)
+                : undefined
+            }
+          />
 
           {api.uploadClubEmblem && (
             <label>
@@ -287,7 +292,8 @@ export function ClubManagementRoute({
                 aria-label={intl.formatMessage(messages.clubManagementUploadEmblem)}
                 onChange={(event) => {
                   const file = event.currentTarget.files?.[0];
-                  if (file) void uploadEmblem(file);
+                  if (file) setEmblemCropSrc(URL.createObjectURL(file));
+                  event.currentTarget.value = '';
                 }}
                 type="file"
               />
@@ -327,6 +333,21 @@ export function ClubManagementRoute({
             </Button>
           </div>
         </section>
+      )}
+
+      {emblemCropSrc !== undefined && (
+        <ImageCropModal
+          imageSrc={emblemCropSrc}
+          onCancel={() => {
+            URL.revokeObjectURL(emblemCropSrc);
+            setEmblemCropSrc(undefined);
+          }}
+          onConfirm={(output) => {
+            URL.revokeObjectURL(emblemCropSrc);
+            setEmblemCropSrc(undefined);
+            void uploadEmblem(output);
+          }}
+        />
       )}
     </section>
   );

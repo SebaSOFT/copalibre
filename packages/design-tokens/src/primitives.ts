@@ -70,6 +70,9 @@ export const RADIUS = {
   /** The chamfer's cut, not a corner radius: see `generate/css.ts`. */
   chamfer: '10px',
   'chamfer-control': '6px',
+  /** Same cut size as `chamfer` — the framed-image border matches it visually (0122). */
+  'image-frame': '10px',
+  'image-frame-control': '6px',
 } as const;
 
 /**

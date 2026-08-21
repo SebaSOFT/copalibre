@@ -136,6 +136,14 @@ export const messages = defineMessages({
     defaultMessage: 'No career statistics recorded.',
   },
   playerProfileClose: { id: 'publicWeb.playerProfile.close', defaultMessage: 'Close' },
+  playerProfilePhotoAlt: {
+    id: 'publicWeb.playerProfile.photoAlt',
+    defaultMessage: '{name}',
+  },
+  playerProfilePhotoPlaceholderAlt: {
+    id: 'publicWeb.playerProfile.photoPlaceholderAlt',
+    defaultMessage: 'No photo uploaded',
+  },
 
   // Organization tournament listing
   tournamentsPageTitle: { id: 'publicWeb.tournamentsPage.title', defaultMessage: 'Tournaments' },

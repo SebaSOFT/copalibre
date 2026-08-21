@@ -67,6 +67,8 @@ export const messages: Record<string, string> = {
   'publicWeb.playerProfile.noHistory': 'Nenhum histórico de competições registrado.',
   'publicWeb.playerProfile.noStats': 'Nenhuma estatística da carreira registrada.',
   'publicWeb.playerProfile.close': 'Fechar',
+  'publicWeb.playerProfile.photoAlt': '{name}',
+  'publicWeb.playerProfile.photoPlaceholderAlt': 'Nenhuma foto enviada',
 
   'publicWeb.tournamentsPage.title': 'Torneios',
   'publicWeb.tournamentsPage.liveHeading': 'Ao Vivo e Ativos',

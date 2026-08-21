@@ -378,6 +378,14 @@ describe('the registration review route container', () => {
     await act(async () => {
       fireEvent.change(screen.getByLabelText('Upload photo'), { target: { files: [file] } });
     });
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.load(dialog.querySelector('img') as HTMLImageElement);
+    await waitFor(() =>
+      expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
+    );
+    await act(async () => {
+      fireEvent.click(screen.getByText('Use image'));
+    });
     await waitFor(() => expect(photoCalls).toHaveLength(1));
   });
 

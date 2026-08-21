@@ -8,6 +8,15 @@ import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './suppor
  * show an `<img>` in its place.
  */
 
+/**
+ * A real, tiny, decodable PNG (1×1) — 0122's crop modal opens every selected
+ * file as a real `<img>` (a genuine browser decode, unlike a unit test), so
+ * placeholder text bytes that aren't a real image would leave "Use image"
+ * disabled forever.
+ */
+const ONE_PIXEL_PNG_BASE64 =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+
 const ORG_ALIAS = 'liga-mendocina';
 
 interface ClubRecord {
@@ -130,6 +139,25 @@ test('creates a club, uploads its emblem, then uploads the organization emblem',
   page,
 }) => {
   await mockControlApi(page);
+  // The `<img>` tag's own GET goes through the network stack, not the
+  // in-page `window.fetch` override above — these stand in for the real
+  // emblem-serving routes.
+  await page.route(`**/organizations/${ORG_ALIAS}/clubs/*/emblem`, (route) => {
+    if (route.request().method() !== 'GET') return route.fallback();
+    return route.fulfill({
+      status: 200,
+      contentType: 'image/png',
+      body: Buffer.from(ONE_PIXEL_PNG_BASE64, 'base64'),
+    });
+  });
+  await page.route(`**/organizations/${ORG_ALIAS}/emblem`, (route) => {
+    if (route.request().method() !== 'GET') return route.fallback();
+    return route.fulfill({
+      status: 200,
+      contentType: 'image/png',
+      body: Buffer.from(ONE_PIXEL_PNG_BASE64, 'base64'),
+    });
+  });
 
   const clubsTarget = `/control/${ORG_ALIAS}/clubs`;
   await seedLoginTransaction(page, clubsTarget);
@@ -147,8 +175,11 @@ test('creates a club, uploads its emblem, then uploads the organization emblem',
   await page.getByLabel('Subir escudo').setInputFiles({
     name: 'emblem.png',
     mimeType: 'image/png',
-    buffer: Buffer.from('fake-emblem-bytes'),
+    buffer: Buffer.from(ONE_PIXEL_PNG_BASE64, 'base64'),
   });
+  const clubDialog = page.getByRole('dialog', { name: 'Ajustar imagen' });
+  await expect(clubDialog).toBeVisible();
+  await clubDialog.getByRole('button', { name: 'Usar imagen' }).click();
   await expect(page.getByText('Escudo subido.')).toBeVisible();
   await expect(page.getByAltText('Escudo de Casa de Italia').first()).toBeVisible();
 
@@ -163,8 +194,11 @@ test('creates a club, uploads its emblem, then uploads the organization emblem',
   await page.getByLabel('Subir escudo').setInputFiles({
     name: 'org-emblem.png',
     mimeType: 'image/png',
-    buffer: Buffer.from('fake-org-emblem-bytes'),
+    buffer: Buffer.from(ONE_PIXEL_PNG_BASE64, 'base64'),
   });
+  const orgDialog = page.getByRole('dialog', { name: 'Ajustar imagen' });
+  await expect(orgDialog).toBeVisible();
+  await orgDialog.getByRole('button', { name: 'Usar imagen' }).click();
   await expect(page.getByText('Escudo subido.')).toBeVisible();
   // The notice appears as soon as the upload resolves; the emblem `<img>`
   // only appears once the route's own follow-up reload completes — a

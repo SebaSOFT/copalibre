@@ -447,4 +447,12 @@ export const messages: Record<string, string> = {
   'control.statisticsRebuild.cancel': '取消',
   'control.statisticsRebuild.result': '已处理 {matches} 场比赛。',
   'control.statisticsRebuild.failed': '重建请求被拒绝。',
+  'control.imageCropModal.title': '调整图片',
+  'control.imageCropModal.zoom': '缩放',
+  'control.imageCropModal.rotation': '旋转',
+  'control.imageCropModal.cancel': '取消',
+  'control.imageCropModal.confirm': '使用此图片',
+  'control.imageCropModal.close': '关闭',
+  'control.imageCropModal.processing': '处理中…',
+  'control.imageCropModal.failed': '无法处理此图片。',
 };

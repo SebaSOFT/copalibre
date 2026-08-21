@@ -456,4 +456,12 @@ export const messages: Record<string, string> = {
   'control.statisticsRebuild.result':
     '{matches, plural, one {# partita elaborata} other {# partite elaborate}}.',
   'control.statisticsRebuild.failed': 'La ricostruzione è stata rifiutata.',
+  'control.imageCropModal.title': 'Regola immagine',
+  'control.imageCropModal.zoom': 'Zoom',
+  'control.imageCropModal.rotation': 'Rotazione',
+  'control.imageCropModal.cancel': 'Annulla',
+  'control.imageCropModal.confirm': 'Usa immagine',
+  'control.imageCropModal.close': 'Chiudi',
+  'control.imageCropModal.processing': 'Elaborazione…',
+  'control.imageCropModal.failed': 'Impossibile elaborare questa immagine.',
 };

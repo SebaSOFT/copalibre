@@ -455,4 +455,12 @@ export const messages: Record<string, string> = {
   'control.statisticsRebuild.result':
     '{matches, plural, one {Обработан # матч} few {Обработано # матча} many {Обработано # матчей} other {Обработано # матча}}.',
   'control.statisticsRebuild.failed': 'В пересчёте отказано.',
+  'control.imageCropModal.title': 'Настроить изображение',
+  'control.imageCropModal.zoom': 'Масштаб',
+  'control.imageCropModal.rotation': 'Поворот',
+  'control.imageCropModal.cancel': 'Отмена',
+  'control.imageCropModal.confirm': 'Использовать изображение',
+  'control.imageCropModal.close': 'Закрыть',
+  'control.imageCropModal.processing': 'Обработка…',
+  'control.imageCropModal.failed': 'Не удалось обработать это изображение.',
 };

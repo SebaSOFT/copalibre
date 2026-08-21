@@ -92,8 +92,11 @@ export default tseslint.config(
         URL: 'readonly',
         console: 'readonly',
         setTimeout: 'readonly',
+        queueMicrotask: 'readonly',
         fetch: 'readonly',
         Buffer: 'readonly',
+        Blob: 'readonly',
+        HTMLCanvasElement: 'readonly',
       },
     },
     rules: {

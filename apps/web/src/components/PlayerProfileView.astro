@@ -2,17 +2,25 @@
 import type { IntlShape } from 'react-intl';
 import type { PublicPersonProfileResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
 import { messages } from '../lib/i18n/public-messages.en.ts';
+import { personPhotoUrl } from '../lib/public-api-client.ts';
+import PersonPhotoImage from './PersonPhotoImage.astro';
 
 interface Props {
   readonly profile: PublicPersonProfileResponse;
   readonly intl: IntlShape;
+  readonly organizationAlias: string;
 }
 
-const { profile, intl } = Astro.props;
+const { profile, intl, organizationAlias } = Astro.props;
 ---
 
 <article class="cl-player-profile">
   <header class="cl-player-profile__header">
+    <PersonPhotoImage
+      alt={intl.formatMessage(messages.playerProfilePhotoAlt, { name: profile.displayName })}
+      placeholderAlt={intl.formatMessage(messages.playerProfilePhotoPlaceholderAlt)}
+      src={profile.photoObjectId ? personPhotoUrl(organizationAlias, profile.personId) : undefined}
+    />
     <div class="cl-player-profile__identity">
       <h2 class="cl-player-profile__name">{profile.displayName}</h2>
       {profile.alias && <span class="cl-player-profile__alias">@{profile.alias}</span>}

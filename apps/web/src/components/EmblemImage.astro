@@ -14,37 +14,35 @@ interface Props {
 const { src, alt, placeholderAlt, size = 48 } = Astro.props;
 ---
 
-{
-  src ? (
-    <img class="cl-emblem-image" height={size} width={size} src={src} alt={alt} />
-  ) : (
-    <svg
-      class="cl-emblem-placeholder"
-      height={size}
-      width={size}
-      role="img"
-      viewBox="0 0 48 48"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <title>{placeholderAlt}</title>
-      <path
-        d="M8 6h32l-4 4v14c0 12-8 18-12 20-4-2-12-8-12-20V10z"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-      />
-    </svg>
-  )
-}
+<div class="cl-image-frame cl-emblem-frame" style={`width: ${size}px`}>
+  {
+    src ? (
+      <img src={src} alt={alt} />
+    ) : (
+      <svg
+        class="cl-emblem-placeholder"
+        role="img"
+        viewBox="0 0 48 48"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <title>{placeholderAlt}</title>
+        <path
+          d="M8 6h32l-4 4v14c0 12-8 18-12 20-4-2-12-8-12-20V10z"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        />
+      </svg>
+    )
+  }
+</div>
 
 <style>
-  .cl-emblem-image {
-    object-fit: contain;
-    border-radius: 4px;
+  .cl-emblem-frame {
+    flex-shrink: 0;
   }
 
   .cl-emblem-placeholder {
     color: var(--cl-text-muted, #94a3b8);
-    flex-shrink: 0;
   }
 </style>
