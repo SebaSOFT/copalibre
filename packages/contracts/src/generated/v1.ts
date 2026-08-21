@@ -4366,7 +4366,10 @@ export interface operations {
     MatchControlController_adjustClock: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A retried request with the same key and body replays the prior response. */
+                "idempotency-key"?: string;
+            };
             path: {
                 organizationAlias: string;
                 tournamentAlias: string;
@@ -4401,7 +4404,10 @@ export interface operations {
     MatchControlController_resolveTimer: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A retried request with the same key and body replays the prior response. */
+                "idempotency-key"?: string;
+            };
             path: {
                 organizationAlias: string;
                 tournamentAlias: string;
@@ -4496,7 +4502,10 @@ export interface operations {
     MatchControlController_setRoster: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A retried request with the same key and body replays the prior response. */
+                "idempotency-key"?: string;
+            };
             path: {
                 organizationAlias: string;
                 tournamentAlias: string;
@@ -4540,7 +4549,10 @@ export interface operations {
     MatchControlController_recordEvent: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A retried request with the same key and body replays the prior response. */
+                "idempotency-key"?: string;
+            };
             path: {
                 organizationAlias: string;
                 tournamentAlias: string;

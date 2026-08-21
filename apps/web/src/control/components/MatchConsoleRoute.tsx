@@ -3,6 +3,7 @@ import { FormattedMessage, useIntl } from 'react-intl';
 import { isSupportedLanguage, resolveLabel } from '@copalibre/domain';
 import { RealtimeClient } from '@copalibre/realtime';
 import {
+  ControlApiError,
   createControlApiClient,
   type ConsoleEventDefinition,
   type MatchConsoleApiClient,
@@ -19,6 +20,16 @@ import {
 } from '../lib/match-console.js';
 import { controlLinkClick } from '../lib/control-navigation.js';
 import { controlTokenStore } from '../session/token-store.js';
+import {
+  drainQueue,
+  enqueue,
+  listPending,
+  markRefused,
+  markSent,
+  remove,
+  type QueuedAction,
+  type QueuedMutation,
+} from '../lib/offline-queue.js';
 import { Button } from './ui/button.js';
 import { JerseyGrid } from './JerseyGrid.js';
 import { RosterSelectionStep } from './RosterSelectionStep.js';
@@ -90,8 +101,15 @@ export function MatchConsoleRoute({
     'all',
   );
   const [logNote, setLogNote] = useState('');
+  const [pendingMutations, setPendingMutations] = useState<readonly QueuedMutation[]>([]);
+  const [online, setOnline] = useState(() =>
+    typeof navigator === 'undefined' ? true : navigator.onLine,
+  );
+  const [lastSyncedAt, setLastSyncedAt] = useState<number>();
   const projectionVersion = useRef(0);
   const finalizationInFlight = useRef(false);
+  const drainingRef = useRef(false);
+  const redriveRequestedRef = useRef(false);
 
   const reload = useCallback(
     (): Promise<void> =>
@@ -126,6 +144,86 @@ export function MatchConsoleRoute({
     void reload();
   }, [reload]);
 
+  const refreshPendingMutations = useCallback(async (): Promise<void> => {
+    setPendingMutations(await listPending(matchId));
+  }, [matchId]);
+
+  // The durable-queue counterpart to `reload()` above: drains every queued
+  // action for this match, sequentially, in original order (design.md's
+  // "Queue replay order" decision) — a refusal surfaces against that one
+  // item and the drain continues; a network-level failure just pauses it
+  // for the next trigger (`online`, an SSE reconnect, or the periodic
+  // fallback below), without treating "still offline" as an error.
+  const drain = useCallback(async (): Promise<void> => {
+    // A call arriving while a drain is already running doesn't just no-op —
+    // it asks the in-flight drain to run one more pass once it's done, so
+    // an item enqueued mid-drain (two actions fired in quick succession)
+    // still gets picked up instead of waiting for the next external trigger.
+    if (drainingRef.current) {
+      redriveRequestedRef.current = true;
+      return;
+    }
+    drainingRef.current = true;
+    try {
+      do {
+        redriveRequestedRef.current = false;
+        const outcomes = await drainQueue(api, matchId);
+        await refreshPendingMutations();
+        if (outcomes.some((outcome) => outcome.kind === 'sent')) {
+          setLastSyncedAt(currentEpochMilliseconds());
+          await reload();
+        }
+        const refused = outcomes.find((outcome) => outcome.kind === 'refused');
+        if (refused && refused.kind === 'refused') {
+          setStatus({ kind: 'error', message: refused.reason });
+        }
+      } while (redriveRequestedRef.current);
+    } finally {
+      drainingRef.current = false;
+    }
+  }, [api, matchId, reload, refreshPendingMutations]);
+
+  // Refresh-survivability (design.md): reopening the console for this match
+  // reloads whatever was already queued and resumes draining it. Nested
+  // inside a promise chain rather than called directly — the same
+  // react-hooks/set-state-in-effect workaround `PreferencesRoute.tsx`
+  // already established (0121) for a mount-time call into a setState-ing
+  // async function.
+  useEffect(() => {
+    Promise.resolve()
+      .then(() => refreshPendingMutations())
+      .then(() => drain());
+  }, [refreshPendingMutations, drain]);
+
+  // `navigator.onLine` is a hint, not the source of truth (design.md's
+  // "Reachability" decision) — it triggers a drain attempt promptly, but a
+  // drain that then fails with a network error just re-pauses rather than
+  // trusting the browser's own online/offline signal.
+  useEffect(() => {
+    function handleOnline(): void {
+      setOnline(true);
+      void drain();
+    }
+    function handleOffline(): void {
+      setOnline(false);
+    }
+    globalThis.addEventListener('online', handleOnline);
+    globalThis.addEventListener('offline', handleOffline);
+    return () => {
+      globalThis.removeEventListener('online', handleOnline);
+      globalThis.removeEventListener('offline', handleOffline);
+    };
+  }, [drain]);
+
+  // Periodic fallback for the queue, mirroring the `stale`-projection retry
+  // below — the queue does not depend on catching every `online` event or
+  // SSE reconnect correctly.
+  useEffect(() => {
+    if (pendingMutations.length === 0) return undefined;
+    const timeout = globalThis.setTimeout(() => void drain(), RECONCILIATION_TIMEOUT_MS);
+    return () => globalThis.clearTimeout(timeout);
+  }, [pendingMutations.length, drain]);
+
   useEffect(() => {
     const stream = api.matchConsoleStream?.(organizationAlias);
     if (!stream) return undefined;
@@ -147,9 +245,13 @@ export function MatchConsoleRoute({
       },
       onProjectionRequired: () => void reload(),
       onFailure: () => setStale(true),
+      // A successful (re)connection is one of the queue's drain triggers
+      // (design.md task 3.3) — it fires on the very first connect too, which
+      // is exactly the "reopening the console resumes draining" moment.
+      onOpen: () => void drain(),
     });
     return () => realtime.close();
-  }, [api, matchId, organizationAlias, reload]);
+  }, [api, matchId, organizationAlias, reload, drain]);
 
   useEffect(() => {
     if (!stale) return undefined;
@@ -188,21 +290,18 @@ export function MatchConsoleRoute({
     );
   });
 
-  async function mutate(work: () => Promise<unknown>, optimistic?: () => void): Promise<void> {
+  // Write-ahead (design.md's own decision, by name): persisted to the
+  // durable queue *before* any send is attempted, so a dropped connection —
+  // whether detected up front or discovered only when the send itself fails
+  // — never loses the action. `drain()` performs (and reports) the actual
+  // attempt; this only ever queues, applies the optimistic patch, and then
+  // asks for a drain.
+  async function mutate(action: QueuedAction, optimistic?: () => void): Promise<void> {
     setStale(true);
     optimistic?.();
-    try {
-      await work();
-      await reload();
-    } catch (error) {
-      setStatus({
-        kind: 'error',
-        message:
-          error instanceof Error
-            ? error.message
-            : intl.formatMessage(messages.matchConsoleOperationRejected),
-      });
-    }
+    await enqueue(action, newIdempotencyKey(), currentEpochMilliseconds());
+    await refreshPendingMutations();
+    await drain();
   }
 
   function record(definition: ConsoleEventDefinition): void {
@@ -229,8 +328,12 @@ export function MatchConsoleRoute({
       ...(payloadDescription === undefined ? {} : { description: payloadDescription }),
     };
     void mutate(
-      () =>
-        api.recordMatchEvent(organizationAlias, tournamentAlias, matchId, {
+      {
+        kind: 'record-event',
+        organizationAlias,
+        tournamentAlias,
+        matchId,
+        request: {
           definitionCode: definition.code,
           segmentId: activeSegment.segmentId,
           occurredAt,
@@ -241,7 +344,8 @@ export function MatchConsoleRoute({
             : {}),
           ...(Object.keys(payload).length === 0 ? {} : { payload }),
           ...(logNote.trim() === '' ? {} : { notes: logNote.trim() }),
-        }),
+        },
+      },
       () =>
         setProjection((current) =>
           current
@@ -282,29 +386,39 @@ export function MatchConsoleRoute({
     const idempotencyKey = finalizeIdempotencyKey ?? newIdempotencyKey();
     setFinalizeIdempotencyKey(idempotencyKey);
     setFinalizing(true);
+    const request = {
+      sides: current.entrantIds.map((entrantId) => ({ entrantId, statistics: {} })),
+      ...(selectedSide ? { winnerEntrantId: selectedSide } : {}),
+    };
+    // Write-ahead here too (design.md: "a queued finalize... is refused and
+    // surfaced for the operator to resolve explicitly", not excluded from
+    // the durable queue) — but finalize keeps its own direct send rather
+    // than the generic `drain()`, so its existing explicit-confirm UX and
+    // idempotency-key-reuse-across-retries behavior stay exactly as they
+    // are; only the "never silently lost" guarantee is new.
+    await enqueue(
+      { kind: 'finalize', organizationAlias, tournamentAlias, matchId, request },
+      idempotencyKey,
+      currentEpochMilliseconds(),
+    );
+    await refreshPendingMutations();
     try {
-      await api.finalizeMatch(
-        organizationAlias,
-        tournamentAlias,
-        matchId,
-        {
-          sides: current.entrantIds.map((entrantId) => ({ entrantId, statistics: {} })),
-          ...(selectedSide ? { winnerEntrantId: selectedSide } : {}),
-        },
-        idempotencyKey,
-      );
+      await api.finalizeMatch(organizationAlias, tournamentAlias, matchId, request, idempotencyKey);
+      await markSent(idempotencyKey);
       await reload();
       setConfirmingFinalize(false);
       setFinalizeIdempotencyKey(undefined);
     } catch (error) {
-      setStatus({
-        kind: 'error',
-        message:
-          error instanceof Error
-            ? error.message
-            : intl.formatMessage(messages.matchConsoleFinalizeNotConfirmed),
-      });
+      if (error instanceof ControlApiError) {
+        await markRefused(idempotencyKey, error.message);
+        await refreshPendingMutations();
+        setStatus({ kind: 'error', message: error.message });
+      }
+      // A network-level failure leaves it queued, silently — the sync-status
+      // area communicates that, not an error banner (matching every other
+      // queued mutation's behavior).
     } finally {
+      await refreshPendingMutations();
       finalizationInFlight.current = false;
       setFinalizing(false);
     }
@@ -355,6 +469,52 @@ export function MatchConsoleRoute({
         <p className="cl-inline-alert">
           <FormattedMessage {...messages.matchConsoleAwaitingProjection} />
         </p>
+      )}
+
+      {/* Always visible, not only on failure (design.md's "Sync-status UI" decision). */}
+      <div aria-label={intl.formatMessage(messages.matchConsoleSyncStatus)} style={syncStatusStyle}>
+        <span>
+          {online
+            ? intl.formatMessage(messages.matchConsoleOnline)
+            : intl.formatMessage(messages.matchConsoleOffline)}
+        </span>
+        <span>
+          {intl.formatMessage(messages.matchConsoleQueuedCount, {
+            count: pendingMutations.filter((mutation) => mutation.status === 'pending').length,
+          })}
+        </span>
+        <span>
+          {lastSyncedAt === undefined
+            ? intl.formatMessage(messages.matchConsoleNeverSynced)
+            : intl.formatMessage(messages.matchConsoleLastSynced, {
+                time: new Date(lastSyncedAt).toLocaleTimeString(intl.locale),
+              })}
+        </span>
+      </div>
+      {pendingMutations.some((mutation) => mutation.status === 'refused') && (
+        <ul style={refusedListStyle}>
+          {pendingMutations
+            .filter((mutation) => mutation.status === 'refused')
+            .map((mutation) => (
+              <li className="cl-inline-alert" key={mutation.id} style={refusedItemStyle}>
+                <span>
+                  {intl.formatMessage(messages.matchConsoleRefusedAction, {
+                    kind: mutation.action.kind,
+                    reason: mutation.refusalReason ?? '',
+                  })}
+                </span>
+                <Button
+                  onClick={() =>
+                    void remove(mutation.id).then(() => void refreshPendingMutations())
+                  }
+                  type="button"
+                  variant="secondary"
+                >
+                  <FormattedMessage {...messages.matchConsoleDismiss} />
+                </Button>
+              </li>
+            ))}
+        </ul>
       )}
 
       <div style={workspaceStyle}>
@@ -410,12 +570,17 @@ export function MatchConsoleRoute({
                 disabled={!canControlClock || selectedSegmentId === ''}
                 onClick={() =>
                   void mutate(
-                    () =>
-                      api.adjustMatchClock(organizationAlias, tournamentAlias, matchId, {
+                    {
+                      kind: 'clock-adjust',
+                      organizationAlias,
+                      tournamentAlias,
+                      matchId,
+                      request: {
                         segmentId: selectedSegmentId,
                         elapsedSeconds: Number(elapsedSeconds),
                         activate: true,
-                      }),
+                      },
+                    },
                     () =>
                       setProjection((current) =>
                         current
@@ -666,13 +831,13 @@ export function MatchConsoleRoute({
                       disabled={!canResolveTimer}
                       onClick={() =>
                         void mutate(
-                          () =>
-                            api.resolveMatchTimer(
-                              organizationAlias,
-                              tournamentAlias,
-                              matchId,
-                              timer.timerId,
-                            ),
+                          {
+                            kind: 'timer-resolve',
+                            organizationAlias,
+                            tournamentAlias,
+                            matchId,
+                            timerId: timer.timerId,
+                          },
                           () =>
                             setProjection((current) =>
                               current
@@ -844,6 +1009,27 @@ const clockRingStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   gap: 'var(--cl-space-2)',
+};
+const syncStatusStyle: React.CSSProperties = {
+  display: 'flex',
+  gap: 'var(--cl-space-4)',
+  color: 'var(--cl-text-muted)',
+  fontFamily: 'var(--cl-font-mono)',
+  fontSize: '0.75rem',
+  textTransform: 'uppercase',
+};
+const refusedListStyle: React.CSSProperties = {
+  display: 'grid',
+  gap: 'var(--cl-space-2)',
+  listStyle: 'none',
+  margin: 0,
+  padding: 0,
+};
+const refusedItemStyle: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  gap: 'var(--cl-space-3)',
 };
 const workspaceStyle: React.CSSProperties = {
   display: 'grid',

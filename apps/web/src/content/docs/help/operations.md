@@ -6,7 +6,9 @@ description: Rules for operating matches and correcting tournament data.
 ## Match console
 
 Record events and the clock from an authorized console. The public projection updates from durable
-events and keeps a version for recovery.
+events and keeps a version for recovery. Every action writes ahead to a local queue before it's
+sent, so a dropped connection queues it for automatic retry instead of losing it — see
+[Live match console](/help/control/match-console/) for the full behavior.
 
 ## Corrections
 

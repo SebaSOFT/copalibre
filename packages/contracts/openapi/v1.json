@@ -1444,6 +1444,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "idempotency-key",
+            "required": false,
+            "in": "header",
+            "description": "A retried request with the same key and body replays the prior response.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -1521,6 +1530,15 @@
             "name": "timerId",
             "required": true,
             "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "idempotency-key",
+            "required": false,
+            "in": "header",
+            "description": "A retried request with the same key and body replays the prior response.",
             "schema": {
               "type": "string"
             }
@@ -1734,6 +1752,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "idempotency-key",
+            "required": false,
+            "in": "header",
+            "description": "A retried request with the same key and body replays the prior response.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -1814,6 +1841,15 @@
             "name": "matchId",
             "required": true,
             "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "idempotency-key",
+            "required": false,
+            "in": "header",
+            "description": "A retried request with the same key and body replays the prior response.",
             "schema": {
               "type": "string"
             }

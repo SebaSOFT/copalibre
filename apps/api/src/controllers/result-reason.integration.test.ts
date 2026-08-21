@@ -190,6 +190,9 @@ describe('result reason per competitor (integration, 0076)', () => {
     await scratch?.drop();
   });
 
+  // A fresh key per call (0123: recordEvent now checks one too, not just
+  // finalize) — a fixed key would make every subsequent POST here collide
+  // against whatever the first one recorded.
   function request(method: 'GET' | 'POST', url: string, token?: string, payload?: unknown) {
     return (app as NestFastifyApplication).inject({
       method,
@@ -197,9 +200,7 @@ describe('result reason per competitor (integration, 0076)', () => {
       headers: token
         ? {
             authorization: `Bearer ${token}`,
-            ...(method === 'POST'
-              ? { 'idempotency-key': '01890000-0000-7000-8000-00000000b076' }
-              : {}),
+            ...(method === 'POST' ? { 'idempotency-key': crypto.randomUUID() } : {}),
           }
         : {},
       payload: payload as never,

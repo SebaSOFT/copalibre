@@ -267,12 +267,14 @@ The public site SHALL serve a per-person competition profile, reachable from whe
 is rendered on a public page, showing display name, nationality flag, photo or placeholder, computed
 age when set, competition history (every tournament and team the person has been entered under, within
 the person's organization), and career statistic totals aggregated across every tournament, per
-discipline.
+discipline. The photo, or its placeholder, SHALL render inside the platform's standard 4:5 framed-image
+presentation.
 
 #### Scenario: Visiting a player's public profile
 - **WHEN** an anonymous visitor opens a player's name on a public page
-- **THEN** the profile shows the player's display name, nationality flag if set, photo or placeholder,
-  computed age if a birth date is set, their competition history, and their career statistic totals
+- **THEN** the profile shows the player's display name, nationality flag if set, photo or placeholder
+  inside the standard framed presentation, computed age if a birth date is set, their competition
+  history, and their career statistic totals
 
 #### Scenario: A player with no career statistics still has a valid profile
 - **WHEN** a player's discipline declares no organization-granularity collector, or the player has none
@@ -296,14 +298,16 @@ and emblem, a featured block for its current or most recent tournament, every pu
 that organization — name, discipline, status, and season/dates — and a grid of the organization's clubs.
 The page SHALL be reachable without already knowing a specific tournament's alias, and SHALL be rendered
 per request from current backend state, matching the existing overview page's "reachable without a site
-rebuild" guarantee.
+rebuild" guarantee. Every emblem shown on this page, and every placeholder shown in its place, SHALL
+render inside the platform's standard 4:5 framed-image presentation.
 
 The previously served path `/{organization}/tournaments` SHALL NOT be served.
 
 #### Scenario: Visiting an organization's tournament listing
 - **WHEN** an anonymous visitor requests `/{organization}`
-- **THEN** the page shows the organization's name and emblem, and lists every published tournament for
-  that organization, with name, discipline, status, and season/dates for each
+- **THEN** the page shows the organization's name and emblem, inside the standard framed presentation,
+  and lists every published tournament for that organization, with name, discipline, status, and
+  season/dates for each
 
 #### Scenario: An unpublished tournament is not listed
 - **WHEN** an organization has both published and unpublished tournaments
@@ -331,12 +335,13 @@ The previously served path `/{organization}/tournaments` SHALL NOT be served.
 
 #### Scenario: The club grid shows the organization's clubs
 - **WHEN** an organization has registered clubs
-- **THEN** the page shows each club with its name, abbreviation, and emblem, rendering a placeholder for
-  a club with no emblem
+- **THEN** the page shows each club with its name, abbreviation, and emblem inside the standard framed
+  presentation, rendering a placeholder for a club with no emblem, inside the same presentation
 
 #### Scenario: An organization with no emblem shows a placeholder
 - **WHEN** an organization has no emblem
-- **THEN** the header renders a placeholder rather than a broken image or an empty gap
+- **THEN** the header renders a placeholder, inside the standard framed presentation, rather than a
+  broken image or an empty gap
 
 ### Requirement: A finished tournament's listing card shows its winner and runner-up, per zone
 

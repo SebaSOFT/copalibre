@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useIntl } from 'react-intl';
 import {
-  ControlApiError,
   type ConsoleRoster,
   type ConsoleRosterRole,
   type MatchConsoleApiClient,
   type RosterCandidate,
 } from '../lib/api-client.js';
+import { currentEpochMilliseconds, newIdempotencyKey } from '../lib/match-console.js';
+import { drainQueue, enqueue } from '../lib/offline-queue.js';
 import { Button } from './ui/button.js';
 import { messages } from '../i18n/messages.en.js';
 
@@ -139,19 +140,36 @@ function EntrantRosterEditor({
         ...(selection.number.trim() === '' ? {} : { number: selection.number.trim() }),
         ...(selection.roles.length === 0 ? {} : { roles: [...selection.roles] }),
       }));
-    try {
-      await api.setMatchRoster(organizationAlias, tournamentAlias, matchId, entrantId, { members });
+    // Write-ahead, same as every other console mutation (0123): persisted to
+    // the durable queue before the send is attempted, so a dropped
+    // connection here is queued and retried, not lost.
+    const idempotencyKey = newIdempotencyKey();
+    await enqueue(
+      {
+        kind: 'roster-select',
+        organizationAlias,
+        tournamentAlias,
+        matchId,
+        entrantId,
+        request: { members },
+      },
+      idempotencyKey,
+      currentEpochMilliseconds(),
+    );
+    const outcomes = await drainQueue(api, matchId);
+    const outcome = outcomes.find((candidate) => candidate.id === idempotencyKey);
+    if (!outcome || outcome.kind === 'network-failure') {
+      // Still queued — the console shell's own sync-status area surfaces
+      // this; no error banner here for "offline", only for a real refusal.
       setStatus({ saving: false });
-      onSaved();
-    } catch (error) {
-      setStatus({
-        saving: false,
-        error:
-          error instanceof ControlApiError
-            ? error.message
-            : intl.formatMessage(messages.matchConsoleRosterSaveFailed),
-      });
+      return;
     }
+    if (outcome.kind === 'refused') {
+      setStatus({ saving: false, error: outcome.reason });
+      return;
+    }
+    setStatus({ saving: false });
+    onSaved();
   }
 
   if (!candidates) {

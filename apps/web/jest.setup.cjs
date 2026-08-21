@@ -29,6 +29,20 @@ for (const [name, value] of Object.entries({ fetch, FormData, Headers, Request, 
   define(name, value);
 }
 
+// jsdom's global realm doesn't carry over Node's own `structuredClone` —
+// fake-indexeddb's `put`/`add` clone every value through it. `v8.serialize`/
+// `deserialize` is Node's own underlying mechanism for the real thing, and
+// is importable where the bare global isn't.
+if (typeof globalThis.structuredClone !== 'function') {
+  const v8 = require('node:v8');
+  define('structuredClone', (value) => v8.deserialize(v8.serialize(value)));
+}
+
+// jsdom ships no IndexedDB implementation at all — 0123's offline queue
+// (`offline-queue.ts`, via `idb`) needs a real one to be exercised under
+// test. `fake-indexeddb/auto` installs `indexedDB`/`IDBKeyRange` globally.
+require('fake-indexeddb/auto');
+
 // jsdom implements the `URL` constructor but not the Blob-registry half of
 // the API (0122's crop modal opens a selected file through an object URL).
 if (typeof URL.createObjectURL !== 'function') {

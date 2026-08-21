@@ -10,6 +10,11 @@ import {
   type MatchConsoleResponse,
   type RosterCandidate,
 } from '../lib/api-client.js';
+import { clearAll, listPending } from '../lib/offline-queue.js';
+
+beforeEach(async () => {
+  await clearAll();
+});
 
 const ROSTER_ROLES: readonly ConsoleRosterRole[] = [
   { code: 'captain', label: 'Captain', badge: 'C' },
@@ -148,6 +153,7 @@ describe('RosterSelectionStep', () => {
       'match-1',
       'entrant-a',
       { members: [{ personId: 'p1', onField: true, number: '9', roles: ['captain'] }] },
+      expect.any(String),
     );
     await waitFor(() => expect(onSaved).toHaveBeenCalled());
   });
@@ -175,14 +181,23 @@ describe('RosterSelectionStep', () => {
     expect((scorerCheckbox as HTMLInputElement).checked).toBe(true);
   });
 
-  it('falls back to a generic message when the failure is not a ControlApiError', async () => {
+  it('queues silently — no error banner — when the failure is a network error, not a refusal (0123)', async () => {
     const setMatchRoster = jest.fn(async () => {
       throw new Error('network down');
     });
     renderStep({ api: client({ setMatchRoster }) });
     await screen.findByText('Scorer');
     fireEvent.click(screen.getByRole('button', { name: 'Save roster' }));
-    await screen.findByText('Could not save the roster.');
+
+    // Queued for later retry, not lost — the console shell's own
+    // always-visible sync-status area is what surfaces this, not an error
+    // message here (design.md's "Reachability" decision: a network failure
+    // re-pauses rather than reporting a failure to the operator).
+    await waitFor(() => expect(setMatchRoster).toHaveBeenCalled());
+    expect(screen.queryByText('Could not save the roster.')).toBeNull();
+    const pending = await listPending('match-1');
+    expect(pending).toHaveLength(1);
+    expect(pending[0]?.action).toMatchObject({ kind: 'roster-select', entrantId: 'entrant-a' });
   });
 
   it('shows a load-failure message when candidates cannot be fetched', async () => {
