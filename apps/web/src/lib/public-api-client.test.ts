@@ -4,11 +4,14 @@ import {
   fetchLive,
   fetchBracket,
   fetchMatchReport,
+  fetchOrganizationTournaments,
   fetchPublicTableLayouts,
   fetchPublicTableProjection,
   mapOverviewResponse,
   mapLiveResponse,
   mapBracketResponse,
+  organizationEmblemUrl,
+  clubEmblemUrl,
 } from './public-api-client.js';
 
 describe('public-api-client', () => {
@@ -264,6 +267,48 @@ describe('public-api-client', () => {
       } as unknown as Response);
 
       expect(await fetchPublicTableProjection('org1', 'tourney1', 'nonexistent')).toBeUndefined();
+    });
+  });
+
+  describe('fetchOrganizationTournaments', () => {
+    it('returns parsed json on 200, including the clubs list and organization emblem', async () => {
+      const mockData = {
+        organizationAlias: 'org1',
+        organizationName: 'Org One',
+        organizationEmblemObjectId: 'object-1',
+        tournaments: [],
+        clubs: [{ clubId: 'club-1', name: 'Club One' }],
+      };
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockData,
+      } as unknown as Response);
+
+      const result = await fetchOrganizationTournaments('org1');
+      expect(result).toEqual(mockData);
+      expect(fetch).toHaveBeenCalledWith('http://api.test/organizations/org1/public/tournaments');
+    });
+
+    it('returns undefined on 404', async () => {
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+      } as unknown as Response);
+
+      expect(await fetchOrganizationTournaments('unknown-org')).toBeUndefined();
+    });
+  });
+
+  describe('emblem URL builders', () => {
+    it('builds a same-origin organization emblem URL', () => {
+      expect(organizationEmblemUrl('liga-mendocina')).toBe('/organizations/liga-mendocina/emblem');
+    });
+
+    it('builds a same-origin club emblem URL', () => {
+      expect(clubEmblemUrl('liga-mendocina', 'club-1')).toBe(
+        '/organizations/liga-mendocina/clubs/club-1/emblem',
+      );
     });
   });
 

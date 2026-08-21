@@ -18,10 +18,6 @@ const BASE = { organizationAlias: 'liga-mendocina', tournamentAlias: 'apertura-2
 describe('canonical public paths', () => {
   it.each([
     [{ organizationAlias: 'liga-mendocina' }, '/liga-mendocina'],
-    [
-      { organizationAlias: 'liga-mendocina', listing: 'tournaments' as const },
-      '/liga-mendocina/tournaments',
-    ],
     [BASE, '/liga-mendocina/tournaments/apertura-2026'],
     [{ ...BASE, stageNumber: 2 }, '/liga-mendocina/tournaments/apertura-2026/stages/2'],
     [

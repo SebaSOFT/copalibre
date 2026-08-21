@@ -75,4 +75,11 @@ export const messages: Record<string, string> = {
   'publicWeb.tournamentsPage.champion': 'Чемпион',
   'publicWeb.tournamentsPage.runnerUp': 'Финалист',
   'publicWeb.tournamentsPage.viewDetails': 'Смотреть турнир',
+  'publicWeb.orgPage.featuredHeading': 'Рекомендуем',
+  'publicWeb.orgPage.clubsHeading': 'Клубы',
+  'publicWeb.orgPage.noClubs': 'Клубы пока не зарегистрированы.',
+  'publicWeb.orgPage.emblemAlt': 'Эмблема {name}',
+  'publicWeb.orgPage.emblemPlaceholderAlt': 'Эмблема не загружена',
+  'publicWeb.orgPage.notFoundTitle': 'Организация не найдена',
+  'publicWeb.orgPage.notFoundBody': 'По этому адресу организация не найдена.',
 };

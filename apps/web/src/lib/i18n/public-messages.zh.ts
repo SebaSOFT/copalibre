@@ -74,4 +74,11 @@ export const messages: Record<string, string> = {
   'publicWeb.tournamentsPage.champion': '冠军',
   'publicWeb.tournamentsPage.runnerUp': '亚军',
   'publicWeb.tournamentsPage.viewDetails': '查看赛事',
+  'publicWeb.orgPage.featuredHeading': '精选',
+  'publicWeb.orgPage.clubsHeading': '俱乐部',
+  'publicWeb.orgPage.noClubs': '尚未注册任何俱乐部。',
+  'publicWeb.orgPage.emblemAlt': '{name}的徽章',
+  'publicWeb.orgPage.emblemPlaceholderAlt': '未上传徽章',
+  'publicWeb.orgPage.notFoundTitle': '未找到组织',
+  'publicWeb.orgPage.notFoundBody': '该地址不存在任何组织。',
 };

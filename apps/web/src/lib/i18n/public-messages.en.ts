@@ -161,4 +161,31 @@ export const messages = defineMessages({
     id: 'publicWeb.tournamentsPage.viewDetails',
     defaultMessage: 'View tournament',
   },
+
+  // Organization page (0110) — merged with the former tournament listing.
+  orgPageFeaturedHeading: {
+    id: 'publicWeb.orgPage.featuredHeading',
+    defaultMessage: 'Featured',
+  },
+  orgPageClubsHeading: { id: 'publicWeb.orgPage.clubsHeading', defaultMessage: 'Clubs' },
+  orgPageNoClubs: {
+    id: 'publicWeb.orgPage.noClubs',
+    defaultMessage: 'No clubs registered yet.',
+  },
+  orgPageEmblemAlt: {
+    id: 'publicWeb.orgPage.emblemAlt',
+    defaultMessage: '{name} emblem',
+  },
+  orgPageEmblemPlaceholderAlt: {
+    id: 'publicWeb.orgPage.emblemPlaceholderAlt',
+    defaultMessage: 'No emblem uploaded',
+  },
+  orgPageNotFoundTitle: {
+    id: 'publicWeb.orgPage.notFoundTitle',
+    defaultMessage: 'Organization not found',
+  },
+  orgPageNotFoundBody: {
+    id: 'publicWeb.orgPage.notFoundBody',
+    defaultMessage: 'No organization exists at this address.',
+  },
 });

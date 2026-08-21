@@ -2884,10 +2884,20 @@ export interface components {
             dates?: components["schemas"]["PublicTournamentDatesResponse"];
             winners?: components["schemas"]["PublicTournamentWinnerZoneResponse"][];
         };
+        PublicOverviewClubResponse: {
+            /** Format: uuid */
+            clubId: string;
+            name: string;
+            alias?: string;
+            emblemObjectId?: string;
+        };
         PublicOrganizationTournamentListResponse: {
             organizationAlias: string;
             organizationName: string;
+            /** @description object_metadata.object_id of the organization emblem */
+            organizationEmblemObjectId?: string;
             tournaments: components["schemas"]["PublicTournamentListingItemResponse"][];
+            clubs: components["schemas"]["PublicOverviewClubResponse"][];
         };
         PublicOverviewMatchResponse: {
             /** Format: uuid */
@@ -2921,13 +2931,6 @@ export interface components {
             statistics: {
                 [key: string]: number;
             };
-        };
-        PublicOverviewClubResponse: {
-            /** Format: uuid */
-            clubId: string;
-            name: string;
-            alias?: string;
-            emblemObjectId?: string;
         };
         PublicOverviewResponse: {
             organizationAlias: string;
