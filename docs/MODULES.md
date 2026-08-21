@@ -38,6 +38,43 @@ resolution is frozen onto the compiled snapshot. Consequences:
 Semver on a discipline or profile identifies a **release**. It is not a compatibility contract; that
 is what capabilities are for.
 
+## The same mechanism, two real disciplines apart
+
+`football.json` — timed segments, a scoring event with a rich payload:
+
+```jsonc
+"segmentTypes": [{ "name": "half", "timed": true, "defaultDurationSeconds": 2700 }],
+"eventDefinitions": [{
+  "code": "goal", "category": "positive", "actorRequirement": "person",
+  "payloadSchema": { "properties": { "assistedBy": { "type": "string" }, "penalty": { "type": "boolean" } } }
+}]
+```
+
+`tennis.json` — untimed, set-based segments; statistics with no event log behind them at all:
+
+```jsonc
+"segmentTypes": [{ "name": "set", "timed": false }, { "name": "tiebreak", "timed": false }],
+"statistics": [{ "code": "matches-won", "aggregation": "sum" }]
+```
+
+Same descriptor shape, genuinely different sports: one drives its statistics from event effects
+recorded during play; the other declares a statistic no event definition ever touches, populated
+some other way a discipline is free to choose.
+
+**Illustrative only — no esports discipline ships in `packages/module-catalogue/` today.** The
+same mechanism applied to a round-based team FPS would look like this:
+
+```jsonc
+// Illustrative only — no esports discipline ships in packages/module-catalogue/ today.
+// Shows the same mechanism applied to a round-based team FPS.
+"segmentTypes": [{ "name": "round", "timed": true, "defaultDurationSeconds": 120 }],
+"eventDefinitions": [{
+  "code": "elimination", "category": "positive", "actorRequirement": "person",
+  "payloadSchema": { "properties": { "victimId": { "type": "string" } } }
+}],
+"statistics": [{ "code": "kills", "aggregation": "sum" }, { "code": "objectives-captured", "aggregation": "sum" }]
+```
+
 ## Canonical statistic codes
 
 Strongly suggested, never enforced. Converging on these names means most profiles satisfy most
