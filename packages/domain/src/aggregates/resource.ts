@@ -29,6 +29,14 @@ export interface Venue {
   readonly concurrentCapacity: number;
   /** Free-form, for an operator to read; never parsed. */
   readonly address?: string;
+  /**
+   * Free-form, operator-entered key/value details describing what kind of
+   * resource this is — physical (address, playing surface) or virtual (server
+   * address, region, current map). Never parsed, validated, or acted on;
+   * accommodates both without a `kind` discriminant forcing a shape neither
+   * this catalogue's disciplines nor a future one is committed to.
+   */
+  readonly details?: Readonly<Record<string, string>>;
 }
 
 export type OfficialRole = 'referee' | 'assistant' | 'table-official' | 'observer';

@@ -876,6 +876,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/fixtures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A stage’s generated fixtures, with real fixture ids
+         * @description What a schedule builder assigns a time and venue to — distinct from the bracket graph’s own node ids, which are never persisted.
+         */
+        get: operations["StagesController_fixtures"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/display-tokens": {
         parameters: {
             query?: never;
@@ -1577,6 +1597,76 @@ export interface paths {
         head?: never;
         /** Edit a club's name, alias, or abbreviation */
         patch: operations["ClubsController_update"];
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/venues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List an organization's venues */
+        get: operations["ResourcesController_listVenues"];
+        put?: never;
+        /** Create a venue */
+        post: operations["ResourcesController_createVenue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/venues/{venueId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edit a venue's name, capacity, address, or details */
+        patch: operations["ResourcesController_updateVenue"];
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/officials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List an organization's officials */
+        get: operations["ResourcesController_listOfficials"];
+        put?: never;
+        /** Create an official */
+        post: operations["ResourcesController_createOfficial"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/officials/{officialId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edit an official's name or declared roles */
+        patch: operations["ResourcesController_updateOfficial"];
         trace?: never;
     };
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones": {
@@ -2673,6 +2763,27 @@ export interface components {
             /** @example round-robin */
             format: string;
         };
+        FixtureResponse: {
+            /** Format: uuid */
+            fixtureId: string;
+            /**
+             * @description 1-based round within the stage
+             * @example 1
+             */
+            round: number;
+            /** Format: uuid */
+            homeEntrantId?: string;
+            /** Format: uuid */
+            awayEntrantId?: string;
+        };
+        StageFixturesResponse: {
+            /**
+             * Format: uuid
+             * @description Resolves this stage’s number to its id
+             */
+            stageId: string;
+            fixtures: components["schemas"]["FixtureResponse"][];
+        };
         DisplayTokenResponse: {
             /** Format: uuid */
             displayTokenId: string;
@@ -3359,6 +3470,86 @@ export interface components {
             alias?: string;
             /** @example C I */
             abbreviation?: string;
+        };
+        VenueResponse: {
+            /** Format: uuid */
+            venueId: string;
+            /** Format: uuid */
+            organizationId: string;
+            /** @description Path identifier, unique within the organization. */
+            alias: string;
+            /** @example Cancha 1 */
+            name: string;
+            /**
+             * @description Fixtures this venue can host simultaneously.
+             * @example 1
+             */
+            concurrentCapacity: number;
+            /** @description Free-form, for an operator to read; never parsed. */
+            address?: string;
+            /**
+             * @description Free-form, operator-entered key/value details — an address, a playing surface, a server address, a region, a current map. Never parsed or validated.
+             * @example {
+             *       "surface": "clay"
+             *     }
+             */
+            details?: {
+                [key: string]: string;
+            };
+        };
+        CreateVenueRequest: {
+            /**
+             * @description Lowercase kebab-case alias, unique within the organization.
+             * @example cancha-1
+             */
+            alias: string;
+            /** @example Cancha 1 */
+            name: string;
+            /** @example 1 */
+            concurrentCapacity: number;
+            address?: string;
+            /**
+             * @example {
+             *       "surface": "clay"
+             *     }
+             */
+            details?: {
+                [key: string]: string;
+            };
+        };
+        UpdateVenueRequest: {
+            /** @example Cancha 1 */
+            name?: string;
+            /** @example 1 */
+            concurrentCapacity?: number;
+            address?: string;
+            /**
+             * @example {
+             *       "surface": "clay"
+             *     }
+             */
+            details?: {
+                [key: string]: string;
+            };
+        };
+        OfficialResponse: {
+            /** Format: uuid */
+            officialId: string;
+            /** Format: uuid */
+            organizationId: string;
+            /** @example Ana Gómez */
+            displayName: string;
+            roles: ("referee" | "assistant" | "table-official" | "observer")[];
+        };
+        CreateOfficialRequest: {
+            /** @example Ana Gómez */
+            displayName: string;
+            roles: ("referee" | "assistant" | "table-official" | "observer")[];
+        };
+        UpdateOfficialRequest: {
+            /** @example Ana Gómez */
+            displayName?: string;
+            roles?: ("referee" | "assistant" | "table-official" | "observer")[];
         };
         ZoneResponse: {
             /** Format: uuid */
@@ -5403,6 +5594,53 @@ export interface operations {
             };
         };
     };
+    StagesController_fixtures: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                stageNumber: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StageFixturesResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
     DisplayTokenController_list: {
         parameters: {
             query?: never;
@@ -6606,6 +6844,150 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClubResponse"];
+                };
+            };
+        };
+    };
+    ResourcesController_listVenues: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VenueResponse"][];
+                };
+            };
+        };
+    };
+    ResourcesController_createVenue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateVenueRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VenueResponse"];
+                };
+            };
+        };
+    };
+    ResourcesController_updateVenue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                venueId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateVenueRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VenueResponse"];
+                };
+            };
+        };
+    };
+    ResourcesController_listOfficials: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfficialResponse"][];
+                };
+            };
+        };
+    };
+    ResourcesController_createOfficial: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateOfficialRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfficialResponse"];
+                };
+            };
+        };
+    };
+    ResourcesController_updateOfficial: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                officialId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateOfficialRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfficialResponse"];
                 };
             };
         };

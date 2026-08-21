@@ -20,7 +20,8 @@ import { DomainError } from '../errors.js';
  * conclusion 0010 reached for the stage transition.
  */
 
-export type ConflictKind = 'venue-double-booked' | 'official-double-booked' | 'rest-rule';
+export type ConflictKind =
+  'venue-double-booked' | 'official-double-booked' | 'rest-rule' | 'match-finalized';
 
 export interface ScheduleConflict {
   readonly kind: ConflictKind;
@@ -58,6 +59,8 @@ export interface ScheduleContext {
   readonly entrantsByFixture: ReadonlyMap<string, readonly string[]>;
   readonly venues: ReadonlyMap<string, Venue>;
   readonly restRule?: RestRule;
+  /** Fixtures whose match has already finalized — a fact now, not a plan. */
+  readonly finalizedFixtureIds?: ReadonlySet<string>;
 }
 
 /**
@@ -88,6 +91,11 @@ export function detectConflicts(
       continue;
     }
 
+    // A finalized match's schedule is a record, not a plan — the preview and
+    // the commit must refuse it the same way they refuse a double-booking, so
+    // this rides the same conflict list rather than a separate check.
+    conflicts.push(...matchFinalizedClash(assignment, context));
+
     // Committed assignments, then the rest of this batch — a fixture never
     // conflicts with its own earlier version within one publish.
     const others = [
@@ -107,6 +115,31 @@ export function detectConflicts(
   }
 
   return conflicts;
+}
+
+/**
+ * A finalized match's schedule row is a fact, not a plan. Rescheduling it here
+ * would silently move the record of when and where a concluded match was
+ * played — the audited correction workflow exists precisely so that never
+ * happens without an actor, a reason, and a trace.
+ */
+function matchFinalizedClash(
+  assignment: ResourceAssignment,
+  context: ScheduleContext,
+): readonly ScheduleConflict[] {
+  if (!context.finalizedFixtureIds?.has(assignment.fixtureId)) return [];
+
+  return [
+    {
+      kind: 'match-finalized',
+      fixtureId: assignment.fixtureId,
+      conflictsWithFixtureId: assignment.fixtureId,
+      resourceId: assignment.fixtureId,
+      detail:
+        `Fixture "${assignment.fixtureId}"'s match has already been finalized; its schedule is a ` +
+        'record now — use the audited correction workflow, not a new publish',
+    },
+  ];
 }
 
 /**

@@ -19,6 +19,7 @@ export type ControlRoute =
   | { readonly screen: 'preferences'; readonly organizationAlias: string }
   | { readonly screen: 'newTournament'; readonly organizationAlias: string }
   | { readonly screen: 'clubs'; readonly organizationAlias: string }
+  | { readonly screen: 'resources'; readonly organizationAlias: string }
   | {
       readonly screen: 'personProfile';
       readonly organizationAlias: string;
@@ -78,6 +79,13 @@ export type ControlRoute =
       readonly tournamentAlias: string;
       readonly stageNumber: number;
       readonly zoneNumber: number;
+    }
+  | {
+      /** The schedule builder: calendar + list, manual assignment (0124). */
+      readonly screen: 'schedule';
+      readonly organizationAlias: string;
+      readonly tournamentAlias: string;
+      readonly stageNumber: number;
     };
 
 /** Matches a control-panel pathname against the nine real screen shapes. */
@@ -103,6 +111,8 @@ export function parseControlPath(pathname: string): ControlRoute | undefined {
   if (rest.length === 1 && rest[0] === 'preferences')
     return { screen: 'preferences', organizationAlias };
   if (rest.length === 1 && rest[0] === 'clubs') return { screen: 'clubs', organizationAlias };
+  if (rest.length === 1 && rest[0] === 'resources')
+    return { screen: 'resources', organizationAlias };
   if (rest.length === 2 && rest[0] === 'persons') {
     const personId = rest[1];
     if (personId === undefined) return undefined;
@@ -144,6 +154,9 @@ export function parseControlPath(pathname: string): ControlRoute | undefined {
     }
     if (rest[4] === 'zones') {
       return { screen: 'zoneGroups', organizationAlias, tournamentAlias, stageNumber };
+    }
+    if (rest[4] === 'schedule') {
+      return { screen: 'schedule', organizationAlias, tournamentAlias, stageNumber };
     }
   }
   if (rest.length === 7 && rest[2] === 'stages' && rest[4] === 'zones' && rest[6] === 'promotion') {

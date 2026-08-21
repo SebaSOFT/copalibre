@@ -97,3 +97,30 @@ export class ScheduleResponse {
   @ApiProperty({ type: [ScheduleAssignmentDto] })
   assignments!: ScheduleAssignmentDto[];
 }
+
+/**
+ * A generated fixture, real `fixtureId` included — what a schedule builder
+ * assigns a time and venue to. Distinct from the bracket graph's own node
+ * ids, which are never persisted.
+ */
+export class FixtureResponse {
+  @ApiProperty({ format: 'uuid' })
+  fixtureId!: string;
+
+  @ApiProperty({ description: '1-based round within the stage', example: 1 })
+  round!: number;
+
+  @ApiPropertyOptional({ format: 'uuid' })
+  homeEntrantId?: string;
+
+  @ApiPropertyOptional({ format: 'uuid' })
+  awayEntrantId?: string;
+}
+
+export class StageFixturesResponse {
+  @ApiProperty({ format: 'uuid', description: 'Resolves this stage’s number to its id' })
+  stageId!: string;
+
+  @ApiProperty({ type: [FixtureResponse] })
+  fixtures!: FixtureResponse[];
+}

@@ -11,9 +11,11 @@ import {
   RegistrationReviewControlRoute,
   ReportReviewControlRoute,
   RolesPermissionsControlRoute,
+  ScheduleControlRoute,
   SeedingControlRoute,
   StandingsControlRoute,
   TournamentAuthoringControlRoute,
+  VenueManagementControlRoute,
   ZoneGroupControlRoute,
 } from './ControlRoutes.js';
 
@@ -106,6 +108,8 @@ export function ControlApp(): React.JSX.Element | null {
       return <TournamentAuthoringControlRoute organizationAlias={route.organizationAlias} />;
     case 'clubs':
       return <ClubManagementControlRoute organizationAlias={route.organizationAlias} />;
+    case 'resources':
+      return <VenueManagementControlRoute organizationAlias={route.organizationAlias} />;
     case 'personProfile':
       return (
         <PersonProfileControlRoute
@@ -179,6 +183,14 @@ export function ControlApp(): React.JSX.Element | null {
           zoneNumber={route.zoneNumber}
         />
       );
+    case 'schedule':
+      return (
+        <ScheduleControlRoute
+          organizationAlias={route.organizationAlias}
+          stageNumber={route.stageNumber}
+          tournamentAlias={route.tournamentAlias}
+        />
+      );
   }
 }
 
@@ -199,6 +211,8 @@ function titleFor(route: ReturnType<typeof parseControlPath>): string {
       return `Crear torneo — ${route.organizationAlias}`;
     case 'clubs':
       return `Clubes — ${route.organizationAlias}`;
+    case 'resources':
+      return `Canchas y árbitros — ${route.organizationAlias}`;
     case 'personProfile':
       return `Perfil de la persona — ${route.organizationAlias}`;
     case 'registrations':
@@ -217,6 +231,8 @@ function titleFor(route: ReturnType<typeof parseControlPath>): string {
       return `Zonas y grupos — ${route.tournamentAlias}`;
     case 'promotionPlan':
       return `Plan de promoción — ${route.tournamentAlias}`;
+    case 'schedule':
+      return `Horario — ${route.tournamentAlias}`;
     case 'login':
       return 'Iniciar sesión — CopaLibre';
     case 'forgot-password':

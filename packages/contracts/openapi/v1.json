@@ -3412,6 +3412,89 @@
         ]
       }
     },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/fixtures": {
+      "get": {
+        "description": "What a schedule builder assigns a time and venue to — distinct from the bracket graph’s own node ids, which are never persisted.",
+        "operationId": "StagesController_fixtures",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StageFixturesResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A stage’s generated fixtures, with real fixture ids",
+        "tags": [
+          "stages"
+        ]
+      }
+    },
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/display-tokens": {
       "get": {
         "operationId": "DisplayTokenController_list",
@@ -5607,6 +5690,280 @@
         "summary": "Edit a club's name, alias, or abbreviation",
         "tags": [
           "clubs"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/venues": {
+      "get": {
+        "operationId": "ResourcesController_listVenues",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/VenueResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List an organization's venues",
+        "tags": [
+          "resources"
+        ]
+      },
+      "post": {
+        "operationId": "ResourcesController_createVenue",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateVenueRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VenueResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a venue",
+        "tags": [
+          "resources"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/venues/{venueId}": {
+      "patch": {
+        "operationId": "ResourcesController_updateVenue",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "venueId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateVenueRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VenueResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Edit a venue's name, capacity, address, or details",
+        "tags": [
+          "resources"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/officials": {
+      "get": {
+        "operationId": "ResourcesController_listOfficials",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OfficialResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List an organization's officials",
+        "tags": [
+          "resources"
+        ]
+      },
+      "post": {
+        "operationId": "ResourcesController_createOfficial",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOfficialRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfficialResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create an official",
+        "tags": [
+          "resources"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/officials/{officialId}": {
+      "patch": {
+        "operationId": "ResourcesController_updateOfficial",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "officialId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOfficialRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfficialResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Edit an official's name or declared roles",
+        "tags": [
+          "resources"
         ]
       }
     },
@@ -9165,6 +9522,52 @@
           "format"
         ]
       },
+      "FixtureResponse": {
+        "type": "object",
+        "properties": {
+          "fixtureId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "round": {
+            "type": "number",
+            "description": "1-based round within the stage",
+            "example": 1
+          },
+          "homeEntrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "awayEntrantId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "fixtureId",
+          "round"
+        ]
+      },
+      "StageFixturesResponse": {
+        "type": "object",
+        "properties": {
+          "stageId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Resolves this stage’s number to its id"
+          },
+          "fixtures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FixtureResponse"
+            }
+          }
+        },
+        "required": [
+          "stageId",
+          "fixtures"
+        ]
+      },
       "DisplayTokenResponse": {
         "type": "object",
         "properties": {
@@ -11158,6 +11561,194 @@
           "abbreviation": {
             "type": "string",
             "example": "C I"
+          }
+        }
+      },
+      "VenueResponse": {
+        "type": "object",
+        "properties": {
+          "venueId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "organizationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "alias": {
+            "type": "string",
+            "description": "Path identifier, unique within the organization."
+          },
+          "name": {
+            "type": "string",
+            "example": "Cancha 1"
+          },
+          "concurrentCapacity": {
+            "type": "number",
+            "description": "Fixtures this venue can host simultaneously.",
+            "example": 1
+          },
+          "address": {
+            "type": "string",
+            "description": "Free-form, for an operator to read; never parsed."
+          },
+          "details": {
+            "type": "object",
+            "description": "Free-form, operator-entered key/value details — an address, a playing surface, a server address, a region, a current map. Never parsed or validated.",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "example": {
+              "surface": "clay"
+            }
+          }
+        },
+        "required": [
+          "venueId",
+          "organizationId",
+          "alias",
+          "name",
+          "concurrentCapacity"
+        ]
+      },
+      "CreateVenueRequest": {
+        "type": "object",
+        "properties": {
+          "alias": {
+            "type": "string",
+            "description": "Lowercase kebab-case alias, unique within the organization.",
+            "example": "cancha-1"
+          },
+          "name": {
+            "type": "string",
+            "example": "Cancha 1"
+          },
+          "concurrentCapacity": {
+            "type": "number",
+            "example": 1
+          },
+          "address": {
+            "type": "string"
+          },
+          "details": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "example": {
+              "surface": "clay"
+            }
+          }
+        },
+        "required": [
+          "alias",
+          "name",
+          "concurrentCapacity"
+        ]
+      },
+      "UpdateVenueRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Cancha 1"
+          },
+          "concurrentCapacity": {
+            "type": "number",
+            "example": 1
+          },
+          "address": {
+            "type": "string"
+          },
+          "details": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "example": {
+              "surface": "clay"
+            }
+          }
+        }
+      },
+      "OfficialResponse": {
+        "type": "object",
+        "properties": {
+          "officialId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "organizationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string",
+            "example": "Ana Gómez"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "referee",
+                "assistant",
+                "table-official",
+                "observer"
+              ]
+            }
+          }
+        },
+        "required": [
+          "officialId",
+          "organizationId",
+          "displayName",
+          "roles"
+        ]
+      },
+      "CreateOfficialRequest": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "example": "Ana Gómez"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "referee",
+                "assistant",
+                "table-official",
+                "observer"
+              ]
+            }
+          }
+        },
+        "required": [
+          "displayName",
+          "roles"
+        ]
+      },
+      "UpdateOfficialRequest": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "example": "Ana Gómez"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "referee",
+                "assistant",
+                "table-official",
+                "observer"
+              ]
+            }
           }
         }
       },

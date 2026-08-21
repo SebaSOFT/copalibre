@@ -27,6 +27,7 @@ export const messages = defineMessages({
   navRoles: { id: 'control.nav.roles', defaultMessage: 'Roles' },
   navOrganization: { id: 'control.nav.organization', defaultMessage: 'Organization' },
   navAnalytics: { id: 'control.nav.analytics', defaultMessage: 'Analytics' },
+  navResources: { id: 'control.nav.resources', defaultMessage: 'Venues & officials' },
 
   // Tournament lifecycle labels (lib/dashboard.ts LIFECYCLE_PRESENTATION)
   lifecycleLive: { id: 'control.lifecycle.live', defaultMessage: 'LIVE' },
@@ -1158,6 +1159,249 @@ export const messages = defineMessages({
   clubManagementEmblemUploaded: {
     id: 'control.clubManagement.emblemUploaded',
     defaultMessage: 'Emblem uploaded.',
+  },
+
+  // Venue/official management (0124) — the resource pool a schedule assigns from.
+  resourceManagementSectionLabel: {
+    id: 'control.resourceManagement.sectionLabel',
+    defaultMessage: 'Venue and official management',
+  },
+  resourceManagementTitle: {
+    id: 'control.resourceManagement.title',
+    defaultMessage: 'Venues & officials',
+  },
+  resourceManagementLoading: {
+    id: 'control.resourceManagement.loading',
+    defaultMessage: 'Loading…',
+  },
+  resourceManagementLoadFailed: {
+    id: 'control.resourceManagement.loadFailed',
+    defaultMessage: 'Could not load venues and officials.',
+  },
+  resourceManagementSaveFailed: {
+    id: 'control.resourceManagement.saveFailed',
+    defaultMessage: 'The request was refused.',
+  },
+  resourceManagementVenuesHeading: {
+    id: 'control.resourceManagement.venuesHeading',
+    defaultMessage: 'Venues',
+  },
+  resourceManagementVenuesEmpty: {
+    id: 'control.resourceManagement.venuesEmpty',
+    defaultMessage: 'This organization has no venues yet.',
+  },
+  resourceManagementOfficialsHeading: {
+    id: 'control.resourceManagement.officialsHeading',
+    defaultMessage: 'Officials',
+  },
+  resourceManagementOfficialsEmpty: {
+    id: 'control.resourceManagement.officialsEmpty',
+    defaultMessage: 'This organization has no officials yet.',
+  },
+  resourceManagementEdit: { id: 'control.resourceManagement.edit', defaultMessage: 'Edit' },
+  resourceManagementNewVenueName: {
+    id: 'control.resourceManagement.newVenueName',
+    defaultMessage: 'New venue name',
+  },
+  resourceManagementNewVenueAlias: {
+    id: 'control.resourceManagement.newVenueAlias',
+    defaultMessage: 'Alias',
+  },
+  resourceManagementNewVenueCapacity: {
+    id: 'control.resourceManagement.newVenueCapacity',
+    defaultMessage: 'Concurrent capacity',
+  },
+  resourceManagementAddVenue: {
+    id: 'control.resourceManagement.addVenue',
+    defaultMessage: 'Add venue',
+  },
+  resourceManagementEditVenueHeading: {
+    id: 'control.resourceManagement.editVenueHeading',
+    defaultMessage: 'Edit venue',
+  },
+  resourceManagementVenueName: {
+    id: 'control.resourceManagement.venueName',
+    defaultMessage: 'Name',
+  },
+  resourceManagementVenueCapacity: {
+    id: 'control.resourceManagement.venueCapacity',
+    defaultMessage: 'Concurrent capacity',
+  },
+  resourceManagementVenueAddress: {
+    id: 'control.resourceManagement.venueAddress',
+    defaultMessage: 'Address (optional)',
+  },
+  resourceManagementDetailsHeading: {
+    id: 'control.resourceManagement.detailsHeading',
+    defaultMessage: 'Details',
+  },
+  resourceManagementDetailsHint: {
+    id: 'control.resourceManagement.detailsHint',
+    defaultMessage:
+      'Free-form: an address, a playing surface, a server address, a region, a current map — ' +
+      'whatever this venue needs recorded. Never validated.',
+  },
+  resourceManagementDetailKey: {
+    id: 'control.resourceManagement.detailKey',
+    defaultMessage: 'Detail name',
+  },
+  resourceManagementDetailValue: {
+    id: 'control.resourceManagement.detailValue',
+    defaultMessage: 'Value',
+  },
+  resourceManagementAddDetail: {
+    id: 'control.resourceManagement.addDetail',
+    defaultMessage: 'Add detail',
+  },
+  resourceManagementRemoveDetail: {
+    id: 'control.resourceManagement.removeDetail',
+    defaultMessage: 'Remove',
+  },
+  resourceManagementSaveVenueChanges: {
+    id: 'control.resourceManagement.saveVenueChanges',
+    defaultMessage: 'Save venue',
+  },
+  resourceManagementVenueSaved: {
+    id: 'control.resourceManagement.venueSaved',
+    defaultMessage: 'Venue saved.',
+  },
+  resourceManagementVenueCreated: {
+    id: 'control.resourceManagement.venueCreated',
+    defaultMessage: 'Venue created.',
+  },
+  resourceManagementNewOfficialName: {
+    id: 'control.resourceManagement.newOfficialName',
+    defaultMessage: 'New official name',
+  },
+  resourceManagementAddOfficial: {
+    id: 'control.resourceManagement.addOfficial',
+    defaultMessage: 'Add official',
+  },
+  resourceManagementEditOfficialHeading: {
+    id: 'control.resourceManagement.editOfficialHeading',
+    defaultMessage: 'Edit official',
+  },
+  resourceManagementOfficialName: {
+    id: 'control.resourceManagement.officialName',
+    defaultMessage: 'Name',
+  },
+  resourceManagementOfficialRoles: {
+    id: 'control.resourceManagement.officialRoles',
+    defaultMessage: 'Roles',
+  },
+  resourceManagementSaveOfficialChanges: {
+    id: 'control.resourceManagement.saveOfficialChanges',
+    defaultMessage: 'Save official',
+  },
+  resourceManagementOfficialSaved: {
+    id: 'control.resourceManagement.officialSaved',
+    defaultMessage: 'Official saved.',
+  },
+  resourceManagementOfficialCreated: {
+    id: 'control.resourceManagement.officialCreated',
+    defaultMessage: 'Official created.',
+  },
+  resourceManagementRoleReferee: {
+    id: 'control.resourceManagement.roleReferee',
+    defaultMessage: 'Referee',
+  },
+  resourceManagementRoleAssistant: {
+    id: 'control.resourceManagement.roleAssistant',
+    defaultMessage: 'Assistant',
+  },
+  resourceManagementRoleTableOfficial: {
+    id: 'control.resourceManagement.roleTableOfficial',
+    defaultMessage: 'Table official',
+  },
+  resourceManagementRoleObserver: {
+    id: 'control.resourceManagement.roleObserver',
+    defaultMessage: 'Observer',
+  },
+
+  // Schedule builder (0124) — manual assignment of time, venue, and officials to a stage's fixtures.
+  scheduleBuilderSectionLabel: {
+    id: 'control.scheduleBuilder.sectionLabel',
+    defaultMessage: 'Schedule builder',
+  },
+  scheduleBuilderTitle: { id: 'control.scheduleBuilder.title', defaultMessage: 'Schedule' },
+  scheduleBuilderLoading: { id: 'control.scheduleBuilder.loading', defaultMessage: 'Loading…' },
+  scheduleBuilderLoadFailed: {
+    id: 'control.scheduleBuilder.loadFailed',
+    defaultMessage: 'Could not load this stage’s schedule.',
+  },
+  scheduleBuilderSaveFailed: {
+    id: 'control.scheduleBuilder.saveFailed',
+    defaultMessage: 'The request was refused.',
+  },
+  scheduleBuilderCalendarViewLabel: {
+    id: 'control.scheduleBuilder.calendarViewLabel',
+    defaultMessage: 'Calendar view',
+  },
+  scheduleBuilderListViewLabel: {
+    id: 'control.scheduleBuilder.listViewLabel',
+    defaultMessage: 'List view',
+  },
+  scheduleBuilderNoFixtures: {
+    id: 'control.scheduleBuilder.noFixtures',
+    defaultMessage: 'This stage has no fixtures yet.',
+  },
+  scheduleBuilderUnassigned: {
+    id: 'control.scheduleBuilder.unassigned',
+    defaultMessage: 'Unassigned',
+  },
+  scheduleBuilderFixtureRound: {
+    id: 'control.scheduleBuilder.fixtureRound',
+    defaultMessage: 'Round {round}',
+  },
+  scheduleBuilderStartTime: {
+    id: 'control.scheduleBuilder.startTime',
+    defaultMessage: 'Start time',
+  },
+  scheduleBuilderDuration: {
+    id: 'control.scheduleBuilder.duration',
+    defaultMessage: 'Duration (minutes)',
+  },
+  scheduleBuilderVenue: { id: 'control.scheduleBuilder.venue', defaultMessage: 'Venue' },
+  scheduleBuilderNoVenue: { id: 'control.scheduleBuilder.noVenue', defaultMessage: 'No venue' },
+  scheduleBuilderOfficials: {
+    id: 'control.scheduleBuilder.officials',
+    defaultMessage: 'Officials',
+  },
+  scheduleBuilderPreview: {
+    id: 'control.scheduleBuilder.preview',
+    defaultMessage: 'Preview',
+  },
+  scheduleBuilderPublish: {
+    id: 'control.scheduleBuilder.publish',
+    defaultMessage: 'Publish',
+  },
+  scheduleBuilderPublished: {
+    id: 'control.scheduleBuilder.published',
+    defaultMessage: 'Schedule published.',
+  },
+  scheduleBuilderConflictsHeading: {
+    id: 'control.scheduleBuilder.conflictsHeading',
+    defaultMessage: 'Conflicts',
+  },
+  scheduleBuilderAffectedPublishedHeading: {
+    id: 'control.scheduleBuilder.affectedPublishedHeading',
+    defaultMessage: 'This batch would move an already-published fixture',
+  },
+  scheduleBuilderDayOff: {
+    id: 'control.scheduleBuilder.dayOff',
+    defaultMessage: 'No match scheduled in this range',
+  },
+  scheduleBuilderEntrantColumn: {
+    id: 'control.scheduleBuilder.entrantColumn',
+    defaultMessage: 'Entrant',
+  },
+  scheduleBuilderTimeColumn: {
+    id: 'control.scheduleBuilder.timeColumn',
+    defaultMessage: 'Time',
+  },
+  scheduleBuilderVenueColumn: {
+    id: 'control.scheduleBuilder.venueColumn',
+    defaultMessage: 'Venue',
   },
 
   // Organization identity (0109) — name and emblem, in the org settings surface.

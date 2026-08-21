@@ -20,6 +20,7 @@ import { TableProjectionsController } from '../controllers/table-projections.con
 import { TournamentsController } from '../controllers/tournaments.controller.js';
 import { ZonesGroupsController } from '../controllers/zones-groups.controller.js';
 import { ClubsController } from '../controllers/clubs.controller.js';
+import { ResourcesController } from '../controllers/resources.controller.js';
 import {
   InvitationAcceptanceController,
   OrganizationAccessController,
@@ -87,5 +88,6 @@ export const OPENAPI_CONTROLLERS = [
   ClubMediaController,
   OrganizationMediaController,
   ClubsController,
+  ResourcesController,
   ZonesGroupsController,
 ] as const;

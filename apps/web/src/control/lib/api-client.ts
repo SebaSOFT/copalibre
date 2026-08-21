@@ -284,6 +284,54 @@ export interface ControlApiClient {
     clubId: string,
     request: UploadImageRequest,
   ) => Promise<{ readonly objectId: string }>;
+  /** An organization's venues and officials — the resource pool a schedule assigns from (0124). */
+  readonly listVenues?: (organizationAlias: string) => Promise<readonly VenueResponse[]>;
+  readonly createVenue?: (
+    organizationAlias: string,
+    request: CreateVenueRequest,
+  ) => Promise<VenueResponse>;
+  readonly updateVenue?: (
+    organizationAlias: string,
+    venueId: string,
+    request: UpdateVenueRequest,
+  ) => Promise<VenueResponse>;
+  readonly listOfficials?: (organizationAlias: string) => Promise<readonly OfficialResponse[]>;
+  readonly createOfficial?: (
+    organizationAlias: string,
+    request: CreateOfficialRequest,
+  ) => Promise<OfficialResponse>;
+  readonly updateOfficial?: (
+    organizationAlias: string,
+    officialId: string,
+    request: UpdateOfficialRequest,
+  ) => Promise<OfficialResponse>;
+  /**
+   * A stage's real generated fixtures, with `fixtureId`s, resolved from the URL's `stageNumber`.
+   * Also resolves `stageId`, which the schedule routes below address directly (0124).
+   */
+  readonly getStageFixtures?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageNumber: number,
+  ) => Promise<StageFixturesResponse>;
+  /** A stage's schedule — read/preview/publish over the manual-assignment batch API (0124). */
+  readonly getSchedule?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageId: string,
+  ) => Promise<ScheduleResponse>;
+  readonly previewSchedule?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageId: string,
+    request: ScheduleRequest,
+  ) => Promise<SchedulePreviewResponse>;
+  readonly publishSchedule?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageId: string,
+    request: ScheduleRequest,
+  ) => Promise<ScheduleResponse>;
 }
 
 export interface OrganizationResponse {
@@ -333,6 +381,101 @@ export interface UploadImageRequest {
   readonly filename: string;
   readonly contentType: string;
   readonly contentBase64: string;
+}
+
+export interface VenueResponse {
+  readonly venueId: string;
+  readonly organizationId: string;
+  readonly alias: string;
+  readonly name: string;
+  readonly concurrentCapacity: number;
+  readonly address?: string;
+  readonly details?: Record<string, string>;
+}
+
+export interface CreateVenueRequest {
+  readonly alias: string;
+  readonly name: string;
+  readonly concurrentCapacity: number;
+  readonly address?: string;
+  readonly details?: Record<string, string>;
+}
+
+export interface UpdateVenueRequest {
+  readonly name?: string;
+  readonly concurrentCapacity?: number;
+  readonly address?: string;
+  readonly details?: Record<string, string>;
+}
+
+export type OfficialRole = 'referee' | 'assistant' | 'table-official' | 'observer';
+
+export interface OfficialResponse {
+  readonly officialId: string;
+  readonly organizationId: string;
+  readonly displayName: string;
+  readonly roles: readonly OfficialRole[];
+}
+
+export interface CreateOfficialRequest {
+  readonly displayName: string;
+  readonly roles: readonly OfficialRole[];
+}
+
+export interface UpdateOfficialRequest {
+  readonly displayName?: string;
+  readonly roles?: readonly OfficialRole[];
+}
+
+export interface TimeWindowDto {
+  readonly startsAt: number;
+  readonly durationMinutes: number;
+}
+
+export interface ScheduleAssignmentDto {
+  readonly fixtureId: string;
+  readonly window: TimeWindowDto;
+  readonly venueId?: string;
+  readonly officialIds?: readonly string[];
+}
+
+export interface RestRuleDto {
+  readonly minimumMinutes: number;
+}
+
+export interface ScheduleRequest {
+  readonly assignments: readonly ScheduleAssignmentDto[];
+  readonly restRule?: RestRuleDto;
+}
+
+export interface ScheduleConflictDto {
+  readonly kind: string;
+  readonly fixtureId: string;
+  readonly conflictsWithFixtureId: string;
+  readonly resourceId: string;
+  readonly detail: string;
+}
+
+export interface SchedulePreviewResponse {
+  readonly committable: boolean;
+  readonly conflicts: readonly ScheduleConflictDto[];
+  readonly affectedPublishedFixtures: readonly string[];
+}
+
+export interface ScheduleResponse {
+  readonly assignments: readonly ScheduleAssignmentDto[];
+}
+
+export interface FixtureResponse {
+  readonly fixtureId: string;
+  readonly round: number;
+  readonly homeEntrantId?: string;
+  readonly awayEntrantId?: string;
+}
+
+export interface StageFixturesResponse {
+  readonly stageId: string;
+  readonly fixtures: readonly FixtureResponse[];
 }
 
 export interface DisplayTokenResponse {
@@ -1489,6 +1632,76 @@ export function createControlApiClient(input: {
       requestJson(
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/clubs/${encodeURIComponent(clubId)}/emblem`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    listVenues: (organizationAlias) =>
+      requestJson<readonly VenueResponse[]>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/venues`,
+        { token: input.accessToken?.() },
+      ),
+
+    createVenue: (organizationAlias, body) =>
+      requestJson<VenueResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/venues`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    updateVenue: (organizationAlias, venueId, body) =>
+      requestJson<VenueResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/venues/${encodeURIComponent(venueId)}`,
+        { method: 'PATCH', body, token: input.accessToken?.() },
+      ),
+
+    listOfficials: (organizationAlias) =>
+      requestJson<readonly OfficialResponse[]>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/officials`,
+        { token: input.accessToken?.() },
+      ),
+
+    createOfficial: (organizationAlias, body) =>
+      requestJson<OfficialResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/officials`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    updateOfficial: (organizationAlias, officialId, body) =>
+      requestJson<OfficialResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/officials/${encodeURIComponent(officialId)}`,
+        { method: 'PATCH', body, token: input.accessToken?.() },
+      ),
+
+    getStageFixtures: (organizationAlias, tournamentAlias, stageNumber) =>
+      requestJson<StageFixturesResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/stages/${stageNumber}/fixtures`,
+        { token: input.accessToken?.() },
+      ),
+
+    getSchedule: (organizationAlias, tournamentAlias, stageId) =>
+      requestJson<ScheduleResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/stages/${encodeURIComponent(stageId)}/schedule`,
+        { token: input.accessToken?.() },
+      ),
+
+    previewSchedule: (organizationAlias, tournamentAlias, stageId, body) =>
+      requestJson<SchedulePreviewResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/stages/${encodeURIComponent(stageId)}/schedule/preview`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    publishSchedule: (organizationAlias, tournamentAlias, stageId, body) =>
+      requestJson<ScheduleResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/stages/${encodeURIComponent(stageId)}/schedule`,
         { method: 'POST', body, token: input.accessToken?.() },
       ),
   };
