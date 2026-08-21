@@ -73,7 +73,7 @@ describe('module catalogue seeding (integration)', () => {
   it('installs a newer version beside its predecessor and keeps the pinned tournament resolvable', async () => {
     await seedModuleCatalogue(scratch.db, catalogue);
     const tournaments = new TournamentRepository(scratch.db);
-    const oldFootball = await tournaments.findDescriptorByAlias('football', '1.0.0');
+    const oldFootball = await tournaments.findDescriptorByAlias('football', '1.1.0');
     if (!oldFootball) throw new Error('Expected seeded football descriptor');
 
     const organization = await withTransaction(scratch.db, (uow) =>
@@ -101,43 +101,85 @@ describe('module catalogue seeding (integration)', () => {
       return created;
     });
 
-    const newer = withNewerFootball(catalogue, '1.1.0');
+    const newer = withNewerFootball(catalogue, '1.2.0');
     const report = await seedModuleCatalogue(scratch.db, newer);
-    const newFootball = await tournaments.findDescriptorByAlias('football', '1.1.0');
+    const newFootball = await tournaments.findDescriptorByAlias('football', '1.2.0');
     const pinned = await tournaments.findById(tournament.tournamentId);
 
     expect(report.modules).toContainEqual({
       kind: 'discipline',
       alias: 'football',
-      version: '1.1.0',
+      version: '1.2.0',
       status: 'installed',
     });
     expect(newFootball?.descriptorId).toBe(oldFootball.descriptorId);
     expect(pinned?.disciplineRef).toEqual({
       descriptorId: oldFootball.descriptorId,
+      version: '1.1.0',
+    });
+    await expect(tournaments.findDescriptor(oldFootball.descriptorId, '1.1.0')).resolves.toEqual(
+      oldFootball,
+    );
+  });
+
+  it('keeps a tournament started before the foul/throw-in vocabulary on its frozen descriptor version (0115 task 3.3)', async () => {
+    const preFoulCatalogue = withoutFoulVocabulary(catalogue, '1.0.0');
+    await seedModuleCatalogue(scratch.db, preFoulCatalogue);
+    const tournaments = new TournamentRepository(scratch.db);
+    const preFoulFootball = await tournaments.findDescriptorByAlias('football', '1.0.0');
+    if (!preFoulFootball) throw new Error('Expected seeded pre-foul football descriptor');
+    expect(preFoulFootball.eventDefinitions.map((definition) => definition.code)).not.toContain(
+      'foul',
+    );
+
+    const organization = await withTransaction(scratch.db, (uow) =>
+      new OrganizationRepository(scratch.db).create(uow, {
+        alias: 'catalogue-tests-pre-foul',
+        name: 'Catalogue tests (pre-foul)',
+        ...AUDIT,
+      }),
+    );
+    const tournament = await withTransaction(scratch.db, (uow) =>
+      tournaments.create(uow, {
+        organizationId: organization.organizationId,
+        alias: 'started-before-foul',
+        name: 'Started before foul vocabulary',
+        descriptor: preFoulFootball,
+        ...AUDIT,
+      }),
+    );
+
+    // 0094's module freeze: installing the real catalogue (foul/throw-in
+    // included, at its real 1.1.0) alongside the pinned 1.0.0 must not touch
+    // what the already-started tournament resolves to.
+    await seedModuleCatalogue(scratch.db, catalogue);
+    const pinned = await tournaments.findById(tournament.tournamentId);
+    expect(pinned?.disciplineRef).toEqual({
+      descriptorId: preFoulFootball.descriptorId,
       version: '1.0.0',
     });
-    await expect(tournaments.findDescriptor(oldFootball.descriptorId, '1.0.0')).resolves.toEqual(
-      oldFootball,
+    const resolved = await tournaments.findDescriptor(preFoulFootball.descriptorId, '1.0.0');
+    expect(resolved?.eventDefinitions.map((definition) => definition.code)).not.toEqual(
+      expect.arrayContaining(['foul', 'throw-in']),
     );
   });
 
   it('does not overwrite an operator-edited installed document', async () => {
     await seedModuleCatalogue(scratch.db, catalogue);
     const repository = new TournamentRepository(scratch.db);
-    const installed = await repository.findDescriptorByAlias('football', '1.0.0');
+    const installed = await repository.findDescriptorByAlias('football', '1.1.0');
     if (!installed) throw new Error('Expected seeded football descriptor');
     const edited = { ...installed, name: 'Locally edited football' };
     await scratch.db
       .updateTable('discipline_descriptors')
       .set({ document: JSON.stringify(edited) })
       .where('alias', '=', 'football')
-      .where('version', '=', '1.0.0')
+      .where('version', '=', '1.1.0')
       .execute();
 
     await seedModuleCatalogue(scratch.db, catalogue);
 
-    await expect(repository.findDescriptorByAlias('football', '1.0.0')).resolves.toEqual(edited);
+    await expect(repository.findDescriptorByAlias('football', '1.1.0')).resolves.toEqual(edited);
   });
 
   it('rejects one invalid document before writing any catalogue state', async () => {
@@ -212,6 +254,40 @@ function withNewerFootball(catalogue: ModuleCatalogue, version: string): ModuleC
     ...catalogue,
     disciplines: catalogue.disciplines.map((document) =>
       document.alias === 'football' ? { ...document, version } : document,
+    ),
+  };
+}
+
+/**
+ * Simulates the football descriptor as it was before 0115: same document,
+ * minus the foul/throw-in vocabulary and everything it alone introduced
+ * (`foul-play-on`, `free-kick-awarded`, `penalty-awarded`, `throw-in-taken`,
+ * `foul-throw`) — reused card/goal/substitution events stay, since those
+ * predate 0115.
+ */
+const FOUL_VOCABULARY_CODES = new Set([
+  'foul',
+  'foul-play-on',
+  'free-kick-awarded',
+  'penalty-awarded',
+  'throw-in',
+  'throw-in-taken',
+  'foul-throw',
+]);
+
+function withoutFoulVocabulary(catalogue: ModuleCatalogue, version: string): ModuleCatalogue {
+  return {
+    ...catalogue,
+    disciplines: catalogue.disciplines.map((document) =>
+      document.alias === 'football'
+        ? {
+            ...document,
+            version,
+            eventDefinitions: document.eventDefinitions.filter(
+              (definition) => !FOUL_VOCABULARY_CODES.has(definition.code),
+            ),
+          }
+        : document,
     ),
   };
 }

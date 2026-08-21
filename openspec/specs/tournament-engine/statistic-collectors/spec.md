@@ -4,7 +4,9 @@
 Turns a statistic from something a phase computes into something a discipline declares: an
 aggregation of recorded facts over the competition hierarchy and the actor hierarchy, answerable at
 any granularity on either, and stored in a shape that does not change when a new one is invented.
+
 ## Requirements
+
 ### Requirement: The hierarchies a statistic is collected over are core-owned
 The system SHALL publish the granularities of the competition hierarchy and of the actor hierarchy, and a
 module SHALL NOT introduce a level of its own.
@@ -223,3 +225,39 @@ A discipline or tournament MAY declare an event-sourced `StatisticCollector` tha
 #### Scenario: A missing payload field in an event produces no candidate figure
 - **WHEN** an event-sourced collector targets an optional `payloadField` that is absent from a recorded event's payload
 - **THEN** the fold safely ignores that event for that specific collector without error and without producing an empty key
+
+### Requirement: A rebuild is the specified means of recomputing stored collector totals
+
+Recomputing stored collector totals from recorded events SHALL be performed by an explicit, operator-
+triggered rebuild, scoped to an organization or to one of its tournaments. A rebuild SHALL write through
+the same path live folding writes through, SHALL recompute totals at every granularity the discipline
+declares including organization granularity, and SHALL be idempotent. A rebuild SHALL NOT run
+automatically, on a schedule or on deployment.
+
+#### Scenario: Rebuilding an organization's totals
+- **WHEN** an authorized operator triggers a rebuild for an organization
+- **THEN** stored collector totals are recomputed from recorded events at every declared granularity,
+  and the number of matches processed is reported
+
+#### Scenario: Rebuilding one tournament leaves others untouched
+- **WHEN** a rebuild is scoped to one tournament
+- **THEN** only that tournament's stored figures are recomputed
+
+#### Scenario: A rebuild is idempotent
+- **WHEN** a rebuild runs twice over the same scope with no intervening events
+- **THEN** the stored figures after the second run are identical to those after the first
+
+### Requirement: Career accumulation begins from recorded rosters, and absence is stated as absence
+
+Person-granularity career totals SHALL derive only from events actually recorded against a selected match
+roster. A match played with no recorded roster SHALL contribute entrant- and team-granularity figures and
+no person-granularity figures, and SHALL NOT be reconstructed by inference. A person with no recorded
+appearances SHALL be presented as having none, never as holding zero totals.
+
+#### Scenario: A match with no recorded roster contributes no player figures
+- **WHEN** totals are computed over a match for which no roster was ever selected
+- **THEN** entrant- and team-granularity figures are produced and no person-granularity figures are
+
+#### Scenario: A person with no recorded appearances is presented as such
+- **WHEN** a career surface renders a person with no recorded appearances
+- **THEN** it states that there are no recorded appearances rather than displaying zero totals

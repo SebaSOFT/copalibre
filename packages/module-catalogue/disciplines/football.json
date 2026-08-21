@@ -1,6 +1,6 @@
 {
   "alias": "football",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "name": { "en": "Football", "es": "Fútbol" },
   "attribution": {
     "author": "CopaLibre",
@@ -111,6 +111,94 @@
       "permittedSegmentTypes": ["half", "extra-time"],
       "actorRequirement": "person",
       "payloadSchema": { "type": "object", "properties": { "reason": { "type": "string" } } }
+    },
+    {
+      "code": "foul",
+      "label": { "en": "Foul", "es": "Falta" },
+      "category": "neutral",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "side",
+      "payloadSchema": { "type": "object", "properties": {} },
+      "workflow": {
+        "kind": "outcome-choice",
+        "options": [
+          {
+            "definitionCode": "foul-play-on",
+            "label": { "en": "Play on", "es": "Ley de ventaja" }
+          },
+          {
+            "definitionCode": "free-kick-awarded",
+            "label": { "en": "Free kick", "es": "Tiro libre" }
+          },
+          { "definitionCode": "penalty-awarded", "label": { "en": "Penalty", "es": "Penal" } },
+          {
+            "definitionCode": "yellow-card",
+            "label": { "en": "Yellow card", "es": "Tarjeta amarilla" }
+          },
+          { "definitionCode": "red-card", "label": { "en": "Red card", "es": "Tarjeta roja" } }
+        ]
+      }
+    },
+    {
+      "code": "foul-play-on",
+      "label": { "en": "Foul (play on)", "es": "Falta (ley de ventaja)" },
+      "category": "neutral",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "side",
+      "payloadSchema": { "type": "object", "properties": {} }
+    },
+    {
+      "code": "free-kick-awarded",
+      "label": { "en": "Free kick awarded", "es": "Tiro libre otorgado" },
+      "category": "neutral",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "side",
+      "payloadSchema": { "type": "object", "properties": {} }
+    },
+    {
+      "code": "penalty-awarded",
+      "label": { "en": "Penalty awarded", "es": "Penal otorgado" },
+      "category": "neutral",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "side",
+      "payloadSchema": { "type": "object", "properties": {} }
+    },
+    {
+      "code": "throw-in",
+      "label": { "en": "Throw-in", "es": "Saque de banda" },
+      "category": "neutral",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "side",
+      "payloadSchema": { "type": "object", "properties": {} },
+      "workflow": {
+        "kind": "outcome-choice",
+        "options": [
+          { "definitionCode": "throw-in-taken", "label": { "en": "Taken", "es": "Ejecutado" } },
+          {
+            "definitionCode": "foul-throw",
+            "label": {
+              "en": "Foul throw (awarded to opponent)",
+              "es": "Saque incorrecto (para el rival)"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "code": "throw-in-taken",
+      "label": { "en": "Throw-in taken", "es": "Saque de banda ejecutado" },
+      "category": "neutral",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "side",
+      "payloadSchema": { "type": "object", "properties": {} }
+    },
+    {
+      "code": "foul-throw",
+      "label": { "en": "Foul throw", "es": "Saque de banda incorrecto" },
+      "category": "neutral",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "side",
+      "payloadSchema": { "type": "object", "properties": {} }
     },
     {
       "code": "segment-point",
