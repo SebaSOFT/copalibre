@@ -362,6 +362,180 @@ describe('zone and group draw routes (integration)', () => {
     expect(nextStage.value.matches).toHaveLength(7);
   });
 
+  it('finds every zone whose stored promotion plan targets a stage, in zone-number order (0121)', async () => {
+    // The prior test already stored zone 1 (of stage 1)'s plan targeting
+    // stage 2 with two bands — reused here rather than re-created.
+    const targetingStageTwo = await harness.request({
+      method: 'GET',
+      url: `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages/2/promotion-plans`,
+      token: 'organizer-org1',
+    });
+    expect(targetingStageTwo.statusCode).toBe(200);
+    expect(targetingStageTwo.json()).toEqual([
+      expect.objectContaining({ zoneNumber: 1, zoneId: zoneIds[0] }),
+    ]);
+    const zoneOnePreview = await harness.request({
+      method: 'GET',
+      url: `${base}/zones/1/promotion-preview`,
+      token: 'organizer-org1',
+    });
+    expect(targetingStageTwo.json()[0].combined).toEqual(zoneOnePreview.json().combined);
+
+    // Stage 1 itself has no plan targeting it — an empty result, not an error.
+    const targetingStageOne = await harness.request({
+      method: 'GET',
+      url: `${base}/promotion-plans`,
+      token: 'organizer-org1',
+    });
+    expect(targetingStageOne.statusCode).toBe(200);
+    expect(targetingStageOne.json()).toEqual([]);
+
+    // A second, independent source zone/stage also targeting stage 2.
+    const competition = new CompetitionRepository(harness.scratch.db);
+    const secondSourceStage = await withTransaction(harness.scratch.db, (uow) =>
+      competition.createStageInTournament(uow, {
+        tournamentId,
+        number: 10,
+        name: 'Repechaje',
+        format: 'round-robin',
+        organizationId: harness.organizationId,
+        ...AUDIT,
+      }),
+    );
+    const secondBase = `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages/10`;
+    const enrollment = new EnrollmentRepository(harness.scratch.db);
+    const repechajeEntrantIds: string[] = [];
+    for (const name of ['Chimbas', '9 de Julio']) {
+      const team = await withTransaction(harness.scratch.db, (uow) =>
+        enrollment.createTeam(uow, { organizationId: harness.organizationId, name, ...AUDIT }),
+      );
+      const entrant = await withTransaction(harness.scratch.db, (uow) =>
+        enrollment.registerEntrant(uow, {
+          tournamentId,
+          entrantRef: { kind: 'team', teamId: team.teamId },
+          organizationId: harness.organizationId,
+          ...AUDIT,
+        }),
+      );
+      await withTransaction(harness.scratch.db, (uow) =>
+        enrollment.setEntrantStatus(uow, {
+          entrantId: entrant.entrantId,
+          status: 'accepted',
+          organizationId: harness.organizationId,
+          ...AUDIT,
+        }),
+      );
+      repechajeEntrantIds.push(entrant.entrantId);
+    }
+    const secondZoneAssign = await harness.request({
+      method: 'POST',
+      url: `${secondBase}/zones/assign`,
+      token: 'organizer-org1',
+      payload: {
+        assignment: { groups: Object.fromEntries(repechajeEntrantIds.map((id) => [id, 1])) },
+        zoneCount: 1,
+      },
+    });
+    expect(secondZoneAssign.statusCode).toBe(200);
+    const [secondZone] = secondZoneAssign.json().zones as Array<{
+      zoneId: string;
+      number: number;
+    }>;
+    const secondGroupAssign = await harness.request({
+      method: 'POST',
+      url: `${secondBase}/zones/${secondZone?.number}/groups/assign`,
+      token: 'organizer-org1',
+      payload: {
+        assignment: { groups: Object.fromEntries(repechajeEntrantIds.map((id) => [id, 1])) },
+        groupCount: 1,
+      },
+    });
+    expect(secondGroupAssign.statusCode).toBe(200);
+    const [secondGroup] = secondGroupAssign.json().groups as Array<{ groupId: string }>;
+    await withTransaction(harness.scratch.db, async (uow) => {
+      const [fixture] = await competition.createFixtures(uow, {
+        stageId: secondSourceStage.stageId,
+        fixtures: [
+          {
+            round: 1,
+            zoneId: secondZone?.zoneId,
+            groupId: secondGroup?.groupId,
+            homeEntrantId: repechajeEntrantIds[0],
+            awayEntrantId: repechajeEntrantIds[1],
+          },
+        ],
+        organizationId: harness.organizationId,
+        ...AUDIT,
+      });
+      if (!fixture) throw new Error('Expected repechaje fixture');
+      const match = await competition.createMatch(uow, {
+        fixtureId: fixture.fixtureId,
+        number: 1,
+        organizationId: harness.organizationId,
+        ...AUDIT,
+      });
+      await competition.recordResult(uow, {
+        matchId: match.matchId,
+        result: {
+          sides: [
+            { entrantId: repechajeEntrantIds[0] as string, statistics: { points: 3 } },
+            { entrantId: repechajeEntrantIds[1] as string, statistics: { points: 0 } },
+          ],
+          winnerEntrantId: repechajeEntrantIds[0],
+          recordedAt: '2026-08-18T12:00:00.000Z',
+        },
+        organizationId: harness.organizationId,
+        ...AUDIT,
+      });
+    });
+    const savedSecondPlan = await harness.request({
+      method: 'POST',
+      url: `${secondBase}/zones/${secondZone?.number}/promotion-plan`,
+      token: 'organizer-org1',
+      payload: {
+        nextStageNumber: 2,
+        perGroupAdvance: 1,
+        combination: {
+          mode: 'ranked',
+          pipeline: {
+            id: 'points-then-goal-difference',
+            version: 1,
+            parameters: [
+              {
+                id: 'points',
+                label: 'Points',
+                valueType: 'number',
+                direction: 'higher_wins',
+                missingValue: 'treat-as-zero',
+                source: 'calculated',
+              },
+            ],
+          },
+        },
+      },
+    });
+    expect(savedSecondPlan.statusCode).toBe(201);
+
+    const afterSecondPlan = await harness.request({
+      method: 'GET',
+      url: `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages/2/promotion-plans`,
+      token: 'organizer-org1',
+    });
+    expect(afterSecondPlan.statusCode).toBe(200);
+    const entries = afterSecondPlan.json() as Array<{
+      zoneId: string;
+      combined: Array<{ entrantId: string }>;
+    }>;
+    expect(entries).toHaveLength(2);
+    expect(entries.map((entry) => entry.zoneId).sort()).toEqual(
+      [zoneIds[0], secondZone?.zoneId].sort(),
+    );
+    const repechajeEntry = entries.find((entry) => entry.zoneId === secondZone?.zoneId);
+    expect(repechajeEntry?.combined).toEqual([
+      expect.objectContaining({ entrantId: repechajeEntrantIds[0] }),
+    ]);
+  });
+
   it('manually assigns zones and groups without a draw (0108)', async () => {
     const competition = new CompetitionRepository(harness.scratch.db);
     const manualStage = await withTransaction(harness.scratch.db, (uow) =>

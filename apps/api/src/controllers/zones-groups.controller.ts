@@ -65,6 +65,7 @@ import {
   PromotionPlanResponse,
   PromotionPreviewResponse,
   SavePromotionPlanRequest,
+  TargetingPromotionPreviewResponse,
   ZoneResponse,
 } from '../dto/zones-groups.dto.js';
 import { resolveTournament } from './standings.controller.js';
@@ -454,57 +455,128 @@ export class ZonesGroupsController {
     if (!saved) throw new NotFoundException(`No promotion plan for zone ${zoneNumber}`);
 
     try {
-      const plan = promotionPlanFromStored(zone.zoneId, saved.nextStageId, saved.plan);
-      const groups = await competition.listGroupsOfZone(zone.zoneId);
-      const records = await Promise.all(
-        groups.map(async (group) => ({
-          group,
-          record: await new StageReadModel(this.db).stageRecord(
-            context.stage.stageId,
-            group.groupId,
-          ),
-        })),
+      return await this.computePromotionPreview(
+        context.tournament,
+        context.stage.stageId,
+        zone,
+        saved,
       );
-      const descriptor = await new TournamentRepository(this.db).findDescriptor(
-        context.tournament.disciplineRef.descriptorId,
-        context.tournament.disciplineRef.version,
-      );
-      if (!descriptor) throw new NotFoundException('Tournament discipline is not installed');
-      const groupRecords = records.flatMap(({ group, record }) =>
-        record === undefined ? [] : [{ group, record }],
-      );
-      if (groupRecords.length !== records.length) {
-        throw new NotFoundException(`No source group records for zone ${zoneNumber}`);
-      }
-      const groupAccountings = new Map(
-        groupRecords.map((entry) => [
-          entry.group.groupId,
-          computeAccounting(descriptor, entry.record.entrantIds, entry.record.outcomes),
-        ]),
-      );
-      const groupNumbers = new Map(
-        groupRecords.map((entry) => [entry.group.groupId, entry.group.number]),
-      );
-      const pipeline = standingsPipeline(descriptor, groupRecords[0]?.record.overrides ?? {});
-      await this.validatePromotionPlan(context.stage.stageId, plan, groupAccountings);
-      const outcome = evaluateGroupPromotion(plan, groupAccountings, pipeline, groupNumbers);
-      return {
-        combined: [...outcome.combined],
-        ...(outcome.bands === undefined
-          ? {}
-          : {
-              bands: Object.fromEntries(
-                Object.entries(outcome.bands).map(([zoneRef, entrants]) => [
-                  zoneRef,
-                  [...entrants],
-                ]),
-              ),
-            }),
-        trace: outcome.trace as unknown as Record<string, unknown>[],
-      };
     } catch (error) {
       throwPromotionPlanError(error);
     }
+  }
+
+  @Get('promotion-plans')
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'List resolved promotion previews from prior-stage zones targeting this stage',
+    description:
+      'The reverse of "zones/:zoneNumber/promotion-plan": every zone, in any prior stage, whose ' +
+      'stored plan names this stage as its `nextStageNumber`, with its promotion preview already ' +
+      'computed and ordered by zone number. A zone whose plan cannot currently be resolved into a ' +
+      'preview (e.g. its source group standings are not ready yet) is omitted, not reported as an ' +
+      'error — this route never fails for that reason, it simply returns fewer entries.',
+  })
+  @ApiOkResponse({ type: TargetingPromotionPreviewResponse, isArray: true })
+  @ApiUnauthorizedResponse({ type: ProblemResponse })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  @ApiNotFoundResponse({ type: ProblemResponse })
+  async promotionPlansTargetingStage(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('stageNumber', ParseIntPipe) stageNumber: number,
+    @Req() request: RequestWithSubject,
+  ): Promise<readonly TargetingPromotionPreviewResponse[]> {
+    const context = await this.adminStage(organizationAlias, tournamentAlias, stageNumber, request);
+    const competition = new CompetitionRepository(this.db);
+    const saved = await competition.findPromotionPlansTargetingStage(context.stage.stageId);
+
+    const resolved = await Promise.all(
+      saved.map(async (plan): Promise<TargetingPromotionPreviewResponse | undefined> => {
+        const zone = await competition.findZoneById(plan.zoneId);
+        if (!zone) return undefined;
+        try {
+          const preview = await this.computePromotionPreview(
+            context.tournament,
+            zone.stageId,
+            zone,
+            plan,
+          );
+          return {
+            zoneNumber: zone.number,
+            zoneId: zone.zoneId,
+            combined: preview.combined,
+            ...(preview.bands === undefined ? {} : { bands: preview.bands }),
+          };
+        } catch {
+          // Not yet resolvable (e.g. group standings incomplete) — omitted,
+          // not an error for this reverse lookup as a whole (design.md).
+          return undefined;
+        }
+      }),
+    );
+    return resolved
+      .filter((entry): entry is TargetingPromotionPreviewResponse => entry !== undefined)
+      .sort((a, b) => a.zoneNumber - b.zoneNumber);
+  }
+
+  /**
+   * Shared by `previewPromotion` (one zone, the caller already knows) and
+   * `promotionPlansTargetingStage` (0121, many zones discovered by reverse
+   * lookup) — `sourceStageId` is the zone's OWN stage, which is `stageNumber`
+   * in the URL for the former but resolved per-zone for the latter.
+   */
+  private async computePromotionPreview(
+    tournament: { readonly disciplineRef: { descriptorId: string; version: string } },
+    sourceStageId: string,
+    zone: { readonly zoneId: string; readonly number: number },
+    saved: { readonly nextStageId: string; readonly plan: Record<string, unknown> },
+  ): Promise<PromotionPreviewResponse> {
+    const competition = new CompetitionRepository(this.db);
+    const plan = promotionPlanFromStored(zone.zoneId, saved.nextStageId, saved.plan);
+    const groups = await competition.listGroupsOfZone(zone.zoneId);
+    const records = await Promise.all(
+      groups.map(async (group) => ({
+        group,
+        record: await new StageReadModel(this.db).stageRecord(sourceStageId, group.groupId),
+      })),
+    );
+    const descriptor = await new TournamentRepository(this.db).findDescriptor(
+      tournament.disciplineRef.descriptorId,
+      tournament.disciplineRef.version,
+    );
+    if (!descriptor) throw new NotFoundException('Tournament discipline is not installed');
+    const groupRecords = records.flatMap(({ group, record }) =>
+      record === undefined ? [] : [{ group, record }],
+    );
+    if (groupRecords.length !== records.length) {
+      throw new NotFoundException(`No source group records for zone ${zone.number}`);
+    }
+    const groupAccountings = new Map(
+      groupRecords.map((entry) => [
+        entry.group.groupId,
+        computeAccounting(descriptor, entry.record.entrantIds, entry.record.outcomes),
+      ]),
+    );
+    const groupNumbers = new Map(
+      groupRecords.map((entry) => [entry.group.groupId, entry.group.number]),
+    );
+    const pipeline = standingsPipeline(descriptor, groupRecords[0]?.record.overrides ?? {});
+    await this.validatePromotionPlan(sourceStageId, plan, groupAccountings);
+    const outcome = evaluateGroupPromotion(plan, groupAccountings, pipeline, groupNumbers);
+    return {
+      combined: [...outcome.combined],
+      ...(outcome.bands === undefined
+        ? {}
+        : {
+            bands: Object.fromEntries(
+              Object.entries(outcome.bands).map(([zoneRef, entrants]) => [zoneRef, [...entrants]]),
+            ),
+          }),
+      trace: outcome.trace as unknown as Record<string, unknown>[],
+    };
   }
 
   private async zoneDraw(

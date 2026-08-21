@@ -197,6 +197,15 @@ export class CompetitionRepository {
     return rows.map(toZone);
   }
 
+  async findZoneById(zoneId: string): Promise<Zone | undefined> {
+    const row = await this.db
+      .selectFrom('zones')
+      .selectAll()
+      .where('zone_id', '=', zoneId)
+      .executeTakeFirst();
+    return row === undefined ? undefined : toZone(row);
+  }
+
   async currentOrImplicitZone(
     uow: UnitOfWork,
     input: { readonly stageId: string } & AuditContext,
@@ -357,6 +366,28 @@ export class CompetitionRepository {
           nextStageId: row.next_stage_id,
           plan: row.plan as Record<string, unknown>,
         };
+  }
+
+  /** Every stored promotion plan whose `nextStageId` targets the given stage (0121). */
+  async findPromotionPlansTargetingStage(nextStageId: string): Promise<
+    readonly {
+      readonly promotionPlanId: string;
+      readonly zoneId: string;
+      readonly nextStageId: string;
+      readonly plan: Record<string, unknown>;
+    }[]
+  > {
+    const rows = await this.db
+      .selectFrom('promotion_plans')
+      .selectAll()
+      .where('next_stage_id', '=', nextStageId)
+      .execute();
+    return rows.map((row) => ({
+      promotionPlanId: row.promotion_plan_id,
+      zoneId: row.zone_id,
+      nextStageId: row.next_stage_id,
+      plan: row.plan as Record<string, unknown>,
+    }));
   }
 
   async currentOrImplicitGroup(

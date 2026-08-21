@@ -170,6 +170,12 @@ export interface ControlApiClient {
     stageNumber: number,
     zoneNumber: number,
   ) => Promise<PromotionPreviewResponse>;
+  /** Reverse lookup (0121): prior-stage zones whose stored plan targets this stage, already resolved. */
+  readonly fetchPromotionPlansTargetingStage?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageNumber: number,
+  ) => Promise<readonly TargetingPromotionPreviewResponse[]>;
   /** Entrant ids already assigned to a zone — needed to offer manual group placement. */
   readonly fetchZoneEntrants?: (
     organizationAlias: string,
@@ -621,6 +627,14 @@ export interface PromotionPreviewResponse {
   readonly combined: readonly QualifiedEntrantResponse[];
   readonly bands?: Readonly<Record<string, readonly QualifiedEntrantResponse[]>>;
   readonly trace: readonly Readonly<Record<string, unknown>>[];
+}
+
+/** One prior-stage zone's resolved promotion preview, from the reverse lookup (0121). */
+export interface TargetingPromotionPreviewResponse {
+  readonly zoneNumber: number;
+  readonly zoneId: string;
+  readonly combined: readonly QualifiedEntrantResponse[];
+  readonly bands?: Readonly<Record<string, readonly QualifiedEntrantResponse[]>>;
 }
 
 export interface CreateTournamentRequest {
@@ -1212,6 +1226,13 @@ export function createControlApiClient(input: {
       requestJson<PromotionPreviewResponse>(
         input.fetch,
         `${zoneStagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber, zoneNumber)}/promotion-preview`,
+        { token: input.accessToken?.() },
+      ),
+
+    fetchPromotionPlansTargetingStage: (organizationAlias, tournamentAlias, stageNumber) =>
+      requestJson<readonly TargetingPromotionPreviewResponse[]>(
+        input.fetch,
+        `${stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber)}/promotion-plans`,
         { token: input.accessToken?.() },
       ),
 

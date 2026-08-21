@@ -6803,6 +6803,92 @@
           "zones and groups"
         ]
       }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/promotion-plans": {
+      "get": {
+        "description": "The reverse of \"zones/:zoneNumber/promotion-plan\": every zone, in any prior stage, whose stored plan names this stage as its `nextStageNumber`, with its promotion preview already computed and ordered by zone number. A zone whose plan cannot currently be resolved into a preview (e.g. its source group standings are not ready yet) is omitted, not reported as an error — this route never fails for that reason, it simply returns fewer entries.",
+        "operationId": "ZonesGroupsController_promotionPlansTargetingStage",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TargetingPromotionPreviewResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List resolved promotion previews from prior-stage zones targeting this stage",
+        "tags": [
+          "zones and groups"
+        ]
+      }
     }
   },
   "info": {
@@ -11539,6 +11625,40 @@
         "required": [
           "combined",
           "trace"
+        ]
+      },
+      "TargetingPromotionPreviewResponse": {
+        "type": "object",
+        "properties": {
+          "zoneNumber": {
+            "type": "number",
+            "description": "1-based zone number within its own (source) stage",
+            "example": 1
+          },
+          "zoneId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "combined": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QualifiedEntrantResponse"
+            }
+          },
+          "bands": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/QualifiedEntrantResponse"
+              }
+            }
+          }
+        },
+        "required": [
+          "zoneNumber",
+          "zoneId",
+          "combined"
         ]
       }
     }
