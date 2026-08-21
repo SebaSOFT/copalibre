@@ -445,4 +445,17 @@ export const messages: Record<string, string> = {
   'control.orgIdentity.emblemAlt': 'Wappen der Organisation',
   'control.orgIdentity.emblemPlaceholderAlt': 'Kein Wappen hochgeladen',
   'control.orgIdentity.emblemUploaded': 'Wappen hochgeladen.',
+  'control.statisticsRebuild.heading': 'Statistik-Neuberechnung',
+  'control.statisticsRebuild.description':
+    'Berechnet jede gespeicherte Statistiksumme aus den erfassten Ereignissen neu. Spiele, die vor der Auswahl eines Aufgebots ausgetragen wurden, liefern nur Zahlen auf Mannschaftsebene, keine Zahlen auf Spielerebene, da diese nie erfasst wurden.',
+  'control.statisticsRebuild.tournamentLabel': 'Turnier (optional)',
+  'control.statisticsRebuild.tournamentPlaceholder': 'Gesamte Organisation',
+  'control.statisticsRebuild.trigger': 'Statistiken neu berechnen',
+  'control.statisticsRebuild.confirmPrompt':
+    'Dies berechnet jede gespeicherte Zahl im gewählten Bereich neu. Fortfahren?',
+  'control.statisticsRebuild.confirm': 'Neuberechnung bestätigen',
+  'control.statisticsRebuild.cancel': 'Abbrechen',
+  'control.statisticsRebuild.result':
+    '{matches, plural, one {# Spiel verarbeitet} other {# Spiele verarbeitet}}.',
+  'control.statisticsRebuild.failed': 'Die Neuberechnung wurde abgelehnt.',
 };

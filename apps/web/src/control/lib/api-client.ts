@@ -257,6 +257,11 @@ export interface ControlApiClient {
     organizationAlias: string,
     request: UploadImageRequest,
   ) => Promise<{ readonly objectId: string }>;
+  /** Recomputes every stored statistic total from recorded events (0114); optionally one tournament. */
+  readonly rebuildStatistics?: (
+    organizationAlias: string,
+    tournamentAlias?: string,
+  ) => Promise<StatisticsRebuildResponse>;
   /** An organization's clubs — list/create/edit identity; emblem upload is `uploadClubEmblem`. */
   readonly listClubs?: (organizationAlias: string) => Promise<readonly ClubResponse[]>;
   readonly createClub?: (
@@ -288,6 +293,13 @@ export interface UpdateOrganizationSettingsRequest {
   readonly name?: string;
   readonly primaryLanguage?: string;
   readonly timezone?: string;
+}
+
+export interface StatisticsRebuildResponse {
+  readonly organizationAlias: string;
+  readonly tournamentAlias?: string;
+  readonly matches: number;
+  readonly figures: number;
 }
 
 export interface ClubResponse {
@@ -1407,6 +1419,17 @@ export function createControlApiClient(input: {
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/emblem`,
         { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    rebuildStatistics: (organizationAlias, tournamentAlias) =>
+      requestJson<StatisticsRebuildResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/statistics/rebuild`,
+        {
+          method: 'POST',
+          body: tournamentAlias === undefined ? {} : { tournamentAlias },
+          token: input.accessToken?.(),
+        },
       ),
 
     listClubs: (organizationAlias) =>

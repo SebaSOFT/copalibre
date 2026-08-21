@@ -1168,4 +1168,46 @@ export const messages = defineMessages({
     id: 'control.orgIdentity.emblemUploaded',
     defaultMessage: 'Emblem uploaded.',
   },
+
+  // Statistics rebuild (0114) — organizer-triggered recompute, in the org settings surface.
+  statisticsRebuildHeading: {
+    id: 'control.statisticsRebuild.heading',
+    defaultMessage: 'Statistics rebuild',
+  },
+  statisticsRebuildDescription: {
+    id: 'control.statisticsRebuild.description',
+    defaultMessage:
+      'Recomputes every stored statistic total from recorded events. Matches played before a ' +
+      'roster was selected contribute team-level figures only — no player-level figures, ' +
+      'because none were ever recorded for them.',
+  },
+  statisticsRebuildTournamentLabel: {
+    id: 'control.statisticsRebuild.tournamentLabel',
+    defaultMessage: 'Tournament (optional)',
+  },
+  statisticsRebuildTournamentPlaceholder: {
+    id: 'control.statisticsRebuild.tournamentPlaceholder',
+    defaultMessage: 'Whole organization',
+  },
+  statisticsRebuildTrigger: {
+    id: 'control.statisticsRebuild.trigger',
+    defaultMessage: 'Rebuild statistics',
+  },
+  statisticsRebuildConfirmPrompt: {
+    id: 'control.statisticsRebuild.confirmPrompt',
+    defaultMessage: 'This recomputes every stored figure in scope. Continue?',
+  },
+  statisticsRebuildConfirm: {
+    id: 'control.statisticsRebuild.confirm',
+    defaultMessage: 'Confirm rebuild',
+  },
+  statisticsRebuildCancel: { id: 'control.statisticsRebuild.cancel', defaultMessage: 'Cancel' },
+  statisticsRebuildResult: {
+    id: 'control.statisticsRebuild.result',
+    defaultMessage: '{matches, plural, one {# match} other {# matches}} processed.',
+  },
+  statisticsRebuildFailed: {
+    id: 'control.statisticsRebuild.failed',
+    defaultMessage: 'The rebuild was refused.',
+  },
 });

@@ -442,4 +442,17 @@ export const messages: Record<string, string> = {
   'control.orgIdentity.emblemAlt': 'Эмблема организации',
   'control.orgIdentity.emblemPlaceholderAlt': 'Эмблема не загружена',
   'control.orgIdentity.emblemUploaded': 'Эмблема загружена.',
+  'control.statisticsRebuild.heading': 'Пересчёт статистики',
+  'control.statisticsRebuild.description':
+    'Пересчитывает все сохранённые итоги статистики на основе зафиксированных событий. Матчи, сыгранные до выбора состава, дают только показатели на уровне команды, без показателей на уровне игрока, поскольку они никогда не фиксировались.',
+  'control.statisticsRebuild.tournamentLabel': 'Турнир (необязательно)',
+  'control.statisticsRebuild.tournamentPlaceholder': 'Вся организация',
+  'control.statisticsRebuild.trigger': 'Пересчитать статистику',
+  'control.statisticsRebuild.confirmPrompt':
+    'Это пересчитает все сохранённые показатели в выбранной области. Продолжить?',
+  'control.statisticsRebuild.confirm': 'Подтвердить пересчёт',
+  'control.statisticsRebuild.cancel': 'Отмена',
+  'control.statisticsRebuild.result':
+    '{matches, plural, one {Обработан # матч} few {Обработано # матча} many {Обработано # матчей} other {Обработано # матча}}.',
+  'control.statisticsRebuild.failed': 'В пересчёте отказано.',
 };

@@ -6,6 +6,7 @@ import {
   organizationEmblemUrl,
   type ControlApiClient,
   type OrganizationResponse,
+  type StatisticsRebuildResponse,
 } from '../lib/api-client.js';
 import { readAsBase64 } from '../lib/image-upload.js';
 import { controlTokenStore } from '../session/token-store.js';
@@ -231,6 +232,34 @@ export function PreferencesRoute({
           ? error.message
           : intl.formatMessage(controlMessages.orgIdentitySaveFailed),
       );
+    }
+  }
+
+  const [rebuildTournamentAlias, setRebuildTournamentAlias] = useState('');
+  const [rebuildConfirming, setRebuildConfirming] = useState(false);
+  const [rebuildResult, setRebuildResult] = useState<StatisticsRebuildResponse | undefined>(
+    undefined,
+  );
+  const [rebuildNotice, setRebuildNotice] = useState<string | undefined>(undefined);
+
+  async function runStatisticsRebuild(): Promise<void> {
+    if (!api.rebuildStatistics || organizationAlias === undefined) return;
+    try {
+      const result = await api.rebuildStatistics(
+        organizationAlias,
+        rebuildTournamentAlias.trim() === '' ? undefined : rebuildTournamentAlias.trim(),
+      );
+      setRebuildResult(result);
+      setRebuildNotice(undefined);
+    } catch (error) {
+      setRebuildResult(undefined);
+      setRebuildNotice(
+        error instanceof ControlApiError
+          ? error.message
+          : intl.formatMessage(controlMessages.statisticsRebuildFailed),
+      );
+    } finally {
+      setRebuildConfirming(false);
     }
   }
 
@@ -461,6 +490,83 @@ export function PreferencesRoute({
                 </Button>
               </div>
             </div>
+          )}
+        </section>
+      )}
+
+      {organizationAlias !== undefined && (
+        <section
+          aria-label={intl.formatMessage(controlMessages.statisticsRebuildHeading)}
+          style={{
+            marginTop: '2rem',
+            background: 'var(--cl-surface-alt)',
+            padding: '1.5rem',
+            borderRadius: '8px',
+          }}
+        >
+          <h2>
+            <FormattedMessage {...controlMessages.statisticsRebuildHeading} />
+          </h2>
+          <p>
+            <FormattedMessage {...controlMessages.statisticsRebuildDescription} />
+          </p>
+
+          {rebuildNotice && (
+            <p className="cl-inline-alert" role="alert">
+              {rebuildNotice}
+            </p>
+          )}
+          {rebuildResult && (
+            <p className="cl-inline-alert">
+              {intl.formatMessage(controlMessages.statisticsRebuildResult, {
+                matches: rebuildResult.matches,
+              })}
+            </p>
+          )}
+
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', marginTop: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <label htmlFor="rebuild-tournament">
+                <FormattedMessage {...controlMessages.statisticsRebuildTournamentLabel} />
+              </label>
+              <input
+                id="rebuild-tournament"
+                onChange={(event) => setRebuildTournamentAlias(event.target.value)}
+                placeholder={intl.formatMessage(
+                  controlMessages.statisticsRebuildTournamentPlaceholder,
+                )}
+                style={{ padding: '0.5rem', border: '1px solid var(--cl-border-base)' }}
+                type="text"
+                value={rebuildTournamentAlias}
+              />
+            </div>
+            {!rebuildConfirming ? (
+              <Button
+                disabled={!api.rebuildStatistics}
+                onClick={() => setRebuildConfirming(true)}
+                type="button"
+              >
+                <FormattedMessage {...controlMessages.statisticsRebuildTrigger} />
+              </Button>
+            ) : (
+              <>
+                <Button onClick={() => void runStatisticsRebuild()} type="button">
+                  <FormattedMessage {...controlMessages.statisticsRebuildConfirm} />
+                </Button>
+                <Button
+                  onClick={() => setRebuildConfirming(false)}
+                  type="button"
+                  variant="secondary"
+                >
+                  <FormattedMessage {...controlMessages.statisticsRebuildCancel} />
+                </Button>
+              </>
+            )}
+          </div>
+          {rebuildConfirming && (
+            <p className="cl-inline-alert" role="alert">
+              <FormattedMessage {...controlMessages.statisticsRebuildConfirmPrompt} />
+            </p>
           )}
         </section>
       )}

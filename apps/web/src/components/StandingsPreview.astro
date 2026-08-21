@@ -287,11 +287,17 @@ const isPlayerRanking =
               )
               .join('');
 
+            // An absence is stated, never rendered as zero (0114) — a person
+            // with no recorded roster history gets an explicit "none
+            // recorded" line, the same wording PlayerProfileView.astro (the
+            // standalone profile page) already used for this.
             body.innerHTML = `
               <div class="cl-modal-profile">
                 ${metaTags ? `<div class="cl-modal-meta">${metaTags}</div>` : ''}
-                ${statsItems ? `<h4 class="cl-modal-section-title">Career Statistics</h4><div class="cl-modal-stats-grid">${statsItems}</div>` : ''}
-                ${historyRows ? `<h4 class="cl-modal-section-title">Competition History</h4><table class="cl-modal-history-table"><thead><tr><th>Tournament</th><th>Team</th><th>Role</th></tr></thead><tbody>${historyRows}</tbody></table>` : ''}
+                <h4 class="cl-modal-section-title">Career Statistics</h4>
+                ${statsItems ? `<div class="cl-modal-stats-grid">${statsItems}</div>` : '<p class="cl-modal-empty">No career statistics recorded.</p>'}
+                <h4 class="cl-modal-section-title">Competition History</h4>
+                ${historyRows ? `<table class="cl-modal-history-table"><thead><tr><th>Tournament</th><th>Team</th><th>Role</th></tr></thead><tbody>${historyRows}</tbody></table>` : '<p class="cl-modal-empty">No competition history recorded.</p>'}
               </div>
             `;
           }
@@ -433,6 +439,11 @@ const isPlayerRanking =
     margin: 16px 0 8px 0;
     font-size: 1rem;
     font-weight: 600;
+  }
+  .cl-modal-empty {
+    color: var(--cl-color-text-subtle, #6b7280);
+    font-style: italic;
+    margin: 0;
   }
   .cl-modal-stats-grid {
     display: grid;
