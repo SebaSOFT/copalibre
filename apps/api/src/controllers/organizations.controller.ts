@@ -162,10 +162,10 @@ export class OrganizationsController {
   @RequireOrganizationRole('admin')
   @ApiBearerAuth()
   @ApiOperation({
-    summary: "Update an organization's primary language and/or timezone",
+    summary: "Update an organization's name, primary language and/or timezone",
     description:
-      'Requires the organization admin role. Presentation-layer defaults only; never reinterprets ' +
-      'stored data.',
+      'Requires the organization admin role. Language/timezone are presentation-layer defaults ' +
+      'only; never reinterprets stored data.',
   })
   @ApiOkResponse({ type: OrganizationResponse })
   @ApiUnauthorizedResponse({
@@ -190,6 +190,7 @@ export class OrganizationsController {
     try {
       return await withTransaction(this.db, (uow) =>
         repository.updateSettings(uow, organization.organizationId, {
+          name: body.name,
           primaryLanguage: body.primaryLanguage,
           timezone: body.timezone,
           actor: `user:${subject?.subjectId ?? 'unknown'}`,

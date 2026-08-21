@@ -102,8 +102,8 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * Update an organization's primary language and/or timezone
-         * @description Requires the organization admin role. Presentation-layer defaults only; never reinterprets stored data.
+         * Update an organization's name, primary language and/or timezone
+         * @description Requires the organization admin role. Language/timezone are presentation-layer defaults only; never reinterprets stored data.
          */
         patch: operations["OrganizationsController_updateSettings"];
         trace?: never;
@@ -1526,6 +1526,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/emblem": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stream an organization's emblem, once it has passed validation */
+        get: operations["OrganizationMediaController_serveEmblem"];
+        put?: never;
+        /** Upload an organization's emblem */
+        post: operations["OrganizationMediaController_uploadEmblem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/clubs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List an organization's clubs */
+        get: operations["ClubsController_list"];
+        put?: never;
+        /** Create a club */
+        post: operations["ClubsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/clubs/{clubId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edit a club's name, alias, or abbreviation */
+        patch: operations["ClubsController_update"];
+        trace?: never;
+    };
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones": {
         parameters: {
             query?: never;
@@ -1788,6 +1841,11 @@ export interface components {
              * @example America/Argentina/San_Juan
              */
             timezone: string;
+            /**
+             * Format: uuid
+             * @description object_metadata.object_id of the emblem
+             */
+            emblemObjectId?: string;
         };
         CreateOrganizationRequest: {
             /**
@@ -1810,6 +1868,8 @@ export interface components {
             timezone?: string;
         };
         UpdateOrganizationSettingsRequest: {
+            /** @example Liga Orbital */
+            name?: string;
             /**
              * @example en
              * @enum {string}
@@ -3237,6 +3297,45 @@ export interface components {
              * @example AR
              */
             nationality?: Record<string, never> | null;
+        };
+        ClubResponse: {
+            /** Format: uuid */
+            clubId: string;
+            /** Format: uuid */
+            organizationId: string;
+            /**
+             * @description Path identifier, unique within the organization.
+             * @example casa-de-italia
+             */
+            alias?: string;
+            /** @example Casa de Italia */
+            name: string;
+            /** @example C I */
+            abbreviation?: string;
+            /**
+             * Format: uuid
+             * @description object_metadata.object_id of the emblem
+             */
+            emblemObjectId?: string;
+        };
+        CreateClubRequest: {
+            /** @example Casa de Italia */
+            name: string;
+            /**
+             * @description Defaults to a suggestion derived from the name when omitted.
+             * @example casa-de-italia
+             */
+            alias?: string;
+            /** @example C I */
+            abbreviation?: string;
+        };
+        UpdateClubRequest: {
+            /** @example Casa de Italia */
+            name?: string;
+            /** @example casa-de-italia */
+            alias?: string;
+            /** @example C I */
+            abbreviation?: string;
         };
         ZoneResponse: {
             /** Format: uuid */
@@ -6340,6 +6439,125 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UploadImageResponse"];
+                };
+            };
+        };
+    };
+    OrganizationMediaController_serveEmblem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Image bytes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+        };
+    };
+    OrganizationMediaController_uploadEmblem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UploadImageRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadImageResponse"];
+                };
+            };
+        };
+    };
+    ClubsController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClubResponse"][];
+                };
+            };
+        };
+    };
+    ClubsController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateClubRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClubResponse"];
+                };
+            };
+        };
+    };
+    ClubsController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                clubId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateClubRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClubResponse"];
                 };
             };
         };

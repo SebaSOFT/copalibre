@@ -12,15 +12,32 @@ import { LoadMatchDataRoute } from './LoadMatchDataRoute.js';
 import { ZoneGroupRoute } from './ZoneGroupRoute.js';
 import { PromotionPlanRoute } from './PromotionPlanRoute.js';
 import { PreferencesRoute } from './PreferencesRoute.js';
+import { ClubManagementRoute } from './ClubManagementRoute.js';
 
 export function PreferencesControlRoute({
   organizationAlias,
+  client,
 }: {
   readonly organizationAlias: string;
+  readonly client?: ControlApiClient;
 }): React.JSX.Element {
   return (
     <ControlShell active="preferences" helpPath="preferences" organizationAlias={organizationAlias}>
-      <PreferencesRoute />
+      <PreferencesRoute client={client} organizationAlias={organizationAlias} />
+    </ControlShell>
+  );
+}
+
+export function ClubManagementControlRoute({
+  organizationAlias,
+  client,
+}: {
+  readonly organizationAlias: string;
+  readonly client?: ControlApiClient;
+}): React.JSX.Element {
+  return (
+    <ControlShell active="clubs" helpPath="clubs" organizationAlias={organizationAlias}>
+      <ClubManagementRoute client={client} organizationAlias={organizationAlias} />
     </ControlShell>
   );
 }

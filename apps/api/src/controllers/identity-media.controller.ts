@@ -257,6 +257,73 @@ export class ClubMediaController {
   }
 }
 
+@ApiTags('organizations')
+@Controller('organizations/:organizationAlias')
+export class OrganizationMediaController {
+  constructor(
+    @Inject(DATABASE) private readonly db: Kysely<Database>,
+    @Inject(OBJECT_STORAGE) private readonly storage: ObjectStorageAdapter,
+  ) {}
+
+  @Post('emblem')
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Upload an organization's emblem" })
+  @ApiCreatedResponse({ type: UploadImageResponse })
+  async uploadEmblem(
+    @Param('organizationAlias') organizationAlias: string,
+    @Body() body: UploadImageRequest,
+    @Req() request: RequestWithSubject,
+  ): Promise<UploadImageResponse> {
+    const organizationId = await resolveAdminOrganization(this.db, organizationAlias, request);
+
+    const bytes = decodeImage(body);
+    const reference = await this.storage.put(
+      `${organizationId}/emblem/${newId()}-${body.filename}`,
+      bytes,
+      body.contentType,
+    );
+    const actor = actorOf(request);
+
+    const objectId = await withTransaction(this.db, async (uow) => {
+      const objectMetadata = await new ObjectMetadataRepository(this.db).save(uow, {
+        organizationId,
+        profile: this.storage.profile,
+        storageKey: reference.key,
+        contentType: body.contentType,
+        sizeBytes: bytes.length,
+        uploadedBy: actor,
+      });
+      await new OrganizationRepository(this.db).updateSettings(uow, organizationId, {
+        emblemObjectId: objectMetadata.objectId,
+        actor,
+        authorizationContext: 'copalibre.control',
+      });
+      return objectMetadata.objectId;
+    });
+
+    return { objectId };
+  }
+
+  @Get('emblem')
+  @SecurityPlaneTag('public-read')
+  @ApiOperation({ summary: "Stream an organization's emblem, once it has passed validation" })
+  @ApiOkResponse({ description: 'Image bytes', schema: { type: 'string', format: 'binary' } })
+  async serveEmblem(
+    @Param('organizationAlias') organizationAlias: string,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ): Promise<Buffer | undefined> {
+    const organization = await new OrganizationRepository(this.db).findByAlias(organizationAlias);
+    if (!organization) {
+      throw new NotFoundException(`No organization with alias "${organizationAlias}"`);
+    }
+    if (!organization.emblemObjectId)
+      throw new NotFoundException('No emblem for this organization');
+    return streamStoredObject(this.db, this.storage, organization.emblemObjectId, reply);
+  }
+}
+
 async function resolveAdminOrganization(
   db: Kysely<Database>,
   organizationAlias: string,

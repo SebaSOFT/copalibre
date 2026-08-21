@@ -19,6 +19,7 @@ import { StandingsController } from '../controllers/standings.controller.js';
 import { TableProjectionsController } from '../controllers/table-projections.controller.js';
 import { TournamentsController } from '../controllers/tournaments.controller.js';
 import { ZonesGroupsController } from '../controllers/zones-groups.controller.js';
+import { ClubsController } from '../controllers/clubs.controller.js';
 import {
   InvitationAcceptanceController,
   OrganizationAccessController,
@@ -41,6 +42,7 @@ import {
 } from '../controllers/auth.controller.js';
 import {
   ClubMediaController,
+  OrganizationMediaController,
   PersonMediaController,
 } from '../controllers/identity-media.controller.js';
 
@@ -83,5 +85,7 @@ export const OPENAPI_CONTROLLERS = [
   AdminModulesController,
   PersonMediaController,
   ClubMediaController,
+  OrganizationMediaController,
+  ClubsController,
   ZonesGroupsController,
 ] as const;

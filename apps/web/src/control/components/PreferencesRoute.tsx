@@ -1,6 +1,17 @@
-import { useEffect, useState } from 'react';
-import { FormattedMessage, defineMessages } from 'react-intl';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { FormattedMessage, defineMessages, useIntl } from 'react-intl';
+import {
+  ControlApiError,
+  createControlApiClient,
+  organizationEmblemUrl,
+  type ControlApiClient,
+  type OrganizationResponse,
+} from '../lib/api-client.js';
+import { readAsBase64 } from '../lib/image-upload.js';
 import { controlTokenStore } from '../session/token-store.js';
+import { ClubEmblemPlaceholder } from './placeholders.js';
+import { Button } from './ui/button.js';
+import { messages as controlMessages } from '../i18n/messages.en.js';
 
 const messages = defineMessages({
   title: {
@@ -55,7 +66,13 @@ export interface PatCreatedResponse extends PatResponse {
   readonly token: string;
 }
 
-export function PreferencesRoute(): React.JSX.Element {
+export function PreferencesRoute({
+  organizationAlias,
+  client,
+}: {
+  readonly organizationAlias?: string;
+  readonly client?: ControlApiClient;
+}): React.JSX.Element {
   const [tokens, setTokens] = useState<readonly PatResponse[]>([]);
   const [newToken, setNewToken] = useState<PatCreatedResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -117,6 +134,105 @@ export function PreferencesRoute(): React.JSX.Element {
       setTokens(tokens.filter((t) => t.tokenId !== tokenId));
     }
   };
+
+  const intl = useIntl();
+  const api = useMemo(
+    () =>
+      client ??
+      createControlApiClient({
+        fetch: globalThis.fetch.bind(globalThis),
+        accessToken: () => controlTokenStore.read(),
+      }),
+    [client],
+  );
+
+  const [organization, setOrganization] = useState<OrganizationResponse | undefined>(undefined);
+  const [orgLoading, setOrgLoading] = useState(true);
+  const [orgLoadError, setOrgLoadError] = useState<string | undefined>(undefined);
+  const [orgNotice, setOrgNotice] = useState<string | undefined>(undefined);
+  const [orgName, setOrgName] = useState('');
+  const [emblemFailed, setEmblemFailed] = useState(false);
+
+  const reloadOrganization = useCallback(async (): Promise<void> => {
+    if (organizationAlias === undefined) return;
+    setOrgLoading(true);
+    try {
+      const loaded = await api.getOrganization?.(organizationAlias);
+      setOrganization(loaded);
+      if (loaded) setOrgName(loaded.name);
+      setOrgLoadError(undefined);
+    } catch {
+      setOrgLoadError(intl.formatMessage(controlMessages.orgIdentityLoadFailed));
+    } finally {
+      setOrgLoading(false);
+    }
+  }, [api, organizationAlias, intl]);
+
+  // Mount-time load intentionally does not call `reloadOrganization` (kept
+  // for the imperative re-fetch after save/upload): its setState calls sit
+  // directly in an async/await body, which react-hooks/set-state-in-effect
+  // flags when reachable from an effect. Nesting them inside a promise
+  // chain instead keeps them out of that static reachability check — the
+  // same pattern used by ZoneGroupRoute.tsx (0108).
+  useEffect(() => {
+    if (organizationAlias === undefined) return undefined;
+    let live = true;
+    const getOrganization = api.getOrganization;
+    (getOrganization ? getOrganization(organizationAlias) : Promise.resolve(undefined))
+      .then((loaded) => {
+        if (!live) return;
+        setOrganization(loaded);
+        if (loaded) setOrgName(loaded.name);
+        setOrgLoadError(undefined);
+      })
+      .catch(() => {
+        if (live) setOrgLoadError(intl.formatMessage(controlMessages.orgIdentityLoadFailed));
+      })
+      .finally(() => {
+        if (live) setOrgLoading(false);
+      });
+    return () => {
+      live = false;
+    };
+  }, [api, organizationAlias, intl]);
+
+  async function saveOrganizationName(): Promise<void> {
+    if (!api.updateOrganizationSettings || organizationAlias === undefined) return;
+    try {
+      const updated = await api.updateOrganizationSettings(organizationAlias, {
+        name: orgName.trim(),
+      });
+      setOrganization(updated);
+      setOrgNotice(intl.formatMessage(controlMessages.orgIdentitySaved));
+    } catch (error) {
+      setOrgNotice(
+        error instanceof ControlApiError
+          ? error.message
+          : intl.formatMessage(controlMessages.orgIdentitySaveFailed),
+      );
+    }
+  }
+
+  async function uploadOrganizationEmblem(file: File): Promise<void> {
+    if (!api.uploadOrganizationEmblem || organizationAlias === undefined) return;
+    try {
+      const contentBase64 = await readAsBase64(file);
+      await api.uploadOrganizationEmblem(organizationAlias, {
+        filename: file.name,
+        contentType: file.type || 'application/octet-stream',
+        contentBase64,
+      });
+      setEmblemFailed(false);
+      setOrgNotice(intl.formatMessage(controlMessages.orgIdentityEmblemUploaded));
+      void reloadOrganization();
+    } catch (error) {
+      setOrgNotice(
+        error instanceof ControlApiError
+          ? error.message
+          : intl.formatMessage(controlMessages.orgIdentitySaveFailed),
+      );
+    }
+  }
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem' }}>
@@ -270,6 +386,84 @@ export function PreferencesRoute(): React.JSX.Element {
           )}
         </div>
       </section>
+
+      {organizationAlias !== undefined && (
+        <section
+          aria-label={intl.formatMessage(controlMessages.orgIdentityHeading)}
+          style={{
+            marginTop: '2rem',
+            background: 'var(--cl-surface-alt)',
+            padding: '1.5rem',
+            borderRadius: '8px',
+          }}
+        >
+          <h2>
+            <FormattedMessage {...controlMessages.orgIdentityHeading} />
+          </h2>
+
+          {orgNotice && <p className="cl-inline-alert">{orgNotice}</p>}
+
+          {orgLoading ? (
+            <p>
+              <FormattedMessage {...controlMessages.orgIdentityLoading} />
+            </p>
+          ) : orgLoadError ? (
+            <p className="cl-inline-alert" role="alert">
+              {orgLoadError}
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {organization?.emblemObjectId !== undefined && !emblemFailed ? (
+                <img
+                  alt={intl.formatMessage(controlMessages.orgIdentityEmblemAlt)}
+                  height={64}
+                  onError={() => setEmblemFailed(true)}
+                  src={organizationEmblemUrl(organizationAlias)}
+                  width={64}
+                />
+              ) : (
+                <ClubEmblemPlaceholder
+                  size={64}
+                  title={intl.formatMessage(controlMessages.orgIdentityEmblemPlaceholderAlt)}
+                />
+              )}
+
+              {api.uploadOrganizationEmblem && (
+                <label>
+                  <FormattedMessage {...controlMessages.orgIdentityUploadEmblem} />
+                  <input
+                    accept="image/*"
+                    aria-label={intl.formatMessage(controlMessages.orgIdentityUploadEmblem)}
+                    onChange={(event) => {
+                      const file = event.currentTarget.files?.[0];
+                      if (file) void uploadOrganizationEmblem(file);
+                    }}
+                    type="file"
+                  />
+                </label>
+              )}
+
+              <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <label htmlFor="org-name">
+                    <FormattedMessage {...controlMessages.orgIdentityName} />
+                  </label>
+                  <input
+                    id="org-name"
+                    onChange={(event) => setOrgName(event.target.value)}
+                    style={{ padding: '0.5rem', border: '1px solid var(--cl-border-base)' }}
+                    type="text"
+                    value={orgName}
+                  />
+                </div>
+                <Button onClick={() => void saveOrganizationName()} type="button">
+                  <FormattedMessage {...controlMessages.orgIdentitySave} />
+                </Button>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
     </div>
   );
 }

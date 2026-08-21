@@ -105,6 +105,7 @@ describe('migrations (integration)', () => {
       expect.arrayContaining([
         expect.objectContaining({ name: 'primary_language' }),
         expect.objectContaining({ name: 'timezone' }),
+        expect.objectContaining({ name: 'emblem_object_id' }),
       ]),
     );
     expect(afterUpTables.find((table) => table.name === 'match_events')?.columns).toEqual(
@@ -144,6 +145,14 @@ describe('migrations (integration)', () => {
     expect(afterUpTables.find((table) => table.name === 'entrants')?.columns).toEqual(
       expect.arrayContaining([expect.objectContaining({ name: 'abbreviation' })]),
     );
+
+    const organizationEmblemDown = await migrateDownOneStep(scratch.db);
+    expect(organizationEmblemDown.error).toBeUndefined();
+
+    const afterOrganizationEmblemDownTables = await scratch.db.introspection.getTables();
+    expect(
+      afterOrganizationEmblemDownTables.find((table) => table.name === 'organizations')?.columns,
+    ).not.toEqual(expect.arrayContaining([expect.objectContaining({ name: 'emblem_object_id' })]));
 
     const personBirthDateDown = await migrateDownOneStep(scratch.db);
     expect(personBirthDateDown.error).toBeUndefined();

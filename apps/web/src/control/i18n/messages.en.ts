@@ -1040,4 +1040,104 @@ export const messages = defineMessages({
     id: 'control.loadMatchData.csvLoaded',
     defaultMessage: 'CSV loaded into the builder below for review.',
   },
+
+  // Club management (0109) — the first club-related screen in the app.
+  clubManagementSectionLabel: {
+    id: 'control.clubManagement.sectionLabel',
+    defaultMessage: 'Club management',
+  },
+  clubManagementTitle: { id: 'control.clubManagement.title', defaultMessage: 'Clubs' },
+  clubManagementLoading: { id: 'control.clubManagement.loading', defaultMessage: 'Loading…' },
+  clubManagementLoadFailed: {
+    id: 'control.clubManagement.loadFailed',
+    defaultMessage: 'Could not load clubs.',
+  },
+  clubManagementSaveFailed: {
+    id: 'control.clubManagement.saveFailed',
+    defaultMessage: 'The request was refused.',
+  },
+  clubManagementEmpty: {
+    id: 'control.clubManagement.empty',
+    defaultMessage: 'This organization has no clubs yet.',
+  },
+  clubManagementEdit: { id: 'control.clubManagement.edit', defaultMessage: 'Edit' },
+  clubManagementNewClubName: {
+    id: 'control.clubManagement.newClubName',
+    defaultMessage: 'New club name',
+  },
+  clubManagementNewClubAlias: {
+    id: 'control.clubManagement.newClubAlias',
+    defaultMessage: 'Alias (optional)',
+  },
+  clubManagementNewClubAbbreviation: {
+    id: 'control.clubManagement.newClubAbbreviation',
+    defaultMessage: 'Abbreviation (optional)',
+  },
+  clubManagementAddClub: { id: 'control.clubManagement.addClub', defaultMessage: 'Add club' },
+  clubManagementEditHeading: {
+    id: 'control.clubManagement.editHeading',
+    defaultMessage: 'Edit club',
+  },
+  clubManagementName: { id: 'control.clubManagement.name', defaultMessage: 'Name' },
+  clubManagementAlias: { id: 'control.clubManagement.alias', defaultMessage: 'Alias' },
+  clubManagementAbbreviation: {
+    id: 'control.clubManagement.abbreviation',
+    defaultMessage: 'Abbreviation',
+  },
+  clubManagementSaveChanges: {
+    id: 'control.clubManagement.saveChanges',
+    defaultMessage: 'Save changes',
+  },
+  clubManagementUploadEmblem: {
+    id: 'control.clubManagement.uploadEmblem',
+    defaultMessage: 'Upload emblem',
+  },
+  clubManagementEmblemAlt: {
+    id: 'control.clubManagement.emblemAlt',
+    defaultMessage: '{name} emblem',
+  },
+  clubManagementEmblemPlaceholderAlt: {
+    id: 'control.clubManagement.emblemPlaceholderAlt',
+    defaultMessage: 'No emblem uploaded',
+  },
+  clubManagementSaved: { id: 'control.clubManagement.saved', defaultMessage: 'Changes saved.' },
+  clubManagementCreated: { id: 'control.clubManagement.created', defaultMessage: 'Club created.' },
+  clubManagementEmblemUploaded: {
+    id: 'control.clubManagement.emblemUploaded',
+    defaultMessage: 'Emblem uploaded.',
+  },
+
+  // Organization identity (0109) — name and emblem, in the org settings surface.
+  orgIdentityHeading: {
+    id: 'control.orgIdentity.heading',
+    defaultMessage: 'Organization identity',
+  },
+  orgIdentityLoading: { id: 'control.orgIdentity.loading', defaultMessage: 'Loading…' },
+  orgIdentityLoadFailed: {
+    id: 'control.orgIdentity.loadFailed',
+    defaultMessage: 'Could not load organization settings.',
+  },
+  orgIdentityName: { id: 'control.orgIdentity.name', defaultMessage: 'Name' },
+  orgIdentitySave: { id: 'control.orgIdentity.save', defaultMessage: 'Save' },
+  orgIdentitySaved: { id: 'control.orgIdentity.saved', defaultMessage: 'Organization updated.' },
+  orgIdentitySaveFailed: {
+    id: 'control.orgIdentity.saveFailed',
+    defaultMessage: 'The request was refused.',
+  },
+  orgIdentityUploadEmblem: {
+    id: 'control.orgIdentity.uploadEmblem',
+    defaultMessage: 'Upload emblem',
+  },
+  orgIdentityEmblemAlt: {
+    id: 'control.orgIdentity.emblemAlt',
+    defaultMessage: 'Organization emblem',
+  },
+  orgIdentityEmblemPlaceholderAlt: {
+    id: 'control.orgIdentity.emblemPlaceholderAlt',
+    defaultMessage: 'No emblem uploaded',
+  },
+  orgIdentityEmblemUploaded: {
+    id: 'control.orgIdentity.emblemUploaded',
+    defaultMessage: 'Emblem uploaded.',
+  },
 });

@@ -199,6 +199,7 @@ describe('parseControlPath', () => {
       '/control/liga-mendocina/tournaments/new',
       { screen: 'newTournament', organizationAlias: 'liga-mendocina' },
     ],
+    ['/control/liga-mendocina/clubs', { screen: 'clubs', organizationAlias: 'liga-mendocina' }],
     [
       '/control/liga-mendocina/persons/00000000-0000-7000-8000-000000000001',
       {

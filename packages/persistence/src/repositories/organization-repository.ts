@@ -24,8 +24,10 @@ export interface CreateOrganizationInput {
 }
 
 export interface UpdateOrganizationSettingsInput {
+  readonly name?: string;
   readonly primaryLanguage?: string;
   readonly timezone?: string;
+  readonly emblemObjectId?: string;
   readonly actor: string;
   readonly authorizationContext: string;
 }
@@ -102,12 +104,23 @@ export class OrganizationRepository {
     organizationId: string,
     input: UpdateOrganizationSettingsInput,
   ): Promise<Organization> {
-    const updates: { primary_language?: SupportedLanguage; timezone?: string } = {};
+    const updates: {
+      name?: string;
+      primary_language?: SupportedLanguage;
+      timezone?: string;
+      emblem_object_id?: string;
+    } = {};
+    if (input.name !== undefined) {
+      updates.name = input.name;
+    }
     if (input.primaryLanguage !== undefined) {
       updates.primary_language = validatePrimaryLanguage(input.primaryLanguage);
     }
     if (input.timezone !== undefined) {
       updates.timezone = validateTimezone(input.timezone);
+    }
+    if (input.emblemObjectId !== undefined) {
+      updates.emblem_object_id = input.emblemObjectId;
     }
 
     const row = await uow.tx

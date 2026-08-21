@@ -14,6 +14,8 @@ export interface Organization {
   readonly primaryLanguage: SupportedLanguage;
   /** IANA time zone identifier; presentation-layer default only. */
   readonly timezone: string;
+  /** Object-storage reference for the organization's emblem; absent until uploaded. */
+  readonly emblemObjectId?: string;
 }
 
 export interface Club {

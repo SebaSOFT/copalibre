@@ -21,7 +21,11 @@ import type { AuthenticatedSubject } from '../auth/request-context.js';
 import { TokenVerifier } from '../auth/token-verifier.js';
 import { DATABASE } from '../database.token.js';
 import { OBJECT_STORAGE } from '../object-storage.token.js';
-import { ClubMediaController, PersonMediaController } from './identity-media.controller.js';
+import {
+  ClubMediaController,
+  OrganizationMediaController,
+  PersonMediaController,
+} from './identity-media.controller.js';
 
 /**
  * The person-photo/club-emblem upload and public-serve endpoints through the
@@ -133,7 +137,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
     clubId = club.clubId;
 
     @Module({
-      controllers: [PersonMediaController, ClubMediaController],
+      controllers: [PersonMediaController, ClubMediaController, OrganizationMediaController],
       providers: [
         { provide: DATABASE, useValue: db },
         { provide: TokenVerifier, useClass: FakeTokenVerifier },
@@ -257,6 +261,53 @@ describe('person photo / club emblem upload and public serve (integration)', () 
     expect(response.statusCode).toBe(200);
     expect(response.headers['content-type']).toBe('image/svg+xml');
     expect(response.rawPayload.toString()).toBe('fake-emblem-bytes');
+  });
+
+  it('refuses an unauthenticated organization emblem upload', async () => {
+    const response = await inject({
+      method: 'POST',
+      url: `/organizations/${organizationAlias}/emblem`,
+      payload: { filename: 'o.png', contentType: 'image/png', contentBase64: 'AA==' },
+    });
+    expect(response.statusCode).toBe(401);
+  });
+
+  it('404s an emblem request for an organization alias that does not exist', async () => {
+    const response = await inject({
+      method: 'GET',
+      url: `/organizations/no-such-org/emblem`,
+    });
+    expect(response.statusCode).toBe(404);
+  });
+
+  it('uploads and serves an organization emblem, unauthenticated on the GET', async () => {
+    const contentBase64 = Buffer.from('fake-org-emblem-bytes').toString('base64');
+    const upload = await inject({
+      method: 'POST',
+      url: `/organizations/${organizationAlias}/emblem`,
+      headers: { authorization: 'Bearer organizer' },
+      payload: { filename: 'emblem.svg', contentType: 'image/svg+xml', contentBase64 },
+    });
+    expect(upload.statusCode).toBe(201);
+    const { objectId } = upload.json() as { objectId: string };
+
+    // Enqueued (pending) on the same transaction as the metadata row (0041
+    // ordering) — served as 202 with no body until the async scan passes it.
+    const pending = await inject({
+      method: 'GET',
+      url: `/organizations/${organizationAlias}/emblem`,
+    });
+    expect(pending.statusCode).toBe(202);
+
+    await new ObjectMetadataRepository(db).markPassed(objectId);
+
+    const response = await inject({
+      method: 'GET',
+      url: `/organizations/${organizationAlias}/emblem`,
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['content-type']).toBe('image/svg+xml');
+    expect(response.rawPayload.toString()).toBe('fake-org-emblem-bytes');
   });
 
   it('sets and clears a nationality through the authenticated PATCH route', async () => {
