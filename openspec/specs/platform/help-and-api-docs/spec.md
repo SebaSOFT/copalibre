@@ -70,7 +70,8 @@ hostnames, private paths, or production example credentials.
 
 Each control-panel screen SHALL render a visible link to a Starlight help page that explains that
 specific screen's purpose and its key data fields, distinct from a generic link to the help site's
-homepage.
+homepage. The link SHALL resolve to the Starlight page in the operator's currently active display
+language, using the same locale-prefix routing the help site itself uses for every other page.
 
 #### Scenario: An operator on the seeding screen reaches seeding-specific help
 
@@ -84,6 +85,17 @@ homepage.
   pointing at an existing Starlight page under `/help/control/`
 - **THEN** the build fails, naming the missing help path, rather than shipping a silently broken or
   absent help link
+
+#### Scenario: A non-English operator lands on the matching locale's help page
+
+- **WHEN** an operator using the control panel in a language other than English activates a screen's
+  help link
+- **THEN** they land on that language's Starlight page for the same screen, not the English default
+
+#### Scenario: An English-language operator sees the unprefixed default page
+
+- **WHEN** an operator using the control panel in English activates a screen's help link
+- **THEN** they land on the unprefixed default-locale Starlight page
 
 ### Requirement: Help site documents CLI installation, updating, and every command
 
@@ -176,3 +188,26 @@ proxy at the edge, and Kubernetes via the Helm chart.
 - **WHEN** a Windows operator reads the self-hosting page's prerequisites
 - **THEN** they are told `./copalibre` requires a POSIX shell and to run it from within WSL2 rather
   than PowerShell or `cmd.exe` directly
+
+### Requirement: The repository README links every living documentation file
+
+`README.md` SHALL contain a Markdown link resolving to every file under `docs/`, excluding
+`docs/deployment/evidence/**` (point-in-time audit output, not living documentation), either directly
+or via a link to a directory containing it. A build-time check SHALL fail, naming every file it finds
+unreachable, when this is not the case.
+
+#### Scenario: A new doc file added without a README link fails the build
+
+- **WHEN** a new file is added under `docs/` (outside `docs/deployment/evidence/`) with no
+  corresponding link anywhere in `README.md`
+- **THEN** the build fails, naming the orphaned file
+
+#### Scenario: A file reachable only via a linked containing directory passes
+
+- **WHEN** `README.md` links a directory under `docs/` rather than one of its files individually
+- **THEN** every file inside that directory is considered reachable
+
+#### Scenario: Evidence files are excluded
+
+- **WHEN** a file exists under `docs/deployment/evidence/`
+- **THEN** the check does not require it to be linked from `README.md`
