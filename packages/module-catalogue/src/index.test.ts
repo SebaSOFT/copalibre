@@ -78,6 +78,47 @@ describe('default module catalogue', () => {
     expect(JSON.stringify(tennis)).toContain('"value":"{{ 1 + 1 }}"');
     expect(JSON.stringify(tennis)).toContain('"expression":true');
   });
+
+  it("declares football's foul and throw-in outcome-choice workflows against real sibling event codes (0115)", async () => {
+    const catalogue = await loadDefaultModuleCatalogue();
+    const football = catalogue.disciplines.find((descriptor) => descriptor.alias === 'football');
+    if (!football) throw new Error('Expected football catalogue document');
+    const codes = new Set(football.eventDefinitions.map((definition) => definition.code));
+
+    const foul = football.eventDefinitions.find((definition) => definition.code === 'foul');
+    const throwIn = football.eventDefinitions.find((definition) => definition.code === 'throw-in');
+    if (!foul?.workflow || !throwIn?.workflow) {
+      throw new Error('Expected foul and throw-in to declare an outcome-choice workflow');
+    }
+
+    // Loading the default catalogue already runs every document through
+    // validateDisciplineDescriptorDocument, which rejects a dangling
+    // `workflow.options[].definitionCode` — a load that reaches this point at
+    // all already proves the references resolve. This asserts it explicitly,
+    // and pins the exact outcome vocabulary so a future edit that silently
+    // drops one is caught here rather than only in the console.
+    expect(foul.workflow.options.map((option) => option.definitionCode).sort()).toEqual(
+      ['foul-play-on', 'free-kick-awarded', 'penalty-awarded', 'red-card', 'yellow-card'].sort(),
+    );
+    expect(throwIn.workflow.options.map((option) => option.definitionCode).sort()).toEqual(
+      ['foul-throw', 'throw-in-taken'].sort(),
+    );
+    for (const option of [...foul.workflow.options, ...throwIn.workflow.options]) {
+      expect(codes.has(option.definitionCode)).toBe(true);
+    }
+
+    // Card outcomes reuse football's existing card events (design.md) rather
+    // than declaring foul-scoped copies, so they feed the collectors already
+    // wired to `yellow-card`/`red-card` with no new collector.
+    const collectorCodes = (football.collectors ?? []).flatMap((collector) =>
+      collector.source.kind === 'event' ? collector.source.definitionCodes : [],
+    );
+    expect(collectorCodes).toContain('yellow-card');
+    expect(collectorCodes).toContain('red-card');
+    expect(collectorCodes).not.toEqual(
+      expect.arrayContaining(['foul', 'foul-play-on', 'free-kick-awarded', 'penalty-awarded']),
+    );
+  });
 });
 
 describe('catalogue loader', () => {

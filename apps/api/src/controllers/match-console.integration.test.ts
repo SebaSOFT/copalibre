@@ -3,6 +3,7 @@ import { APP_GUARD, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
 import { footballDescriptor } from '@copalibre/domain';
+import { loadDefaultModuleCatalogue } from '@copalibre/module-catalogue';
 import {
   AuditReader,
   CompetitionRepository,
@@ -14,6 +15,7 @@ import {
   newId,
   withTransaction,
 } from '@copalibre/persistence';
+import { runStatisticsRebuild } from '@copalibre/statistics-refold';
 import { createMigratedDatabase } from '../../../../packages/persistence/src/test-support/scratch-database.js';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 import { OrganizationAccessGuard } from '../auth/organization-access.guard.js';
@@ -451,4 +453,285 @@ describe('live match console (integration)', () => {
       payload: payload as never,
     });
   }
+});
+
+/**
+ * 0115: the `foul`/`throw-in` outcome-choice vocabulary is proven here against
+ * the real shipped `football.json` descriptor (`loadDefaultModuleCatalogue()`),
+ * not the hand-authored `footballDescriptor()` test fixture the suite above
+ * uses — closing the exact gap the proposal names: the workflow machinery was
+ * tested, but never yet driven by real catalogue content.
+ */
+describe('live match console — real catalogue foul/throw-in vocabulary (0115)', () => {
+  let app: INestApplication;
+  let scratch: Awaited<ReturnType<typeof createMigratedDatabase>>;
+  let organizationId = '';
+  let matchId = '';
+  let segmentId = '';
+  let rosteredPersonId = '';
+  const entrantIds: string[] = [];
+  const base = () => `/organizations/liga-catalogo/tournaments/apertura/matches/${matchId}`;
+
+  beforeAll(async () => {
+    scratch = await createMigratedDatabase('match-console-foul-vocabulary');
+    @Module({
+      controllers: [MatchControlController],
+      providers: [
+        { provide: DATABASE, useValue: scratch.db },
+        {
+          provide: TokenVerifier,
+          useValue: {
+            verify: async (token: string): Promise<AuthenticatedSubject> => {
+              const subject = subjects[token];
+              if (!subject) throw new Error('unknown token');
+              return { ...subject, organizationId };
+            },
+          },
+        },
+        { provide: APP_GUARD, useClass: JwtAuthGuard },
+        { provide: APP_GUARD, useClass: OrganizationAccessGuard },
+        Reflector,
+      ],
+    })
+    class IntegrationModule {}
+    const module = await Test.createTestingModule({ imports: [IntegrationModule] }).compile();
+    app = module.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    await app.init();
+    await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
+
+    const organization = await withTransaction(scratch.db, (uow) =>
+      new OrganizationRepository(scratch.db).create(uow, {
+        alias: 'liga-catalogo',
+        name: 'Liga Catálogo',
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      }),
+    );
+    organizationId = organization.organizationId;
+    const principalId = newId();
+    await scratch.db
+      .insertInto('identity_principals')
+      .values({
+        principal_id: principalId,
+        email: 'referee@test',
+        oidc_subject_id: 'referee',
+        name: null,
+        picture: null,
+        created_at: new Date(),
+        updated_at: new Date(),
+      })
+      .execute();
+    await scratch.db
+      .insertInto('organization_role_assignments')
+      .values({
+        assignment_id: newId(),
+        organization_id: organizationId,
+        principal_id: principalId,
+        email: 'referee@test',
+        role: 'referee',
+        status: 'active',
+        created_at: new Date(),
+        updated_at: new Date(),
+        deleted_at: null,
+      })
+      .execute();
+
+    const catalogue = await loadDefaultModuleCatalogue();
+    const descriptorDocument = catalogue.disciplines.find(
+      (document) => document.alias === 'football',
+    );
+    if (!descriptorDocument) throw new Error('Expected the shipped football catalogue document');
+
+    const tournaments = new TournamentRepository(scratch.db);
+    const enrollment = new EnrollmentRepository(scratch.db);
+    const competition = new CompetitionRepository(scratch.db);
+    await withTransaction(scratch.db, async (uow) => {
+      const descriptor = { ...descriptorDocument, descriptorId: newId() };
+      await tournaments.saveDescriptor(uow, descriptor, {
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      const tournament = await tournaments.create(uow, {
+        organizationId,
+        alias: 'apertura',
+        name: 'Apertura',
+        descriptor,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      const stage = await competition.createStageInTournament(uow, {
+        tournamentId: tournament.tournamentId,
+        number: 1,
+        name: 'Regular',
+        format: 'round-robin',
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      const entrants = await Promise.all(
+        ['Norte', 'Sur'].map(async (name) => {
+          const team = await enrollment.createTeam(uow, {
+            organizationId,
+            name,
+            actor: 'user:seed',
+            authorizationContext: 'seed',
+          });
+          return enrollment.registerEntrant(uow, {
+            organizationId,
+            tournamentId: tournament.tournamentId,
+            entrantRef: { kind: 'team', teamId: team.teamId },
+            actor: 'user:seed',
+            authorizationContext: 'seed',
+          });
+        }),
+      );
+      entrantIds.push(...entrants.map((entrant) => entrant.entrantId));
+      const [fixture] = await competition.createFixtures(uow, {
+        stageId: stage.stageId,
+        fixtures: [
+          {
+            round: 1,
+            homeEntrantId: entrants[0]?.entrantId,
+            awayEntrantId: entrants[1]?.entrantId,
+          },
+        ],
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      const match = await competition.createMatch(uow, {
+        fixtureId: fixture?.fixtureId ?? '',
+        number: 1,
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      matchId = match.matchId;
+      const segment = await competition.createSegment(uow, {
+        matchId,
+        type: 'half',
+        number: 1,
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      segmentId = segment.segmentId;
+      await competition.setSegmentState(uow, {
+        segmentId,
+        state: 'active',
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      await competition.applyCommand(uow, {
+        matchId,
+        command: 'start',
+        status: 'in-progress',
+        grantedBy: 'seed',
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      rosteredPersonId = newId();
+      await uow.tx
+        .insertInto('match_rosters')
+        .values({
+          match_id: matchId,
+          entrant_id: entrants[0]?.entrantId ?? '',
+          roster_members: JSON.stringify([
+            { personId: rosteredPersonId, name: 'Player', onField: true },
+          ]),
+          updated_at: new Date(),
+        })
+        .execute();
+      await new MatchAssignmentRepository(scratch.db).appoint(uow, {
+        organizationId,
+        subjectId: 'referee',
+        scope: { kind: 'match', matchId },
+        capabilities: ['match.record-event', 'match.finalize'],
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+    });
+  });
+
+  afterAll(async () => {
+    await app?.close();
+    await scratch?.drop();
+  });
+
+  function request(method: 'GET' | 'POST', url: string, token?: string, payload?: unknown) {
+    return (app as NestFastifyApplication).inject({
+      method,
+      url,
+      headers: token
+        ? {
+            authorization: `Bearer ${token}`,
+            ...(method === 'POST'
+              ? { 'idempotency-key': '01890000-0000-7000-8000-00000000b025' }
+              : {}),
+          }
+        : {},
+      payload: payload as never,
+    });
+  }
+
+  it("preserves the client-supplied occurrence time when recording a foul workflow's outcome (task 3.1)", async () => {
+    const consoleRead = await request('GET', `${base()}/console`, 'referee');
+    expect(consoleRead.statusCode).toBe(200);
+    expect(consoleRead.json().eventDefinitions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'foul', workflow: expect.anything() }),
+      ]),
+    );
+
+    // Simulates an official who pressed "Foul" a few seconds before finally
+    // choosing its outcome — the console captures occurredAt at that first
+    // press (MatchConsoleRoute.tsx), so the server must store exactly this
+    // value, not the time this request happens to arrive.
+    const occurredAt = Date.now() - 5_000;
+    const recorded = await request('POST', `${base()}/events`, 'referee', {
+      definitionCode: 'foul-play-on',
+      segmentId,
+      occurredAt,
+      side: entrantIds[0],
+    });
+    expect(recorded.statusCode).toBe(201);
+
+    const projection = await request('GET', `${base()}/console`, 'referee');
+    const event = projection
+      .json()
+      .events.find((entry: { eventId: string }) => entry.eventId === recorded.json().eventId);
+    expect(event).toMatchObject({
+      definitionCode: 'foul-play-on',
+      occurredAt: new Date(occurredAt).toISOString(),
+    });
+  });
+
+  it('increments the same red-card collector for a card reached through the foul workflow (task 3.2)', async () => {
+    const recorded = await request('POST', `${base()}/events`, 'referee', {
+      definitionCode: 'red-card',
+      segmentId,
+      occurredAt: Date.now(),
+      side: entrantIds[0],
+      personId: rosteredPersonId,
+    });
+    expect(recorded.statusCode).toBe(201);
+
+    const finalized = await request('POST', `${base()}/commands/finalize`, 'referee', {
+      sides: entrantIds.map((entrantId) => ({ entrantId, statistics: {} })),
+    });
+    expect(finalized.statusCode).toBe(201);
+
+    await runStatisticsRebuild(scratch.db, { organization: 'liga-catalogo' });
+    const totals = await scratch.db
+      .selectFrom('statistic_totals')
+      .selectAll()
+      .where('collector_code', '=', 'player-red-cards')
+      .where('actor_id', '=', rosteredPersonId)
+      .execute();
+    expect(totals).toHaveLength(1);
+    expect(totals[0]?.value).toBe(1);
+  });
 });

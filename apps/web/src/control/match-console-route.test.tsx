@@ -226,6 +226,86 @@ describe('MatchConsoleRoute', () => {
     now.mockRestore();
   });
 
+  it('records a foul workflow outcome that takes no further action as an ordinary timeline entry (0115)', async () => {
+    const foulProjection: MatchConsoleResponse = {
+      ...projection,
+      eventDefinitions: [
+        {
+          code: 'foul',
+          label: 'Falta',
+          category: 'neutral',
+          permittedSegmentTypes: ['half'],
+          actorRequirement: 'side',
+          payloadSchema: { type: 'object' },
+          display: {},
+          secondaryActorFields: [],
+          workflow: {
+            kind: 'outcome-choice',
+            options: [
+              { definitionCode: 'foul-play-on', label: 'Ley de ventaja' },
+              { definitionCode: 'free-kick-awarded', label: 'Tiro libre' },
+            ],
+          },
+        },
+        {
+          code: 'foul-play-on',
+          label: 'Falta (ley de ventaja)',
+          category: 'neutral',
+          permittedSegmentTypes: ['half'],
+          actorRequirement: 'side',
+          payloadSchema: { type: 'object' },
+          display: {},
+          secondaryActorFields: [],
+        },
+        {
+          code: 'free-kick-awarded',
+          label: 'Tiro libre otorgado',
+          category: 'neutral',
+          permittedSegmentTypes: ['half'],
+          actorRequirement: 'side',
+          payloadSchema: { type: 'object' },
+          display: {},
+          secondaryActorFields: [],
+        },
+      ],
+    };
+    const requests: unknown[] = [];
+    await act(async () => {
+      render(
+        withIntl(
+          <MatchConsoleRoute
+            client={client({
+              fetchMatchConsole: async () => foulProjection,
+              recordMatchEvent: async (_organization, _tournament, _match, request) => {
+                requests.push(request);
+                return {
+                  eventId: 'event-2',
+                  definitionCode: request.definitionCode,
+                  sequence: 2,
+                  notifications: [],
+                };
+              },
+            })}
+            matchId="match-1"
+            organizationAlias="liga"
+            tournamentAlias="apertura"
+          />,
+        ),
+      );
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Falta' }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Ley de ventaja' }));
+    });
+
+    // "Play on" is itself a real, ordinary event definition — the preliminary
+    // `foul` press is never submitted on its own, so the only way a foul with
+    // no further action still becomes a timeline entry is for its outcome to
+    // be a first-class recorded event, exactly like any other outcome.
+    expect(requests).toEqual([expect.objectContaining({ definitionCode: 'foul-play-on' })]);
+  });
+
   it('sends and clears the log note when recording an event', async () => {
     const requests: unknown[] = [];
     await act(async () => {

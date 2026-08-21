@@ -88,6 +88,80 @@ function projection(input: { readonly capabilities?: readonly string[] } = {}) {
         display: {},
         secondaryActorFields: [],
       },
+      // Real football.json vocabulary (0115), not an invented fixture: an
+      // official presses "Falta", then picks its outcome — play on, a
+      // restart, or a card, the last two reusing the discipline's existing
+      // card events rather than declaring foul-scoped copies.
+      {
+        code: 'foul',
+        label: 'Falta',
+        category: 'neutral',
+        permittedSegmentTypes: ['half'],
+        actorRequirement: 'side',
+        payloadSchema: { type: 'object' },
+        display: {},
+        secondaryActorFields: [],
+        workflow: {
+          kind: 'outcome-choice',
+          options: [
+            { definitionCode: 'foul-play-on', label: 'Ley de ventaja' },
+            { definitionCode: 'free-kick-awarded', label: 'Tiro libre' },
+            { definitionCode: 'penalty-awarded', label: 'Penal' },
+            { definitionCode: 'yellow-card', label: 'Tarjeta amarilla' },
+            { definitionCode: 'red-card', label: 'Tarjeta roja' },
+          ],
+        },
+      },
+      {
+        code: 'foul-play-on',
+        label: 'Falta (ley de ventaja)',
+        category: 'neutral',
+        permittedSegmentTypes: ['half'],
+        actorRequirement: 'side',
+        payloadSchema: { type: 'object' },
+        display: {},
+        secondaryActorFields: [],
+      },
+      {
+        code: 'free-kick-awarded',
+        label: 'Tiro libre otorgado',
+        category: 'neutral',
+        permittedSegmentTypes: ['half'],
+        actorRequirement: 'side',
+        payloadSchema: { type: 'object' },
+        display: {},
+        secondaryActorFields: [],
+      },
+      {
+        code: 'penalty-awarded',
+        label: 'Penal otorgado',
+        category: 'neutral',
+        permittedSegmentTypes: ['half'],
+        actorRequirement: 'side',
+        payloadSchema: { type: 'object' },
+        display: {},
+        secondaryActorFields: [],
+      },
+      {
+        code: 'yellow-card',
+        label: 'Tarjeta amarilla',
+        category: 'negative',
+        permittedSegmentTypes: ['half'],
+        actorRequirement: 'side',
+        payloadSchema: { type: 'object' },
+        display: {},
+        secondaryActorFields: [],
+      },
+      {
+        code: 'red-card',
+        label: 'Tarjeta roja',
+        category: 'negative',
+        permittedSegmentTypes: ['half'],
+        actorRequirement: 'side',
+        payloadSchema: { type: 'object' },
+        display: {},
+        secondaryActorFields: [],
+      },
     ],
     eligiblePersonIds: [],
     rosters: [],
@@ -260,6 +334,32 @@ test('branches a penalty into its descriptor-declared final outcome', async ({ p
         body: expect.objectContaining({ definitionCode: 'penalty-goal' }),
       }),
     );
+});
+
+test('records a foul, chooses a card outcome, and shows it in the ledger (0115)', async ({
+  page,
+}) => {
+  await mockMatchConsole(page);
+  const target = `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await page.getByRole('button', { name: 'Falta', exact: true }).click();
+  await expect(page.getByLabel('Resultado del evento')).toBeVisible();
+  await page.getByRole('button', { name: 'Tarjeta amarilla' }).last().click();
+
+  await expect
+    .poll(() => capturedRequests(page))
+    .toContainEqual(
+      expect.objectContaining({
+        url: `${matchPath}/events`,
+        body: expect.objectContaining({ definitionCode: 'yellow-card' }),
+      }),
+    );
+  // The chosen outcome is what lands in the timeline — the preliminary
+  // "foul" trigger is never itself submitted (design.md).
+  await expect(page.getByLabel('Ledger y estado')).toContainText('yellow-card');
 });
 
 test('renders clock and declared timer resolution from refreshed authoritative state', async ({

@@ -30,6 +30,7 @@
     "rxjs": "^7.8.2"
   },
   "devDependencies": {
+    "@copalibre/module-catalogue": "workspace:^",
     "@nestjs/testing": "^11.1.28",
     "@types/jest": "^30.0.0",
     "@types/supertest": "^7.2.1",
