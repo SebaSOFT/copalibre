@@ -142,6 +142,18 @@ const playerProfileFixture = {
   ],
 };
 
+// A person with no recorded roster history (0114): both lists come back
+// empty, and the surface must state that absence rather than render
+// nothing or a zero.
+const playerProfileFixtureNoStats = {
+  personId: 'p-2',
+  displayName: 'Goleador Dos',
+  nationality: 'AR',
+  age: 24,
+  competitionHistory: [],
+  careerStatistics: [],
+};
+
 async function mockControlApi(page: Page): Promise<void> {
   await page.addInitScript(
     ({ tournament, stage, layouts, groupStandings, topScorers, tokenEndpoint }) => {
@@ -431,6 +443,10 @@ test.describe('B2: public tournament page', () => {
         res.end(JSON.stringify(playerProfileFixture));
         return;
       }
+      if (req.url === `${TOURNAMENT}/persons/p-2/public/profile`) {
+        res.end(JSON.stringify(playerProfileFixtureNoStats));
+        return;
+      }
       res.statusCode = 404;
       res.end(JSON.stringify({ message: 'not found' }));
     });
@@ -574,6 +590,32 @@ test.describe('B2: public tournament page', () => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/players/p-1`);
     await expect(page.getByRole('heading', { name: 'Goleador Uno' })).toBeVisible();
     await expect(page.getByText('Age: 28')).toBeVisible();
+  });
+
+  test('states an absence, not zeroes, for a player with no roster history (0114)', async ({
+    page,
+  }) => {
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+
+    await page.getByRole('tab', { name: 'Top Scorers' }).click();
+    const playerLink = page.getByRole('link', { name: 'Goleador Dos' });
+    await expect(playerLink).toBeVisible();
+
+    await playerLink.click();
+    const dialog = page.locator('#cl-player-dialog');
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByText('Career Statistics', { exact: true })).toBeVisible();
+    await expect(dialog.getByText('No career statistics recorded.')).toBeVisible();
+    await expect(dialog.getByText('Competition History', { exact: true })).toBeVisible();
+    await expect(dialog.getByText('No competition history recorded.')).toBeVisible();
+    await dialog.getByRole('button', { name: 'Close dialog' }).click();
+
+    // The standalone profile page states the same absence (PlayerProfileView.astro
+    // already did before 0114 — this confirms it still does).
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/players/p-2`);
+    await expect(page.getByRole('heading', { name: 'Goleador Dos' })).toBeVisible();
+    await expect(page.getByText('No career statistics recorded.')).toBeVisible();
+    await expect(page.getByText('No competition history recorded.')).toBeVisible();
   });
 
   test('renders organization tournament listing with live, upcoming, and finished podium', async ({

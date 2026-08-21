@@ -443,4 +443,17 @@ export const messages: Record<string, string> = {
   'control.orgIdentity.emblemAlt': "Stemma dell'organizzazione",
   'control.orgIdentity.emblemPlaceholderAlt': 'Nessuno stemma caricato',
   'control.orgIdentity.emblemUploaded': 'Stemma caricato.',
+  'control.statisticsRebuild.heading': 'Ricostruzione statistiche',
+  'control.statisticsRebuild.description':
+    'Ricalcola ogni totale statistico memorizzato a partire dagli eventi registrati. Le partite giocate prima che venisse selezionata una formazione contribuiscono solo con cifre a livello di squadra, senza cifre a livello di giocatore, perché non sono mai state registrate per loro.',
+  'control.statisticsRebuild.tournamentLabel': 'Torneo (opzionale)',
+  'control.statisticsRebuild.tournamentPlaceholder': "Tutta l'organizzazione",
+  'control.statisticsRebuild.trigger': 'Ricostruisci statistiche',
+  'control.statisticsRebuild.confirmPrompt':
+    'Questo ricalcola ogni cifra memorizzata nell’ambito scelto. Continuare?',
+  'control.statisticsRebuild.confirm': 'Conferma ricostruzione',
+  'control.statisticsRebuild.cancel': 'Annulla',
+  'control.statisticsRebuild.result':
+    '{matches, plural, one {# partita elaborata} other {# partite elaborate}}.',
+  'control.statisticsRebuild.failed': 'La ricostruzione è stata rifiutata.',
 };

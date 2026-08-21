@@ -441,4 +441,17 @@ export const messages: Record<string, string> = {
   'control.orgIdentity.emblemAlt': 'Escudo da organização',
   'control.orgIdentity.emblemPlaceholderAlt': 'Nenhum escudo enviado',
   'control.orgIdentity.emblemUploaded': 'Escudo enviado.',
+  'control.statisticsRebuild.heading': 'Reconstrução de estatísticas',
+  'control.statisticsRebuild.description':
+    'Recalcula cada total de estatística armazenado a partir dos eventos registrados. Partidas disputadas antes de uma escalação ser selecionada contribuem apenas com números no nível da equipe, sem números no nível do jogador, porque nunca foram registrados para eles.',
+  'control.statisticsRebuild.tournamentLabel': 'Torneio (opcional)',
+  'control.statisticsRebuild.tournamentPlaceholder': 'Toda a organização',
+  'control.statisticsRebuild.trigger': 'Reconstruir estatísticas',
+  'control.statisticsRebuild.confirmPrompt':
+    'Isso recalcula cada número armazenado no escopo selecionado. Continuar?',
+  'control.statisticsRebuild.confirm': 'Confirmar reconstrução',
+  'control.statisticsRebuild.cancel': 'Cancelar',
+  'control.statisticsRebuild.result':
+    '{matches, plural, one {# partida processada} other {# partidas processadas}}.',
+  'control.statisticsRebuild.failed': 'A reconstrução foi recusada.',
 };

@@ -435,4 +435,16 @@ export const messages: Record<string, string> = {
   'control.orgIdentity.emblemAlt': '组织徽章',
   'control.orgIdentity.emblemPlaceholderAlt': '未上传徽章',
   'control.orgIdentity.emblemUploaded': '徽章已上传。',
+  'control.statisticsRebuild.heading': '统计数据重建',
+  'control.statisticsRebuild.description':
+    '根据已记录的事件重新计算每一项已存储的统计总数。在选定名单之前进行的比赛只贡献球队级别的数据，不贡献球员级别的数据，因为从未为其记录过。',
+  'control.statisticsRebuild.tournamentLabel': '锦标赛（可选）',
+  'control.statisticsRebuild.tournamentPlaceholder': '整个组织',
+  'control.statisticsRebuild.trigger': '重建统计数据',
+  'control.statisticsRebuild.confirmPrompt':
+    '此操作将重新计算所选范围内的每一项已存储数据。是否继续？',
+  'control.statisticsRebuild.confirm': '确认重建',
+  'control.statisticsRebuild.cancel': '取消',
+  'control.statisticsRebuild.result': '已处理 {matches} 场比赛。',
+  'control.statisticsRebuild.failed': '重建请求被拒绝。',
 };

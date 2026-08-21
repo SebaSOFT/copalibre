@@ -51,6 +51,15 @@ async function mockControlApi(page: import('@playwright/test').Page): Promise<vo
           ).__uploadOrgEmblem(body.filename);
           return Response.json(created);
         }
+        if (url === `/organizations/${orgAlias}/statistics/rebuild` && method === 'POST') {
+          const body = JSON.parse(String(init?.body)) as { tournamentAlias?: string };
+          const result = await (
+            window as unknown as {
+              __rebuildStatistics: (tournamentAlias?: string) => Promise<unknown>;
+            }
+          ).__rebuildStatistics(body.tournamentAlias);
+          return Response.json(result);
+        }
 
         if (url === `/organizations/${orgAlias}/clubs` && method === 'GET') {
           const listed = await (window as unknown as { __clubs: () => Promise<unknown> }).__clubs();
@@ -109,6 +118,12 @@ async function mockControlApi(page: import('@playwright/test').Page): Promise<vo
     );
     return { objectId };
   });
+  await page.exposeFunction('__rebuildStatistics', (tournamentAlias?: string) => ({
+    organizationAlias: ORG_ALIAS,
+    ...(tournamentAlias === undefined ? {} : { tournamentAlias }),
+    matches: 5,
+    figures: 12,
+  }));
 }
 
 test('creates a club, uploads its emblem, then uploads the organization emblem', async ({
@@ -156,4 +171,28 @@ test('creates a club, uploads its emblem, then uploads the organization emblem',
   // second round trip, so this needs more than the default timeout under
   // parallel load.
   await expect(page.getByAltText('Escudo de la organización')).toBeVisible({ timeout: 10000 });
+});
+
+/**
+ * 0114 task 5.1: trigger a statistics rebuild from the preferences screen,
+ * confirm it, and assert the result readout reports the expected match
+ * count.
+ */
+test('triggers a statistics rebuild from the control panel and reports the match count', async ({
+  page,
+}) => {
+  await mockControlApi(page);
+
+  const preferencesTarget = `/control/${ORG_ALIAS}/preferences`;
+  await seedLoginTransaction(page, preferencesTarget);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${preferencesTarget}`);
+
+  await page.getByRole('button', { name: 'Reconstruir estadísticas' }).click();
+  await expect(
+    page.getByText('Esto recalcula cada cifra almacenada dentro del alcance elegido. ¿Continuar?'),
+  ).toBeVisible();
+
+  await page.getByRole('button', { name: 'Confirmar reconstrucción' }).click();
+  await expect(page.getByText('5 partidos procesados.')).toBeVisible();
 });

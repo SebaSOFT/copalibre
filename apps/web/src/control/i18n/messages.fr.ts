@@ -446,4 +446,17 @@ export const messages: Record<string, string> = {
   'control.orgIdentity.emblemAlt': "Emblème de l'organisation",
   'control.orgIdentity.emblemPlaceholderAlt': 'Aucun emblème téléversé',
   'control.orgIdentity.emblemUploaded': 'Emblème téléversé.',
+  'control.statisticsRebuild.heading': 'Reconstruction des statistiques',
+  'control.statisticsRebuild.description':
+    "Recalcule chaque total statistique enregistré à partir des événements enregistrés. Les matchs joués avant la sélection d'une feuille de match ne fournissent que des chiffres au niveau de l'équipe, sans chiffres au niveau du joueur, car ceux-ci n'ont jamais été enregistrés.",
+  'control.statisticsRebuild.tournamentLabel': 'Tournoi (facultatif)',
+  'control.statisticsRebuild.tournamentPlaceholder': "Toute l'organisation",
+  'control.statisticsRebuild.trigger': 'Reconstruire les statistiques',
+  'control.statisticsRebuild.confirmPrompt':
+    'Ceci recalcule chaque chiffre enregistré dans le périmètre choisi. Continuer ?',
+  'control.statisticsRebuild.confirm': 'Confirmer la reconstruction',
+  'control.statisticsRebuild.cancel': 'Annuler',
+  'control.statisticsRebuild.result':
+    '{matches, plural, one {# match traité} other {# matchs traités}}.',
+  'control.statisticsRebuild.failed': 'La reconstruction a été refusée.',
 };

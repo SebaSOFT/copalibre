@@ -326,6 +326,173 @@ describe('PreferencesRoute', () => {
     expect(await screen.findByAltText('Organization emblem')).toBeTruthy();
   });
 
+  it('requires confirmation before running a statistics rebuild, and shows the result (0114)', async () => {
+    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => [],
+    } as any);
+    const rebuildStatistics = jest.fn<NonNullable<ControlApiClient['rebuildStatistics']>>(
+      async () => ({ organizationAlias: 'liga-mendocina', matches: 12, figures: 40 }),
+    );
+    const client = stubClient({
+      getOrganization: () => Promise.resolve(organization),
+      rebuildStatistics,
+    });
+
+    render(
+      <ControlIntl locale="en">
+        <PreferencesRoute client={client} organizationAlias="liga-mendocina" />
+      </ControlIntl>,
+    );
+
+    await screen.findByDisplayValue('Liga Mendocina');
+    fireEvent.click(screen.getByRole('button', { name: 'Rebuild statistics' }));
+
+    // Nothing runs until confirmed (design.md).
+    expect(rebuildStatistics).not.toHaveBeenCalled();
+    await screen.findByText('This recomputes every stored figure in scope. Continue?');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm rebuild' }));
+
+    await waitFor(() =>
+      expect(rebuildStatistics).toHaveBeenCalledWith('liga-mendocina', undefined),
+    );
+    await screen.findByText('12 matches processed.');
+  });
+
+  it('cancels a rebuild without calling the API', async () => {
+    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => [],
+    } as any);
+    const rebuildStatistics = jest.fn<NonNullable<ControlApiClient['rebuildStatistics']>>(
+      async () => ({ organizationAlias: 'liga-mendocina', matches: 1, figures: 1 }),
+    );
+    const client = stubClient({
+      getOrganization: () => Promise.resolve(organization),
+      rebuildStatistics,
+    });
+
+    render(
+      <ControlIntl locale="en">
+        <PreferencesRoute client={client} organizationAlias="liga-mendocina" />
+      </ControlIntl>,
+    );
+
+    await screen.findByDisplayValue('Liga Mendocina');
+    fireEvent.click(screen.getByRole('button', { name: 'Rebuild statistics' }));
+    await screen.findByText('This recomputes every stored figure in scope. Continue?');
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(
+      screen.queryByText('This recomputes every stored figure in scope. Continue?'),
+    ).toBeNull();
+    expect(rebuildStatistics).not.toHaveBeenCalled();
+  });
+
+  it('scopes a confirmed rebuild to the entered tournament alias', async () => {
+    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => [],
+    } as any);
+    const rebuildStatistics = jest.fn<NonNullable<ControlApiClient['rebuildStatistics']>>(
+      async () => ({
+        organizationAlias: 'liga-mendocina',
+        tournamentAlias: 'apertura-2026',
+        matches: 1,
+        figures: 2,
+      }),
+    );
+    const client = stubClient({
+      getOrganization: () => Promise.resolve(organization),
+      rebuildStatistics,
+    });
+
+    render(
+      <ControlIntl locale="en">
+        <PreferencesRoute client={client} organizationAlias="liga-mendocina" />
+      </ControlIntl>,
+    );
+
+    await screen.findByDisplayValue('Liga Mendocina');
+    fireEvent.change(screen.getByLabelText('Tournament (optional)'), {
+      target: { value: 'apertura-2026' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Rebuild statistics' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm rebuild' }));
+
+    await waitFor(() =>
+      expect(rebuildStatistics).toHaveBeenCalledWith('liga-mendocina', 'apertura-2026'),
+    );
+    await screen.findByText('1 match processed.');
+  });
+
+  it('surfaces a rebuild refusal with the server message', async () => {
+    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => [],
+    } as any);
+    const client = stubClient({
+      getOrganization: () => Promise.resolve(organization),
+      rebuildStatistics: () => Promise.reject(new ControlApiError(403, 'Not an admin')),
+    });
+
+    render(
+      <ControlIntl locale="en">
+        <PreferencesRoute client={client} organizationAlias="liga-mendocina" />
+      </ControlIntl>,
+    );
+
+    await screen.findByDisplayValue('Liga Mendocina');
+    fireEvent.click(screen.getByRole('button', { name: 'Rebuild statistics' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm rebuild' }));
+
+    await screen.findByText('Not an admin');
+  });
+
+  it('falls back to a generic rebuild-failure message for a non-API error', async () => {
+    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => [],
+    } as any);
+    const client = stubClient({
+      getOrganization: () => Promise.resolve(organization),
+      rebuildStatistics: () => Promise.reject(new Error('network down')),
+    });
+
+    render(
+      <ControlIntl locale="en">
+        <PreferencesRoute client={client} organizationAlias="liga-mendocina" />
+      </ControlIntl>,
+    );
+
+    await screen.findByDisplayValue('Liga Mendocina');
+    fireEvent.click(screen.getByRole('button', { name: 'Rebuild statistics' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm rebuild' }));
+
+    await screen.findByText('The rebuild was refused.');
+  });
+
+  it('disables the rebuild trigger when the client offers no rebuildStatistics method', async () => {
+    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => [],
+    } as any);
+    const client = stubClient({ getOrganization: () => Promise.resolve(organization) });
+
+    render(
+      <ControlIntl locale="en">
+        <PreferencesRoute client={client} organizationAlias="liga-mendocina" />
+      </ControlIntl>,
+    );
+
+    await screen.findByDisplayValue('Liga Mendocina');
+    expect(screen.getByRole('button', { name: 'Rebuild statistics' })).toHaveProperty(
+      'disabled',
+      true,
+    );
+  });
+
   it('reports an organization load it could not complete', async () => {
     (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
       ok: true,
