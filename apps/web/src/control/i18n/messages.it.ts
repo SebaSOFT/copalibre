@@ -205,6 +205,14 @@ export const messages: Record<string, string> = {
   'control.review.saveNationality': 'Salva',
   'control.review.uploadPhoto': 'Carica foto',
   'control.review.viewProfile': 'Vedi profilo',
+  'control.abbreviationReview.sectionLabel': "Iscritti che necessitano di un'abbreviazione",
+  'control.abbreviationReview.title': "Iscritti che necessitano di un'abbreviazione",
+  'control.abbreviationReview.empty': "Tutti gli iscritti hanno già un'abbreviazione.",
+  'control.abbreviationReview.inputLabel': 'Abbreviazione per {displayName}',
+  'control.abbreviationReview.set': 'Imposta',
+  'control.abbreviationReview.formatError':
+    'Solo lettere maiuscole e cifre, separate da spazi singoli, fino a {maxLength} caratteri.',
+  'control.abbreviationReview.setFailed': "Impossibile impostare l'abbreviazione.",
 
   'control.country.label': 'Paese',
   'control.country.searchPlaceholder': 'Cerca paese…',

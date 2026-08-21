@@ -7,6 +7,7 @@ import {
   type RegistrationResponse,
 } from '../lib/api-client.js';
 import { controlTokenStore } from '../session/token-store.js';
+import { AbbreviationReviewSection } from './AbbreviationReviewSection.js';
 import { RegistrationReviewPage, type ReviewRegistrationRow } from './RegistrationReviewPage.js';
 import { messages } from '../i18n/messages.en.js';
 
@@ -37,6 +38,9 @@ export function RegistrationReviewRoute({
   const [status, setStatus] = useState<LoadStatus>('loading');
   const [csv, setCsv] = useState<CsvImportPreviewResponse>();
   const [csvStatus, setCsvStatus] = useState('');
+  const [abbreviationCandidates, setAbbreviationCandidates] = useState<
+    readonly RegistrationResponse[]
+  >([]);
   const csvApi = api as Required<
     Pick<ControlApiClient, 'createCsvImport' | 'fetchCsvImport' | 'commitCsvImport'>
   >;
@@ -65,6 +69,25 @@ export function RegistrationReviewRoute({
       live = false;
     };
   }, [api, organizationAlias, tournamentAlias, intl]);
+
+  useEffect(() => {
+    let live = true;
+    const listEntrantsNeedingAbbreviation = api.listEntrantsNeedingAbbreviation;
+    (listEntrantsNeedingAbbreviation
+      ? listEntrantsNeedingAbbreviation(organizationAlias, tournamentAlias)
+      : Promise.resolve([])
+    )
+      .then((loaded) => {
+        if (live) setAbbreviationCandidates(loaded);
+      })
+      .catch(() => {
+        // A quiet, empty-by-default section (design.md) — a failed load
+        // just leaves it empty rather than adding a second error state.
+      });
+    return () => {
+      live = false;
+    };
+  }, [api, organizationAlias, tournamentAlias]);
 
   if (status === 'loading' && rows.length === 0) {
     return (
@@ -159,6 +182,25 @@ export function RegistrationReviewRoute({
           </div>
         )}
       </section>
+      <AbbreviationReviewSection
+        onSetAbbreviation={
+          api.setEntrantAbbreviation &&
+          ((entrantId, abbreviation) =>
+            api
+              .setEntrantAbbreviation?.(organizationAlias, tournamentAlias, entrantId, {
+                abbreviation,
+              })
+              .then(() => {
+                setAbbreviationCandidates((current) =>
+                  current.filter((row) => row.entrantId !== entrantId),
+                );
+              }))
+        }
+        rows={abbreviationCandidates.map((row) => ({
+          entrantId: row.entrantId,
+          displayName: row.displayName ?? row.teamId ?? row.personId ?? row.entrantId,
+        }))}
+      />
       <RegistrationReviewPage
         organizationAlias={organizationAlias}
         tournamentName={tournamentAlias}

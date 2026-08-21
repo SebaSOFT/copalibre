@@ -206,6 +206,14 @@ export const messages: Record<string, string> = {
   'control.review.saveNationality': 'Speichern',
   'control.review.uploadPhoto': 'Foto hochladen',
   'control.review.viewProfile': 'Profil ansehen',
+  'control.abbreviationReview.sectionLabel': 'Teilnehmer, die eine Abkürzung benötigen',
+  'control.abbreviationReview.title': 'Teilnehmer, die eine Abkürzung benötigen',
+  'control.abbreviationReview.empty': 'Alle Teilnehmer haben bereits eine Abkürzung.',
+  'control.abbreviationReview.inputLabel': 'Abkürzung für {displayName}',
+  'control.abbreviationReview.set': 'Festlegen',
+  'control.abbreviationReview.formatError':
+    'Nur Großbuchstaben und Ziffern, durch einzelne Leerzeichen getrennt, bis zu {maxLength} Zeichen.',
+  'control.abbreviationReview.setFailed': 'Die Abkürzung konnte nicht festgelegt werden.',
 
   'control.country.label': 'Land',
   'control.country.searchPlaceholder': 'Land suchen…',

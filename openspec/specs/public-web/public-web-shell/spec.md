@@ -291,24 +291,52 @@ discipline.
 
 ### Requirement: Organization-scoped tournament listing page
 
-The public site SHALL serve a tournament listing page at `/{organization}/tournaments`, showing every
-published tournament for that organization — name, discipline, status, and season/dates — reachable
-without already knowing a specific tournament's alias. This page SHALL be rendered per request from
-current backend state, matching the existing overview page's "reachable without a site rebuild"
-guarantee.
+The public site SHALL serve an organization page at `/{organization}`, showing the organization's name
+and emblem, a featured block for its current or most recent tournament, every published tournament for
+that organization — name, discipline, status, and season/dates — and a grid of the organization's clubs.
+The page SHALL be reachable without already knowing a specific tournament's alias, and SHALL be rendered
+per request from current backend state, matching the existing overview page's "reachable without a site
+rebuild" guarantee.
+
+The previously served path `/{organization}/tournaments` SHALL NOT be served.
 
 #### Scenario: Visiting an organization's tournament listing
-- **WHEN** an anonymous visitor requests `/{organization}/tournaments`
-- **THEN** the page lists every published tournament for that organization, with name, discipline,
-  status, and season/dates for each
+- **WHEN** an anonymous visitor requests `/{organization}`
+- **THEN** the page shows the organization's name and emblem, and lists every published tournament for
+  that organization, with name, discipline, status, and season/dates for each
 
 #### Scenario: An unpublished tournament is not listed
 - **WHEN** an organization has both published and unpublished tournaments
 - **THEN** the listing includes only the published ones
 
 #### Scenario: An unknown organization 404s
-- **WHEN** an anonymous visitor requests the listing for an organization alias that does not exist
+- **WHEN** an anonymous visitor requests the page for an organization alias that does not exist
 - **THEN** the public site returns a not-found response
+
+#### Scenario: The former listing path is no longer served
+- **WHEN** an anonymous visitor requests `/{organization}/tournaments`
+- **THEN** the public site returns a not-found response
+
+#### Scenario: The featured block names the live tournament
+- **WHEN** an organization has a tournament whose status is `live`
+- **THEN** the featured block names that tournament
+
+#### Scenario: The featured block falls back to the most recent tournament
+- **WHEN** an organization has no live tournament
+- **THEN** the featured block names its most recent tournament by date
+
+#### Scenario: An organization with no tournaments shows no featured block
+- **WHEN** an organization has no published tournaments
+- **THEN** no featured block is rendered, and the listing is empty rather than an error
+
+#### Scenario: The club grid shows the organization's clubs
+- **WHEN** an organization has registered clubs
+- **THEN** the page shows each club with its name, abbreviation, and emblem, rendering a placeholder for
+  a club with no emblem
+
+#### Scenario: An organization with no emblem shows a placeholder
+- **WHEN** an organization has no emblem
+- **THEN** the header renders a placeholder rather than a broken image or an empty gap
 
 ### Requirement: A finished tournament's listing card shows its winner and runner-up, per zone
 

@@ -206,6 +206,14 @@ export const messages: Record<string, string> = {
   'control.review.saveNationality': 'Сохранить',
   'control.review.uploadPhoto': 'Загрузить фото',
   'control.review.viewProfile': 'Смотреть профиль',
+  'control.abbreviationReview.sectionLabel': 'Участники, которым нужна аббревиатура',
+  'control.abbreviationReview.title': 'Участники, которым нужна аббревиатура',
+  'control.abbreviationReview.empty': 'У всех участников уже есть аббревиатура.',
+  'control.abbreviationReview.inputLabel': 'Аббревиатура для {displayName}',
+  'control.abbreviationReview.set': 'Задать',
+  'control.abbreviationReview.formatError':
+    'Только заглавные буквы и цифры, разделённые одиночными пробелами, до {maxLength} символов.',
+  'control.abbreviationReview.setFailed': 'Не удалось задать аббревиатуру.',
 
   'control.country.label': 'Страна',
   'control.country.searchPlaceholder': 'Поиск страны…',

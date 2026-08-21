@@ -28,6 +28,17 @@ export interface ControlApiClient {
     entrantId: string,
     request: ReviewRegistrationRequest,
   ) => Promise<RegistrationResponse>;
+  /** Entrants that registered with no abbreviation because every derived candidate collided (0111). */
+  readonly listEntrantsNeedingAbbreviation?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+  ) => Promise<readonly RegistrationResponse[]>;
+  readonly setEntrantAbbreviation?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    entrantId: string,
+    request: SetEntrantAbbreviationRequest,
+  ) => Promise<RegistrationResponse>;
   readonly fetchStandings: (
     organizationAlias: string,
     tournamentAlias: string,
@@ -626,6 +637,8 @@ export interface RegistrationResponse {
   readonly entrantId: string;
   readonly tournamentId: string;
   readonly status: RegistrationStatus;
+  /** Tournament-scoped, distinct entrant short label; absent until one is derived or set. */
+  readonly abbreviation?: string;
   readonly teamId?: string;
   readonly personId?: string;
   /** A person entrant's display name; absent for a team entrant. */
@@ -652,6 +665,10 @@ export interface BulkReviewRequest {
 export interface ReviewRegistrationRequest {
   readonly decision: 'accepted' | 'refused' | 'withdrawn';
   readonly reason?: string;
+}
+
+export interface SetEntrantAbbreviationRequest {
+  readonly abbreviation: string;
 }
 
 export interface BulkReviewResponse {
@@ -1004,6 +1021,28 @@ export function createControlApiClient(input: {
         )}/registrations/${encodeURIComponent(entrantId)}/review`,
         {
           method: 'POST',
+          body,
+          token: input.accessToken?.(),
+        },
+      ),
+
+    listEntrantsNeedingAbbreviation: (organizationAlias, tournamentAlias) =>
+      requestJson<readonly RegistrationResponse[]>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
+          tournamentAlias,
+        )}/entrants/needing-abbreviation`,
+        { token: input.accessToken?.() },
+      ),
+
+    setEntrantAbbreviation: (organizationAlias, tournamentAlias, entrantId, body) =>
+      requestJson<RegistrationResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
+          tournamentAlias,
+        )}/entrants/${encodeURIComponent(entrantId)}/abbreviation`,
+        {
+          method: 'PATCH',
           body,
           token: input.accessToken?.(),
         },

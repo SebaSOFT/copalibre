@@ -543,6 +543,34 @@ export const messages = defineMessages({
   reviewUploadPhoto: { id: 'control.review.uploadPhoto', defaultMessage: 'Upload photo' },
   reviewViewProfile: { id: 'control.review.viewProfile', defaultMessage: 'View profile' },
 
+  // AbbreviationReviewSection.tsx
+  abbreviationReviewSectionLabel: {
+    id: 'control.abbreviationReview.sectionLabel',
+    defaultMessage: 'Entrants needing an abbreviation',
+  },
+  abbreviationReviewTitle: {
+    id: 'control.abbreviationReview.title',
+    defaultMessage: 'Entrants needing an abbreviation',
+  },
+  abbreviationReviewEmpty: {
+    id: 'control.abbreviationReview.empty',
+    defaultMessage: 'Every entrant already has an abbreviation.',
+  },
+  abbreviationReviewInputLabel: {
+    id: 'control.abbreviationReview.inputLabel',
+    defaultMessage: 'Abbreviation for {displayName}',
+  },
+  abbreviationReviewSet: { id: 'control.abbreviationReview.set', defaultMessage: 'Set' },
+  abbreviationReviewFormatError: {
+    id: 'control.abbreviationReview.formatError',
+    defaultMessage:
+      'Uppercase letters and digits only, separated by single spaces, up to {maxLength} characters.',
+  },
+  abbreviationReviewSetFailed: {
+    id: 'control.abbreviationReview.setFailed',
+    defaultMessage: 'Could not set the abbreviation.',
+  },
+
   // CountrySelect.tsx
   countrySelectLabel: { id: 'control.country.label', defaultMessage: 'Country' },
   countrySelectSearchPlaceholder: {
