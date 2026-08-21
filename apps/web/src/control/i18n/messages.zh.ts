@@ -204,6 +204,14 @@ export const messages: Record<string, string> = {
   'control.review.saveNationality': '保存',
   'control.review.uploadPhoto': '上传照片',
   'control.review.viewProfile': '查看资料',
+  'control.abbreviationReview.sectionLabel': '需要缩写的参赛者',
+  'control.abbreviationReview.title': '需要缩写的参赛者',
+  'control.abbreviationReview.empty': '所有参赛者都已经有缩写了。',
+  'control.abbreviationReview.inputLabel': '{displayName} 的缩写',
+  'control.abbreviationReview.set': '设置',
+  'control.abbreviationReview.formatError':
+    '仅限大写字母和数字，用单个空格分隔，最多 {maxLength} 个字符。',
+  'control.abbreviationReview.setFailed': '无法设置缩写。',
 
   'control.country.label': '国家',
   'control.country.searchPlaceholder': '搜索国家…',

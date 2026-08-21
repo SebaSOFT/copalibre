@@ -18,6 +18,10 @@ state, the resulting state, and who made it.
   preview before confirming. No row with an error is imported until the file is fixed and retried.
 - **Bulk review**: applies the same decision to several registrations at once; each one is still
   audited separately, not as a single aggregate event.
+- **Entrants needing an abbreviation**: an entrant that collided on every automatically derived short
+  label registers with none set, and is otherwise invisible — this section lists those entrants and
+  lets you set one directly. A value already used by another entrant in the tournament is rejected
+  inline, naming the conflict; a resolved entrant drops off the list.
 
 ## What this screen does NOT do
 

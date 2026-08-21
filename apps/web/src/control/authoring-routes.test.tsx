@@ -380,4 +380,53 @@ describe('the registration review route container', () => {
     });
     await waitFor(() => expect(photoCalls).toHaveLength(1));
   });
+
+  it('loads entrants needing an abbreviation and removes one from the list once set (0111)', async () => {
+    const calls: unknown[] = [];
+
+    await act(async () => {
+      render(
+        withIntl(
+          <RegistrationReviewRoute
+            organizationAlias="liga-mendocina"
+            tournamentAlias="apertura-2026"
+            client={client({
+              listEntrantsNeedingAbbreviation: async () => [
+                { entrantId: 'e-2', tournamentId: 't-1', status: 'accepted', teamId: 'team-2' },
+              ],
+              setEntrantAbbreviation: async (
+                organizationAlias,
+                tournamentAlias,
+                entrantId,
+                request,
+              ) => {
+                calls.push({ organizationAlias, tournamentAlias, entrantId, request });
+                return { entrantId, tournamentId: 't-1', status: 'accepted', abbreviation: 'TAL' };
+              },
+            })}
+          />,
+        ),
+      );
+    });
+
+    expect(screen.getByText('team-2')).toBeDefined();
+    fireEvent.change(screen.getByLabelText('Abbreviation for team-2'), {
+      target: { value: 'TAL' },
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Set' }));
+    });
+
+    expect(calls).toEqual([
+      {
+        organizationAlias: 'liga-mendocina',
+        tournamentAlias: 'apertura-2026',
+        entrantId: 'e-2',
+        request: { abbreviation: 'TAL' },
+      },
+    ]);
+    await waitFor(() =>
+      expect(screen.getByText('Every entrant already has an abbreviation.')).toBeDefined(),
+    );
+  });
 });
