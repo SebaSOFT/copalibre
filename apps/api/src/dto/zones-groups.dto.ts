@@ -242,3 +242,31 @@ export class PromotionPreviewResponse {
   @ApiProperty({ type: 'object', isArray: true, additionalProperties: true })
   trace!: Record<string, unknown>[];
 }
+
+/**
+ * One prior-stage zone's resolved promotion preview, returned as part of the
+ * reverse lookup "which zones' promotion plans target this stage" (0121). A
+ * zone whose plan cannot currently be resolved into a preview (e.g. its
+ * source group standings are not ready yet) is omitted rather than causing
+ * the whole lookup to fail — mirrors the pre-fill's own "only when
+ * resolvable" scope.
+ */
+export class TargetingPromotionPreviewResponse {
+  @ApiProperty({ description: '1-based zone number within its own (source) stage', example: 1 })
+  zoneNumber!: number;
+
+  @ApiProperty({ format: 'uuid' })
+  zoneId!: string;
+
+  @ApiProperty({ type: QualifiedEntrantResponse, isArray: true })
+  combined!: QualifiedEntrantResponse[];
+
+  @ApiPropertyOptional({
+    type: 'object',
+    additionalProperties: {
+      type: 'array',
+      items: { $ref: '#/components/schemas/QualifiedEntrantResponse' },
+    },
+  })
+  bands?: Record<string, QualifiedEntrantResponse[]>;
+}

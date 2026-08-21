@@ -1768,6 +1768,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/promotion-plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List resolved promotion previews from prior-stage zones targeting this stage
+         * @description The reverse of "zones/:zoneNumber/promotion-plan": every zone, in any prior stage, whose stored plan names this stage as its `nextStageNumber`, with its promotion preview already computed and ordered by zone number. A zone whose plan cannot currently be resolved into a preview (e.g. its source group standings are not ready yet) is omitted, not reported as an error — this route never fails for that reason, it simply returns fewer entries.
+         */
+        get: operations["ZonesGroupsController_promotionPlansTargetingStage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3515,6 +3535,19 @@ export interface components {
                 [key: string]: components["schemas"]["QualifiedEntrantResponse"][];
             };
             trace: Record<string, never>[];
+        };
+        TargetingPromotionPreviewResponse: {
+            /**
+             * @description 1-based zone number within its own (source) stage
+             * @example 1
+             */
+            zoneNumber: number;
+            /** Format: uuid */
+            zoneId: string;
+            combined: components["schemas"]["QualifiedEntrantResponse"][];
+            bands?: {
+                [key: string]: components["schemas"]["QualifiedEntrantResponse"][];
+            };
         };
     };
     responses: never;
@@ -7208,6 +7241,53 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    ZonesGroupsController_promotionPlansTargetingStage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                stageNumber: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetingPromotionPreviewResponse"][];
                 };
             };
             401: {

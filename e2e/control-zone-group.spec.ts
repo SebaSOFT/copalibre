@@ -6,9 +6,10 @@ import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './suppor
  * assigning entrants to them manually, and confirming group-scoped
  * standings reflects it (tasks.md 5.3); and configuring/reviewing a
  * promotion plan for a zone, confirming the reviewed list matches
- * `promotion-preview`'s own response and that nothing is written to the
- * next stage's seeding along the way — 0108 deferred the seeding-builder
- * pre-fill itself to `0121-seeding-builder-promotion-prefill` (tasks.md 5.4).
+ * `promotion-preview`'s own response, that nothing is written to the next
+ * stage's seeding along the way, and — now that `0121-seeding-builder-
+ * promotion-prefill` is built — that the next stage's seeding builder opens
+ * pre-filled from that reviewed order, still with nothing published.
  *
  * The API is stubbed at `window.fetch`, as the other control-panel e2e specs
  * do.
@@ -313,6 +314,20 @@ test('reviews a promotion plan and confirms nothing is written to the next stage
             hasRecordedResults: false,
           });
         }
+        if (url === `${stage2}/promotion-plans` && method === 'GET') {
+          const saved = sessionStorage.getItem(PLAN_KEY);
+          if (saved === null) return Response.json([]);
+          return Response.json([
+            {
+              zoneNumber: 1,
+              zoneId: 'zone-1',
+              combined: [
+                { entrantId: 'entrant-aaaaaaaa', groupId: 'group-1', rank: 1 },
+                { entrantId: 'entrant-bbbbbbbb', groupId: 'group-1', rank: 2 },
+              ],
+            },
+          ]);
+        }
 
         return new Response('Not found', { status: 404 });
       };
@@ -343,13 +358,25 @@ test('reviews a promotion plan and confirms nothing is written to the next stage
     requestLog.some((entry) => entry.startsWith('POST') && entry.includes('/stages/2/seeding')),
   ).toBe(false);
 
-  // Confirm the next stage's seeding builder itself still starts from
-  // nothing, the same as before this plan was reviewed.
+  // The next stage's seeding builder is pre-filled from the reviewed
+  // promotion plan's order (0121) — still nothing published, only the
+  // builder's own initial state.
   const seedingTarget = `/control/${ORG}/tournaments/${TOURNAMENT_ALIAS}/stages/2/seeding`;
   await seedLoginTransaction(page, seedingTarget);
   await page.goto(loginCallbackUrl()).catch((error: Error) => {
     if (!error.message.includes('is interrupted by another navigation')) throw error;
   });
   await page.waitForURL(`**${seedingTarget}`);
-  await expect(page.getByText('Esta fase no tiene participantes.')).toBeVisible();
+  const seedList = page.getByRole('list', { name: 'Orden de siembra' });
+  await expect(seedList.getByText(/1.*aaaaaaaa/)).toBeVisible();
+  await expect(seedList.getByText(/2.*bbbbbbbb/)).toBeVisible();
+
+  // Still nothing persisted — pre-fill only changes the builder's initial
+  // client-side state (proposal.md's "no new commit path").
+  const seedingRequestLog = await readRequestLog(page);
+  expect(
+    seedingRequestLog.some(
+      (entry) => entry.startsWith('POST') && entry.includes('/stages/2/seeding'),
+    ),
+  ).toBe(false);
 });

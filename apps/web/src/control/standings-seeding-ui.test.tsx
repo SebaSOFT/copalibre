@@ -1,5 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import {
   ControlApiError,
   createControlApiClient,
@@ -490,6 +490,103 @@ describe('control routes', () => {
     );
 
     expect(await screen.findByText('No se pudo cargar el sembrado.')).toBeTruthy();
+  });
+
+  it('pre-fills from a resolved promotion plan when the stage has no seeds yet (0121)', async () => {
+    render(
+      <SeedingControlRoute
+        client={stubClient({
+          fetchSeeding: () =>
+            Promise.resolve({
+              stageId: 'stage-2',
+              format: 'single-elimination',
+              seeds: [],
+              matches: [],
+              hasRecordedResults: false,
+            }),
+          fetchPromotionPlansTargetingStage: () =>
+            Promise.resolve([
+              {
+                zoneNumber: 1,
+                zoneId: 'zone-1',
+                combined: [
+                  { entrantId: 'tll', groupId: 'group-1', rank: 1 },
+                  { entrantId: 'ind', groupId: 'group-2', rank: 1 },
+                ],
+              },
+            ]),
+        })}
+        organizationAlias="liga-mendocina"
+        stageNumber={2}
+        tournamentAlias="apertura"
+      />,
+    );
+
+    await screen.findByText('Sembrado');
+    const seedList = screen.getByRole('list', { name: 'Orden de siembra' });
+    const rows = within(seedList)
+      .getAllByRole('listitem')
+      .map((row) => row.textContent);
+    expect(rows).toEqual([expect.stringContaining('tll'), expect.stringContaining('ind')]);
+  });
+
+  it('does not override an already-recorded seed order with a matching promotion plan (0121)', async () => {
+    const fetchPromotionPlansTargetingStage =
+      jest.fn<NonNullable<ControlApiClient['fetchPromotionPlansTargetingStage']>>();
+    render(
+      <SeedingControlRoute
+        client={stubClient({
+          fetchSeeding: () =>
+            Promise.resolve({
+              stageId: 'stage-2',
+              format: 'single-elimination',
+              seeds: [{ seed: 1, entrantId: 'tll' }],
+              matches,
+              hasRecordedResults: false,
+            }),
+          fetchPromotionPlansTargetingStage,
+        })}
+        organizationAlias="liga-mendocina"
+        stageNumber={2}
+        tournamentAlias="apertura"
+      />,
+    );
+
+    await screen.findByText('Sembrado');
+    const seedList = screen.getByRole('list', { name: 'Orden de siembra' });
+    expect(
+      within(seedList)
+        .getAllByRole('listitem')
+        .map((row) => row.textContent),
+    ).toEqual([expect.stringContaining('tll')]);
+    // Existing seeds are the API's own signal not to look further — the
+    // reverse lookup is never even called (design.md: no override, ever).
+    expect(fetchPromotionPlansTargetingStage).not.toHaveBeenCalled();
+  });
+
+  it('starts empty when no promotion plan targets the stage (0121)', async () => {
+    render(
+      <SeedingControlRoute
+        client={stubClient({
+          fetchSeeding: () =>
+            Promise.resolve({
+              stageId: 'stage-2',
+              format: 'single-elimination',
+              seeds: [],
+              matches: [],
+              hasRecordedResults: false,
+            }),
+          fetchPromotionPlansTargetingStage: () => Promise.resolve([]),
+        })}
+        organizationAlias="liga-mendocina"
+        stageNumber={2}
+        tournamentAlias="apertura"
+      />,
+    );
+
+    await screen.findByText('Sembrado');
+    const seedList = screen.getByRole('list', { name: 'Orden de siembra' });
+    expect(within(seedList).queryAllByRole('listitem')).toEqual([]);
   });
 });
 

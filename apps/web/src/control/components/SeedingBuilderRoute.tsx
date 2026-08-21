@@ -38,6 +38,35 @@ export function SeedingBuilderRoute({
     let live = true;
     api
       .fetchSeeding(organizationAlias, tournamentAlias, stageNumber)
+      .then(async (loaded) => {
+        if (!live) return loaded;
+        // Pre-fill only when nothing has been drawn or manually placed yet
+        // (0121) — a stage that already has seeds is never overridden by a
+        // promotion plan, so this only runs for the empty case, and any
+        // failure here just leaves the builder starting empty, as before.
+        if (loaded.seeds.length > 0 || !api.fetchPromotionPlansTargetingStage) return loaded;
+        try {
+          const targeting = await api.fetchPromotionPlansTargetingStage(
+            organizationAlias,
+            tournamentAlias,
+            stageNumber,
+          );
+          // Server already orders by zoneNumber; concatenating in that order
+          // is the whole "combine per zone" rule (design.md) — each zone's
+          // own `combined` list is already itself in the right order.
+          const combined = targeting.flatMap((zone) => zone.combined);
+          if (combined.length === 0) return loaded;
+          return {
+            ...loaded,
+            seeds: combined.map((entrant, index) => ({
+              seed: index + 1,
+              entrantId: entrant.entrantId,
+            })),
+          };
+        } catch {
+          return loaded;
+        }
+      })
       .then((loaded) => {
         if (!live) return;
         setSeeding(loaded);
