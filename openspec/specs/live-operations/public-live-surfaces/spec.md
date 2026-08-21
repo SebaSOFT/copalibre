@@ -4,7 +4,9 @@
 Gives anonymous spectators a near-real-time view of an in-progress competition — a live match
 dashboard and a read-only bracket — that stay informative if the live connection drops and never
 rely on color alone to communicate match or result state.
+
 ## Requirements
+
 ### Requirement: Live competition dashboard reflects current match state
 The public live dashboard SHALL show the current live match's clock, score, and series progress, and
 SHALL update this view when the public SSE channel emits a relevant event, without a full page
@@ -74,3 +76,19 @@ and SHALL NOT attempt a bracket layout for it.
 - **THEN** the ranked-table shape is part of it, rather than being inferred from the absence of
   bracket data
 
+### Requirement: Each bracket match card links to that match's report page
+
+Every match card rendered in the public bracket view SHALL link to that match's public report page
+(`/{organization}/tournaments/{tournament}/stages/{stageNumber}/matches/{matchNumber}`), whether or
+not the match's entrants are already determined.
+
+#### Scenario: A played match's card links to its report
+- **WHEN** an anonymous visitor views the bracket page and a match card shows a completed result
+- **THEN** the card links to that match's report page, which shows the same result and its full event
+  timeline
+
+#### Scenario: An undetermined match's card still links
+- **WHEN** a bracket round's participants are not yet determined (rendered pending/TBD per the
+  existing requirement)
+- **THEN** the card still links to that match's report page, which renders correctly for a not-yet-
+  played match

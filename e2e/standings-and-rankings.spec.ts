@@ -93,8 +93,26 @@ const topScorersFixture = {
         cards: { formatted: '4/5', numerator: 4, denominator: 5 },
       },
     },
+    {
+      actorId: 'p-2',
+      entityId: 'p-2',
+      rank: 2,
+      sharedRank: false,
+      cells: {
+        player: { formatted: 'Goleador Dos' },
+        goals: { raw: 5, formatted: '5' },
+        cards: { formatted: '1/0', numerator: 1, denominator: 0 },
+      },
+    },
   ],
   projectionVersion: 3,
+};
+
+// Same table, filtered to club-independiente: p-2 keeps rank 2, not
+// renumbered to 1 (0103's already-accepted whole-table-rank rule).
+const topScorersFilteredToIndependiente = {
+  ...topScorersFixture,
+  rows: [topScorersFixture.rows[1]],
 };
 
 const playerProfileFixture = {
@@ -394,7 +412,7 @@ test.describe('B2: public tournament page', () => {
         return;
       }
       if (req.url === `${TOURNAMENT}/public/tables/top-scorers?clubId=club-independiente`) {
-        res.end(JSON.stringify({ ...topScorersFixture, rows: [] }));
+        res.end(JSON.stringify(topScorersFilteredToIndependiente));
         return;
       }
       if (req.url === `${STAGE}/bracket`) {
@@ -484,19 +502,48 @@ test.describe('B2: public tournament page', () => {
     await page.waitForURL(`**/stages/1/matches/2`);
   });
 
-  test('switches to a leaderboard tab and filters by club', async ({ page }) => {
+  test('filters the leaderboard to one club by URL, keeps whole-table ranks, and clears (0113)', async ({
+    page,
+  }) => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
 
     // Click Top Scorers tab
     await page.getByRole('tab', { name: 'Top Scorers' }).click();
     await expect(page.getByRole('heading', { name: 'Top Scorers' })).toBeVisible();
     await expect(page.getByRole('cell', { name: 'Goleador Uno' })).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'Goleador Dos' })).toBeVisible();
 
-    // Click club filter button
-    await page.getByRole('link', { name: 'Club Atlético Independiente' }).click();
-    await expect(page.getByText('Standings appear once the first match is played.')).toBeVisible();
+    // Click the club filter — the interaction 0103 named as its motivation,
+    // wired up here for the first time (0113). The pill is a rendered club
+    // emblem (placeholder, in this fixture) plus its name, both inside the
+    // one filtering link.
+    const independienteFilter = page.getByRole('link', { name: 'Club Atlético Independiente' });
+    await independienteFilter.click();
+    await page.waitForURL(/clubId=club-independiente/);
 
-    // Matches / ticker is unaffected
+    // Only that club's player, with the same row data the unfiltered table
+    // showed for them — not recomputed as if they led a smaller table (0103's
+    // already-accepted whole-table-rank rule; verified server-side by
+    // table-projections.integration.test.ts, which this fixture mirrors).
+    const filteredRow = page.getByRole('row').filter({ hasText: 'Goleador Dos' });
+    await expect(filteredRow).toBeVisible();
+    await expect(filteredRow.getByRole('cell', { name: '5' })).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'Goleador Uno' })).toHaveCount(0);
+
+    // A linked filtered table renders filtered without further interaction
+    // (public-web-shell's own scenario for this) — reload the same URL.
+    await page.reload();
+    await expect(page.getByRole('cell', { name: 'Goleador Dos' })).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'Goleador Uno' })).toHaveCount(0);
+
+    // Clearing the filter restores every entrant. Exact match: "All" is
+    // otherwise a substring of "Talleres" among this page's other links.
+    await page.getByRole('link', { name: 'All', exact: true }).click();
+    await expect(page.getByRole('cell', { name: 'Goleador Uno' })).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'Goleador Dos' })).toBeVisible();
+    await expect(page).not.toHaveURL(/clubId=/);
+
+    // Matches / ticker is unaffected throughout.
     await expect(page.getByRole('heading', { name: 'Matches' })).toBeVisible();
   });
 

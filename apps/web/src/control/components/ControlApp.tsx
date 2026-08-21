@@ -18,9 +18,7 @@ import {
 } from './ControlRoutes.js';
 
 import { LoginRoute, ForgotPasswordRoute, ResetPasswordRoute } from './NativeAuthRoutes.js';
-import { Dashboard } from './Dashboard.js';
-import { buildDashboard } from '../lib/dashboard.js';
-import { sampleDashboardData } from '../lib/sample.js';
+import { DashboardRoute } from './DashboardRoute.js';
 import {
   controlLinkClick,
   loginRedirectUrl,
@@ -99,12 +97,7 @@ export function ControlApp(): React.JSX.Element | null {
 
   switch (route.screen) {
     case 'dashboard':
-      return (
-        <Dashboard
-          model={buildDashboard(sampleDashboardData())}
-          organizationAlias={route.organizationAlias}
-        />
-      );
+      return <DashboardRoute organizationAlias={route.organizationAlias} />;
     case 'roles':
       return <RolesPermissionsControlRoute organizationAlias={route.organizationAlias} />;
     case 'preferences':

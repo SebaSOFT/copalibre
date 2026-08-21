@@ -12,6 +12,10 @@ export interface ControlApiClient {
     organizationAlias: string,
     request: CreateTournamentRequest,
   ) => Promise<TournamentResponse>;
+  /** The organization's active (non-archived) tournaments, for the dashboard (0113). */
+  readonly listActiveTournaments?: (
+    organizationAlias: string,
+  ) => Promise<readonly TournamentResponse[]>;
   readonly listRegistrations: (
     organizationAlias: string,
     tournamentAlias: string,
@@ -623,6 +627,8 @@ export interface TournamentResponse {
   readonly alias: string;
   readonly name: string;
   readonly rulesetId?: string;
+  readonly organizationId?: string;
+  readonly status?: 'draft' | 'published' | 'started' | 'finished' | 'archived';
 }
 
 export interface TeamMemberResponse {
@@ -985,6 +991,13 @@ export function createControlApiClient(input: {
           body,
           token: input.accessToken?.(),
         },
+      ),
+
+    listActiveTournaments: (organizationAlias) =>
+      requestJson<readonly TournamentResponse[]>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments`,
+        { token: input.accessToken?.() },
       ),
 
     listRegistrations: (organizationAlias, tournamentAlias, status) => {
