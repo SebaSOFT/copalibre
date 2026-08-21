@@ -218,3 +218,7 @@ export function organizationEmblemUrl(organizationAlias: string): string {
 export function clubEmblemUrl(organizationAlias: string, clubId: string): string {
   return `/organizations/${encodeURIComponent(organizationAlias)}/clubs/${encodeURIComponent(clubId)}/emblem`;
 }
+
+export function personPhotoUrl(organizationAlias: string, personId: string): string {
+  return `/organizations/${encodeURIComponent(organizationAlias)}/persons/${encodeURIComponent(personId)}/photo`;
+}

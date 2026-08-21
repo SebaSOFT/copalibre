@@ -1210,4 +1210,20 @@ export const messages = defineMessages({
     id: 'control.statisticsRebuild.failed',
     defaultMessage: 'The rebuild was refused.',
   },
+
+  // Image crop modal (0122) — shared by every profile-image upload (org/club emblem, person photo).
+  imageCropModalTitle: { id: 'control.imageCropModal.title', defaultMessage: 'Adjust image' },
+  imageCropModalZoom: { id: 'control.imageCropModal.zoom', defaultMessage: 'Zoom' },
+  imageCropModalRotation: { id: 'control.imageCropModal.rotation', defaultMessage: 'Rotation' },
+  imageCropModalCancel: { id: 'control.imageCropModal.cancel', defaultMessage: 'Cancel' },
+  imageCropModalConfirm: { id: 'control.imageCropModal.confirm', defaultMessage: 'Use image' },
+  imageCropModalClose: { id: 'control.imageCropModal.close', defaultMessage: 'Close' },
+  imageCropModalProcessing: {
+    id: 'control.imageCropModal.processing',
+    defaultMessage: 'Processing…',
+  },
+  imageCropModalFailed: {
+    id: 'control.imageCropModal.failed',
+    defaultMessage: 'Could not process this image.',
+  },
 });

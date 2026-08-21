@@ -458,4 +458,12 @@ export const messages: Record<string, string> = {
   'control.statisticsRebuild.result':
     '{matches, plural, one {# Spiel verarbeitet} other {# Spiele verarbeitet}}.',
   'control.statisticsRebuild.failed': 'Die Neuberechnung wurde abgelehnt.',
+  'control.imageCropModal.title': 'Bild anpassen',
+  'control.imageCropModal.zoom': 'Zoom',
+  'control.imageCropModal.rotation': 'Drehung',
+  'control.imageCropModal.cancel': 'Abbrechen',
+  'control.imageCropModal.confirm': 'Bild verwenden',
+  'control.imageCropModal.close': 'Schließen',
+  'control.imageCropModal.processing': 'Wird verarbeitet…',
+  'control.imageCropModal.failed': 'Dieses Bild konnte nicht verarbeitet werden.',
 };

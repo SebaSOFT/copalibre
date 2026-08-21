@@ -79,6 +79,13 @@ describe('RegistrationReviewPage — nationality and profile (0093)', () => {
     const input = screen.getByLabelText('Upload photo') as HTMLInputElement;
     fireEvent.change(input, { target: { files: [file] } });
 
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.load(dialog.querySelector('img') as HTMLImageElement);
+    await waitFor(() =>
+      expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
+    );
+    fireEvent.click(screen.getByText('Use image'));
+
     await waitFor(() => expect(onUploadPhoto).toHaveBeenCalled());
     const [personId, request] = onUploadPhoto.mock.calls[0] as [string, UploadImageRequest];
     expect(personId).toBe('person-1');

@@ -184,9 +184,18 @@ describe('PreferencesRoute', () => {
 
     const file = new File(['fake-bytes'], 'emblem.png', { type: 'image/png' });
     const input = screen.getByLabelText('Upload emblem');
-    await waitFor(() => {
-      fireEvent.change(input, { target: { files: [file] } });
-    });
+    fireEvent.change(input, { target: { files: [file] } });
+
+    const dialog = await screen.findByRole('dialog');
+    // jsdom never fires a real `load` on `react-easy-crop`'s internal <img>
+    // (it does not load image bytes); firing it manually is what lets the
+    // library compute a crop area and enable Confirm, the same way a real
+    // browser's image decode would.
+    fireEvent.load(dialog.querySelector('img') as HTMLImageElement);
+    await waitFor(() =>
+      expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
+    );
+    fireEvent.click(screen.getByText('Use image'));
 
     await waitFor(() =>
       expect(uploadOrganizationEmblem).toHaveBeenCalledWith('liga-mendocina', {
@@ -304,6 +313,13 @@ describe('PreferencesRoute', () => {
     await screen.findByDisplayValue('Liga Mendocina');
     const file = new File(['fake-bytes'], 'emblem.png', { type: 'image/png' });
     fireEvent.change(screen.getByLabelText('Upload emblem'), { target: { files: [file] } });
+
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.load(dialog.querySelector('img') as HTMLImageElement);
+    await waitFor(() =>
+      expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
+    );
+    fireEvent.click(screen.getByText('Use image'));
 
     await screen.findByText('The request was refused.');
   });

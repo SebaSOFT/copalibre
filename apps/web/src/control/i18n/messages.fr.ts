@@ -459,4 +459,12 @@ export const messages: Record<string, string> = {
   'control.statisticsRebuild.result':
     '{matches, plural, one {# match traité} other {# matchs traités}}.',
   'control.statisticsRebuild.failed': 'La reconstruction a été refusée.',
+  'control.imageCropModal.title': "Ajuster l'image",
+  'control.imageCropModal.zoom': 'Zoom',
+  'control.imageCropModal.rotation': 'Rotation',
+  'control.imageCropModal.cancel': 'Annuler',
+  'control.imageCropModal.confirm': "Utiliser l'image",
+  'control.imageCropModal.close': 'Fermer',
+  'control.imageCropModal.processing': 'Traitement en cours…',
+  'control.imageCropModal.failed': 'Impossible de traiter cette image.',
 };

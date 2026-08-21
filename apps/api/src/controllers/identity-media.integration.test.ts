@@ -2,6 +2,7 @@ import { Module, type INestApplication } from '@nestjs/common';
 import { APP_GUARD, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
+import sharp from 'sharp';
 import type { ObjectStorageAdapter } from '@copalibre/object-storage';
 import {
   EnrollmentRepository,
@@ -42,6 +43,24 @@ const CURRENT_ORG = (): string => currentOrganizationId;
 
 function hash(value: string): string {
   return createHash('sha256').update(value).digest('hex');
+}
+
+/**
+ * A real, decodable PNG at the platform's profile-image contract size (0122)
+ * — every upload test below needs bytes `sharp` can actually read dimensions
+ * from, not the placeholder text buffers the pre-0122 tests used, now that
+ * `decodeImage()` runs every upload through `sharp(bytes).metadata()`.
+ */
+async function conformingPng(width = 410, height = 512): Promise<Buffer> {
+  return sharp({
+    create: { width, height, channels: 4, background: { r: 10, g: 10, b: 10, alpha: 1 } },
+  })
+    .png()
+    .toBuffer();
+}
+
+function conformingSvg(width = 410, height = 512): string {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"></svg>`;
 }
 
 class FakeTokenVerifier {
@@ -182,7 +201,8 @@ describe('person photo / club emblem upload and public serve (integration)', () 
   });
 
   it('uploads, serves 202 while pending, then streams once the scan passes — with no token on the GET', async () => {
-    const contentBase64 = Buffer.from('fake-photo-bytes').toString('base64');
+    const bytes = await conformingPng();
+    const contentBase64 = bytes.toString('base64');
     const upload = await inject({
       method: 'POST',
       url: `/organizations/${organizationAlias}/persons/${personId}/photo`,
@@ -207,7 +227,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
     });
     expect(passed.statusCode).toBe(200);
     expect(passed.headers['content-type']).toBe('image/png');
-    expect(passed.rawPayload.toString()).toBe('fake-photo-bytes');
+    expect(Buffer.from(passed.rawPayload).equals(bytes)).toBe(true);
   });
 
   it('404s once a photo fails validation, never serving a flagged object', async () => {
@@ -219,7 +239,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
       }),
     );
 
-    const contentBase64 = Buffer.from('flagged-bytes').toString('base64');
+    const contentBase64 = (await conformingPng()).toString('base64');
     const upload = await inject({
       method: 'POST',
       url: `/organizations/${organizationAlias}/persons/${flaggedPerson.person.personId}/photo`,
@@ -242,8 +262,39 @@ describe('person photo / club emblem upload and public serve (integration)', () 
     expect(response.statusCode).toBe(404);
   });
 
+  it('refuses a person photo upload with the wrong height', async () => {
+    const bytes = await conformingPng(410, 800);
+    const response = await inject({
+      method: 'POST',
+      url: `/organizations/${organizationAlias}/persons/${personId}/photo`,
+      headers: { authorization: 'Bearer organizer' },
+      payload: {
+        filename: 'photo.png',
+        contentType: 'image/png',
+        contentBase64: bytes.toString('base64'),
+      },
+    });
+    expect(response.statusCode).toBe(400);
+  });
+
+  it('refuses a person photo upload with the wrong width (a different aspect ratio)', async () => {
+    const bytes = await conformingPng(200, 512);
+    const response = await inject({
+      method: 'POST',
+      url: `/organizations/${organizationAlias}/persons/${personId}/photo`,
+      headers: { authorization: 'Bearer organizer' },
+      payload: {
+        filename: 'photo.png',
+        contentType: 'image/png',
+        contentBase64: bytes.toString('base64'),
+      },
+    });
+    expect(response.statusCode).toBe(400);
+  });
+
   it('uploads and serves a club emblem the same way, unauthenticated on the GET', async () => {
-    const contentBase64 = Buffer.from('fake-emblem-bytes').toString('base64');
+    const svg = conformingSvg();
+    const contentBase64 = Buffer.from(svg).toString('base64');
     const upload = await inject({
       method: 'POST',
       url: `/organizations/${organizationAlias}/clubs/${clubId}/emblem`,
@@ -260,7 +311,19 @@ describe('person photo / club emblem upload and public serve (integration)', () 
     });
     expect(response.statusCode).toBe(200);
     expect(response.headers['content-type']).toBe('image/svg+xml');
-    expect(response.rawPayload.toString()).toBe('fake-emblem-bytes');
+    expect(response.rawPayload.toString()).toBe(svg);
+  });
+
+  it('refuses a club emblem whose declared dimensions are the wrong aspect ratio', async () => {
+    const svg = conformingSvg(410, 410);
+    const contentBase64 = Buffer.from(svg).toString('base64');
+    const response = await inject({
+      method: 'POST',
+      url: `/organizations/${organizationAlias}/clubs/${clubId}/emblem`,
+      headers: { authorization: 'Bearer organizer' },
+      payload: { filename: 'emblem.svg', contentType: 'image/svg+xml', contentBase64 },
+    });
+    expect(response.statusCode).toBe(400);
   });
 
   it('refuses an unauthenticated organization emblem upload', async () => {
@@ -281,7 +344,8 @@ describe('person photo / club emblem upload and public serve (integration)', () 
   });
 
   it('uploads and serves an organization emblem, unauthenticated on the GET', async () => {
-    const contentBase64 = Buffer.from('fake-org-emblem-bytes').toString('base64');
+    const svg = conformingSvg();
+    const contentBase64 = Buffer.from(svg).toString('base64');
     const upload = await inject({
       method: 'POST',
       url: `/organizations/${organizationAlias}/emblem`,
@@ -307,7 +371,55 @@ describe('person photo / club emblem upload and public serve (integration)', () 
     });
     expect(response.statusCode).toBe(200);
     expect(response.headers['content-type']).toBe('image/svg+xml');
-    expect(response.rawPayload.toString()).toBe('fake-org-emblem-bytes');
+    expect(response.rawPayload.toString()).toBe(svg);
+  });
+
+  it('refuses an organization emblem upload with the wrong height', async () => {
+    const bytes = await conformingPng(410, 600);
+    const response = await inject({
+      method: 'POST',
+      url: `/organizations/${organizationAlias}/emblem`,
+      headers: { authorization: 'Bearer organizer' },
+      payload: {
+        filename: 'emblem.png',
+        contentType: 'image/png',
+        contentBase64: bytes.toString('base64'),
+      },
+    });
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).not.toHaveProperty('objectId');
+  });
+
+  it('refuses an organization emblem upload with the wrong width (a different aspect ratio)', async () => {
+    const bytes = await conformingPng(300, 512);
+    const response = await inject({
+      method: 'POST',
+      url: `/organizations/${organizationAlias}/emblem`,
+      headers: { authorization: 'Bearer organizer' },
+      payload: {
+        filename: 'emblem.png',
+        contentType: 'image/png',
+        contentBase64: bytes.toString('base64'),
+      },
+    });
+    expect(response.statusCode).toBe(400);
+  });
+
+  it('accepts an organization emblem exactly on the 1% dimension tolerance boundary', async () => {
+    // 410 * 1.01 = 414.1, 512 * 1.01 = 517.12 — the widest a still-conforming
+    // upload can be; a regression that tightens the check would refuse this.
+    const bytes = await conformingPng(414, 517);
+    const response = await inject({
+      method: 'POST',
+      url: `/organizations/${organizationAlias}/emblem`,
+      headers: { authorization: 'Bearer organizer' },
+      payload: {
+        filename: 'emblem.png',
+        contentType: 'image/png',
+        contentBase64: bytes.toString('base64'),
+      },
+    });
+    expect(response.statusCode).toBe(201);
   });
 
   it('sets and clears a nationality through the authenticated PATCH route', async () => {

@@ -9,7 +9,15 @@ import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './suppor
 
 const PERSON_ID = 'person-1';
 
+/**
+ * A real, tiny, decodable PNG (1×1) — 0122's crop modal opens every selected
+ * file as a real `<img>`, so placeholder text bytes wouldn't decode.
+ */
+const ONE_PIXEL_PNG_BASE64 =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+
 let nationality: string | undefined;
+let photoObjectId: string | undefined;
 
 function registrationsResponse(): unknown {
   return [
@@ -26,6 +34,7 @@ function registrationsResponse(): unknown {
 
 async function mockRegistrationApi(page: import('@playwright/test').Page): Promise<void> {
   nationality = undefined;
+  photoObjectId = undefined;
   await page.addInitScript(
     ({ tokenEndpoint, personId }) => {
       window.fetch = async (input, init) => {
@@ -46,6 +55,12 @@ async function mockRegistrationApi(page: import('@playwright/test').Page): Promi
           ).__setNationality(body.nationality);
           return Response.json({ personId, nationality: body.nationality });
         }
+        if (url.endsWith(`/persons/${personId}/photo`) && init?.method === 'POST') {
+          const created = await (
+            window as unknown as { __uploadPhoto: () => Promise<unknown> }
+          ).__uploadPhoto();
+          return Response.json(created, { status: 201 });
+        }
         if (url.endsWith(`/persons/${personId}`) && (init?.method ?? 'GET') === 'GET') {
           const profile = await (
             window as unknown as { __personProfile: () => Promise<unknown> }
@@ -62,10 +77,15 @@ async function mockRegistrationApi(page: import('@playwright/test').Page): Promi
   await page.exposeFunction('__setNationality', (value: string | null) => {
     nationality = value ?? undefined;
   });
+  await page.exposeFunction('__uploadPhoto', () => {
+    photoObjectId = 'photo-object-1';
+    return { objectId: photoObjectId };
+  });
   await page.exposeFunction('__personProfile', () => ({
     personId: PERSON_ID,
     displayName: 'Elías Salomón',
     ...(nationality === undefined ? {} : { nationality }),
+    ...(photoObjectId === undefined ? {} : { photoObjectId }),
   }));
 }
 
@@ -92,4 +112,32 @@ test('sets a nationality and sees the flag, then sees a placeholder photo on the
   await page.waitForURL('**/control/liga-mendocina/persons/person-1');
 
   await expect(page.getByRole('img', { name: 'Sin foto cargada' })).toBeVisible();
+});
+
+/**
+ * 0122 task 8.1: the person-photo upload surface in registration review goes
+ * through the shared crop modal exactly like the emblem uploads do.
+ */
+test('uploads a person photo through the crop modal from the registration review row', async ({
+  page,
+}) => {
+  await mockRegistrationApi(page);
+  const target = '/control/liga-mendocina/tournaments/apertura-2026/registrations';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await page.getByText('Elías Salomón').click();
+  await expect(page.getByRole('img', { name: 'Subir foto' })).toBeVisible();
+
+  await page.getByLabel('Subir foto').setInputFiles({
+    name: 'photo.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(ONE_PIXEL_PNG_BASE64, 'base64'),
+  });
+
+  const dialog = page.getByRole('dialog', { name: 'Ajustar imagen' });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole('button', { name: 'Usar imagen' }).click();
+  await expect(dialog).toBeHidden();
 });

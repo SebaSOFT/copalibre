@@ -2,14 +2,17 @@ import { useState } from 'react';
 import { FormattedMessage, useIntl, type MessageDescriptor } from 'react-intl';
 import { Button } from './ui/button.js';
 import { CountrySelect } from './CountrySelect.js';
-import type {
-  BulkReviewRequest,
-  ReviewRegistrationRequest,
-  UploadImageRequest,
+import {
+  personPhotoUrl,
+  type BulkReviewRequest,
+  type ReviewRegistrationRequest,
+  type UploadImageRequest,
 } from '../lib/api-client.js';
 import { controlLinkClick } from '../lib/control-navigation.js';
 import { countryFlag } from '../lib/country.js';
-import { readAsBase64 } from '../lib/image-upload.js';
+import { FramedImage } from './FramedImage.js';
+import { ImageCropModal } from './ImageCropModal.js';
+import { PersonPhotoPlaceholder } from './placeholders.js';
 import {
   LOCK_EXPLANATION,
   initialReview,
@@ -76,6 +79,9 @@ export function RegistrationReviewPage({
   const intl = useIntl();
   const [state, setState] = useState(() => initialReview(10));
   const [nationalityDraft, setNationalityDraft] = useState<Record<string, string>>({});
+  const [photoCrop, setPhotoCrop] = useState<{ personId: string; src: string } | undefined>(
+    undefined,
+  );
   const visible = visibleRows(rows, state) as readonly ReviewRegistrationRow[];
   const selected = new Set(state.selected);
   const allVisibleSelected =
@@ -226,6 +232,21 @@ export function RegistrationReviewPage({
                     >
                       <FormattedMessage {...messages.reviewSaveNationality} />
                     </Button>
+                    <FramedImage
+                      alt={intl.formatMessage(messages.reviewUploadPhoto)}
+                      placeholder={
+                        <PersonPhotoPlaceholder
+                          size={64}
+                          title={intl.formatMessage(messages.reviewUploadPhoto)}
+                        />
+                      }
+                      size={64}
+                      src={
+                        row.photoObjectId !== undefined
+                          ? personPhotoUrl(organizationAlias, personId)
+                          : undefined
+                      }
+                    />
                     <label>
                       <FormattedMessage {...messages.reviewUploadPhoto} />
                       <input
@@ -233,13 +254,8 @@ export function RegistrationReviewPage({
                         onChange={(event) => {
                           const file = event.currentTarget.files?.[0];
                           if (!file) return;
-                          void readAsBase64(file).then((contentBase64) =>
-                            onUploadPhoto?.(personId, {
-                              filename: file.name,
-                              contentType: file.type || 'application/octet-stream',
-                              contentBase64,
-                            }),
-                          );
+                          setPhotoCrop({ personId, src: URL.createObjectURL(file) });
+                          event.currentTarget.value = '';
                         }}
                         type="file"
                       />
@@ -299,6 +315,26 @@ export function RegistrationReviewPage({
           })}
         </span>
       </footer>
+
+      {photoCrop !== undefined && (
+        <ImageCropModal
+          imageSrc={photoCrop.src}
+          onCancel={() => {
+            URL.revokeObjectURL(photoCrop.src);
+            setPhotoCrop(undefined);
+          }}
+          onConfirm={(output) => {
+            URL.revokeObjectURL(photoCrop.src);
+            const personId = photoCrop.personId;
+            setPhotoCrop(undefined);
+            void onUploadPhoto?.(personId, {
+              filename: 'photo.png',
+              contentType: output.contentType,
+              contentBase64: output.contentBase64,
+            });
+          }}
+        />
+      )}
     </section>
   );
 }

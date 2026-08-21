@@ -65,6 +65,8 @@ export const messages: Record<string, string> = {
   'publicWeb.playerProfile.noHistory': '暂无参赛历史记录。',
   'publicWeb.playerProfile.noStats': '暂无生涯数据记录。',
   'publicWeb.playerProfile.close': '关闭',
+  'publicWeb.playerProfile.photoAlt': '{name}',
+  'publicWeb.playerProfile.photoPlaceholderAlt': '未上传照片',
 
   'publicWeb.tournamentsPage.title': '赛事列表',
   'publicWeb.tournamentsPage.liveHeading': '正在进行与活跃赛事',
