@@ -132,6 +132,44 @@ export class ConfirmGroupDrawResponse extends DrawPreviewResponse {
   groups!: GroupResponse[];
 }
 
+/**
+ * Manual placement's own request/response shapes (0108) — deliberately not
+ * `DrawPreviewResponse`'s subtypes: a manually placed assignment has no
+ * seed or search-step count, both meaningless for an operator-chosen
+ * placement rather than a deterministic draw.
+ */
+export class ManualZoneAssignmentRequest {
+  @ApiProperty({ type: DrawAssignmentResponse })
+  assignment!: DrawAssignmentResponse;
+
+  @ApiProperty({ minimum: 1, example: 4 })
+  zoneCount!: number;
+}
+
+export class ManualGroupAssignmentRequest {
+  @ApiProperty({ type: DrawAssignmentResponse })
+  assignment!: DrawAssignmentResponse;
+
+  @ApiProperty({ minimum: 1, example: 4 })
+  groupCount!: number;
+}
+
+export class ManualZoneAssignmentResponse {
+  @ApiProperty({ type: DrawAssignmentResponse })
+  assignment!: DrawAssignmentResponse;
+
+  @ApiProperty({ type: ZoneResponse, isArray: true })
+  zones!: ZoneResponse[];
+}
+
+export class ManualGroupAssignmentResponse {
+  @ApiProperty({ type: DrawAssignmentResponse })
+  assignment!: DrawAssignmentResponse;
+
+  @ApiProperty({ type: GroupResponse, isArray: true })
+  groups!: GroupResponse[];
+}
+
 export class PromotionBandRequest {
   @ApiProperty({ example: 'Copa Oro' })
   zoneRef!: string;

@@ -6,6 +6,7 @@ import {
   type SeedingResponse,
 } from '../lib/api-client.js';
 import type { SeedAssignment } from '../lib/seeding.js';
+import { controlLinkClick } from '../lib/control-navigation.js';
 import { controlTokenStore } from '../session/token-store.js';
 import { SeedingBuilderPage } from './SeedingBuilderPage.js';
 
@@ -59,6 +60,15 @@ export function SeedingBuilderRoute({
 
   return (
     <>
+      <a
+        className="cl-focusable"
+        href={`/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}/zones`}
+        onClick={controlLinkClick(
+          `/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}/zones`,
+        )}
+      >
+        Zonas y grupos
+      </a>
       {notice !== '' && (
         <p className="cl-inline-alert" role="alert">
           {notice}

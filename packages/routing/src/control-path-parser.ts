@@ -62,6 +62,21 @@ export type ControlRoute =
       readonly organizationAlias: string;
       readonly tournamentAlias: string;
       readonly stageNumber: number;
+    }
+  | {
+      /** Zone/Group management and entrant assignment (0108). */
+      readonly screen: 'zoneGroups';
+      readonly organizationAlias: string;
+      readonly tournamentAlias: string;
+      readonly stageNumber: number;
+    }
+  | {
+      /** A zone's promotion-plan configuration and review (0108). */
+      readonly screen: 'promotionPlan';
+      readonly organizationAlias: string;
+      readonly tournamentAlias: string;
+      readonly stageNumber: number;
+      readonly zoneNumber: number;
     };
 
 /** Matches a control-panel pathname against the nine real screen shapes. */
@@ -125,6 +140,15 @@ export function parseControlPath(pathname: string): ControlRoute | undefined {
     if (rest[4] === 'standings') {
       return { screen: 'standings', organizationAlias, tournamentAlias, stageNumber };
     }
+    if (rest[4] === 'zones') {
+      return { screen: 'zoneGroups', organizationAlias, tournamentAlias, stageNumber };
+    }
+  }
+  if (rest.length === 7 && rest[2] === 'stages' && rest[4] === 'zones' && rest[6] === 'promotion') {
+    const stageNumber = Number(rest[3]);
+    const zoneNumber = Number(rest[5]);
+    if (!Number.isFinite(stageNumber) || !Number.isFinite(zoneNumber)) return undefined;
+    return { screen: 'promotionPlan', organizationAlias, tournamentAlias, stageNumber, zoneNumber };
   }
 
   return undefined;

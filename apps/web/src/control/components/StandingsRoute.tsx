@@ -1,8 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createControlApiClient, type ControlApiClient } from '../lib/api-client.js';
-import type { TableLayoutSummaryResponse, TableProjectionResponseData } from '../lib/api-client.js';
+import type {
+  GroupResponse,
+  TableLayoutSummaryResponse,
+  TableProjectionResponseData,
+  ZoneResponse,
+} from '../lib/api-client.js';
 import { controlTokenStore } from '../session/token-store.js';
 import { StandingsPage } from './StandingsPage.js';
+
+interface GroupOption {
+  readonly groupId: string;
+  readonly label: string;
+}
 
 export function StandingsRoute({
   organizationAlias,
@@ -29,6 +39,54 @@ export function StandingsRoute({
   const [activeLayoutCode, setActiveLayoutCode] = useState<string | undefined>(undefined);
   const [projection, setProjection] = useState<TableProjectionResponseData | undefined>(undefined);
   const [errorStatus, setErrorStatus] = useState<string | undefined>(undefined);
+  const [groupOptions, setGroupOptions] = useState<readonly GroupOption[]>([]);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | undefined>(undefined);
+
+  // Every group across every zone of this stage (0108) — flat, since a
+  // group-phase standings table has no zone axis of its own to nest under.
+  // `listZones`/`listGroups` are optional client methods (older test doubles
+  // and any client that never wires zone/group support omit them) — checked
+  // once, outside the promise chain, so an absent method reads as "no
+  // selector" instead of throwing on the un-guarded `.then` a bare `?.()`
+  // call would leave dangling.
+  useEffect(() => {
+    let live = true;
+    const load = async (): Promise<void> => {
+      const listZones = api.listZones;
+      const listGroups = api.listGroups;
+      if (!listZones || !listGroups) {
+        if (live) setGroupOptions([]);
+        return;
+      }
+      try {
+        const zones = await listZones(organizationAlias, tournamentAlias, stageNumber);
+        const perZone = await Promise.all(
+          zones.map(async (zone) => ({
+            zone,
+            groups: await listGroups(organizationAlias, tournamentAlias, stageNumber, zone.number),
+          })),
+        );
+        if (!live) return;
+        const options = perZone.flatMap(
+          ({ zone, groups }: { zone: ZoneResponse; groups: readonly GroupResponse[] }) =>
+            groups.map((group) => ({
+              groupId: group.groupId,
+              label: zones.length > 1 ? `${zone.name} / ${group.name}` : group.name,
+            })),
+        );
+        setGroupOptions(options);
+      } catch {
+        // A stage with no zone/group management yet (or an unauthorized
+        // subject for the admin-only zone routes) reads as "no selector" —
+        // the same rendering a single-implicit-group stage already gets.
+        if (live) setGroupOptions([]);
+      }
+    };
+    void load();
+    return () => {
+      live = false;
+    };
+  }, [api, organizationAlias, tournamentAlias, stageNumber]);
 
   useEffect(() => {
     let live = true;
@@ -58,7 +116,9 @@ export function StandingsRoute({
     const scope =
       layout?.target === 'team-ranking' || layout?.target === 'player-ranking'
         ? {}
-        : { stageNumber };
+        : layout?.target === 'group-phase' && selectedGroupId !== undefined
+          ? { stageNumber, groupId: selectedGroupId }
+          : { stageNumber };
     let live = true;
     api
       .fetchTableProjection(organizationAlias, tournamentAlias, activeLayoutCode, scope)
@@ -73,9 +133,18 @@ export function StandingsRoute({
     return () => {
       live = false;
     };
-  }, [api, organizationAlias, tournamentAlias, stageNumber, activeLayoutCode, layouts]);
+  }, [
+    api,
+    organizationAlias,
+    tournamentAlias,
+    stageNumber,
+    activeLayoutCode,
+    layouts,
+    selectedGroupId,
+  ]);
 
   const activeLayout = layouts.find((layout) => layout.code === activeLayoutCode);
+  const showGroupSelector = activeLayout?.target === 'group-phase' && groupOptions.length > 1;
   const stageScopedTarget =
     activeLayout?.target === 'group-phase' ||
     activeLayout?.target === 'match-roster' ||
@@ -108,7 +177,14 @@ export function StandingsRoute({
                   organizationAlias,
                   tournamentAlias,
                   activeLayoutCode,
-                  stageScopedTarget ? { stageNumber } : {},
+                  stageScopedTarget
+                    ? {
+                        stageNumber,
+                        ...(activeLayout?.target === 'group-phase' && selectedGroupId !== undefined
+                          ? { groupId: selectedGroupId }
+                          : {}),
+                      }
+                    : {},
                 )
                 .then((csv) => {
                   const link = document.createElement('a');
@@ -122,6 +198,18 @@ export function StandingsRoute({
       onSelectLayout={setActiveLayoutCode}
       organizationAlias={organizationAlias}
       projection={projectionStale ? undefined : projection}
+      /* 0108: a group-phase table with more than one group offers a selector
+         above the table; a single-implicit-group stage renders nothing
+         extra, unchanged from before this capability existed. */
+      groupSelector={
+        showGroupSelector
+          ? {
+              options: groupOptions,
+              selectedGroupId,
+              onSelect: setSelectedGroupId,
+            }
+          : undefined
+      }
       status={status}
       tournamentName={tournamentAlias}
     />

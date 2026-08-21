@@ -59,13 +59,13 @@ export interface ControlApiClient {
     organizationAlias: string,
     tournamentAlias: string,
     layoutCode: string,
-    scope: { readonly stageNumber?: number },
+    scope: { readonly stageNumber?: number; readonly groupId?: string },
   ) => Promise<TableProjectionResponseData>;
   readonly downloadTableProjectionCsv?: (
     organizationAlias: string,
     tournamentAlias: string,
     layoutCode: string,
-    scope: { readonly stageNumber?: number },
+    scope: { readonly stageNumber?: number; readonly groupId?: string },
   ) => Promise<string>;
   readonly fetchSeeding: (
     organizationAlias: string,
@@ -78,6 +78,90 @@ export interface ControlApiClient {
     stageNumber: number,
     request: PublishSeedingRequest,
   ) => Promise<SeedingClassificationResponse>;
+  /** Zone/Group management, entrant assignment, and promotion plans (0108). */
+  readonly listZones?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageNumber: number,
+  ) => Promise<readonly ZoneResponse[]>;
+  readonly createZone?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageNumber: number,
+    request: CreateZoneOrGroupRequest,
+  ) => Promise<ZoneResponse>;
+  readonly listGroups?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageNumber: number,
+    zoneNumber: number,
+  ) => Promise<readonly GroupResponse[]>;
+  readonly createGroup?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageNumber: number,
+    zoneNumber: number,
+    request: CreateZoneOrGroupRequest,
+  ) => Promise<GroupResponse>;
+  readonly previewZoneDraw?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageNumber: number,
+    request: DrawZonesRequest,
+  ) => Promise<DrawPreviewResponse>;
+  readonly confirmZoneDraw?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageNumber: number,
+    request: DrawZonesRequest,
+  ) => Promise<ConfirmZoneDrawResponse>;
+  readonly assignZonesManually?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageNumber: number,
+    request: ManualZoneAssignmentRequest,
+  ) => Promise<ManualZoneAssignmentResponse>;
+  readonly previewGroupDraw?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageNumber: number,
+    zoneNumber: number,
+    request: DrawGroupsRequest,
+  ) => Promise<DrawPreviewResponse>;
+  readonly confirmGroupDraw?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageNumber: number,
+    zoneNumber: number,
+    request: DrawGroupsRequest,
+  ) => Promise<ConfirmGroupDrawResponse>;
+  readonly assignGroupsManually?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageNumber: number,
+    zoneNumber: number,
+    request: ManualGroupAssignmentRequest,
+  ) => Promise<ManualGroupAssignmentResponse>;
+  readonly savePromotionPlan?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageNumber: number,
+    zoneNumber: number,
+    request: SavePromotionPlanRequest,
+  ) => Promise<PromotionPlanResponse>;
+  readonly fetchPromotionPreview?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageNumber: number,
+    zoneNumber: number,
+  ) => Promise<PromotionPreviewResponse>;
+  /** Entrant ids already assigned to a zone — needed to offer manual group placement. */
+  readonly fetchZoneEntrants?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageNumber: number,
+    zoneNumber: number,
+  ) => Promise<readonly string[]>;
   readonly listOrganizationRoles: (
     organizationAlias: string,
   ) => Promise<readonly OrganizationRoleResponse[]>;
@@ -335,6 +419,119 @@ export interface SeedingClassificationResponse {
   readonly invalidates: readonly string[];
   /** True once the new seed order and fixtures are durably persisted. */
   readonly persisted: boolean;
+}
+
+export interface ZoneResponse {
+  readonly zoneId: string;
+  readonly stageId: string;
+  readonly number: number;
+  readonly name: string;
+}
+
+export interface GroupResponse {
+  readonly groupId: string;
+  readonly zoneId: string;
+  readonly number: number;
+  readonly name: string;
+}
+
+export interface CreateZoneOrGroupRequest {
+  readonly number?: number;
+  readonly name: string;
+}
+
+export interface DrawConstraintRequest {
+  readonly kind: string;
+  readonly hook: string;
+  readonly attribute?: string;
+  readonly scope?: string | { readonly beforeRound: string };
+  readonly value?: string;
+  readonly min?: number;
+  readonly max?: number;
+  readonly script?: Record<string, unknown>;
+}
+
+export interface DrawZonesRequest {
+  readonly zoneCount: number;
+  readonly seed: number;
+  readonly constraints?: readonly DrawConstraintRequest[];
+}
+
+export interface DrawGroupsRequest {
+  readonly groupCount: number;
+  readonly seed: number;
+  readonly constraints?: readonly DrawConstraintRequest[];
+}
+
+/** Accepted entrant UUID mapped to its 1-based zone or group number. */
+export interface DrawAssignmentResponse {
+  readonly groups: Readonly<Record<string, number>>;
+}
+
+export interface DrawPreviewResponse {
+  readonly assignment: DrawAssignmentResponse;
+  readonly seed: number;
+  readonly steps: number;
+}
+
+export interface ConfirmZoneDrawResponse extends DrawPreviewResponse {
+  readonly zones: readonly ZoneResponse[];
+}
+
+export interface ConfirmGroupDrawResponse extends DrawPreviewResponse {
+  readonly groups: readonly GroupResponse[];
+}
+
+/** No seed/steps — a manual assignment has neither (0108). */
+export interface ManualZoneAssignmentRequest {
+  readonly assignment: DrawAssignmentResponse;
+  readonly zoneCount: number;
+}
+
+export interface ManualGroupAssignmentRequest {
+  readonly assignment: DrawAssignmentResponse;
+  readonly groupCount: number;
+}
+
+export interface ManualZoneAssignmentResponse {
+  readonly assignment: DrawAssignmentResponse;
+  readonly zones: readonly ZoneResponse[];
+}
+
+export interface ManualGroupAssignmentResponse {
+  readonly assignment: DrawAssignmentResponse;
+  readonly groups: readonly GroupResponse[];
+}
+
+export interface PromotionBandRequest {
+  readonly zoneRef: string;
+  readonly count: number;
+}
+
+export interface SavePromotionPlanRequest {
+  readonly nextStageNumber: number;
+  readonly perGroupAdvance: number | Readonly<Record<string, number>>;
+  readonly combination: Readonly<Record<string, unknown>>;
+  readonly bands?: readonly PromotionBandRequest[];
+}
+
+export interface PromotionPlanResponse {
+  readonly promotionPlanId: string;
+  readonly zoneId: string;
+  readonly nextStageId: string;
+  readonly plan: Readonly<Record<string, unknown>>;
+}
+
+export interface QualifiedEntrantResponse {
+  readonly entrantId: string;
+  readonly groupId: string;
+  readonly rank: number;
+}
+
+export interface PromotionPreviewResponse {
+  readonly combined: readonly QualifiedEntrantResponse[];
+  readonly bands?: Readonly<Record<string, readonly QualifiedEntrantResponse[]>>;
+  readonly trace: readonly Readonly<Record<string, unknown>>[];
 }
 
 export interface CreateTournamentRequest {
@@ -780,14 +977,15 @@ export function createControlApiClient(input: {
     fetchTableProjection: (organizationAlias, tournamentAlias, layoutCode, scope) =>
       requestJson<TableProjectionResponseData>(
         input.fetch,
-        tablePath(baseUrl, organizationAlias, tournamentAlias, layoutCode, scope),
+        tablePath(baseUrl, organizationAlias, tournamentAlias, layoutCode, scope) +
+          groupQuery(scope.groupId),
         { token: input.accessToken?.() },
       ),
 
     downloadTableProjectionCsv: (organizationAlias, tournamentAlias, layoutCode, scope) =>
       requestText(
         input.fetch,
-        `${tablePath(baseUrl, organizationAlias, tournamentAlias, layoutCode, scope)}/csv`,
+        `${tablePath(baseUrl, organizationAlias, tournamentAlias, layoutCode, scope)}/csv${groupQuery(scope.groupId)}`,
         input.accessToken?.(),
       ),
 
@@ -805,6 +1003,97 @@ export function createControlApiClient(input: {
         input.fetch,
         `${stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber)}/seeding`,
         { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    listZones: (organizationAlias, tournamentAlias, stageNumber) =>
+      requestJson<readonly ZoneResponse[]>(
+        input.fetch,
+        `${stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber)}/zones`,
+        { token: input.accessToken?.() },
+      ),
+
+    createZone: (organizationAlias, tournamentAlias, stageNumber, body) =>
+      requestJson<ZoneResponse>(
+        input.fetch,
+        `${stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber)}/zones`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    listGroups: (organizationAlias, tournamentAlias, stageNumber, zoneNumber) =>
+      requestJson<readonly GroupResponse[]>(
+        input.fetch,
+        `${zoneStagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber, zoneNumber)}/groups`,
+        { token: input.accessToken?.() },
+      ),
+
+    createGroup: (organizationAlias, tournamentAlias, stageNumber, zoneNumber, body) =>
+      requestJson<GroupResponse>(
+        input.fetch,
+        `${zoneStagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber, zoneNumber)}/groups`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    previewZoneDraw: (organizationAlias, tournamentAlias, stageNumber, body) =>
+      requestJson<DrawPreviewResponse>(
+        input.fetch,
+        `${stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber)}/zones/draw/preview`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    confirmZoneDraw: (organizationAlias, tournamentAlias, stageNumber, body) =>
+      requestJson<ConfirmZoneDrawResponse>(
+        input.fetch,
+        `${stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber)}/zones/draw`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    assignZonesManually: (organizationAlias, tournamentAlias, stageNumber, body) =>
+      requestJson<ManualZoneAssignmentResponse>(
+        input.fetch,
+        `${stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber)}/zones/assign`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    previewGroupDraw: (organizationAlias, tournamentAlias, stageNumber, zoneNumber, body) =>
+      requestJson<DrawPreviewResponse>(
+        input.fetch,
+        `${zoneStagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber, zoneNumber)}/groups/draw/preview`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    confirmGroupDraw: (organizationAlias, tournamentAlias, stageNumber, zoneNumber, body) =>
+      requestJson<ConfirmGroupDrawResponse>(
+        input.fetch,
+        `${zoneStagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber, zoneNumber)}/groups/draw`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    assignGroupsManually: (organizationAlias, tournamentAlias, stageNumber, zoneNumber, body) =>
+      requestJson<ManualGroupAssignmentResponse>(
+        input.fetch,
+        `${zoneStagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber, zoneNumber)}/groups/assign`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    savePromotionPlan: (organizationAlias, tournamentAlias, stageNumber, zoneNumber, body) =>
+      requestJson<PromotionPlanResponse>(
+        input.fetch,
+        `${zoneStagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber, zoneNumber)}/promotion-plan`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    fetchPromotionPreview: (organizationAlias, tournamentAlias, stageNumber, zoneNumber) =>
+      requestJson<PromotionPreviewResponse>(
+        input.fetch,
+        `${zoneStagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber, zoneNumber)}/promotion-preview`,
+        { token: input.accessToken?.() },
+      ),
+
+    fetchZoneEntrants: (organizationAlias, tournamentAlias, stageNumber, zoneNumber) =>
+      requestJson<readonly string[]>(
+        input.fetch,
+        `${zoneStagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber, zoneNumber)}/entrants`,
+        { token: input.accessToken?.() },
       ),
 
     listOrganizationRoles: (organizationAlias) =>
@@ -1030,7 +1319,12 @@ function stagePath(
   )}/stages/${stageNumber}`;
 }
 
-/** `scope.stageNumber` absent reads the tournament-wide table route. */
+/**
+ * `scope.stageNumber` absent reads the tournament-wide table route. Does
+ * NOT include `scope.groupId` in the returned path — callers append that
+ * query string themselves, after any further path segment (e.g. `/csv`)
+ * they add, so the query string always lands last.
+ */
 function tablePath(
   baseUrl: string,
   organizationAlias: string,
@@ -1045,6 +1339,21 @@ function tablePath(
         )}`
       : stagePath(baseUrl, organizationAlias, tournamentAlias, scope.stageNumber);
   return `${scoped}/tables/${encodeURIComponent(layoutCode)}`;
+}
+
+/** Scopes a stage-level table to one group's own matches and entrants only (0108). */
+function groupQuery(groupId: string | undefined): string {
+  return groupId === undefined ? '' : `?groupId=${encodeURIComponent(groupId)}`;
+}
+
+function zoneStagePath(
+  baseUrl: string,
+  organizationAlias: string,
+  tournamentAlias: string,
+  stageNumber: number,
+  zoneNumber: number,
+): string {
+  return `${stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber)}/zones/${zoneNumber}`;
 }
 
 async function requestJson<T>(

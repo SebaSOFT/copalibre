@@ -324,6 +324,69 @@ describe('control routes', () => {
     expect(await screen.findByText('No se pudieron cargar las tablas.')).toBeTruthy();
   });
 
+  it('offers a group selector for a stage with more than one group and scopes the table to the selected one (0108)', async () => {
+    const zones: readonly {
+      readonly zoneId: string;
+      readonly stageId: string;
+      readonly number: number;
+      readonly name: string;
+    }[] = [{ zoneId: 'zone-1', stageId: 'stage-1', number: 1, name: 'Zona 1' }];
+    const groups: readonly {
+      readonly groupId: string;
+      readonly zoneId: string;
+      readonly number: number;
+      readonly name: string;
+    }[] = [
+      { groupId: 'group-a', zoneId: 'zone-1', number: 1, name: 'Grupo A' },
+      { groupId: 'group-b', zoneId: 'zone-1', number: 2, name: 'Grupo B' },
+    ];
+    const projectionRequests: unknown[] = [];
+    render(
+      <StandingsControlRoute
+        client={stubClient({
+          listZones: () => Promise.resolve(zones),
+          listGroups: () => Promise.resolve(groups),
+          fetchTableProjection: (_org, _tournament, _layoutCode, scope) => {
+            projectionRequests.push(scope);
+            return Promise.resolve(projection);
+          },
+        })}
+        organizationAlias="liga-mendocina"
+        stageNumber={1}
+        tournamentAlias="apertura"
+      />,
+    );
+
+    const selector = await screen.findByRole('combobox', { name: 'Grupo' });
+    expect(screen.getByRole('option', { name: 'Grupo A' })).toBeTruthy();
+    expect(screen.getByRole('option', { name: 'Grupo B' })).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.change(selector, { target: { value: 'group-b' } });
+    });
+
+    expect(projectionRequests).toContainEqual({ stageNumber: 1, groupId: 'group-b' });
+  });
+
+  it('shows no group selector for a single-implicit-group stage (0108)', async () => {
+    render(
+      <StandingsControlRoute
+        client={stubClient({
+          listZones: () =>
+            Promise.resolve([{ zoneId: 'zone-1', stageId: 'stage-1', number: 1, name: 'Zona 1' }]),
+          listGroups: () =>
+            Promise.resolve([{ groupId: 'group-1', zoneId: 'zone-1', number: 1, name: 'Grupo 1' }]),
+        })}
+        organizationAlias="liga-mendocina"
+        stageNumber={1}
+        tournamentAlias="apertura"
+      />,
+    );
+
+    await screen.findAllByText('ind');
+    expect(screen.queryByRole('combobox', { name: 'Grupo' })).toBeNull();
+  });
+
   it('shows the server’s own refusal when a reseed is blocked', async () => {
     render(
       <SeedingControlRoute

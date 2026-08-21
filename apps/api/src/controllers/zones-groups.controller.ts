@@ -58,6 +58,10 @@ import {
   DrawPreviewResponse,
   DrawZonesRequest,
   GroupResponse,
+  ManualGroupAssignmentRequest,
+  ManualGroupAssignmentResponse,
+  ManualZoneAssignmentRequest,
+  ManualZoneAssignmentResponse,
   PromotionPlanResponse,
   PromotionPreviewResponse,
   SavePromotionPlanRequest,
@@ -118,6 +122,22 @@ export class ZonesGroupsController {
     } catch (error) {
       throwConflict(error);
     }
+  }
+
+  @Get('zones/:zoneNumber/entrants')
+  @SecurityPlaneTag('public-read')
+  @ApiOperation({ summary: 'List the entrant ids assigned to a zone' })
+  @ApiOkResponse({ type: String, isArray: true })
+  @ApiNotFoundResponse({ type: ProblemResponse })
+  async zoneEntrants(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('stageNumber', ParseIntPipe) stageNumber: number,
+    @Param('zoneNumber', ParseIntPipe) zoneNumber: number,
+  ): Promise<readonly string[]> {
+    const { stage } = await this.publicStage(organizationAlias, tournamentAlias, stageNumber);
+    const zone = await this.zone(stage.stageId, zoneNumber);
+    return new CompetitionRepository(this.db).listEntrantIdsOfZone(zone.zoneId);
   }
 
   @Get('zones/:zoneNumber/groups')
@@ -290,6 +310,84 @@ export class ZonesGroupsController {
         }),
       );
       return { ...outcome, groups: [...persisted.entities] };
+    } catch (error) {
+      throwConflict(error);
+    }
+  }
+
+  @Post('zones/assign')
+  @HttpCode(200)
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Manually assign entrants to zones, without a draw' })
+  @ApiOkResponse({ type: ManualZoneAssignmentResponse })
+  @ApiConflictResponse({ type: ProblemResponse })
+  @ApiUnauthorizedResponse({ type: ProblemResponse })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  @ApiNotFoundResponse({ type: ProblemResponse })
+  async assignZonesManually(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('stageNumber', ParseIntPipe) stageNumber: number,
+    @Body() body: ManualZoneAssignmentRequest,
+    @Req() request: RequestWithSubject,
+  ): Promise<ManualZoneAssignmentResponse> {
+    const context = await this.adminStage(organizationAlias, tournamentAlias, stageNumber, request);
+    const competition = new CompetitionRepository(this.db);
+    try {
+      const persisted = await withTransaction(this.db, (uow) =>
+        competition.assignZonesManually(uow, {
+          stageId: context.stage.stageId,
+          assignment: body.assignment,
+          zoneCount: body.zoneCount,
+          ...context.audit,
+        }),
+      );
+      return {
+        assignment: assignmentResponse(persisted.assignment),
+        zones: [...persisted.entities],
+      };
+    } catch (error) {
+      throwConflict(error);
+    }
+  }
+
+  @Post('zones/:zoneNumber/groups/assign')
+  @HttpCode(200)
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Manually assign entrants to groups, without a draw' })
+  @ApiOkResponse({ type: ManualGroupAssignmentResponse })
+  @ApiConflictResponse({ type: ProblemResponse })
+  @ApiUnauthorizedResponse({ type: ProblemResponse })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  @ApiNotFoundResponse({ type: ProblemResponse })
+  async assignGroupsManually(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('stageNumber', ParseIntPipe) stageNumber: number,
+    @Param('zoneNumber', ParseIntPipe) zoneNumber: number,
+    @Body() body: ManualGroupAssignmentRequest,
+    @Req() request: RequestWithSubject,
+  ): Promise<ManualGroupAssignmentResponse> {
+    const context = await this.adminStage(organizationAlias, tournamentAlias, stageNumber, request);
+    const zone = await this.zone(context.stage.stageId, zoneNumber);
+    const competition = new CompetitionRepository(this.db);
+    try {
+      const persisted = await withTransaction(this.db, (uow) =>
+        competition.assignGroupsManually(uow, {
+          zoneId: zone.zoneId,
+          assignment: body.assignment,
+          groupCount: body.groupCount,
+          ...context.audit,
+        }),
+      );
+      return {
+        assignment: assignmentResponse(persisted.assignment),
+        groups: [...persisted.entities],
+      };
     } catch (error) {
       throwConflict(error);
     }

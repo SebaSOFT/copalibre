@@ -6,12 +6,14 @@ import {
   MatchConsoleControlRoute,
   PersonProfileControlRoute,
   PreferencesControlRoute,
+  PromotionPlanControlRoute,
   RegistrationReviewControlRoute,
   ReportReviewControlRoute,
   RolesPermissionsControlRoute,
   SeedingControlRoute,
   StandingsControlRoute,
   TournamentAuthoringControlRoute,
+  ZoneGroupControlRoute,
 } from './ControlRoutes.js';
 
 import { LoginRoute, ForgotPasswordRoute, ResetPasswordRoute } from './NativeAuthRoutes.js';
@@ -164,6 +166,23 @@ export function ControlApp(): React.JSX.Element | null {
           tournamentAlias={route.tournamentAlias}
         />
       );
+    case 'zoneGroups':
+      return (
+        <ZoneGroupControlRoute
+          organizationAlias={route.organizationAlias}
+          stageNumber={route.stageNumber}
+          tournamentAlias={route.tournamentAlias}
+        />
+      );
+    case 'promotionPlan':
+      return (
+        <PromotionPlanControlRoute
+          organizationAlias={route.organizationAlias}
+          stageNumber={route.stageNumber}
+          tournamentAlias={route.tournamentAlias}
+          zoneNumber={route.zoneNumber}
+        />
+      );
   }
 }
 
@@ -196,6 +215,10 @@ function titleFor(route: ReturnType<typeof parseControlPath>): string {
       return `Sembrado — ${route.tournamentAlias}`;
     case 'standings':
       return `Posiciones — ${route.tournamentAlias}`;
+    case 'zoneGroups':
+      return `Zonas y grupos — ${route.tournamentAlias}`;
+    case 'promotionPlan':
+      return `Plan de promoción — ${route.tournamentAlias}`;
     case 'login':
       return 'Iniciar sesión — CopaLibre';
     case 'forgot-password':

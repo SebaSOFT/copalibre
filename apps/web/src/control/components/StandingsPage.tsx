@@ -33,6 +33,7 @@ export function StandingsPage({
   organizationAlias,
   onExpand,
   onExportCsv,
+  groupSelector,
 }: {
   readonly layouts: readonly TableLayoutSummaryResponse[];
   readonly activeLayoutCode?: string;
@@ -45,6 +46,12 @@ export function StandingsPage({
   /** Fetches one row's trace lines; called the first time a `group-phase` row is expanded. */
   readonly onExpand?: (entrantId: string) => Promise<readonly string[]>;
   readonly onExportCsv?: () => void;
+  /** Scopes a `group-phase` table to one group; absent for a single-implicit-group stage (0108). */
+  readonly groupSelector?: {
+    readonly options: readonly { readonly groupId: string; readonly label: string }[];
+    readonly selectedGroupId?: string;
+    readonly onSelect: (groupId: string) => void;
+  };
 }): React.JSX.Element {
   const intl = useIntl();
   const [traces, setTraces] = useState<Readonly<Record<string, readonly string[]>>>({});
@@ -113,6 +120,24 @@ export function StandingsPage({
             </button>
           ))}
         </div>
+      )}
+
+      {groupSelector && (
+        <label style={groupSelectorLabelStyle}>
+          <FormattedMessage {...messages.standingsGroupSelector} />
+          <select
+            aria-label={intl.formatMessage(messages.standingsGroupSelector)}
+            onChange={(event) => groupSelector.onSelect(event.target.value)}
+            style={groupSelectorStyle}
+            value={groupSelector.selectedGroupId ?? ''}
+          >
+            {groupSelector.options.map((option) => (
+              <option key={option.groupId} value={option.groupId}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
       )}
 
       {tabs.length === 0 && status === undefined && (
@@ -365,6 +390,18 @@ const smallStyle: React.CSSProperties = {
   color: 'var(--cl-text-muted)',
   fontFamily: 'var(--cl-font-mono)',
   fontSize: '0.75rem',
+};
+const groupSelectorLabelStyle: React.CSSProperties = {
+  display: 'grid',
+  gap: 'var(--cl-space-1)',
+  color: 'var(--cl-text-secondary)',
+  maxWidth: '20rem',
+};
+const groupSelectorStyle: React.CSSProperties = {
+  padding: 'var(--cl-space-2)',
+  border: '1px solid var(--cl-border-muted)',
+  background: 'var(--cl-surface-base)',
+  color: 'inherit',
 };
 const tabListStyle: React.CSSProperties = {
   display: 'flex',
