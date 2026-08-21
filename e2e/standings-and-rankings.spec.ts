@@ -291,6 +291,33 @@ test.describe('B2: public tournament page', () => {
       timeline: [],
     };
 
+    const bracketFixture = {
+      matches: [
+        {
+          matchId: 'm-1',
+          bracket: 'winner',
+          round: 1,
+          position: 1,
+          status: 'final',
+          slots: [
+            { kind: 'entrant', name: 'Talleres', abbreviation: 'TAL', score: 2 },
+            { kind: 'entrant', name: 'Independiente', abbreviation: 'IND', score: 1 },
+          ],
+        },
+        {
+          matchId: 'm-2',
+          bracket: 'winner',
+          round: 2,
+          position: 2,
+          status: 'upcoming',
+          slots: [
+            { kind: 'winner-of', matchId: '1' },
+            { kind: 'winner-of', matchId: '3' },
+          ],
+        },
+      ],
+    };
+
     const organizationTournaments = {
       organizationAlias: ORGANIZATION,
       organizationName: 'Liga Mendocina',
@@ -370,6 +397,10 @@ test.describe('B2: public tournament page', () => {
         res.end(JSON.stringify({ ...topScorersFixture, rows: [] }));
         return;
       }
+      if (req.url === `${STAGE}/bracket`) {
+        res.end(JSON.stringify(bracketFixture));
+        return;
+      }
       if (req.url === `${STAGE}/matches/1`) {
         res.end(JSON.stringify(finishedReport));
         return;
@@ -436,6 +467,21 @@ test.describe('B2: public tournament page', () => {
     await expect(page.getByText('No officials assigned.')).toBeVisible();
     await expect(page.getByText('Rosters are not yet available.')).toBeVisible();
     await expect(page.getByText('Events are not yet available.')).toBeVisible();
+  });
+
+  test('a bracket match card links to its report page (0112)', async ({ page }) => {
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/1`);
+
+    // The played match (position 1, matchNumber 1) links to the report
+    // already asserted above (same fixture, same header).
+    await page.locator('a:has(article[data-match="1"])').click();
+    await expect(page.getByRole('heading', { name: /TAL.*2.*1.*IND/ })).toBeVisible();
+
+    // Still linked though its own slots are winner-of placeholders: 0102's
+    // report page renders correctly for a not-yet-played match.
+    await page.goBack();
+    await page.locator('a:has(article[data-match="2"])').click();
+    await page.waitForURL(`**/stages/1/matches/2`);
   });
 
   test('switches to a leaderboard tab and filters by club', async ({ page }) => {
