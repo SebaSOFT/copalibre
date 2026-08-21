@@ -1,5 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ScheduleBuilderRoute } from './components/ScheduleBuilderRoute.js';
 import { ControlApiError } from './lib/api-client.js';
 import type {
@@ -44,6 +44,24 @@ const oneOfficial: readonly OfficialResponse[] = [
 ];
 
 describe('ScheduleBuilderRoute', () => {
+  it('builds its own client when none is injected', async () => {
+    render(
+      withIntl(
+        <ScheduleBuilderRoute
+          organizationAlias="liga-mendocina"
+          stageNumber={1}
+          tournamentAlias="apertura"
+        />,
+      ),
+    );
+
+    // No assertions on the (real, unmocked) network outcome — this only
+    // proves the component constructs a working default client rather than
+    // crashing when a caller supplies none, the same as every other
+    // production mount.
+    await waitFor(() => expect(screen.queryByText('Loading…')).toBeNull());
+  });
+
   it('shows a fixture as unassigned until it has a start time', async () => {
     const client = stubClient({
       getStageFixtures: () => Promise.resolve({ stageId: STAGE_ID, fixtures: oneFixture }),
@@ -288,10 +306,182 @@ describe('ScheduleBuilderRoute', () => {
     await screen.findByText('El lote fue rechazado');
   });
 
+  it('assigns a venue via the select and toggles an official on and off', async () => {
+    const client = stubClient({
+      getStageFixtures: () => Promise.resolve({ stageId: STAGE_ID, fixtures: oneFixture }),
+      getSchedule: () => Promise.resolve({ assignments: [] }),
+      listVenues: () => Promise.resolve(oneVenue),
+      listOfficials: () => Promise.resolve(oneOfficial),
+    });
+    render(
+      withIntl(
+        <ScheduleBuilderRoute
+          client={client}
+          organizationAlias="liga-mendocina"
+          stageNumber={1}
+          tournamentAlias="apertura"
+        />,
+      ),
+    );
+
+    await screen.findAllByText(/Round 1/);
+    fireEvent.change(screen.getByLabelText(/Venue — fixture-1/), {
+      target: { value: 'venue-1' },
+    });
+    expect((screen.getByLabelText(/Venue — fixture-1/) as HTMLSelectElement).value).toBe('venue-1');
+
+    const officialCheckbox = screen.getByLabelText('Ana Gómez') as HTMLInputElement;
+    fireEvent.click(officialCheckbox);
+    expect(officialCheckbox.checked).toBe(true);
+    fireEvent.click(officialCheckbox);
+    expect(officialCheckbox.checked).toBe(false);
+  });
+
+  it('reports a generic failure when preview throws a non-ControlApiError', async () => {
+    const client = stubClient({
+      getStageFixtures: () => Promise.resolve({ stageId: STAGE_ID, fixtures: oneFixture }),
+      getSchedule: () => Promise.resolve({ assignments: [] }),
+      previewSchedule: () => Promise.reject(new Error('network down')),
+    });
+    render(
+      withIntl(
+        <ScheduleBuilderRoute
+          client={client}
+          organizationAlias="liga-mendocina"
+          stageNumber={1}
+          tournamentAlias="apertura"
+        />,
+      ),
+    );
+
+    await screen.findAllByText(/Round 1/);
+    fireEvent.change(screen.getByLabelText(/Start time — fixture-1/), {
+      target: { value: '2026-08-01T14:00' },
+    });
+    fireEvent.change(screen.getByLabelText(/Duration \(minutes\) — fixture-1/), {
+      target: { value: '60' },
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Preview'));
+    });
+
+    await screen.findByText('The request was refused.');
+  });
+
+  it('surfaces the server’s own refusal message on a failed preview', async () => {
+    const client = stubClient({
+      getStageFixtures: () => Promise.resolve({ stageId: STAGE_ID, fixtures: oneFixture }),
+      getSchedule: () => Promise.resolve({ assignments: [] }),
+      previewSchedule: () => Promise.reject(new ControlApiError(400, 'El lote fue rechazado')),
+    });
+    render(
+      withIntl(
+        <ScheduleBuilderRoute
+          client={client}
+          organizationAlias="liga-mendocina"
+          stageNumber={1}
+          tournamentAlias="apertura"
+        />,
+      ),
+    );
+
+    await screen.findAllByText(/Round 1/);
+    fireEvent.change(screen.getByLabelText(/Start time — fixture-1/), {
+      target: { value: '2026-08-01T14:00' },
+    });
+    fireEvent.change(screen.getByLabelText(/Duration \(minutes\) — fixture-1/), {
+      target: { value: '60' },
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Preview'));
+    });
+
+    await screen.findByText('El lote fue rechazado');
+  });
+
+  it('reports a generic failure when publish throws a non-ControlApiError', async () => {
+    const client = stubClient({
+      getStageFixtures: () => Promise.resolve({ stageId: STAGE_ID, fixtures: oneFixture }),
+      getSchedule: () => Promise.resolve({ assignments: [] }),
+      previewSchedule: () =>
+        Promise.resolve({ committable: true, conflicts: [], affectedPublishedFixtures: [] }),
+      publishSchedule: () => Promise.reject(new Error('network down')),
+    });
+    render(
+      withIntl(
+        <ScheduleBuilderRoute
+          client={client}
+          organizationAlias="liga-mendocina"
+          stageNumber={1}
+          tournamentAlias="apertura"
+        />,
+      ),
+    );
+
+    await screen.findAllByText(/Round 1/);
+    fireEvent.change(screen.getByLabelText(/Start time — fixture-1/), {
+      target: { value: '2026-08-01T14:00' },
+    });
+    fireEvent.change(screen.getByLabelText(/Duration \(minutes\) — fixture-1/), {
+      target: { value: '60' },
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Preview'));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Publish'));
+    });
+
+    await screen.findByText('The request was refused.');
+  });
+
+  it('does nothing when preview and publish are clicked with an empty batch', async () => {
+    const previewSchedule = jest.fn<NonNullable<ControlApiClient['previewSchedule']>>(async () => ({
+      committable: true,
+      conflicts: [],
+      affectedPublishedFixtures: [],
+    }));
+    const client = stubClient({
+      getStageFixtures: () => Promise.resolve({ stageId: STAGE_ID, fixtures: oneFixture }),
+      getSchedule: () => Promise.resolve({ assignments: [] }),
+      previewSchedule,
+    });
+    render(
+      withIntl(
+        <ScheduleBuilderRoute
+          client={client}
+          organizationAlias="liga-mendocina"
+          stageNumber={1}
+          tournamentAlias="apertura"
+        />,
+      ),
+    );
+
+    await screen.findAllByText(/Round 1/);
+    expect((screen.getByText('Preview') as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByText('Publish') as HTMLButtonElement).disabled).toBe(true);
+  });
+
   it('reports a load failure', async () => {
     const client = stubClient({
       getStageFixtures: () => Promise.reject(new Error('down')),
     });
+    render(
+      withIntl(
+        <ScheduleBuilderRoute
+          client={client}
+          organizationAlias="liga-mendocina"
+          stageNumber={1}
+          tournamentAlias="apertura"
+        />,
+      ),
+    );
+
+    await screen.findByText('Could not load this stage’s schedule.');
+  });
+
+  it('reports a load failure when the client has no fixtures method at all', async () => {
+    const client = stubClient({ getStageFixtures: undefined });
     render(
       withIntl(
         <ScheduleBuilderRoute

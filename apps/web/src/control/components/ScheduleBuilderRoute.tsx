@@ -441,7 +441,9 @@ const calendarRowAssignedStyle: React.CSSProperties = {
   display: 'flex',
   justifyContent: 'space-between',
   padding: 'var(--cl-space-2)',
-  border: '1px solid var(--cl-border-muted)',
+  borderWidth: '1px',
+  borderStyle: 'solid',
+  borderColor: 'var(--cl-border-muted)',
 };
 const calendarRowUnassignedStyle: React.CSSProperties = {
   ...calendarRowAssignedStyle,
