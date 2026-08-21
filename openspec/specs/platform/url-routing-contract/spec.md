@@ -4,7 +4,9 @@
 Guarantees every surface (public, control, TV, SSE) that shows the same tournament resource derives
 its URL from one shared, pure-function module instead of inventing per-surface routing logic, so
 cross-surface navigation is always correct by construction.
+
 ## Requirements
+
 ### Requirement: URL builder accepts only alias/number identity
 The URL-builder module SHALL accept exactly `{ organizationAlias, tournamentAlias, stageNumber?,
 roundNumber?, matchNumber?, participantAlias?, viewMode?, locale? }` and SHALL reject a database
@@ -35,3 +37,16 @@ and SHALL never encode resource identity in a query parameter.
 - **WHEN** the builder is asked for the TV overlay variant of a match route
 - **THEN** it returns `/tv/{organization}/tournaments/{tournament}/matches/{match}?mode=overlay`
 
+### Requirement: The canonical organization path is served by a page
+
+The canonical public path the URL builder produces for an input naming only an organization —
+`/{organization}` — SHALL be served by the public site. The builder SHALL express that path exactly one
+way: no separate listing discriminator SHALL produce a distinct organization-scoped listing path.
+
+#### Scenario: Building an organization path
+- **WHEN** the canonical URL builder is given only an organization alias
+- **THEN** it returns `/{organization}`, and that path is served
+
+#### Scenario: There is no second way to express the organization path
+- **WHEN** the routing contract is inspected for an organization-scoped listing discriminator
+- **THEN** none exists, and no input produces `/{organization}/tournaments`
