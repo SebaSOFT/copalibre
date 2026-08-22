@@ -4,7 +4,9 @@
 Gives every CopaLibre rendering surface one consistent, generated implementation of the Broadcast
 Command Precision visual identity, and structurally guarantees it never converges with
 `sebasoft-app`'s unrelated cyberpunk-wireframe identity.
+
 ## Requirements
+
 ### Requirement: Single source-of-truth token definitions
 `packages/design-tokens` SHALL define color, typography, spacing, radius, motion, and semantic state
 tokens in one source, generating both CSS custom properties and Tailwind tokens from it, so no value
@@ -13,6 +15,38 @@ is hand-maintained in two places.
 #### Scenario: A token value changes once, propagates everywhere
 - **WHEN** a semantic state color (e.g. the "live" token) is changed in the source definition
 - **THEN** both the generated CSS custom properties output and the generated Tailwind tokens output reflect the new value without a second manual edit
+
+### Requirement: Semantic font-size scale
+`packages/design-tokens` SHALL define a font-size scale as part of its single source-of-truth token
+set (alongside color, typography-family, spacing, radius, and motion), generating both CSS custom
+properties and Tailwind `fontSize` tokens from it, so no font-size value is hand-maintained in two
+places or picked ad hoc by a component.
+
+#### Scenario: A font-size step changes once, propagates everywhere
+- **WHEN** a font-size scale step is changed in the source definition
+- **THEN** both the generated CSS custom properties output and the generated Tailwind `fontSize` output
+  reflect the new value without a second manual edit
+
+#### Scenario: The scale has a documented, consistent ratio
+- **WHEN** the font-size scale is inspected
+- **THEN** each step's relationship to the next follows one documented ratio or named progression,
+  rather than being a set of independently chosen values
+
+### Requirement: Responsive breakpoint tokens
+`packages/design-tokens` SHALL define responsive breakpoint tokens at 375, 768, 1024, and 1440 px —
+the same four widths the visual-identity doctrine's Responsive and visual-review gates already require
+as screenshot acceptance evidence — generating both CSS custom properties (for use in `@media` queries
+or container queries) and Tailwind `screens` tokens from the same source.
+
+#### Scenario: A breakpoint value changes once, propagates everywhere
+- **WHEN** a breakpoint token value is changed in the source definition
+- **THEN** both the generated CSS custom properties output and the generated Tailwind `screens` output
+  reflect the new value without a second manual edit
+
+#### Scenario: Breakpoint set matches the doctrine's acceptance-gate widths
+- **WHEN** the generated breakpoint token set is inspected
+- **THEN** it contains exactly the 375, 768, 1024, and 1440 px widths named in the visual-identity
+  doctrine's screenshot acceptance gate, with no undocumented additional breakpoint
 
 ### Requirement: Broadcast Command Precision palette and typography
 The generated token set SHALL include the ink/text scale, cyan live/active tokens, amber
@@ -59,9 +93,15 @@ active.
 
 ### Requirement: Style-guide route for visual verification
 The platform SHALL provide a route rendering every generated token and core component for manual and
-automated visual smoke-testing.
+automated visual smoke-testing, including a labelled sample of every font-size scale step at every
+generated breakpoint.
 
 #### Scenario: Style guide renders all core components
 - **WHEN** the style-guide route is loaded
-- **THEN** it renders at least one instance of every card, badge, button variant, alert, and stat-tile component defined by the token package
+- **THEN** it renders at least one instance of every card, badge, button variant, alert, and stat-tile
+  component defined by the token package
 
+#### Scenario: Style guide renders the font-size scale
+- **WHEN** the style-guide route is loaded
+- **THEN** it renders a labelled sample of every font-size scale step, so a reviewer can visually
+  confirm the scale's steps are legible and distinguishable from one another
