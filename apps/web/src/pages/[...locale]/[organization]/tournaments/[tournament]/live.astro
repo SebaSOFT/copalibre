@@ -49,6 +49,7 @@ const reportPath = (stageNumber: number, matchNumber: number) =>
   title={`${intl.formatMessage(messages.livePageTitle)} — ${displayName(model)}`}
   canonicalPath={`${model.canonicalPath}/live`}
   intl={intl}
+  disciplineImages={overviewData.disciplineImages}
 >
   <h1>{intl.formatMessage(messages.livePageTitle)}</h1>
   {/* Server-rendered first, so the page is right before any script runs. */}

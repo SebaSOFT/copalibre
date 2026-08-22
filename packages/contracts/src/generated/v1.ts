@@ -1318,6 +1318,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/objects/discipline-background-image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stream an installed discipline background image */
+        get: operations["PublicObjectsController_disciplineBackgroundImage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/login": {
         parameters: {
             query?: never;
@@ -3057,6 +3074,9 @@ export interface components {
             tournaments: components["schemas"]["PublicTournamentListingItemResponse"][];
             clubs: components["schemas"]["PublicOverviewClubResponse"][];
         };
+        PublicObjectReferenceResponse: {
+            key: string;
+        };
         PublicOverviewMatchResponse: {
             /** Format: uuid */
             matchId: string;
@@ -3096,6 +3116,7 @@ export interface components {
             tournamentAlias: string;
             tournamentName: string;
             seasonName: string;
+            disciplineImages?: components["schemas"]["PublicObjectReferenceResponse"][];
             matches: components["schemas"]["PublicOverviewMatchResponse"][];
             standingsPreview?: components["schemas"]["PublicStandingsRowResponse"][];
             clubs?: components["schemas"]["PublicOverviewClubResponse"][];
@@ -3143,6 +3164,7 @@ export interface components {
             organizationName: string;
             tournamentAlias: string;
             tournamentName: string;
+            disciplineImages?: components["schemas"]["PublicObjectReferenceResponse"][];
             stageNumber: number;
             matchNumber: number;
             round: number;
@@ -6288,6 +6310,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PublicPersonProfileResponse"];
+                };
+            };
+        };
+    };
+    PublicObjectsController_disciplineBackgroundImage: {
+        parameters: {
+            query: {
+                key: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description JPEG image bytes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": string;
                 };
             };
         };

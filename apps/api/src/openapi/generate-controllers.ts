@@ -46,6 +46,7 @@ import {
   OrganizationMediaController,
   PersonMediaController,
 } from '../controllers/identity-media.controller.js';
+import { PublicObjectsController } from '../controllers/public-objects.controller.js';
 
 /**
  * The controllers the OpenAPI artifact is generated from.
@@ -80,6 +81,7 @@ export const OPENAPI_CONTROLLERS = [
   InstallationBootstrapController,
   PublicTournamentListingController,
   PublicProjectionsController,
+  PublicObjectsController,
   NativeAuthController,
   PersonalAccessTokenController,
   AdminStatisticsController,

@@ -7,6 +7,7 @@ import {
   type DisciplineDescriptorDocument,
   type TournamentProfileDocument,
 } from '@copalibre/domain';
+import type { ObjectReference } from '@copalibre/object-storage';
 
 export interface CatalogueValidationFailure {
   readonly document: string;
@@ -29,8 +30,15 @@ export class ModuleCatalogueValidationError extends Error {
 export interface ModuleCatalogue {
   readonly disciplines: readonly DisciplineDescriptorDocument[];
   readonly profiles: readonly TournamentProfileDocument[];
+  readonly assets: readonly CatalogueAsset[];
   /** Names reserved to first-party modules, derived from the loaded documents. */
   readonly reservedAliases: readonly string[];
+}
+
+export interface CatalogueAsset {
+  readonly reference: ObjectReference;
+  readonly body: Uint8Array;
+  readonly contentType: 'image/jpeg';
 }
 
 // `import.meta.url` is `undefined` once bundled to CJS (apps/copalibre's
@@ -74,13 +82,57 @@ export async function loadModuleCatalogue(directory: string): Promise<ModuleCata
       message: `Duplicate first-party module alias "${alias}"`,
     });
   }
+  const assets = await loadCatalogueAssets(directory, disciplines, failures);
   if (failures.length > 0) throw new ModuleCatalogueValidationError(failures);
 
   return {
     disciplines,
     profiles,
+    assets,
     reservedAliases: [...aliases].sort(),
   };
+}
+
+async function loadCatalogueAssets(
+  directory: string,
+  disciplines: readonly DisciplineDescriptorDocument[],
+  failures: CatalogueValidationFailure[],
+): Promise<CatalogueAsset[]> {
+  const assets: CatalogueAsset[] = [];
+  for (const discipline of disciplines) {
+    const expectedPrefix = `modules/${discipline.alias}/${discipline.version}/`;
+    for (const [index, reference] of (discipline.images ?? []).entries()) {
+      const path = reference.key.slice(expectedPrefix.length);
+      if (
+        !reference.key.startsWith(expectedPrefix) ||
+        !path.endsWith('.jpg') ||
+        path.includes('\\') ||
+        path.split('/').some((segment) => segment === '' || segment === '.' || segment === '..')
+      ) {
+        failures.push({
+          document: `disciplines/${discipline.alias}.json`,
+          field: `images.${index}.key`,
+          message: `Image key must use ${expectedPrefix}<asset-path>.jpg`,
+        });
+        continue;
+      }
+
+      try {
+        assets.push({
+          reference,
+          body: await readFile(join(directory, 'assets', discipline.alias, path)),
+          contentType: 'image/jpeg',
+        });
+      } catch (error) {
+        failures.push({
+          document: `disciplines/${discipline.alias}.json`,
+          field: `images.${index}.key`,
+          message: `Cannot read packaged image asset: ${String(error)}`,
+        });
+      }
+    }
+  }
+  return assets;
 }
 
 async function loadDocuments<T>(

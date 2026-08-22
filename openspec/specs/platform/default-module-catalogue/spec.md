@@ -132,3 +132,32 @@ goalkeeper, or deflecting-player attribution.
 #### Scenario: A started tournament keeps its frozen module version
 - **WHEN** a tournament was started on a descriptor version predating these declarations
 - **THEN** its event vocabulary is unchanged
+
+### Requirement: A discipline or profile may declare a localized description
+A discipline descriptor and a tournament profile document SHALL each accept an optional `description`
+field using the same localized-label shape their `name` field already uses, so an operator can tell
+modules apart without opening the document.
+
+#### Scenario: A discipline's description renders alongside its name
+- **WHEN** an operator browses the module catalogue and a discipline declares a `description`
+- **THEN** the description renders in the operator's active language wherever the discipline's name
+  renders, falling back to `en` the same way `name` already does
+
+#### Scenario: A description is optional
+- **WHEN** a discipline or profile document omits `description`
+- **THEN** the document still validates and installs normally
+
+### Requirement: A tournament profile's name is localized
+A tournament profile document's `name` SHALL accept the same localized-label shape a discipline
+descriptor's `name` already uses, rather than a plain, single-language string.
+
+#### Scenario: An existing plain-string profile name keeps working
+- **WHEN** an already-installed tournament profile document has a plain-string `name`
+- **THEN** it continues to validate and render exactly as before, since a plain string is one of the
+  localized-label shape's two valid forms
+
+#### Scenario: A new profile declares its name in more than one language
+- **WHEN** a tournament profile document declares `name` as an object with an `en` key and one or more
+  other supported languages
+- **THEN** the profile's name renders in the operator's active language, falling back to `en` when the
+  active language is absent

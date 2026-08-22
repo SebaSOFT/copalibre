@@ -22,6 +22,11 @@ describe('default module catalogue', () => {
       'grupos-y-playoff',
       'liga-ida-vuelta',
     ]);
+    expect(catalogue.assets.map((asset) => asset.reference.key)).toEqual([
+      'modules/football/1.1.0/football-01.jpg',
+      'modules/tennis/1.0.0/tennis-01.jpg',
+    ]);
+    expect(catalogue.assets.every((asset) => asset.body.byteLength > 0)).toBe(true);
     expect(catalogue.disciplines).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -207,6 +212,49 @@ describe('catalogue loader', () => {
       failures: expect.arrayContaining([
         expect.objectContaining({ document: 'catalogue', field: 'alias' }),
         expect.objectContaining({ document: 'profiles/scalar.json', field: undefined }),
+      ]),
+    });
+  });
+
+  it('rejects a referenced discipline image that is absent from packaged assets', async () => {
+    const catalogue = await loadDefaultModuleCatalogue();
+    const discipline = catalogue.disciplines[0];
+    if (!discipline) throw new Error('Expected a default discipline');
+    await writeFile(join(directory, 'disciplines', 'football.json'), JSON.stringify(discipline));
+
+    await expect(loadModuleCatalogue(directory)).rejects.toMatchObject({
+      failures: expect.arrayContaining([
+        expect.objectContaining({
+          document: 'disciplines/football.json',
+          field: 'images.0.key',
+        }),
+      ]),
+    });
+  });
+
+  it.each([
+    'modules/another-discipline/1.1.0/football-01.jpg',
+    'modules/football/1.1.0/football-01.png',
+    'modules/football/1.1.0/folder\\football-01.jpg',
+    'modules/football/1.1.0/folder//football-01.jpg',
+    'modules/football/1.1.0/./football-01.jpg',
+    'modules/football/1.1.0/../football-01.jpg',
+  ])('rejects a non-deterministic or unsafe packaged image key: %s', async (key) => {
+    const catalogue = await loadDefaultModuleCatalogue();
+    const discipline = catalogue.disciplines.find((candidate) => candidate.alias === 'football');
+    if (!discipline) throw new Error('Expected football default discipline');
+    await writeFile(
+      join(directory, 'disciplines', 'football.json'),
+      JSON.stringify({ ...discipline, images: [{ key }] }),
+    );
+
+    await expect(loadModuleCatalogue(directory)).rejects.toMatchObject({
+      failures: expect.arrayContaining([
+        expect.objectContaining({
+          document: 'disciplines/football.json',
+          field: 'images.0.key',
+          message: expect.stringContaining('Image key must use'),
+        }),
       ]),
     });
   });

@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@copalibre/module-catalogue": "workspace:^",
+    "@copalibre/object-storage": "workspace:^",
     "@copalibre/persistence": "workspace:^",
     "kysely": "^0.29"
   },

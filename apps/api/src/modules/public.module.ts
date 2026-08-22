@@ -4,6 +4,7 @@ import {
   PublicTournamentListingController,
 } from '../controllers/public-projections.controller.js';
 import { DisplayTokenController } from '../controllers/broadcast.controller.js';
+import { PublicObjectsController } from '../controllers/public-objects.controller.js';
 import { CoreModule } from './core.module.js';
 
 @Module({
@@ -11,6 +12,7 @@ import { CoreModule } from './core.module.js';
   controllers: [
     PublicTournamentListingController,
     PublicProjectionsController,
+    PublicObjectsController,
     DisplayTokenController,
   ],
 })

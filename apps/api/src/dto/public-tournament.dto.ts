@@ -81,6 +81,11 @@ export class PublicOverviewClubResponse {
   emblemObjectId?: string;
 }
 
+export class PublicObjectReferenceResponse {
+  @ApiProperty()
+  key!: string;
+}
+
 export class PublicOverviewResponse {
   @ApiProperty()
   organizationAlias!: string;
@@ -96,6 +101,9 @@ export class PublicOverviewResponse {
 
   @ApiProperty()
   seasonName!: string;
+
+  @ApiPropertyOptional({ type: [PublicObjectReferenceResponse] })
+  disciplineImages?: PublicObjectReferenceResponse[];
 
   @ApiProperty({ type: [PublicOverviewMatchResponse] })
   matches!: PublicOverviewMatchResponse[];
@@ -229,6 +237,9 @@ export class PublicMatchReportResponse {
 
   @ApiProperty()
   tournamentName!: string;
+
+  @ApiPropertyOptional({ type: [PublicObjectReferenceResponse] })
+  disciplineImages?: PublicObjectReferenceResponse[];
 
   @ApiProperty()
   stageNumber!: number;

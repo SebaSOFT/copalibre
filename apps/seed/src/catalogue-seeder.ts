@@ -13,6 +13,7 @@ import {
   type CatalogueValidationFailure,
   type ModuleCatalogue,
 } from '@copalibre/module-catalogue';
+import type { ObjectReference, ObjectStorageAdapter } from '@copalibre/object-storage';
 import {
   newId,
   SYSTEM_ORGANIZATION,
@@ -64,47 +65,89 @@ export class ReservedModuleAliasConflictError extends Error {
 export async function seedModuleCatalogue(
   db: Kysely<Database>,
   catalogue: ModuleCatalogue,
+  storage: ObjectStorageAdapter,
 ): Promise<SeedModuleCatalogueReport> {
   validateCatalogue(catalogue);
 
-  return withTransaction(db, async (uow) => {
-    const descriptors = new TournamentRepository(uow.tx);
-    const profiles = new TournamentProfileRepository(uow.tx);
+  const uploaded: ObjectReference[] = [];
+  try {
+    await ensureCatalogueAssets(catalogue, storage, uploaded);
+    return await withTransaction(db, async (uow) => {
+      const descriptors = new TournamentRepository(uow.tx);
+      const profiles = new TournamentProfileRepository(uow.tx);
 
-    await assertReservedAliasesAvailable(catalogue, descriptors, profiles);
+      await assertReservedAliasesAvailable(catalogue, descriptors, profiles);
 
-    const modules: SeededModule[] = [];
-    for (const document of catalogue.disciplines) {
-      const present = await descriptors.findDescriptorByAlias(document.alias, document.version);
-      if (present) {
-        modules.push(seedResult('discipline', document, 'skipped'));
-        continue;
+      const modules: SeededModule[] = [];
+      for (const document of catalogue.disciplines) {
+        const present = await descriptors.findDescriptorByAlias(document.alias, document.version);
+        if (present) {
+          modules.push(seedResult('discipline', document, 'skipped'));
+          continue;
+        }
+        const existing = await descriptors.findDescriptorVersionsByAlias(document.alias);
+        const descriptor: DisciplineDescriptor = {
+          ...document,
+          descriptorId: existing[0]?.descriptorId ?? newId(),
+        };
+        await descriptors.saveDescriptor(uow, descriptor, SEED_AUDIT);
+        modules.push(seedResult('discipline', document, 'installed'));
       }
-      const existing = await descriptors.findDescriptorVersionsByAlias(document.alias);
-      const descriptor: DisciplineDescriptor = {
-        ...document,
-        descriptorId: existing[0]?.descriptorId ?? newId(),
-      };
-      await descriptors.saveDescriptor(uow, descriptor, SEED_AUDIT);
-      modules.push(seedResult('discipline', document, 'installed'));
+
+      for (const document of catalogue.profiles) {
+        const present = await profiles.findByAlias(document.alias, document.version);
+        if (present) {
+          modules.push(seedResult('profile', document, 'skipped'));
+          continue;
+        }
+        const existing = await profiles.findVersionsByAlias(document.alias);
+        const profile: TournamentProfile = {
+          ...document,
+          profileId: existing[0]?.profileId ?? newId(),
+        };
+        await profiles.save(uow, profile, SEED_AUDIT);
+        modules.push(seedResult('profile', document, 'installed'));
+      }
+      return { modules };
+    });
+  } catch (error) {
+    await Promise.allSettled(uploaded.map((reference) => storage.delete(reference)));
+    throw error;
+  }
+}
+
+async function ensureCatalogueAssets(
+  catalogue: ModuleCatalogue,
+  storage: ObjectStorageAdapter,
+  uploaded: ObjectReference[],
+): Promise<void> {
+  for (const asset of catalogue.assets) {
+    try {
+      await storage.get(asset.reference);
+      continue;
+    } catch (error) {
+      if (!isMissingObject(error)) throw error;
     }
 
-    for (const document of catalogue.profiles) {
-      const present = await profiles.findByAlias(document.alias, document.version);
-      if (present) {
-        modules.push(seedResult('profile', document, 'skipped'));
-        continue;
-      }
-      const existing = await profiles.findVersionsByAlias(document.alias);
-      const profile: TournamentProfile = {
-        ...document,
-        profileId: existing[0]?.profileId ?? newId(),
-      };
-      await profiles.save(uow, profile, SEED_AUDIT);
-      modules.push(seedResult('profile', document, 'installed'));
-    }
-    return { modules };
-  });
+    const reference = await storage.put(asset.reference.key, asset.body, asset.contentType);
+    uploaded.push(reference);
+    await storage.get(reference);
+  }
+}
+
+function isMissingObject(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const candidate = error as {
+    readonly code?: unknown;
+    readonly name?: unknown;
+    readonly $metadata?: { readonly httpStatusCode?: unknown };
+  };
+  return (
+    candidate.code === 'ENOENT' ||
+    candidate.name === 'NoSuchKey' ||
+    candidate.name === 'NotFound' ||
+    candidate.$metadata?.httpStatusCode === 404
+  );
 }
 
 function validateCatalogue(catalogue: ModuleCatalogue): void {

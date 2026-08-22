@@ -351,6 +351,10 @@ export class PublicProjectionsController {
     const rulesetData = await new TournamentRepository(this.db).findLatestRuleset(
       tournament.tournamentId,
     );
+    const descriptor = await new TournamentRepository(this.db).findDescriptor(
+      tournament.disciplineRef.descriptorId,
+      tournament.disciplineRef.version,
+    );
     const ruleset: Record<string, string> = {};
     if (rulesetData) {
       for (const [k, v] of Object.entries(rulesetData.overrides)) {
@@ -402,6 +406,9 @@ export class PublicProjectionsController {
       tournamentAlias,
       tournamentName: tournament.name,
       seasonName: season.name,
+      ...(descriptor?.images === undefined
+        ? {}
+        : { disciplineImages: descriptor.images.map((reference) => ({ ...reference })) }),
       matches: matches.map((m) => ({
         matchId: m.matchId,
         matchNumber: m.matchNumber,
@@ -548,6 +555,9 @@ export class PublicProjectionsController {
       organizationName,
       tournamentAlias,
       tournamentName: tournament.name,
+      ...(descriptor.images === undefined
+        ? {}
+        : { disciplineImages: descriptor.images.map((reference) => ({ ...reference })) }),
       stageNumber,
       matchNumber,
       round: match.round,

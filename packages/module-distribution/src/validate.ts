@@ -141,6 +141,23 @@ export async function validateModulePackage(
       failures.push({ stage: 'table-layout-reference', message });
     }
 
+    const expectedImageKeys = manifest.assets
+      .filter((asset) => asset.kind === 'background')
+      .map((asset) => `modules/${manifest.alias}/${manifest.version}/${asset.path}`)
+      .sort();
+    const declaredImageKeys = (descriptor.images ?? []).map((reference) => reference.key).sort();
+    if (
+      expectedImageKeys.length !== declaredImageKeys.length ||
+      expectedImageKeys.some((key, index) => key !== declaredImageKeys[index])
+    ) {
+      failures.push({
+        stage: 'asset',
+        field: 'images',
+        message:
+          'discipline images must match manifest background assets one-to-one using deterministic object keys',
+      });
+    }
+
     // No override layer exists yet for a bare descriptor — compileEffectiveRuleset
     // only produces a violation while applying one — so neither branch below is
     // reachable via any input this function can construct today. Run anyway so a

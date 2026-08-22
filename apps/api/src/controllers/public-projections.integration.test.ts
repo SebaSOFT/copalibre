@@ -40,7 +40,10 @@ describe('public projections routes', () => {
 
   beforeAll(async () => {
     const tournaments = new TournamentRepository(scratch.db);
-    const descriptor = footballDescriptor();
+    const descriptor = {
+      ...footballDescriptor(),
+      images: [{ key: 'modules/football/1.0.0/football-01.jpg' }],
+    };
 
     draftTournament = await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
       await tournaments.saveDescriptor(uow, descriptor, {
@@ -119,6 +122,7 @@ describe('public projections routes', () => {
     const data = JSON.parse(response.payload as string);
     expect(data.tournamentAlias).toBe(publishedTournament.alias);
     expect(data.organizationAlias).toBe('liga-orbital');
+    expect(data.disciplineImages).toEqual([{ key: 'modules/football/1.0.0/football-01.jpg' }]);
     expect(Array.isArray(data.matches)).toBe(true);
   });
 
@@ -160,6 +164,7 @@ describe('public projections routes', () => {
       stageNumber: stage.number,
       matchNumber: match.number,
       status: 'upcoming',
+      disciplineImages: [{ key: 'modules/football/1.0.0/football-01.jpg' }],
       schedulePublished: false,
       rosters: { home: [], away: [] },
       timeline: [],

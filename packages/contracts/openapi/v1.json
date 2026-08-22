@@ -4739,6 +4739,38 @@
         ]
       }
     },
+    "/objects/discipline-background-image": {
+      "get": {
+        "operationId": "PublicObjectsController_disciplineBackgroundImage",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "JPEG image bytes",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Stream an installed discipline background image",
+        "tags": [
+          "Public objects"
+        ]
+      }
+    },
     "/auth/login": {
       "post": {
         "operationId": "NativeAuthController_login",
@@ -10401,6 +10433,17 @@
           "clubs"
         ]
       },
+      "PublicObjectReferenceResponse": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key"
+        ]
+      },
       "PublicOverviewMatchResponse": {
         "type": "object",
         "properties": {
@@ -10515,6 +10558,12 @@
           },
           "seasonName": {
             "type": "string"
+          },
+          "disciplineImages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicObjectReferenceResponse"
+            }
           },
           "matches": {
             "type": "array",
@@ -10694,6 +10743,12 @@
           },
           "tournamentName": {
             "type": "string"
+          },
+          "disciplineImages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicObjectReferenceResponse"
+            }
           },
           "stageNumber": {
             "type": "number"

@@ -7,7 +7,8 @@
   "files": [
     "dist",
     "disciplines",
-    "profiles"
+    "profiles",
+    "assets"
   ],
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -17,7 +18,8 @@
     "test:coverage": "node --experimental-vm-modules ../../node_modules/.bin/jest --config jest.config.cjs --coverage"
   },
   "dependencies": {
-    "@copalibre/domain": "workspace:^"
+    "@copalibre/domain": "workspace:^",
+    "@copalibre/object-storage": "workspace:^"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

@@ -5,6 +5,7 @@
   "description": {
     "en": "Individual or team racket discipline with sets, games, points, tiebreaks, and match statistics."
   },
+  "images": [{ "key": "modules/tennis/1.0.0/tennis-01.jpg" }],
   "attribution": {
     "author": "CopaLibre",
     "licence": "AGPL-3.0-only",
