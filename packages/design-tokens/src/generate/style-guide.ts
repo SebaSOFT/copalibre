@@ -1,4 +1,5 @@
 import { BUTTON_VARIANTS, CARD_STATES } from '../components.js';
+import { FONT_SIZE } from '../primitives.js';
 import { SEMANTIC_COLORS } from '../semantic.js';
 
 /**
@@ -32,6 +33,13 @@ export function generateStyleGuide(cssHref = './copalibre.css'): string {
     )
     .join('\n      ');
 
+  const fontSizes = Object.keys(FONT_SIZE)
+    .map(
+      (name) =>
+        `<div class="font-size-sample" data-font-size="${escape(name)}"><code>${escape(name)}</code><span style="font-size: var(--cl-font-size-${escape(name)})">CopaLibre Aa 0123</span></div>`,
+    )
+    .join('\n      ');
+
   return `<!doctype html>
 <html lang="es">
 <head>
@@ -47,6 +55,8 @@ export function generateStyleGuide(cssHref = './copalibre.css'): string {
     .row { display: flex; flex-wrap: wrap; gap: var(--cl-space-4); }
     .swatch { width: 120px; padding: var(--cl-space-2); border: 1px solid var(--cl-border-muted); }
     .swatch__chip { height: 48px; }
+    .font-size-sample { display: grid; grid-template-columns: 4rem 1fr;
+                        align-items: baseline; gap: var(--cl-space-4); }
     /* The chamfer and its fallback, side by side: the point is the comparison. */
     .square { border-radius: 0; clip-path: none; }
   </style>
@@ -83,6 +93,13 @@ export function generateStyleGuide(cssHref = './copalibre.css'): string {
         <div class="cl-stat-tile__value">128</div>
         <div>Partidos jugados</div>
       </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Escala tipográfica</h2>
+    <div>
+      ${fontSizes}
     </div>
   </section>
 

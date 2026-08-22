@@ -1,5 +1,7 @@
 import {
+  BREAKPOINTS,
   COLOR_PRIMITIVES,
+  FONT_SIZE,
   FONT_WEIGHTS,
   MOTION,
   RADIUS,
@@ -22,10 +24,12 @@ import { SEMANTIC_COLORS } from '../semantic.js';
 export interface TailwindTheme {
   readonly colors: Record<string, string>;
   readonly fontFamily: Record<string, string[]>;
+  readonly fontSize: Record<string, string>;
   readonly fontWeight: Record<string, string>;
   readonly spacing: Record<string, string>;
   readonly borderRadius: Record<string, string>;
   readonly transitionDuration: Record<string, string>;
+  readonly screens: Record<string, string>;
 }
 
 export function generateTailwindTheme(): TailwindTheme {
@@ -40,6 +44,7 @@ export function generateTailwindTheme(): TailwindTheme {
       body: split(TYPOGRAPHY.body),
       mono: split(TYPOGRAPHY.mono),
     },
+    fontSize: { ...FONT_SIZE },
     fontWeight: { ...FONT_WEIGHTS },
     spacing: Object.fromEntries(
       Object.entries(SPACING).map(([name, value]) => [`cl-${name}`, value]),
@@ -52,6 +57,7 @@ export function generateTailwindTheme(): TailwindTheme {
       'cl-base': MOTION.base,
       'cl-slow': MOTION.slow,
     },
+    screens: { ...BREAKPOINTS },
   };
 }
 
