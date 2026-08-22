@@ -100,7 +100,15 @@ export async function scaffoldModule(
     // something this scaffold should reproduce (0049 design). An empty
     // array is valid, structurally honest content: "this discipline
     // declares no notification-rule capabilities yet."
-    ...(options.kind === 'discipline' ? { notificationRuleCapabilities: [] } : {}),
+    ...(options.kind === 'discipline'
+      ? {
+          // First-party templates carry packaged image references. A scaffold
+          // has no copied asset yet, so omitting them keeps manifest and
+          // descriptor truthful until its author adds a background pair.
+          images: undefined,
+          notificationRuleCapabilities: [],
+        }
+      : {}),
   };
   const manifest: ModuleManifest = {
     kind: options.kind,

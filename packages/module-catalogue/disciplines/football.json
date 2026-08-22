@@ -5,6 +5,7 @@
   "description": {
     "en": "Team discipline with timed halves, goal scoring, set pieces, cards, and player statistics."
   },
+  "images": [{ "key": "modules/football/1.1.0/football-01.jpg" }],
   "attribution": {
     "author": "CopaLibre",
     "licence": "AGPL-3.0-only",

@@ -186,6 +186,20 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
     version: { type: 'string', minLength: 1 },
     name: LOCALIZED_LABEL_SCHEMA,
     description: LOCALIZED_LABEL_SCHEMA,
+    images: {
+      type: 'array',
+      minItems: 1,
+      maxItems: 10,
+      uniqueItems: true,
+      items: {
+        type: 'object',
+        required: ['key'],
+        additionalProperties: false,
+        properties: {
+          key: { type: 'string', minLength: 1 },
+        },
+      },
+    },
     attribution: {
       type: 'object',
       required: ['author', 'licence'],

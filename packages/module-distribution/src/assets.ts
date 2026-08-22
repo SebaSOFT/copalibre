@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { imageSize } from 'image-size';
+import sharp from 'sharp';
 import type { ModuleAssetDescriptor, ModuleAssetKind } from './manifest.js';
 import { ASSETS_DIRECTORY_NAME } from './package-format.js';
 
@@ -13,6 +14,9 @@ import { ASSETS_DIRECTORY_NAME } from './package-format.js';
  * tightening is detectable rather than silently grandfathered in.
  */
 export const MAX_ASSET_SIZE_BYTES = 5 * 1024 * 1024;
+export const MAX_BACKGROUND_IMAGE_SIZE_BYTES = 2 * 1024 * 1024;
+export const MAX_BACKGROUND_IMAGE_LONG_EDGE = 2560;
+export const MAX_BACKGROUND_IMAGE_SHORT_EDGE = 1440;
 export const MAX_ASSET_DIMENSIONS: Readonly<
   Record<ModuleAssetKind, { width: number; height: number }>
 > = {
@@ -57,11 +61,17 @@ async function validateOneAsset(
     return { path: descriptor.path, message: 'declared in the manifest but not present on disk' };
   }
 
-  if (bytes.byteLength > MAX_ASSET_SIZE_BYTES) {
+  const sizeLimit =
+    descriptor.kind === 'background' ? MAX_BACKGROUND_IMAGE_SIZE_BYTES : MAX_ASSET_SIZE_BYTES;
+  if (bytes.byteLength > sizeLimit) {
     return {
       path: descriptor.path,
-      message: `is ${bytes.byteLength} bytes, exceeding the ${MAX_ASSET_SIZE_BYTES}-byte limit`,
+      message: `is ${bytes.byteLength} bytes, exceeding the ${sizeLimit}-byte limit`,
     };
+  }
+
+  if (descriptor.kind === 'background') {
+    return validateBackgroundImage(descriptor.path, bytes);
   }
 
   // Format sniffed from magic bytes *before* handing anything to image-size
@@ -106,6 +116,37 @@ async function validateOneAsset(
     return {
       path: descriptor.path,
       message: `is ${size.width}x${size.height}, exceeding the ${limit.width}x${limit.height} limit for a "${descriptor.kind}" asset`,
+    };
+  }
+  return undefined;
+}
+
+async function validateBackgroundImage(
+  path: string,
+  bytes: Buffer,
+): Promise<AssetValidationFailure | undefined> {
+  let metadata: Awaited<ReturnType<ReturnType<typeof sharp>['metadata']>>;
+  try {
+    metadata = await sharp(bytes).metadata();
+  } catch {
+    return { path, message: 'is not a recognisable JPEG image file' };
+  }
+  if (metadata.format !== 'jpeg') {
+    return { path, message: 'must be encoded as JPEG' };
+  }
+  if (metadata.width === undefined || metadata.height === undefined) {
+    return { path, message: 'does not declare image dimensions' };
+  }
+
+  const rotated = metadata.orientation !== undefined && metadata.orientation >= 5;
+  const width = rotated ? metadata.height : metadata.width;
+  const height = rotated ? metadata.width : metadata.height;
+  const longEdge = Math.max(width, height);
+  const shortEdge = Math.min(width, height);
+  if (longEdge > MAX_BACKGROUND_IMAGE_LONG_EDGE || shortEdge > MAX_BACKGROUND_IMAGE_SHORT_EDGE) {
+    return {
+      path,
+      message: `is ${width}x${height}, exceeding the ${MAX_BACKGROUND_IMAGE_LONG_EDGE}x${MAX_BACKGROUND_IMAGE_SHORT_EDGE} background limit`,
     };
   }
   return undefined;

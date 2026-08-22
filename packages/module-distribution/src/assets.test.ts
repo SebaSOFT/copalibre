@@ -1,7 +1,12 @@
 import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { MAX_ASSET_DIMENSIONS, validateModuleAssets } from './assets.js';
+import sharp from 'sharp';
+import {
+  MAX_ASSET_DIMENSIONS,
+  MAX_BACKGROUND_IMAGE_SIZE_BYTES,
+  validateModuleAssets,
+} from './assets.js';
 import { ASSETS_DIRECTORY_NAME } from './package-format.js';
 
 /** The smallest possible valid PNG: a real, parseable 1x1 transparent pixel. */
@@ -66,6 +71,38 @@ describe('module asset validation (mitigates GHSA-w3rx-r6r6-pgpr, GHSA-5p2g-fcmc
     expect(failures).toEqual([]);
   });
 
+  it('accepts a JPEG background within its byte and dimension limits', async () => {
+    await seed('background-01.jpg', await jpeg(2560, 1440));
+    await expect(
+      validateModuleAssets(directory, [{ path: 'background-01.jpg', kind: 'background' }]),
+    ).resolves.toEqual([]);
+  });
+
+  it('rejects a background encoded in a format other than JPEG', async () => {
+    await seed('background-01.jpg', MINIMAL_PNG);
+    const failures = await validateModuleAssets(directory, [
+      { path: 'background-01.jpg', kind: 'background' },
+    ]);
+    expect(failures[0]?.message).toContain('JPEG');
+  });
+
+  it('rejects a background beyond 2560x1440 in either orientation', async () => {
+    await seed('background-01.jpg', await jpeg(2561, 1440));
+    const failures = await validateModuleAssets(directory, [
+      { path: 'background-01.jpg', kind: 'background' },
+    ]);
+    expect(failures[0]?.message).toContain('2560x1440');
+  });
+
+  it('rejects a background beyond the 2 MiB byte limit', async () => {
+    const bytes = Buffer.concat([await jpeg(1, 1), Buffer.alloc(MAX_BACKGROUND_IMAGE_SIZE_BYTES)]);
+    await seed('background-01.jpg', bytes);
+    const failures = await validateModuleAssets(directory, [
+      { path: 'background-01.jpg', kind: 'background' },
+    ]);
+    expect(failures[0]?.message).toContain(`${MAX_BACKGROUND_IMAGE_SIZE_BYTES}-byte limit`);
+  });
+
   it('refuses a recognised-but-not-permitted format before image-size ever runs on it', async () => {
     await seed('logo.gif', MINIMAL_GIF);
     const failures = await validateModuleAssets(directory, [{ path: 'logo.gif', kind: 'logo' }]);
@@ -102,3 +139,11 @@ describe('module asset validation (mitigates GHSA-w3rx-r6r6-pgpr, GHSA-5p2g-fcmc
     expect(failures[0]?.message).toBe('is not a recognisable image file');
   });
 });
+
+async function jpeg(width: number, height: number): Promise<Buffer> {
+  return sharp({
+    create: { width, height, channels: 3, background: { r: 30, g: 90, b: 45 } },
+  })
+    .jpeg({ quality: 80 })
+    .toBuffer();
+}

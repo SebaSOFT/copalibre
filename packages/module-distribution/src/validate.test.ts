@@ -1,6 +1,7 @@
 import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import sharp from 'sharp';
 import { validateModulePackage, validateModulePackageOrThrow } from './validate.js';
 import { ModuleValidationError } from './errors.js';
 import {
@@ -612,6 +613,81 @@ describe('validateModulePackage', () => {
     expect(result.ok).toBe(true);
   });
 
+  it('accepts a discipline background whose deterministic key matches the manifest', async () => {
+    const path = 'background-01.jpg';
+    const directory = await makeModuleDirectory(
+      validManifest({ assets: [{ path, kind: 'background' }] }),
+      validDisciplineDocument({
+        images: [{ key: `modules/orbital-frisbee/1.0.0/${path}` }],
+      }),
+    );
+    directories.push(directory);
+    await mkdir(join(directory, 'assets'));
+    await writeFile(
+      join(directory, 'assets', path),
+      await sharp({
+        create: {
+          width: 16,
+          height: 9,
+          channels: 3,
+          background: { r: 18, g: 61, b: 43 },
+        },
+      })
+        .jpeg()
+        .toBuffer(),
+    );
+
+    await expect(validateModulePackage(directory, OPTIONS)).resolves.toMatchObject({ ok: true });
+  });
+
+  it('rejects a discipline image reference that does not match its manifest background', async () => {
+    const directory = await makeModuleDirectory(
+      validManifest({ assets: [] }),
+      validDisciplineDocument({
+        images: [{ key: 'modules/orbital-frisbee/1.0.0/background-01.jpg' }],
+      }),
+    );
+    directories.push(directory);
+
+    const result = await validateModulePackage(directory, OPTIONS);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.failures).toEqual(
+        expect.arrayContaining([expect.objectContaining({ stage: 'asset', field: 'images' })]),
+      );
+    }
+  });
+
+  it('returns the identical wrong-format failure through operator import and community review', async () => {
+    const path = 'background-01.jpg';
+    const directory = await makeModuleDirectory(
+      validManifest({ assets: [{ path, kind: 'background' }] }),
+      validDisciplineDocument({
+        images: [{ key: `modules/orbital-frisbee/1.0.0/${path}` }],
+      }),
+    );
+    directories.push(directory);
+    await mkdir(join(directory, 'assets'));
+    await writeFile(join(directory, 'assets', path), Buffer.from(ONE_PIXEL_PNG_BASE64, 'base64'));
+
+    const operatorImport = await validateModulePackage(directory, OPTIONS);
+    const communityReview = await communityRepositoryReview(directory);
+
+    expect(operatorImport.ok).toBe(false);
+    expect(communityReview).toEqual(operatorImport);
+    if (!communityReview.ok) {
+      expect(communityReview.failures).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            stage: 'asset',
+            field: path,
+            message: expect.stringContaining('JPEG'),
+          }),
+        ]),
+      );
+    }
+  });
+
   it('rejects an asset over the configured size limit', async () => {
     const directory = await makeModuleDirectory(
       validManifest({ assets: [{ path: 'logo.png', kind: 'logo' }] }),
@@ -1083,3 +1159,8 @@ describe('validateModulePackage', () => {
     });
   });
 });
+
+/** Test double for scripts/validate-module-repository.mjs, which delegates to this same entry point. */
+function communityRepositoryReview(directory: string) {
+  return validateModulePackage(directory, OPTIONS);
+}

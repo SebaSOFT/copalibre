@@ -1626,6 +1626,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@copalibre/domain@workspace:packages/domain"
   dependencies:
+    "@copalibre/object-storage": "workspace:^"
     "@types/jest": "npm:^30.0.0"
     "@types/semver": "npm:^7.7.1"
     ajv: "npm:^8.20.0"
@@ -1676,6 +1677,7 @@ __metadata:
   resolution: "@copalibre/module-catalogue@workspace:packages/module-catalogue"
   dependencies:
     "@copalibre/domain": "workspace:^"
+    "@copalibre/object-storage": "workspace:^"
     "@types/jest": "npm:^30.0.0"
     jest: "npm:^30.4.2"
     ts-jest: "npm:^29.4.12"
@@ -1698,6 +1700,7 @@ __metadata:
     image-size: "npm:^2.0.2"
     jest: "npm:^30.4.2"
     semver: "npm:^7.8.5"
+    sharp: "npm:^0.35.3"
     ts-jest: "npm:^29.4.12"
     typescript: "npm:^5"
   languageName: unknown
@@ -1794,6 +1797,7 @@ __metadata:
   resolution: "@copalibre/seed@workspace:apps/seed"
   dependencies:
     "@copalibre/module-catalogue": "workspace:^"
+    "@copalibre/object-storage": "workspace:^"
     "@copalibre/persistence": "workspace:^"
     "@types/jest": "npm:^30.0.0"
     jest: "npm:^30.4.2"

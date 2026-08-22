@@ -34,6 +34,7 @@ const model = buildMatchReport(response);
   title={`${model.home.name} vs ${model.away.name} — ${model.tournamentName}`}
   canonicalPath={Astro.url.pathname}
   intl={intl}
+  disciplineImages={response.disciplineImages}
 >
   <article>
     <header>

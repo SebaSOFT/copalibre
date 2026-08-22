@@ -1,4 +1,4 @@
-import { Module, type Type } from '@nestjs/common';
+import { Module, type Provider, type Type } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
@@ -56,7 +56,10 @@ export class FakeTokenVerifier {
   }
 }
 
-export async function buildTestApp(controllers: Type<unknown>[]): Promise<{
+export async function buildTestApp(
+  controllers: Type<unknown>[],
+  providers: Provider[] = [],
+): Promise<{
   app: NestFastifyApplication;
   scratch: Awaited<ReturnType<typeof createMigratedDatabase>>;
   organizationId: string;
@@ -78,6 +81,7 @@ export async function buildTestApp(controllers: Type<unknown>[]): Promise<{
       { provide: APP_FILTER, useClass: ApiExceptionFilter },
       { provide: APP_GUARD, useClass: JwtAuthGuard },
       Reflector,
+      ...providers,
     ],
   })
   class TestModule {}

@@ -5,6 +5,7 @@ import type { TagDeclaration } from '../statistics/tags.js';
 import type { ConfigFieldPolicies, RulesetConfig } from './override-policy.js';
 import type { TableLayoutDefinition } from './table-layout.js';
 import type { LocalizedLabel } from '../i18n-label.js';
+import type { ObjectReference } from '@copalibre/object-storage';
 
 /**
  * Reusable, versioned profile for a sport, esports title, or competition
@@ -135,6 +136,8 @@ export interface DisciplineDescriptor {
   readonly version: string;
   readonly name: string | LocalizedLabel;
   readonly description?: string | LocalizedLabel;
+  /** Optional public background images stored by opaque object reference. */
+  readonly images?: readonly ObjectReference[];
   /** Who authored this discipline, where it came from, under what licence. */
   readonly attribution: Attribution;
   readonly participantTypes: readonly ParticipantType[];

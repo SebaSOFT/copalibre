@@ -42,6 +42,13 @@ describe('scaffoldModule', () => {
         });
         expect(validation.ok).toBe(true);
 
+        if (kind === 'discipline') {
+          const artifact = JSON.parse(
+            await readFile(join(result.moduleDirectory, 'artifact.json'), 'utf8'),
+          ) as Record<string, unknown>;
+          expect(artifact.images).toBeUndefined();
+        }
+
         const readme = await readFile(join(result.repositoryDirectory, 'README.md'), 'utf8');
         expect(readme).toContain(alias);
       } finally {

@@ -18,6 +18,7 @@
     "ts-jest": "^29.4.12"
   },
   "dependencies": {
+    "@copalibre/object-storage": "workspace:^",
     "ajv": "^8.20.0",
     "csv-parse": "^7.0.2",
     "csv-stringify": "^6.8.2",

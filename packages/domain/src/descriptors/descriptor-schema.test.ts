@@ -23,6 +23,38 @@ describe('discipline descriptor schema', () => {
     expect(validateDisciplineDescriptorDocument(asDocument()).ok).toBe(true);
   });
 
+  it('accepts between one and ten optional object-storage image references', () => {
+    expect(
+      validateDisciplineDescriptorDocument(
+        asDocument({ images: [{ key: 'modules/football/1.1.0/football-01.jpg' }] }),
+      ).ok,
+    ).toBe(true);
+    expect(
+      validateDisciplineDescriptorDocument(
+        asDocument({
+          images: Array.from({ length: 10 }, (_, index) => ({
+            key: `modules/football/1.1.0/football-${String(index + 1).padStart(2, '0')}.jpg`,
+          })),
+        }),
+      ).ok,
+    ).toBe(true);
+  });
+
+  it('rejects empty, oversized, or malformed image reference arrays', () => {
+    expect(validateDisciplineDescriptorDocument(asDocument({ images: [] })).ok).toBe(false);
+    expect(
+      validateDisciplineDescriptorDocument(
+        asDocument({
+          images: Array.from({ length: 11 }, (_, index) => ({ key: `image-${index}` })),
+        }),
+      ).ok,
+    ).toBe(false);
+    expect(
+      validateDisciplineDescriptorDocument(asDocument({ images: [{ key: '', url: '/image.jpg' }] }))
+        .ok,
+    ).toBe(false);
+  });
+
   it('rejects a document missing a required member', () => {
     const withoutStatistics = asDocument() as Record<string, unknown>;
     delete withoutStatistics.statistics;
