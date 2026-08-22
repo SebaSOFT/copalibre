@@ -1,17 +1,19 @@
 import {
   Body,
-  ConflictException,
   Controller,
   Get,
   HttpCode,
   Inject,
-  NotFoundException,
   Param,
   ParseIntPipe,
   Post,
   Req,
-  UnprocessableEntityException,
 } from '@nestjs/common';
+import {
+  ConflictException,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '../http/error-contract.js';
 import {
   ApiBearerAuth,
   ApiConflictResponse,
@@ -142,7 +144,9 @@ export class SeedingController {
 
     const seeds = body.seeds ?? [];
     if (seeds.length === 0) {
-      throw new UnprocessableEntityException('A seed order must name every entrant');
+      throw new UnprocessableEntityException('A seed order must name every entrant', {
+        errorCode: 'seeding-unprocessable-entity',
+      });
     }
     validateSeedOrder(seeds, record.entrantIds);
 
@@ -159,7 +163,7 @@ export class SeedingController {
     // open since before the first result still has the button enabled, and the
     // only place that can be told is the one the request lands in.
     if (classification.mutationClass === 'blocked_after_results') {
-      throw new ConflictException(classification.reason);
+      throw new ConflictException(classification.reason, { errorCode: 'seeding-conflict' });
     }
 
     const orderedEntrantIds = [...seeds]
@@ -188,7 +192,8 @@ export class SeedingController {
             }),
       );
     } catch (error) {
-      if (error instanceof InvariantViolationError) throw new ConflictException(error.message);
+      if (error instanceof InvariantViolationError)
+        throw new ConflictException(error.message, { errorCode: 'seeding-conflict' });
       throw error;
     }
 
@@ -205,7 +210,10 @@ export class SeedingController {
       format: format as FixtureGraph['format'],
       entrants: entrantIds.map((entrantId, index) => ({ entrantId, seed: index + 1 })),
     });
-    if (!generated.ok) throw new UnprocessableEntityException(generated.error.message);
+    if (!generated.ok)
+      throw new UnprocessableEntityException(generated.error.message, {
+        errorCode: 'seeding-unprocessable-entity',
+      });
     return generated.value;
   }
 
@@ -243,10 +251,16 @@ export class SeedingController {
       tournament.tournamentId,
     );
     const stage = stages.find((candidate) => candidate.number === stageNumber);
-    if (!stage) throw new NotFoundException(`No stage ${stageNumber} in "${tournamentAlias}"`);
+    if (!stage)
+      throw new NotFoundException(`No stage ${stageNumber} in "${tournamentAlias}"`, {
+        errorCode: 'seeding-not-found',
+      });
 
     const record = await new StageReadModel(this.db).stageRecord(stage.stageId);
-    if (!record) throw new NotFoundException(`No stage ${stageNumber} in "${tournamentAlias}"`);
+    if (!record)
+      throw new NotFoundException(`No stage ${stageNumber} in "${tournamentAlias}"`, {
+        errorCode: 'seeding-not-found',
+      });
 
     const effectiveRecord = record.hasGeneratedFixtures
       ? record
@@ -314,7 +328,9 @@ function validateSeedOrder(
   expectedEntrantIds: readonly string[],
 ): void {
   if (seeds.length !== expectedEntrantIds.length) {
-    throw new UnprocessableEntityException('A seed order must name every entrant exactly once');
+    throw new UnprocessableEntityException('A seed order must name every entrant exactly once', {
+      errorCode: 'seeding-unprocessable-entity',
+    });
   }
 
   const expectedEntrants = new Set(expectedEntrantIds);
@@ -322,16 +338,25 @@ function validateSeedOrder(
   const seenSeeds = new Set<number>();
   for (const entry of seeds) {
     if (!Number.isInteger(entry.seed) || entry.seed < 1 || entry.seed > expectedEntrantIds.length) {
-      throw new UnprocessableEntityException('Seed numbers must form the full 1-based stage order');
+      throw new UnprocessableEntityException(
+        'Seed numbers must form the full 1-based stage order',
+        { errorCode: 'seeding-unprocessable-entity' },
+      );
     }
     if (!expectedEntrants.has(entry.entrantId)) {
-      throw new UnprocessableEntityException('A seed order may only name entrants in this stage');
+      throw new UnprocessableEntityException('A seed order may only name entrants in this stage', {
+        errorCode: 'seeding-unprocessable-entity',
+      });
     }
     if (seenEntrants.has(entry.entrantId)) {
-      throw new UnprocessableEntityException('A seed order may not place an entrant twice');
+      throw new UnprocessableEntityException('A seed order may not place an entrant twice', {
+        errorCode: 'seeding-unprocessable-entity',
+      });
     }
     if (seenSeeds.has(entry.seed)) {
-      throw new UnprocessableEntityException('A seed number may only appear once');
+      throw new UnprocessableEntityException('A seed number may only appear once', {
+        errorCode: 'seeding-unprocessable-entity',
+      });
     }
     seenEntrants.add(entry.entrantId);
     seenSeeds.add(entry.seed);

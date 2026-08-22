@@ -1,5 +1,5 @@
 import { Module, type Type } from '@nestjs/common';
-import { APP_GUARD, Reflector } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
 import { OrganizationRepository, withTransaction, type Database } from '@copalibre/persistence';
@@ -10,6 +10,7 @@ import type { AuthenticatedSubject } from '../../auth/request-context.js';
 import { TokenVerifier } from '../../auth/token-verifier.js';
 import { DATABASE } from '../../database.token.js';
 import { API_BODY_LIMIT_BYTES } from '../../http-body-limit.js';
+import { ApiExceptionFilter } from '../../http/error-contract.js';
 
 /**
  * End-to-end through the real HTTP stack (Fastify + guard + policy +
@@ -74,6 +75,7 @@ export async function buildTestApp(controllers: Type<unknown>[]): Promise<{
     providers: [
       { provide: DATABASE, useValue: scratch.db },
       { provide: TokenVerifier, useValue: new FakeTokenVerifier(() => organizationId) },
+      { provide: APP_FILTER, useClass: ApiExceptionFilter },
       { provide: APP_GUARD, useClass: JwtAuthGuard },
       Reflector,
     ],

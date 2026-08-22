@@ -379,7 +379,7 @@ describe('ZoneGroupRoute', () => {
     await act(async () => {
       fireEvent.click(screen.getByText('Add group'));
     });
-    await screen.findByText('Rechazado');
+    await waitFor(() => expect(screen.getAllByText('Rechazado')).toHaveLength(1));
 
     // previewZoneDraw succeeds (enabling Confirm), confirmZoneDraw refuses
     const zoneRegion = zoneAssignRegion();
@@ -390,7 +390,7 @@ describe('ZoneGroupRoute', () => {
     await act(async () => {
       fireEvent.click(within(zoneRegion).getByText('Confirm draw'));
     });
-    await screen.findByText('Rechazado');
+    await waitFor(() => expect(screen.getAllByText('Rechazado')).toHaveLength(2));
 
     // assignZonesManually
     fireEvent.click(within(zoneRegion).getByText('Manual placement'));
@@ -400,7 +400,7 @@ describe('ZoneGroupRoute', () => {
     await act(async () => {
       fireEvent.click(within(zoneRegion).getByText('Save assignment'));
     });
-    await screen.findByText('Rechazado');
+    await waitFor(() => expect(screen.getAllByText('Rechazado')).toHaveLength(3));
     fireEvent.click(within(zoneRegion).getByText('Automatic draw'));
 
     // previewGroupDraw succeeds (enabling Confirm), confirmGroupDraw refuses
@@ -412,7 +412,7 @@ describe('ZoneGroupRoute', () => {
     await act(async () => {
       fireEvent.click(within(groupRegion).getByText('Confirm draw'));
     });
-    await screen.findByText('Rechazado');
+    await waitFor(() => expect(screen.getAllByText('Rechazado')).toHaveLength(4));
 
     // assignGroupsManually
     fireEvent.click(within(groupRegion).getByText('Manual placement'));
@@ -423,7 +423,7 @@ describe('ZoneGroupRoute', () => {
     await act(async () => {
       fireEvent.click(within(groupRegion).getByText('Save assignment'));
     });
-    await screen.findByText('Rechazado');
+    await waitFor(() => expect(screen.getAllByText('Rechazado')).toHaveLength(5));
     fireEvent.click(within(groupRegion).getByText('Automatic draw'));
   });
 
@@ -498,7 +498,7 @@ describe('ZoneGroupRoute', () => {
       fireEvent.click(screen.getByText('Add zone'));
     });
 
-    await screen.findByText('The request was refused.');
+    await screen.findByText('The request could not be completed. Try again.');
   });
 
   it('reports a draw preview failure for both zones and groups', async () => {
@@ -525,11 +525,11 @@ describe('ZoneGroupRoute', () => {
     await act(async () => {
       fireEvent.click(within(zoneAssignRegion()).getByText('Preview draw'));
     });
-    await screen.findByText('Rechazado');
+    await waitFor(() => expect(screen.getAllByText('Rechazado')).toHaveLength(1));
     await act(async () => {
       fireEvent.click(within(groupAssignRegion()).getByText('Preview draw'));
     });
-    await screen.findByText('Rechazado');
+    await waitFor(() => expect(screen.getAllByText('Rechazado')).toHaveLength(2));
   });
 
   it('tolerates a failed group/entrant fetch for the selected zone', async () => {

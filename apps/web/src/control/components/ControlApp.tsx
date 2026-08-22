@@ -34,6 +34,7 @@ import { controlTokenStore } from '../session/token-store.js';
 import { activeControlLanguage, ControlIntl } from '../i18n/ControlIntl.js';
 import { messages } from '../i18n/messages.en.js';
 import type { SupportedLanguage } from '../../lib/language-preference.js';
+import { ToastProvider } from './ToastProvider.js';
 
 /**
  * The one persistent root for every control-panel screen, now also
@@ -77,19 +78,25 @@ export function ControlApp(): React.JSX.Element | null {
   if (route.screen === 'login')
     return (
       <ControlIntl locale={activeControlLanguage()}>
-        <LoginRoute />
+        <ToastProvider>
+          <LoginRoute />
+        </ToastProvider>
       </ControlIntl>
     );
   if (route.screen === 'forgot-password')
     return (
       <ControlIntl locale={activeControlLanguage()}>
-        <ForgotPasswordRoute />
+        <ToastProvider>
+          <ForgotPasswordRoute />
+        </ToastProvider>
       </ControlIntl>
     );
   if (route.screen === 'reset-password')
     return (
       <ControlIntl locale={activeControlLanguage()}>
-        <ResetPasswordRoute />
+        <ToastProvider>
+          <ResetPasswordRoute />
+        </ToastProvider>
       </ControlIntl>
     );
   // Synchronous guard for the render that happens before the effect above

@@ -1,14 +1,5 @@
-import {
-  Body,
-  Controller,
-  ForbiddenException,
-  Get,
-  Inject,
-  NotFoundException,
-  Param,
-  Post,
-  Req,
-} from '@nestjs/common';
+import { Body, Controller, Get, Inject, Param, Post, Req } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '../http/error-contract.js';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -101,7 +92,10 @@ export class ParticipantsController {
     request: RequestWithSubject,
   ): Promise<{ readonly organizationId: string; readonly personId: string }> {
     const organization = await new OrganizationRepository(this.db).findByAlias(alias);
-    if (!organization) throw new NotFoundException(`No organization with alias "${alias}"`);
+    if (!organization)
+      throw new NotFoundException(`No organization with alias "${alias}"`, {
+        errorCode: 'participant-not-found',
+      });
     enforcePolicy({
       plane: 'authenticated-interaction',
       subject: request.subject,
@@ -111,7 +105,10 @@ export class ParticipantsController {
       },
     });
     const personId = request.subject?.participantPersonId;
-    if (!personId) throw new ForbiddenException('Subject has no participant identity');
+    if (!personId)
+      throw new ForbiddenException('Subject has no participant identity', {
+        errorCode: 'participant-forbidden',
+      });
     return {
       organizationId: organization.organizationId,
       personId,
@@ -138,7 +135,10 @@ export class ParticipantIdentityLinksController {
     @Req() request: RequestWithSubject,
   ): Promise<ParticipantIdentityLinkResponse> {
     const organization = await new OrganizationRepository(this.db).findByAlias(alias);
-    if (!organization) throw new NotFoundException(`No organization with alias "${alias}"`);
+    if (!organization)
+      throw new NotFoundException(`No organization with alias "${alias}"`, {
+        errorCode: 'participant-not-found',
+      });
     return withTransaction(this.db, (uow) =>
       new IdentityPrincipalRepository(this.db).linkParticipant(uow, {
         organizationId: organization.organizationId,

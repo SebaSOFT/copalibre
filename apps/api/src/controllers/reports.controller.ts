@@ -1,15 +1,5 @@
-import {
-  BadRequestException,
-  Body,
-  Controller,
-  Get,
-  HttpCode,
-  Inject,
-  NotFoundException,
-  Param,
-  Post,
-  Req,
-} from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Inject, Param, Post, Req } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '../http/error-contract.js';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -122,7 +112,8 @@ export class ParticipantReportsController {
           : { winnerEntrantId: body.proposedResult.winnerEntrantId }),
       },
     });
-    if (!validated.ok) throw new BadRequestException(validated.error.message);
+    if (!validated.ok)
+      throw new BadRequestException(validated.error.message, { errorCode: 'report-bad-request' });
 
     return this.persist(organizationId, personId, validated.value, evidence, request);
   }
@@ -161,7 +152,8 @@ export class ParticipantReportsController {
       evidence,
       reason: body.reason,
     });
-    if (!validated.ok) throw new BadRequestException(validated.error.message);
+    if (!validated.ok)
+      throw new BadRequestException(validated.error.message, { errorCode: 'report-bad-request' });
 
     return this.persist(organizationId, personId, validated.value, evidence, request);
   }
@@ -180,14 +172,20 @@ export class ParticipantReportsController {
   }> {
     const organization = await new OrganizationRepository(this.db).findByAlias(organizationAlias);
     if (!organization)
-      throw new NotFoundException(`No organization with alias "${organizationAlias}"`);
+      throw new NotFoundException(`No organization with alias "${organizationAlias}"`, {
+        errorCode: 'report-not-found',
+      });
     const tournament = await new TournamentRepository(this.db).findByScopedAlias(
       organizationAlias,
       tournamentAlias,
     );
-    if (!tournament) throw new NotFoundException(`No tournament "${tournamentAlias}"`);
+    if (!tournament)
+      throw new NotFoundException(`No tournament "${tournamentAlias}"`, {
+        errorCode: 'report-not-found',
+      });
     const match = await new CompetitionRepository(this.db).findMatch(matchId);
-    if (!match) throw new NotFoundException(`No match "${matchId}"`);
+    if (!match)
+      throw new NotFoundException(`No match "${matchId}"`, { errorCode: 'report-not-found' });
 
     const personId = await enforceReportSubmission({
       subject: request.subject,
@@ -218,6 +216,7 @@ export class ParticipantReportsController {
       if (bytes.length === 0 || bytes.length > MAX_EVIDENCE_BYTES) {
         throw new BadRequestException(
           `Evidence file "${upload.filename}" is not a valid size (0 < bytes <= ${MAX_EVIDENCE_BYTES})`,
+          { errorCode: 'report-bad-request' },
         );
       }
       const key = `${organizationId}/${newId()}-${upload.filename}`;

@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/jwt-auth.guard.js';
 import { OrganizationAccessGuard } from './auth/organization-access.guard.js';
+import { ApiExceptionFilter } from './http/error-contract.js';
 import { AdminModule } from './modules/admin.module.js';
 import { CoreModule } from './modules/core.module.js';
 import { AuthModule } from './modules/auth.module.js';
@@ -31,6 +32,7 @@ import { PublicModule } from './modules/public.module.js';
     AdminModule,
   ],
   providers: [
+    { provide: APP_FILTER, useClass: ApiExceptionFilter },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: OrganizationAccessGuard },
   ],

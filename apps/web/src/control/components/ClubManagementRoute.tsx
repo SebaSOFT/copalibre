@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import {
-  ControlApiError,
   clubEmblemUrl,
   createControlApiClient,
   type ClubResponse,
@@ -13,6 +12,7 @@ import { ImageCropModal } from './ImageCropModal.js';
 import { ClubEmblemPlaceholder } from './placeholders.js';
 import { Button } from './ui/button.js';
 import { messages } from '../i18n/messages.en.js';
+import { useToast } from './ToastProvider.js';
 
 /**
  * Club identity management (0109) — the first club-related component in the
@@ -28,6 +28,7 @@ export function ClubManagementRoute({
   readonly client?: ControlApiClient;
 }): React.JSX.Element {
   const intl = useIntl();
+  const { push, pushError } = useToast();
   const api = useMemo(
     () =>
       client ??
@@ -41,7 +42,6 @@ export function ClubManagementRoute({
   const [clubs, setClubs] = useState<readonly ClubResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | undefined>(undefined);
-  const [notice, setNotice] = useState<string | undefined>(undefined);
 
   const [newName, setNewName] = useState('');
   const [newAlias, setNewAlias] = useState('');
@@ -97,7 +97,6 @@ export function ClubManagementRoute({
     setEditName(club.name);
     setEditAlias(club.alias ?? '');
     setEditAbbreviation(club.abbreviation ?? '');
-    setNotice(undefined);
   }
 
   async function createClub(): Promise<void> {
@@ -111,14 +110,10 @@ export function ClubManagementRoute({
       setNewName('');
       setNewAlias('');
       setNewAbbreviation('');
-      setNotice(intl.formatMessage(messages.clubManagementCreated));
+      push({ severity: 'success', message: intl.formatMessage(messages.clubManagementCreated) });
       void reload();
     } catch (error) {
-      setNotice(
-        error instanceof ControlApiError
-          ? error.message
-          : intl.formatMessage(messages.clubManagementSaveFailed),
-      );
+      pushError(error);
     }
   }
 
@@ -130,16 +125,12 @@ export function ClubManagementRoute({
         alias: editAlias.trim(),
         ...(editAbbreviation.trim() === '' ? {} : { abbreviation: editAbbreviation.trim() }),
       });
-      setNotice(intl.formatMessage(messages.clubManagementSaved));
+      push({ severity: 'success', message: intl.formatMessage(messages.clubManagementSaved) });
       setClubs((current) =>
         current.map((club) => (club.clubId === updated.clubId ? updated : club)),
       );
     } catch (error) {
-      setNotice(
-        error instanceof ControlApiError
-          ? error.message
-          : intl.formatMessage(messages.clubManagementSaveFailed),
-      );
+      pushError(error);
     }
   }
 
@@ -154,14 +145,13 @@ export function ClubManagementRoute({
         contentType: output.contentType,
         contentBase64: output.contentBase64,
       });
-      setNotice(intl.formatMessage(messages.clubManagementEmblemUploaded));
+      push({
+        severity: 'success',
+        message: intl.formatMessage(messages.clubManagementEmblemUploaded),
+      });
       void reload();
     } catch (error) {
-      setNotice(
-        error instanceof ControlApiError
-          ? error.message
-          : intl.formatMessage(messages.clubManagementSaveFailed),
-      );
+      pushError(error);
     }
   }
 
@@ -185,8 +175,6 @@ export function ClubManagementRoute({
           <FormattedMessage {...messages.clubManagementTitle} />
         </h1>
       </header>
-
-      {notice && <p className="cl-inline-alert">{notice}</p>}
 
       <section aria-label={intl.formatMessage(messages.clubManagementTitle)} style={panelStyle}>
         <ul style={listStyle}>

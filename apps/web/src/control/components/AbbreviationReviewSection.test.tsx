@@ -113,7 +113,9 @@ describe('AbbreviationReviewSection (0111)', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Set' }));
 
-    await waitFor(() => expect(screen.getByText('Could not set the abbreviation.')).toBeDefined());
+    await waitFor(() =>
+      expect(screen.getByText('The request could not be completed. Try again.')).toBeDefined(),
+    );
   });
 
   it('does nothing when no callback is provided', () => {

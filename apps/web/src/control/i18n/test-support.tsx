@@ -1,4 +1,5 @@
 import { IntlProvider } from 'react-intl';
+import { ToastProvider } from '../components/ToastProvider.js';
 
 /**
  * Test-only: every control-panel leaf component now calls `useIntl()`/
@@ -10,7 +11,7 @@ import { IntlProvider } from 'react-intl';
 export function withIntl(children: React.ReactNode): React.JSX.Element {
   return (
     <IntlProvider defaultLocale="en" locale="en">
-      {children}
+      <ToastProvider>{children}</ToastProvider>
     </IntlProvider>
   );
 }

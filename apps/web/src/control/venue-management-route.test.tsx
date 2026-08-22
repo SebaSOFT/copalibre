@@ -247,7 +247,7 @@ describe('VenueManagementRoute', () => {
       fireEvent.click(screen.getByText('Add venue'));
     });
 
-    await screen.findByText('The request was refused.');
+    await screen.findByText('The request could not be completed. Try again.');
   });
 
   it('edits an official’s roles', async () => {
@@ -428,7 +428,7 @@ describe('VenueManagementRoute', () => {
       fireEvent.click(screen.getByText('Save official'));
     });
 
-    await screen.findByText('The request was refused.');
+    await screen.findByText('The request could not be completed. Try again.');
   });
 
   it('reports a generic failure when saving a venue throws a non-ControlApiError', async () => {
@@ -445,7 +445,7 @@ describe('VenueManagementRoute', () => {
       fireEvent.click(screen.getByText('Save venue'));
     });
 
-    await screen.findByText('The request was refused.');
+    await screen.findByText('The request could not be completed. Try again.');
   });
 
   it('reports a generic failure when creating an official throws a non-ControlApiError', async () => {
@@ -462,7 +462,7 @@ describe('VenueManagementRoute', () => {
       fireEvent.click(screen.getByText('Add official'));
     });
 
-    await screen.findByText('The request was refused.');
+    await screen.findByText('The request could not be completed. Try again.');
   });
 
   it('surfaces the server’s own refusal message when saving an official is refused', async () => {

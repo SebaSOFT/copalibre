@@ -288,6 +288,9 @@ export class ProblemResponse {
 
   @ApiProperty({ example: 'subject may only act on their own records' })
   message!: string;
+
+  @ApiProperty({ example: 'forbidden' })
+  errorCode!: string;
 }
 
 export class CreateCsvImportRequest {

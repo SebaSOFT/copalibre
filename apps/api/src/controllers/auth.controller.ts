@@ -1,18 +1,7 @@
 import * as argon2 from 'argon2';
 import { SignJWT } from 'jose';
-import {
-  BadRequestException,
-  Body,
-  Controller,
-  Delete,
-  Get,
-  HttpCode,
-  Inject,
-  Param,
-  Post,
-  Req,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Inject, Param, Post, Req } from '@nestjs/common';
+import { BadRequestException, UnauthorizedException } from '../http/error-contract.js';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -68,12 +57,16 @@ export class NativeAuthController {
       .executeTakeFirst();
 
     if (!principal?.password_hash) {
-      throw new UnauthorizedException('Invalid email or password');
+      throw new UnauthorizedException('Invalid email or password', {
+        errorCode: 'auth-unauthorized',
+      });
     }
 
     const valid = await argon2.verify(principal.password_hash, body.password);
     if (!valid) {
-      throw new UnauthorizedException('Invalid email or password');
+      throw new UnauthorizedException('Invalid email or password', {
+        errorCode: 'auth-unauthorized',
+      });
     }
 
     const accessToken = await issueLocalJwt(principal.principal_id, principal.email);
@@ -127,7 +120,9 @@ export class NativeAuthController {
   @ApiOkResponse({ type: AuthSuccessResponse })
   async resetPassword(@Body() body: ResetPasswordRequest): Promise<AuthSuccessResponse> {
     if (body.newPassword.length < 8) {
-      throw new BadRequestException('Password must be at least 8 characters');
+      throw new BadRequestException('Password must be at least 8 characters', {
+        errorCode: 'auth-bad-request',
+      });
     }
 
     const passwordHash = await argon2.hash(body.newPassword);
@@ -138,7 +133,7 @@ export class NativeAuthController {
         body.token,
       );
       if (verification.kind !== 'password-reset') {
-        throw new BadRequestException('Invalid reset token');
+        throw new BadRequestException('Invalid reset token', { errorCode: 'auth-bad-request' });
       }
 
       await uow.tx
@@ -187,7 +182,9 @@ export class PersonalAccessTokenController {
   ): Promise<PatCreatedResponse> {
     const principalId = requirePrincipalId(request);
     if (body.expiresInDays < 1 || body.expiresInDays > 365) {
-      throw new BadRequestException('expiresInDays must be between 1 and 365');
+      throw new BadRequestException('expiresInDays must be between 1 and 365', {
+        errorCode: 'auth-bad-request',
+      });
     }
 
     const expiresAt = new Date(Date.now() + body.expiresInDays * 24 * 60 * 60 * 1000);
@@ -239,7 +236,10 @@ export class PersonalAccessTokenController {
 
 function requirePrincipalId(request: RequestWithSubject): string {
   const id = request.subject?.principalId ?? request.subject?.subjectId;
-  if (!id) throw new UnauthorizedException('No principal identity resolved');
+  if (!id)
+    throw new UnauthorizedException('No principal identity resolved', {
+      errorCode: 'auth-unauthorized',
+    });
   return id;
 }
 

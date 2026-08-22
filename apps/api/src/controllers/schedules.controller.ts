@@ -1,14 +1,5 @@
-import {
-  BadRequestException,
-  Body,
-  Controller,
-  Get,
-  Inject,
-  NotFoundException,
-  Param,
-  Post,
-  Req,
-} from '@nestjs/common';
+import { Body, Controller, Get, Inject, Param, Post, Req } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '../http/error-contract.js';
 import {
   ApiBearerAuth,
   ApiForbiddenResponse,
@@ -157,10 +148,13 @@ export class SchedulesController {
       // A conflicting schedule is the caller's mistake, not a server fault, and
       // the reply carries the same detail the preview would have shown.
       if (cause instanceof ScheduleConflictError) {
-        throw new BadRequestException({
-          message: cause.message,
-          conflicts: cause.conflicts,
-        });
+        throw new BadRequestException(
+          {
+            message: cause.message,
+            conflicts: cause.conflicts,
+          },
+          { errorCode: 'schedule-bad-request' },
+        );
       }
       throw cause;
     }
@@ -184,6 +178,7 @@ export class SchedulesController {
     if (!tournament) {
       throw new NotFoundException(
         `No tournament "${tournamentAlias}" in organization "${organizationAlias}"`,
+        { errorCode: 'schedule-not-found' },
       );
     }
     return tournament;

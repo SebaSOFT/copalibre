@@ -1,16 +1,9 @@
+import { Controller, Get, Inject, Param, Patch, Post, Body, Req } from '@nestjs/common';
 import {
   BadRequestException,
   ConflictException,
-  Controller,
-  Get,
-  Inject,
   NotFoundException,
-  Param,
-  Patch,
-  Post,
-  Body,
-  Req,
-} from '@nestjs/common';
+} from '../http/error-contract.js';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -93,8 +86,10 @@ export class ResourcesController {
         }),
       );
     } catch (error) {
-      if (error instanceof InvariantViolationError) throw new ConflictException(error.message);
-      if (error instanceof ResourceError) throw new BadRequestException(error.message);
+      if (error instanceof InvariantViolationError)
+        throw new ConflictException(error.message, { errorCode: 'resource-conflict' });
+      if (error instanceof ResourceError)
+        throw new BadRequestException(error.message, { errorCode: 'resource-bad-request' });
       throw error;
     }
   }
@@ -115,7 +110,9 @@ export class ResourcesController {
     const schedules = new ScheduleRepository(this.db);
     const venue = await schedules.findVenue(venueId);
     if (!venue || venue.organizationId !== organizationId) {
-      throw new NotFoundException(`No venue "${venueId}" in this organization`);
+      throw new NotFoundException(`No venue "${venueId}" in this organization`, {
+        errorCode: 'resource-not-found',
+      });
     }
     const subject = request.subject;
     try {
@@ -132,8 +129,10 @@ export class ResourcesController {
         }),
       );
     } catch (error) {
-      if (error instanceof InvariantViolationError) throw new ConflictException(error.message);
-      if (error instanceof ResourceError) throw new BadRequestException(error.message);
+      if (error instanceof InvariantViolationError)
+        throw new ConflictException(error.message, { errorCode: 'resource-conflict' });
+      if (error instanceof ResourceError)
+        throw new BadRequestException(error.message, { errorCode: 'resource-bad-request' });
       throw error;
     }
   }
@@ -178,8 +177,10 @@ export class ResourcesController {
       );
       return toOfficialResponse(official);
     } catch (error) {
-      if (error instanceof InvariantViolationError) throw new ConflictException(error.message);
-      if (error instanceof ResourceError) throw new BadRequestException(error.message);
+      if (error instanceof InvariantViolationError)
+        throw new ConflictException(error.message, { errorCode: 'resource-conflict' });
+      if (error instanceof ResourceError)
+        throw new BadRequestException(error.message, { errorCode: 'resource-bad-request' });
       throw error;
     }
   }
@@ -200,7 +201,9 @@ export class ResourcesController {
     const schedules = new ScheduleRepository(this.db);
     const official = await schedules.findOfficial(officialId);
     if (!official || official.organizationId !== organizationId) {
-      throw new NotFoundException(`No official "${officialId}" in this organization`);
+      throw new NotFoundException(`No official "${officialId}" in this organization`, {
+        errorCode: 'resource-not-found',
+      });
     }
     const subject = request.subject;
     try {
@@ -216,8 +219,10 @@ export class ResourcesController {
       );
       return toOfficialResponse(updated);
     } catch (error) {
-      if (error instanceof InvariantViolationError) throw new ConflictException(error.message);
-      if (error instanceof ResourceError) throw new BadRequestException(error.message);
+      if (error instanceof InvariantViolationError)
+        throw new ConflictException(error.message, { errorCode: 'resource-conflict' });
+      if (error instanceof ResourceError)
+        throw new BadRequestException(error.message, { errorCode: 'resource-bad-request' });
       throw error;
     }
   }
@@ -234,7 +239,9 @@ async function resolveAdminOrganization(
 ): Promise<string> {
   const organization = await new OrganizationRepository(db).findByAlias(organizationAlias);
   if (!organization) {
-    throw new NotFoundException(`No organization with alias "${organizationAlias}"`);
+    throw new NotFoundException(`No organization with alias "${organizationAlias}"`, {
+      errorCode: 'resource-not-found',
+    });
   }
   enforcePolicy({
     plane: 'admin-control',

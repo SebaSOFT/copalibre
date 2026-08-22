@@ -1,17 +1,19 @@
 import {
-  BadRequestException,
   Body,
-  ConflictException,
   Controller,
   Get,
   HttpCode,
   Inject,
-  NotFoundException,
   Param,
   ParseIntPipe,
   Post,
   Req,
 } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '../http/error-contract.js';
 import {
   ApiBearerAuth,
   ApiBadRequestResponse,
@@ -452,7 +454,10 @@ export class ZonesGroupsController {
     const zone = await this.zone(context.stage.stageId, zoneNumber);
     const competition = new CompetitionRepository(this.db);
     const saved = await competition.findPromotionPlan(zone.zoneId);
-    if (!saved) throw new NotFoundException(`No promotion plan for zone ${zoneNumber}`);
+    if (!saved)
+      throw new NotFoundException(`No promotion plan for zone ${zoneNumber}`, {
+        errorCode: 'zone-group-not-found',
+      });
 
     try {
       return await this.computePromotionPreview(
@@ -547,12 +552,17 @@ export class ZonesGroupsController {
       tournament.disciplineRef.descriptorId,
       tournament.disciplineRef.version,
     );
-    if (!descriptor) throw new NotFoundException('Tournament discipline is not installed');
+    if (!descriptor)
+      throw new NotFoundException('Tournament discipline is not installed', {
+        errorCode: 'zone-group-not-found',
+      });
     const groupRecords = records.flatMap(({ group, record }) =>
       record === undefined ? [] : [{ group, record }],
     );
     if (groupRecords.length !== records.length) {
-      throw new NotFoundException(`No source group records for zone ${zone.number}`);
+      throw new NotFoundException(`No source group records for zone ${zone.number}`, {
+        errorCode: 'zone-group-not-found',
+      });
     }
     const groupAccountings = new Map(
       groupRecords.map((entry) => [
@@ -643,7 +653,9 @@ export class ZonesGroupsController {
       tournamentAlias,
     );
     if (!tournament || tournament.status === 'draft') {
-      throw new NotFoundException(`No tournament "${tournamentAlias}" in "${organizationAlias}"`);
+      throw new NotFoundException(`No tournament "${tournamentAlias}" in "${organizationAlias}"`, {
+        errorCode: 'zone-group-not-found',
+      });
     }
     return this.stageOf(tournament.tournamentId, stageNumber);
   }
@@ -676,7 +688,8 @@ export class ZonesGroupsController {
     const stage = (
       await new CompetitionRepository(this.db).listStagesOfTournament(tournamentId)
     ).find((candidate) => candidate.number === stageNumber);
-    if (!stage) throw new NotFoundException(`No stage ${stageNumber}`);
+    if (!stage)
+      throw new NotFoundException(`No stage ${stageNumber}`, { errorCode: 'zone-group-not-found' });
     return { stage };
   }
 
@@ -684,7 +697,8 @@ export class ZonesGroupsController {
     const zone = (await new CompetitionRepository(this.db).listZonesOfStage(stageId)).find(
       (candidate) => candidate.number === zoneNumber,
     );
-    if (!zone) throw new NotFoundException(`No zone ${zoneNumber}`);
+    if (!zone)
+      throw new NotFoundException(`No zone ${zoneNumber}`, { errorCode: 'zone-group-not-found' });
     return zone;
   }
 
@@ -723,18 +737,25 @@ function constraintsOf(constraints: readonly unknown[] | undefined): readonly Dr
 
 function assertDrawInput(count: number, seed: number): void {
   if (!Number.isInteger(count) || count < 1) {
-    throw new BadRequestException('Draw count must be a positive integer');
+    throw new BadRequestException('Draw count must be a positive integer', {
+      errorCode: 'zone-group-bad-request',
+    });
   }
-  if (!Number.isInteger(seed)) throw new BadRequestException('Draw seed must be an integer');
+  if (!Number.isInteger(seed))
+    throw new BadRequestException('Draw seed must be an integer', {
+      errorCode: 'zone-group-bad-request',
+    });
 }
 
 function throwConflict(error: unknown): never {
-  if (error instanceof InvariantViolationError) throw new ConflictException(error.message);
+  if (error instanceof InvariantViolationError)
+    throw new ConflictException(error.message, { errorCode: 'zone-group-conflict' });
   throw error;
 }
 
 function throwPromotionPlanError(error: unknown): never {
-  if (error instanceof QualificationError) throw new BadRequestException(error.message);
+  if (error instanceof QualificationError)
+    throw new BadRequestException(error.message, { errorCode: 'zone-group-bad-request' });
   throwConflict(error);
 }
 
@@ -774,7 +795,9 @@ function promotionPlanFromUnknown(
     !isRecord(combination) ||
     typeof combination.mode !== 'string'
   ) {
-    throw new BadRequestException('Promotion plan has an invalid shape');
+    throw new BadRequestException('Promotion plan has an invalid shape', {
+      errorCode: 'zone-group-bad-request',
+    });
   }
 
   const parsedCombination =
@@ -799,7 +822,9 @@ function promotionPlanFromUnknown(
           ? { mode: 'group-order' as const }
           : undefined;
   if (!parsedCombination)
-    throw new BadRequestException('Promotion plan has an invalid combination');
+    throw new BadRequestException('Promotion plan has an invalid combination', {
+      errorCode: 'zone-group-bad-request',
+    });
 
   const bands = value.bands;
   if (
@@ -810,7 +835,9 @@ function promotionPlanFromUnknown(
           isRecord(band) && typeof band.zoneRef === 'string' && typeof band.count === 'number',
       ))
   ) {
-    throw new BadRequestException('Promotion plan has invalid destination bands');
+    throw new BadRequestException('Promotion plan has invalid destination bands', {
+      errorCode: 'zone-group-bad-request',
+    });
   }
 
   return {
@@ -837,13 +864,17 @@ function parseStoredPlan(value: string): Record<string, unknown> {
   } catch {
     // Converted to the same client-safe invalid-plan response below.
   }
-  throw new BadRequestException('Stored promotion plan has an invalid shape');
+  throw new BadRequestException('Stored promotion plan has an invalid shape', {
+    errorCode: 'zone-group-bad-request',
+  });
 }
 
 function assignmentResponse(assignment: { readonly groups?: Readonly<Record<string, number>> }): {
   readonly groups: Record<string, number>;
 } {
   if (!assignment.groups)
-    throw new BadRequestException('Expected a group assignment from the draw engine');
+    throw new BadRequestException('Expected a group assignment from the draw engine', {
+      errorCode: 'zone-group-bad-request',
+    });
   return { groups: { ...assignment.groups } };
 }

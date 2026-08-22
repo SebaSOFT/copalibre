@@ -170,7 +170,7 @@ describe('LoadMatchDataRoute', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Submit match data' }));
 
-    expect(await screen.findByText(/Submission was refused/i)).toBeDefined();
+    expect(await screen.findByText('The request could not be completed. Try again.')).toBeDefined();
   });
 
   it('loads a CSV that omits every optional column into the builder', async () => {

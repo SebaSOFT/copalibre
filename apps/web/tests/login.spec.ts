@@ -10,7 +10,10 @@ async function mockLoginApi(page: Page): Promise<void> {
         if (body.email === 'test@example.com' && body.password === 'password123') {
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
-        return Response.json({ message: 'Invalid credentials' }, { status: 401 });
+        return Response.json(
+          { message: 'Invalid credentials', errorCode: 'auth-unauthorized' },
+          { status: 401 },
+        );
       }
       return new Response('Not found', { status: 404 });
     };
@@ -42,6 +45,5 @@ test('user sees error on invalid credentials', async ({ page }) => {
   await page.getByLabel('Contraseña').fill('wrongpassword');
   await page.getByRole('button', { name: 'Ingresar' }).click();
 
-  // Depending on how error is shown (maybe an alert or text)
-  await expect(page.getByText('Credenciales incorrectas')).toBeVisible();
+  await expect(page.getByRole('alert')).toContainText('Tu sesión venció. Inicia sesión de nuevo.');
 });

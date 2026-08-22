@@ -1,16 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  HttpCode,
-  Inject,
-  Param,
-  Post,
-  Req,
-  ServiceUnavailableException,
-} from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Inject, Param, Post, Req } from '@nestjs/common';
+import { ServiceUnavailableException } from '../http/error-contract.js';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -165,7 +155,10 @@ function launchUrl(
   token: string,
 ): string {
   const appUrl = process.env.COPALIBRE_APP_URL;
-  if (!appUrl) throw new ServiceUnavailableException('COPALIBRE_APP_URL is not configured');
+  if (!appUrl)
+    throw new ServiceUnavailableException('COPALIBRE_APP_URL is not configured', {
+      errorCode: 'broadcast-service-unavailable',
+    });
   const path = matchId
     ? `/tv/${organizationAlias}/tournaments/${tournamentAlias}/matches/${matchId}`
     : `/tv/${organizationAlias}/tournaments/${tournamentAlias}`;

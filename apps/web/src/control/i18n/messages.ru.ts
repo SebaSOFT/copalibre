@@ -539,4 +539,21 @@ export const messages: Record<string, string> = {
   'control.imageCropModal.close': 'Закрыть',
   'control.imageCropModal.processing': 'Обработка…',
   'control.imageCropModal.failed': 'Не удалось обработать это изображение.',
+  'control.toast.dismiss': 'Закрыть уведомление',
+  'control.toast.notifications': 'Уведомления',
+  'control.toast.details': 'Технические подробности',
+  'control.toast.severity.success': 'Успешно',
+  'control.toast.severity.error': 'Ошибка',
+  'control.toast.severity.info': 'Информация',
+  'control.apiError.generic': 'Не удалось выполнить запрос. Повторите попытку.',
+  'control.apiError.badRequest': 'Проверьте отправленные данные и повторите попытку.',
+  'control.apiError.unauthorized': 'Сеанс истёк. Войдите снова.',
+  'control.apiError.forbidden': 'У вас нет разрешения на это действие.',
+  'control.apiError.notFound': 'Запрошенный объект не найден.',
+  'control.apiError.conflict':
+    'Изменение конфликтует с текущими данными турнира. Обновите страницу и повторите попытку.',
+  'control.apiError.unprocessableEntity': 'Не удалось обработать отправленные данные.',
+  'control.apiError.serviceUnavailable':
+    'Сервис временно недоступен. Повторите попытку немного позже.',
+  'control.apiError.internalServer': 'Произошла непредвиденная ошибка сервера. Повторите попытку.',
 };

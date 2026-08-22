@@ -61,6 +61,7 @@ async function mockRegistrationApi(page: import('@playwright/test').Page): Promi
         status: 409,
         body: {
           message: 'Abbreviation "IND" is already used by another entrant in this tournament',
+          errorCode: 'registration-conflict',
         },
       };
     }
@@ -85,9 +86,9 @@ test('sets a free abbreviation for a collided entrant and it disappears from the
 
   await page.getByLabel('Abreviatura para club-atletico-talleres').fill('IND');
   await page.getByRole('button', { name: 'Asignar' }).click();
-  await expect(
-    page.getByText('Abbreviation "IND" is already used by another entrant in this tournament'),
-  ).toBeVisible();
+  await expect(page.getByRole('alert')).toContainText(
+    'Este cambio entra en conflicto con los datos actuales del torneo.',
+  );
   await expect(page.getByText('club-atletico-talleres')).toBeVisible();
 
   await page.getByLabel('Abreviatura para club-atletico-talleres').fill('TAL');

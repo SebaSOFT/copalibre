@@ -1,4 +1,5 @@
-import { Body, Controller, HttpCode, Inject, NotFoundException, Param, Post } from '@nestjs/common';
+import { Body, Controller, HttpCode, Inject, Param, Post } from '@nestjs/common';
+import { NotFoundException } from '../http/error-contract.js';
 import {
   ApiBearerAuth,
   ApiForbiddenResponse,
@@ -55,7 +56,9 @@ export class AdminStatisticsController {
       // runStatisticsRebuild throws a plain Error for "no such
       // organization/tournament" — the same shape createAdmin's HTTP
       // precedent (installation-bootstrap.controller.ts) already maps.
-      throw new NotFoundException(error instanceof Error ? error.message : String(error));
+      throw new NotFoundException(error instanceof Error ? error.message : String(error), {
+        errorCode: 'admin-statistics-not-found',
+      });
     }
   }
 }

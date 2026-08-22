@@ -1,13 +1,5 @@
-import {
-  Controller,
-  Get,
-  Header,
-  Inject,
-  NotFoundException,
-  Param,
-  Query,
-  Req,
-} from '@nestjs/common';
+import { Controller, Get, Header, Inject, Param, Query, Req } from '@nestjs/common';
+import { NotFoundException } from '../http/error-contract.js';
 import {
   ApiBearerAuth,
   ApiForbiddenResponse,
@@ -238,7 +230,10 @@ export class TableProjectionsController {
       tournament.tournamentId,
     );
     const stage = stages.find((candidate) => candidate.number === stageNumber);
-    if (!stage) throw new NotFoundException(`No stage ${stageNumberParam} in tournament`);
+    if (!stage)
+      throw new NotFoundException(`No stage ${stageNumberParam} in tournament`, {
+        errorCode: 'table-projection-not-found',
+      });
 
     return readTableProjection(
       this.db,

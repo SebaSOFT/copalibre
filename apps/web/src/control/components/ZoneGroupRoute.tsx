@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import {
-  ControlApiError,
   createControlApiClient,
   type ControlApiClient,
   type DrawAssignmentResponse,
@@ -13,6 +12,7 @@ import { controlLinkClick } from '../lib/control-navigation.js';
 import { controlTokenStore } from '../session/token-store.js';
 import { Button } from './ui/button.js';
 import { messages } from '../i18n/messages.en.js';
+import { useToast } from './ToastProvider.js';
 
 type AssignMode = 'draw' | 'manual';
 
@@ -37,6 +37,7 @@ export function ZoneGroupRoute({
   readonly client?: ControlApiClient;
 }): React.JSX.Element {
   const intl = useIntl();
+  const { push, pushError } = useToast();
   const api = useMemo(
     () =>
       client ??
@@ -51,7 +52,6 @@ export function ZoneGroupRoute({
   const [entrants, setEntrants] = useState<readonly RegistrationResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | undefined>(undefined);
-  const [notice, setNotice] = useState<string | undefined>(undefined);
 
   const [newZoneName, setNewZoneName] = useState('');
   const [zoneMode, setZoneMode] = useState<AssignMode>('draw');
@@ -155,11 +155,7 @@ export function ZoneGroupRoute({
       setNewZoneName('');
       void reload();
     } catch (error) {
-      setNotice(
-        error instanceof ControlApiError
-          ? error.message
-          : intl.formatMessage(messages.zoneGroupSaveFailed),
-      );
+      pushError(error);
     }
   }
 
@@ -178,11 +174,7 @@ export function ZoneGroupRoute({
       );
       setGroups(loaded ?? []);
     } catch (error) {
-      setNotice(
-        error instanceof ControlApiError
-          ? error.message
-          : intl.formatMessage(messages.zoneGroupSaveFailed),
-      );
+      pushError(error);
     }
   }
 
@@ -194,13 +186,8 @@ export function ZoneGroupRoute({
         seed: Number(zoneSeed),
       });
       setZonePreview(result.assignment);
-      setNotice(undefined);
     } catch (error) {
-      setNotice(
-        error instanceof ControlApiError
-          ? error.message
-          : intl.formatMessage(messages.zoneGroupSaveFailed),
-      );
+      pushError(error);
     }
   }
 
@@ -212,14 +199,10 @@ export function ZoneGroupRoute({
         seed: Number(zoneSeed),
       });
       setZonePreview(undefined);
-      setNotice(intl.formatMessage(messages.zoneGroupAssignmentSaved));
+      push({ severity: 'success', message: intl.formatMessage(messages.zoneGroupAssignmentSaved) });
       void reload();
     } catch (error) {
-      setNotice(
-        error instanceof ControlApiError
-          ? error.message
-          : intl.formatMessage(messages.zoneGroupSaveFailed),
-      );
+      pushError(error);
     }
   }
 
@@ -236,14 +219,10 @@ export function ZoneGroupRoute({
         zoneCount: Number(zoneCount),
       });
       setZonePlacements({});
-      setNotice(intl.formatMessage(messages.zoneGroupAssignmentSaved));
+      push({ severity: 'success', message: intl.formatMessage(messages.zoneGroupAssignmentSaved) });
       void reload();
     } catch (error) {
-      setNotice(
-        error instanceof ControlApiError
-          ? error.message
-          : intl.formatMessage(messages.zoneGroupSaveFailed),
-      );
+      pushError(error);
     }
   }
 
@@ -258,13 +237,8 @@ export function ZoneGroupRoute({
         { groupCount: Number(groupCount), seed: Number(groupSeed) },
       );
       setGroupPreview(result.assignment);
-      setNotice(undefined);
     } catch (error) {
-      setNotice(
-        error instanceof ControlApiError
-          ? error.message
-          : intl.formatMessage(messages.zoneGroupSaveFailed),
-      );
+      pushError(error);
     }
   }
 
@@ -282,7 +256,7 @@ export function ZoneGroupRoute({
         },
       );
       setGroupPreview(undefined);
-      setNotice(intl.formatMessage(messages.zoneGroupAssignmentSaved));
+      push({ severity: 'success', message: intl.formatMessage(messages.zoneGroupAssignmentSaved) });
       const loaded = await api.listGroups?.(
         organizationAlias,
         tournamentAlias,
@@ -291,11 +265,7 @@ export function ZoneGroupRoute({
       );
       setGroups(loaded ?? []);
     } catch (error) {
-      setNotice(
-        error instanceof ControlApiError
-          ? error.message
-          : intl.formatMessage(messages.zoneGroupSaveFailed),
-      );
+      pushError(error);
     }
   }
 
@@ -315,7 +285,7 @@ export function ZoneGroupRoute({
         { assignment: { groups: groupsMap }, groupCount: Number(groupCount) },
       );
       setGroupPlacements({});
-      setNotice(intl.formatMessage(messages.zoneGroupAssignmentSaved));
+      push({ severity: 'success', message: intl.formatMessage(messages.zoneGroupAssignmentSaved) });
       const loaded = await api.listGroups?.(
         organizationAlias,
         tournamentAlias,
@@ -324,11 +294,7 @@ export function ZoneGroupRoute({
       );
       setGroups(loaded ?? []);
     } catch (error) {
-      setNotice(
-        error instanceof ControlApiError
-          ? error.message
-          : intl.formatMessage(messages.zoneGroupSaveFailed),
-      );
+      pushError(error);
     }
   }
 
@@ -355,8 +321,6 @@ export function ZoneGroupRoute({
           <FormattedMessage {...messages.zoneGroupTitle} />
         </h1>
       </header>
-
-      {notice && <p className="cl-inline-alert">{notice}</p>}
 
       <section aria-label={intl.formatMessage(messages.zoneGroupZonesHeading)} style={panelStyle}>
         <h2 style={sectionTitleStyle}>

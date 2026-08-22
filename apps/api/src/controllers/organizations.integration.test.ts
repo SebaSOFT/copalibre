@@ -68,6 +68,11 @@ describe('public-read plane', () => {
   it('404s an unknown alias', async () => {
     const response = await request({ method: 'GET', url: '/organizations/no-such-org' });
     expect(response.statusCode).toBe(404);
+    expect(response.json()).toMatchObject({
+      statusCode: 404,
+      errorCode: 'organization-not-found',
+      message: expect.any(String),
+    });
   });
 });
 

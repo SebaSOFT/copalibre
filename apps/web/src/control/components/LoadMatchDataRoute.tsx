@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { isSupportedLanguage, resolveLabel } from '@copalibre/domain';
 import {
-  ControlApiError,
   createControlApiClient,
   type ConsoleEventDefinition,
   type MatchConsoleApiClient,
@@ -18,6 +17,7 @@ import {
 import { controlTokenStore } from '../session/token-store.js';
 import { Button } from './ui/button.js';
 import { messages } from '../i18n/messages.en.js';
+import { useToast } from './ToastProvider.js';
 
 type LoadStatus =
   | { readonly kind: 'loading' }
@@ -90,6 +90,7 @@ export function LoadMatchDataRoute({
   readonly client?: MatchConsoleApiClient;
 }): React.JSX.Element {
   const intl = useIntl();
+  const { push, pushError } = useToast();
   const language = isSupportedLanguage(intl.locale) ? intl.locale : 'en';
   const api = useMemo(
     () =>
@@ -111,12 +112,7 @@ export function LoadMatchDataRoute({
   const [events, setEvents] = useState<readonly EventRow[]>([]);
   const [winnerEntrantId, setWinnerEntrantId] = useState('');
   const [csvErrors, setCsvErrors] = useState<readonly CsvRowError[]>();
-  const [submitState, setSubmitState] = useState<
-    | { readonly kind: 'idle' }
-    | { readonly kind: 'submitting' }
-    | { readonly kind: 'error'; readonly message: string }
-    | { readonly kind: 'success'; readonly eventCount: number }
-  >({ kind: 'idle' });
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     let live = true;
@@ -324,7 +320,7 @@ export function LoadMatchDataRoute({
 
   async function submit(): Promise<void> {
     if (!projection) return;
-    setSubmitState({ kind: 'submitting' });
+    setSubmitting(true);
     const request = buildBulkLoadRequest({
       rosters: projection.entrantIds.map((entrantId) => ({
         entrantId,
@@ -362,15 +358,16 @@ export function LoadMatchDataRoute({
       // Entered data is intentionally left in place on success too — an
       // operator reviewing the just-submitted batch is a legitimate need,
       // and there is no live projection here to reload into its place.
-      setSubmitState({ kind: 'success', eventCount: response.eventCount });
-    } catch (error) {
-      setSubmitState({
-        kind: 'error',
-        message:
-          error instanceof ControlApiError
-            ? error.message
-            : intl.formatMessage(messages.loadMatchDataSubmitFailed),
+      push({
+        severity: 'success',
+        message: intl.formatMessage(messages.loadMatchDataSubmitSucceeded, {
+          eventCount: response.eventCount,
+        }),
       });
+    } catch (error) {
+      pushError(error);
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -387,19 +384,6 @@ export function LoadMatchDataRoute({
           <FormattedMessage {...messages.loadMatchDataTitle} />
         </h1>
       </header>
-
-      {submitState.kind === 'success' && (
-        <p className="cl-inline-alert" role="status">
-          {intl.formatMessage(messages.loadMatchDataSubmitSucceeded, {
-            eventCount: submitState.eventCount,
-          })}
-        </p>
-      )}
-      {submitState.kind === 'error' && (
-        <p className="cl-inline-alert" role="alert">
-          {submitState.message}
-        </p>
-      )}
 
       <section
         aria-label={intl.formatMessage(messages.loadMatchDataRosterHeading)}
@@ -744,12 +728,8 @@ export function LoadMatchDataRoute({
             ))}
           </select>
         </label>
-        <Button
-          disabled={submitState.kind === 'submitting'}
-          onClick={() => void submit()}
-          type="button"
-        >
-          {submitState.kind === 'submitting'
+        <Button disabled={submitting} onClick={() => void submit()} type="button">
+          {submitting
             ? intl.formatMessage(messages.loadMatchDataSubmitting)
             : intl.formatMessage(messages.loadMatchDataSubmit)}
         </Button>

@@ -1,15 +1,5 @@
-import {
-  ConflictException,
-  Controller,
-  Get,
-  Inject,
-  NotFoundException,
-  Param,
-  Patch,
-  Post,
-  Body,
-  Req,
-} from '@nestjs/common';
+import { Controller, Get, Inject, Param, Patch, Post, Body, Req } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '../http/error-contract.js';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -82,7 +72,8 @@ export class ClubsController {
         }),
       );
     } catch (error) {
-      if (error instanceof InvariantViolationError) throw new ConflictException(error.message);
+      if (error instanceof InvariantViolationError)
+        throw new ConflictException(error.message, { errorCode: 'club-conflict' });
       throw error;
     }
   }
@@ -102,7 +93,9 @@ export class ClubsController {
     const organizationId = await resolveAdminOrganization(this.db, organizationAlias, request);
     const club = await new EnrollmentRepository(this.db).findClub(clubId);
     if (!club || club.organizationId !== organizationId) {
-      throw new NotFoundException(`No club "${clubId}" in this organization`);
+      throw new NotFoundException(`No club "${clubId}" in this organization`, {
+        errorCode: 'club-not-found',
+      });
     }
     const subject = request.subject;
     try {
@@ -118,7 +111,8 @@ export class ClubsController {
         }),
       );
     } catch (error) {
-      if (error instanceof InvariantViolationError) throw new ConflictException(error.message);
+      if (error instanceof InvariantViolationError)
+        throw new ConflictException(error.message, { errorCode: 'club-conflict' });
       throw error;
     }
   }
@@ -131,7 +125,9 @@ async function resolveAdminOrganization(
 ): Promise<string> {
   const organization = await new OrganizationRepository(db).findByAlias(organizationAlias);
   if (!organization) {
-    throw new NotFoundException(`No organization with alias "${organizationAlias}"`);
+    throw new NotFoundException(`No organization with alias "${organizationAlias}"`, {
+      errorCode: 'club-not-found',
+    });
   }
   enforcePolicy({
     plane: 'admin-control',

@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  ControlApiError,
   createControlApiClient,
   type ControlApiClient,
   type SeedingResponse,
@@ -9,6 +8,7 @@ import type { SeedAssignment } from '../lib/seeding.js';
 import { controlLinkClick } from '../lib/control-navigation.js';
 import { controlTokenStore } from '../session/token-store.js';
 import { SeedingBuilderPage } from './SeedingBuilderPage.js';
+import { useToast } from './ToastProvider.js';
 
 export function SeedingBuilderRoute({
   organizationAlias,
@@ -21,6 +21,7 @@ export function SeedingBuilderRoute({
   readonly stageNumber: number;
   readonly client?: ControlApiClient;
 }): React.JSX.Element {
+  const { push, pushError } = useToast();
   const api = useMemo(
     () =>
       client ??
@@ -32,7 +33,6 @@ export function SeedingBuilderRoute({
   );
   const [seeding, setSeeding] = useState<SeedingResponse | undefined>(undefined);
   const [status, setStatus] = useState('Cargando sembrado...');
-  const [notice, setNotice] = useState('');
 
   useEffect(() => {
     let live = true;
@@ -98,11 +98,6 @@ export function SeedingBuilderRoute({
       >
         Zonas y grupos
       </a>
-      {notice !== '' && (
-        <p className="cl-inline-alert" role="alert">
-          {notice}
-        </p>
-      )}
       <SeedingBuilderPage
         hasRecordedResults={seeding.hasRecordedResults}
         matches={seeding.matches}
@@ -117,21 +112,14 @@ export function SeedingBuilderRoute({
               // the bracket canvas reflects what's actually on disk rather
               // than trusting the classification response's own shape.
               if (!result.persisted) return;
-              setNotice(`${result.reason} — sembrado guardado.`);
+              push({ severity: 'success', message: result.reason });
               return api
                 .fetchSeeding(organizationAlias, tournamentAlias, stageNumber)
                 .then(setSeeding);
             })
-            .catch((error: unknown) =>
-              // The server's own reason, not a status code: a 409 here says
-              // "seeding cannot change once a result exists", which is the
-              // sentence the operator needs.
-              setNotice(
-                error instanceof ControlApiError
-                  ? error.message
-                  : 'No se pudo publicar el sembrado.',
-              ),
-            )
+            .catch((error: unknown) => {
+              pushError(error);
+            })
         }
         organizationAlias={organizationAlias}
         seeds={assignments}

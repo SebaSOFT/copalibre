@@ -543,4 +543,25 @@ export const messages: Record<string, string> = {
   'control.imageCropModal.close': 'Schließen',
   'control.imageCropModal.processing': 'Wird verarbeitet…',
   'control.imageCropModal.failed': 'Dieses Bild konnte nicht verarbeitet werden.',
+  'control.toast.dismiss': 'Benachrichtigung schließen',
+  'control.toast.notifications': 'Benachrichtigungen',
+  'control.toast.details': 'Technische Details',
+  'control.toast.severity.success': 'Erfolg',
+  'control.toast.severity.error': 'Fehler',
+  'control.toast.severity.info': 'Information',
+  'control.apiError.generic':
+    'Die Anfrage konnte nicht abgeschlossen werden. Versuchen Sie es erneut.',
+  'control.apiError.badRequest':
+    'Prüfen Sie die übermittelten Angaben und versuchen Sie es erneut.',
+  'control.apiError.unauthorized': 'Ihre Sitzung ist abgelaufen. Melden Sie sich erneut an.',
+  'control.apiError.forbidden': 'Sie haben keine Berechtigung für diese Aktion.',
+  'control.apiError.notFound': 'Das angeforderte Element wurde nicht gefunden.',
+  'control.apiError.conflict':
+    'Diese Änderung steht im Konflikt mit den aktuellen Turnierdaten. Aktualisieren Sie und versuchen Sie es erneut.',
+  'control.apiError.unprocessableEntity':
+    'Die übermittelten Angaben konnten nicht verarbeitet werden.',
+  'control.apiError.serviceUnavailable':
+    'Der Dienst ist vorübergehend nicht verfügbar. Versuchen Sie es in Kürze erneut.',
+  'control.apiError.internalServer':
+    'Ein unerwarteter Serverfehler ist aufgetreten. Versuchen Sie es erneut.',
 };

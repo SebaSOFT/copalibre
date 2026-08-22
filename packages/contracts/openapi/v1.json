@@ -7402,11 +7402,16 @@
           "message": {
             "type": "string",
             "example": "subject may only act on their own records"
+          },
+          "errorCode": {
+            "type": "string",
+            "example": "forbidden"
           }
         },
         "required": [
           "statusCode",
-          "message"
+          "message",
+          "errorCode"
         ]
       },
       "OrganizationResponse": {

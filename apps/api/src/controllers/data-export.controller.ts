@@ -1,4 +1,5 @@
-import { Controller, Get, Header, Inject, NotFoundException, Param, Req } from '@nestjs/common';
+import { Controller, Get, Header, Inject, Param, Req } from '@nestjs/common';
+import { NotFoundException } from '../http/error-contract.js';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiProduces, ApiTags } from '@nestjs/swagger';
 import { escapeCsvFormulaCell, stringifyCsv } from '@copalibre/domain';
 import {
@@ -77,7 +78,9 @@ export class DataExportController {
         })),
       );
     }
-    throw new NotFoundException('Participant export target must be individual or team');
+    throw new NotFoundException('Participant export target must be individual or team', {
+      errorCode: 'data-export-not-found',
+    });
   }
 
   @Get('results')
@@ -157,7 +160,9 @@ export class DataExportController {
   ): Promise<string> {
     const organization = await new OrganizationRepository(this.db).findByAlias(organizationAlias);
     if (!organization)
-      throw new NotFoundException(`No organization with alias "${organizationAlias}"`);
+      throw new NotFoundException(`No organization with alias "${organizationAlias}"`, {
+        errorCode: 'data-export-not-found',
+      });
     enforcePolicy({
       plane: 'admin-control',
       subject: request.subject,
@@ -167,7 +172,10 @@ export class DataExportController {
       organizationAlias,
       tournamentAlias,
     );
-    if (!tournament) throw new NotFoundException(`No tournament "${tournamentAlias}"`);
+    if (!tournament)
+      throw new NotFoundException(`No tournament "${tournamentAlias}"`, {
+        errorCode: 'data-export-not-found',
+      });
     return tournament.tournamentId;
   }
 }

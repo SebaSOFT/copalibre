@@ -76,6 +76,18 @@ async function mockControlApi(page: import('@playwright/test').Page): Promise<vo
         }
         if (url === `/organizations/${orgAlias}/clubs` && method === 'POST') {
           const body = JSON.parse(String(init?.body)) as { name: string };
+          if (body.name === 'Club duplicado') {
+            return Response.json(
+              { statusCode: 409, message: 'duplicate club', errorCode: 'conflict' },
+              { status: 409 },
+            );
+          }
+          if (body.name === 'Club restringido') {
+            return Response.json(
+              { statusCode: 403, message: 'restricted club', errorCode: 'forbidden' },
+              { status: 403 },
+            );
+          }
           const created = await (
             window as unknown as { __createClub: (name: string) => Promise<unknown> }
           ).__createClub(body.name);
@@ -200,11 +212,39 @@ test('creates a club, uploads its emblem, then uploads the organization emblem',
   await expect(orgDialog).toBeVisible();
   await orgDialog.getByRole('button', { name: 'Usar imagen' }).click();
   await expect(page.getByText('Escudo subido.')).toBeVisible();
-  // The notice appears as soon as the upload resolves; the emblem `<img>`
+  // The toast appears as soon as the upload resolves; the emblem `<img>`
   // only appears once the route's own follow-up reload completes — a
   // second round trip, so this needs more than the default timeout under
   // parallel load.
   await expect(page.getByAltText('Escudo de la organización')).toBeVisible({ timeout: 10000 });
+});
+
+test('keeps rapid API errors stacked and independently dismissible', async ({ page }) => {
+  await mockControlApi(page);
+
+  const clubsTarget = `/control/${ORG_ALIAS}/clubs`;
+  await seedLoginTransaction(page, clubsTarget);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${clubsTarget}`);
+
+  await page.getByLabel('Nombre del club nuevo').fill('Club duplicado');
+  await page.getByText('Agregar club').click();
+  await page.getByLabel('Nombre del club nuevo').fill('Club restringido');
+  await page.getByText('Agregar club').click();
+
+  const notifications = page.getByRole('region', { name: 'Notificaciones' });
+  await expect(notifications.getByRole('alert')).toHaveCount(2);
+  const conflict = notifications.getByText(
+    'Este cambio entra en conflicto con los datos actuales del torneo. Actualiza e intenta de nuevo.',
+  );
+  const forbidden = notifications.getByText('No tienes permiso para realizar esta acción.');
+  await expect(conflict).toBeVisible();
+  await expect(forbidden).toBeVisible();
+
+  await notifications.getByRole('button', { name: 'Descartar notificación' }).first().click();
+  await expect(forbidden).toBeHidden();
+  await expect(conflict).toBeVisible();
+  await expect(notifications.getByRole('alert')).toHaveCount(1);
 });
 
 /**

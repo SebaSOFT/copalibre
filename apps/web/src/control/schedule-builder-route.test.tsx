@@ -365,7 +365,7 @@ describe('ScheduleBuilderRoute', () => {
       fireEvent.click(screen.getByText('Preview'));
     });
 
-    await screen.findByText('The request was refused.');
+    await screen.findByText('The request could not be completed. Try again.');
   });
 
   it('surfaces the server’s own refusal message on a failed preview', async () => {
@@ -432,7 +432,7 @@ describe('ScheduleBuilderRoute', () => {
       fireEvent.click(screen.getByText('Publish'));
     });
 
-    await screen.findByText('The request was refused.');
+    await screen.findByText('The request could not be completed. Try again.');
   });
 
   it('does nothing when preview and publish are clicked with an empty batch', async () => {

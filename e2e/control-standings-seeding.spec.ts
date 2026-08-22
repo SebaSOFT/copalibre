@@ -318,17 +318,20 @@ test('a published seed order survives a page reload', async ({ page }) => {
   const shuffled = await seedList.getByRole('listitem').allTextContents();
 
   await page.getByRole('button', { name: 'Publicar sembrado' }).click();
-  await expect(page.getByRole('alert')).toContainText('sembrado guardado');
+  await expect(page.getByRole('status')).toContainText('Reseeding regenerates the fixture graph');
 
-  await page.reload();
   // The session is in-memory only and a reload discards it, same as a
   // real browser refresh — log back in to return to this screen so the
-  // assertion below is about the persisted seed order, not the session.
-  await seedLoginTransaction(page, target);
-  await page.goto(loginCallbackUrl()).catch((error: Error) => {
-    if (!error.message.includes('is interrupted by another navigation')) throw error;
-  });
-  await page.waitForURL(`**${target}`);
+  // assertion below is about the persisted seed order, not the session. Retry
+  // the sequence because the app's own login redirect can race callback navigation.
+  await expect(async () => {
+    await page.reload();
+    await seedLoginTransaction(page, target);
+    await page.goto(loginCallbackUrl(), { timeout: 5000 }).catch((error: Error) => {
+      if (!error.message.includes('is interrupted by another navigation')) throw error;
+    });
+    await page.waitForURL(`**${target}`, { timeout: 5000 });
+  }).toPass();
   await expect(seedList.getByRole('listitem')).toHaveCount(shuffled.length);
   const afterReload = await seedList.getByRole('listitem').allTextContents();
   expect(afterReload).toEqual(shuffled);

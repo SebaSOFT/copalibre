@@ -1,16 +1,5 @@
-import {
-  BadRequestException,
-  Body,
-  Controller,
-  Get,
-  Inject,
-  NotFoundException,
-  Param,
-  Patch,
-  Post,
-  Req,
-  Res,
-} from '@nestjs/common';
+import { Body, Controller, Get, Inject, Param, Patch, Post, Req, Res } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '../http/error-contract.js';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -85,7 +74,9 @@ export class PersonMediaController {
     const organizationId = await resolveAdminOrganization(this.db, organizationAlias, request);
     const person = await new PersonRepository(this.db).findPerson(personId);
     if (!person || person.organizationId !== organizationId) {
-      throw new NotFoundException(`No person "${personId}" in this organization`);
+      throw new NotFoundException(`No person "${personId}" in this organization`, {
+        errorCode: 'identity-media-not-found',
+      });
     }
     return {
       personId: person.personId,
@@ -111,7 +102,9 @@ export class PersonMediaController {
     const organizationId = await resolveAdminOrganization(this.db, organizationAlias, request);
     const person = await new PersonRepository(this.db).findPerson(personId);
     if (!person || person.organizationId !== organizationId) {
-      throw new NotFoundException(`No person "${personId}" in this organization`);
+      throw new NotFoundException(`No person "${personId}" in this organization`, {
+        errorCode: 'identity-media-not-found',
+      });
     }
 
     const bytes = await decodeImage(body);
@@ -153,7 +146,10 @@ export class PersonMediaController {
     @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<Buffer | undefined> {
     const person = await new PersonRepository(this.db).findPerson(personId);
-    if (!person?.photoObjectId) throw new NotFoundException('No photo for this person');
+    if (!person?.photoObjectId)
+      throw new NotFoundException('No photo for this person', {
+        errorCode: 'identity-media-not-found',
+      });
     return streamStoredObject(this.db, this.storage, person.photoObjectId, reply);
   }
 
@@ -172,7 +168,9 @@ export class PersonMediaController {
     const organizationId = await resolveAdminOrganization(this.db, organizationAlias, request);
     const person = await new PersonRepository(this.db).findPerson(personId);
     if (!person || person.organizationId !== organizationId) {
-      throw new NotFoundException(`No person "${personId}" in this organization`);
+      throw new NotFoundException(`No person "${personId}" in this organization`, {
+        errorCode: 'identity-media-not-found',
+      });
     }
 
     const updated = await withTransaction(this.db, (uow) =>
@@ -211,7 +209,9 @@ export class ClubMediaController {
     const organizationId = await resolveAdminOrganization(this.db, organizationAlias, request);
     const club = await new EnrollmentRepository(this.db).findClub(clubId);
     if (!club || club.organizationId !== organizationId) {
-      throw new NotFoundException(`No club "${clubId}" in this organization`);
+      throw new NotFoundException(`No club "${clubId}" in this organization`, {
+        errorCode: 'identity-media-not-found',
+      });
     }
 
     const bytes = await decodeImage(body);
@@ -253,7 +253,10 @@ export class ClubMediaController {
     @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<Buffer | undefined> {
     const club = await new EnrollmentRepository(this.db).findClub(clubId);
-    if (!club?.emblemObjectId) throw new NotFoundException('No emblem for this club');
+    if (!club?.emblemObjectId)
+      throw new NotFoundException('No emblem for this club', {
+        errorCode: 'identity-media-not-found',
+      });
     return streamStoredObject(this.db, this.storage, club.emblemObjectId, reply);
   }
 }
@@ -317,10 +320,14 @@ export class OrganizationMediaController {
   ): Promise<Buffer | undefined> {
     const organization = await new OrganizationRepository(this.db).findByAlias(organizationAlias);
     if (!organization) {
-      throw new NotFoundException(`No organization with alias "${organizationAlias}"`);
+      throw new NotFoundException(`No organization with alias "${organizationAlias}"`, {
+        errorCode: 'identity-media-not-found',
+      });
     }
     if (!organization.emblemObjectId)
-      throw new NotFoundException('No emblem for this organization');
+      throw new NotFoundException('No emblem for this organization', {
+        errorCode: 'identity-media-not-found',
+      });
     return streamStoredObject(this.db, this.storage, organization.emblemObjectId, reply);
   }
 }
@@ -332,7 +339,9 @@ async function resolveAdminOrganization(
 ): Promise<string> {
   const organization = await new OrganizationRepository(db).findByAlias(organizationAlias);
   if (!organization) {
-    throw new NotFoundException(`No organization with alias "${organizationAlias}"`);
+    throw new NotFoundException(`No organization with alias "${organizationAlias}"`, {
+      errorCode: 'identity-media-not-found',
+    });
   }
   enforcePolicy({
     plane: 'admin-control',
@@ -365,6 +374,7 @@ async function decodeImage(upload: UploadImageRequest): Promise<Buffer> {
   if (bytes.length === 0 || bytes.length > MAX_IMAGE_BYTES) {
     throw new BadRequestException(
       `Image "${upload.filename}" is not a valid size (0 < bytes <= ${MAX_IMAGE_BYTES})`,
+      { errorCode: 'identity-media-bad-request' },
     );
   }
 
@@ -381,6 +391,7 @@ async function decodeImage(upload: UploadImageRequest): Promise<Buffer> {
     throw new BadRequestException(
       `Image "${upload.filename}" must be ${REQUIRED_IMAGE_WIDTH}×${REQUIRED_IMAGE_HEIGHT} ` +
         `(within ${DIMENSION_TOLERANCE * 100}% tolerance); received ${width ?? '?'}×${height ?? '?'}`,
+      { errorCode: 'identity-media-bad-request' },
     );
   }
   return bytes;
@@ -402,8 +413,12 @@ async function streamStoredObject(
   const metadata: ObjectMetadata | undefined = await new ObjectMetadataRepository(db).findById(
     objectId,
   );
-  if (!metadata) throw new NotFoundException('No such stored object');
-  if (metadata.status === 'failed') throw new NotFoundException('Object failed validation');
+  if (!metadata)
+    throw new NotFoundException('No such stored object', { errorCode: 'identity-media-not-found' });
+  if (metadata.status === 'failed')
+    throw new NotFoundException('Object failed validation', {
+      errorCode: 'identity-media-not-found',
+    });
   if (metadata.status === 'pending') {
     reply.status(202);
     return undefined;

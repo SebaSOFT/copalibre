@@ -1,18 +1,20 @@
 import {
-  BadRequestException,
   Body,
-  ConflictException,
   Controller,
   Get,
   HttpCode,
   Inject,
-  NotFoundException,
   Param,
   Patch,
   Post,
   Query,
   Req,
 } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '../http/error-contract.js';
 import {
   ApiBearerAuth,
   ApiBadRequestResponse,
@@ -143,11 +145,14 @@ export class RegistrationsController {
     const entrant = await enrollment.findEntrant(entrantId);
 
     if (!entrant || entrant.tournamentId !== tournament.tournamentId) {
-      throw new NotFoundException(`No registration ${entrantId} in this tournament`);
+      throw new NotFoundException(`No registration ${entrantId} in this tournament`, {
+        errorCode: 'registration-not-found',
+      });
     }
 
     const allowed = canDecide(entrant.status, body.decision);
-    if (!allowed.ok) throw new ConflictException(allowed.error.message);
+    if (!allowed.ok)
+      throw new ConflictException(allowed.error.message, { errorCode: 'registration-conflict' });
 
     const updated = await withTransaction(this.db, (uow) =>
       enrollment.setEntrantStatus(uow, {
@@ -234,19 +239,27 @@ export class RegistrationsController {
     const entrant = await enrollment.findEntrant(entrantId);
 
     if (!entrant || entrant.tournamentId !== tournament.tournamentId) {
-      throw new NotFoundException(`No registration ${entrantId} in this tournament`);
+      throw new NotFoundException(`No registration ${entrantId} in this tournament`, {
+        errorCode: 'registration-not-found',
+      });
     }
 
     const window = await this.checkInWindow(tournament.tournamentId);
     const editable = teamMembershipsEditable(window, entrant.status, new Date().toISOString());
-    if (!editable.ok) throw new ConflictException(editable.error.message);
+    if (!editable.ok)
+      throw new ConflictException(editable.error.message, { errorCode: 'registration-conflict' });
 
     if (!Array.isArray(body.personIds)) {
-      throw new BadRequestException('A team-membership edit names the people on it');
+      throw new BadRequestException('A team-membership edit names the people on it', {
+        errorCode: 'registration-bad-request',
+      });
     }
 
     const applies = teamMembershipsApply(entrant.entrantRef.kind);
-    if (!applies.ok) throw new BadRequestException(applies.error.message);
+    if (!applies.ok)
+      throw new BadRequestException(applies.error.message, {
+        errorCode: 'registration-bad-request',
+      });
     // Narrowed by the check above: only a 'team' entrant reaches this point.
     const { teamId } = entrant.entrantRef as Extract<Entrant['entrantRef'], { kind: 'team' }>;
 
@@ -264,6 +277,7 @@ export class RegistrationsController {
     if (unknown.length > 0) {
       throw new NotFoundException(
         `No person in this organization for id(s): ${unknown.join(', ')}`,
+        { errorCode: 'registration-not-found' },
       );
     }
 
@@ -345,7 +359,9 @@ export class RegistrationsController {
   ): Promise<{ readonly organizationId: string; readonly tournament: { tournamentId: string } }> {
     const organization = await new OrganizationRepository(this.db).findByAlias(organizationAlias);
     if (!organization) {
-      throw new NotFoundException(`No organization with alias "${organizationAlias}"`);
+      throw new NotFoundException(`No organization with alias "${organizationAlias}"`, {
+        errorCode: 'registration-not-found',
+      });
     }
 
     enforcePolicy({
@@ -359,7 +375,9 @@ export class RegistrationsController {
       tournamentAlias,
     );
     if (!tournament) {
-      throw new NotFoundException(`No tournament "${tournamentAlias}" in "${organizationAlias}"`);
+      throw new NotFoundException(`No tournament "${tournamentAlias}" in "${organizationAlias}"`, {
+        errorCode: 'registration-not-found',
+      });
     }
 
     return { organizationId: organization.organizationId, tournament };
@@ -464,7 +482,9 @@ export class EntrantsController {
     const enrollment = new EnrollmentRepository(this.db);
     const entrant = await enrollment.findEntrant(entrantId);
     if (!entrant || entrant.tournamentId !== tournament.tournamentId) {
-      throw new NotFoundException(`No registration ${entrantId} in this tournament`);
+      throw new NotFoundException(`No registration ${entrantId} in this tournament`, {
+        errorCode: 'registration-not-found',
+      });
     }
     try {
       const updated = await withTransaction(this.db, (uow) =>
@@ -479,9 +499,10 @@ export class EntrantsController {
       return toResponse(updated);
     } catch (error) {
       if (error instanceof Error) {
-        if (error.message.includes('already used')) throw new ConflictException(error.message);
+        if (error.message.includes('already used'))
+          throw new ConflictException(error.message, { errorCode: 'registration-conflict' });
         if (error.message.toLowerCase().includes('abbreviation')) {
-          throw new BadRequestException(error.message);
+          throw new BadRequestException(error.message, { errorCode: 'registration-bad-request' });
         }
       }
       throw error;
@@ -516,7 +537,9 @@ export class EntrantsController {
   ): Promise<{ readonly organizationId: string; readonly tournament: { tournamentId: string } }> {
     const organization = await new OrganizationRepository(this.db).findByAlias(organizationAlias);
     if (!organization)
-      throw new NotFoundException(`No organization with alias "${organizationAlias}"`);
+      throw new NotFoundException(`No organization with alias "${organizationAlias}"`, {
+        errorCode: 'registration-not-found',
+      });
     enforcePolicy({
       plane: 'admin-control',
       subject: request.subject,
@@ -526,7 +549,10 @@ export class EntrantsController {
       organizationAlias,
       tournamentAlias,
     );
-    if (!tournament) throw new NotFoundException(`No tournament "${tournamentAlias}"`);
+    if (!tournament)
+      throw new NotFoundException(`No tournament "${tournamentAlias}"`, {
+        errorCode: 'registration-not-found',
+      });
     return { organizationId: organization.organizationId, tournament };
   }
 }

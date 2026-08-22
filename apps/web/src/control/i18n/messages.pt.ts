@@ -537,4 +537,21 @@ export const messages: Record<string, string> = {
   'control.imageCropModal.close': 'Fechar',
   'control.imageCropModal.processing': 'Processando…',
   'control.imageCropModal.failed': 'Não foi possível processar esta imagem.',
+  'control.toast.dismiss': 'Dispensar notificação',
+  'control.toast.notifications': 'Notificações',
+  'control.toast.details': 'Detalhes técnicos',
+  'control.toast.severity.success': 'Sucesso',
+  'control.toast.severity.error': 'Erro',
+  'control.toast.severity.info': 'Informação',
+  'control.apiError.generic': 'Não foi possível concluir a solicitação. Tente novamente.',
+  'control.apiError.badRequest': 'Revise as informações enviadas e tente novamente.',
+  'control.apiError.unauthorized': 'Sua sessão expirou. Entre novamente.',
+  'control.apiError.forbidden': 'Você não tem permissão para realizar esta ação.',
+  'control.apiError.notFound': 'O item solicitado não foi encontrado.',
+  'control.apiError.conflict':
+    'Esta alteração entra em conflito com os dados atuais do torneio. Atualize e tente novamente.',
+  'control.apiError.unprocessableEntity': 'Não foi possível processar as informações enviadas.',
+  'control.apiError.serviceUnavailable':
+    'O serviço está temporariamente indisponível. Tente novamente em breve.',
+  'control.apiError.internalServer': 'Ocorreu um erro inesperado no servidor. Tente novamente.',
 };
