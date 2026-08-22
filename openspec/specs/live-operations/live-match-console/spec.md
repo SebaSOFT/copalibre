@@ -90,7 +90,10 @@ SHALL return the recorded outcome; reuse of that key with a different request SH
 Any optimistically displayed score, statistic, timer, or match-state update SHALL reconcile with the
 next authoritative versioned match projection delivered through the durable event stream. If no newer
 projection arrives within a bounded timeout, the console SHALL show stale state and refetch the
-projection rather than trusting the optimistic value indefinitely.
+projection rather than trusting the optimistic value indefinitely. When a durably queued set of actions
+is replayed after a reconnection, the same reconciliation SHALL apply to the resulting state: the
+console SHALL NOT continue displaying an optimistic value the authoritative projection has superseded,
+whether that projection resulted from one mutation or from an entire replayed queue.
 
 #### Scenario: Optimistic update reconciles
 - **WHEN** the console optimistically updates state after an event is recorded
@@ -100,6 +103,11 @@ projection rather than trusting the optimistic value indefinitely.
 #### Scenario: Reconciliation expires
 - **WHEN** an optimistic mutation is not reconciled before the configured timeout
 - **THEN** the console marks its state stale and requests a fresh authoritative projection
+
+#### Scenario: A drained queue reconciles to the authoritative outcome
+- **WHEN** a reconnection drains a queue of several actions, some accepted and one refused
+- **THEN** the console's displayed state reflects the authoritative projection resulting from exactly
+  what the server accepted, not an optimistic guess that assumed every queued action would succeed
 
 ### Requirement: Match-scoped capability-based authorization
 Only an active organization `admin` or `referee` identity SHALL reach match control, and every event
@@ -222,3 +230,106 @@ problems SHALL be reported for every offending row at once, before anything is s
 - **WHEN** an imported batch contains an event the discipline's definitions reject
 - **THEN** it is refused exactly as the same event entered by hand would be, and no part of the match is
   written
+
+### Requirement: Every mutating console command carries a durable idempotency key
+
+The console SHALL generate a client-side idempotency key for every mutating command it sends — event
+recording, clock adjustment, timer resolution, roster selection, and finalization — and the server
+SHALL persist that key atomically with the command's recorded outcome. A retry carrying the same key
+and the same request SHALL return the previously recorded outcome without re-applying the command.
+Reuse of that key with a different request SHALL be rejected.
+
+#### Scenario: A retried event recording is not double-recorded
+- **WHEN** a client retries the same event-recording request with the same idempotency key, because the
+  first response was lost
+- **THEN** exactly one event is recorded, and both responses identify that same outcome
+
+#### Scenario: A retried roster selection is not double-applied
+- **WHEN** a client retries the same roster-selection request with the same idempotency key
+- **THEN** the roster is set exactly once, and both responses identify that same outcome
+
+#### Scenario: Reusing a key with a different request is rejected
+- **WHEN** a client reuses an idempotency key already recorded against a different request for any
+  mutating console command
+- **THEN** the system rejects the new request without applying it
+
+### Requirement: The console durably queues an action it cannot send
+
+When a mutating console command cannot be sent — the client is offline, or the send attempt fails for a
+network reason — the console SHALL persist that action in a durable, client-local queue instead of only
+reporting an error and discarding it. The queue SHALL treat a brief connectivity loss and a sustained
+one identically; there SHALL be no separate mechanism for a short blip versus an extended outage.
+
+#### Scenario: Losing connectivity mid-action queues it
+- **WHEN** an operator submits a mutating command while the client has no network connectivity
+- **THEN** the action is durably queued rather than reported as a plain failure and discarded
+
+#### Scenario: A short blip and a sustained outage queue identically
+- **WHEN** connectivity is lost for a few seconds, or for many minutes
+- **THEN** in both cases the console's queuing and later replay behavior is the same
+
+### Requirement: A queued action survives a page refresh
+
+An action durably queued by the console SHALL remain queued across a page reload, or the console tab
+being closed and reopened, and the console SHALL resume attempting to send it once reachable again.
+In-progress input that the operator had not yet attempted to submit — a selection, typed text, or an
+open workflow choice awaiting confirmation — is not required to survive a refresh.
+
+#### Scenario: A refresh does not lose a queued action
+- **WHEN** an operator refreshes the page while an action is queued and unsent
+- **THEN** reopening the console shows that action still queued, and the console resumes attempting to
+  send it
+
+#### Scenario: Unsubmitted draft input is not restored after a refresh
+- **WHEN** an operator refreshes the page while in the middle of composing an action that was never
+  submitted
+- **THEN** that in-progress input is not restored — unchanged from today's behavior
+
+### Requirement: A reconnection replays the queue through the same validation a live action already goes through
+
+On regaining connectivity, the console SHALL replay every durably queued action, in the order it was
+originally attempted, against its normal authorized command endpoint — the same endpoint and validation
+a live console action already goes through. No separate merge or conflict-resolution logic SHALL apply.
+An action the server would accept from a live console SHALL be accepted from the queue. An action the
+server would refuse from a live console — including a finalize whose target match is no longer eligible,
+or is already finalized with a different result — SHALL be refused from the queue, surfaced against that
+specific queued item, and SHALL NOT prevent the remaining queued actions from being attempted.
+
+#### Scenario: Queued events from one operator replay alongside events recorded by others
+- **WHEN** a reconnection replays queued event-recording actions for a match that also received other
+  events, recorded by other operators, while this operator was offline
+- **THEN** the queued events are recorded in their original order, alongside the events recorded by
+  others, with no event lost or silently dropped
+
+#### Scenario: A queued action refused by live validation is refused from the queue too
+- **WHEN** a queued roster selection is replayed for a match that was finalized while its operator was
+  offline
+- **THEN** the queued action is refused exactly as a live submission would be, and the refusal is
+  surfaced against that specific queued item
+
+#### Scenario: A conflicting queued finalize is refused, not merged
+- **WHEN** a queued finalize action is replayed for a match already finalized with a different result
+- **THEN** the queued finalize is refused and surfaced for the operator to resolve explicitly — never
+  automatically resubmitted or silently merged with the existing result
+
+#### Scenario: One refused item does not block the rest of the queue
+- **WHEN** one queued action among several is refused during replay
+- **THEN** the remaining queued actions are still attempted, in order
+
+### Requirement: Sync status is always visible while the console is open
+
+The console SHALL display, at all times while open — not only when a problem occurs — whether it is
+currently online or offline, how many actions are queued and not yet confirmed by the server, and when
+the queue was last successfully drained.
+
+#### Scenario: Going offline shows an offline indicator
+- **WHEN** the console loses connectivity
+- **THEN** an offline indicator becomes visible without requiring any operator action
+
+#### Scenario: A queued action is reflected in the visible count
+- **WHEN** an action is durably queued because it could not be sent
+- **THEN** the visible queued-action count increases to include it
+
+#### Scenario: A successful drain updates the last-synced time
+- **WHEN** the queue is successfully drained after a reconnection
+- **THEN** the visible last-synced time updates to reflect it

@@ -286,6 +286,39 @@ describe('rest rules', () => {
   });
 });
 
+describe('finalized-match protection', () => {
+  it('refuses to reschedule a fixture whose match has already finalized', () => {
+    const conflicts = detectConflicts(
+      [{ fixtureId: 'f1', window: window(30), venueId: 'court-1' }],
+      context({ finalizedFixtureIds: new Set(['f1']) }),
+    );
+
+    expect(conflicts).toHaveLength(1);
+    expect(conflicts[0]).toMatchObject({
+      kind: 'match-finalized',
+      fixtureId: 'f1',
+      conflictsWithFixtureId: 'f1',
+      resourceId: 'f1',
+    });
+    expect(conflicts[0]?.detail).toContain('audited correction workflow');
+  });
+
+  it('leaves a fixture with no finalized match unaffected', () => {
+    expect(
+      detectConflicts(
+        [{ fixtureId: 'f1', window: window(0), venueId: 'court-1' }],
+        context({ finalizedFixtureIds: new Set(['f2']) }),
+      ),
+    ).toEqual([]);
+  });
+
+  it('is inert when the context declares no finalized fixtures at all', () => {
+    expect(
+      detectConflicts([{ fixtureId: 'f1', window: window(0), venueId: 'court-1' }], context()),
+    ).toEqual([]);
+  });
+});
+
 describe('a batch with several kinds of conflict', () => {
   it('reports all of them, so an operator fixes the schedule once', () => {
     const conflicts = detectConflicts(

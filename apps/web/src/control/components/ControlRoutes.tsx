@@ -13,6 +13,8 @@ import { ZoneGroupRoute } from './ZoneGroupRoute.js';
 import { PromotionPlanRoute } from './PromotionPlanRoute.js';
 import { PreferencesRoute } from './PreferencesRoute.js';
 import { ClubManagementRoute } from './ClubManagementRoute.js';
+import { VenueManagementRoute } from './VenueManagementRoute.js';
+import { ScheduleBuilderRoute } from './ScheduleBuilderRoute.js';
 
 export function PreferencesControlRoute({
   organizationAlias,
@@ -38,6 +40,43 @@ export function ClubManagementControlRoute({
   return (
     <ControlShell active="clubs" helpPath="clubs" organizationAlias={organizationAlias}>
       <ClubManagementRoute client={client} organizationAlias={organizationAlias} />
+    </ControlShell>
+  );
+}
+
+export function VenueManagementControlRoute({
+  organizationAlias,
+  client,
+}: {
+  readonly organizationAlias: string;
+  readonly client?: ControlApiClient;
+}): React.JSX.Element {
+  return (
+    <ControlShell active="resources" helpPath="resources" organizationAlias={organizationAlias}>
+      <VenueManagementRoute client={client} organizationAlias={organizationAlias} />
+    </ControlShell>
+  );
+}
+
+export function ScheduleControlRoute({
+  organizationAlias,
+  tournamentAlias,
+  stageNumber,
+  client,
+}: {
+  readonly organizationAlias: string;
+  readonly tournamentAlias: string;
+  readonly stageNumber: number;
+  readonly client?: ControlApiClient;
+}): React.JSX.Element {
+  return (
+    <ControlShell helpPath="schedule" organizationAlias={organizationAlias}>
+      <ScheduleBuilderRoute
+        client={client}
+        organizationAlias={organizationAlias}
+        stageNumber={stageNumber}
+        tournamentAlias={tournamentAlias}
+      />
     </ControlShell>
   );
 }

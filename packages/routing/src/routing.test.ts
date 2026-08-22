@@ -197,6 +197,10 @@ describe('parseControlPath', () => {
     ],
     ['/control/liga-mendocina/clubs', { screen: 'clubs', organizationAlias: 'liga-mendocina' }],
     [
+      '/control/liga-mendocina/resources',
+      { screen: 'resources', organizationAlias: 'liga-mendocina' },
+    ],
+    [
       '/control/liga-mendocina/persons/00000000-0000-7000-8000-000000000001',
       {
         screen: 'personProfile',
@@ -269,6 +273,15 @@ describe('parseControlPath', () => {
         tournamentAlias: 'apertura-2026',
         stageNumber: 1,
         zoneNumber: 2,
+      },
+    ],
+    [
+      '/control/liga-mendocina/tournaments/apertura-2026/stages/1/schedule',
+      {
+        screen: 'schedule',
+        organizationAlias: 'liga-mendocina',
+        tournamentAlias: 'apertura-2026',
+        stageNumber: 1,
       },
     ],
   ] as const)('matches %s', (pathname, expected) => {

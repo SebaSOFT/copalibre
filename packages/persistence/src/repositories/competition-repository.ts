@@ -835,6 +835,22 @@ export class CompetitionRepository {
   }
 
   /**
+   * Every generated fixture of a stage, with its real `fixtureId` — what a
+   * schedule builder assigns a time and venue to. Distinct from the bracket
+   * graph's own node ids (`packages/tournament-engine`'s `match.id`), which
+   * are never persisted and never equal a `fixtureId`.
+   */
+  async listFixturesOfStage(stageId: string): Promise<readonly Fixture[]> {
+    const rows = await this.db
+      .selectFrom('fixtures')
+      .selectAll()
+      .where('stage_id', '=', stageId)
+      .orderBy('round')
+      .execute();
+    return rows.map(toFixture);
+  }
+
+  /**
    * Replaces a stage's fixture graph in place — the write side of reseeding.
    * Only reachable once `classifyEngineMutation` has already refused a
    * `blocked_after_results` request, but a fixture with a match already

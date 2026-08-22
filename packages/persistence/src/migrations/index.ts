@@ -33,6 +33,7 @@ import { zoneGroupEntrants } from './0022-zone-group-entrants.js';
 import { entrantAbbreviations } from './0023-entrant-abbreviations.js';
 import { personBirthDate } from './0024-person-birth-date.js';
 import { organizationEmblem } from './0025-organization-emblem.js';
+import { venueDetails } from './0026-venue-details.js';
 
 /**
  * Migrations are explicit, ordered, and code-defined (no filesystem scanning),
@@ -66,6 +67,7 @@ export const MIGRATIONS: Readonly<Record<string, Migration>> = {
   '0023-entrant-abbreviations': entrantAbbreviations,
   '0024-person-birth-date': personBirthDate,
   '0025-organization-emblem': organizationEmblem,
+  '0026-venue-details': venueDetails,
 };
 
 /** The version `apps/api`'s readiness check expects to find applied. */

@@ -188,6 +188,7 @@ export function toVenue(row: VenueRow): Venue {
     name: row.name,
     concurrentCapacity: row.concurrent_capacity,
     ...(row.address === null ? {} : { address: row.address }),
+    ...(row.details === null ? {} : { details: row.details }),
   };
 }
 

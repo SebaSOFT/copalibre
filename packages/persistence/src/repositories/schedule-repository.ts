@@ -5,6 +5,7 @@ import {
   validateOfficial,
   validateVenue,
   type Official,
+  type OfficialRole,
   type ResourceAssignment,
   type RestRule,
   type ScheduleConflict,
@@ -53,6 +54,7 @@ export class ScheduleRepository {
       name: input.name,
       concurrentCapacity: input.concurrentCapacity,
       ...(input.address === undefined ? {} : { address: input.address }),
+      ...(input.details === undefined ? {} : { details: input.details }),
     };
 
     const valid = validateVenue(venue);
@@ -67,6 +69,7 @@ export class ScheduleRepository {
         name: input.name,
         concurrent_capacity: input.concurrentCapacity,
         address: input.address ?? null,
+        details: input.details === undefined ? null : JSON.stringify(input.details),
         created_at: new Date(),
       })
       .returningAll()
@@ -82,6 +85,70 @@ export class ScheduleRepository {
       resultingState: { ...toVenue(row) },
     });
     return toVenue(row);
+  }
+
+  /** Every venue of an organization, for a management screen listing. */
+  async listVenues(organizationId: string): Promise<readonly Venue[]> {
+    const rows = await this.db
+      .selectFrom('venues')
+      .selectAll()
+      .where('organization_id', '=', organizationId)
+      .orderBy('name')
+      .execute();
+    return rows.map(toVenue);
+  }
+
+  async findVenue(venueId: string): Promise<Venue | undefined> {
+    const row = await this.db
+      .selectFrom('venues')
+      .selectAll()
+      .where('venue_id', '=', venueId)
+      .executeTakeFirst();
+    return row ? toVenue(row) : undefined;
+  }
+
+  /** Corrects a venue's name, capacity, address, or details — a mistyped entry, not a new one. */
+  async updateVenue(
+    uow: UnitOfWork,
+    input: {
+      readonly venueId: string;
+      readonly organizationId: string;
+      readonly name?: string;
+      readonly concurrentCapacity?: number;
+      readonly address?: string;
+      readonly details?: Readonly<Record<string, string>>;
+    } & Omit<AuditContext, 'organizationId'>,
+  ): Promise<Venue> {
+    const previous = await this.findVenue(input.venueId);
+    const row = await uow.tx
+      .updateTable('venues')
+      .set({
+        ...(input.name === undefined ? {} : { name: input.name }),
+        ...(input.concurrentCapacity === undefined
+          ? {}
+          : { concurrent_capacity: input.concurrentCapacity }),
+        ...(input.address === undefined ? {} : { address: input.address }),
+        ...(input.details === undefined ? {} : { details: JSON.stringify(input.details) }),
+      })
+      .where('venue_id', '=', input.venueId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const venue = toVenue(row);
+    const valid = validateVenue(venue);
+    if (!valid.ok) throw valid.error;
+
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'venue',
+      entityId: input.venueId,
+      action: 'venue.updated',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      ...(previous === undefined ? {} : { previousState: { ...previous } }),
+      resultingState: { ...venue },
+    });
+    return venue;
   }
 
   async createOfficial(
@@ -121,6 +188,64 @@ export class ScheduleRepository {
       resultingState: { ...toOfficial(row) },
     });
     return toOfficial(row);
+  }
+
+  /** Every official of an organization, for a management screen listing. */
+  async listOfficials(organizationId: string): Promise<readonly Official[]> {
+    const rows = await this.db
+      .selectFrom('officials')
+      .selectAll()
+      .where('organization_id', '=', organizationId)
+      .orderBy('display_name')
+      .execute();
+    return rows.map(toOfficial);
+  }
+
+  async findOfficial(officialId: string): Promise<Official | undefined> {
+    const row = await this.db
+      .selectFrom('officials')
+      .selectAll()
+      .where('official_id', '=', officialId)
+      .executeTakeFirst();
+    return row ? toOfficial(row) : undefined;
+  }
+
+  /** Corrects an official's name or declared roles — a mistyped entry, not a new one. */
+  async updateOfficial(
+    uow: UnitOfWork,
+    input: {
+      readonly officialId: string;
+      readonly organizationId: string;
+      readonly displayName?: string;
+      readonly roles?: readonly OfficialRole[];
+    } & Omit<AuditContext, 'organizationId'>,
+  ): Promise<Official> {
+    const previous = await this.findOfficial(input.officialId);
+    const row = await uow.tx
+      .updateTable('officials')
+      .set({
+        ...(input.displayName === undefined ? {} : { display_name: input.displayName }),
+        ...(input.roles === undefined ? {} : { roles: JSON.stringify(input.roles) }),
+      })
+      .where('official_id', '=', input.officialId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const official = toOfficial(row);
+    const valid = validateOfficial(official);
+    if (!valid.ok) throw valid.error;
+
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'official',
+      entityId: input.officialId,
+      action: 'official.updated',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      ...(previous === undefined ? {} : { previousState: { ...previous } }),
+      resultingState: { ...official },
+    });
+    return official;
   }
 
   /**
@@ -308,6 +433,17 @@ export class ScheduleRepository {
       .where('stage_id', '=', stageId)
       .execute();
 
+    const fixtureIds = fixtures.map((fixture) => fixture.fixture_id);
+    const finalizedRows =
+      fixtureIds.length === 0
+        ? []
+        : await executor
+            .selectFrom('matches')
+            .select('fixture_id')
+            .where('fixture_id', 'in', fixtureIds)
+            .where('status', '=', 'finalized')
+            .execute();
+
     return {
       existing: await this.assignmentsFor(stageId, executor),
       entrantsByFixture: new Map(
@@ -319,6 +455,7 @@ export class ScheduleRepository {
         ]),
       ),
       venues: new Map(venueRows.map((row) => [row.venue_id, toVenue(row)])),
+      finalizedFixtureIds: new Set(finalizedRows.map((row) => row.fixture_id)),
       ...(restRule ? { restRule } : {}),
     };
   }

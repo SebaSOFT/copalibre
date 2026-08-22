@@ -189,6 +189,74 @@ describe('scheduling (integration)', () => {
     expect(rows).toEqual([]);
   });
 
+  it('creates a venue with operator-entered details, physical or virtual', async () => {
+    const venue = await withTransaction(scratch.db, (uow) =>
+      schedules.createVenue(uow, {
+        organizationId,
+        alias: 'servidor-cs',
+        name: 'Servidor CS',
+        concurrentCapacity: 1,
+        details: { region: 'sa-east-1', map: 'de_dust2' },
+        ...AUDIT,
+      }),
+    );
+
+    expect(venue.details).toEqual({ region: 'sa-east-1', map: 'de_dust2' });
+    const found = await schedules.findVenue(venue.venueId);
+    expect(found?.details).toEqual({ region: 'sa-east-1', map: 'de_dust2' });
+  });
+
+  it('lists an organization’s venues and officials, newest schema fields included', async () => {
+    const { venue, referee } = await seedStage('copa-listado');
+
+    const venues = await schedules.listVenues(organizationId);
+    expect(venues.some((v) => v.venueId === venue.venueId)).toBe(true);
+
+    const officials = await schedules.listOfficials(organizationId);
+    expect(officials.some((o) => o.officialId === referee.officialId)).toBe(true);
+  });
+
+  it('edits a venue, correcting a mistyped entry rather than creating a new one', async () => {
+    const { venue } = await seedStage('copa-edicion-venue');
+
+    const updated = await withTransaction(scratch.db, (uow) =>
+      schedules.updateVenue(uow, {
+        venueId: venue.venueId,
+        organizationId,
+        name: 'Cancha Renombrada',
+        details: { surface: 'clay' },
+        ...AUDIT,
+      }),
+    );
+
+    expect(updated.name).toBe('Cancha Renombrada');
+    expect(updated.details).toEqual({ surface: 'clay' });
+    expect(updated.concurrentCapacity).toBe(venue.concurrentCapacity);
+
+    const audit = await new AuditReader(scratch.db).historyFor('venue', venue.venueId);
+    expect(audit.map((entry) => entry.action)).toEqual(['venue.created', 'venue.updated']);
+  });
+
+  it('edits an official, correcting a mistyped entry rather than creating a new one', async () => {
+    const { referee } = await seedStage('copa-edicion-official');
+
+    const updated = await withTransaction(scratch.db, (uow) =>
+      schedules.updateOfficial(uow, {
+        officialId: referee.officialId,
+        organizationId,
+        displayName: 'Ana Gómez Pérez',
+        roles: ['referee', 'observer'],
+        ...AUDIT,
+      }),
+    );
+
+    expect(updated.displayName).toBe('Ana Gómez Pérez');
+    expect(updated.roles).toEqual(['referee', 'observer']);
+
+    const audit = await new AuditReader(scratch.db).historyFor('official', referee.officialId);
+    expect(audit.map((entry) => entry.action)).toEqual(['official.created', 'official.updated']);
+  });
+
   it('refuses a venue with a malformed alias, writing nothing', async () => {
     await expect(
       withTransaction(scratch.db, (uow) =>
@@ -449,7 +517,55 @@ describe('scheduling (integration)', () => {
     if (decision.ok) return;
     expect(decision.error.message).toContain('audited correction workflow');
 
+    // The preview shows the same refusal the commit would give — a preview
+    // promising something the commit then refuses is what this mechanism
+    // exists to prevent.
+    const preview = await schedules.previewSchedule({
+      stageId: stage.stageId,
+      assignments: [{ fixtureId, window: window(120), venueId: venue.venueId }],
+    });
+    expect(preview.committable).toBe(false);
+    expect(preview.conflicts).toEqual([
+      expect.objectContaining({ kind: 'match-finalized', fixtureId }),
+    ]);
+
+    // The commit itself refuses it too, and writes nothing.
+    await expect(
+      withTransaction(scratch.db, (uow) =>
+        schedules.publishSchedule(uow, {
+          stageId: stage.stageId,
+          assignments: [{ fixtureId, window: window(120), venueId: venue.venueId }],
+          organizationId,
+          ...AUDIT,
+        }),
+      ),
+    ).rejects.toThrow(/audited correction workflow/);
+
     // And the stored schedule is untouched by the attempt.
+    const stored = await schedules.listSchedule(stage.stageId);
+    expect(stored[0]?.window.startsAt).toBe(window(0).startsAt);
+  });
+
+  it('leaves a scheduled or in-progress match unaffected by the finalized-match check', async () => {
+    const { stage, fixtures, venue } = await seedStage('copa-en-curso');
+    const competition = new CompetitionRepository(scratch.db);
+    const fixtureId = fixtures[0]?.fixtureId ?? '';
+
+    await withTransaction(scratch.db, (uow) =>
+      competition.createMatch(uow, { fixtureId, number: 1, organizationId, ...AUDIT }),
+    );
+
+    // A match exists (status: scheduled) but has no result yet — rescheduling
+    // its fixture must still work exactly as it did before this check existed.
+    await withTransaction(scratch.db, (uow) =>
+      schedules.publishSchedule(uow, {
+        stageId: stage.stageId,
+        assignments: [{ fixtureId, window: window(0), venueId: venue.venueId }],
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+
     const stored = await schedules.listSchedule(stage.stageId);
     expect(stored[0]?.window.startsAt).toBe(window(0).startsAt);
   });

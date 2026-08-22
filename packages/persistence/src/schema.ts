@@ -388,6 +388,7 @@ export interface VenuesTable {
   name: string;
   concurrent_capacity: number;
   address: string | null;
+  details: JSONColumnType<Record<string, string>> | null;
   created_at: Timestamp;
 }
 

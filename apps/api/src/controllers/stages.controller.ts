@@ -3,8 +3,11 @@ import {
   Body,
   ConflictException,
   Controller,
+  Get,
   Inject,
+  NotFoundException,
   Param,
+  ParseIntPipe,
   Post,
   Req,
 } from '@nestjs/common';
@@ -13,6 +16,8 @@ import {
   ApiConflictResponse,
   ApiCreatedResponse,
   ApiForbiddenResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
   ApiOperation,
   ApiTags,
   ApiUnauthorizedResponse,
@@ -30,6 +35,7 @@ import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
 import { RequireOrganizationRole } from '../auth/access-requirement.js';
 import { CreateStageRequest, ProblemResponse, StageResponse } from '../dto/organization.dto.js';
+import { StageFixturesResponse } from '../dto/schedule.dto.js';
 import { resolveTournament } from './standings.controller.js';
 import { DATABASE } from '../database.token.js';
 
@@ -117,6 +123,49 @@ export class StagesController {
       if (error instanceof InvariantViolationError) throw new ConflictException(error.message);
       throw error;
     }
+  }
+
+  @Get(':stageNumber/fixtures')
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'A stage’s generated fixtures, with real fixture ids',
+    description:
+      'What a schedule builder assigns a time and venue to — distinct from the bracket graph’s ' +
+      'own node ids, which are never persisted.',
+  })
+  @ApiOkResponse({ type: StageFixturesResponse })
+  @ApiUnauthorizedResponse({ type: ProblemResponse })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  @ApiNotFoundResponse({ type: ProblemResponse })
+  async fixtures(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('stageNumber', ParseIntPipe) stageNumber: number,
+    @Req() request: RequestWithSubject,
+  ): Promise<StageFixturesResponse> {
+    const { tournament } = await resolveTournament(this.db, {
+      organizationAlias,
+      tournamentAlias,
+      request,
+    });
+
+    const competition = new CompetitionRepository(this.db);
+    const stages = await competition.listStagesOfTournament(tournament.tournamentId);
+    const stage = stages.find((candidate) => candidate.number === stageNumber);
+    if (!stage) throw new NotFoundException(`No stage ${stageNumber} in "${tournamentAlias}"`);
+
+    const fixtures = await competition.listFixturesOfStage(stage.stageId);
+    return {
+      stageId: stage.stageId,
+      fixtures: fixtures.map((fixture) => ({
+        fixtureId: fixture.fixtureId,
+        round: fixture.round,
+        ...(fixture.homeEntrantId === undefined ? {} : { homeEntrantId: fixture.homeEntrantId }),
+        ...(fixture.awayEntrantId === undefined ? {} : { awayEntrantId: fixture.awayEntrantId }),
+      })),
+    };
   }
 
   /**

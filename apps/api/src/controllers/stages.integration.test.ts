@@ -244,6 +244,15 @@ describe('stage creation routes (integration)', () => {
     expect(response.statusCode).toBe(400);
   });
 
+  it('404s a fixtures listing for a stage number that does not exist', async () => {
+    const response = await request({
+      method: 'GET',
+      url: `${base}/999/fixtures`,
+      token: 'organizer',
+    });
+    expect(response.statusCode).toBe(404);
+  });
+
   it('401s without a token and 403s a token scoped to another organization', async () => {
     const noToken = await request({ method: 'POST', url: base, payload: {} });
     expect(noToken.statusCode).toBe(401);
@@ -301,6 +310,22 @@ describe('stage creation routes (integration)', () => {
       expect(fixtures.length).toBeGreaterThan(0);
       for (const fixture of fixtures) {
         expect(acceptedEntrantIds).toContain(fixture.home_entrant_id);
+      }
+
+      // The schedule builder's own read: real fixture ids, distinct from the
+      // bracket graph's node ids, resolvable from the stage number alone.
+      const fixturesResponse = await request({
+        method: 'GET',
+        url: `${base}/${stageNumber}/fixtures`,
+        token: 'organizer',
+      });
+      expect(fixturesResponse.statusCode).toBe(200);
+      const fixturesBody = fixturesResponse.json();
+      expect(fixturesBody.stageId).toBe(stageId);
+      expect(fixturesBody.fixtures.length).toBe(fixtures.length);
+      for (const fixture of fixturesBody.fixtures) {
+        expect(typeof fixture.fixtureId).toBe('string');
+        expect(acceptedEntrantIds).toContain(fixture.homeEntrantId);
       }
 
       const after = await request({ method: 'GET', url: seedingUrl, token: 'organizer' });

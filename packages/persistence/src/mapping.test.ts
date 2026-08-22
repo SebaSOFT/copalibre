@@ -465,6 +465,7 @@ describe('scheduling rows', () => {
       name: 'Club Central',
       concurrent_capacity: 3,
       address: null,
+      details: null,
       created_at: CREATED,
     };
 
@@ -485,10 +486,26 @@ describe('scheduling rows', () => {
       name: 'Polideportivo',
       concurrent_capacity: 1,
       address: 'Av. Libertador 1200',
+      details: null,
       created_at: CREATED,
     };
 
     expect(toVenue(row).address).toBe('Av. Libertador 1200');
+  });
+
+  it('keeps operator-entered details, physical or virtual', () => {
+    const row: VenueRow = {
+      venue_id: 'v-3',
+      organization_id: 'org-1',
+      alias: 'servidor-1',
+      name: 'Servidor 1',
+      concurrent_capacity: 1,
+      address: null,
+      details: { region: 'sa-east-1', map: 'de_dust2' },
+      created_at: CREATED,
+    };
+
+    expect(toVenue(row).details).toEqual({ region: 'sa-east-1', map: 'de_dust2' });
   });
 
   it('maps an official with the roles they may be assigned to', () => {
