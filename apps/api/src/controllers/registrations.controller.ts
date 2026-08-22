@@ -405,6 +405,7 @@ export class DisciplinesController {
       descriptorId: descriptor.descriptorId,
       version: descriptor.version,
       name: descriptor.document.name,
+      description: descriptor.document.description,
       // The descriptor's own list, filtered to what the engine actually supports:
       // a discipline may not advertise a format nothing can generate.
       supportedFormats: descriptor.document.availableFormats.filter((format) =>

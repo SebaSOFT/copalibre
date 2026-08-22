@@ -22,6 +22,34 @@ describe('default module catalogue', () => {
       'grupos-y-playoff',
       'liga-ida-vuelta',
     ]);
+    expect(catalogue.disciplines).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          alias: 'football',
+          description: expect.objectContaining({ en: expect.any(String) }),
+        }),
+        expect.objectContaining({
+          alias: 'tennis',
+          description: expect.objectContaining({ en: expect.any(String) }),
+        }),
+      ]),
+    );
+    expect(catalogue.profiles).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          alias: 'copa-eliminacion',
+          description: expect.objectContaining({ en: expect.any(String) }),
+        }),
+        expect.objectContaining({
+          alias: 'grupos-y-playoff',
+          description: expect.objectContaining({ en: expect.any(String) }),
+        }),
+        expect.objectContaining({
+          alias: 'liga-ida-vuelta',
+          description: expect.objectContaining({ en: expect.any(String) }),
+        }),
+      ]),
+    );
   });
 
   it('binds the league profile against disciplines with different statistic codes', async () => {

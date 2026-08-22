@@ -14,6 +14,15 @@ describe('discipline descriptor schema', () => {
     expect(result.ok).toBe(true);
   });
 
+  it('accepts an optional localized description and still accepts its absence', () => {
+    expect(
+      validateDisciplineDescriptorDocument(
+        asDocument({ description: { en: 'Association football', es: 'Fútbol asociación' } }),
+      ).ok,
+    ).toBe(true);
+    expect(validateDisciplineDescriptorDocument(asDocument()).ok).toBe(true);
+  });
+
   it('rejects a document missing a required member', () => {
     const withoutStatistics = asDocument() as Record<string, unknown>;
     delete withoutStatistics.statistics;

@@ -1,3 +1,4 @@
+import type { LocalizedLabel } from '@copalibre/domain';
 import type { MessageDescriptor } from 'react-intl';
 import { messages } from '../i18n/messages.en.js';
 
@@ -24,7 +25,8 @@ export const WIZARD_STEPS: readonly {
 export interface DisciplineOption {
   readonly descriptorId: string;
   readonly version: string;
-  readonly name: string;
+  readonly name: string | LocalizedLabel;
+  readonly description?: string | LocalizedLabel;
   readonly supportedFormats: readonly string[];
 }
 

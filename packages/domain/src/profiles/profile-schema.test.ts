@@ -1,4 +1,5 @@
 import { fixtureProfile } from '../test-support/fixture-profile.js';
+import { resolveLabel } from '../i18n-label.js';
 import { validateTournamentProfileDocument } from './profile-schema.js';
 
 function asDocument(overrides: Record<string, unknown> = {}): unknown {
@@ -10,6 +11,26 @@ function asDocument(overrides: Record<string, unknown> = {}): unknown {
 describe('tournament profile schema', () => {
   it('accepts the reference profile as a document without an installed identifier', () => {
     expect(validateTournamentProfileDocument(asDocument()).ok).toBe(true);
+  });
+
+  it('accepts localized names and optional localized descriptions', () => {
+    const localized = validateTournamentProfileDocument(
+      asDocument({
+        name: { en: 'Groups and playoff', es: 'Grupos y eliminatorias' },
+        description: { en: 'Group stage followed by a playoff' },
+      }),
+    );
+
+    expect(localized.ok).toBe(true);
+    expect(validateTournamentProfileDocument(asDocument()).ok).toBe(true);
+  });
+
+  it('keeps an existing plain-string name valid and resolvable', () => {
+    const result = validateTournamentProfileDocument(asDocument({ name: 'Existing profile' }));
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(resolveLabel(result.value.name, 'es')).toBe('Existing profile');
   });
 
   it.each([

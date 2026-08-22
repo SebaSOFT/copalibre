@@ -136,3 +136,27 @@ binding, or persisted event/statistic records.
   `"label": "Yellow card"` as a plain string
 - **THEN** the document validates successfully and every viewer, regardless of interface language,
   sees "Yellow card" — identical to its behavior before this requirement
+
+### Requirement: API error responses carry a stable, localizable error code
+Every API error response SHALL carry a stable, machine-readable `errorCode` (kebab-case) alongside its
+existing developer-facing `message`, so a client can resolve a translated, operator-facing message
+through the platform's eight-language contract instead of rendering the server's message text directly.
+An error response with no specific mapped code SHALL still be resolvable to one generic translated
+message on the client, never left to render an untranslated string.
+
+#### Scenario: A domain error carries a stable code
+- **WHEN** an API request fails validation against a known, named error condition (for example, a club
+  alias conflict)
+- **THEN** the error response body includes an `errorCode` value stable across releases, in addition to
+  its existing `message`
+
+#### Scenario: An error's message text never changes its code
+- **WHEN** an error response's developer-facing `message` wording is edited in a later change
+- **THEN** its `errorCode` value is unaffected, so a client-side translation mapped to that code
+  continues to resolve correctly without needing to change alongside the message text
+
+#### Scenario: The error contract never depends on request locale
+- **WHEN** an API request is made in any organization or interface-language context
+- **THEN** the response's `errorCode` and `message` are identical regardless of the requester's
+  interface-language preference — translation happens client-side, not by the API varying its response
+  by locale

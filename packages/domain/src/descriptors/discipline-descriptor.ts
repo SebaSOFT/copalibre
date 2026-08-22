@@ -134,6 +134,7 @@ export interface DisciplineDescriptor {
    */
   readonly version: string;
   readonly name: string | LocalizedLabel;
+  readonly description?: string | LocalizedLabel;
   /** Who authored this discipline, where it came from, under what licence. */
   readonly attribution: Attribution;
   readonly participantTypes: readonly ParticipantType[];

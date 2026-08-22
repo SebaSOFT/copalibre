@@ -19,6 +19,12 @@ describe('the tournament setup wizard screen', () => {
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Verano' } });
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-verano' } });
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+    expect(screen.getByLabelText('Discipline').textContent).toContain('Football');
+    expect(screen.getByLabelText('Discipline').textContent).toContain(
+      'Team discipline with timed halves and goal-based scoring',
+    );
+
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 
     expect(screen.getByLabelText('Format').textContent).toContain('single-elimination');

@@ -7843,9 +7843,108 @@
             "example": "1.2.0"
           },
           "name": {
-            "type": "object",
+            "oneOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "object",
+                "required": [
+                  "en"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "en": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "es": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "fr": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "pt": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "it": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "de": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "ru": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "zh": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            ],
             "example": "Fútbol 11",
             "description": "A plain string, or a locale-keyed object (e.g. { en: \"Football\", es: \"Fútbol\" }) for a module authored in more than one language — the client resolves it to the viewer's interface language."
+          },
+          "description": {
+            "oneOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "object",
+                "required": [
+                  "en"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "en": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "es": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "fr": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "pt": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "it": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "de": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "ru": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "zh": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            ],
+            "example": {
+              "en": "Team discipline with timed halves and goal-based scoring"
+            },
+            "description": "Optional plain string or locale-keyed description. The client resolves it with the same fallback as name."
           },
           "supportedFormats": {
             "description": "Formats this discipline declares it supports. The client filters from this list rather than from its own copy — a hardcoded list is a list that disagrees with the module the day one is added.",
