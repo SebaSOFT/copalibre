@@ -1,7 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { imageSize } from 'image-size';
-import sharp from 'sharp';
 import type { ModuleAssetDescriptor, ModuleAssetKind } from './manifest.js';
 import { ASSETS_DIRECTORY_NAME } from './package-format.js';
 
@@ -125,6 +124,7 @@ async function validateBackgroundImage(
   path: string,
   bytes: Buffer,
 ): Promise<AssetValidationFailure | undefined> {
+  const { default: sharp } = await import('sharp');
   let metadata: Awaited<ReturnType<ReturnType<typeof sharp>['metadata']>>;
   try {
     metadata = await sharp(bytes).metadata();
