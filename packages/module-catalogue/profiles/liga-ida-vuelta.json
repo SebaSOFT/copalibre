@@ -2,6 +2,9 @@
   "alias": "liga-ida-vuelta",
   "version": "1.0.0",
   "name": "Home and away league",
+  "description": {
+    "en": "Home-and-away round-robin league where every entrant meets each opponent twice."
+  },
   "attribution": {
     "author": "CopaLibre",
     "licence": "AGPL-3.0-only",

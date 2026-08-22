@@ -2,6 +2,9 @@
   "alias": "tennis",
   "version": "1.0.0",
   "name": { "en": "Tennis", "es": "Tenis" },
+  "description": {
+    "en": "Individual or team racket discipline with sets, games, points, tiebreaks, and match statistics."
+  },
   "attribution": {
     "author": "CopaLibre",
     "licence": "AGPL-3.0-only",

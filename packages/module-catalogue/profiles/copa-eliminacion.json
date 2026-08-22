@@ -2,6 +2,9 @@
   "alias": "copa-eliminacion",
   "version": "1.0.0",
   "name": "Single-elimination cup",
+  "description": {
+    "en": "One elimination stage where each fixture advances a winner until the champion is decided."
+  },
   "attribution": {
     "author": "CopaLibre",
     "licence": "AGPL-3.0-only",

@@ -6,7 +6,11 @@ export function sampleDisciplines(): readonly DisciplineOption[] {
     {
       descriptorId: '01890000-0000-7000-8000-000000000001',
       version: '1.2.0',
-      name: 'Fútbol 11',
+      name: { en: 'Football', es: 'Fútbol' },
+      description: {
+        en: 'Team discipline with timed halves and goal-based scoring',
+        es: 'Disciplina por equipos con tiempos cronometrados y goles',
+      },
       supportedFormats: ['single-elimination', 'round-robin'],
     },
     {

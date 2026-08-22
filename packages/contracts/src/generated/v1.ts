@@ -2136,7 +2136,32 @@ export interface components {
              * @description A plain string, or a locale-keyed object (e.g. { en: "Football", es: "Fútbol" }) for a module authored in more than one language — the client resolves it to the viewer's interface language.
              * @example Fútbol 11
              */
-            name: Record<string, never>;
+            name: string | {
+                en: string;
+                es?: string;
+                fr?: string;
+                pt?: string;
+                it?: string;
+                de?: string;
+                ru?: string;
+                zh?: string;
+            };
+            /**
+             * @description Optional plain string or locale-keyed description. The client resolves it with the same fallback as name.
+             * @example {
+             *       "en": "Team discipline with timed halves and goal-based scoring"
+             *     }
+             */
+            description?: string | {
+                en: string;
+                es?: string;
+                fr?: string;
+                pt?: string;
+                it?: string;
+                de?: string;
+                ru?: string;
+                zh?: string;
+            };
             /**
              * @description Formats this discipline declares it supports. The client filters from this list rather than from its own copy — a hardcoded list is a list that disagrees with the module the day one is added.
              * @example [

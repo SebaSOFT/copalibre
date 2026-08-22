@@ -16,6 +16,7 @@ import {
   type WizardState,
 } from '../lib/wizard.js';
 import { messages } from '../i18n/messages.en.js';
+import { localizedText } from '../../lib/localized-label.js';
 
 export function TournamentSetupWizard({
   disciplines,
@@ -132,7 +133,11 @@ export function TournamentSetupWizard({
             >
               {disciplines.map((discipline) => (
                 <option key={discipline.descriptorId} value={discipline.descriptorId}>
-                  {discipline.name} · {discipline.version}
+                  {localizedText(discipline.name, intl.locale)}
+                  {discipline.description === undefined
+                    ? ''
+                    : ` — ${localizedText(discipline.description, intl.locale)}`}{' '}
+                  · {discipline.version}
                 </option>
               ))}
             </select>

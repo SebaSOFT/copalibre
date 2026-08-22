@@ -148,7 +148,7 @@ const AGGREGATION_MODES = ['sum', 'count', 'max', 'min', 'average'] as const;
  * instead, requiring `en` as the guaranteed fallback every other localized
  * surface in the platform already falls back to.
  */
-const LOCALIZED_LABEL_SCHEMA: JsonSchemaDocument = {
+export const LOCALIZED_LABEL_SCHEMA: JsonSchemaDocument = {
   oneOf: [
     { type: 'string', minLength: 1 },
     {
@@ -185,6 +185,7 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
     alias: { type: 'string', pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$', maxLength: 64 },
     version: { type: 'string', minLength: 1 },
     name: LOCALIZED_LABEL_SCHEMA,
+    description: LOCALIZED_LABEL_SCHEMA,
     attribution: {
       type: 'object',
       required: ['author', 'licence'],

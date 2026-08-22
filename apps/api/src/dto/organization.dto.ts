@@ -5,6 +5,18 @@ import {
   type SupportedLanguage,
 } from '@copalibre/domain';
 
+const localizedLabelOneOf = [
+  { type: 'string' as const, minLength: 1 },
+  {
+    type: 'object' as const,
+    required: ['en'],
+    additionalProperties: false,
+    properties: Object.fromEntries(
+      SUPPORTED_LANGUAGES.map((language) => [language, { type: 'string', minLength: 1 }]),
+    ),
+  },
+];
+
 /** Wire DTOs are camelCase, per the naming-conventions casing rule. */
 export class OrganizationResponse {
   @ApiProperty({ format: 'uuid', description: 'UUIDv7 identifier' })
@@ -383,12 +395,20 @@ export class DisciplineSummaryResponse {
   version!: string;
 
   @ApiProperty({
-    type: Object,
+    oneOf: localizedLabelOneOf,
     example: 'Fútbol 11',
     description:
       'A plain string, or a locale-keyed object (e.g. { en: "Football", es: "Fútbol" }) for a module authored in more than one language — the client resolves it to the viewer\'s interface language.',
   })
   name!: string | LocalizedLabel;
+
+  @ApiPropertyOptional({
+    oneOf: localizedLabelOneOf,
+    example: { en: 'Team discipline with timed halves and goal-based scoring' },
+    description:
+      'Optional plain string or locale-keyed description. The client resolves it with the same fallback as name.',
+  })
+  description?: string | LocalizedLabel;
 
   @ApiProperty({
     isArray: true,

@@ -26,7 +26,8 @@ describe('the control API client', () => {
           {
             descriptorId: 'd-1',
             version: '1.0.0',
-            name: 'Fútbol',
+            name: { en: 'Football', es: 'Fútbol' },
+            description: { en: 'Team discipline' },
             supportedFormats: ['round-robin'],
           },
         ]);
@@ -34,7 +35,13 @@ describe('the control API client', () => {
     });
 
     expect(await client.listDisciplines()).toEqual([
-      { descriptorId: 'd-1', version: '1.0.0', name: 'Fútbol', supportedFormats: ['round-robin'] },
+      {
+        descriptorId: 'd-1',
+        version: '1.0.0',
+        name: { en: 'Football', es: 'Fútbol' },
+        description: { en: 'Team discipline' },
+        supportedFormats: ['round-robin'],
+      },
     ]);
     expect(calls).toEqual(['/disciplines']);
   });

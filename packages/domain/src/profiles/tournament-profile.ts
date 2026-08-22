@@ -42,6 +42,7 @@ export interface TournamentProfileDocument {
   /** Semver: a release identifier, not a compatibility contract. */
   readonly version: string;
   readonly name: string | LocalizedLabel;
+  readonly description?: string | LocalizedLabel;
   readonly attribution: Attribution;
   readonly requires: readonly CapabilityRequirement[];
   readonly stages: readonly ProfileStage[];
