@@ -1728,7 +1728,9 @@ async function requestText(
   const response = await fetcher(url, {
     headers: token === undefined ? undefined : { authorization: `Bearer ${token}` },
   });
-  if (!response.ok) throw new ControlApiError(response.status, await reasonOf(response));
+  if (!response.ok) {
+    throw await controlApiErrorFromResponse(response);
+  }
   return response.text();
 }
 
@@ -1816,7 +1818,7 @@ async function requestJson<T>(
     // The status is the least useful part. A 409 here carries "check-in has
     // closed…" or "this entrant withdrew…", which is exactly what the operator
     // has to be told — discarding it leaves them reading a number.
-    throw new ControlApiError(response.status, await reasonOf(response));
+    throw await controlApiErrorFromResponse(response);
   }
   return (await response.json()) as T;
 }
@@ -1825,19 +1827,35 @@ export class ControlApiError extends Error {
   constructor(
     readonly status: number,
     message: string,
+    readonly errorCode?: string,
   ) {
     super(message);
     this.name = 'ControlApiError';
   }
 }
 
-async function reasonOf(response: Response): Promise<string> {
+export async function controlApiErrorFromResponse(response: Response): Promise<ControlApiError> {
+  const reason = await reasonOf(response);
+  return new ControlApiError(response.status, reason.message, reason.errorCode);
+}
+
+async function reasonOf(
+  response: Response,
+): Promise<{ readonly message: string; readonly errorCode?: string }> {
   try {
     const body: unknown = await response.json();
     if (typeof body === 'object' && body !== null && 'message' in body) {
-      const message = (body as { message?: unknown }).message;
-      if (typeof message === 'string' && message.length > 0) return message;
-      if (Array.isArray(message) && typeof message[0] === 'string') return message[0];
+      const candidate = body as { message?: unknown; errorCode?: unknown };
+      const errorCode =
+        typeof candidate.errorCode === 'string' && candidate.errorCode.length > 0
+          ? candidate.errorCode
+          : undefined;
+      if (typeof candidate.message === 'string' && candidate.message.length > 0) {
+        return { message: candidate.message, ...(errorCode ? { errorCode } : {}) };
+      }
+      if (Array.isArray(candidate.message) && typeof candidate.message[0] === 'string') {
+        return { message: candidate.message[0], ...(errorCode ? { errorCode } : {}) };
+      }
     }
   } catch {
     // A body that is not JSON tells us nothing; the status still does.
@@ -1849,5 +1867,5 @@ async function reasonOf(response: Response): Promise<string> {
   // when the server sends a non-JSON error body with no message, a genuinely
   // rare edge case; hardcoding it plainly here is safer than risking that
   // bundling failure again for a string almost nobody sees.
-  return `The request failed with ${response.status}`;
+  return { message: `The request failed with ${response.status}` };
 }

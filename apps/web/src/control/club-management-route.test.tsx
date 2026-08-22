@@ -229,7 +229,7 @@ describe('ClubManagementRoute', () => {
       fireEvent.click(screen.getByText('Save changes'));
     });
 
-    await screen.findByText('The request was refused.');
+    await screen.findByText('The request could not be completed. Try again.');
   });
 
   it('ignores a save-changes click when the client has no updateClub method', async () => {
@@ -267,7 +267,7 @@ describe('ClubManagementRoute', () => {
     );
     fireEvent.click(screen.getByText('Use image'));
 
-    await screen.findByText('The request was refused.');
+    await screen.findByText('The request could not be completed. Try again.');
   });
 
   it('renders the emblem image for a club that has one', async () => {

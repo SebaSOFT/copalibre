@@ -1,16 +1,9 @@
+import { Body, Controller, Get, HttpCode, Inject, Param, Post, Req } from '@nestjs/common';
 import {
   BadRequestException,
-  Body,
   ConflictException,
-  Controller,
-  Get,
-  HttpCode,
-  Inject,
   NotFoundException,
-  Param,
-  Post,
-  Req,
-} from '@nestjs/common';
+} from '../http/error-contract.js';
 import {
   ApiAcceptedResponse,
   ApiBearerAuth,
@@ -70,13 +63,19 @@ export class DataImportExportController {
       body.target !== 'team' &&
       body.target !== 'team-membership'
     ) {
-      throw new BadRequestException('Import target must be individual, team, or team-membership');
+      throw new BadRequestException('Import target must be individual, team, or team-membership', {
+        errorCode: 'data-import-bad-request',
+      });
     }
     if (typeof body.sourceCsv !== 'string') {
-      throw new BadRequestException('sourceCsv must be a CSV string');
+      throw new BadRequestException('sourceCsv must be a CSV string', {
+        errorCode: 'data-import-bad-request',
+      });
     }
     if (Buffer.byteLength(body.sourceCsv, 'utf8') > MAX_CSV_IMPORT_BYTES) {
-      throw new BadRequestException('CSV upload exceeds the 4 MiB limit');
+      throw new BadRequestException('CSV upload exceeds the 4 MiB limit', {
+        errorCode: 'data-import-bad-request',
+      });
     }
 
     const session = await withTransaction(this.db, async (uow) => {
@@ -123,7 +122,9 @@ export class DataImportExportController {
       session.organizationId !== organizationId ||
       session.tournamentId !== tournamentId
     ) {
-      throw new NotFoundException(`No CSV import ${importId} in this tournament`);
+      throw new NotFoundException(`No CSV import ${importId} in this tournament`, {
+        errorCode: 'data-import-not-found',
+      });
     }
     return toResponse(session);
   }
@@ -148,7 +149,9 @@ export class DataImportExportController {
       request,
     );
     if (typeof body.sourceHash !== 'string') {
-      throw new BadRequestException('sourceHash must match the reviewed preview');
+      throw new BadRequestException('sourceHash must match the reviewed preview', {
+        errorCode: 'data-import-bad-request',
+      });
     }
 
     const committed = await withTransaction(this.db, async (uow) => {
@@ -161,10 +164,13 @@ export class DataImportExportController {
       ) {
         throw new ConflictException(
           'Import preview is stale, unreviewed, or belongs to another tournament',
+          { errorCode: 'data-import-conflict' },
         );
       }
       if (!session.preview?.valid) {
-        throw new ConflictException('Import preview contains validation errors');
+        throw new ConflictException('Import preview contains validation errors', {
+          errorCode: 'data-import-conflict',
+        });
       }
 
       const people = new PersonRepository(this.db);
@@ -242,6 +248,7 @@ export class DataImportExportController {
             // sourceHash, not a fresh 404.
             throw new ConflictException(
               `Import preview is stale: "${teamAlias}" is no longer a registered team entrant in this tournament`,
+              { errorCode: 'data-import-conflict' },
             );
           }
 
@@ -305,7 +312,9 @@ export class DataImportExportController {
   ): Promise<{ readonly organizationId: string; readonly tournamentId: string }> {
     const organization = await new OrganizationRepository(this.db).findByAlias(organizationAlias);
     if (!organization)
-      throw new NotFoundException(`No organization with alias "${organizationAlias}"`);
+      throw new NotFoundException(`No organization with alias "${organizationAlias}"`, {
+        errorCode: 'data-import-not-found',
+      });
     enforcePolicy({
       plane: 'admin-control',
       subject: request.subject,
@@ -316,7 +325,9 @@ export class DataImportExportController {
       tournamentAlias,
     );
     if (!tournament) {
-      throw new NotFoundException(`No tournament "${tournamentAlias}" in "${organizationAlias}"`);
+      throw new NotFoundException(`No tournament "${tournamentAlias}" in "${organizationAlias}"`, {
+        errorCode: 'data-import-not-found',
+      });
     }
     return { organizationId: organization.organizationId, tournamentId: tournament.tournamentId };
   }

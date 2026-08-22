@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { defineMessages, FormattedMessage } from 'react-intl';
 import { beginOidcLogin } from '../session/oidc-login.js';
 import { navigateControl } from '../lib/control-navigation.js';
+import { controlApiErrorFromResponse } from '../lib/api-client.js';
 import { controlTokenStore } from '../session/token-store.js';
+import { useToast } from './ToastProvider.js';
 
 const messages = defineMessages({
   loginTitle: { id: 'auth.loginTitle', defaultMessage: 'Ingresá para operar' },
@@ -23,14 +25,13 @@ const messages = defineMessages({
 });
 
 export function LoginRoute(): React.JSX.Element {
+  const { pushError } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
     setLoading(true);
 
     try {
@@ -41,7 +42,7 @@ export function LoginRoute(): React.JSX.Element {
       });
 
       if (!res.ok) {
-        throw new Error('Credenciales incorrectas');
+        throw await controlApiErrorFromResponse(res);
       }
 
       const data = await res.json();
@@ -50,8 +51,8 @@ export function LoginRoute(): React.JSX.Element {
       const searchParams = new URLSearchParams(window.location.search);
       const returnTo = searchParams.get('returnTo') || '/control/callback';
       navigateControl(returnTo);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error de autenticación');
+    } catch (error) {
+      pushError(error);
     } finally {
       setLoading(false);
     }
@@ -99,8 +100,6 @@ export function LoginRoute(): React.JSX.Element {
           <FormattedMessage {...messages.loginSubmit} />
         </button>
       </form>
-      {error && <p style={{ color: 'var(--cl-state-destructive)', marginTop: '1rem' }}>{error}</p>}
-
       <div style={{ marginTop: '1rem' }}>
         <a
           href="/control/forgot-password"
@@ -125,24 +124,24 @@ export function LoginRoute(): React.JSX.Element {
 }
 
 export function ForgotPasswordRoute(): React.JSX.Element {
+  const { push, pushError } = useToast();
   const [email, setEmail] = useState('');
-  const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setStatus(null);
 
     try {
-      await fetch('/api/auth/forgot-password', {
+      const res = await fetch('/api/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       });
-      setStatus('Si el correo existe, se ha enviado un enlace.');
-    } catch {
-      setStatus('Ocurrió un error. Intenta de nuevo.');
+      if (!res.ok) throw await controlApiErrorFromResponse(res);
+      push({ severity: 'success', message: 'Si el correo existe, se ha enviado un enlace.' });
+    } catch (error) {
+      pushError(error);
     } finally {
       setLoading(false);
     }
@@ -174,7 +173,6 @@ export function ForgotPasswordRoute(): React.JSX.Element {
           <FormattedMessage {...messages.forgotSubmit} />
         </button>
       </form>
-      {status && <p style={{ marginTop: '1rem' }}>{status}</p>}
       <div style={{ marginTop: '2rem' }}>
         <a
           href="/control/login"
@@ -191,8 +189,8 @@ export function ForgotPasswordRoute(): React.JSX.Element {
 }
 
 export function ResetPasswordRoute(): React.JSX.Element {
+  const { push, pushError } = useToast();
   const [password, setPassword] = useState('');
-  const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
@@ -211,12 +209,12 @@ export function ResetPasswordRoute(): React.JSX.Element {
         body: JSON.stringify({ token, newPassword: password }),
       });
 
-      if (!res.ok) throw new Error('Enlace inválido o expirado.');
+      if (!res.ok) throw await controlApiErrorFromResponse(res);
 
       setSuccess(true);
-      setStatus('Contraseña actualizada. Ya puedes ingresar.');
-    } catch (err) {
-      setStatus(err instanceof Error ? err.message : 'Ocurrió un error.');
+      push({ severity: 'success', message: 'Contraseña actualizada. Ya puedes ingresar.' });
+    } catch (error) {
+      pushError(error);
     } finally {
       setLoading(false);
     }
@@ -269,7 +267,6 @@ export function ResetPasswordRoute(): React.JSX.Element {
           </button>
         )}
       </form>
-      {status && <p style={{ marginTop: '1rem' }}>{status}</p>}
       {success && (
         <div style={{ marginTop: '2rem' }}>
           <a

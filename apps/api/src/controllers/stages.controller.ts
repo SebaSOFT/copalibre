@@ -1,16 +1,9 @@
+import { Body, Controller, Get, Inject, Param, ParseIntPipe, Post, Req } from '@nestjs/common';
 import {
   BadRequestException,
-  Body,
   ConflictException,
-  Controller,
-  Get,
-  Inject,
   NotFoundException,
-  Param,
-  ParseIntPipe,
-  Post,
-  Req,
-} from '@nestjs/common';
+} from '../http/error-contract.js';
 import {
   ApiBearerAuth,
   ApiConflictResponse,
@@ -87,6 +80,7 @@ export class StagesController {
     if (!descriptor) {
       throw new BadRequestException(
         `Discipline ${tournament.disciplineRef.descriptorId}@${tournament.disciplineRef.version} is not installed`,
+        { errorCode: 'stage-bad-request' },
       );
     }
 
@@ -96,7 +90,9 @@ export class StagesController {
     const existingStages = await competition.listStagesOfTournament(tournament.tournamentId);
     const number = body.number ?? existingStages.length + 1;
     if (existingStages.some((stage) => stage.number === number)) {
-      throw new ConflictException(`Stage ${number} already exists in "${tournamentAlias}"`);
+      throw new ConflictException(`Stage ${number} already exists in "${tournamentAlias}"`, {
+        errorCode: 'stage-conflict',
+      });
     }
     const name = body.name ?? `Stage ${number}`;
 
@@ -120,7 +116,8 @@ export class StagesController {
         format: stage.format,
       };
     } catch (error) {
-      if (error instanceof InvariantViolationError) throw new ConflictException(error.message);
+      if (error instanceof InvariantViolationError)
+        throw new ConflictException(error.message, { errorCode: 'stage-conflict' });
       throw error;
     }
   }
@@ -154,7 +151,10 @@ export class StagesController {
     const competition = new CompetitionRepository(this.db);
     const stages = await competition.listStagesOfTournament(tournament.tournamentId);
     const stage = stages.find((candidate) => candidate.number === stageNumber);
-    if (!stage) throw new NotFoundException(`No stage ${stageNumber} in "${tournamentAlias}"`);
+    if (!stage)
+      throw new NotFoundException(`No stage ${stageNumber} in "${tournamentAlias}"`, {
+        errorCode: 'stage-not-found',
+      });
 
     const fixtures = await competition.listFixturesOfStage(stage.stageId);
     return {
@@ -186,7 +186,10 @@ export class StagesController {
         !(SUPPORTED_FORMATS as readonly string[]).includes(requested) ||
         !available.has(requested)
       ) {
-        throw new BadRequestException(`This tournament's discipline does not support ${requested}`);
+        throw new BadRequestException(
+          `This tournament's discipline does not support ${requested}`,
+          { errorCode: 'stage-bad-request' },
+        );
       }
       return requested as TournamentFormat;
     }
@@ -196,6 +199,7 @@ export class StagesController {
     if (typeof configured !== 'string' || configured.length === 0) {
       throw new BadRequestException(
         'No format was supplied and this tournament has no configured format to default to',
+        { errorCode: 'stage-bad-request' },
       );
     }
     return configured as TournamentFormat;

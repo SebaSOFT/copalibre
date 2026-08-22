@@ -2,10 +2,20 @@
 import { jest } from '@jest/globals';
 import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { PreferencesRoute } from './PreferencesRoute.js';
-import { ControlIntl } from '../i18n/ControlIntl.js';
+import { ControlIntl as BaseControlIntl } from '../i18n/ControlIntl.js';
 import { controlTokenStore } from '../session/token-store.js';
 import { ControlApiError } from '../lib/api-client.js';
 import type { ControlApiClient, OrganizationResponse } from '../lib/api-client.js';
+import { ToastProvider } from './ToastProvider.js';
+
+function ControlIntl(props: React.ComponentProps<typeof BaseControlIntl>): React.JSX.Element {
+  const { children, ...intlProps } = props;
+  return (
+    <BaseControlIntl {...intlProps}>
+      <ToastProvider>{children}</ToastProvider>
+    </BaseControlIntl>
+  );
+}
 
 const organization: OrganizationResponse = {
   organizationId: 'org-1',
@@ -272,7 +282,7 @@ describe('PreferencesRoute', () => {
     await screen.findByDisplayValue('Liga Mendocina');
     fireEvent.click(screen.getByText('Save'));
 
-    await screen.findByText('The request was refused.');
+    await screen.findByText('The request could not be completed. Try again.');
   });
 
   it('ignores a save click when the client has no updateOrganizationSettings method', async () => {
@@ -321,7 +331,7 @@ describe('PreferencesRoute', () => {
     );
     fireEvent.click(screen.getByText('Use image'));
 
-    await screen.findByText('The request was refused.');
+    await screen.findByText('The request could not be completed. Try again.');
   });
 
   it('renders the emblem image for an organization that has one', async () => {
@@ -486,7 +496,7 @@ describe('PreferencesRoute', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Rebuild statistics' }));
     fireEvent.click(screen.getByRole('button', { name: 'Confirm rebuild' }));
 
-    await screen.findByText('The rebuild was refused.');
+    await screen.findByText('The request could not be completed. Try again.');
   });
 
   it('disables the rebuild trigger when the client offers no rebuildStatistics method', async () => {

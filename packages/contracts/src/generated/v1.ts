@@ -1926,6 +1926,8 @@ export interface components {
             statusCode: number;
             /** @example subject may only act on their own records */
             message: string;
+            /** @example forbidden */
+            errorCode: string;
         };
         OrganizationResponse: {
             /**

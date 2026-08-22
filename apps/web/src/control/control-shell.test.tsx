@@ -386,14 +386,19 @@ describe('the API client', () => {
     await expect(client.listDisciplines()).rejects.toThrow('502');
   });
 
-  it('carries the status on the error, so a caller can tell 409 from 500', async () => {
+  it('carries status and stable errorCode from an API error response', async () => {
     const client = createControlApiClient({
-      fetch: (async () => jsonResponse({ message: 'conflicto' }, 409)) as unknown as typeof fetch,
+      fetch: (async () =>
+        jsonResponse(
+          { message: 'conflicto', errorCode: 'conflict' },
+          409,
+        )) as unknown as typeof fetch,
     });
 
     await client.listDisciplines().catch((error: unknown) => {
       expect(error).toBeInstanceOf(ControlApiError);
       expect((error as ControlApiError).status).toBe(409);
+      expect((error as ControlApiError).errorCode).toBe('conflict');
     });
   });
 

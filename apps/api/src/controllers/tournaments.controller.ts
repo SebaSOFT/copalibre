@@ -1,16 +1,9 @@
+import { Body, Controller, Get, HttpCode, Inject, Param, Post, Req } from '@nestjs/common';
 import {
   BadRequestException,
-  Body,
   ConflictException,
-  Controller,
-  Get,
-  HttpCode,
-  Inject,
   NotFoundException,
-  Param,
-  Post,
-  Req,
-} from '@nestjs/common';
+} from '../http/error-contract.js';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -70,6 +63,7 @@ export class TournamentsController {
     if (!tournament || tournament.status === 'draft') {
       throw new NotFoundException(
         `No tournament "${tournamentAlias}" in organization "${organizationAlias}"`,
+        { errorCode: 'tournament-not-found' },
       );
     }
     enforcePolicy({
@@ -98,7 +92,9 @@ export class TournamentsController {
   ): Promise<TournamentResponse> {
     const organization = await new OrganizationRepository(this.db).findByAlias(organizationAlias);
     if (!organization) {
-      throw new NotFoundException(`No organization with alias "${organizationAlias}"`);
+      throw new NotFoundException(`No organization with alias "${organizationAlias}"`, {
+        errorCode: 'tournament-not-found',
+      });
     }
 
     const subject = request.subject;
@@ -113,6 +109,7 @@ export class TournamentsController {
     if (!descriptor) {
       throw new BadRequestException(
         `Unknown discipline descriptor ${body.descriptorId}@${body.descriptorVersion}`,
+        { errorCode: 'tournament-bad-request' },
       );
     }
 
@@ -123,6 +120,7 @@ export class TournamentsController {
     ) {
       throw new BadRequestException(
         `Discipline descriptor ${body.descriptorId}@${body.descriptorVersion} does not support ${body.format}`,
+        { errorCode: 'tournament-bad-request' },
       );
     }
 
@@ -177,6 +175,7 @@ export class TournamentsController {
     if (!tournament) {
       throw new NotFoundException(
         `No tournament "${tournamentAlias}" in organization "${organizationAlias}"`,
+        { errorCode: 'tournament-not-found' },
       );
     }
 
@@ -222,6 +221,7 @@ export class TournamentsController {
     if (!tournament) {
       throw new NotFoundException(
         `No tournament "${tournamentAlias}" in organization "${organizationAlias}"`,
+        { errorCode: 'tournament-not-found' },
       );
     }
 
@@ -245,7 +245,8 @@ export class TournamentsController {
       // An illegal transition is a state conflict, not a malformed request —
       // matches the existing InvariantViolationError -> 409 convention
       // (installation-bootstrap.controller.ts, seeding.controller.ts).
-      if (error instanceof InvariantViolationError) throw new ConflictException(error.message);
+      if (error instanceof InvariantViolationError)
+        throw new ConflictException(error.message, { errorCode: 'tournament-conflict' });
       throw error;
     }
   }
@@ -267,7 +268,9 @@ export class TournamentsController {
   ): Promise<readonly TournamentResponse[]> {
     const organization = await new OrganizationRepository(this.db).findByAlias(organizationAlias);
     if (!organization) {
-      throw new NotFoundException(`No organization with alias "${organizationAlias}"`);
+      throw new NotFoundException(`No organization with alias "${organizationAlias}"`, {
+        errorCode: 'tournament-not-found',
+      });
     }
     enforcePolicy({
       plane: 'admin-control',

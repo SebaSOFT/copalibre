@@ -10,6 +10,7 @@ import {
   writeStoredLanguagePreference,
   type SupportedLanguage,
 } from '../../lib/language-preference.js';
+import { ToastProvider } from './ToastProvider.js';
 
 export function ControlShell({
   organizationAlias,
@@ -28,18 +29,20 @@ export function ControlShell({
 
   return (
     <ControlIntl locale={locale}>
-      <ControlShellChrome
-        active={active}
-        helpPath={helpPath}
-        locale={locale}
-        onLocaleChange={(next) => {
-          writeStoredLanguagePreference(next);
-          setLocale(next);
-        }}
-        organizationAlias={organizationAlias}
-      >
-        {children}
-      </ControlShellChrome>
+      <ToastProvider>
+        <ControlShellChrome
+          active={active}
+          helpPath={helpPath}
+          locale={locale}
+          onLocaleChange={(next) => {
+            writeStoredLanguagePreference(next);
+            setLocale(next);
+          }}
+          organizationAlias={organizationAlias}
+        >
+          {children}
+        </ControlShellChrome>
+      </ToastProvider>
     </ControlIntl>
   );
 }

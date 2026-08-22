@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import {
-  ControlApiError,
   createControlApiClient,
   type ControlApiClient,
   type OfficialResponse,
@@ -11,6 +10,7 @@ import {
 import { controlTokenStore } from '../session/token-store.js';
 import { Button } from './ui/button.js';
 import { messages } from '../i18n/messages.en.js';
+import { useToast } from './ToastProvider.js';
 
 const OFFICIAL_ROLES: readonly OfficialRole[] = [
   'referee',
@@ -34,6 +34,7 @@ export function VenueManagementRoute({
   readonly client?: ControlApiClient;
 }): React.JSX.Element {
   const intl = useIntl();
+  const { push, pushError } = useToast();
   const api = useMemo(
     () =>
       client ??
@@ -48,7 +49,6 @@ export function VenueManagementRoute({
   const [officials, setOfficials] = useState<readonly OfficialResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | undefined>(undefined);
-  const [notice, setNotice] = useState<string | undefined>(undefined);
 
   const [newVenueName, setNewVenueName] = useState('');
   const [newVenueAlias, setNewVenueAlias] = useState('');
@@ -102,14 +102,12 @@ export function VenueManagementRoute({
     setEditVenueDetails(
       Object.entries(venue.details ?? {}).map(([key, value]) => ({ key, value })),
     );
-    setNotice(undefined);
   }
 
   function selectOfficial(official: OfficialResponse): void {
     setSelectedOfficialId(official.officialId);
     setEditOfficialName(official.displayName);
     setEditOfficialRoles(official.roles);
-    setNotice(undefined);
   }
 
   function detailsFrom(
@@ -132,14 +130,13 @@ export function VenueManagementRoute({
       setNewVenueName('');
       setNewVenueAlias('');
       setNewVenueCapacity('1');
-      setNotice(intl.formatMessage(messages.resourceManagementVenueCreated));
+      push({
+        severity: 'success',
+        message: intl.formatMessage(messages.resourceManagementVenueCreated),
+      });
       void reload();
     } catch (error) {
-      setNotice(
-        error instanceof ControlApiError
-          ? error.message
-          : intl.formatMessage(messages.resourceManagementSaveFailed),
-      );
+      pushError(error);
     }
   }
 
@@ -153,16 +150,15 @@ export function VenueManagementRoute({
         ...(editVenueAddress.trim() === '' ? {} : { address: editVenueAddress.trim() }),
         details: detailsFrom(editVenueDetails),
       });
-      setNotice(intl.formatMessage(messages.resourceManagementVenueSaved));
+      push({
+        severity: 'success',
+        message: intl.formatMessage(messages.resourceManagementVenueSaved),
+      });
       setVenues((current) =>
         current.map((venue) => (venue.venueId === updated.venueId ? updated : venue)),
       );
     } catch (error) {
-      setNotice(
-        error instanceof ControlApiError
-          ? error.message
-          : intl.formatMessage(messages.resourceManagementSaveFailed),
-      );
+      pushError(error);
     }
   }
 
@@ -177,14 +173,13 @@ export function VenueManagementRoute({
       });
       setNewOfficialName('');
       setNewOfficialRoles([]);
-      setNotice(intl.formatMessage(messages.resourceManagementOfficialCreated));
+      push({
+        severity: 'success',
+        message: intl.formatMessage(messages.resourceManagementOfficialCreated),
+      });
       void reload();
     } catch (error) {
-      setNotice(
-        error instanceof ControlApiError
-          ? error.message
-          : intl.formatMessage(messages.resourceManagementSaveFailed),
-      );
+      pushError(error);
     }
   }
 
@@ -195,18 +190,17 @@ export function VenueManagementRoute({
         displayName: editOfficialName.trim(),
         roles: editOfficialRoles,
       });
-      setNotice(intl.formatMessage(messages.resourceManagementOfficialSaved));
+      push({
+        severity: 'success',
+        message: intl.formatMessage(messages.resourceManagementOfficialSaved),
+      });
       setOfficials((current) =>
         current.map((official) =>
           official.officialId === updated.officialId ? updated : official,
         ),
       );
     } catch (error) {
-      setNotice(
-        error instanceof ControlApiError
-          ? error.message
-          : intl.formatMessage(messages.resourceManagementSaveFailed),
-      );
+      pushError(error);
     }
   }
 
@@ -259,8 +253,6 @@ export function VenueManagementRoute({
           <FormattedMessage {...messages.resourceManagementTitle} />
         </h1>
       </header>
-
-      {notice && <p className="cl-inline-alert">{notice}</p>}
 
       <section
         aria-label={intl.formatMessage(messages.resourceManagementVenuesHeading)}

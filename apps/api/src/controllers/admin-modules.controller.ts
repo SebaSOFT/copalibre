@@ -1,19 +1,21 @@
 import { rm } from 'node:fs/promises';
 import {
-  BadRequestException,
   Body,
-  ConflictException,
   Controller,
   Delete,
   Get,
   HttpCode,
   Inject,
-  NotFoundException,
   Param,
   Post,
   Query,
   Req,
 } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '../http/error-contract.js';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -138,20 +140,25 @@ export class AdminModulesController {
     @Body() body: InstallModuleRequest,
     @Req() request: RequestWithSubject,
   ): Promise<InstallModuleResponse> {
-    if (!body.alias?.trim()) throw new BadRequestException('alias is required');
+    if (!body.alias?.trim())
+      throw new BadRequestException('alias is required', { errorCode: 'admin-module-bad-request' });
 
     let source;
     try {
       source = resolveSource(body.source, process.env);
     } catch (error) {
-      throw new BadRequestException(moduleErrorMessage(error));
+      throw new BadRequestException(moduleErrorMessage(error), {
+        errorCode: 'admin-module-bad-request',
+      });
     }
 
     let fetched;
     try {
       fetched = await fetchModule(source, body.alias, body.range);
     } catch (error) {
-      throw new BadRequestException(moduleErrorMessage(error));
+      throw new BadRequestException(moduleErrorMessage(error), {
+        errorCode: 'admin-module-bad-request',
+      });
     }
     try {
       const validated = await validateModulePackageOrThrow(fetched.directory, {
@@ -170,8 +177,11 @@ export class AdminModulesController {
       );
       return report;
     } catch (error) {
-      if (error instanceof ModuleAliasConflictError) throw new ConflictException(error.message);
-      throw new BadRequestException(moduleErrorMessage(error));
+      if (error instanceof ModuleAliasConflictError)
+        throw new ConflictException(error.message, { errorCode: 'admin-module-conflict' });
+      throw new BadRequestException(moduleErrorMessage(error), {
+        errorCode: 'admin-module-bad-request',
+      });
     } finally {
       await rm(fetched.checkoutRoot, { recursive: true, force: true });
     }
@@ -193,7 +203,10 @@ export class AdminModulesController {
     const modules = new InstalledModuleRepository(this.db);
     const tournaments = new TournamentRepository(this.db);
     const installed = await modules.findByAlias(alias);
-    if (installed.length === 0) throw new NotFoundException(`No installed module named "${alias}"`);
+    if (installed.length === 0)
+      throw new NotFoundException(`No installed module named "${alias}"`, {
+        errorCode: 'admin-module-not-found',
+      });
 
     const referencing = new Set<string>();
     for (const module_ of installed) {
@@ -212,6 +225,7 @@ export class AdminModulesController {
     if (referencing.size > 0) {
       throw new ConflictException(
         `Cannot remove "${alias}": referenced by started tournament(s): ${[...referencing].join(', ')}`,
+        { errorCode: 'admin-module-conflict' },
       );
     }
 

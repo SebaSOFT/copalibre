@@ -297,6 +297,7 @@ describe('registration review routes', () => {
 
     expect(response.statusCode).toBe(409);
     expect(response.json().message).toContain('Check-in has closed');
+    expect(response.json().errorCode).toBe('registration-conflict');
   });
 
   it('reconciles a team entrant’s membership to the submitted ids, auditing each change', async () => {

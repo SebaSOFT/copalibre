@@ -1,4 +1,5 @@
-import { Controller, Get, Param, Query, NotFoundException, Inject } from '@nestjs/common';
+import { Controller, Get, Param, Query, Inject } from '@nestjs/common';
+import { NotFoundException } from '../http/error-contract.js';
 import { ApiTags, ApiOperation, ApiOkResponse } from '@nestjs/swagger';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
 import {
@@ -59,7 +60,9 @@ export class PublicTournamentListingController {
       .executeTakeFirst();
 
     if (!organization) {
-      throw new NotFoundException(`No organization "${organizationAlias}"`);
+      throw new NotFoundException(`No organization "${organizationAlias}"`, {
+        errorCode: 'public-projection-not-found',
+      });
     }
 
     const clubs = await new EnrollmentRepository(this.db).listClubs(organization.organizationId);
@@ -298,6 +301,7 @@ export class PublicProjectionsController {
     if (!tournament || tournament.status === 'draft') {
       throw new NotFoundException(
         `No tournament "${tournamentAlias}" in organization "${organizationAlias}"`,
+        { errorCode: 'public-projection-not-found' },
       );
     }
     const organization = await this.db
@@ -305,7 +309,7 @@ export class PublicProjectionsController {
       .select('name')
       .where('organization_id', '=', tournament.organizationId)
       .executeTakeFirst();
-    if (!organization) throw new NotFoundException();
+    if (!organization) throw new NotFoundException({ errorCode: 'public-projection-not-found' });
 
     return { tournament, organizationName: organization.name };
   }
@@ -447,14 +451,17 @@ export class PublicProjectionsController {
       !Number.isSafeInteger(matchNumber) ||
       matchNumber < 1
     ) {
-      throw new NotFoundException();
+      throw new NotFoundException({ errorCode: 'public-projection-not-found' });
     }
 
     const competition = new CompetitionRepository(this.db);
     const stage = (await competition.listStagesOfTournament(tournament.tournamentId)).find(
       (candidate) => candidate.number === stageNumber,
     );
-    if (!stage) throw new NotFoundException(`No stage ${stageNumberValue} in tournament`);
+    if (!stage)
+      throw new NotFoundException(`No stage ${stageNumberValue} in tournament`, {
+        errorCode: 'public-projection-not-found',
+      });
 
     const match = await this.db
       .selectFrom('matches')
@@ -473,7 +480,9 @@ export class PublicProjectionsController {
       .where('matches.number', '=', matchNumber)
       .executeTakeFirst();
     if (!match)
-      throw new NotFoundException(`No match ${matchNumberValue} in stage ${stageNumberValue}`);
+      throw new NotFoundException(`No match ${matchNumberValue} in stage ${stageNumberValue}`, {
+        errorCode: 'public-projection-not-found',
+      });
 
     const [schedule, officials, rosterRows, segments, events, descriptor] = await Promise.all([
       this.db
@@ -511,7 +520,10 @@ export class PublicProjectionsController {
         tournament.disciplineRef.version,
       ),
     ]);
-    if (!descriptor) throw new NotFoundException('Tournament discipline descriptor is unavailable');
+    if (!descriptor)
+      throw new NotFoundException('Tournament discipline descriptor is unavailable', {
+        errorCode: 'public-projection-not-found',
+      });
 
     const entrantIds = [match.home_entrant_id, match.away_entrant_id].filter(
       (entrantId): entrantId is string => entrantId !== null,
@@ -687,7 +699,7 @@ export class PublicProjectionsController {
     );
     const stages = await compRepo.listStages(season.seasonId);
     const stage = stages.find((s) => s.number === stageNumber);
-    if (!stage) throw new NotFoundException();
+    if (!stage) throw new NotFoundException({ errorCode: 'public-projection-not-found' });
 
     const stageMatchesMapped = await new StageReadModel(this.db).matches(stage.stageId);
 
@@ -813,7 +825,10 @@ export class PublicProjectionsController {
       tournament.tournamentId,
     );
     const stage = stages.find((candidate) => candidate.number === stageNumber);
-    if (!stage) throw new NotFoundException(`No stage ${stageNumberStr} in tournament`);
+    if (!stage)
+      throw new NotFoundException(`No stage ${stageNumberStr} in tournament`, {
+        errorCode: 'public-projection-not-found',
+      });
 
     const result = await readTableProjection(
       this.db,
@@ -849,6 +864,7 @@ export class PublicProjectionsController {
     if (!person || person.organizationId !== tournament.organizationId) {
       throw new NotFoundException(
         `No person "${personId}" found in organization "${organizationAlias}"`,
+        { errorCode: 'public-projection-not-found' },
       );
     }
 

@@ -1,19 +1,11 @@
 import { createHash } from 'node:crypto';
+import { Body, Controller, Get, Headers, Inject, Param, Post, Put, Req } from '@nestjs/common';
 import {
   BadRequestException,
-  Body,
   ConflictException,
-  Controller,
   ForbiddenException,
-  Get,
-  Headers,
-  Inject,
   NotFoundException,
-  Param,
-  Post,
-  Put,
-  Req,
-} from '@nestjs/common';
+} from '../http/error-contract.js';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -131,7 +123,10 @@ export class MatchControlController {
     await this.resolveTournament(organizationAlias, tournamentAlias);
     const competition = new CompetitionRepository(this.db);
     const match = await competition.findMatch(matchId);
-    if (!match) throw new NotFoundException(`No match "${matchId}"`);
+    if (!match)
+      throw new NotFoundException(`No match "${matchId}"`, {
+        errorCode: 'match-control-not-found',
+      });
 
     const [segments, events, resolvedTimerIds] = await Promise.all([
       competition.listSegments(matchId),
@@ -198,13 +193,18 @@ export class MatchControlController {
     @Headers('idempotency-key') idempotencyKey?: string,
   ): Promise<MatchStateResponse> {
     if (!isMatchCommand(command)) {
-      throw new BadRequestException(`Unknown match command "${command}"`);
+      throw new BadRequestException(`Unknown match command "${command}"`, {
+        errorCode: 'match-control-bad-request',
+      });
     }
 
     const tournament = await this.resolveTournament(organizationAlias, tournamentAlias);
     const competition = new CompetitionRepository(this.db);
     const match = await competition.findMatch(matchId);
-    if (!match) throw new NotFoundException(`No match "${matchId}"`);
+    if (!match)
+      throw new NotFoundException(`No match "${matchId}"`, {
+        errorCode: 'match-control-not-found',
+      });
 
     // Finalize alone requires a key (irreversible, so "just resend it" must be
     // safe by construction); start/pause/resume accept one but don't require
@@ -214,7 +214,9 @@ export class MatchControlController {
       command === 'finalize' ? finalizeFingerprint(body) : fingerprintOf({ command });
     const idempotency = new MatchCommandIdempotencyRepository(this.db);
     if (command === 'finalize' && !idempotencyKey) {
-      throw new BadRequestException('Finalizing a match requires an Idempotency-Key header');
+      throw new BadRequestException('Finalizing a match requires an Idempotency-Key header', {
+        errorCode: 'match-control-bad-request',
+      });
     }
     if (idempotencyKey) {
       const previous = await idempotency.find(idempotencyKey);
@@ -241,7 +243,9 @@ export class MatchControlController {
     const active = segments.find((segment) => segment.state === 'active');
     const transition = applyMatchCommand(match, command, active);
     if (!transition.ok) {
-      throw new BadRequestException(transition.error.message);
+      throw new BadRequestException(transition.error.message, {
+        errorCode: 'match-control-bad-request',
+      });
     }
 
     const audit = {
@@ -294,7 +298,9 @@ export class MatchControlController {
 
         if (command === 'finalize') {
           if (!body?.sides?.length) {
-            throw new BadRequestException('Finalizing a match requires one entry per side');
+            throw new BadRequestException('Finalizing a match requires one entry per side', {
+              errorCode: 'match-control-bad-request',
+            });
           }
           await competition.recordResult(uow, {
             matchId,
@@ -384,7 +390,10 @@ export class MatchControlController {
     const competition = new CompetitionRepository(this.db);
     const segments = await competition.listSegments(matchId);
     const selected = segments.find((segment) => segment.segmentId === body.segmentId);
-    if (!selected) throw new NotFoundException(`No segment "${body.segmentId}" in this match`);
+    if (!selected)
+      throw new NotFoundException(`No segment "${body.segmentId}" in this match`, {
+        errorCode: 'match-control-not-found',
+      });
 
     const stageId = await this.stageOf(matchId);
     const granted = enforceMatchCommand({
@@ -487,7 +496,9 @@ export class MatchControlController {
     ]);
     const timer = events.find((event) => event.eventId === timerId);
     if (!timer || !allowsManualTimerResolution(descriptor, timer.definitionCode)) {
-      throw new BadRequestException('This timer has no discipline-declared manual resolution');
+      throw new BadRequestException('This timer has no discipline-declared manual resolution', {
+        errorCode: 'match-control-bad-request',
+      });
     }
 
     const stageId = await this.stageOf(matchId);
@@ -629,13 +640,17 @@ export class MatchControlController {
     const tournament = await this.resolveTournament(organizationAlias, tournamentAlias);
     const competition = new CompetitionRepository(this.db);
     const match = await competition.findMatch(matchId);
-    if (!match) throw new NotFoundException(`No match "${matchId}"`);
+    if (!match)
+      throw new NotFoundException(`No match "${matchId}"`, {
+        errorCode: 'match-control-not-found',
+      });
     // Mirrors `recordEvent`'s own status guard (0123): a queued roster
     // selection reaching a match that finalized in the meantime is refused
     // the same way a live submission would be, not silently accepted.
     if (match.status !== 'in-progress') {
       throw new BadRequestException(
         `Match "${matchId}" is ${match.status}; roster selection happens while it is in progress`,
+        { errorCode: 'match-control-bad-request' },
       );
     }
 
@@ -662,17 +677,22 @@ export class MatchControlController {
       if (!eligiblePersonIds.has(member.personId)) {
         throw new BadRequestException(
           `Person "${member.personId}" is not a registered player of entrant "${entrantId}"`,
+          { errorCode: 'match-control-bad-request' },
         );
       }
     }
     if (new Set(members.map((member) => member.personId)).size !== members.length) {
-      throw new BadRequestException('A roster cannot name the same person twice');
+      throw new BadRequestException('A roster cannot name the same person twice', {
+        errorCode: 'match-control-bad-request',
+      });
     }
     const numbers = members.flatMap((member) =>
       member.number === undefined ? [] : [member.number],
     );
     if (new Set(numbers).size !== numbers.length) {
-      throw new BadRequestException('A roster cannot assign the same number twice');
+      throw new BadRequestException('A roster cannot assign the same number twice', {
+        errorCode: 'match-control-bad-request',
+      });
     }
 
     const priorRoster = (await competition.matchRoster(matchId)).find(
@@ -693,6 +713,7 @@ export class MatchControlController {
             `Cannot remove person "${attributingEvent.personId}" from the roster — event ` +
               `"${attributingEvent.definitionCode}" (sequence ${attributingEvent.sequence}) is ` +
               'already attributed to them',
+            { errorCode: 'match-control-bad-request' },
           );
         }
       }
@@ -704,7 +725,10 @@ export class MatchControlController {
     const personById = new Map(persons.map((person) => [person.personId, person]));
     const rosterMembers: MatchRosterMember[] = members.map((member) => {
       const person = personById.get(member.personId);
-      if (!person) throw new NotFoundException(`No person "${member.personId}"`);
+      if (!person)
+        throw new NotFoundException(`No person "${member.personId}"`, {
+          errorCode: 'match-control-not-found',
+        });
       return {
         personId: member.personId,
         ...(member.number === undefined ? {} : { number: member.number }),
@@ -785,10 +809,14 @@ export class MatchControlController {
     const tournament = await this.resolveTournament(organizationAlias, tournamentAlias);
     const competition = new CompetitionRepository(this.db);
     const match = await competition.findMatch(matchId);
-    if (!match) throw new NotFoundException(`No match "${matchId}"`);
+    if (!match)
+      throw new NotFoundException(`No match "${matchId}"`, {
+        errorCode: 'match-control-not-found',
+      });
     if (match.status !== 'in-progress') {
       throw new BadRequestException(
         `Match "${matchId}" is ${match.status}; events are recorded while it is in progress`,
+        { errorCode: 'match-control-bad-request' },
       );
     }
 
@@ -809,7 +837,10 @@ export class MatchControlController {
 
     const segments = await competition.listSegments(matchId);
     const segment = segments.find((candidate) => candidate.segmentId === body.segmentId);
-    if (!segment) throw new NotFoundException(`No segment "${body.segmentId}" in this match`);
+    if (!segment)
+      throw new NotFoundException(`No segment "${body.segmentId}" in this match`, {
+        errorCode: 'match-control-not-found',
+      });
 
     const [rosters, fixture, descriptor, priorEvents] = await Promise.all([
       this.db
@@ -840,12 +871,16 @@ export class MatchControlController {
       definition?.actorRequirement === 'person' &&
       !eligiblePersonIds.has(body.personId)
     ) {
-      throw new BadRequestException(`Person "${body.personId}" is not in this match roster`);
+      throw new BadRequestException(`Person "${body.personId}" is not in this match roster`, {
+        errorCode: 'match-control-bad-request',
+      });
     }
     if (body.personId && definition?.actorRequirement === 'person-or-staff') {
       const eligibleStaffIds = await this.eligibleStaffIds(entrantIds);
       if (!eligiblePersonIds.has(body.personId) && !eligibleStaffIds.has(body.personId)) {
-        throw new BadRequestException(`Person "${body.personId}" is not eligible for this match`);
+        throw new BadRequestException(`Person "${body.personId}" is not eligible for this match`, {
+          errorCode: 'match-control-bad-request',
+        });
       }
     }
     if (
@@ -854,6 +889,7 @@ export class MatchControlController {
     ) {
       throw new BadRequestException(
         `Event "${body.definitionCode}" does not accept a person attribution`,
+        { errorCode: 'match-control-bad-request' },
       );
     }
 
@@ -897,7 +933,9 @@ export class MatchControlController {
       entrantIds,
     });
     if (!validated.ok) {
-      throw new BadRequestException(validated.error.message);
+      throw new BadRequestException(validated.error.message, {
+        errorCode: 'match-control-bad-request',
+      });
     }
 
     const ruleset = await new CompetitionRecordRepository(this.db).findCompiledRuleset(
@@ -1107,14 +1145,20 @@ export class MatchControlController {
     const tournament = await this.resolveTournament(organizationAlias, tournamentAlias);
     const competition = new CompetitionRepository(this.db);
     const match = await competition.findMatch(matchId);
-    if (!match) throw new NotFoundException(`No match "${matchId}"`);
+    if (!match)
+      throw new NotFoundException(`No match "${matchId}"`, {
+        errorCode: 'match-control-not-found',
+      });
     if (match.result) {
       throw new ConflictException(
         `Match ${matchId} already has a result; use the audited correction workflow to supersede it`,
+        { errorCode: 'match-control-conflict' },
       );
     }
     if (!body.result?.sides?.length) {
-      throw new BadRequestException('A batch must include one result entry per side');
+      throw new BadRequestException('A batch must include one result entry per side', {
+        errorCode: 'match-control-bad-request',
+      });
     }
     const invalidSegment = body.events.find(
       (event) => event.segmentNumber < 1 || event.segmentNumber > body.segments.length,
@@ -1123,6 +1167,7 @@ export class MatchControlController {
       throw new BadRequestException(
         `Event "${invalidSegment.definitionCode}" names segment ${invalidSegment.segmentNumber}, ` +
           `but only ${body.segments.length} segment(s) were submitted`,
+        { errorCode: 'match-control-bad-request' },
       );
     }
 
@@ -1172,7 +1217,10 @@ export class MatchControlController {
       entrantId: roster.entrantId,
       members: roster.members.map((member): MatchRosterMember => {
         const person = rosterPersonById.get(member.personId);
-        if (!person) throw new NotFoundException(`No person "${member.personId}"`);
+        if (!person)
+          throw new NotFoundException(`No person "${member.personId}"`, {
+            errorCode: 'match-control-not-found',
+          });
         return {
           personId: member.personId,
           ...(member.number === undefined ? {} : { number: member.number }),
@@ -1237,6 +1285,7 @@ export class MatchControlController {
         if (!validated.ok) {
           throw new BadRequestException(
             `Entry ${index + 1} ("${input.definitionCode}"): ${validated.error.message}`,
+            { errorCode: 'match-control-bad-request' },
           );
         }
         await competition.appendEvent(uow, {
@@ -1265,7 +1314,7 @@ export class MatchControlController {
         });
       } catch (error) {
         if (error instanceof InvariantViolationError) {
-          throw new ConflictException(error.message);
+          throw new ConflictException(error.message, { errorCode: 'match-control-conflict' });
         }
         throw error;
       }
@@ -1420,7 +1469,10 @@ export class MatchControlController {
     const tournament = await this.resolveTournament(organizationAlias, tournamentAlias);
     const competition = new CompetitionRepository(this.db);
     const match = await competition.findMatch(matchId);
-    if (!match) throw new NotFoundException(`No match "${matchId}"`);
+    if (!match)
+      throw new NotFoundException(`No match "${matchId}"`, {
+        errorCode: 'match-control-not-found',
+      });
 
     const stageId = await this.stageOf(matchId);
     const granted = enforceMatchCommand({
@@ -1461,7 +1513,10 @@ export class MatchControlController {
       downstream,
     );
 
-    if (!planned.ok) throw new BadRequestException(planned.error.message);
+    if (!planned.ok)
+      throw new BadRequestException(planned.error.message, {
+        errorCode: 'match-control-bad-request',
+      });
     return { plan: planned.value, organizationId: tournament.organizationId, granted };
   }
 
@@ -1473,6 +1528,7 @@ export class MatchControlController {
     if (!tournament) {
       throw new NotFoundException(
         `No tournament "${tournamentAlias}" in organization "${organizationAlias}"`,
+        { errorCode: 'match-control-not-found' },
       );
     }
     return tournament;
@@ -1490,6 +1546,7 @@ export class MatchControlController {
     if (!descriptor) {
       throw new NotFoundException(
         `Tournament "${tournamentAlias}" names a discipline that is no longer installed`,
+        { errorCode: 'match-control-not-found' },
       );
     }
     return descriptor;
@@ -1504,7 +1561,10 @@ export class MatchControlController {
     const tournament = await this.resolveTournament(organizationAlias, tournamentAlias);
     const competition = new CompetitionRepository(this.db);
     const match = await competition.findMatch(matchId);
-    if (!match) throw new NotFoundException(`No match "${matchId}"`);
+    if (!match)
+      throw new NotFoundException(`No match "${matchId}"`, {
+        errorCode: 'match-control-not-found',
+      });
 
     const stageId = await this.stageOf(matchId);
     const [segments, events, descriptor, resolvedTimerIds, assignments, rosters, fixture, version] =
@@ -1534,7 +1594,9 @@ export class MatchControlController {
       ]);
     const capabilities = [...new Set(assignments.flatMap((assignment) => assignment.capabilities))];
     if (capabilities.length === 0) {
-      throw new ForbiddenException('Subject holds no match-control capability for this match');
+      throw new ForbiddenException('Subject holds no match-control capability for this match', {
+        errorCode: 'match-control-forbidden',
+      });
     }
 
     const entrantIds = [fixture?.home_entrant_id, fixture?.away_entrant_id].filter(
@@ -1707,7 +1769,9 @@ export class MatchControlController {
       .where('matches.match_id', '=', matchId)
       .executeTakeFirst();
     if (fixture?.home_entrant_id !== entrantId && fixture?.away_entrant_id !== entrantId) {
-      throw new BadRequestException(`Entrant "${entrantId}" is not one of this match’s two sides`);
+      throw new BadRequestException(`Entrant "${entrantId}" is not one of this match’s two sides`, {
+        errorCode: 'match-control-bad-request',
+      });
     }
 
     const entrant = await this.db
@@ -1715,7 +1779,10 @@ export class MatchControlController {
       .select(['entrant_kind', 'team_id', 'person_id'])
       .where('entrant_id', '=', entrantId)
       .executeTakeFirst();
-    if (!entrant) throw new NotFoundException(`No entrant "${entrantId}"`);
+    if (!entrant)
+      throw new NotFoundException(`No entrant "${entrantId}"`, {
+        errorCode: 'match-control-not-found',
+      });
     return entrant;
   }
 
@@ -1776,7 +1843,10 @@ export class MatchControlController {
 
   private async stageOf(matchId: string): Promise<string> {
     const stageId = await new CompetitionRepository(this.db).stageOfMatch(matchId);
-    if (!stageId) throw new NotFoundException(`Match "${matchId}" belongs to no stage`);
+    if (!stageId)
+      throw new NotFoundException(`Match "${matchId}" belongs to no stage`, {
+        errorCode: 'match-control-not-found',
+      });
     return stageId;
   }
 
@@ -2017,7 +2087,9 @@ function replayCommand<T>(
     stored.matchId !== matchId ||
     stored.requestFingerprint !== fingerprint
   ) {
-    throw new ConflictException(`Idempotency-Key was already used for a different ${operation}`);
+    throw new ConflictException(`Idempotency-Key was already used for a different ${operation}`, {
+      errorCode: 'match-control-conflict',
+    });
   }
   return stored.response as unknown as T;
 }

@@ -541,4 +541,21 @@ export const messages: Record<string, string> = {
   'control.imageCropModal.close': 'Chiudi',
   'control.imageCropModal.processing': 'Elaborazione…',
   'control.imageCropModal.failed': 'Impossibile elaborare questa immagine.',
+  'control.toast.dismiss': 'Chiudi notifica',
+  'control.toast.notifications': 'Notifiche',
+  'control.toast.details': 'Dettagli tecnici',
+  'control.toast.severity.success': 'Operazione riuscita',
+  'control.toast.severity.error': 'Errore',
+  'control.toast.severity.info': 'Informazione',
+  'control.apiError.generic': 'Impossibile completare la richiesta. Riprova.',
+  'control.apiError.badRequest': 'Controlla le informazioni inviate e riprova.',
+  'control.apiError.unauthorized': 'La sessione è scaduta. Accedi di nuovo.',
+  'control.apiError.forbidden': 'Non hai il permesso di eseguire questa azione.',
+  'control.apiError.notFound': 'L’elemento richiesto non è stato trovato.',
+  'control.apiError.conflict':
+    'Questa modifica è in conflitto con i dati attuali del torneo. Aggiorna e riprova.',
+  'control.apiError.unprocessableEntity': 'Impossibile elaborare le informazioni inviate.',
+  'control.apiError.serviceUnavailable':
+    'Il servizio è temporaneamente non disponibile. Riprova tra poco.',
+  'control.apiError.internalServer': 'Si è verificato un errore imprevisto del server. Riprova.',
 };

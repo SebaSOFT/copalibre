@@ -1,13 +1,5 @@
-import {
-  Controller,
-  Get,
-  Inject,
-  NotFoundException,
-  Param,
-  ParseIntPipe,
-  Query,
-  Req,
-} from '@nestjs/common';
+import { Controller, Get, Inject, Param, ParseIntPipe, Query, Req } from '@nestjs/common';
+import { NotFoundException } from '../http/error-contract.js';
 import {
   ApiBearerAuth,
   ApiForbiddenResponse,
@@ -116,7 +108,10 @@ export class StandingsController {
 
     const result = await readStandings(this.db, tournament, stageNumber, groupId);
     const row = result.rows.find((candidate) => candidate.entrantId === entrantId);
-    if (!row) throw new NotFoundException(`No entrant ${entrantId} in this stage’s standings`);
+    if (!row)
+      throw new NotFoundException(`No entrant ${entrantId} in this stage’s standings`, {
+        errorCode: 'standings-not-found',
+      });
 
     return {
       entrantId,
@@ -143,7 +138,9 @@ export async function resolveTournament(
 }> {
   const organization = await new OrganizationRepository(db).findByAlias(input.organizationAlias);
   if (!organization) {
-    throw new NotFoundException(`No organization with alias "${input.organizationAlias}"`);
+    throw new NotFoundException(`No organization with alias "${input.organizationAlias}"`, {
+      errorCode: 'standings-not-found',
+    });
   }
 
   enforcePolicy({
@@ -159,6 +156,7 @@ export async function resolveTournament(
   if (!tournament) {
     throw new NotFoundException(
       `No tournament "${input.tournamentAlias}" in "${input.organizationAlias}"`,
+      { errorCode: 'standings-not-found' },
     );
   }
 

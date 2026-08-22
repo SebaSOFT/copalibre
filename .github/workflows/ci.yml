@@ -320,6 +320,9 @@ jobs:
       # Spanish-fidelity regression sample, and catalog completeness — named
       # separately so a reviewer finds this capability's own signal directly.
       - run: yarn workspace @copalibre/web test --testPathPatterns 'i18n/i18n\.test'
+      # Stackable control notifications: lifecycle, persistence, independent
+      # dismissal, and localized API error mapping get their own CI signal.
+      - run: yarn workspace @copalibre/web test --testPathPatterns 'toast|notification'
       # Public-web locale infrastructure: the English/Spanish catalog
       # completeness check and the build-time formatter that renders real
       # translated chrome rather than an English fallback — named separately

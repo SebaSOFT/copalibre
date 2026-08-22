@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import {
-  ControlApiError,
   createControlApiClient,
   type ControlApiClient,
   type FixtureResponse,
@@ -14,6 +13,7 @@ import { controlLinkClick } from '../lib/control-navigation.js';
 import { controlTokenStore } from '../session/token-store.js';
 import { Button } from './ui/button.js';
 import { messages } from '../i18n/messages.en.js';
+import { useToast } from './ToastProvider.js';
 
 interface DraftAssignment {
   readonly startsAt: string;
@@ -48,6 +48,7 @@ export function ScheduleBuilderRoute({
   readonly client?: ControlApiClient;
 }): React.JSX.Element {
   const intl = useIntl();
+  const { push, pushError } = useToast();
   const api = useMemo(
     () =>
       client ??
@@ -65,7 +66,6 @@ export function ScheduleBuilderRoute({
   const [drafts, setDrafts] = useState<Readonly<Record<string, DraftAssignment>>>({});
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | undefined>(undefined);
-  const [notice, setNotice] = useState<string | undefined>(undefined);
   const [conflicts, setConflicts] = useState<readonly ScheduleConflictDto[]>([]);
   const [affectedPublishedFixtures, setAffectedPublishedFixtures] = useState<readonly string[]>([]);
   const [committable, setCommittable] = useState(false);
@@ -162,13 +162,8 @@ export function ScheduleBuilderRoute({
       setAffectedPublishedFixtures(result.affectedPublishedFixtures);
       setCommittable(result.committable);
       setPreviewed(true);
-      setNotice(undefined);
     } catch (error) {
-      setNotice(
-        error instanceof ControlApiError
-          ? error.message
-          : intl.formatMessage(messages.scheduleBuilderSaveFailed),
-      );
+      pushError(error);
     }
   }
 
@@ -178,14 +173,10 @@ export function ScheduleBuilderRoute({
       await api.publishSchedule(organizationAlias, tournamentAlias, stageId, {
         assignments: batch,
       });
-      setNotice(intl.formatMessage(messages.scheduleBuilderPublished));
+      push({ severity: 'success', message: intl.formatMessage(messages.scheduleBuilderPublished) });
       void reload();
     } catch (error) {
-      setNotice(
-        error instanceof ControlApiError
-          ? error.message
-          : intl.formatMessage(messages.scheduleBuilderSaveFailed),
-      );
+      pushError(error);
     }
   }
 
@@ -240,8 +231,6 @@ export function ScheduleBuilderRoute({
           <FormattedMessage {...messages.standingsTitle} />
         </a>
       </header>
-
-      {notice && <p className="cl-inline-alert">{notice}</p>}
 
       {fixtures.length === 0 && (
         <p style={mutedStyle}>

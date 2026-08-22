@@ -474,7 +474,7 @@ describe('control routes', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Publicar sembrado' }));
     });
 
-    expect(await screen.findByText(/sembrado guardado/)).toBeTruthy();
+    expect((await screen.findByRole('status')).textContent).toContain('Sin fixtures generados');
     // Once on load, once to refresh after the confirmed publish.
     expect(fetchSeeding).toHaveBeenCalledTimes(2);
   });

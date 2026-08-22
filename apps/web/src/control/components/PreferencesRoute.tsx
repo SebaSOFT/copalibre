@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FormattedMessage, defineMessages, useIntl } from 'react-intl';
 import {
-  ControlApiError,
   createControlApiClient,
   organizationEmblemUrl,
   type ControlApiClient,
@@ -14,6 +13,7 @@ import { ImageCropModal } from './ImageCropModal.js';
 import { ClubEmblemPlaceholder } from './placeholders.js';
 import { Button } from './ui/button.js';
 import { messages as controlMessages } from '../i18n/messages.en.js';
+import { useToast } from './ToastProvider.js';
 
 const messages = defineMessages({
   title: {
@@ -138,6 +138,7 @@ export function PreferencesRoute({
   };
 
   const intl = useIntl();
+  const { push, pushError } = useToast();
   const api = useMemo(
     () =>
       client ??
@@ -151,7 +152,6 @@ export function PreferencesRoute({
   const [organization, setOrganization] = useState<OrganizationResponse | undefined>(undefined);
   const [orgLoading, setOrgLoading] = useState(true);
   const [orgLoadError, setOrgLoadError] = useState<string | undefined>(undefined);
-  const [orgNotice, setOrgNotice] = useState<string | undefined>(undefined);
   const [orgName, setOrgName] = useState('');
   const [emblemCropSrc, setEmblemCropSrc] = useState<string | undefined>(undefined);
 
@@ -205,13 +205,9 @@ export function PreferencesRoute({
         name: orgName.trim(),
       });
       setOrganization(updated);
-      setOrgNotice(intl.formatMessage(controlMessages.orgIdentitySaved));
+      push({ severity: 'success', message: intl.formatMessage(controlMessages.orgIdentitySaved) });
     } catch (error) {
-      setOrgNotice(
-        error instanceof ControlApiError
-          ? error.message
-          : intl.formatMessage(controlMessages.orgIdentitySaveFailed),
-      );
+      pushError(error);
     }
   }
 
@@ -226,14 +222,13 @@ export function PreferencesRoute({
         contentType: output.contentType,
         contentBase64: output.contentBase64,
       });
-      setOrgNotice(intl.formatMessage(controlMessages.orgIdentityEmblemUploaded));
+      push({
+        severity: 'success',
+        message: intl.formatMessage(controlMessages.orgIdentityEmblemUploaded),
+      });
       void reloadOrganization();
     } catch (error) {
-      setOrgNotice(
-        error instanceof ControlApiError
-          ? error.message
-          : intl.formatMessage(controlMessages.orgIdentitySaveFailed),
-      );
+      pushError(error);
     }
   }
 
@@ -242,7 +237,6 @@ export function PreferencesRoute({
   const [rebuildResult, setRebuildResult] = useState<StatisticsRebuildResponse | undefined>(
     undefined,
   );
-  const [rebuildNotice, setRebuildNotice] = useState<string | undefined>(undefined);
 
   async function runStatisticsRebuild(): Promise<void> {
     if (!api.rebuildStatistics || organizationAlias === undefined) return;
@@ -252,14 +246,9 @@ export function PreferencesRoute({
         rebuildTournamentAlias.trim() === '' ? undefined : rebuildTournamentAlias.trim(),
       );
       setRebuildResult(result);
-      setRebuildNotice(undefined);
     } catch (error) {
       setRebuildResult(undefined);
-      setRebuildNotice(
-        error instanceof ControlApiError
-          ? error.message
-          : intl.formatMessage(controlMessages.statisticsRebuildFailed),
-      );
+      pushError(error);
     } finally {
       setRebuildConfirming(false);
     }
@@ -432,8 +421,6 @@ export function PreferencesRoute({
             <FormattedMessage {...controlMessages.orgIdentityHeading} />
           </h2>
 
-          {orgNotice && <p className="cl-inline-alert">{orgNotice}</p>}
-
           {orgLoading ? (
             <p>
               <FormattedMessage {...controlMessages.orgIdentityLoading} />
@@ -516,11 +503,6 @@ export function PreferencesRoute({
             <FormattedMessage {...controlMessages.statisticsRebuildDescription} />
           </p>
 
-          {rebuildNotice && (
-            <p className="cl-inline-alert" role="alert">
-              {rebuildNotice}
-            </p>
-          )}
           {rebuildResult && (
             <p className="cl-inline-alert">
               {intl.formatMessage(controlMessages.statisticsRebuildResult, {

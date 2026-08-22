@@ -357,7 +357,7 @@ describe('PromotionPlanRoute', () => {
       fireEvent.click(screen.getByText('Save promotion plan'));
     });
 
-    await screen.findByText('The plan was refused.');
+    await screen.findByText('The request could not be completed. Try again.');
   });
 
   it('falls back to the zone number in the breadcrumb when the zone list fails to load', async () => {

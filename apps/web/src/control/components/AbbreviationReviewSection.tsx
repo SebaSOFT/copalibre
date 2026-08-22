@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { isAbbreviation, MAX_ABBREVIATION_LENGTH } from '@copalibre/domain';
-import { ControlApiError } from '../lib/api-client.js';
 import { Button } from './ui/button.js';
 import { messages } from '../i18n/messages.en.js';
+import { useToast } from './ToastProvider.js';
 
 export interface AbbreviationCandidateRow {
   readonly entrantId: string;
@@ -24,6 +24,7 @@ export function AbbreviationReviewSection({
   readonly onSetAbbreviation?: (entrantId: string, abbreviation: string) => Promise<unknown> | void;
 }): React.JSX.Element {
   const intl = useIntl();
+  const { pushError } = useToast();
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -45,15 +46,7 @@ export function AbbreviationReviewSection({
     });
     const result = onSetAbbreviation?.(entrantId, value);
     if (result) {
-      void result.catch((error: unknown) => {
-        setErrors((current) => ({
-          ...current,
-          [entrantId]:
-            error instanceof ControlApiError
-              ? error.message
-              : intl.formatMessage(messages.abbreviationReviewSetFailed),
-        }));
-      });
+      void result.catch((error: unknown) => pushError(error));
     }
   }
 

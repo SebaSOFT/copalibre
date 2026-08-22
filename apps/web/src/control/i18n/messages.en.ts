@@ -1495,4 +1495,48 @@ export const messages = defineMessages({
     id: 'control.imageCropModal.failed',
     defaultMessage: 'Could not process this image.',
   },
+
+  // Stackable notifications and stable API error localization (0126).
+  toastDismiss: { id: 'control.toast.dismiss', defaultMessage: 'Dismiss notification' },
+  toastNotifications: { id: 'control.toast.notifications', defaultMessage: 'Notifications' },
+  toastDetails: { id: 'control.toast.details', defaultMessage: 'Technical details' },
+  toastSeveritySuccess: { id: 'control.toast.severity.success', defaultMessage: 'Success' },
+  toastSeverityError: { id: 'control.toast.severity.error', defaultMessage: 'Error' },
+  toastSeverityInfo: { id: 'control.toast.severity.info', defaultMessage: 'Information' },
+  apiErrorGeneric: {
+    id: 'control.apiError.generic',
+    defaultMessage: 'The request could not be completed. Try again.',
+  },
+  apiErrorBadRequest: {
+    id: 'control.apiError.badRequest',
+    defaultMessage: 'Check the submitted information and try again.',
+  },
+  apiErrorUnauthorized: {
+    id: 'control.apiError.unauthorized',
+    defaultMessage: 'Your session has expired. Sign in again.',
+  },
+  apiErrorForbidden: {
+    id: 'control.apiError.forbidden',
+    defaultMessage: 'You do not have permission to perform this action.',
+  },
+  apiErrorNotFound: {
+    id: 'control.apiError.notFound',
+    defaultMessage: 'The requested item could not be found.',
+  },
+  apiErrorConflict: {
+    id: 'control.apiError.conflict',
+    defaultMessage: 'This change conflicts with current tournament data. Refresh and try again.',
+  },
+  apiErrorUnprocessableEntity: {
+    id: 'control.apiError.unprocessableEntity',
+    defaultMessage: 'The submitted information could not be processed.',
+  },
+  apiErrorServiceUnavailable: {
+    id: 'control.apiError.serviceUnavailable',
+    defaultMessage: 'Service is temporarily unavailable. Try again shortly.',
+  },
+  apiErrorInternalServer: {
+    id: 'control.apiError.internalServer',
+    defaultMessage: 'An unexpected server error occurred. Try again.',
+  },
 });

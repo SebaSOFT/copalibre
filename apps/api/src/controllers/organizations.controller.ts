@@ -1,17 +1,9 @@
+import { Body, Controller, Get, Inject, Param, Patch, Post, Query, Req } from '@nestjs/common';
 import {
   BadRequestException,
-  Body,
   ConflictException,
-  Controller,
-  Get,
-  Inject,
   NotFoundException,
-  Param,
-  Patch,
-  Post,
-  Query,
-  Req,
-} from '@nestjs/common';
+} from '../http/error-contract.js';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -79,7 +71,9 @@ export class OrganizationsController {
     @Req() request: RequestWithSubject,
   ): Promise<MyOrganizationResponse[]> {
     if (mine !== 'true') {
-      throw new BadRequestException('Only "?mine=true" is supported by this endpoint');
+      throw new BadRequestException('Only "?mine=true" is supported by this endpoint', {
+        errorCode: 'organization-bad-request',
+      });
     }
     const principalId = request.subject?.principalId;
     // No installation principal yet (never accepted an invitation) is not an
@@ -107,7 +101,9 @@ export class OrganizationsController {
   async findByAlias(@Param('alias') alias: string): Promise<OrganizationResponse> {
     const organization = await new OrganizationRepository(this.db).findByAlias(alias);
     if (!organization) {
-      throw new NotFoundException(`No organization with alias "${alias}"`);
+      throw new NotFoundException(`No organization with alias "${alias}"`, {
+        errorCode: 'organization-not-found',
+      });
     }
     enforcePolicy({
       plane: 'public-read',
@@ -152,7 +148,8 @@ export class OrganizationsController {
     } catch (error) {
       // Matches the existing InvariantViolationError -> 409 convention
       // (installation-bootstrap.controller.ts, seeding.controller.ts).
-      if (error instanceof InvariantViolationError) throw new ConflictException(error.message);
+      if (error instanceof InvariantViolationError)
+        throw new ConflictException(error.message, { errorCode: 'organization-conflict' });
       throw error;
     }
   }
@@ -185,7 +182,9 @@ export class OrganizationsController {
     const repository = new OrganizationRepository(this.db);
     const organization = await repository.findByAlias(organizationAlias);
     if (!organization) {
-      throw new NotFoundException(`No organization with alias "${organizationAlias}"`);
+      throw new NotFoundException(`No organization with alias "${organizationAlias}"`, {
+        errorCode: 'organization-not-found',
+      });
     }
     try {
       return await withTransaction(this.db, (uow) =>
@@ -198,7 +197,8 @@ export class OrganizationsController {
         }),
       );
     } catch (error) {
-      if (error instanceof InvariantViolationError) throw new ConflictException(error.message);
+      if (error instanceof InvariantViolationError)
+        throw new ConflictException(error.message, { errorCode: 'organization-conflict' });
       throw error;
     }
   }

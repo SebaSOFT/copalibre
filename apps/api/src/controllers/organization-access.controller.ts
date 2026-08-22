@@ -3,16 +3,15 @@ import {
   Body,
   Controller,
   Delete,
-  ForbiddenException,
   Get,
   HttpCode,
   Inject,
-  NotFoundException,
   Param,
   Patch,
   Post,
   Req,
 } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '../http/error-contract.js';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -146,7 +145,10 @@ export class OrganizationAccessController {
 
   private async organization(alias: string) {
     const organization = await new OrganizationRepository(this.db).findByAlias(alias);
-    if (!organization) throw new NotFoundException(`No organization with alias "${alias}"`);
+    if (!organization)
+      throw new NotFoundException(`No organization with alias "${alias}"`, {
+        errorCode: 'organization-access-not-found',
+      });
     return organization;
   }
 }
@@ -170,7 +172,9 @@ export class InvitationAcceptanceController {
   ): Promise<OrganizationRoleResponse> {
     const subject = request.subject;
     if (!subject?.email || subject.emailVerified !== true) {
-      throw new ForbiddenException('Invitation acceptance requires a verified OIDC email');
+      throw new ForbiddenException('Invitation acceptance requires a verified OIDC email', {
+        errorCode: 'organization-access-forbidden',
+      });
     }
     const verifiedEmail = subject.email;
     return withTransaction(this.db, (uow) =>

@@ -10,6 +10,7 @@ import {
 import { controlTokenStore } from '../session/token-store.js';
 import { Button } from './ui/button.js';
 import { messages } from '../i18n/messages.en.js';
+import { useToast } from './ToastProvider.js';
 
 interface BandRow {
   readonly key: string;
@@ -45,6 +46,7 @@ export function PromotionPlanRoute({
   readonly client?: ControlApiClient;
 }): React.JSX.Element {
   const intl = useIntl();
+  const { push, pushError } = useToast();
   const api = useMemo(
     () =>
       client ??
@@ -60,7 +62,6 @@ export function PromotionPlanRoute({
   const [nextStageNumber, setNextStageNumber] = useState('');
   const [perGroupAdvance, setPerGroupAdvance] = useState('1');
   const [bands, setBands] = useState<readonly BandRow[]>([]);
-  const [notice, setNotice] = useState<string | undefined>(undefined);
   const [preview, setPreview] = useState<PromotionPreviewResponse | undefined>(undefined);
   const [previewError, setPreviewError] = useState<string | undefined>(undefined);
 
@@ -155,14 +156,10 @@ export function PromotionPlanRoute({
             }
           : {}),
       });
-      setNotice(intl.formatMessage(messages.promotionPlanSaved));
+      push({ severity: 'success', message: intl.formatMessage(messages.promotionPlanSaved) });
       void loadPreview();
     } catch (error) {
-      setNotice(
-        error instanceof ControlApiError
-          ? error.message
-          : intl.formatMessage(messages.promotionSaveFailed),
-      );
+      pushError(error);
     }
   }
 
@@ -183,8 +180,6 @@ export function PromotionPlanRoute({
           <FormattedMessage {...messages.promotionTitle} />
         </h1>
       </header>
-
-      {notice && <p className="cl-inline-alert">{notice}</p>}
 
       <section aria-label={intl.formatMessage(messages.promotionConfigHeading)} style={panelStyle}>
         <h2 style={sectionTitleStyle}>

@@ -2,8 +2,18 @@
 import { jest } from '@jest/globals';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { LoginRoute, ForgotPasswordRoute, ResetPasswordRoute } from './NativeAuthRoutes.js';
-import { ControlIntl } from '../i18n/ControlIntl.js';
+import { ControlIntl as BaseControlIntl } from '../i18n/ControlIntl.js';
 import { controlTokenStore } from '../session/token-store.js';
+import { ToastProvider } from './ToastProvider.js';
+
+function ControlIntl(props: React.ComponentProps<typeof BaseControlIntl>): React.JSX.Element {
+  const { children, ...intlProps } = props;
+  return (
+    <BaseControlIntl {...intlProps}>
+      <ToastProvider>{children}</ToastProvider>
+    </BaseControlIntl>
+  );
+}
 
 describe('NativeAuthRoutes', () => {
   beforeEach(() => {
@@ -43,6 +53,7 @@ describe('NativeAuthRoutes', () => {
     fireEvent.click(screen.getByRole('button', { name: /Enviar enlace/i }));
 
     await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
+    expect(await screen.findByText('Si el correo existe, se ha enviado un enlace.')).toBeTruthy();
   });
 
   it('renders ResetPasswordRoute and handles success', async () => {
@@ -61,5 +72,6 @@ describe('NativeAuthRoutes', () => {
     fireEvent.click(screen.getByRole('button', { name: /Restablecer/i }));
 
     await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
+    expect(await screen.findByText('Contraseña actualizada. Ya puedes ingresar.')).toBeTruthy();
   });
 });
