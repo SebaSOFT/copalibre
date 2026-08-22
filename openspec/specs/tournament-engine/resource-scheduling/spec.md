@@ -3,7 +3,9 @@
 ## Purpose
 Assigns venue, official, and time-slot resources to a tournament's generated fixtures, catching
 conflicts before publication and guaranteeing a schedule is never seen half-published.
+
 ## Requirements
+
 ### Requirement: Conflict detection before commit
 The system SHALL detect venue double-booking, official double-booking, and configurable rest-rule
 violations before a schedule assignment is committed.
@@ -59,3 +61,43 @@ be unique within its organization.
 - **WHEN** a venue is created with a lowercase, kebab-case alias unique within its organization
 - **THEN** the venue is stored and reachable by that alias
 
+### Requirement: A venue records operator-entered details for a physical or virtual resource
+
+A venue SHALL accept optional, operator-entered, free-form details describing what kind of resource it
+is — physical (for example an address, an operating club, or a playing surface) or virtual (for example
+a server address, a region, or a map) — without the system parsing, validating, or acting on their
+content. A venue's core identity (alias, name, capacity) SHALL NOT require a `details` value, and a
+venue with none SHALL behave exactly as one already does today.
+
+#### Scenario: A physical venue records address and surface details
+- **WHEN** a venue is created or edited with detail entries describing its address and playing surface
+- **THEN** those details are stored and returned exactly as entered, with no validation of their content
+
+#### Scenario: A virtual venue records connection details
+- **WHEN** a venue representing a game server is created with detail entries for its address, region, and
+  current map
+- **THEN** those details are stored and returned exactly as entered, and the venue functions identically
+  to a physical one for scheduling, conflict detection, and capacity purposes
+
+#### Scenario: A venue with no details is unaffected
+- **WHEN** a venue is created or edited with no detail entries
+- **THEN** it behaves exactly as it did before this requirement existed
+
+### Requirement: Venues and officials are reachable through the API
+
+An organization's venues and officials SHALL be creatable and listable through the API, not only through
+direct data-store access. This is what an operator-facing venue/official management surface, and the
+schedule builder that assigns them, depend on.
+
+#### Scenario: An organizer creates a venue through the API
+- **WHEN** an authorized organizer submits a new venue's alias, name, capacity, and optional details
+- **THEN** the venue is stored and included in the organization's venue list thereafter
+
+#### Scenario: An organizer creates an official through the API
+- **WHEN** an authorized organizer submits a new official's display name and roles
+- **THEN** the official is stored and included in the organization's official list thereafter
+
+#### Scenario: Listing venues and officials requires no prior knowledge of their ids
+- **WHEN** an authorized organizer requests an organization's venues or officials
+- **THEN** every one already created for that organization is returned, without the caller needing to
+  already know any of their ids
