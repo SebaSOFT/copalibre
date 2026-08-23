@@ -573,6 +573,14 @@ export const messages: Record<string, string> = {
   'control.statisticsRebuild.result':
     '{matches, plural, one {Обработан # матч} few {Обработано # матча} many {Обработано # матчей} other {Обработано # матча}}.',
   'control.statisticsRebuild.failed': 'В пересчёте отказано.',
+  'control.storageUsage.heading': 'Использование хранилища',
+  'control.storageUsage.description':
+    'Общий объем хранилища, используемый загруженными медиафайлами и ресурсами в этой организации.',
+  'control.storageUsage.loading': 'Загрузка сведений об использовании хранилища…',
+  'control.storageUsage.loadFailed': 'Не удалось загрузить данные об использовании хранилища.',
+  'control.storageUsage.summary':
+    '{formattedBytes} в {objectCount, plural, one {# файле} few {# файлах} many {# файлах} other {# файлах}}',
+  'control.storageUsage.empty': '0 MB в 0 файлах',
   'control.imageCropModal.title': 'Настроить изображение',
   'control.imageCropModal.zoom': 'Масштаб',
   'control.imageCropModal.rotation': 'Поворот',

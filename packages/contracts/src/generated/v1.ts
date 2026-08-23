@@ -108,6 +108,26 @@ export interface paths {
         patch: operations["OrganizationsController_updateSettings"];
         trace?: never;
     };
+    "/organizations/{organizationAlias}/storage-usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get an organization's aggregate storage usage
+         * @description Requires the organization admin role. Returns the total bytes and object count for all stored objects in passed status.
+         */
+        get: operations["OrganizationsController_getStorageUsage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}": {
         parameters: {
             query?: never;
@@ -2006,6 +2026,18 @@ export interface components {
             primaryLanguage?: "en" | "es" | "fr" | "pt" | "it" | "de" | "ru" | "zh";
             /** @example America/Argentina/San_Juan */
             timezone?: string;
+        };
+        OrganizationStorageUsageResponse: {
+            /**
+             * @description Total bytes of stored objects in passed status
+             * @example 148897792
+             */
+            totalBytes: number;
+            /**
+             * @description Total number of stored objects in passed status
+             * @example 38
+             */
+            objectCount: number;
         };
         TournamentResponse: {
             /** Format: uuid */
@@ -3967,6 +3999,45 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OrganizationResponse"];
+                };
+            };
+            /** @description Missing or invalid bearer token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            /** @description Requester is not an organization admin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    OrganizationsController_getStorageUsage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationStorageUsageResponse"];
                 };
             };
             /** @description Missing or invalid bearer token */

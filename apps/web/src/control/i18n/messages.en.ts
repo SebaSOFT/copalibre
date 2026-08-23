@@ -1596,6 +1596,32 @@ export const messages = defineMessages({
     defaultMessage: 'The rebuild was refused.',
   },
 
+  // Storage usage (0130) — aggregate usage report in org settings.
+  storageUsageHeading: {
+    id: 'control.storageUsage.heading',
+    defaultMessage: 'Storage usage',
+  },
+  storageUsageDescription: {
+    id: 'control.storageUsage.description',
+    defaultMessage: 'Total storage used by uploaded media and assets in this organization.',
+  },
+  storageUsageLoading: {
+    id: 'control.storageUsage.loading',
+    defaultMessage: 'Loading storage usage…',
+  },
+  storageUsageLoadFailed: {
+    id: 'control.storageUsage.loadFailed',
+    defaultMessage: 'Could not load storage usage.',
+  },
+  storageUsageSummary: {
+    id: 'control.storageUsage.summary',
+    defaultMessage: '{formattedBytes} across {objectCount, plural, one {# file} other {# files}}',
+  },
+  storageUsageEmpty: {
+    id: 'control.storageUsage.empty',
+    defaultMessage: '0 MB across 0 files',
+  },
+
   // Image crop modal (0122) — shared by every profile-image upload (org/club emblem, person photo).
   imageCropModalTitle: { id: 'control.imageCropModal.title', defaultMessage: 'Adjust image' },
   imageCropModalZoom: { id: 'control.imageCropModal.zoom', defaultMessage: 'Zoom' },

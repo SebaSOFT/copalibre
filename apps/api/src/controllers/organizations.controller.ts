@@ -15,6 +15,7 @@ import {
 } from '@nestjs/swagger';
 import {
   InvariantViolationError,
+  ObjectMetadataRepository,
   OrganizationAccessRepository,
   OrganizationRepository,
   withTransaction,
@@ -33,6 +34,7 @@ import {
   CreateOrganizationRequest,
   MyOrganizationResponse,
   OrganizationResponse,
+  OrganizationStorageUsageResponse,
   ProblemResponse,
   UpdateOrganizationSettingsRequest,
 } from '../dto/organization.dto.js';
@@ -201,5 +203,38 @@ export class OrganizationsController {
         throw new ConflictException(error.message, { errorCode: 'organization-conflict' });
       throw error;
     }
+  }
+
+  @Get(':organizationAlias/storage-usage')
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: "Get an organization's aggregate storage usage",
+    description:
+      'Requires the organization admin role. Returns the total bytes and object count ' +
+      'for all stored objects in passed status.',
+  })
+  @ApiOkResponse({ type: OrganizationStorageUsageResponse })
+  @ApiUnauthorizedResponse({
+    type: ProblemResponse,
+    description: 'Missing or invalid bearer token',
+  })
+  @ApiForbiddenResponse({
+    type: ProblemResponse,
+    description: 'Requester is not an organization admin',
+  })
+  async getStorageUsage(
+    @Param('organizationAlias') organizationAlias: string,
+  ): Promise<OrganizationStorageUsageResponse> {
+    const orgRepo = new OrganizationRepository(this.db);
+    const organization = await orgRepo.findByAlias(organizationAlias);
+    if (!organization) {
+      throw new NotFoundException(`No organization with alias "${organizationAlias}"`, {
+        errorCode: 'organization-not-found',
+      });
+    }
+    const metadataRepo = new ObjectMetadataRepository(this.db);
+    return await metadataRepo.usageByOrganization(organization.organizationId);
   }
 }

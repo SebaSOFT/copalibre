@@ -576,6 +576,14 @@ export const messages: Record<string, string> = {
   'control.statisticsRebuild.result':
     '{matches, plural, one {# match traité} other {# matchs traités}}.',
   'control.statisticsRebuild.failed': 'La reconstruction a été refusée.',
+  'control.storageUsage.heading': 'Utilisation du stockage',
+  'control.storageUsage.description':
+    'Stockage total utilisé par les médias et ressources téléversés dans cette organisation.',
+  'control.storageUsage.loading': 'Chargement de l’utilisation du stockage…',
+  'control.storageUsage.loadFailed': 'Impossible de charger l’utilisation du stockage.',
+  'control.storageUsage.summary':
+    '{formattedBytes} sur {objectCount, plural, one {# fichier} other {# fichiers}}',
+  'control.storageUsage.empty': '0 MB sur 0 fichier',
   'control.imageCropModal.title': "Ajuster l'image",
   'control.imageCropModal.zoom': 'Zoom',
   'control.imageCropModal.rotation': 'Rotation',

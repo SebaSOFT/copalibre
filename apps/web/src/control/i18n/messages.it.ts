@@ -575,6 +575,14 @@ export const messages: Record<string, string> = {
   'control.statisticsRebuild.result':
     '{matches, plural, one {# partita elaborata} other {# partite elaborate}}.',
   'control.statisticsRebuild.failed': 'La ricostruzione è stata rifiutata.',
+  'control.storageUsage.heading': 'Spazio di archiviazione',
+  'control.storageUsage.description':
+    'Spazio totale di archiviazione utilizzato dai contenuti multimediali e dalle risorse caricate in questa organizzazione.',
+  'control.storageUsage.loading': 'Caricamento dello spazio di archiviazione in corso…',
+  'control.storageUsage.loadFailed': 'Impossibile caricare lo spazio di archiviazione.',
+  'control.storageUsage.summary':
+    '{formattedBytes} in {objectCount, plural, one {# file} other {# file}}',
+  'control.storageUsage.empty': '0 MB in 0 file',
   'control.imageCropModal.title': 'Regola immagine',
   'control.imageCropModal.zoom': 'Zoom',
   'control.imageCropModal.rotation': 'Rotazione',

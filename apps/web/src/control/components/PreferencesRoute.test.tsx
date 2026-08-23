@@ -540,4 +540,93 @@ describe('PreferencesRoute', () => {
       ),
     );
   });
+
+  it('renders the formatted storage usage in MB and GB', async () => {
+    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => [],
+    } as any);
+    const client = stubClient({
+      getOrganization: () => Promise.resolve(organization),
+      getStorageUsage: () =>
+        Promise.resolve({
+          totalBytes: 142 * 1024 * 1024,
+          objectCount: 38,
+        }),
+    });
+
+    render(
+      <ControlIntl locale="en">
+        <PreferencesRoute client={client} organizationAlias="liga-mendocina" />
+      </ControlIntl>,
+    );
+
+    expect(await screen.findByText('Storage usage')).toBeDefined();
+    expect(await screen.findByText('142 MB across 38 files')).toBeDefined();
+  });
+
+  it('renders storage usage formatted dynamically in GB when over 1024 MB', async () => {
+    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => [],
+    } as any);
+    const client = stubClient({
+      getOrganization: () => Promise.resolve(organization),
+      getStorageUsage: () =>
+        Promise.resolve({
+          totalBytes: 1610612736, // 1.5 GB
+          objectCount: 120,
+        }),
+    });
+
+    render(
+      <ControlIntl locale="en">
+        <PreferencesRoute client={client} organizationAlias="liga-mendocina" />
+      </ControlIntl>,
+    );
+
+    expect(await screen.findByText('1.5 GB across 120 files')).toBeDefined();
+  });
+
+  it('renders zero-state storage usage correctly', async () => {
+    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => [],
+    } as any);
+    const client = stubClient({
+      getOrganization: () => Promise.resolve(organization),
+      getStorageUsage: () =>
+        Promise.resolve({
+          totalBytes: 0,
+          objectCount: 0,
+        }),
+    });
+
+    render(
+      <ControlIntl locale="en">
+        <PreferencesRoute client={client} organizationAlias="liga-mendocina" />
+      </ControlIntl>,
+    );
+
+    expect(await screen.findByText('0 MB across 0 files')).toBeDefined();
+  });
+
+  it('surfaces an error when storage usage fails to load', async () => {
+    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => [],
+    } as any);
+    const client = stubClient({
+      getOrganization: () => Promise.resolve(organization),
+      getStorageUsage: () => Promise.reject(new Error('unauthorized or failed')),
+    });
+
+    render(
+      <ControlIntl locale="en">
+        <PreferencesRoute client={client} organizationAlias="liga-mendocina" />
+      </ControlIntl>,
+    );
+
+    expect(await screen.findByText('Could not load storage usage.')).toBeDefined();
+  });
 });
