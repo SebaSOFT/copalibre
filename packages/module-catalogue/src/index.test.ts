@@ -2,6 +2,7 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
+  bestOfFiveWinCondition,
   bindCapabilities,
   type DisciplineDescriptor,
   type TournamentProfile,
@@ -23,8 +24,8 @@ describe('default module catalogue', () => {
       'liga-ida-vuelta',
     ]);
     expect(catalogue.assets.map((asset) => asset.reference.key)).toEqual([
-      'modules/football/1.1.0/football-01.jpg',
-      'modules/tennis/1.0.0/tennis-01.jpg',
+      'modules/football/1.2.0/football-01.jpg',
+      'modules/tennis/1.1.0/tennis-01.jpg',
     ]);
     expect(catalogue.assets.every((asset) => asset.body.byteLength > 0)).toBe(true);
     expect(catalogue.disciplines).toEqual(
@@ -150,6 +151,75 @@ describe('default module catalogue', () => {
     expect(collectorCodes).toContain('red-card');
     expect(collectorCodes).not.toEqual(
       expect.arrayContaining(['foul', 'foul-play-on', 'free-kick-awarded', 'penalty-awarded']),
+    );
+  });
+
+  it('declares football 1.2.0 offside, VAR review, penalty shootout, and stoppage time (0131)', async () => {
+    const catalogue = await loadDefaultModuleCatalogue();
+    const football = catalogue.disciplines.find((descriptor) => descriptor.alias === 'football');
+    if (!football) throw new Error('Expected football catalogue document');
+    expect(football.version).toBe('1.2.0');
+
+    const codes = new Set(football.eventDefinitions.map((definition) => definition.code));
+    expect(codes.has('offside')).toBe(true);
+    expect(codes.has('stoppage-time-announced')).toBe(true);
+
+    const varReview = football.eventDefinitions.find(
+      (definition) => definition.code === 'var-review',
+    );
+    if (!varReview?.workflow) {
+      throw new Error('Expected var-review to declare an outcome-choice workflow');
+    }
+
+    expect(varReview.workflow.options.map((option) => option.definitionCode).sort()).toEqual(
+      [
+        'red-card',
+        'var-card-rescinded',
+        'var-goal-disallowed',
+        'var-penalty-overturned',
+        'var-play-stands',
+      ].sort(),
+    );
+
+    for (const option of varReview.workflow.options) {
+      expect(codes.has(option.definitionCode)).toBe(true);
+    }
+
+    expect(football.segmentTypes.map((segment) => segment.name)).toContain('penalty-shootout');
+  });
+
+  it('declares tennis 1.1.0 doubles label and best-of-five win condition matching domain builder (0131)', async () => {
+    const catalogue = await loadDefaultModuleCatalogue();
+    const tennis = catalogue.disciplines.find((descriptor) => descriptor.alias === 'tennis');
+    if (!tennis) throw new Error('Expected tennis catalogue document');
+    expect(tennis.version).toBe('1.1.0');
+
+    const uiMetadata = tennis.uiMetadata as {
+      participantTypeLabels?: Record<string, unknown>;
+      winConditions?: readonly {
+        id: string;
+        label: unknown;
+        script?: unknown;
+        rules?: unknown;
+      }[];
+    };
+
+    expect(uiMetadata?.participantTypeLabels?.team).toEqual(
+      expect.objectContaining({ en: 'Doubles', es: 'Dobles' }),
+    );
+
+    const bestOfFive = uiMetadata?.winConditions?.find(
+      (entry) => entry.id === 'tennis-best-of-five',
+    );
+    expect(bestOfFive).toBeDefined();
+
+    const expectedScript = bestOfFiveWinCondition();
+    const scriptToCompare = bestOfFive?.script ?? {
+      id: bestOfFive?.id,
+      rules: bestOfFive?.rules,
+    };
+    expect(JSON.parse(JSON.stringify(scriptToCompare))).toEqual(
+      JSON.parse(JSON.stringify(expectedScript)),
     );
   });
 });

@@ -74,3 +74,20 @@ without a recorded roster contribute no player-level figures.
 #### Scenario: A rebuild is never triggered without confirmation
 - **WHEN** an administrator activates the rebuild control
 - **THEN** nothing runs until the action is explicitly confirmed
+
+### Requirement: Organization admins see their storage usage
+An organization's administration area SHALL display that organization's total stored-object bytes and
+object count, human-readable, sourced from the object-storage usage query — read-only, no quota or
+enforcement implied.
+
+#### Scenario: An admin sees a human-readable total
+- **WHEN** an organization administrator with 38 successfully stored objects totaling 142 MB opens the
+  organization's administration area
+- **THEN** the storage usage summary reads a human-readable figure equivalent to "142 MB across 38
+  files", not a raw byte count
+
+#### Scenario: A non-administrator does not see the organization's storage usage
+- **WHEN** a caller without the organization's admin role requests the organization's settings/
+  administration view
+- **THEN** the storage usage summary is not present, matching the same role gate as the rest of that
+  view
