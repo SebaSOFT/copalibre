@@ -234,4 +234,23 @@ describe('the control API client', () => {
     expect(JSON.parse(String(calls[2]?.init?.body))).toEqual({ sourceHash: 'source-hash' });
     expect(new Headers(calls[3]?.init?.headers).get('authorization')).toBe('Bearer token-1');
   });
+
+  it('fetches storage usage for an organization', async () => {
+    let requestedUrl = '';
+    const client = createControlApiClient({
+      accessToken: () => 'token-admin',
+      fetch: async (input) => {
+        requestedUrl = String(input);
+        return response({ totalBytes: 104857600, objectCount: 12 });
+      },
+    });
+
+    if (!client.getStorageUsage) {
+      throw new Error('getStorageUsage must be available');
+    }
+
+    const usage = await client.getStorageUsage('liga-orbital');
+    expect(requestedUrl).toBe('/organizations/liga-orbital/storage-usage');
+    expect(usage).toEqual({ totalBytes: 104857600, objectCount: 12 });
+  });
 });

@@ -5,6 +5,7 @@ import {
   organizationEmblemUrl,
   type ControlApiClient,
   type OrganizationResponse,
+  type OrganizationStorageUsageResponse,
   type StatisticsRebuildResponse,
 } from '../lib/api-client.js';
 import { controlTokenStore } from '../session/token-store.js';
@@ -14,6 +15,17 @@ import { ClubEmblemPlaceholder } from './placeholders.js';
 import { Button } from './ui/button.js';
 import { messages as controlMessages } from '../i18n/messages.en.js';
 import { useToast } from './ToastProvider.js';
+
+export function formatStorageBytes(bytes: number): string {
+  const ONE_MB = 1024 * 1024;
+  const ONE_GB = 1024 * 1024 * 1024;
+  if (bytes >= ONE_GB) {
+    const gb = bytes / ONE_GB;
+    return `${Number(gb.toFixed(2))} GB`;
+  }
+  const mb = bytes / ONE_MB;
+  return `${Number(mb.toFixed(2))} MB`;
+}
 
 const messages = defineMessages({
   title: {
@@ -192,6 +204,33 @@ export function PreferencesRoute({
       })
       .finally(() => {
         if (live) setOrgLoading(false);
+      });
+    return () => {
+      live = false;
+    };
+  }, [api, organizationAlias, intl]);
+
+  const [storageUsage, setStorageUsage] = useState<OrganizationStorageUsageResponse | undefined>(
+    undefined,
+  );
+  const [storageLoading, setStorageLoading] = useState(true);
+  const [storageError, setStorageError] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (organizationAlias === undefined) return undefined;
+    let live = true;
+    const getStorageUsage = api.getStorageUsage;
+    (getStorageUsage ? getStorageUsage(organizationAlias) : Promise.resolve(undefined))
+      .then((loaded) => {
+        if (!live) return;
+        setStorageUsage(loaded);
+        setStorageError(undefined);
+      })
+      .catch(() => {
+        if (live) setStorageError(intl.formatMessage(controlMessages.storageUsageLoadFailed));
+      })
+      .finally(() => {
+        if (live) setStorageLoading(false);
       });
     return () => {
       live = false;
@@ -555,6 +594,45 @@ export function PreferencesRoute({
               <FormattedMessage {...controlMessages.statisticsRebuildConfirmPrompt} />
             </p>
           )}
+        </section>
+      )}
+
+      {organizationAlias !== undefined && (
+        <section
+          aria-label={intl.formatMessage(controlMessages.storageUsageHeading)}
+          style={{
+            marginTop: '2rem',
+            background: 'var(--cl-surface-alt)',
+            padding: '1.5rem',
+            borderRadius: '8px',
+          }}
+        >
+          <h2>
+            <FormattedMessage {...controlMessages.storageUsageHeading} />
+          </h2>
+          <p>
+            <FormattedMessage {...controlMessages.storageUsageDescription} />
+          </p>
+
+          {storageLoading ? (
+            <p>
+              <FormattedMessage {...controlMessages.storageUsageLoading} />
+            </p>
+          ) : storageError ? (
+            <p className="cl-inline-alert" role="alert">
+              {storageError}
+            </p>
+          ) : storageUsage !== undefined ? (
+            <p style={{ marginTop: '1rem', fontWeight: 600 }}>
+              <FormattedMessage
+                {...controlMessages.storageUsageSummary}
+                values={{
+                  formattedBytes: formatStorageBytes(storageUsage.totalBytes),
+                  objectCount: storageUsage.objectCount,
+                }}
+              />
+            </p>
+          ) : null}
         </section>
       )}
 

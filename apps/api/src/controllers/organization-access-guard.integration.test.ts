@@ -4,6 +4,7 @@ import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fa
 import { Test } from '@nestjs/testing';
 import {
   newId,
+  ObjectMetadataRepository,
   OrganizationRepository,
   withTransaction,
   type Database,
@@ -181,6 +182,46 @@ describe('organization access guards (integration)', () => {
         payload: payload as never,
       });
     }
+  });
+
+  describe('organization storage usage', () => {
+    it('lets the active organization admin view storage usage', async () => {
+      const repo = new ObjectMetadataRepository(scratch.db);
+      const passed = await withTransaction(scratch.db, (uow) =>
+        repo.save(uow, {
+          organizationId,
+          profile: 'filesystem',
+          storageKey: `${organizationId}/photo.png`,
+          contentType: 'image/png',
+          sizeBytes: 1048576, // 1 MB
+          uploadedBy: 'user:admin',
+        }),
+      );
+      await repo.markPassed(passed.objectId);
+
+      const response = await request('admin', `/organizations/liga-segura/storage-usage`);
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual({
+        totalBytes: 1048576,
+        objectCount: 1,
+      });
+    });
+
+    it('refuses an inactive organization user with 403', async () => {
+      const response = await request('inactive', `/organizations/liga-segura/storage-usage`);
+      expect(response.statusCode).toBe(403);
+    });
+
+    it('refuses a participant token with 403', async () => {
+      const response = await request('participant', `/organizations/liga-segura/storage-usage`);
+      expect(response.statusCode).toBe(403);
+    });
+
+    it('refuses an unknown organization alias with 403', async () => {
+      const response = await request('admin', `/organizations/no-such-org/storage-usage`);
+      expect(response.statusCode).toBe(403);
+      expect(response.json().message).toContain('Requested organization does not exist');
+    });
   });
 
   function request(token: string, url: string) {

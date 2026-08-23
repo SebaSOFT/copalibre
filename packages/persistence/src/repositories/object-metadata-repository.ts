@@ -34,8 +34,31 @@ export interface ObjectMetadata {
  * caller with no such table, and for the async media-processing job (task 2)
  * to track scan/validation status generically.
  */
+export interface OrganizationStorageUsage {
+  readonly totalBytes: number;
+  readonly objectCount: number;
+}
+
 export class ObjectMetadataRepository {
   constructor(private readonly db: Kysely<Database>) {}
+
+  /** Computes the total bytes and object count of passed objects for an organization. */
+  async usageByOrganization(organizationId: string): Promise<OrganizationStorageUsage> {
+    const row = await this.db
+      .selectFrom('object_metadata')
+      .select((eb) => [
+        eb.fn.sum<string | number | null>('size_bytes').as('totalBytes'),
+        eb.fn.countAll<string | number>().as('objectCount'),
+      ])
+      .where('organization_id', '=', organizationId)
+      .where('status', '=', 'passed')
+      .executeTakeFirst();
+
+    return {
+      totalBytes: Number(row?.totalBytes ?? 0),
+      objectCount: Number(row?.objectCount ?? 0),
+    };
+  }
 
   /** Records the object and enqueues async processing (task 2.1) in the same transaction. */
   async save(

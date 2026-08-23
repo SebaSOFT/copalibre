@@ -276,6 +276,10 @@ export interface ControlApiClient {
     organizationAlias: string,
     request: UploadImageRequest,
   ) => Promise<{ readonly objectId: string }>;
+  /** An organization's aggregate storage usage (0130). */
+  readonly getStorageUsage?: (
+    organizationAlias: string,
+  ) => Promise<OrganizationStorageUsageResponse>;
   /** Recomputes every stored statistic total from recorded events (0114); optionally one tournament. */
   readonly rebuildStatistics?: (
     organizationAlias: string,
@@ -367,6 +371,11 @@ export interface UpdateOrganizationSettingsRequest {
   readonly name?: string;
   readonly primaryLanguage?: string;
   readonly timezone?: string;
+}
+
+export interface OrganizationStorageUsageResponse {
+  readonly totalBytes: number;
+  readonly objectCount: number;
 }
 
 export interface StatisticsRebuildResponse {
@@ -1654,6 +1663,13 @@ export function createControlApiClient(input: {
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/emblem`,
         { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    getStorageUsage: (organizationAlias) =>
+      requestJson<OrganizationStorageUsageResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/storage-usage`,
+        { token: input.accessToken?.() },
       ),
 
     rebuildStatistics: (organizationAlias, tournamentAlias) =>

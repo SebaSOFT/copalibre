@@ -578,6 +578,14 @@ export const messages: Record<string, string> = {
   'control.statisticsRebuild.result':
     '{matches, plural, one {# Spiel verarbeitet} other {# Spiele verarbeitet}}.',
   'control.statisticsRebuild.failed': 'Die Neuberechnung wurde abgelehnt.',
+  'control.storageUsage.heading': 'Speicherplatznutzung',
+  'control.storageUsage.description':
+    'Gesamter Speicherplatz, der von hochgeladenen Medien und Ressourcen in dieser Organisation belegt wird.',
+  'control.storageUsage.loading': 'Speicherplatznutzung wird geladen…',
+  'control.storageUsage.loadFailed': 'Speicherplatznutzung konnte nicht geladen werden.',
+  'control.storageUsage.summary':
+    '{formattedBytes} in {objectCount, plural, one {# Datei} other {# Dateien}}',
+  'control.storageUsage.empty': '0 MB in 0 Dateien',
   'control.imageCropModal.title': 'Bild anpassen',
   'control.imageCropModal.zoom': 'Zoom',
   'control.imageCropModal.rotation': 'Drehung',

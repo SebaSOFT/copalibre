@@ -149,6 +149,10 @@ describe('migrations (integration)', () => {
       expect.arrayContaining([expect.objectContaining({ name: 'details' })]),
     );
 
+    const objectMetadataIndexDown = await migrateDownOneStep(scratch.db);
+    expect(objectMetadataIndexDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe('0026-venue-details');
+
     const venueDetailsDown = await migrateDownOneStep(scratch.db);
     expect(venueDetailsDown.error).toBeUndefined();
 

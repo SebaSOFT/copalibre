@@ -188,6 +188,7 @@ export {
   type ObjectMetadata,
   type ObjectStorageMetadataProfile,
   type ObjectStorageMetadataStatus,
+  type OrganizationStorageUsage,
 } from './repositories/object-metadata-repository.js';
 
 export {

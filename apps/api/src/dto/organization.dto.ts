@@ -560,3 +560,14 @@ export class BulkReviewResponse {
   })
   refused!: { entrantId: string; reason: string }[];
 }
+
+export class OrganizationStorageUsageResponse {
+  @ApiProperty({
+    description: 'Total bytes of stored objects in passed status',
+    example: 148897792,
+  })
+  totalBytes!: number;
+
+  @ApiProperty({ description: 'Total number of stored objects in passed status', example: 38 })
+  objectCount!: number;
+}
