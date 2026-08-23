@@ -186,6 +186,7 @@ describe('parseControlPath', () => {
     ['/control/login', { screen: 'login' }],
     ['/control/forgot-password', { screen: 'forgot-password' }],
     ['/control/reset-password', { screen: 'reset-password' }],
+    ['/control/platform', { screen: 'platformAdministration' }],
     ['/control/liga-mendocina/roles', { screen: 'roles', organizationAlias: 'liga-mendocina' }],
     [
       '/control/liga-mendocina/preferences',

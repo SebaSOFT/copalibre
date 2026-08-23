@@ -1,4 +1,9 @@
 import type { LocalizedLabel } from '@copalibre/domain';
+import type {
+  CreateOrganizationRequest,
+  OrganizationResponse as ContractOrganizationResponse,
+  components,
+} from '@copalibre/contracts';
 import type { CanvasMatch } from './bracket-canvas.js';
 import type { RegistrationStatus } from './review.js';
 import type { StandingsData } from './standings.js';
@@ -7,6 +12,14 @@ import type { DisciplineOption } from './wizard.js';
 export interface ControlApiClient {
   /** Every organization the authenticated caller belongs to, with their role. */
   readonly listMyOrganizations: () => Promise<readonly MyOrganizationResponse[]>;
+  readonly createOrganization?: (
+    request: CreateOrganizationRequest,
+  ) => Promise<ContractOrganizationResponse>;
+  readonly listInstalledModules?: () => Promise<readonly InstalledModuleResponse[]>;
+  readonly listOutdatedModules?: () => Promise<readonly OutdatedModuleResponse[]>;
+  readonly installModule?: (request: InstallModuleRequest) => Promise<InstallModuleResponse>;
+  readonly removeModule?: (alias: string) => Promise<RemoveModuleResponse>;
+  readonly verifyModules?: () => Promise<readonly ModuleVerifyResultResponse[]>;
   readonly listDisciplines: () => Promise<readonly DisciplineOption[]>;
   readonly createTournament: (
     organizationAlias: string,
@@ -333,6 +346,13 @@ export interface ControlApiClient {
     request: ScheduleRequest,
   ) => Promise<ScheduleResponse>;
 }
+
+export type InstalledModuleResponse = components['schemas']['InstalledModuleResponse'];
+export type OutdatedModuleResponse = components['schemas']['OutdatedModuleResponse'];
+export type InstallModuleRequest = components['schemas']['InstallModuleRequest'];
+export type InstallModuleResponse = components['schemas']['InstallModuleResponse'];
+export type RemoveModuleResponse = components['schemas']['RemoveModuleResponse'];
+export type ModuleVerifyResultResponse = components['schemas']['ModuleVerifyResultResponse'];
 
 export interface OrganizationResponse {
   readonly organizationId: string;
@@ -1150,6 +1170,46 @@ export function createControlApiClient(input: {
         {
           token: input.accessToken?.(),
         },
+      ),
+
+    createOrganization: (body) =>
+      requestJson<ContractOrganizationResponse>(input.fetch, `${baseUrl}/organizations`, {
+        method: 'POST',
+        body,
+        token: input.accessToken?.(),
+      }),
+
+    listInstalledModules: () =>
+      requestJson<readonly InstalledModuleResponse[]>(input.fetch, `${baseUrl}/admin/modules`, {
+        token: input.accessToken?.(),
+      }),
+
+    listOutdatedModules: () =>
+      requestJson<readonly OutdatedModuleResponse[]>(
+        input.fetch,
+        `${baseUrl}/admin/modules?outdated=true`,
+        { token: input.accessToken?.() },
+      ),
+
+    installModule: (body) =>
+      requestJson<InstallModuleResponse>(input.fetch, `${baseUrl}/admin/modules`, {
+        method: 'POST',
+        body,
+        token: input.accessToken?.(),
+      }),
+
+    removeModule: (alias) =>
+      requestJson<RemoveModuleResponse>(
+        input.fetch,
+        `${baseUrl}/admin/modules/${encodeURIComponent(alias)}`,
+        { method: 'DELETE', token: input.accessToken?.() },
+      ),
+
+    verifyModules: () =>
+      requestJson<readonly ModuleVerifyResultResponse[]>(
+        input.fetch,
+        `${baseUrl}/admin/modules/verify`,
+        { method: 'POST', token: input.accessToken?.() },
       ),
 
     listDisciplines: () =>

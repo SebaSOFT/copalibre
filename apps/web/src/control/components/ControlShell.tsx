@@ -5,7 +5,7 @@ import { activeControlLanguage, ControlIntl } from '../i18n/ControlIntl.js';
 import { LanguageSwitcher } from '../i18n/LanguageSwitcher.js';
 import { messages } from '../i18n/messages.en.js';
 import { controlLinkClick } from '../lib/control-navigation.js';
-import { controlTokenStore } from '../session/token-store.js';
+import { accessTokenHasScope, controlTokenStore } from '../session/token-store.js';
 import {
   writeStoredLanguagePreference,
   type SupportedLanguage,
@@ -18,7 +18,7 @@ export function ControlShell({
   helpPath,
   children,
 }: {
-  readonly organizationAlias: string;
+  readonly organizationAlias?: string;
   /** A `SIDENAV` item's stable `id`, e.g. `'roles'` — never its display label. */
   readonly active?: string;
   /** Slug under `/help/control/`, e.g. `'seeding'` — required so a screen can never ship with no matching help page linked. */
@@ -55,7 +55,7 @@ function ControlShellChrome({
   onLocaleChange,
   children,
 }: {
-  readonly organizationAlias: string;
+  readonly organizationAlias?: string;
   readonly active: string;
   readonly helpPath: string;
   readonly locale: SupportedLanguage;
@@ -63,6 +63,7 @@ function ControlShellChrome({
   readonly children: React.ReactNode;
 }): React.JSX.Element {
   const intl = useIntl();
+  const isSuperAdmin = accessTokenHasScope(controlTokenStore.read(), 'copalibre.super-admin');
   // Same locale-prefix routing Starlight's own pages already use for every
   // locale but the default (0116): the root/English pages are unprefixed.
   const helpLocalePrefix = locale === 'en' ? '' : `/${locale}`;
@@ -92,21 +93,37 @@ function ControlShellChrome({
           <FormattedMessage {...messages.shellWhatIsThisScreen} />
         </a>
         <ul style={navListStyle}>
-          {SIDENAV.map((item) => (
-            <li key={item.id}>
+          {organizationAlias &&
+            SIDENAV.map((item) => (
+              <li key={item.id}>
+                <a
+                  className="cl-focusable"
+                  href={`/control/${organizationAlias}${item.path}`}
+                  onClick={controlLinkClick(`/control/${organizationAlias}${item.path}`)}
+                  style={{
+                    ...navLinkStyle,
+                    ...(item.id === active ? navLinkActiveStyle : {}),
+                  }}
+                >
+                  {intl.formatMessage(item.label)}
+                </a>
+              </li>
+            ))}
+          {isSuperAdmin && (
+            <li>
               <a
                 className="cl-focusable"
-                href={`/control/${organizationAlias}${item.path}`}
-                onClick={controlLinkClick(`/control/${organizationAlias}${item.path}`)}
+                href="/control/platform"
+                onClick={controlLinkClick('/control/platform')}
                 style={{
                   ...navLinkStyle,
-                  ...(item.id === active ? navLinkActiveStyle : {}),
+                  ...(active === 'platform' ? navLinkActiveStyle : {}),
                 }}
               >
-                {intl.formatMessage(item.label)}
+                {intl.formatMessage(messages.navPlatformAdministration)}
               </a>
             </li>
-          ))}
+          )}
         </ul>
         <LanguageSwitcher onChange={onLocaleChange} value={locale} />
         <button className="cl-focusable" onClick={logout} style={logoutButtonStyle} type="button">

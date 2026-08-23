@@ -3378,6 +3378,19 @@ export interface components {
             /** @example SebaSOFT */
             attributionAuthor: string;
         };
+        OutdatedModuleResponse: {
+            /** @example orbital-frisbee */
+            alias: string;
+            /** @example 1.0.0 */
+            currentVersion: string;
+            /** @example 1.1.0 */
+            latestVersion: string;
+            /**
+             * @example minor
+             * @enum {string}
+             */
+            upgrade: "major" | "minor" | "patch";
+        };
         InstallModuleRequest: {
             /** @example orbital-frisbee */
             alias: string;
@@ -6524,7 +6537,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["InstalledModuleResponse"][];
+                    "application/json": components["schemas"]["InstalledModuleResponse"][] | components["schemas"]["OutdatedModuleResponse"][];
                 };
             };
             401: {

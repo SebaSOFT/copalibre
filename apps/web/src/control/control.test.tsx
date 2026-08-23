@@ -8,6 +8,7 @@ Object.defineProperty(globalThis, 'TextDecoder', { value: TextDecoder, configura
 import { createPkcePair, authorizationUrl, verifyCallbackState } from './session/pkce.js';
 import {
   FORBIDDEN_STORAGE_KEYS,
+  accessTokenHasScope,
   createTokenStore,
   reloadBehaviour,
 } from './session/token-store.js';
@@ -50,6 +51,15 @@ function entry(overrides: Partial<ActivityEntry> = {}): ActivityEntry {
 }
 
 describe('the access token is never written down', () => {
+  it('reads RFC 9068 scopes without treating malformed tokens as authorized', () => {
+    const payload = btoa(JSON.stringify({ scp: 'copalibre.control copalibre.super-admin' }))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+    expect(accessTokenHasScope(`header.${payload}.signature`, 'copalibre.super-admin')).toBe(true);
+    expect(accessTokenHasScope('opaque-test-token', 'copalibre.super-admin')).toBe(false);
+  });
+
   it('keeps the token in memory and forgets it on clear', () => {
     const store = createTokenStore(() => 1000);
     store.write('secret', 5000);

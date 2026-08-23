@@ -28,6 +28,122 @@ export const messages = defineMessages({
   navOrganization: { id: 'control.nav.organization', defaultMessage: 'Organization' },
   navAnalytics: { id: 'control.nav.analytics', defaultMessage: 'Analytics' },
   navResources: { id: 'control.nav.resources', defaultMessage: 'Venues & officials' },
+  navPlatformAdministration: {
+    id: 'control.nav.platformAdministration',
+    defaultMessage: 'Platform administration',
+  },
+
+  // Installation-wide super-admin console (0129).
+  platformSectionLabel: { id: 'control.platform.sectionLabel', defaultMessage: 'Installation' },
+  platformTitle: { id: 'control.platform.title', defaultMessage: 'Platform administration' },
+  platformDescription: {
+    id: 'control.platform.description',
+    defaultMessage: 'Create organizations and manage installed tournament modules.',
+  },
+  platformOrganizationHeading: {
+    id: 'control.platform.organization.heading',
+    defaultMessage: 'Create organization',
+  },
+  platformOrganizationDescription: {
+    id: 'control.platform.organization.description',
+    defaultMessage: 'Creates the organization and immediately invites its first administrator.',
+  },
+  platformOrganizationAlias: { id: 'control.platform.organization.alias', defaultMessage: 'Alias' },
+  platformOrganizationName: { id: 'control.platform.organization.name', defaultMessage: 'Name' },
+  platformPrimaryLanguage: {
+    id: 'control.platform.organization.language',
+    defaultMessage: 'Primary language',
+  },
+  platformTimezone: { id: 'control.platform.organization.timezone', defaultMessage: 'Time zone' },
+  platformFirstAdminEmail: {
+    id: 'control.platform.organization.adminEmail',
+    defaultMessage: 'First administrator email',
+  },
+  platformFirstAdminRole: {
+    id: 'control.platform.organization.adminRole',
+    defaultMessage: 'First administrator role',
+  },
+  platformInviteAdministrator: {
+    id: 'control.platform.organization.inviteAdministrator',
+    defaultMessage: 'Invite administrator',
+  },
+  platformCreateOrganization: {
+    id: 'control.platform.organization.create',
+    defaultMessage: 'Create organization',
+  },
+  platformOrganizationReady: {
+    id: 'control.platform.organization.ready',
+    defaultMessage: 'Organization {alias} created. Invite its first administrator.',
+  },
+  platformOrganizationCreated: {
+    id: 'control.platform.organization.created',
+    defaultMessage: 'Organization {alias} created and administrator invited.',
+  },
+  platformModulesHeading: {
+    id: 'control.platform.modules.heading',
+    defaultMessage: 'Installed modules',
+  },
+  platformModulesDescription: {
+    id: 'control.platform.modules.description',
+    defaultMessage: 'Install, remove, verify, and check published module updates.',
+  },
+  platformCheckUpdates: {
+    id: 'control.platform.modules.checkUpdates',
+    defaultMessage: 'Check for updates',
+  },
+  platformUpdatesAvailable: {
+    id: 'control.platform.modules.updatesAvailable',
+    defaultMessage: 'Available module updates',
+  },
+  platformModuleAlias: { id: 'control.platform.modules.alias', defaultMessage: 'Module alias' },
+  platformVersionRange: {
+    id: 'control.platform.modules.range',
+    defaultMessage: 'Version range (optional)',
+  },
+  platformAlternateSource: {
+    id: 'control.platform.modules.source',
+    defaultMessage: 'Alternate source (one use only)',
+  },
+  platformInstallModule: {
+    id: 'control.platform.modules.install',
+    defaultMessage: 'Install module',
+  },
+  platformModuleInstalled: {
+    id: 'control.platform.modules.installed',
+    defaultMessage: '{alias} {version} installed.',
+  },
+  platformModuleRemoved: {
+    id: 'control.platform.modules.removed',
+    defaultMessage: '{alias} removed.',
+  },
+  platformRemoveConfirm: {
+    id: 'control.platform.modules.removeConfirm',
+    defaultMessage: 'Remove {alias} from this installation?',
+  },
+  platformLoadingModules: {
+    id: 'control.platform.modules.loading',
+    defaultMessage: 'Loading installed modules…',
+  },
+  platformNoModules: {
+    id: 'control.platform.modules.empty',
+    defaultMessage: 'No modules are installed.',
+  },
+  platformKind: { id: 'control.platform.modules.kind', defaultMessage: 'Kind' },
+  platformVersion: { id: 'control.platform.modules.version', defaultMessage: 'Version' },
+  platformSourceKind: { id: 'control.platform.modules.sourceKind', defaultMessage: 'Source' },
+  platformAuthor: { id: 'control.platform.modules.author', defaultMessage: 'Author' },
+  platformActions: { id: 'control.platform.modules.actions', defaultMessage: 'Actions' },
+  platformVerify: { id: 'control.platform.modules.verify', defaultMessage: 'Verify' },
+  platformRemove: { id: 'control.platform.modules.remove', defaultMessage: 'Remove' },
+  platformVerified: { id: 'control.platform.modules.verified', defaultMessage: 'Verified' },
+  platformVerificationPassed: {
+    id: 'control.platform.modules.verificationPassed',
+    defaultMessage: '{alias} passed verification.',
+  },
+  platformVerificationFailed: {
+    id: 'control.platform.modules.verificationFailed',
+    defaultMessage: '{alias} failed verification.',
+  },
 
   // Tournament lifecycle labels (lib/dashboard.ts LIFECYCLE_PRESENTATION)
   lifecycleLive: { id: 'control.lifecycle.live', defaultMessage: 'LIVE' },

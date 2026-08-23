@@ -17,6 +17,51 @@ function textResponse(body: string, status = 200): Response {
 }
 
 describe('the control API client', () => {
+  it('uses installation-wide organization and module administration endpoints', async () => {
+    const calls: Array<{ url: string; method: string; body?: unknown }> = [];
+    const client = createControlApiClient({
+      accessToken: () => 'super-token',
+      fetch: async (input, init) => {
+        calls.push({
+          url: String(input),
+          method: init?.method ?? 'GET',
+          ...(init?.body ? { body: JSON.parse(String(init.body)) } : {}),
+        });
+        return response([]);
+      },
+    });
+    if (
+      !client.createOrganization ||
+      !client.listInstalledModules ||
+      !client.listOutdatedModules ||
+      !client.installModule ||
+      !client.removeModule ||
+      !client.verifyModules
+    ) {
+      throw new Error('Platform administration methods must be available');
+    }
+
+    await client.createOrganization({ alias: 'liga-sur', name: 'Liga Sur' });
+    await client.listInstalledModules();
+    await client.listOutdatedModules();
+    await client.installModule({ alias: 'football', allowUnsatisfiedCapabilities: false });
+    await client.removeModule('football');
+    await client.verifyModules();
+
+    expect(calls).toEqual([
+      { url: '/organizations', method: 'POST', body: { alias: 'liga-sur', name: 'Liga Sur' } },
+      { url: '/admin/modules', method: 'GET' },
+      { url: '/admin/modules?outdated=true', method: 'GET' },
+      {
+        url: '/admin/modules',
+        method: 'POST',
+        body: { alias: 'football', allowUnsatisfiedCapabilities: false },
+      },
+      { url: '/admin/modules/football', method: 'DELETE' },
+      { url: '/admin/modules/verify', method: 'POST' },
+    ]);
+  });
+
   it('reads disciplines from the API rather than from a client list', async () => {
     const calls: string[] = [];
     const client = createControlApiClient({

@@ -1567,7 +1567,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@copalibre/contracts@workspace:packages/contracts":
+"@copalibre/contracts@workspace:^, @copalibre/contracts@workspace:packages/contracts":
   version: 0.0.0-use.local
   resolution: "@copalibre/contracts@workspace:packages/contracts"
   dependencies:
@@ -1845,6 +1845,7 @@ __metadata:
     "@astrojs/node": "npm:^11.1.1"
     "@astrojs/react": "npm:^6.0.2"
     "@astrojs/starlight": "npm:0.41.7"
+    "@copalibre/contracts": "workspace:^"
     "@copalibre/design-tokens": "workspace:^"
     "@copalibre/domain": "workspace:^"
     "@copalibre/realtime": "workspace:^"

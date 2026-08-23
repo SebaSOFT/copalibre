@@ -18,6 +18,7 @@ import {
 import { mutationFeedback } from './lib/mutation-feedback.js';
 import { TournamentSetupWizard } from './components/TournamentSetupWizard.js';
 import { withIntl } from './i18n/test-support.js';
+import { controlTokenStore } from './session/token-store.js';
 
 /**
  * The shell, the routes and the wizard's later steps.
@@ -56,6 +57,22 @@ function jsonResponse(body: unknown, status = 200): Response {
 // tests that mount a leaf component directly, bypassing `ControlShell`, wrap
 // with `withIntl()` and assert English.
 describe('the control shell', () => {
+  afterEach(() => controlTokenStore.clear());
+
+  it('shows platform administration only when the token carries the super-admin scope', () => {
+    const payload = btoa(JSON.stringify({ scp: 'copalibre.control copalibre.super-admin' }));
+    controlTokenStore.write(`header.${payload}.signature`, Date.now() + 60_000);
+    render(
+      <ControlShell helpPath="tournament-authoring" organizationAlias="liga-mendocina">
+        <p>contenido</p>
+      </ControlShell>,
+    );
+
+    expect(
+      screen.getByRole('link', { name: 'Administración de plataforma' }).getAttribute('href'),
+    ).toBe('/control/platform');
+  });
+
   it('links every section under the organization it is showing', () => {
     render(
       <ControlShell helpPath="tournament-authoring" organizationAlias="liga-mendocina">
