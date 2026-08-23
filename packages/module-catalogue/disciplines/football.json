@@ -1,11 +1,11 @@
 {
   "alias": "football",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "name": { "en": "Football", "es": "Fútbol" },
   "description": {
     "en": "Team discipline with timed halves, goal scoring, set pieces, cards, and player statistics."
   },
-  "images": [{ "key": "modules/football/1.1.0/football-01.jpg" }],
+  "images": [{ "key": "modules/football/1.2.0/football-01.jpg" }],
   "attribution": {
     "author": "CopaLibre",
     "licence": "AGPL-3.0-only",
@@ -25,6 +25,11 @@
       "label": { "en": "Extra time", "es": "Tiempo suplementario" },
       "timed": true,
       "defaultDurationSeconds": 900
+    },
+    {
+      "name": "penalty-shootout",
+      "label": { "en": "Penalty shootout", "es": "Tanda de penales" },
+      "timed": false
     }
   ],
   "eventDefinitions": [
@@ -205,10 +210,96 @@
       "payloadSchema": { "type": "object", "properties": {} }
     },
     {
+      "code": "offside",
+      "label": { "en": "Offside", "es": "Fuera de juego" },
+      "category": "neutral",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "side",
+      "payloadSchema": { "type": "object", "properties": {} }
+    },
+    {
+      "code": "var-review",
+      "label": { "en": "VAR review", "es": "Revisión VAR" },
+      "category": "neutral",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "side",
+      "payloadSchema": { "type": "object", "properties": {} },
+      "workflow": {
+        "kind": "outcome-choice",
+        "options": [
+          {
+            "definitionCode": "var-play-stands",
+            "label": { "en": "Play stands", "es": "Se mantiene la decisión" }
+          },
+          {
+            "definitionCode": "var-goal-disallowed",
+            "label": { "en": "Goal disallowed", "es": "Gol anulado" }
+          },
+          {
+            "definitionCode": "var-penalty-overturned",
+            "label": { "en": "Penalty overturned", "es": "Penal revocado" }
+          },
+          {
+            "definitionCode": "red-card",
+            "label": { "en": "Card upgraded", "es": "Tarjeta elevada a roja" }
+          },
+          {
+            "definitionCode": "var-card-rescinded",
+            "label": { "en": "Card rescinded", "es": "Tarjeta anulada" }
+          }
+        ]
+      }
+    },
+    {
+      "code": "var-play-stands",
+      "label": { "en": "VAR (play stands)", "es": "VAR (se mantiene la decisión)" },
+      "category": "neutral",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "side",
+      "payloadSchema": { "type": "object", "properties": {} }
+    },
+    {
+      "code": "var-goal-disallowed",
+      "label": { "en": "VAR (goal disallowed)", "es": "VAR (gol anulado)" },
+      "category": "neutral",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "side",
+      "payloadSchema": { "type": "object", "properties": {} }
+    },
+    {
+      "code": "var-penalty-overturned",
+      "label": { "en": "VAR (penalty overturned)", "es": "VAR (penal revocado)" },
+      "category": "neutral",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "side",
+      "payloadSchema": { "type": "object", "properties": {} }
+    },
+    {
+      "code": "var-card-rescinded",
+      "label": { "en": "VAR (card rescinded)", "es": "VAR (tarjeta anulada)" },
+      "category": "neutral",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "side",
+      "payloadSchema": { "type": "object", "properties": {} }
+    },
+    {
+      "code": "stoppage-time-announced",
+      "label": { "en": "Stoppage time announced", "es": "Tiempo añadido anunciado" },
+      "category": "neutral",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "none",
+      "payloadSchema": {
+        "type": "object",
+        "properties": {
+          "minutes": { "type": "number" }
+        }
+      }
+    },
+    {
       "code": "segment-point",
       "label": { "en": "Segment point", "es": "Punto de parcial" },
       "category": "neutral",
-      "permittedSegmentTypes": ["half", "extra-time"],
+      "permittedSegmentTypes": ["half", "extra-time", "penalty-shootout"],
       "actorRequirement": "none",
       "payloadSchema": {
         "type": "object",
@@ -226,7 +317,7 @@
       "code": "match-point",
       "label": { "en": "Match point", "es": "Punto de partido" },
       "category": "neutral",
-      "permittedSegmentTypes": ["half", "extra-time"],
+      "permittedSegmentTypes": ["half", "extra-time", "penalty-shootout"],
       "actorRequirement": "none",
       "payloadSchema": {
         "type": "object",
@@ -244,7 +335,7 @@
       "code": "margin-required",
       "label": { "en": "Margin required", "es": "Margen requerido" },
       "category": "neutral",
-      "permittedSegmentTypes": ["half", "extra-time"],
+      "permittedSegmentTypes": ["half", "extra-time", "penalty-shootout"],
       "actorRequirement": "none",
       "payloadSchema": {
         "type": "object",
@@ -262,7 +353,7 @@
       "code": "tiebreak-entered",
       "label": { "en": "Tiebreak entered", "es": "Ingreso a desempate" },
       "category": "neutral",
-      "permittedSegmentTypes": ["half", "extra-time"],
+      "permittedSegmentTypes": ["half", "extra-time", "penalty-shootout"],
       "actorRequirement": "none",
       "payloadSchema": {
         "type": "object",

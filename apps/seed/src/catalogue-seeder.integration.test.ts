@@ -82,7 +82,7 @@ describe('module catalogue seeding (integration)', () => {
   it('installs a newer version beside its predecessor and keeps the pinned tournament resolvable', async () => {
     await seedModuleCatalogue(scratch.db, catalogue, storage);
     const tournaments = new TournamentRepository(scratch.db);
-    const oldFootball = await tournaments.findDescriptorByAlias('football', '1.1.0');
+    const oldFootball = await tournaments.findDescriptorByAlias('football', '1.2.0');
     if (!oldFootball) throw new Error('Expected seeded football descriptor');
 
     const organization = await withTransaction(scratch.db, (uow) =>
@@ -110,23 +110,23 @@ describe('module catalogue seeding (integration)', () => {
       return created;
     });
 
-    const newer = withNewerFootball(catalogue, '1.2.0');
+    const newer = withNewerFootball(catalogue, '1.3.0');
     const report = await seedModuleCatalogue(scratch.db, newer, storage);
-    const newFootball = await tournaments.findDescriptorByAlias('football', '1.2.0');
+    const newFootball = await tournaments.findDescriptorByAlias('football', '1.3.0');
     const pinned = await tournaments.findById(tournament.tournamentId);
 
     expect(report.modules).toContainEqual({
       kind: 'discipline',
       alias: 'football',
-      version: '1.2.0',
+      version: '1.3.0',
       status: 'installed',
     });
     expect(newFootball?.descriptorId).toBe(oldFootball.descriptorId);
     expect(pinned?.disciplineRef).toEqual({
       descriptorId: oldFootball.descriptorId,
-      version: '1.1.0',
+      version: '1.2.0',
     });
-    await expect(tournaments.findDescriptor(oldFootball.descriptorId, '1.1.0')).resolves.toEqual(
+    await expect(tournaments.findDescriptor(oldFootball.descriptorId, '1.2.0')).resolves.toEqual(
       oldFootball,
     );
   });
@@ -159,7 +159,7 @@ describe('module catalogue seeding (integration)', () => {
     );
 
     // 0094's module freeze: installing the real catalogue (foul/throw-in
-    // included, at its real 1.1.0) alongside the pinned 1.0.0 must not touch
+    // included, at its real 1.2.0) alongside the pinned 1.0.0 must not touch
     // what the already-started tournament resolves to.
     await seedModuleCatalogue(scratch.db, catalogue, storage);
     const pinned = await tournaments.findById(tournament.tournamentId);
@@ -176,19 +176,19 @@ describe('module catalogue seeding (integration)', () => {
   it('does not overwrite an operator-edited installed document', async () => {
     await seedModuleCatalogue(scratch.db, catalogue, storage);
     const repository = new TournamentRepository(scratch.db);
-    const installed = await repository.findDescriptorByAlias('football', '1.1.0');
+    const installed = await repository.findDescriptorByAlias('football', '1.2.0');
     if (!installed) throw new Error('Expected seeded football descriptor');
     const edited = { ...installed, name: 'Locally edited football' };
     await scratch.db
       .updateTable('discipline_descriptors')
       .set({ document: JSON.stringify(edited) })
       .where('alias', '=', 'football')
-      .where('version', '=', '1.1.0')
+      .where('version', '=', '1.2.0')
       .execute();
 
     await seedModuleCatalogue(scratch.db, catalogue, storage);
 
-    await expect(repository.findDescriptorByAlias('football', '1.1.0')).resolves.toEqual(edited);
+    await expect(repository.findDescriptorByAlias('football', '1.2.0')).resolves.toEqual(edited);
   });
 
   it('rejects one invalid document before writing any catalogue state', async () => {
