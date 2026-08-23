@@ -90,3 +90,16 @@ endpoint SHALL serve only keys referenced by an installed discipline descriptor.
   public tournament page for that discipline
 - **THEN** the image's bytes and content type are returned without authentication, the same way a club
   emblem or person photo already is
+
+### Requirement: Per-organization storage usage is queryable
+The system SHALL be able to report, for a given organization, the total bytes and object count of every
+successfully processed stored object belonging to it, without requiring a schema migration beyond the
+existing `object_metadata` record.
+
+#### Scenario: Usage reflects only successfully processed objects
+- **WHEN** an organization has objects in `pending`, `passed`, and `failed` status
+- **THEN** the reported total bytes and object count include only the `passed` objects
+
+#### Scenario: An organization with no stored objects reports zero
+- **WHEN** an organization has never had an object stored
+- **THEN** the usage report returns zero bytes and zero objects, not an error
