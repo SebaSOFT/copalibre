@@ -14,6 +14,7 @@ export type ControlRoute =
   | { readonly screen: 'login' }
   | { readonly screen: 'forgot-password' }
   | { readonly screen: 'reset-password' }
+  | { readonly screen: 'platformAdministration' }
   | { readonly screen: 'dashboard'; readonly organizationAlias: string }
   | { readonly screen: 'roles'; readonly organizationAlias: string }
   | { readonly screen: 'preferences'; readonly organizationAlias: string }
@@ -105,6 +106,8 @@ export function parseControlPath(pathname: string): ControlRoute | undefined {
     return { screen: 'forgot-password' };
   if (organizationAlias === 'reset-password' && rest.length === 0)
     return { screen: 'reset-password' };
+  if (organizationAlias === 'platform' && rest.length === 0)
+    return { screen: 'platformAdministration' };
 
   if (rest.length === 0) return { screen: 'dashboard', organizationAlias };
   if (rest.length === 1 && rest[0] === 'roles') return { screen: 'roles', organizationAlias };

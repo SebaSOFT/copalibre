@@ -22,6 +22,28 @@ export interface TokenStore {
   isExpired(now?: number): boolean;
 }
 
+/** RFC 9068 access-token scopes used only for client-side presentation guards. */
+export function accessTokenScopes(token: string | undefined): readonly string[] {
+  if (!token) return [];
+  const payload = token.split('.')[1];
+  if (!payload) return [];
+  try {
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+    const parsed = JSON.parse(atob(padded)) as { readonly scp?: unknown };
+    if (typeof parsed.scp === 'string') return parsed.scp.split(/\s+/).filter(Boolean);
+    if (Array.isArray(parsed.scp))
+      return parsed.scp.filter((scope): scope is string => typeof scope === 'string');
+  } catch {
+    // Opaque/malformed tokens expose no presentation scopes; API authorization remains authoritative.
+  }
+  return [];
+}
+
+export function accessTokenHasScope(token: string | undefined, scope: string): boolean {
+  return accessTokenScopes(token).includes(scope);
+}
+
 export function createTokenStore(now: () => number = Date.now): TokenStore {
   let token: string | undefined;
   let expiresAt = 0;

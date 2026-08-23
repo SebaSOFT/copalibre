@@ -6,6 +6,7 @@ import {
   LoadMatchDataControlRoute,
   MatchConsoleControlRoute,
   PersonProfileControlRoute,
+  PlatformAdministrationControlRoute,
   PreferencesControlRoute,
   PromotionPlanControlRoute,
   RegistrationReviewControlRoute,
@@ -30,7 +31,7 @@ import {
 import { createControlApiClient, type MyOrganizationResponse } from '../lib/api-client.js';
 import { completeOidcLogin } from '../session/oidc-callback.js';
 import { DEFAULT_RETURN_TO } from '../session/oidc-login.js';
-import { controlTokenStore } from '../session/token-store.js';
+import { accessTokenHasScope, controlTokenStore } from '../session/token-store.js';
 import { activeControlLanguage, ControlIntl } from '../i18n/ControlIntl.js';
 import { messages } from '../i18n/messages.en.js';
 import type { SupportedLanguage } from '../../lib/language-preference.js';
@@ -59,6 +60,9 @@ export function ControlApp(): React.JSX.Element | null {
     route?.screen === 'login' ||
     route?.screen === 'forgot-password' ||
     route?.screen === 'reset-password';
+  const isUnauthorizedPlatformRoute =
+    route?.screen === 'platformAdministration' &&
+    !accessTokenHasScope(controlTokenStore.read(), 'copalibre.super-admin');
 
   // Guarded here, once, rather than per screen: ControlApp is every
   // authenticated screen's one mount point, so this covers all eight by
@@ -72,6 +76,11 @@ export function ControlApp(): React.JSX.Element | null {
       window.location.assign(loginRedirectUrl(path));
     }
   }, [route, path, isPublicRoute]);
+
+  useEffect(() => {
+    if (!isUnauthorizedPlatformRoute || controlTokenStore.read() === undefined) return;
+    window.location.assign('/control/login');
+  }, [isUnauthorizedPlatformRoute]);
 
   if (route === undefined) return <NotFound path={path} />;
   if (route.screen === 'callback') return <CompletingLogin />;
@@ -103,8 +112,11 @@ export function ControlApp(): React.JSX.Element | null {
   // runs — without it, a protected screen would flash unauthenticated
   // before the redirect fires.
   if (controlTokenStore.read() === undefined) return null;
+  if (isUnauthorizedPlatformRoute) return null;
 
   switch (route.screen) {
+    case 'platformAdministration':
+      return <PlatformAdministrationControlRoute />;
     case 'dashboard':
       return <DashboardRoute organizationAlias={route.organizationAlias} />;
     case 'roles':
@@ -246,6 +258,8 @@ function titleFor(route: ReturnType<typeof parseControlPath>): string {
       return 'Recuperar contraseña — CopaLibre';
     case 'reset-password':
       return 'Restablecer contraseña — CopaLibre';
+    case 'platformAdministration':
+      return 'Administración de plataforma — CopaLibre';
     case 'preferences':
       return 'Preferencias personales — CopaLibre';
     default:

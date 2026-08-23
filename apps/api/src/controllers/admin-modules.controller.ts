@@ -19,11 +19,13 @@ import {
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
+  ApiExtraModels,
   ApiForbiddenResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
   ApiUnauthorizedResponse,
+  getSchemaPath,
 } from '@nestjs/swagger';
 import semver from 'semver';
 import {
@@ -77,6 +79,7 @@ import { OBJECT_STORAGE } from '../object-storage.token.js';
  * here, stdout text in `module-commands.ts`) differs (design.md's Risk note).
  */
 @ApiTags('admin')
+@ApiExtraModels(InstalledModuleResponse, OutdatedModuleResponse)
 @Controller('admin/modules')
 export class AdminModulesController {
   constructor(
@@ -92,7 +95,14 @@ export class AdminModulesController {
   @ApiOperation({
     summary: 'List installed modules, or only the ones with a newer published version',
   })
-  @ApiOkResponse({ type: InstalledModuleResponse, isArray: true })
+  @ApiOkResponse({
+    schema: {
+      oneOf: [InstalledModuleResponse, OutdatedModuleResponse].map((type) => ({
+        type: 'array',
+        items: { $ref: getSchemaPath(type) },
+      })),
+    },
+  })
   @ApiUnauthorizedResponse({ type: ProblemResponse })
   @ApiForbiddenResponse({ type: ProblemResponse })
   async list(

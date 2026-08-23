@@ -161,3 +161,37 @@ descriptor's `name` already uses, rather than a plain, single-language string.
   other supported languages
 - **THEN** the profile's name renders in the operator's active language, falling back to `en` when the
   active language is absent
+
+### Requirement: A discipline may declare background images
+A discipline descriptor SHALL accept an optional `images` field: an array of 1 to 10 references in the
+object-storage adapter's `{ "key": string }` shape, each satisfying the JPEG/1440p/2 MiB limits
+`module-distribution` enforces at import. Shipped asset filenames SHALL use a zero-padded `01` through
+`10` suffix.
+
+#### Scenario: A discipline with no images validates normally
+- **WHEN** a discipline descriptor omits `images`
+- **THEN** the document still validates and installs normally
+
+#### Scenario: More than 10 images is rejected
+- **WHEN** a discipline descriptor declares 11 image references
+- **THEN** validation fails identifying the `images` field and the count limit
+
+#### Scenario: An image reference that does not resolve in object storage is rejected
+- **WHEN** a discipline descriptor's `images` array names a reference not present in object storage at
+  install time
+- **THEN** installation fails identifying the unresolved reference, and no partial state is installed
+
+### Requirement: Public tournament pages use discipline background images
+On each server-rendered public tournament page request, the public web SHALL randomly select one image
+from the tournament discipline's declared `images` and render it as a decorative background at 10%
+opacity. Selection SHALL require no client JavaScript and SHALL preserve content contrast,
+accessibility, and interaction.
+
+#### Scenario: A discipline declares one or more images
+- **WHEN** an anonymous visitor requests any public page for a tournament using that discipline
+- **THEN** exactly one declared image is selected for that response and rendered behind page content at
+  10% opacity
+
+#### Scenario: A discipline declares no images
+- **WHEN** an anonymous visitor requests a public page for a tournament whose discipline omits `images`
+- **THEN** no discipline background image or empty placeholder layer is rendered

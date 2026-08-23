@@ -12,6 +12,11 @@ function json(body: unknown): Response {
   return new Response(JSON.stringify(body), { headers: { 'content-type': 'application/json' } });
 }
 
+function scopedToken(scopes: string): string {
+  const payload = btoa(JSON.stringify({ scp: scopes }));
+  return `header.${payload}.signature`;
+}
+
 function transaction(overrides: Partial<OidcTransaction> = {}): OidcTransaction {
   return {
     state: 'state-123',
@@ -144,6 +149,25 @@ describe('ControlApp', () => {
     render(<ControlApp />);
 
     expect(screen.getByText('Pantalla no encontrada')).toBeDefined();
+  });
+
+  it('renders global platform administration for a super-admin token', async () => {
+    controlTokenStore.write(
+      scopedToken('copalibre.control copalibre.super-admin'),
+      Date.now() + 60_000,
+    );
+    at('/control/platform');
+    render(<ControlApp />);
+
+    await waitFor(() => expect(document.title).toBe('Administración de plataforma — CopaLibre'));
+    expect(screen.getByRole('heading', { name: 'Administración de plataforma' })).toBeDefined();
+  });
+
+  it('does not render platform administration without the super-admin scope', () => {
+    at('/control/platform');
+    render(<ControlApp />);
+
+    expect(screen.queryByRole('heading', { name: 'Administración de plataforma' })).toBeNull();
   });
 
   it('re-renders the matching screen after client-side navigation, without a page reload', async () => {

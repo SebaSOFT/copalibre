@@ -5045,10 +5045,20 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/InstalledModuleResponse"
-                  }
+                  "oneOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/InstalledModuleResponse"
+                      }
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/OutdatedModuleResponse"
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -11416,6 +11426,38 @@
           "version",
           "sourceKind",
           "attributionAuthor"
+        ]
+      },
+      "OutdatedModuleResponse": {
+        "type": "object",
+        "properties": {
+          "alias": {
+            "type": "string",
+            "example": "orbital-frisbee"
+          },
+          "currentVersion": {
+            "type": "string",
+            "example": "1.0.0"
+          },
+          "latestVersion": {
+            "type": "string",
+            "example": "1.1.0"
+          },
+          "upgrade": {
+            "type": "string",
+            "enum": [
+              "major",
+              "minor",
+              "patch"
+            ],
+            "example": "minor"
+          }
+        },
+        "required": [
+          "alias",
+          "currentVersion",
+          "latestVersion",
+          "upgrade"
         ]
       },
       "InstallModuleRequest": {

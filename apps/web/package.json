@@ -20,6 +20,7 @@
     "@astrojs/node": "^11.1.1",
     "@astrojs/react": "^6.0.2",
     "@astrojs/starlight": "0.41.7",
+    "@copalibre/contracts": "workspace:^",
     "@copalibre/design-tokens": "workspace:^",
     "@copalibre/realtime": "workspace:^",
     "@copalibre/routing": "workspace:^",

@@ -15,6 +15,19 @@ import { PreferencesRoute } from './PreferencesRoute.js';
 import { ClubManagementRoute } from './ClubManagementRoute.js';
 import { VenueManagementRoute } from './VenueManagementRoute.js';
 import { ScheduleBuilderRoute } from './ScheduleBuilderRoute.js';
+import { PlatformAdministrationRoute } from './PlatformAdministrationRoute.js';
+
+export function PlatformAdministrationControlRoute({
+  client,
+}: {
+  readonly client?: ControlApiClient;
+}): React.JSX.Element {
+  return (
+    <ControlShell active="platform" helpPath="">
+      <PlatformAdministrationRoute client={client} />
+    </ControlShell>
+  );
+}
 
 export function PreferencesControlRoute({
   organizationAlias,

@@ -5,7 +5,9 @@
 Provides the S3-compatible object-storage adapter, asynchronous media processing, and the real
 backup/health checks the architecture doc names as a first-class stateful dependency, so every other
 capability that stores a file (evidence, module assets, exports) has one real place to do it.
+
 ## Requirements
+
 ### Requirement: S3-compatible storage adapter
 The system SHALL store binary objects through an S3-compatible adapter, with a Postgres metadata row
 per object pointing at its storage location rather than the object's bytes living in the database.
@@ -55,10 +57,12 @@ configured endpoint or filesystem profile, not only that the configured URL is r
 
 ### Requirement: A capability may mark an object kind as publicly servable
 
-An object-storage caller SHALL be able to declare an object kind (e.g. a person photo, a club emblem)
-as publicly servable, distinct from the default — every other stored object (report evidence, module
-assets) remains reachable only through its owning capability's own authorized path, never through a
-generic unauthenticated read.
+An object-storage caller SHALL be able to expose a reference-checked read endpoint for a declared
+public object kind (e.g. a person photo, a club emblem, a discipline's background image), distinct from
+the default — every other stored object (report evidence, module assets not declared public) remains
+reachable only through its owning capability's own authorized path, never through an unauthenticated
+read. A discipline background SHALL use `GET /objects/discipline-background-image?key=...`, and that
+endpoint SHALL serve only keys referenced by an installed discipline descriptor.
 
 #### Scenario: A publicly servable object is retrievable by reference without authentication
 - **WHEN** an anonymous client requests a stored object of a kind marked publicly servable, by its
@@ -72,7 +76,17 @@ generic unauthenticated read.
 - **THEN** the request is rejected; that object remains reachable only through its own capability's
   authorized endpoint
 
+#### Scenario: A stored but unreferenced object is not public
+- **WHEN** an anonymous client supplies a valid storage key that no installed discipline descriptor
+  references to the discipline-background endpoint
+- **THEN** the endpoint returns not-found without reading or exposing that object
+
 #### Scenario: An unknown or deleted reference returns not-found, not an error
 - **WHEN** a public-serve request names a storage reference that does not resolve to a stored object
 - **THEN** the response is a not-found result, not a server error
 
+#### Scenario: A discipline's background image is publicly servable
+- **WHEN** an anonymous client requests a discipline's background image by its storage reference, on a
+  public tournament page for that discipline
+- **THEN** the image's bytes and content type are returned without authentication, the same way a club
+  emblem or person photo already is
