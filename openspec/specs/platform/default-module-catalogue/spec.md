@@ -195,3 +195,56 @@ accessibility, and interaction.
 #### Scenario: A discipline declares no images
 - **WHEN** an anonymous visitor requests a public page for a tournament whose discipline omits `images`
 - **THEN** no discipline background image or empty placeholder layer is rendered
+
+### Requirement: The reference football discipline declares offside, VAR-review, penalty-shootout, and stoppage-time vocabulary
+
+The default catalogue's football discipline SHALL declare an offside event, a VAR-review event using
+the descriptor-owned outcome-choice workflow, a penalty-shootout segment type using the same
+tiebreak-segment shape as any other discipline's tiebreak, and a stoppage-time-announcement event. None
+of these SHALL introduce a new statistic collector beyond an offside count, and none SHALL carry player
+attribution beyond what an ordinary event payload already supports.
+
+#### Scenario: Offside is recorded without affecting score or cards
+- **WHEN** an official records an offside event in a football match
+- **THEN** it is recorded as a timeline entry and increments only its own count, with no score, card, or
+  timed-penalty effect
+
+#### Scenario: A VAR review offers its declared outcomes
+- **WHEN** an official initiates a VAR review in a football match
+- **THEN** the console presents the outcomes the descriptor declares (play stands, goal disallowed,
+  penalty overturned, card upgraded, card rescinded), and the chosen outcome is recorded as an ordinary
+  event
+
+#### Scenario: A penalty shootout closes the match like any other decider segment
+- **WHEN** a football match reaches its penalty-shootout segment
+- **THEN** the segment closes using the same win-condition decider mechanism (target and margin) already
+  used for any other discipline's tiebreak segment, with no discipline-specific shootout logic
+
+#### Scenario: Stoppage time is announced as a plain audited record
+- **WHEN** an official announces stoppage time in a football match
+- **THEN** it is recorded as a timeline entry with no derived effect, alongside whatever clock adjustment
+  the console already applies
+
+#### Scenario: A started tournament keeps its frozen module version
+- **WHEN** a tournament was started on a football descriptor version predating these declarations
+- **THEN** its event vocabulary is unchanged
+
+### Requirement: The reference tennis discipline offers a best-of-five win condition and labels doubles
+
+The default catalogue's tennis discipline SHALL offer a best-of-five win condition as a selectable
+alternative to its default best-of-three win condition, using the same segment/tiebreak parameters, and
+SHALL label its existing `team` participant type as doubles in the discipline's presentation metadata.
+
+#### Scenario: An organizer selects best-of-five for a tennis tournament
+- **WHEN** an organizer configures a tennis tournament to use the best-of-five win condition
+- **THEN** the match closes at three sets won rather than two, using the identical set/tiebreak rules as
+  the best-of-three win condition
+
+#### Scenario: Doubles is presented as a labeled choice, not a bare "team"
+- **WHEN** an organizer chooses a tennis tournament's participant type
+- **THEN** the `team` option is presented as doubles, distinguishing it from the `individual` singles
+  option
+
+#### Scenario: A started tournament keeps its frozen module version
+- **WHEN** a tournament was started on a tennis descriptor version predating this declaration
+- **THEN** its available win conditions are unchanged
