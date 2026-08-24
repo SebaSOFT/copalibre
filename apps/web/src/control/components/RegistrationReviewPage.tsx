@@ -138,7 +138,13 @@ export function RegistrationReviewPage({
         </div>
       </header>
 
-      <div className="cl-card cl-chamfer cl-chamfer--control" style={tableStyle}>
+      <div
+        aria-label={intl.formatMessage(messages.reviewSectionLabel)}
+        className="cl-card cl-chamfer cl-chamfer--control"
+        role="region"
+        style={tableStyle}
+        tabIndex={0}
+      >
         <div style={tableHeaderStyle}>
           <input
             aria-label={intl.formatMessage(messages.reviewSelectVisible)}
@@ -366,13 +372,13 @@ const metaStyle: React.CSSProperties = {
   margin: 0,
   color: 'var(--cl-state-live)',
   fontFamily: 'var(--cl-font-mono)',
-  fontSize: '0.75rem',
+  fontSize: 'var(--cl-font-size-xs)',
   textTransform: 'uppercase',
 };
 const titleStyle: React.CSSProperties = {
   margin: 0,
   fontFamily: 'var(--cl-font-display)',
-  fontSize: '3rem',
+  fontSize: 'var(--cl-font-size-3xl)',
   textTransform: 'uppercase',
 };
 const actionsStyle: React.CSSProperties = {
@@ -387,10 +393,17 @@ const selectStyle: React.CSSProperties = {
   border: '1px solid var(--cl-border-muted)',
   padding: 'var(--cl-space-2) var(--cl-space-3)',
 };
-const tableStyle: React.CSSProperties = { display: 'grid', gap: 0, padding: 0, overflow: 'hidden' };
+const tableStyle: React.CSSProperties = {
+  display: 'grid',
+  gap: 0,
+  padding: 0,
+  overflowX: 'auto',
+  scrollbarGutter: 'stable',
+};
 const tableHeaderStyle: React.CSSProperties = {
   display: 'grid',
   gridTemplateColumns: '44px 2fr 1fr 1fr',
+  minWidth: 640,
   gap: 'var(--cl-space-3)',
   alignItems: 'center',
   padding: 'var(--cl-space-3) var(--cl-space-4)',
@@ -398,12 +411,13 @@ const tableHeaderStyle: React.CSSProperties = {
   color: 'var(--cl-text-muted)',
   fontFamily: 'var(--cl-font-mono)',
   textTransform: 'uppercase',
-  fontSize: '0.75rem',
+  fontSize: 'var(--cl-font-size-xs)',
 };
 const rowStyle: React.CSSProperties = { borderBottom: '1px solid var(--cl-border-muted)' };
 const summaryStyle: React.CSSProperties = {
   display: 'grid',
   gridTemplateColumns: '44px 2fr 1fr 1fr',
+  minWidth: 640,
   gap: 'var(--cl-space-3)',
   alignItems: 'center',
   padding: 'var(--cl-space-4)',
@@ -413,7 +427,7 @@ const smallStyle: React.CSSProperties = {
   display: 'block',
   color: 'var(--cl-text-muted)',
   fontFamily: 'var(--cl-font-mono)',
-  fontSize: '0.75rem',
+  fontSize: 'var(--cl-font-size-xs)',
 };
 const detailStyle: React.CSSProperties = {
   display: 'grid',

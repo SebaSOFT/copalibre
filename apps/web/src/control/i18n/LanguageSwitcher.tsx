@@ -47,11 +47,11 @@ export function LanguageSwitcher({
 const selectStyle: React.CSSProperties = {
   display: 'block',
   width: '100%',
-  minHeight: 36,
+  minHeight: 'var(--cl-touch-target)',
   marginTop: 'var(--cl-space-3)',
   background: 'var(--cl-surface-base)',
   color: 'var(--cl-text-secondary)',
   border: '1px solid var(--cl-border-muted)',
   fontFamily: 'var(--cl-font-mono)',
-  fontSize: '0.75rem',
+  fontSize: 'var(--cl-font-size-xs)',
 };

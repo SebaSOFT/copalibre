@@ -170,7 +170,7 @@ const titleStyle: CSSProperties = { margin: 0, fontFamily: 'var(--cl-font-displa
 const closeStyle: CSSProperties = {
   background: 'transparent',
   border: 'none',
-  fontSize: '1.5rem',
+  fontSize: 'var(--cl-font-size-xl)',
   lineHeight: 1,
   cursor: 'pointer',
 };
@@ -205,7 +205,7 @@ const footerStyle: CSSProperties = {
 };
 
 const secondaryButtonStyle: CSSProperties = {
-  minHeight: 40,
+  minHeight: 'var(--cl-touch-target)',
   background: 'transparent',
   border: '1px solid var(--cl-border-muted)',
   color: 'var(--cl-text-primary)',
@@ -217,8 +217,8 @@ const primaryButtonStyle: CSSProperties = {
   background: 'var(--cl-state-live)',
   color: 'var(--cl-surface-base)',
   fontFamily: 'var(--cl-font-display)',
-  fontSize: '1rem',
-  minHeight: 40,
+  fontSize: 'var(--cl-font-size-base)',
+  minHeight: 'var(--cl-touch-target)',
   padding: '0 var(--cl-space-4)',
   textTransform: 'uppercase',
 };

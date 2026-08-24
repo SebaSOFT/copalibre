@@ -90,7 +90,12 @@ const { profile, intl, organizationAlias } = Astro.props;
     }
     {
       profile.competitionHistory.length > 0 && (
-        <div class="cl-player-profile__history-table-container">
+        <div
+          aria-labelledby="player-history-heading"
+          class="cl-player-profile__history-table-container"
+          role="region"
+          tabindex="0"
+        >
           <table class="cl-player-profile__history-table">
             <thead>
               <tr>
@@ -127,6 +132,7 @@ const { profile, intl, organizationAlias } = Astro.props;
     display: flex;
     flex-direction: column;
     gap: 24px;
+    min-width: 0;
   }
   .cl-player-profile__header {
     border-bottom: 1px solid var(--cl-color-border, #e5e7eb);
@@ -134,12 +140,13 @@ const { profile, intl, organizationAlias } = Astro.props;
   }
   .cl-player-profile__name {
     margin: 0 0 4px 0;
-    font-size: 1.5rem;
+    font-size: var(--cl-font-size-xl);
     font-weight: 700;
+    overflow-wrap: anywhere;
   }
   .cl-player-profile__alias {
     color: var(--cl-color-text-subtle, #6b7280);
-    font-size: 0.875rem;
+    font-size: var(--cl-font-size-sm);
   }
   .cl-player-profile__meta {
     display: flex;
@@ -152,12 +159,12 @@ const { profile, intl, organizationAlias } = Astro.props;
     background: var(--cl-color-surface-subtle, #f3f4f6);
     padding: 2px 8px;
     border-radius: 4px;
-    font-size: 0.8125rem;
+    font-size: var(--cl-font-size-sm);
     font-weight: 500;
   }
   .cl-player-profile__section-title {
     margin: 0 0 12px 0;
-    font-size: 1.125rem;
+    font-size: var(--cl-font-size-md);
     font-weight: 600;
   }
   .cl-player-profile__empty {
@@ -180,24 +187,27 @@ const { profile, intl, organizationAlias } = Astro.props;
     gap: 4px;
   }
   .cl-player-profile__stat-label {
-    font-size: 0.75rem;
+    font-size: var(--cl-font-size-xs);
     color: var(--cl-color-text-subtle, #6b7280);
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
   .cl-player-profile__stat-value {
-    font-size: 1.5rem;
+    font-size: var(--cl-font-size-xl);
     font-weight: 700;
     margin: 0;
   }
   .cl-player-profile__history-table-container {
     overflow-x: auto;
+    scrollbar-gutter: stable;
+    border-bottom: 2px solid var(--cl-color-border, #e5e7eb);
   }
   .cl-player-profile__history-table {
     width: 100%;
     border-collapse: collapse;
     text-align: left;
-    font-size: 0.875rem;
+    font-size: var(--cl-font-size-sm);
+    min-width: 32rem;
   }
   .cl-player-profile__history-table th,
   .cl-player-profile__history-table td {
@@ -213,5 +223,12 @@ const { profile, intl, organizationAlias } = Astro.props;
   }
   .cl-player-profile__role {
     text-transform: capitalize;
+  }
+
+  /* BREAKPOINTS.sm: a single stats column remains usable at 200% zoom. */
+  @media (max-width: 375px) {
+    .cl-player-profile__stat-list {
+      grid-template-columns: minmax(0, 1fr);
+    }
   }
 </style>

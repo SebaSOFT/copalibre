@@ -66,6 +66,43 @@ const background = selectDisciplineBackground(disciplineImages);
 </html>
 
 <style>
+  :global(html),
+  :global(body) {
+    min-width: 0;
+    max-width: 100%;
+    background: var(--cl-surface-base);
+    color: var(--cl-text-primary);
+    font-family: var(--cl-font-body);
+  }
+
+  :global(*),
+  :global(*::before),
+  :global(*::after) {
+    box-sizing: border-box;
+  }
+
+  :global(main),
+  :global(main > *) {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  :global(main table) {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-gutter: stable;
+    border-bottom: 2px solid var(--cl-border-muted);
+  }
+
+  :global(a) {
+    color: var(--cl-state-live);
+  }
+
+  :global(.cl-inline-alert p) {
+    margin: 0;
+  }
+
   .cl-brand {
     display: inline-flex;
     align-items: center;
@@ -86,5 +123,12 @@ const background = selectDisciplineBackground(disciplineImages);
   body > :not(.cl-discipline-background) {
     position: relative;
     z-index: 1;
+  }
+
+  /* BREAKPOINTS.sm: long public content must wrap inside the phone viewport. */
+  @media (max-width: 375px) {
+    :global(main) {
+      overflow-wrap: anywhere;
+    }
   }
 </style>

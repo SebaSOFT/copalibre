@@ -294,7 +294,7 @@ const sectionTitleStyle: React.CSSProperties = { margin: 0, fontFamily: 'var(--c
 const subheadingStyle: React.CSSProperties = {
   margin: '0 0 var(--cl-space-2)',
   fontFamily: 'var(--cl-font-mono)',
-  fontSize: '0.85rem',
+  fontSize: 'var(--cl-font-size-sm)',
   color: 'var(--cl-text-muted)',
 };
 const formRowStyle: React.CSSProperties = {

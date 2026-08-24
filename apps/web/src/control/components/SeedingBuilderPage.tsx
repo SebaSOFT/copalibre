@@ -157,13 +157,13 @@ const metaStyle: React.CSSProperties = {
   margin: 0,
   color: 'var(--cl-state-live)',
   fontFamily: 'var(--cl-font-mono)',
-  fontSize: '0.75rem',
+  fontSize: 'var(--cl-font-size-xs)',
   textTransform: 'uppercase',
 };
 const titleStyle: React.CSSProperties = {
   margin: 0,
   fontFamily: 'var(--cl-font-display)',
-  fontSize: '3rem',
+  fontSize: 'var(--cl-font-size-3xl)',
   textTransform: 'uppercase',
 };
 const actionsStyle: React.CSSProperties = {
@@ -173,7 +173,7 @@ const actionsStyle: React.CSSProperties = {
 };
 const panesStyle: React.CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'minmax(240px, 1fr) 3fr',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))',
   gap: 'var(--cl-space-4)',
   alignItems: 'start',
 };
@@ -182,7 +182,7 @@ const canvasPaneStyle: React.CSSProperties = { display: 'grid', gap: 'var(--cl-s
 const paneTitleStyle: React.CSSProperties = {
   margin: 0,
   fontFamily: 'var(--cl-font-mono)',
-  fontSize: '0.75rem',
+  fontSize: 'var(--cl-font-size-xs)',
   textTransform: 'uppercase',
   color: 'var(--cl-text-muted)',
 };
@@ -206,5 +206,5 @@ const seedNumberStyle: React.CSSProperties = {
 const mutedStyle: React.CSSProperties = {
   color: 'var(--cl-text-muted)',
   fontFamily: 'var(--cl-font-mono)',
-  fontSize: '0.75rem',
+  fontSize: 'var(--cl-font-size-xs)',
 };

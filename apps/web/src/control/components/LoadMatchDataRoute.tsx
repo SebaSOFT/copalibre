@@ -778,7 +778,7 @@ const entrantHeaderStyle: React.CSSProperties = {
   margin: 0,
   fontFamily: 'var(--cl-font-mono)',
   textTransform: 'uppercase',
-  fontSize: '0.9rem',
+  fontSize: 'var(--cl-font-size-sm)',
 };
 const listStyle: React.CSSProperties = {
   listStyle: 'none',
@@ -812,7 +812,7 @@ const checkboxLabelStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   gap: 'var(--cl-space-1)',
-  fontSize: '0.85rem',
+  fontSize: 'var(--cl-font-size-sm)',
 };
 const roleRowStyle: React.CSSProperties = { display: 'flex', gap: 'var(--cl-space-2)' };
 const numberInputStyle: React.CSSProperties = { width: '4rem' };
@@ -828,7 +828,10 @@ const inputStyle: React.CSSProperties = {
   background: 'var(--cl-surface-base)',
   color: 'inherit',
 };
-const mutedStyle: React.CSSProperties = { color: 'var(--cl-text-muted)', fontSize: '0.85rem' };
+const mutedStyle: React.CSSProperties = {
+  color: 'var(--cl-text-muted)',
+  fontSize: 'var(--cl-font-size-sm)',
+};
 const fileLabelStyle: React.CSSProperties = {
   position: 'relative',
   display: 'inline-flex',

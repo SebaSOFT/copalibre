@@ -289,10 +289,13 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
     <main
       style={{
         minHeight: '100vh',
+        minWidth: 0,
+        maxWidth: '100%',
         display: 'grid',
         gridTemplateRows: 'auto 1fr',
         padding: 'clamp(24px, 5vw, 64px)',
         fontFamily: 'var(--cl-font-body)',
+        overflowWrap: 'anywhere',
       }}
     >
       <header style={{ display: 'flex', alignItems: 'center', gap: 'var(--cl-space-3)' }}>
@@ -304,14 +307,16 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
           style={{ border: '1px solid var(--cl-state-live)', padding: '4px' }}
         />
         <div style={{ display: 'grid', gap: '2px' }}>
-          <strong style={{ fontFamily: 'var(--cl-font-display)', fontSize: '1.125rem' }}>
+          <strong
+            style={{ fontFamily: 'var(--cl-font-display)', fontSize: 'var(--cl-font-size-md)' }}
+          >
             CopaLibre
           </strong>
           <span
             style={{
               color: 'var(--cl-text-muted)',
               fontFamily: 'var(--cl-font-mono)',
-              fontSize: '0.75rem',
+              fontSize: 'var(--cl-font-size-xs)',
             }}
           >
             Control de torneos
@@ -321,6 +326,9 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
       <section
         style={{
           width: 'min(100%, 560px)',
+          minWidth: 0,
+          maxWidth: '100%',
+          boxSizing: 'border-box',
           alignSelf: 'center',
           marginBlock: 'var(--cl-space-8)',
           borderLeft: '4px solid var(--cl-state-live)',
@@ -348,7 +356,9 @@ const primaryButtonStyle = {
   padding: 'var(--cl-space-3) var(--cl-space-5)',
   background: 'var(--cl-state-live)',
   color: 'var(--cl-surface-base)',
-  font: '700 0.875rem var(--cl-font-body)',
+  fontFamily: 'var(--cl-font-body)',
+  fontSize: 'var(--cl-font-size-sm)',
+  fontWeight: 700,
   cursor: 'pointer',
   marginTop: '1rem',
 };

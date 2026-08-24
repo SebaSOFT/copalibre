@@ -671,4 +671,7 @@ const inputStyle: React.CSSProperties = {
   color: 'inherit',
 };
 const numberInputStyle: React.CSSProperties = { width: '5rem' };
-const mutedStyle: React.CSSProperties = { color: 'var(--cl-text-muted)', fontSize: '0.85rem' };
+const mutedStyle: React.CSSProperties = {
+  color: 'var(--cl-text-muted)',
+  fontSize: 'var(--cl-font-size-sm)',
+};

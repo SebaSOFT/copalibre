@@ -158,14 +158,14 @@ const nodeHeaderStyle: React.CSSProperties = {
   justifyContent: 'space-between',
   alignItems: 'center',
   fontFamily: 'var(--cl-font-mono)',
-  fontSize: '0.6875rem',
+  fontSize: 'var(--cl-font-size-xs)',
   color: 'var(--cl-text-muted)',
 };
 const slotStyle: React.CSSProperties = {
   display: 'flex',
   justifyContent: 'space-between',
   gap: 'var(--cl-space-2)',
-  fontSize: '0.8125rem',
+  fontSize: 'var(--cl-font-size-sm)',
 };
 const pendingSlotStyle: React.CSSProperties = {
   ...slotStyle,
@@ -177,5 +177,5 @@ const scoreStyle: React.CSSProperties = { fontFamily: 'var(--cl-font-mono)' };
 const mutedStyle: React.CSSProperties = {
   color: 'var(--cl-text-muted)',
   fontFamily: 'var(--cl-font-mono)',
-  fontSize: '0.75rem',
+  fontSize: 'var(--cl-font-size-xs)',
 };

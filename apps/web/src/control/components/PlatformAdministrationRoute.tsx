@@ -513,7 +513,7 @@ const panelStyle: React.CSSProperties = {
 };
 const formGridStyle: React.CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 210px), 1fr))',
   gap: 'var(--cl-space-4)',
   alignItems: 'end',
 };
@@ -541,7 +541,7 @@ const primaryButtonStyle: React.CSSProperties = {
   cursor: 'pointer',
 };
 const secondaryButtonStyle: React.CSSProperties = {
-  minHeight: 36,
+  minHeight: 'var(--cl-touch-target)',
   padding: 'var(--cl-space-2) var(--cl-space-3)',
   border: '1px solid var(--cl-border-strong)',
   background: 'transparent',

@@ -186,7 +186,9 @@ const pageTitle = listData?.organizationName ?? intl.formatMessage(messages.orgP
                     }
                   />
                   <div class="cl-club-info">
-                    <span class="cl-club-name">{club.name}</span>
+                    <span class="cl-club-name" title={club.name}>
+                      {club.name}
+                    </span>
                     {club.alias && <span class="cl-club-abbr">{club.alias}</span>}
                   </div>
                 </div>
@@ -215,10 +217,11 @@ const pageTitle = listData?.organizationName ?? intl.formatMessage(messages.orgP
     gap: 1.25rem;
     border-bottom: 1px solid var(--cl-border, #334155);
     padding-bottom: 1.5rem;
+    min-width: 0;
   }
 
   .cl-org-badge {
-    font-size: 0.75rem;
+    font-size: var(--cl-font-size-xs);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -227,11 +230,12 @@ const pageTitle = listData?.organizationName ?? intl.formatMessage(messages.orgP
   }
 
   .cl-org-title {
-    font-size: 2.25rem;
+    font-size: var(--cl-font-size-3xl);
     font-weight: 800;
     margin: 0;
     line-height: 1.2;
     color: var(--cl-text, #f8fafc);
+    overflow-wrap: anywhere;
   }
 
   .cl-listing-section {
@@ -247,14 +251,14 @@ const pageTitle = listData?.organizationName ?? intl.formatMessage(messages.orgP
   }
 
   .cl-section-title {
-    font-size: 1.4rem;
+    font-size: var(--cl-font-size-xl);
     font-weight: 700;
     margin: 0;
     color: var(--cl-text, #f8fafc);
   }
 
   .cl-section-count {
-    font-size: 0.95rem;
+    font-size: var(--cl-font-size-sm);
     color: var(--cl-text-muted, #94a3b8);
     font-weight: 600;
   }
@@ -315,7 +319,7 @@ const pageTitle = listData?.organizationName ?? intl.formatMessage(messages.orgP
 
   .cl-club-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
     gap: 1rem;
   }
 
@@ -336,7 +340,7 @@ const pageTitle = listData?.organizationName ?? intl.formatMessage(messages.orgP
   }
 
   .cl-club-name {
-    font-size: 0.95rem;
+    font-size: var(--cl-font-size-sm);
     font-weight: 600;
     color: var(--cl-text, #f8fafc);
     white-space: nowrap;
@@ -345,7 +349,24 @@ const pageTitle = listData?.organizationName ?? intl.formatMessage(messages.orgP
   }
 
   .cl-club-abbr {
-    font-size: 0.8rem;
+    font-size: var(--cl-font-size-sm);
     color: var(--cl-text-muted, #94a3b8);
+  }
+
+  /* BREAKPOINTS.sm: retain readable padding at the 375px review width. */
+  @media (max-width: 375px) {
+    .cl-org-container {
+      padding: 1rem 0.75rem 2rem;
+    }
+
+    .cl-org-header {
+      align-items: flex-start;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cl-live-dot {
+      animation: none;
+    }
   }
 </style>

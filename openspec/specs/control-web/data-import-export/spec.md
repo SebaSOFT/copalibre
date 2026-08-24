@@ -121,3 +121,42 @@ overlapping CSV SHALL NOT duplicate membership or fail.
 #### Scenario: One file spans multiple teams
 - **WHEN** an operator uploads a CSV whose rows name more than one already-registered team
 - **THEN** each row's person is attached to that row's own named team, and the reviewed preview and commit apply every row's team reference independently
+
+### Requirement: Tournament configuration is exportable as one JSON document
+The system SHALL export a tournament's full configuration — discipline reference, format, every stage
+and its configuration, the compiled effective ruleset, the raw override layers that produced it, and,
+when instantiated, its `TournamentProfile` reference — as one JSON document, so an organizer can inspect
+or reuse a tournament's complete setup without querying each layer separately.
+
+#### Scenario: A fully configured tournament exports its complete configuration
+- **WHEN** an organizer requests a configuration export for a tournament with multiple stages and
+  registration overrides set
+- **THEN** the exported JSON document includes every stage, its resolved configuration, and the
+  registration overrides in effect
+
+#### Scenario: An unconfigured tournament still exports cleanly
+- **WHEN** an organizer requests a configuration export for a freshly created single-stage tournament
+  with no overrides beyond its wizard defaults
+- **THEN** the exported JSON document reflects exactly that default configuration, with no error and no
+  missing top-level section
+
+### Requirement: Configuration export excludes results, standings, and personal data
+The tournament configuration export SHALL NOT include match results, standings, event history, or
+participant personal data; those remain covered by the existing participant, results, and standings
+exports.
+
+#### Scenario: Configuration export contains no match results
+- **WHEN** an organizer exports the configuration of a tournament with completed, recorded matches
+- **THEN** the exported document contains no match result, score, or standings data
+
+### Requirement: Configuration export is not an installable module manifest
+The tournament configuration export SHALL be clearly distinguished, in its own structure and in the UI
+that offers it, from a `module-distribution` manifest; the system SHALL NOT present a configuration
+export as directly installable by another CopaLibre installation, and SHALL NOT submit it to any
+external repository automatically.
+
+#### Scenario: Export is presented as a document, not a package
+- **WHEN** an organizer exports a tournament's configuration
+- **THEN** the system offers it as a downloadable/copyable JSON document, with no action that installs
+  it, submits it to a module repository, or otherwise treats it as a `discipline`/`tournament-profile`
+  manifest

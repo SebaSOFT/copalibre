@@ -569,7 +569,8 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('yarn.lock') }}
       - run: yarn playwright install --with-deps chromium
-      - run: yarn test:e2e
+      - name: Responsive and full E2E suite
+        run: yarn test:e2e
       # Accelerated TV soak-test proxy. design.md describes
       # the per-PR-eligible proxy as a 2-hour run; a literal 2 hours on every
       # PR would be a severe, ongoing CI-turnaround regression this repo does

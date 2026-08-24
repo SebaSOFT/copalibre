@@ -1,0 +1,138 @@
+html,
+body {
+  margin: 0;
+  min-width: 0;
+  background: var(--cl-surface-base);
+  color: var(--cl-text-primary);
+  font-family: var(--cl-font-body);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+.cl-control {
+  display: grid;
+  grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
+  min-height: 100vh;
+  background: var(--cl-surface-base);
+  color: var(--cl-text-primary);
+  font-family: var(--cl-font-body);
+}
+
+.cl-control__nav,
+.cl-control > nav {
+  min-width: 0;
+  padding: var(--cl-space-4);
+  border-right: 1px solid var(--cl-border-muted);
+  background: var(--cl-surface-panel);
+}
+
+.cl-control__nav-list,
+.cl-control > nav > ul {
+  display: grid;
+  gap: var(--cl-space-2);
+  margin: var(--cl-space-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cl-control__main,
+.cl-control > main,
+.cl-control > main > *,
+.cl-control > main > * > *,
+.cl-control-screen,
+.cl-control-screen > *,
+.cl-control-screen > * > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.cl-control-screen {
+  overflow-wrap: anywhere;
+}
+
+.cl-control > main {
+  overflow-wrap: anywhere;
+}
+
+.cl-control-screen :where(div, section, article, form, fieldset, label, header, footer),
+.cl-control > main :where(div, section, article, form, fieldset, label, header, footer) {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.cl-control button,
+.cl-control input,
+.cl-control select,
+.cl-control textarea {
+  max-width: 100%;
+}
+
+.cl-control button,
+.cl-control select {
+  min-height: var(--cl-touch-target);
+}
+
+.cl-control > nav a,
+.cl-control__nav a {
+  display: flex;
+  align-items: center;
+  min-height: var(--cl-touch-target);
+}
+
+.cl-control__main,
+.cl-control > main {
+  padding: var(--cl-space-8);
+}
+
+.cl-control-screen img,
+.cl-control-screen svg,
+.cl-control-screen canvas {
+  max-width: 100%;
+}
+
+/* BREAKPOINTS token md (768px): collapse chrome before tablet content becomes cramped. */
+@media (max-width: 767px) {
+  .cl-control {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cl-control__nav,
+  .cl-control > nav {
+    border-right: 0;
+    border-bottom: 1px solid var(--cl-border-muted);
+  }
+
+  .cl-control__nav-list,
+  .cl-control > nav > ul {
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(min(10rem, 100%), 70%);
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    padding-bottom: var(--cl-space-2);
+    scrollbar-gutter: stable;
+  }
+
+  .cl-control__main,
+  .cl-control > main {
+    padding: var(--cl-space-4);
+  }
+}
+
+/* 200% zoom at the 375px review width exposes roughly 188 CSS px. */
+@media (max-width: 374px) {
+  .cl-control__nav,
+  .cl-control > nav,
+  .cl-control__main,
+  .cl-control > main {
+    padding: var(--cl-space-3);
+  }
+
+  .cl-control__nav-list,
+  .cl-control > nav > ul {
+    grid-auto-columns: minmax(min(8rem, 100%), 85%);
+  }
+}
