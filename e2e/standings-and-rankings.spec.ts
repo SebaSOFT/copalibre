@@ -13,6 +13,7 @@ const ORGANIZATION = 'liga-mendocina';
 const TOURNAMENT_ALIAS = 'apertura-2026';
 const TOURNAMENT = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
 const STAGE = `${TOURNAMENT}/stages/1`;
+const RESPONSIVE_WIDTHS = [375, 768, 1024, 1440, 188] as const;
 
 /** A real, tiny, decodable PNG (1×1) — for the framed player-photo GET below. */
 const ONE_PIXEL_PNG_BASE64 =
@@ -157,6 +158,22 @@ const playerProfileFixtureNoStats = {
   age: 24,
   competitionHistory: [],
   careerStatistics: [],
+};
+
+const liveFixture = {
+  matches: [
+    {
+      matchId: 'm-1',
+      stageNumber: 1,
+      matchNumber: 1,
+      state: 'live',
+      projectionVersion: 1,
+      sides: [
+        { entrantId: 'Talleres', name: 'Talleres', abbreviation: 'TAL', score: 2 },
+        { entrantId: 'Independiente', name: 'Independiente', abbreviation: 'IND', score: 1 },
+      ],
+    },
+  ],
 };
 
 async function mockControlApi(page: Page): Promise<void> {
@@ -412,6 +429,10 @@ test.describe('B2: public tournament page', () => {
         res.end(JSON.stringify(overview));
         return;
       }
+      if (req.url === `${TOURNAMENT}/live`) {
+        res.end(JSON.stringify(liveFixture));
+        return;
+      }
       if (req.url === `${TOURNAMENT}/public/tables`) {
         res.end(JSON.stringify(layoutsFixture));
         return;
@@ -471,6 +492,30 @@ test.describe('B2: public tournament page', () => {
     await expect(page.getByRole('columnheader', { name: 'Dif' })).toBeVisible();
     await expect(page.getByRole('cell', { name: 'Talleres' })).toBeVisible();
   });
+
+  for (const path of [
+    `/${ORGANIZATION}`,
+    `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`,
+    `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/live`,
+    `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/players/p-1`,
+    `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/1`,
+    `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/1/matches/1`,
+  ]) {
+    test(`${path} stays visible without page overflow at responsive reference widths`, async ({
+      page,
+    }) => {
+      for (const width of RESPONSIVE_WIDTHS) {
+        await page.setViewportSize({ width, height: 900 });
+        await page.goto(path);
+        await expect(page.locator('main').first()).toBeVisible();
+        await expect
+          .poll(() =>
+            page.evaluate(() => document.body.scrollWidth <= document.documentElement.clientWidth),
+          )
+          .toBe(true);
+      }
+    });
+  }
 
   test('switches a constrained entrant name to its persisted abbreviation with a tooltip', async ({
     page,
