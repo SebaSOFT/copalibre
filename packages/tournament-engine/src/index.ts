@@ -129,3 +129,9 @@ export {
   type EngineMutationContext,
   type ClassifiedMutation,
 } from './mutation/index.js';
+export {
+  runEventRecordedCustomScripts,
+  type CustomHookFailure,
+  type EventRecordedHookInput,
+  type EventRecordedHookResult,
+} from './custom-hooks/event-recorded.js';

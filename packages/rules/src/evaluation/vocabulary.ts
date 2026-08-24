@@ -135,20 +135,27 @@ export class SetGuardOutcomeAction extends AbstractAction {
 export function registerCopalibreVocabulary(registry: RulesRegistry): RulesRegistry {
   registerCopalibreConditions(registry);
   registerDeclaredEffectActions(registry);
+  registerCopalibreParameters(registry);
+  registry.registerAction(
+    SetGuardOutcomeAction.TYPE,
+    SetGuardOutcomeAction,
+    'Writes the pass/fail guard outcome with a human-readable reason',
+  );
+  return registry;
+}
+
+export function registerCopalibreParameters(registry: RulesRegistry): RulesRegistry {
   registry.registerParameter(
     NumberParameter.TYPE,
     NumberParameter,
     'Literal number, or the number an expression resolves to when options.expression is true',
+    { valueSchema: { type: 'number' }, allowExpression: true },
   );
   registry.registerParameter(
     StringParameter.TYPE,
     StringParameter,
     'Literal string, or the text an expression resolves to when options.expression is true',
-  );
-  registry.registerAction(
-    SetGuardOutcomeAction.TYPE,
-    SetGuardOutcomeAction,
-    'Writes the pass/fail guard outcome with a human-readable reason',
+    { valueSchema: { type: 'string' }, allowExpression: true },
   );
   return registry;
 }

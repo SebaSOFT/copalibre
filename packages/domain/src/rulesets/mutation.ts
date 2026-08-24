@@ -64,3 +64,21 @@ export function evaluateMutation(
       return ok({ allowed: true, mutationClass: 'blocked_after_results' });
   }
 }
+
+/**
+ * Evaluates whether custom scripts mutation is permitted on a tournament:
+ * safe when no match results have been recorded yet, blocked_after_results once one exists.
+ */
+export function evaluateCustomScriptsMutation(
+  context: MutationContext,
+): Result<MutationDecision, MutationBlockedError> {
+  if (context.hasRecordedResults) {
+    return err(
+      new MutationBlockedError(
+        'Custom scripts are blocked after results; use the audited correction workflow',
+        { fieldPath: 'customScripts' },
+      ),
+    );
+  }
+  return ok({ allowed: true, mutationClass: 'safe' });
+}

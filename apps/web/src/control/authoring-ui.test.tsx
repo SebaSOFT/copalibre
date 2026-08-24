@@ -12,9 +12,72 @@ import {
   stepProblems,
   toCreateRequest,
 } from './lib/wizard.js';
-import { createControlApiClient } from './lib/api-client.js';
+import { createControlApiClient, type HookScriptVocabulary } from './lib/api-client.js';
+
+const HOOK_VOCABULARY: HookScriptVocabulary = {
+  hooks: ['event.recorded'],
+  entries: [
+    {
+      kind: 'action',
+      type: 'notify',
+      description: 'Declare notification',
+      authoring: {
+        parameters: [
+          {
+            name: 'title',
+            description: 'Notification title',
+            required: true,
+            parameterTypes: ['simple_string'],
+            allowExpression: true,
+            valueSchema: { type: 'string', minLength: 1 },
+          },
+          {
+            name: 'message',
+            description: 'Notification message',
+            required: true,
+            parameterTypes: ['simple_string'],
+            allowExpression: true,
+            valueSchema: { type: 'string', minLength: 1 },
+          },
+        ],
+      },
+    },
+  ],
+};
 
 describe('the tournament setup wizard screen', () => {
+  it('renders schema-driven rule fields, conditionless guidance, and a removable rule list', () => {
+    render(
+      withIntl(
+        <TournamentSetupWizard disciplines={sampleDisciplines()} vocabulary={HOOK_VOCABULARY} />,
+      ),
+    );
+
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Reglas' } });
+    fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-reglas' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByLabelText('Add rule for every recorded event'));
+
+    expect(screen.getByText(/fires for every recorded event/i)).toBeDefined();
+    fireEvent.change(screen.getByLabelText('Action'), { target: { value: 'notify' } });
+    const add = screen.getByRole('button', { name: 'Add another rule' }) as HTMLButtonElement;
+    expect(add.disabled).toBe(true);
+    fireEvent.change(screen.getByLabelText('Notification title *'), {
+      target: { value: 'Match update' },
+    });
+    fireEvent.change(screen.getByLabelText('Notification message *'), {
+      target: { value: '{{ event.definitionCode }}' },
+    });
+    expect(add.disabled).toBe(false);
+    fireEvent.click(add);
+
+    expect(screen.getByText(/always → notify/)).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
+    expect(screen.queryByText(/always → notify/)).toBeNull();
+  });
+
   it('gates progression and submits the descriptor version', () => {
     const submitted: unknown[] = [];
     render(
@@ -41,6 +104,7 @@ describe('the tournament setup wizard screen', () => {
     expect(screen.getByLabelText('Format').textContent).not.toContain('placement');
 
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByRole('button', { name: 'Create tournament' }));
 
     expect(submitted).toEqual([
@@ -52,6 +116,7 @@ describe('the tournament setup wizard screen', () => {
         format: 'single-elimination',
         publicRegistration: false,
         requiresCheckIn: false,
+        customScripts: [],
       },
     ]);
   });
@@ -93,6 +158,7 @@ describe('the tournament setup wizard screen', () => {
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 
     fireEvent.change(screen.getByLabelText('Region'), { target: { value: 'Cuyo' } });
     fireEvent.change(screen.getByLabelText('Capacity'), { target: { value: '16' } });
@@ -117,6 +183,7 @@ describe('the tournament setup wizard screen', () => {
         checkInClosesAt: '2026-09-01T12:00',
         profileId: '01890000-0000-7000-8000-000000000099',
         profileVersion: '1.0.0',
+        customScripts: [],
       },
     ]);
   });
@@ -127,7 +194,7 @@ describe('wizard state transitions and validators', () => {
     const disciplines = sampleDisciplines();
     let state = initialWizard();
     expect(state.step).toBe('name');
-    expect(progress(state)).toBe(25);
+    expect(progress(state)).toBe(20);
     expect(canContinue(state, disciplines)).toBe(false);
     expect(stepProblems(state, disciplines).length).toBeGreaterThan(0);
 
@@ -158,15 +225,20 @@ describe('wizard state transitions and validators', () => {
     expect(canContinue(state, disciplines)).toBe(true);
 
     const step4 = nextStep(state);
-    expect(step4).toBe('window');
-    state = { ...state, step: step4, capacity: 1 };
+    expect(step4).toBe('rules');
+    state = { ...state, step: step4 };
+    expect(canContinue(state, disciplines)).toBe(true);
+
+    const step5 = nextStep(state);
+    expect(step5).toBe('window');
+    state = { ...state, step: step5, capacity: 1 };
     expect(stepProblems(state, disciplines).length).toBe(1);
 
     state = { ...state, capacity: 8 };
     expect(canContinue(state, disciplines)).toBe(true);
     expect(progress(state)).toBe(100);
 
-    expect(previousStep(state)).toBe('format');
+    expect(previousStep(state)).toBe('rules');
 
     expect(() => toCreateRequest(initialWizard())).toThrow('The wizard is not complete');
 
@@ -190,6 +262,9 @@ describe('TournamentAuthoringPage component', () => {
       fetch: async (input) => {
         const url = String(input);
         if (url === '/disciplines') return json([]);
+        if (url.endsWith('/custom-script-vocabulary')) {
+          return json({ hooks: ['event.recorded'], entries: [] });
+        }
         return new Response('Not found', { status: 404 });
       },
       accessToken: () => undefined,
@@ -226,6 +301,9 @@ describe('TournamentAuthoringPage component', () => {
         const body = init?.body ? JSON.parse(String(init.body)) : undefined;
         calls.push({ url, body });
         if (url === '/disciplines') return json(sampleDisciplines());
+        if (url.endsWith('/custom-script-vocabulary')) {
+          return json({ hooks: ['event.recorded'], entries: [] });
+        }
         if (url.startsWith('/tournament-profiles/compatible')) return json([]);
         if (url === '/organizations/liga-mendocina/tournaments') {
           return json(
@@ -249,6 +327,7 @@ describe('TournamentAuthoringPage component', () => {
     await screen.findByLabelText('Name');
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Liga A' } });
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'liga-a' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));

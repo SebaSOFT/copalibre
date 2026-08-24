@@ -1,9 +1,12 @@
 import {
   Alias,
   compileEffectiveRuleset,
+  evaluateCustomScriptsMutation,
   resolveLabel,
   transitionTournament,
+  validateHookScriptAttachment,
   type DisciplineDescriptor,
+  type HookScriptAttachment,
   type MatchRuleset,
   type OverrideSet,
   type StageConfiguration,
@@ -32,6 +35,7 @@ export interface CreateRulesetInput {
   readonly organizationId: string;
   readonly descriptor: DisciplineDescriptor;
   readonly overrides: OverrideSet;
+  readonly customScripts?: readonly HookScriptAttachment[];
   readonly actor: string;
   readonly authorizationContext: string;
   readonly reason?: string;
@@ -283,6 +287,52 @@ export class TournamentRepository {
     const rulesetId =
       previous === 0 ? newId() : await this.rulesetIdFor(uow.tx, input.tournamentId);
 
+    if (input.customScripts) {
+      for (const attachment of input.customScripts) {
+        const valid = validateHookScriptAttachment(attachment);
+        if (!valid.ok) {
+          throw new InvariantViolationError(valid.error.message, {
+            hook: attachment.hook,
+          });
+        }
+      }
+    }
+
+    if (previous > 0 && input.customScripts !== undefined) {
+      const recordedMatch = await uow.tx
+        .selectFrom('matches')
+        .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
+        .innerJoin('stages', 'stages.stage_id', 'fixtures.stage_id')
+        .innerJoin('seasons', 'seasons.season_id', 'stages.season_id')
+        .select('match_id')
+        .where('seasons.tournament_id', '=', input.tournamentId)
+        .where('matches.result', 'is not', null)
+        .limit(1)
+        .executeTakeFirst();
+      const mutationResult = evaluateCustomScriptsMutation({
+        hasRecordedResults: recordedMatch !== undefined,
+      });
+      if (!mutationResult.ok) {
+        throw new InvariantViolationError(mutationResult.error.message, {
+          fieldPath: 'customScripts',
+        });
+      }
+    }
+
+    let customScriptsToPersist = input.customScripts ?? [];
+    if (input.customScripts === undefined && previous > 0) {
+      const previousRow = await uow.tx
+        .selectFrom('tournament_rulesets')
+        .select('custom_scripts')
+        .where('ruleset_id', '=', rulesetId)
+        .where('version', '=', previous)
+        .executeTakeFirst();
+      if (previousRow?.custom_scripts) {
+        const raw = previousRow.custom_scripts;
+        customScriptsToPersist = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      }
+    }
+
     const candidate: TournamentRuleset = {
       rulesetId,
       tournamentId: input.tournamentId,
@@ -292,6 +342,7 @@ export class TournamentRepository {
         version: input.descriptor.version,
       },
       overrides: input.overrides,
+      customScripts: customScriptsToPersist,
     };
 
     const compiled = compileEffectiveRuleset(input.descriptor, candidate);
@@ -310,6 +361,7 @@ export class TournamentRepository {
         descriptor_id: input.descriptor.descriptorId,
         descriptor_version: input.descriptor.version,
         overrides: JSON.stringify(input.overrides),
+        custom_scripts: JSON.stringify(customScriptsToPersist),
         created_at: new Date(),
       })
       .execute();
@@ -328,7 +380,11 @@ export class TournamentRepository {
       actor: input.actor,
       authorizationContext: input.authorizationContext,
       previousState: previous === 0 ? undefined : { version: previous },
-      resultingState: { version, overrides: { ...input.overrides } },
+      resultingState: {
+        version,
+        overrides: { ...input.overrides },
+        customScripts: customScriptsToPersist,
+      },
       reason: input.reason,
     });
     await uow.publishEvent({
@@ -567,18 +623,29 @@ export class TournamentRepository {
       .limit(1)
       .executeTakeFirst();
 
-    return row
-      ? {
-          rulesetId: row.ruleset_id,
-          tournamentId: row.tournament_id,
-          version: row.version,
-          descriptorRef: {
-            descriptorId: row.descriptor_id,
-            version: row.descriptor_version,
-          },
-          overrides: row.overrides as Record<string, unknown>,
-        }
-      : undefined;
+    if (!row) return undefined;
+
+    const rawOverrides = row.overrides;
+    const overrides =
+      typeof rawOverrides === 'string' ? JSON.parse(rawOverrides) : (rawOverrides ?? {});
+    const rawScripts = row.custom_scripts;
+    const customScripts = rawScripts
+      ? typeof rawScripts === 'string'
+        ? JSON.parse(rawScripts)
+        : rawScripts
+      : [];
+
+    return {
+      rulesetId: row.ruleset_id,
+      tournamentId: row.tournament_id,
+      version: row.version,
+      descriptorRef: {
+        descriptorId: row.descriptor_id,
+        version: row.descriptor_version,
+      },
+      overrides: overrides as Record<string, unknown>,
+      customScripts: customScripts as readonly HookScriptAttachment[],
+    };
   }
 
   /**

@@ -303,7 +303,7 @@ const HOOK_DEFINITIONS = {
       ...ENVIRONMENT_CONTEXT_PATHS,
     ],
     polarity: 'permissive',
-    evaluation: { status: 'declared', ownedBy: '0014' },
+    evaluation: { status: 'evaluated', by: '0133' },
   },
   'stage.started': {
     context: [...STAGE_LIFECYCLE_CONTEXT_PATHS, ...ENVIRONMENT_CONTEXT_PATHS],

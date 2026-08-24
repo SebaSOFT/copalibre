@@ -16,6 +16,37 @@ const disciplineFixture = [
   },
 ];
 
+const hookVocabularyFixture = {
+  hooks: ['event.recorded'],
+  entries: [
+    {
+      kind: 'action',
+      type: 'notify',
+      description: 'Declare notification',
+      authoring: {
+        parameters: [
+          {
+            name: 'title',
+            description: 'Notification title',
+            required: true,
+            parameterTypes: ['simple_string'],
+            allowExpression: true,
+            valueSchema: { type: 'string', minLength: 1 },
+          },
+          {
+            name: 'message',
+            description: 'Notification message',
+            required: true,
+            parameterTypes: ['simple_string'],
+            allowExpression: true,
+            valueSchema: { type: 'string', minLength: 1 },
+          },
+        ],
+      },
+    },
+  ],
+};
+
 const registrationsFixture = [
   {
     entrantId: 'entrant-001',
@@ -31,9 +62,19 @@ const registrationsFixture = [
   },
 ];
 
-async function mockControlApi(page: Page): Promise<void> {
+async function mockControlApi(
+  page: Page,
+  options: { readonly createRefusal?: string; readonly updateRefusal?: string } = {},
+): Promise<void> {
   await page.addInitScript(
-    ({ disciplines, registrations, tokenEndpoint }) => {
+    ({
+      disciplines,
+      hookVocabulary,
+      registrations,
+      tokenEndpoint,
+      createRefusal,
+      updateRefusal,
+    }) => {
       const captured: CapturedRequest[] = [];
       Object.assign(window, { __controlRequests: captured });
       // Stateful across requests within this test: the dashboard's real
@@ -54,11 +95,18 @@ async function mockControlApi(page: Page): Promise<void> {
           return Response.json(disciplines);
         }
 
+        if (url === '/organizations/liga-mendocina/tournaments/custom-script-vocabulary') {
+          return Response.json(hookVocabulary);
+        }
+
         if (url === '/organizations/liga-mendocina/tournaments' && method === 'GET') {
           return Response.json(createdTournaments);
         }
 
         if (url === '/organizations/liga-mendocina/tournaments' && method === 'POST') {
+          if (createRefusal) {
+            return Response.json({ message: createRefusal }, { status: 400 });
+          }
           const created = {
             tournamentId: 'tournament-002',
             organizationId: 'org-liga-mendocina',
@@ -69,6 +117,16 @@ async function mockControlApi(page: Page): Promise<void> {
           };
           createdTournaments.push(created);
           return Response.json(created);
+        }
+
+        if (
+          url === '/organizations/liga-mendocina/tournaments/apertura-2026/custom-scripts' &&
+          method === 'PUT'
+        ) {
+          return Response.json(
+            { message: updateRefusal ?? 'Custom scripts updated' },
+            { status: updateRefusal ? 409 : 200 },
+          );
         }
 
         if (
@@ -104,8 +162,11 @@ async function mockControlApi(page: Page): Promise<void> {
     },
     {
       disciplines: disciplineFixture,
+      hookVocabulary: hookVocabularyFixture,
       registrations: registrationsFixture,
       tokenEndpoint: TOKEN_ENDPOINT,
+      createRefusal: options.createRefusal,
+      updateRefusal: options.updateRefusal,
     },
   );
 }
@@ -128,6 +189,11 @@ test('creates a tournament from the control authoring wizard', async ({ page }) 
   await page.getByLabel('Alias').fill('apertura-local');
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByLabel('Agregar regla para cada evento registrado').check();
+  await page.getByLabel('Acción').selectOption('notify');
+  await page.getByLabel('Notification title *').fill('Actualización del partido');
+  await page.getByLabel('Notification message *').fill('{{ event.definitionCode }}');
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByLabel('Región').fill('Mendoza');
   await page.getByLabel('Capacidad').fill('16');
@@ -152,6 +218,19 @@ test('creates a tournament from the control authoring wizard', async ({ page }) 
           requiresCheckIn: true,
           region: 'Mendoza',
           capacity: 16,
+          customScripts: [
+            expect.objectContaining({
+              hook: 'event.recorded',
+              script: expect.objectContaining({
+                rules: [
+                  expect.objectContaining({
+                    conditions: [],
+                    actions: [expect.objectContaining({ type: 'notify' })],
+                  }),
+                ],
+              }),
+            }),
+          ],
         }),
       }),
     );
@@ -163,6 +242,63 @@ test('creates a tournament from the control authoring wizard', async ({ page }) 
   await page.getByRole('link', { name: 'Panel' }).click();
   await page.waitForURL('**/control/liga-mendocina');
   await expect(page.getByText('Apertura Local')).toBeVisible();
+});
+
+test('shows a named backend rule refusal without replacing it with a generic error', async ({
+  page,
+}) => {
+  const refusal = 'Action "stale-action" is not registered for event.recorded';
+  await mockControlApi(page, { createRefusal: refusal });
+  const target = '/control/liga-mendocina/tournaments/new';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await page.getByLabel('Nombre').fill('Copa Regla Inválida');
+  await page.getByLabel('Alias').fill('copa-regla-invalida');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByLabel('Agregar regla para cada evento registrado').check();
+  await page.getByLabel('Acción').selectOption('notify');
+  await page.getByLabel('Notification title *').fill('Actualización');
+  await page.getByLabel('Notification message *').fill('Evento');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Crear torneo' }).click();
+
+  await expect(page.getByText(refusal)).toBeVisible();
+});
+
+test('blocks a custom-script edit after a qualifying result', async ({ page }) => {
+  const refusal = 'Custom scripts cannot change after tournament results exist';
+  await mockControlApi(page, { updateRefusal: refusal });
+  const target = '/control/liga-mendocina';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  const response = await page.evaluate(async () => {
+    const result = await fetch(
+      '/organizations/liga-mendocina/tournaments/apertura-2026/custom-scripts',
+      {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ customScripts: [] }),
+      },
+    );
+    return { status: result.status, body: (await result.json()) as { message: string } };
+  });
+
+  expect(response).toEqual({ status: 409, body: { message: refusal } });
+  await expect
+    .poll(() => capturedRequests(page))
+    .toContainEqual(
+      expect.objectContaining({
+        url: '/organizations/liga-mendocina/tournaments/apertura-2026/custom-scripts',
+        method: 'PUT',
+        body: { customScripts: [] },
+      }),
+    );
 });
 
 test('bulk-approves visible registrations from the review queue', async ({ page }) => {

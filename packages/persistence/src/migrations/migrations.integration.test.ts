@@ -1,6 +1,6 @@
 import { checkReadinessAgainst } from '../test-support/readiness-probe.js';
 import { createScratchDatabase, type ScratchDatabase } from '../test-support/scratch-database.js';
-import type { Kysely } from 'kysely';
+import { sql, type Kysely } from 'kysely';
 import {
   EXPECTED_SCHEMA_VERSION,
   migrateDownOneStep,
@@ -148,6 +148,41 @@ describe('migrations (integration)', () => {
     expect(afterUpTables.find((table) => table.name === 'venues')?.columns).toEqual(
       expect.arrayContaining([expect.objectContaining({ name: 'details' })]),
     );
+    expect(afterUp).toContain('declared_effects');
+    const customScriptsColumn = afterUpTables
+      .find((table) => table.name === 'tournament_rulesets')
+      ?.columns.find((column) => column.name === 'custom_scripts');
+    expect(customScriptsColumn).toMatchObject({ name: 'custom_scripts', isNullable: false });
+    const defaultExpression =
+      scratch.dialect === 'postgres'
+        ? (
+            await sql<{ column_default: string }>`
+              select column_default
+              from information_schema.columns
+              where table_name = 'tournament_rulesets' and column_name = 'custom_scripts'
+            `.execute(scratch.db)
+          ).rows[0]?.column_default
+        : (
+            await sql<{ dflt_value: string }>`
+              select dflt_value from pragma_table_info('tournament_rulesets')
+              where name = 'custom_scripts'
+            `.execute(scratch.db)
+          ).rows[0]?.dflt_value;
+    expect(defaultExpression).toContain('[]');
+
+    const customScriptsDown = await migrateDownOneStep(scratch.db);
+    expect(customScriptsDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe(
+      '0027-object-metadata-organization-index',
+    );
+
+    const afterCustomScriptsDownTables = await scratch.db.introspection.getTables();
+    expect(afterCustomScriptsDownTables.map((table) => table.name)).not.toContain(
+      'declared_effects',
+    );
+    expect(
+      afterCustomScriptsDownTables.find((table) => table.name === 'tournament_rulesets')?.columns,
+    ).not.toEqual(expect.arrayContaining([expect.objectContaining({ name: 'custom_scripts' })]));
 
     const objectMetadataIndexDown = await migrateDownOneStep(scratch.db);
     expect(objectMetadataIndexDown.error).toBeUndefined();

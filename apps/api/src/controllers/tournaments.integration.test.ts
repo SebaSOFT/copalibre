@@ -18,6 +18,47 @@ let scratch: Awaited<ReturnType<typeof buildTestApp>>['scratch'];
 let organizationId = '';
 let request: Awaited<ReturnType<typeof buildTestApp>>['request'];
 
+function notifyAttachment(message = 'Event recorded') {
+  return {
+    hook: 'event.recorded',
+    description: 'Notify operators after every event',
+    script: {
+      id: 'notify-on-event',
+      rules: [
+        {
+          id: 'always-notify',
+          type: 'simple_rule',
+          options: {},
+          conditions: [],
+          actions: [
+            {
+              id: 'notify-operator',
+              type: 'notify',
+              options: {},
+              params: [
+                {
+                  id: 'notification-title',
+                  name: 'title',
+                  type: 'simple_string',
+                  value: 'Match update',
+                  options: {},
+                },
+                {
+                  id: 'notification-message',
+                  name: 'message',
+                  type: 'simple_string',
+                  value: message,
+                  options: {},
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  };
+}
+
 beforeAll(async () => {
   ({ app, scratch, organizationId, request } = await buildTestApp([
     TournamentsController,
@@ -31,6 +72,230 @@ afterAll(async () => {
 });
 
 describe('organization-scoped tournament routes', () => {
+  it('exposes the exact authorized hook-script vocabulary', async () => {
+    const noToken = await request({
+      method: 'GET',
+      url: '/organizations/liga-orbital/tournaments/custom-script-vocabulary',
+    });
+    expect(noToken.statusCode).toBe(401);
+
+    const foreignOrganization = await request({
+      method: 'GET',
+      url: '/organizations/liga-orbital/tournaments/custom-script-vocabulary',
+      token: 'organizer-org2',
+    });
+    expect(foreignOrganization.statusCode).toBe(403);
+
+    const response = await request({
+      method: 'GET',
+      url: '/organizations/liga-orbital/tournaments/custom-script-vocabulary',
+      token: 'organizer-org1',
+    });
+    expect(response.statusCode).toBe(200);
+    const vocabulary = response.json() as {
+      hooks: string[];
+      entries: { kind: string; type: string; authoring?: unknown }[];
+    };
+    expect(vocabulary.hooks).toEqual(['event.recorded']);
+    expect(vocabulary.entries).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: 'condition', type: 'compare_two_numbers' }),
+        expect.objectContaining({ kind: 'action', type: 'notify' }),
+        expect.objectContaining({ kind: 'parameter', type: 'simple_string' }),
+      ]),
+    );
+    expect(vocabulary.entries.every((entry) => entry.authoring !== undefined)).toBe(true);
+    expect(vocabulary.entries.some((entry) => entry.type === 'set-guard-outcome')).toBe(false);
+  });
+
+  it('creates, reads, and safely versions valid custom scripts before results', async () => {
+    const tournaments = new TournamentRepository(scratch.db);
+    const descriptor = footballDescriptor();
+    await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+      tournaments.saveDescriptor(uow, descriptor, {
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      }),
+    );
+
+    const createdResponse = await request({
+      method: 'POST',
+      url: '/organizations/liga-orbital/tournaments',
+      token: 'organizer-org1',
+      payload: {
+        alias: 'copa-custom-scripts',
+        name: 'Copa Custom Scripts',
+        descriptorId: descriptor.descriptorId,
+        descriptorVersion: descriptor.version,
+        format: 'round-robin',
+        publicRegistration: false,
+        requiresCheckIn: false,
+        customScripts: [notifyAttachment()],
+      },
+    });
+    expect(createdResponse.statusCode).toBe(201);
+    const created = createdResponse.json() as { tournamentId: string };
+
+    const read = await request({
+      method: 'GET',
+      url: '/organizations/liga-orbital/tournaments/copa-custom-scripts/custom-scripts',
+      token: 'organizer-org1',
+    });
+    expect(read.statusCode).toBe(200);
+    expect(read.json()).toEqual({ customScripts: [notifyAttachment()] });
+
+    const foreignUpdate = await request({
+      method: 'PUT',
+      url: '/organizations/liga-orbital/tournaments/copa-custom-scripts/custom-scripts',
+      token: 'organizer-org2',
+      payload: { customScripts: [] },
+    });
+    expect(foreignUpdate.statusCode).toBe(403);
+
+    const updatedAttachment = notifyAttachment('Updated event message');
+    const updated = await request({
+      method: 'PUT',
+      url: '/organizations/liga-orbital/tournaments/copa-custom-scripts/custom-scripts',
+      token: 'organizer-org1',
+      payload: { customScripts: [updatedAttachment] },
+    });
+    expect(updated.statusCode).toBe(200);
+    expect(updated.json()).toEqual({ customScripts: [updatedAttachment] });
+    expect((await tournaments.findLatestRuleset(created.tournamentId))?.version).toBe(2);
+  });
+
+  it('names an offending custom-script reference and blocks updates after a persisted result', async () => {
+    const tournaments = new TournamentRepository(scratch.db);
+    const competition = new CompetitionRepository(scratch.db);
+    const descriptor = footballDescriptor();
+    await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+      tournaments.saveDescriptor(uow, descriptor, {
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      }),
+    );
+
+    const invalid = notifyAttachment() as {
+      script: { rules: { actions: { type: string }[] }[] };
+    };
+    const invalidRule = invalid.script.rules[0];
+    const invalidAction = invalidRule?.actions[0];
+    if (!invalidAction) throw new Error('Expected notification action');
+    invalidAction.type = 'launch-fireworks';
+    const refused = await request({
+      method: 'POST',
+      url: '/organizations/liga-orbital/tournaments',
+      token: 'organizer-org1',
+      payload: {
+        alias: 'copa-invalid-script',
+        name: 'Copa Invalid Script',
+        descriptorId: descriptor.descriptorId,
+        descriptorVersion: descriptor.version,
+        format: 'round-robin',
+        publicRegistration: false,
+        requiresCheckIn: false,
+        customScripts: [invalid],
+      },
+    });
+    expect(refused.statusCode).toBe(400);
+    expect(refused.body).toContain('launch-fireworks');
+
+    const unpublished = notifyAttachment() as {
+      script: {
+        rules: { actions: { params: { name: string; value: string; options: object }[] }[] }[];
+      };
+    };
+    const unpublishedRule = unpublished.script.rules[0];
+    const unpublishedAction = unpublishedRule?.actions[0];
+    if (!unpublishedAction) throw new Error('Expected notification action');
+    const message = unpublishedAction.params.find((parameter) => parameter.name === 'message');
+    if (!message) throw new Error('Expected message parameter');
+    message.value = '{{ roster.secretBudget }}';
+    message.options = { expression: true };
+    const unpublishedRefusal = await request({
+      method: 'POST',
+      url: '/organizations/liga-orbital/tournaments',
+      token: 'organizer-org1',
+      payload: {
+        alias: 'copa-unpublished-expression',
+        name: 'Copa Unpublished Expression',
+        descriptorId: descriptor.descriptorId,
+        descriptorVersion: descriptor.version,
+        format: 'round-robin',
+        publicRegistration: false,
+        requiresCheckIn: false,
+        customScripts: [unpublished],
+      },
+    });
+    expect(unpublishedRefusal.statusCode).toBe(400);
+    expect(unpublishedRefusal.body).toContain('roster.secretBudget');
+
+    const tournament = await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+      const created = await tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-script-lock',
+        name: 'Copa Script Lock',
+        descriptor,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      await tournaments.createRuleset(uow, {
+        tournamentId: created.tournamentId,
+        organizationId,
+        descriptor,
+        overrides: { format: 'round-robin' },
+        customScripts: [notifyAttachment()],
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      const stage = await competition.createStageInTournament(uow, {
+        tournamentId: created.tournamentId,
+        number: 1,
+        name: 'Stage',
+        format: 'round-robin',
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      const [fixture] = await competition.createFixtures(uow, {
+        stageId: stage.stageId,
+        fixtures: [{ round: 1 }],
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      if (!fixture) throw new Error('Expected fixture');
+      const match = await competition.createMatch(uow, {
+        fixtureId: fixture.fixtureId,
+        number: 1,
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      return { created, match };
+    });
+    await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+      competition.recordResult(uow, {
+        matchId: tournament.match.matchId,
+        result: { sides: [], recordedAt: '2026-08-24T12:00:00.000Z' },
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      }),
+    );
+
+    const blocked = await request({
+      method: 'PUT',
+      url: '/organizations/liga-orbital/tournaments/copa-script-lock/custom-scripts',
+      token: 'organizer-org1',
+      payload: { customScripts: [] },
+    });
+    expect(blocked.statusCode).toBe(409);
+    expect(blocked.body).toContain('blocked after results');
+  });
+
   it('404s a tournament alias that exists in no organization', async () => {
     const response = await request({
       method: 'GET',

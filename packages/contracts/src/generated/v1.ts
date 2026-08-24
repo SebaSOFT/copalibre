@@ -128,6 +128,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/tournaments/custom-script-vocabulary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read supported tournament hook-script vocabulary */
+        get: operations["TournamentsController_customScriptVocabulary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}": {
         parameters: {
             query?: never;
@@ -166,6 +183,24 @@ export interface paths {
          * @description Requires the copalibre.control scope and a token scoped to the target organization.
          */
         post: operations["TournamentsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/custom-scripts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read tournament's organizer-authored hook scripts */
+        get: operations["TournamentsController_customScripts"];
+        /** Replace tournament's organizer-authored hook scripts */
+        put: operations["TournamentsController_updateCustomScripts"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2059,6 +2094,31 @@ export interface components {
              */
             objectCount: number;
         };
+        RegistryParameterDefinitionResponse: {
+            name: string;
+            description: string;
+            required: boolean;
+            parameterTypes: string[];
+            allowExpression: boolean;
+            valueSchema: Record<string, never>;
+        };
+        RegistryAuthoringDefinitionResponse: {
+            parameters?: components["schemas"]["RegistryParameterDefinitionResponse"][];
+            optionsSchema?: Record<string, never>;
+            valueSchema?: Record<string, never>;
+            allowExpression?: boolean;
+        };
+        RegistryEntryResponse: {
+            /** @enum {string} */
+            kind: "parameter" | "condition" | "action" | "rule";
+            type: string;
+            description: string;
+            authoring?: components["schemas"]["RegistryAuthoringDefinitionResponse"];
+        };
+        HookScriptVocabularyResponse: {
+            hooks: "event.recorded"[];
+            entries: components["schemas"]["RegistryEntryResponse"][];
+        };
         ProfileRefResponse: {
             /** Format: uuid */
             profileId: string;
@@ -2099,6 +2159,13 @@ export interface components {
             rulesetId?: string;
             /** @description Profile this tournament instantiated, when one was selected at creation. */
             profileRef?: components["schemas"]["ProfileRefResponse"];
+        };
+        HookScriptAttachmentRequest: {
+            /** @enum {string} */
+            hook: "event.recorded";
+            /** @description Neuron-JS rule script document */
+            script: Record<string, never>;
+            description?: string;
         };
         CreateTournamentRequest: {
             /** @example copa-verano */
@@ -2146,6 +2213,14 @@ export interface components {
              * @example 1.0.0
              */
             profileVersion?: string;
+            /**
+             * @description Organizer-authored scripts evaluated at supported tournament hooks.
+             * @default []
+             */
+            customScripts: components["schemas"]["HookScriptAttachmentRequest"][];
+        };
+        TournamentCustomScriptsResponse: {
+            customScripts: components["schemas"]["HookScriptAttachmentRequest"][];
         };
         ProfileStageSummaryResponse: {
             /** @example 1 */
@@ -4156,6 +4231,43 @@ export interface operations {
             };
         };
     };
+    TournamentsController_customScriptVocabulary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HookScriptVocabularyResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
     TournamentsController_findByScopedAlias: {
         parameters: {
             query?: never;
@@ -4236,6 +4348,94 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TournamentResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    TournamentsController_customScripts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TournamentCustomScriptsResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    TournamentsController_updateCustomScripts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TournamentCustomScriptsResponse"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TournamentCustomScriptsResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
                 };
             };
             401: {

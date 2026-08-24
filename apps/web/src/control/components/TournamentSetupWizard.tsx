@@ -4,27 +4,35 @@ import { Button } from './ui/button.js';
 import { Card } from './ui/card.js';
 import {
   WIZARD_STEPS,
+  addCustomRule,
   canContinue,
+  canAddCustomRule,
+  elementOptionsKey,
   formatsFor,
   initialWizard,
   nextStep,
+  parameterValueKey,
   previousStep,
   progress,
+  removeCustomRule,
   stepProblems,
   toCreateRequest,
   type DisciplineOption,
   type TournamentProfileOption,
   type WizardState,
 } from '../lib/wizard.js';
+import type { HookScriptVocabulary, HookVocabularyEntry } from '../lib/api-client.js';
 import { messages } from '../i18n/messages.en.js';
 import { localizedText } from '../../lib/localized-label.js';
 
 const EMPTY_PROFILES: readonly TournamentProfileOption[] = [];
+const EMPTY_VOCABULARY: HookScriptVocabulary = { hooks: [], entries: [] };
 
 export function TournamentSetupWizard({
   disciplines,
   profiles: initialProfiles = EMPTY_PROFILES,
   loadProfiles,
+  vocabulary = EMPTY_VOCABULARY,
   onSubmit,
 }: {
   readonly disciplines: readonly DisciplineOption[];
@@ -34,6 +42,7 @@ export function TournamentSetupWizard({
     version: string,
     format?: string,
   ) => Promise<readonly TournamentProfileOption[]>;
+  readonly vocabulary?: HookScriptVocabulary;
   readonly onSubmit?: (request: ReturnType<typeof toCreateRequest>) => void;
 }): React.JSX.Element {
   const intl = useIntl();
@@ -67,7 +76,13 @@ export function TournamentSetupWizard({
 
   const profiles = loadProfiles ? asyncProfiles : initialProfiles;
 
-  const problems = stepProblems(state, disciplines);
+  const problems = stepProblems(state, disciplines, vocabulary);
+  const conditions = vocabulary.entries.filter((entry) => entry.kind === 'condition');
+  const actions = vocabulary.entries.filter((entry) => entry.kind === 'action');
+  const selectedCondition = conditions.find(
+    (entry) => entry.type === state.customRuleConditionType,
+  );
+  const selectedAction = actions.find((entry) => entry.type === state.customRuleActionType);
   const formats = useMemo(
     () => formatsFor(disciplines, state.descriptorId),
     [disciplines, state.descriptorId],
@@ -78,7 +93,7 @@ export function TournamentSetupWizard({
   }
 
   function submit(): void {
-    onSubmit?.(toCreateRequest(state));
+    onSubmit?.(toCreateRequest(state, vocabulary));
   }
 
   return (
@@ -287,6 +302,129 @@ export function TournamentSetupWizard({
           </div>
         )}
 
+        {state.step === 'rules' && (
+          <div style={ruleStackStyle}>
+            <label style={toggleStyle}>
+              <input
+                checked={state.customRuleEnabled}
+                onChange={(event) => patch({ customRuleEnabled: event.target.checked })}
+                type="checkbox"
+              />
+              <FormattedMessage {...messages.wizardEnableCustomRule} />
+            </label>
+            {state.customRuleEnabled && (
+              <>
+                <p style={ruleHelpStyle}>
+                  <FormattedMessage {...messages.wizardRuleHookHelp} />
+                </p>
+                {state.customRules.length > 0 && (
+                  <ol style={ruleStackStyle}>
+                    {state.customRules.map((rule, index) => (
+                      <li key={`${rule.actionType}-${index}`} style={savedRuleStyle}>
+                        <span>
+                          {index + 1}. {rule.conditionType ?? 'always'} → {rule.actionType}
+                        </span>
+                        <Button
+                          onClick={() => setState((current) => removeCustomRule(current, index))}
+                          type="button"
+                          variant="secondary"
+                        >
+                          <FormattedMessage {...messages.wizardRuleRemove} />
+                        </Button>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+                <div style={formGridStyle}>
+                  <Field label={intl.formatMessage(messages.wizardRuleCondition)}>
+                    <select
+                      aria-label={intl.formatMessage(messages.wizardRuleCondition)}
+                      className="cl-focusable"
+                      onChange={(event) =>
+                        patch({ customRuleConditionType: event.target.value || undefined })
+                      }
+                      style={fieldStyle}
+                      value={state.customRuleConditionType ?? ''}
+                    >
+                      <option value="">
+                        {intl.formatMessage(messages.wizardRuleConditionAlways)}
+                      </option>
+                      {conditions.map((entry) => (
+                        <option key={entry.type} value={entry.type}>
+                          {entry.type} — {entry.description}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field label={intl.formatMessage(messages.wizardRuleAction)}>
+                    <select
+                      aria-label={intl.formatMessage(messages.wizardRuleAction)}
+                      className="cl-focusable"
+                      onChange={(event) =>
+                        patch({ customRuleActionType: event.target.value || undefined })
+                      }
+                      style={fieldStyle}
+                      value={state.customRuleActionType ?? ''}
+                    >
+                      <option value="">
+                        {intl.formatMessage(messages.wizardRuleChooseAction)}
+                      </option>
+                      {actions.map((entry) => (
+                        <option key={entry.type} value={entry.type}>
+                          {entry.type} — {entry.description}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                </div>
+                {selectedCondition === undefined && (
+                  <p className="cl-inline-alert">
+                    <FormattedMessage {...messages.wizardRuleConditionlessExplanation} />
+                  </p>
+                )}
+                {selectedCondition && (
+                  <ElementAuthoringFields
+                    entry={selectedCondition}
+                    kind="condition"
+                    onOptionsChange={(key, value) =>
+                      patch({ customRuleOptions: { ...state.customRuleOptions, [key]: value } })
+                    }
+                    onValueChange={(key, value) =>
+                      patch({ customRuleValues: { ...state.customRuleValues, [key]: value } })
+                    }
+                    options={state.customRuleOptions}
+                    optionsLabel={intl.formatMessage(messages.wizardRuleOptions)}
+                    values={state.customRuleValues}
+                  />
+                )}
+                {selectedAction && (
+                  <ElementAuthoringFields
+                    entry={selectedAction}
+                    kind="action"
+                    onOptionsChange={(key, value) =>
+                      patch({ customRuleOptions: { ...state.customRuleOptions, [key]: value } })
+                    }
+                    onValueChange={(key, value) =>
+                      patch({ customRuleValues: { ...state.customRuleValues, [key]: value } })
+                    }
+                    options={state.customRuleOptions}
+                    optionsLabel={intl.formatMessage(messages.wizardRuleOptions)}
+                    values={state.customRuleValues}
+                  />
+                )}
+                <Button
+                  disabled={!canAddCustomRule(state, vocabulary)}
+                  onClick={() => setState((current) => addCustomRule(current, vocabulary))}
+                  type="button"
+                  variant="secondary"
+                >
+                  <FormattedMessage {...messages.wizardRuleAddAnother} />
+                </Button>
+              </>
+            )}
+          </div>
+        )}
+
         {problems.length > 0 && (
           <ul className="cl-inline-alert" style={problemStyle}>
             {problems.map((problem) => (
@@ -304,12 +442,16 @@ export function TournamentSetupWizard({
             <FormattedMessage {...messages.wizardBack} />
           </Button>
           {state.step === 'window' ? (
-            <Button disabled={!canContinue(state, disciplines)} onClick={submit} type="button">
+            <Button
+              disabled={!canContinue(state, disciplines, vocabulary)}
+              onClick={submit}
+              type="button"
+            >
               <FormattedMessage {...messages.wizardCreate} />
             </Button>
           ) : (
             <Button
-              disabled={!canContinue(state, disciplines)}
+              disabled={!canContinue(state, disciplines, vocabulary)}
               onClick={() => patch({ step: nextStep(state) })}
               type="button"
             >
@@ -319,6 +461,83 @@ export function TournamentSetupWizard({
         </footer>
       </Card>
     </section>
+  );
+}
+
+function ElementAuthoringFields({
+  entry,
+  kind,
+  values,
+  options,
+  optionsLabel,
+  onValueChange,
+  onOptionsChange,
+}: {
+  readonly entry: HookVocabularyEntry;
+  readonly kind: 'condition' | 'action';
+  readonly values: Readonly<Record<string, string>>;
+  readonly options: Readonly<Record<string, string>>;
+  readonly optionsLabel: string;
+  readonly onValueChange: (key: string, value: string) => void;
+  readonly onOptionsChange: (key: string, value: string) => void;
+}): React.JSX.Element {
+  return (
+    <fieldset style={ruleFieldsetStyle}>
+      <legend>
+        {entry.type} · {entry.description}
+      </legend>
+      <div style={formGridStyle}>
+        {(entry.authoring?.parameters ?? []).map((parameter) => {
+          const key = parameterValueKey(kind, entry.type, parameter.name);
+          const choices = parameter.valueSchema['enum'];
+          const label = `${parameter.description}${parameter.required ? ' *' : ''}`;
+          return (
+            <Field key={key} label={label}>
+              {Array.isArray(choices) ? (
+                <select
+                  aria-label={label}
+                  className="cl-focusable"
+                  onChange={(event) => onValueChange(key, event.target.value)}
+                  style={fieldStyle}
+                  value={values[key] ?? ''}
+                >
+                  <option value="" />
+                  {choices.map((choice) => (
+                    <option key={String(choice)} value={String(choice)}>
+                      {String(choice)}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  aria-label={label}
+                  className="cl-focusable"
+                  onChange={(event) => onValueChange(key, event.target.value)}
+                  placeholder={parameter.allowExpression ? '{{ event.payload.value }}' : undefined}
+                  style={fieldStyle}
+                  type={parameter.valueSchema['type'] === 'number' ? 'number' : 'text'}
+                  value={values[key] ?? ''}
+                />
+              )}
+            </Field>
+          );
+        })}
+        {entry.authoring?.optionsSchema && (
+          <Field label={optionsLabel}>
+            <textarea
+              aria-label={`${entry.type} options`}
+              className="cl-focusable"
+              onChange={(event) =>
+                onOptionsChange(elementOptionsKey(kind, entry.type), event.target.value)
+              }
+              rows={4}
+              style={fieldStyle}
+              value={options[elementOptionsKey(kind, entry.type)] ?? '{}'}
+            />
+          </Field>
+        )}
+      </div>
+    </fieldset>
   );
 }
 
@@ -359,7 +578,7 @@ const metaStyle: React.CSSProperties = {
 };
 const stepperStyle: React.CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+  gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
   gap: 'var(--cl-space-3)',
   listStyle: 'none',
   padding: 0,
@@ -421,4 +640,16 @@ const footerStyle: React.CSSProperties = {
   justifyContent: 'space-between',
   gap: 'var(--cl-space-3)',
   marginTop: 'var(--cl-space-6)',
+};
+const ruleStackStyle: React.CSSProperties = { display: 'grid', gap: 'var(--cl-space-4)' };
+const savedRuleStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: 'var(--cl-space-3)',
+};
+const ruleHelpStyle: React.CSSProperties = { margin: 0, color: 'var(--cl-text-secondary)' };
+const ruleFieldsetStyle: React.CSSProperties = {
+  border: '1px solid var(--cl-border-muted)',
+  padding: 'var(--cl-space-4)',
 };

@@ -84,6 +84,15 @@ describe('resolveHookAttachment', () => {
     expect(result.value.inert).toBe(false);
   });
 
+  it('reports event.recorded as operationalized by 0133', () => {
+    const result = resolveHookAttachment('event.recorded');
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.inert).toBe(false);
+    expect(result.value.hook.evaluation).toEqual({ status: 'evaluated', by: '0133' });
+  });
+
   it('reports an attachment to a declared-but-unevaluated hook as inert', () => {
     const result = resolveHookAttachment('match.started');
 

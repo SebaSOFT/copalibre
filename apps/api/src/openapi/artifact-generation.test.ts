@@ -2,7 +2,7 @@ import { Controller, Get, Module, type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
-import { buildOpenApiDocument } from './document.js';
+import { buildOpenApiDocument, OPENAPI_VERSION } from './document.js';
 import { serializeOpenApiArtifact } from './artifact.js';
 
 @Controller('fixture-status')
@@ -43,7 +43,7 @@ describe('OpenAPI artifact generation', () => {
       readonly paths: Record<string, { readonly get?: { readonly summary?: string } }>;
     };
 
-    expect(artifact.info.version).toBe('4.0.0');
+    expect(artifact.info.version).toBe(OPENAPI_VERSION);
     expect(artifact.paths['/fixture-status']?.get?.summary).toBe('Read fixture status');
   });
 });

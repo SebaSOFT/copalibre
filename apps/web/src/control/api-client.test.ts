@@ -116,6 +116,7 @@ describe('the control API client', () => {
       format: 'round-robin',
       publicRegistration: true,
       requiresCheckIn: true,
+      customScripts: [],
     });
 
     expect(authorization).toBe('Bearer token-1');

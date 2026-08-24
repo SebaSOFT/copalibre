@@ -13,6 +13,7 @@ export default tseslint.config(
       '**/coverage/**',
       '**/.astro/**',
       '**/node_modules/**',
+      '.claude/worktrees/**',
       'playwright-report/**',
       'test-results/**',
       // Build artifacts copied into place at build time (0024's OpenAPI

@@ -21,8 +21,11 @@ import type { OpenAPIObject } from '@nestjs/swagger';
  *
  * Bumped to 4.0.0 by 0039-roster-terminology: match capability and participant
  * membership endpoint names changed to keep team membership separate from a match roster.
+ *
+ * Bumped to 5.0.0 by 0133-per-event-rule-authoring: tournament creation now
+ * requires the canonical `customScripts` collection, even when it is empty.
  */
-export const OPENAPI_VERSION = '4.0.0';
+export const OPENAPI_VERSION = '5.0.0';
 
 export function buildOpenApiDocument(app: INestApplication): OpenAPIObject {
   const config = new DocumentBuilder()

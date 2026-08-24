@@ -43,25 +43,33 @@ import {
   evaluateNotificationRule,
   foldCollectorTotals,
   notificationRulesFrom,
+  toNotificationInstance,
+  toStatisticAdjustment,
+  toTagFact,
   thresholdReadable,
+  type DeclaredEffect,
   type CollectorThresholdRule,
 } from '@copalibre/rules';
-import { tagFactsFrom } from '@copalibre/tournament-engine';
+import { runEventRecordedCustomScripts, tagFactsFrom } from '@copalibre/tournament-engine';
 import {
   AuditReader,
   CollectorThresholdConsumptionRepository,
   CompetitionRecordRepository,
   CompetitionRepository,
+  DeclaredEffectRepository,
   EnrollmentRepository,
   InvariantViolationError,
   MatchAssignmentRepository,
   MatchCommandIdempotencyRepository,
   PersonRepository,
   ProjectionStore,
+  OrganizationRepository,
+  StatisticRepository,
   TagRepository,
   TournamentRepository,
   withTransaction,
   type Database,
+  type UnitOfWork,
 } from '@copalibre/persistence';
 import { foldLiveEvent, resolveMatchFold } from '@copalibre/statistics-refold';
 import type { Kysely } from 'kysely';
@@ -941,6 +949,11 @@ export class MatchControlController {
     const ruleset = await new CompetitionRecordRepository(this.db).findCompiledRuleset(
       tournament.tournamentId,
     );
+    const [authoredRuleset, organization, stage] = await Promise.all([
+      new TournamentRepository(this.db).findLatestRuleset(tournament.tournamentId),
+      new OrganizationRepository(this.db).findById(tournament.organizationId),
+      this.db.selectFrom('stages').selectAll().where('stage_id', '=', stageId).executeTakeFirst(),
+    ]);
     const rules = notificationRulesFrom(ruleset?.config);
     const alreadyRaised = await competition.publishedNotificationKeys(matchId);
 
@@ -1059,6 +1072,114 @@ export class MatchControlController {
       const log = [...(await competition.listEvents(matchId)), appended];
       const raised: string[] = [];
 
+      if (authoredRuleset && organization && stage) {
+        const hookResult = runEventRecordedCustomScripts({
+          attachments: authoredRuleset.customScripts,
+          rulesetVersion: authoredRuleset.version,
+          event: appended,
+          ...(definition?.category === undefined ? {} : { eventCategory: definition.category }),
+          context: {
+            now: Date.parse(appended.occurredAt),
+            discipline: {
+              descriptorId: descriptor.descriptorId,
+              version: descriptor.version,
+              statistics: descriptor.collectors ?? [],
+              segmentTypes: descriptor.segmentTypes,
+            },
+            tournament: {
+              id: tournament.tournamentId,
+              alias: tournament.alias,
+              status: tournament.status,
+              timeZone: organization.timezone,
+              points: ruleset?.config['points'] ?? {},
+              tiebreaks: ruleset?.config['tiebreaks'] ?? [],
+            },
+            stage: {
+              number: stage.number,
+              name: stage.name,
+              format: stage.format,
+            },
+            organization: {
+              id: organization.organizationId,
+              alias: organization.alias,
+              name: organization.name,
+            },
+            match: {
+              id: match.matchId,
+              status: match.status,
+              sides: entrantIds.map((entrantId, index) => ({
+                entrantId,
+                home: index === 0 ? true : index === 1 ? false : null,
+              })),
+            },
+            segment: {
+              id: segment.segmentId,
+              type: segment.type,
+              number: segment.number,
+            },
+            collectors: {},
+          },
+        });
+
+        for (const record of hookResult.records) {
+          await uow.recordAudit({
+            ...audit,
+            entityType: 'rule-script',
+            entityId: authoredRuleset.rulesetId,
+            action: 'rule.evaluated',
+            resultingState: {
+              hook: 'event.recorded',
+              scriptId: record.ruleVersion?.id ?? 'unknown-script',
+              causeId: appended.eventId,
+              evaluation: record,
+            },
+          });
+        }
+
+        for (const failure of hookResult.failures) {
+          const failurePayload = { ...failure, matchId };
+          await uow.recordAudit({
+            ...audit,
+            entityType: 'rule-script',
+            entityId: authoredRuleset.rulesetId,
+            action: 'rule.evaluation-failed',
+            resultingState: failurePayload,
+          });
+          await uow.publishEvent({
+            organizationId: tournament.organizationId,
+            stream: `match:${matchId}`,
+            entityId: matchId,
+            eventType: 'rule.evaluation-failed',
+            projectionVersion: appended.sequence,
+            payload: failurePayload,
+          });
+        }
+
+        for (const effect of hookResult.effects) {
+          const inserted = await new DeclaredEffectRepository(this.db).recordOnce(uow, {
+            identityKey: effect.identityKey,
+            organizationId: tournament.organizationId,
+            matchId,
+            causeEventId: appended.eventId,
+            hook: effect.origin.hook,
+            scriptId: effect.origin.scriptId,
+            scriptVersion: effect.origin.scriptVersion,
+            ruleId: effect.origin.ruleId,
+            actionId: effect.origin.actionId,
+            kind: effect.kind,
+            payload: effect.payload,
+          });
+          if (!inserted) continue;
+
+          await this.materializeDeclaredEffect(uow, effect, {
+            ...audit,
+            matchId,
+            occurredAt: appended.occurredAt,
+            raised,
+          });
+        }
+      }
+
       for (const rule of rules) {
         const evaluation = evaluateNotificationRule(rule, descriptor, log);
         for (const instance of dedupeNotifications(alreadyRaised, evaluation.instances)) {
@@ -1117,6 +1238,78 @@ export class MatchControlController {
       ...(recorded.notes === undefined ? {} : { notes: recorded.notes }),
       notifications,
     };
+  }
+
+  private async materializeDeclaredEffect(
+    uow: UnitOfWork,
+    effect: DeclaredEffect,
+    context: {
+      readonly organizationId: string;
+      readonly actor: string;
+      readonly authorizationContext: string;
+      readonly matchId: string;
+      readonly occurredAt: string;
+      readonly raised: string[];
+    },
+  ): Promise<void> {
+    if (effect.kind === 'notification') {
+      const instance = toNotificationInstance(effect);
+      if (!instance) {
+        throw new InvariantViolationError('Declared notification effect is malformed', {
+          identityKey: effect.identityKey,
+        });
+      }
+      await uow.publishEvent({
+        organizationId: context.organizationId,
+        stream: `match:${context.matchId}`,
+        entityId: context.matchId,
+        eventType: 'notification.raised',
+        projectionVersion: 1,
+        payload: { ...instance, contextValues: { ...instance.contextValues } },
+      });
+      context.raised.push(instance.identityKey);
+      return;
+    }
+
+    if (effect.kind === 'statistic-adjustment') {
+      const adjustment = toStatisticAdjustment(effect);
+      if (!adjustment) {
+        throw new InvariantViolationError('Declared statistic adjustment is malformed', {
+          identityKey: effect.identityKey,
+        });
+      }
+      await new StatisticRepository(this.db).recordAdjustment(uow, {
+        organizationId: context.organizationId,
+        matchId: context.matchId,
+        adjustment,
+        actor: context.actor,
+        authorizationContext: context.authorizationContext,
+      });
+    }
+
+    if (effect.kind === 'tag') {
+      const fact = toTagFact(effect, context.occurredAt);
+      if (!fact) {
+        throw new InvariantViolationError('Declared tag effect is malformed', {
+          identityKey: effect.identityKey,
+        });
+      }
+      await new TagRepository(this.db).record(uow, {
+        organizationId: context.organizationId,
+        fact,
+        actor: context.actor,
+        authorizationContext: context.authorizationContext,
+      });
+    }
+
+    await uow.publishEvent({
+      organizationId: context.organizationId,
+      stream: `match:${context.matchId}`,
+      entityId: context.matchId,
+      eventType: `effect.${effect.kind}`,
+      projectionVersion: 1,
+      payload: { identityKey: effect.identityKey, ...effect.payload },
+    });
   }
 
   @Post('bulk-load')

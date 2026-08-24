@@ -31,6 +31,51 @@ const subjects: Record<string, AuthenticatedSubject> = {
   inactive: { subjectId: 'inactive', scopes: ['copalibre.control'] },
 };
 
+function scriptParameter(
+  actionId: string,
+  name: string,
+  type: 'simple_string' | 'simple_number',
+  value: string | number,
+  expression = false,
+) {
+  return {
+    id: `${actionId}-${name}`,
+    name,
+    type,
+    value,
+    options: expression ? { expression: true } : {},
+  };
+}
+
+function scriptAction(
+  id: string,
+  type: string,
+  parameters: readonly ReturnType<typeof scriptParameter>[],
+) {
+  return { id, type, options: {}, params: parameters };
+}
+
+function eventHookAttachment(
+  scriptId: string,
+  actions: readonly ReturnType<typeof scriptAction>[],
+) {
+  return {
+    hook: 'event.recorded',
+    script: {
+      id: scriptId,
+      rules: [
+        {
+          id: `${scriptId}-rule`,
+          type: 'simple_rule',
+          options: {},
+          conditions: [],
+          actions,
+        },
+      ],
+    },
+  };
+}
+
 describe('live match console (integration)', () => {
   let app: INestApplication;
   let scratch: Awaited<ReturnType<typeof createMigratedDatabase>>;
@@ -430,6 +475,163 @@ describe('live match console (integration)', () => {
     expect(conflict.statusCode).toBe(409);
     // Leave the match running again for the tests that follow.
     await request('POST', `${base()}/commands/resume`, 'referee');
+  });
+
+  it('commits every declared-effect kind once and isolates an A2 script failure', async () => {
+    const tournaments = new TournamentRepository(scratch.db);
+    const tournament = await tournaments.findByScopedAlias('liga-prueba', 'apertura');
+    if (!tournament) throw new Error('Expected tournament');
+    const descriptor = await tournaments.findDescriptor(
+      tournament.disciplineRef.descriptorId,
+      tournament.disciplineRef.version,
+    );
+    if (!descriptor) throw new Error('Expected descriptor');
+
+    const successful = eventHookAttachment('all-effects', [
+      scriptAction('notify-action', 'notify', [
+        scriptParameter('notify-action', 'title', 'simple_string', 'Match update'),
+        scriptParameter(
+          'notify-action',
+          'message',
+          'simple_string',
+          '{{ event.definitionCode }}',
+          true,
+        ),
+      ]),
+      scriptAction('timer-start-action', 'startTimer', [
+        scriptParameter('timer-start-action', 'timerId', 'simple_string', 'hook-timer'),
+        scriptParameter('timer-start-action', 'durationSeconds', 'simple_number', 60),
+      ]),
+      scriptAction('timer-stop-action', 'stopTimer', [
+        scriptParameter('timer-stop-action', 'timerId', 'simple_string', 'hook-timer'),
+      ]),
+      scriptAction('statistic-action', 'adjustStatistic', [
+        scriptParameter('statistic-action', 'collectorCode', 'simple_string', 'bonus-points'),
+        scriptParameter('statistic-action', 'actorGranularity', 'simple_string', 'team'),
+        scriptParameter('statistic-action', 'actorId', 'simple_string', entrantIds[0] ?? ''),
+        scriptParameter('statistic-action', 'delta', 'simple_number', 2),
+      ]),
+      scriptAction('tag-action', 'applyTag', [
+        scriptParameter('tag-action', 'code', 'simple_string', 'hook-tag'),
+        scriptParameter('tag-action', 'actorGranularity', 'simple_string', 'person'),
+        scriptParameter('tag-action', 'actorId', 'simple_string', rosteredPersonId),
+        scriptParameter('tag-action', 'competitionGranularity', 'simple_string', 'match'),
+        scriptParameter('tag-action', 'competitionId', 'simple_string', matchId),
+      ]),
+    ]);
+    const failing = eventHookAttachment('failing-effects', [
+      scriptAction('discarded-notify', 'notify', [
+        scriptParameter('discarded-notify', 'title', 'simple_string', 'Must be discarded'),
+        scriptParameter('discarded-notify', 'message', 'simple_string', 'Partial effect'),
+      ]),
+      scriptAction('missing-context-adjustment', 'adjustStatistic', [
+        scriptParameter(
+          'missing-context-adjustment',
+          'collectorCode',
+          'simple_string',
+          'never-recorded',
+        ),
+        scriptParameter('missing-context-adjustment', 'actorGranularity', 'simple_string', 'team'),
+        scriptParameter(
+          'missing-context-adjustment',
+          'actorId',
+          'simple_string',
+          '{{ collectors.missing.total }}',
+          true,
+        ),
+        scriptParameter('missing-context-adjustment', 'delta', 'simple_number', 1),
+      ]),
+    ]);
+
+    const { ruleset: authoredRuleset } = await withTransaction(scratch.db, (uow) =>
+      tournaments.createRuleset(uow, {
+        tournamentId: tournament.tournamentId,
+        organizationId,
+        descriptor,
+        overrides: { format: 'round-robin' },
+        customScripts: [successful, failing],
+        ...audit,
+      }),
+    );
+
+    const key = crypto.randomUUID();
+    const payload = {
+      definitionCode: 'goal',
+      segmentId,
+      occurredAt: Date.now(),
+      side: entrantIds[0],
+      personId: rosteredPersonId,
+    };
+    const first = await request('POST', `${base()}/events`, 'referee', payload, key);
+    const replay = await request('POST', `${base()}/events`, 'referee', payload, key);
+    expect(first.statusCode).toBe(201);
+    expect(replay.json()).toEqual(first.json());
+    expect(first.json().notifications).toHaveLength(1);
+
+    const eventId = first.json().eventId as string;
+    const ledger = await scratch.db
+      .selectFrom('declared_effects')
+      .selectAll()
+      .where('cause_event_id', '=', eventId)
+      .execute();
+    expect(ledger.map((effect) => effect.kind).sort()).toEqual([
+      'notification',
+      'statistic-adjustment',
+      'tag',
+      'timer-start',
+      'timer-stop',
+    ]);
+    expect(ledger.every((effect) => effect.script_id === 'all-effects')).toBe(true);
+
+    await expect(
+      scratch.db
+        .selectFrom('statistic_adjustments')
+        .selectAll()
+        .where('match_id', '=', matchId)
+        .where('collector_code', '=', 'bonus-points')
+        .execute(),
+    ).resolves.toHaveLength(1);
+    await expect(
+      scratch.db
+        .selectFrom('tag_facts')
+        .selectAll()
+        .where('competition_id', '=', matchId)
+        .where('code', '=', 'hook-tag')
+        .execute(),
+    ).resolves.toHaveLength(1);
+
+    const outbox = (await new OutboxReader(scratch.db).pending()).filter(
+      (event) => event.entityId === matchId,
+    );
+    expect(outbox.map((event) => event.eventType)).toEqual(
+      expect.arrayContaining([
+        'notification.raised',
+        'effect.timer-start',
+        'effect.timer-stop',
+        'effect.statistic-adjustment',
+        'effect.tag',
+        'rule.evaluation-failed',
+      ]),
+    );
+    expect(
+      outbox.some(
+        (event) =>
+          event.eventType === 'notification.raised' &&
+          JSON.stringify(event.payload).includes('Must be discarded'),
+      ),
+    ).toBe(false);
+
+    const successfulAudit = await new AuditReader(scratch.db).historyFor(
+      'rule-script',
+      authoredRuleset.rulesetId,
+    );
+    expect(successfulAudit.some((entry) => entry.action === 'rule.evaluated')).toBe(true);
+    expect(successfulAudit.some((entry) => entry.action === 'rule.evaluation-failed')).toBe(true);
+    expect(
+      (await new CompetitionRepository(scratch.db).listEvents(matchId)).some(
+        (event) => event.eventId === eventId,
+      ),
+    ).toBe(true);
   });
 
   it('persists one finalization per idempotency key and rejects altered retries', async () => {

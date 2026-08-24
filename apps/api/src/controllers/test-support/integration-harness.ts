@@ -64,7 +64,7 @@ export async function buildTestApp(
   scratch: Awaited<ReturnType<typeof createMigratedDatabase>>;
   organizationId: string;
   request: (options: {
-    method: 'GET' | 'POST' | 'PATCH';
+    method: 'GET' | 'POST' | 'PUT' | 'PATCH';
     url: string;
     token?: string;
     payload?: unknown;
@@ -105,7 +105,7 @@ export async function buildTestApp(
   organizationId = organization.organizationId;
 
   function request(options: {
-    method: 'GET' | 'POST' | 'PATCH';
+    method: 'GET' | 'POST' | 'PUT' | 'PATCH';
     url: string;
     token?: string;
     payload?: unknown;

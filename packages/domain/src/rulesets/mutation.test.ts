@@ -1,6 +1,6 @@
 import { MutationBlockedError } from '../errors.js';
 import { fixtureDescriptor } from '../test-support/fixture-descriptor.js';
-import { evaluateMutation, type FixtureRef } from './mutation.js';
+import { evaluateCustomScriptsMutation, evaluateMutation, type FixtureRef } from './mutation.js';
 
 const policies = fixtureDescriptor().fieldPolicies;
 
@@ -71,5 +71,19 @@ describe('evaluateMutation', () => {
       hasRecordedResults: false,
     });
     expect(result.ok).toBe(false);
+  });
+
+  it('classifies custom scripts mutation: safe before results, blocked after results', () => {
+    const beforeResults = evaluateCustomScriptsMutation({ hasRecordedResults: false });
+    expect(beforeResults.ok).toBe(true);
+    if (beforeResults.ok) {
+      expect(beforeResults.value.mutationClass).toBe('safe');
+    }
+
+    const afterResults = evaluateCustomScriptsMutation({ hasRecordedResults: true });
+    expect(afterResults.ok).toBe(false);
+    if (!afterResults.ok) {
+      expect(afterResults.error.code).toBe('MUTATION_BLOCKED_AFTER_RESULTS');
+    }
   });
 });

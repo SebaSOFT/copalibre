@@ -10,7 +10,7 @@ const baseURL = `http://localhost:${port}`;
 export default defineConfig({
   testDir: '.',
   testMatch: ['e2e/**/*.spec.ts', 'apps/web/tests/**/*.spec.ts'],
-  testIgnore: '**/deployment-login.spec.ts',
+  testIgnore: ['**/deployment-login.spec.ts', '**/.claude/worktrees/**'],
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
