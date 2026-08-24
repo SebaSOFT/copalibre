@@ -90,13 +90,23 @@ export function battleRoyaleDescriptor(
     winCondition: winConditionScript('last-side-standing', { unit: 'placement-points' }),
     defaults: {
       format: 'free-for-all',
-      registration: { publicOpen: false, requiresCheckIn: false },
+      registration: {
+        publicOpen: false,
+        requiresCheckIn: false,
+        region: null,
+        capacity: null,
+      },
       scoring: { pointsPerWin: 0, pointsPerDraw: 0, pointsPerLoss: 0 },
       tiebreakers: ['placement-points', 'frags', 'best-placement'],
       segments: { roundsPerStage: 6, lobbySize: 20 },
     },
     fieldPolicies: {
       format: { permission: { kind: 'replaced' }, mutationClass: 'blocked_after_results' },
+      'registration.region': { permission: { kind: 'replaced' }, mutationClass: 'safe' },
+      'registration.capacity': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'requires_rebuild',
+      },
       'registration.publicOpen': { permission: { kind: 'replaced' }, mutationClass: 'safe' },
       'registration.requiresCheckIn': {
         permission: { kind: 'replaced' },

@@ -14,13 +14,15 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import {
+  CompetitionRepository,
   InvariantViolationError,
   OrganizationRepository,
+  TournamentProfileRepository,
   TournamentRepository,
   withTransaction,
   type Database,
 } from '@copalibre/persistence';
-import { SUPPORTED_FORMATS } from '@copalibre/domain';
+import { SUPPORTED_FORMATS, compileProfile, type TournamentProfile } from '@copalibre/domain';
 import type { Kysely } from 'kysely';
 import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
@@ -124,32 +126,90 @@ export class TournamentsController {
       );
     }
 
-    return withTransaction(this.db, async (uow) => {
-      const tournament = await tournaments.create(uow, {
-        organizationId: organization.organizationId,
-        alias: body.alias,
-        name: body.name,
-        descriptor,
-        actor: `user:${subject?.subjectId ?? 'unknown'}`,
-        authorizationContext: (subject?.scopes ?? []).join(' '),
+    let profileToBind: TournamentProfile | undefined;
+    if (body.profileId !== undefined && body.profileVersion !== undefined) {
+      const profileRepo = new TournamentProfileRepository(this.db);
+      const profile = await profileRepo.find(body.profileId, body.profileVersion);
+      if (!profile) {
+        throw new BadRequestException(
+          `Unknown tournament profile ${body.profileId}@${body.profileVersion}`,
+          { errorCode: 'tournament-bad-request' },
+        );
+      }
+      const compilation = compileProfile(descriptor, profile);
+      if (!compilation.ok) {
+        throw new BadRequestException(
+          `Profile cannot be applied to descriptor: ${compilation.error.message}`,
+          { errorCode: 'tournament-bad-request' },
+        );
+      }
+      profileToBind = profile;
+    }
+
+    try {
+      return await withTransaction(this.db, async (uow) => {
+        const tournament = await tournaments.create(uow, {
+          organizationId: organization.organizationId,
+          alias: body.alias,
+          name: body.name,
+          descriptor,
+          ...(profileToBind
+            ? { profile: { profileId: profileToBind.profileId, version: profileToBind.version } }
+            : {}),
+          actor: `user:${subject?.subjectId ?? 'unknown'}`,
+          authorizationContext: (subject?.scopes ?? []).join(' '),
+        });
+        const { ruleset } = await tournaments.createRuleset(uow, {
+          tournamentId: tournament.tournamentId,
+          organizationId: organization.organizationId,
+          descriptor,
+          overrides: {
+            format: body.format,
+            'registration.publicOpen': body.publicRegistration,
+            'registration.requiresCheckIn': body.requiresCheckIn,
+            ...(body.checkInClosesAt === undefined
+              ? {}
+              : { 'registration.checkInClosesAt': body.checkInClosesAt }),
+            ...(body.region === undefined ? {} : { 'registration.region': body.region }),
+            ...(body.capacity === undefined ? {} : { 'registration.capacity': body.capacity }),
+          },
+          actor: `user:${subject?.subjectId ?? 'unknown'}`,
+          authorizationContext: (subject?.scopes ?? []).join(' '),
+        });
+
+        if (profileToBind) {
+          const competition = new CompetitionRepository(this.db);
+          for (const stage of profileToBind.stages) {
+            const createdStage = await competition.createStageInTournament(uow, {
+              organizationId: organization.organizationId,
+              tournamentId: tournament.tournamentId,
+              name: stage.name,
+              number: stage.number,
+              format: stage.format,
+              actor: `user:${subject?.subjectId ?? 'unknown'}`,
+              authorizationContext: (subject?.scopes ?? []).join(' '),
+            });
+            if (stage.overrides && Object.keys(stage.overrides).length > 0) {
+              await tournaments.createStageConfiguration(uow, {
+                organizationId: organization.organizationId,
+                stageId: createdStage.stageId,
+                rulesetId: ruleset.rulesetId,
+                overrides: stage.overrides,
+                actor: `user:${subject?.subjectId ?? 'unknown'}`,
+                authorizationContext: (subject?.scopes ?? []).join(' '),
+              });
+            }
+          }
+        }
+
+        return { ...tournament, rulesetId: ruleset.rulesetId };
       });
-      const { ruleset } = await tournaments.createRuleset(uow, {
-        tournamentId: tournament.tournamentId,
-        organizationId: organization.organizationId,
-        descriptor,
-        overrides: {
-          format: body.format,
-          'registration.publicOpen': body.publicRegistration,
-          'registration.requiresCheckIn': body.requiresCheckIn,
-          ...(body.checkInClosesAt === undefined
-            ? {}
-            : { 'registration.checkInClosesAt': body.checkInClosesAt }),
-        },
-        actor: `user:${subject?.subjectId ?? 'unknown'}`,
-        authorizationContext: (subject?.scopes ?? []).join(' '),
-      });
-      return { ...tournament, rulesetId: ruleset.rulesetId };
-    });
+    } catch (error) {
+      if (error instanceof InvariantViolationError) {
+        throw new BadRequestException(error.message, { errorCode: 'tournament-bad-request' });
+      }
+      throw error;
+    }
   }
 
   @Post(':tournamentAlias/publish')

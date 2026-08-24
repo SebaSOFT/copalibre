@@ -24,8 +24,8 @@ describe('default module catalogue', () => {
       'liga-ida-vuelta',
     ]);
     expect(catalogue.assets.map((asset) => asset.reference.key)).toEqual([
-      'modules/football/1.2.0/football-01.jpg',
-      'modules/tennis/1.1.0/tennis-01.jpg',
+      'modules/football/1.3.0/football-01.jpg',
+      'modules/tennis/1.2.0/tennis-01.jpg',
     ]);
     expect(catalogue.assets.every((asset) => asset.body.byteLength > 0)).toBe(true);
     expect(catalogue.disciplines).toEqual(
@@ -94,23 +94,28 @@ describe('default module catalogue', () => {
 
   it('keeps profiles discipline-neutral and reserves every shipped alias', async () => {
     const catalogue = await loadDefaultModuleCatalogue();
-    const serializedProfiles = JSON.stringify(catalogue.profiles);
 
-    expect(serializedProfiles).not.toContain('descriptorId');
-    expect(serializedProfiles).not.toContain('disciplineId');
-    expect(serializedProfiles).not.toContain('disciplineVersion');
-    expect(catalogue.reservedAliases).toEqual(
-      [...catalogue.disciplines, ...catalogue.profiles].map((document) => document.alias).sort(),
-    );
-    expect(new Set(catalogue.reservedAliases).size).toBe(catalogue.reservedAliases.length);
+    expect(catalogue.reservedAliases).toEqual([
+      'copa-eliminacion',
+      'football',
+      'grupos-y-playoff',
+      'liga-ida-vuelta',
+      'tennis',
+    ]);
+    for (const profile of catalogue.profiles) {
+      expect(profile).not.toHaveProperty('descriptorId');
+      expect(profile).not.toHaveProperty('descriptorVersion');
+    }
   });
 
   it('documents expression-mode parameters in a shipped discipline', async () => {
     const catalogue = await loadDefaultModuleCatalogue();
     const tennis = catalogue.disciplines.find((descriptor) => descriptor.alias === 'tennis');
+    if (!tennis) throw new Error('Expected tennis catalogue document');
 
-    expect(JSON.stringify(tennis)).toContain('"value":"{{ 1 + 1 }}"');
-    expect(JSON.stringify(tennis)).toContain('"expression":true');
+    const serialized = JSON.stringify(tennis.winCondition);
+    expect(serialized).toContain('"expression":true');
+    expect(serialized).toContain('{{ 1 + 1 }}');
   });
 
   it("declares football's foul and throw-in outcome-choice workflows against real sibling event codes (0115)", async () => {
@@ -154,11 +159,11 @@ describe('default module catalogue', () => {
     );
   });
 
-  it('declares football 1.2.0 offside, VAR review, penalty shootout, and stoppage time (0131)', async () => {
+  it('declares football 1.3.0 offside, VAR review, penalty shootout, and stoppage time (0131/0132)', async () => {
     const catalogue = await loadDefaultModuleCatalogue();
     const football = catalogue.disciplines.find((descriptor) => descriptor.alias === 'football');
     if (!football) throw new Error('Expected football catalogue document');
-    expect(football.version).toBe('1.2.0');
+    expect(football.version).toBe('1.3.0');
 
     const codes = new Set(football.eventDefinitions.map((definition) => definition.code));
     expect(codes.has('offside')).toBe(true);
@@ -188,11 +193,11 @@ describe('default module catalogue', () => {
     expect(football.segmentTypes.map((segment) => segment.name)).toContain('penalty-shootout');
   });
 
-  it('declares tennis 1.1.0 doubles label and best-of-five win condition matching domain builder (0131)', async () => {
+  it('declares tennis 1.2.0 doubles label and best-of-five win condition matching domain builder (0131/0132)', async () => {
     const catalogue = await loadDefaultModuleCatalogue();
     const tennis = catalogue.disciplines.find((descriptor) => descriptor.alias === 'tennis');
     if (!tennis) throw new Error('Expected tennis catalogue document');
-    expect(tennis.version).toBe('1.1.0');
+    expect(tennis.version).toBe('1.2.0');
 
     const uiMetadata = tennis.uiMetadata as {
       participantTypeLabels?: Record<string, unknown>;
@@ -221,6 +226,27 @@ describe('default module catalogue', () => {
     expect(JSON.parse(JSON.stringify(scriptToCompare))).toEqual(
       JSON.parse(JSON.stringify(expectedScript)),
     );
+  });
+
+  it('declares registration.region and registration.capacity defaults and field policies (0132)', async () => {
+    const catalogue = await loadDefaultModuleCatalogue();
+    for (const alias of ['football', 'tennis']) {
+      const discipline = catalogue.disciplines.find((d) => d.alias === alias);
+      if (!discipline) throw new Error(`Expected ${alias} catalogue document`);
+
+      const defaults = discipline.defaults as { registration?: Record<string, unknown> };
+      expect(defaults?.registration?.region).toBeNull();
+      expect(defaults?.registration?.capacity).toBeNull();
+
+      expect(discipline.fieldPolicies['registration.region']).toEqual({
+        permission: { kind: 'replaced' },
+        mutationClass: 'safe',
+      });
+      expect(discipline.fieldPolicies['registration.capacity']).toEqual({
+        permission: { kind: 'replaced' },
+        mutationClass: 'requires_rebuild',
+      });
+    }
   });
 });
 

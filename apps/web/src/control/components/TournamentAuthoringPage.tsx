@@ -80,6 +80,7 @@ export function TournamentAuthoringPage({
       {status.kind !== 'ready' && <p className="cl-inline-alert">{statusMessage(status)}</p>}
       <TournamentSetupWizard
         disciplines={disciplines}
+        loadProfiles={api.listCompatibleProfiles}
         onSubmit={(request) => {
           setStatus({ kind: 'creating' });
           api

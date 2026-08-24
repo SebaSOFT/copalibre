@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TournamentsController } from '../controllers/tournaments.controller.js';
+import { TournamentProfilesController } from '../controllers/tournament-profiles.controller.js';
 import { StagesController } from '../controllers/stages.controller.js';
 import { SeedingController } from '../controllers/seeding.controller.js';
 import { StandingsController } from '../controllers/standings.controller.js';
@@ -11,6 +12,7 @@ import { CoreModule } from './core.module.js';
   imports: [CoreModule],
   controllers: [
     TournamentsController,
+    TournamentProfilesController,
     StagesController,
     SeedingController,
     StandingsController,

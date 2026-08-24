@@ -857,6 +857,18 @@ export const messages = defineMessages({
   wizardFieldFormat: { id: 'control.wizard.field.format', defaultMessage: 'Format' },
   wizardFieldRegion: { id: 'control.wizard.field.region', defaultMessage: 'Region' },
   wizardFieldCapacity: { id: 'control.wizard.field.capacity', defaultMessage: 'Capacity' },
+  wizardFieldProfile: {
+    id: 'control.wizard.field.profile',
+    defaultMessage: 'Competition Profile',
+  },
+  wizardProfileNone: {
+    id: 'control.wizard.profile.none',
+    defaultMessage: 'None (Single stage)',
+  },
+  wizardFieldCheckInClosesAt: {
+    id: 'control.wizard.field.checkInClosesAt',
+    defaultMessage: 'Check-in Deadline',
+  },
   wizardPublicRegistration: {
     id: 'control.wizard.publicRegistration',
     defaultMessage: 'Open public registration',

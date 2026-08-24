@@ -150,6 +150,8 @@ test('creates a tournament from the control authoring wizard', async ({ page }) 
           format: 'round-robin',
           publicRegistration: true,
           requiresCheckIn: true,
+          region: 'Mendoza',
+          capacity: 16,
         }),
       }),
     );

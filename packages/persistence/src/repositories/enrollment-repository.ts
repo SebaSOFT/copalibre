@@ -503,12 +503,17 @@ export class EnrollmentRepository {
       readonly reason?: string;
     } & AuditContext,
   ): Promise<Entrant> {
-    const before = await this.findEntrant(input.entrantId);
-    if (!before) {
+    const rowBefore = await uow.tx
+      .selectFrom('entrants')
+      .selectAll()
+      .where('entrant_id', '=', input.entrantId)
+      .executeTakeFirst();
+    if (!rowBefore) {
       throw new InvariantViolationError(`Entrant ${input.entrantId} does not exist`, {
         entrantId: input.entrantId,
       });
     }
+    const before = toEntrant(rowBefore);
 
     const row = await uow.tx
       .updateTable('entrants')

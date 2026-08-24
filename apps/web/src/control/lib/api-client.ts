@@ -7,7 +7,7 @@ import type {
 import type { CanvasMatch } from './bracket-canvas.js';
 import type { RegistrationStatus } from './review.js';
 import type { StandingsData } from './standings.js';
-import type { DisciplineOption } from './wizard.js';
+import type { DisciplineOption, TournamentProfileOption } from './wizard.js';
 
 export interface ControlApiClient {
   /** Every organization the authenticated caller belongs to, with their role. */
@@ -21,6 +21,11 @@ export interface ControlApiClient {
   readonly removeModule?: (alias: string) => Promise<RemoveModuleResponse>;
   readonly verifyModules?: () => Promise<readonly ModuleVerifyResultResponse[]>;
   readonly listDisciplines: () => Promise<readonly DisciplineOption[]>;
+  readonly listCompatibleProfiles?: (
+    descriptorId: string,
+    descriptorVersion: string,
+    format?: string,
+  ) => Promise<readonly TournamentProfileOption[]>;
   readonly createTournament: (
     organizationAlias: string,
     request: CreateTournamentRequest,
@@ -1223,6 +1228,15 @@ export function createControlApiClient(input: {
 
     listDisciplines: () =>
       requestJson<readonly DisciplineOption[]>(input.fetch, `${baseUrl}/disciplines`),
+
+    listCompatibleProfiles: (descriptorId, descriptorVersion, format) => {
+      const params = new URLSearchParams({ descriptorId, descriptorVersion });
+      if (format !== undefined && format.trim() !== '') params.set('format', format);
+      return requestJson<readonly TournamentProfileOption[]>(
+        input.fetch,
+        `${baseUrl}/tournament-profiles/compatible?${params}`,
+      );
+    },
 
     createTournament: (organizationAlias, body) =>
       requestJson<TournamentResponse>(

@@ -1,11 +1,11 @@
 {
   "alias": "tennis",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "name": { "en": "Tennis", "es": "Tenis" },
   "description": {
     "en": "Individual or team racket discipline with sets, games, points, tiebreaks, and match statistics."
   },
-  "images": [{ "key": "modules/tennis/1.1.0/tennis-01.jpg" }],
+  "images": [{ "key": "modules/tennis/1.2.0/tennis-01.jpg" }],
   "attribution": {
     "author": "CopaLibre",
     "licence": "AGPL-3.0-only",
@@ -531,7 +531,12 @@
   },
   "defaults": {
     "format": "round-robin",
-    "registration": { "publicOpen": false, "requiresCheckIn": false },
+    "registration": {
+      "publicOpen": false,
+      "requiresCheckIn": false,
+      "region": null,
+      "capacity": null
+    },
     "scoring": { "pointsPerWin": 2, "pointsPerDraw": 0, "pointsPerLoss": 0 },
     "tiebreakers": ["matches-won", "sets-won", "games-won"],
     "segments": { "bestOf": 3, "tiebreakInFinalSet": true }
@@ -545,6 +550,11 @@
       "mutationClass": "requires_rebuild"
     },
     "registration.checkInClosesAt": {
+      "permission": { "kind": "replaced" },
+      "mutationClass": "requires_rebuild"
+    },
+    "registration.region": { "permission": { "kind": "replaced" }, "mutationClass": "safe" },
+    "registration.capacity": {
       "permission": { "kind": "replaced" },
       "mutationClass": "requires_rebuild"
     },

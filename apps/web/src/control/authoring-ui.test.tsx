@@ -45,6 +45,71 @@ describe('the tournament setup wizard screen', () => {
       },
     ]);
   });
+
+  it('submits region, capacity, check-in deadline, and selected profile preset', () => {
+    const submitted: unknown[] = [];
+    const profiles = [
+      {
+        profileId: '01890000-0000-7000-8000-000000000099',
+        alias: 'grupos-y-playoff',
+        version: '1.0.0',
+        name: 'Groups and playoff',
+        stages: [
+          { number: 1, name: 'Groups', format: 'round-robin' },
+          { number: 2, name: 'Playoff', format: 'single-elimination' },
+        ],
+      },
+    ];
+
+    render(
+      withIntl(
+        <TournamentSetupWizard
+          disciplines={sampleDisciplines()}
+          profiles={profiles}
+          onSubmit={(request) => submitted.push(request)}
+        />,
+      ),
+    );
+
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Torneo Apertura' } });
+    fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'torneo-apertura' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+    expect(screen.getByLabelText('Competition Profile')).toBeDefined();
+    fireEvent.change(screen.getByLabelText('Competition Profile'), {
+      target: { value: '01890000-0000-7000-8000-000000000099' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+    fireEvent.change(screen.getByLabelText('Region'), { target: { value: 'Cuyo' } });
+    fireEvent.change(screen.getByLabelText('Capacity'), { target: { value: '16' } });
+    fireEvent.click(screen.getByLabelText('Requires check-in'));
+    fireEvent.change(screen.getByLabelText('Check-in Deadline'), {
+      target: { value: '2026-09-01T12:00' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Create tournament' }));
+
+    expect(submitted).toEqual([
+      {
+        alias: 'torneo-apertura',
+        name: 'Torneo Apertura',
+        descriptorId: '01890000-0000-7000-8000-000000000001',
+        descriptorVersion: '1.2.0',
+        format: 'single-elimination',
+        publicRegistration: false,
+        requiresCheckIn: true,
+        region: 'Cuyo',
+        capacity: 16,
+        checkInClosesAt: '2026-09-01T12:00',
+        profileId: '01890000-0000-7000-8000-000000000099',
+        profileVersion: '1.0.0',
+      },
+    ]);
+  });
 });
 
 describe('the registration review screen', () => {

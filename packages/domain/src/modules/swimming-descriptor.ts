@@ -71,13 +71,23 @@ export function swimmingDescriptor(
     winCondition: winConditionScript('fastest-time', { unit: 'best-time' }),
     defaults: {
       format: 'heats',
-      registration: { publicOpen: false, requiresCheckIn: false },
+      registration: {
+        publicOpen: false,
+        requiresCheckIn: false,
+        region: null,
+        capacity: null,
+      },
       scoring: { pointsPerWin: 0, pointsPerDraw: 0, pointsPerLoss: 0 },
       tiebreakers: ['best-time'],
       segments: { lanesPerHeat: 8 },
     },
     fieldPolicies: {
       format: { permission: { kind: 'replaced' }, mutationClass: 'blocked_after_results' },
+      'registration.region': { permission: { kind: 'replaced' }, mutationClass: 'safe' },
+      'registration.capacity': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'requires_rebuild',
+      },
       'registration.publicOpen': { permission: { kind: 'replaced' }, mutationClass: 'safe' },
       'registration.requiresCheckIn': {
         permission: { kind: 'replaced' },

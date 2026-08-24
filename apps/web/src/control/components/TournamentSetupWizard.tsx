@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { Button } from './ui/button.js';
 import { Card } from './ui/card.js';
@@ -13,20 +13,32 @@ import {
   stepProblems,
   toCreateRequest,
   type DisciplineOption,
+  type TournamentProfileOption,
   type WizardState,
 } from '../lib/wizard.js';
 import { messages } from '../i18n/messages.en.js';
 import { localizedText } from '../../lib/localized-label.js';
 
+const EMPTY_PROFILES: readonly TournamentProfileOption[] = [];
+
 export function TournamentSetupWizard({
   disciplines,
+  profiles: initialProfiles = EMPTY_PROFILES,
+  loadProfiles,
   onSubmit,
 }: {
   readonly disciplines: readonly DisciplineOption[];
+  readonly profiles?: readonly TournamentProfileOption[];
+  readonly loadProfiles?: (
+    descriptorId: string,
+    version: string,
+    format?: string,
+  ) => Promise<readonly TournamentProfileOption[]>;
   readonly onSubmit?: (request: ReturnType<typeof toCreateRequest>) => void;
 }): React.JSX.Element {
   const intl = useIntl();
   const firstDiscipline = disciplines[0];
+  const [asyncProfiles, setAsyncProfiles] = useState<readonly TournamentProfileOption[]>([]);
   const [state, setState] = useState<WizardState>(() => ({
     ...initialWizard(),
     ...(firstDiscipline === undefined
@@ -37,6 +49,24 @@ export function TournamentSetupWizard({
           format: firstDiscipline.supportedFormats[0],
         }),
   }));
+
+  useEffect(() => {
+    if (!loadProfiles || !state.descriptorId || !state.descriptorVersion) {
+      return;
+    }
+    let live = true;
+    loadProfiles(state.descriptorId, state.descriptorVersion, state.format)
+      .then((loaded) => {
+        if (live) setAsyncProfiles(loaded);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [loadProfiles, state.descriptorId, state.descriptorVersion, state.format]);
+
+  const profiles = loadProfiles ? asyncProfiles : initialProfiles;
+
   const problems = stepProblems(state, disciplines);
   const formats = useMemo(
     () => formatsFor(disciplines, state.descriptorId),
@@ -126,6 +156,8 @@ export function TournamentSetupWizard({
                   descriptorId: discipline?.descriptorId,
                   descriptorVersion: discipline?.version,
                   format: discipline?.supportedFormats[0],
+                  profileId: undefined,
+                  profileVersion: undefined,
                 });
               }}
               style={fieldStyle}
@@ -145,21 +177,57 @@ export function TournamentSetupWizard({
         )}
 
         {state.step === 'format' && (
-          <Field label={intl.formatMessage(messages.wizardFieldFormat)}>
-            <select
-              aria-label={intl.formatMessage(messages.wizardFieldFormat)}
-              className="cl-focusable"
-              onChange={(event) => patch({ format: event.target.value })}
-              style={fieldStyle}
-              value={state.format ?? ''}
-            >
-              {formats.map((format) => (
-                <option key={format} value={format}>
-                  {format}
-                </option>
-              ))}
-            </select>
-          </Field>
+          <div style={formGridStyle}>
+            <Field label={intl.formatMessage(messages.wizardFieldFormat)}>
+              <select
+                aria-label={intl.formatMessage(messages.wizardFieldFormat)}
+                className="cl-focusable"
+                onChange={(event) =>
+                  patch({
+                    format: event.target.value,
+                    profileId: undefined,
+                    profileVersion: undefined,
+                  })
+                }
+                style={fieldStyle}
+                value={state.format ?? ''}
+              >
+                {formats.map((format) => (
+                  <option key={format} value={format}>
+                    {format}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            {profiles.length > 0 && (
+              <Field label={intl.formatMessage(messages.wizardFieldProfile)}>
+                <select
+                  aria-label={intl.formatMessage(messages.wizardFieldProfile)}
+                  className="cl-focusable"
+                  onChange={(event) => {
+                    const selectedProfile = profiles.find(
+                      (p) => p.profileId === event.target.value,
+                    );
+                    patch({
+                      profileId: selectedProfile?.profileId,
+                      profileVersion: selectedProfile?.version,
+                    });
+                  }}
+                  style={fieldStyle}
+                  value={state.profileId ?? ''}
+                >
+                  <option value="">{intl.formatMessage(messages.wizardProfileNone)}</option>
+                  {profiles.map((profile) => (
+                    <option key={profile.profileId} value={profile.profileId}>
+                      {localizedText(profile.name, intl.locale)} (
+                      {profile.stages.map((s) => s.name).join(' → ')}) · {profile.version}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            )}
+          </div>
         )}
 
         {state.step === 'window' && (
@@ -178,7 +246,11 @@ export function TournamentSetupWizard({
                 aria-label={intl.formatMessage(messages.wizardFieldCapacity)}
                 className="cl-focusable"
                 min={2}
-                onChange={(event) => patch({ capacity: Number(event.target.value) })}
+                onChange={(event) =>
+                  patch({
+                    capacity: event.target.value === '' ? undefined : Number(event.target.value),
+                  })
+                }
                 style={fieldStyle}
                 type="number"
                 value={state.capacity ?? ''}
@@ -200,6 +272,18 @@ export function TournamentSetupWizard({
               />
               <FormattedMessage {...messages.wizardRequiresCheckIn} />
             </label>
+            {state.requiresCheckIn && (
+              <Field label={intl.formatMessage(messages.wizardFieldCheckInClosesAt)}>
+                <input
+                  aria-label={intl.formatMessage(messages.wizardFieldCheckInClosesAt)}
+                  className="cl-focusable"
+                  onChange={(event) => patch({ checkInClosesAt: event.target.value })}
+                  style={fieldStyle}
+                  type="datetime-local"
+                  value={state.checkInClosesAt ?? ''}
+                />
+              </Field>
+            )}
           </div>
         )}
 
