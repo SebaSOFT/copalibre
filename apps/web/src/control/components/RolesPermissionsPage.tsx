@@ -83,7 +83,13 @@ export function RolesPermissionsPage({
           {error ?? actionError}
         </p>
       ) : null}
-      <div className="cl-card cl-chamfer cl-chamfer--control" style={tableStyle}>
+      <div
+        aria-label={intl.formatMessage(messages.rolesSectionLabel)}
+        className="cl-card cl-chamfer cl-chamfer--control"
+        role="region"
+        style={tableStyle}
+        tabIndex={0}
+      >
         <div style={tableHeaderStyle}>
           <span>
             <FormattedMessage {...messages.rolesColumnUser} />
@@ -323,13 +329,13 @@ const metaStyle: React.CSSProperties = {
   margin: 0,
   color: 'var(--cl-state-live)',
   fontFamily: 'var(--cl-font-mono)',
-  fontSize: '0.75rem',
+  fontSize: 'var(--cl-font-size-xs)',
   textTransform: 'uppercase',
 };
 const titleStyle: React.CSSProperties = {
   margin: 0,
   fontFamily: 'var(--cl-font-display)',
-  fontSize: '3rem',
+  fontSize: 'var(--cl-font-size-3xl)',
   textTransform: 'uppercase',
 };
 const addButtonStyle: React.CSSProperties = {
@@ -337,26 +343,33 @@ const addButtonStyle: React.CSSProperties = {
   background: 'var(--cl-state-live)',
   color: 'var(--cl-surface-base)',
   fontFamily: 'var(--cl-font-display)',
-  fontSize: '1rem',
-  minHeight: 40,
+  fontSize: 'var(--cl-font-size-base)',
+  minHeight: 'var(--cl-touch-target)',
   padding: '0 var(--cl-space-4)',
   textTransform: 'uppercase',
 };
-const tableStyle: React.CSSProperties = { display: 'grid', padding: 0, overflow: 'hidden' };
+const tableStyle: React.CSSProperties = {
+  display: 'grid',
+  padding: 0,
+  overflowX: 'auto',
+  scrollbarGutter: 'stable',
+};
 const tableHeaderStyle: React.CSSProperties = {
   display: 'grid',
   gridTemplateColumns: 'minmax(190px, 2fr) minmax(120px, 1fr) minmax(120px, 1fr) 100px',
+  minWidth: 590,
   gap: 'var(--cl-space-3)',
   padding: 'var(--cl-space-3) var(--cl-space-4)',
   borderBottom: '1px solid var(--cl-border-muted)',
   color: 'var(--cl-text-muted)',
   fontFamily: 'var(--cl-font-mono)',
-  fontSize: '0.75rem',
+  fontSize: 'var(--cl-font-size-xs)',
   textTransform: 'uppercase',
 };
 const rowStyle: React.CSSProperties = {
   display: 'grid',
   gridTemplateColumns: 'minmax(190px, 2fr) minmax(120px, 1fr) minmax(120px, 1fr) 100px',
+  minWidth: 590,
   gap: 'var(--cl-space-3)',
   alignItems: 'center',
   padding: 'var(--cl-space-3) var(--cl-space-4)',
@@ -377,16 +390,16 @@ const avatarStyle: React.CSSProperties = {
   background: 'var(--cl-surface-raised)',
   border: '1px solid var(--cl-border-muted)',
   fontFamily: 'var(--cl-font-mono)',
-  fontSize: '0.75rem',
+  fontSize: 'var(--cl-font-size-xs)',
 };
 const idStyle: React.CSSProperties = {
   display: 'block',
   color: 'var(--cl-text-muted)',
   fontFamily: 'var(--cl-font-mono)',
-  fontSize: '0.7rem',
+  fontSize: 'var(--cl-font-size-xs)',
 };
 const selectStyle: React.CSSProperties = {
-  minHeight: 36,
+  minHeight: 'var(--cl-touch-target)',
   background: 'var(--cl-surface-base)',
   border: '1px solid var(--cl-border-muted)',
   color: 'var(--cl-text-primary)',
@@ -397,7 +410,7 @@ const statusStyle: React.CSSProperties = {
   alignItems: 'center',
   gap: 'var(--cl-space-2)',
   fontFamily: 'var(--cl-font-mono)',
-  fontSize: '0.75rem',
+  fontSize: 'var(--cl-font-size-xs)',
   textTransform: 'uppercase',
 };
 const deleteButtonStyle: React.CSSProperties = {
@@ -405,7 +418,7 @@ const deleteButtonStyle: React.CSSProperties = {
   border: '1px solid var(--cl-state-negative)',
   background: 'transparent',
   color: 'var(--cl-state-negative)',
-  minHeight: 32,
+  minHeight: 'var(--cl-touch-target)',
   padding: '0 var(--cl-space-2)',
 };
 const emptyStyle: React.CSSProperties = {
@@ -438,7 +451,7 @@ const dialogHeaderStyle: React.CSSProperties = {
 const dialogTitleStyle: React.CSSProperties = {
   margin: 0,
   fontFamily: 'var(--cl-font-display)',
-  fontSize: '1.5rem',
+  fontSize: 'var(--cl-font-size-xl)',
   textTransform: 'uppercase',
 };
 const closeStyle: React.CSSProperties = {
@@ -451,11 +464,11 @@ const fieldStyle: React.CSSProperties = {
   gap: 'var(--cl-space-2)',
   color: 'var(--cl-text-muted)',
   fontFamily: 'var(--cl-font-mono)',
-  fontSize: '0.75rem',
+  fontSize: 'var(--cl-font-size-xs)',
   textTransform: 'uppercase',
 };
 const inputStyle: React.CSSProperties = {
-  minHeight: 40,
+  minHeight: 'var(--cl-touch-target)',
   background: 'var(--cl-surface-base)',
   border: '1px solid var(--cl-border-muted)',
   color: 'var(--cl-text-primary)',
@@ -467,7 +480,7 @@ const dialogFooterStyle: React.CSSProperties = {
   gap: 'var(--cl-space-3)',
 };
 const secondaryButtonStyle: React.CSSProperties = {
-  minHeight: 40,
+  minHeight: 'var(--cl-touch-target)',
   background: 'transparent',
   border: '1px solid var(--cl-border-muted)',
   color: 'var(--cl-text-primary)',

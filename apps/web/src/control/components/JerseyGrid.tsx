@@ -350,7 +350,7 @@ const teamHeaderStyle: React.CSSProperties = {
 const sectionLabelStyle: React.CSSProperties = {
   margin: 0,
   color: 'var(--cl-text-muted)',
-  fontSize: '0.8rem',
+  fontSize: 'var(--cl-font-size-sm)',
   textTransform: 'uppercase',
 };
 const jerseyGridStyle: React.CSSProperties = {
@@ -360,11 +360,11 @@ const jerseyGridStyle: React.CSSProperties = {
 };
 const jerseyNumberStyle: React.CSSProperties = {
   fontFamily: 'var(--cl-font-mono)',
-  fontSize: '1.25rem',
+  fontSize: 'var(--cl-font-size-lg)',
   fontWeight: 700,
 };
 const jerseyNameStyle: React.CSSProperties = {
-  fontSize: '0.75rem',
+  fontSize: 'var(--cl-font-size-xs)',
   textAlign: 'center',
   overflow: 'hidden',
   textOverflow: 'ellipsis',

@@ -163,7 +163,13 @@ export function StandingsPage({
             </button>
           )}
 
-          <div className="cl-card cl-chamfer cl-chamfer--control" style={tableStyle}>
+          <div
+            aria-label={intl.formatMessage(messages.standingsSectionLabel)}
+            className="cl-card cl-chamfer cl-chamfer--control"
+            role="region"
+            style={tableStyle}
+            tabIndex={0}
+          >
             <div style={{ ...gridStyle(columns.length), ...tableHeaderStyle }}>
               {columns.map((column) => (
                 <button
@@ -360,6 +366,7 @@ function gridStyle(columnCount: number): React.CSSProperties {
   return {
     display: 'grid',
     gridTemplateColumns: `repeat(${columnCount}, minmax(3rem, 1fr)) 10rem`,
+    minWidth: `${columnCount * 64 + 160}px`,
     gap: 'var(--cl-space-3)',
     alignItems: 'center',
   };
@@ -377,19 +384,19 @@ const metaStyle: React.CSSProperties = {
   margin: 0,
   color: 'var(--cl-state-live)',
   fontFamily: 'var(--cl-font-mono)',
-  fontSize: '0.75rem',
+  fontSize: 'var(--cl-font-size-xs)',
   textTransform: 'uppercase',
 };
 const titleStyle: React.CSSProperties = {
   margin: 0,
   fontFamily: 'var(--cl-font-display)',
-  fontSize: '3rem',
+  fontSize: 'var(--cl-font-size-3xl)',
   textTransform: 'uppercase',
 };
 const smallStyle: React.CSSProperties = {
   color: 'var(--cl-text-muted)',
   fontFamily: 'var(--cl-font-mono)',
-  fontSize: '0.75rem',
+  fontSize: 'var(--cl-font-size-xs)',
 };
 const groupSelectorLabelStyle: React.CSSProperties = {
   display: 'grid',
@@ -414,7 +421,7 @@ const tabStyle: React.CSSProperties = {
   background: 'transparent',
   color: 'var(--cl-text-muted)',
   fontFamily: 'var(--cl-font-mono)',
-  fontSize: '0.75rem',
+  fontSize: 'var(--cl-font-size-xs)',
   textTransform: 'uppercase',
   cursor: 'pointer',
 };
@@ -425,14 +432,20 @@ const activeTabStyle: React.CSSProperties = {
   borderColor: 'var(--cl-state-live)',
 };
 const exportButtonStyle: React.CSSProperties = { justifySelf: 'start' };
-const tableStyle: React.CSSProperties = { display: 'grid', gap: 0, padding: 0, overflow: 'hidden' };
+const tableStyle: React.CSSProperties = {
+  display: 'grid',
+  gap: 0,
+  padding: 0,
+  overflowX: 'auto',
+  scrollbarGutter: 'stable',
+};
 const tableHeaderStyle: React.CSSProperties = {
   padding: 'var(--cl-space-3) var(--cl-space-4)',
   borderBottom: '1px solid var(--cl-border-muted)',
   color: 'var(--cl-text-muted)',
   fontFamily: 'var(--cl-font-mono)',
   textTransform: 'uppercase',
-  fontSize: '0.75rem',
+  fontSize: 'var(--cl-font-size-xs)',
 };
 const headerButtonStyle: React.CSSProperties = {
   background: 'transparent',
@@ -454,7 +467,7 @@ const traceStyle: React.CSSProperties = { display: 'grid', gap: 'var(--cl-space-
 const traceTitleStyle: React.CSSProperties = {
   margin: 0,
   fontFamily: 'var(--cl-font-mono)',
-  fontSize: '0.75rem',
+  fontSize: 'var(--cl-font-size-xs)',
   textTransform: 'uppercase',
   color: 'var(--cl-text-muted)',
 };
@@ -466,14 +479,14 @@ const traceListStyle: React.CSSProperties = {
 };
 const traceLineStyle: React.CSSProperties = {
   fontFamily: 'var(--cl-font-mono)',
-  fontSize: '0.8125rem',
+  fontSize: 'var(--cl-font-size-sm)',
   whiteSpace: 'pre-wrap',
 };
 const chartStyle: React.CSSProperties = { display: 'grid', gap: 'var(--cl-space-3)' };
 const chartTitleStyle: React.CSSProperties = {
   margin: 0,
   fontFamily: 'var(--cl-font-mono)',
-  fontSize: '0.75rem',
+  fontSize: 'var(--cl-font-size-xs)',
   textTransform: 'uppercase',
   color: 'var(--cl-text-muted)',
 };
@@ -483,7 +496,7 @@ const barRowStyle: React.CSSProperties = {
   gap: 'var(--cl-space-3)',
   alignItems: 'center',
 };
-const barLabelStyle: React.CSSProperties = { fontSize: '0.875rem' };
+const barLabelStyle: React.CSSProperties = { fontSize: 'var(--cl-font-size-sm)' };
 const barTrackStyle: React.CSSProperties = {
   display: 'block',
   height: 12,

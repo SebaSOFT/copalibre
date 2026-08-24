@@ -560,7 +560,10 @@ const inputStyle: React.CSSProperties = {
   background: 'var(--cl-surface-base)',
   color: 'inherit',
 };
-const mutedStyle: React.CSSProperties = { color: 'var(--cl-text-muted)', fontSize: '0.85rem' };
+const mutedStyle: React.CSSProperties = {
+  color: 'var(--cl-text-muted)',
+  fontSize: 'var(--cl-font-size-sm)',
+};
 const fieldsetStyle: React.CSSProperties = {
   border: '1px solid var(--cl-border-muted)',
   padding: 'var(--cl-space-2)',

@@ -528,7 +528,9 @@ export function MatchConsoleRoute({
           >
             {projection.liveScores.map((side) => (
               <div key={side.entrantId} style={scoreSideStyle}>
-                <span>{side.entrantId.slice(-8)}</span>
+                <span style={scoreEntrantStyle} title={side.entrantId}>
+                  {side.entrantId}
+                </span>
                 <strong>{side.score}</strong>
               </div>
             ))}
@@ -1003,7 +1005,7 @@ const statusStyle: React.CSSProperties = {
   justifyItems: 'end',
   color: 'var(--cl-state-live)',
   fontFamily: 'var(--cl-font-mono)',
-  fontSize: '1.25rem',
+  fontSize: 'var(--cl-font-size-lg)',
 };
 const clockRingStyle: React.CSSProperties = {
   display: 'flex',
@@ -1015,7 +1017,7 @@ const syncStatusStyle: React.CSSProperties = {
   gap: 'var(--cl-space-4)',
   color: 'var(--cl-text-muted)',
   fontFamily: 'var(--cl-font-mono)',
-  fontSize: '0.75rem',
+  fontSize: 'var(--cl-font-size-xs)',
   textTransform: 'uppercase',
 };
 const refusedListStyle: React.CSSProperties = {
@@ -1033,7 +1035,7 @@ const refusedItemStyle: React.CSSProperties = {
 };
 const workspaceStyle: React.CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'minmax(0, 1fr) minmax(260px, 0.42fr)',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))',
   gap: 'var(--cl-space-5)',
 };
 const primaryColumnStyle: React.CSSProperties = {
@@ -1058,7 +1060,13 @@ const scoreSideStyle: React.CSSProperties = {
   gap: 'var(--cl-space-3)',
   padding: 'var(--cl-space-4)',
   fontFamily: 'var(--cl-font-mono)',
-  fontSize: '1.25rem',
+  fontSize: 'var(--cl-font-size-lg)',
+};
+const scoreEntrantStyle: React.CSSProperties = {
+  minWidth: 0,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
 };
 const panelStyle: React.CSSProperties = {
   border: '1px solid var(--cl-border-muted)',
@@ -1077,13 +1085,13 @@ const rosterHeaderStyle: React.CSSProperties = {
 };
 const controlGridStyle: React.CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 10rem), 1fr))',
   gap: 'var(--cl-space-3)',
   alignItems: 'end',
 };
 const attributionStyle: React.CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 12rem), 1fr))',
   gap: 'var(--cl-space-3)',
   marginBottom: 'var(--cl-space-4)',
 };

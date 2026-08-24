@@ -115,7 +115,7 @@ export function TournamentSetupWizard({
         </div>
       </header>
 
-      <Card>
+      <Card style={{ minWidth: 0, maxWidth: '100%', overflow: 'hidden' }}>
         <ol aria-label={intl.formatMessage(messages.wizardSteps)} style={stepperStyle}>
           {WIZARD_STEPS.map((step, index) => (
             <li key={step.id} style={stepStyle}>
@@ -562,27 +562,32 @@ const headerStyle: React.CSSProperties = {
   justifyContent: 'space-between',
   gap: 'var(--cl-space-4)',
   alignItems: 'end',
+  flexWrap: 'wrap',
 };
 const titleStyle: React.CSSProperties = {
   margin: 0,
   fontFamily: 'var(--cl-font-display)',
-  fontSize: '3rem',
+  fontSize: 'var(--cl-font-size-3xl)',
   textTransform: 'uppercase',
 };
 const metaStyle: React.CSSProperties = {
   margin: 0,
   color: 'var(--cl-state-live)',
   fontFamily: 'var(--cl-font-mono)',
-  fontSize: '0.75rem',
+  fontSize: 'var(--cl-font-size-xs)',
   textTransform: 'uppercase',
 };
 const stepperStyle: React.CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
+  gridTemplateColumns: 'repeat(5, minmax(8rem, 1fr))',
   gap: 'var(--cl-space-3)',
   listStyle: 'none',
   padding: 0,
   margin: 0,
+  width: '100%',
+  maxWidth: '100%',
+  overflowX: 'auto',
+  scrollbarGutter: 'stable',
 };
 const stepStyle: React.CSSProperties = {
   display: 'grid',
@@ -591,7 +596,7 @@ const stepStyle: React.CSSProperties = {
   color: 'var(--cl-text-secondary)',
   fontFamily: 'var(--cl-font-mono)',
   textTransform: 'uppercase',
-  fontSize: '0.75rem',
+  fontSize: 'var(--cl-font-size-xs)',
 };
 const stepNumberStyle: React.CSSProperties = {
   display: 'grid',
@@ -609,7 +614,7 @@ const stepNumberActiveStyle: React.CSSProperties = {
 };
 const formGridStyle: React.CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
   gap: 'var(--cl-space-4)',
 };
 const labelStyle: React.CSSProperties = {
@@ -617,10 +622,13 @@ const labelStyle: React.CSSProperties = {
   gap: 'var(--cl-space-2)',
   color: 'var(--cl-text-secondary)',
   fontFamily: 'var(--cl-font-mono)',
-  fontSize: '0.75rem',
+  fontSize: 'var(--cl-font-size-xs)',
   textTransform: 'uppercase',
 };
 const fieldStyle: React.CSSProperties = {
+  width: '100%',
+  minWidth: 0,
+  maxWidth: '100%',
   minHeight: 44,
   background: 'var(--cl-surface-base)',
   color: 'var(--cl-text-primary)',

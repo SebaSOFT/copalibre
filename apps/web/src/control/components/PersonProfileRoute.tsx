@@ -158,7 +158,7 @@ const stackStyle: React.CSSProperties = { display: 'grid', gap: 'var(--cl-space-
 const backLinkStyle: React.CSSProperties = {
   color: 'var(--cl-state-live)',
   fontFamily: 'var(--cl-font-mono)',
-  fontSize: '0.75rem',
+  fontSize: 'var(--cl-font-size-xs)',
   textTransform: 'uppercase',
 };
 const cardStyle: React.CSSProperties = {
@@ -170,14 +170,14 @@ const cardStyle: React.CSSProperties = {
 const nameStyle: React.CSSProperties = {
   margin: 0,
   fontFamily: 'var(--cl-font-display)',
-  fontSize: '2rem',
+  fontSize: 'var(--cl-font-size-2xl)',
   textTransform: 'uppercase',
 };
 const smallStyle: React.CSSProperties = {
   display: 'block',
   color: 'var(--cl-text-muted)',
   fontFamily: 'var(--cl-font-mono)',
-  fontSize: '0.75rem',
+  fontSize: 'var(--cl-font-size-xs)',
 };
 const fieldValueStyle: React.CSSProperties = {
   display: 'grid',

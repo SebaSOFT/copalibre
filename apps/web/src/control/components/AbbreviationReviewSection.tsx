@@ -96,7 +96,7 @@ const sectionStyle: React.CSSProperties = { display: 'grid', gap: 'var(--cl-spac
 const titleStyle: React.CSSProperties = {
   margin: 0,
   fontFamily: 'var(--cl-font-mono)',
-  fontSize: '1rem',
+  fontSize: 'var(--cl-font-size-base)',
   textTransform: 'uppercase',
 };
 const rowStyle: React.CSSProperties = {

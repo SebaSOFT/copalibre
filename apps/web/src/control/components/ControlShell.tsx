@@ -74,8 +74,8 @@ function ControlShellChrome({
     window.location.assign('/control/');
   };
   return (
-    <div className="cl-control" style={shellStyle}>
-      <nav aria-label={intl.formatMessage(messages.shellSections)} style={navStyle}>
+    <div className="cl-control">
+      <nav aria-label={intl.formatMessage(messages.shellSections)} className="cl-control__nav">
         <div style={brandStyle}>
           <div style={brandMarkRowStyle}>
             <img src="/copalibre-logo.svg" alt="" width="24" height="24" />
@@ -92,7 +92,7 @@ function ControlShellChrome({
         >
           <FormattedMessage {...messages.shellWhatIsThisScreen} />
         </a>
-        <ul style={navListStyle}>
+        <ul className="cl-control__nav-list">
           {organizationAlias &&
             SIDENAV.map((item) => (
               <li key={item.id}>
@@ -130,25 +130,12 @@ function ControlShellChrome({
           <FormattedMessage {...messages.shellLogout} />
         </button>
       </nav>
-      <main style={mainStyle}>{children}</main>
+      <main className="cl-control__main">
+        <div className="cl-control-screen">{children}</div>
+      </main>
     </div>
   );
 }
-
-const shellStyle: React.CSSProperties = {
-  minHeight: '100vh',
-  display: 'grid',
-  gridTemplateColumns: 'minmax(180px, 240px) 1fr',
-  background: 'var(--cl-surface-base)',
-  color: 'var(--cl-text-primary)',
-  fontFamily: 'var(--cl-font-body)',
-};
-
-const navStyle: React.CSSProperties = {
-  borderRight: '1px solid var(--cl-border-muted)',
-  background: 'var(--cl-surface-panel)',
-  padding: 'var(--cl-space-4)',
-};
 
 const brandStyle: React.CSSProperties = {
   display: 'grid',
@@ -168,7 +155,7 @@ const brandMarkRowStyle: React.CSSProperties = {
 const metaStyle: React.CSSProperties = {
   color: 'var(--cl-text-muted)',
   fontFamily: 'var(--cl-font-mono)',
-  fontSize: '0.75rem',
+  fontSize: 'var(--cl-font-size-xs)',
 };
 
 const helpLinkStyle: React.CSSProperties = {
@@ -177,15 +164,7 @@ const helpLinkStyle: React.CSSProperties = {
   color: 'var(--cl-text-muted)',
   textDecoration: 'none',
   fontFamily: 'var(--cl-font-mono)',
-  fontSize: '0.7rem',
-};
-
-const navListStyle: React.CSSProperties = {
-  listStyle: 'none',
-  margin: 'var(--cl-space-4) 0 0',
-  padding: 0,
-  display: 'grid',
-  gap: 'var(--cl-space-2)',
+  fontSize: 'var(--cl-font-size-xs)',
 };
 
 const navLinkStyle: React.CSSProperties = {
@@ -195,7 +174,7 @@ const navLinkStyle: React.CSSProperties = {
   textDecoration: 'none',
   fontFamily: 'var(--cl-font-mono)',
   textTransform: 'uppercase',
-  fontSize: '0.75rem',
+  fontSize: 'var(--cl-font-size-xs)',
 };
 
 const navLinkActiveStyle: React.CSSProperties = {
@@ -203,20 +182,15 @@ const navLinkActiveStyle: React.CSSProperties = {
   color: 'var(--cl-surface-base)',
 };
 
-const mainStyle: React.CSSProperties = {
-  minWidth: 0,
-  padding: 'var(--cl-space-8)',
-};
-
 const logoutButtonStyle: React.CSSProperties = {
   display: 'block',
   width: '100%',
-  minHeight: 36,
+  minHeight: 'var(--cl-touch-target)',
   marginTop: 'var(--cl-space-3)',
   background: 'transparent',
   color: 'var(--cl-text-secondary)',
   border: '1px solid var(--cl-border-muted)',
   fontFamily: 'var(--cl-font-mono)',
-  fontSize: '0.75rem',
+  fontSize: 'var(--cl-font-size-xs)',
   cursor: 'pointer',
 };

@@ -80,6 +80,9 @@ export interface PatCreatedResponse extends PatResponse {
   readonly token: string;
 }
 
+const preferencesPagePadding = 'clamp(var(--cl-space-3), 4vw, var(--cl-space-8))';
+const preferencesSectionPadding = 'clamp(var(--cl-space-3), 4vw, var(--cl-space-6))';
+
 export function PreferencesRoute({
   organizationAlias,
   client,
@@ -294,7 +297,14 @@ export function PreferencesRoute({
   }
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem' }}>
+    <div
+      style={{
+        width: '100%',
+        maxWidth: '800px',
+        margin: '0 auto',
+        padding: preferencesPagePadding,
+      }}
+    >
       <h1>
         <FormattedMessage {...messages.title} />
       </h1>
@@ -303,7 +313,7 @@ export function PreferencesRoute({
         style={{
           marginTop: '2rem',
           background: 'var(--cl-surface-alt)',
-          padding: '1.5rem',
+          padding: preferencesSectionPadding,
           borderRadius: '8px',
         }}
       >
@@ -316,7 +326,13 @@ export function PreferencesRoute({
 
         <form
           onSubmit={handleCreate}
-          style={{ display: 'flex', gap: '1rem', marginTop: '1rem', alignItems: 'flex-end' }}
+          style={{
+            display: 'flex',
+            gap: '1rem',
+            marginTop: '1rem',
+            alignItems: 'flex-end',
+            flexWrap: 'wrap',
+          }}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             <label htmlFor="pat-label">
@@ -418,7 +434,7 @@ export function PreferencesRoute({
                       <strong>{token.label}</strong>
                       <div
                         style={{
-                          fontSize: '0.875rem',
+                          fontSize: 'var(--cl-font-size-sm)',
                           color: 'var(--cl-text-secondary)',
                           marginTop: '0.25rem',
                         }}
@@ -452,7 +468,7 @@ export function PreferencesRoute({
           style={{
             marginTop: '2rem',
             background: 'var(--cl-surface-alt)',
-            padding: '1.5rem',
+            padding: preferencesSectionPadding,
             borderRadius: '8px',
           }}
         >
@@ -503,7 +519,9 @@ export function PreferencesRoute({
                 </label>
               )}
 
-              <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
+              <div
+                style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}
+              >
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   <label htmlFor="org-name">
                     <FormattedMessage {...controlMessages.orgIdentityName} />
@@ -531,7 +549,7 @@ export function PreferencesRoute({
           style={{
             marginTop: '2rem',
             background: 'var(--cl-surface-alt)',
-            padding: '1.5rem',
+            padding: preferencesSectionPadding,
             borderRadius: '8px',
           }}
         >
@@ -550,7 +568,15 @@ export function PreferencesRoute({
             </p>
           )}
 
-          <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', marginTop: '1rem' }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: '1rem',
+              alignItems: 'flex-end',
+              marginTop: '1rem',
+              flexWrap: 'wrap',
+            }}
+          >
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <label htmlFor="rebuild-tournament">
                 <FormattedMessage {...controlMessages.statisticsRebuildTournamentLabel} />
@@ -603,7 +629,7 @@ export function PreferencesRoute({
           style={{
             marginTop: '2rem',
             background: 'var(--cl-surface-alt)',
-            padding: '1.5rem',
+            padding: preferencesSectionPadding,
             borderRadius: '8px',
           }}
         >
