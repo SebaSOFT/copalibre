@@ -3,7 +3,9 @@
 ## Purpose
 Lets organizers create and publish a tournament through a guided wizard that only ever exposes the
 supported MVP disciplines and formats, and correctly classifies later edits by mutation impact.
+
 ## Requirements
+
 ### Requirement: Wizard restricts format selection to MVP formats
 The tournament setup wizard SHALL offer only single elimination, double elimination, round robin,
 league, round robin single-leg, and round robin home-and-away as selectable formats, and SHALL NOT
@@ -31,7 +33,9 @@ Completing the wizard SHALL create a `TournamentRuleset` referencing a specific 
 ### Requirement: Edits to a published tournament are mutation-classified
 Editing a published tournament's configuration SHALL classify the edit as `safe`,
 `requires_rebuild`, or `blocked_after_results`, and SHALL block the edit outright if its
-classification is `blocked_after_results` and a valid result already exists.
+classification is `blocked_after_results` and a valid result already exists. This classification
+applies to every configurable field including `region`, `capacity`, and `checkInClosesAt`, not only the
+fields the wizard already classified before this change.
 
 #### Scenario: Blocked edit after a result exists
 - **WHEN** an organizer attempts an edit classified `blocked_after_results` on a tournament that already has a recorded match result
@@ -41,6 +45,12 @@ classification is `blocked_after_results` and a valid result already exists.
 - **WHEN** an organizer edits a field classified `safe`
 - **THEN** the change applies without a rebuild warning or blocking dialog
 
+#### Scenario: Capacity reduction below current registrations is a blocked edit
+- **WHEN** an organizer attempts to reduce `capacity` below the tournament's current accepted-entrant
+  count on a published tournament
+- **THEN** the edit is rejected as incoherent with the existing record, stating the current entrant
+  count, rather than silently accepted
+
 ### Requirement: Public-registration and check-in toggles are explicit tournament settings
 The wizard SHALL let the organizer explicitly set whether public registration is open and whether
 check-in is required, and SHALL record both as part of the tournament's configuration.
@@ -49,3 +59,40 @@ check-in is required, and SHALL record both as part of the tournament's configur
 - **WHEN** an organizer enables "Requires Check-in" during setup
 - **THEN** the created tournament's configuration records check-in as required
 
+### Requirement: Wizard captures every field it validates
+Any field the wizard validates or lets the organizer set SHALL be included in the tournament-creation
+request; the wizard SHALL NOT collect a value, validate it, and then discard it before submission.
+
+#### Scenario: Capacity set in the wizard reaches the created tournament
+- **WHEN** an organizer sets a participant capacity during the window step and completes the wizard
+- **THEN** the created tournament's configuration records that capacity
+
+#### Scenario: Region set in the wizard reaches the created tournament
+- **WHEN** an organizer sets a region during the window step and completes the wizard
+- **THEN** the created tournament's configuration records that region
+
+### Requirement: Wizard offers every field the API already accepts
+A field already accepted by the tournament-creation endpoint SHALL be reachable from the wizard; the
+wizard SHALL NOT omit a step for a field the API is already prepared to receive.
+
+#### Scenario: Check-in closing time is configurable in the wizard
+- **WHEN** an organizer enables "Requires Check-in" during setup
+- **THEN** the wizard offers a field to set when checked-in team memberships stop being editable, and a
+  value set there reaches the created tournament's configuration
+
+### Requirement: Wizard offers explicit tournament-profile selection
+When the selected discipline and format combination has one or more compatible `TournamentProfile`
+entries in the installed catalogue, the wizard SHALL let the organizer select one explicitly (or
+proceed without one), and a selected profile's declared stages SHALL be pre-created on the resulting
+tournament.
+
+#### Scenario: A multi-stage profile is offered and instantiated
+- **WHEN** an organizer selects a discipline and format for which an installed `TournamentProfile`
+  declares more than one stage
+- **THEN** the wizard offers that profile as a selectable option, and completing the wizard with it
+  selected creates a tournament with all of that profile's declared stages already present
+
+#### Scenario: No compatible profile still allows tournament creation
+- **WHEN** no installed `TournamentProfile` is compatible with the selected discipline and format
+- **THEN** the wizard proceeds without offering a profile selection, producing a single-stage tournament
+  as it does today

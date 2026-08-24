@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { TournamentAuthoringPage } from './components/TournamentAuthoringPage.js';
 import { RegistrationReviewRoute } from './components/RegistrationReviewRoute.js';
-import type { ControlApiClient } from './lib/api-client.js';
+import { ControlApiError, type ControlApiClient } from './lib/api-client.js';
 import { withIntl } from './i18n/test-support.js';
 
 function client(overrides: Partial<ControlApiClient> = {}): ControlApiClient {
@@ -94,12 +94,45 @@ describe('the tournament authoring route container', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Create tournament' }));
     });
 
     expect(requests).toHaveLength(1);
     expect(requests[0]).toMatchObject({ descriptorVersion: '1.0.0', format: 'round-robin' });
+  });
+
+  it('surfaces backend custom-script refusal verbatim', async () => {
+    render(
+      withIntl(
+        <TournamentAuthoringPage
+          organizationAlias="liga-mendocina"
+          client={client({
+            createTournament: async () => {
+              throw new ControlApiError(
+                400,
+                'Action "stale-action" is not registered for event.recorded',
+                'tournament-bad-request',
+              );
+            },
+          })}
+        />,
+      ),
+    );
+
+    await screen.findByLabelText('Name');
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Inválida' } });
+    fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-invalida' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Create tournament' }));
+
+    expect(
+      await screen.findByText('Action "stale-action" is not registered for event.recorded'),
+    ).toBeDefined();
   });
 });
 

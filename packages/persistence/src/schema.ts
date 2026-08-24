@@ -1,4 +1,4 @@
-import type { DrawConstraint } from '@copalibre/domain';
+import type { DrawConstraint, HookScriptAttachment } from '@copalibre/domain';
 import type { ColumnType, JSONColumnType } from 'kysely';
 
 /**
@@ -187,6 +187,7 @@ export interface TournamentRulesetsTable {
   descriptor_id: string;
   descriptor_version: string;
   overrides: JSONColumnType<Record<string, unknown>>;
+  custom_scripts: JSONColumnType<readonly HookScriptAttachment[]>;
   created_at: Timestamp;
 }
 
@@ -699,6 +700,22 @@ export interface CollectorThresholdConsumptionTable {
   updated_at: Timestamp;
 }
 
+/** One materialized script effect; the deterministic identity is its dedupe key. */
+export interface DeclaredEffectsTable {
+  identity_key: string;
+  organization_id: string;
+  match_id: string;
+  cause_event_id: string;
+  hook: string;
+  script_id: string;
+  script_version: number;
+  rule_id: string;
+  action_id: string;
+  kind: string;
+  payload: JSONColumnType<Record<string, unknown>>;
+  created_at: Timestamp;
+}
+
 /**
  * A number moved by hand or by a script's declaration, recorded as a fact.
  * Folded like any other fact, so a replay reproduces the total.
@@ -874,6 +891,7 @@ export interface Database {
   scheduled_jobs: ScheduledJobsTable;
   statistic_totals: StatisticTotalsTable;
   collector_threshold_consumption: CollectorThresholdConsumptionTable;
+  declared_effects: DeclaredEffectsTable;
   statistic_adjustments: StatisticAdjustmentsTable;
   tag_facts: TagFactsTable;
   alias_redirects: AliasRedirectsTable;

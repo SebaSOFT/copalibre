@@ -303,6 +303,62 @@
         ]
       }
     },
+    "/organizations/{organizationAlias}/tournaments/custom-script-vocabulary": {
+      "get": {
+        "operationId": "TournamentsController_customScriptVocabulary",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HookScriptVocabularyResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read supported tournament hook-script vocabulary",
+        "tags": [
+          "tournaments"
+        ]
+      }
+    },
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}": {
       "get": {
         "description": "A tournament alias is unique only within its organization, so both aliases are required.",
@@ -463,6 +519,152 @@
           }
         ],
         "summary": "List the organization's active (non-archived) tournaments",
+        "tags": [
+          "tournaments"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/custom-scripts": {
+      "get": {
+        "operationId": "TournamentsController_customScripts",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TournamentCustomScriptsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read tournament's organizer-authored hook scripts",
+        "tags": [
+          "tournaments"
+        ]
+      },
+      "put": {
+        "operationId": "TournamentsController_updateCustomScripts",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TournamentCustomScriptsResponse"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TournamentCustomScriptsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Replace tournament's organizer-authored hook scripts",
         "tags": [
           "tournaments"
         ]
@@ -7440,7 +7642,7 @@
   "info": {
     "title": "CopaLibre API",
     "description": "Self-hosted tournament management API.\n\nAuthentication is JWT Bearer, validated against the operator-selected\nidentity provider’s JWKS. Browsers use Authorization Code + PKCE and\nhold the access token in memory only — never localStorage. A token\npassed as a query parameter is ignored, because URLs leak into proxy\nlogs, browser history, metrics, traces and screenshots.\n\nEvery route declares one security plane: public-read,\nauthenticated-interaction, admin-control, or integration.\nauthenticated-interaction and admin-control share this same bearer\ntransport and differ only in authorization policy.",
-    "version": "4.0.0",
+    "version": "5.0.0",
     "contact": {}
   },
   "tags": [],
@@ -7702,6 +7904,112 @@
           "objectCount"
         ]
       },
+      "RegistryParameterDefinitionResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "parameterTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "allowExpression": {
+            "type": "boolean"
+          },
+          "valueSchema": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "name",
+          "description",
+          "required",
+          "parameterTypes",
+          "allowExpression",
+          "valueSchema"
+        ]
+      },
+      "RegistryAuthoringDefinitionResponse": {
+        "type": "object",
+        "properties": {
+          "parameters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegistryParameterDefinitionResponse"
+            }
+          },
+          "optionsSchema": {
+            "type": "object"
+          },
+          "valueSchema": {
+            "type": "object"
+          },
+          "allowExpression": {
+            "type": "boolean"
+          }
+        }
+      },
+      "RegistryEntryResponse": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "parameter",
+              "condition",
+              "action",
+              "rule"
+            ]
+          },
+          "type": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "authoring": {
+            "$ref": "#/components/schemas/RegistryAuthoringDefinitionResponse"
+          }
+        },
+        "required": [
+          "kind",
+          "type",
+          "description"
+        ]
+      },
+      "HookScriptVocabularyResponse": {
+        "type": "object",
+        "properties": {
+          "hooks": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "event.recorded"
+              ]
+            }
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegistryEntryResponse"
+            }
+          }
+        },
+        "required": [
+          "hooks",
+          "entries"
+        ]
+      },
       "ProfileRefResponse": {
         "type": "object",
         "properties": {
@@ -7782,6 +8090,28 @@
           "status"
         ]
       },
+      "HookScriptAttachmentRequest": {
+        "type": "object",
+        "properties": {
+          "hook": {
+            "type": "string",
+            "enum": [
+              "event.recorded"
+            ]
+          },
+          "script": {
+            "type": "object",
+            "description": "Neuron-JS rule script document"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "hook",
+          "script"
+        ]
+      },
       "CreateTournamentRequest": {
         "type": "object",
         "properties": {
@@ -7839,6 +8169,14 @@
             "type": "string",
             "description": "Optional TournamentProfile version (semver).",
             "example": "1.0.0"
+          },
+          "customScripts": {
+            "default": [],
+            "description": "Organizer-authored scripts evaluated at supported tournament hooks.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HookScriptAttachmentRequest"
+            }
           }
         },
         "required": [
@@ -7848,7 +8186,22 @@
           "descriptorVersion",
           "format",
           "publicRegistration",
-          "requiresCheckIn"
+          "requiresCheckIn",
+          "customScripts"
+        ]
+      },
+      "TournamentCustomScriptsResponse": {
+        "type": "object",
+        "properties": {
+          "customScripts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HookScriptAttachmentRequest"
+            }
+          }
+        },
+        "required": [
+          "customScripts"
         ]
       },
       "ProfileStageSummaryResponse": {

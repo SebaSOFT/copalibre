@@ -163,6 +163,11 @@ export {
   type ReadTotal,
 } from './repositories/statistic-repository.js';
 export { CollectorThresholdConsumptionRepository } from './repositories/collector-threshold-consumption-repository.js';
+export {
+  DeclaredEffectRepository,
+  type DeclaredEffectRecord,
+  type RecordDeclaredEffectInput,
+} from './repositories/declared-effect-repository.js';
 /** Re-exported so an API layer can tell a caller's conflict from a fault. */
 export { ScheduleConflictError } from '@copalibre/domain';
 export {

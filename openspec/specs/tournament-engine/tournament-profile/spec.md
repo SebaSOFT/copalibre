@@ -3,7 +3,9 @@
 ## Purpose
 Makes tournament configuration a reusable, attributable, publishable artifact that declares what it
 needs from a discipline rather than pinning a discipline version.
+
 ## Requirements
+
 ### Requirement: Publishable tournament profile
 A `TournamentProfile` SHALL be a versioned artifact carrying attribution and a tournament
 configuration (stages, formats, scoring, tiebreak pipeline), instantiable by any number of
@@ -52,3 +54,19 @@ discipline's concrete code, and the resolved binding SHALL be recorded on the co
 - **WHEN** a profile marks a capability required and the discipline does not declare it
 - **THEN** the compilation reports the unsatisfied requirement
 - **AND** an operator may explicitly override and proceed, with the gap recorded on the binding
+
+### Requirement: Profile instantiation is reachable from tournament creation
+Selecting a `TournamentProfile` during tournament creation SHALL instantiate it: compiling it against
+the chosen discipline (per this capability's existing capability-binding requirement) and pre-creating
+every stage it declares on the resulting tournament, recording the profile reference and resolved
+binding on the created tournament.
+
+#### Scenario: A created tournament records its instantiated profile
+- **WHEN** an organizer completes tournament creation with a `TournamentProfile` selected
+- **THEN** the created tournament's `profileRef` records the profile's identifier and version, and its
+  resolved capability binding is available without recompiling the profile
+
+#### Scenario: A tournament created without a profile has no profile reference
+- **WHEN** an organizer completes tournament creation without selecting a profile
+- **THEN** the created tournament's `profileRef` is absent, and it behaves exactly as a tournament does
+  today: one stage, format set directly

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Inject, Param, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Inject, Param, Post, Put, Req } from '@nestjs/common';
 import {
   BadRequestException,
   ConflictException,
@@ -6,6 +6,7 @@ import {
 } from '../http/error-contract.js';
 import {
   ApiBearerAuth,
+  ApiBadRequestResponse,
   ApiCreatedResponse,
   ApiForbiddenResponse,
   ApiOkResponse,
@@ -22,14 +23,28 @@ import {
   withTransaction,
   type Database,
 } from '@copalibre/persistence';
-import { SUPPORTED_FORMATS, compileProfile, type TournamentProfile } from '@copalibre/domain';
+import {
+  SUPPORTED_FORMATS,
+  TOURNAMENT_CUSTOM_SCRIPT_HOOKS,
+  compileProfile,
+  validateHookScriptAttachment,
+  type HookScriptAttachment,
+  type TournamentProfile,
+} from '@copalibre/domain';
+import {
+  createHookScriptRegistry,
+  validateHookScriptDocument,
+  type RuleScript,
+} from '@copalibre/rules';
 import type { Kysely } from 'kysely';
 import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
 import { RequireOrganizationRole } from '../auth/access-requirement.js';
 import {
   CreateTournamentRequest,
+  HookScriptVocabularyResponse,
   ProblemResponse,
+  TournamentCustomScriptsResponse,
   TournamentResponse,
 } from '../dto/organization.dto.js';
 import { enforcePolicy } from '../policy/resource-policy.js';
@@ -45,6 +60,54 @@ import { DATABASE } from '../database.token.js';
 @Controller('organizations/:organizationAlias/tournaments')
 export class TournamentsController {
   constructor(@Inject(DATABASE) private readonly db: Kysely<Database>) {}
+
+  @Get('custom-script-vocabulary')
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Read supported tournament hook-script vocabulary' })
+  @ApiOkResponse({ type: HookScriptVocabularyResponse })
+  @ApiUnauthorizedResponse({ type: ProblemResponse })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  async customScriptVocabulary(
+    @Param('organizationAlias') organizationAlias: string,
+    @Req() request: RequestWithSubject,
+  ): Promise<HookScriptVocabularyResponse> {
+    const organization = await new OrganizationRepository(this.db).findByAlias(organizationAlias);
+    if (!organization) {
+      throw new NotFoundException(`No organization with alias "${organizationAlias}"`, {
+        errorCode: 'tournament-not-found',
+      });
+    }
+    enforcePolicy({
+      plane: 'admin-control',
+      subject: request.subject,
+      resource: { organizationId: organization.organizationId },
+    });
+
+    return {
+      hooks: [...TOURNAMENT_CUSTOM_SCRIPT_HOOKS],
+      entries: createHookScriptRegistry()
+        .list()
+        .map((entry) => ({
+          ...entry,
+          ...(entry.authoring
+            ? {
+                authoring: {
+                  ...entry.authoring,
+                  ...(entry.authoring.parameters
+                    ? {
+                        parameters: entry.authoring.parameters.map((parameter) => ({
+                          ...parameter,
+                        })),
+                      }
+                    : {}),
+                },
+              }
+            : {}),
+        })),
+    };
+  }
 
   @Get(':tournamentAlias')
   @SecurityPlaneTag('public-read')
@@ -126,6 +189,8 @@ export class TournamentsController {
       );
     }
 
+    const customScripts = validateCustomScripts(body.customScripts ?? []);
+
     let profileToBind: TournamentProfile | undefined;
     if (body.profileId !== undefined && body.profileVersion !== undefined) {
       const profileRepo = new TournamentProfileRepository(this.db);
@@ -173,6 +238,7 @@ export class TournamentsController {
             ...(body.region === undefined ? {} : { 'registration.region': body.region }),
             ...(body.capacity === undefined ? {} : { 'registration.capacity': body.capacity }),
           },
+          customScripts,
           actor: `user:${subject?.subjectId ?? 'unknown'}`,
           authorizationContext: (subject?.scopes ?? []).join(' '),
         });
@@ -207,6 +273,103 @@ export class TournamentsController {
     } catch (error) {
       if (error instanceof InvariantViolationError) {
         throw new BadRequestException(error.message, { errorCode: 'tournament-bad-request' });
+      }
+      throw error;
+    }
+  }
+
+  @Get(':tournamentAlias/custom-scripts')
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Read tournament's organizer-authored hook scripts" })
+  @ApiOkResponse({ type: TournamentCustomScriptsResponse })
+  @ApiUnauthorizedResponse({ type: ProblemResponse })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  async customScripts(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Req() request: RequestWithSubject,
+  ): Promise<TournamentCustomScriptsResponse> {
+    const tournaments = new TournamentRepository(this.db);
+    const tournament = await tournaments.findByScopedAlias(organizationAlias, tournamentAlias);
+    if (!tournament) {
+      throw new NotFoundException(`No tournament "${tournamentAlias}"`, {
+        errorCode: 'tournament-not-found',
+      });
+    }
+    enforcePolicy({
+      plane: 'admin-control',
+      subject: request.subject,
+      resource: { organizationId: tournament.organizationId },
+    });
+    const ruleset = await tournaments.findLatestRuleset(tournament.tournamentId);
+    return { customScripts: [...(ruleset?.customScripts ?? [])] };
+  }
+
+  @Put(':tournamentAlias/custom-scripts')
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Replace tournament's organizer-authored hook scripts" })
+  @ApiOkResponse({ type: TournamentCustomScriptsResponse })
+  @ApiBadRequestResponse({ type: ProblemResponse })
+  @ApiUnauthorizedResponse({ type: ProblemResponse })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  async updateCustomScripts(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Body() body: TournamentCustomScriptsResponse,
+    @Req() request: RequestWithSubject,
+  ): Promise<TournamentCustomScriptsResponse> {
+    const tournaments = new TournamentRepository(this.db);
+    const tournament = await tournaments.findByScopedAlias(organizationAlias, tournamentAlias);
+    if (!tournament) {
+      throw new NotFoundException(`No tournament "${tournamentAlias}"`, {
+        errorCode: 'tournament-not-found',
+      });
+    }
+    enforcePolicy({
+      plane: 'admin-control',
+      subject: request.subject,
+      resource: { organizationId: tournament.organizationId },
+    });
+
+    const current = await tournaments.findLatestRuleset(tournament.tournamentId);
+    if (!current) {
+      throw new NotFoundException(`Tournament "${tournamentAlias}" has no ruleset`, {
+        errorCode: 'tournament-not-found',
+      });
+    }
+    const descriptor = await tournaments.findDescriptor(
+      current.descriptorRef.descriptorId,
+      current.descriptorRef.version,
+    );
+    if (!descriptor) {
+      throw new NotFoundException('Tournament discipline descriptor is unavailable', {
+        errorCode: 'tournament-not-found',
+      });
+    }
+    const customScripts = validateCustomScripts(body.customScripts ?? []);
+    const subject = request.subject;
+
+    try {
+      const updated = await withTransaction(this.db, (uow) =>
+        tournaments.createRuleset(uow, {
+          tournamentId: tournament.tournamentId,
+          organizationId: tournament.organizationId,
+          descriptor,
+          overrides: current.overrides,
+          customScripts,
+          actor: `user:${subject?.subjectId ?? 'unknown'}`,
+          authorizationContext: (subject?.scopes ?? []).join(' '),
+          reason: 'Organizer updated custom event rules',
+        }),
+      );
+      return { customScripts: [...updated.ruleset.customScripts] };
+    } catch (error) {
+      if (error instanceof InvariantViolationError) {
+        throw new ConflictException(error.message, { errorCode: 'tournament-conflict' });
       }
       throw error;
     }
@@ -340,4 +503,27 @@ export class TournamentsController {
 
     return new TournamentRepository(this.db).listActiveByOrganization(organization.organizationId);
   }
+}
+
+function validateCustomScripts(
+  input: readonly HookScriptAttachment[],
+): readonly HookScriptAttachment[] {
+  const registry = createHookScriptRegistry();
+  for (const attachment of input) {
+    const hook = validateHookScriptAttachment(attachment);
+    if (!hook.ok) {
+      throw new BadRequestException(hook.error.message, { errorCode: 'tournament-bad-request' });
+    }
+    const references = validateHookScriptDocument(
+      registry,
+      'event.recorded',
+      attachment.script as unknown as RuleScript,
+    );
+    if (!references.ok) {
+      throw new BadRequestException(references.error.message, {
+        errorCode: 'tournament-bad-request',
+      });
+    }
+  }
+  return input;
 }

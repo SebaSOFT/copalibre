@@ -26,6 +26,7 @@
     "@copalibre/routing": "workspace:^",
     "@pagefind/default-ui": "1.5.2",
     "@scalar/api-reference": "1.64.0",
+    "ajv": "^8.20.0",
     "astro": "^7.2.1",
     "idb": "^8.0.3",
     "papaparse": "^5.6.0",

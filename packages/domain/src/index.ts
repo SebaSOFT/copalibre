@@ -153,10 +153,13 @@ export {
   validateTournamentProfileDocument,
 } from './profiles/profile-schema.js';
 
-export type {
-  DescriptorRef,
-  TournamentRuleset,
-  StageConfiguration,
+export {
+  TOURNAMENT_CUSTOM_SCRIPT_HOOKS,
+  validateHookScriptAttachment,
+  type DescriptorRef,
+  type TournamentRuleset,
+  type StageConfiguration,
+  type HookScriptAttachment,
 } from './rulesets/tournament-ruleset.js';
 export type { CompilationProvenance, MatchRuleset } from './rulesets/match-ruleset.js';
 export {
@@ -350,6 +353,7 @@ export {
 export { compileEffectiveRuleset } from './rulesets/compiler.js';
 export {
   evaluateMutation,
+  evaluateCustomScriptsMutation,
   type FixtureRef,
   type MutationContext,
   type MutationDecision,

@@ -609,4 +609,19 @@ export const messages: Record<string, string> = {
   'control.apiError.serviceUnavailable':
     'Сервис временно недоступен. Повторите попытку немного позже.',
   'control.apiError.internalServer': 'Произошла непредвиденная ошибка сервера. Повторите попытку.',
+  'control.wizard.step.rules': 'Правила событий',
+  'control.wizard.problem.chooseAction': 'Выберите действие для правила события',
+  'control.wizard.problem.completeRule': 'Заполните обязательные значения по принятой схеме',
+  'control.wizard.rule.enable': 'Добавить правило для каждого записанного события',
+  'control.wizard.rule.hookHelp':
+    'Выполняется синхронно в event.recorded с принятым сервером словарём.',
+  'control.wizard.rule.condition': 'Условие',
+  'control.wizard.rule.action': 'Действие',
+  'control.wizard.rule.chooseAction': 'Выберите действие',
+  'control.wizard.rule.conditionAlways': 'Без условия — выполнять для каждого события',
+  'control.wizard.rule.conditionlessExplanation':
+    'Без условия правило срабатывает для каждого записанного события.',
+  'control.wizard.rule.options': 'Параметры (JSON)',
+  'control.wizard.rule.addAnother': 'Добавить ещё одно правило',
+  'control.wizard.rule.remove': 'Удалить',
 };

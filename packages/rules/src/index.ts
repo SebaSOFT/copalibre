@@ -17,12 +17,15 @@ export {
 export {
   RulesRegistry,
   type ElementKind,
+  type RegistryAuthoringDefinition,
   type RegistryEntry,
+  type RegistryParameterDefinition,
   type RuleScript,
 } from './registry/rules-registry.js';
 
 export {
   registerCopalibreVocabulary,
+  registerCopalibreParameters,
   NumberParameter,
   StringParameter,
   SetGuardOutcomeAction,
@@ -85,6 +88,7 @@ export {
 export {
   evaluateAtHook,
   drawRecords,
+  validateHookScriptDocument,
   type HookDecision,
   type HookEvaluationInput,
 } from './evaluation/hook-evaluator.js';
@@ -186,3 +190,40 @@ export {
   type SegmentThresholdEvent,
   type SegmentThresholdKind,
 } from './win-condition/types.js';
+
+export {
+  registerConstraintVocabulary,
+  RejectDrawAction,
+  RequireDrawAction,
+  type ConstraintFinding,
+  type ConstraintState,
+} from './constraints/actions.js';
+
+import { registerDeclaredEffectActions } from './effects/actions.js';
+import { registerCopalibreConditions } from './evaluation/conditions.js';
+import {
+  registerCopalibreParameters,
+  registerCopalibreVocabulary,
+} from './evaluation/vocabulary.js';
+import { registerWinConditionVocabulary } from './win-condition/actions.js';
+import { registerConstraintVocabulary } from './constraints/actions.js';
+import { RulesRegistry } from './registry/rules-registry.js';
+
+export function createDefaultRulesRegistry(): RulesRegistry {
+  const registry = new RulesRegistry();
+  registerCopalibreVocabulary(registry);
+  registerWinConditionVocabulary(registry);
+  registerConstraintVocabulary(registry);
+  return registry;
+}
+
+export function createHookScriptRegistry(): RulesRegistry {
+  const registry = new RulesRegistry({
+    includeBuiltinActions: false,
+    enforceAuthoringDefinitions: true,
+  });
+  registerCopalibreConditions(registry);
+  registerCopalibreParameters(registry);
+  registerDeclaredEffectActions(registry);
+  return registry;
+}

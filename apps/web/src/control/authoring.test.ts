@@ -1,15 +1,21 @@
 import {
+  addCustomRule,
+  canAddCustomRule,
   canContinue,
+  elementOptionsKey,
   formatsFor,
   initialWizard,
   nextStep,
+  parameterValueKey,
   previousStep,
   progress,
+  removeCustomRule,
   stepProblems,
   toCreateRequest,
   type DisciplineOption,
   type WizardState,
 } from './lib/wizard.js';
+import type { HookScriptVocabulary } from './lib/api-client.js';
 import {
   LOCK_EXPLANATION,
   initialReview,
@@ -37,6 +43,37 @@ const DISCIPLINES: readonly DisciplineOption[] = [
     supportedFormats: ['placement'],
   },
 ];
+
+const HOOK_VOCABULARY: HookScriptVocabulary = {
+  hooks: ['event.recorded'],
+  entries: [
+    {
+      kind: 'action',
+      type: 'notify',
+      description: 'Declare notification',
+      authoring: {
+        parameters: [
+          {
+            name: 'title',
+            description: 'Notification title',
+            required: true,
+            parameterTypes: ['simple_string'],
+            allowExpression: true,
+            valueSchema: { type: 'string', minLength: 1 },
+          },
+          {
+            name: 'message',
+            description: 'Notification message',
+            required: true,
+            parameterTypes: ['simple_string'],
+            allowExpression: true,
+            valueSchema: { type: 'string', minLength: 1 },
+          },
+        ],
+      },
+    },
+  ],
+};
 
 function wizard(overrides: Partial<WizardState> = {}): WizardState {
   return { ...initialWizard(), ...overrides };
@@ -93,7 +130,7 @@ describe('the wizard gates each step', () => {
     expect(previousStep(wizard({ step: 'discipline' }))).toBe('name');
     expect(previousStep(wizard())).toBe('name');
     expect(nextStep(wizard({ step: 'window' }))).toBe('window');
-    expect(progress(wizard())).toBe(25);
+    expect(progress(wizard())).toBe(20);
     expect(progress(wizard({ step: 'window' }))).toBe(100);
   });
 
@@ -119,11 +156,141 @@ describe('the wizard gates each step', () => {
       format: 'round-robin',
       publicRegistration: true,
       requiresCheckIn: true,
+      customScripts: [],
     });
   });
 
   it('refuses to submit an incomplete wizard', () => {
     expect(() => toCreateRequest(wizard())).toThrow('not complete');
+  });
+
+  it('validates schema-driven parameters and composes multiple conditionless rules', () => {
+    const titleKey = parameterValueKey('action', 'notify', 'title');
+    const messageKey = parameterValueKey('action', 'notify', 'message');
+    let state = wizard({
+      step: 'rules',
+      customRuleEnabled: true,
+      customRuleActionType: 'notify',
+      customRuleValues: { [titleKey]: 'Match update' },
+    });
+    expect(canContinue(state, DISCIPLINES, HOOK_VOCABULARY)).toBe(false);
+
+    state = {
+      ...state,
+      customRuleValues: { ...state.customRuleValues, [messageKey]: '{{ event.definitionCode }}' },
+    };
+    expect(canContinue(state, DISCIPLINES, HOOK_VOCABULARY)).toBe(true);
+    state = addCustomRule(state, HOOK_VOCABULARY);
+    expect(state.customRules).toHaveLength(1);
+
+    state = {
+      ...state,
+      customRuleActionType: 'notify',
+      customRuleValues: { [titleKey]: 'Second', [messageKey]: 'Second rule' },
+      alias: 'copa-reglas',
+      name: 'Copa Reglas',
+      descriptorId: 'd-football',
+      descriptorVersion: '1.2.0',
+      format: 'round-robin',
+    };
+    const scripts = toCreateRequest(state, HOOK_VOCABULARY).customScripts;
+    expect(scripts).toHaveLength(1);
+    expect(scripts[0]?.script['rules'] as readonly unknown[] | undefined).toHaveLength(2);
+  });
+
+  it('guards adding incomplete drafts and removes only the selected saved rule', () => {
+    const incomplete = wizard({ customRuleEnabled: true });
+    expect(canAddCustomRule(incomplete, HOOK_VOCABULARY)).toBe(false);
+    expect(() => addCustomRule(incomplete, HOOK_VOCABULARY)).toThrow('not complete');
+
+    const saved = wizard({
+      customRules: [
+        { actionType: 'notify', values: {}, options: {} },
+        { actionType: 'startTimer', values: {}, options: {} },
+      ],
+    });
+    expect(removeCustomRule(saved, 0).customRules).toEqual([
+      { actionType: 'startTimer', values: {}, options: {} },
+    ]);
+  });
+
+  it('serializes numeric schemas, optional blanks, and non-object option JSON safely', () => {
+    const vocabulary: HookScriptVocabulary = {
+      hooks: ['event.recorded'],
+      entries: [
+        {
+          kind: 'condition',
+          type: 'configured',
+          description: 'Configured condition',
+          authoring: { parameters: [], optionsSchema: {} },
+        },
+        {
+          kind: 'action',
+          type: 'startTimer',
+          description: 'Start timer',
+          authoring: {
+            parameters: [
+              {
+                name: 'timerId',
+                description: 'Timer identifier',
+                required: true,
+                parameterTypes: ['simple_string'],
+                allowExpression: false,
+                valueSchema: { type: 'string', minLength: 1 },
+              },
+              {
+                name: 'durationSeconds',
+                description: 'Duration',
+                required: true,
+                parameterTypes: ['simple_number'],
+                allowExpression: false,
+                valueSchema: { type: 'number', exclusiveMinimum: 0 },
+              },
+              {
+                name: 'label',
+                description: 'Optional label',
+                required: false,
+                parameterTypes: ['simple_string'],
+                allowExpression: false,
+                valueSchema: { type: 'string' },
+              },
+            ],
+          },
+        },
+      ],
+    };
+    const timerKey = parameterValueKey('action', 'startTimer', 'timerId');
+    const durationKey = parameterValueKey('action', 'startTimer', 'durationSeconds');
+    const state = wizard({
+      alias: 'copa-reglas',
+      name: 'Copa Reglas',
+      descriptorId: 'd-football',
+      descriptorVersion: '1.2.0',
+      format: 'round-robin',
+      customRuleEnabled: true,
+      customRuleConditionType: 'configured',
+      customRuleActionType: 'startTimer',
+      customRuleValues: { [timerKey]: 'discipline-clock', [durationKey]: '30' },
+      customRuleOptions: {
+        [elementOptionsKey('condition', 'configured')]: '"primitive"',
+      },
+    });
+
+    expect(canAddCustomRule(state, vocabulary)).toBe(true);
+    const scripts = toCreateRequest(state, vocabulary).customScripts;
+    const rules = scripts[0]?.script['rules'] as
+      | readonly {
+          conditions: readonly unknown[];
+          actions: readonly { params: readonly unknown[] }[];
+        }[]
+      | undefined;
+    expect(rules?.[0]?.conditions).toEqual([
+      expect.objectContaining({ type: 'configured', options: {} }),
+    ]);
+    expect(rules?.[0]?.actions[0]?.params).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'durationSeconds', value: 30 })]),
+    );
+    expect(rules?.[0]?.actions[0]?.params).toHaveLength(2);
   });
 });
 

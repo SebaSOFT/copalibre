@@ -609,4 +609,20 @@ export const messages: Record<string, string> = {
     'El servicio no está disponible temporalmente. Intenta de nuevo en breve.',
   'control.apiError.internalServer':
     'Ocurrió un error inesperado en el servidor. Intenta de nuevo.',
+  'control.wizard.step.rules': 'Reglas por evento',
+  'control.wizard.problem.chooseAction': 'Elegí una acción para la regla por evento',
+  'control.wizard.problem.completeRule':
+    'Completá los valores requeridos según el esquema aceptado',
+  'control.wizard.rule.enable': 'Agregar regla para cada evento registrado',
+  'control.wizard.rule.hookHelp':
+    'Se ejecuta sincrónicamente en event.recorded con vocabulario aceptado por el servidor.',
+  'control.wizard.rule.condition': 'Condición',
+  'control.wizard.rule.action': 'Acción',
+  'control.wizard.rule.chooseAction': 'Elegir acción',
+  'control.wizard.rule.conditionAlways': 'Sin condición — ejecutar para cada evento',
+  'control.wizard.rule.conditionlessExplanation':
+    'Sin condición, esta regla se ejecuta para cada evento registrado.',
+  'control.wizard.rule.options': 'Opciones (JSON)',
+  'control.wizard.rule.addAnother': 'Añadir otra regla',
+  'control.wizard.rule.remove': 'Quitar',
 };

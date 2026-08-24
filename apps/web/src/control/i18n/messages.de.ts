@@ -618,4 +618,20 @@ export const messages: Record<string, string> = {
     'Der Dienst ist vorübergehend nicht verfügbar. Versuchen Sie es in Kürze erneut.',
   'control.apiError.internalServer':
     'Ein unerwarteter Serverfehler ist aufgetreten. Versuchen Sie es erneut.',
+  'control.wizard.step.rules': 'Ereignisregeln',
+  'control.wizard.problem.chooseAction': 'Aktion für die Ereignisregel auswählen',
+  'control.wizard.problem.completeRule':
+    'Erforderliche Werte gemäß akzeptiertem Schema vervollständigen',
+  'control.wizard.rule.enable': 'Regel für jedes erfasste Ereignis hinzufügen',
+  'control.wizard.rule.hookHelp':
+    'Wird synchron bei event.recorded mit dem vom Server akzeptierten Vokabular ausgeführt.',
+  'control.wizard.rule.condition': 'Bedingung',
+  'control.wizard.rule.action': 'Aktion',
+  'control.wizard.rule.chooseAction': 'Aktion auswählen',
+  'control.wizard.rule.conditionAlways': 'Keine Bedingung — bei jedem Ereignis ausführen',
+  'control.wizard.rule.conditionlessExplanation':
+    'Ohne Bedingung wird diese Regel bei jedem erfassten Ereignis ausgelöst.',
+  'control.wizard.rule.options': 'Optionen (JSON)',
+  'control.wizard.rule.addAnother': 'Weitere Regel hinzufügen',
+  'control.wizard.rule.remove': 'Entfernen',
 };

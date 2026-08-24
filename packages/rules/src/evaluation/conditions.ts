@@ -4,7 +4,7 @@ import {
   type ConditionOptions,
   type ExecutionContext,
 } from '@sebasoft/neuron-js';
-import type { RulesRegistry } from '../registry/rules-registry.js';
+import { parameter, type RulesRegistry } from '../registry/rules-registry.js';
 
 /**
  * The condition vocabulary beyond arithmetic.
@@ -300,26 +300,109 @@ export function registerCopalibreConditions(registry: RulesRegistry): RulesRegis
     CompareTwoNumbersCondition.TYPE,
     CompareTwoNumbersCondition,
     'Compares two numbers (or two strings); options.onMissing declares what an absent operand means',
+    {
+      parameters: [
+        parameter(
+          'op1',
+          'Left operand',
+          'simple_number',
+          { type: 'number' },
+          { allowExpression: true },
+        ),
+        parameter('comp', 'Comparison operator', 'comparator', { enum: ORDERING_COMPARATORS }),
+        parameter(
+          'op2',
+          'Right operand',
+          'simple_number',
+          { type: 'number' },
+          { allowExpression: true },
+        ),
+      ],
+    },
   );
   registry.registerCondition(
     CompareTwoStringsCondition.TYPE,
     CompareTwoStringsCondition,
     'Compares two strings by equality or codepoint ordering; options.caseSensitive declares folding',
+    {
+      parameters: [
+        parameter(
+          'op1',
+          'Left text operand',
+          'simple_string',
+          { type: 'string' },
+          { allowExpression: true },
+        ),
+        parameter('comp', 'Comparison operator', 'comparator', { enum: ORDERING_COMPARATORS }),
+        parameter(
+          'op2',
+          'Right text operand',
+          'simple_string',
+          { type: 'string' },
+          { allowExpression: true },
+        ),
+      ],
+      optionsSchema: {
+        type: 'object',
+        properties: {
+          caseSensitive: { type: 'boolean' },
+          onMissing: { enum: ['error', 'false', 'true'] },
+        },
+        additionalProperties: false,
+      },
+    },
   );
   registry.registerCondition(
     ValueInSetCondition.TYPE,
     ValueInSetCondition,
     'Tests membership of the list declared in options.values',
+    {
+      parameters: [
+        parameter('value', 'Value to find', 'simple_string', {}, { allowExpression: true }),
+      ],
+      optionsSchema: {
+        type: 'object',
+        required: ['values'],
+        properties: {
+          values: { type: 'array' },
+          caseSensitive: { type: 'boolean' },
+          onMissing: { enum: ['error', 'false', 'true'] },
+        },
+        additionalProperties: false,
+      },
+    },
   );
   registry.registerCondition(
     ValueExistsCondition.TYPE,
     ValueExistsCondition,
     'Tests whether options.path was recorded at all, distinguishing absent from zero, empty and null',
+    {
+      parameters: [],
+      optionsSchema: {
+        type: 'object',
+        required: ['path'],
+        properties: { path: { type: 'string', minLength: 1 } },
+        additionalProperties: false,
+      },
+    },
   );
   registry.registerCondition(
     CompareTwoInstantsCondition.TYPE,
     CompareTwoInstantsCondition,
     'Compares two instants (epoch milliseconds or ISO-8601) as time, never as text',
+    {
+      parameters: [
+        {
+          ...parameter('op1', 'Left instant', 'simple_number', {}, { allowExpression: true }),
+          parameterTypes: ['simple_number', 'simple_string'],
+        },
+        parameter('comp', 'Comparison operator', 'comparator', { enum: ORDERING_COMPARATORS }),
+        {
+          ...parameter('op2', 'Right instant', 'simple_number', {}, { allowExpression: true }),
+          parameterTypes: ['simple_number', 'simple_string'],
+        },
+      ],
+    },
   );
   return registry;
 }

@@ -815,6 +815,7 @@ export const messages = defineMessages({
   wizardStepName: { id: 'control.wizard.step.name', defaultMessage: 'Name' },
   wizardStepDiscipline: { id: 'control.wizard.step.discipline', defaultMessage: 'Discipline' },
   wizardStepFormat: { id: 'control.wizard.step.format', defaultMessage: 'Format' },
+  wizardStepRules: { id: 'control.wizard.step.rules', defaultMessage: 'Event rules' },
   wizardStepWindow: { id: 'control.wizard.step.window', defaultMessage: 'Window' },
 
   // Wizard validation problems (lib/wizard.ts stepProblems)
@@ -842,6 +843,14 @@ export const messages = defineMessages({
     id: 'control.wizard.problem.minParticipants',
     defaultMessage: 'A tournament needs at least two participants',
   },
+  wizardProblemChooseAction: {
+    id: 'control.wizard.problem.chooseAction',
+    defaultMessage: 'Choose an action for the event rule',
+  },
+  wizardProblemCompleteRule: {
+    id: 'control.wizard.problem.completeRule',
+    defaultMessage: 'Complete required rule values using the accepted schema',
+  },
 
   // TournamentSetupWizard.tsx
   wizardBreadcrumb: {
@@ -855,6 +864,34 @@ export const messages = defineMessages({
   wizardFieldAlias: { id: 'control.wizard.field.alias', defaultMessage: 'Alias' },
   wizardFieldDiscipline: { id: 'control.wizard.field.discipline', defaultMessage: 'Discipline' },
   wizardFieldFormat: { id: 'control.wizard.field.format', defaultMessage: 'Format' },
+  wizardEnableCustomRule: {
+    id: 'control.wizard.rule.enable',
+    defaultMessage: 'Add rule for every recorded event',
+  },
+  wizardRuleHookHelp: {
+    id: 'control.wizard.rule.hookHelp',
+    defaultMessage: 'Runs synchronously at event.recorded using vocabulary accepted by server.',
+  },
+  wizardRuleCondition: { id: 'control.wizard.rule.condition', defaultMessage: 'Condition' },
+  wizardRuleAction: { id: 'control.wizard.rule.action', defaultMessage: 'Action' },
+  wizardRuleChooseAction: {
+    id: 'control.wizard.rule.chooseAction',
+    defaultMessage: 'Choose action',
+  },
+  wizardRuleConditionAlways: {
+    id: 'control.wizard.rule.conditionAlways',
+    defaultMessage: 'No condition — run for every event',
+  },
+  wizardRuleConditionlessExplanation: {
+    id: 'control.wizard.rule.conditionlessExplanation',
+    defaultMessage: 'Without a condition, this rule fires for every recorded event.',
+  },
+  wizardRuleOptions: { id: 'control.wizard.rule.options', defaultMessage: 'Options (JSON)' },
+  wizardRuleAddAnother: {
+    id: 'control.wizard.rule.addAnother',
+    defaultMessage: 'Add another rule',
+  },
+  wizardRuleRemove: { id: 'control.wizard.rule.remove', defaultMessage: 'Remove' },
   wizardFieldRegion: { id: 'control.wizard.field.region', defaultMessage: 'Region' },
   wizardFieldCapacity: { id: 'control.wizard.field.capacity', defaultMessage: 'Capacity' },
   wizardFieldProfile: {

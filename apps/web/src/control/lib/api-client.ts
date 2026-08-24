@@ -30,6 +30,9 @@ export interface ControlApiClient {
     organizationAlias: string,
     request: CreateTournamentRequest,
   ) => Promise<TournamentResponse>;
+  readonly fetchCustomScriptVocabulary?: (
+    organizationAlias: string,
+  ) => Promise<HookScriptVocabulary>;
   /** The organization's active (non-archived) tournaments, for the dashboard (0113). */
   readonly listActiveTournaments?: (
     organizationAlias: string,
@@ -827,6 +830,43 @@ export interface CreateTournamentRequest {
   readonly publicRegistration: boolean;
   readonly requiresCheckIn: boolean;
   readonly checkInClosesAt?: string;
+  readonly region?: string;
+  readonly capacity?: number;
+  readonly profileId?: string;
+  readonly profileVersion?: string;
+  readonly customScripts: readonly HookScriptAttachment[];
+}
+
+export interface HookScriptAttachment {
+  readonly hook: string;
+  readonly script: Readonly<Record<string, unknown>>;
+  readonly description?: string;
+}
+
+export interface RegistryParameterDefinition {
+  readonly name: string;
+  readonly description: string;
+  readonly required: boolean;
+  readonly parameterTypes: readonly string[];
+  readonly allowExpression: boolean;
+  readonly valueSchema: Readonly<Record<string, unknown>>;
+}
+
+export interface HookVocabularyEntry {
+  readonly kind: 'parameter' | 'condition' | 'action' | 'rule';
+  readonly type: string;
+  readonly description: string;
+  readonly authoring?: {
+    readonly parameters?: readonly RegistryParameterDefinition[];
+    readonly optionsSchema?: Readonly<Record<string, unknown>>;
+    readonly valueSchema?: Readonly<Record<string, unknown>>;
+    readonly allowExpression?: boolean;
+  };
+}
+
+export interface HookScriptVocabulary {
+  readonly hooks: readonly string[];
+  readonly entries: readonly HookVocabularyEntry[];
 }
 
 export interface TournamentResponse {
@@ -1247,6 +1287,13 @@ export function createControlApiClient(input: {
           body,
           token: input.accessToken?.(),
         },
+      ),
+
+    fetchCustomScriptVocabulary: (organizationAlias) =>
+      requestJson<HookScriptVocabulary>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/custom-script-vocabulary`,
+        { token: input.accessToken?.() },
       ),
 
     listActiveTournaments: (organizationAlias) =>

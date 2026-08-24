@@ -232,6 +232,78 @@ export class TournamentResponse {
   profileRef?: ProfileRefResponse;
 }
 
+export class HookScriptAttachmentRequest {
+  @ApiProperty({ enum: ['event.recorded'] })
+  hook!: string;
+
+  @ApiProperty({ type: Object, description: 'Neuron-JS rule script document' })
+  script!: Record<string, unknown>;
+
+  @ApiPropertyOptional()
+  description?: string;
+}
+
+export class TournamentCustomScriptsResponse {
+  @ApiProperty({ type: [HookScriptAttachmentRequest] })
+  customScripts!: readonly HookScriptAttachmentRequest[];
+}
+
+export class RegistryParameterDefinitionResponse {
+  @ApiProperty()
+  name!: string;
+
+  @ApiProperty()
+  description!: string;
+
+  @ApiProperty()
+  required!: boolean;
+
+  @ApiProperty({ type: [String] })
+  parameterTypes!: readonly string[];
+
+  @ApiProperty()
+  allowExpression!: boolean;
+
+  @ApiProperty({ type: Object })
+  valueSchema!: Record<string, unknown>;
+}
+
+export class RegistryAuthoringDefinitionResponse {
+  @ApiPropertyOptional({ type: [RegistryParameterDefinitionResponse] })
+  parameters?: readonly RegistryParameterDefinitionResponse[];
+
+  @ApiPropertyOptional({ type: Object })
+  optionsSchema?: Record<string, unknown>;
+
+  @ApiPropertyOptional({ type: Object })
+  valueSchema?: Record<string, unknown>;
+
+  @ApiPropertyOptional()
+  allowExpression?: boolean;
+}
+
+export class RegistryEntryResponse {
+  @ApiProperty({ enum: ['parameter', 'condition', 'action', 'rule'] })
+  kind!: string;
+
+  @ApiProperty()
+  type!: string;
+
+  @ApiProperty()
+  description!: string;
+
+  @ApiPropertyOptional({ type: RegistryAuthoringDefinitionResponse })
+  authoring?: RegistryAuthoringDefinitionResponse;
+}
+
+export class HookScriptVocabularyResponse {
+  @ApiProperty({ type: [String], enum: ['event.recorded'] })
+  hooks!: readonly string[];
+
+  @ApiProperty({ type: [RegistryEntryResponse] })
+  entries!: readonly RegistryEntryResponse[];
+}
+
 export class CreateTournamentRequest {
   @ApiProperty({ example: 'copa-verano' })
   alias!: string;
@@ -291,6 +363,13 @@ export class CreateTournamentRequest {
     example: '1.0.0',
   })
   profileVersion?: string;
+
+  @ApiProperty({
+    type: [HookScriptAttachmentRequest],
+    default: [],
+    description: 'Organizer-authored scripts evaluated at supported tournament hooks.',
+  })
+  customScripts!: HookScriptAttachmentRequest[];
 }
 
 export class CreateStageRequest {

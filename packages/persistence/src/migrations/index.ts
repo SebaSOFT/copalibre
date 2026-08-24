@@ -35,6 +35,7 @@ import { personBirthDate } from './0024-person-birth-date.js';
 import { organizationEmblem } from './0025-organization-emblem.js';
 import { venueDetails } from './0026-venue-details.js';
 import { objectMetadataOrganizationIndex } from './0027-object-metadata-organization-index.js';
+import { tournamentRulesetCustomScripts } from './0028-tournament-ruleset-custom-scripts.js';
 
 /**
  * Migrations are explicit, ordered, and code-defined (no filesystem scanning),
@@ -70,6 +71,7 @@ export const MIGRATIONS: Readonly<Record<string, Migration>> = {
   '0025-organization-emblem': organizationEmblem,
   '0026-venue-details': venueDetails,
   '0027-object-metadata-organization-index': objectMetadataOrganizationIndex,
+  '0028-tournament-ruleset-custom-scripts': tournamentRulesetCustomScripts,
 };
 
 /** The version `apps/api`'s readiness check expects to find applied. */
