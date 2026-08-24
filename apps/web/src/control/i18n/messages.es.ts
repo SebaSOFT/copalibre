@@ -75,6 +75,7 @@ export const messages: Record<string, string> = {
   'control.dashboard.participantsCsv': 'Participantes CSV',
   'control.dashboard.resultsCsv': 'Resultados CSV',
   'control.dashboard.standingsCsv': 'Posiciones CSV',
+  'control.dashboard.configurationJson': 'Exportar configuración JSON',
   'control.dashboard.archive': 'Archivar',
 
   'control.heartbeat.online': 'En línea',

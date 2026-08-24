@@ -648,6 +648,28 @@ export class TournamentRepository {
     };
   }
 
+  async findLatestStageConfiguration(stageId: string): Promise<StageConfiguration | undefined> {
+    const row = await this.db
+      .selectFrom('stage_configurations')
+      .selectAll()
+      .where('stage_id', '=', stageId)
+      .orderBy('version', 'desc')
+      .limit(1)
+      .executeTakeFirst();
+
+    if (!row) return undefined;
+    const rawOverrides = row.overrides;
+    const overrides =
+      typeof rawOverrides === 'string' ? JSON.parse(rawOverrides) : (rawOverrides ?? {});
+    return {
+      stageConfigurationId: row.stage_configuration_id,
+      stageId: row.stage_id,
+      version: row.version,
+      rulesetId: row.ruleset_id,
+      overrides: overrides as Record<string, unknown>,
+    };
+  }
+
   /**
    * Reads through the caller's own executor rather than `this.db`: called
    * from inside `createRuleset`'s open transaction, and a second connection

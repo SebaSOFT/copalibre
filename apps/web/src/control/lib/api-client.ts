@@ -30,6 +30,10 @@ export interface ControlApiClient {
     organizationAlias: string,
     request: CreateTournamentRequest,
   ) => Promise<TournamentResponse>;
+  readonly downloadTournamentConfiguration?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+  ) => Promise<TournamentConfigurationExportResponse>;
   readonly fetchCustomScriptVocabulary?: (
     organizationAlias: string,
   ) => Promise<HookScriptVocabulary>;
@@ -878,6 +882,9 @@ export interface TournamentResponse {
   readonly status?: 'draft' | 'published' | 'started' | 'finished' | 'archived';
 }
 
+export type TournamentConfigurationExportResponse =
+  components['schemas']['TournamentConfigurationExportResponse'];
+
 export interface TeamMemberResponse {
   readonly personId: string;
   readonly displayName: string;
@@ -1579,6 +1586,13 @@ export function createControlApiClient(input: {
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/exports/${kind}`,
         input.accessToken?.(),
+      ),
+
+    downloadTournamentConfiguration: (organizationAlias, tournamentAlias) =>
+      requestJson<TournamentConfigurationExportResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/export`,
+        { token: input.accessToken?.() },
       ),
 
     listDisplayTokens: (organizationAlias, tournamentAlias) =>

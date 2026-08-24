@@ -181,7 +181,7 @@ describe('the control API client', () => {
     });
   });
 
-  it('uses the reviewed CSV endpoints and downloads a text export', async () => {
+  it('uses the reviewed import/export endpoints and downloads CSV and configuration JSON', async () => {
     const calls: { url: string; init?: RequestInit }[] = [];
     const preview = {
       importId: 'import-1',
@@ -194,6 +194,15 @@ describe('the control API client', () => {
       fetch: async (url, init) => {
         calls.push({ url: String(url), init });
         if (String(url).endsWith('/exports/standings')) return textResponse('stageId,standings\n');
+        if (String(url).endsWith('/export')) {
+          return response({
+            kind: 'copalibre-tournament-configuration',
+            schemaVersion: '1.0.0',
+            tournament: {},
+            ruleset: {},
+            seasons: [],
+          });
+        }
         return response(preview);
       },
     });
@@ -201,7 +210,8 @@ describe('the control API client', () => {
       !client.createCsvImport ||
       !client.fetchCsvImport ||
       !client.commitCsvImport ||
-      !client.downloadCsvExport
+      !client.downloadCsvExport ||
+      !client.downloadTournamentConfiguration
     ) {
       throw new Error('CSV client methods must be available');
     }
@@ -224,16 +234,21 @@ describe('the control API client', () => {
     await expect(
       client.downloadCsvExport('liga-mendocina', 'copa-verano', 'standings'),
     ).resolves.toBe('stageId,standings\n');
+    await expect(
+      client.downloadTournamentConfiguration('liga-mendocina', 'copa-verano'),
+    ).resolves.toMatchObject({ kind: 'copalibre-tournament-configuration' });
 
     expect(calls.map((call) => call.url)).toEqual([
       '/organizations/liga-mendocina/tournaments/copa-verano/imports',
       '/organizations/liga-mendocina/tournaments/copa-verano/imports/01800000-0000-7000-8000-000000000002',
       '/organizations/liga-mendocina/tournaments/copa-verano/imports/01800000-0000-7000-8000-000000000002/commit',
       '/organizations/liga-mendocina/tournaments/copa-verano/exports/standings',
+      '/organizations/liga-mendocina/tournaments/copa-verano/export',
     ]);
     expect(JSON.parse(String(calls[0]?.init?.body))).toMatchObject({ target: 'team' });
     expect(JSON.parse(String(calls[2]?.init?.body))).toEqual({ sourceHash: 'source-hash' });
     expect(new Headers(calls[3]?.init?.headers).get('authorization')).toBe('Bearer token-1');
+    expect(new Headers(calls[4]?.init?.headers).get('authorization')).toBe('Bearer token-1');
   });
 
   it('fetches storage usage for an organization', async () => {

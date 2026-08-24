@@ -47,8 +47,13 @@ import {
   TournamentCustomScriptsResponse,
   TournamentResponse,
 } from '../dto/organization.dto.js';
+import { TournamentConfigurationExportResponse } from '../dto/tournament-configuration-export.dto.js';
 import { enforcePolicy } from '../policy/resource-policy.js';
 import { DATABASE } from '../database.token.js';
+import {
+  exportTournamentConfiguration,
+  type TournamentConfigurationExportDocument,
+} from '../tournament-configuration-export.js';
 
 /**
  * Organization-scoped tournament routes. The path shape mirrors the URL contract
@@ -136,6 +141,36 @@ export class TournamentsController {
       resource: { organizationId: tournament.organizationId },
     });
     return tournament;
+  }
+
+  @Get(':tournamentAlias/export')
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Export the current tournament configuration as JSON' })
+  @ApiOkResponse({ type: TournamentConfigurationExportResponse })
+  @ApiUnauthorizedResponse({ type: ProblemResponse })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  async exportConfiguration(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Req() request: RequestWithSubject,
+  ): Promise<TournamentConfigurationExportDocument> {
+    const tournament = await new TournamentRepository(this.db).findByScopedAlias(
+      organizationAlias,
+      tournamentAlias,
+    );
+    if (!tournament) {
+      throw new NotFoundException(`No tournament "${tournamentAlias}"`, {
+        errorCode: 'tournament-not-found',
+      });
+    }
+    enforcePolicy({
+      plane: 'admin-control',
+      subject: request.subject,
+      resource: { organizationId: tournament.organizationId },
+    });
+    return exportTournamentConfiguration(this.db, tournament);
   }
 
   @Post()

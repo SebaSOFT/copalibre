@@ -187,6 +187,10 @@ export const messages = defineMessages({
     id: 'control.dashboard.standingsCsv',
     defaultMessage: 'Standings CSV',
   },
+  dashboardConfigurationJson: {
+    id: 'control.dashboard.configurationJson',
+    defaultMessage: 'Export configuration JSON',
+  },
   dashboardArchive: { id: 'control.dashboard.archive', defaultMessage: 'Archive' },
 
   // Device heartbeat (lib/device-heartbeat.ts, DeviceHeartbeat.tsx)

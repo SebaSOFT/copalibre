@@ -399,6 +399,70 @@
         ]
       }
     },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/export": {
+      "get": {
+        "operationId": "TournamentsController_exportConfiguration",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TournamentConfigurationExportResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Export the current tournament configuration as JSON",
+        "tags": [
+          "tournaments"
+        ]
+      }
+    },
     "/organizations/{organizationAlias}/tournaments": {
       "post": {
         "description": "Requires the copalibre.control scope and a token scoped to the target organization.",
@@ -8090,6 +8154,58 @@
           "status"
         ]
       },
+      "TournamentConfigurationDescriptorRefResponse": {
+        "type": "object",
+        "properties": {
+          "descriptorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "string",
+            "example": "1.3.0"
+          }
+        },
+        "required": [
+          "descriptorId",
+          "version"
+        ]
+      },
+      "TournamentConfigurationIdentityResponse": {
+        "type": "object",
+        "properties": {
+          "alias": {
+            "type": "string",
+            "example": "copa-verano"
+          },
+          "name": {
+            "type": "string",
+            "example": "Copa Verano"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "published",
+              "started",
+              "finished",
+              "archived"
+            ]
+          },
+          "disciplineRef": {
+            "$ref": "#/components/schemas/TournamentConfigurationDescriptorRefResponse"
+          },
+          "profileRef": {
+            "$ref": "#/components/schemas/ProfileRefResponse"
+          }
+        },
+        "required": [
+          "alias",
+          "name",
+          "status",
+          "disciplineRef"
+        ]
+      },
       "HookScriptAttachmentRequest": {
         "type": "object",
         "properties": {
@@ -8110,6 +8226,135 @@
         "required": [
           "hook",
           "script"
+        ]
+      },
+      "TournamentConfigurationRulesetResponse": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "number"
+          },
+          "rawOverrides": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "customScripts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HookScriptAttachmentRequest"
+            }
+          },
+          "effective": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "version",
+          "rawOverrides",
+          "customScripts",
+          "effective"
+        ]
+      },
+      "TournamentConfigurationStageLayerResponse": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "number"
+          },
+          "rawOverrides": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "effective": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "rawOverrides",
+          "effective"
+        ]
+      },
+      "TournamentConfigurationStageResponse": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "format": {
+            "type": "string"
+          },
+          "configuration": {
+            "$ref": "#/components/schemas/TournamentConfigurationStageLayerResponse"
+          }
+        },
+        "required": [
+          "number",
+          "name",
+          "format",
+          "configuration"
+        ]
+      },
+      "TournamentConfigurationSeasonResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "ordinal": {
+            "type": "number"
+          },
+          "stages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TournamentConfigurationStageResponse"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "ordinal",
+          "stages"
+        ]
+      },
+      "TournamentConfigurationExportResponse": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "copalibre-tournament-configuration"
+            ]
+          },
+          "schemaVersion": {
+            "type": "string",
+            "enum": [
+              "1.0.0"
+            ]
+          },
+          "tournament": {
+            "$ref": "#/components/schemas/TournamentConfigurationIdentityResponse"
+          },
+          "ruleset": {
+            "$ref": "#/components/schemas/TournamentConfigurationRulesetResponse"
+          },
+          "seasons": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TournamentConfigurationSeasonResponse"
+            }
+          }
+        },
+        "required": [
+          "kind",
+          "schemaVersion",
+          "tournament",
+          "ruleset",
+          "seasons"
         ]
       },
       "CreateTournamentRequest": {

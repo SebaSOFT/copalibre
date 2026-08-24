@@ -69,6 +69,18 @@ function DashboardBody({
       link.click();
       URL.revokeObjectURL(link.href);
     });
+  const downloadConfiguration = (tournamentAlias: string) =>
+    void api
+      .downloadTournamentConfiguration?.(organizationAlias, tournamentAlias)
+      .then((configuration) => {
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(
+          new Blob([`${JSON.stringify(configuration, null, 2)}\n`], { type: 'application/json' }),
+        );
+        link.download = `${tournamentAlias}-configuration.json`;
+        link.click();
+        URL.revokeObjectURL(link.href);
+      });
 
   const [devices, setDevices] = useState<readonly DeviceEntry[]>([]);
   const [now, setNow] = useState(() => Date.now());
@@ -159,6 +171,9 @@ function DashboardBody({
                 </button>
                 <button onClick={() => download(card.alias, 'standings')} type="button">
                   <FormattedMessage {...messages.dashboardStandingsCsv} />
+                </button>
+                <button onClick={() => downloadConfiguration(card.alias)} type="button">
+                  <FormattedMessage {...messages.dashboardConfigurationJson} />
                 </button>
                 {card.lifecycle === 'finished' && (
                   <button onClick={() => archive(card.alias)} type="button">
