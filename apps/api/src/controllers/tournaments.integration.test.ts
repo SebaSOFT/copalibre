@@ -72,6 +72,252 @@ afterAll(async () => {
 });
 
 describe('organization-scoped tournament routes', () => {
+  it('exports a multi-stage tournament with profile, raw overrides, and compiled stage configuration', async () => {
+    const tournaments = new TournamentRepository(scratch.db);
+    const profiles = new TournamentProfileRepository(scratch.db);
+    const competition = new CompetitionRepository(scratch.db);
+    const descriptor = footballDescriptor();
+    const profile: TournamentProfile = {
+      profileId: '01890000-0000-7000-8000-000000000134',
+      alias: 'exportable-cup',
+      version: '1.0.0',
+      name: 'Exportable Cup',
+      attribution: { author: 'CopaLibre', licence: 'AGPL-3.0-only' },
+      requires: [],
+      stages: [
+        { number: 1, name: 'Groups', format: 'round-robin' },
+        { number: 2, name: 'Final', format: 'single-elimination' },
+      ],
+      points: { win: 3, draw: 1, loss: 0 },
+      tiebreak: [],
+    };
+    await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+      await tournaments.saveDescriptor(uow, descriptor, {
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      await profiles.save(uow, profile, {
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+    });
+    const createdResponse = await request({
+      method: 'POST',
+      url: '/organizations/liga-orbital/tournaments',
+      token: 'organizer-org1',
+      payload: {
+        alias: 'copa-export-multi',
+        name: 'Copa Export Multi',
+        descriptorId: descriptor.descriptorId,
+        descriptorVersion: descriptor.version,
+        format: 'round-robin',
+        publicRegistration: true,
+        requiresCheckIn: false,
+        region: 'Cuyo',
+        capacity: 24,
+        profileId: profile.profileId,
+        profileVersion: profile.version,
+      },
+    });
+    expect(createdResponse.statusCode).toBe(201);
+    const created = createdResponse.json() as { tournamentId: string; rulesetId: string };
+    const stages = await competition.listStagesOfTournament(created.tournamentId);
+    const finalStage = stages.find((stage) => stage.number === 2);
+    if (!finalStage) throw new Error('Expected final stage');
+    await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+      tournaments.createStageConfiguration(uow, {
+        stageId: finalStage.stageId,
+        rulesetId: created.rulesetId,
+        organizationId,
+        overrides: { 'scoring.pointsPerWin': 4 },
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      }),
+    );
+
+    const noToken = await request({
+      method: 'GET',
+      url: '/organizations/liga-orbital/tournaments/copa-export-multi/export',
+    });
+    expect(noToken.statusCode).toBe(401);
+    const foreign = await request({
+      method: 'GET',
+      url: '/organizations/liga-orbital/tournaments/copa-export-multi/export',
+      token: 'organizer-org2',
+    });
+    expect(foreign.statusCode).toBe(403);
+
+    const response = await request({
+      method: 'GET',
+      url: '/organizations/liga-orbital/tournaments/copa-export-multi/export',
+      token: 'organizer-org1',
+    });
+    expect(response.statusCode).toBe(200);
+    const document = response.json() as {
+      tournament: { profileRef?: { profileId: string; version: string } };
+      ruleset: { rawOverrides: Record<string, unknown>; effective: { config: unknown } };
+      seasons: {
+        stages: {
+          number: number;
+          configuration: { rawOverrides: unknown; effective: { config: unknown } };
+        }[];
+      }[];
+    };
+    expect(document.tournament.profileRef).toEqual({
+      profileId: profile.profileId,
+      version: profile.version,
+    });
+    expect(document.ruleset.rawOverrides).toMatchObject({
+      'registration.region': 'Cuyo',
+      'registration.capacity': 24,
+    });
+    expect(document.seasons.flatMap((season) => season.stages)).toHaveLength(2);
+    expect(
+      document.seasons[0]?.stages.find((stage) => stage.number === 2)?.configuration,
+    ).toMatchObject({
+      rawOverrides: { 'scoring.pointsPerWin': 4 },
+      effective: { config: { scoring: { pointsPerWin: 4 } } },
+    });
+  });
+
+  it('exports a default-only single stage with every top-level section present', async () => {
+    const tournaments = new TournamentRepository(scratch.db);
+    const competition = new CompetitionRepository(scratch.db);
+    const descriptor = footballDescriptor();
+    const tournament = await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+      await tournaments.saveDescriptor(uow, descriptor, {
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      const created = await tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-export-default',
+        name: 'Copa Export Default',
+        descriptor,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      await tournaments.createRuleset(uow, {
+        tournamentId: created.tournamentId,
+        organizationId,
+        descriptor,
+        overrides: {},
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      await competition.createStageInTournament(uow, {
+        tournamentId: created.tournamentId,
+        number: 1,
+        name: 'Stage',
+        format: 'round-robin',
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      return created;
+    });
+    const response = await request({
+      method: 'GET',
+      url: `/organizations/liga-orbital/tournaments/${tournament.alias}/export`,
+      token: 'organizer-org1',
+    });
+    expect(response.statusCode).toBe(200);
+    const document = response.json() as {
+      kind: string;
+      tournament: unknown;
+      ruleset: { rawOverrides: unknown; effective: unknown };
+      seasons: { stages: { configuration: { rawOverrides: unknown; effective: unknown } }[] }[];
+    };
+    expect(document.kind).toBe('copalibre-tournament-configuration');
+    expect(document.tournament).toBeDefined();
+    expect(document.ruleset.rawOverrides).toEqual({});
+    expect(document.ruleset.effective).toBeDefined();
+    expect(document.seasons[0]?.stages[0]?.configuration.rawOverrides).toEqual({});
+    expect(document.seasons[0]?.stages[0]?.configuration.effective).toBeDefined();
+  });
+
+  it('does not expose result, standings, event, or participant data after a result exists', async () => {
+    const tournaments = new TournamentRepository(scratch.db);
+    const competition = new CompetitionRepository(scratch.db);
+    const descriptor = footballDescriptor();
+    const seeded = await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+      await tournaments.saveDescriptor(uow, descriptor, {
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      const tournament = await tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-export-played',
+        name: 'Copa Export Played',
+        descriptor,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      await tournaments.createRuleset(uow, {
+        tournamentId: tournament.tournamentId,
+        organizationId,
+        descriptor,
+        overrides: { format: 'round-robin' },
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      const stage = await competition.createStageInTournament(uow, {
+        tournamentId: tournament.tournamentId,
+        number: 1,
+        name: 'Stage',
+        format: 'round-robin',
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      const [fixture] = await competition.createFixtures(uow, {
+        stageId: stage.stageId,
+        fixtures: [{ round: 1 }],
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      if (!fixture) throw new Error('Expected fixture');
+      const match = await competition.createMatch(uow, {
+        fixtureId: fixture.fixtureId,
+        number: 1,
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      return { tournament, match };
+    });
+    await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+      competition.recordResult(uow, {
+        matchId: seeded.match.matchId,
+        result: { sides: [], recordedAt: '2026-08-24T12:00:00.000Z' },
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      }),
+    );
+    const response = await request({
+      method: 'GET',
+      url: `/organizations/liga-orbital/tournaments/${seeded.tournament.alias}/export`,
+      token: 'organizer-org1',
+    });
+    expect(response.statusCode).toBe(200);
+    expect(collectObjectKeys(response.json())).not.toEqual(
+      expect.arrayContaining([
+        'matches',
+        'result',
+        'standings',
+        'events',
+        'participants',
+        'persons',
+      ]),
+    );
+  });
+
   it('exposes the exact authorized hook-script vocabulary', async () => {
     const noToken = await request({
       method: 'GET',
@@ -697,3 +943,9 @@ describe('organization-scoped tournament routes', () => {
     expect(body.some((p: { alias: string }) => p.alias === 'compatible-cup')).toBe(true);
   });
 });
+
+function collectObjectKeys(value: unknown): string[] {
+  if (Array.isArray(value)) return value.flatMap(collectObjectKeys);
+  if (value === null || typeof value !== 'object') return [];
+  return Object.entries(value).flatMap(([key, nested]) => [key, ...collectObjectKeys(nested)]);
+}

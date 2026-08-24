@@ -96,3 +96,39 @@ tournament.
 - **WHEN** no installed `TournamentProfile` is compatible with the selected discipline and format
 - **THEN** the wizard proceeds without offering a profile selection, producing a single-stage tournament
   as it does today
+
+### Requirement: The wizard offers a per-event rule-authoring step
+The tournament setup wizard SHALL offer a step where an organizer may define zero or more custom
+rules — each an ordered list of conditions and one or more actions — attached to a published hook
+point supported by tournament custom scripts, using only hooks and vocabulary the registry-introspection
+contract lists.
+
+#### Scenario: An organizer composes a rule from listed vocabulary
+- **WHEN** an organizer builds a rule in the wizard's rule-authoring step
+- **THEN** every hook, condition, action, named parameter, parameter type, value control, and expression
+  mode offered comes from the registry-introspection contract's declarative definitions
+- **AND** frontend contains no independent list of executable vocabulary
+
+#### Scenario: Parameter controls follow backend schemas
+- **WHEN** an organizer selects a condition or action
+- **THEN** wizard renders its required and optional named parameters from their JSON Schemas
+- **AND** values that fail those schemas cannot be submitted
+
+#### Scenario: A rule with no conditions is explained before saving
+- **WHEN** an organizer saves a rule that declares no conditions
+- **THEN** the wizard states that the rule's actions will fire every time the hook is reached,
+  consistent with `rules-engine`'s degenerate-script semantics, rather than saving silently
+
+#### Scenario: Skipping the step is valid
+- **WHEN** an organizer completes the wizard without defining any custom rule
+- **THEN** the tournament is created normally with no custom scripts attached
+
+### Requirement: An invalid rule is refused with the offending reference named
+The wizard SHALL surface the same reference-vetting refusal the backend produces when a composed rule
+references an unregistered element or a disallowed expression, naming the offending element rather
+than a generic failure.
+
+#### Scenario: An unregistered reference is named in the UI
+- **WHEN** a composed rule fails backend vetting because of a stale or unregistered element type
+- **THEN** the wizard displays which element was rejected and why, using the backend's own refusal
+  message rather than a generic error

@@ -64,7 +64,11 @@ const registrationsFixture = [
 
 async function mockControlApi(
   page: Page,
-  options: { readonly createRefusal?: string; readonly updateRefusal?: string } = {},
+  options: {
+    readonly createRefusal?: string;
+    readonly updateRefusal?: string;
+    readonly seedTournament?: boolean;
+  } = {},
 ): Promise<void> {
   await page.addInitScript(
     ({
@@ -74,12 +78,24 @@ async function mockControlApi(
       tokenEndpoint,
       createRefusal,
       updateRefusal,
+      seedTournament,
     }) => {
       const captured: CapturedRequest[] = [];
       Object.assign(window, { __controlRequests: captured });
       // Stateful across requests within this test: the dashboard's real
       // tournament list (0113) reads back whatever the wizard just created.
-      const createdTournaments: unknown[] = [];
+      const createdTournaments: unknown[] = seedTournament
+        ? [
+            {
+              tournamentId: 'tournament-001',
+              organizationId: 'org-liga-mendocina',
+              alias: 'apertura-2026',
+              name: 'Apertura 2026',
+              rulesetId: 'ruleset-001',
+              status: 'published',
+            },
+          ]
+        : [];
 
       window.fetch = async (input, init) => {
         const url = String(input);
@@ -130,10 +146,35 @@ async function mockControlApi(
         }
 
         if (
+          url === '/organizations/liga-mendocina/tournaments/apertura-2026/export' &&
+          method === 'GET'
+        ) {
+          return Response.json({
+            kind: 'copalibre-tournament-configuration',
+            schemaVersion: '1.0.0',
+            tournament: {
+              alias: 'apertura-2026',
+              name: 'Apertura 2026',
+              status: 'published',
+              disciplineRef: { descriptorId: 'football.default', version: '1.0.0' },
+            },
+            ruleset: { version: 1, rawOverrides: {}, customScripts: [], effective: {} },
+            seasons: [],
+          });
+        }
+
+        if (
           url ===
           '/organizations/liga-mendocina/tournaments/apertura-local/registrations?status=pending'
         ) {
           return Response.json([]);
+        }
+
+        if (
+          url ===
+          '/organizations/liga-mendocina/tournaments/apertura-2026/registrations?status=pending'
+        ) {
+          return Response.json(registrations);
         }
 
         if (url === '/organizations/liga-mendocina/tournaments/apertura-2026/registrations') {
@@ -167,9 +208,32 @@ async function mockControlApi(
       tokenEndpoint: TOKEN_ENDPOINT,
       createRefusal: options.createRefusal,
       updateRefusal: options.updateRefusal,
+      seedTournament: options.seedTournament,
     },
   );
 }
+
+test('downloads tournament configuration JSON from the dashboard', async ({ page }) => {
+  await mockControlApi(page, { seedTournament: true });
+  const target = '/control/liga-mendocina';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await expect(page.getByText('Apertura 2026')).toBeVisible();
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Exportar configuración JSON' }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe('apertura-2026-configuration.json');
+  await expect
+    .poll(() => capturedRequests(page))
+    .toContainEqual(
+      expect.objectContaining({
+        url: '/organizations/liga-mendocina/tournaments/apertura-2026/export',
+        method: 'GET',
+      }),
+    );
+});
 
 async function capturedRequests(page: Page): Promise<readonly CapturedRequest[]> {
   return page.evaluate(() => {

@@ -245,7 +245,7 @@ describe('what the dashboard renders', () => {
     expect(screen.getByText(/Sin actividad/)).toBeDefined();
   });
 
-  it('downloads every CSV view through the organization-scoped API', async () => {
+  it('downloads every export view through the organization-scoped API', async () => {
     const requests: string[] = [];
     const originalCreateObjectUrl = URL.createObjectURL;
     const originalRevokeObjectUrl = URL.revokeObjectURL;
@@ -261,6 +261,15 @@ describe('what the dashboard renders', () => {
           return new Response('[]', { headers: { 'content-type': 'application/json' } });
         }
         requests.push(url);
+        if (url.endsWith('/export')) {
+          return Response.json({
+            kind: 'copalibre-tournament-configuration',
+            schemaVersion: '1.0.0',
+            tournament: {},
+            ruleset: {},
+            seasons: [],
+          });
+        }
         return new Response('alias,name\nclub-atletico,Club Atletico\n');
       },
     });
@@ -277,14 +286,19 @@ describe('what the dashboard renders', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Participantes CSV' }));
       fireEvent.click(screen.getByRole('button', { name: 'Resultados CSV' }));
       fireEvent.click(screen.getByRole('button', { name: 'Posiciones CSV' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Exportar configuración JSON' }));
 
-      await waitFor(() => expect(click).toHaveBeenCalledTimes(3));
+      await waitFor(() => expect(click).toHaveBeenCalledTimes(4));
       expect(requests).toEqual([
         '/organizations/liga-mendocina/tournaments/apertura-2026/exports/participants/team',
         '/organizations/liga-mendocina/tournaments/apertura-2026/exports/results',
         '/organizations/liga-mendocina/tournaments/apertura-2026/exports/standings',
+        '/organizations/liga-mendocina/tournaments/apertura-2026/export',
       ]);
-      expect(createObjectUrl).toHaveBeenCalledTimes(3);
+      expect(createObjectUrl).toHaveBeenCalledTimes(4);
+      expect(createObjectUrl).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'application/json' }),
+      );
       expect(revokeObjectUrl).toHaveBeenCalledWith('blob:csv-export');
     } finally {
       Object.defineProperty(globalThis, 'fetch', { configurable: true, value: originalFetch });

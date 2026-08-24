@@ -165,6 +165,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export the current tournament configuration as JSON */
+        get: operations["TournamentsController_exportConfiguration"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{organizationAlias}/tournaments": {
         parameters: {
             query?: never;
@@ -2160,12 +2177,67 @@ export interface components {
             /** @description Profile this tournament instantiated, when one was selected at creation. */
             profileRef?: components["schemas"]["ProfileRefResponse"];
         };
+        TournamentConfigurationDescriptorRefResponse: {
+            /** Format: uuid */
+            descriptorId: string;
+            /** @example 1.3.0 */
+            version: string;
+        };
+        TournamentConfigurationIdentityResponse: {
+            /** @example copa-verano */
+            alias: string;
+            /** @example Copa Verano */
+            name: string;
+            /** @enum {string} */
+            status: "draft" | "published" | "started" | "finished" | "archived";
+            disciplineRef: components["schemas"]["TournamentConfigurationDescriptorRefResponse"];
+            profileRef?: components["schemas"]["ProfileRefResponse"];
+        };
         HookScriptAttachmentRequest: {
             /** @enum {string} */
             hook: "event.recorded";
             /** @description Neuron-JS rule script document */
             script: Record<string, never>;
             description?: string;
+        };
+        TournamentConfigurationRulesetResponse: {
+            version: number;
+            rawOverrides: {
+                [key: string]: unknown;
+            };
+            customScripts: components["schemas"]["HookScriptAttachmentRequest"][];
+            effective: {
+                [key: string]: unknown;
+            };
+        };
+        TournamentConfigurationStageLayerResponse: {
+            version?: number;
+            rawOverrides: {
+                [key: string]: unknown;
+            };
+            effective: {
+                [key: string]: unknown;
+            };
+        };
+        TournamentConfigurationStageResponse: {
+            number: number;
+            name: string;
+            format: string;
+            configuration: components["schemas"]["TournamentConfigurationStageLayerResponse"];
+        };
+        TournamentConfigurationSeasonResponse: {
+            name: string;
+            ordinal: number;
+            stages: components["schemas"]["TournamentConfigurationStageResponse"][];
+        };
+        TournamentConfigurationExportResponse: {
+            /** @enum {string} */
+            kind: "copalibre-tournament-configuration";
+            /** @enum {string} */
+            schemaVersion: "1.0.0";
+            tournament: components["schemas"]["TournamentConfigurationIdentityResponse"];
+            ruleset: components["schemas"]["TournamentConfigurationRulesetResponse"];
+            seasons: components["schemas"]["TournamentConfigurationSeasonResponse"][];
         };
         CreateTournamentRequest: {
             /** @example copa-verano */
@@ -4286,6 +4358,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TournamentResponse"];
+                };
+            };
+        };
+    };
+    TournamentsController_exportConfiguration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TournamentConfigurationExportResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
                 };
             };
         };

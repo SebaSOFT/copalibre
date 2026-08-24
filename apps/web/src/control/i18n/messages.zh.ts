@@ -72,6 +72,7 @@ export const messages: Record<string, string> = {
   'control.dashboard.participantsCsv': '参赛者 CSV',
   'control.dashboard.resultsCsv': '结果 CSV',
   'control.dashboard.standingsCsv': '排名 CSV',
+  'control.dashboard.configurationJson': '导出配置 JSON',
   'control.dashboard.archive': '归档',
 
   'control.heartbeat.online': '在线',
