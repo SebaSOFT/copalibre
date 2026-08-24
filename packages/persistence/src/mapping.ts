@@ -129,8 +129,17 @@ export function toTournament(row: TournamentRow): Tournament {
       descriptorId: row.descriptor_id,
       version: row.descriptor_version,
     },
+    ...(row.profile_id && row.profile_version
+      ? {
+          profileRef: {
+            profileId: row.profile_id,
+            version: row.profile_version,
+          },
+        }
+      : {}),
     rulesetId: row.ruleset_id ?? undefined,
     status: row.status as Tournament['status'],
+    ...(row.started_at === null ? {} : { startedAt: toIsoString(row.started_at) }),
     ...(row.archived_at === null ? {} : { archivedAt: toIsoString(row.archived_at) }),
   };
 }

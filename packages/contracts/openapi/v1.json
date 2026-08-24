@@ -598,6 +598,60 @@
         ]
       }
     },
+    "/tournament-profiles/compatible": {
+      "get": {
+        "description": "Queries installed tournament profiles whose capability requirements are satisfied by the given descriptor and whose declared stages are supported.",
+        "operationId": "TournamentProfilesController_listCompatible",
+        "parameters": [
+          {
+            "name": "descriptorId",
+            "required": true,
+            "in": "query",
+            "description": "DisciplineDescriptor identifier",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "descriptorVersion",
+            "required": true,
+            "in": "query",
+            "description": "DisciplineDescriptor version",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "required": false,
+            "in": "query",
+            "description": "Optional format filter",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TournamentProfileSummaryResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "List installed profiles compatible with a discipline and format",
+        "tags": [
+          "tournament-profiles"
+        ]
+      }
+    },
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations": {
       "get": {
         "description": "Scoped to the named tournament; another tournament’s entrants are never included.",
@@ -7648,6 +7702,23 @@
           "objectCount"
         ]
       },
+      "ProfileRefResponse": {
+        "type": "object",
+        "properties": {
+          "profileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "string",
+            "example": "1.0.0"
+          }
+        },
+        "required": [
+          "profileId",
+          "version"
+        ]
+      },
       "TournamentResponse": {
         "type": "object",
         "properties": {
@@ -7693,6 +7764,14 @@
             "type": "string",
             "format": "uuid",
             "description": "Active ruleset version, when one exists"
+          },
+          "profileRef": {
+            "description": "Profile this tournament instantiated, when one was selected at creation.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProfileRefResponse"
+              }
+            ]
           }
         },
         "required": [
@@ -7740,6 +7819,26 @@
             "type": "string",
             "format": "date-time",
             "description": "Optional instant when checked-in team memberships stop being editable."
+          },
+          "region": {
+            "type": "string",
+            "description": "Geographic or administrative region for tournament registration.",
+            "example": "South America"
+          },
+          "capacity": {
+            "type": "number",
+            "description": "Maximum number of participants/entrants for the tournament.",
+            "example": 16
+          },
+          "profileId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Optional TournamentProfile identifier to instantiate multi-stage preset."
+          },
+          "profileVersion": {
+            "type": "string",
+            "description": "Optional TournamentProfile version (semver).",
+            "example": "1.0.0"
           }
         },
         "required": [
@@ -7750,6 +7849,163 @@
           "format",
           "publicRegistration",
           "requiresCheckIn"
+        ]
+      },
+      "ProfileStageSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "number",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Groups"
+          },
+          "format": {
+            "type": "string",
+            "example": "round-robin"
+          }
+        },
+        "required": [
+          "number",
+          "name",
+          "format"
+        ]
+      },
+      "TournamentProfileSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "profileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "alias": {
+            "type": "string",
+            "example": "grupos-y-playoff"
+          },
+          "version": {
+            "type": "string",
+            "example": "1.0.0"
+          },
+          "name": {
+            "oneOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "object",
+                "required": [
+                  "en"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "en": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "es": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "fr": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "pt": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "it": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "de": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "ru": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "zh": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            ],
+            "example": "Groups and playoff",
+            "description": "A plain string or localized label for the profile name."
+          },
+          "description": {
+            "oneOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "object",
+                "required": [
+                  "en"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "en": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "es": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "fr": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "pt": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "it": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "de": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "ru": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "zh": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            ],
+            "example": {
+              "en": "Round-robin groups followed by single elimination"
+            },
+            "description": "Optional plain string or localized label for the profile description."
+          },
+          "stages": {
+            "description": "Declared stages in the profile.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProfileStageSummaryResponse"
+            }
+          }
+        },
+        "required": [
+          "profileId",
+          "alias",
+          "version",
+          "name",
+          "stages"
         ]
       },
       "TeamMemberResponse": {

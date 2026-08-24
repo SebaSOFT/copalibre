@@ -212,6 +212,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/tournament-profiles/compatible": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List installed profiles compatible with a discipline and format
+         * @description Queries installed tournament profiles whose capability requirements are satisfied by the given descriptor and whose declared stages are supported.
+         */
+        get: operations["TournamentProfilesController_listCompatible"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations": {
         parameters: {
             query?: never;
@@ -2039,6 +2059,12 @@ export interface components {
              */
             objectCount: number;
         };
+        ProfileRefResponse: {
+            /** Format: uuid */
+            profileId: string;
+            /** @example 1.0.0 */
+            version: string;
+        };
         TournamentResponse: {
             /** Format: uuid */
             tournamentId: string;
@@ -2071,6 +2097,8 @@ export interface components {
              * @description Active ruleset version, when one exists
              */
             rulesetId?: string;
+            /** @description Profile this tournament instantiated, when one was selected at creation. */
+            profileRef?: components["schemas"]["ProfileRefResponse"];
         };
         CreateTournamentRequest: {
             /** @example copa-verano */
@@ -2098,6 +2126,74 @@ export interface components {
              * @description Optional instant when checked-in team memberships stop being editable.
              */
             checkInClosesAt?: string;
+            /**
+             * @description Geographic or administrative region for tournament registration.
+             * @example South America
+             */
+            region?: string;
+            /**
+             * @description Maximum number of participants/entrants for the tournament.
+             * @example 16
+             */
+            capacity?: number;
+            /**
+             * Format: uuid
+             * @description Optional TournamentProfile identifier to instantiate multi-stage preset.
+             */
+            profileId?: string;
+            /**
+             * @description Optional TournamentProfile version (semver).
+             * @example 1.0.0
+             */
+            profileVersion?: string;
+        };
+        ProfileStageSummaryResponse: {
+            /** @example 1 */
+            number: number;
+            /** @example Groups */
+            name: string;
+            /** @example round-robin */
+            format: string;
+        };
+        TournamentProfileSummaryResponse: {
+            /** Format: uuid */
+            profileId: string;
+            /** @example grupos-y-playoff */
+            alias: string;
+            /** @example 1.0.0 */
+            version: string;
+            /**
+             * @description A plain string or localized label for the profile name.
+             * @example Groups and playoff
+             */
+            name: string | {
+                en: string;
+                es?: string;
+                fr?: string;
+                pt?: string;
+                it?: string;
+                de?: string;
+                ru?: string;
+                zh?: string;
+            };
+            /**
+             * @description Optional plain string or localized label for the profile description.
+             * @example {
+             *       "en": "Round-robin groups followed by single elimination"
+             *     }
+             */
+            description?: string | {
+                en: string;
+                es?: string;
+                fr?: string;
+                pt?: string;
+                it?: string;
+                de?: string;
+                ru?: string;
+                zh?: string;
+            };
+            /** @description Declared stages in the profile. */
+            stages: components["schemas"]["ProfileStageSummaryResponse"][];
         };
         TeamMemberResponse: {
             /** Format: uuid */
@@ -4232,6 +4328,32 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    TournamentProfilesController_listCompatible: {
+        parameters: {
+            query: {
+                /** @description DisciplineDescriptor identifier */
+                descriptorId: string;
+                /** @description DisciplineDescriptor version */
+                descriptorVersion: string;
+                /** @description Optional format filter */
+                format?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TournamentProfileSummaryResponse"][];
                 };
             };
         };

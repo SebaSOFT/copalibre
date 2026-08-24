@@ -22,6 +22,7 @@ export interface CreateTournamentInput {
   readonly alias: string;
   readonly name: string;
   readonly descriptor: DisciplineDescriptor;
+  readonly profile?: { readonly profileId: string; readonly version: string };
   readonly actor: string;
   readonly authorizationContext: string;
 }
@@ -220,6 +221,8 @@ export class TournamentRepository {
         name: input.name,
         descriptor_id: input.descriptor.descriptorId,
         descriptor_version: input.descriptor.version,
+        profile_id: input.profile?.profileId ?? null,
+        profile_version: input.profile?.version ?? null,
         ruleset_id: null,
         status: 'draft',
         created_at: new Date(),
@@ -259,6 +262,22 @@ export class TournamentRepository {
     uow: UnitOfWork,
     input: CreateRulesetInput,
   ): Promise<{ readonly ruleset: TournamentRuleset; readonly effective: MatchRuleset }> {
+    if (typeof input.overrides['registration.capacity'] === 'number') {
+      const newCapacity = input.overrides['registration.capacity'] as number;
+      const acceptedRows = await uow.tx
+        .selectFrom('entrants')
+        .select('entrant_id')
+        .where('tournament_id', '=', input.tournamentId)
+        .where('status', '=', 'accepted')
+        .execute();
+      if (newCapacity < acceptedRows.length) {
+        throw new InvariantViolationError(
+          `Cannot reduce tournament capacity to ${newCapacity}: tournament already has ${acceptedRows.length} accepted entrants.`,
+          { tournamentId: input.tournamentId, newCapacity, acceptedCount: acceptedRows.length },
+        );
+      }
+    }
+
     const previous = await this.latestRulesetVersion(uow.tx, input.tournamentId);
     const version = previous + 1;
     const rulesetId =

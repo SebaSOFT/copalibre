@@ -18,6 +18,7 @@ import { DisplayTokenController } from '../controllers/broadcast.controller.js';
 import { StandingsController } from '../controllers/standings.controller.js';
 import { TableProjectionsController } from '../controllers/table-projections.controller.js';
 import { TournamentsController } from '../controllers/tournaments.controller.js';
+import { TournamentProfilesController } from '../controllers/tournament-profiles.controller.js';
 import { ZonesGroupsController } from '../controllers/zones-groups.controller.js';
 import { ClubsController } from '../controllers/clubs.controller.js';
 import { ResourcesController } from '../controllers/resources.controller.js';
@@ -60,6 +61,7 @@ export const OPENAPI_CONTROLLERS = [
   HealthController,
   OrganizationsController,
   TournamentsController,
+  TournamentProfilesController,
   RegistrationsController,
   EntrantsController,
   DisciplinesController,

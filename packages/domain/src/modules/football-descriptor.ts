@@ -19,7 +19,7 @@ export function footballDescriptor(
   return {
     descriptorId: '01890000-0000-7000-8000-00000000f001',
     alias: 'football',
-    version: '1.2.0',
+    version: '1.3.0',
     name: 'Football',
     attribution: {
       author: 'CopaLibre',
@@ -514,7 +514,12 @@ export function footballDescriptor(
     winCondition: winConditionScript('football-win-condition', { unit: 'goals' }),
     defaults: {
       format: 'round-robin',
-      registration: { publicOpen: false, requiresCheckIn: false },
+      registration: {
+        publicOpen: false,
+        requiresCheckIn: false,
+        region: null,
+        capacity: null,
+      },
       scoring: { pointsPerWin: 3, pointsPerDraw: 1, pointsPerLoss: 0 },
       tiebreakers: ['points', 'score-difference', 'goals-for'],
       segments: { regulationCount: 2, overtimeEnabled: false },
@@ -522,6 +527,11 @@ export function footballDescriptor(
     },
     fieldPolicies: {
       format: { permission: { kind: 'replaced' }, mutationClass: 'blocked_after_results' },
+      'registration.region': { permission: { kind: 'replaced' }, mutationClass: 'safe' },
+      'registration.capacity': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'requires_rebuild',
+      },
       'registration.publicOpen': { permission: { kind: 'replaced' }, mutationClass: 'safe' },
       'registration.requiresCheckIn': {
         permission: { kind: 'replaced' },

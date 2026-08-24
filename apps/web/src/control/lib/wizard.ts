@@ -30,6 +30,21 @@ export interface DisciplineOption {
   readonly supportedFormats: readonly string[];
 }
 
+export interface ProfileStageOption {
+  readonly number: number;
+  readonly name: string;
+  readonly format: string;
+}
+
+export interface TournamentProfileOption {
+  readonly profileId: string;
+  readonly alias: string;
+  readonly version: string;
+  readonly name: string | LocalizedLabel;
+  readonly description?: string | LocalizedLabel;
+  readonly stages: readonly ProfileStageOption[];
+}
+
 export interface WizardState {
   readonly step: WizardStepId;
   readonly alias?: string;
@@ -37,10 +52,13 @@ export interface WizardState {
   readonly descriptorId?: string;
   readonly descriptorVersion?: string;
   readonly format?: string;
+  readonly profileId?: string;
+  readonly profileVersion?: string;
   readonly region?: string;
   readonly capacity?: number;
   readonly publicRegistration: boolean;
   readonly requiresCheckIn: boolean;
+  readonly checkInClosesAt?: string;
 }
 
 export function initialWizard(): WizardState {
@@ -126,6 +144,11 @@ export function toCreateRequest(state: WizardState): {
   readonly format: string;
   readonly publicRegistration: boolean;
   readonly requiresCheckIn: boolean;
+  readonly checkInClosesAt?: string;
+  readonly region?: string;
+  readonly capacity?: number;
+  readonly profileId?: string;
+  readonly profileVersion?: string;
 } {
   if (
     state.alias === undefined ||
@@ -144,5 +167,12 @@ export function toCreateRequest(state: WizardState): {
     format: state.format,
     publicRegistration: state.publicRegistration,
     requiresCheckIn: state.requiresCheckIn,
+    ...(state.checkInClosesAt !== undefined && state.checkInClosesAt.trim() !== ''
+      ? { checkInClosesAt: state.checkInClosesAt }
+      : {}),
+    ...(state.region !== undefined && state.region.trim() !== '' ? { region: state.region } : {}),
+    ...(state.capacity !== undefined ? { capacity: state.capacity } : {}),
+    ...(state.profileId !== undefined ? { profileId: state.profileId } : {}),
+    ...(state.profileVersion !== undefined ? { profileVersion: state.profileVersion } : {}),
   };
 }

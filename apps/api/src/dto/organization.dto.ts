@@ -180,6 +180,14 @@ export class BootstrapAdministratorResponse {
   setupUrl!: string;
 }
 
+export class ProfileRefResponse {
+  @ApiProperty({ format: 'uuid' })
+  profileId!: string;
+
+  @ApiProperty({ example: '1.0.0' })
+  version!: string;
+}
+
 export class TournamentResponse {
   @ApiProperty({ format: 'uuid' })
   tournamentId!: string;
@@ -216,6 +224,12 @@ export class TournamentResponse {
 
   @ApiPropertyOptional({ format: 'uuid', description: 'Active ruleset version, when one exists' })
   rulesetId?: string;
+
+  @ApiPropertyOptional({
+    type: ProfileRefResponse,
+    description: 'Profile this tournament instantiated, when one was selected at creation.',
+  })
+  profileRef?: ProfileRefResponse;
 }
 
 export class CreateTournamentRequest {
@@ -253,6 +267,30 @@ export class CreateTournamentRequest {
     description: 'Optional instant when checked-in team memberships stop being editable.',
   })
   checkInClosesAt?: string;
+
+  @ApiPropertyOptional({
+    description: 'Geographic or administrative region for tournament registration.',
+    example: 'South America',
+  })
+  region?: string;
+
+  @ApiPropertyOptional({
+    description: 'Maximum number of participants/entrants for the tournament.',
+    example: 16,
+  })
+  capacity?: number;
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Optional TournamentProfile identifier to instantiate multi-stage preset.',
+  })
+  profileId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Optional TournamentProfile version (semver).',
+    example: '1.0.0',
+  })
+  profileVersion?: string;
 }
 
 export class CreateStageRequest {
@@ -417,6 +455,48 @@ export class DisciplineSummaryResponse {
     example: ['single-elimination', 'round-robin'],
   })
   supportedFormats!: string[];
+}
+
+export class ProfileStageSummaryResponse {
+  @ApiProperty({ example: 1 })
+  number!: number;
+
+  @ApiProperty({ example: 'Groups' })
+  name!: string;
+
+  @ApiProperty({ example: 'round-robin' })
+  format!: string;
+}
+
+export class TournamentProfileSummaryResponse {
+  @ApiProperty({ format: 'uuid' })
+  profileId!: string;
+
+  @ApiProperty({ example: 'grupos-y-playoff' })
+  alias!: string;
+
+  @ApiProperty({ example: '1.0.0' })
+  version!: string;
+
+  @ApiProperty({
+    oneOf: localizedLabelOneOf,
+    example: 'Groups and playoff',
+    description: 'A plain string or localized label for the profile name.',
+  })
+  name!: string | LocalizedLabel;
+
+  @ApiPropertyOptional({
+    oneOf: localizedLabelOneOf,
+    example: { en: 'Round-robin groups followed by single elimination' },
+    description: 'Optional plain string or localized label for the profile description.',
+  })
+  description?: string | LocalizedLabel;
+
+  @ApiProperty({
+    type: [ProfileStageSummaryResponse],
+    description: 'Declared stages in the profile.',
+  })
+  stages!: ProfileStageSummaryResponse[];
 }
 
 export class TeamMemberResponse {
