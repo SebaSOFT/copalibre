@@ -17,6 +17,7 @@ import { Button } from './ui/atoms/button.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/atoms/card.js';
 import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
 import { DataTable, type DataTableColumn } from './ui/organisms/data-table.js';
+import { FormField } from './ui/molecules/form-field.js';
 
 const LANGUAGES = ['en', 'es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as const;
 
@@ -378,29 +379,41 @@ export function PlatformAdministrationRoute({
                   className="cl-platform-form-grid"
                   onSubmit={(event) => void submitOrganization(event)}
                 >
-                  <Field label={intl.formatMessage(messages.platformOrganizationAlias)}>
+                  <FormField
+                    id="platform-org-alias"
+                    label={intl.formatMessage(messages.platformOrganizationAlias)}
+                  >
                     <input
                       className="cl-input cl-input--default cl-focusable"
+                      id="platform-org-alias"
                       onChange={(event) =>
                         setOrganization((current) => ({ ...current, alias: event.target.value }))
                       }
                       required
                       value={organization.alias}
                     />
-                  </Field>
-                  <Field label={intl.formatMessage(messages.platformOrganizationName)}>
+                  </FormField>
+                  <FormField
+                    id="platform-org-name"
+                    label={intl.formatMessage(messages.platformOrganizationName)}
+                  >
                     <input
                       className="cl-input cl-input--default cl-focusable"
+                      id="platform-org-name"
                       onChange={(event) =>
                         setOrganization((current) => ({ ...current, name: event.target.value }))
                       }
                       required
                       value={organization.name}
                     />
-                  </Field>
-                  <Field label={intl.formatMessage(messages.platformPrimaryLanguage)}>
+                  </FormField>
+                  <FormField
+                    id="platform-org-language"
+                    label={intl.formatMessage(messages.platformPrimaryLanguage)}
+                  >
                     <select
                       className="cl-select cl-select--default cl-focusable"
+                      id="platform-org-language"
                       onChange={(event) =>
                         setOrganization((current) => ({
                           ...current,
@@ -416,17 +429,21 @@ export function PlatformAdministrationRoute({
                         </option>
                       ))}
                     </select>
-                  </Field>
-                  <Field label={intl.formatMessage(messages.platformTimezone)}>
+                  </FormField>
+                  <FormField
+                    id="platform-org-timezone"
+                    label={intl.formatMessage(messages.platformTimezone)}
+                  >
                     <input
                       className="cl-input cl-input--default cl-focusable"
+                      id="platform-org-timezone"
                       onChange={(event) =>
                         setOrganization((current) => ({ ...current, timezone: event.target.value }))
                       }
                       required
                       value={organization.timezone}
                     />
-                  </Field>
+                  </FormField>
                   <Button disabled={busy === 'organization'} type="submit">
                     <FormattedMessage {...messages.platformCreateOrganization} />
                   </Button>
@@ -442,18 +459,30 @@ export function PlatformAdministrationRoute({
                       values={{ alias: bootstrapAlias }}
                     />
                   </p>
-                  <Field label={intl.formatMessage(messages.platformFirstAdminEmail)}>
+                  <FormField
+                    id="platform-admin-email"
+                    label={intl.formatMessage(messages.platformFirstAdminEmail)}
+                  >
                     <input
                       className="cl-input cl-input--default cl-focusable"
+                      id="platform-admin-email"
                       onChange={(event) => setAdminEmail(event.target.value)}
                       required
                       type="email"
                       value={adminEmail}
                     />
-                  </Field>
-                  <Field label={intl.formatMessage(messages.platformFirstAdminRole)}>
-                    <input className="cl-input cl-input--disabled" readOnly value="admin" />
-                  </Field>
+                  </FormField>
+                  <FormField
+                    id="platform-admin-role"
+                    label={intl.formatMessage(messages.platformFirstAdminRole)}
+                  >
+                    <input
+                      className="cl-input cl-input--disabled"
+                      id="platform-admin-role"
+                      readOnly
+                      value="admin"
+                    />
+                  </FormField>
                   <Button disabled={busy === 'invitation'} type="submit">
                     <FormattedMessage {...messages.platformInviteAdministrator} />
                   </Button>
@@ -473,13 +502,17 @@ export function PlatformAdministrationRoute({
             </CardHeader>
             <CardContent>
               <div className="cl-platform-form-grid">
-                <Field label={intl.formatMessage(messages.platformManageOrganizationAlias)}>
+                <FormField
+                  id="platform-manage-org-alias"
+                  label={intl.formatMessage(messages.platformManageOrganizationAlias)}
+                >
                   <input
                     className="cl-input cl-input--default cl-focusable"
+                    id="platform-manage-org-alias"
                     onChange={(event) => setManageOrgAlias(event.target.value)}
                     value={manageOrgAlias}
                   />
-                </Field>
+                </FormField>
                 <Button
                   disabled={!manageOrgAlias.trim()}
                   onClick={() => setManagingOrgAlias(manageOrgAlias.trim())}
@@ -529,14 +562,18 @@ export function PlatformAdministrationRoute({
                 className="cl-platform-form-grid"
                 onSubmit={(event) => void submitSuperAdmin(event)}
               >
-                <Field label={intl.formatMessage(messages.platformSuperAdminPrincipalId)}>
+                <FormField
+                  id="platform-super-admin-principal"
+                  label={intl.formatMessage(messages.platformSuperAdminPrincipalId)}
+                >
                   <input
                     className="cl-input cl-input--default cl-focusable"
+                    id="platform-super-admin-principal"
                     onChange={(event) => setNewSuperAdminPrincipalId(event.target.value)}
                     required
                     value={newSuperAdminPrincipalId}
                   />
-                </Field>
+                </FormField>
                 <Button disabled={busy === 'super-admin'} type="submit">
                   <FormattedMessage {...messages.platformCreateSuperAdmin} />
                 </Button>
@@ -581,30 +618,42 @@ export function PlatformAdministrationRoute({
                 className="cl-platform-form-grid"
                 onSubmit={(event) => void submitModule(event)}
               >
-                <Field label={intl.formatMessage(messages.platformModuleAlias)}>
+                <FormField
+                  id="platform-module-alias"
+                  label={intl.formatMessage(messages.platformModuleAlias)}
+                >
                   <input
                     className="cl-input cl-input--default cl-focusable"
+                    id="platform-module-alias"
                     onChange={(event) => setAlias(event.target.value)}
                     required
                     value={alias}
                   />
-                </Field>
-                <Field label={intl.formatMessage(messages.platformVersionRange)}>
+                </FormField>
+                <FormField
+                  id="platform-module-range"
+                  label={intl.formatMessage(messages.platformVersionRange)}
+                >
                   <input
                     className="cl-input cl-input--default cl-focusable"
+                    id="platform-module-range"
                     onChange={(event) => setRange(event.target.value)}
                     placeholder="^1.0.0"
                     value={range}
                   />
-                </Field>
-                <Field label={intl.formatMessage(messages.platformAlternateSource)}>
+                </FormField>
+                <FormField
+                  id="platform-module-source"
+                  label={intl.formatMessage(messages.platformAlternateSource)}
+                >
                   <input
                     className="cl-input cl-input--default cl-focusable"
+                    id="platform-module-source"
                     onChange={(event) => setSource(event.target.value)}
                     placeholder="file:///…"
                     value={source}
                   />
-                </Field>
+                </FormField>
                 <Button disabled={busy === 'install'} type="submit">
                   <FormattedMessage {...messages.platformInstallModule} />
                 </Button>
@@ -627,21 +676,6 @@ export function PlatformAdministrationRoute({
       }
       title={<FormattedMessage {...messages.platformTitle} />}
     />
-  );
-}
-
-function Field({
-  label,
-  children,
-}: {
-  readonly label: string;
-  readonly children: React.ReactElement;
-}): React.JSX.Element {
-  return (
-    <label className="cl-form-field">
-      <span>{label}</span>
-      {children}
-    </label>
   );
 }
 

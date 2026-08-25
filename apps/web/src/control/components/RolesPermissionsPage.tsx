@@ -10,6 +10,7 @@ import { Button } from './ui/atoms/button.js';
 import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
 import { DataTable, type DataTableColumn } from './ui/organisms/data-table.js';
 import { Modal } from './ui/organisms/modal.js';
+import { EntityIdentityCell } from './ui/molecules/entity-identity-cell.js';
 import { useToast } from './ToastProvider.js';
 
 const ROLE_LABEL: Record<OrganizationRole, MessageDescriptor> = {
@@ -99,7 +100,7 @@ export function RolesPermissionsPage({
     {
       key: 'user',
       header: <FormattedMessage {...messages.rolesColumnUser} />,
-      render: (row) => <RoleUserCell row={row} />,
+      render: (row) => <EntityIdentityCell email={row.email} id={row.principalId} />,
     },
     {
       key: 'role',
@@ -187,25 +188,6 @@ export function RolesPermissionsPage({
   function isLastActiveAdmin(row: OrganizationRoleResponse, count: number): boolean {
     return row.role === 'admin' && row.status === 'active' && count <= 1;
   }
-}
-
-function RoleUserCell({ row }: { readonly row: OrganizationRoleResponse }): React.JSX.Element {
-  const initials = row.email
-    .split('@')[0]
-    .split(/[._-]/)
-    .map((part) => part[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
-  return (
-    <div className="cl-role-user">
-      <span className="cl-role-user__avatar">{initials || 'U'}</span>
-      <span>
-        <strong>{row.email}</strong>
-        <small className="cl-role-user__id">ID {row.principalId.slice(-8)}</small>
-      </span>
-    </div>
-  );
 }
 
 function RoleSelect({

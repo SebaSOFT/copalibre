@@ -7,6 +7,7 @@ import { FormField } from './form-field.js';
 import { DataEntityCard } from './data-entity-card.js';
 import { TableToolbar } from './table-toolbar.js';
 import { Pagination } from './pagination.js';
+import { EntityIdentityCell } from './entity-identity-cell.js';
 import { Input } from '../atoms/input.js';
 
 describe('FormField (0141)', () => {
@@ -141,6 +142,20 @@ describe('TableToolbar and Pagination (0141)', () => {
     );
     expect(screen.getByRole('button', { name: 'Anterior' })).toBeDefined();
     expect(screen.getByRole('button', { name: 'Siguiente' })).toBeDefined();
+  });
+});
+
+describe('EntityIdentityCell (0141)', () => {
+  it('derives initials from the local part of the email', () => {
+    render(<EntityIdentityCell email="ana.gomez@example.test" id="01800000-0000-7000-8000-abc" />);
+    expect(screen.getByText('AG')).toBeDefined();
+    expect(screen.getByText('ana.gomez@example.test')).toBeDefined();
+    expect(screen.getByText(/ID 8000-abc/)).toBeDefined();
+  });
+
+  it('falls back to a single "U" when no initials can be derived', () => {
+    render(<EntityIdentityCell email="@example.test" id="short" />);
+    expect(screen.getByText('U')).toBeDefined();
   });
 });
 

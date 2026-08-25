@@ -31,6 +31,7 @@ import {
   type QueuedMutation,
 } from '../lib/offline-queue.js';
 import { Button } from './ui/atoms/button.js';
+import { ClockRing } from './ui/organisms/clock-ring.js';
 import { JerseyGrid } from './JerseyGrid.js';
 import { RosterSelectionStep } from './RosterSelectionStep.js';
 import { messages } from '../i18n/messages.en.js';
@@ -938,52 +939,6 @@ export function MatchConsoleRoute({
   );
 }
 
-function ClockRing({
-  elapsedSeconds,
-  durationSeconds,
-}: {
-  readonly elapsedSeconds: number;
-  readonly durationSeconds: number | undefined;
-}): React.JSX.Element {
-  const intl = useIntl();
-  const radius = 20;
-  const circumference = 2 * Math.PI * radius;
-  const progress =
-    durationSeconds && durationSeconds > 0 ? Math.min(elapsedSeconds / durationSeconds, 1) : 0;
-  return (
-    <div
-      aria-label={intl.formatMessage(messages.matchConsoleClockAriaLabel, {
-        time: formatClock(elapsedSeconds),
-      })}
-      style={clockRingStyle}
-    >
-      <svg aria-hidden="true" height="52" viewBox="0 0 52 52" width="52">
-        <circle
-          cx="26"
-          cy="26"
-          fill="none"
-          r={radius}
-          stroke="var(--cl-border-muted)"
-          strokeWidth="4"
-        />
-        <circle
-          cx="26"
-          cy="26"
-          fill="none"
-          r={radius}
-          stroke="var(--cl-state-live)"
-          strokeDasharray={circumference}
-          strokeDashoffset={circumference * (1 - progress)}
-          strokeLinecap="round"
-          strokeWidth="4"
-          transform="rotate(-90 26 26)"
-        />
-      </svg>
-      <span>{formatClock(elapsedSeconds)}</span>
-    </div>
-  );
-}
-
 const pageStyle: React.CSSProperties = { display: 'grid', gap: 'var(--cl-space-6)' };
 const headerStyle: React.CSSProperties = {
   display: 'flex',
@@ -1006,11 +961,6 @@ const statusStyle: React.CSSProperties = {
   color: 'var(--cl-state-live)',
   fontFamily: 'var(--cl-font-mono)',
   fontSize: 'var(--cl-font-size-lg)',
-};
-const clockRingStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 'var(--cl-space-2)',
 };
 const syncStatusStyle: React.CSSProperties = {
   display: 'flex',
