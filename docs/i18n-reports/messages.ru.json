@@ -1,0 +1,16 @@
+{
+  "locale": "ru",
+  "generatedAt": "2026-08-25T00:17:29.207Z",
+  "flaggedCount": 1,
+  "entries": [
+    {
+      "key": "control.zoneGroup.seed",
+      "englishSource": "Draw seed",
+      "currentTranslation": "Сид жеребьёвки",
+      "concern": "\"Сид жеребьёвки\" uses the transliterated English loanword \"сид\" where the catalogue elsewhere consistently uses \"посев\" (control.seeding.order \"Порядок посева\", toggleLockAriaLabel \"позицию посева\") — inconsistent register within the same catalogue.",
+      "proposedReplacement": "Позиция посева",
+      "glossaryHits": ["seed", "seeding", "draw"],
+      "status": "unconfirmed"
+    }
+  ]
+}
