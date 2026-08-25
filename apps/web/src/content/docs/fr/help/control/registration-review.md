@@ -17,6 +17,11 @@ résultant et qui l'a prise.
 - **Import CSV** : téléversez un fichier de participants ; le système valide le contenu et affiche un
   aperçu ligne par ligne avant confirmation. Aucune ligne en erreur n'est importée tant que le
   fichier n'est pas corrigé et réessayé.
+- **Entrants nécessitant une abréviation** : un participant qui entre en collision sur chaque étiquette
+  courte dérivée automatiquement s'enregistre sans en avoir une définie, et reste sinon invisible —
+  cette section liste ces participants et vous permet d'en définir une directement. Une valeur déjà
+  utilisée par un autre participant du tournoi est refusée sur place, en nommant le conflit ; un
+  participant résolu disparaît de la liste.
 - **Revue en masse** : applique la même décision à plusieurs inscriptions à la fois ; chacune reste
   auditée séparément, pas comme un seul événement agrégé.
 

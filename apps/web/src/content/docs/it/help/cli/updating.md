@@ -3,13 +3,30 @@ title: Aggiornamento
 description: Il percorso non distruttivo per aggiornare il framework CopaLibre e i suoi moduli installati.
 ---
 
+## Aggiornare il CLI copalibre stesso
+
+`copalibre --version` stampa la versione del binario installato. Rieseguire lo script di
+installazione scarica l'ultima release pubblicata e sostituisce il binario al suo posto — è
+idempotente: controlla prima la versione installata e salta il download se corrisponde già:
+
+```bash
+curl -fsSL https://www.copalibre.app/install.sh | bash
+```
+
+Questo sostituisce solo il binario `copalibre`. Non ha effetto su un'installazione in esecuzione —
+vedi sotto per aggiornare il framework e i suoi moduli.
+
 ## Aggiornare il framework
 
 Sequenza consigliata, non distruttiva:
 
 1. **Esegui il backup** prima di toccare qualsiasi cosa: `./copalibre backup --file backups/pre-upgrade.dump`.
 2. **Aggiorna** il checkout o il riferimento all'immagine alla nuova versione (non riavviare ancora
-   i servizi).
+   i servizi). Se questa installazione è stata creata con `copalibre init` (senza checkout, vedi il
+   [riferimento comandi](/it/help/cli/commands/)), la sua directory resta fissata alla versione di
+   CLI che l'ha creata — `migrate`/`upgrade-check` rifiutano con un messaggio chiaro in caso di
+   versione non corrispondente, quindi aggiorna eseguendo il CLI della nuova versione contro la
+   stessa directory, invece di mescolare versioni di CLI.
 3. **Verifica la compatibilità** con la nuova versione, senza riavviare nulla:
    ```bash
    ./copalibre upgrade-check --target-version <nuova-versione>

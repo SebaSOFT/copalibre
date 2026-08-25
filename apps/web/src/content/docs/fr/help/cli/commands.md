@@ -5,15 +5,40 @@ description: Chaque commande du CLI copalibre, son usage et ses options.
 
 Chaque commande répond à `--help`/`-h` avec exactement ce texte d'usage, généré depuis une source
 unique dans le CLI lui-même — cette page ne peut pas décrire une commande différemment de ce que le
-CLI fait réellement.
+CLI fait réellement. `copalibre --version` affiche uniquement la version installée, pour les scripts.
 
 ## init
 
-`copalibre init [--file <chemin>]`
+`copalibre init [--module-dev]` ou `copalibre init --kubernetes [--namespace <ns>] [--release
+<nom>] [--context <ctx>]`
 
-Écrit les valeurs par défaut non secrètes et liste les secrets requis.
+Écrit une installation complète dans le répertoire courant. Aucun checkout du code source requis :
+exécutez-la dans n'importe quel répertoire vide, et chaque commande ultérieure détecte
+automatiquement ce répertoire à partir du marqueur (`.copalibre/installation.json`) qu'elle écrit, de
+la même façon que `.git` marque un checkout de dépôt. Refuse de s'exécuter à nouveau dans un
+répertoire qui contient déjà une installation. Un répertoire reste fixé à la version de CopaLibre
+avec laquelle `init` l'a créé — exécuter plusieurs versions côte à côte signifie exécuter la version
+de CLI correspondante par répertoire (voir [mise à jour](/fr/help/cli/updating/)).
 
-- `--file <chemin>` : fichier cible (par défaut `.env`)
+Sans `--kubernetes`, écrit `docker-compose.yml` et `.env` avec des valeurs par défaut non secrètes,
+et liste les secrets requis à compléter ensuite dans `.env`.
+
+- `--module-dev` : écrit aussi `docker-compose.module-dev.yml` et un répertoire `modules-dev/`,
+  monté dans `api`/`worker` avec `COPALIBRE_MODULE_SOURCE_ALLOWLIST` préconfiguré — se combine avec
+  `module scaffold --output modules-dev/<alias>` et `module add <alias> --source
+file:///var/lib/copalibre/modules-dev/<alias>` pour développer un module contre une instance
+  auto-hébergée en cours d'exécution, sans checkout du code source.
+
+Avec `--kubernetes`, écrit à la place un scaffold `values.yaml` Helm — aucun fichier compose, aucun
+`.env` ; le mécanisme Secret/ConfigMap propre à Kubernetes reste autoritatif pour la configuration.
+Flux complet, y compris le bootstrap du premier administrateur comme un Job Helm à usage unique :
+`docs/deployment/enterprise-kubernetes.md` dans le dépôt.
+
+- `--kubernetes` : scaffold une installation Helm plutôt qu'une installation Compose
+- `--namespace <ns>` : namespace Kubernetes à enregistrer (par défaut : `default`)
+- `--release <nom>` : nom de la release Helm à enregistrer (par défaut : `copalibre`)
+- `--context <ctx>` : kube-context à enregistrer (par défaut : aucun — à passer explicitement à
+  chaque fois)
 
 ## doctor
 
@@ -105,11 +130,51 @@ version cible. Voir [mise à jour](/fr/help/cli/updating/) pour la séquence com
 
 Crée le premier compte administrateur d'une organisation.
 
+## login
+
+`copalibre login [--api-url <url>] [--token <token>]`
+
+Stocke un jeton d'accès personnel pour que `statistics-rebuild` et `module add/list/remove/verify`
+puissent s'exécuter contre une installation distante via une connexion HTTP authentifiée — la voie
+pour administrer une installation déjà en cours d'exécution, y compris installer ou mettre à jour le
+CLI une fois Docker déjà lancé, depuis une machine qui n'a jamais besoin d'identifiants de base de
+données. Générez le jeton depuis l'écran des préférences du panneau de contrôle pendant que vous êtes
+déjà connecté, puis collez-le ici. Valide le jeton avec un appel authentifié avant de le stocker ;
+refuse et ne stocke rien si le jeton est invalide.
+
+- `--api-url <url>` : installation cible (par défaut : `COPALIBRE_API_URL`, que `copalibre init`
+  écrit déjà dans `.env`)
+- `--token <token>` : le jeton lui-même (par défaut : lu depuis stdin en pipe, ou une invite
+  interactive qui masque chaque frappe)
+
+Stocke l'identifiant dans `.copalibre/credentials.json` (`0600`) du répertoire courant — exécutez
+`login` depuis l'intérieur du répertoire d'installation créé par `copalibre init`. Réexécuter `login`
+dans le même répertoire remplace le jeton stocké, contrairement au marqueur d'`init`.
+
+## statistics-rebuild
+
+`copalibre statistics-rebuild --organization <alias> [--tournament <alias>]`
+
+Recalcule chaque total statistique replié (`statistic_totals`) à partir des faits sources —
+événements enregistrés des matchs finalisés, effectifs et ajustements manuels — pour toute
+l'organisation par défaut, ou limité à un tournoi.
+
+- `--organization <alias>` : organisation pour laquelle recalculer les statistiques
+- `--tournament <alias>` : limite le recalcul à un tournoi au sein de l'organisation
+
+Idempotent : utilise le même `refold` et le même chemin d'écriture supprimer-puis-insérer que le
+déclenchement piloté par les événements, donc l'exécuter deux fois de suite produit des lignes
+`statistic_totals` identiques octet pour octet (à l'exception d'`updated_at`/la version interne de
+projection). Utile pour compléter l'historique enregistré avant l'existence du moteur de repliement,
+ou pour vérifier les totaux contre les faits à tout moment. Nécessite l'autorité d'administrateur de
+l'organisation une fois connecté via [`login`](#login).
+
 ## module
 
 `copalibre module <add|list|remove|verify>`
 
-Gère les modules de discipline et de profil de tournoi installés.
+Gère les modules de discipline et de profil de tournoi installés. `add`/`list`/`remove`/`verify`
+nécessitent l'autorité de super-admin de l'installation une fois connecté via [`login`](#login).
 
 ### module add
 
