@@ -160,3 +160,54 @@ message on the client, never left to render an untranslated string.
 - **THEN** the response's `errorCode` and `message` are identical regardless of the requester's
   interface-language preference — translation happens client-side, not by the API varying its response
   by locale
+
+### Requirement: Domain-term glossary governs translation of tournament-specific vocabulary
+
+Reference: the glossary document lives at `docs/i18n-glossary.md`.
+
+The platform SHALL maintain a single glossary of domain terms (including but not limited to `roster`,
+`seed`/`seeding`, `bracket`, `entrant`, `tiebreak`, `standings`, `zone`/`group`, `alias`, `placement`)
+that name a specific tournament-software concept rather than their generic dictionary meaning, with
+per-locale guidance on the correct rendering for each of the eight supported languages. Any translation
+review, human or LLM-assisted, SHALL check flagged strings containing a glossary term against the
+glossary's guidance before treating a translation as correct.
+
+#### Scenario: A glossary term has documented per-locale guidance
+
+- **WHEN** the glossary is inspected for the term `seeding`
+- **THEN** it states the expected rendering (or explicitly "keep untranslated") for each of the eight
+  supported languages, not just English
+
+#### Scenario: The glossary is the shared reference for review, not an isolated judgment call
+
+- **WHEN** a translation review (human or LLM-assisted) flags a string containing a glossary term
+- **THEN** the review's guidance for that term matches the glossary's documented guidance, rather than
+  being decided independently per review
+
+### Requirement: Translated content accuracy review requires human confirmation before publication
+
+The system's translated interface strings and localized discipline/tournament-profile display content
+SHALL be reviewable for contextual accuracy — not only for completeness, which the existing supported-
+language and fallback requirements already guarantee — through a process that produces a report of
+flagged strings per locale, and SHALL NOT publish a changed translation for any locale until a human
+fluent in that locale has confirmed the specific change.
+
+#### Scenario: A flagged mistranslation is not applied without human confirmation
+
+- **WHEN** a content-accuracy review flags a string in a locale for likely mistranslation or wrong
+  domain-term usage
+- **THEN** the flagged string's existing translation remains published until a human fluent in that
+  locale confirms the proposed replacement
+
+#### Scenario: A review report identifies the specific string and locale, not just a pass/fail
+
+- **WHEN** a content-accuracy review completes for a locale
+- **THEN** its report names each flagged message key, its current translation, the concern, and a
+  proposed replacement — never only a locale-level score
+
+#### Scenario: Discipline and tournament-profile localized labels are in scope
+
+- **WHEN** a content-accuracy review runs for a locale
+- **THEN** it includes that locale's entries in every installed discipline or tournament-profile
+  document's localized `name` (and `description`, once that field exists) alongside the interface
+  message catalogues

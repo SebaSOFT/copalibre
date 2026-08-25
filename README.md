@@ -95,10 +95,13 @@ Full walkthrough, backup/restore, and persistent-data details: [`docs/self-hosti
 
 ## Features
 
-- **Tournament authoring & registration** — discipline configuration, ruleset versioning,
-  registration review, check-in, and zone/group tournament structures with cross-group promotion.
+- **Tournament authoring & registration** — discipline configuration, per-event rule authoring,
+  ruleset versioning, registration review, check-in, and zone/group tournament structures with
+  cross-group promotion.
 - **Seeding & bracket builder** — lock/randomize seeds, inspect the exact bracket the fixture
   engine generated (single/double elimination, round-robin, league).
+- **Match scheduling** — assign venue, time, and officials to a stage's fixtures from a calendar
+  view; venues and officials managed as their own control-panel resources.
 - **Explainable standings** — every ranking exposes the tiebreak comparator that decided it,
   rendered from the same trace the rules engine produced — never a hidden calculation.
 - **Live match console** — real-time event recording, idempotent commands, clock/timer control,
@@ -112,9 +115,12 @@ Full walkthrough, backup/restore, and persistent-data details: [`docs/self-hosti
   per-match event timelines and rosters, and a player's cross-tournament history, reusing the
   same standings/statistics engine driving the control panel.
 - **Roles & permissions** — organization-scoped RBAC, server-enforced independent of the UI.
-- **Data ownership** — reviewed CSV import/export keyed by stable aliases, not raw IDs.
+- **Data ownership** — reviewed CSV import/export keyed by stable aliases, not raw IDs, plus a
+  one-document JSON export of a tournament's full configuration (never results or personal data).
 - **Public coverage** — schedules, live outcomes, brackets, and standings, separate from operator
   controls.
+- **Platform administration** — an installation-wide super-admin console creates organizations and
+  installs, verifies, and removes modules; organization admins see their own storage usage.
 - **Self-hosted deployment** — one Docker image runs every process role; the `copalibre` CLI
   handles init, health checks (`doctor`), start, admin bootstrap, and verified backup/restore.
 
@@ -176,9 +182,19 @@ authentication contract). Every change is planned and tracked as an OpenSpec pro
 Active, unimplemented proposals — see [`openspec/changes/`](openspec/changes/) for each one's full
 design:
 
-- Pre-filling the seeding builder from a reviewed zone promotion plan's ordered list
-- Client-side crop/resize and a consistent framed display for organization emblems, club emblems,
-  and player profile pictures
+- Filling help-site page-set gaps across the seven non-English locales so each one covers every page
+  English has
+- Cutting the `0.6.0-preview` release, including pre-release-aware image/`:latest` tagging
+- RBAC user administration — an admin floor, an organization-admin vs. club-operator role
+  distinction, and a user-management entry point in the super-admin console
+- An atomic design system (tokens → atoms → molecules → organisms) for the control panel, closing
+  the gap between the public-facing surfaces' realized visual identity and the admin screens' current
+  hand-rolled layouts
+- Closing a personal-access-token scope privilege-escalation gap in `POST /auth/pat`
+- Rate limiting for authentication endpoints
+- A global request-validation pipe enforcing DTO validation across the API
+- Removing dangling `(0XXX)` OpenSpec change-number references left in tracked files after their
+  change archives
 
 Every change is planned as an OpenSpec proposal before implementation — see
 [`openspec/specs/`](openspec/specs/) for the accepted, currently-implemented capability baseline.
