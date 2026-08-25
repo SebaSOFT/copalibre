@@ -10,4 +10,5 @@ module.exports = {
     ...esmExtensionMapper,
     ...generateJestWorkspaceMapper(__dirname),
   },
+  testTimeout: 30000,
 };
