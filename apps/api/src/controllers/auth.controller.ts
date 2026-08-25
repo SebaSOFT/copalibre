@@ -12,12 +12,14 @@ import {
 import type { Kysely } from 'kysely';
 import {
   IdentityPrincipalRepository,
+  InstallationRoleRepository,
   PersonalAccessTokenRepository,
   AuthVerificationTokenRepository,
   withTransaction,
   SYSTEM_ORGANIZATION,
   type Database,
 } from '@copalibre/persistence';
+import { SUPER_ADMIN_SCOPE } from '../auth/access-requirement.js';
 import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
 import { RequireSelf } from '../auth/access-requirement.js';
@@ -69,7 +71,7 @@ export class NativeAuthController {
       });
     }
 
-    const accessToken = await issueLocalJwt(principal.principal_id, principal.email);
+    const accessToken = await issueLocalJwt(this.db, principal.principal_id, principal.email);
     return { accessToken, expiresIn: 3600 };
   }
 
@@ -266,16 +268,30 @@ function toPatResponse(pat: {
 /**
  * Issues a short-lived local JWT for native authentication.
  * Uses HS256 with a server-side secret for simplicity in the local IdP case.
+ *
+ * `copalibre.super-admin` is appended only when `installation_role_assignments`
+ * (0140) holds an active super-admin row for this principal — the queryable,
+ * floor-invariant-protected source of truth introduced by that change. An
+ * externally-issued OIDC token's own `scp` claim is a separate, unaffected
+ * source for the same scope (`TokenVerifier`/`packages/auth`).
  */
-async function issueLocalJwt(principalId: string, email: string): Promise<string> {
+async function issueLocalJwt(
+  db: Kysely<Database>,
+  principalId: string,
+  email: string,
+): Promise<string> {
   const secret = process.env.COPALIBRE_JWT_SECRET;
   if (!secret) throw new Error('COPALIBRE_JWT_SECRET is not configured');
+
+  const isSuperAdmin = await new InstallationRoleRepository(db).findActiveByPrincipal(principalId);
+  const scopes = ['copalibre.control', 'copalibre.participant'];
+  if (isSuperAdmin) scopes.push(SUPER_ADMIN_SCOPE);
 
   const encoder = new TextEncoder();
   return new SignJWT({
     sub: principalId,
     email,
-    scp: 'copalibre.control copalibre.participant',
+    scp: scopes.join(' '),
   })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()

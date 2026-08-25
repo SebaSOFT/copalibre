@@ -1040,6 +1040,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/roles/grantable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The caller's grantable roles in this organization, per the role-granting hierarchy */
+        get: operations["OrganizationAccessController_grantable"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{organizationAlias}/invitations": {
         parameters: {
             query?: never;
@@ -1090,6 +1107,42 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/installation/super-admins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List active installation super-admins */
+        get: operations["InstallationRoleController_list"];
+        put?: never;
+        /** Grant installation super-admin to a principal */
+        post: operations["InstallationRoleController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/installation/super-admins/{assignmentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Soft-delete an installation super-admin assignment */
+        delete: operations["InstallationRoleController_remove"];
+        options?: never;
+        head?: never;
+        /** Change an installation super-admin assignment's active status */
+        patch: operations["InstallationRoleController_changeStatus"];
         trace?: never;
     };
     "/organizations/{organizationAlias}/participant/registrations": {
@@ -2028,7 +2081,7 @@ export interface components {
              * @description The caller's active role in this organization
              * @enum {string}
              */
-            role: "admin" | "referee" | "broadcaster" | "viewer";
+            role: "admin" | "club-admin" | "referee" | "broadcaster" | "viewer";
         };
         ProblemResponse: {
             /** @example 403 */
@@ -3148,15 +3201,19 @@ export interface components {
             principalId: string;
             email: string;
             /** @enum {string} */
-            role: "admin" | "referee" | "broadcaster" | "viewer";
+            role: "admin" | "club-admin" | "referee" | "broadcaster" | "viewer";
             /** @enum {string} */
             status: "active" | "inactive";
+        };
+        GrantableRolesResponse: {
+            /** @description Roles the caller may grant in this organization, per the 0140 role-granting hierarchy. */
+            roles: ("super-admin" | "admin" | "club-admin" | "referee" | "broadcaster" | "viewer")[];
         };
         InviteOrganizationUserRequest: {
             /** Format: email */
             email: string;
             /** @enum {string} */
-            role: "admin" | "referee" | "broadcaster" | "viewer";
+            role: "admin" | "club-admin" | "referee" | "broadcaster" | "viewer";
             /** @enum {string} */
             status: "active" | "inactive";
         };
@@ -3168,12 +3225,34 @@ export interface components {
         };
         ChangeOrganizationRoleRequest: {
             /** @enum {string} */
-            role: "admin" | "referee" | "broadcaster" | "viewer";
+            role: "admin" | "club-admin" | "referee" | "broadcaster" | "viewer";
             /** @enum {string} */
             status: "active" | "inactive";
         };
         AcceptInvitationRequest: {
             token: string;
+        };
+        InstallationSuperAdminResponse: {
+            /** Format: uuid */
+            assignmentId: string;
+            /**
+             * Format: uuid
+             * @description CopaLibre internal principal UUIDv7
+             */
+            principalId: string;
+            /** @enum {string} */
+            status: "active" | "inactive";
+        };
+        CreateSuperAdminRequest: {
+            /**
+             * Format: uuid
+             * @description CopaLibre internal principal UUIDv7 to grant super-admin
+             */
+            principalId: string;
+        };
+        ChangeInstallationRoleStatusRequest: {
+            /** @enum {string} */
+            status: "active" | "inactive";
         };
         ParticipantTeamMembershipResponse: {
             /** Format: uuid */
@@ -6299,6 +6378,25 @@ export interface operations {
             };
         };
     };
+    OrganizationAccessController_grantable: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GrantableRolesResponse"];
+                };
+            };
+        };
+    };
     OrganizationAccessController_invite: {
         parameters: {
             query?: never;
@@ -6392,6 +6490,94 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OrganizationRoleResponse"];
+                };
+            };
+        };
+    };
+    InstallationRoleController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstallationSuperAdminResponse"][];
+                };
+            };
+        };
+    };
+    InstallationRoleController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSuperAdminRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstallationSuperAdminResponse"];
+                };
+            };
+        };
+    };
+    InstallationRoleController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstallationSuperAdminResponse"];
+                };
+            };
+        };
+    };
+    InstallationRoleController_changeStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeInstallationRoleStatusRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstallationSuperAdminResponse"];
                 };
             };
         };
