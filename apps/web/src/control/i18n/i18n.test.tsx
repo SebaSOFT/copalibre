@@ -3,6 +3,7 @@ import { IntlProvider } from 'react-intl';
 import { StandingsPage } from '../components/StandingsPage.js';
 import { SeedingBuilderPage } from '../components/SeedingBuilderPage.js';
 import { RolesPermissionsPage } from '../components/RolesPermissionsPage.js';
+import { ToastProvider } from '../components/ToastProvider.js';
 import { activeControlLanguage } from './ControlIntl.js';
 import { messages } from './messages.en.js';
 import { messages as esMessages } from './messages.es.js';
@@ -46,7 +47,7 @@ const NON_ENGLISH_CATALOGS: Record<string, Record<string, string>> = {
 function withLanguage(locale: string, children: React.ReactNode): React.JSX.Element {
   return (
     <IntlProvider defaultLocale="en" locale={locale} messages={NON_ENGLISH_CATALOGS[locale]}>
-      {children}
+      <ToastProvider>{children}</ToastProvider>
     </IntlProvider>
   );
 }

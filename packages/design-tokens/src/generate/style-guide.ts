@@ -167,6 +167,26 @@ export function generateStyleGuide(cssHref = './copalibre.css'): string {
   </section>
 
   <section>
+    <h2>Plantillas (templates — 0141)</h2>
+    <div class="row">
+      <div class="cl-list-screen cl-chamfer" style="width: 320px; padding: var(--cl-space-4); background: var(--cl-surface-panel);">
+        <div class="cl-list-screen__header"><h3 class="cl-list-screen__title">Roles</h3></div>
+        <div class="cl-list-screen__toolbar">Barra de herramientas</div>
+        <div class="cl-list-screen__listing">Listado</div>
+        <div class="cl-list-screen__pagination">Paginación</div>
+      </div>
+      <div class="cl-form-screen cl-chamfer" style="width: 320px; padding: var(--cl-space-4); background: var(--cl-surface-panel);">
+        <div class="cl-form-screen__header"><h3 class="cl-form-screen__title">Nueva organización</h3></div>
+        <div class="cl-form-screen__section">
+          <h4 class="cl-form-screen__section-heading">Datos</h4>
+          <div class="cl-form-screen__section-fields">Campos</div>
+        </div>
+        <div class="cl-form-screen__footer">Guardar</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
     <h2>Escala tipográfica</h2>
     <div>
       ${fontSizes}
