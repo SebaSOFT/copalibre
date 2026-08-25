@@ -4,7 +4,9 @@
 Provides the authenticated operator application shell — component vocabulary, session model, API and
 SSE clients, and license-compliance bookkeeping — that every control-web screen in later phases is
 built inside.
+
 ## Requirements
+
 ### Requirement: JWT access token held in memory only
 The control application SHALL hold the JWT access token in memory only and SHALL NOT persist it in
 `localStorage`, `sessionStorage`, or a cookie.
@@ -85,11 +87,24 @@ return the operator to their original destination after a successful callback.
 
 ### Requirement: Owned component layer, not Chakra UI
 The control application SHALL use the owned shadcn/ui-style component source and Radix Primitives for
-its interactive UI, and SHALL NOT include Chakra UI as a production dependency.
+its interactive UI, and SHALL NOT include Chakra UI as a production dependency. This owned layer SHALL
+span all five Atomic Design tiers — atoms, molecules, organisms, and templates under
+`apps/web/src/control/components/ui/`, consumed by the existing page/route components — not only
+badge/button/card; any Control-web screen, present at the time this requirement changes or added at any
+later point, SHALL compose its form controls, tabular listings, cards, modals, and operation feedback
+from this owned layer rather than defining a new one-off inline style object for a pattern the layer
+already covers.
 
 #### Scenario: No Chakra dependency in production build
 - **WHEN** the control application's production dependency list is inspected
 - **THEN** it contains no Chakra UI package
+
+#### Scenario: A screen's form controls and tabular data come from the owned layer
+- **WHEN** any Control-web screen under `apps/web/src/control/components/` is inspected, regardless of
+  when it was added
+- **THEN** its labeled inputs, selects, tabular listings, cards, and modals are composed from the owned
+  component layer's atoms/molecules/organisms/templates, not a screen-local inline style object
+  duplicating one of them
 
 ### Requirement: Third-party notice inventory stays current
 Every copied shadcn/ui component file or direct Radix dependency added to the control application
@@ -171,8 +186,6 @@ SHALL use client-side navigation, not a plain browser-navigated anchor.
 - **WHEN** an operator loads a control-panel URL directly (typed, bookmarked, or via a hard refresh)
 - **THEN** the screen matching that URL renders correctly, exactly as it would after client-side
   navigation to the same URL
-
-
 
 ### Requirement: A default post-login landing resolves to a useful destination
 

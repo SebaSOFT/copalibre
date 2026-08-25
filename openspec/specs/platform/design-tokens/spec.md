@@ -94,7 +94,11 @@ active.
 ### Requirement: Style-guide route for visual verification
 The platform SHALL provide a route rendering every generated token and core component for manual and
 automated visual smoke-testing, including a labelled sample of every font-size scale step at every
-generated breakpoint.
+generated breakpoint. The route SHALL render the marketing-surface component set (card, badge, button
+variant, alert, stat-tile), the Control-web atom/molecule/organism set (text input, select, textarea,
+checkbox, label, form-field, `DataEntityCard`, `DataTable`, `Modal`), and one populated example of each
+Control-web template (`ListScreenTemplate`, `FormScreenTemplate`), so every tier stays verifiable from
+the same page.
 
 #### Scenario: Style guide renders all core components
 - **WHEN** the style-guide route is loaded
@@ -105,6 +109,14 @@ generated breakpoint.
 - **WHEN** the style-guide route is loaded
 - **THEN** it renders a labelled sample of every font-size scale step, so a reviewer can visually
   confirm the scale's steps are legible and distinguishable from one another
+
+#### Scenario: Style guide renders the Control-web component set alongside the marketing set
+- **WHEN** the style-guide route is loaded
+- **THEN** it renders at least one instance of every Control-web atom (input, select, textarea,
+  checkbox, label), the form-field molecule in both its normal and error states, the `DataEntityCard`
+  molecule, the `DataTable` and `Modal` organisms, and one populated example of `ListScreenTemplate` and
+  `FormScreenTemplate`, visibly distinguishable from the marketing-surface component set on the same
+  page
 
 ### Requirement: Responsive layout compliance across every screen
 Every Control route and every Public/TV page template SHALL render without horizontal overflow at
@@ -137,3 +149,37 @@ path.
 - **WHEN** a team, participant, tournament, venue, or sponsor name exceeds its container's width
 - **THEN** the display truncates with an ellipsis (or wraps, per the component's own rule) and the full
   text remains accessible, rather than overflowing its container or disappearing
+
+### Requirement: Form-control and overlay component token contracts
+`packages/design-tokens` SHALL define component token contracts for text input, select, textarea,
+checkbox, and dialog/overlay (backdrop, surface, elevation) controls — resolved background, text,
+border, and focus-ring values per interaction state (default, focus, error, disabled) for form controls,
+and backdrop/surface/elevation values for the dialog/overlay contract — matching the pattern
+`BadgeSpec`/`ButtonVariant`/`CARD_STATES` already establish for their respective components, so no
+Control-web atom or organism hand-picks a color, spacing, or shadow value outside this contract.
+
+#### Scenario: An error-state input resolves to the destructive semantic color
+- **WHEN** the text-input component token contract's error state is inspected
+- **THEN** its border and focus-ring values resolve to the same destructive semantic color token used
+  elsewhere in the system (e.g. the destructive button variant), not an independently chosen red
+
+#### Scenario: A disabled control's tokens are distinguishable from its default state
+- **WHEN** the disabled-state tokens for any form-control contract are inspected
+- **THEN** they differ from the default-state tokens in a way that communicates non-interactivity (e.g.
+  reduced-contrast text/border), without relying on removing focus/hover behavior alone
+
+#### Scenario: The dialog backdrop resolves to a documented overlay token
+- **WHEN** the `Modal` organism's backdrop is inspected
+- **THEN** its color/opacity value resolves to the dialog/overlay component token contract, not an
+  independently chosen value
+
+### Requirement: Control-web data-density composition tokens
+`packages/design-tokens` SHALL define a documented, denser spacing-scale subset (or named density
+level) for Control-web composition, generated from the same single spacing-scale source used by the
+marketing surfaces, so the Control-web visual mode differs from the marketing visual mode in composition
+only, never in the underlying token values.
+
+#### Scenario: Control-web density tokens are a subset of the shared spacing scale
+- **WHEN** the generated Control-web density spacing tokens are inspected
+- **THEN** every value is drawn from the same spacing-scale source the marketing surfaces use, with no
+  Control-web-only spacing value absent from that shared scale
