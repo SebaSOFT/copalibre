@@ -219,6 +219,48 @@ describe('roles and permissions control', () => {
     );
   });
 
+  it('fetches and applies grantable roles from the route through to the role picker', async () => {
+    const listGrantableRoles = jest
+      .fn<
+        () => Promise<{
+          roles: readonly (
+            'super-admin' | 'admin' | 'club-admin' | 'referee' | 'broadcaster' | 'viewer'
+          )[];
+        }>
+      >()
+      .mockResolvedValue({ roles: ['super-admin', 'admin', 'club-admin', 'referee'] });
+    const client = controlClient({
+      listOrganizationRoles: async () => rows,
+      listGrantableRoles,
+    });
+    render(withIntl(<RolesPermissionsRoute client={client} organizationAlias="liga-mendocina" />));
+
+    await screen.findByText('referee@example.test');
+    await waitFor(() => expect(listGrantableRoles).toHaveBeenCalledWith('liga-mendocina'));
+    await waitFor(() => {
+      const select = screen.getByLabelText('Role of referee@example.test') as HTMLSelectElement;
+      expect(Array.from(select.options).map((option) => option.value)).toEqual([
+        'admin',
+        'club-admin',
+        'referee',
+      ]);
+    });
+  });
+
+  it('falls back to showing every role when the grantable-roles fetch fails', async () => {
+    const client = controlClient({
+      listOrganizationRoles: async () => rows,
+      listGrantableRoles: async () => {
+        throw new Error('forbidden');
+      },
+    });
+    render(withIntl(<RolesPermissionsRoute client={client} organizationAlias="liga-mendocina" />));
+
+    await screen.findByText('referee@example.test');
+    const select = screen.getByLabelText('Role of referee@example.test') as HTMLSelectElement;
+    expect(select.options.length).toBeGreaterThan(3);
+  });
+
   it('does not disable an admin row when a second active admin exists', () => {
     const admin1 = { ...rows[0], role: 'admin' as const, email: 'admin1@example.test' };
     const admin2 = {
