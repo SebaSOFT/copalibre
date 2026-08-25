@@ -29,7 +29,11 @@ export function DataTable<Row>({
   emptyMessage,
 }: DataTableProps<Row>): React.JSX.Element {
   return (
-    <div className="cl-data-table cl-card cl-chamfer cl-chamfer--control" role="region" tabIndex={0}>
+    <div
+      className="cl-data-table cl-card cl-chamfer cl-chamfer--control"
+      role="region"
+      tabIndex={0}
+    >
       <table className="cl-data-table__table">
         {caption ? <caption className="cl-data-table__caption">{caption}</caption> : null}
         <thead>

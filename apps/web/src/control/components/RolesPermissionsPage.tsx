@@ -87,7 +87,8 @@ export function RolesPermissionsPage({
     } catch (cause) {
       toast.push({
         severity: 'error',
-        message: cause instanceof Error ? cause.message : intl.formatMessage(messages.rolesChangeFailed),
+        message:
+          cause instanceof Error ? cause.message : intl.formatMessage(messages.rolesChangeFailed),
       });
     } finally {
       setBusy(undefined);
@@ -108,7 +109,9 @@ export function RolesPermissionsPage({
           assignableRoles={assignableRoles}
           disabled={busy === row.assignmentId || isLastActiveAdmin(row, activeAdminCount)}
           isLastActiveAdmin={isLastActiveAdmin(row, activeAdminCount)}
-          onChange={(role) => run(row.assignmentId, () => onChange(row.assignmentId, role, row.status))}
+          onChange={(role) =>
+            run(row.assignmentId, () => onChange(row.assignmentId, role, row.status))
+          }
           row={row}
         />
       ),
@@ -120,7 +123,9 @@ export function RolesPermissionsPage({
         <RoleStatusToggle
           disabled={busy === row.assignmentId || isLastActiveAdmin(row, activeAdminCount)}
           isLastActiveAdmin={isLastActiveAdmin(row, activeAdminCount)}
-          onChange={(status) => run(row.assignmentId, () => onChange(row.assignmentId, row.role, status))}
+          onChange={(status) =>
+            run(row.assignmentId, () => onChange(row.assignmentId, row.role, status))
+          }
           row={row}
         />
       ),
@@ -223,7 +228,9 @@ function RoleSelect({
       className="cl-select cl-select--default cl-focusable"
       disabled={disabled}
       onChange={(event) => onChange(event.target.value as OrganizationRole)}
-      title={isLastActiveAdmin ? intl.formatMessage(messages.rolesLastActiveAdminNotice) : undefined}
+      title={
+        isLastActiveAdmin ? intl.formatMessage(messages.rolesLastActiveAdminNotice) : undefined
+      }
       value={row.role}
     >
       {(assignableRoles.includes(row.role) ? assignableRoles : [row.role, ...assignableRoles]).map(
@@ -256,10 +263,14 @@ function RoleStatusToggle({
         checked={row.status === 'active'}
         disabled={disabled}
         onChange={(event) => onChange(event.target.checked ? 'active' : 'inactive')}
-        title={isLastActiveAdmin ? intl.formatMessage(messages.rolesLastActiveAdminNotice) : undefined}
+        title={
+          isLastActiveAdmin ? intl.formatMessage(messages.rolesLastActiveAdminNotice) : undefined
+        }
         type="checkbox"
       />
-      <span className={row.status === 'active' ? 'cl-role-status--active' : 'cl-role-status--inactive'}>
+      <span
+        className={row.status === 'active' ? 'cl-role-status--active' : 'cl-role-status--inactive'}
+      >
         {row.status === 'active'
           ? intl.formatMessage(messages.rolesActive)
           : intl.formatMessage(messages.rolesInactive)}
@@ -285,7 +296,9 @@ function RoleDeleteButton({
       aria-label={intl.formatMessage(messages.rolesDeleteOf, { email: row.email })}
       disabled={disabled}
       onClick={onDelete}
-      title={isLastActiveAdmin ? intl.formatMessage(messages.rolesLastActiveAdminNotice) : undefined}
+      title={
+        isLastActiveAdmin ? intl.formatMessage(messages.rolesLastActiveAdminNotice) : undefined
+      }
       type="button"
       variant="destructive-outline"
     >

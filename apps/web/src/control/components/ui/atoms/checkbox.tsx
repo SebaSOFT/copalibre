@@ -4,8 +4,10 @@
  */
 import * as RadixCheckbox from '@radix-ui/react-checkbox';
 
-export interface CheckboxProps
-  extends Omit<RadixCheckbox.CheckboxProps, 'checked' | 'onCheckedChange'> {
+export interface CheckboxProps extends Omit<
+  RadixCheckbox.CheckboxProps,
+  'checked' | 'onCheckedChange'
+> {
   readonly checked: boolean;
   readonly onCheckedChange: (checked: boolean) => void;
   readonly disabled?: boolean;

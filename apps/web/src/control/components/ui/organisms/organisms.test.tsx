@@ -22,20 +22,22 @@ describe('DataTable (0141)', () => {
     expect(screen.getByText('Dos')).toBeDefined();
   });
 
+  it('renders a caption when supplied', () => {
+    render(<DataTable caption="Roles" columns={columns} rowKey={(row) => row.id} rows={rows} />);
+    expect(screen.getByText('Roles').tagName.toLowerCase()).toBe('caption');
+  });
+
   it('shows the empty message instead of an empty table when there are no rows', () => {
     render(
-      <DataTable
-        columns={columns}
-        emptyMessage="Sin datos"
-        rowKey={(row) => row.id}
-        rows={[]}
-      />,
+      <DataTable columns={columns} emptyMessage="Sin datos" rowKey={(row) => row.id} rows={[]} />,
     );
     expect(screen.getByText('Sin datos')).toBeDefined();
   });
 
   it('scrolls horizontally rather than overflowing the page (design.md, 375px scenario)', () => {
-    const { container } = render(<DataTable columns={columns} rowKey={(row) => row.id} rows={rows} />);
+    const { container } = render(
+      <DataTable columns={columns} rowKey={(row) => row.id} rows={rows} />,
+    );
     expect(container.querySelector('.cl-data-table')?.className).toContain('cl-data-table');
     // The generated CSS (packages/design-tokens) declares `overflow-x: auto` on
     // this class; this test asserts the organism renders that container, the
@@ -82,5 +84,32 @@ describe('Modal (0141)', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: '×' }));
     expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it('renders with no description and no footer', () => {
+    render(
+      <Modal onOpenChange={() => {}} open title="Invitar">
+        Contenido
+      </Modal>,
+    );
+    const dialog = screen.getByRole('dialog');
+    expect(dialog.querySelector('.cl-modal__description')).toBeNull();
+    expect(dialog.querySelector('.cl-modal__footer')).toBeNull();
+  });
+
+  it('renders a description and footer when supplied', () => {
+    render(
+      <Modal
+        description="Detalle"
+        footer={<button type="button">Guardar</button>}
+        onOpenChange={() => {}}
+        open
+        title="Invitar"
+      >
+        Contenido
+      </Modal>,
+    );
+    expect(screen.getByText('Detalle')).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Guardar' })).toBeDefined();
   });
 });

@@ -525,7 +525,10 @@ export function PlatformAdministrationRoute({
                   ))}
                 </ul>
               )}
-              <form className="cl-platform-form-grid" onSubmit={(event) => void submitSuperAdmin(event)}>
+              <form
+                className="cl-platform-form-grid"
+                onSubmit={(event) => void submitSuperAdmin(event)}
+              >
                 <Field label={intl.formatMessage(messages.platformSuperAdminPrincipalId)}>
                   <input
                     className="cl-input cl-input--default cl-focusable"
@@ -568,13 +571,16 @@ export function PlatformAdministrationRoute({
                 >
                   {outdated.map((entry) => (
                     <li key={entry.alias}>
-                      <strong>{entry.alias}</strong>: {entry.currentVersion} → {entry.latestVersion} (
-                      {entry.upgrade})
+                      <strong>{entry.alias}</strong>: {entry.currentVersion} → {entry.latestVersion}{' '}
+                      ({entry.upgrade})
                     </li>
                   ))}
                 </ul>
               )}
-              <form className="cl-platform-form-grid" onSubmit={(event) => void submitModule(event)}>
+              <form
+                className="cl-platform-form-grid"
+                onSubmit={(event) => void submitModule(event)}
+              >
                 <Field label={intl.formatMessage(messages.platformModuleAlias)}>
                   <input
                     className="cl-input cl-input--default cl-focusable"

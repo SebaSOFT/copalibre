@@ -7,6 +7,7 @@ import { Input } from './input.js';
 import { Textarea } from './textarea.js';
 import { Checkbox } from './checkbox.js';
 import { Label } from './label.js';
+import { Select } from './select.js';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './card.js';
 
 describe('form-control atoms (0141)', () => {
@@ -44,11 +45,50 @@ describe('form-control atoms (0141)', () => {
     expect(screen.getByLabelText('Notes').className).toContain('cl-textarea--error');
   });
 
+  it('renders the disabled state class for Textarea, taking precedence over invalid', () => {
+    render(<Textarea aria-label="Notes" disabled invalid value="" onChange={() => {}} />);
+    expect(screen.getByLabelText('Notes').className).toContain('cl-textarea--disabled');
+  });
+
   it('toggles Checkbox state via onCheckedChange, not a raw DOM event', () => {
     const onCheckedChange = jest.fn();
     render(<Checkbox aria-label="Active" checked={false} onCheckedChange={onCheckedChange} />);
     fireEvent.click(screen.getByRole('checkbox'));
     expect(onCheckedChange).toHaveBeenCalledWith(true);
+  });
+
+  it('renders the disabled state class for Checkbox', () => {
+    render(<Checkbox aria-label="Active" checked={false} disabled onCheckedChange={() => {}} />);
+    expect(screen.getByRole('checkbox').className).toContain('cl-checkbox--disabled');
+  });
+
+  it('renders a Select trigger with the caller-supplied options', () => {
+    render(
+      <Select
+        aria-label="Role"
+        onValueChange={() => {}}
+        options={[
+          { value: 'admin', label: 'Admin' },
+          { value: 'viewer', label: 'Viewer' },
+        ]}
+        value="admin"
+      />,
+    );
+    const trigger = screen.getByRole('combobox', { name: 'Role' });
+    expect(trigger.className).toContain('cl-select--default');
+    expect(screen.getByText('Admin')).toBeDefined();
+  });
+
+  it('renders the error and disabled state classes for Select', () => {
+    const { rerender } = render(
+      <Select aria-label="Role" invalid onValueChange={() => {}} options={[]} value="" />,
+    );
+    expect(screen.getByRole('combobox', { name: 'Role' }).className).toContain('cl-select--error');
+
+    rerender(<Select aria-label="Role" disabled onValueChange={() => {}} options={[]} value="" />);
+    expect(screen.getByRole('combobox', { name: 'Role' }).className).toContain(
+      'cl-select--disabled',
+    );
   });
 
   it('connects a Label to its control by htmlFor', () => {
