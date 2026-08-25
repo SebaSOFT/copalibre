@@ -1,6 +1,7 @@
 import {
   BREAKPOINTS,
   COLOR_PRIMITIVES,
+  CONTROL_DENSITY_SPACING,
   FONT_SIZE,
   FONT_WEIGHTS,
   MOTION,
@@ -30,6 +31,8 @@ export interface TailwindTheme {
   readonly borderRadius: Record<string, string>;
   readonly transitionDuration: Record<string, string>;
   readonly screens: Record<string, string>;
+  /** Control-web's data-density spacing subset, prefixed the same way `spacing` is. */
+  readonly densitySpacing: Record<string, string>;
 }
 
 export function generateTailwindTheme(): TailwindTheme {
@@ -58,6 +61,9 @@ export function generateTailwindTheme(): TailwindTheme {
       'cl-slow': MOTION.slow,
     },
     screens: { ...BREAKPOINTS },
+    densitySpacing: Object.fromEntries(
+      Object.entries(CONTROL_DENSITY_SPACING).map(([name, value]) => [`cl-density-${name}`, value]),
+    ),
   };
 }
 

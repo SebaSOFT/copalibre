@@ -1,13 +1,23 @@
 import {
   BREAKPOINTS,
   COLOR_PRIMITIVES,
+  CONTROL_DENSITY_SPACING,
   FONT_SIZE,
   MOTION,
   SPACING,
   TOUCH_TARGET,
 } from './primitives.js';
 import { PROTECTED_TOKENS, SEMANTIC_COLORS, isProtected, resolveSemantic } from './semantic.js';
-import { BUTTON_VARIANTS, BadgeContractError, assertBadge } from './components.js';
+import {
+  BUTTON_VARIANTS,
+  CHECKBOX_TOKENS,
+  DIALOG_TOKENS,
+  INPUT_TOKENS,
+  SELECT_TOKENS,
+  TEXTAREA_TOKENS,
+  BadgeContractError,
+  assertBadge,
+} from './components.js';
 import { FORBIDDEN, formatHits, scanForForbidden } from './forbidden.js';
 import { generateCss } from './generate/css.js';
 import { generateTailwindModule, generateTailwindTheme } from './generate/tailwind.js';
@@ -62,6 +72,40 @@ describe('the token source', () => {
       ['lg', '1024px'],
       ['xl', '1440px'],
     ]);
+  });
+});
+
+describe('the form-control and dialog contracts (0141)', () => {
+  it.each([
+    ['input', INPUT_TOKENS],
+    ['select', SELECT_TOKENS],
+    ['textarea', TEXTAREA_TOKENS],
+    ['checkbox', CHECKBOX_TOKENS],
+  ])('gives %s an error state resolving to the destructive token', (_name, tokens) => {
+    expect(tokens.error.border).toBe('state-destructive');
+  });
+
+  it.each([
+    ['input', INPUT_TOKENS],
+    ['select', SELECT_TOKENS],
+    ['textarea', TEXTAREA_TOKENS],
+    ['checkbox', CHECKBOX_TOKENS],
+  ])('declares every interaction state for %s', (_name, tokens) => {
+    expect(Object.keys(tokens).sort()).toEqual(['default', 'disabled', 'error', 'focus']);
+  });
+
+  it('resolves the dialog surface and backdrop to real semantic tokens', () => {
+    expect(SEMANTIC_COLORS[DIALOG_TOKENS.surface]).toBeDefined();
+    expect(SEMANTIC_COLORS[DIALOG_TOKENS.backdrop]).toBeDefined();
+  });
+});
+
+describe('the Control-web data-density spacing subset (0141)', () => {
+  it('uses only values already in the shared spacing scale', () => {
+    const spacingValues = Object.values(SPACING);
+    for (const value of Object.values(CONTROL_DENSITY_SPACING)) {
+      expect(spacingValues).toContain(value);
+    }
   });
 });
 
@@ -129,6 +173,26 @@ describe('the CSS output', () => {
   it('uses tabular figures for numbers that change', () => {
     expect(css).toContain('font-variant-numeric: tabular-nums;');
   });
+
+  it('emits a rule per form-control atom/state (0141)', () => {
+    for (const atom of ['input', 'select', 'textarea', 'checkbox']) {
+      for (const state of ['default', 'focus', 'error', 'disabled']) {
+        expect(css).toContain(`.cl-${atom}--${state} {`);
+      }
+    }
+  });
+
+  it('emits the dialog backdrop and surface rules (0141)', () => {
+    expect(css).toContain('.cl-dialog-backdrop {');
+    expect(css).toContain('.cl-dialog-surface {');
+  });
+
+  it('scopes the Control-web density spacing under [data-density="control"] (0141)', () => {
+    expect(css).toContain('[data-density="control"] {');
+    for (const name of Object.keys(CONTROL_DENSITY_SPACING)) {
+      expect(css).toContain(`--cl-density-${name}:`);
+    }
+  });
 });
 
 describe('the Tailwind output', () => {
@@ -157,6 +221,10 @@ describe('the Tailwind output', () => {
 
   it('emits a module that says it is generated', () => {
     expect(generateTailwindModule()).toContain('Do not edit by hand');
+  });
+
+  it('prefixes the density spacing subset (0141)', () => {
+    expect(theme.densitySpacing['cl-density-row-gap']).toBe(SPACING['2']);
   });
 });
 

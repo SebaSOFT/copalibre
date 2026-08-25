@@ -1,6 +1,7 @@
 import {
   BREAKPOINTS,
   COLOR_PRIMITIVES,
+  CONTROL_DENSITY_SPACING,
   FONT_SIZE,
   FONT_WEIGHTS,
   MOTION,
@@ -9,7 +10,18 @@ import {
   TOUCH_TARGET,
   TYPOGRAPHY,
 } from '../primitives.js';
-import { BUTTON_VARIANTS, CARD_STATES, FOCUS_RING } from '../components.js';
+import {
+  BUTTON_VARIANTS,
+  CARD_STATES,
+  CHECKBOX_TOKENS,
+  DIALOG_TOKENS,
+  FOCUS_RING,
+  INPUT_TOKENS,
+  SELECT_TOKENS,
+  TEXTAREA_TOKENS,
+  type FormControlState,
+  type FormControlTokenSet,
+} from '../components.js';
 import { SEMANTIC_COLORS, type SemanticColor } from '../semantic.js';
 
 /**
@@ -52,6 +64,12 @@ export function generateCss(): string {
     imageFrame(),
     '',
     components(),
+    '',
+    formControls(),
+    '',
+    dialog(),
+    '',
+    density(),
   ].join('\n');
 }
 
@@ -214,6 +232,33 @@ function components(): string {
     '}',
     ...cards,
     '',
+    '.cl-card__header { display: grid; gap: var(--cl-space-1); margin-block-end: var(--cl-space-3); }',
+    '.cl-card__title { margin: 0; font-family: var(--cl-font-display); text-transform: uppercase; }',
+    '.cl-card__description { margin: 0; color: var(--cl-text-muted); }',
+    '.cl-card__content { display: grid; gap: var(--cl-space-3); }',
+    '.cl-card__footer { display: flex; gap: var(--cl-space-2); margin-block-start: var(--cl-space-4); }',
+    '',
+    '.cl-input, .cl-select, .cl-textarea {',
+    '  min-height: var(--cl-touch-target);',
+    '  font-family: var(--cl-font-body);',
+    '  border: 1px solid;',
+    '  padding: var(--cl-space-2) var(--cl-space-3);',
+    '}',
+    '',
+    '.cl-checkbox {',
+    '  display: inline-flex;',
+    '  align-items: center;',
+    '  justify-content: center;',
+    '  width: var(--cl-touch-target);',
+    '  height: var(--cl-touch-target);',
+    '  border: 1px solid;',
+    '}',
+    '.cl-checkbox__indicator { color: var(--cl-state-live); }',
+    '.cl-select__icon { margin-inline-start: var(--cl-space-2); }',
+    '.cl-select__content { padding: var(--cl-space-1); }',
+    '.cl-select__item { padding: var(--cl-space-2) var(--cl-space-3); cursor: pointer; }',
+    '.cl-label { font-family: var(--cl-font-mono); text-transform: uppercase; font-size: var(--cl-font-size-xs); }',
+    '',
     '/* A badge is a colour *and* a label; the token contract refuses one without. */',
     '.cl-badge {',
     '  display: inline-flex;',
@@ -260,6 +305,62 @@ function components(): string {
     '  outline: none;',
     `  box-shadow: 0 0 0 ${FOCUS_RING.innerWidth} var(--cl-surface-base),`,
     `    0 0 0 ${FOCUS_RING.outerWidth} var(--cl-focus-ring);`,
+    '}',
+  ].join('\n');
+}
+
+/** One state-keyed rule block per form-control atom (0141). */
+function formControls(): string {
+  const groups: readonly [string, Record<FormControlState, FormControlTokenSet>][] = [
+    ['input', INPUT_TOKENS],
+    ['select', SELECT_TOKENS],
+    ['textarea', TEXTAREA_TOKENS],
+    ['checkbox', CHECKBOX_TOKENS],
+  ];
+
+  return groups
+    .map(([atom, states]) =>
+      (Object.entries(states) as [FormControlState, FormControlTokenSet][])
+        .map(([state, tokens]) =>
+          [
+            `.cl-${atom}--${state} {`,
+            `  background: var(--cl-${tokens.background});`,
+            `  color: var(--cl-${tokens.text});`,
+            `  border-color: var(--cl-${tokens.border});`,
+            '}',
+          ].join('\n'),
+        )
+        .join('\n'),
+    )
+    .join('\n\n');
+}
+
+/** The `Modal`/`Dialog` organism's overlay and content-panel tokens (0141). */
+function dialog(): string {
+  return [
+    '.cl-dialog-backdrop {',
+    `  background: var(--cl-${DIALOG_TOKENS.backdrop});`,
+    '}',
+    '',
+    '.cl-dialog-surface {',
+    `  background: var(--cl-${DIALOG_TOKENS.surface});`,
+    `  border: 1px solid var(--cl-${DIALOG_TOKENS.border});`,
+    `  box-shadow: ${DIALOG_TOKENS.elevation};`,
+    '}',
+  ].join('\n');
+}
+
+/**
+ * Control-web's denser spacing composition, scoped to `[data-density="control"]`
+ * so the exact same atoms render tighter there than on the marketing surfaces —
+ * a composition choice, not a second component tree (design.md Decision 4).
+ */
+function density(): string {
+  return [
+    '[data-density="control"] {',
+    ...Object.entries(CONTROL_DENSITY_SPACING).map(
+      ([name, value]) => `  --cl-density-${name}: ${value};`,
+    ),
     '}',
   ].join('\n');
 }

@@ -91,3 +91,59 @@ export const FOCUS_RING = {
   outerWidth: '4px',
   offset: '1px',
 } as const;
+
+/**
+ * Form-control and dialog/overlay contracts (0141).
+ *
+ * Same shape as `BUTTON_VARIANTS`: a `Record<State, TokenSet>` a component
+ * consumes directly, so a rule like "an error state always renders in the
+ * destructive colour" is something a test can check instead of something a
+ * reviewer has to notice.
+ */
+export type FormControlState = 'default' | 'focus' | 'error' | 'disabled';
+
+export interface FormControlTokenSet {
+  readonly background: SemanticColor;
+  readonly text: SemanticColor;
+  readonly border: SemanticColor;
+}
+
+/** input.tsx's states. */
+export type InputTokens = Record<FormControlState, FormControlTokenSet>;
+/** select.tsx's states. */
+export type SelectTokens = Record<FormControlState, FormControlTokenSet>;
+/** textarea.tsx's states. */
+export type TextareaTokens = Record<FormControlState, FormControlTokenSet>;
+/** checkbox.tsx's states. */
+export type CheckboxTokens = Record<FormControlState, FormControlTokenSet>;
+
+const FORM_CONTROL_STATES: Record<FormControlState, FormControlTokenSet> = {
+  default: { background: 'surface-raised', text: 'text-primary', border: 'border-muted' },
+  focus: { background: 'surface-raised', text: 'text-primary', border: 'focus-ring' },
+  error: { background: 'surface-raised', text: 'text-primary', border: 'state-destructive' },
+  disabled: { background: 'surface-panel', text: 'text-muted', border: 'border-muted' },
+};
+
+export const INPUT_TOKENS: InputTokens = FORM_CONTROL_STATES;
+export const SELECT_TOKENS: SelectTokens = FORM_CONTROL_STATES;
+export const TEXTAREA_TOKENS: TextareaTokens = FORM_CONTROL_STATES;
+export const CHECKBOX_TOKENS: CheckboxTokens = FORM_CONTROL_STATES;
+
+export interface DialogTokens {
+  readonly backdrop: SemanticColor;
+  readonly surface: SemanticColor;
+  readonly border: SemanticColor;
+  /** A CSS `box-shadow` value; elevation is a look, not a semantic colour. */
+  readonly elevation: string;
+}
+
+/**
+ * Radix Dialog's overlay (`backdrop`) and content panel (the rest), shared by
+ * every `Modal`/`Dialog` instance so no screen re-derives its own scrim.
+ */
+export const DIALOG_TOKENS: DialogTokens = {
+  backdrop: 'surface-base',
+  surface: 'surface-panel',
+  border: 'border-muted',
+  elevation: '0 24px 48px -12px rgba(0, 0, 0, 0.55)',
+};

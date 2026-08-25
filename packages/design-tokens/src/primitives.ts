@@ -119,3 +119,17 @@ export const MOTION = {
 
 /** Minimum interactive target; the identity doc's accessibility gate. */
 export const TOUCH_TARGET = '44px';
+
+/**
+ * Control-web's data-density composition (0141): the same 4px `SPACING`
+ * scale, mapped to the step an operator screen actually needs at each named
+ * gap. No new spacing value is introduced here — every value below is an
+ * existing member of `SPACING`, selected for a denser composition than the
+ * marketing surfaces use, not a second scale.
+ */
+export const CONTROL_DENSITY_SPACING = {
+  'section-gap': SPACING['6'],
+  'row-gap': SPACING['2'],
+  'field-gap': SPACING['3'],
+  'inline-gap': SPACING['1'],
+} as const;
