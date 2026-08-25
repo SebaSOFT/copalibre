@@ -6,14 +6,20 @@ import { readFileSync, readdirSync } from 'node:fs';
  * Copying a file is how the control app keeps control of its own interaction
  * surface, and it is also how an MIT notice quietly disappears. This makes the
  * omission a failing build rather than something found during a licence audit.
+ *
+ * Since 0141 the owned component layer also holds original compositions
+ * (molecules, most organisms, templates) alongside copied shadcn/ui-style
+ * atoms — not every file needs a notice, only a copied one. Each file's own
+ * header comment says which it is ("Copied from ..." vs. "Original
+ * composition"), so that comment is this check's source of truth rather than
+ * a path-based guess.
  */
 const UI_DIR = new URL('../apps/web/src/control/components/ui/', import.meta.url);
 const notices = readFileSync(new URL('../THIRD_PARTY_NOTICES.md', import.meta.url), 'utf8');
 
-// The owned component layer is organized into atoms/molecules/organisms/templates
-// subfolders (0141), so this recurses rather than reading one flat directory.
 const missing = readdirSync(UI_DIR, { recursive: true })
-  .filter((file) => file.endsWith('.tsx') || file.endsWith('.ts'))
+  .filter((file) => (file.endsWith('.tsx') || file.endsWith('.ts')) && !file.includes('.test.'))
+  .filter((file) => readFileSync(new URL(file, UI_DIR), 'utf8').includes('Copied from'))
   .map((file) => file.split('/').pop())
   .filter((file) => !notices.includes(`\`${file}\``));
 

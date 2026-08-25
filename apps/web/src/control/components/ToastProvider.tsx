@@ -30,6 +30,14 @@ interface ToastRecord extends ToastInput {
   readonly exiting: boolean;
 }
 
+/**
+ * The organism tier's standing operation-feedback mechanism (0141,
+ * control-web/admin-interface-components). A toast reports the result of a
+ * completed/submitted operation ("invite sent", "save failed"); it is never
+ * the right place for an in-progress field-validation problem — that is the
+ * `ui/molecules/form-field.tsx` error slot's job (design.md Decision 6). No
+ * screen should hand-build its own alert/toast pattern instead of `useToast()`.
+ */
 const AUTO_DISMISS_MS = 5_000;
 const EXIT_FALLBACK_MS = 200;
 const ToastContext = createContext<ToastApi | undefined>(undefined);
