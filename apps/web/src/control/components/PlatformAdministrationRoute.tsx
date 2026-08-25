@@ -363,7 +363,7 @@ export function PlatformAdministrationRoute({
       breadcrumb={<FormattedMessage {...messages.platformSectionLabel} />}
       listing={
         <div className="cl-platform-sections">
-          <Card aria-labelledby="platform-organization-heading">
+          <Card aria-labelledby="platform-organization-heading" role="region">
             <CardHeader>
               <CardTitle id="platform-organization-heading">
                 <FormattedMessage {...messages.platformOrganizationHeading} />
@@ -462,7 +462,7 @@ export function PlatformAdministrationRoute({
             </CardContent>
           </Card>
 
-          <Card aria-labelledby="platform-users-heading">
+          <Card aria-labelledby="platform-users-heading" role="region">
             <CardHeader>
               <CardTitle id="platform-users-heading">
                 <FormattedMessage {...messages.platformUsersHeading} />
@@ -544,7 +544,7 @@ export function PlatformAdministrationRoute({
             </CardContent>
           </Card>
 
-          <Card aria-labelledby="platform-modules-heading">
+          <Card aria-labelledby="platform-modules-heading" role="region">
             <CardHeader className="cl-platform-modules-header">
               <div>
                 <CardTitle id="platform-modules-heading">

@@ -235,7 +235,7 @@ function components(): string {
     '.cl-card__header { display: grid; gap: var(--cl-space-1); margin-block-end: var(--cl-space-3); }',
     '.cl-card__title { margin: 0; font-family: var(--cl-font-display); text-transform: uppercase; }',
     '.cl-card__description { margin: 0; color: var(--cl-text-muted); }',
-    '.cl-card__content { display: grid; gap: var(--cl-space-3); }',
+    '.cl-card__content { display: grid; gap: var(--cl-space-3); min-width: 0; }',
     '.cl-card__footer { display: flex; gap: var(--cl-space-2); margin-block-start: var(--cl-space-4); }',
     '',
     '.cl-input, .cl-select, .cl-textarea {',
@@ -243,6 +243,13 @@ function components(): string {
     '  font-family: var(--cl-font-body);',
     '  border: 1px solid;',
     '  padding: var(--cl-space-2) var(--cl-space-3);',
+    // A bare <input>/<select>/<textarea> has a UA-stylesheet intrinsic
+    // min-content width (Chromium: roughly a `size=20` input) that a narrow
+    // grid track cannot override without an explicit width — without this,
+    // the control forces its own grid ancestor wider than the viewport at
+    // the narrowest reference width (188px, a 200%-zoom equivalent).
+    '  width: 100%;',
+    '  min-width: 0;',
     '}',
     '',
     '.cl-checkbox {',
@@ -259,7 +266,7 @@ function components(): string {
     '.cl-select__item { padding: var(--cl-space-2) var(--cl-space-3); cursor: pointer; }',
     '.cl-label { font-family: var(--cl-font-mono); text-transform: uppercase; font-size: var(--cl-font-size-xs); }',
     '',
-    '.cl-form-field { display: grid; gap: var(--cl-space-1); }',
+    '.cl-form-field { display: grid; gap: var(--cl-space-1); min-width: 0; }',
     '.cl-form-field__error { margin: 0; color: var(--cl-state-destructive); font-size: var(--cl-font-size-xs); }',
     '.cl-form-field__help { margin: 0; color: var(--cl-text-muted); font-size: var(--cl-font-size-xs); }',
     '',
@@ -292,7 +299,14 @@ function components(): string {
     '.cl-modal__footer { display: flex; justify-content: flex-end; gap: var(--cl-space-2); }',
     '',
     '/* Templates own inter-section spacing (design.md Decision 7) — no component below this tier sets its own external margin. */',
-    '.cl-list-screen, .cl-form-screen { display: grid; gap: var(--cl-density-section-gap, var(--cl-space-6)); }',
+    '.cl-list-screen, .cl-form-screen { display: grid; gap: var(--cl-density-section-gap, var(--cl-space-6)); min-width: 0; }',
+    // A grid item's default `min-width: auto` sizes it to its content, which
+    // silently defeats a descendant's `overflow-x: auto` (a wide table forces
+    // every ancestor grid track wider instead of scrolling in place). Every
+    // grid track in this template chain gets `min-width: 0` so the narrowest
+    // reference width (188px, a 200%-zoom equivalent) scrolls instead of
+    // overflowing the page.
+    '.cl-list-screen > *, .cl-form-screen > * { min-width: 0; }',
     '.cl-list-screen__header, .cl-form-screen__header { display: flex; align-items: end; justify-content: space-between; gap: var(--cl-space-4); flex-wrap: wrap; }',
     '.cl-list-screen__title, .cl-form-screen__title { margin: 0; font-family: var(--cl-font-display); text-transform: uppercase; }',
     '.cl-list-screen__breadcrumb, .cl-form-screen__breadcrumb { color: var(--cl-state-live); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; }',
@@ -310,7 +324,8 @@ function components(): string {
     '.cl-role-status--active { color: var(--cl-state-live); }',
     '.cl-role-status--inactive { color: var(--cl-text-muted); }',
     '',
-    '.cl-platform-sections { display: grid; gap: var(--cl-density-section-gap, var(--cl-space-6)); }',
+    '.cl-platform-sections { display: grid; gap: var(--cl-density-section-gap, var(--cl-space-6)); min-width: 0; }',
+    '.cl-platform-sections > * { min-width: 0; }',
     '.cl-platform-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); gap: var(--cl-space-4); align-items: end; }',
     '.cl-platform-update-list { margin: 0; padding: var(--cl-space-4); list-style-position: inside; border: 1px solid var(--cl-state-upcoming); color: var(--cl-text-secondary); }',
     '.cl-platform-modules-header { display: flex; justify-content: space-between; align-items: start; gap: var(--cl-space-4); flex-wrap: wrap; }',
