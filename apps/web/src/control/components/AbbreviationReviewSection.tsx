@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { isAbbreviation, MAX_ABBREVIATION_LENGTH } from '@copalibre/domain';
-import { Button } from './ui/button.js';
+import { Button } from './ui/atoms/button.js';
 import { messages } from '../i18n/messages.en.js';
 import { useToast } from './ToastProvider.js';
 

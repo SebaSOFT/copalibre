@@ -10,8 +10,11 @@ import { readFileSync, readdirSync } from 'node:fs';
 const UI_DIR = new URL('../apps/web/src/control/components/ui/', import.meta.url);
 const notices = readFileSync(new URL('../THIRD_PARTY_NOTICES.md', import.meta.url), 'utf8');
 
-const missing = readdirSync(UI_DIR)
+// The owned component layer is organized into atoms/molecules/organisms/templates
+// subfolders (0141), so this recurses rather than reading one flat directory.
+const missing = readdirSync(UI_DIR, { recursive: true })
   .filter((file) => file.endsWith('.tsx') || file.endsWith('.ts'))
+  .map((file) => file.split('/').pop())
   .filter((file) => !notices.includes(`\`${file}\``));
 
 if (missing.length > 0) {

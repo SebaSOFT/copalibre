@@ -12,7 +12,7 @@ import { controlTokenStore } from '../session/token-store.js';
 import { FramedImage } from './FramedImage.js';
 import { ImageCropModal } from './ImageCropModal.js';
 import { ClubEmblemPlaceholder } from './placeholders.js';
-import { Button } from './ui/button.js';
+import { Button } from './ui/atoms/button.js';
 import { messages as controlMessages } from '../i18n/messages.en.js';
 import { useToast } from './ToastProvider.js';
 

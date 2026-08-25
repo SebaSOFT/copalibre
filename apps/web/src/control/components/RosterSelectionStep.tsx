@@ -8,7 +8,7 @@ import {
 } from '../lib/api-client.js';
 import { currentEpochMilliseconds, newIdempotencyKey } from '../lib/match-console.js';
 import { drainQueue, enqueue } from '../lib/offline-queue.js';
-import { Button } from './ui/button.js';
+import { Button } from './ui/atoms/button.js';
 import { messages } from '../i18n/messages.en.js';
 
 interface MemberSelection {

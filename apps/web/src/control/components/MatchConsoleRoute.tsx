@@ -30,7 +30,7 @@ import {
   type QueuedAction,
   type QueuedMutation,
 } from '../lib/offline-queue.js';
-import { Button } from './ui/button.js';
+import { Button } from './ui/atoms/button.js';
 import { JerseyGrid } from './JerseyGrid.js';
 import { RosterSelectionStep } from './RosterSelectionStep.js';
 import { messages } from '../i18n/messages.en.js';

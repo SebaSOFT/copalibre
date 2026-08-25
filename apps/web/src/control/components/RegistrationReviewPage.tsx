@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { FormattedMessage, useIntl, type MessageDescriptor } from 'react-intl';
-import { Button } from './ui/button.js';
+import { Button } from './ui/atoms/button.js';
 import { CountrySelect } from './CountrySelect.js';
 import {
   personPhotoUrl,

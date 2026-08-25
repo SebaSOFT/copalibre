@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
-import { Button } from './ui/button.js';
-import { Card } from './ui/card.js';
+import { Button } from './ui/atoms/button.js';
+import { Card } from './ui/atoms/card.js';
 import {
   WIZARD_STEPS,
   addCustomRule,
