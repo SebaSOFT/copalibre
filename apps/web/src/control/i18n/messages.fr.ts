@@ -34,6 +34,15 @@ export const messages: Record<string, string> = {
   'control.platform.organization.ready':
     'Organisation {alias} créée. Invitez son premier administrateur.',
   'control.platform.organization.created': 'Organisation {alias} créée et administrateur invité.',
+  'control.platform.users.heading': 'Administration des utilisateurs',
+  'control.platform.users.description':
+    "Gérez les super-administrateurs de l'installation, ou accédez à une organisation pour gérer ses utilisateurs.",
+  'control.platform.users.manageOrganizationAlias': "Alias de l'organisation",
+  'control.platform.users.manageOrganizationUsers': 'Gérer les utilisateurs',
+  'control.platform.users.superAdminsHeading': "Super-administrateurs de l'installation",
+  'control.platform.users.noSuperAdmins': 'Aucun super-administrateur pour le moment.',
+  'control.platform.users.superAdminPrincipalId': 'ID du principal',
+  'control.platform.users.createSuperAdmin': 'Accorder le rôle de super-administrateur',
   'control.platform.modules.heading': 'Modules installés',
   'control.platform.modules.description':
     'Installez, supprimez, vérifiez et recherchez les mises à jour.',
@@ -302,7 +311,10 @@ export const messages: Record<string, string> = {
   'control.roles.inactive': 'Inactif',
   'control.roles.deleteOf': 'Supprimer {email}',
   'control.roles.delete': 'Supprimer',
+  'control.roles.lastActiveAdminNotice':
+    "L'organisation doit toujours conserver au moins un admin actif.",
   'control.roles.role.admin': 'Admin',
+  'control.roles.role.clubAdmin': 'Admin de club',
   'control.roles.role.referee': 'Arbitre',
   'control.roles.role.broadcaster': 'Diffusion',
   'control.roles.role.viewer': 'Observateur',

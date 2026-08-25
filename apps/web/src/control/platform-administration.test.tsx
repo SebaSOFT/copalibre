@@ -27,6 +27,7 @@ describe('platform administration console', () => {
       fetch: async (input, init) => {
         const url = String(input);
         calls.push({ url, body: init?.body ? JSON.parse(String(init.body)) : undefined });
+        if (url === '/installation/super-admins') return json([]);
         if (url === '/admin/modules') return json([]);
         if (url === '/organizations') {
           return json(
@@ -62,7 +63,7 @@ describe('platform administration console', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Invite administrator' })),
     );
 
-    expect(calls.slice(1)).toEqual([
+    expect(calls.slice(2)).toEqual([
       {
         url: '/organizations',
         body: {
@@ -115,6 +116,7 @@ describe('platform administration console', () => {
             201,
           );
         if (url === '/admin/modules') return json([installedModule]);
+        if (url === '/installation/super-admins') return json([]);
         return json({}, 200);
       },
     });
@@ -142,11 +144,12 @@ describe('platform administration console', () => {
 
   it('shows API conflict text verbatim', async () => {
     const client = createControlApiClient({
-      fetch: jest.fn(async (input) =>
-        String(input) === '/admin/modules'
-          ? json([])
-          : json({ message: 'Alias already belongs to another organization' }, 409),
-      ),
+      fetch: jest.fn(async (input) => {
+        const url = String(input);
+        if (url === '/admin/modules') return json([]);
+        if (url === '/installation/super-admins') return json([]);
+        return json({ message: 'Alias already belongs to another organization' }, 409);
+      }),
     });
     render(withIntl(<PlatformAdministrationRoute client={client} />));
     await screen.findByText('No modules are installed.');
@@ -164,9 +167,11 @@ describe('platform administration console', () => {
     const confirm = jest.spyOn(window, 'confirm').mockReturnValue(true);
     const client = createControlApiClient({
       fetch: jest.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-        if (String(input) === '/admin/modules' && (init?.method ?? 'GET') === 'GET') {
+        const url = String(input);
+        if (url === '/admin/modules' && (init?.method ?? 'GET') === 'GET') {
           return json([installedModule]);
         }
+        if (url === '/installation/super-admins') return json([]);
         return json(
           { message: 'Cannot remove "football": referenced by started tournament(s): apertura' },
           409,

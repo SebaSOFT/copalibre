@@ -224,6 +224,16 @@ export interface ControlApiClient {
     organizationAlias: string,
     assignmentId: string,
   ) => Promise<void>;
+  readonly listGrantableRoles?: (organizationAlias: string) => Promise<GrantableRolesResponse>;
+  readonly listInstallationSuperAdmins?: () => Promise<readonly InstallationSuperAdminResponse[]>;
+  readonly createInstallationSuperAdmin?: (
+    request: CreateSuperAdminRequest,
+  ) => Promise<InstallationSuperAdminResponse>;
+  readonly changeInstallationSuperAdminStatus?: (
+    assignmentId: string,
+    request: ChangeInstallationRoleStatusRequest,
+  ) => Promise<InstallationSuperAdminResponse>;
+  readonly deleteInstallationSuperAdmin?: (assignmentId: string) => Promise<void>;
   readonly createCsvImport?: (
     organizationAlias: string,
     tournamentAlias: string,
@@ -956,8 +966,10 @@ export interface CsvImportPreviewResponse {
   };
 }
 
-export type OrganizationRole = 'admin' | 'referee' | 'broadcaster' | 'viewer';
+export type OrganizationRole = 'admin' | 'club-admin' | 'referee' | 'broadcaster' | 'viewer';
 export type OrganizationMemberStatus = 'active' | 'inactive';
+export type GrantableRole =
+  'super-admin' | 'admin' | 'club-admin' | 'referee' | 'broadcaster' | 'viewer';
 
 export interface OrganizationRoleResponse {
   readonly assignmentId: string;
@@ -989,6 +1001,24 @@ export interface MyOrganizationResponse {
   readonly organizationAlias: string;
   readonly organizationName: string;
   readonly role: OrganizationRole;
+}
+
+export interface GrantableRolesResponse {
+  readonly roles: readonly GrantableRole[];
+}
+
+export interface InstallationSuperAdminResponse {
+  readonly assignmentId: string;
+  readonly principalId: string;
+  readonly status: OrganizationMemberStatus;
+}
+
+export interface CreateSuperAdminRequest {
+  readonly principalId: string;
+}
+
+export interface ChangeInstallationRoleStatusRequest {
+  readonly status: OrganizationMemberStatus;
 }
 
 export type MatchCapability =
@@ -1556,6 +1586,42 @@ export function createControlApiClient(input: {
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/roles/${encodeURIComponent(
           assignmentId,
         )}`,
+        { method: 'DELETE', token: input.accessToken?.() },
+      );
+    },
+
+    listGrantableRoles: (organizationAlias) =>
+      requestJson<GrantableRolesResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/roles/grantable`,
+        { token: input.accessToken?.() },
+      ),
+
+    listInstallationSuperAdmins: () =>
+      requestJson<readonly InstallationSuperAdminResponse[]>(
+        input.fetch,
+        `${baseUrl}/installation/super-admins`,
+        { token: input.accessToken?.() },
+      ),
+
+    createInstallationSuperAdmin: (body) =>
+      requestJson<InstallationSuperAdminResponse>(
+        input.fetch,
+        `${baseUrl}/installation/super-admins`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    changeInstallationSuperAdminStatus: (assignmentId, body) =>
+      requestJson<InstallationSuperAdminResponse>(
+        input.fetch,
+        `${baseUrl}/installation/super-admins/${encodeURIComponent(assignmentId)}`,
+        { method: 'PATCH', body, token: input.accessToken?.() },
+      ),
+
+    deleteInstallationSuperAdmin: async (assignmentId) => {
+      await requestJson<InstallationSuperAdminResponse>(
+        input.fetch,
+        `${baseUrl}/installation/super-admins/${encodeURIComponent(assignmentId)}`,
         { method: 'DELETE', token: input.accessToken?.() },
       );
     },

@@ -417,6 +417,8 @@ function roleMessage(role: MyOrganizationResponse['role']) {
   switch (role) {
     case 'admin':
       return messages.rolesRoleAdmin;
+    case 'club-admin':
+      return messages.rolesRoleClubAdmin;
     case 'referee':
       return messages.rolesRoleReferee;
     case 'broadcaster':

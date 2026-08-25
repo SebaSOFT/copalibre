@@ -79,6 +79,39 @@ export const messages = defineMessages({
     id: 'control.platform.organization.created',
     defaultMessage: 'Organization {alias} created and administrator invited.',
   },
+  platformUsersHeading: {
+    id: 'control.platform.users.heading',
+    defaultMessage: 'User administration',
+  },
+  platformUsersDescription: {
+    id: 'control.platform.users.description',
+    defaultMessage:
+      'Manage installation super-admins, or drill into one organization to manage its users.',
+  },
+  platformManageOrganizationAlias: {
+    id: 'control.platform.users.manageOrganizationAlias',
+    defaultMessage: 'Organization alias',
+  },
+  platformManageOrganizationUsers: {
+    id: 'control.platform.users.manageOrganizationUsers',
+    defaultMessage: 'Manage users',
+  },
+  platformSuperAdminsHeading: {
+    id: 'control.platform.users.superAdminsHeading',
+    defaultMessage: 'Installation super-admins',
+  },
+  platformNoSuperAdmins: {
+    id: 'control.platform.users.noSuperAdmins',
+    defaultMessage: 'No installation super-admins yet.',
+  },
+  platformSuperAdminPrincipalId: {
+    id: 'control.platform.users.superAdminPrincipalId',
+    defaultMessage: 'Principal ID',
+  },
+  platformCreateSuperAdmin: {
+    id: 'control.platform.users.createSuperAdmin',
+    defaultMessage: 'Grant super-admin',
+  },
   platformModulesHeading: {
     id: 'control.platform.modules.heading',
     defaultMessage: 'Installed modules',
@@ -794,7 +827,12 @@ export const messages = defineMessages({
   rolesInactive: { id: 'control.roles.inactive', defaultMessage: 'Inactive' },
   rolesDeleteOf: { id: 'control.roles.deleteOf', defaultMessage: 'Delete {email}' },
   rolesDelete: { id: 'control.roles.delete', defaultMessage: 'Delete' },
+  rolesLastActiveAdminNotice: {
+    id: 'control.roles.lastActiveAdminNotice',
+    defaultMessage: 'This organization must always keep at least one active admin.',
+  },
   rolesRoleAdmin: { id: 'control.roles.role.admin', defaultMessage: 'Admin' },
+  rolesRoleClubAdmin: { id: 'control.roles.role.clubAdmin', defaultMessage: 'Club admin' },
   rolesRoleReferee: { id: 'control.roles.role.referee', defaultMessage: 'Referee' },
   rolesRoleBroadcaster: { id: 'control.roles.role.broadcaster', defaultMessage: 'Broadcast' },
   rolesRoleViewer: { id: 'control.roles.role.viewer', defaultMessage: 'Viewer' },
