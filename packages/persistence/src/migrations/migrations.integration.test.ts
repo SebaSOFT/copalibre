@@ -98,6 +98,7 @@ describe('migrations (integration)', () => {
     expect(afterUp).toContain('installed_modules');
     expect(afterUp).toContain('module_assets');
     expect(afterUp).toContain('object_metadata');
+    expect(afterUp).toContain('installation_role_assignments');
     expect(afterUpTables.find((table) => table.name === 'tournaments')?.columns).toEqual(
       expect.arrayContaining([expect.objectContaining({ name: 'archived_at' })]),
     );
@@ -169,6 +170,12 @@ describe('migrations (integration)', () => {
             `.execute(scratch.db)
           ).rows[0]?.dflt_value;
     expect(defaultExpression).toContain('[]');
+
+    const rbacDown = await migrateDownOneStep(scratch.db);
+    expect(rbacDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe(
+      '0028-tournament-ruleset-custom-scripts',
+    );
 
     const customScriptsDown = await migrateDownOneStep(scratch.db);
     expect(customScriptsDown.error).toBeUndefined();
@@ -446,6 +453,63 @@ describe('migrations (integration)', () => {
     for (const table of ['organizations', 'tournaments', 'audit_log', 'outbox_events']) {
       expect(afterInitialDown).not.toContain(table);
     }
+  });
+
+  it('0029 accepts club-admin as an organization role and creates installation_role_assignments', async () => {
+    await migrateToLatest(scratch.db);
+
+    await scratch.db
+      .insertInto('organizations')
+      .values({
+        organization_id: '01900000-0000-7000-8000-000000000001',
+        alias: 'club-admin-check',
+        name: 'Club Admin Check',
+        primary_language: 'es',
+        timezone: 'UTC',
+        created_at: new Date(),
+      })
+      .execute();
+    await scratch.db
+      .insertInto('identity_principals')
+      .values({
+        principal_id: '01900000-0000-7000-8000-000000000002',
+        email: 'club-admin-check@example.test',
+        created_at: new Date(),
+        updated_at: new Date(),
+      })
+      .execute();
+
+    await expect(
+      scratch.db
+        .insertInto('organization_role_assignments')
+        .values({
+          assignment_id: '01900000-0000-7000-8000-000000000003',
+          organization_id: '01900000-0000-7000-8000-000000000001',
+          principal_id: '01900000-0000-7000-8000-000000000002',
+          email: 'club-admin-check@example.test',
+          role: 'club-admin',
+          status: 'active',
+          created_at: new Date(),
+          updated_at: new Date(),
+          deleted_at: null,
+        })
+        .execute(),
+    ).resolves.toBeDefined();
+
+    await expect(
+      scratch.db
+        .insertInto('installation_role_assignments')
+        .values({
+          assignment_id: '01900000-0000-7000-8000-000000000004',
+          principal_id: '01900000-0000-7000-8000-000000000002',
+          role: 'super-admin',
+          status: 'active',
+          created_at: new Date(),
+          updated_at: new Date(),
+          deleted_at: null,
+        })
+        .execute(),
+    ).resolves.toBeDefined();
   });
 
   it('re-applies cleanly after a down migration', async () => {
