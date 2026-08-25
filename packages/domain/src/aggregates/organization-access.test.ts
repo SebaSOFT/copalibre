@@ -1,7 +1,10 @@
 import {
   canCreateOrganizationInvitation,
+  canGrantRole,
   normaliseEmail,
   validateOrganizationInvitation,
+  wouldLeaveInstallationWithoutSuperAdmin,
+  wouldLeaveOrganizationWithoutAdmin,
 } from './organization-access.js';
 
 describe('organization access', () => {
@@ -34,6 +37,59 @@ describe('organization access', () => {
         status: 'active',
         expiresAt: '2026-08-10T00:00:00.000Z',
       },
+    });
+  });
+
+  describe('canGrantRole', () => {
+    it('lets a super-admin grant super-admin or any organization role', () => {
+      const superAdmin = { isSuperAdmin: true };
+      expect(canGrantRole(superAdmin, 'super-admin').ok).toBe(true);
+      expect(canGrantRole(superAdmin, 'admin').ok).toBe(true);
+      expect(canGrantRole(superAdmin, 'club-admin').ok).toBe(true);
+      expect(canGrantRole(superAdmin, 'referee').ok).toBe(true);
+      expect(canGrantRole(superAdmin, 'broadcaster').ok).toBe(true);
+      expect(canGrantRole(superAdmin, 'viewer').ok).toBe(true);
+    });
+
+    it('lets an organization admin grant any organization role within their own organization', () => {
+      const orgAdmin = { isSuperAdmin: false, organizationAdminOf: 'org-1' };
+      expect(canGrantRole(orgAdmin, 'admin', 'org-1').ok).toBe(true);
+      expect(canGrantRole(orgAdmin, 'club-admin', 'org-1').ok).toBe(true);
+      expect(canGrantRole(orgAdmin, 'referee', 'org-1').ok).toBe(true);
+      expect(canGrantRole(orgAdmin, 'broadcaster', 'org-1').ok).toBe(true);
+      expect(canGrantRole(orgAdmin, 'viewer', 'org-1').ok).toBe(true);
+    });
+
+    it('refuses an organization admin granting super-admin', () => {
+      const orgAdmin = { isSuperAdmin: false, organizationAdminOf: 'org-1' };
+      expect(canGrantRole(orgAdmin, 'super-admin', 'org-1').ok).toBe(false);
+    });
+
+    it("refuses an organization admin's grant crossing into another organization", () => {
+      const orgAdmin = { isSuperAdmin: false, organizationAdminOf: 'org-1' };
+      expect(canGrantRole(orgAdmin, 'admin', 'org-2').ok).toBe(false);
+    });
+
+    it('refuses a club-admin or referee (no organizationAdminOf, not super-admin) any grant', () => {
+      const noAuthority = { isSuperAdmin: false };
+      expect(canGrantRole(noAuthority, 'referee', 'org-1').ok).toBe(false);
+      expect(canGrantRole(noAuthority, 'club-admin', 'org-1').ok).toBe(false);
+    });
+  });
+
+  describe('wouldLeaveOrganizationWithoutAdmin', () => {
+    it('is true only when the remaining count would be zero', () => {
+      expect(wouldLeaveOrganizationWithoutAdmin(0)).toBe(true);
+      expect(wouldLeaveOrganizationWithoutAdmin(1)).toBe(false);
+      expect(wouldLeaveOrganizationWithoutAdmin(2)).toBe(false);
+    });
+  });
+
+  describe('wouldLeaveInstallationWithoutSuperAdmin', () => {
+    it('is true only when the remaining count would be zero', () => {
+      expect(wouldLeaveInstallationWithoutSuperAdmin(0)).toBe(true);
+      expect(wouldLeaveInstallationWithoutSuperAdmin(1)).toBe(false);
+      expect(wouldLeaveInstallationWithoutSuperAdmin(2)).toBe(false);
     });
   });
 });
