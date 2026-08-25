@@ -74,7 +74,10 @@ function ControlShellChrome({
     window.location.assign('/control/');
   };
   return (
-    <div className="cl-control">
+    // data-density scopes the denser Control-web spacing composition (0141,
+    // design.md Decision 4) to every screen under this shell — never the
+    // public/marketing Astro surfaces, which never render this component.
+    <div className="cl-control" data-density="control">
       <nav aria-label={intl.formatMessage(messages.shellSections)} className="cl-control__nav">
         <div style={brandStyle}>
           <div style={brandMarkRowStyle}>
