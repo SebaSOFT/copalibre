@@ -207,6 +207,7 @@ jobs:
       - run: node scripts/check-enterprise-readiness-docs.mjs
       - run: node --test scripts/check-readme-doc-links.test.mjs
       - run: node scripts/check-readme-doc-links.mjs
+      - run: node --test scripts/i18n-content-review.test.mjs
 
   # Later phases' suites run under the same job via the root `yarn test:coverage`
   # fan-out. This includes the console projection, descriptor validation,

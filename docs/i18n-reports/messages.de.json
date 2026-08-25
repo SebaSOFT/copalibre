@@ -1,0 +1,16 @@
+{
+  "locale": "de",
+  "generatedAt": "2026-08-25T00:17:29.162Z",
+  "flaggedCount": 1,
+  "entries": [
+    {
+      "key": "control.zoneGroup.seed",
+      "englishSource": "Draw seed",
+      "currentTranslation": "Auslosungs-Seed",
+      "concern": "\"Auslosungs-Seed\" keeps the English loanword \"Seed\" where the catalogue elsewhere uses the native \"Setzung\"/\"Setzplatz\" family (control.seeding.title \"Setzliste\", toggleLockAriaLabel \"Setzplatz {seed}\") — inconsistent register within the same catalogue.",
+      "proposedReplacement": "Setzung (Auslosung)",
+      "glossaryHits": ["seed", "seeding", "draw"],
+      "status": "unconfirmed"
+    }
+  ]
+}

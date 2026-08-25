@@ -105,3 +105,35 @@ generated breakpoint.
 - **WHEN** the style-guide route is loaded
 - **THEN** it renders a labelled sample of every font-size scale step, so a reviewer can visually
   confirm the scale's steps are legible and distinguishable from one another
+
+### Requirement: Responsive layout compliance across every screen
+Every Control route and every Public/TV page template SHALL render without horizontal overflow at
+375 px width (except a table whose overflow has a visible scroll affordance), SHALL keep score, state,
+primary action, and current-match content visible without decorative obstruction at every one of the
+375/768/1024/1440 px reference widths, and SHALL remain usable at 200% browser zoom without clipped
+labels or unreachable controls.
+
+#### Scenario: No unintended horizontal overflow at the smallest reference width
+- **WHEN** any Control or Public/TV screen is rendered at 375 px width
+- **THEN** no horizontal scrollbar appears, unless the overflowing content is a table with a visible
+  scroll affordance
+
+#### Scenario: Critical content survives every reference width
+- **WHEN** a live-match or standings-bearing screen is rendered at each of 375/768/1024/1440 px
+- **THEN** score, state, primary action, and current match remain visible without being obscured by
+  decorative elements
+
+#### Scenario: 200% zoom stays usable
+- **WHEN** a screen is viewed at 200% browser zoom
+- **THEN** no form label is clipped and no interactive control becomes unreachable
+
+### Requirement: Long content truncates without losing meaning
+Any field displaying a long team, participant, tournament, venue, or sponsor name SHALL use
+`min-width: 0` with an ellipsis or explicit wrapping rule, and SHALL make the full text available
+(e.g. via a title attribute or accessible expansion) rather than silently cutting it with no recovery
+path.
+
+#### Scenario: A long name truncates visibly, not silently
+- **WHEN** a team, participant, tournament, venue, or sponsor name exceeds its container's width
+- **THEN** the display truncates with an ellipsis (or wraps, per the component's own rule) and the full
+  text remains accessible, rather than overflowing its container or disappearing
