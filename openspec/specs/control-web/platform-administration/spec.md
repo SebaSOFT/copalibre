@@ -60,3 +60,34 @@ each action driven by the corresponding existing `admin/modules` endpoint.
 - **WHEN** a super-admin requests the outdated-module check
 - **THEN** the console lists every installed module with a newer published version, showing its current
   and latest version and the semver bump kind
+
+### Requirement: Console lists a user-administration section
+The platform-administration console SHALL list a user-administration section alongside organization and
+module management, showing organization-admin (and, where the super-admin drills into an organization,
+club-admin/referee) role assignments across the installation, reusing the same role-management actions
+(invite, change, remove) already defined by the roles-permissions capability, rather than requiring
+navigation to a separate, disconnected route.
+
+#### Scenario: User-administration section lists organization-admins across organizations
+- **WHEN** a super-admin opens the user-administration section of the platform-administration console
+- **THEN** the section lists active and inactive `admin` (organization-admin) assignments across every
+  organization, each identifying its organization
+
+#### Scenario: Selecting an organization narrows the section to that organization's roles
+- **WHEN** a super-admin selects one organization within the user-administration section
+- **THEN** the section shows every role assignment (admin, club-admin, referee, broadcaster, viewer) for
+  that organization only
+
+### Requirement: Only a super-admin can create a super-admin from the console
+The console SHALL offer a "create super-admin" action only to a caller who already holds an active
+`super-admin` role, and SHALL NOT expose that action to an organization `admin` or any other role.
+
+#### Scenario: super-admin creates another super-admin from the console
+- **WHEN** a super-admin uses the console's create-super-admin action for a given identity
+- **THEN** the API request is authorized and, once accepted, the target identity holds an active
+  `super-admin` role
+
+#### Scenario: Action is not rendered for a non-super-admin
+- **WHEN** an organization `admin` who does not hold `super-admin` views the platform-administration
+  console (if reachable at all)
+- **THEN** no create-super-admin action is rendered

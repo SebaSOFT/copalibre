@@ -1,5 +1,12 @@
-import { BUTTON_VARIANTS, CARD_STATES } from '../components.js';
-import { FONT_SIZE } from '../primitives.js';
+import {
+  BUTTON_VARIANTS,
+  CARD_STATES,
+  CHECKBOX_TOKENS,
+  INPUT_TOKENS,
+  SELECT_TOKENS,
+  TEXTAREA_TOKENS,
+} from '../components.js';
+import { CONTROL_DENSITY_SPACING, FONT_SIZE } from '../primitives.js';
 import { SEMANTIC_COLORS } from '../semantic.js';
 
 /**
@@ -33,6 +40,25 @@ export function generateStyleGuide(cssHref = './copalibre.css'): string {
     )
     .join('\n      ');
 
+  const formControls = (
+    [
+      ['input', INPUT_TOKENS],
+      ['select', SELECT_TOKENS],
+      ['textarea', TEXTAREA_TOKENS],
+      ['checkbox', CHECKBOX_TOKENS],
+    ] as const
+  )
+    .map(
+      ([atom, states]) =>
+        `<div class="swatch"><strong>${escape(atom)}</strong>${Object.keys(states)
+          .map(
+            (state) =>
+              `<div class="cl-${escape(atom)}--${escape(state)} form-control-sample">${escape(state)}</div>`,
+          )
+          .join('\n          ')}</div>`,
+    )
+    .join('\n      ');
+
   const fontSizes = Object.keys(FONT_SIZE)
     .map(
       (name) =>
@@ -59,6 +85,12 @@ export function generateStyleGuide(cssHref = './copalibre.css'): string {
                         align-items: baseline; gap: var(--cl-space-4); }
     /* The chamfer and its fallback, side by side: the point is the comparison. */
     .square { border-radius: 0; clip-path: none; }
+    .form-control-sample { padding: var(--cl-space-2) var(--cl-space-3); border: 1px solid;
+                            margin-block-start: var(--cl-space-1); }
+    .density-demo { display: flex; flex-direction: column; }
+    .density-demo > div { background: var(--cl-surface-raised); padding: var(--cl-space-2); }
+    .density-demo.marketing { gap: var(--cl-space-6); }
+    .density-demo.control { gap: var(--cl-density-row-gap, var(--cl-space-2)); }
   </style>
 </head>
 <body>
@@ -92,6 +124,64 @@ export function generateStyleGuide(cssHref = './copalibre.css'): string {
       <div class="cl-stat-tile cl-chamfer">
         <div class="cl-stat-tile__value">128</div>
         <div>Partidos jugados</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Controles de formulario (atoms — 0141)</h2>
+    <div class="row">
+      ${formControls}
+    </div>
+  </section>
+
+  <section>
+    <h2>Diálogo (organism — 0141)</h2>
+    <div class="row">
+      <div class="cl-dialog-surface cl-chamfer" style="padding: var(--cl-space-4); width: 240px;">
+        <p>Superficie del diálogo</p>
+      </div>
+      <div class="cl-dialog-backdrop" style="padding: var(--cl-space-4); width: 240px;">
+        <p>Fondo del diálogo</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Densidad — marketing vs. Control-web (0141)</h2>
+    <p>${Object.entries(CONTROL_DENSITY_SPACING)
+      .map(([name, value]) => `<code>${escape(name)}: ${escape(value)}</code>`)
+      .join(' &middot; ')}</p>
+    <div class="row">
+      <div class="density-demo marketing">
+        <div>Sección</div>
+        <div>Sección</div>
+        <div>Sección</div>
+      </div>
+      <div data-density="control" class="density-demo control">
+        <div>Sección</div>
+        <div>Sección</div>
+        <div>Sección</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Plantillas (templates — 0141)</h2>
+    <div class="row">
+      <div class="cl-list-screen cl-chamfer" style="width: 320px; padding: var(--cl-space-4); background: var(--cl-surface-panel);">
+        <div class="cl-list-screen__header"><h3 class="cl-list-screen__title">Roles</h3></div>
+        <div class="cl-list-screen__toolbar">Barra de herramientas</div>
+        <div class="cl-list-screen__listing">Listado</div>
+        <div class="cl-list-screen__pagination">Paginación</div>
+      </div>
+      <div class="cl-form-screen cl-chamfer" style="width: 320px; padding: var(--cl-space-4); background: var(--cl-surface-panel);">
+        <div class="cl-form-screen__header"><h3 class="cl-form-screen__title">Nueva organización</h3></div>
+        <div class="cl-form-screen__section">
+          <h4 class="cl-form-screen__section-heading">Datos</h4>
+          <div class="cl-form-screen__section-fields">Campos</div>
+        </div>
+        <div class="cl-form-screen__footer">Guardar</div>
       </div>
     </div>
   </section>

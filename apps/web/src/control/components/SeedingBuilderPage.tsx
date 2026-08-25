@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { BracketCanvas } from './BracketCanvas.js';
-import { Button } from './ui/button.js';
+import { Button } from './ui/atoms/button.js';
 import type { CanvasMatch } from '../lib/bracket-canvas.js';
 import { canRedo, canUndo, initHistory, push, redo, undo } from '../lib/history.js';
 import { isDirty, randomizeUnlocked, toggleLock, type SeedAssignment } from '../lib/seeding.js';

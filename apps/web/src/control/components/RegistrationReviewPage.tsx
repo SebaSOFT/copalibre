@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { FormattedMessage, useIntl, type MessageDescriptor } from 'react-intl';
-import { Button } from './ui/button.js';
+import { Button } from './ui/atoms/button.js';
 import { CountrySelect } from './CountrySelect.js';
 import {
   personPhotoUrl,
@@ -13,6 +13,7 @@ import { countryFlag } from '../lib/country.js';
 import { FramedImage } from './FramedImage.js';
 import { ImageCropModal } from './ImageCropModal.js';
 import { PersonPhotoPlaceholder } from './placeholders.js';
+import { FieldValue } from './ui/molecules/field-value.js';
 import {
   LOCK_EXPLANATION,
   initialReview,
@@ -342,21 +343,6 @@ export function RegistrationReviewPage({
         />
       )}
     </section>
-  );
-}
-
-function FieldValue({
-  label,
-  value,
-}: {
-  readonly label: string;
-  readonly value: string;
-}): React.JSX.Element {
-  return (
-    <div style={fieldValueStyle}>
-      <span style={smallStyle}>{label}</span>
-      <strong>{value}</strong>
-    </div>
   );
 }
 

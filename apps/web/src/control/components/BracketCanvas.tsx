@@ -6,7 +6,7 @@ import {
   zoomOut,
   type CanvasMatch,
 } from '../lib/bracket-canvas.js';
-import { Button } from './ui/button.js';
+import { Button } from './ui/atoms/button.js';
 import { messages } from '../i18n/messages.en.js';
 
 /**

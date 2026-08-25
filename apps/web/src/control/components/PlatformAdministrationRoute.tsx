@@ -13,6 +13,11 @@ import { controlTokenStore } from '../session/token-store.js';
 import { messages } from '../i18n/messages.en.js';
 import { useToast } from './ToastProvider.js';
 import { RolesPermissionsRoute } from './RolesPermissionsRoute.js';
+import { Button } from './ui/atoms/button.js';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/atoms/card.js';
+import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
+import { DataTable, type DataTableColumn } from './ui/organisms/data-table.js';
+import { FormField } from './ui/molecules/form-field.js';
 
 const LANGUAGES = ['en', 'es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as const;
 
@@ -288,335 +293,389 @@ export function PlatformAdministrationRoute({
     }
   };
 
-  return (
-    <div style={pageStyle}>
-      <header>
-        <span style={eyebrowStyle}>
-          <FormattedMessage {...messages.platformSectionLabel} />
-        </span>
-        <h1 style={titleStyle}>
-          <FormattedMessage {...messages.platformTitle} />
-        </h1>
-        <p style={descriptionStyle}>
-          <FormattedMessage {...messages.platformDescription} />
-        </p>
-      </header>
-
-      <section style={panelStyle} aria-labelledby="platform-organization-heading">
-        <h2 id="platform-organization-heading">
-          <FormattedMessage {...messages.platformOrganizationHeading} />
-        </h2>
-        <p style={descriptionStyle}>
-          <FormattedMessage {...messages.platformOrganizationDescription} />
-        </p>
-        {!bootstrapAlias ? (
-          <form onSubmit={(event) => void submitOrganization(event)} style={formGridStyle}>
-            <Field label={intl.formatMessage(messages.platformOrganizationAlias)}>
-              <input
-                required
-                value={organization.alias}
-                onChange={(event) =>
-                  setOrganization((current) => ({ ...current, alias: event.target.value }))
-                }
-              />
-            </Field>
-            <Field label={intl.formatMessage(messages.platformOrganizationName)}>
-              <input
-                required
-                value={organization.name}
-                onChange={(event) =>
-                  setOrganization((current) => ({ ...current, name: event.target.value }))
-                }
-              />
-            </Field>
-            <Field label={intl.formatMessage(messages.platformPrimaryLanguage)}>
-              <select
-                value={organization.primaryLanguage}
-                onChange={(event) =>
-                  setOrganization((current) => ({
-                    ...current,
-                    primaryLanguage: event.target
-                      .value as CreateOrganizationRequest['primaryLanguage'],
-                  }))
+  const moduleColumns: readonly DataTableColumn<InstalledModuleResponse>[] = [
+    { key: 'kind', header: <FormattedMessage {...messages.platformKind} />, render: (m) => m.kind },
+    {
+      key: 'alias',
+      header: <FormattedMessage {...messages.platformModuleAlias} />,
+      render: (m) => <strong>{m.alias}</strong>,
+    },
+    {
+      key: 'version',
+      header: <FormattedMessage {...messages.platformVersion} />,
+      render: (m) => m.version,
+    },
+    {
+      key: 'sourceKind',
+      header: <FormattedMessage {...messages.platformSourceKind} />,
+      render: (m) => m.sourceKind,
+    },
+    {
+      key: 'author',
+      header: <FormattedMessage {...messages.platformAuthor} />,
+      render: (m) => m.attributionAuthor,
+    },
+    {
+      key: 'actions',
+      header: <FormattedMessage {...messages.platformActions} />,
+      render: (module_) => {
+        const result = verification.find(
+          (entry) => entry.alias === module_.alias && entry.version === module_.version,
+        );
+        return (
+          <div className="cl-role-status">
+            <Button
+              disabled={busy !== undefined}
+              onClick={() => void verify(module_.alias)}
+              type="button"
+              variant="secondary"
+            >
+              <FormattedMessage {...messages.platformVerify} />
+            </Button>
+            <Button
+              disabled={busy !== undefined}
+              onClick={() => void remove(module_.alias)}
+              type="button"
+              variant="destructive-outline"
+            >
+              <FormattedMessage {...messages.platformRemove} />
+            </Button>
+            {result && (
+              <span
+                aria-label={
+                  result.ok
+                    ? intl.formatMessage(messages.platformVerified)
+                    : intl.formatMessage(messages.platformVerificationFailed, {
+                        alias: module_.alias,
+                      })
                 }
               >
-                {LANGUAGES.map((language) => (
-                  <option key={language} value={language}>
-                    {language}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label={intl.formatMessage(messages.platformTimezone)}>
-              <input
-                required
-                value={organization.timezone}
-                onChange={(event) =>
-                  setOrganization((current) => ({ ...current, timezone: event.target.value }))
-                }
-              />
-            </Field>
-            <button disabled={busy === 'organization'} type="submit" style={primaryButtonStyle}>
-              <FormattedMessage {...messages.platformCreateOrganization} />
-            </button>
-          </form>
-        ) : (
-          <form onSubmit={(event) => void submitInvitation(event)} style={formGridStyle}>
-            <p>
-              <FormattedMessage
-                {...messages.platformOrganizationReady}
-                values={{ alias: bootstrapAlias }}
-              />
-            </p>
-            <Field label={intl.formatMessage(messages.platformFirstAdminEmail)}>
-              <input
-                required
-                type="email"
-                value={adminEmail}
-                onChange={(event) => setAdminEmail(event.target.value)}
-              />
-            </Field>
-            <Field label={intl.formatMessage(messages.platformFirstAdminRole)}>
-              <input readOnly value="admin" />
-            </Field>
-            <button disabled={busy === 'invitation'} type="submit" style={primaryButtonStyle}>
-              <FormattedMessage {...messages.platformInviteAdministrator} />
-            </button>
-          </form>
-        )}
-      </section>
-
-      <section style={panelStyle} aria-labelledby="platform-users-heading">
-        <h2 id="platform-users-heading">
-          <FormattedMessage {...messages.platformUsersHeading} />
-        </h2>
-        <p style={descriptionStyle}>
-          <FormattedMessage {...messages.platformUsersDescription} />
-        </p>
-
-        <div style={formGridStyle}>
-          <Field label={intl.formatMessage(messages.platformManageOrganizationAlias)}>
-            <input
-              value={manageOrgAlias}
-              onChange={(event) => setManageOrgAlias(event.target.value)}
-            />
-          </Field>
-          <button
-            disabled={!manageOrgAlias.trim()}
-            onClick={() => setManagingOrgAlias(manageOrgAlias.trim())}
-            type="button"
-            style={secondaryButtonStyle}
-          >
-            <FormattedMessage {...messages.platformManageOrganizationUsers} />
-          </button>
-        </div>
-        {managingOrgAlias ? (
-          <div style={panelStyle}>
-            <RolesPermissionsRoute client={api} organizationAlias={managingOrgAlias} />
+                {result.ok ? '✓' : '!'}
+              </span>
+            )}
           </div>
-        ) : null}
+        );
+      },
+    },
+  ];
 
-        <h3>
-          <FormattedMessage {...messages.platformSuperAdminsHeading} />
-        </h3>
-        {loadingSuperAdmins ? (
-          <p>
-            <FormattedMessage {...messages.platformLoadingModules} />
-          </p>
-        ) : superAdmins.length === 0 ? (
-          <p>
-            <FormattedMessage {...messages.platformNoSuperAdmins} />
-          </p>
-        ) : (
-          <ul style={updateListStyle}>
-            {superAdmins.map((row) => (
-              <li key={row.assignmentId}>
-                {row.principalId} — {row.status}{' '}
-                <button
-                  disabled={busy !== undefined}
-                  onClick={() => void removeSuperAdmin(row.assignmentId)}
-                  style={dangerButtonStyle}
-                  type="button"
-                >
-                  <FormattedMessage {...messages.platformRemove} />
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-        <form onSubmit={(event) => void submitSuperAdmin(event)} style={formGridStyle}>
-          <Field label={intl.formatMessage(messages.platformSuperAdminPrincipalId)}>
-            <input
-              required
-              value={newSuperAdminPrincipalId}
-              onChange={(event) => setNewSuperAdminPrincipalId(event.target.value)}
-            />
-          </Field>
-          <button disabled={busy === 'super-admin'} type="submit" style={primaryButtonStyle}>
-            <FormattedMessage {...messages.platformCreateSuperAdmin} />
-          </button>
-        </form>
-      </section>
-
-      <section style={panelStyle} aria-labelledby="platform-modules-heading">
-        <div style={sectionHeaderStyle}>
-          <div>
-            <h2 id="platform-modules-heading">
-              <FormattedMessage {...messages.platformModulesHeading} />
-            </h2>
-            <p style={descriptionStyle}>
-              <FormattedMessage {...messages.platformModulesDescription} />
-            </p>
-          </div>
-          <button
-            disabled={busy === 'outdated'}
-            onClick={() => void checkOutdated()}
-            type="button"
-            style={secondaryButtonStyle}
-          >
-            <FormattedMessage {...messages.platformCheckUpdates} />
-          </button>
-        </div>
-        {outdated.length > 0 && (
-          <ul
-            aria-label={intl.formatMessage(messages.platformUpdatesAvailable)}
-            style={updateListStyle}
-          >
-            {outdated.map((entry) => (
-              <li key={entry.alias}>
-                <strong>{entry.alias}</strong>: {entry.currentVersion} → {entry.latestVersion} (
-                {entry.upgrade})
-              </li>
-            ))}
-          </ul>
-        )}
-        <form onSubmit={(event) => void submitModule(event)} style={formGridStyle}>
-          <Field label={intl.formatMessage(messages.platformModuleAlias)}>
-            <input required value={alias} onChange={(event) => setAlias(event.target.value)} />
-          </Field>
-          <Field label={intl.formatMessage(messages.platformVersionRange)}>
-            <input
-              placeholder="^1.0.0"
-              value={range}
-              onChange={(event) => setRange(event.target.value)}
-            />
-          </Field>
-          <Field label={intl.formatMessage(messages.platformAlternateSource)}>
-            <input
-              placeholder="file:///…"
-              value={source}
-              onChange={(event) => setSource(event.target.value)}
-            />
-          </Field>
-          <button disabled={busy === 'install'} type="submit" style={primaryButtonStyle}>
-            <FormattedMessage {...messages.platformInstallModule} />
-          </button>
-        </form>
-
-        {loadingModules ? (
-          <p>
-            <FormattedMessage {...messages.platformLoadingModules} />
-          </p>
-        ) : modules.length === 0 ? (
-          <p>
-            <FormattedMessage {...messages.platformNoModules} />
-          </p>
-        ) : (
-          <div style={tableWrapStyle}>
-            <table style={tableStyle}>
-              <thead>
-                <tr>
-                  <th>
-                    <FormattedMessage {...messages.platformKind} />
-                  </th>
-                  <th>
-                    <FormattedMessage {...messages.platformModuleAlias} />
-                  </th>
-                  <th>
-                    <FormattedMessage {...messages.platformVersion} />
-                  </th>
-                  <th>
-                    <FormattedMessage {...messages.platformSourceKind} />
-                  </th>
-                  <th>
-                    <FormattedMessage {...messages.platformAuthor} />
-                  </th>
-                  <th>
-                    <FormattedMessage {...messages.platformActions} />
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {modules.map((module_) => {
-                  const result = verification.find(
-                    (entry) => entry.alias === module_.alias && entry.version === module_.version,
-                  );
-                  return (
-                    <tr key={module_.moduleId}>
-                      <td>{module_.kind}</td>
-                      <td>
-                        <strong>{module_.alias}</strong>
-                      </td>
-                      <td>{module_.version}</td>
-                      <td>{module_.sourceKind}</td>
-                      <td>{module_.attributionAuthor}</td>
-                      <td>
-                        <div style={actionsStyle}>
-                          <button
-                            disabled={busy !== undefined}
-                            onClick={() => void verify(module_.alias)}
-                            type="button"
-                            style={secondaryButtonStyle}
-                          >
-                            <FormattedMessage {...messages.platformVerify} />
-                          </button>
-                          <button
-                            disabled={busy !== undefined}
-                            onClick={() => void remove(module_.alias)}
-                            type="button"
-                            style={dangerButtonStyle}
-                          >
-                            <FormattedMessage {...messages.platformRemove} />
-                          </button>
-                          {result && (
-                            <span
-                              aria-label={
-                                result.ok
-                                  ? intl.formatMessage(messages.platformVerified)
-                                  : intl.formatMessage(messages.platformVerificationFailed, {
-                                      alias: module_.alias,
-                                    })
-                              }
-                            >
-                              {result.ok ? '✓' : '!'}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-    </div>
-  );
-}
-
-function Field({
-  label,
-  children,
-}: {
-  readonly label: string;
-  readonly children: React.ReactElement;
-}): React.JSX.Element {
   return (
-    <label style={fieldStyle}>
-      <span>{label}</span>
-      {children}
-    </label>
+    <ListScreenTemplate
+      breadcrumb={<FormattedMessage {...messages.platformSectionLabel} />}
+      listing={
+        <div className="cl-platform-sections">
+          <Card aria-labelledby="platform-organization-heading" role="region">
+            <CardHeader>
+              <CardTitle id="platform-organization-heading">
+                <FormattedMessage {...messages.platformOrganizationHeading} />
+              </CardTitle>
+              <CardDescription>
+                <FormattedMessage {...messages.platformOrganizationDescription} />
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {!bootstrapAlias ? (
+                <form
+                  className="cl-platform-form-grid"
+                  onSubmit={(event) => void submitOrganization(event)}
+                >
+                  <FormField
+                    id="platform-org-alias"
+                    label={intl.formatMessage(messages.platformOrganizationAlias)}
+                  >
+                    <input
+                      className="cl-input cl-input--default cl-focusable"
+                      id="platform-org-alias"
+                      onChange={(event) =>
+                        setOrganization((current) => ({ ...current, alias: event.target.value }))
+                      }
+                      required
+                      value={organization.alias}
+                    />
+                  </FormField>
+                  <FormField
+                    id="platform-org-name"
+                    label={intl.formatMessage(messages.platformOrganizationName)}
+                  >
+                    <input
+                      className="cl-input cl-input--default cl-focusable"
+                      id="platform-org-name"
+                      onChange={(event) =>
+                        setOrganization((current) => ({ ...current, name: event.target.value }))
+                      }
+                      required
+                      value={organization.name}
+                    />
+                  </FormField>
+                  <FormField
+                    id="platform-org-language"
+                    label={intl.formatMessage(messages.platformPrimaryLanguage)}
+                  >
+                    <select
+                      className="cl-select cl-select--default cl-focusable"
+                      id="platform-org-language"
+                      onChange={(event) =>
+                        setOrganization((current) => ({
+                          ...current,
+                          primaryLanguage: event.target
+                            .value as CreateOrganizationRequest['primaryLanguage'],
+                        }))
+                      }
+                      value={organization.primaryLanguage}
+                    >
+                      {LANGUAGES.map((language) => (
+                        <option key={language} value={language}>
+                          {language}
+                        </option>
+                      ))}
+                    </select>
+                  </FormField>
+                  <FormField
+                    id="platform-org-timezone"
+                    label={intl.formatMessage(messages.platformTimezone)}
+                  >
+                    <input
+                      className="cl-input cl-input--default cl-focusable"
+                      id="platform-org-timezone"
+                      onChange={(event) =>
+                        setOrganization((current) => ({ ...current, timezone: event.target.value }))
+                      }
+                      required
+                      value={organization.timezone}
+                    />
+                  </FormField>
+                  <Button disabled={busy === 'organization'} type="submit">
+                    <FormattedMessage {...messages.platformCreateOrganization} />
+                  </Button>
+                </form>
+              ) : (
+                <form
+                  className="cl-platform-form-grid"
+                  onSubmit={(event) => void submitInvitation(event)}
+                >
+                  <p>
+                    <FormattedMessage
+                      {...messages.platformOrganizationReady}
+                      values={{ alias: bootstrapAlias }}
+                    />
+                  </p>
+                  <FormField
+                    id="platform-admin-email"
+                    label={intl.formatMessage(messages.platformFirstAdminEmail)}
+                  >
+                    <input
+                      className="cl-input cl-input--default cl-focusable"
+                      id="platform-admin-email"
+                      onChange={(event) => setAdminEmail(event.target.value)}
+                      required
+                      type="email"
+                      value={adminEmail}
+                    />
+                  </FormField>
+                  <FormField
+                    id="platform-admin-role"
+                    label={intl.formatMessage(messages.platformFirstAdminRole)}
+                  >
+                    <input
+                      className="cl-input cl-input--disabled"
+                      id="platform-admin-role"
+                      readOnly
+                      value="admin"
+                    />
+                  </FormField>
+                  <Button disabled={busy === 'invitation'} type="submit">
+                    <FormattedMessage {...messages.platformInviteAdministrator} />
+                  </Button>
+                </form>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card aria-labelledby="platform-users-heading" role="region">
+            <CardHeader>
+              <CardTitle id="platform-users-heading">
+                <FormattedMessage {...messages.platformUsersHeading} />
+              </CardTitle>
+              <CardDescription>
+                <FormattedMessage {...messages.platformUsersDescription} />
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="cl-platform-form-grid">
+                <FormField
+                  id="platform-manage-org-alias"
+                  label={intl.formatMessage(messages.platformManageOrganizationAlias)}
+                >
+                  <input
+                    className="cl-input cl-input--default cl-focusable"
+                    id="platform-manage-org-alias"
+                    onChange={(event) => setManageOrgAlias(event.target.value)}
+                    value={manageOrgAlias}
+                  />
+                </FormField>
+                <Button
+                  disabled={!manageOrgAlias.trim()}
+                  onClick={() => setManagingOrgAlias(manageOrgAlias.trim())}
+                  type="button"
+                  variant="secondary"
+                >
+                  <FormattedMessage {...messages.platformManageOrganizationUsers} />
+                </Button>
+              </div>
+              {managingOrgAlias ? (
+                <Card>
+                  <CardContent>
+                    <RolesPermissionsRoute client={api} organizationAlias={managingOrgAlias} />
+                  </CardContent>
+                </Card>
+              ) : null}
+
+              <h3>
+                <FormattedMessage {...messages.platformSuperAdminsHeading} />
+              </h3>
+              {loadingSuperAdmins ? (
+                <p>
+                  <FormattedMessage {...messages.platformLoadingModules} />
+                </p>
+              ) : superAdmins.length === 0 ? (
+                <p>
+                  <FormattedMessage {...messages.platformNoSuperAdmins} />
+                </p>
+              ) : (
+                <ul className="cl-platform-update-list">
+                  {superAdmins.map((row) => (
+                    <li key={row.assignmentId}>
+                      {row.principalId} — {row.status}{' '}
+                      <Button
+                        disabled={busy !== undefined}
+                        onClick={() => void removeSuperAdmin(row.assignmentId)}
+                        type="button"
+                        variant="destructive-outline"
+                      >
+                        <FormattedMessage {...messages.platformRemove} />
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <form
+                className="cl-platform-form-grid"
+                onSubmit={(event) => void submitSuperAdmin(event)}
+              >
+                <FormField
+                  id="platform-super-admin-principal"
+                  label={intl.formatMessage(messages.platformSuperAdminPrincipalId)}
+                >
+                  <input
+                    className="cl-input cl-input--default cl-focusable"
+                    id="platform-super-admin-principal"
+                    onChange={(event) => setNewSuperAdminPrincipalId(event.target.value)}
+                    required
+                    value={newSuperAdminPrincipalId}
+                  />
+                </FormField>
+                <Button disabled={busy === 'super-admin'} type="submit">
+                  <FormattedMessage {...messages.platformCreateSuperAdmin} />
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          <Card aria-labelledby="platform-modules-heading" role="region">
+            <CardHeader className="cl-platform-modules-header">
+              <div>
+                <CardTitle id="platform-modules-heading">
+                  <FormattedMessage {...messages.platformModulesHeading} />
+                </CardTitle>
+                <CardDescription>
+                  <FormattedMessage {...messages.platformModulesDescription} />
+                </CardDescription>
+              </div>
+              <Button
+                disabled={busy === 'outdated'}
+                onClick={() => void checkOutdated()}
+                type="button"
+                variant="secondary"
+              >
+                <FormattedMessage {...messages.platformCheckUpdates} />
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {outdated.length > 0 && (
+                <ul
+                  aria-label={intl.formatMessage(messages.platformUpdatesAvailable)}
+                  className="cl-platform-update-list"
+                >
+                  {outdated.map((entry) => (
+                    <li key={entry.alias}>
+                      <strong>{entry.alias}</strong>: {entry.currentVersion} → {entry.latestVersion}{' '}
+                      ({entry.upgrade})
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <form
+                className="cl-platform-form-grid"
+                onSubmit={(event) => void submitModule(event)}
+              >
+                <FormField
+                  id="platform-module-alias"
+                  label={intl.formatMessage(messages.platformModuleAlias)}
+                >
+                  <input
+                    className="cl-input cl-input--default cl-focusable"
+                    id="platform-module-alias"
+                    onChange={(event) => setAlias(event.target.value)}
+                    required
+                    value={alias}
+                  />
+                </FormField>
+                <FormField
+                  id="platform-module-range"
+                  label={intl.formatMessage(messages.platformVersionRange)}
+                >
+                  <input
+                    className="cl-input cl-input--default cl-focusable"
+                    id="platform-module-range"
+                    onChange={(event) => setRange(event.target.value)}
+                    placeholder="^1.0.0"
+                    value={range}
+                  />
+                </FormField>
+                <FormField
+                  id="platform-module-source"
+                  label={intl.formatMessage(messages.platformAlternateSource)}
+                >
+                  <input
+                    className="cl-input cl-input--default cl-focusable"
+                    id="platform-module-source"
+                    onChange={(event) => setSource(event.target.value)}
+                    placeholder="file:///…"
+                    value={source}
+                  />
+                </FormField>
+                <Button disabled={busy === 'install'} type="submit">
+                  <FormattedMessage {...messages.platformInstallModule} />
+                </Button>
+              </form>
+
+              {loadingModules ? (
+                <p>
+                  <FormattedMessage {...messages.platformLoadingModules} />
+                </p>
+              ) : modules.length === 0 ? (
+                <p>
+                  <FormattedMessage {...messages.platformNoModules} />
+                </p>
+              ) : (
+                <DataTable columns={moduleColumns} rowKey={(m) => m.moduleId} rows={modules} />
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      }
+      title={<FormattedMessage {...messages.platformTitle} />}
+    />
   );
 }
 
@@ -631,84 +690,3 @@ function pushVerbatimError(toast: ReturnType<typeof useToast>, cause: unknown): 
     message: cause instanceof Error ? cause.message : String(cause),
   });
 }
-
-const pageStyle: React.CSSProperties = {
-  display: 'grid',
-  gap: 'var(--cl-space-6)',
-  maxWidth: 1180,
-};
-const eyebrowStyle: React.CSSProperties = {
-  color: 'var(--cl-state-live)',
-  fontFamily: 'var(--cl-font-mono)',
-  fontSize: 'var(--cl-font-size-xs)',
-  textTransform: 'uppercase',
-};
-const titleStyle: React.CSSProperties = { margin: 'var(--cl-space-2) 0' };
-const descriptionStyle: React.CSSProperties = { color: 'var(--cl-text-secondary)', maxWidth: 760 };
-const panelStyle: React.CSSProperties = {
-  display: 'grid',
-  gap: 'var(--cl-space-4)',
-  padding: 'var(--cl-space-5)',
-  border: '1px solid var(--cl-border-muted)',
-  background: 'var(--cl-surface-panel)',
-};
-const formGridStyle: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 210px), 1fr))',
-  gap: 'var(--cl-space-4)',
-  alignItems: 'end',
-};
-const fieldStyle: React.CSSProperties = {
-  display: 'grid',
-  gap: 'var(--cl-space-2)',
-  color: 'var(--cl-text-secondary)',
-  fontFamily: 'var(--cl-font-mono)',
-  fontSize: 'var(--cl-font-size-xs)',
-};
-const sectionHeaderStyle: React.CSSProperties = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  gap: 'var(--cl-space-4)',
-  alignItems: 'start',
-  flexWrap: 'wrap',
-};
-const primaryButtonStyle: React.CSSProperties = {
-  minHeight: 44,
-  padding: 'var(--cl-space-3) var(--cl-space-4)',
-  border: 0,
-  background: 'var(--cl-state-live)',
-  color: 'var(--cl-surface-base)',
-  fontFamily: 'var(--cl-font-mono)',
-  cursor: 'pointer',
-};
-const secondaryButtonStyle: React.CSSProperties = {
-  minHeight: 'var(--cl-touch-target)',
-  padding: 'var(--cl-space-2) var(--cl-space-3)',
-  border: '1px solid var(--cl-border-strong)',
-  background: 'transparent',
-  color: 'var(--cl-text-primary)',
-  cursor: 'pointer',
-};
-const dangerButtonStyle: React.CSSProperties = {
-  ...secondaryButtonStyle,
-  borderColor: 'var(--cl-state-negative)',
-  color: 'var(--cl-state-negative)',
-};
-const updateListStyle: React.CSSProperties = {
-  margin: 0,
-  padding: 'var(--cl-space-4)',
-  listStylePosition: 'inside',
-  border: '1px solid var(--cl-state-warning)',
-  color: 'var(--cl-text-secondary)',
-};
-const tableWrapStyle: React.CSSProperties = { overflowX: 'auto' };
-const tableStyle: React.CSSProperties = {
-  width: '100%',
-  borderCollapse: 'collapse',
-  textAlign: 'left',
-};
-const actionsStyle: React.CSSProperties = {
-  display: 'flex',
-  gap: 'var(--cl-space-2)',
-  alignItems: 'center',
-};

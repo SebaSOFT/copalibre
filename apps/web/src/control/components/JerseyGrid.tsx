@@ -10,7 +10,7 @@ import {
 } from '../lib/api-client.js';
 import { countryFlag } from '../lib/country.js';
 import { memberByNumber } from '../lib/match-console.js';
-import { Badge } from './ui/badge.js';
+import { Badge } from './ui/atoms/badge.js';
 import { FramedImage } from './FramedImage.js';
 import { ClubEmblemPlaceholder } from './placeholders.js';
 import { messages } from '../i18n/messages.en.js';

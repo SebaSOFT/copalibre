@@ -12,6 +12,7 @@ import { isSupportedLanguage } from '@copalibre/domain';
 import { controlTokenStore } from '../session/token-store.js';
 import { FramedImage } from './FramedImage.js';
 import { PersonPhotoPlaceholder } from './placeholders.js';
+import { FieldValue } from './ui/molecules/field-value.js';
 import { messages } from '../i18n/messages.en.js';
 
 type LoadStatus = 'loading' | 'ready' | 'failed';
@@ -139,21 +140,6 @@ export function PersonProfileRoute({
   );
 }
 
-function FieldValue({
-  label,
-  value,
-}: {
-  readonly label: string;
-  readonly value: string;
-}): React.JSX.Element {
-  return (
-    <div style={fieldValueStyle}>
-      <span style={smallStyle}>{label}</span>
-      <strong>{value}</strong>
-    </div>
-  );
-}
-
 const stackStyle: React.CSSProperties = { display: 'grid', gap: 'var(--cl-space-4)' };
 const backLinkStyle: React.CSSProperties = {
   color: 'var(--cl-state-live)',
@@ -172,17 +158,4 @@ const nameStyle: React.CSSProperties = {
   fontFamily: 'var(--cl-font-display)',
   fontSize: 'var(--cl-font-size-2xl)',
   textTransform: 'uppercase',
-};
-const smallStyle: React.CSSProperties = {
-  display: 'block',
-  color: 'var(--cl-text-muted)',
-  fontFamily: 'var(--cl-font-mono)',
-  fontSize: 'var(--cl-font-size-xs)',
-};
-const fieldValueStyle: React.CSSProperties = {
-  display: 'grid',
-  gap: 'var(--cl-space-1)',
-  background: 'var(--cl-surface-base)',
-  padding: 'var(--cl-space-3)',
-  border: '1px solid var(--cl-border-muted)',
 };

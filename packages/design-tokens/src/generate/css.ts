@@ -1,6 +1,7 @@
 import {
   BREAKPOINTS,
   COLOR_PRIMITIVES,
+  CONTROL_DENSITY_SPACING,
   FONT_SIZE,
   FONT_WEIGHTS,
   MOTION,
@@ -9,7 +10,18 @@ import {
   TOUCH_TARGET,
   TYPOGRAPHY,
 } from '../primitives.js';
-import { BUTTON_VARIANTS, CARD_STATES, FOCUS_RING } from '../components.js';
+import {
+  BUTTON_VARIANTS,
+  CARD_STATES,
+  CHECKBOX_TOKENS,
+  DIALOG_TOKENS,
+  FOCUS_RING,
+  INPUT_TOKENS,
+  SELECT_TOKENS,
+  TEXTAREA_TOKENS,
+  type FormControlState,
+  type FormControlTokenSet,
+} from '../components.js';
 import { SEMANTIC_COLORS, type SemanticColor } from '../semantic.js';
 
 /**
@@ -52,6 +64,12 @@ export function generateCss(): string {
     imageFrame(),
     '',
     components(),
+    '',
+    formControls(),
+    '',
+    dialog(),
+    '',
+    density(),
   ].join('\n');
 }
 
@@ -214,6 +232,108 @@ function components(): string {
     '}',
     ...cards,
     '',
+    '.cl-card__header { display: grid; gap: var(--cl-space-1); margin-block-end: var(--cl-space-3); }',
+    '.cl-card__title { margin: 0; font-family: var(--cl-font-display); text-transform: uppercase; }',
+    '.cl-card__description { margin: 0; color: var(--cl-text-muted); }',
+    '.cl-card__content { display: grid; gap: var(--cl-space-3); min-width: 0; }',
+    '.cl-card__footer { display: flex; gap: var(--cl-space-2); margin-block-start: var(--cl-space-4); }',
+    '',
+    '.cl-input, .cl-select, .cl-textarea {',
+    '  min-height: var(--cl-touch-target);',
+    '  font-family: var(--cl-font-body);',
+    '  border: 1px solid;',
+    '  padding: var(--cl-space-2) var(--cl-space-3);',
+    // A bare <input>/<select>/<textarea> has a UA-stylesheet intrinsic
+    // min-content width (Chromium: roughly a `size=20` input) that a narrow
+    // grid track cannot override without an explicit width — without this,
+    // the control forces its own grid ancestor wider than the viewport at
+    // the narrowest reference width (188px, a 200%-zoom equivalent).
+    '  width: 100%;',
+    '  min-width: 0;',
+    '}',
+    '',
+    '.cl-checkbox {',
+    '  display: inline-flex;',
+    '  align-items: center;',
+    '  justify-content: center;',
+    '  width: var(--cl-touch-target);',
+    '  height: var(--cl-touch-target);',
+    '  border: 1px solid;',
+    '}',
+    '.cl-checkbox__indicator { color: var(--cl-state-live); }',
+    '.cl-select__icon { margin-inline-start: var(--cl-space-2); }',
+    '.cl-select__content { padding: var(--cl-space-1); }',
+    '.cl-select__item { padding: var(--cl-space-2) var(--cl-space-3); cursor: pointer; }',
+    '.cl-label { font-family: var(--cl-font-mono); text-transform: uppercase; font-size: var(--cl-font-size-xs); }',
+    '',
+    '.cl-form-field { display: grid; gap: var(--cl-space-1); min-width: 0; }',
+    '.cl-form-field__error { margin: 0; color: var(--cl-state-destructive); font-size: var(--cl-font-size-xs); }',
+    '.cl-form-field__help { margin: 0; color: var(--cl-text-muted); font-size: var(--cl-font-size-xs); }',
+    '',
+    '.cl-data-entity-card__header { display: flex; align-items: center; justify-content: space-between; }',
+    '.cl-data-entity-card__metadata { display: grid; gap: var(--cl-space-2); }',
+    '.cl-data-entity-card__metadata-item { display: flex; justify-content: space-between; gap: var(--cl-space-2); }',
+    '.cl-data-entity-card__metadata-label { color: var(--cl-text-muted); }',
+    '',
+    '.cl-table-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--cl-space-3); }',
+    '.cl-table-toolbar__title { margin: 0; font-family: var(--cl-font-display); text-transform: uppercase; }',
+    '.cl-table-toolbar__filters, .cl-table-toolbar__actions { display: flex; gap: var(--cl-space-2); align-items: center; }',
+    '',
+    '.cl-pagination { display: flex; align-items: center; gap: var(--cl-space-3); }',
+    '.cl-pagination__status { color: var(--cl-text-muted); font-family: var(--cl-font-mono); }',
+    '',
+    '.cl-field-value { display: grid; gap: var(--cl-space-1); background: var(--cl-surface-base); padding: var(--cl-space-3); border: 1px solid var(--cl-border-muted); }',
+    '.cl-field-value__label { display: block; color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); }',
+    '',
+    '.cl-clock-ring { display: flex; align-items: center; gap: var(--cl-space-2); }',
+    '',
+    '.cl-data-table { padding: 0; overflow-x: auto; scrollbar-gutter: stable; }',
+    '.cl-data-table__table { width: 100%; border-collapse: collapse; }',
+    '.cl-data-table__table th { text-align: left; padding: var(--cl-space-3) var(--cl-space-4); border-bottom: 1px solid var(--cl-border-muted); color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; }',
+    '.cl-data-table__table td { padding: var(--cl-space-3) var(--cl-space-4); }',
+    '.cl-data-table__empty { padding: var(--cl-space-4); color: var(--cl-text-muted); }',
+    '@media (max-width: 767px) { .cl-data-table { -webkit-overflow-scrolling: touch; } }',
+    '',
+    '.cl-modal__overlay { position: fixed; inset: 0; }',
+    '.cl-modal__content { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(480px, calc(100vw - var(--cl-space-8))); max-height: 85vh; overflow-y: auto; padding: var(--cl-space-4); }',
+    '.cl-modal__header { display: flex; align-items: start; justify-content: space-between; gap: var(--cl-space-3); }',
+    '.cl-modal__title { margin: 0; font-family: var(--cl-font-display); text-transform: uppercase; }',
+    '.cl-modal__description { margin: 0; color: var(--cl-text-muted); }',
+    '.cl-modal__close { background: transparent; border: 0; color: var(--cl-text-primary); }',
+    '.cl-modal__body { margin-block: var(--cl-space-4); display: grid; gap: var(--cl-space-3); }',
+    '.cl-modal__footer { display: flex; justify-content: flex-end; gap: var(--cl-space-2); }',
+    '',
+    '/* Templates own inter-section spacing (design.md Decision 7) — no component below this tier sets its own external margin. */',
+    '.cl-list-screen, .cl-form-screen { display: grid; gap: var(--cl-density-section-gap, var(--cl-space-6)); min-width: 0; }',
+    // A grid item's default `min-width: auto` sizes it to its content, which
+    // silently defeats a descendant's `overflow-x: auto` (a wide table forces
+    // every ancestor grid track wider instead of scrolling in place). Every
+    // grid track in this template chain gets `min-width: 0` so the narrowest
+    // reference width (188px, a 200%-zoom equivalent) scrolls instead of
+    // overflowing the page.
+    '.cl-list-screen > *, .cl-form-screen > * { min-width: 0; }',
+    '.cl-list-screen__header, .cl-form-screen__header { display: flex; align-items: end; justify-content: space-between; gap: var(--cl-space-4); flex-wrap: wrap; }',
+    '.cl-list-screen__title, .cl-form-screen__title { margin: 0; font-family: var(--cl-font-display); text-transform: uppercase; }',
+    '.cl-list-screen__breadcrumb, .cl-form-screen__breadcrumb { color: var(--cl-state-live); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; }',
+    '.cl-form-screen__section { display: grid; gap: var(--cl-space-3); }',
+    '.cl-form-screen__section-heading { margin: 0; font-family: var(--cl-font-display); text-transform: uppercase; font-size: var(--cl-font-size-lg); }',
+    '.cl-form-screen__section-fields { display: grid; gap: var(--cl-space-4); }',
+    '.cl-form-screen__footer { position: sticky; bottom: 0; display: flex; justify-content: flex-end; gap: var(--cl-space-2); padding-block: var(--cl-space-3); background: var(--cl-surface-base); }',
+    '.cl-list-screen__empty { margin: 0; padding: var(--cl-space-5); color: var(--cl-text-muted); }',
+    '',
+    '/* A row-identity chip (avatar initials + label) reused by any listing showing one person per row. */',
+    '.cl-role-user { display: flex; align-items: center; gap: var(--cl-space-3); min-width: 0; }',
+    '.cl-role-user__avatar { display: grid; place-items: center; width: 32px; height: 32px; flex: 0 0 32px; background: var(--cl-surface-raised); border: 1px solid var(--cl-border-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); }',
+    '.cl-role-user__id { display: block; color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); }',
+    '.cl-role-status { display: flex; align-items: center; gap: var(--cl-space-2); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; }',
+    '.cl-role-status--active { color: var(--cl-state-live); }',
+    '.cl-role-status--inactive { color: var(--cl-text-muted); }',
+    '',
+    '.cl-platform-sections { display: grid; gap: var(--cl-density-section-gap, var(--cl-space-6)); min-width: 0; }',
+    '.cl-platform-sections > * { min-width: 0; }',
+    '.cl-platform-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); gap: var(--cl-space-4); align-items: end; }',
+    '.cl-platform-update-list { margin: 0; padding: var(--cl-space-4); list-style-position: inside; border: 1px solid var(--cl-state-upcoming); color: var(--cl-text-secondary); }',
+    '.cl-platform-modules-header { display: flex; justify-content: space-between; align-items: start; gap: var(--cl-space-4); flex-wrap: wrap; }',
     '/* A badge is a colour *and* a label; the token contract refuses one without. */',
     '.cl-badge {',
     '  display: inline-flex;',
@@ -260,6 +380,62 @@ function components(): string {
     '  outline: none;',
     `  box-shadow: 0 0 0 ${FOCUS_RING.innerWidth} var(--cl-surface-base),`,
     `    0 0 0 ${FOCUS_RING.outerWidth} var(--cl-focus-ring);`,
+    '}',
+  ].join('\n');
+}
+
+/** One state-keyed rule block per form-control atom (0141). */
+function formControls(): string {
+  const groups: readonly [string, Record<FormControlState, FormControlTokenSet>][] = [
+    ['input', INPUT_TOKENS],
+    ['select', SELECT_TOKENS],
+    ['textarea', TEXTAREA_TOKENS],
+    ['checkbox', CHECKBOX_TOKENS],
+  ];
+
+  return groups
+    .map(([atom, states]) =>
+      (Object.entries(states) as [FormControlState, FormControlTokenSet][])
+        .map(([state, tokens]) =>
+          [
+            `.cl-${atom}--${state} {`,
+            `  background: var(--cl-${tokens.background});`,
+            `  color: var(--cl-${tokens.text});`,
+            `  border-color: var(--cl-${tokens.border});`,
+            '}',
+          ].join('\n'),
+        )
+        .join('\n'),
+    )
+    .join('\n\n');
+}
+
+/** The `Modal`/`Dialog` organism's overlay and content-panel tokens (0141). */
+function dialog(): string {
+  return [
+    '.cl-dialog-backdrop {',
+    `  background: var(--cl-${DIALOG_TOKENS.backdrop});`,
+    '}',
+    '',
+    '.cl-dialog-surface {',
+    `  background: var(--cl-${DIALOG_TOKENS.surface});`,
+    `  border: 1px solid var(--cl-${DIALOG_TOKENS.border});`,
+    `  box-shadow: ${DIALOG_TOKENS.elevation};`,
+    '}',
+  ].join('\n');
+}
+
+/**
+ * Control-web's denser spacing composition, scoped to `[data-density="control"]`
+ * so the exact same atoms render tighter there than on the marketing surfaces —
+ * a composition choice, not a second component tree (design.md Decision 4).
+ */
+function density(): string {
+  return [
+    '[data-density="control"] {',
+    ...Object.entries(CONTROL_DENSITY_SPACING).map(
+      ([name, value]) => `  --cl-density-${name}: ${value};`,
+    ),
     '}',
   ].join('\n');
 }

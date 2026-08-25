@@ -22,8 +22,8 @@ import { Dashboard } from './components/Dashboard.js';
 import { DeviceHeartbeat } from './components/DeviceHeartbeat.js';
 import { TournamentCard as Card } from './components/TournamentCard.js';
 import { QuickStats } from './components/QuickStats.js';
-import { Badge } from './components/ui/badge.js';
-import { Button } from './components/ui/button.js';
+import { Badge } from './components/ui/atoms/badge.js';
+import { Button } from './components/ui/atoms/button.js';
 import { withIntl } from './i18n/test-support.js';
 
 function card(overrides: Partial<TournamentCard> = {}): TournamentCard {
