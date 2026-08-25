@@ -3,6 +3,7 @@ import { useIntl } from 'react-intl';
 import {
   createControlApiClient,
   type ControlApiClient,
+  type OrganizationRole,
   type OrganizationRoleResponse,
 } from '../lib/api-client.js';
 import { controlTokenStore } from '../session/token-store.js';
@@ -29,6 +30,28 @@ export function RolesPermissionsRoute({
   const [rows, setRows] = useState<readonly OrganizationRoleResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
+  const [grantableRoles, setGrantableRoles] = useState<readonly OrganizationRole[]>();
+
+  useEffect(() => {
+    let current = true;
+    if (!api.listGrantableRoles) return;
+    void api
+      .listGrantableRoles(organizationAlias)
+      .then((response) => {
+        if (current) {
+          setGrantableRoles(
+            response.roles.filter((role): role is OrganizationRole => role !== 'super-admin'),
+          );
+        }
+      })
+      .catch(() => {
+        // Grantable-role filtering is a UI convenience; a fetch failure here
+        // falls back to RolesPermissionsPage's own "show everything" default.
+      });
+    return () => {
+      current = false;
+    };
+  }, [api, organizationAlias]);
 
   const load = useCallback(async (): Promise<void> => {
     setLoading(true);
@@ -72,6 +95,7 @@ export function RolesPermissionsRoute({
   return (
     <RolesPermissionsPage
       error={error}
+      grantableRoles={grantableRoles}
       loading={loading}
       organizationAlias={organizationAlias}
       rows={rows}

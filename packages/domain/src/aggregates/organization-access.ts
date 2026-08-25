@@ -1,8 +1,14 @@
 import { DomainError } from '../errors.js';
 import { err, ok, type Result } from '../result.js';
 
-/** The fixed organization-local taxonomy introduced by change 0026. */
-export const ORGANIZATION_ROLES = ['admin', 'referee', 'broadcaster', 'viewer'] as const;
+/** The organization-local taxonomy introduced by change 0026, extended with `club-admin` by 0140. */
+export const ORGANIZATION_ROLES = [
+  'admin',
+  'club-admin',
+  'referee',
+  'broadcaster',
+  'viewer',
+] as const;
 export type OrganizationRole = (typeof ORGANIZATION_ROLES)[number];
 
 export const ORGANIZATION_MEMBER_STATUSES = ['active', 'inactive'] as const;
@@ -92,4 +98,77 @@ export function canCreateOrganizationInvitation(
     );
   }
   return ok(true);
+}
+
+/** A principal's role in the installation-wide taxonomy. Only `super-admin` exists today. */
+export const INSTALLATION_ROLES = ['super-admin'] as const;
+export type InstallationRole = (typeof INSTALLATION_ROLES)[number];
+
+/** An installation-level identity's role, mirroring `OrganizationRoleAssignment`'s shape. */
+export interface InstallationRoleAssignment {
+  readonly assignmentId: string;
+  readonly principalId: string;
+  readonly role: InstallationRole;
+  readonly status: OrganizationMemberStatus;
+  readonly deletedAt?: string;
+}
+
+/**
+ * Who is granting a role, resolved once by the caller (guard/controller) rather
+ * than re-derived independently by every route (0140 design decision #2).
+ */
+export interface GrantorContext {
+  readonly isSuperAdmin: boolean;
+  readonly organizationAdminOf?: string;
+}
+
+/**
+ * The role-granting hierarchy (0140): a small, closed rule table, not a
+ * configurable policy language.
+ * - installation super-admin may grant super-admin, or any organization role
+ *   (admin, club-admin, referee, broadcaster, viewer).
+ * - an organization admin may grant any organization role except super-admin
+ *   (which is not itself an organization role) — this reuses the existing,
+ *   unchanged authority an organization admin already has to grant
+ *   broadcaster/viewer (design.md Non-Goals: "not changing how
+ *   broadcaster/viewer are granted"), scoped to their own organization.
+ * - club-admin and referee (no `organizationAdminOf`, not super-admin) may
+ *   grant nothing.
+ */
+export function canGrantRole(
+  grantor: GrantorContext,
+  targetRole: OrganizationRole | InstallationRole,
+  targetOrganizationId?: string,
+): Result<true, OrganizationAccessError> {
+  if (grantor.isSuperAdmin) return ok(true);
+
+  if (grantor.organizationAdminOf) {
+    if (targetRole === 'super-admin') {
+      return err(new OrganizationAccessError('Only a super-admin may grant the super-admin role'));
+    }
+    if (targetOrganizationId && targetOrganizationId !== grantor.organizationAdminOf) {
+      return err(
+        new OrganizationAccessError(
+          "An organization admin's grant authority never crosses into another organization",
+        ),
+      );
+    }
+    return ok(true);
+  }
+
+  return err(new OrganizationAccessError('This actor holds no role-granting authority'));
+}
+
+/** Would demoting/removing an `admin` assignment leave the organization with zero active admins? */
+export function wouldLeaveOrganizationWithoutAdmin(
+  activeAdminCountExcludingTarget: number,
+): boolean {
+  return activeAdminCountExcludingTarget < 1;
+}
+
+/** Would demoting/removing a `super-admin` assignment leave the installation with none? */
+export function wouldLeaveInstallationWithoutSuperAdmin(
+  activeSuperAdminCountExcludingTarget: number,
+): boolean {
+  return activeSuperAdminCountExcludingTarget < 1;
 }

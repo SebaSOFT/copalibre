@@ -4062,6 +4062,33 @@
         ]
       }
     },
+    "/organizations/{organizationAlias}/roles/grantable": {
+      "get": {
+        "operationId": "OrganizationAccessController_grantable",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GrantableRolesResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The caller's grantable roles in this organization, per the role-granting hierarchy",
+        "tags": [
+          "organization-access"
+        ]
+      }
+    },
     "/organizations/{organizationAlias}/invitations": {
       "post": {
         "operationId": "OrganizationAccessController_invite",
@@ -4236,6 +4263,151 @@
           }
         ],
         "summary": "Accept an organization invitation",
+        "tags": [
+          "organization-access"
+        ]
+      }
+    },
+    "/installation/super-admins": {
+      "get": {
+        "operationId": "InstallationRoleController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InstallationSuperAdminResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List active installation super-admins",
+        "tags": [
+          "organization-access"
+        ]
+      },
+      "post": {
+        "operationId": "InstallationRoleController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSuperAdminRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstallationSuperAdminResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Grant installation super-admin to a principal",
+        "tags": [
+          "organization-access"
+        ]
+      }
+    },
+    "/installation/super-admins/{assignmentId}": {
+      "patch": {
+        "operationId": "InstallationRoleController_changeStatus",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeInstallationRoleStatusRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstallationSuperAdminResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change an installation super-admin assignment's active status",
+        "tags": [
+          "organization-access"
+        ]
+      },
+      "delete": {
+        "operationId": "InstallationRoleController_remove",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstallationSuperAdminResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Soft-delete an installation super-admin assignment",
         "tags": [
           "organization-access"
         ]
@@ -7797,6 +7969,7 @@
             "type": "string",
             "enum": [
               "admin",
+              "club-admin",
               "referee",
               "broadcaster",
               "viewer"
@@ -10740,6 +10913,7 @@
             "type": "string",
             "enum": [
               "admin",
+              "club-admin",
               "referee",
               "broadcaster",
               "viewer"
@@ -10761,6 +10935,29 @@
           "status"
         ]
       },
+      "GrantableRolesResponse": {
+        "type": "object",
+        "properties": {
+          "roles": {
+            "type": "array",
+            "description": "Roles the caller may grant in this organization, per the 0140 role-granting hierarchy.",
+            "items": {
+              "type": "string",
+              "enum": [
+                "super-admin",
+                "admin",
+                "club-admin",
+                "referee",
+                "broadcaster",
+                "viewer"
+              ]
+            }
+          }
+        },
+        "required": [
+          "roles"
+        ]
+      },
       "InviteOrganizationUserRequest": {
         "type": "object",
         "properties": {
@@ -10772,6 +10969,7 @@
             "type": "string",
             "enum": [
               "admin",
+              "club-admin",
               "referee",
               "broadcaster",
               "viewer"
@@ -10815,6 +11013,7 @@
             "type": "string",
             "enum": [
               "admin",
+              "club-admin",
               "referee",
               "broadcaster",
               "viewer"
@@ -10843,6 +11042,60 @@
         },
         "required": [
           "token"
+        ]
+      },
+      "InstallationSuperAdminResponse": {
+        "type": "object",
+        "properties": {
+          "assignmentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "principalId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "CopaLibre internal principal UUIDv7"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive"
+            ]
+          }
+        },
+        "required": [
+          "assignmentId",
+          "principalId",
+          "status"
+        ]
+      },
+      "CreateSuperAdminRequest": {
+        "type": "object",
+        "properties": {
+          "principalId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "CopaLibre internal principal UUIDv7 to grant super-admin"
+          }
+        },
+        "required": [
+          "principalId"
+        ]
+      },
+      "ChangeInstallationRoleStatusRequest": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive"
+            ]
+          }
+        },
+        "required": [
+          "status"
         ]
       },
       "ParticipantTeamMembershipResponse": {

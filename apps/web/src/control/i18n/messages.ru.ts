@@ -36,6 +36,15 @@ export const messages: Record<string, string> = {
   'control.platform.organization.ready':
     'Организация {alias} создана. Пригласите первого администратора.',
   'control.platform.organization.created': 'Организация {alias} создана, администратор приглашён.',
+  'control.platform.users.heading': 'Администрирование пользователей',
+  'control.platform.users.description':
+    'Управляйте супер-админами инсталляции или перейдите в организацию, чтобы управлять её пользователями.',
+  'control.platform.users.manageOrganizationAlias': 'Алиас организации',
+  'control.platform.users.manageOrganizationUsers': 'Управлять пользователями',
+  'control.platform.users.superAdminsHeading': 'Супер-админы инсталляции',
+  'control.platform.users.noSuperAdmins': 'Супер-админов инсталляции пока нет.',
+  'control.platform.users.superAdminPrincipalId': 'ID субъекта',
+  'control.platform.users.createSuperAdmin': 'Назначить супер-админа',
   'control.platform.modules.heading': 'Установленные модули',
   'control.platform.modules.description':
     'Установка, удаление, проверка и поиск обновлений модулей.',
@@ -302,7 +311,10 @@ export const messages: Record<string, string> = {
   'control.roles.inactive': 'Неактивен',
   'control.roles.deleteOf': 'Удалить {email}',
   'control.roles.delete': 'Удалить',
+  'control.roles.lastActiveAdminNotice':
+    'В организации всегда должен быть хотя бы один активный админ.',
   'control.roles.role.admin': 'Админ',
+  'control.roles.role.clubAdmin': 'Админ клуба',
   'control.roles.role.referee': 'Судья',
   'control.roles.role.broadcaster': 'Трансляция',
   'control.roles.role.viewer': 'Наблюдатель',

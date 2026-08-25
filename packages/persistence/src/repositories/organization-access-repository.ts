@@ -1,9 +1,12 @@
 import {
   canCreateOrganizationInvitation,
+  canGrantRole,
   isOrganizationMemberStatus,
   isOrganizationRole,
   normaliseEmail,
   validateOrganizationInvitation,
+  wouldLeaveOrganizationWithoutAdmin,
+  type GrantorContext,
   type OrganizationInvitation,
   type OrganizationMemberStatus,
   type OrganizationRole,
@@ -32,6 +35,12 @@ export interface CreateOrganizationInvitationInput extends AccessAuditContext {
   /** Used only in the trusted outbox payload sent to the SMTP delivery adapter. */
   readonly token: string;
   readonly expiresAt: string;
+  /**
+   * Who is inviting, resolved by the caller. Omitted only by the
+   * installation-bootstrap path, which has no organization yet and is
+   * already gated by `canCreateOrganizationInvitation`'s first-assignment rule.
+   */
+  readonly grantorContext?: GrantorContext;
 }
 
 export interface AcceptOrganizationInvitationInput extends AccessAuditContext {
@@ -48,6 +57,7 @@ export interface ChangeOrganizationRoleInput extends AccessAuditContext {
   readonly assignmentId: string;
   readonly role: OrganizationRole;
   readonly status: OrganizationMemberStatus;
+  readonly grantorContext?: GrantorContext;
 }
 
 export interface DeleteOrganizationRoleInput extends AccessAuditContext {
@@ -158,6 +168,17 @@ export class OrganizationAccessRepository {
     });
     if (!checked.ok)
       throw new InvariantViolationError(checked.error.message, checked.error.details);
+
+    if (input.grantorContext) {
+      const authorized = canGrantRole(
+        input.grantorContext,
+        checked.value.role,
+        input.organizationId,
+      );
+      if (!authorized.ok) {
+        throw new InvariantViolationError(authorized.error.message, { reason: 'grant-denied' });
+      }
+    }
 
     const firstAssignment = await uow.tx
       .selectFrom('organization_role_assignments')
@@ -349,6 +370,25 @@ export class OrganizationAccessRepository {
     ).executeTakeFirst();
     if (!current) throw new NotFoundError('Organization role assignment was not found');
 
+    if (input.grantorContext) {
+      const authorized = canGrantRole(input.grantorContext, input.role, input.organizationId);
+      if (!authorized.ok) {
+        throw new InvariantViolationError(authorized.error.message, { reason: 'grant-denied' });
+      }
+    }
+
+    const demotedFromAdmin =
+      current.role === 'admin' &&
+      current.status === 'active' &&
+      (input.role !== 'admin' || input.status !== 'active');
+    if (demotedFromAdmin) {
+      await this.assertOrganizationAdminFloorInvariant(
+        uow,
+        input.organizationId,
+        input.assignmentId,
+      );
+    }
+
     const row = await uow.tx
       .updateTable('organization_role_assignments')
       .set({ role: input.role, status: input.status, updated_at: new Date() })
@@ -392,6 +432,14 @@ export class OrganizationAccessRepository {
     ).executeTakeFirst();
     if (!current) throw new NotFoundError('Organization role assignment was not found');
 
+    if (current.role === 'admin' && current.status === 'active') {
+      await this.assertOrganizationAdminFloorInvariant(
+        uow,
+        input.organizationId,
+        input.assignmentId,
+      );
+    }
+
     const deletedAt = new Date();
     const row = await uow.tx
       .updateTable('organization_role_assignments')
@@ -411,5 +459,29 @@ export class OrganizationAccessRepository {
       resultingState: { ...deleted },
     });
     return deleted;
+  }
+
+  /** Refuses within the same transaction as the write, avoiding a TOCTOU race. */
+  private async assertOrganizationAdminFloorInvariant(
+    uow: UnitOfWork,
+    organizationId: string,
+    excludingAssignmentId: string,
+  ): Promise<void> {
+    const row = await uow.tx
+      .selectFrom('organization_role_assignments')
+      .select((eb) => eb.fn.countAll<string>().as('count'))
+      .where('organization_id', '=', organizationId)
+      .where('role', '=', 'admin')
+      .where('status', '=', 'active')
+      .where('deleted_at', 'is', null)
+      .where('assignment_id', '!=', excludingAssignmentId)
+      .executeTakeFirstOrThrow();
+    const remaining = Number(row.count);
+    if (wouldLeaveOrganizationWithoutAdmin(remaining)) {
+      throw new InvariantViolationError(
+        'The organization must always keep at least one active admin',
+        { reason: 'floor-invariant' },
+      );
+    }
   }
 }

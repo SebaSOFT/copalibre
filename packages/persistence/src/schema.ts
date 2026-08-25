@@ -83,6 +83,17 @@ export interface OrganizationRoleAssignmentsTable {
   deleted_at: Timestamp | null;
 }
 
+/** An installation-wide role assignment (`super-admin` today), mirroring `organization_role_assignments` minus `organization_id`. */
+export interface InstallationRoleAssignmentsTable {
+  assignment_id: string;
+  principal_id: string;
+  role: string;
+  status: string;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+  deleted_at: Timestamp | null;
+}
+
 /** Opaque invitation credentials are stored only as hashes. */
 export interface OrganizationInvitesTable {
   invitation_id: string;
@@ -842,6 +853,7 @@ export interface Database {
   organizations: OrganizationsTable;
   identity_principals: IdentityPrincipalsTable;
   organization_role_assignments: OrganizationRoleAssignmentsTable;
+  installation_role_assignments: InstallationRoleAssignmentsTable;
   organization_invites: OrganizationInvitesTable;
   display_tokens: DisplayTokensTable;
   personal_access_tokens: PersonalAccessTokensTable;

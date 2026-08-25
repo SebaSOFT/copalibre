@@ -87,10 +87,10 @@ export class MyOrganizationResponse {
   organizationName!: string;
 
   @ApiProperty({
-    enum: ['admin', 'referee', 'broadcaster', 'viewer'],
+    enum: ['admin', 'club-admin', 'referee', 'broadcaster', 'viewer'],
     description: "The caller's active role in this organization",
   })
-  role!: 'admin' | 'referee' | 'broadcaster' | 'viewer';
+  role!: 'admin' | 'club-admin' | 'referee' | 'broadcaster' | 'viewer';
 }
 
 export class UpdateOrganizationSettingsRequest {
@@ -470,7 +470,7 @@ export class OrganizationRoleResponse {
   principalId!: string;
   @ApiProperty()
   email!: string;
-  @ApiProperty({ enum: ['admin', 'referee', 'broadcaster', 'viewer'] })
+  @ApiProperty({ enum: ['admin', 'club-admin', 'referee', 'broadcaster', 'viewer'] })
   role!: string;
   @ApiProperty({ enum: ['active', 'inactive'] })
   status!: string;
@@ -479,8 +479,8 @@ export class OrganizationRoleResponse {
 export class InviteOrganizationUserRequest {
   @ApiProperty({ format: 'email' })
   email!: string;
-  @ApiProperty({ enum: ['admin', 'referee', 'broadcaster', 'viewer'] })
-  role!: 'admin' | 'referee' | 'broadcaster' | 'viewer';
+  @ApiProperty({ enum: ['admin', 'club-admin', 'referee', 'broadcaster', 'viewer'] })
+  role!: 'admin' | 'club-admin' | 'referee' | 'broadcaster' | 'viewer';
   @ApiProperty({ enum: ['active', 'inactive'] })
   status!: 'active' | 'inactive';
 }
@@ -493,8 +493,42 @@ export class OrganizationInvitationResponse {
 }
 
 export class ChangeOrganizationRoleRequest {
-  @ApiProperty({ enum: ['admin', 'referee', 'broadcaster', 'viewer'] })
-  role!: 'admin' | 'referee' | 'broadcaster' | 'viewer';
+  @ApiProperty({ enum: ['admin', 'club-admin', 'referee', 'broadcaster', 'viewer'] })
+  role!: 'admin' | 'club-admin' | 'referee' | 'broadcaster' | 'viewer';
+  @ApiProperty({ enum: ['active', 'inactive'] })
+  status!: 'active' | 'inactive';
+}
+
+export class GrantableRolesResponse {
+  @ApiProperty({
+    enum: ['super-admin', 'admin', 'club-admin', 'referee', 'broadcaster', 'viewer'],
+    isArray: true,
+    description:
+      'Roles the caller may grant in this organization, per the 0140 role-granting hierarchy.',
+  })
+  roles!: readonly (
+    'super-admin' | 'admin' | 'club-admin' | 'referee' | 'broadcaster' | 'viewer'
+  )[];
+}
+
+export class InstallationSuperAdminResponse {
+  @ApiProperty({ format: 'uuid' })
+  assignmentId!: string;
+  @ApiProperty({ format: 'uuid', description: 'CopaLibre internal principal UUIDv7' })
+  principalId!: string;
+  @ApiProperty({ enum: ['active', 'inactive'] })
+  status!: string;
+}
+
+export class CreateSuperAdminRequest {
+  @ApiProperty({
+    format: 'uuid',
+    description: 'CopaLibre internal principal UUIDv7 to grant super-admin',
+  })
+  principalId!: string;
+}
+
+export class ChangeInstallationRoleStatusRequest {
   @ApiProperty({ enum: ['active', 'inactive'] })
   status!: 'active' | 'inactive';
 }

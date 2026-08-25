@@ -9,16 +9,27 @@ import { messages } from '../i18n/messages.en.js';
 
 const ROLE_LABEL: Record<OrganizationRole, MessageDescriptor> = {
   admin: messages.rolesRoleAdmin,
+  'club-admin': messages.rolesRoleClubAdmin,
   referee: messages.rolesRoleReferee,
   broadcaster: messages.rolesRoleBroadcaster,
   viewer: messages.rolesRoleViewer,
 };
+
+/** Every role this taxonomy declares, matching a super-admin's full grantable set. */
+const ALL_ROLES: readonly OrganizationRole[] = [
+  'admin',
+  'club-admin',
+  'referee',
+  'broadcaster',
+  'viewer',
+];
 
 export function RolesPermissionsPage({
   organizationAlias,
   rows,
   loading,
   error,
+  grantableRoles,
   onChange,
   onDelete,
   onInvite,
@@ -27,6 +38,13 @@ export function RolesPermissionsPage({
   readonly rows: readonly OrganizationRoleResponse[];
   readonly loading: boolean;
   readonly error?: string;
+  /**
+   * Roles the caller may assign, per the 0140 role-granting hierarchy.
+   * Undefined means "not yet known/not filtered" — every role is shown, matching
+   * this component's pre-0140 behavior so a caller without the new endpoint
+   * wired up still sees the full picker.
+   */
+  readonly grantableRoles?: readonly OrganizationRole[];
   readonly onChange: (
     assignmentId: string,
     role: OrganizationRole,
@@ -39,6 +57,10 @@ export function RolesPermissionsPage({
     status: OrganizationMemberStatus,
   ) => Promise<void>;
 }): React.JSX.Element {
+  const assignableRoles = grantableRoles ?? ALL_ROLES;
+  const activeAdminCount = rows.filter(
+    (row) => row.role === 'admin' && row.status === 'active',
+  ).length;
   const intl = useIntl();
   const [inviteOpen, setInviteOpen] = useState(false);
   const [busy, setBusy] = useState<string>();
@@ -117,8 +139,12 @@ export function RolesPermissionsPage({
         {rows.map((row) => (
           <RoleRow
             busy={busy === row.assignmentId}
+            isLastActiveAdmin={
+              row.role === 'admin' && row.status === 'active' && activeAdminCount <= 1
+            }
             key={row.assignmentId}
             row={row}
+            assignableRoles={assignableRoles}
             onChange={(role, status) =>
               run(row.assignmentId, () => onChange(row.assignmentId, role, status))
             }
@@ -128,6 +154,7 @@ export function RolesPermissionsPage({
       </div>
       {inviteOpen ? (
         <InviteDialog
+          assignableRoles={assignableRoles}
           busy={busy === 'invite'}
           onClose={() => setInviteOpen(false)}
           onSubmit={(email, role, status) =>
@@ -145,15 +172,21 @@ export function RolesPermissionsPage({
 function RoleRow({
   row,
   busy,
+  isLastActiveAdmin,
+  assignableRoles,
   onChange,
   onDelete,
 }: {
   readonly row: OrganizationRoleResponse;
   readonly busy: boolean;
+  /** True when demoting/deactivating/removing this row would violate the last-active-admin floor invariant. */
+  readonly isLastActiveAdmin: boolean;
+  readonly assignableRoles: readonly OrganizationRole[];
   readonly onChange: (role: OrganizationRole, status: OrganizationMemberStatus) => Promise<void>;
   readonly onDelete: () => Promise<void>;
 }): React.JSX.Element {
   const intl = useIntl();
+  const disabled = busy || isLastActiveAdmin;
   const initials = row.email
     .split('@')[0]
     .split(/[._-]/)
@@ -173,12 +206,18 @@ function RoleRow({
       <select
         aria-label={intl.formatMessage(messages.rolesRoleOf, { email: row.email })}
         className="cl-focusable"
-        disabled={busy}
+        disabled={disabled}
         onChange={(event) => void onChange(event.target.value as OrganizationRole, row.status)}
         style={selectStyle}
+        title={
+          isLastActiveAdmin ? intl.formatMessage(messages.rolesLastActiveAdminNotice) : undefined
+        }
         value={row.role}
       >
-        {(Object.keys(ROLE_LABEL) as OrganizationRole[]).map((role) => (
+        {(assignableRoles.includes(row.role)
+          ? assignableRoles
+          : [row.role, ...assignableRoles]
+        ).map((role) => (
           <option key={role} value={role}>
             {intl.formatMessage(ROLE_LABEL[role])}
           </option>
@@ -188,9 +227,12 @@ function RoleRow({
         <input
           aria-label={intl.formatMessage(messages.rolesStatusOf, { email: row.email })}
           checked={row.status === 'active'}
-          disabled={busy}
+          disabled={disabled}
           onChange={(event) =>
             void onChange(row.role, event.target.checked ? 'active' : 'inactive')
+          }
+          title={
+            isLastActiveAdmin ? intl.formatMessage(messages.rolesLastActiveAdminNotice) : undefined
           }
           type="checkbox"
         />
@@ -207,9 +249,12 @@ function RoleRow({
       <button
         aria-label={intl.formatMessage(messages.rolesDeleteOf, { email: row.email })}
         className="cl-focusable"
-        disabled={busy}
+        disabled={disabled}
         onClick={() => void onDelete()}
         style={deleteButtonStyle}
+        title={
+          isLastActiveAdmin ? intl.formatMessage(messages.rolesLastActiveAdminNotice) : undefined
+        }
         type="button"
       >
         <FormattedMessage {...messages.rolesDelete} />
@@ -220,10 +265,12 @@ function RoleRow({
 
 function InviteDialog({
   busy,
+  assignableRoles,
   onClose,
   onSubmit,
 }: {
   readonly busy: boolean;
+  readonly assignableRoles: readonly OrganizationRole[];
   readonly onClose: () => void;
   readonly onSubmit: (
     email: string,
@@ -233,7 +280,9 @@ function InviteDialog({
 }): React.JSX.Element {
   const intl = useIntl();
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState<OrganizationRole>('viewer');
+  const [role, setRole] = useState<OrganizationRole>(
+    assignableRoles.includes('viewer') ? 'viewer' : (assignableRoles[0] ?? 'viewer'),
+  );
   const [active, setActive] = useState(true);
   return (
     <div
@@ -284,7 +333,7 @@ function InviteDialog({
             style={inputStyle}
             value={role}
           >
-            {(Object.keys(ROLE_LABEL) as OrganizationRole[]).map((one) => (
+            {assignableRoles.map((one) => (
               <option key={one} value={one}>
                 {intl.formatMessage(ROLE_LABEL[one])}
               </option>

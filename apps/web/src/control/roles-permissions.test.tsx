@@ -156,6 +156,135 @@ describe('roles and permissions control', () => {
     });
     await waitFor(() => expect(screen.getByText('viewer@example.test')).toBeDefined());
   });
+
+  it('offers club-admin as an assignable role', () => {
+    render(
+      withIntl(
+        <RolesPermissionsPage
+          loading={false}
+          onChange={async () => undefined}
+          onDelete={async () => undefined}
+          onInvite={async () => undefined}
+          organizationAlias="liga-mendocina"
+          rows={rows}
+        />,
+      ),
+    );
+    expect(
+      (screen.getByLabelText('Role of referee@example.test') as HTMLSelectElement).innerHTML,
+    ).toContain('Club admin');
+  });
+
+  it('filters the role picker to the caller-supplied grantable roles', () => {
+    render(
+      withIntl(
+        <RolesPermissionsPage
+          grantableRoles={['admin', 'club-admin', 'referee']}
+          loading={false}
+          onChange={async () => undefined}
+          onDelete={async () => undefined}
+          onInvite={async () => undefined}
+          organizationAlias="liga-mendocina"
+          rows={rows}
+        />,
+      ),
+    );
+    const select = screen.getByLabelText('Role of referee@example.test') as HTMLSelectElement;
+    const options = Array.from(select.options).map((option) => option.value);
+    expect(options).toEqual(['admin', 'club-admin', 'referee']);
+  });
+
+  it('disables the last active admin row to protect the floor invariant', () => {
+    const adminRow = { ...rows[0], role: 'admin' as const, email: 'admin@example.test' };
+    render(
+      withIntl(
+        <RolesPermissionsPage
+          loading={false}
+          onChange={async () => undefined}
+          onDelete={async () => undefined}
+          onInvite={async () => undefined}
+          organizationAlias="liga-mendocina"
+          rows={[adminRow]}
+        />,
+      ),
+    );
+    expect(
+      (screen.getByLabelText('Role of admin@example.test') as HTMLSelectElement).disabled,
+    ).toBe(true);
+    expect(
+      (screen.getByLabelText('Status of admin@example.test') as HTMLInputElement).disabled,
+    ).toBe(true);
+    expect((screen.getByLabelText('Delete admin@example.test') as HTMLButtonElement).disabled).toBe(
+      true,
+    );
+  });
+
+  it('fetches and applies grantable roles from the route through to the role picker', async () => {
+    const listGrantableRoles = jest
+      .fn<
+        () => Promise<{
+          roles: readonly (
+            'super-admin' | 'admin' | 'club-admin' | 'referee' | 'broadcaster' | 'viewer'
+          )[];
+        }>
+      >()
+      .mockResolvedValue({ roles: ['super-admin', 'admin', 'club-admin', 'referee'] });
+    const client = controlClient({
+      listOrganizationRoles: async () => rows,
+      listGrantableRoles,
+    });
+    render(withIntl(<RolesPermissionsRoute client={client} organizationAlias="liga-mendocina" />));
+
+    await screen.findByText('referee@example.test');
+    await waitFor(() => expect(listGrantableRoles).toHaveBeenCalledWith('liga-mendocina'));
+    await waitFor(() => {
+      const select = screen.getByLabelText('Role of referee@example.test') as HTMLSelectElement;
+      expect(Array.from(select.options).map((option) => option.value)).toEqual([
+        'admin',
+        'club-admin',
+        'referee',
+      ]);
+    });
+  });
+
+  it('falls back to showing every role when the grantable-roles fetch fails', async () => {
+    const client = controlClient({
+      listOrganizationRoles: async () => rows,
+      listGrantableRoles: async () => {
+        throw new Error('forbidden');
+      },
+    });
+    render(withIntl(<RolesPermissionsRoute client={client} organizationAlias="liga-mendocina" />));
+
+    await screen.findByText('referee@example.test');
+    const select = screen.getByLabelText('Role of referee@example.test') as HTMLSelectElement;
+    expect(select.options.length).toBeGreaterThan(3);
+  });
+
+  it('does not disable an admin row when a second active admin exists', () => {
+    const admin1 = { ...rows[0], role: 'admin' as const, email: 'admin1@example.test' };
+    const admin2 = {
+      ...rows[0],
+      assignmentId: 'assignment-2',
+      role: 'admin' as const,
+      email: 'admin2@example.test',
+    };
+    render(
+      withIntl(
+        <RolesPermissionsPage
+          loading={false}
+          onChange={async () => undefined}
+          onDelete={async () => undefined}
+          onInvite={async () => undefined}
+          organizationAlias="liga-mendocina"
+          rows={[admin1, admin2]}
+        />,
+      ),
+    );
+    expect(
+      (screen.getByLabelText('Delete admin1@example.test') as HTMLButtonElement).disabled,
+    ).toBe(false);
+  });
 });
 
 function controlClient(overrides: Partial<ControlApiClient>): ControlApiClient {

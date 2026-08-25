@@ -35,6 +35,15 @@ export const messages: Record<string, string> = {
     'Organisation {alias} erstellt. Laden Sie den ersten Administrator ein.',
   'control.platform.organization.created':
     'Organisation {alias} erstellt und Administrator eingeladen.',
+  'control.platform.users.heading': 'Benutzerverwaltung',
+  'control.platform.users.description':
+    'Verwalten Sie die Installations-Super-Admins oder wechseln Sie zu einer Organisation, um deren Benutzer zu verwalten.',
+  'control.platform.users.manageOrganizationAlias': 'Organisations-Alias',
+  'control.platform.users.manageOrganizationUsers': 'Benutzer verwalten',
+  'control.platform.users.superAdminsHeading': 'Installations-Super-Admins',
+  'control.platform.users.noSuperAdmins': 'Noch keine Installations-Super-Admins.',
+  'control.platform.users.superAdminPrincipalId': 'Principal-ID',
+  'control.platform.users.createSuperAdmin': 'Super-Admin gewähren',
   'control.platform.modules.heading': 'Installierte Module',
   'control.platform.modules.description':
     'Module installieren, entfernen, prüfen und Updates suchen.',
@@ -303,7 +312,10 @@ export const messages: Record<string, string> = {
   'control.roles.inactive': 'Inaktiv',
   'control.roles.deleteOf': '{email} löschen',
   'control.roles.delete': 'Löschen',
+  'control.roles.lastActiveAdminNotice':
+    'Die Organisation muss immer mindestens einen aktiven Admin behalten.',
   'control.roles.role.admin': 'Admin',
+  'control.roles.role.clubAdmin': 'Vereinsadmin',
   'control.roles.role.referee': 'Schiedsrichter',
   'control.roles.role.broadcaster': 'Übertragung',
   'control.roles.role.viewer': 'Betrachter',

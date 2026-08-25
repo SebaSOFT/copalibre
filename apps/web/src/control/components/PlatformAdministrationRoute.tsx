@@ -5,12 +5,14 @@ import {
   createControlApiClient,
   type ControlApiClient,
   type InstalledModuleResponse,
+  type InstallationSuperAdminResponse,
   type ModuleVerifyResultResponse,
   type OutdatedModuleResponse,
 } from '../lib/api-client.js';
 import { controlTokenStore } from '../session/token-store.js';
 import { messages } from '../i18n/messages.en.js';
 import { useToast } from './ToastProvider.js';
+import { RolesPermissionsRoute } from './RolesPermissionsRoute.js';
 
 const LANGUAGES = ['en', 'es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as const;
 
@@ -46,6 +48,73 @@ export function PlatformAdministrationRoute({
   });
   const [adminEmail, setAdminEmail] = useState('');
   const [bootstrapAlias, setBootstrapAlias] = useState<string>();
+  const [superAdmins, setSuperAdmins] = useState<readonly InstallationSuperAdminResponse[]>([]);
+  const [loadingSuperAdmins, setLoadingSuperAdmins] = useState(true);
+  const [newSuperAdminPrincipalId, setNewSuperAdminPrincipalId] = useState('');
+  const [manageOrgAlias, setManageOrgAlias] = useState('');
+  const [managingOrgAlias, setManagingOrgAlias] = useState<string>();
+
+  const loadSuperAdmins = useCallback(async () => {
+    setLoadingSuperAdmins(true);
+    try {
+      setSuperAdmins(
+        await requireApi(api.listInstallationSuperAdmins, 'listInstallationSuperAdmins')(),
+      );
+    } catch (cause) {
+      pushVerbatimError(toast, cause);
+    } finally {
+      setLoadingSuperAdmins(false);
+    }
+  }, [api, toast]);
+
+  useEffect(() => {
+    let active = true;
+    void requireApi(api.listInstallationSuperAdmins, 'listInstallationSuperAdmins')()
+      .then((result) => {
+        if (active) setSuperAdmins(result);
+      })
+      .catch((cause: unknown) => {
+        if (active) pushVerbatimError(toast, cause);
+      })
+      .finally(() => {
+        if (active) setLoadingSuperAdmins(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [api, toast]);
+
+  const submitSuperAdmin = async (event: React.FormEvent): Promise<void> => {
+    event.preventDefault();
+    setBusy('super-admin');
+    try {
+      await requireApi(
+        api.createInstallationSuperAdmin,
+        'createInstallationSuperAdmin',
+      )({ principalId: newSuperAdminPrincipalId.trim() });
+      setNewSuperAdminPrincipalId('');
+      await loadSuperAdmins();
+    } catch (cause) {
+      pushVerbatimError(toast, cause);
+    } finally {
+      setBusy(undefined);
+    }
+  };
+
+  const removeSuperAdmin = async (assignmentId: string): Promise<void> => {
+    setBusy(`super-admin-remove:${assignmentId}`);
+    try {
+      await requireApi(
+        api.deleteInstallationSuperAdmin,
+        'deleteInstallationSuperAdmin',
+      )(assignmentId);
+      await loadSuperAdmins();
+    } catch (cause) {
+      pushVerbatimError(toast, cause);
+    } finally {
+      setBusy(undefined);
+    }
+  };
 
   const fetchModules = useCallback(async () => {
     const list = requireApi(api.listInstalledModules, 'listInstalledModules');
@@ -315,6 +384,78 @@ export function PlatformAdministrationRoute({
             </button>
           </form>
         )}
+      </section>
+
+      <section style={panelStyle} aria-labelledby="platform-users-heading">
+        <h2 id="platform-users-heading">
+          <FormattedMessage {...messages.platformUsersHeading} />
+        </h2>
+        <p style={descriptionStyle}>
+          <FormattedMessage {...messages.platformUsersDescription} />
+        </p>
+
+        <div style={formGridStyle}>
+          <Field label={intl.formatMessage(messages.platformManageOrganizationAlias)}>
+            <input
+              value={manageOrgAlias}
+              onChange={(event) => setManageOrgAlias(event.target.value)}
+            />
+          </Field>
+          <button
+            disabled={!manageOrgAlias.trim()}
+            onClick={() => setManagingOrgAlias(manageOrgAlias.trim())}
+            type="button"
+            style={secondaryButtonStyle}
+          >
+            <FormattedMessage {...messages.platformManageOrganizationUsers} />
+          </button>
+        </div>
+        {managingOrgAlias ? (
+          <div style={panelStyle}>
+            <RolesPermissionsRoute client={api} organizationAlias={managingOrgAlias} />
+          </div>
+        ) : null}
+
+        <h3>
+          <FormattedMessage {...messages.platformSuperAdminsHeading} />
+        </h3>
+        {loadingSuperAdmins ? (
+          <p>
+            <FormattedMessage {...messages.platformLoadingModules} />
+          </p>
+        ) : superAdmins.length === 0 ? (
+          <p>
+            <FormattedMessage {...messages.platformNoSuperAdmins} />
+          </p>
+        ) : (
+          <ul style={updateListStyle}>
+            {superAdmins.map((row) => (
+              <li key={row.assignmentId}>
+                {row.principalId} — {row.status}{' '}
+                <button
+                  disabled={busy !== undefined}
+                  onClick={() => void removeSuperAdmin(row.assignmentId)}
+                  style={dangerButtonStyle}
+                  type="button"
+                >
+                  <FormattedMessage {...messages.platformRemove} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <form onSubmit={(event) => void submitSuperAdmin(event)} style={formGridStyle}>
+          <Field label={intl.formatMessage(messages.platformSuperAdminPrincipalId)}>
+            <input
+              required
+              value={newSuperAdminPrincipalId}
+              onChange={(event) => setNewSuperAdminPrincipalId(event.target.value)}
+            />
+          </Field>
+          <button disabled={busy === 'super-admin'} type="submit" style={primaryButtonStyle}>
+            <FormattedMessage {...messages.platformCreateSuperAdmin} />
+          </button>
+        </form>
       </section>
 
       <section style={panelStyle} aria-labelledby="platform-modules-heading">

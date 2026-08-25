@@ -23,6 +23,7 @@ import { ZonesGroupsController } from '../controllers/zones-groups.controller.js
 import { ClubsController } from '../controllers/clubs.controller.js';
 import { ResourcesController } from '../controllers/resources.controller.js';
 import {
+  InstallationRoleController,
   InvitationAcceptanceController,
   OrganizationAccessController,
 } from '../controllers/organization-access.controller.js';
@@ -76,6 +77,7 @@ export const OPENAPI_CONTROLLERS = [
   DisplayTokenController,
   OrganizationAccessController,
   InvitationAcceptanceController,
+  InstallationRoleController,
   ParticipantsController,
   ParticipantIdentityLinksController,
   ParticipantReportsController,

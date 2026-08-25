@@ -49,6 +49,12 @@ export {
   type DeleteOrganizationRoleInput,
   type PrincipalOrganizationMembership,
 } from './repositories/organization-access-repository.js';
+export {
+  InstallationRoleRepository,
+  type CreateSuperAdminInput,
+  type ChangeInstallationRoleStatusInput,
+  type DeleteInstallationRoleInput,
+} from './repositories/installation-role-repository.js';
 export { IdentityPrincipalRepository } from './repositories/identity-principal-repository.js';
 export {
   DisplayTokenRepository,

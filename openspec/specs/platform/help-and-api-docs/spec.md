@@ -157,7 +157,9 @@ as the site's language coverage grows.
 The help site's `/help/` content (the overview, the CLI section, and the control-panel section)
 SHALL be available in every language in the platform's supported-language contract (English, Spanish,
 French, Portuguese, Italian, German, Russian, Mandarin Chinese) as a prefixed Starlight locale, with
-English remaining the unprefixed default that `llms.txt`/`llms-full.txt` are generated from.
+English remaining the unprefixed default that `llms.txt`/`llms-full.txt` are generated from. Every
+locale SHALL contain the same set of pages as the English default — a build-time check SHALL fail,
+naming each missing locale/page pair, when a locale is missing a page English has.
 
 #### Scenario: Every supported language has a reachable help site
 
@@ -169,6 +171,19 @@ English remaining the unprefixed default that `llms.txt`/`llms-full.txt` are gen
 
 - **WHEN** a new interface language's help content is added to the site
 - **THEN** `/llms.txt` and `/llms-full.txt` continue to reflect English content only
+
+#### Scenario: A locale missing a page fails the build
+
+- **WHEN** an English `/help/**` page exists with no corresponding page under a supported non-English
+  locale
+- **THEN** the build fails, naming the missing locale and page path, rather than shipping a locale that
+  silently falls back to English or 404s for that page
+
+#### Scenario: A new English page requires every locale to add it before the build passes
+
+- **WHEN** a new page is added under the English `/help/**` tree
+- **THEN** the build fails for every locale lacking the corresponding translated page, until each adds
+  it
 
 ### Requirement: Help site documents self-hosting across platforms and deployment topologies
 

@@ -14,7 +14,7 @@ import {
 } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
 import { DATABASE } from '../database.token.js';
-import type { RequestWithSubject } from './request-context.js';
+import type { AuthenticatedSubject, RequestWithSubject } from './request-context.js';
 import {
   ACCESS_REQUIREMENT_KEY,
   SUPER_ADMIN_SCOPE,
@@ -116,17 +116,27 @@ export class OrganizationAccessGuard implements CanActivate {
       const access = new OrganizationAccessRepository(this.db);
       const principal = await identities.findByOidcSubject(subject.subjectId);
       if (!principal) throw new ForbiddenException('Subject has no installation principal');
-      request.subject = { ...subject, principalId: principal.principalId };
       const assignment = await access.findAssignment(organizationId, principal.principalId);
       if (!assignment || assignment.status !== 'active' || assignment.role !== 'admin') {
+        request.subject = {
+          ...subject,
+          principalId: principal.principalId,
+          grantorContext: {
+            isSuperAdmin: subject.scopes.includes(SUPER_ADMIN_SCOPE),
+          },
+        };
         throw new ForbiddenException('Subject has no active organization admin role');
       }
+      request.subject = {
+        ...subject,
+        principalId: principal.principalId,
+        grantorContext: this.resolveGrantorContext(subject, organizationId, assignment.role),
+      };
       return true;
     }
 
     const principal = await identities.findByOidcSubject(subject.subjectId);
     if (!principal) throw new ForbiddenException('Subject has no installation principal');
-    request.subject = { ...subject, principalId: principal.principalId };
 
     const assignment = await new OrganizationAccessRepository(this.db).findAssignment(
       organizationId,
@@ -135,10 +145,31 @@ export class OrganizationAccessGuard implements CanActivate {
     if (!assignment || assignment.status !== 'active') {
       throw new ForbiddenException('Subject has no active organization role');
     }
+    request.subject = {
+      ...subject,
+      principalId: principal.principalId,
+      grantorContext: this.resolveGrantorContext(subject, organizationId, assignment.role),
+    };
     if (!requirement.roles.includes(assignment.role)) {
       throw new ForbiddenException('Subject organization role is not authorized for this route');
     }
     return true;
+  }
+
+  /**
+   * `organizationAdminOf` is set only when this caller's active role in this
+   * organization is `admin` — a `club-admin`/`referee`/`broadcaster`/`viewer`
+   * grants nothing (domain's `canGrantRole`).
+   */
+  private resolveGrantorContext(
+    subject: AuthenticatedSubject,
+    organizationId: string,
+    activeRole: string,
+  ): { isSuperAdmin: boolean; organizationAdminOf?: string } {
+    return {
+      isSuperAdmin: subject.scopes.includes(SUPER_ADMIN_SCOPE),
+      ...(activeRole === 'admin' ? { organizationAdminOf: organizationId } : {}),
+    };
   }
 
   private async resolveOrganizationId(

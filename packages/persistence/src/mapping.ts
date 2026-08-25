@@ -10,6 +10,7 @@ import type {
   Venue,
   Organization,
   IdentityPrincipal,
+  InstallationRoleAssignment,
   OrganizationInvitation,
   OrganizationRoleAssignment,
   RecordedEvent,
@@ -34,6 +35,7 @@ import type {
   MatchesTable,
   OrganizationsTable,
   IdentityPrincipalsTable,
+  InstallationRoleAssignmentsTable,
   OrganizationInvitesTable,
   OrganizationRoleAssignmentsTable,
   SegmentsTable,
@@ -54,6 +56,7 @@ import type {
 export type OrganizationRow = Selectable<OrganizationsTable>;
 export type IdentityPrincipalRow = Selectable<IdentityPrincipalsTable>;
 export type OrganizationRoleAssignmentRow = Selectable<OrganizationRoleAssignmentsTable>;
+export type InstallationRoleAssignmentRow = Selectable<InstallationRoleAssignmentsTable>;
 export type OrganizationInviteRow = Selectable<OrganizationInvitesTable>;
 export type TournamentRow = Selectable<TournamentsTable>;
 export type TeamRow = Selectable<TeamsTable>;
@@ -94,6 +97,18 @@ export function toOrganizationRoleAssignment(
     email: row.email,
     role: row.role as OrganizationRoleAssignment['role'],
     status: row.status as OrganizationRoleAssignment['status'],
+    ...(row.deleted_at === null ? {} : { deletedAt: toIsoString(row.deleted_at) }),
+  };
+}
+
+export function toInstallationRoleAssignment(
+  row: InstallationRoleAssignmentRow,
+): InstallationRoleAssignment {
+  return {
+    assignmentId: row.assignment_id,
+    principalId: row.principal_id,
+    role: row.role as InstallationRoleAssignment['role'],
+    status: row.status as InstallationRoleAssignment['status'],
     ...(row.deleted_at === null ? {} : { deletedAt: toIsoString(row.deleted_at) }),
   };
 }

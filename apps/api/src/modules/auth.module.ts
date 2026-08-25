@@ -4,6 +4,7 @@ import {
   PersonalAccessTokenController,
 } from '../controllers/auth.controller.js';
 import {
+  InstallationRoleController,
   InvitationAcceptanceController,
   OrganizationAccessController,
 } from '../controllers/organization-access.controller.js';
@@ -16,6 +17,7 @@ import { CoreModule } from './core.module.js';
     PersonalAccessTokenController,
     OrganizationAccessController,
     InvitationAcceptanceController,
+    InstallationRoleController,
   ],
 })
 export class AuthModule {}
