@@ -26,12 +26,17 @@ Supported locales: `en` (source), `es`, `fr`, `pt`, `it`, `de`, `ru`, `zh`.
 English meaning: the set of players an entrant has selected for one match (never a persistent
 team-membership list — `AGENTS.md`'s own roster/team-membership distinction).
 
-| es                                            | fr                                   | pt        | it                              | de          | ru                                | zh                          |
-| --------------------------------------------- | ------------------------------------ | --------- | ------------------------------- | ----------- | --------------------------------- | --------------------------- |
-| plantilla de convocados / lista de convocados | feuille de match / effectif convoqué | escalação | formazione / distinta convocati | Aufstellung | заявка на матч (zayavka na match) | 出场名单 (chūchǎng míngdān) |
+| es      | fr       | pt     | it   | de    | ru              | zh             |
+| ------- | -------- | ------ | ---- | ----- | --------------- | -------------- |
+| plantel | effectif | elenco | rosa | Kader | состав (sostav) | 名单 (míngdān) |
 
-Avoid: `lista` alone (too generic), `équipe` (means the team, not the match roster),
-`Kader` (German for the full squad, not the match-day selection).
+Avoid: `lista` alone (too generic), `équipe` (means the team, not the match roster).
+**Corrected 2026-08-25** (0138): this row previously listed different, dictionary-derived renderings
+that did not match the terms actually shipped in `apps/web/src/control/i18n/messages.*.ts` (confirmed
+by reading `control.matchConsole.rosterStepLabel`/`control.loadMatchData.rosterHeading` directly) —
+including telling implementers to avoid `Kader`, which is in fact the shipped German term. The table
+now reflects the actual product terminology, which is the authoritative source for this row, not a
+dictionary derivation.
 
 ### `seed` / `seeding`
 

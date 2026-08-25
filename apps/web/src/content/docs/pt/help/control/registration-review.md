@@ -17,6 +17,10 @@ estado resultante e quem a tomou.
 - **Importar por CSV**: envie um arquivo de participantes; o sistema valida o conteúdo e mostra uma
   prévia linha por linha antes de confirmar. Nenhuma linha com erro é importada até que o arquivo
   seja corrigido e reenviado.
+- **Inscritos que precisam de uma abreviação**: um entrante que colide em toda etiqueta curta derivada
+  automaticamente é registrado sem uma definida, e do contrário fica invisível — esta seção lista
+  esses entrantes e permite que você defina uma diretamente. Um valor já usado por outro entrante do
+  torneio é recusado na hora, nomeando o conflito; um entrante resolvido desaparece da lista.
 - **Revisão em massa**: aplica a mesma decisão a várias inscrições de uma vez; cada uma continua
   sendo auditada separadamente, não como um único evento agregado.
 

@@ -208,6 +208,8 @@ jobs:
       - run: node --test scripts/check-readme-doc-links.test.mjs
       - run: node scripts/check-readme-doc-links.mjs
       - run: node --test scripts/i18n-content-review.test.mjs
+      - run: node --test scripts/check-help-locale-parity.test.mjs
+      - run: node scripts/check-help-locale-parity.mjs
 
   # Later phases' suites run under the same job via the root `yarn test:coverage`
   # fan-out. This includes the console projection, descriptor validation,
