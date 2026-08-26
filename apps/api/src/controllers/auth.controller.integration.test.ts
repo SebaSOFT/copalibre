@@ -13,6 +13,7 @@ import type { Kysely } from 'kysely';
 import { createMigratedDatabase } from '../../../../packages/persistence/src/test-support/scratch-database.js';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 import type { AuthenticatedSubject } from '../auth/request-context.js';
+import { SUPER_ADMIN_SCOPE } from '../auth/access-requirement.js';
 import { TokenVerifier } from '../auth/token-verifier.js';
 import { DATABASE } from '../database.token.js';
 import { NativeAuthController, PersonalAccessTokenController } from './auth.controller.js';
@@ -22,6 +23,13 @@ const TOKENS: Readonly<Record<string, AuthenticatedSubject>> = {
     subjectId: '550e8400-e29b-41d4-a716-446655440000',
     principalId: '550e8400-e29b-41d4-a716-446655440000',
     scopes: ['copalibre.control'],
+  },
+  // 0142: a caller whose own session legitimately carries the privileged
+  // scope — used to prove even that caller cannot mint it onto a PAT.
+  'superadmin-token': {
+    subjectId: '550e8400-e29b-41d4-a716-446655440001',
+    principalId: '550e8400-e29b-41d4-a716-446655440001',
+    scopes: ['copalibre.control', SUPER_ADMIN_SCOPE],
   },
 };
 
@@ -211,12 +219,20 @@ describe('Auth Controllers', () => {
     beforeAll(async () => {
       await (scratch.db as Kysely<Database>)
         .insertInto('identity_principals')
-        .values({
-          principal_id: '550e8400-e29b-41d4-a716-446655440000',
-          email: 'admin@example.com',
-          created_at: new Date(),
-          updated_at: new Date(),
-        })
+        .values([
+          {
+            principal_id: '550e8400-e29b-41d4-a716-446655440000',
+            email: 'admin@example.com',
+            created_at: new Date(),
+            updated_at: new Date(),
+          },
+          {
+            principal_id: '550e8400-e29b-41d4-a716-446655440001',
+            email: 'superadmin@example.com',
+            created_at: new Date(),
+            updated_at: new Date(),
+          },
+        ])
         .execute();
     });
 
@@ -265,6 +281,104 @@ describe('Auth Controllers', () => {
       const data = JSON.parse(getResponse.payload);
       expect(data).toHaveLength(1);
       expect(data[0].revoked).toBe(true);
+    });
+
+    // 0142 scope policy regression cases. Each rejection case asserts the
+    // token count for that principal is unchanged, so a 403 can never have
+    // persisted a row anyway.
+    async function patCount(principalId: string): Promise<number> {
+      const row = await (scratch.db as Kysely<Database>)
+        .selectFrom('personal_access_tokens')
+        .select(({ fn }) => fn.count<number>('token_id').as('count'))
+        .where('principal_id', '=', principalId)
+        .executeTakeFirstOrThrow();
+      return Number(row.count);
+    }
+
+    it('POST /auth/pat with a subset of the caller scopes creates exactly those scopes', async () => {
+      const response = await request({
+        method: 'POST',
+        url: '/auth/pat',
+        token: 'superadmin-token',
+        payload: { label: 'Subset Token', scopes: ['copalibre.control'], expiresInDays: 30 },
+      });
+      expect(response.statusCode).toBe(201);
+      expect(JSON.parse(response.payload).scopes).toEqual(['copalibre.control']);
+    });
+
+    it('POST /auth/pat without scopes still defaults to the caller own scopes', async () => {
+      const response = await request({
+        method: 'POST',
+        url: '/auth/pat',
+        token: 'admin-token',
+        payload: { label: 'Default Scopes Token', expiresInDays: 30 },
+      });
+      expect(response.statusCode).toBe(201);
+      expect(JSON.parse(response.payload).scopes).toEqual(['copalibre.control']);
+    });
+
+    it('POST /auth/pat requesting a scope the caller does not hold returns 403 and persists nothing', async () => {
+      const before = await patCount('550e8400-e29b-41d4-a716-446655440000');
+      const response = await request({
+        method: 'POST',
+        url: '/auth/pat',
+        token: 'admin-token',
+        payload: {
+          label: 'Escalation Attempt',
+          scopes: ['copalibre.integration'],
+          expiresInDays: 30,
+        },
+      });
+      expect(response.statusCode).toBe(403);
+      expect(await patCount('550e8400-e29b-41d4-a716-446655440000')).toBe(before);
+    });
+
+    it(`POST /auth/pat requesting ${SUPER_ADMIN_SCOPE} returns 403 even when the caller holds it`, async () => {
+      const before = await patCount('550e8400-e29b-41d4-a716-446655440001');
+      const response = await request({
+        method: 'POST',
+        url: '/auth/pat',
+        token: 'superadmin-token',
+        payload: {
+          label: 'Privileged Escalation Attempt',
+          scopes: [SUPER_ADMIN_SCOPE],
+          expiresInDays: 30,
+        },
+      });
+      expect(response.statusCode).toBe(403);
+      expect(await patCount('550e8400-e29b-41d4-a716-446655440001')).toBe(before);
+    });
+
+    it('POST /auth/pat still accepts scopes null and an empty scopes array, as before this change', async () => {
+      const nullResponse = await request({
+        method: 'POST',
+        url: '/auth/pat',
+        token: 'admin-token',
+        payload: { label: 'Null Scopes Token', scopes: null, expiresInDays: 30 },
+      });
+      expect(nullResponse.statusCode).toBe(201);
+      expect(JSON.parse(nullResponse.payload).scopes).toEqual(['copalibre.control']);
+
+      const emptyResponse = await request({
+        method: 'POST',
+        url: '/auth/pat',
+        token: 'admin-token',
+        payload: { label: 'Empty Scopes Token', scopes: [], expiresInDays: 30 },
+      });
+      expect(emptyResponse.statusCode).toBe(201);
+      expect(JSON.parse(emptyResponse.payload).scopes).toEqual([]);
+    });
+
+    it('POST /auth/pat rejects non-string scope entries with 400', async () => {
+      const before = await patCount('550e8400-e29b-41d4-a716-446655440000');
+      const response = await request({
+        method: 'POST',
+        url: '/auth/pat',
+        token: 'admin-token',
+        payload: { label: 'Bad Shape', scopes: [42], expiresInDays: 30 },
+      });
+      expect(response.statusCode).toBe(400);
+      expect(await patCount('550e8400-e29b-41d4-a716-446655440000')).toBe(before);
     });
   });
 });

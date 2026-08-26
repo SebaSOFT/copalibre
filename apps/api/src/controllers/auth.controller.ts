@@ -1,7 +1,23 @@
 import * as argon2 from 'argon2';
 import { SignJWT } from 'jose';
-import { Body, Controller, Delete, Get, HttpCode, Inject, Param, Post, Req } from '@nestjs/common';
-import { BadRequestException, UnauthorizedException } from '../http/error-contract.js';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Inject,
+  Param,
+  Post,
+  Req,
+  UsePipes,
+  ValidationPipe,
+} from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  UnauthorizedException,
+} from '../http/error-contract.js';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -19,10 +35,9 @@ import {
   SYSTEM_ORGANIZATION,
   type Database,
 } from '@copalibre/persistence';
-import { SUPER_ADMIN_SCOPE } from '../auth/access-requirement.js';
+import { PRIVILEGED_SCOPES, RequireSelf, SUPER_ADMIN_SCOPE } from '../auth/access-requirement.js';
 import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
-import { RequireSelf } from '../auth/access-requirement.js';
 import { DATABASE } from '../database.token.js';
 import {
   LoginRequest,
@@ -150,6 +165,35 @@ export class NativeAuthController {
 }
 
 /**
+ * PAT scope policy (0142): a PAT's scopes may never exceed the caller's own
+ * current session scopes, and may never include an installation-privileged
+ * scope — not even for a caller who legitimately holds one. A PAT is an
+ * Integration-plane credential; its scopes must be narrow categorically, not
+ * merely "narrow relative to what the issuer happened to hold".
+ */
+export function assertPatScopesAllowed(
+  requested: readonly string[],
+  callerScopes: readonly string[],
+): void {
+  const privileged = requested.find((scope) => PRIVILEGED_SCOPES.includes(scope));
+  if (privileged !== undefined) {
+    throw new ForbiddenException(
+      `Scope "${privileged}" cannot be attached to a personal access token`,
+      {
+        errorCode: 'auth-forbidden',
+      },
+    );
+  }
+  const unheld = requested.filter((scope) => !callerScopes.includes(scope));
+  if (unheld.length > 0) {
+    throw new ForbiddenException(
+      `Requested scopes exceed the caller's own scopes: ${unheld.join(', ')}`,
+      { errorCode: 'auth-forbidden' },
+    );
+  }
+}
+
+/**
  * Personal Access Token management for MCP and external API integrations.
  * Requires an authenticated admin-control session.
  */
@@ -171,6 +215,9 @@ export class PersonalAccessTokenController {
   }
 
   @Post()
+  // Route-local (0142): enforces CreatePatRequest's class-validator rules on
+  // this handler only — platform-wide pipe adoption is a separate follow-up.
+  @UsePipes(new ValidationPipe())
   @SecurityPlaneTag('admin-control')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Generate a new personal access token' })
@@ -190,6 +237,7 @@ export class PersonalAccessTokenController {
     }
 
     const expiresAt = new Date(Date.now() + body.expiresInDays * 24 * 60 * 60 * 1000);
+    assertPatScopesAllowed(body.scopes ?? [], request.subject?.scopes ?? []);
     const scopes = body.scopes ?? [...(request.subject?.scopes ?? [])];
 
     const result = await withTransaction(this.db, (uow) =>

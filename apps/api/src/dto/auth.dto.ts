@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsArray, IsOptional, IsString } from 'class-validator';
 
 /** Wire DTOs are camelCase, per the naming-conventions casing rule. */
 
@@ -40,6 +41,11 @@ export class CreatePatRequest {
     description: 'Scopes to grant (defaults to the creating user scopes)',
     type: [String],
   })
+  // Validation shape mirrors `scopes?: string[]` exactly (0142): omitted or
+  // null skips, an array of strings passes.
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
   scopes?: string[];
   @ApiProperty({
     description: 'Expiration duration in days (max 365)',

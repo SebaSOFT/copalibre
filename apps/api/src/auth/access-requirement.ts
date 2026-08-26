@@ -4,6 +4,13 @@ import type { OrganizationRole } from '@copalibre/domain';
 export const ACCESS_REQUIREMENT_KEY = 'copalibre:access-requirement';
 export const SUPER_ADMIN_SCOPE = 'copalibre.super-admin';
 
+/**
+ * Scopes that grant unconditional, installation-level authority the moment a
+ * guard sees them. Never attachable to a Personal Access Token — PATs mint
+ * scoped automation credentials, not fresh installation authority (0142).
+ */
+export const PRIVILEGED_SCOPES: readonly string[] = [SUPER_ADMIN_SCOPE];
+
 export type AccessRequirement =
   | { readonly kind: 'organization-role'; readonly roles: readonly OrganizationRole[] }
   | { readonly kind: 'super-admin' }
