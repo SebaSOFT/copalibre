@@ -45,12 +45,21 @@ body {
 .cl-control > main > * > *,
 .cl-control-screen,
 .cl-control-screen > *,
-.cl-control-screen > * > * {
+.cl-control-screen > * > *,
+.cl-list-screen,
+.cl-list-screen > *,
+.cl-form-screen,
+.cl-form-screen > *,
+.cl-match-console-screen,
+.cl-match-console-screen > * {
   min-width: 0;
   max-width: 100%;
 }
 
-.cl-control-screen {
+.cl-control-screen,
+.cl-list-screen,
+.cl-form-screen,
+.cl-match-console-screen {
   overflow-wrap: anywhere;
 }
 
@@ -59,6 +68,9 @@ body {
 }
 
 .cl-control-screen :where(div, section, article, form, fieldset, label, header, footer),
+.cl-list-screen :where(div, section, article, form, fieldset, label, header, footer),
+.cl-form-screen :where(div, section, article, form, fieldset, label, header, footer),
+.cl-match-console-screen :where(div, section, article, form, fieldset, label, header, footer),
 .cl-control > main :where(div, section, article, form, fieldset, label, header, footer) {
   min-width: 0;
   max-width: 100%;
@@ -88,9 +100,9 @@ body {
   padding: var(--cl-space-8);
 }
 
-.cl-control-screen img,
-.cl-control-screen svg,
-.cl-control-screen canvas {
+.cl-control img,
+.cl-control svg,
+.cl-control canvas {
   max-width: 100%;
 }
 

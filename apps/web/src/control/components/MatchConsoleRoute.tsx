@@ -34,6 +34,7 @@ import { Button } from './ui/atoms/button.js';
 import { ClockRing } from './ui/organisms/clock-ring.js';
 import { JerseyGrid } from './JerseyGrid.js';
 import { RosterSelectionStep } from './RosterSelectionStep.js';
+import { MatchConsoleTemplate } from './ui/templates/match-console-template.js';
 import { messages } from '../i18n/messages.en.js';
 
 const RECONCILIATION_TIMEOUT_MS = 8_000;
@@ -425,79 +426,61 @@ export function MatchConsoleRoute({
     }
   }
 
-  return (
-    <section aria-label={intl.formatMessage(messages.matchConsoleSectionLabel)} style={pageStyle}>
-      <header style={headerStyle}>
-        <div>
-          <p style={metaStyle}>
-            {intl.formatMessage(messages.matchConsoleBreadcrumb, {
-              tournamentAlias,
-              matchId: matchId.slice(-8),
-            })}
-          </p>
-          <h1 style={titleStyle}>
-            <FormattedMessage {...messages.matchConsoleTitle} />
-          </h1>
-          {projection.status === 'scheduled' &&
-            projection.segments.length === 0 &&
-            projection.events.length === 0 && (
-              <a
-                className="cl-focusable"
-                href={`/control/${organizationAlias}/tournaments/${tournamentAlias}/matches/${matchId}/load`}
-                onClick={controlLinkClick(
-                  `/control/${organizationAlias}/tournaments/${tournamentAlias}/matches/${matchId}/load`,
-                )}
-              >
-                <FormattedMessage {...messages.matchConsoleLoadMatchData} />
-              </a>
-            )}
-        </div>
-        <div style={statusStyle}>
-          <strong>
-            {projection.status === 'in-progress'
-              ? intl.formatMessage(messages.matchConsoleLive)
-              : projection.status.toUpperCase()}
-          </strong>
-          <ClockRing
-            elapsedSeconds={activeSegment?.elapsedSeconds ?? 0}
-            durationSeconds={activeSegment?.durationSeconds}
-          />
-        </div>
-      </header>
+  const breadcrumbNode = (
+    <>
+      {intl.formatMessage(messages.matchConsoleBreadcrumb, {
+        tournamentAlias,
+        matchId: matchId.slice(-8),
+      })}
+      {projection.status === 'scheduled' &&
+        projection.segments.length === 0 &&
+        projection.events.length === 0 && (
+          <>
+            {' · '}
+            <a
+              className="cl-focusable"
+              href={`/control/${organizationAlias}/tournaments/${tournamentAlias}/matches/${matchId}/load`}
+              onClick={controlLinkClick(
+                `/control/${organizationAlias}/tournaments/${tournamentAlias}/matches/${matchId}/load`,
+              )}
+            >
+              <FormattedMessage {...messages.matchConsoleLoadMatchData} />
+            </a>
+          </>
+        )}
+    </>
+  );
 
+  const titleNode = <FormattedMessage {...messages.matchConsoleTitle} />;
+
+  const statusNode = (
+    <>
+      <strong>
+        {projection.status === 'in-progress'
+          ? intl.formatMessage(messages.matchConsoleLive)
+          : projection.status.toUpperCase()}
+      </strong>
+      <ClockRing
+        durationSeconds={activeSegment?.durationSeconds}
+        elapsedSeconds={activeSegment?.elapsedSeconds ?? 0}
+      />
+    </>
+  );
+
+  const alertsNode = (
+    <>
       {status.kind === 'error' && <p className="cl-inline-alert">{status.message}</p>}
       {stale && (
         <p className="cl-inline-alert">
           <FormattedMessage {...messages.matchConsoleAwaitingProjection} />
         </p>
       )}
-
-      {/* Always visible, not only on failure (design.md's "Sync-status UI" decision). */}
-      <div aria-label={intl.formatMessage(messages.matchConsoleSyncStatus)} style={syncStatusStyle}>
-        <span>
-          {online
-            ? intl.formatMessage(messages.matchConsoleOnline)
-            : intl.formatMessage(messages.matchConsoleOffline)}
-        </span>
-        <span>
-          {intl.formatMessage(messages.matchConsoleQueuedCount, {
-            count: pendingMutations.filter((mutation) => mutation.status === 'pending').length,
-          })}
-        </span>
-        <span>
-          {lastSyncedAt === undefined
-            ? intl.formatMessage(messages.matchConsoleNeverSynced)
-            : intl.formatMessage(messages.matchConsoleLastSynced, {
-                time: new Date(lastSyncedAt).toLocaleTimeString(intl.locale),
-              })}
-        </span>
-      </div>
       {pendingMutations.some((mutation) => mutation.status === 'refused') && (
-        <ul style={refusedListStyle}>
+        <ul>
           {pendingMutations
             .filter((mutation) => mutation.status === 'refused')
             .map((mutation) => (
-              <li className="cl-inline-alert" key={mutation.id} style={refusedItemStyle}>
+              <li className="cl-inline-alert" key={mutation.id}>
                 <span>
                   {intl.formatMessage(messages.matchConsoleRefusedAction, {
                     kind: mutation.action.kind,
@@ -517,614 +500,490 @@ export function MatchConsoleRoute({
             ))}
         </ul>
       )}
+    </>
+  );
 
-      <div style={workspaceStyle}>
-        <section
-          aria-label={intl.formatMessage(messages.matchConsoleControls)}
-          style={primaryColumnStyle}
-        >
-          <section
-            aria-label={intl.formatMessage(messages.matchConsoleCurrentScoreboard)}
-            style={scoreboardStyle}
-          >
-            {projection.liveScores.map((side) => (
-              <div key={side.entrantId} style={scoreSideStyle}>
-                <span style={scoreEntrantStyle} title={side.entrantId}>
-                  {side.entrantId}
-                </span>
-                <strong>{side.score}</strong>
-              </div>
-            ))}
-          </section>
-          <section style={panelStyle}>
-            <h2 style={sectionTitleStyle}>
-              <FormattedMessage {...messages.matchConsoleClockAndPeriod} />
-            </h2>
-            <div style={controlGridStyle}>
-              <label style={labelStyle}>
-                <FormattedMessage {...messages.matchConsoleSegment} />
-                <select
-                  aria-label={intl.formatMessage(messages.matchConsoleActiveSegment)}
-                  disabled={!canControlClock}
-                  onChange={(event) => setSelectedSegmentId(event.target.value)}
-                  style={inputStyle}
-                  value={selectedSegmentId}
-                >
-                  {projection.segments.map((segment) => (
-                    <option key={segment.segmentId} value={segment.segmentId}>
-                      {segment.type} {segment.number} · {segment.state}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label style={labelStyle}>
-                <FormattedMessage {...messages.matchConsoleElapsedSeconds} />
-                <input
-                  aria-label={intl.formatMessage(messages.matchConsoleElapsedSeconds)}
-                  disabled={!canControlClock}
-                  min="0"
-                  onChange={(event) => setElapsedSeconds(event.target.value)}
-                  style={inputStyle}
-                  type="number"
-                  value={elapsedSeconds}
-                />
-              </label>
-              <Button
-                disabled={!canControlClock || selectedSegmentId === ''}
-                onClick={() =>
-                  void mutate(
-                    {
-                      kind: 'clock-adjust',
-                      organizationAlias,
-                      tournamentAlias,
-                      matchId,
-                      request: {
-                        segmentId: selectedSegmentId,
-                        elapsedSeconds: Number(elapsedSeconds),
-                        activate: true,
-                      },
-                    },
-                    () =>
-                      setProjection((current) =>
-                        current
-                          ? {
-                              ...current,
-                              segments: current.segments.map((segment) => ({
-                                ...segment,
-                                state:
-                                  segment.segmentId === selectedSegmentId
-                                    ? 'active'
-                                    : segment.state === 'active'
-                                      ? 'pending'
-                                      : segment.state,
-                                ...(segment.segmentId === selectedSegmentId
-                                  ? { elapsedSeconds: Number(elapsedSeconds) }
-                                  : {}),
-                              })),
-                            }
-                          : current,
-                      ),
-                  )
-                }
-                type="button"
-              >
-                <FormattedMessage {...messages.matchConsoleApplyClock} />
-              </Button>
-            </div>
-          </section>
+  const syncStatusNode = (
+    <div aria-label={intl.formatMessage(messages.matchConsoleSyncStatus)} className="cl-role-user">
+      <span>
+        {online
+          ? intl.formatMessage(messages.matchConsoleOnline)
+          : intl.formatMessage(messages.matchConsoleOffline)}
+      </span>
+      <span>
+        {intl.formatMessage(messages.matchConsoleQueuedCount, {
+          count: pendingMutations.filter((mutation) => mutation.status === 'pending').length,
+        })}
+      </span>
+      <span>
+        {lastSyncedAt === undefined
+          ? intl.formatMessage(messages.matchConsoleNeverSynced)
+          : intl.formatMessage(messages.matchConsoleLastSynced, {
+              time: new Date(lastSyncedAt).toLocaleTimeString(intl.locale),
+            })}
+      </span>
+    </div>
+  );
 
-          <section style={panelStyle}>
-            <div style={rosterHeaderStyle}>
-              <h2 style={sectionTitleStyle}>
-                <FormattedMessage {...messages.matchConsoleRecordEvent} />
-              </h2>
-              {canSelectRoster && (
-                <Button
-                  onClick={() => setRosterStepOpen((open) => !open)}
-                  type="button"
-                  variant="secondary"
-                >
-                  <FormattedMessage
-                    {...(rosterStepOpen
-                      ? messages.matchConsoleHideRosterStep
-                      : projection.rosters.length > 0
-                        ? messages.matchConsoleEditRoster
-                        : messages.matchConsoleSelectRoster)}
-                  />
-                </Button>
-              )}
-            </div>
-            {rosterStepOpen && (
-              <RosterSelectionStep
-                api={api}
-                entrantIds={projection.entrantIds}
-                existingRosters={projection.rosters}
-                matchId={matchId}
-                onSaved={() => void reload()}
-                organizationAlias={organizationAlias}
-                rosterRoles={projection.rosterRoles}
-                tournamentAlias={tournamentAlias}
-              />
-            )}
-            {projection.rosters.length > 0 ? (
-              <JerseyGrid
-                activeField={activeSecondaryField}
-                disabled={!canRecord}
-                onChangeActiveField={setActiveSecondaryField}
-                organizationAlias={organizationAlias}
-                onSelectPrimary={(entrantId, personId) => {
-                  setSelectedSide(entrantId);
-                  setSelectedPersonId(personId);
-                  setSelectedStaffId('');
-                }}
-                onSelectSecondary={(field, personId) =>
-                  setSecondaryActorSelections((current) => ({ ...current, [field]: personId }))
-                }
-                primaryPersonId={selectedPersonId}
-                primarySide={selectedSide}
-                rosterRoles={projection.rosterRoles}
-                rosters={projection.rosters}
-                secondaryFields={secondaryActorFieldNames}
-                secondarySelections={secondaryActorSelections}
-                sentOffPersonIds={sentOff}
-              />
-            ) : (
-              !rosterStepOpen && (
-                <p className="cl-inline-alert">
-                  <FormattedMessage {...messages.matchConsoleNoRosterSelected} />
-                  {canSelectRoster && (
-                    <>
-                      {' '}
-                      <Button
-                        onClick={() => setRosterStepOpen(true)}
-                        type="button"
-                        variant="secondary"
-                      >
-                        <FormattedMessage {...messages.matchConsoleSelectRoster} />
-                      </Button>
-                    </>
-                  )}
-                </p>
-              )
-            )}
-            <div style={attributionStyle}>
-              <label style={labelStyle}>
-                <FormattedMessage {...messages.matchConsoleStaff} />
-                <select
-                  aria-label={intl.formatMessage(messages.matchConsoleEventStaff)}
-                  disabled={!canRecord || projection.eligibleStaffIds.length === 0}
-                  onChange={(event) => {
-                    setSelectedStaffId(event.target.value);
-                    if (event.target.value) setSelectedPersonId('');
-                  }}
-                  style={inputStyle}
-                  value={selectedStaffId}
-                >
-                  <option value="">{intl.formatMessage(messages.matchConsoleNoAttribution)}</option>
-                  {projection.eligibleStaffIds.map((personId) => (
-                    <option key={personId} value={personId}>
-                      {personId.slice(-8)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <div style={eventGridStyle}>
-              {permittedEvents.map((definition) => (
-                <Button
-                  disabled={!canRecord}
-                  key={definition.code}
-                  onClick={() => record(definition)}
-                  style={{ borderColor: definition.display.color }}
-                  type="button"
-                  variant="secondary"
-                >
-                  {resolveLabel(definition.label, language)}
-                </Button>
+  const scoreboardNode = (
+    <section aria-label={intl.formatMessage(messages.matchConsoleCurrentScoreboard)}>
+      {projection.liveScores.map((side) => (
+        <div key={side.entrantId} className="cl-match-console-screen__score-side">
+          <span className="cl-match-console-screen__score-entrant" title={side.entrantId}>
+            {side.entrantId}
+          </span>
+          <strong>{side.score}</strong>
+        </div>
+      ))}
+    </section>
+  );
+
+  const primaryNode = (
+    <>
+      <section className="cl-card cl-chamfer cl-chamfer--control">
+        <header className="cl-card__header">
+          <h2 className="cl-card__title">
+            <FormattedMessage {...messages.matchConsoleClockAndPeriod} />
+          </h2>
+        </header>
+        <div className="cl-platform-form-grid">
+          <label className="cl-form-field">
+            <span className="cl-label">
+              <FormattedMessage {...messages.matchConsoleSegment} />
+            </span>
+            <select
+              aria-label={intl.formatMessage(messages.matchConsoleActiveSegment)}
+              className="cl-select cl-select--default"
+              disabled={!canControlClock}
+              onChange={(event) => setSelectedSegmentId(event.target.value)}
+              value={selectedSegmentId}
+            >
+              {projection.segments.map((segment) => (
+                <option key={segment.segmentId} value={segment.segmentId}>
+                  {segment.type} {segment.number} · {segment.state}
+                </option>
               ))}
-            </div>
-            {conditionalEvent && (
-              <div
-                aria-label={intl.formatMessage(messages.matchConsoleEventOutcome)}
-                style={conditionalStyle}
-              >
-                <strong>{resolveLabel(conditionalEvent.label, language)}</strong>
-                <div style={eventGridStyle}>
-                  {conditionalEvent.workflow?.options.map((option) => {
-                    const finalDefinition = projection.eventDefinitions.find(
-                      (definition) => definition.code === option.definitionCode,
-                    );
-                    if (!finalDefinition) return null;
-                    return (
-                      <Button
-                        disabled={!canRecord}
-                        key={option.definitionCode}
-                        onClick={() =>
-                          recordFinal(
-                            finalDefinition,
-                            pendingOccurredAt ?? currentEpochMilliseconds(),
-                          )
+            </select>
+          </label>
+          <label className="cl-form-field">
+            <span className="cl-label">
+              <FormattedMessage {...messages.matchConsoleElapsedSeconds} />
+            </span>
+            <input
+              aria-label={intl.formatMessage(messages.matchConsoleElapsedSeconds)}
+              className="cl-input cl-input--default"
+              disabled={!canControlClock}
+              min="0"
+              onChange={(event) => setElapsedSeconds(event.target.value)}
+              type="number"
+              value={elapsedSeconds}
+            />
+          </label>
+          <Button
+            disabled={!canControlClock || selectedSegmentId === ''}
+            onClick={() =>
+              void mutate(
+                {
+                  kind: 'clock-adjust',
+                  organizationAlias,
+                  tournamentAlias,
+                  matchId,
+                  request: {
+                    segmentId: selectedSegmentId,
+                    elapsedSeconds: Number(elapsedSeconds),
+                    activate: true,
+                  },
+                },
+                () =>
+                  setProjection((current) =>
+                    current
+                      ? {
+                          ...current,
+                          segments: current.segments.map((segment) => ({
+                            ...segment,
+                            state:
+                              segment.segmentId === selectedSegmentId
+                                ? 'active'
+                                : segment.state === 'active'
+                                  ? 'pending'
+                                  : segment.state,
+                            ...(segment.segmentId === selectedSegmentId
+                              ? { elapsedSeconds: Number(elapsedSeconds) }
+                              : {}),
+                          })),
                         }
-                        type="button"
-                        variant="secondary"
-                      >
-                        {resolveLabel(option.label, language)}
-                      </Button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-            <label style={labelStyle}>
-              <FormattedMessage {...messages.matchConsoleDescription} />
-              <input
-                aria-label={intl.formatMessage(messages.matchConsoleEventDescription)}
-                disabled={!canRecord}
-                onChange={(event) => setDescription(event.target.value)}
-                style={inputStyle}
-                value={description}
-              />
-            </label>
-          </section>
+                      : current,
+                  ),
+              )
+            }
+            type="button"
+          >
+            <FormattedMessage {...messages.matchConsoleApplyClock} />
+          </Button>
+        </div>
+      </section>
 
-          <section style={panelStyle}>
-            <h2 style={sectionTitleStyle}>
-              <FormattedMessage {...messages.matchConsoleFinalize} />
+      <section className="cl-card cl-chamfer cl-chamfer--control">
+        <header className="cl-card__header">
+          <div className="cl-role-user">
+            <h2 className="cl-card__title">
+              <FormattedMessage {...messages.matchConsoleRecordEvent} />
             </h2>
-            {!confirmingFinalize ? (
+            {canSelectRoster && (
               <Button
-                disabled={!canFinalize || projection.status !== 'in-progress'}
-                onClick={() => setConfirmingFinalize(true)}
+                onClick={() => setRosterStepOpen((open) => !open)}
                 type="button"
-                variant="destructive"
+                variant="secondary"
               >
-                <FormattedMessage {...messages.matchConsoleFinalizeMatch} />
+                <FormattedMessage
+                  {...(rosterStepOpen
+                    ? messages.matchConsoleHideRosterStep
+                    : projection.rosters.length > 0
+                      ? messages.matchConsoleEditRoster
+                      : messages.matchConsoleSelectRoster)}
+                />
               </Button>
-            ) : (
-              <div className="cl-inline-alert" style={confirmationStyle}>
-                <strong>
-                  <FormattedMessage {...messages.matchConsoleFinalizeImmutable} />
-                </strong>
-                <span>
-                  <FormattedMessage {...messages.matchConsoleFinalizeCorrections} />
-                </span>
-                <div style={buttonRowStyle}>
-                  <Button
-                    onClick={() => {
-                      setConfirmingFinalize(false);
-                      setFinalizeIdempotencyKey(undefined);
-                    }}
-                    type="button"
-                    variant="secondary"
-                  >
-                    <FormattedMessage {...messages.matchConsoleCancel} />
-                  </Button>
-                  <Button
-                    disabled={finalizing}
-                    onClick={() => void finalize()}
-                    type="button"
-                    variant="destructive"
-                  >
-                    <FormattedMessage {...messages.matchConsoleConfirmFinalization} />
-                  </Button>
-                </div>
-              </div>
             )}
-          </section>
-        </section>
-
-        <aside
-          aria-label={intl.formatMessage(messages.matchConsoleLedgerAndStatus)}
-          style={railStyle}
-        >
-          <section style={panelStyle}>
-            <h2 style={sectionTitleStyle}>
-              <FormattedMessage {...messages.matchConsoleActiveTimers} />
-            </h2>
-            {projection.runningTimers.length === 0 ? (
-              <p style={emptyStyle}>
-                <FormattedMessage {...messages.matchConsoleNoActiveTimers} />
-              </p>
-            ) : (
-              <ul style={listStyle}>
-                {projection.runningTimers.map((timer) => (
-                  <li key={timer.timerId} style={listItemStyle}>
-                    <span>{formatClock(timer.remainingSeconds)}</span>
+          </div>
+        </header>
+        <div className="cl-card__content">
+          {rosterStepOpen && (
+            <RosterSelectionStep
+              api={api}
+              entrantIds={projection.entrantIds}
+              existingRosters={projection.rosters}
+              matchId={matchId}
+              onSaved={() => void reload()}
+              organizationAlias={organizationAlias}
+              rosterRoles={projection.rosterRoles}
+              tournamentAlias={tournamentAlias}
+            />
+          )}
+          {projection.rosters.length > 0 ? (
+            <JerseyGrid
+              activeField={activeSecondaryField}
+              disabled={!canRecord}
+              onChangeActiveField={setActiveSecondaryField}
+              onSelectPrimary={(entrantId, personId) => {
+                setSelectedSide(entrantId);
+                setSelectedPersonId(personId);
+                setSelectedStaffId('');
+              }}
+              onSelectSecondary={(field, personId) =>
+                setSecondaryActorSelections((current) => ({ ...current, [field]: personId }))
+              }
+              organizationAlias={organizationAlias}
+              primaryPersonId={selectedPersonId}
+              primarySide={selectedSide}
+              rosterRoles={projection.rosterRoles}
+              rosters={projection.rosters}
+              secondaryFields={secondaryActorFieldNames}
+              secondarySelections={secondaryActorSelections}
+              sentOffPersonIds={sentOff}
+            />
+          ) : (
+            !rosterStepOpen && (
+              <p className="cl-inline-alert">
+                <FormattedMessage {...messages.matchConsoleNoRosterSelected} />
+                {canSelectRoster && (
+                  <>
+                    {' '}
                     <Button
-                      disabled={!canResolveTimer}
+                      onClick={() => setRosterStepOpen(true)}
+                      type="button"
+                      variant="secondary"
+                    >
+                      <FormattedMessage {...messages.matchConsoleSelectRoster} />
+                    </Button>
+                  </>
+                )}
+              </p>
+            )
+          )}
+          <div className="cl-platform-form-grid">
+            <label className="cl-form-field">
+              <span className="cl-label">
+                <FormattedMessage {...messages.matchConsoleStaff} />
+              </span>
+              <select
+                aria-label={intl.formatMessage(messages.matchConsoleEventStaff)}
+                className="cl-select cl-select--default"
+                disabled={!canRecord || projection.eligibleStaffIds.length === 0}
+                onChange={(event) => {
+                  setSelectedStaffId(event.target.value);
+                  if (event.target.value) setSelectedPersonId('');
+                }}
+                value={selectedStaffId}
+              >
+                <option value="">{intl.formatMessage(messages.matchConsoleNoAttribution)}</option>
+                {projection.eligibleStaffIds.map((personId) => (
+                  <option key={personId} value={personId}>
+                    {personId.slice(-8)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <div className="cl-role-user">
+            {permittedEvents.map((definition) => (
+              <Button
+                disabled={!canRecord}
+                key={definition.code}
+                onClick={() => record(definition)}
+                style={{ borderColor: definition.display.color }}
+                type="button"
+                variant="secondary"
+              >
+                {resolveLabel(definition.label, language)}
+              </Button>
+            ))}
+          </div>
+          {conditionalEvent && (
+            <div
+              aria-label={intl.formatMessage(messages.matchConsoleEventOutcome)}
+              className="cl-card cl-chamfer cl-chamfer--control"
+            >
+              <strong>{resolveLabel(conditionalEvent.label, language)}</strong>
+              <div className="cl-role-user">
+                {conditionalEvent.workflow?.options.map((option) => {
+                  const finalDefinition = projection.eventDefinitions.find(
+                    (definition) => definition.code === option.definitionCode,
+                  );
+                  if (!finalDefinition) return null;
+                  return (
+                    <Button
+                      disabled={!canRecord}
+                      key={option.definitionCode}
                       onClick={() =>
-                        void mutate(
-                          {
-                            kind: 'timer-resolve',
-                            organizationAlias,
-                            tournamentAlias,
-                            matchId,
-                            timerId: timer.timerId,
-                          },
-                          () =>
-                            setProjection((current) =>
-                              current
-                                ? {
-                                    ...current,
-                                    runningTimers: current.runningTimers.filter(
-                                      (candidate) => candidate.timerId !== timer.timerId,
-                                    ),
-                                  }
-                                : current,
-                            ),
+                        recordFinal(
+                          finalDefinition,
+                          pendingOccurredAt ?? currentEpochMilliseconds(),
                         )
                       }
                       type="button"
                       variant="secondary"
                     >
-                      <FormattedMessage {...messages.matchConsoleResolve} />
+                      {resolveLabel(option.label, language)}
                     </Button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          <label className="cl-form-field">
+            <span className="cl-label">
+              <FormattedMessage {...messages.matchConsoleDescription} />
+            </span>
+            <input
+              aria-label={intl.formatMessage(messages.matchConsoleEventDescription)}
+              className="cl-input cl-input--default"
+              disabled={!canRecord}
+              onChange={(event) => setDescription(event.target.value)}
+              value={description}
+            />
+          </label>
+        </div>
+      </section>
 
-          <section style={panelStyle}>
-            <h2 style={sectionTitleStyle}>
-              <FormattedMessage {...messages.matchConsoleEventLedger} />
-            </h2>
-            <div style={filterRowStyle}>
-              {(['all', 'positive', 'negative', 'neutral'] as const).map((category) => (
+      <section className="cl-card cl-chamfer cl-chamfer--control">
+        <header className="cl-card__header">
+          <h2 className="cl-card__title">
+            <FormattedMessage {...messages.matchConsoleFinalize} />
+          </h2>
+        </header>
+        <div className="cl-card__content">
+          {!confirmingFinalize ? (
+            <Button
+              disabled={!canFinalize || projection.status !== 'in-progress'}
+              onClick={() => setConfirmingFinalize(true)}
+              type="button"
+              variant="destructive"
+            >
+              <FormattedMessage {...messages.matchConsoleFinalizeMatch} />
+            </Button>
+          ) : (
+            <div className="cl-inline-alert">
+              <strong>
+                <FormattedMessage {...messages.matchConsoleFinalizeImmutable} />
+              </strong>
+              <span>
+                <FormattedMessage {...messages.matchConsoleFinalizeCorrections} />
+              </span>
+              <div className="cl-role-user">
                 <Button
-                  aria-pressed={eventCategory === category}
-                  key={category}
-                  onClick={() => setEventCategory(category)}
+                  onClick={() => {
+                    setConfirmingFinalize(false);
+                    setFinalizeIdempotencyKey(undefined);
+                  }}
                   type="button"
                   variant="secondary"
                 >
-                  {category === 'all' ? intl.formatMessage(messages.matchConsoleAll) : category}
+                  <FormattedMessage {...messages.matchConsoleCancel} />
                 </Button>
-              ))}
+                <Button
+                  disabled={finalizing}
+                  onClick={() => void finalize()}
+                  type="button"
+                  variant="destructive"
+                >
+                  <FormattedMessage {...messages.matchConsoleConfirmFinalization} />
+                </Button>
+              </div>
             </div>
-            <ol style={listStyle}>
-              {[...displayedEvents].reverse().map((event) => (
-                <li key={event.eventId} style={ledgerItemStyle}>
-                  <strong>
-                    {event.definitionCode} ·{' '}
-                    {segmentLabel(
-                      projection,
-                      event.segmentId,
-                      intl.formatMessage(messages.matchConsoleUnknownSegment),
-                    )}
-                    {event.segmentElapsedSeconds === undefined
-                      ? null
-                      : ` · ${formatClock(event.segmentElapsedSeconds)}`}
-                  </strong>
-                  <span>{new Date(event.occurredAt).toLocaleTimeString(intl.locale)}</span>
-                  {event.notes ? <p style={eventNoteStyle}>{event.notes}</p> : null}
+          )}
+        </div>
+      </section>
+    </>
+  );
+
+  const railNode = (
+    <>
+      <section className="cl-card cl-chamfer cl-chamfer--control">
+        <header className="cl-card__header">
+          <h2 className="cl-card__title">
+            <FormattedMessage {...messages.matchConsoleActiveTimers} />
+          </h2>
+        </header>
+        <div className="cl-card__content">
+          {projection.runningTimers.length === 0 ? (
+            <p className="cl-card__description">
+              <FormattedMessage {...messages.matchConsoleNoActiveTimers} />
+            </p>
+          ) : (
+            <ul>
+              {projection.runningTimers.map((timer) => (
+                <li key={timer.timerId} className="cl-role-user">
+                  <span>{formatClock(timer.remainingSeconds)}</span>
+                  <Button
+                    disabled={!canResolveTimer}
+                    onClick={() =>
+                      void mutate(
+                        {
+                          kind: 'timer-resolve',
+                          organizationAlias,
+                          tournamentAlias,
+                          matchId,
+                          timerId: timer.timerId,
+                        },
+                        () =>
+                          setProjection((current) =>
+                            current
+                              ? {
+                                  ...current,
+                                  runningTimers: current.runningTimers.filter(
+                                    (candidate) => candidate.timerId !== timer.timerId,
+                                  ),
+                                }
+                              : current,
+                          ),
+                      )
+                    }
+                    type="button"
+                    variant="secondary"
+                  >
+                    <FormattedMessage {...messages.matchConsoleResolve} />
+                  </Button>
                 </li>
               ))}
-            </ol>
-            <label style={labelStyle}>
-              <FormattedMessage {...messages.matchConsoleLogNote} />
-              <textarea
-                aria-label={intl.formatMessage(messages.matchConsoleLogNote)}
-                onChange={(event) => setLogNote(event.target.value)}
-                placeholder=""
-                style={noteStyle}
-                value={logNote}
-              />
-            </label>
-          </section>
+            </ul>
+          )}
+        </div>
+      </section>
 
-          <section style={panelStyle}>
-            <h2 style={sectionTitleStyle}>
-              <FormattedMessage {...messages.matchConsoleOperationalSignal} />
-            </h2>
-            <div style={telemetryStyle}>
-              {[
-                messages.matchConsoleLatency,
-                messages.matchConsolePacketLoss,
-                messages.matchConsoleViewers,
-                messages.matchConsoleUptime,
-              ].map((metric) => (
-                <div key={metric.id} style={telemetryItemStyle}>
-                  <span>{intl.formatMessage(metric)}</span>
-                  <strong>
-                    <FormattedMessage {...messages.matchConsoleUnavailable} />
-                  </strong>
-                </div>
-              ))}
-            </div>
-          </section>
-        </aside>
-      </div>
-    </section>
+      <section className="cl-card cl-chamfer cl-chamfer--control">
+        <header className="cl-card__header">
+          <h2 className="cl-card__title">
+            <FormattedMessage {...messages.matchConsoleEventLedger} />
+          </h2>
+        </header>
+        <div className="cl-card__content">
+          <div className="cl-role-user">
+            {(['all', 'positive', 'negative', 'neutral'] as const).map((category) => (
+              <Button
+                aria-pressed={eventCategory === category}
+                key={category}
+                onClick={() => setEventCategory(category)}
+                type="button"
+                variant="secondary"
+              >
+                {category === 'all' ? intl.formatMessage(messages.matchConsoleAll) : category}
+              </Button>
+            ))}
+          </div>
+          <ol className="cl-platform-update-list">
+            {[...displayedEvents].reverse().map((event) => (
+              <li key={event.eventId} className="cl-role-user">
+                <strong>
+                  {event.definitionCode} ·{' '}
+                  {segmentLabel(
+                    projection,
+                    event.segmentId,
+                    intl.formatMessage(messages.matchConsoleUnknownSegment),
+                  )}
+                  {event.segmentElapsedSeconds === undefined
+                    ? null
+                    : ` · ${formatClock(event.segmentElapsedSeconds)}`}
+                </strong>
+                <span>{new Date(event.occurredAt).toLocaleTimeString(intl.locale)}</span>
+                {event.notes ? <p className="cl-card__description">{event.notes}</p> : null}
+              </li>
+            ))}
+          </ol>
+          <label className="cl-form-field">
+            <span className="cl-label">
+              <FormattedMessage {...messages.matchConsoleLogNote} />
+            </span>
+            <textarea
+              aria-label={intl.formatMessage(messages.matchConsoleLogNote)}
+              className="cl-input cl-input--default"
+              onChange={(event) => setLogNote(event.target.value)}
+              placeholder=""
+              value={logNote}
+            />
+          </label>
+        </div>
+      </section>
+
+      <section className="cl-card cl-chamfer cl-chamfer--control">
+        <header className="cl-card__header">
+          <h2 className="cl-card__title">
+            <FormattedMessage {...messages.matchConsoleOperationalSignal} />
+          </h2>
+        </header>
+        <div className="cl-card__content">
+          <div className="cl-match-console-screen__telemetry">
+            {[
+              messages.matchConsoleLatency,
+              messages.matchConsolePacketLoss,
+              messages.matchConsoleViewers,
+              messages.matchConsoleUptime,
+            ].map((metric) => (
+              <div key={metric.id} className="cl-match-console-screen__telemetry-item">
+                <span className="cl-label">{intl.formatMessage(metric)}</span>
+                <strong>
+                  <FormattedMessage {...messages.matchConsoleUnavailable} />
+                </strong>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    </>
+  );
+
+  return (
+    <MatchConsoleTemplate
+      alerts={alertsNode}
+      breadcrumb={breadcrumbNode}
+      primary={primaryNode}
+      primaryLabel={intl.formatMessage(messages.matchConsoleControls)}
+      rail={railNode}
+      railLabel={intl.formatMessage(messages.matchConsoleLedgerAndStatus)}
+      scoreboard={scoreboardNode}
+      sectionLabel={intl.formatMessage(messages.matchConsoleSectionLabel)}
+      status={statusNode}
+      syncStatus={syncStatusNode}
+      title={titleNode}
+    />
   );
 }
-
-const pageStyle: React.CSSProperties = { display: 'grid', gap: 'var(--cl-space-6)' };
-const headerStyle: React.CSSProperties = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'start',
-  gap: 'var(--cl-space-4)',
-};
-const metaStyle: React.CSSProperties = {
-  color: 'var(--cl-text-muted)',
-  fontFamily: 'var(--cl-font-mono)',
-  margin: 0,
-};
-const titleStyle: React.CSSProperties = {
-  margin: 'var(--cl-space-1) 0 0',
-  fontFamily: 'var(--cl-font-display)',
-};
-const statusStyle: React.CSSProperties = {
-  display: 'grid',
-  justifyItems: 'end',
-  color: 'var(--cl-state-live)',
-  fontFamily: 'var(--cl-font-mono)',
-  fontSize: 'var(--cl-font-size-lg)',
-};
-const syncStatusStyle: React.CSSProperties = {
-  display: 'flex',
-  gap: 'var(--cl-space-4)',
-  color: 'var(--cl-text-muted)',
-  fontFamily: 'var(--cl-font-mono)',
-  fontSize: 'var(--cl-font-size-xs)',
-  textTransform: 'uppercase',
-};
-const refusedListStyle: React.CSSProperties = {
-  display: 'grid',
-  gap: 'var(--cl-space-2)',
-  listStyle: 'none',
-  margin: 0,
-  padding: 0,
-};
-const refusedItemStyle: React.CSSProperties = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  gap: 'var(--cl-space-3)',
-};
-const workspaceStyle: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))',
-  gap: 'var(--cl-space-5)',
-};
-const primaryColumnStyle: React.CSSProperties = {
-  display: 'grid',
-  alignContent: 'start',
-  gap: 'var(--cl-space-5)',
-};
-const railStyle: React.CSSProperties = {
-  display: 'grid',
-  alignContent: 'start',
-  gap: 'var(--cl-space-5)',
-};
-const scoreboardStyle: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
-  border: '1px solid var(--cl-border-muted)',
-  background: 'var(--cl-surface-panel)',
-};
-const scoreSideStyle: React.CSSProperties = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  gap: 'var(--cl-space-3)',
-  padding: 'var(--cl-space-4)',
-  fontFamily: 'var(--cl-font-mono)',
-  fontSize: 'var(--cl-font-size-lg)',
-};
-const scoreEntrantStyle: React.CSSProperties = {
-  minWidth: 0,
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  whiteSpace: 'nowrap',
-};
-const panelStyle: React.CSSProperties = {
-  border: '1px solid var(--cl-border-muted)',
-  padding: 'var(--cl-space-4)',
-  background: 'var(--cl-surface-panel)',
-};
-const sectionTitleStyle: React.CSSProperties = {
-  margin: '0 0 var(--cl-space-4)',
-  fontFamily: 'var(--cl-font-display)',
-};
-const rosterHeaderStyle: React.CSSProperties = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  gap: 'var(--cl-space-3)',
-};
-const controlGridStyle: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 10rem), 1fr))',
-  gap: 'var(--cl-space-3)',
-  alignItems: 'end',
-};
-const attributionStyle: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 12rem), 1fr))',
-  gap: 'var(--cl-space-3)',
-  marginBottom: 'var(--cl-space-4)',
-};
-const labelStyle: React.CSSProperties = {
-  display: 'grid',
-  gap: 'var(--cl-space-1)',
-  color: 'var(--cl-text-secondary)',
-};
-const inputStyle: React.CSSProperties = {
-  minWidth: 0,
-  padding: 'var(--cl-space-2)',
-  border: '1px solid var(--cl-border-muted)',
-  background: 'var(--cl-surface-base)',
-  color: 'inherit',
-};
-const eventGridStyle: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-  gap: 'var(--cl-space-2)',
-};
-const conditionalStyle: React.CSSProperties = {
-  display: 'grid',
-  gap: 'var(--cl-space-3)',
-  borderLeft: '2px solid var(--cl-state-live)',
-  marginTop: 'var(--cl-space-3)',
-  paddingLeft: 'var(--cl-space-3)',
-};
-const confirmationStyle: React.CSSProperties = { display: 'grid', gap: 'var(--cl-space-3)' };
-const buttonRowStyle: React.CSSProperties = {
-  display: 'flex',
-  gap: 'var(--cl-space-2)',
-  flexWrap: 'wrap',
-};
-const listStyle: React.CSSProperties = {
-  display: 'grid',
-  gap: 'var(--cl-space-2)',
-  listStyle: 'none',
-  margin: 0,
-  padding: 0,
-};
-const listItemStyle: React.CSSProperties = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  gap: 'var(--cl-space-2)',
-};
-const ledgerItemStyle: React.CSSProperties = {
-  display: 'flex',
-  flexWrap: 'wrap',
-  justifyContent: 'space-between',
-  gap: 'var(--cl-space-2)',
-  borderBottom: '1px solid var(--cl-border-muted)',
-  paddingBottom: 'var(--cl-space-2)',
-};
-const eventNoteStyle: React.CSSProperties = {
-  flexBasis: '100%',
-  margin: 0,
-  color: 'var(--cl-text-muted)',
-};
-const filterRowStyle: React.CSSProperties = {
-  display: 'flex',
-  gap: 'var(--cl-space-2)',
-  flexWrap: 'wrap',
-  marginBottom: 'var(--cl-space-3)',
-};
-const noteStyle: React.CSSProperties = {
-  minHeight: '72px',
-  padding: 'var(--cl-space-2)',
-  border: '1px solid var(--cl-border-muted)',
-  background: 'var(--cl-surface-base)',
-  color: 'inherit',
-  resize: 'vertical',
-};
-const emptyStyle: React.CSSProperties = { margin: 0, color: 'var(--cl-text-muted)' };
-const telemetryStyle: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-  gap: 'var(--cl-space-2)',
-};
-const telemetryItemStyle: React.CSSProperties = {
-  display: 'grid',
-  gap: 'var(--cl-space-1)',
-  borderLeft: '2px solid var(--cl-border-muted)',
-  paddingLeft: 'var(--cl-space-2)',
-  color: 'var(--cl-text-muted)',
-};

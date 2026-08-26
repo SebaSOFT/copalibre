@@ -14,6 +14,7 @@ import { controlTokenStore } from '../session/token-store.js';
 import { Button } from './ui/atoms/button.js';
 import { messages } from '../i18n/messages.en.js';
 import { useToast } from './ToastProvider.js';
+import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
 
 interface DraftAssignment {
   readonly startsAt: string;
@@ -30,7 +31,7 @@ const EMPTY_DRAFT: DraftAssignment = {
 };
 
 /**
- * The schedule builder (0124): a calendar view and a list view over one
+ * The schedule builder (0124, 0147 template migration): a calendar view and a list view over one
  * stage's fixtures, both driving the same manual assignment batch the
  * already-accepted `tournament-engine/resource-scheduling` API accepts —
  * build, preview (showing conflicts and downstream-affected published
@@ -200,9 +201,6 @@ export function ScheduleBuilderRoute({
     );
   }
 
-  // The "day off" diff: an entrant who plays a fixture in this stage but has
-  // no assigned time in the current draft is shown, not silently omitted —
-  // design.md's client-side diff over two responses that already exist.
   const entrantIds = [
     ...new Set(fixtures.flatMap((fixture) => [fixture.homeEntrantId, fixture.awayEntrantId])),
   ].filter((entrantId): entrantId is string => entrantId !== undefined);
@@ -212,28 +210,30 @@ export function ScheduleBuilderRoute({
       .flatMap((fixture) => [fixture.homeEntrantId, fixture.awayEntrantId]),
   );
 
-  return (
-    <section
-      aria-label={intl.formatMessage(messages.scheduleBuilderSectionLabel)}
-      style={pageStyle}
-    >
-      <header>
-        <h1 style={titleStyle}>
-          <FormattedMessage {...messages.scheduleBuilderTitle} />
-        </h1>
-        <a
-          className="cl-focusable"
-          href={`/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}/standings`}
-          onClick={controlLinkClick(
-            `/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}/standings`,
-          )}
-        >
-          <FormattedMessage {...messages.standingsTitle} />
-        </a>
-      </header>
+  const breadcrumbNode = (
+    <span>
+      {organizationAlias} &gt; {tournamentAlias} &gt; Stage {stageNumber}
+    </span>
+  );
 
+  const titleNode = <FormattedMessage {...messages.scheduleBuilderTitle} />;
+
+  const toolbarNode = (
+    <a
+      className="cl-focusable"
+      href={`/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}/standings`}
+      onClick={controlLinkClick(
+        `/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}/standings`,
+      )}
+    >
+      <FormattedMessage {...messages.standingsTitle} />
+    </a>
+  );
+
+  const listingNode = (
+    <div className="cl-platform-sections">
       {fixtures.length === 0 && (
-        <p style={mutedStyle}>
+        <p className="cl-card__description">
           <FormattedMessage {...messages.scheduleBuilderNoFixtures} />
         </p>
       )}
@@ -242,236 +242,194 @@ export function ScheduleBuilderRoute({
         <>
           <section
             aria-label={intl.formatMessage(messages.scheduleBuilderCalendarViewLabel)}
-            style={panelStyle}
+            className="cl-card cl-chamfer cl-chamfer--control"
           >
-            <h2 style={sectionTitleStyle}>
-              <FormattedMessage {...messages.scheduleBuilderCalendarViewLabel} />
-            </h2>
-            <ul style={listStyle}>
-              {fixtures.map((fixture) => {
-                const draft = draftFor(fixture.fixtureId);
-                const assigned = draft.startsAt !== '';
-                return (
-                  <li
-                    aria-label={
-                      assigned ? undefined : intl.formatMessage(messages.scheduleBuilderUnassigned)
-                    }
-                    key={fixture.fixtureId}
-                    style={assigned ? calendarRowAssignedStyle : calendarRowUnassignedStyle}
-                  >
-                    <span>
-                      <FormattedMessage
-                        {...messages.scheduleBuilderFixtureRound}
-                        values={{ round: fixture.round }}
-                      />
-                      {' — '}
-                      {fixture.homeEntrantId ?? '—'} vs {fixture.awayEntrantId ?? '—'}
-                    </span>
-                    <span>
-                      {assigned ? (
-                        draft.startsAt
-                      ) : (
-                        <FormattedMessage {...messages.scheduleBuilderUnassigned} />
-                      )}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
+            <header className="cl-card__header">
+              <h2 className="cl-card__title">
+                <FormattedMessage {...messages.scheduleBuilderCalendarViewLabel} />
+              </h2>
+            </header>
+            <div className="cl-card__content">
+              <ul>
+                {fixtures.map((fixture) => {
+                  const draft = draftFor(fixture.fixtureId);
+                  const assigned = draft.startsAt !== '';
+                  const venue = venues.find((candidate) => candidate.venueId === draft.venueId);
+                  const assignedOfficials = officials.filter((candidate) =>
+                    draft.officialIds.includes(candidate.officialId),
+                  );
+                  return (
+                    <li key={fixture.fixtureId} className="cl-role-user">
+                      <span>
+                        <FormattedMessage
+                          {...messages.scheduleBuilderFixtureRound}
+                          values={{ round: fixture.round }}
+                        />
+                        {' — '}
+                        {fixture.homeEntrantId ?? '—'} vs {fixture.awayEntrantId ?? '—'}
+                      </span>
+                      <span>
+                        {assigned ? (
+                          <>
+                            {draft.startsAt}
+                            {draft.durationMinutes && ` (${draft.durationMinutes}m)`}
+                            {venue && ` @ ${venue.name}`}
+                            {assignedOfficials.length > 0 &&
+                              ` · ${assignedOfficials.map((candidate) => candidate.displayName).join(', ')}`}
+                          </>
+                        ) : (
+                          intl.formatMessage(messages.scheduleBuilderUnassigned)
+                        )}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
           </section>
 
           <section
             aria-label={intl.formatMessage(messages.scheduleBuilderListViewLabel)}
-            style={panelStyle}
+            className="cl-card cl-chamfer cl-chamfer--control"
           >
-            <h2 style={sectionTitleStyle}>
-              <FormattedMessage {...messages.scheduleBuilderListViewLabel} />
-            </h2>
-            {fixtures.map((fixture) => {
-              const draft = draftFor(fixture.fixtureId);
-              return (
-                <div key={fixture.fixtureId} style={formRowStyle}>
-                  <span style={mutedStyle}>
-                    <FormattedMessage
-                      {...messages.scheduleBuilderFixtureRound}
-                      values={{ round: fixture.round }}
-                    />
-                    {' — '}
-                    {fixture.homeEntrantId ?? '—'} vs {fixture.awayEntrantId ?? '—'}
-                  </span>
-                  <label style={labelStyle}>
-                    <FormattedMessage {...messages.scheduleBuilderStartTime} />
-                    <input
-                      aria-label={`${intl.formatMessage(messages.scheduleBuilderStartTime)} — ${fixture.fixtureId}`}
-                      onChange={(event) =>
-                        setDraft(fixture.fixtureId, { startsAt: event.target.value })
-                      }
-                      style={inputStyle}
-                      type="datetime-local"
-                      value={draft.startsAt}
-                    />
-                  </label>
-                  <label style={labelStyle}>
-                    <FormattedMessage {...messages.scheduleBuilderDuration} />
-                    <input
-                      aria-label={`${intl.formatMessage(messages.scheduleBuilderDuration)} — ${fixture.fixtureId}`}
-                      min={1}
-                      onChange={(event) =>
-                        setDraft(fixture.fixtureId, { durationMinutes: event.target.value })
-                      }
-                      style={inputStyle}
-                      type="number"
-                      value={draft.durationMinutes}
-                    />
-                  </label>
-                  <label style={labelStyle}>
-                    <FormattedMessage {...messages.scheduleBuilderVenue} />
-                    <select
-                      aria-label={`${intl.formatMessage(messages.scheduleBuilderVenue)} — ${fixture.fixtureId}`}
-                      onChange={(event) =>
-                        setDraft(fixture.fixtureId, { venueId: event.target.value })
-                      }
-                      style={inputStyle}
-                      value={draft.venueId}
-                    >
-                      <option value="">
-                        {intl.formatMessage(messages.scheduleBuilderNoVenue)}
-                      </option>
-                      {venues.map((venue) => (
-                        <option key={venue.venueId} value={venue.venueId}>
-                          {venue.name}
+            <header className="cl-card__header">
+              <h2 className="cl-card__title">
+                <FormattedMessage {...messages.scheduleBuilderListViewLabel} />
+              </h2>
+            </header>
+            <div className="cl-card__content">
+              {fixtures.map((fixture) => {
+                const draft = draftFor(fixture.fixtureId);
+                return (
+                  <div key={fixture.fixtureId} className="cl-platform-form-grid">
+                    <label className="cl-form-field">
+                      <span className="cl-label">
+                        <FormattedMessage {...messages.scheduleBuilderStartTime} />
+                      </span>
+                      <input
+                        aria-label={`${intl.formatMessage(messages.scheduleBuilderStartTime)} — ${fixture.fixtureId}`}
+                        className="cl-input cl-input--default"
+                        onChange={(event) =>
+                          setDraft(fixture.fixtureId, { startsAt: event.target.value })
+                        }
+                        type="datetime-local"
+                        value={draft.startsAt}
+                      />
+                    </label>
+                    <label className="cl-form-field">
+                      <span className="cl-label">
+                        <FormattedMessage {...messages.scheduleBuilderDuration} />
+                      </span>
+                      <input
+                        aria-label={`${intl.formatMessage(messages.scheduleBuilderDuration)} — ${fixture.fixtureId}`}
+                        className="cl-input cl-input--default"
+                        min={1}
+                        onChange={(event) =>
+                          setDraft(fixture.fixtureId, { durationMinutes: event.target.value })
+                        }
+                        type="number"
+                        value={draft.durationMinutes}
+                      />
+                    </label>
+                    <label className="cl-form-field">
+                      <span className="cl-label">
+                        <FormattedMessage {...messages.scheduleBuilderVenue} />
+                      </span>
+                      <select
+                        aria-label={`${intl.formatMessage(messages.scheduleBuilderVenue)} — ${fixture.fixtureId}`}
+                        className="cl-select cl-select--default"
+                        onChange={(event) =>
+                          setDraft(fixture.fixtureId, { venueId: event.target.value })
+                        }
+                        value={draft.venueId}
+                      >
+                        <option value="">
+                          {intl.formatMessage(messages.scheduleBuilderNoVenue)}
                         </option>
+                        {venues.map((venue) => (
+                          <option key={venue.venueId} value={venue.venueId}>
+                            {venue.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <fieldset className="cl-role-user">
+                      <legend className="cl-label">
+                        <FormattedMessage {...messages.scheduleBuilderOfficials} />
+                      </legend>
+                      {officials.map((official) => (
+                        <label key={official.officialId} className="cl-form-field">
+                          <input
+                            checked={draft.officialIds.includes(official.officialId)}
+                            onChange={() => toggleOfficial(fixture.fixtureId, official.officialId)}
+                            type="checkbox"
+                          />
+                          {official.displayName}
+                        </label>
                       ))}
-                    </select>
-                  </label>
-                  <fieldset style={fieldsetStyle}>
-                    <legend>
-                      <FormattedMessage {...messages.scheduleBuilderOfficials} />
-                    </legend>
-                    {officials.map((official) => (
-                      <label key={official.officialId} style={checkboxLabelStyle}>
-                        <input
-                          checked={draft.officialIds.includes(official.officialId)}
-                          onChange={() => toggleOfficial(fixture.fixtureId, official.officialId)}
-                          type="checkbox"
-                        />
-                        {official.displayName}
-                      </label>
-                    ))}
-                  </fieldset>
-                </div>
-              );
-            })}
+                    </fieldset>
+                  </div>
+                );
+              })}
 
-            {entrantIds
-              .filter((entrantId) => !scheduledEntrantIds.has(entrantId))
-              .map((entrantId) => (
-                <p key={entrantId} style={mutedStyle}>
-                  {entrantId} — <FormattedMessage {...messages.scheduleBuilderDayOff} />
-                </p>
-              ))}
+              {entrantIds
+                .filter((entrantId) => !scheduledEntrantIds.has(entrantId))
+                .map((entrantId) => (
+                  <p key={entrantId} className="cl-card__description">
+                    {entrantId} — <FormattedMessage {...messages.scheduleBuilderDayOff} />
+                  </p>
+                ))}
+            </div>
           </section>
 
-          <section style={panelStyle}>
-            <Button disabled={batch.length === 0} onClick={() => void preview()} type="button">
-              <FormattedMessage {...messages.scheduleBuilderPreview} />
-            </Button>
-            <Button
-              disabled={!previewed || !committable || batch.length === 0}
-              onClick={() => void publish()}
-              type="button"
-            >
-              <FormattedMessage {...messages.scheduleBuilderPublish} />
-            </Button>
-
-            {conflicts.length > 0 && (
-              <div role="alert">
-                <h3 style={sectionTitleStyle}>
-                  <FormattedMessage {...messages.scheduleBuilderConflictsHeading} />
-                </h3>
-                <ul>
-                  {conflicts.map((conflict, index) => (
-                    <li key={index}>{conflict.detail}</li>
-                  ))}
-                </ul>
+          <section className="cl-card cl-chamfer cl-chamfer--control">
+            <header className="cl-card__header">
+              <div className="cl-role-user">
+                <Button disabled={batch.length === 0} onClick={() => void preview()} type="button">
+                  <FormattedMessage {...messages.scheduleBuilderPreview} />
+                </Button>
+                <Button
+                  disabled={!previewed || !committable || batch.length === 0}
+                  onClick={() => void publish()}
+                  type="button"
+                >
+                  <FormattedMessage {...messages.scheduleBuilderPublish} />
+                </Button>
               </div>
-            )}
+            </header>
 
-            {previewed && affectedPublishedFixtures.length > 0 && (
-              <p className="cl-inline-alert" role="alert">
-                <FormattedMessage {...messages.scheduleBuilderAffectedPublishedHeading} />
-              </p>
-            )}
+            <div className="cl-card__content">
+              {conflicts.length > 0 && (
+                <div role="alert">
+                  <h3 className="cl-card__title">
+                    <FormattedMessage {...messages.scheduleBuilderConflictsHeading} />
+                  </h3>
+                  <ul>
+                    {conflicts.map((conflict, index) => (
+                      <li key={index}>{conflict.detail}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {previewed && affectedPublishedFixtures.length > 0 && (
+                <p className="cl-inline-alert" role="alert">
+                  <FormattedMessage {...messages.scheduleBuilderAffectedPublishedHeading} />
+                </p>
+              )}
+            </div>
           </section>
         </>
       )}
-    </section>
+    </div>
+  );
+
+  return (
+    <ListScreenTemplate
+      breadcrumb={breadcrumbNode}
+      listing={listingNode}
+      title={titleNode}
+      toolbar={toolbarNode}
+    />
   );
 }
-
-const pageStyle: React.CSSProperties = { display: 'grid', gap: 'var(--cl-space-5)' };
-const titleStyle: React.CSSProperties = { margin: 0, fontFamily: 'var(--cl-font-display)' };
-const panelStyle: React.CSSProperties = {
-  border: '1px solid var(--cl-border-muted)',
-  padding: 'var(--cl-space-4)',
-  background: 'var(--cl-surface-panel)',
-  display: 'grid',
-  gap: 'var(--cl-space-3)',
-};
-const sectionTitleStyle: React.CSSProperties = { margin: 0, fontFamily: 'var(--cl-font-display)' };
-const listStyle: React.CSSProperties = {
-  listStyle: 'none',
-  margin: 0,
-  padding: 0,
-  display: 'grid',
-  gap: 'var(--cl-space-2)',
-};
-const calendarRowAssignedStyle: React.CSSProperties = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  padding: 'var(--cl-space-2)',
-  borderWidth: '1px',
-  borderStyle: 'solid',
-  borderColor: 'var(--cl-border-muted)',
-};
-const calendarRowUnassignedStyle: React.CSSProperties = {
-  ...calendarRowAssignedStyle,
-  borderStyle: 'dashed',
-  color: 'var(--cl-text-muted)',
-};
-const formRowStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'end',
-  gap: 'var(--cl-space-3)',
-  flexWrap: 'wrap',
-  borderTop: '1px solid var(--cl-border-muted)',
-  paddingTop: 'var(--cl-space-2)',
-};
-const labelStyle: React.CSSProperties = {
-  display: 'grid',
-  gap: 'var(--cl-space-1)',
-  color: 'var(--cl-text-secondary)',
-};
-const inputStyle: React.CSSProperties = {
-  minWidth: 0,
-  padding: 'var(--cl-space-2)',
-  border: '1px solid var(--cl-border-muted)',
-  background: 'var(--cl-surface-base)',
-  color: 'inherit',
-};
-const mutedStyle: React.CSSProperties = {
-  color: 'var(--cl-text-muted)',
-  fontSize: 'var(--cl-font-size-sm)',
-};
-const fieldsetStyle: React.CSSProperties = {
-  border: '1px solid var(--cl-border-muted)',
-  padding: 'var(--cl-space-2)',
-  display: 'flex',
-  gap: 'var(--cl-space-3)',
-  flexWrap: 'wrap',
-};
-const checkboxLabelStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 'var(--cl-space-1)',
-};

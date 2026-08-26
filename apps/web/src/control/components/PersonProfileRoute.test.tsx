@@ -79,4 +79,25 @@ describe('PersonProfileRoute', () => {
 
     await waitFor(() => screen.getByText('Could not load this profile.'));
   });
+
+  it('renders within ListScreenTemplate structure (0147)', async () => {
+    const { container } = render(
+      withIntl(
+        <PersonProfileRoute
+          client={stubClient({
+            personId: 'person-1',
+            displayName: 'Elías Salomón',
+            nationality: 'AR',
+          })}
+          organizationAlias="liga-orbital"
+          personId="person-1"
+        />,
+      ),
+    );
+
+    await waitFor(() => screen.getByText('Elías Salomón'));
+    expect(container.querySelector('.cl-list-screen')).not.toBeNull();
+    expect(container.querySelector('.cl-list-screen__header')).not.toBeNull();
+    expect(container.querySelector('.cl-list-screen__listing')).not.toBeNull();
+  });
 });

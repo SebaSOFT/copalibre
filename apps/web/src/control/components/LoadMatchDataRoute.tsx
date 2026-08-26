@@ -18,6 +18,7 @@ import { controlTokenStore } from '../session/token-store.js';
 import { Button } from './ui/atoms/button.js';
 import { messages } from '../i18n/messages.en.js';
 import { useToast } from './ToastProvider.js';
+import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
 
 type LoadStatus =
   | { readonly kind: 'loading' }
@@ -72,7 +73,7 @@ function readFileText(file: File): Promise<string> {
 }
 
 /**
- * The bulk/structured entry screen (0106): a match's roster, its full event
+ * The bulk/structured entry screen (0106, 0147 template migration): a match's roster, its full event
  * history, and its result, submitted together — for a match played with no
  * live console present. Client-side only until "Submit match data" is
  * pressed; nothing here calls `setMatchRoster`/`recordMatchEvent`/
@@ -90,8 +91,8 @@ export function LoadMatchDataRoute({
   readonly client?: MatchConsoleApiClient;
 }): React.JSX.Element {
   const intl = useIntl();
-  const { push, pushError } = useToast();
   const language = isSupportedLanguage(intl.locale) ? intl.locale : 'en';
+  const { push, pushError } = useToast();
   const api = useMemo(
     () =>
       client ??
@@ -371,371 +372,416 @@ export function LoadMatchDataRoute({
     }
   }
 
-  return (
-    <section aria-label={intl.formatMessage(messages.loadMatchDataSectionLabel)} style={pageStyle}>
-      <header>
-        <p style={metaStyle}>
-          {intl.formatMessage(messages.loadMatchDataBreadcrumb, {
-            tournamentAlias,
-            matchId: matchId.slice(-8),
-          })}
-        </p>
-        <h1 style={titleStyle}>
-          <FormattedMessage {...messages.loadMatchDataTitle} />
-        </h1>
-      </header>
+  const breadcrumbNode = (
+    <span>
+      {intl.formatMessage(messages.loadMatchDataBreadcrumb, {
+        tournamentAlias,
+        matchId: matchId.slice(-8),
+      })}
+    </span>
+  );
 
+  const titleNode = <FormattedMessage {...messages.loadMatchDataTitle} />;
+
+  const listingNode = (
+    <div className="cl-platform-sections">
       <section
         aria-label={intl.formatMessage(messages.loadMatchDataRosterHeading)}
-        style={panelStyle}
+        className="cl-card cl-chamfer cl-chamfer--control"
       >
-        <h2 style={sectionTitleStyle}>
-          <FormattedMessage {...messages.loadMatchDataRosterHeading} />
-        </h2>
-        {projection.entrantIds.map((entrantId) => {
-          const candidates = candidatesByEntrant.get(entrantId);
-          return (
-            <div
-              key={entrantId}
-              className="cl-card cl-chamfer cl-chamfer--control"
-              style={editorStyle}
-            >
-              <h3 style={entrantHeaderStyle}>
-                {projection.rosters.find((roster) => roster.entrantId === entrantId)?.teamName ??
-                  entrantId.slice(-8)}
-              </h3>
-              {!candidates ? (
-                <p>{intl.formatMessage(messages.loadMatchDataRosterCandidatesLoading)}</p>
-              ) : (
-                <ul style={listStyle}>
-                  {candidates.map((candidate) => {
-                    const selection = selections[entrantId]?.[candidate.personId];
-                    if (!selection) return null;
-                    return (
-                      <li key={candidate.personId} style={rowStyle}>
-                        <label style={checkboxLabelStyle}>
-                          <input
-                            checked={selection.included}
-                            onChange={(event) =>
-                              updateSelection(entrantId, candidate.personId, {
-                                included: event.target.checked,
-                              })
-                            }
-                            type="checkbox"
-                          />
-                          {candidate.name}
-                        </label>
-                        <input
-                          aria-label={`${candidate.name} number`}
-                          disabled={!selection.included}
-                          onChange={(event) =>
-                            updateSelection(entrantId, candidate.personId, {
-                              number: event.target.value,
-                            })
-                          }
-                          style={numberInputStyle}
-                          value={selection.number}
-                        />
-                        <label style={checkboxLabelStyle}>
-                          <input
-                            checked={selection.onField}
-                            disabled={!selection.included}
-                            onChange={(event) =>
-                              updateSelection(entrantId, candidate.personId, {
-                                onField: event.target.checked,
-                              })
-                            }
-                            type="checkbox"
-                          />
-                          {intl.formatMessage(messages.matchConsoleOnField)}
-                        </label>
-                        {projection.rosterRoles.length > 0 && (
-                          <span style={roleRowStyle}>
-                            {projection.rosterRoles.map((role) => (
-                              <label key={role.code} style={checkboxLabelStyle}>
-                                <input
-                                  checked={selection.roles.includes(role.code)}
-                                  disabled={!selection.included}
-                                  onChange={(event) =>
-                                    updateSelection(entrantId, candidate.personId, {
-                                      roles: event.target.checked
-                                        ? [...selection.roles, role.code]
-                                        : selection.roles.filter((code) => code !== role.code),
-                                    })
-                                  }
-                                  type="checkbox"
-                                />
-                                {role.badge ?? role.code}
-                              </label>
-                            ))}
-                          </span>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
-          );
-        })}
+        <header className="cl-card__header">
+          <h2 className="cl-card__title">
+            <FormattedMessage {...messages.loadMatchDataRosterHeading} />
+          </h2>
+        </header>
+        <div className="cl-card__content">
+          {projection.entrantIds.map((entrantId) => {
+            const candidates = candidatesByEntrant.get(entrantId);
+            return (
+              <div key={entrantId} className="cl-card cl-chamfer cl-chamfer--control">
+                <header className="cl-card__header">
+                  <h3 className="cl-label">
+                    {projection.rosters.find((roster) => roster.entrantId === entrantId)
+                      ?.teamName ?? entrantId.slice(-8)}
+                  </h3>
+                </header>
+                <div className="cl-card__content">
+                  {!candidates ? (
+                    <p>{intl.formatMessage(messages.loadMatchDataRosterCandidatesLoading)}</p>
+                  ) : (
+                    <ul>
+                      {candidates.map((candidate) => {
+                        const selection = selections[entrantId]?.[candidate.personId];
+                        if (!selection) return null;
+                        return (
+                          <li key={candidate.personId} className="cl-role-user">
+                            <label className="cl-form-field">
+                              <input
+                                checked={selection.included}
+                                onChange={(event) =>
+                                  updateSelection(entrantId, candidate.personId, {
+                                    included: event.target.checked,
+                                  })
+                                }
+                                type="checkbox"
+                              />
+                              {candidate.name}
+                            </label>
+                            <input
+                              aria-label={`${candidate.name} number`}
+                              className="cl-input cl-input--default"
+                              disabled={!selection.included}
+                              onChange={(event) =>
+                                updateSelection(entrantId, candidate.personId, {
+                                  number: event.target.value,
+                                })
+                              }
+                              value={selection.number}
+                            />
+                            <label className="cl-form-field">
+                              <input
+                                checked={selection.onField}
+                                disabled={!selection.included}
+                                onChange={(event) =>
+                                  updateSelection(entrantId, candidate.personId, {
+                                    onField: event.target.checked,
+                                  })
+                                }
+                                type="checkbox"
+                              />
+                              {intl.formatMessage(messages.matchConsoleOnField)}
+                            </label>
+                            {projection.rosterRoles.length > 0 && (
+                              <span className="cl-role-user">
+                                {projection.rosterRoles.map((role) => (
+                                  <label key={role.code} className="cl-form-field">
+                                    <input
+                                      checked={selection.roles.includes(role.code)}
+                                      disabled={!selection.included}
+                                      onChange={(event) =>
+                                        updateSelection(entrantId, candidate.personId, {
+                                          roles: event.target.checked
+                                            ? [...selection.roles, role.code]
+                                            : selection.roles.filter((code) => code !== role.code),
+                                        })
+                                      }
+                                      type="checkbox"
+                                    />
+                                    {role.badge ?? role.code}
+                                  </label>
+                                ))}
+                              </span>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </section>
 
       <section
         aria-label={intl.formatMessage(messages.loadMatchDataSegmentsHeading)}
-        style={panelStyle}
+        className="cl-card cl-chamfer cl-chamfer--control"
       >
-        <h2 style={sectionTitleStyle}>
-          <FormattedMessage {...messages.loadMatchDataSegmentsHeading} />
-        </h2>
-        <ul style={listStyle}>
-          {segments.map((row, index) => (
-            <li key={row.key} style={rowStyle}>
-              <strong>{index + 1}</strong>
-              <label style={labelStyle}>
-                <FormattedMessage {...messages.loadMatchDataSegmentType} />
-                <input
-                  aria-label={intl.formatMessage(messages.loadMatchDataSegmentType)}
-                  onChange={(event) => updateSegment(row.key, { type: event.target.value })}
-                  placeholder={intl.formatMessage(messages.loadMatchDataSegmentTypePlaceholder)}
-                  style={inputStyle}
-                  value={row.type}
-                />
-              </label>
-              <label style={labelStyle}>
-                <FormattedMessage {...messages.loadMatchDataSegmentElapsedSeconds} />
-                <input
-                  aria-label={intl.formatMessage(messages.loadMatchDataSegmentElapsedSeconds)}
-                  min="0"
-                  onChange={(event) =>
-                    updateSegment(row.key, { elapsedSeconds: event.target.value })
-                  }
-                  style={inputStyle}
-                  type="number"
-                  value={row.elapsedSeconds}
-                />
-              </label>
-              <Button onClick={() => removeSegment(row.key)} type="button" variant="secondary">
-                <FormattedMessage {...messages.loadMatchDataRemoveSegment} />
-              </Button>
-            </li>
-          ))}
-        </ul>
-        <Button onClick={addSegment} type="button" variant="secondary">
-          <FormattedMessage {...messages.loadMatchDataAddSegment} />
-        </Button>
+        <header className="cl-card__header">
+          <h2 className="cl-card__title">
+            <FormattedMessage {...messages.loadMatchDataSegmentsHeading} />
+          </h2>
+        </header>
+        <div className="cl-card__content">
+          <ul>
+            {segments.map((row, index) => (
+              <li key={row.key} className="cl-role-user">
+                <strong>{index + 1}</strong>
+                <label className="cl-form-field">
+                  <span className="cl-label">
+                    <FormattedMessage {...messages.loadMatchDataSegmentType} />
+                  </span>
+                  <input
+                    aria-label={intl.formatMessage(messages.loadMatchDataSegmentType)}
+                    className="cl-input cl-input--default"
+                    onChange={(event) => updateSegment(row.key, { type: event.target.value })}
+                    placeholder={intl.formatMessage(messages.loadMatchDataSegmentTypePlaceholder)}
+                    value={row.type}
+                  />
+                </label>
+                <label className="cl-form-field">
+                  <span className="cl-label">
+                    <FormattedMessage {...messages.loadMatchDataSegmentElapsedSeconds} />
+                  </span>
+                  <input
+                    aria-label={intl.formatMessage(messages.loadMatchDataSegmentElapsedSeconds)}
+                    className="cl-input cl-input--default"
+                    min="0"
+                    onChange={(event) =>
+                      updateSegment(row.key, { elapsedSeconds: event.target.value })
+                    }
+                    type="number"
+                    value={row.elapsedSeconds}
+                  />
+                </label>
+                <Button onClick={() => removeSegment(row.key)} type="button" variant="secondary">
+                  <FormattedMessage {...messages.loadMatchDataRemoveSegment} />
+                </Button>
+              </li>
+            ))}
+          </ul>
+          <Button onClick={addSegment} type="button" variant="secondary">
+            <FormattedMessage {...messages.loadMatchDataAddSegment} />
+          </Button>
+        </div>
       </section>
 
       <section
         aria-label={intl.formatMessage(messages.loadMatchDataEventsHeading)}
-        style={panelStyle}
+        className="cl-card cl-chamfer cl-chamfer--control"
       >
-        <h2 style={sectionTitleStyle}>
-          <FormattedMessage {...messages.loadMatchDataEventsHeading} />
-        </h2>
-        {events.length === 0 && (
-          <p style={mutedStyle}>{intl.formatMessage(messages.loadMatchDataNoEvents)}</p>
-        )}
-        <ol style={listStyle}>
-          {events.map((row, index) => (
-            <li
-              key={row.key}
-              className="cl-card cl-chamfer cl-chamfer--control"
-              style={eventRowStyle}
-            >
-              <div style={eventGridStyle}>
-                <label style={labelStyle}>
-                  <FormattedMessage {...messages.loadMatchDataEventDefinition} />
-                  <select
-                    aria-label={intl.formatMessage(messages.loadMatchDataEventDefinition)}
-                    onChange={(event) =>
-                      updateEvent(row.key, { definitionCode: event.target.value })
-                    }
-                    style={inputStyle}
-                    value={row.definitionCode}
-                  >
-                    {projection.eventDefinitions.map((definition: ConsoleEventDefinition) => (
-                      <option key={definition.code} value={definition.code}>
-                        {resolveLabel(definition.label, language)}
+        <header className="cl-card__header">
+          <h2 className="cl-card__title">
+            <FormattedMessage {...messages.loadMatchDataEventsHeading} />
+          </h2>
+        </header>
+        <div className="cl-card__content">
+          {events.length === 0 && (
+            <p className="cl-card__description">
+              {intl.formatMessage(messages.loadMatchDataNoEvents)}
+            </p>
+          )}
+          <ol className="cl-platform-update-list">
+            {events.map((row, index) => (
+              <li key={row.key} className="cl-card cl-chamfer cl-chamfer--control">
+                <div className="cl-platform-form-grid">
+                  <label className="cl-form-field">
+                    <span className="cl-label">
+                      <FormattedMessage {...messages.loadMatchDataEventDefinition} />
+                    </span>
+                    <select
+                      aria-label={intl.formatMessage(messages.loadMatchDataEventDefinition)}
+                      className="cl-select cl-select--default"
+                      onChange={(event) =>
+                        updateEvent(row.key, { definitionCode: event.target.value })
+                      }
+                      value={row.definitionCode}
+                    >
+                      {projection.eventDefinitions.map((definition: ConsoleEventDefinition) => (
+                        <option key={definition.code} value={definition.code}>
+                          {resolveLabel(definition.label, language)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="cl-form-field">
+                    <span className="cl-label">
+                      <FormattedMessage {...messages.loadMatchDataEventSegment} />
+                    </span>
+                    <select
+                      aria-label={intl.formatMessage(messages.loadMatchDataEventSegment)}
+                      className="cl-select cl-select--default"
+                      onChange={(event) =>
+                        updateEvent(row.key, { segmentNumber: event.target.value })
+                      }
+                      value={row.segmentNumber}
+                    >
+                      <option value="" />
+                      {segments.map((segment, segmentIndex) => (
+                        <option key={segment.key} value={String(segmentIndex + 1)}>
+                          {segmentIndex + 1}. {segment.type || '—'}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="cl-form-field">
+                    <span className="cl-label">
+                      <FormattedMessage {...messages.loadMatchDataEventOccurredAt} />
+                    </span>
+                    <input
+                      aria-label={intl.formatMessage(messages.loadMatchDataEventOccurredAt)}
+                      className="cl-input cl-input--default"
+                      onChange={(event) => updateEvent(row.key, { occurredAt: event.target.value })}
+                      type="datetime-local"
+                      value={row.occurredAt}
+                    />
+                  </label>
+                  <label className="cl-form-field">
+                    <span className="cl-label">
+                      <FormattedMessage {...messages.loadMatchDataEventSide} />
+                    </span>
+                    <select
+                      aria-label={intl.formatMessage(messages.loadMatchDataEventSide)}
+                      className="cl-select cl-select--default"
+                      onChange={(event) => updateEvent(row.key, { side: event.target.value })}
+                      value={row.side}
+                    >
+                      <option value="">
+                        {intl.formatMessage(messages.loadMatchDataEventNoAttribution)}
                       </option>
-                    ))}
-                  </select>
-                </label>
-                <label style={labelStyle}>
-                  <FormattedMessage {...messages.loadMatchDataEventSegment} />
-                  <select
-                    aria-label={intl.formatMessage(messages.loadMatchDataEventSegment)}
-                    onChange={(event) =>
-                      updateEvent(row.key, { segmentNumber: event.target.value })
-                    }
-                    style={inputStyle}
-                    value={row.segmentNumber}
-                  >
-                    <option value="" />
-                    {segments.map((segment, segmentIndex) => (
-                      <option key={segment.key} value={String(segmentIndex + 1)}>
-                        {segmentIndex + 1}. {segment.type || '—'}
+                      {projection.entrantIds.map((entrantId) => (
+                        <option key={entrantId} value={entrantId}>
+                          {entrantId.slice(-8)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="cl-form-field">
+                    <span className="cl-label">
+                      <FormattedMessage {...messages.loadMatchDataEventPerson} />
+                    </span>
+                    <select
+                      aria-label={intl.formatMessage(messages.loadMatchDataEventPerson)}
+                      className="cl-select cl-select--default"
+                      onChange={(event) => updateEvent(row.key, { personId: event.target.value })}
+                      value={row.personId}
+                    >
+                      <option value="">
+                        {intl.formatMessage(messages.loadMatchDataEventNoAttribution)}
                       </option>
-                    ))}
-                  </select>
-                </label>
-                <label style={labelStyle}>
-                  <FormattedMessage {...messages.loadMatchDataEventOccurredAt} />
-                  <input
-                    aria-label={intl.formatMessage(messages.loadMatchDataEventOccurredAt)}
-                    onChange={(event) => updateEvent(row.key, { occurredAt: event.target.value })}
-                    style={inputStyle}
-                    type="datetime-local"
-                    value={row.occurredAt}
-                  />
-                </label>
-                <label style={labelStyle}>
-                  <FormattedMessage {...messages.loadMatchDataEventSide} />
-                  <select
-                    aria-label={intl.formatMessage(messages.loadMatchDataEventSide)}
-                    onChange={(event) => updateEvent(row.key, { side: event.target.value })}
-                    style={inputStyle}
-                    value={row.side}
+                      {includedMembers.map((member) => (
+                        <option key={member.personId} value={member.personId}>
+                          {member.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="cl-form-field">
+                    <span className="cl-label">
+                      <FormattedMessage {...messages.loadMatchDataEventNotes} />
+                    </span>
+                    <input
+                      aria-label={intl.formatMessage(messages.loadMatchDataEventNotes)}
+                      className="cl-input cl-input--default"
+                      onChange={(event) => updateEvent(row.key, { notes: event.target.value })}
+                      value={row.notes}
+                    />
+                  </label>
+                </div>
+                <div className="cl-role-user">
+                  <Button
+                    disabled={index === 0}
+                    onClick={() => moveEvent(row.key, -1)}
+                    type="button"
+                    variant="secondary"
                   >
-                    <option value="">
-                      {intl.formatMessage(messages.loadMatchDataEventNoAttribution)}
-                    </option>
-                    {projection.entrantIds.map((entrantId) => (
-                      <option key={entrantId} value={entrantId}>
-                        {entrantId.slice(-8)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label style={labelStyle}>
-                  <FormattedMessage {...messages.loadMatchDataEventPerson} />
-                  <select
-                    aria-label={intl.formatMessage(messages.loadMatchDataEventPerson)}
-                    onChange={(event) => updateEvent(row.key, { personId: event.target.value })}
-                    style={inputStyle}
-                    value={row.personId}
+                    <FormattedMessage {...messages.loadMatchDataMoveEventUp} />
+                  </Button>
+                  <Button
+                    disabled={index === events.length - 1}
+                    onClick={() => moveEvent(row.key, 1)}
+                    type="button"
+                    variant="secondary"
                   >
-                    <option value="">
-                      {intl.formatMessage(messages.loadMatchDataEventNoAttribution)}
-                    </option>
-                    {includedMembers.map((member) => (
-                      <option key={member.personId} value={member.personId}>
-                        {member.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label style={labelStyle}>
-                  <FormattedMessage {...messages.loadMatchDataEventNotes} />
-                  <input
-                    aria-label={intl.formatMessage(messages.loadMatchDataEventNotes)}
-                    onChange={(event) => updateEvent(row.key, { notes: event.target.value })}
-                    style={inputStyle}
-                    value={row.notes}
-                  />
-                </label>
-              </div>
-              <div style={eventActionsStyle}>
-                <Button
-                  disabled={index === 0}
-                  onClick={() => moveEvent(row.key, -1)}
-                  type="button"
-                  variant="secondary"
-                >
-                  <FormattedMessage {...messages.loadMatchDataMoveEventUp} />
-                </Button>
-                <Button
-                  disabled={index === events.length - 1}
-                  onClick={() => moveEvent(row.key, 1)}
-                  type="button"
-                  variant="secondary"
-                >
-                  <FormattedMessage {...messages.loadMatchDataMoveEventDown} />
-                </Button>
-                <Button onClick={() => removeEvent(row.key)} type="button" variant="secondary">
-                  <FormattedMessage {...messages.loadMatchDataRemoveEvent} />
-                </Button>
-              </div>
-            </li>
-          ))}
-        </ol>
-        <Button onClick={addEvent} type="button" variant="secondary">
-          <FormattedMessage {...messages.loadMatchDataAddEvent} />
-        </Button>
-      </section>
-
-      <section aria-label={intl.formatMessage(messages.loadMatchDataCsvHeading)} style={panelStyle}>
-        <h2 style={sectionTitleStyle}>
-          <FormattedMessage {...messages.loadMatchDataCsvHeading} />
-        </h2>
-        <p style={mutedStyle}>{intl.formatMessage(messages.loadMatchDataCsvHelp)}</p>
-        <div style={eventActionsStyle}>
-          <label className="cl-focusable" style={fileLabelStyle}>
-            {intl.formatMessage(messages.loadMatchDataCsvChooseFile)}
-            <input
-              accept=".csv,text/csv"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (file) loadCsv(file);
-                event.target.value = '';
-              }}
-              style={hiddenFileInputStyle}
-              type="file"
-            />
-          </label>
-          <Button onClick={() => downloadCsvTemplate()} type="button" variant="secondary">
-            <FormattedMessage {...messages.loadMatchDataCsvDownloadTemplate} />
+                    <FormattedMessage {...messages.loadMatchDataMoveEventDown} />
+                  </Button>
+                  <Button onClick={() => removeEvent(row.key)} type="button" variant="secondary">
+                    <FormattedMessage {...messages.loadMatchDataRemoveEvent} />
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ol>
+          <Button onClick={addEvent} type="button" variant="secondary">
+            <FormattedMessage {...messages.loadMatchDataAddEvent} />
           </Button>
         </div>
-        {csvErrors && csvErrors.length > 0 && (
-          <div className="cl-inline-alert" role="alert">
-            <p>
-              {intl.formatMessage(messages.loadMatchDataCsvErrorsHeading, {
-                count: csvErrors.length,
-              })}
-            </p>
-            <ul>
-              {csvErrors.map((error, index) => (
-                <li key={index}>
-                  {error.row > 0 ? `Row ${error.row}: ` : ''}
-                  {error.message}
-                </li>
-              ))}
-            </ul>
+      </section>
+
+      <section
+        aria-label={intl.formatMessage(messages.loadMatchDataCsvHeading)}
+        className="cl-card cl-chamfer cl-chamfer--control"
+      >
+        <header className="cl-card__header">
+          <h2 className="cl-card__title">
+            <FormattedMessage {...messages.loadMatchDataCsvHeading} />
+          </h2>
+        </header>
+        <div className="cl-card__content">
+          <p className="cl-card__description">
+            {intl.formatMessage(messages.loadMatchDataCsvHelp)}
+          </p>
+          <div className="cl-role-user">
+            <label className="cl-btn cl-btn--secondary cl-focusable">
+              {intl.formatMessage(messages.loadMatchDataCsvChooseFile)}
+              <input
+                accept=".csv,text/csv"
+                aria-label={intl.formatMessage(messages.loadMatchDataCsvChooseFile)}
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) loadCsv(file);
+                  event.target.value = '';
+                }}
+                style={{ display: 'none' }}
+                type="file"
+              />
+            </label>
+            <Button onClick={() => downloadCsvTemplate()} type="button" variant="secondary">
+              <FormattedMessage {...messages.loadMatchDataCsvDownloadTemplate} />
+            </Button>
           </div>
-        )}
+          {csvErrors && csvErrors.length > 0 && (
+            <div className="cl-inline-alert" role="alert">
+              <p>
+                {intl.formatMessage(messages.loadMatchDataCsvErrorsHeading, {
+                  count: csvErrors.length,
+                })}
+              </p>
+              <ul>
+                {csvErrors.map((error, index) => (
+                  <li key={index}>
+                    {error.row > 0 ? `Row ${error.row}: ` : ''}
+                    {error.message}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
       </section>
 
       <section
         aria-label={intl.formatMessage(messages.loadMatchDataResultHeading)}
-        style={panelStyle}
+        className="cl-card cl-chamfer cl-chamfer--control"
       >
-        <h2 style={sectionTitleStyle}>
-          <FormattedMessage {...messages.loadMatchDataResultHeading} />
-        </h2>
-        <label style={labelStyle}>
-          <FormattedMessage {...messages.loadMatchDataWinner} />
-          <select
-            aria-label={intl.formatMessage(messages.loadMatchDataWinner)}
-            onChange={(event) => setWinnerEntrantId(event.target.value)}
-            style={inputStyle}
-            value={winnerEntrantId}
-          >
-            <option value="">{intl.formatMessage(messages.loadMatchDataNoWinnerDraw)}</option>
-            {projection.entrantIds.map((entrantId) => (
-              <option key={entrantId} value={entrantId}>
-                {entrantId.slice(-8)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <Button disabled={submitting} onClick={() => void submit()} type="button">
-          {submitting
-            ? intl.formatMessage(messages.loadMatchDataSubmitting)
-            : intl.formatMessage(messages.loadMatchDataSubmit)}
-        </Button>
+        <header className="cl-card__header">
+          <h2 className="cl-card__title">
+            <FormattedMessage {...messages.loadMatchDataResultHeading} />
+          </h2>
+        </header>
+        <div className="cl-card__content">
+          <label className="cl-form-field">
+            <span className="cl-label">
+              <FormattedMessage {...messages.loadMatchDataWinner} />
+            </span>
+            <select
+              aria-label={intl.formatMessage(messages.loadMatchDataWinner)}
+              className="cl-select cl-select--default"
+              onChange={(event) => setWinnerEntrantId(event.target.value)}
+              value={winnerEntrantId}
+            >
+              <option value="">{intl.formatMessage(messages.loadMatchDataNoWinnerDraw)}</option>
+              {projection.entrantIds.map((entrantId) => (
+                <option key={entrantId} value={entrantId}>
+                  {entrantId.slice(-8)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <footer className="cl-card__footer">
+          <Button disabled={submitting} onClick={() => void submit()} type="button">
+            {submitting
+              ? intl.formatMessage(messages.loadMatchDataSubmitting)
+              : intl.formatMessage(messages.loadMatchDataSubmit)}
+          </Button>
+        </footer>
       </section>
-    </section>
+    </div>
   );
+
+  return <ListScreenTemplate breadcrumb={breadcrumbNode} listing={listingNode} title={titleNode} />;
 }
 
 function downloadCsvTemplate(): void {
@@ -749,100 +795,3 @@ function downloadCsvTemplate(): void {
   link.remove();
   URL.revokeObjectURL(url);
 }
-
-const pageStyle: React.CSSProperties = { display: 'grid', gap: 'var(--cl-space-5)' };
-const metaStyle: React.CSSProperties = {
-  color: 'var(--cl-text-muted)',
-  fontFamily: 'var(--cl-font-mono)',
-  margin: 0,
-};
-const titleStyle: React.CSSProperties = {
-  margin: 'var(--cl-space-1) 0 0',
-  fontFamily: 'var(--cl-font-display)',
-};
-const panelStyle: React.CSSProperties = {
-  border: '1px solid var(--cl-border-muted)',
-  padding: 'var(--cl-space-4)',
-  background: 'var(--cl-surface-panel)',
-};
-const sectionTitleStyle: React.CSSProperties = {
-  margin: '0 0 var(--cl-space-4)',
-  fontFamily: 'var(--cl-font-display)',
-};
-const editorStyle: React.CSSProperties = {
-  display: 'grid',
-  gap: 'var(--cl-space-3)',
-  marginBottom: 'var(--cl-space-4)',
-};
-const entrantHeaderStyle: React.CSSProperties = {
-  margin: 0,
-  fontFamily: 'var(--cl-font-mono)',
-  textTransform: 'uppercase',
-  fontSize: 'var(--cl-font-size-sm)',
-};
-const listStyle: React.CSSProperties = {
-  listStyle: 'none',
-  margin: 0,
-  padding: 0,
-  display: 'grid',
-  gap: 'var(--cl-space-2)',
-};
-const rowStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 'var(--cl-space-3)',
-  flexWrap: 'wrap',
-};
-const eventRowStyle: React.CSSProperties = {
-  display: 'grid',
-  gap: 'var(--cl-space-3)',
-  padding: 'var(--cl-space-3)',
-};
-const eventGridStyle: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-  gap: 'var(--cl-space-3)',
-};
-const eventActionsStyle: React.CSSProperties = {
-  display: 'flex',
-  gap: 'var(--cl-space-2)',
-  flexWrap: 'wrap',
-};
-const checkboxLabelStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 'var(--cl-space-1)',
-  fontSize: 'var(--cl-font-size-sm)',
-};
-const roleRowStyle: React.CSSProperties = { display: 'flex', gap: 'var(--cl-space-2)' };
-const numberInputStyle: React.CSSProperties = { width: '4rem' };
-const labelStyle: React.CSSProperties = {
-  display: 'grid',
-  gap: 'var(--cl-space-1)',
-  color: 'var(--cl-text-secondary)',
-};
-const inputStyle: React.CSSProperties = {
-  minWidth: 0,
-  padding: 'var(--cl-space-2)',
-  border: '1px solid var(--cl-border-muted)',
-  background: 'var(--cl-surface-base)',
-  color: 'inherit',
-};
-const mutedStyle: React.CSSProperties = {
-  color: 'var(--cl-text-muted)',
-  fontSize: 'var(--cl-font-size-sm)',
-};
-const fileLabelStyle: React.CSSProperties = {
-  position: 'relative',
-  display: 'inline-flex',
-  alignItems: 'center',
-  padding: 'var(--cl-space-2) var(--cl-space-3)',
-  border: '1px solid var(--cl-border-muted)',
-  cursor: 'pointer',
-};
-const hiddenFileInputStyle: React.CSSProperties = {
-  position: 'absolute',
-  inset: 0,
-  opacity: 0,
-  cursor: 'pointer',
-};

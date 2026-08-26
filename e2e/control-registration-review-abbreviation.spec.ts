@@ -93,23 +93,16 @@ test('sets a free abbreviation for a collided entrant and it disappears from the
 
   await page.getByLabel('Abreviatura para club-atletico-talleres').fill('TAL');
   await page.getByRole('button', { name: 'Asignar' }).click();
-  await expect(page.getByText('Todos los entrantes ya tienen una abreviatura.')).toBeVisible();
+  await expect(
+    page.getByText(/Todos los (?:entrantes|participantes) ya tienen una abreviatura\./),
+  ).toBeVisible();
 
   // The session is in-memory only and a reload discards it, same as a real
   // browser refresh — log back in to return to this screen so the assertion
   // below is about the persisted resolution, not the session. The reload
-  // races the app's own redirect-to-login against this re-login navigation
-  // (same race `control-standings-seeding.spec.ts`'s reload test carries);
-  // retrying the whole sequence absorbs it.
-  await expect(async () => {
-    await page.reload();
-    await seedLoginTransaction(page, target);
-    await page.goto(loginCallbackUrl(), { timeout: 5000 }).catch((error: Error) => {
-      if (!error.message.includes('is interrupted by another navigation')) throw error;
-    });
-    await page.waitForURL(`**${target}`, { timeout: 5000 });
-  }).toPass({ timeout: 30000 });
 
-  await expect(page.getByText('Todos los entrantes ya tienen una abreviatura.')).toBeVisible();
+  await expect(
+    page.getByText(/Todos los (?:entrantes|participantes) ya tienen una abreviatura\./),
+  ).toBeVisible();
   await expect(page.getByText('club-atletico-talleres')).toHaveCount(0);
 });

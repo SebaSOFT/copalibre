@@ -167,7 +167,7 @@ export function generateStyleGuide(cssHref = './copalibre.css'): string {
   </section>
 
   <section>
-    <h2>Plantillas (templates — 0141)</h2>
+    <h2>Plantillas (templates — 0141 / 0147)</h2>
     <div class="row">
       <div class="cl-list-screen cl-chamfer" style="width: 320px; padding: var(--cl-space-4); background: var(--cl-surface-panel);">
         <div class="cl-list-screen__header"><h3 class="cl-list-screen__title">Roles</h3></div>
@@ -182,6 +182,14 @@ export function generateStyleGuide(cssHref = './copalibre.css'): string {
           <div class="cl-form-screen__section-fields">Campos</div>
         </div>
         <div class="cl-form-screen__footer">Guardar</div>
+      </div>
+      <div class="cl-match-console-screen cl-chamfer" style="width: 320px; padding: var(--cl-space-4); background: var(--cl-surface-panel);">
+        <div class="cl-match-console-screen__header"><h3 class="cl-match-console-screen__title">Mendoza vs San Juan</h3></div>
+        <div class="cl-match-console-screen__scoreboard" style="padding: var(--cl-space-2);">Marcador</div>
+        <div class="cl-match-console-screen__workspace">
+          <div class="cl-match-console-screen__primary">Eventos</div>
+          <div class="cl-match-console-screen__rail">Cronómetro</div>
+        </div>
       </div>
     </div>
   </section>
