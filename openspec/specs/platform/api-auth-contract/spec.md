@@ -4,7 +4,9 @@
 Gives every CopaLibre client (public web, control web, CLI, future mobile/PWA/MCP) one documented,
 versioned, authenticated way to reach the backend, so no client surface invents its own auth or
 data-shape conventions.
+
 ## Requirements
+
 ### Requirement: JWT Bearer validation via JWKS
 The API SHALL validate every authenticated request's JWT against a controlled JWKS, rejecting any
 token with an invalid signature, disallowed algorithm, wrong issuer/audience, or expired/not-yet-
@@ -78,3 +80,24 @@ addition to external OIDC JWTs.
 - **THEN** the API layer validates the JWT signature and claims using the internal secret/key,
   successfully authenticating the user.
 
+### Requirement: Request body runtime validation
+
+The API SHALL validate every write request's body against its declared DTO shape at runtime before
+any handler code executes, rejecting a request whose required fields are missing or malformed, and
+stripping any property not declared on the DTO.
+
+#### Scenario: Missing required field
+
+- **WHEN** a client sends a write request whose body omits a field its DTO declares required
+- **THEN** the API rejects the request with 400 and does not execute handler code
+
+#### Scenario: Unexpected property
+
+- **WHEN** a client sends a write request whose body includes a property not declared on its DTO
+- **THEN** the API removes that property before the request reaches handler code and processes the
+  remaining, declared fields normally
+
+#### Scenario: Well-formed request is unaffected
+
+- **WHEN** a client sends a write request whose body matches its DTO's declared shape exactly
+- **THEN** the API processes the request identically to its behavior before this validation existed
