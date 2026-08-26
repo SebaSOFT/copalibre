@@ -329,6 +329,13 @@ describe('Auth Controllers', () => {
       expect(issued.statusCode).toBe(201);
       const credential = JSON.parse(issued.payload) as { readonly token: string };
 
+      const beforeCutover = await request({
+        method: 'GET',
+        url: '/auth/pat',
+        token: credential.token,
+      });
+      expect(beforeCutover.statusCode).toBe(200);
+
       await withTransaction(scratch.db, (uow) =>
         new PersonalAccessTokenRepository(scratch.db).revokeAllActive(uow, {
           actor: 'operator-cli',

@@ -56,7 +56,7 @@ export class JwtAuthGuard implements CanActivate {
 
     let subject;
     if (token.startsWith('clpat_')) {
-      subject = await this.verifyPat(token.slice(6));
+      subject = await this.verifyPat(token);
     } else {
       try {
         subject = await this.verifier.verify(token);
@@ -101,7 +101,7 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     // Fire-and-forget usage tracking
-    void patRepo.touchLastUsed(scope.tokenId);
+    void patRepo.touchLastUsed(scope.tokenId).catch(() => undefined);
 
     return {
       subjectId: scope.principalId,

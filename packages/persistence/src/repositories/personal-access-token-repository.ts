@@ -211,10 +211,14 @@ export class PersonalAccessTokenRepository {
 
   /** Fire-and-forget usage heartbeat; never gates authorization. */
   async touchLastUsed(tokenId: string): Promise<void> {
+    const observationWindowStart = new Date(Date.now() - 5 * 60 * 1000);
     await this.db
       .updateTable('personal_access_tokens')
       .set({ last_used_at: new Date() })
       .where('token_id', '=', tokenId)
+      .where((eb) =>
+        eb.or([eb('last_used_at', 'is', null), eb('last_used_at', '<', observationWindowStart)]),
+      )
       .execute();
   }
 
