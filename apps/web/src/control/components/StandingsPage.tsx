@@ -13,8 +13,10 @@ import {
 } from '../lib/table-projections.js';
 import { messages } from '../i18n/messages.en.js';
 
+import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
+
 /**
- * A5 — every declared table layout (group standings, top scorers, goalkeeper
+ * A5 (0147 template migration) — every declared table layout (group standings, top scorers, goalkeeper
  * rankings, …) behind one tab bar, rendering whichever columns the active
  * layout's own API response carries. Cells arrive pre-formatted; this
  * component sorts and lays out, and formats nothing of its own.
@@ -84,36 +86,33 @@ export function StandingsPage({
       .finally(() => setPending((current) => current.filter((id) => id !== actorId)));
   };
 
-  return (
-    <section aria-label={intl.formatMessage(messages.standingsSectionLabel)} style={stackStyle}>
-      <header style={headerStyle}>
-        <div>
-          <p style={metaStyle}>
-            {organizationAlias} &gt; {tournamentName}
-          </p>
-          <h1 style={titleStyle}>
-            <FormattedMessage {...messages.standingsTitle} />
-          </h1>
-        </div>
-        {projection && (
-          <p style={smallStyle}>
-            {intl.formatMessage(messages.standingsProjectionVersion, {
-              version: projection.projectionVersion,
-            })}
-          </p>
-        )}
-      </header>
+  const breadcrumbNode = (
+    <span>
+      {organizationAlias} &gt; {tournamentName}
+      {projection && (
+        <>
+          {' · '}
+          {intl.formatMessage(messages.standingsProjectionVersion, {
+            version: projection.projectionVersion,
+          })}
+        </>
+      )}
+    </span>
+  );
 
+  const titleNode = <FormattedMessage {...messages.standingsTitle} />;
+
+  const toolbarNode = (
+    <div className="cl-platform-form-grid">
       {tabs.length > 1 && (
-        <div role="tablist" style={tabListStyle}>
+        <div role="tablist" className="cl-table-toolbar__filters">
           {tabs.map((tab) => (
             <button
               aria-selected={tab.code === activeLayoutCode}
-              className="cl-focusable"
+              className={`cl-btn cl-focusable ${tab.code === activeLayoutCode ? 'cl-btn--primary' : 'cl-btn--secondary'}`}
               key={tab.code}
               onClick={() => onSelectLayout?.(tab.code)}
               role="tab"
-              style={tab.code === activeLayoutCode ? activeTabStyle : tabStyle}
               type="button"
             >
               {tab.label}
@@ -123,12 +122,14 @@ export function StandingsPage({
       )}
 
       {groupSelector && (
-        <label style={groupSelectorLabelStyle}>
-          <FormattedMessage {...messages.standingsGroupSelector} />
+        <label className="cl-form-field">
+          <span className="cl-label">
+            <FormattedMessage {...messages.standingsGroupSelector} />
+          </span>
           <select
             aria-label={intl.formatMessage(messages.standingsGroupSelector)}
+            className="cl-select cl-select--default"
             onChange={(event) => groupSelector.onSelect(event.target.value)}
-            style={groupSelectorStyle}
             value={groupSelector.selectedGroupId ?? ''}
           >
             {groupSelector.options.map((option) => (
@@ -139,128 +140,168 @@ export function StandingsPage({
           </select>
         </label>
       )}
+    </div>
+  );
 
+  const listingNode = (
+    <div className="cl-platform-sections">
       {tabs.length === 0 && status === undefined && (
-        <p style={emptyStyle}>
+        <p className="cl-list-screen__empty">
           <FormattedMessage {...messages.standingsNoLayouts} />
         </p>
       )}
 
-      {status !== undefined && <p style={smallStyle}>{status}</p>}
+      {status !== undefined && <p className="cl-inline-alert">{status}</p>}
 
       {projection && (
         <>
           <PointsDistribution bars={bars} />
 
           {onExportCsv && (
-            <button
-              className="cl-focusable cl-button"
-              onClick={onExportCsv}
-              style={exportButtonStyle}
-              type="button"
-            >
-              <FormattedMessage {...messages.standingsExportCsv} />
-            </button>
+            <div>
+              <button
+                className="cl-btn cl-btn--secondary cl-focusable"
+                onClick={onExportCsv}
+                type="button"
+              >
+                <FormattedMessage {...messages.standingsExportCsv} />
+              </button>
+            </div>
           )}
 
           <div
             aria-label={intl.formatMessage(messages.standingsSectionLabel)}
-            className="cl-card cl-chamfer cl-chamfer--control"
+            className="cl-data-table cl-card cl-chamfer cl-chamfer--control"
             role="region"
-            style={tableStyle}
             tabIndex={0}
           >
-            <div style={{ ...gridStyle(columns.length), ...tableHeaderStyle }}>
-              {columns.map((column) => (
-                <button
-                  className="cl-focusable"
-                  key={column.code}
-                  onClick={() => setSort(nextSort(sort, column.code))}
-                  style={headerButtonStyle}
-                  title={column.label}
-                  type="button"
-                >
-                  {column.shortLabel}
-                  {sort?.columnCode === column.code
-                    ? sort.direction === 'desc'
-                      ? ' ▾'
-                      : ' ▴'
-                    : ''}
-                </button>
-              ))}
-              {isGroupPhase && (
-                <span>
-                  <FormattedMessage {...messages.standingsTiebreak} />
-                </span>
-              )}
-            </div>
-
-            {rows.map((row) => {
-              const indicator = tiebreakIndicator(row);
-              return (
-                <details
-                  className="cl-focusable"
-                  key={row.actorId}
-                  onToggle={(event) => {
-                    if (isGroupPhase && event.currentTarget.open) expand(row.actorId);
-                  }}
-                  style={rowStyle}
-                >
-                  <summary style={{ ...gridStyle(columns.length), ...summaryStyle }}>
-                    {columns.map((column) => {
-                      const cell = row.cells[column.code];
-                      const isEntrantName =
-                        row.entrantName !== undefined && cell?.formatted === row.entrantName;
-                      return (
-                        <span key={column.code}>
-                          {isEntrantName ? (
-                            <EntrantName
-                              abbreviation={row.entrantAbbreviation}
-                              fullName={row.entrantName}
-                            />
-                          ) : (
-                            (cell?.formatted ?? '—')
-                          )}
-                        </span>
-                      );
-                    })}
-                    {isGroupPhase && (
-                      <span>
-                        {indicator.kind === 'none' ? (
-                          <span style={smallStyle}>—</span>
-                        ) : (
-                          // Icon and text together: the printed sheet on the venue
-                          // wall is grayscale, and so is a colour-blind operator's screen.
-                          <span className="cl-badge">
-                            <span aria-hidden="true">{indicator.icon}</span>{' '}
-                            {intl.formatMessage(messages.standingsSharedRank)}
-                          </span>
-                        )}
-                      </span>
-                    )}
-                  </summary>
-
+            <table className="cl-data-table__table">
+              <thead>
+                <tr>
+                  {columns.map((column) => (
+                    <th key={column.code} scope="col">
+                      <button
+                        className="cl-focusable"
+                        onClick={() => setSort(nextSort(sort, column.code))}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: 'inherit',
+                          font: 'inherit',
+                          padding: 0,
+                          cursor: 'pointer',
+                        }}
+                        title={column.label}
+                        type="button"
+                      >
+                        {column.shortLabel}
+                        {sort?.columnCode === column.code
+                          ? sort.direction === 'desc'
+                            ? ' ▾'
+                            : ' ▴'
+                          : ''}
+                      </button>
+                    </th>
+                  ))}
                   {isGroupPhase && (
-                    <div style={detailStyle}>
-                      <TiebreakTrace
-                        lines={traces[row.actorId]}
-                        loading={pending.includes(row.actorId)}
-                      />
-                    </div>
+                    <th scope="col">
+                      <FormattedMessage {...messages.standingsTiebreak} />
+                    </th>
                   )}
-                </details>
-              );
-            })}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => {
+                  const indicator = tiebreakIndicator(row);
+                  return (
+                    <tr key={row.actorId}>
+                      <td colSpan={columns.length + (isGroupPhase ? 1 : 0)} style={{ padding: 0 }}>
+                        <details
+                          className="cl-focusable"
+                          onToggle={(event) => {
+                            if (isGroupPhase && event.currentTarget.open) expand(row.actorId);
+                          }}
+                        >
+                          <summary
+                            style={{
+                              display: 'grid',
+                              gridTemplateColumns: `repeat(${columns.length}, minmax(3rem, 1fr)) 10rem`,
+                              gap: 'var(--cl-space-3)',
+                              alignItems: 'center',
+                              padding: 'var(--cl-space-4)',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {columns.map((column) => {
+                              const cell = row.cells[column.code];
+                              const isEntrantName =
+                                row.entrantName !== undefined &&
+                                cell?.formatted === row.entrantName;
+                              return (
+                                <span key={column.code}>
+                                  {isEntrantName ? (
+                                    <EntrantName
+                                      abbreviation={row.entrantAbbreviation}
+                                      fullName={row.entrantName}
+                                    />
+                                  ) : (
+                                    (cell?.formatted ?? '—')
+                                  )}
+                                </span>
+                              );
+                            })}
+                            {isGroupPhase && (
+                              <span>
+                                {indicator.kind === 'none' ? (
+                                  <span>—</span>
+                                ) : (
+                                  <span className="cl-badge">
+                                    <span aria-hidden="true">{indicator.icon}</span>{' '}
+                                    {intl.formatMessage(messages.standingsSharedRank)}
+                                  </span>
+                                )}
+                              </span>
+                            )}
+                          </summary>
+
+                          {isGroupPhase && (
+                            <div
+                              style={{
+                                padding: '0 var(--cl-space-4) var(--cl-space-4) var(--cl-space-6)',
+                              }}
+                            >
+                              <TiebreakTrace
+                                lines={traces[row.actorId]}
+                                loading={pending.includes(row.actorId)}
+                              />
+                            </div>
+                          )}
+                        </details>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
 
             {rows.length === 0 && (
-              <p style={emptyStyle}>
+              <p className="cl-data-table__empty">
                 <FormattedMessage {...messages.standingsNoResultsYet} />
               </p>
             )}
           </div>
         </>
       )}
-    </section>
+    </div>
+  );
+
+  return (
+    <ListScreenTemplate
+      breadcrumb={breadcrumbNode}
+      listing={listingNode}
+      title={titleNode}
+      toolbar={toolbarNode}
+    />
   );
 }
 
@@ -280,36 +321,37 @@ export function TiebreakTrace({
   const intl = useIntl();
   if (loading) {
     return (
-      <p style={smallStyle}>
+      <p className="cl-form-field__help">
         <FormattedMessage {...messages.standingsTraceLoading} />
       </p>
     );
   }
   if (lines === undefined) {
     return (
-      <p style={smallStyle}>
+      <p className="cl-form-field__help">
         <FormattedMessage {...messages.standingsTraceOpenRow} />
       </p>
     );
   }
   if (lines.length === 0) {
     return (
-      <p style={smallStyle}>
+      <p className="cl-form-field__help">
         <FormattedMessage {...messages.standingsTraceNoComparators} />
       </p>
     );
   }
 
   return (
-    <div aria-label={intl.formatMessage(messages.standingsTraceAriaLabel)} style={traceStyle}>
-      <h2 style={traceTitleStyle}>
+    <div
+      aria-label={intl.formatMessage(messages.standingsTraceAriaLabel)}
+      className="cl-platform-sections"
+    >
+      <h2 className="cl-label">
         <FormattedMessage {...messages.standingsTraceTitle} />
       </h2>
-      <ol style={traceListStyle}>
+      <ol className="cl-platform-update-list">
         {lines.map((line, index) => (
-          <li key={`${index}-${line}`} style={traceLineStyle}>
-            {line}
-          </li>
+          <li key={`${index}-${line}`}>{line}</li>
         ))}
       </ol>
     </div>
@@ -339,179 +381,54 @@ export function PointsDistribution({
     <div
       aria-label={intl.formatMessage(messages.standingsDistributionAriaLabel)}
       className="cl-card cl-chamfer"
-      style={chartStyle}
     >
-      <h2 style={chartTitleStyle}>
-        {intl.formatMessage(messages.standingsDistributionTitle, { count: bars.length })}
-      </h2>
-      {bars.map((bar) => (
-        <div key={bar.actorId} style={barRowStyle}>
-          <span style={barLabelStyle}>{bar.label}</span>
-          <span style={barTrackStyle}>
-            <span aria-hidden="true" style={{ ...barFillStyle, width: `${bar.widthPercent}%` }} />
-          </span>
-          <strong style={barValueStyle}>{bar.value}</strong>
-        </div>
-      ))}
-      {bars.length === 0 && (
-        <p style={smallStyle}>
-          <FormattedMessage {...messages.standingsDistributionEmpty} />
-        </p>
-      )}
+      <header className="cl-card__header">
+        <h2 className="cl-card__title">
+          {intl.formatMessage(messages.standingsDistributionTitle, { count: bars.length })}
+        </h2>
+      </header>
+      <div className="cl-card__content">
+        {bars.map((bar) => (
+          <div
+            key={bar.actorId}
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'minmax(6rem, 1fr) 4fr 3rem',
+              gap: 'var(--cl-space-3)',
+              alignItems: 'center',
+            }}
+          >
+            <span>{bar.label}</span>
+            <span
+              style={{
+                display: 'block',
+                height: 12,
+                background: 'var(--cl-surface-raised)',
+                border: '1px solid var(--cl-border-muted)',
+              }}
+            >
+              <span
+                aria-hidden="true"
+                style={{
+                  display: 'block',
+                  height: '100%',
+                  background: 'var(--cl-state-live)',
+                  transition: 'width 400ms ease-out',
+                  width: `${bar.widthPercent}%`,
+                }}
+              />
+            </span>
+            <strong style={{ fontFamily: 'var(--cl-font-mono)', textAlign: 'right' }}>
+              {bar.value}
+            </strong>
+          </div>
+        ))}
+        {bars.length === 0 && (
+          <p className="cl-card__description">
+            <FormattedMessage {...messages.standingsDistributionEmpty} />
+          </p>
+        )}
+      </div>
     </div>
   );
 }
-
-function gridStyle(columnCount: number): React.CSSProperties {
-  return {
-    display: 'grid',
-    gridTemplateColumns: `repeat(${columnCount}, minmax(3rem, 1fr)) 10rem`,
-    minWidth: `${columnCount * 64 + 160}px`,
-    gap: 'var(--cl-space-3)',
-    alignItems: 'center',
-  };
-}
-
-const stackStyle: React.CSSProperties = { display: 'grid', gap: 'var(--cl-space-6)' };
-const headerStyle: React.CSSProperties = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'end',
-  gap: 'var(--cl-space-4)',
-  flexWrap: 'wrap',
-};
-const metaStyle: React.CSSProperties = {
-  margin: 0,
-  color: 'var(--cl-state-live)',
-  fontFamily: 'var(--cl-font-mono)',
-  fontSize: 'var(--cl-font-size-xs)',
-  textTransform: 'uppercase',
-};
-const titleStyle: React.CSSProperties = {
-  margin: 0,
-  fontFamily: 'var(--cl-font-display)',
-  fontSize: 'var(--cl-font-size-3xl)',
-  textTransform: 'uppercase',
-};
-const smallStyle: React.CSSProperties = {
-  color: 'var(--cl-text-muted)',
-  fontFamily: 'var(--cl-font-mono)',
-  fontSize: 'var(--cl-font-size-xs)',
-};
-const groupSelectorLabelStyle: React.CSSProperties = {
-  display: 'grid',
-  gap: 'var(--cl-space-1)',
-  color: 'var(--cl-text-secondary)',
-  maxWidth: '20rem',
-};
-const groupSelectorStyle: React.CSSProperties = {
-  padding: 'var(--cl-space-2)',
-  border: '1px solid var(--cl-border-muted)',
-  background: 'var(--cl-surface-base)',
-  color: 'inherit',
-};
-const tabListStyle: React.CSSProperties = {
-  display: 'flex',
-  gap: 'var(--cl-space-2)',
-  flexWrap: 'wrap',
-};
-const tabStyle: React.CSSProperties = {
-  padding: 'var(--cl-space-2) var(--cl-space-4)',
-  border: '1px solid var(--cl-border-muted)',
-  background: 'transparent',
-  color: 'var(--cl-text-muted)',
-  fontFamily: 'var(--cl-font-mono)',
-  fontSize: 'var(--cl-font-size-xs)',
-  textTransform: 'uppercase',
-  cursor: 'pointer',
-};
-const activeTabStyle: React.CSSProperties = {
-  ...tabStyle,
-  background: 'var(--cl-surface-raised)',
-  color: 'var(--cl-text)',
-  borderColor: 'var(--cl-state-live)',
-};
-const exportButtonStyle: React.CSSProperties = { justifySelf: 'start' };
-const tableStyle: React.CSSProperties = {
-  display: 'grid',
-  gap: 0,
-  padding: 0,
-  overflowX: 'auto',
-  scrollbarGutter: 'stable',
-};
-const tableHeaderStyle: React.CSSProperties = {
-  padding: 'var(--cl-space-3) var(--cl-space-4)',
-  borderBottom: '1px solid var(--cl-border-muted)',
-  color: 'var(--cl-text-muted)',
-  fontFamily: 'var(--cl-font-mono)',
-  textTransform: 'uppercase',
-  fontSize: 'var(--cl-font-size-xs)',
-};
-const headerButtonStyle: React.CSSProperties = {
-  background: 'transparent',
-  border: 'none',
-  color: 'inherit',
-  font: 'inherit',
-  textTransform: 'inherit',
-  cursor: 'pointer',
-  padding: 0,
-  textAlign: 'left',
-};
-const rowStyle: React.CSSProperties = { borderBottom: '1px solid var(--cl-border-muted)' };
-const summaryStyle: React.CSSProperties = { padding: 'var(--cl-space-4)', cursor: 'pointer' };
-const detailStyle: React.CSSProperties = {
-  padding: '0 var(--cl-space-4) var(--cl-space-4) var(--cl-space-6)',
-};
-const emptyStyle: React.CSSProperties = { padding: 'var(--cl-space-4)' };
-const traceStyle: React.CSSProperties = { display: 'grid', gap: 'var(--cl-space-2)' };
-const traceTitleStyle: React.CSSProperties = {
-  margin: 0,
-  fontFamily: 'var(--cl-font-mono)',
-  fontSize: 'var(--cl-font-size-xs)',
-  textTransform: 'uppercase',
-  color: 'var(--cl-text-muted)',
-};
-const traceListStyle: React.CSSProperties = {
-  margin: 0,
-  paddingLeft: 'var(--cl-space-5)',
-  display: 'grid',
-  gap: 'var(--cl-space-1)',
-};
-const traceLineStyle: React.CSSProperties = {
-  fontFamily: 'var(--cl-font-mono)',
-  fontSize: 'var(--cl-font-size-sm)',
-  whiteSpace: 'pre-wrap',
-};
-const chartStyle: React.CSSProperties = { display: 'grid', gap: 'var(--cl-space-3)' };
-const chartTitleStyle: React.CSSProperties = {
-  margin: 0,
-  fontFamily: 'var(--cl-font-mono)',
-  fontSize: 'var(--cl-font-size-xs)',
-  textTransform: 'uppercase',
-  color: 'var(--cl-text-muted)',
-};
-const barRowStyle: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'minmax(6rem, 1fr) 4fr 3rem',
-  gap: 'var(--cl-space-3)',
-  alignItems: 'center',
-};
-const barLabelStyle: React.CSSProperties = { fontSize: 'var(--cl-font-size-sm)' };
-const barTrackStyle: React.CSSProperties = {
-  display: 'block',
-  height: 12,
-  background: 'var(--cl-surface-raised)',
-  border: '1px solid var(--cl-border-muted)',
-};
-const barFillStyle: React.CSSProperties = {
-  display: 'block',
-  height: '100%',
-  background: 'var(--cl-state-live)',
-  // Animates the value, not the layout: the row's height never changes, so a
-  // table below it does not jump while the chart settles.
-  transition: 'width 400ms ease-out',
-};
-const barValueStyle: React.CSSProperties = {
-  fontFamily: 'var(--cl-font-mono)',
-  textAlign: 'right',
-};

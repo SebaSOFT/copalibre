@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { render, screen } from '@testing-library/react';
 import { ListScreenTemplate } from './list-screen-template.js';
 import { FormScreenTemplate } from './form-screen-template.js';
+import { MatchConsoleTemplate } from './match-console-template.js';
 
 describe('ListScreenTemplate (0141)', () => {
   it('renders the same layout structure for two different content sets', () => {
@@ -67,6 +68,32 @@ describe('FormScreenTemplate (0141)', () => {
     );
     expect(container.querySelector('.cl-form-screen__breadcrumb')).toBeNull();
     expect(container.querySelector('.cl-form-screen__section-heading')).toBeNull();
+  });
+});
+
+describe('MatchConsoleTemplate (0147)', () => {
+  it('renders header, workspace, primary and rail regions with template layout classes', () => {
+    const { container } = render(
+      <MatchConsoleTemplate
+        alerts={<div className="alert">Alerta</div>}
+        breadcrumb="Torneo Apertura > Partido 1"
+        primary={<div className="controls">Controles</div>}
+        rail={<div className="ledger">Libro de eventos</div>}
+        scoreboard={<div className="score">2 - 1</div>}
+        status={<span>EN VIVO</span>}
+        syncStatus={<span>EN LÍNEA</span>}
+        title="Mendoza vs San Juan"
+      />,
+    );
+    expect(container.querySelector('.cl-match-console-screen')).not.toBeNull();
+    expect(container.querySelector('.cl-match-console-screen__header')).not.toBeNull();
+    expect(container.querySelector('.cl-match-console-screen__scoreboard')).not.toBeNull();
+    expect(container.querySelector('.cl-match-console-screen__workspace')).not.toBeNull();
+    expect(container.querySelector('.cl-match-console-screen__primary')).not.toBeNull();
+    expect(container.querySelector('.cl-match-console-screen__rail')).not.toBeNull();
+    expect(screen.getByText('Mendoza vs San Juan')).toBeDefined();
+    expect(screen.getByText('EN VIVO')).toBeDefined();
+    expect(screen.getByText('2 - 1')).toBeDefined();
   });
 });
 

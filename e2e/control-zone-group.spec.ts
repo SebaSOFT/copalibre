@@ -217,7 +217,9 @@ test('creates a second zone and group, assigns entrants manually, and reflects i
   await expect(groupsPanel.getByText('Grupo 2')).toBeVisible();
 
   // Assign entrants to Zona 2 manually.
-  const zoneAssignRegion = page.getByRole('region', { name: 'Asignar entrantes a zonas' });
+  const zoneAssignRegion = page.getByRole('region', {
+    name: /Asignar (?:entrantes|participantes) a zonas/,
+  });
   await zoneAssignRegion.getByText('Colocación manual').click();
   await zoneAssignRegion.getByLabel('Deportivo Norte — número').fill('2');
   await zoneAssignRegion.getByLabel('Atlético Sur — número').fill('2');
@@ -233,7 +235,9 @@ test('creates a second zone and group, assigns entrants manually, and reflects i
   ).toBe(true);
 
   // Assign entrants to Grupo 2 manually.
-  const groupAssignRegion = page.getByRole('region', { name: 'Asignar entrantes a grupos' });
+  const groupAssignRegion = page.getByRole('region', {
+    name: /Asignar (?:entrantes|participantes) a grupos/,
+  });
   await groupAssignRegion.getByText('Colocación manual').click();
   await groupAssignRegion.getByLabel('Deportivo Norte — número').fill('2');
   await groupAssignRegion.getByLabel('Atlético Sur — número').fill('2');
@@ -343,7 +347,7 @@ test('reviews a promotion plan and confirms nothing is written to the next stage
   await expect(page.getByText('No promotion plan for zone 1')).toBeVisible();
 
   await page.getByLabel('Número de la fase siguiente').fill('2');
-  await page.getByLabel('Entrantes que avanzan por grupo').fill('2');
+  await page.getByLabel(/(?:Entrantes|Participantes) que avanzan por grupo/).fill('2');
   await page.getByRole('button', { name: 'Guardar plan de promoción' }).click();
 
   await expect(page.getByText('Plan guardado.')).toBeVisible();

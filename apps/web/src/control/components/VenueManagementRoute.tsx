@@ -11,6 +11,7 @@ import { controlTokenStore } from '../session/token-store.js';
 import { Button } from './ui/atoms/button.js';
 import { messages } from '../i18n/messages.en.js';
 import { useToast } from './ToastProvider.js';
+import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
 
 const OFFICIAL_ROLES: readonly OfficialRole[] = [
   'referee',
@@ -20,7 +21,7 @@ const OFFICIAL_ROLES: readonly OfficialRole[] = [
 ];
 
 /**
- * Venue and official management (0124) — the resource pool a schedule
+ * Venue and official management (0124, 0147 template migration) — the resource pool a schedule
  * builder assigns from. `tournament-engine/resource-scheduling`'s
  * `createVenue`/`createOfficial` have existed since the capability was
  * accepted; this is the first screen (and the first API route, wired in
@@ -86,10 +87,6 @@ export function VenueManagementRoute({
     }
   }, [api, organizationAlias, intl]);
 
-  // Mount-time load, nested in a promise chain rather than a bare async
-  // call: keeps this effect out of react-hooks/set-state-in-effect's static
-  // reachability check, the same pattern `ClubManagementRoute` (0109) and
-  // `PreferencesRoute` (0121) already use.
   useEffect(() => {
     void Promise.resolve().then(() => reload());
   }, [reload]);
@@ -243,336 +240,314 @@ export function VenueManagementRoute({
     );
   }
 
-  return (
-    <section
-      aria-label={intl.formatMessage(messages.resourceManagementSectionLabel)}
-      style={pageStyle}
-    >
-      <header>
-        <h1 style={titleStyle}>
-          <FormattedMessage {...messages.resourceManagementTitle} />
-        </h1>
-      </header>
+  const breadcrumbNode = <span>{organizationAlias}</span>;
 
+  const titleNode = <FormattedMessage {...messages.resourceManagementTitle} />;
+
+  const listingNode = (
+    <div className="cl-platform-sections">
       <section
         aria-label={intl.formatMessage(messages.resourceManagementVenuesHeading)}
-        style={panelStyle}
+        className="cl-card cl-chamfer cl-chamfer--control"
       >
-        <h2 style={sectionTitleStyle}>
-          <FormattedMessage {...messages.resourceManagementVenuesHeading} />
-        </h2>
-        <ul style={listStyle}>
-          {venues.map((venue) => (
-            <li key={venue.venueId} style={rowStyle}>
-              <span>{venue.name}</span>
-              <Button onClick={() => selectVenue(venue)} type="button" variant="secondary">
-                <FormattedMessage {...messages.resourceManagementEdit} />
-              </Button>
-            </li>
-          ))}
-        </ul>
-        {venues.length === 0 && (
-          <p style={mutedStyle}>
-            <FormattedMessage {...messages.resourceManagementVenuesEmpty} />
-          </p>
-        )}
+        <header className="cl-card__header">
+          <h2 className="cl-card__title">
+            <FormattedMessage {...messages.resourceManagementVenuesHeading} />
+          </h2>
+        </header>
+        <div className="cl-card__content">
+          <ul>
+            {venues.map((venue) => (
+              <li key={venue.venueId} className="cl-role-user">
+                <span>{venue.name}</span>
+                <Button onClick={() => selectVenue(venue)} type="button" variant="secondary">
+                  <FormattedMessage {...messages.resourceManagementEdit} />
+                </Button>
+              </li>
+            ))}
+          </ul>
+          {venues.length === 0 && (
+            <p className="cl-card__description">
+              <FormattedMessage {...messages.resourceManagementVenuesEmpty} />
+            </p>
+          )}
 
-        {api.createVenue && (
-          <div style={formRowStyle}>
-            <label style={labelStyle}>
-              <FormattedMessage {...messages.resourceManagementNewVenueName} />
-              <input
-                aria-label={intl.formatMessage(messages.resourceManagementNewVenueName)}
-                onChange={(event) => setNewVenueName(event.target.value)}
-                style={inputStyle}
-                value={newVenueName}
-              />
-            </label>
-            <label style={labelStyle}>
-              <FormattedMessage {...messages.resourceManagementNewVenueAlias} />
-              <input
-                aria-label={intl.formatMessage(messages.resourceManagementNewVenueAlias)}
-                onChange={(event) => setNewVenueAlias(event.target.value)}
-                style={inputStyle}
-                value={newVenueAlias}
-              />
-            </label>
-            <label style={labelStyle}>
-              <FormattedMessage {...messages.resourceManagementNewVenueCapacity} />
-              <input
-                aria-label={intl.formatMessage(messages.resourceManagementNewVenueCapacity)}
-                min={1}
-                onChange={(event) => setNewVenueCapacity(event.target.value)}
-                style={inputStyle}
-                type="number"
-                value={newVenueCapacity}
-              />
-            </label>
-            <Button onClick={() => void createVenue()} type="button">
-              <FormattedMessage {...messages.resourceManagementAddVenue} />
-            </Button>
-          </div>
-        )}
+          {api.createVenue && (
+            <div className="cl-platform-form-grid">
+              <label className="cl-form-field">
+                <span className="cl-label">
+                  <FormattedMessage {...messages.resourceManagementNewVenueName} />
+                </span>
+                <input
+                  aria-label={intl.formatMessage(messages.resourceManagementNewVenueName)}
+                  className="cl-input cl-input--default"
+                  onChange={(event) => setNewVenueName(event.target.value)}
+                  style={{ minWidth: 0, padding: 'var(--cl-space-2)' }}
+                  value={newVenueName}
+                />
+              </label>
+              <label className="cl-form-field">
+                <span className="cl-label">
+                  <FormattedMessage {...messages.resourceManagementNewVenueAlias} />
+                </span>
+                <input
+                  aria-label={intl.formatMessage(messages.resourceManagementNewVenueAlias)}
+                  className="cl-input cl-input--default"
+                  onChange={(event) => setNewVenueAlias(event.target.value)}
+                  style={{ minWidth: 0, padding: 'var(--cl-space-2)' }}
+                  value={newVenueAlias}
+                />
+              </label>
+              <label className="cl-form-field">
+                <span className="cl-label">
+                  <FormattedMessage {...messages.resourceManagementNewVenueCapacity} />
+                </span>
+                <input
+                  aria-label={intl.formatMessage(messages.resourceManagementNewVenueCapacity)}
+                  className="cl-input cl-input--default"
+                  min={1}
+                  onChange={(event) => setNewVenueCapacity(event.target.value)}
+                  style={{ minWidth: 0, padding: 'var(--cl-space-2)' }}
+                  type="number"
+                  value={newVenueCapacity}
+                />
+              </label>
+              <Button onClick={() => void createVenue()} type="button">
+                <FormattedMessage {...messages.resourceManagementAddVenue} />
+              </Button>
+            </div>
+          )}
+        </div>
       </section>
 
       {selectedVenue && (
         <section
           aria-label={intl.formatMessage(messages.resourceManagementEditVenueHeading)}
-          style={panelStyle}
+          className="cl-card cl-chamfer cl-chamfer--control"
         >
-          <h2 style={sectionTitleStyle}>
-            <FormattedMessage {...messages.resourceManagementEditVenueHeading} />
-          </h2>
-          <div style={formRowStyle}>
-            <label style={labelStyle}>
-              <FormattedMessage {...messages.resourceManagementVenueName} />
-              <input
-                aria-label={intl.formatMessage(messages.resourceManagementVenueName)}
-                onChange={(event) => setEditVenueName(event.target.value)}
-                style={inputStyle}
-                value={editVenueName}
-              />
-            </label>
-            <label style={labelStyle}>
-              <FormattedMessage {...messages.resourceManagementVenueCapacity} />
-              <input
-                aria-label={intl.formatMessage(messages.resourceManagementVenueCapacity)}
-                min={1}
-                onChange={(event) => setEditVenueCapacity(event.target.value)}
-                style={inputStyle}
-                type="number"
-                value={editVenueCapacity}
-              />
-            </label>
-            <label style={labelStyle}>
-              <FormattedMessage {...messages.resourceManagementVenueAddress} />
-              <input
-                aria-label={intl.formatMessage(messages.resourceManagementVenueAddress)}
-                onChange={(event) => setEditVenueAddress(event.target.value)}
-                style={inputStyle}
-                value={editVenueAddress}
-              />
-            </label>
-          </div>
+          <header className="cl-card__header">
+            <h2 className="cl-card__title">
+              <FormattedMessage {...messages.resourceManagementEditVenueHeading} />
+            </h2>
+          </header>
+          <div className="cl-card__content">
+            <div className="cl-platform-form-grid">
+              <label className="cl-form-field">
+                <span className="cl-label">
+                  <FormattedMessage {...messages.resourceManagementVenueName} />
+                </span>
+                <input
+                  aria-label={intl.formatMessage(messages.resourceManagementVenueName)}
+                  className="cl-input cl-input--default"
+                  onChange={(event) => setEditVenueName(event.target.value)}
+                  value={editVenueName}
+                />
+              </label>
+              <label className="cl-form-field">
+                <span className="cl-label">
+                  <FormattedMessage {...messages.resourceManagementVenueCapacity} />
+                </span>
+                <input
+                  aria-label={intl.formatMessage(messages.resourceManagementVenueCapacity)}
+                  className="cl-input cl-input--default"
+                  min={1}
+                  onChange={(event) => setEditVenueCapacity(event.target.value)}
+                  type="number"
+                  value={editVenueCapacity}
+                />
+              </label>
+              <label className="cl-form-field">
+                <span className="cl-label">
+                  <FormattedMessage {...messages.resourceManagementVenueAddress} />
+                </span>
+                <input
+                  aria-label={intl.formatMessage(messages.resourceManagementVenueAddress)}
+                  className="cl-input cl-input--default"
+                  onChange={(event) => setEditVenueAddress(event.target.value)}
+                  value={editVenueAddress}
+                />
+              </label>
+            </div>
 
-          <div>
-            <h3 style={sectionTitleStyle}>
-              <FormattedMessage {...messages.resourceManagementDetailsHeading} />
-            </h3>
-            <p style={mutedStyle}>
-              <FormattedMessage {...messages.resourceManagementDetailsHint} />
-            </p>
-            {editVenueDetails.map((row, index) => (
-              <div key={index} style={formRowStyle}>
-                <input
-                  aria-label={intl.formatMessage(messages.resourceManagementDetailKey)}
-                  onChange={(event) =>
-                    setEditVenueDetails((current) =>
-                      current.map((entry, entryIndex) =>
-                        entryIndex === index ? { ...entry, key: event.target.value } : entry,
-                      ),
-                    )
-                  }
-                  placeholder={intl.formatMessage(messages.resourceManagementDetailKey)}
-                  style={inputStyle}
-                  value={row.key}
-                />
-                <input
-                  aria-label={intl.formatMessage(messages.resourceManagementDetailValue)}
-                  onChange={(event) =>
-                    setEditVenueDetails((current) =>
-                      current.map((entry, entryIndex) =>
-                        entryIndex === index ? { ...entry, value: event.target.value } : entry,
-                      ),
-                    )
-                  }
-                  placeholder={intl.formatMessage(messages.resourceManagementDetailValue)}
-                  style={inputStyle}
-                  value={row.value}
-                />
-                <Button
-                  onClick={() =>
-                    setEditVenueDetails((current) =>
-                      current.filter((_entry, entryIndex) => entryIndex !== index),
-                    )
-                  }
-                  type="button"
-                  variant="secondary"
-                >
-                  <FormattedMessage {...messages.resourceManagementRemoveDetail} />
-                </Button>
-              </div>
-            ))}
-            <Button
-              onClick={() => setEditVenueDetails((current) => [...current, { key: '', value: '' }])}
-              type="button"
-              variant="secondary"
-            >
-              <FormattedMessage {...messages.resourceManagementAddDetail} />
+            <div className="cl-platform-sections">
+              <header className="cl-card__header">
+                <h3 className="cl-card__title">
+                  <FormattedMessage {...messages.resourceManagementDetailsHeading} />
+                </h3>
+              </header>
+              <p className="cl-card__description">
+                <FormattedMessage {...messages.resourceManagementDetailsHint} />
+              </p>
+              {editVenueDetails.map((row, index) => (
+                <div key={index} className="cl-role-user">
+                  <input
+                    aria-label={intl.formatMessage(messages.resourceManagementDetailKey)}
+                    className="cl-input cl-input--default"
+                    onChange={(event) =>
+                      setEditVenueDetails((current) =>
+                        current.map((entry, entryIndex) =>
+                          entryIndex === index ? { ...entry, key: event.target.value } : entry,
+                        ),
+                      )
+                    }
+                    placeholder={intl.formatMessage(messages.resourceManagementDetailKey)}
+                    value={row.key}
+                  />
+                  <input
+                    aria-label={intl.formatMessage(messages.resourceManagementDetailValue)}
+                    className="cl-input cl-input--default"
+                    onChange={(event) =>
+                      setEditVenueDetails((current) =>
+                        current.map((entry, entryIndex) =>
+                          entryIndex === index ? { ...entry, value: event.target.value } : entry,
+                        ),
+                      )
+                    }
+                    placeholder={intl.formatMessage(messages.resourceManagementDetailValue)}
+                    value={row.value}
+                  />
+                  <Button
+                    onClick={() =>
+                      setEditVenueDetails((current) =>
+                        current.filter((_entry, entryIndex) => entryIndex !== index),
+                      )
+                    }
+                    type="button"
+                    variant="secondary"
+                  >
+                    <FormattedMessage {...messages.resourceManagementRemoveDetail} />
+                  </Button>
+                </div>
+              ))}
+              <Button
+                onClick={() =>
+                  setEditVenueDetails((current) => [...current, { key: '', value: '' }])
+                }
+                type="button"
+                variant="secondary"
+              >
+                <FormattedMessage {...messages.resourceManagementAddDetail} />
+              </Button>
+            </div>
+
+            <Button onClick={() => void saveVenue()} type="button">
+              <FormattedMessage {...messages.resourceManagementSaveVenueChanges} />
             </Button>
           </div>
-
-          <Button onClick={() => void saveVenue()} type="button">
-            <FormattedMessage {...messages.resourceManagementSaveVenueChanges} />
-          </Button>
         </section>
       )}
 
       <section
         aria-label={intl.formatMessage(messages.resourceManagementOfficialsHeading)}
-        style={panelStyle}
+        className="cl-card cl-chamfer cl-chamfer--control"
       >
-        <h2 style={sectionTitleStyle}>
-          <FormattedMessage {...messages.resourceManagementOfficialsHeading} />
-        </h2>
-        <ul style={listStyle}>
-          {officials.map((official) => (
-            <li key={official.officialId} style={rowStyle}>
-              <span>
-                {official.displayName} — {official.roles.map(roleLabel).join(', ')}
-              </span>
-              <Button onClick={() => selectOfficial(official)} type="button" variant="secondary">
-                <FormattedMessage {...messages.resourceManagementEdit} />
-              </Button>
-            </li>
-          ))}
-        </ul>
-        {officials.length === 0 && (
-          <p style={mutedStyle}>
-            <FormattedMessage {...messages.resourceManagementOfficialsEmpty} />
-          </p>
-        )}
+        <header className="cl-card__header">
+          <h2 className="cl-card__title">
+            <FormattedMessage {...messages.resourceManagementOfficialsHeading} />
+          </h2>
+        </header>
+        <div className="cl-card__content">
+          <ul>
+            {officials.map((official) => (
+              <li key={official.officialId} className="cl-role-user">
+                <span>
+                  {official.displayName} — {official.roles.map(roleLabel).join(', ')}
+                </span>
+                <Button onClick={() => selectOfficial(official)} type="button" variant="secondary">
+                  <FormattedMessage {...messages.resourceManagementEdit} />
+                </Button>
+              </li>
+            ))}
+          </ul>
+          {officials.length === 0 && (
+            <p className="cl-card__description">
+              <FormattedMessage {...messages.resourceManagementOfficialsEmpty} />
+            </p>
+          )}
 
-        {api.createOfficial && (
-          <div style={formRowStyle}>
-            <label style={labelStyle}>
-              <FormattedMessage {...messages.resourceManagementNewOfficialName} />
-              <input
-                aria-label={intl.formatMessage(messages.resourceManagementNewOfficialName)}
-                onChange={(event) => setNewOfficialName(event.target.value)}
-                style={inputStyle}
-                value={newOfficialName}
-              />
-            </label>
-            <fieldset style={fieldsetStyle}>
-              <legend>
-                <FormattedMessage {...messages.resourceManagementOfficialRoles} />
-              </legend>
-              {OFFICIAL_ROLES.map((role) => (
-                <label key={role} style={checkboxLabelStyle}>
-                  <input
-                    checked={newOfficialRoles.includes(role)}
-                    onChange={() => toggleRole(newOfficialRoles, role, setNewOfficialRoles)}
-                    type="checkbox"
-                  />
-                  {roleLabel(role)}
-                </label>
-              ))}
-            </fieldset>
-            <Button onClick={() => void createOfficial()} type="button">
-              <FormattedMessage {...messages.resourceManagementAddOfficial} />
-            </Button>
-          </div>
-        )}
+          {api.createOfficial && (
+            <div className="cl-platform-form-grid">
+              <label className="cl-form-field">
+                <span className="cl-label">
+                  <FormattedMessage {...messages.resourceManagementNewOfficialName} />
+                </span>
+                <input
+                  aria-label={intl.formatMessage(messages.resourceManagementNewOfficialName)}
+                  className="cl-input cl-input--default"
+                  onChange={(event) => setNewOfficialName(event.target.value)}
+                  value={newOfficialName}
+                />
+              </label>
+              <fieldset className="cl-role-user">
+                <legend className="cl-label">
+                  <FormattedMessage {...messages.resourceManagementOfficialRoles} />
+                </legend>
+                {OFFICIAL_ROLES.map((role) => (
+                  <label key={role} className="cl-form-field">
+                    <input
+                      checked={newOfficialRoles.includes(role)}
+                      onChange={() => toggleRole(newOfficialRoles, role, setNewOfficialRoles)}
+                      type="checkbox"
+                    />
+                    {roleLabel(role)}
+                  </label>
+                ))}
+              </fieldset>
+              <Button onClick={() => void createOfficial()} type="button">
+                <FormattedMessage {...messages.resourceManagementAddOfficial} />
+              </Button>
+            </div>
+          )}
+        </div>
       </section>
 
       {selectedOfficial && (
         <section
           aria-label={intl.formatMessage(messages.resourceManagementEditOfficialHeading)}
-          style={panelStyle}
+          className="cl-card cl-chamfer cl-chamfer--control"
         >
-          <h2 style={sectionTitleStyle}>
-            <FormattedMessage {...messages.resourceManagementEditOfficialHeading} />
-          </h2>
-          <div style={formRowStyle}>
-            <label style={labelStyle}>
-              <FormattedMessage {...messages.resourceManagementOfficialName} />
-              <input
-                aria-label={intl.formatMessage(messages.resourceManagementOfficialName)}
-                onChange={(event) => setEditOfficialName(event.target.value)}
-                style={inputStyle}
-                value={editOfficialName}
-              />
-            </label>
-            <fieldset style={fieldsetStyle}>
-              <legend>
-                <FormattedMessage {...messages.resourceManagementOfficialRoles} />
-              </legend>
-              {OFFICIAL_ROLES.map((role) => (
-                <label key={role} style={checkboxLabelStyle}>
-                  <input
-                    checked={editOfficialRoles.includes(role)}
-                    onChange={() => toggleRole(editOfficialRoles, role, setEditOfficialRoles)}
-                    type="checkbox"
-                  />
-                  {roleLabel(role)}
-                </label>
-              ))}
-            </fieldset>
-            <Button onClick={() => void saveOfficial()} type="button">
-              <FormattedMessage {...messages.resourceManagementSaveOfficialChanges} />
-            </Button>
+          <header className="cl-card__header">
+            <h2 className="cl-card__title">
+              <FormattedMessage {...messages.resourceManagementEditOfficialHeading} />
+            </h2>
+          </header>
+          <div className="cl-card__content">
+            <div className="cl-platform-form-grid">
+              <label className="cl-form-field">
+                <span className="cl-label">
+                  <FormattedMessage {...messages.resourceManagementOfficialName} />
+                </span>
+                <input
+                  aria-label={intl.formatMessage(messages.resourceManagementOfficialName)}
+                  className="cl-input cl-input--default"
+                  onChange={(event) => setEditOfficialName(event.target.value)}
+                  value={editOfficialName}
+                />
+              </label>
+              <fieldset className="cl-role-user">
+                <legend className="cl-label">
+                  <FormattedMessage {...messages.resourceManagementOfficialRoles} />
+                </legend>
+                {OFFICIAL_ROLES.map((role) => (
+                  <label key={role} className="cl-form-field">
+                    <input
+                      checked={editOfficialRoles.includes(role)}
+                      onChange={() => toggleRole(editOfficialRoles, role, setEditOfficialRoles)}
+                      type="checkbox"
+                    />
+                    {roleLabel(role)}
+                  </label>
+                ))}
+              </fieldset>
+              <Button onClick={() => void saveOfficial()} type="button">
+                <FormattedMessage {...messages.resourceManagementSaveOfficialChanges} />
+              </Button>
+            </div>
           </div>
         </section>
       )}
-    </section>
+    </div>
   );
-}
 
-const pageStyle: React.CSSProperties = { display: 'grid', gap: 'var(--cl-space-5)' };
-const titleStyle: React.CSSProperties = { margin: 0, fontFamily: 'var(--cl-font-display)' };
-const panelStyle: React.CSSProperties = {
-  border: '1px solid var(--cl-border-muted)',
-  padding: 'var(--cl-space-4)',
-  background: 'var(--cl-surface-panel)',
-  display: 'grid',
-  gap: 'var(--cl-space-3)',
-};
-const sectionTitleStyle: React.CSSProperties = { margin: 0, fontFamily: 'var(--cl-font-display)' };
-const listStyle: React.CSSProperties = {
-  listStyle: 'none',
-  margin: 0,
-  padding: 0,
-  display: 'grid',
-  gap: 'var(--cl-space-2)',
-};
-const rowStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 'var(--cl-space-3)',
-  justifyContent: 'space-between',
-};
-const formRowStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'end',
-  gap: 'var(--cl-space-3)',
-  flexWrap: 'wrap',
-};
-const labelStyle: React.CSSProperties = {
-  display: 'grid',
-  gap: 'var(--cl-space-1)',
-  color: 'var(--cl-text-secondary)',
-};
-const inputStyle: React.CSSProperties = {
-  minWidth: 0,
-  padding: 'var(--cl-space-2)',
-  border: '1px solid var(--cl-border-muted)',
-  background: 'var(--cl-surface-base)',
-  color: 'inherit',
-};
-const mutedStyle: React.CSSProperties = {
-  color: 'var(--cl-text-muted)',
-  fontSize: 'var(--cl-font-size-sm)',
-};
-const fieldsetStyle: React.CSSProperties = {
-  border: '1px solid var(--cl-border-muted)',
-  padding: 'var(--cl-space-2)',
-  display: 'flex',
-  gap: 'var(--cl-space-3)',
-  flexWrap: 'wrap',
-};
-const checkboxLabelStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 'var(--cl-space-1)',
-};
+  return <ListScreenTemplate breadcrumb={breadcrumbNode} listing={listingNode} title={titleNode} />;
+}

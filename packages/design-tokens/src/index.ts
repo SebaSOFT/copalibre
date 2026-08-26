@@ -35,6 +35,10 @@ export {
   TEXTAREA_TOKENS,
   CHECKBOX_TOKENS,
   DIALOG_TOKENS,
+  PAGINATION_TOKENS,
+  TOOLBAR_DENSITY_TOKENS,
+  FORM_SECTION_TOKENS,
+  MATCH_CONSOLE_TOKENS,
   assertBadge,
   BadgeContractError,
   type BadgeSpec,
@@ -47,6 +51,10 @@ export {
   type TextareaTokens,
   type CheckboxTokens,
   type DialogTokens,
+  type PaginationTokens,
+  type ToolbarDensityTokens,
+  type FormSectionTokens,
+  type MatchConsoleTokens,
 } from './components.js';
 export {
   FORBIDDEN,

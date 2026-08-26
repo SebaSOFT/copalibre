@@ -15,13 +15,15 @@ import { PersonPhotoPlaceholder } from './placeholders.js';
 import { FieldValue } from './ui/molecules/field-value.js';
 import { messages } from '../i18n/messages.en.js';
 
+import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
+
 type LoadStatus = 'loading' | 'ready' | 'failed';
 
 /**
- * A minimal person-profile view (0093 task 4.5): photo-or-placeholder,
- * display name, nationality flag, natural key. No edit affordances here —
- * nationality and photo are set from the registration review screen's
- * expanded row (design.md's non-goal rules out a separate "edit person"
+ * A minimal person-profile view (0093 task 4.5, 0147 template migration):
+ * photo-or-placeholder, display name, nationality flag, natural key. No edit
+ * affordances here — nationality and photo are set from the registration review
+ * screen's expanded row (design.md's non-goal rules out a separate "edit person"
  * screen).
  */
 export function PersonProfileRoute({
@@ -82,80 +84,59 @@ export function PersonProfileRoute({
     );
   }
 
-  return (
-    <section aria-label={intl.formatMessage(messages.personProfileTitle)} style={stackStyle}>
-      <a
-        className="cl-focusable"
-        href={backHref}
-        onClick={controlLinkClick(backHref)}
-        style={backLinkStyle}
-      >
-        {intl.formatMessage(messages.personProfileBack)}
-      </a>
-
-      <div className="cl-card cl-chamfer cl-chamfer--control" style={cardStyle}>
-        <FramedImage
-          key={person.photoObjectId ?? 'none'}
-          alt={intl.formatMessage(messages.personProfilePhotoAlt, {
-            displayName: person.displayName,
-          })}
-          placeholder={
-            <PersonPhotoPlaceholder
-              title={intl.formatMessage(messages.personProfilePhotoPlaceholderAlt)}
-            />
-          }
-          size={96}
-          src={
-            person.photoObjectId !== undefined
-              ? personPhotoUrl(organizationAlias, personId)
-              : undefined
-          }
-        />
-
-        <h1 style={nameStyle}>
-          {person.nationality !== undefined && (
-            <span aria-hidden="true">{countryFlag(person.nationality)} </span>
-          )}
-          {person.displayName}
-        </h1>
-
-        <FieldValue
-          label={intl.formatMessage(messages.personProfileNationalityLabel)}
-          value={
-            person.nationality === undefined
-              ? intl.formatMessage(messages.reviewNationalityNone)
-              : countryName(person.nationality, language)
-          }
-        />
-        <FieldValue
-          label={intl.formatMessage(messages.personProfileNaturalKeyLabel)}
-          value={
-            person.naturalKey === undefined
-              ? intl.formatMessage(messages.personProfileNaturalKeyUnavailable)
-              : `${person.naturalKey.kind}: ${person.naturalKey.value}`
-          }
-        />
-      </div>
-    </section>
+  const titleNode = (
+    <>
+      {person.nationality !== undefined && (
+        <span aria-hidden="true">{countryFlag(person.nationality)} </span>
+      )}
+      {person.displayName}
+    </>
   );
-}
 
-const stackStyle: React.CSSProperties = { display: 'grid', gap: 'var(--cl-space-4)' };
-const backLinkStyle: React.CSSProperties = {
-  color: 'var(--cl-state-live)',
-  fontFamily: 'var(--cl-font-mono)',
-  fontSize: 'var(--cl-font-size-xs)',
-  textTransform: 'uppercase',
-};
-const cardStyle: React.CSSProperties = {
-  display: 'grid',
-  justifyItems: 'start',
-  gap: 'var(--cl-space-3)',
-  padding: 'var(--cl-space-4)',
-};
-const nameStyle: React.CSSProperties = {
-  margin: 0,
-  fontFamily: 'var(--cl-font-display)',
-  fontSize: 'var(--cl-font-size-2xl)',
-  textTransform: 'uppercase',
-};
+  const breadcrumbNode = (
+    <a className="cl-focusable" href={backHref} onClick={controlLinkClick(backHref)}>
+      {intl.formatMessage(messages.personProfileBack)}
+    </a>
+  );
+
+  const cardNode = (
+    <div className="cl-card cl-chamfer cl-chamfer--control">
+      <FramedImage
+        key={person.photoObjectId ?? 'none'}
+        alt={intl.formatMessage(messages.personProfilePhotoAlt, {
+          displayName: person.displayName,
+        })}
+        placeholder={
+          <PersonPhotoPlaceholder
+            title={intl.formatMessage(messages.personProfilePhotoPlaceholderAlt)}
+          />
+        }
+        size={96}
+        src={
+          person.photoObjectId !== undefined
+            ? personPhotoUrl(organizationAlias, personId)
+            : undefined
+        }
+      />
+
+      <FieldValue
+        label={intl.formatMessage(messages.personProfileNationalityLabel)}
+        value={
+          person.nationality === undefined
+            ? intl.formatMessage(messages.reviewNationalityNone)
+            : countryName(person.nationality, language)
+        }
+      />
+      <FieldValue
+        label={intl.formatMessage(messages.personProfileNaturalKeyLabel)}
+        value={
+          person.naturalKey === undefined
+            ? intl.formatMessage(messages.personProfileNaturalKeyUnavailable)
+            : `${person.naturalKey.kind}: ${person.naturalKey.value}`
+        }
+      />
+    </div>
+  );
+
+  return <ListScreenTemplate breadcrumb={breadcrumbNode} listing={cardNode} title={titleNode} />;
+}

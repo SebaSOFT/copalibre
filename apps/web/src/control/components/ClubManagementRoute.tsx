@@ -14,8 +14,10 @@ import { Button } from './ui/atoms/button.js';
 import { messages } from '../i18n/messages.en.js';
 import { useToast } from './ToastProvider.js';
 
+import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
+
 /**
- * Club identity management (0109) — the first club-related component in the
+ * Club identity management (0109, 0147 template migration) — the first club-related component in the
  * app: list an organization's clubs, create one, edit its name/alias/
  * abbreviation, and upload or replace its emblem through the route
  * `0093` built with no caller until now.
@@ -66,12 +68,6 @@ export function ClubManagementRoute({
     }
   }, [api, organizationAlias, intl]);
 
-  // Mount-time load intentionally does not call `reload` (kept for the
-  // imperative re-fetch after create/save/upload): its setState calls sit
-  // directly in an async/await body, which react-hooks/set-state-in-effect
-  // flags when reachable from an effect. Nesting them inside a promise
-  // chain instead keeps them out of that static reachability check — the
-  // same pattern used by ZoneGroupRoute.tsx (0108).
   useEffect(() => {
     let live = true;
     const listClubs = api.listClubs;
@@ -168,18 +164,17 @@ export function ClubManagementRoute({
     );
   }
 
-  return (
-    <section aria-label={intl.formatMessage(messages.clubManagementSectionLabel)} style={pageStyle}>
-      <header>
-        <h1 style={titleStyle}>
-          <FormattedMessage {...messages.clubManagementTitle} />
-        </h1>
-      </header>
+  const titleNode = <FormattedMessage {...messages.clubManagementTitle} />;
 
-      <section aria-label={intl.formatMessage(messages.clubManagementTitle)} style={panelStyle}>
-        <ul style={listStyle}>
+  const listingNode = (
+    <div className="cl-platform-sections">
+      <section
+        aria-label={intl.formatMessage(messages.clubManagementTitle)}
+        className="cl-card cl-chamfer cl-chamfer--control"
+      >
+        <ul>
           {clubs.map((club) => (
-            <li key={club.clubId} style={rowStyle}>
+            <li key={club.clubId} className="cl-role-user">
               <FramedImage
                 alt={intl.formatMessage(messages.clubManagementEmblemAlt, { name: club.name })}
                 placeholder={
@@ -203,37 +198,43 @@ export function ClubManagementRoute({
           ))}
         </ul>
         {clubs.length === 0 && (
-          <p style={mutedStyle}>
+          <p className="cl-list-screen__empty">
             <FormattedMessage {...messages.clubManagementEmpty} />
           </p>
         )}
 
         {api.createClub && (
-          <div style={formRowStyle}>
-            <label style={labelStyle}>
-              <FormattedMessage {...messages.clubManagementNewClubName} />
+          <div className="cl-platform-form-grid">
+            <label className="cl-form-field">
+              <span className="cl-label">
+                <FormattedMessage {...messages.clubManagementNewClubName} />
+              </span>
               <input
                 aria-label={intl.formatMessage(messages.clubManagementNewClubName)}
+                className="cl-input cl-input--default"
                 onChange={(event) => setNewName(event.target.value)}
-                style={inputStyle}
                 value={newName}
               />
             </label>
-            <label style={labelStyle}>
-              <FormattedMessage {...messages.clubManagementNewClubAlias} />
+            <label className="cl-form-field">
+              <span className="cl-label">
+                <FormattedMessage {...messages.clubManagementNewClubAlias} />
+              </span>
               <input
                 aria-label={intl.formatMessage(messages.clubManagementNewClubAlias)}
+                className="cl-input cl-input--default"
                 onChange={(event) => setNewAlias(event.target.value)}
-                style={inputStyle}
                 value={newAlias}
               />
             </label>
-            <label style={labelStyle}>
-              <FormattedMessage {...messages.clubManagementNewClubAbbreviation} />
+            <label className="cl-form-field">
+              <span className="cl-label">
+                <FormattedMessage {...messages.clubManagementNewClubAbbreviation} />
+              </span>
               <input
                 aria-label={intl.formatMessage(messages.clubManagementNewClubAbbreviation)}
+                className="cl-input cl-input--default"
                 onChange={(event) => setNewAbbreviation(event.target.value)}
-                style={inputStyle}
                 value={newAbbreviation}
               />
             </label>
@@ -247,78 +248,91 @@ export function ClubManagementRoute({
       {selectedClub && (
         <section
           aria-label={intl.formatMessage(messages.clubManagementEditHeading)}
-          style={panelStyle}
+          className="cl-card cl-chamfer cl-chamfer--control"
         >
-          <h2 style={sectionTitleStyle}>
-            <FormattedMessage {...messages.clubManagementEditHeading} />
-          </h2>
+          <header className="cl-card__header">
+            <h2 className="cl-card__title">
+              <FormattedMessage {...messages.clubManagementEditHeading} />
+            </h2>
+          </header>
 
-          <FramedImage
-            key={selectedClub.emblemObjectId ?? 'none'}
-            alt={intl.formatMessage(messages.clubManagementEmblemAlt, {
-              name: selectedClub.name,
-            })}
-            placeholder={
-              <ClubEmblemPlaceholder
-                size={64}
-                title={intl.formatMessage(messages.clubManagementEmblemPlaceholderAlt)}
-              />
-            }
-            size={64}
-            src={
-              selectedClub.emblemObjectId !== undefined
-                ? clubEmblemUrl(organizationAlias, selectedClub.clubId)
-                : undefined
-            }
-          />
+          <div className="cl-card__content">
+            <FramedImage
+              key={selectedClub.emblemObjectId ?? 'none'}
+              alt={intl.formatMessage(messages.clubManagementEmblemAlt, {
+                name: selectedClub.name,
+              })}
+              placeholder={
+                <ClubEmblemPlaceholder
+                  size={64}
+                  title={intl.formatMessage(messages.clubManagementEmblemPlaceholderAlt)}
+                />
+              }
+              size={64}
+              src={
+                selectedClub.emblemObjectId !== undefined
+                  ? clubEmblemUrl(organizationAlias, selectedClub.clubId)
+                  : undefined
+              }
+            />
 
-          {api.uploadClubEmblem && (
-            <label>
-              <FormattedMessage {...messages.clubManagementUploadEmblem} />
-              <input
-                accept="image/*"
-                aria-label={intl.formatMessage(messages.clubManagementUploadEmblem)}
-                onChange={(event) => {
-                  const file = event.currentTarget.files?.[0];
-                  if (file) setEmblemCropSrc(URL.createObjectURL(file));
-                  event.currentTarget.value = '';
-                }}
-                type="file"
-              />
-            </label>
-          )}
+            {api.uploadClubEmblem && (
+              <label className="cl-form-field">
+                <span className="cl-label">
+                  <FormattedMessage {...messages.clubManagementUploadEmblem} />
+                </span>
+                <input
+                  accept="image/*"
+                  aria-label={intl.formatMessage(messages.clubManagementUploadEmblem)}
+                  className="cl-input cl-input--default"
+                  onChange={(event) => {
+                    const file = event.currentTarget.files?.[0];
+                    if (file) setEmblemCropSrc(URL.createObjectURL(file));
+                    event.currentTarget.value = '';
+                  }}
+                  type="file"
+                />
+              </label>
+            )}
 
-          <div style={formRowStyle}>
-            <label style={labelStyle}>
-              <FormattedMessage {...messages.clubManagementName} />
-              <input
-                aria-label={intl.formatMessage(messages.clubManagementName)}
-                onChange={(event) => setEditName(event.target.value)}
-                style={inputStyle}
-                value={editName}
-              />
-            </label>
-            <label style={labelStyle}>
-              <FormattedMessage {...messages.clubManagementAlias} />
-              <input
-                aria-label={intl.formatMessage(messages.clubManagementAlias)}
-                onChange={(event) => setEditAlias(event.target.value)}
-                style={inputStyle}
-                value={editAlias}
-              />
-            </label>
-            <label style={labelStyle}>
-              <FormattedMessage {...messages.clubManagementAbbreviation} />
-              <input
-                aria-label={intl.formatMessage(messages.clubManagementAbbreviation)}
-                onChange={(event) => setEditAbbreviation(event.target.value)}
-                style={inputStyle}
-                value={editAbbreviation}
-              />
-            </label>
-            <Button onClick={() => void saveClub()} type="button">
-              <FormattedMessage {...messages.clubManagementSaveChanges} />
-            </Button>
+            <div className="cl-platform-form-grid">
+              <label className="cl-form-field">
+                <span className="cl-label">
+                  <FormattedMessage {...messages.clubManagementName} />
+                </span>
+                <input
+                  aria-label={intl.formatMessage(messages.clubManagementName)}
+                  className="cl-input cl-input--default"
+                  onChange={(event) => setEditName(event.target.value)}
+                  value={editName}
+                />
+              </label>
+              <label className="cl-form-field">
+                <span className="cl-label">
+                  <FormattedMessage {...messages.clubManagementAlias} />
+                </span>
+                <input
+                  aria-label={intl.formatMessage(messages.clubManagementAlias)}
+                  className="cl-input cl-input--default"
+                  onChange={(event) => setEditAlias(event.target.value)}
+                  value={editAlias}
+                />
+              </label>
+              <label className="cl-form-field">
+                <span className="cl-label">
+                  <FormattedMessage {...messages.clubManagementAbbreviation} />
+                </span>
+                <input
+                  aria-label={intl.formatMessage(messages.clubManagementAbbreviation)}
+                  className="cl-input cl-input--default"
+                  onChange={(event) => setEditAbbreviation(event.target.value)}
+                  value={editAbbreviation}
+                />
+              </label>
+              <Button onClick={() => void saveClub()} type="button">
+                <FormattedMessage {...messages.clubManagementSaveChanges} />
+              </Button>
+            </div>
           </div>
         </section>
       )}
@@ -337,54 +351,8 @@ export function ClubManagementRoute({
           }}
         />
       )}
-    </section>
+    </div>
   );
-}
 
-const pageStyle: React.CSSProperties = { display: 'grid', gap: 'var(--cl-space-5)' };
-const titleStyle: React.CSSProperties = {
-  margin: 0,
-  fontFamily: 'var(--cl-font-display)',
-};
-const panelStyle: React.CSSProperties = {
-  border: '1px solid var(--cl-border-muted)',
-  padding: 'var(--cl-space-4)',
-  background: 'var(--cl-surface-panel)',
-  display: 'grid',
-  gap: 'var(--cl-space-3)',
-};
-const sectionTitleStyle: React.CSSProperties = { margin: 0, fontFamily: 'var(--cl-font-display)' };
-const listStyle: React.CSSProperties = {
-  listStyle: 'none',
-  margin: 0,
-  padding: 0,
-  display: 'grid',
-  gap: 'var(--cl-space-2)',
-};
-const rowStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 'var(--cl-space-3)',
-};
-const formRowStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'end',
-  gap: 'var(--cl-space-3)',
-  flexWrap: 'wrap',
-};
-const labelStyle: React.CSSProperties = {
-  display: 'grid',
-  gap: 'var(--cl-space-1)',
-  color: 'var(--cl-text-secondary)',
-};
-const inputStyle: React.CSSProperties = {
-  minWidth: 0,
-  padding: 'var(--cl-space-2)',
-  border: '1px solid var(--cl-border-muted)',
-  background: 'var(--cl-surface-base)',
-  color: 'inherit',
-};
-const mutedStyle: React.CSSProperties = {
-  color: 'var(--cl-text-muted)',
-  fontSize: 'var(--cl-font-size-sm)',
-};
+  return <ListScreenTemplate listing={listingNode} title={titleNode} />;
+}

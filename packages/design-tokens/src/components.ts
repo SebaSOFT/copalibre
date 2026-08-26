@@ -147,3 +147,71 @@ export const DIALOG_TOKENS: DialogTokens = {
   border: 'border-muted',
   elevation: '0 24px 48px -12px rgba(0, 0, 0, 0.55)',
 };
+
+/**
+ * Pagination, toolbar-density, form-section, and match-console template
+ * contracts (0147). Extends the template tier with tokens the remaining
+ * 11 Control-web screens need after 0141 shipped the tier system itself.
+ */
+
+export interface PaginationTokens {
+  readonly gap: string;
+  readonly buttonMinSize: string;
+  readonly activeBackground: SemanticColor;
+  readonly activeText: SemanticColor;
+  readonly inactiveText: SemanticColor;
+}
+
+export const PAGINATION_TOKENS: PaginationTokens = {
+  gap: TOUCH_TARGET === '44px' ? '4px' : '4px',
+  buttonMinSize: TOUCH_TARGET,
+  activeBackground: 'state-live',
+  activeText: 'surface-base',
+  inactiveText: 'text-primary',
+};
+
+export interface ToolbarDensityTokens {
+  readonly height: string;
+  readonly padding: string;
+  readonly gap: string;
+  readonly background: SemanticColor;
+  readonly border: SemanticColor;
+}
+
+export const TOOLBAR_DENSITY_TOKENS: ToolbarDensityTokens = {
+  height: TOUCH_TARGET,
+  padding: '8px',
+  gap: '8px',
+  background: 'surface-raised',
+  border: 'border-muted',
+};
+
+export interface FormSectionTokens {
+  readonly sectionGap: string;
+  readonly headingText: SemanticColor;
+  readonly fieldGap: string;
+}
+
+export const FORM_SECTION_TOKENS: FormSectionTokens = {
+  sectionGap: '24px',
+  headingText: 'text-primary',
+  fieldGap: '12px',
+};
+
+export interface MatchConsoleTokens {
+  readonly headerBackground: SemanticColor;
+  readonly headerBorder: SemanticColor;
+  readonly categoryRowGap: string;
+  readonly eventDetailGap: string;
+  readonly chromaLive: SemanticColor;
+  readonly chromaReferee: SemanticColor;
+}
+
+export const MATCH_CONSOLE_TOKENS: MatchConsoleTokens = {
+  headerBackground: 'surface-panel',
+  headerBorder: 'border-muted',
+  categoryRowGap: '8px',
+  eventDetailGap: '12px',
+  chromaLive: 'state-live',
+  chromaReferee: 'state-upcoming',
+};

@@ -12,6 +12,24 @@ import { useSyncExternalStore } from 'react';
  */
 
 const NAVIGATED_EVENT = 'copalibre:control-navigated';
+export const NAVIGATION_VISIBILITY_CHANGED_EVENT = 'copalibre:navigation-visibility-changed';
+
+export interface NavigationVisibilityDetail {
+  readonly routeId: string;
+  readonly visible: boolean;
+  readonly reason?: string;
+}
+
+/**
+ * Emits a synthetic `navigation_visibility_changed` event when an admin route
+ * is shown or hidden by feature flag (0147, design.md Decision 4).
+ */
+export function emitNavigationVisibilityChanged(detail: NavigationVisibilityDetail): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(
+    new CustomEvent<NavigationVisibilityDetail>(NAVIGATION_VISIBILITY_CHANGED_EVENT, { detail }),
+  );
+}
 
 /** Pushes a new control-panel path without reloading the page. */
 export function navigateControl(path: string): void {

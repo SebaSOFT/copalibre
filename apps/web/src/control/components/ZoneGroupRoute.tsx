@@ -14,6 +14,8 @@ import { Button } from './ui/atoms/button.js';
 import { messages } from '../i18n/messages.en.js';
 import { useToast } from './ToastProvider.js';
 
+import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
+
 type AssignMode = 'draw' | 'manual';
 
 /** entrantId → 1-based zone/group number, as a text field so an empty box is a legal in-progress state. */
@@ -21,7 +23,7 @@ type ManualPlacements = Readonly<Record<string, string>>;
 
 /**
  * Zone/Group management, entrant assignment, and the doorway to a zone's
- * promotion plan (0108) — the UI half of `0099-zone-group-and-promotion`.
+ * promotion plan (0108, 0147 template migration) — the UI half of `0099-zone-group-and-promotion`.
  * Client-side manual placements are only sent on "Save assignment"; nothing
  * here writes per-keystroke.
  */
@@ -88,14 +90,6 @@ export function ZoneGroupRoute({
     }
   }, [api, organizationAlias, tournamentAlias, stageNumber, intl]);
 
-  // Mount-time load intentionally does not call `reload` (used only for
-  // imperative re-fetches from event handlers, e.g. after a draw or a
-  // manual save): `reload`'s own setState calls sit directly in an
-  // async/await body, which react-hooks/set-state-in-effect flags when
-  // reachable from an effect. Nesting them inside a promise chain instead
-  // (as here) keeps them out of that static reachability check — the same
-  // pattern already used by RolesPermissionsRoute.tsx. `loading` starts
-  // `true` via useState, so there is no need to set it again here.
   useEffect(() => {
     let live = true;
     Promise.all([
@@ -311,153 +305,169 @@ export function ZoneGroupRoute({
 
   const selectedZone = zones.find((zone) => zone.number === selectedZoneNumber);
 
-  return (
-    <section aria-label={intl.formatMessage(messages.zoneGroupSectionLabel)} style={pageStyle}>
-      <header>
-        <p style={metaStyle}>
-          {intl.formatMessage(messages.zoneGroupBreadcrumb, { tournamentAlias, stageNumber })}
-        </p>
-        <h1 style={titleStyle}>
-          <FormattedMessage {...messages.zoneGroupTitle} />
-        </h1>
-      </header>
+  const breadcrumbNode = (
+    <span>
+      {intl.formatMessage(messages.zoneGroupBreadcrumb, { tournamentAlias, stageNumber })}
+    </span>
+  );
 
-      <section aria-label={intl.formatMessage(messages.zoneGroupZonesHeading)} style={panelStyle}>
-        <h2 style={sectionTitleStyle}>
-          <FormattedMessage {...messages.zoneGroupZonesHeading} />
-        </h2>
-        <ul style={listStyle}>
-          {zones.map((zone) => (
-            <li key={zone.zoneId} style={rowStyle}>
-              <strong>{zone.number}.</strong> {zone.name}
-            </li>
-          ))}
-        </ul>
-        {api.createZone && (
-          <div style={formRowStyle}>
-            <input
-              aria-label={intl.formatMessage(messages.zoneGroupNewZoneName)}
-              onChange={(event) => setNewZoneName(event.target.value)}
-              placeholder={intl.formatMessage(messages.zoneGroupNewZoneName)}
-              style={inputStyle}
-              value={newZoneName}
-            />
-            <Button onClick={() => void createZone()} type="button" variant="secondary">
-              <FormattedMessage {...messages.zoneGroupAddZone} />
-            </Button>
-          </div>
-        )}
+  const titleNode = <FormattedMessage {...messages.zoneGroupTitle} />;
+
+  const listingNode = (
+    <div className="cl-platform-sections">
+      <section
+        aria-label={intl.formatMessage(messages.zoneGroupZonesHeading)}
+        className="cl-card cl-chamfer cl-chamfer--control"
+      >
+        <header className="cl-card__header">
+          <h2 className="cl-card__title">
+            <FormattedMessage {...messages.zoneGroupZonesHeading} />
+          </h2>
+        </header>
+        <div className="cl-card__content">
+          <ul>
+            {zones.map((zone) => (
+              <li key={zone.number} className="cl-role-user">
+                <strong>{zone.number}.</strong> {zone.name}
+              </li>
+            ))}
+          </ul>
+          {api.createZone && (
+            <div className="cl-platform-form-grid">
+              <input
+                aria-label={intl.formatMessage(messages.zoneGroupNewZoneName)}
+                className="cl-input cl-input--default"
+                onChange={(event) => setNewZoneName(event.target.value)}
+                placeholder={intl.formatMessage(messages.zoneGroupNewZoneName)}
+                value={newZoneName}
+              />
+              <Button onClick={() => void createZone()} type="button" variant="secondary">
+                <FormattedMessage {...messages.zoneGroupAddZone} />
+              </Button>
+            </div>
+          )}
+        </div>
       </section>
 
       <section
         aria-label={intl.formatMessage(messages.zoneGroupAssignZonesHeading)}
-        style={panelStyle}
+        className="cl-card cl-chamfer cl-chamfer--control"
       >
-        <h2 style={sectionTitleStyle}>
-          <FormattedMessage {...messages.zoneGroupAssignZonesHeading} />
-        </h2>
-        <div style={modeRowStyle}>
-          <label style={radioLabelStyle}>
-            <input
-              checked={zoneMode === 'draw'}
-              name="zone-assign-mode"
-              onChange={() => setZoneMode('draw')}
-              type="radio"
-            />
-            <FormattedMessage {...messages.zoneGroupAutomaticDraw} />
-          </label>
-          <label style={radioLabelStyle}>
-            <input
-              checked={zoneMode === 'manual'}
-              name="zone-assign-mode"
-              onChange={() => setZoneMode('manual')}
-              type="radio"
-            />
-            <FormattedMessage {...messages.zoneGroupManualPlacement} />
-          </label>
+        <header className="cl-card__header">
+          <h2 className="cl-card__title">
+            <FormattedMessage {...messages.zoneGroupAssignZonesHeading} />
+          </h2>
+        </header>
+        <div className="cl-card__content">
+          <div className="cl-role-user">
+            <label className="cl-form-field">
+              <input
+                checked={zoneMode === 'draw'}
+                name="zone-assign-mode"
+                onChange={() => setZoneMode('draw')}
+                type="radio"
+              />
+              <FormattedMessage {...messages.zoneGroupAutomaticDraw} />
+            </label>
+            <label className="cl-form-field">
+              <input
+                checked={zoneMode === 'manual'}
+                name="zone-assign-mode"
+                onChange={() => setZoneMode('manual')}
+                type="radio"
+              />
+              <FormattedMessage {...messages.zoneGroupManualPlacement} />
+            </label>
+          </div>
+
+          {zoneMode === 'draw' ? (
+            <div className="cl-platform-form-grid">
+              <label className="cl-form-field">
+                <span className="cl-label">
+                  <FormattedMessage {...messages.zoneGroupZoneCount} />
+                </span>
+                <input
+                  aria-label={intl.formatMessage(messages.zoneGroupZoneCount)}
+                  className="cl-input cl-input--default"
+                  min="1"
+                  onChange={(event) => setZoneCount(event.target.value)}
+                  type="number"
+                  value={zoneCount}
+                />
+              </label>
+              <label className="cl-form-field">
+                <span className="cl-label">
+                  <FormattedMessage {...messages.zoneGroupSeed} />
+                </span>
+                <input
+                  aria-label={intl.formatMessage(messages.zoneGroupSeed)}
+                  className="cl-input cl-input--default"
+                  onChange={(event) => setZoneSeed(event.target.value)}
+                  type="number"
+                  value={zoneSeed}
+                />
+              </label>
+              <Button onClick={() => void previewZoneDraw()} type="button" variant="secondary">
+                <FormattedMessage {...messages.zoneGroupPreviewDraw} />
+              </Button>
+              <Button disabled={!zonePreview} onClick={() => void confirmZoneDraw()} type="button">
+                <FormattedMessage {...messages.zoneGroupConfirmDraw} />
+              </Button>
+            </div>
+          ) : (
+            <div>
+              <ul>
+                {entrants.map((entrant) => (
+                  <li key={entrant.entrantId} className="cl-role-user">
+                    <span>{entrantLabel(entrant.entrantId)}</span>
+                    <input
+                      aria-label={intl.formatMessage(messages.zoneGroupPlacementNumber, {
+                        name: entrantLabel(entrant.entrantId),
+                      })}
+                      className="cl-input cl-input--default"
+                      min="1"
+                      onChange={(event) =>
+                        setZonePlacements((current) => ({
+                          ...current,
+                          [entrant.entrantId]: event.target.value,
+                        }))
+                      }
+                      type="number"
+                      value={zonePlacements[entrant.entrantId] ?? ''}
+                    />
+                  </li>
+                ))}
+              </ul>
+              <Button onClick={() => void saveZoneManualAssignment()} type="button">
+                <FormattedMessage {...messages.zoneGroupSaveAssignment} />
+              </Button>
+            </div>
+          )}
+
+          {zonePreview && (
+            <p className="cl-card__description">
+              {intl.formatMessage(messages.zoneGroupPreviewResult, {
+                count: Object.keys(zonePreview.groups).length,
+              })}
+            </p>
+          )}
         </div>
-
-        {zoneMode === 'draw' ? (
-          <div style={formRowStyle}>
-            <label style={labelStyle}>
-              <FormattedMessage {...messages.zoneGroupZoneCount} />
-              <input
-                aria-label={intl.formatMessage(messages.zoneGroupZoneCount)}
-                min="1"
-                onChange={(event) => setZoneCount(event.target.value)}
-                style={inputStyle}
-                type="number"
-                value={zoneCount}
-              />
-            </label>
-            <label style={labelStyle}>
-              <FormattedMessage {...messages.zoneGroupSeed} />
-              <input
-                aria-label={intl.formatMessage(messages.zoneGroupSeed)}
-                onChange={(event) => setZoneSeed(event.target.value)}
-                style={inputStyle}
-                type="number"
-                value={zoneSeed}
-              />
-            </label>
-            <Button onClick={() => void previewZoneDraw()} type="button" variant="secondary">
-              <FormattedMessage {...messages.zoneGroupPreviewDraw} />
-            </Button>
-            <Button disabled={!zonePreview} onClick={() => void confirmZoneDraw()} type="button">
-              <FormattedMessage {...messages.zoneGroupConfirmDraw} />
-            </Button>
-          </div>
-        ) : (
-          <div>
-            <ul style={listStyle}>
-              {entrants.map((entrant) => (
-                <li key={entrant.entrantId} style={rowStyle}>
-                  <span>{entrantLabel(entrant.entrantId)}</span>
-                  <input
-                    aria-label={intl.formatMessage(messages.zoneGroupPlacementNumber, {
-                      name: entrantLabel(entrant.entrantId),
-                    })}
-                    min="1"
-                    onChange={(event) =>
-                      setZonePlacements((current) => ({
-                        ...current,
-                        [entrant.entrantId]: event.target.value,
-                      }))
-                    }
-                    style={numberInputStyle}
-                    type="number"
-                    value={zonePlacements[entrant.entrantId] ?? ''}
-                  />
-                </li>
-              ))}
-            </ul>
-            <Button onClick={() => void saveZoneManualAssignment()} type="button">
-              <FormattedMessage {...messages.zoneGroupSaveAssignment} />
-            </Button>
-          </div>
-        )}
-
-        {zonePreview && (
-          <p style={mutedStyle}>
-            {intl.formatMessage(messages.zoneGroupPreviewResult, {
-              count: Object.keys(zonePreview.groups).length,
-            })}
-          </p>
-        )}
       </section>
 
       {zones.length > 0 && (
         <>
-          <label style={labelStyle}>
-            <FormattedMessage {...messages.zoneGroupSelectZone} />
+          <label className="cl-form-field">
+            <span className="cl-label">
+              <FormattedMessage {...messages.zoneGroupSelectZone} />
+            </span>
             <select
               aria-label={intl.formatMessage(messages.zoneGroupSelectZone)}
+              className="cl-select cl-select--default"
               onChange={(event) => setSelectedZoneNumber(Number(event.target.value))}
-              style={inputStyle}
               value={selectedZoneNumber ?? ''}
             >
               {zones.map((zone) => (
-                <option key={zone.zoneId} value={zone.number}>
+                <option key={zone.number} value={zone.number}>
                   {zone.name}
                 </option>
               ))}
@@ -466,133 +476,145 @@ export function ZoneGroupRoute({
 
           <section
             aria-label={intl.formatMessage(messages.zoneGroupGroupsHeading)}
-            style={panelStyle}
+            className="cl-card cl-chamfer cl-chamfer--control"
           >
-            <h2 style={sectionTitleStyle}>
-              <FormattedMessage {...messages.zoneGroupGroupsHeading} />
-            </h2>
-            <ul style={listStyle}>
-              {groups.map((group) => (
-                <li key={group.groupId} style={rowStyle}>
-                  <strong>{group.number}.</strong> {group.name}
-                </li>
-              ))}
-            </ul>
-            {api.createGroup && (
-              <div style={formRowStyle}>
-                <input
-                  aria-label={intl.formatMessage(messages.zoneGroupNewGroupName)}
-                  onChange={(event) => setNewGroupName(event.target.value)}
-                  placeholder={intl.formatMessage(messages.zoneGroupNewGroupName)}
-                  style={inputStyle}
-                  value={newGroupName}
-                />
-                <Button onClick={() => void createGroup()} type="button" variant="secondary">
-                  <FormattedMessage {...messages.zoneGroupAddGroup} />
-                </Button>
-              </div>
-            )}
+            <header className="cl-card__header">
+              <h2 className="cl-card__title">
+                <FormattedMessage {...messages.zoneGroupGroupsHeading} />
+              </h2>
+            </header>
+            <div className="cl-card__content">
+              <ul>
+                {groups.map((group) => (
+                  <li key={group.number} className="cl-role-user">
+                    <strong>{group.number}.</strong> {group.name}
+                  </li>
+                ))}
+              </ul>
+              {api.createGroup && (
+                <div className="cl-platform-form-grid">
+                  <input
+                    aria-label={intl.formatMessage(messages.zoneGroupNewGroupName)}
+                    className="cl-input cl-input--default"
+                    onChange={(event) => setNewGroupName(event.target.value)}
+                    placeholder={intl.formatMessage(messages.zoneGroupNewGroupName)}
+                    value={newGroupName}
+                  />
+                  <Button onClick={() => void createGroup()} type="button" variant="secondary">
+                    <FormattedMessage {...messages.zoneGroupAddGroup} />
+                  </Button>
+                </div>
+              )}
+            </div>
           </section>
 
           <section
             aria-label={intl.formatMessage(messages.zoneGroupAssignGroupsHeading)}
-            style={panelStyle}
+            className="cl-card cl-chamfer cl-chamfer--control"
           >
-            <h2 style={sectionTitleStyle}>
-              <FormattedMessage {...messages.zoneGroupAssignGroupsHeading} />
-            </h2>
-            <div style={modeRowStyle}>
-              <label style={radioLabelStyle}>
-                <input
-                  checked={groupMode === 'draw'}
-                  name="group-assign-mode"
-                  onChange={() => setGroupMode('draw')}
-                  type="radio"
-                />
-                <FormattedMessage {...messages.zoneGroupAutomaticDraw} />
-              </label>
-              <label style={radioLabelStyle}>
-                <input
-                  checked={groupMode === 'manual'}
-                  name="group-assign-mode"
-                  onChange={() => setGroupMode('manual')}
-                  type="radio"
-                />
-                <FormattedMessage {...messages.zoneGroupManualPlacement} />
-              </label>
+            <header className="cl-card__header">
+              <h2 className="cl-card__title">
+                <FormattedMessage {...messages.zoneGroupAssignGroupsHeading} />
+              </h2>
+            </header>
+            <div className="cl-card__content">
+              <div className="cl-role-user">
+                <label className="cl-form-field">
+                  <input
+                    checked={groupMode === 'draw'}
+                    name="group-assign-mode"
+                    onChange={() => setGroupMode('draw')}
+                    type="radio"
+                  />
+                  <FormattedMessage {...messages.zoneGroupAutomaticDraw} />
+                </label>
+                <label className="cl-form-field">
+                  <input
+                    checked={groupMode === 'manual'}
+                    name="group-assign-mode"
+                    onChange={() => setGroupMode('manual')}
+                    type="radio"
+                  />
+                  <FormattedMessage {...messages.zoneGroupManualPlacement} />
+                </label>
+              </div>
+
+              {groupMode === 'draw' ? (
+                <div className="cl-platform-form-grid">
+                  <label className="cl-form-field">
+                    <span className="cl-label">
+                      <FormattedMessage {...messages.zoneGroupGroupCount} />
+                    </span>
+                    <input
+                      aria-label={intl.formatMessage(messages.zoneGroupGroupCount)}
+                      className="cl-input cl-input--default"
+                      min="1"
+                      onChange={(event) => setGroupCount(event.target.value)}
+                      type="number"
+                      value={groupCount}
+                    />
+                  </label>
+                  <label className="cl-form-field">
+                    <span className="cl-label">
+                      <FormattedMessage {...messages.zoneGroupSeed} />
+                    </span>
+                    <input
+                      aria-label={intl.formatMessage(messages.zoneGroupSeed)}
+                      className="cl-input cl-input--default"
+                      onChange={(event) => setGroupSeed(event.target.value)}
+                      type="number"
+                      value={groupSeed}
+                    />
+                  </label>
+                  <Button onClick={() => void previewGroupDraw()} type="button" variant="secondary">
+                    <FormattedMessage {...messages.zoneGroupPreviewDraw} />
+                  </Button>
+                  <Button
+                    disabled={!groupPreview}
+                    onClick={() => void confirmGroupDraw()}
+                    type="button"
+                  >
+                    <FormattedMessage {...messages.zoneGroupConfirmDraw} />
+                  </Button>
+                </div>
+              ) : (
+                <div>
+                  <ul>
+                    {zoneEntrantIds.map((entrantId) => (
+                      <li key={entrantId} className="cl-role-user">
+                        <span>{entrantLabel(entrantId)}</span>
+                        <input
+                          aria-label={intl.formatMessage(messages.zoneGroupPlacementNumber, {
+                            name: entrantLabel(entrantId),
+                          })}
+                          className="cl-input cl-input--default"
+                          min="1"
+                          onChange={(event) =>
+                            setGroupPlacements((current) => ({
+                              ...current,
+                              [entrantId]: event.target.value,
+                            }))
+                          }
+                          type="number"
+                          value={groupPlacements[entrantId] ?? ''}
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                  <Button onClick={() => void saveGroupManualAssignment()} type="button">
+                    <FormattedMessage {...messages.zoneGroupSaveAssignment} />
+                  </Button>
+                </div>
+              )}
+
+              {groupPreview && (
+                <p className="cl-card__description">
+                  {intl.formatMessage(messages.zoneGroupPreviewResult, {
+                    count: Object.keys(groupPreview.groups).length,
+                  })}
+                </p>
+              )}
             </div>
-
-            {groupMode === 'draw' ? (
-              <div style={formRowStyle}>
-                <label style={labelStyle}>
-                  <FormattedMessage {...messages.zoneGroupGroupCount} />
-                  <input
-                    aria-label={intl.formatMessage(messages.zoneGroupGroupCount)}
-                    min="1"
-                    onChange={(event) => setGroupCount(event.target.value)}
-                    style={inputStyle}
-                    type="number"
-                    value={groupCount}
-                  />
-                </label>
-                <label style={labelStyle}>
-                  <FormattedMessage {...messages.zoneGroupSeed} />
-                  <input
-                    aria-label={intl.formatMessage(messages.zoneGroupSeed)}
-                    onChange={(event) => setGroupSeed(event.target.value)}
-                    style={inputStyle}
-                    type="number"
-                    value={groupSeed}
-                  />
-                </label>
-                <Button onClick={() => void previewGroupDraw()} type="button" variant="secondary">
-                  <FormattedMessage {...messages.zoneGroupPreviewDraw} />
-                </Button>
-                <Button
-                  disabled={!groupPreview}
-                  onClick={() => void confirmGroupDraw()}
-                  type="button"
-                >
-                  <FormattedMessage {...messages.zoneGroupConfirmDraw} />
-                </Button>
-              </div>
-            ) : (
-              <div>
-                <ul style={listStyle}>
-                  {zoneEntrantIds.map((entrantId) => (
-                    <li key={entrantId} style={rowStyle}>
-                      <span>{entrantLabel(entrantId)}</span>
-                      <input
-                        aria-label={intl.formatMessage(messages.zoneGroupPlacementNumber, {
-                          name: entrantLabel(entrantId),
-                        })}
-                        min="1"
-                        onChange={(event) =>
-                          setGroupPlacements((current) => ({
-                            ...current,
-                            [entrantId]: event.target.value,
-                          }))
-                        }
-                        style={numberInputStyle}
-                        type="number"
-                        value={groupPlacements[entrantId] ?? ''}
-                      />
-                    </li>
-                  ))}
-                </ul>
-                <Button onClick={() => void saveGroupManualAssignment()} type="button">
-                  <FormattedMessage {...messages.zoneGroupSaveAssignment} />
-                </Button>
-              </div>
-            )}
-
-            {groupPreview && (
-              <p style={mutedStyle}>
-                {intl.formatMessage(messages.zoneGroupPreviewResult, {
-                  count: Object.keys(groupPreview.groups).length,
-                })}
-              </p>
-            )}
           </section>
 
           {selectedZone && (
@@ -608,70 +630,8 @@ export function ZoneGroupRoute({
           )}
         </>
       )}
-    </section>
+    </div>
   );
-}
 
-const pageStyle: React.CSSProperties = { display: 'grid', gap: 'var(--cl-space-5)' };
-const metaStyle: React.CSSProperties = {
-  color: 'var(--cl-text-muted)',
-  fontFamily: 'var(--cl-font-mono)',
-  margin: 0,
-};
-const titleStyle: React.CSSProperties = {
-  margin: 'var(--cl-space-1) 0 0',
-  fontFamily: 'var(--cl-font-display)',
-};
-const panelStyle: React.CSSProperties = {
-  border: '1px solid var(--cl-border-muted)',
-  padding: 'var(--cl-space-4)',
-  background: 'var(--cl-surface-panel)',
-  display: 'grid',
-  gap: 'var(--cl-space-3)',
-};
-const sectionTitleStyle: React.CSSProperties = {
-  margin: 0,
-  fontFamily: 'var(--cl-font-display)',
-};
-const listStyle: React.CSSProperties = {
-  listStyle: 'none',
-  margin: 0,
-  padding: 0,
-  display: 'grid',
-  gap: 'var(--cl-space-2)',
-};
-const rowStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  gap: 'var(--cl-space-3)',
-};
-const formRowStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'end',
-  gap: 'var(--cl-space-3)',
-  flexWrap: 'wrap',
-};
-const modeRowStyle: React.CSSProperties = { display: 'flex', gap: 'var(--cl-space-4)' };
-const radioLabelStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 'var(--cl-space-1)',
-};
-const labelStyle: React.CSSProperties = {
-  display: 'grid',
-  gap: 'var(--cl-space-1)',
-  color: 'var(--cl-text-secondary)',
-};
-const inputStyle: React.CSSProperties = {
-  minWidth: 0,
-  padding: 'var(--cl-space-2)',
-  border: '1px solid var(--cl-border-muted)',
-  background: 'var(--cl-surface-base)',
-  color: 'inherit',
-};
-const numberInputStyle: React.CSSProperties = { width: '5rem' };
-const mutedStyle: React.CSSProperties = {
-  color: 'var(--cl-text-muted)',
-  fontSize: 'var(--cl-font-size-sm)',
-};
+  return <ListScreenTemplate breadcrumb={breadcrumbNode} listing={listingNode} title={titleNode} />;
+}

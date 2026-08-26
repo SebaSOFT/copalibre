@@ -304,14 +304,14 @@ function components(): string {
     '.cl-modal__footer { display: flex; justify-content: flex-end; gap: var(--cl-space-2); }',
     '',
     '/* Templates own inter-section spacing (design.md Decision 7) — no component below this tier sets its own external margin. */',
-    '.cl-list-screen, .cl-form-screen { display: grid; gap: var(--cl-density-section-gap, var(--cl-space-6)); min-width: 0; }',
+    '.cl-list-screen, .cl-form-screen, .cl-match-console-screen { display: grid; gap: var(--cl-density-section-gap, var(--cl-space-6)); min-width: 0; }',
     // A grid item's default `min-width: auto` sizes it to its content, which
     // silently defeats a descendant's `overflow-x: auto` (a wide table forces
     // every ancestor grid track wider instead of scrolling in place). Every
     // grid track in this template chain gets `min-width: 0` so the narrowest
     // reference width (188px, a 200%-zoom equivalent) scrolls instead of
     // overflowing the page.
-    '.cl-list-screen > *, .cl-form-screen > * { min-width: 0; }',
+    '.cl-list-screen > *, .cl-form-screen > *, .cl-match-console-screen > * { min-width: 0; }',
     '.cl-list-screen__header, .cl-form-screen__header { display: flex; align-items: end; justify-content: space-between; gap: var(--cl-space-4); flex-wrap: wrap; }',
     '.cl-list-screen__title, .cl-form-screen__title { margin: 0; font-family: var(--cl-font-display); text-transform: uppercase; }',
     '.cl-list-screen__breadcrumb, .cl-form-screen__breadcrumb { color: var(--cl-state-live); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; }',
@@ -321,8 +321,25 @@ function components(): string {
     '.cl-form-screen__footer { position: sticky; bottom: 0; display: flex; justify-content: flex-end; gap: var(--cl-space-2); padding-block: var(--cl-space-3); background: var(--cl-surface-base); }',
     '.cl-list-screen__empty { margin: 0; padding: var(--cl-space-5); color: var(--cl-text-muted); }',
     '',
+    '.cl-match-console-screen__header { display: flex; justify-content: space-between; align-items: start; gap: var(--cl-space-4); flex-wrap: wrap; min-width: 0; }',
+    '.cl-match-console-screen__header > * { min-width: 0; }',
+    '.cl-match-console-screen__title { margin: var(--cl-space-1) 0 0; font-family: var(--cl-font-display); text-transform: uppercase; overflow-wrap: anywhere; word-break: break-word; }',
+    '.cl-match-console-screen__breadcrumb { color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; margin: 0; overflow-wrap: anywhere; word-break: break-word; }',
+    '.cl-match-console-screen__status { display: grid; justify-items: end; color: var(--cl-state-live); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-lg); min-width: 0; overflow-wrap: anywhere; }',
+    '.cl-match-console-screen__sync-status { display: flex; flex-wrap: wrap; gap: var(--cl-space-4); color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; min-width: 0; }',
+    '.cl-match-console-screen__workspace { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: var(--cl-space-5); min-width: 0; }',
+    '.cl-match-console-screen__workspace > * { min-width: 0; }',
+    '@media (max-width: 600px) { .cl-match-console-screen__workspace { grid-template-columns: 1fr; } }',
+    '.cl-match-console-screen__primary { display: grid; align-content: start; gap: var(--cl-space-5); min-width: 0; }',
+    '.cl-match-console-screen__rail { display: grid; align-content: start; gap: var(--cl-space-5); min-width: 0; }',
+    '.cl-match-console-screen__scoreboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 120px), 1fr)); border: 1px solid var(--cl-border-muted); background: var(--cl-surface-panel); min-width: 0; }',
+    '.cl-match-console-screen__score-side { display: flex; justify-content: space-between; align-items: center; gap: var(--cl-space-3); padding: var(--cl-space-4); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-lg); min-width: 0; }',
+    '.cl-match-console-screen__score-entrant { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }',
+    '.cl-match-console-screen__telemetry { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--cl-space-2); min-width: 0; }',
+    '.cl-match-console-screen__telemetry-item { display: grid; gap: var(--cl-space-1); border-left: 2px solid var(--cl-border-muted); padding-left: var(--cl-space-2); color: var(--cl-text-muted); min-width: 0; font-size: var(--cl-font-size-xs); }',
+    '',
     '/* A row-identity chip (avatar initials + label) reused by any listing showing one person per row. */',
-    '.cl-role-user { display: flex; align-items: center; gap: var(--cl-space-3); min-width: 0; }',
+    '.cl-role-user { display: flex; align-items: center; gap: var(--cl-space-3); min-width: 0; flex-wrap: wrap; }',
     '.cl-role-user__avatar { display: grid; place-items: center; width: 32px; height: 32px; flex: 0 0 32px; background: var(--cl-surface-raised); border: 1px solid var(--cl-border-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); }',
     '.cl-role-user__id { display: block; color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); }',
     '.cl-role-status { display: flex; align-items: center; gap: var(--cl-space-2); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs); text-transform: uppercase; }',

@@ -12,9 +12,13 @@ import {
   BUTTON_VARIANTS,
   CHECKBOX_TOKENS,
   DIALOG_TOKENS,
+  FORM_SECTION_TOKENS,
   INPUT_TOKENS,
+  MATCH_CONSOLE_TOKENS,
+  PAGINATION_TOKENS,
   SELECT_TOKENS,
   TEXTAREA_TOKENS,
+  TOOLBAR_DENSITY_TOKENS,
   BadgeContractError,
   assertBadge,
 } from './components.js';
@@ -97,6 +101,34 @@ describe('the form-control and dialog contracts (0141)', () => {
   it('resolves the dialog surface and backdrop to real semantic tokens', () => {
     expect(SEMANTIC_COLORS[DIALOG_TOKENS.surface]).toBeDefined();
     expect(SEMANTIC_COLORS[DIALOG_TOKENS.backdrop]).toBeDefined();
+  });
+});
+
+describe('the remaining screen template token contracts (0147)', () => {
+  it('resolves pagination tokens to real semantic and touch-target tokens', () => {
+    expect(SEMANTIC_COLORS[PAGINATION_TOKENS.activeBackground]).toBeDefined();
+    expect(SEMANTIC_COLORS[PAGINATION_TOKENS.activeText]).toBeDefined();
+    expect(SEMANTIC_COLORS[PAGINATION_TOKENS.inactiveText]).toBeDefined();
+    expect(PAGINATION_TOKENS.buttonMinSize).toBe(TOUCH_TARGET);
+  });
+
+  it('resolves toolbar density tokens to real semantic colors', () => {
+    expect(SEMANTIC_COLORS[TOOLBAR_DENSITY_TOKENS.background]).toBeDefined();
+    expect(SEMANTIC_COLORS[TOOLBAR_DENSITY_TOKENS.border]).toBeDefined();
+    expect(TOOLBAR_DENSITY_TOKENS.height).toBe(TOUCH_TARGET);
+  });
+
+  it('resolves form section tokens to valid spacing and semantic colors', () => {
+    expect(SEMANTIC_COLORS[FORM_SECTION_TOKENS.headingText]).toBeDefined();
+    expect(FORM_SECTION_TOKENS.sectionGap).toBe('24px');
+    expect(FORM_SECTION_TOKENS.fieldGap).toBe('12px');
+  });
+
+  it('resolves match console tokens to real semantic colors', () => {
+    expect(SEMANTIC_COLORS[MATCH_CONSOLE_TOKENS.headerBackground]).toBeDefined();
+    expect(SEMANTIC_COLORS[MATCH_CONSOLE_TOKENS.headerBorder]).toBeDefined();
+    expect(SEMANTIC_COLORS[MATCH_CONSOLE_TOKENS.chromaLive]).toBeDefined();
+    expect(SEMANTIC_COLORS[MATCH_CONSOLE_TOKENS.chromaReferee]).toBeDefined();
   });
 });
 
@@ -185,6 +217,12 @@ describe('the CSS output', () => {
   it('emits the dialog backdrop and surface rules (0141)', () => {
     expect(css).toContain('.cl-dialog-backdrop {');
     expect(css).toContain('.cl-dialog-surface {');
+  });
+
+  it('emits template layout rules including match console (0147)', () => {
+    expect(css).toContain('.cl-match-console-screen {');
+    expect(css).toContain('.cl-match-console-screen__header {');
+    expect(css).toContain('.cl-match-console-screen__scoreboard {');
   });
 
   it('scopes the Control-web density spacing under [data-density="control"] (0141)', () => {

@@ -12,6 +12,8 @@ import { Button } from './ui/atoms/button.js';
 import { messages } from '../i18n/messages.en.js';
 import { useToast } from './ToastProvider.js';
 
+import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
+
 interface BandRow {
   readonly key: string;
   readonly zoneRef: string;
@@ -25,8 +27,8 @@ function nextKey(): string {
 }
 
 /**
- * A zone's promotion-plan configuration and review (0108) — "decision
- * support, not automation" (0099): saving a plan and reviewing its computed
+ * A zone's promotion-plan configuration and review (0108, 0147 template migration) —
+ * "decision support, not automation" (0099): saving a plan and reviewing its computed
  * candidate list never writes a next stage's seeding. Only `combination.mode
  * === 'group-order'` is offered here (no config needed); `ranked`/`manual`
  * need a pipeline- or order-authoring UI this screen doesn't build yet
@@ -99,12 +101,6 @@ export function PromotionPlanRoute({
     }
   }, [api, organizationAlias, tournamentAlias, stageNumber, zoneNumber, intl]);
 
-  // Mount-time load intentionally does not call `loadPreview` (kept for the
-  // imperative re-fetch after `savePlan`): its setState calls sit directly
-  // in an async/await body, which react-hooks/set-state-in-effect flags
-  // when reachable from an effect. Nesting them inside a promise chain
-  // instead keeps them out of that static reachability check — the same
-  // pattern already used by RolesPermissionsRoute.tsx.
   useEffect(() => {
     let live = true;
     const fetchPromotionPreview = api.fetchPromotionPreview;
@@ -167,163 +163,126 @@ export function PromotionPlanRoute({
     return <p className="cl-inline-alert">{intl.formatMessage(messages.promotionLoading)}</p>;
   }
 
-  return (
-    <section aria-label={intl.formatMessage(messages.promotionSectionLabel)} style={pageStyle}>
-      <header>
-        <p style={metaStyle}>
-          {intl.formatMessage(messages.promotionBreadcrumb, {
-            tournamentAlias,
-            zoneName: zone?.name ?? zoneNumber,
-          })}
-        </p>
-        <h1 style={titleStyle}>
-          <FormattedMessage {...messages.promotionTitle} />
-        </h1>
-      </header>
+  const breadcrumbNode = (
+    <span>
+      {intl.formatMessage(messages.promotionBreadcrumb, {
+        tournamentAlias,
+        zoneName: zone?.name ?? zoneNumber,
+      })}
+    </span>
+  );
 
-      <section aria-label={intl.formatMessage(messages.promotionConfigHeading)} style={panelStyle}>
-        <h2 style={sectionTitleStyle}>
-          <FormattedMessage {...messages.promotionConfigHeading} />
-        </h2>
-        <div style={formRowStyle}>
-          <label style={labelStyle}>
-            <FormattedMessage {...messages.promotionNextStageNumber} />
-            <input
-              aria-label={intl.formatMessage(messages.promotionNextStageNumber)}
-              min="1"
-              onChange={(event) => setNextStageNumber(event.target.value)}
-              style={inputStyle}
-              type="number"
-              value={nextStageNumber}
-            />
-          </label>
-          <label style={labelStyle}>
-            <FormattedMessage {...messages.promotionPerGroupAdvance} />
-            <input
-              aria-label={intl.formatMessage(messages.promotionPerGroupAdvance)}
-              min="1"
-              onChange={(event) => setPerGroupAdvance(event.target.value)}
-              style={inputStyle}
-              type="number"
-              value={perGroupAdvance}
-            />
-          </label>
+  const titleNode = <FormattedMessage {...messages.promotionTitle} />;
+
+  const listingNode = (
+    <div className="cl-platform-sections">
+      <section
+        aria-label={intl.formatMessage(messages.promotionConfigHeading)}
+        className="cl-card cl-chamfer cl-chamfer--control"
+      >
+        <header className="cl-card__header">
+          <h2 className="cl-card__title">
+            <FormattedMessage {...messages.promotionConfigHeading} />
+          </h2>
+        </header>
+        <div className="cl-card__content">
+          <div className="cl-platform-form-grid">
+            <label className="cl-form-field">
+              <span className="cl-label">
+                <FormattedMessage {...messages.promotionNextStageNumber} />
+              </span>
+              <input
+                aria-label={intl.formatMessage(messages.promotionNextStageNumber)}
+                className="cl-input cl-input--default"
+                min="1"
+                onChange={(event) => setNextStageNumber(event.target.value)}
+                type="number"
+                value={nextStageNumber}
+              />
+            </label>
+            <label className="cl-form-field">
+              <span className="cl-label">
+                <FormattedMessage {...messages.promotionPerGroupAdvance} />
+              </span>
+              <input
+                aria-label={intl.formatMessage(messages.promotionPerGroupAdvance)}
+                className="cl-input cl-input--default"
+                min="1"
+                onChange={(event) => setPerGroupAdvance(event.target.value)}
+                type="number"
+                value={perGroupAdvance}
+              />
+            </label>
+          </div>
+
+          <div>
+            <h3 className="cl-label">
+              <FormattedMessage {...messages.promotionBandsHeading} />
+            </h3>
+            <ul>
+              {bands.map((row) => (
+                <li key={row.key} className="cl-role-user">
+                  <input
+                    aria-label={intl.formatMessage(messages.promotionBandZoneRef)}
+                    className="cl-input cl-input--default"
+                    onChange={(event) => updateBand(row.key, { zoneRef: event.target.value })}
+                    placeholder={intl.formatMessage(messages.promotionBandZoneRef)}
+                    value={row.zoneRef}
+                  />
+                  <input
+                    aria-label={intl.formatMessage(messages.promotionBandCount)}
+                    className="cl-input cl-input--default"
+                    min="1"
+                    onChange={(event) => updateBand(row.key, { count: event.target.value })}
+                    type="number"
+                    value={row.count}
+                  />
+                  <Button onClick={() => removeBand(row.key)} type="button" variant="secondary">
+                    <FormattedMessage {...messages.promotionRemoveBand} />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+            <Button onClick={addBand} type="button" variant="secondary">
+              <FormattedMessage {...messages.promotionAddBand} />
+            </Button>
+          </div>
         </div>
-
-        <div>
-          <h3 style={subheadingStyle}>
-            <FormattedMessage {...messages.promotionBandsHeading} />
-          </h3>
-          <ul style={listStyle}>
-            {bands.map((row) => (
-              <li key={row.key} style={rowStyle}>
-                <input
-                  aria-label={intl.formatMessage(messages.promotionBandZoneRef)}
-                  onChange={(event) => updateBand(row.key, { zoneRef: event.target.value })}
-                  placeholder={intl.formatMessage(messages.promotionBandZoneRef)}
-                  style={inputStyle}
-                  value={row.zoneRef}
-                />
-                <input
-                  aria-label={intl.formatMessage(messages.promotionBandCount)}
-                  min="1"
-                  onChange={(event) => updateBand(row.key, { count: event.target.value })}
-                  style={numberInputStyle}
-                  type="number"
-                  value={row.count}
-                />
-                <Button onClick={() => removeBand(row.key)} type="button" variant="secondary">
-                  <FormattedMessage {...messages.promotionRemoveBand} />
-                </Button>
-              </li>
-            ))}
-          </ul>
-          <Button onClick={addBand} type="button" variant="secondary">
-            <FormattedMessage {...messages.promotionAddBand} />
+        <footer className="cl-card__footer">
+          <Button onClick={() => void savePlan()} type="button">
+            <FormattedMessage {...messages.promotionSavePlan} />
           </Button>
-        </div>
-
-        <Button onClick={() => void savePlan()} type="button">
-          <FormattedMessage {...messages.promotionSavePlan} />
-        </Button>
+        </footer>
       </section>
 
-      <section aria-label={intl.formatMessage(messages.promotionReviewHeading)} style={panelStyle}>
-        <h2 style={sectionTitleStyle}>
-          <FormattedMessage {...messages.promotionReviewHeading} />
-        </h2>
-        {previewError && (
-          <p className="cl-inline-alert" role="alert">
-            {previewError}
-          </p>
-        )}
-        {preview && !previewError && (
-          <>
-            <ol style={listStyle}>
+      <section
+        aria-label={intl.formatMessage(messages.promotionReviewHeading)}
+        className="cl-card cl-chamfer cl-chamfer--control"
+      >
+        <header className="cl-card__header">
+          <h2 className="cl-card__title">
+            <FormattedMessage {...messages.promotionReviewHeading} />
+          </h2>
+        </header>
+        <div className="cl-card__content">
+          {previewError && (
+            <p className="cl-inline-alert" role="alert">
+              {previewError}
+            </p>
+          )}
+          {preview && !previewError && (
+            <ol className="cl-platform-update-list">
               {preview.combined.map((entrant, index) => (
-                <li key={entrant.entrantId} style={rowStyle}>
+                <li key={entrant.entrantId}>
                   <strong>{index + 1}.</strong> {entrant.entrantId.slice(-8)}
                 </li>
               ))}
             </ol>
-          </>
-        )}
+          )}
+        </div>
       </section>
-    </section>
+    </div>
   );
-}
 
-const pageStyle: React.CSSProperties = { display: 'grid', gap: 'var(--cl-space-5)' };
-const metaStyle: React.CSSProperties = {
-  color: 'var(--cl-text-muted)',
-  fontFamily: 'var(--cl-font-mono)',
-  margin: 0,
-};
-const titleStyle: React.CSSProperties = {
-  margin: 'var(--cl-space-1) 0 0',
-  fontFamily: 'var(--cl-font-display)',
-};
-const panelStyle: React.CSSProperties = {
-  border: '1px solid var(--cl-border-muted)',
-  padding: 'var(--cl-space-4)',
-  background: 'var(--cl-surface-panel)',
-  display: 'grid',
-  gap: 'var(--cl-space-3)',
-};
-const sectionTitleStyle: React.CSSProperties = { margin: 0, fontFamily: 'var(--cl-font-display)' };
-const subheadingStyle: React.CSSProperties = {
-  margin: '0 0 var(--cl-space-2)',
-  fontFamily: 'var(--cl-font-mono)',
-  fontSize: 'var(--cl-font-size-sm)',
-  color: 'var(--cl-text-muted)',
-};
-const formRowStyle: React.CSSProperties = {
-  display: 'flex',
-  gap: 'var(--cl-space-3)',
-  flexWrap: 'wrap',
-};
-const labelStyle: React.CSSProperties = {
-  display: 'grid',
-  gap: 'var(--cl-space-1)',
-  color: 'var(--cl-text-secondary)',
-};
-const inputStyle: React.CSSProperties = {
-  minWidth: 0,
-  padding: 'var(--cl-space-2)',
-  border: '1px solid var(--cl-border-muted)',
-  background: 'var(--cl-surface-base)',
-  color: 'inherit',
-};
-const numberInputStyle: React.CSSProperties = { width: '5rem' };
-const listStyle: React.CSSProperties = {
-  listStyle: 'none',
-  margin: 0,
-  padding: 0,
-  display: 'grid',
-  gap: 'var(--cl-space-2)',
-};
-const rowStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 'var(--cl-space-2)',
-};
+  return <ListScreenTemplate breadcrumb={breadcrumbNode} listing={listingNode} title={titleNode} />;
+}
