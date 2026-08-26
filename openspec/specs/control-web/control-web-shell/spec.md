@@ -88,12 +88,13 @@ return the operator to their original destination after a successful callback.
 ### Requirement: Owned component layer, not Chakra UI
 The control application SHALL use the owned shadcn/ui-style component source and Radix Primitives for
 its interactive UI, and SHALL NOT include Chakra UI as a production dependency. This owned layer SHALL
-span all five Atomic Design tiers — atoms, molecules, organisms, and templates under
-`apps/web/src/control/components/ui/`, consumed by the existing page/route components — not only
+span all five Atomic Design tiers — atoms, molecules, organisms, templates under
+`apps/web/src/control/components/ui/`, and the page/route components that consume them — not only
 badge/button/card; any Control-web screen, present at the time this requirement changes or added at any
 later point, SHALL compose its form controls, tabular listings, cards, modals, and operation feedback
 from this owned layer rather than defining a new one-off inline style object for a pattern the layer
-already covers.
+already covers. New Control-web screens SHALL compose atoms/molecules/organisms/templates from the
+owned layer and reuse an existing template when their shape matches an existing template family.
 
 #### Scenario: No Chakra dependency in production build
 - **WHEN** the control application's production dependency list is inspected
@@ -105,6 +106,11 @@ already covers.
 - **THEN** its labeled inputs, selects, tabular listings, cards, and modals are composed from the owned
   component layer's atoms/molecules/organisms/templates, not a screen-local inline style object
   duplicating one of them
+
+#### Scenario: New route debuts after this change
+- **WHEN** a developer adds a new Control-web route
+- **THEN** the route composes from the owned atomic design layer and reuses an existing template when
+  its shape matches an existing template family
 
 ### Requirement: Third-party notice inventory stays current
 Every copied shadcn/ui component file or direct Radix dependency added to the control application
@@ -231,3 +237,10 @@ The control web shell and tournament screens SHALL render declared table layouts
 #### Scenario: Operator toggles between declared tournament ranking views
 - **WHEN** an operator navigates between Top Scorers and Goalkeeper rankings
 - **THEN** each view renders its corresponding declared columns, formatted fractions, and multi-column sort rankings
+
+### Requirement: Extended tier ownership
+- The five-tier ownership rule SHALL apply to every Control-web screen, including list, form, and detail surfaces, not only the initially migrated admin screens.
+
+#### Scenario: Legacy list screen is modernized
+- **WHEN** a legacy hand-rolled list screen is refactored
+- **THEN** the screen uses `ListScreenTemplate` and `DataTable` instead of bespoke grid markup.

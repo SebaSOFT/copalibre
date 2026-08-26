@@ -183,3 +183,24 @@ only, never in the underlying token values.
 - **WHEN** the generated Control-web density spacing tokens are inspected
 - **THEN** every value is drawn from the same spacing-scale source the marketing surfaces use, with no
   Control-web-only spacing value absent from that shared scale
+
+### Requirement: Pagination and toolbar density tokens
+- The token contract SHALL include spacing, density, and type tokens used by ListScreenTemplate pagination and table toolbar.
+
+#### Scenario: Developer adds high-density table toolbar
+- **WHEN** a developer needs a high-density table toolbar in the admin surface
+- **THEN** the tokens expose the expected scale and spacing without adding a new ad-hoc scale.
+
+### Requirement: Template rendering token contract
+- The style-guide route SHALL expose one rendered example per template type so template behavior is auditable without booting the app.
+
+#### Scenario: Designer audits template examples
+- **WHEN** a designer opens the style-guide route templates page
+- **THEN** every template surfaces a populated example rendered against the design tokens.
+
+### Requirement: Match-console template tokens
+- The token contract SHALL include spacing, chroma, and motion tokens needed to render the MatchConsoleRoute template.
+
+#### Scenario: Match console header resizes on compact viewport
+- **WHEN** the console header compresses
+- **THEN** the spacing and motion tokens produce the expected compact density and keep chroma contract intact.

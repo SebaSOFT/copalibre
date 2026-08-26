@@ -72,9 +72,7 @@ columns and rows as props and SHALL NOT itself perform data fetching.
 - **THEN** both compose the same organism component, differing only in the columns/rows supplied
 
 ### Requirement: Modal/Dialog organism
-The component library SHALL provide a `Modal`/`Dialog` organism (built on Radix Dialog) providing a
-focus-trapped, Escape-dismissible, backdrop-dismissible overlay consuming the component library's
-tokens, so no screen hand-builds its own `role="dialog"` markup.
+The component library SHALL provide a `Modal`/`Dialog` organism (built on Radix Dialog) providing a focus-trapped, Escape-dismissible, backdrop-dismissible overlay consuming the component library's tokens, so no screen hand-builds its own `role="dialog"` markup. Any route that presents a dialog, drawer, or overlay SHALL use this organism with a visible, non-hidden `role="dialog"` declaration; `role="dialog"` SHALL NOT be set `aria-hidden` or hidden behind a CSS class that removes structural visibility from the accessibility tree while the dialog is open. Tab order SHALL cycle within the dialog while open and restore focus to the trigger control on close.
 
 #### Scenario: Opening a modal traps keyboard focus inside it
 - **WHEN** a `Modal` is opened
@@ -86,8 +84,15 @@ tokens, so no screen hand-builds its own `role="dialog"` markup.
 
 #### Scenario: A hand-built dialog is replaced by the Modal organism
 - **WHEN** a screen needs a confirmation, invite, or detail overlay
-- **THEN** it composes the `Modal` organism rather than defining its own `role="dialog"` markup and
-  styles
+- **THEN** it composes the `Modal` organism rather than defining its own `role="dialog"` markup and styles
+
+#### Scenario: Match console opens a confirmation dialog
+- **WHEN** `MatchConsoleRoute.tsx` opens its confirmation dialog
+- **THEN** the dialog is announced in the accessibility tree, focus is trapped, Escape closes it, background scroll is locked, and focus returns to the action button that opened it
+
+#### Scenario: An open dialog stays in the accessibility tree
+- **WHEN** a `Modal` is open and the accessibility tree is inspected
+- **THEN** the `role="dialog"` element is present and not hidden behind `aria-hidden` or a visibility-removing CSS class
 
 ### Requirement: Toast is the standing mechanism for operation-result feedback
 The already-existing `ToastProvider`/`useToast()` mechanism SHALL be the component library's
@@ -188,3 +193,33 @@ already provides.
 - **WHEN** a new screen renders a tabular list of records
 - **THEN** it composes `ListScreenTemplate` and the `DataTable` organism, rather than a hand-rolled
   layout and CSS grid table
+
+### Requirement: Template migration for remaining Control-web screens
+Every Control-web screen that shipped in 0141-admin-atomic-design-system SHALL use `ListScreenTemplate` or `FormScreenTemplate` when their shape matches. The 11 remaining screens identified in 0141-admin-atomic-design-system SHALL be migrated onto the atomic tier system and SHALL NOT hand-roll layouts, tables, cards, or alerts after this change is complete. `MatchConsoleRoute.tsx` SHALL introduce its own template and SHALL consume it rather than constructing category rows or extended-match headers directly. Migrated screens SHALL assert their template-derived DOM shape in their updated `*.test.tsx` suites.
+
+#### Scenario: Group A list screen loads data
+- **WHEN** `PromotionPlanRoute` loads data
+- **THEN** the rendered DOM uses `ListScreenTemplate` order/spacing, no inline `React.CSSProperties` grid, and the `DataTable` organism provides the listing
+
+#### Scenario: Match console opens a new extended match header
+- **WHEN** `MatchConsoleRoute.tsx` renders a new match header
+- **THEN** the template composes the header organism with template-defined spacing; the route only passes match and event payload
+
+#### Scenario: Migration test asserts template contract
+- **WHEN** a migrated screen's test runs
+- **THEN** the test asserts the template host element and its configured organisms, not inline grid styles
+
+### Requirement: New atomic design templates
+The owned component layer SHALL provide templates beyond `ListScreenTemplate` and `FormScreenTemplate` when a recurring route shape exists. Any new template introduced for an owner-configured screen SHALL define only layout and spacing; content and handlers remain provided by the page/route.
+
+#### Scenario: A match-console template composes the console layout
+- **WHEN** `MatchConsoleTemplate` is inspected
+- **THEN** it defines only the console's section order, extended-match header placement, and inter-section spacing, receiving match and event payload via props from `MatchConsoleRoute`
+
+#### Scenario: Template reorders only
+- **WHEN** a page/route reorders or renames the sections it passes to a template
+- **THEN** the template renders them in the given order without mutating the content it receives
+
+#### Scenario: Style-guide route exposes the new template
+- **WHEN** the style-guide route lists template examples
+- **THEN** every template in the owned layer, including any added after 0141, surfaces a rendered example
