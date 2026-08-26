@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Inject, Param, Patch, Post, Req, Res } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { BadRequestException, NotFoundException } from '../http/error-contract.js';
 import {
   ApiBearerAuth,
@@ -23,6 +24,10 @@ import {
 } from '@copalibre/persistence';
 import { RequireOrganizationRole } from '../auth/access-requirement.js';
 import type { RequestWithSubject } from '../auth/request-context.js';
+import {
+  RESOURCE_THROTTLE_LIMIT,
+  RESOURCE_THROTTLE_TTL_MS,
+} from '../auth/principal-throttler.guard.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
 import { DATABASE } from '../database.token.js';
 import { OBJECT_STORAGE } from '../object-storage.token.js';
@@ -88,6 +93,7 @@ export class PersonMediaController {
   }
 
   @Post('photo')
+  @Throttle({ default: { limit: RESOURCE_THROTTLE_LIMIT, ttl: RESOURCE_THROTTLE_TTL_MS } })
   @SecurityPlaneTag('admin-control')
   @RequireOrganizationRole('admin')
   @ApiBearerAuth()
@@ -195,6 +201,7 @@ export class ClubMediaController {
   ) {}
 
   @Post('emblem')
+  @Throttle({ default: { limit: RESOURCE_THROTTLE_LIMIT, ttl: RESOURCE_THROTTLE_TTL_MS } })
   @SecurityPlaneTag('admin-control')
   @RequireOrganizationRole('admin')
   @ApiBearerAuth()
@@ -270,6 +277,7 @@ export class OrganizationMediaController {
   ) {}
 
   @Post('emblem')
+  @Throttle({ default: { limit: RESOURCE_THROTTLE_LIMIT, ttl: RESOURCE_THROTTLE_TTL_MS } })
   @SecurityPlaneTag('admin-control')
   @RequireOrganizationRole('admin')
   @ApiBearerAuth()

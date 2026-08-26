@@ -11,6 +11,7 @@ import {
   Query,
   Req,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import {
   BadRequestException,
   ConflictException,
@@ -55,6 +56,10 @@ import {
 import type { Kysely } from 'kysely';
 import type { RequestWithSubject } from '../auth/request-context.js';
 import { RequireSuperAdmin, SUPER_ADMIN_SCOPE } from '../auth/access-requirement.js';
+import {
+  RESOURCE_THROTTLE_LIMIT,
+  RESOURCE_THROTTLE_TTL_MS,
+} from '../auth/principal-throttler.guard.js';
 import { RequireScopes } from '../auth/required-scopes.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
 import {
@@ -138,6 +143,7 @@ export class AdminModulesController {
   }
 
   @Post()
+  @Throttle({ default: { limit: RESOURCE_THROTTLE_LIMIT, ttl: RESOURCE_THROTTLE_TTL_MS } })
   @SecurityPlaneTag('admin-control')
   @RequireSuperAdmin()
   @RequireScopes(SUPER_ADMIN_SCOPE)
@@ -257,6 +263,7 @@ export class AdminModulesController {
 
   @Post('verify')
   @HttpCode(200)
+  @Throttle({ default: { limit: RESOURCE_THROTTLE_LIMIT, ttl: RESOURCE_THROTTLE_TTL_MS } })
   @SecurityPlaneTag('admin-control')
   @RequireSuperAdmin()
   @RequireScopes(SUPER_ADMIN_SCOPE)

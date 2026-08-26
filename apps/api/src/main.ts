@@ -7,7 +7,11 @@ import { DEFAULT_PORT } from './role.js';
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    new FastifyAdapter({ bodyLimit: API_BODY_LIMIT_BYTES }),
+    // trustProxy: a self-hosted install sits behind a reverse proxy; without
+    // this every request's `ip` is the proxy's own address, which would key
+    // the per-IP rate limits (0145) off the proxy and collapse all clients
+    // into one bucket.
+    new FastifyAdapter({ bodyLimit: API_BODY_LIMIT_BYTES, trustProxy: true }),
   );
   if (process.env.COPALIBRE_APP_URL) {
     app.enableCors({ origin: process.env.COPALIBRE_APP_URL });

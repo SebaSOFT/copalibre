@@ -1,6 +1,8 @@
 import { Module, type INestApplication } from '@nestjs/common';
 import { APP_GUARD, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { PrincipalThrottlerGuard } from '../auth/principal-throttler.guard.js';
 import { Test } from '@nestjs/testing';
 import { createObjectStorageAdapter, objectStorageConfigFromEnv } from '@copalibre/object-storage';
 import { InstalledModuleRepository } from '@copalibre/persistence';
@@ -41,6 +43,7 @@ describe('AdminModulesController (integration)', () => {
 
     @Module({
       controllers: [AdminModulesController],
+      imports: [ThrottlerModule.forRoot([{ ttl: 60_000, limit: 1_000 }])],
       providers: [
         { provide: DATABASE, useValue: db },
         { provide: OBJECT_STORAGE, useValue: storage },
@@ -56,6 +59,7 @@ describe('AdminModulesController (integration)', () => {
         },
         { provide: APP_GUARD, useClass: JwtAuthGuard },
         { provide: APP_GUARD, useClass: OrganizationAccessGuard },
+        { provide: APP_GUARD, useClass: PrincipalThrottlerGuard },
         Reflector,
       ],
     })

@@ -1,6 +1,8 @@
 import { Module, type INestApplication } from '@nestjs/common';
 import { APP_GUARD, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { PrincipalThrottlerGuard } from '../auth/principal-throttler.guard.js';
 import { Test } from '@nestjs/testing';
 import { AuditReader } from '@copalibre/persistence';
 import { createMigratedDatabase } from '../../../../packages/persistence/src/test-support/scratch-database.js';
@@ -11,6 +13,7 @@ import { DATABASE } from '../database.token.js';
 import { API_BODY_LIMIT_BYTES } from '../http-body-limit.js';
 import { InvitationAcceptanceController } from './organization-access.controller.js';
 import { InstallationBootstrapController } from './installation-bootstrap.controller.js';
+import { AUTH_THROTTLE_LIMIT as BOOTSTRAP_THROTTLE_LIMIT } from './auth.controller.js';
 
 class BootstrapTokenVerifier {
   verify(token: string): Promise<AuthenticatedSubject> {
@@ -39,10 +42,12 @@ describe('installation bootstrap (integration)', () => {
 
     @Module({
       controllers: [InstallationBootstrapController, InvitationAcceptanceController],
+      imports: [ThrottlerModule.forRoot([{ ttl: 60_000, limit: 1_000 }])],
       providers: [
         { provide: DATABASE, useValue: scratch.db },
         { provide: TokenVerifier, useValue: new BootstrapTokenVerifier() },
         { provide: APP_GUARD, useClass: JwtAuthGuard },
+        { provide: APP_GUARD, useClass: PrincipalThrottlerGuard },
         Reflector,
       ],
     })
@@ -50,7 +55,7 @@ describe('installation bootstrap (integration)', () => {
 
     const moduleRef = await Test.createTestingModule({ imports: [TestModule] }).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(
-      new FastifyAdapter({ bodyLimit: API_BODY_LIMIT_BYTES }),
+      new FastifyAdapter({ bodyLimit: API_BODY_LIMIT_BYTES, trustProxy: true }),
     );
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
@@ -131,6 +136,29 @@ describe('installation bootstrap (integration)', () => {
       payload: options.payload as never,
     });
   }
+
+  it('rejects bootstrap attempts exceeding the per-IP window with 429 (0145)', async () => {
+    const attempt = () =>
+      request({
+        method: 'POST',
+        url: '/installation/bootstrap/admin',
+        headers: {
+          'x-copalibre-bootstrap-token': 'wrong-secret',
+          'x-forwarded-for': '10.9.1.1',
+        },
+        payload: {
+          organizationAlias: 'liga-orbital',
+          organizationName: 'Liga Orbital',
+          email: 'admin@example.test',
+        },
+      });
+
+    // Wrong secret → 403 while under the limit; the bucket fills regardless.
+    for (let i = 0; i < BOOTSTRAP_THROTTLE_LIMIT; i++) {
+      expect((await attempt()).statusCode).toBe(403);
+    }
+    expect((await attempt()).statusCode).toBe(429);
+  });
 });
 
 function restore(name: string, value: string | undefined): void {

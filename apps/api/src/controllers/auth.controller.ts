@@ -38,6 +38,7 @@ import {
 import { PRIVILEGED_SCOPES, RequireSelf, SUPER_ADMIN_SCOPE } from '../auth/access-requirement.js';
 import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
+import { Throttle } from '@nestjs/throttler';
 import { DATABASE } from '../database.token.js';
 import {
   LoginRequest,
@@ -51,6 +52,17 @@ import {
 } from '../dto/auth.dto.js';
 
 /**
+ * Per-IP rate limit for the unauthenticated, brute-forceable endpoints
+ * (0145 design.md D3): tight enough to blunt automated guessing, generous
+ * enough that a real user retrying a mistyped password or re-requesting a
+ * reset email once or twice never notices. Keyed by client IP — see
+ * main.ts's trustProxy note for why that is the real client behind this
+ * deployment's reverse proxy.
+ */
+export const AUTH_THROTTLE_LIMIT = 5;
+export const AUTH_THROTTLE_TTL_MS = 60_000;
+
+/**
  * Native authentication endpoints: local email/password login, forgot
  * password, and password reset. These are public-read endpoints — they
  * do not require a pre-existing JWT.
@@ -62,6 +74,7 @@ export class NativeAuthController {
 
   @Post('login')
   @HttpCode(200)
+  @Throttle({ default: { limit: AUTH_THROTTLE_LIMIT, ttl: AUTH_THROTTLE_TTL_MS } })
   @SecurityPlaneTag('public-read')
   @ApiOperation({ summary: 'Authenticate with email and password' })
   @ApiOkResponse({ type: LoginResponse })
@@ -92,6 +105,7 @@ export class NativeAuthController {
 
   @Post('forgot-password')
   @HttpCode(200)
+  @Throttle({ default: { limit: AUTH_THROTTLE_LIMIT, ttl: AUTH_THROTTLE_TTL_MS } })
   @SecurityPlaneTag('public-read')
   @ApiOperation({ summary: 'Request a password reset email' })
   @ApiOkResponse({ type: AuthSuccessResponse })
@@ -132,6 +146,7 @@ export class NativeAuthController {
 
   @Post('reset-password')
   @HttpCode(200)
+  @Throttle({ default: { limit: AUTH_THROTTLE_LIMIT, ttl: AUTH_THROTTLE_TTL_MS } })
   @SecurityPlaneTag('public-read')
   @ApiOperation({ summary: 'Reset password using a verification token' })
   @ApiOkResponse({ type: AuthSuccessResponse })

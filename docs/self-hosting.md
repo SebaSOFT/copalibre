@@ -62,6 +62,24 @@ The help site (`/help/`) now defaults to English, with the same content also ava
 generated `llms.txt`/`llms-full.txt` stay English regardless of how many interface languages the
 site later supports.
 
+## Rate Limits
+
+A few endpoints bound request volume to blunt automated abuse (0145). Limits are counted per API
+process and reset on restart:
+
+| Endpoint group                                                                                                      | Key                                        | Limit         |
+| ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ | ------------- |
+| `POST /auth/login`, `POST /auth/forgot-password`, `POST /auth/reset-password`, `POST /installation/bootstrap/admin` | client IP, per endpoint                    | 5 per 60 s    |
+| Person photo / club emblem / organization emblem uploads; module install/verify                                     | authenticated principal, per endpoint      | 20 per 60 s   |
+| Every other route (safety net)                                                                                      | client IP, or principal when authenticated | 1000 per 60 s |
+
+Exceeding a limit returns `429` with `Retry-After` headers. If an operator troubleshooting sees
+unexpected 429s — e.g. during a bulk photo-upload session, which allows 20 uploads per principal
+per minute per endpoint — wait for the 60-second window to roll over or batch the work more slowly.
+The client IP is resolved honoring `X-Forwarded-For` (the bundled reverse proxy configuration is
+trusted), so users behind one shared office/NAT address share the unauthenticated limits between
+them.
+
 ## Persistent Data And Backups
 
 `postgres-data` contains authoritative tournament, participant, result, audit, outbox, identity,
