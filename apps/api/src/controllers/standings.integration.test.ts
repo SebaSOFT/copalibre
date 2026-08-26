@@ -1,4 +1,4 @@
-import { Module, type INestApplication } from '@nestjs/common';
+import { Module, ValidationPipe, type INestApplication } from '@nestjs/common';
 import { APP_GUARD, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
@@ -97,6 +97,7 @@ describe('standings and seeding routes (integration)', () => {
 
     const moduleRef = await Test.createTestingModule({ imports: [TestModule] }).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
 
@@ -329,6 +330,31 @@ describe('standings and seeding routes (integration)', () => {
       ),
     );
     expect(pairs.size).toBe(6);
+  });
+
+  it('400s a seed order that is not an array, before reaching the controller (0146)', async () => {
+    const response = await request({
+      method: 'POST',
+      url: `${base}/seeding`,
+      token: 'organizer',
+      payload: { seeds: 'primero' },
+    });
+    expect(response.statusCode).toBe(400);
+  });
+
+  it('strips an extra undocumented property and publishes the seed order anyway (0146)', async () => {
+    const reversed = [...entrantIds].reverse();
+    const response = await request({
+      method: 'POST',
+      url: `${base}/seeding`,
+      token: 'organizer',
+      payload: {
+        seeds: reversed.map((entrantId, index) => ({ seed: index + 1, entrantId })),
+        unexpectedField: 'dropped',
+      },
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({ mutationClass: 'requires_rebuild', persisted: true });
   });
 
   it('refuses a seed order that places an entrant twice', async () => {

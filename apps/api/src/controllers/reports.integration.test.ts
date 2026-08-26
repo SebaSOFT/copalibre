@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { Module, type INestApplication } from '@nestjs/common';
+import { Module, ValidationPipe, type INestApplication } from '@nestjs/common';
 import { APP_GUARD, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
@@ -273,6 +273,7 @@ describe('report/dispute submission and review (integration)', () => {
 
     const moduleRef = await Test.createTestingModule({ imports: [TestModule] }).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
     await app.init();
     await app.getHttpAdapter().getInstance().ready();
   });
@@ -353,6 +354,30 @@ describe('report/dispute submission and review (integration)', () => {
     });
 
     expect(response.statusCode).toBe(401);
+  });
+
+  it('400s a report with no proposed result, before reaching the controller (0146)', async () => {
+    const response = await inject({
+      method: 'POST',
+      url: reportsPath(),
+      headers: { authorization: 'Bearer participant-a' },
+      payload: {},
+    });
+    expect(response.statusCode).toBe(400);
+  });
+
+  it('strips an extra undocumented property and persists the dispute anyway (0146)', async () => {
+    const response = await inject({
+      method: 'POST',
+      url: disputesPath(),
+      headers: { authorization: 'Bearer participant-a' },
+      payload: {
+        reason: 'The recorded score does not match what happened',
+        unexpectedField: 'dropped',
+      },
+    });
+    expect(response.statusCode).toBe(201);
+    expect(response.json()).not.toHaveProperty('unexpectedField');
   });
 
   it('lets an operator list and dismiss a pending report without changing the result (7.2-adjacent, 6.4)', async () => {

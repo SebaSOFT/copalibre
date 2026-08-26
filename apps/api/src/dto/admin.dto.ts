@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsBoolean, IsOptional, IsString } from 'class-validator';
 
 /** Wire DTOs are camelCase, per the naming-conventions casing rule. */
 export class StatisticsRebuildRequest {
@@ -6,6 +7,8 @@ export class StatisticsRebuildRequest {
     description: 'Narrows the rebuild to one tournament within the organization',
     example: 'apertura-2026',
   })
+  @IsOptional()
+  @IsString()
   tournamentAlias?: string;
 }
 
@@ -59,12 +62,15 @@ export class OutdatedModuleResponse {
 
 export class InstallModuleRequest {
   @ApiProperty({ example: 'orbital-frisbee' })
+  @IsString()
   alias!: string;
 
   @ApiPropertyOptional({
     description: 'Version range; defaults to the latest published',
     example: '^1.0.0',
   })
+  @IsOptional()
+  @IsString()
   range?: string;
 
   @ApiPropertyOptional({
@@ -73,12 +79,16 @@ export class InstallModuleRequest {
       'install from the curated repository',
     example: 'file:///var/lib/copalibre/modules-dev/orbital-frisbee',
   })
+  @IsOptional()
+  @IsString()
   source?: string;
 
   @ApiPropertyOptional({
     description: 'Installs even when the declared required capabilities are not yet satisfied',
     default: false,
   })
+  @IsOptional()
+  @IsBoolean()
   allowUnsatisfiedCapabilities?: boolean;
 }
 

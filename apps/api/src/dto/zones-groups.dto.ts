@@ -1,4 +1,16 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import {
+  IsArray,
+  IsDefined,
+  IsIn,
+  IsInt,
+  IsNumber,
+  IsObject,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
 
 export class ZoneResponse {
   @ApiProperty({ format: 'uuid' })
@@ -30,28 +42,38 @@ export class GroupResponse {
 
 export class CreateZoneRequest {
   @ApiPropertyOptional({ description: 'Defaults to the next 1-based zone number', example: 1 })
+  @IsOptional()
+  @IsNumber()
   number?: number;
 
   @ApiProperty({ example: 'Zona Norte' })
+  @IsString()
   name!: string;
 }
 
 export class CreateGroupRequest {
   @ApiPropertyOptional({ description: 'Defaults to the next 1-based group number', example: 1 })
+  @IsOptional()
+  @IsNumber()
   number?: number;
 
   @ApiProperty({ example: 'Grupo A' })
+  @IsString()
   name!: string;
 }
 
 export class DrawConstraintRequest {
   @ApiProperty({ enum: ['separation', 'distribution', 'script'] })
+  @IsIn(['separation', 'distribution', 'script'])
   kind!: string;
 
   @ApiProperty({ description: 'Constraint hook point', example: 'draw.assign-group' })
+  @IsString()
   hook!: string;
 
   @ApiPropertyOptional({ example: 'region' })
+  @IsOptional()
+  @IsString()
   attribute?: string;
 
   @ApiPropertyOptional({
@@ -68,37 +90,57 @@ export class DrawConstraintRequest {
   scope?: string | { beforeRound: string };
 
   @ApiPropertyOptional({ example: 'san-juan' })
+  @IsOptional()
+  @IsString()
   value?: string;
 
   @ApiPropertyOptional({ example: 1 })
+  @IsOptional()
+  @IsNumber()
   min?: number;
 
   @ApiPropertyOptional({ example: 1 })
+  @IsOptional()
+  @IsNumber()
   max?: number;
 
   @ApiPropertyOptional({ type: 'object', additionalProperties: true })
+  @IsOptional()
+  @IsObject()
   script?: Record<string, unknown>;
 }
 
 export class DrawZonesRequest {
   @ApiProperty({ minimum: 1, example: 4 })
+  @IsInt()
   zoneCount!: number;
 
   @ApiProperty({ description: 'Deterministic draw seed', example: 99 })
+  @IsInt()
   seed!: number;
 
   @ApiPropertyOptional({ type: DrawConstraintRequest, isArray: true })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => DrawConstraintRequest)
   constraints?: DrawConstraintRequest[];
 }
 
 export class DrawGroupsRequest {
   @ApiProperty({ minimum: 1, example: 4 })
+  @IsInt()
   groupCount!: number;
 
   @ApiProperty({ description: 'Deterministic draw seed', example: 99 })
+  @IsInt()
   seed!: number;
 
   @ApiPropertyOptional({ type: DrawConstraintRequest, isArray: true })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => DrawConstraintRequest)
   constraints?: DrawConstraintRequest[];
 }
 
@@ -140,17 +182,21 @@ export class ConfirmGroupDrawResponse extends DrawPreviewResponse {
  */
 export class ManualZoneAssignmentRequest {
   @ApiProperty({ type: DrawAssignmentResponse })
+  @IsObject()
   assignment!: DrawAssignmentResponse;
 
   @ApiProperty({ minimum: 1, example: 4 })
+  @IsNumber()
   zoneCount!: number;
 }
 
 export class ManualGroupAssignmentRequest {
   @ApiProperty({ type: DrawAssignmentResponse })
+  @IsObject()
   assignment!: DrawAssignmentResponse;
 
   @ApiProperty({ minimum: 1, example: 4 })
+  @IsNumber()
   groupCount!: number;
 }
 
@@ -172,14 +218,17 @@ export class ManualGroupAssignmentResponse {
 
 export class PromotionBandRequest {
   @ApiProperty({ example: 'Copa Oro' })
+  @IsString()
   zoneRef!: string;
 
   @ApiProperty({ minimum: 1, example: 4 })
+  @IsNumber()
   count!: number;
 }
 
 export class SavePromotionPlanRequest {
   @ApiProperty({ description: '1-based number of the stage that receives the promotion' })
+  @IsNumber()
   nextStageNumber!: number;
 
   @ApiProperty({
@@ -188,6 +237,9 @@ export class SavePromotionPlanRequest {
       { type: 'object', additionalProperties: { type: 'number', minimum: 1 } },
     ],
   })
+  // Presence-only check (0146): a number-or-record union has no single
+  // type validator, and an undecorated property is stripped by whitelist mode.
+  @IsDefined()
   perGroupAdvance!: number | Record<string, number>;
 
   @ApiProperty({
@@ -195,9 +247,14 @@ export class SavePromotionPlanRequest {
     type: 'object',
     additionalProperties: true,
   })
+  @IsObject()
   combination!: Record<string, unknown>;
 
   @ApiPropertyOptional({ type: PromotionBandRequest, isArray: true })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PromotionBandRequest)
   bands?: PromotionBandRequest[];
 }
 

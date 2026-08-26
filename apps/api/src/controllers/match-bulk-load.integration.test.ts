@@ -1,4 +1,4 @@
-import { Module, type INestApplication } from '@nestjs/common';
+import { Module, ValidationPipe, type INestApplication } from '@nestjs/common';
 import { APP_GUARD, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
@@ -62,6 +62,7 @@ describe('retroactive match data entry (integration, 0106)', () => {
     class IntegrationModule {}
     const module = await Test.createTestingModule({ imports: [IntegrationModule] }).compile();
     app = module.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
 
@@ -368,6 +369,47 @@ describe('retroactive match data entry (integration, 0106)', () => {
       .where('match_id', '=', matchId)
       .execute();
     expect(events).toHaveLength(0);
+  });
+
+  // 0146: the global ValidationPipe's @ValidateNested rules reject a batch
+  // whose outer shape is valid but whose nested roster entries are not, with
+  // 400 at the edge instead of a downstream handler error.
+  it('rejects a roster entry missing its entrantId from nested validation with 400 (0146)', async () => {
+    const matchId = await newScheduledMatch();
+    await appoint(matchId, 'referee', REFEREE_CAPABILITIES);
+
+    const batch = validBatch({ home: entrantHome, away: entrantAway, personHome, personAway });
+    const response = await request(`${base(matchId)}/bulk-load`, 'referee', {
+      ...batch,
+      rosters: [{ ...batch.rosters[0], entrantId: undefined }, ...batch.rosters.slice(1)],
+    });
+    expect(response.statusCode).toBe(400);
+    expect(JSON.stringify(response.json())).toContain('entrantId');
+  });
+
+  it('rejects a roster member missing personId from nested validation with 400 (0146)', async () => {
+    const matchId = await newScheduledMatch();
+    await appoint(matchId, 'referee', REFEREE_CAPABILITIES);
+
+    const batch = validBatch({ home: entrantHome, away: entrantAway, personHome, personAway });
+    const response = await request(`${base(matchId)}/bulk-load`, 'referee', {
+      ...batch,
+      rosters: [{ ...batch.rosters[0], members: [{ onField: true }] }, ...batch.rosters.slice(1)],
+    });
+    expect(response.statusCode).toBe(400);
+    expect(JSON.stringify(response.json())).toContain('personId');
+  });
+
+  it('rejects a non-array rosters field with 400 (0146)', async () => {
+    const matchId = await newScheduledMatch();
+    await appoint(matchId, 'referee', REFEREE_CAPABILITIES);
+
+    const batch = validBatch({ home: entrantHome, away: entrantAway, personHome, personAway });
+    const response = await request(`${base(matchId)}/bulk-load`, 'referee', {
+      ...batch,
+      rosters: 'not-an-array',
+    });
+    expect(response.statusCode).toBe(400);
   });
 
   it('refuses a batch from a subject with no assignment on the match', async () => {

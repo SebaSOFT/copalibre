@@ -119,6 +119,7 @@ describe('organization-scoped tournament routes', () => {
         capacity: 24,
         profileId: profile.profileId,
         profileVersion: profile.version,
+        customScripts: [],
       },
     });
     expect(createdResponse.statusCode).toBe(201);
@@ -409,6 +410,27 @@ describe('organization-scoped tournament routes', () => {
     expect(updated.statusCode).toBe(200);
     expect(updated.json()).toEqual({ customScripts: [updatedAttachment] });
     expect((await tournaments.findLatestRuleset(created.tournamentId))?.version).toBe(2);
+  });
+
+  it('400s a custom-scripts replacement without a customScripts array, before reaching the controller (0146)', async () => {
+    const response = await request({
+      method: 'PUT',
+      url: '/organizations/liga-orbital/tournaments/copa-custom-scripts/custom-scripts',
+      token: 'organizer-org1',
+      payload: {},
+    });
+    expect(response.statusCode).toBe(400);
+  });
+
+  it('strips an extra undocumented property and replaces custom scripts anyway (0146)', async () => {
+    const updated = await request({
+      method: 'PUT',
+      url: '/organizations/liga-orbital/tournaments/copa-custom-scripts/custom-scripts',
+      token: 'organizer-org1',
+      payload: { customScripts: [], unexpectedField: 'dropped' },
+    });
+    expect(updated.statusCode).toBe(200);
+    expect(updated.json()).toEqual({ customScripts: [] });
   });
 
   it('names an offending custom-script reference and blocks updates after a persisted result', async () => {
@@ -726,6 +748,7 @@ describe('organization-scoped tournament routes', () => {
         checkInClosesAt: '2026-09-01T12:00:00.000Z',
         region: 'Mendoza',
         capacity: 16,
+        customScripts: [],
       },
     });
 
@@ -800,6 +823,7 @@ describe('organization-scoped tournament routes', () => {
         requiresCheckIn: false,
         profileId: profile.profileId,
         profileVersion: profile.version,
+        customScripts: [],
       },
     });
 

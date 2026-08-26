@@ -1,4 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import { IsArray, IsNumber, IsOptional, ValidateNested } from 'class-validator';
 
 /**
  * Scheduling wire shapes.
@@ -45,14 +47,19 @@ export class RestRuleDto {
     description: "Minimum minutes between an entrant's consecutive fixtures",
     example: 45,
   })
+  @IsNumber()
   minimumMinutes!: number;
 }
 
 export class ScheduleRequest {
   @ApiProperty({ type: [ScheduleAssignmentDto] })
+  @IsArray()
   assignments!: ScheduleAssignmentDto[];
 
   @ApiPropertyOptional({ type: RestRuleDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => RestRuleDto)
   restRule?: RestRuleDto;
 }
 

@@ -1,3 +1,13 @@
+import { Type } from 'class-transformer';
+import {
+  IsArray,
+  IsBoolean,
+  IsInt,
+  IsObject,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   SUPPORTED_LANGUAGES,
@@ -49,15 +59,19 @@ export class OrganizationResponse {
 }
 
 export class CreateOrganizationRequest {
+  @IsString()
   @ApiProperty({
     description: 'Lowercase kebab-case alias, unique per installation',
     example: 'liga-orbital',
   })
   alias!: string;
 
+  @IsString()
   @ApiProperty({ example: 'Liga Orbital' })
   name!: string;
 
+  @IsOptional()
+  @IsString()
   @ApiPropertyOptional({
     enum: SUPPORTED_LANGUAGES,
     description:
@@ -70,6 +84,8 @@ export class CreateOrganizationRequest {
     description: 'IANA time zone identifier; defaults to "UTC" when omitted',
     example: 'America/Argentina/San_Juan',
   })
+  @IsOptional()
+  @IsString()
   timezone?: string;
 }
 
@@ -94,12 +110,18 @@ export class MyOrganizationResponse {
 }
 
 export class UpdateOrganizationSettingsRequest {
+  @IsOptional()
+  @IsString()
   @ApiPropertyOptional({ example: 'Liga Orbital' })
   name?: string;
 
+  @IsOptional()
+  @IsString()
   @ApiPropertyOptional({ enum: SUPPORTED_LANGUAGES, example: 'en' })
   primaryLanguage?: string;
 
+  @IsOptional()
+  @IsString()
   @ApiPropertyOptional({ example: 'America/Argentina/San_Juan' })
   timezone?: string;
 }
@@ -128,37 +150,51 @@ export class ClubResponse {
 }
 
 export class CreateClubRequest {
+  @IsString()
   @ApiProperty({ example: 'Casa de Italia' })
   name!: string;
 
+  @IsOptional()
+  @IsString()
   @ApiPropertyOptional({
     description: 'Defaults to a suggestion derived from the name when omitted.',
     example: 'casa-de-italia',
   })
   alias?: string;
 
+  @IsOptional()
+  @IsString()
   @ApiPropertyOptional({ example: 'C I' })
   abbreviation?: string;
 }
 
 export class UpdateClubRequest {
+  @IsOptional()
+  @IsString()
   @ApiPropertyOptional({ example: 'Casa de Italia' })
   name?: string;
 
+  @IsOptional()
+  @IsString()
   @ApiPropertyOptional({ example: 'casa-de-italia' })
   alias?: string;
 
+  @IsOptional()
+  @IsString()
   @ApiPropertyOptional({ example: 'C I' })
   abbreviation?: string;
 }
 
 export class BootstrapAdministratorRequest {
+  @IsString()
   @ApiProperty({ example: 'liga-orbital' })
   organizationAlias!: string;
 
+  @IsString()
   @ApiProperty({ example: 'Liga Orbital' })
   organizationName!: string;
 
+  @IsString()
   @ApiProperty({ format: 'email', example: 'admin@example.test' })
   email!: string;
 }
@@ -233,17 +269,24 @@ export class TournamentResponse {
 }
 
 export class HookScriptAttachmentRequest {
+  @IsString()
   @ApiProperty({ enum: ['event.recorded'] })
   hook!: string;
 
+  @IsObject()
   @ApiProperty({ type: Object, description: 'Neuron-JS rule script document' })
   script!: Record<string, unknown>;
 
+  @IsOptional()
+  @IsString()
   @ApiPropertyOptional()
   description?: string;
 }
 
 export class TournamentCustomScriptsResponse {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => HookScriptAttachmentRequest)
   @ApiProperty({ type: [HookScriptAttachmentRequest] })
   customScripts!: readonly HookScriptAttachmentRequest[];
 }
@@ -305,15 +348,19 @@ export class HookScriptVocabularyResponse {
 }
 
 export class CreateTournamentRequest {
+  @IsString()
   @ApiProperty({ example: 'copa-verano' })
   alias!: string;
 
+  @IsString()
   @ApiProperty({ example: 'Copa Verano' })
   name!: string;
 
+  @IsString()
   @ApiProperty({ format: 'uuid', description: 'DisciplineDescriptor identifier' })
   descriptorId!: string;
 
+  @IsString()
   @ApiProperty({
     description:
       'Pinned descriptor version (semver). Rulesets never track "latest": the version a tournament starts on is frozen.',
@@ -321,49 +368,65 @@ export class CreateTournamentRequest {
   })
   descriptorVersion!: string;
 
+  @IsString()
   @ApiProperty({ example: 'round-robin' })
   format!: string;
 
+  @IsBoolean()
   @ApiProperty({
     description: 'Whether anonymous/public registration intake is open for this tournament.',
   })
   publicRegistration!: boolean;
 
+  @IsBoolean()
   @ApiProperty({
     description: 'Whether accepted entrants must check in before eligibility is locked.',
   })
   requiresCheckIn!: boolean;
 
+  @IsOptional()
+  @IsString()
   @ApiPropertyOptional({
     format: 'date-time',
     description: 'Optional instant when checked-in team memberships stop being editable.',
   })
   checkInClosesAt?: string;
 
+  @IsOptional()
+  @IsString()
   @ApiPropertyOptional({
     description: 'Geographic or administrative region for tournament registration.',
     example: 'South America',
   })
   region?: string;
 
+  @IsOptional()
+  @IsInt()
   @ApiPropertyOptional({
     description: 'Maximum number of participants/entrants for the tournament.',
     example: 16,
   })
   capacity?: number;
 
+  @IsOptional()
+  @IsString()
   @ApiPropertyOptional({
     format: 'uuid',
     description: 'Optional TournamentProfile identifier to instantiate multi-stage preset.',
   })
   profileId?: string;
 
+  @IsOptional()
+  @IsString()
   @ApiPropertyOptional({
     description: 'Optional TournamentProfile version (semver).',
     example: '1.0.0',
   })
   profileVersion?: string;
 
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => HookScriptAttachmentRequest)
   @ApiProperty({
     type: [HookScriptAttachmentRequest],
     default: [],
@@ -373,6 +436,8 @@ export class CreateTournamentRequest {
 }
 
 export class CreateStageRequest {
+  @IsOptional()
+  @IsInt()
   @ApiPropertyOptional({
     description:
       'Defaults to the tournament’s next sequential stage number. Refused as a conflict if a stage with this number already exists.',
@@ -380,9 +445,13 @@ export class CreateStageRequest {
   })
   number?: number;
 
+  @IsOptional()
+  @IsString()
   @ApiPropertyOptional({ description: 'Defaults to "Stage {number}".', example: 'Fase de grupos' })
   name?: string;
 
+  @IsOptional()
+  @IsString()
   @ApiPropertyOptional({
     description:
       'Defaults to the tournament’s own configured format. Validated against the tournament’s discipline descriptor when supplied.',
@@ -423,6 +492,7 @@ export class ProblemResponse {
 }
 
 export class CreateCsvImportRequest {
+  @IsString()
   @ApiProperty({
     enum: ['individual', 'team', 'team-membership'],
     description:
@@ -432,6 +502,7 @@ export class CreateCsvImportRequest {
   })
   target!: 'individual' | 'team' | 'team-membership';
 
+  @IsString()
   @ApiProperty({
     description: 'UTF-8 CopaLibre participant CSV, limited to 4 MiB.',
     example: 'alias,displayName,naturalKeyKind,naturalKey\\nmaria-perez,Maria Perez,dni,12345678',
@@ -459,6 +530,7 @@ export class CsvImportPreviewResponse {
 }
 
 export class CommitCsvImportRequest {
+  @IsString()
   @ApiProperty({ description: 'Source hash returned by the reviewed preview.' })
   sourceHash!: string;
 }
@@ -477,10 +549,13 @@ export class OrganizationRoleResponse {
 }
 
 export class InviteOrganizationUserRequest {
+  @IsString()
   @ApiProperty({ format: 'email' })
   email!: string;
+  @IsString()
   @ApiProperty({ enum: ['admin', 'club-admin', 'referee', 'broadcaster', 'viewer'] })
   role!: 'admin' | 'club-admin' | 'referee' | 'broadcaster' | 'viewer';
+  @IsString()
   @ApiProperty({ enum: ['active', 'inactive'] })
   status!: 'active' | 'inactive';
 }
@@ -493,8 +568,10 @@ export class OrganizationInvitationResponse {
 }
 
 export class ChangeOrganizationRoleRequest {
+  @IsString()
   @ApiProperty({ enum: ['admin', 'club-admin', 'referee', 'broadcaster', 'viewer'] })
   role!: 'admin' | 'club-admin' | 'referee' | 'broadcaster' | 'viewer';
+  @IsString()
   @ApiProperty({ enum: ['active', 'inactive'] })
   status!: 'active' | 'inactive';
 }
@@ -521,6 +598,7 @@ export class InstallationSuperAdminResponse {
 }
 
 export class CreateSuperAdminRequest {
+  @IsString()
   @ApiProperty({
     format: 'uuid',
     description: 'CopaLibre internal principal UUIDv7 to grant super-admin',
@@ -529,11 +607,13 @@ export class CreateSuperAdminRequest {
 }
 
 export class ChangeInstallationRoleStatusRequest {
+  @IsString()
   @ApiProperty({ enum: ['active', 'inactive'] })
   status!: 'active' | 'inactive';
 }
 
 export class AcceptInvitationRequest {
+  @IsString()
   @ApiProperty({ minLength: 32 })
   token!: string;
 }
@@ -670,6 +750,8 @@ export class RegistrationResponse {
 }
 
 export class EditTeamMembershipsRequest {
+  @IsArray()
+  @IsString({ each: true })
   @ApiProperty({
     isArray: true,
     format: 'uuid',
@@ -702,6 +784,7 @@ export class ParticipantReportedResultResponse {
 }
 
 export class LinkParticipantIdentityRequest {
+  @IsString()
   @ApiProperty({ format: 'email' })
   email!: string;
 }
@@ -714,9 +797,12 @@ export class ParticipantIdentityLinkResponse {
 }
 
 export class ReviewRegistrationRequest {
+  @IsString()
   @ApiProperty({ enum: ['accepted', 'refused', 'withdrawn'] })
   decision!: 'accepted' | 'refused' | 'withdrawn';
 
+  @IsOptional()
+  @IsString()
   @ApiPropertyOptional({
     description:
       'Recorded on the audit row. A refusal an entrant cannot be told about is one they will ask about.',
@@ -725,6 +811,7 @@ export class ReviewRegistrationRequest {
 }
 
 export class SetEntrantAbbreviationRequest {
+  @IsString()
   @ApiProperty({
     example: 'CDI',
     description: 'Uppercase short label, unique within this tournament.',
@@ -733,12 +820,17 @@ export class SetEntrantAbbreviationRequest {
 }
 
 export class BulkReviewRequest {
+  @IsArray()
+  @IsString({ each: true })
   @ApiProperty({ isArray: true, format: 'uuid' })
   entrantIds!: string[];
 
+  @IsString()
   @ApiProperty({ enum: ['accepted', 'refused', 'withdrawn'] })
   decision!: 'accepted' | 'refused' | 'withdrawn';
 
+  @IsOptional()
+  @IsString()
   @ApiPropertyOptional()
   reason?: string;
 }

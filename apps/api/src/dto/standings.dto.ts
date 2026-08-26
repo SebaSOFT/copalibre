@@ -1,4 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsArray, IsInt, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 
 /** Wire DTOs are camelCase, per the naming-conventions casing rule. */
 
@@ -67,9 +69,14 @@ export class TiebreakTraceResponse {
 
 export class SeedAssignmentResponse {
   @ApiProperty({ description: '1-based seed', example: 3 })
+  // Also reached as a request element via PublishSeedingRequest.seeds, so
+  // these rules run under the global pipe (0146); outbound serialization is
+  // never validated.
+  @IsInt()
   seed!: number;
 
   @ApiProperty({ format: 'uuid' })
+  @IsString()
   entrantId!: string;
 }
 
@@ -152,6 +159,12 @@ export class PublishSeedingRequest {
     isArray: true,
     description: 'The full seed order, not a delta — a partial order is an ambiguous bracket',
   })
+  // Handler folds an omitted list to [] and rejects it semantically, so the
+  // field stays runtime-optional here (0146).
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SeedAssignmentResponse)
   seeds!: SeedAssignmentResponse[];
 }
 

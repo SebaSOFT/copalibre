@@ -1,4 +1,4 @@
-import { Module, type INestApplication } from '@nestjs/common';
+import { Module, ValidationPipe, type INestApplication } from '@nestjs/common';
 import { APP_GUARD, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
@@ -99,6 +99,7 @@ describe('venue/official list/create/edit (integration)', () => {
 
     const moduleRef = await Test.createTestingModule({ imports: [TestModule] }).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
     await app.init();
     await app.getHttpAdapter().getInstance().ready();
   });
@@ -297,5 +298,26 @@ describe('venue/official list/create/edit (integration)', () => {
       payload: { displayName: 'Sin Rol', roles: [] },
     });
     expect(response.statusCode).toBe(400);
+  });
+
+  it('400s a venue created without a concurrent capacity, before reaching the controller', async () => {
+    const response = await inject({
+      method: 'POST',
+      url: `/organizations/${organizationAlias}/venues`,
+      headers: { authorization: 'Bearer organizer' },
+      payload: { alias: 'cancha-sin-capacidad', name: 'Cancha Sin Capacidad' },
+    });
+    expect(response.statusCode).toBe(400);
+  });
+
+  it('strips an extra undocumented property and creates the official anyway', async () => {
+    const response = await inject({
+      method: 'POST',
+      url: `/organizations/${organizationAlias}/officials`,
+      headers: { authorization: 'Bearer organizer' },
+      payload: { displayName: 'Celia Prueba', roles: ['observer'], unexpectedField: 'dropped' },
+    });
+    expect(response.statusCode).toBe(201);
+    expect(response.json()).not.toHaveProperty('unexpectedField');
   });
 });

@@ -1,18 +1,6 @@
 import * as argon2 from 'argon2';
 import { SignJWT } from 'jose';
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  HttpCode,
-  Inject,
-  Param,
-  Post,
-  Req,
-  UsePipes,
-  ValidationPipe,
-} from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Inject, Param, Post, Req } from '@nestjs/common';
 import {
   BadRequestException,
   ForbiddenException,
@@ -230,9 +218,6 @@ export class PersonalAccessTokenController {
   }
 
   @Post()
-  // Route-local (0142): enforces CreatePatRequest's class-validator rules on
-  // this handler only — platform-wide pipe adoption is a separate follow-up.
-  @UsePipes(new ValidationPipe())
   @SecurityPlaneTag('admin-control')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Generate a new personal access token' })

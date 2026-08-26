@@ -1,4 +1,4 @@
-import { Module, type INestApplication } from '@nestjs/common';
+import { Module, ValidationPipe, type INestApplication } from '@nestjs/common';
 import { APP_GUARD, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { ThrottlerModule } from '@nestjs/throttler';
@@ -200,6 +200,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
 
     const moduleRef = await Test.createTestingModule({ imports: [TestModule] }).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
     await app.init();
     await app.getHttpAdapter().getInstance().ready();
   });
@@ -220,6 +221,18 @@ describe('person photo / club emblem upload and public serve (integration)', () 
       payload: { filename: 'p.png', contentType: 'image/png', contentBase64: 'AA==' },
     });
     expect(response.statusCode).toBe(401);
+  });
+
+  // 0146: the global ValidationPipe rejects a body failing its DTO with 400
+  // at the edge, instead of surfacing as a handler error (500).
+  it('refuses an authenticated photo upload missing contentBase64 with 400 (0146)', async () => {
+    const response = await inject({
+      method: 'POST',
+      url: `/organizations/${organizationAlias}/persons/${personId}/photo`,
+      headers: { authorization: 'Bearer organizer' },
+      payload: { filename: 'photo.png', contentType: 'image/png' },
+    });
+    expect(response.statusCode).toBe(400);
   });
 
   it('404s a person with no photo, on the unauthenticated public route', async () => {
