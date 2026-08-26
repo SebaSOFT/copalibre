@@ -62,3 +62,32 @@ The system MUST allow users to revoke PATs they have generated.
 - **WHEN** a user revokes a PAT from the preferences screen
 - **THEN** the system marks the token as revoked in the database and rejects any subsequent
   requests using it.
+
+### Requirement: Security-driven Personal Access Token invalidation
+
+The system SHALL allow an authorized operator to invalidate every currently active Personal Access
+Token through an explicit security cutover. The operation SHALL revoke the selected credentials and
+write an audit record for each affected credential in one transaction, without exposing raw tokens
+or token hashes.
+
+#### Scenario: Confirmed security cutover
+
+- **WHEN** an authorized operator explicitly confirms the security cutover
+- **THEN** every Personal Access Token that is active at execution time is marked revoked, each
+  revocation has audit evidence, and subsequent requests using those tokens are rejected.
+
+#### Scenario: Cutover without explicit confirmation
+
+- **WHEN** an operator invokes the cutover without its required confirmation
+- **THEN** the system changes no credentials and reports that confirmation is required.
+
+#### Scenario: Repeated security cutover
+
+- **WHEN** the cutover is executed after all active Personal Access Tokens were already revoked
+- **THEN** the system reports zero newly revoked credentials and does not alter prior revocation or
+  audit data.
+
+#### Scenario: Credential material remains secret
+
+- **WHEN** the cutover completes or fails
+- **THEN** its output, logs, and audit records contain neither a raw token nor a token hash.
