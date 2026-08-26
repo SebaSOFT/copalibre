@@ -97,7 +97,7 @@ export const RADIUS = {
   /** The chamfer's cut, not a corner radius: see `generate/css.ts`. */
   chamfer: '14px',
   'chamfer-control': '8px',
-  /** Same cut size as `chamfer` — the framed-image border matches it visually (0122). */
+  /** Same cut size as `chamfer` — the framed-image border matches it visually. */
   'image-frame': '14px',
   'image-frame-control': '8px',
 } as const;
@@ -121,7 +121,7 @@ export const MOTION = {
 export const TOUCH_TARGET = '44px';
 
 /**
- * Control-web's data-density composition (0141): the same 4px `SPACING`
+ * Control-web's data-density composition: the same 4px `SPACING`
  * scale, mapped to the step an operator screen actually needs at each named
  * gap. No new spacing value is introduced here — every value below is an
  * existing member of `SPACING`, selected for a denser composition than the

@@ -332,7 +332,7 @@ describe('standings and seeding routes (integration)', () => {
     expect(pairs.size).toBe(6);
   });
 
-  it('400s a seed order that is not an array, before reaching the controller (0146)', async () => {
+  it('400s a seed order that is not an array, before reaching the controller', async () => {
     const response = await request({
       method: 'POST',
       url: `${base}/seeding`,
@@ -342,7 +342,7 @@ describe('standings and seeding routes (integration)', () => {
     expect(response.statusCode).toBe(400);
   });
 
-  it('strips an extra undocumented property and publishes the seed order anyway (0146)', async () => {
+  it('strips an extra undocumented property and publishes the seed order anyway', async () => {
     const reversed = [...entrantIds].reverse();
     const response = await request({
       method: 'POST',

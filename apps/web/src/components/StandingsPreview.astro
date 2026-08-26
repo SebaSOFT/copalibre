@@ -105,7 +105,7 @@ const isPlayerRanking =
                 // The interaction 0103 named as its motivation: a rendered
                 // club emblem, clickable to filter — this link is that
                 // click target. Every club gets one (placeholder or real),
-                // matching the organization page's own club grid (0110).
+                // matching the organization page's own club grid.
                 organizationAlias && (
                   <EmblemImage
                     alt={intl.formatMessage(messages.orgPageEmblemAlt, { name: club.name })}
@@ -287,7 +287,7 @@ const isPlayerRanking =
               )
               .join('');
 
-            // An absence is stated, never rendered as zero (0114) — a person
+            // An absence is stated, never rendered as zero — a person
             // with no recorded roster history gets an explicit "none
             // recorded" line, the same wording PlayerProfileView.astro (the
             // standalone profile page) already used for this.

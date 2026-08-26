@@ -27,7 +27,7 @@ import { DATABASE } from '../database.token.js';
 import { resolveTournament } from './standings.controller.js';
 
 /**
- * Dynamic table/ranking projections (0091): group standings, top scorers,
+ * Dynamic table/ranking projections: group standings, top scorers,
  * goalkeeper rankings, and any other `TableLayoutDefinition` a discipline or
  * tournament ruleset declares — read here rather than in a hardcoded
  * frontend column list.

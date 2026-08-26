@@ -64,7 +64,7 @@ export function fixtureDescriptor(overrides?: Partial<DisciplineDescriptor>): Di
     statistics: [{ code: 'strikes', label: 'Strikes', aggregation: 'sum' }],
     scoringInputs: [{ code: 'score', label: 'Score', source: 'event-derived' }],
     availableFormats: ['round-robin', 'single-elimination'],
-    // A rule script since 0009: the highest strike count at full time takes the
+    // A rule script since the highest strike count at full time takes the
     // match. No target, so the match closes on completion rather than on a side
     // reaching a number — the shape a timed field sport needs.
     winCondition: {

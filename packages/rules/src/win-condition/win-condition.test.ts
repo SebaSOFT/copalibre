@@ -407,7 +407,7 @@ describe('win-condition script validation', () => {
     }
   });
 
-  it('evaluates win conditions sourced directly from the JSON catalogue (0131)', async () => {
+  it('evaluates win conditions sourced directly from the JSON catalogue', async () => {
     const tennisRaw = JSON.parse(
       await readFile(
         new URL('../../../module-catalogue/disciplines/tennis.json', import.meta.url),

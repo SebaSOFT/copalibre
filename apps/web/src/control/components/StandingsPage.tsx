@@ -48,7 +48,7 @@ export function StandingsPage({
   /** Fetches one row's trace lines; called the first time a `group-phase` row is expanded. */
   readonly onExpand?: (entrantId: string) => Promise<readonly string[]>;
   readonly onExportCsv?: () => void;
-  /** Scopes a `group-phase` table to one group; absent for a single-implicit-group stage (0108). */
+  /** Scopes a `group-phase` table to one group; absent for a single-implicit-group stage. */
   readonly groupSelector?: {
     readonly options: readonly { readonly groupId: string; readonly label: string }[];
     readonly selectedGroupId?: string;

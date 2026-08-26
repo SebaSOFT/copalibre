@@ -150,12 +150,12 @@ describe('AdminModulesController (integration)', () => {
     expect(installed).toHaveLength(0);
   });
 
-  it('400s an install without an alias, before reaching the controller (0146)', async () => {
+  it('400s an install without an alias, before reaching the controller', async () => {
     const response = await inject('admin', 'POST', '/admin/modules', { range: '^1.0.0' });
     expect(response.statusCode).toBe(400);
   });
 
-  it('strips an extra undocumented property and installs anyway (0146)', async () => {
+  it('strips an extra undocumented property and installs anyway', async () => {
     const install = await inject('admin', 'POST', '/admin/modules', {
       alias: 'orbital-frisbee',
       unexpectedField: 'dropped',

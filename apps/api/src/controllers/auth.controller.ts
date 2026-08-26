@@ -168,7 +168,7 @@ export class NativeAuthController {
 }
 
 /**
- * PAT scope policy (0142): a PAT's scopes may never exceed the caller's own
+ * PAT scope policy: a PAT's scopes may never exceed the caller's own
  * current session scopes, and may never include an installation-privileged
  * scope — not even for a caller who legitimately holds one. A PAT is an
  * Integration-plane credential; its scopes must be narrow categorically, not
@@ -318,7 +318,7 @@ function toPatResponse(pat: {
  * Uses HS256 with a server-side secret for simplicity in the local IdP case.
  *
  * `copalibre.super-admin` is appended only when `installation_role_assignments`
- * (0140) holds an active super-admin row for this principal — the queryable,
+ * holds an active super-admin row for this principal — the queryable,
  * floor-invariant-protected source of truth introduced by that change. An
  * externally-issued OIDC token's own `scp` claim is a separate, unaffected
  * source for the same scope (`TokenVerifier`/`packages/auth`).

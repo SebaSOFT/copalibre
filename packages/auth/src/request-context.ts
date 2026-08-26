@@ -27,7 +27,7 @@ export interface AuthenticatedSubject {
   /** Participant record linked to this principal in the requested organization. */
   readonly participantPersonId?: string;
   /**
-   * Who this caller may grant roles as (0140), resolved once by
+   * Who this caller may grant roles as, resolved once by
    * `OrganizationAccessGuard` so controllers do not each re-derive it.
    * Shape mirrors `@copalibre/domain`'s `GrantorContext` without importing it
    * (this package stays framework/domain-free).

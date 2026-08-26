@@ -71,7 +71,7 @@ function tournament(overrides: Partial<TournamentResponse> = {}): TournamentResp
   };
 }
 
-describe('DashboardRoute (0113)', () => {
+describe('DashboardRoute', () => {
   let originalFetch: typeof fetch;
 
   beforeEach(() => {

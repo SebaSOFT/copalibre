@@ -368,7 +368,7 @@ export class CompetitionRepository {
         };
   }
 
-  /** Every stored promotion plan whose `nextStageId` targets the given stage (0121). */
+  /** Every stored promotion plan whose `nextStageId` targets the given stage. */
   async findPromotionPlansTargetingStage(nextStageId: string): Promise<
     readonly {
       readonly promotionPlanId: string;

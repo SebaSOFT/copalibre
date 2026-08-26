@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Proves the Helm chart (deploy/helm/copalibre) holds the same release
 # contract on a real K3s cluster that docker-compose.yml holds on Compose
-# (0034): a rolling update never drops traffic, a failed migration blocks the
+#: a rolling update never drops traffic, a failed migration blocks the
 # rollout instead of silently proceeding, an unhealthy pod stops receiving
 # traffic, and exactly one scheduler replica holds the distributed lease at
 # any moment. Always tears the cluster down on exit — this is a validation

@@ -280,7 +280,7 @@ function withNewerFootball(catalogue: ModuleCatalogue, version: string): ModuleC
 }
 
 /**
- * Simulates the football descriptor as it was before 0115: same document,
+ * Simulates the football descriptor as it was before this update: same document,
  * minus the foul/throw-in vocabulary and everything it alone introduced
  * (`foul-play-on`, `free-kick-awarded`, `penalty-awarded`, `throw-in-taken`,
  * `foul-throw`) — reused card/goal/substitution events stay, since those

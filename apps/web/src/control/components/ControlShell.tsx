@@ -65,7 +65,7 @@ function ControlShellChrome({
   const intl = useIntl();
   const isSuperAdmin = accessTokenHasScope(controlTokenStore.read(), 'copalibre.super-admin');
   // Same locale-prefix routing Starlight's own pages already use for every
-  // locale but the default (0116): the root/English pages are unprefixed.
+  // locale but the default: the root/English pages are unprefixed.
   const helpLocalePrefix = locale === 'en' ? '' : `/${locale}`;
   const logout = (): void => {
     controlTokenStore.clear();

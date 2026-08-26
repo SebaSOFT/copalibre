@@ -10,7 +10,7 @@ operator's console mid-tournament. Owning the file makes an upgrade a decision.
 
 ## `apps/web/src/control/components/ui/`
 
-Reorganized into `atoms/`, `molecules/`, `organisms/`, `templates/` (0141); a
+Reorganized into `atoms/`, `molecules/`, `organisms/`, `templates/`; a
 copied-source entry below names the file, not its subfolder, so it still
 matches wherever the file lives.
 

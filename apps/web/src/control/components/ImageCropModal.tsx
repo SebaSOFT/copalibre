@@ -10,7 +10,7 @@ import { messages } from '../i18n/messages.en.js';
  * Fixed 4:5 crop for every profile image (organization/club emblem, person
  * photo) — pan/zoom/rotate, confirm renders the crop to a 410×512 PNG via
  * `cropToPng`, cancel leaves the caller's prior upload state untouched
- * (0122). Mirrors `RolesPermissionsPage.tsx`'s `InviteDialog` dialog
+ *. Mirrors `RolesPermissionsPage.tsx`'s `InviteDialog` dialog
  * convention (`role="dialog"`, `aria-modal`, `cl-card cl-chamfer`, inline
  * `CSSProperties` for layout) and adds Escape-to-cancel.
  */

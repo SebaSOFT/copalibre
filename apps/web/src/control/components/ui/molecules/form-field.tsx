@@ -1,5 +1,5 @@
 /**
- * Original composition (0141) — label + control-atom slot + help/error text.
+ * Original composition — label + control-atom slot + help/error text.
  * The control-web-shell "no state below organism" rule (design.md Decision 7):
  * this molecule receives everything via props, it fetches nothing.
  */

@@ -10,7 +10,7 @@ import { Label } from './label.js';
 import { Select } from './select.js';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './card.js';
 
-describe('form-control atoms (0141)', () => {
+describe('form-control atoms', () => {
   it('renders the default and error state classes for Input', () => {
     const { rerender } = render(<Input aria-label="Email" value="" onChange={() => {}} />);
     expect(screen.getByLabelText('Email').className).toContain('cl-input--default');
@@ -102,7 +102,7 @@ describe('form-control atoms (0141)', () => {
   });
 });
 
-describe('Card compound subparts (0141)', () => {
+describe('Card compound subparts', () => {
   it('renders header/title/description/content/footer as one composed card', () => {
     render(
       <Card>

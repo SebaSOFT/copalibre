@@ -253,7 +253,7 @@ main() {
   kill "${pf_pid}" >/dev/null 2>&1 || true
   wait "${pf_pid}" 2>/dev/null || true
 
-  log "Verifying restored data against the same integrity checks used at the Compose level (0030)"
+  log "Verifying restored data against the same integrity checks used at the Compose level"
   worker_pod=$(kubectl get pods -l app.kubernetes.io/component=worker -o jsonpath='{.items[0].metadata.name}')
   kubectl exec "${worker_pod}" -- node packages/persistence/dist/test-support/backup-drill.js snapshot >/tmp/copalibre-backup-restore-restored.json
 

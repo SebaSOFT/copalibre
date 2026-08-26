@@ -4,7 +4,7 @@ import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './suppor
 
 /**
  * A5 (Control Web) and B2 (public tournament page) rendering declared table
- * layouts dynamically (0091) — the discipline's own columns (GF/GC/Dif), a
+ * layouts dynamically — the discipline's own columns (GF/GC/Dif), a
  * composite fraction cell ("4/5"), switching between declared layouts, and
  * exporting the active one as CSV.
  */
@@ -148,7 +148,7 @@ const playerProfileFixture = {
   ],
 };
 
-// A person with no recorded roster history (0114): both lists come back
+// A person with no recorded roster history: both lists come back
 // empty, and the surface must state that absence rather than render
 // nothing or a zero.
 const playerProfileFixtureNoStats = {
@@ -553,7 +553,7 @@ test.describe('B2: public tournament page', () => {
     await expect(page.getByText('Events are not yet available.')).toBeVisible();
   });
 
-  test('a bracket match card links to its report page (0112)', async ({ page }) => {
+  test('a bracket match card links to its report page', async ({ page }) => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/1`);
 
     // The played match (position 1, matchNumber 1) links to the report
@@ -568,7 +568,7 @@ test.describe('B2: public tournament page', () => {
     await page.waitForURL(`**/stages/1/matches/2`);
   });
 
-  test('filters the leaderboard to one club by URL, keeps whole-table ranks, and clears (0113)', async ({
+  test('filters the leaderboard to one club by URL, keeps whole-table ranks, and clears', async ({
     page,
   }) => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
@@ -580,7 +580,7 @@ test.describe('B2: public tournament page', () => {
     await expect(page.getByRole('cell', { name: 'Goleador Dos' })).toBeVisible();
 
     // Click the club filter — the interaction 0103 named as its motivation,
-    // wired up here for the first time (0113). The pill is a rendered club
+    // wired up here for the first time. The pill is a rendered club
     // emblem (placeholder, in this fixture) plus its name, both inside the
     // one filtering link.
     const independienteFilter = page.getByRole('link', { name: 'Club Atlético Independiente' });
@@ -654,9 +654,7 @@ test.describe('B2: public tournament page', () => {
     await expect(page.locator('.cl-image-frame img')).toBeVisible();
   });
 
-  test('states an absence, not zeroes, for a player with no roster history (0114)', async ({
-    page,
-  }) => {
+  test('states an absence, not zeroes, for a player with no roster history', async ({ page }) => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
 
     await page.getByRole('tab', { name: 'Top Scorers' }).click();
@@ -694,7 +692,7 @@ test.describe('B2: public tournament page', () => {
     await expect(page.getByRole('heading', { name: 'Upcoming' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Finished & Archive' })).toBeVisible();
 
-    // Featured block names the live tournament (0110) — it also appears in
+    // Featured block names the live tournament — it also appears in
     // its normal "Live & Active" section below, so both the heading and the
     // now-doubled tournament link are the evidence.
     await expect(page.getByRole('heading', { name: 'Featured' })).toBeVisible();
@@ -709,7 +707,7 @@ test.describe('B2: public tournament page', () => {
     await expect(page.getByText('Champion')).toBeVisible();
     await expect(page.getByText('Runner-up')).toBeVisible();
 
-    // Club grid (0110).
+    // Club grid.
     await expect(page.getByRole('heading', { name: 'Clubs' })).toBeVisible();
     await expect(page.getByText('Club Atlético Talleres').first()).toBeVisible();
     await expect(page.getByText('Club Atlético Independiente').first()).toBeVisible();

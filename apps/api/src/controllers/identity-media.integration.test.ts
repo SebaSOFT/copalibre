@@ -49,7 +49,7 @@ function hash(value: string): string {
 }
 
 /**
- * A real, decodable PNG at the platform's profile-image contract size (0122)
+ * A real, decodable PNG at the platform's profile-image contract size
  * — every upload test below needs bytes `sharp` can actually read dimensions
  * from, not the placeholder text buffers the pre-0122 tests used, now that
  * `decodeImage()` runs every upload through `sharp(bytes).metadata()`.
@@ -74,7 +74,7 @@ class FakeTokenVerifier {
         organizationId: ORG_PLACEHOLDER,
         scopes: ['copalibre.control'],
       },
-      // 0145: a second admin principal, to prove per-principal throttle
+      // a second admin principal, to prove per-principal throttle
       // buckets are tracked independently.
       'organizer-2': {
         subjectId: 'organizer-2',
@@ -223,9 +223,9 @@ describe('person photo / club emblem upload and public serve (integration)', () 
     expect(response.statusCode).toBe(401);
   });
 
-  // 0146: the global ValidationPipe rejects a body failing its DTO with 400
+  // the global ValidationPipe rejects a body failing its DTO with 400
   // at the edge, instead of surfacing as a handler error (500).
-  it('refuses an authenticated photo upload missing contentBase64 with 400 (0146)', async () => {
+  it('refuses an authenticated photo upload missing contentBase64 with 400', async () => {
     const response = await inject({
       method: 'POST',
       url: `/organizations/${organizationAlias}/persons/${personId}/photo`,
@@ -519,7 +519,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
     expect(response.statusCode).toBe(401);
   });
 
-  it('throttles photo uploads per principal and tracks principals independently (0145)', async () => {
+  it('throttles photo uploads per principal and tracks principals independently', async () => {
     const uploadAs = async (token: string): Promise<{ statusCode: number }> => {
       const person = await withTransaction(db, (uow) =>
         new PersonRepository(db).register(uow, {

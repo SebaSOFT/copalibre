@@ -1,5 +1,5 @@
 /**
- * Original composition (0141), the templates tier's second shape: header,
+ * Original composition, the templates tier's second shape: header,
  * grouped form-field sections, sticky footer action bar. No data-fetching or
  * business logic lives in this file (design.md Decisions 7-8).
  */

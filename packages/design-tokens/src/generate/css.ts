@@ -152,7 +152,7 @@ function chamfer(): string {
  * picture) or its placeholder — chamfered the same way `.cl-chamfer` already
  * is, `object-fit: cover` so a source whose stored aspect isn't exactly 4:5
  * (an image saved before this existed) still fills the frame without
- * distortion (0122).
+ * distortion.
  */
 function imageFrame(): string {
   return [
@@ -401,7 +401,7 @@ function components(): string {
   ].join('\n');
 }
 
-/** One state-keyed rule block per form-control atom (0141). */
+/** One state-keyed rule block per form-control atom. */
 function formControls(): string {
   const groups: readonly [string, Record<FormControlState, FormControlTokenSet>][] = [
     ['input', INPUT_TOKENS],
@@ -427,7 +427,7 @@ function formControls(): string {
     .join('\n\n');
 }
 
-/** The `Modal`/`Dialog` organism's overlay and content-panel tokens (0141). */
+/** The `Modal`/`Dialog` organism's overlay and content-panel tokens. */
 function dialog(): string {
   return [
     '.cl-dialog-backdrop {',

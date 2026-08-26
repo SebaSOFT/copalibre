@@ -2,7 +2,7 @@ import type { Kysely } from 'kysely';
 import type { Migration } from 'kysely/migration';
 
 /**
- * `organizations.emblem_object_id` — nullable, additive, no backfill (0109),
+ * `organizations.emblem_object_id` — nullable, additive, no backfill,
  * mirroring `clubs.emblem_object_id` (0019) exactly: a real FK into
  * `object_metadata.object_id`.
  */

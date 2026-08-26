@@ -112,7 +112,7 @@ describe('the control shell', () => {
     );
 
     const help = screen.getByRole('link', { name: '¿Qué es esta pantalla?' });
-    // Locale-prefixed (0116): the test environment's default resolved
+    // Locale-prefixed: the test environment's default resolved
     // language is 'es' (see the block comment above), so the link matches
     // Starlight's own `/es/...` routing for that locale.
     expect(help.getAttribute('href')).toBe('/es/help/control/seeding');
@@ -120,7 +120,7 @@ describe('the control shell', () => {
     expect(help.getAttribute('rel')).toBe('noopener noreferrer');
   });
 
-  it('locale-prefixes the help link for every supported language, and leaves English unprefixed (0116)', () => {
+  it('locale-prefixes the help link for every supported language, and leaves English unprefixed', () => {
     const cases = [
       ['en', '/help/control/seeding'],
       ['es', '/es/help/control/seeding'],

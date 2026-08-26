@@ -2,7 +2,7 @@ import type { Kysely } from 'kysely';
 import type { Migration } from 'kysely/migration';
 
 /**
- * `venues.details` — nullable, additive (0124): a free-form, operator-entered
+ * `venues.details` — nullable, additive: a free-form, operator-entered
  * bag of key/value strings covering both a physical venue (address, playing
  * surface) and a virtual one (server address, region, current map), never
  * parsed by the system. No venue exists yet (the feature has been

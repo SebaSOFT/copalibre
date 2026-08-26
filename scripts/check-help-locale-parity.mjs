@@ -2,7 +2,7 @@ import { readdirSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-// Enforces platform/help-and-api-docs's page-set parity guarantee (0138): for
+// Enforces platform/help-and-api-docs's page-set parity guarantee: for
 // every English /help/** page, every other supported locale SHALL have the
 // corresponding page at the same relative path, or the build fails naming
 // every missing locale/page pair (not just the first). This is an

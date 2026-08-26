@@ -125,7 +125,7 @@ describe('runCli', () => {
       }
     });
 
-    it('prints the larger logo to stderr, in place of the compact banner (0118)', async () => {
+    it('prints the larger logo to stderr, in place of the compact banner', async () => {
       const stdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
       const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
       try {
@@ -299,7 +299,7 @@ describe('runCli', () => {
       });
     });
 
-    it('reports success once migrate succeeds, with no DATABASE_URL set on the host (0117)', async () => {
+    it('reports success once migrate succeeds, with no DATABASE_URL set on the host', async () => {
       await withTemporaryWorkingDirectory(async () => {
         // Same discoverable-compose-file setup as the migrate-failure case
         // above, and deliberately no DATABASE_URL in the environment passed

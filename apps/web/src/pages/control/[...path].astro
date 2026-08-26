@@ -4,10 +4,10 @@ import '@copalibre/design-tokens/generated/copalibre.css';
 import '../../styles/control.css';
 
 /**
- * Same shell as app.astro (0061), reached via this dynamic route instead of
+ * Same shell as app.astro, reached via this dynamic route instead of
  * the static-host `try_files` fallback it relies on. Without this file, any
  * `/control/**` path without its own built page (login callback, per-org
- * screens, ...) falls through to `[...locale]/[organization].astro` (0110)
+ * screens, ...) falls through to `[...locale]/[organization].astro`
  * — a bare `/{locale?}/{organization}` catch-all that would otherwise treat
  * "control" as a locale or organization alias. A static first segment
  * outranks that route's leading rest param in Astro's routing priority, so

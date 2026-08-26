@@ -15,7 +15,7 @@ function row(overrides: Partial<AbbreviationCandidateRow> = {}): AbbreviationCan
   };
 }
 
-describe('AbbreviationReviewSection (0111)', () => {
+describe('AbbreviationReviewSection', () => {
   it('shows an empty state when no entrant needs an abbreviation', () => {
     render(withIntl(<AbbreviationReviewSection rows={[]} />));
     expect(screen.getByText('Every entrant already has an abbreviation.')).toBeDefined();

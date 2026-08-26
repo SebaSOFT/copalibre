@@ -2,7 +2,7 @@ import type { Kysely } from 'kysely';
 import type { Migration } from 'kysely/migration';
 
 /**
- * `persons.birth_date` — nullable, additive date column; no default, no backfill (0104).
+ * `persons.birth_date` — nullable, additive date column; no default, no backfill.
  */
 export const personBirthDate: Migration = {
   async up(db: Kysely<unknown>): Promise<void> {

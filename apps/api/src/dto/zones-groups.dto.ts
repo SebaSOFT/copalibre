@@ -175,7 +175,7 @@ export class ConfirmGroupDrawResponse extends DrawPreviewResponse {
 }
 
 /**
- * Manual placement's own request/response shapes (0108) — deliberately not
+ * Manual placement's own request/response shapes — deliberately not
  * `DrawPreviewResponse`'s subtypes: a manually placed assignment has no
  * seed or search-step count, both meaningless for an operator-chosen
  * placement rather than a deterministic draw.
@@ -237,7 +237,7 @@ export class SavePromotionPlanRequest {
       { type: 'object', additionalProperties: { type: 'number', minimum: 1 } },
     ],
   })
-  // Presence-only check (0146): a number-or-record union has no single
+  // Presence-only check: a number-or-record union has no single
   // type validator, and an undecorated property is stripped by whitelist mode.
   @IsDefined()
   perGroupAdvance!: number | Record<string, number>;
@@ -302,7 +302,7 @@ export class PromotionPreviewResponse {
 
 /**
  * One prior-stage zone's resolved promotion preview, returned as part of the
- * reverse lookup "which zones' promotion plans target this stage" (0121). A
+ * reverse lookup "which zones' promotion plans target this stage". A
  * zone whose plan cannot currently be resolved into a preview (e.g. its
  * source group standings are not ready yet) is omitted rather than causing
  * the whole lookup to fail — mirrors the pre-fill's own "only when

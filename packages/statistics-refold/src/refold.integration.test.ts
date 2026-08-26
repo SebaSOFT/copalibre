@@ -64,7 +64,7 @@ const COLLECTORS: readonly StatisticCollector[] = [
     measure: { kind: 'sum', field: 'unused' },
     granularity: { actor: 'person', competition: 'match' },
   },
-  // 0090: a payload-field-targeted collector (assists) and a statistic
+  // a payload-field-targeted collector (assists) and a statistic
   // effect targeting every-other-side (goals-against, added to football's
   // own 'goal' event) — the multi-actor attribution this change adds,
   // exercised against real PostgreSQL rather than just the pure fold engine.
@@ -276,7 +276,7 @@ describe('refold against real PostgreSQL (integration, 0082)', () => {
               side,
               personId,
               // Atlas's first goal carries an assist — proves the
-              // payload-field-targeted 'assists' collector (0090) resolves
+              // payload-field-targeted 'assists' collector resolves
               // against real persisted event rows, not just in-memory ones.
               payload: side === entrantAtlas && i === 0 ? { assistedBy: personBoca } : {},
             },
@@ -411,7 +411,7 @@ describe('refold against real PostgreSQL (integration, 0082)', () => {
     expect(goalsAgain.reduce((total, row) => total + row.value, 0)).toBe(3);
   });
 
-  it('resolves a payload-field-targeted collector against real persisted events (0090)', async () => {
+  it('resolves a payload-field-targeted collector against real persisted events', async () => {
     const statistics = new StatisticRepository(scratch.db);
     const assists = await statistics.readTotals(
       {
@@ -431,7 +431,7 @@ describe('refold against real PostgreSQL (integration, 0082)', () => {
     ]);
   });
 
-  it('credits an every-other-side statistic effect (goals-against) at team granularity (0090)', async () => {
+  it('credits an every-other-side statistic effect (goals-against) at team granularity', async () => {
     const statistics = new StatisticRepository(scratch.db);
     const goalsAgainst = await statistics.readTotals(
       {

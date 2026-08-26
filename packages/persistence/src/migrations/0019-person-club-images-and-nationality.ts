@@ -3,7 +3,7 @@ import type { Migration } from 'kysely/migration';
 
 /**
  * `persons.nationality`, `persons.photo_object_id`, `clubs.emblem_object_id`
- * — nullable, additive columns; no default, no backfill (0093). Both
+ * — nullable, additive columns; no default, no backfill. Both
  * `_object_id` columns are real foreign keys into `object_metadata.object_id`
  * (the 0041 pipeline's own single source of truth for an uploaded object's
  * storage/scan state), matching this schema's pervasive use of real FKs

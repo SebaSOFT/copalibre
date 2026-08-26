@@ -113,7 +113,7 @@ describe('a bracket that is not a tree', () => {
     expect(node.slots[0]?.resultReason).toBeUndefined();
   });
 
-  it('links a played match card to its report page (0112)', () => {
+  it('links a played match card to its report page', () => {
     const [decided] = matches;
     if (!decided) throw new Error('the sample bracket is empty');
 

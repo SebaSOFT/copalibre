@@ -142,7 +142,7 @@ jobs:
       - run: yarn install --immutable
       - run: yarn typecheck
 
-  # Added by 0026: a missing access decorator is a security defect, so surface
+  # A missing access decorator is a security defect, so surface
   # it as its own required check instead of burying it inside API coverage.
   guard-coverage:
     name: Guard coverage
@@ -175,7 +175,7 @@ jobs:
       - run: yarn license:check
 
   # No Node/Yarn install needed — `ubuntu-latest` ships shellcheck preinstalled,
-  # and this only ever lints one file (0120).
+  # and this only ever lints one file.
   shellcheck-install-script:
     name: Shellcheck install.sh
     runs-on: ubuntu-latest

@@ -124,9 +124,9 @@ describe('installation bootstrap (integration)', () => {
     expect(rejected.statusCode).toBe(409);
   });
 
-  // 0146: the global ValidationPipe rejects a body failing its DTO with 400
+  // the global ValidationPipe rejects a body failing its DTO with 400
   // at the edge, before the handler runs.
-  it('rejects a bootstrap payload missing the administrator email with 400 (0146)', async () => {
+  it('rejects a bootstrap payload missing the administrator email with 400', async () => {
     const response = await request({
       method: 'POST',
       url: '/installation/bootstrap/admin',
@@ -153,7 +153,7 @@ describe('installation bootstrap (integration)', () => {
     });
   }
 
-  it('rejects bootstrap attempts exceeding the per-IP window with 429 (0145)', async () => {
+  it('rejects bootstrap attempts exceeding the per-IP window with 429', async () => {
     const attempt = () =>
       request({
         method: 'POST',

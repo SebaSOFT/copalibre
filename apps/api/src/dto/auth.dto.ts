@@ -41,7 +41,7 @@ export class ResetPasswordRequest {
 
 export class CreatePatRequest {
   @ApiProperty({ description: 'Human-readable label for this token' })
-  // 0146: without a validation decorator the whitelist strips the property
+  // without a validation decorator the whitelist strips the property
   // before the handler ever sees it.
   @IsString()
   label!: string;
@@ -49,7 +49,7 @@ export class CreatePatRequest {
     description: 'Scopes to grant (defaults to the creating user scopes)',
     type: [String],
   })
-  // Validation shape mirrors `scopes?: string[]` exactly (0142): omitted or
+  // Validation shape mirrors `scopes?: string[]` exactly: omitted or
   // null skips, an array of strings passes.
   @IsOptional()
   @IsArray()

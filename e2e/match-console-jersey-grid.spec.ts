@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
- * The tactile Dual Jersey Grid (0092): operators record every event by
+ * The tactile Dual Jersey Grid: operators record every event by
  * tapping jerseys rather than picking from `<select>` dropdowns — scoring a
  * goal, crediting an assist via the `assistedBy` field chip, sanctioning an
  * opponent, swapping on-field status with a substitution (which needs two

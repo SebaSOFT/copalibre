@@ -2,8 +2,8 @@ import { expect, test } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
- * 0111: an entrant that collided on every derived abbreviation candidate
- * (0100) is invisible in control-web today — this screen surfaces it and
+ * an entrant that collided on every derived abbreviation candidate
+ * is invisible in control-web today — this screen surfaces it and
  * lets an officer resolve it through the existing per-entrant write path.
  */
 

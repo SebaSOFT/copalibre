@@ -1,5 +1,5 @@
 /**
- * Original composition (0141) — the missing templates tier (proposal.md's
+ * Original composition — the missing templates tier (proposal.md's
  * central gap). A screen's *layout* (section order, inter-section spacing)
  * is decided here, once, content-agnostic; a page/route component supplies
  * only content and handlers (design.md Decisions 7-8). No data-fetching or

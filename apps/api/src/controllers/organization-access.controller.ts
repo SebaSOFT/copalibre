@@ -226,7 +226,7 @@ export class InvitationAcceptanceController {
 }
 
 /**
- * Installation-level super-admin management (0140): the console surface for
+ * Installation-level super-admin management: the console surface for
  * `installation_role_assignments`, gated entirely by pre-existing
  * super-admin authority — never by a role this controller itself grants.
  */

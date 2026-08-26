@@ -24,7 +24,7 @@ export interface CropArea {
 }
 
 /**
- * The platform's profile-image contract (0122): every organization emblem,
+ * The platform's profile-image contract: every organization emblem,
  * club emblem, and person profile picture is exactly this size, regardless
  * of source resolution — `identity-media.controller.ts` enforces the same
  * numbers server-side.

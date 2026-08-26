@@ -2,7 +2,7 @@ import { sql, type Kysely } from 'kysely';
 import type { Migration } from 'kysely/migration';
 
 /**
- * 0140: adds `club-admin` to the organization role taxonomy and introduces
+ * adds `club-admin` to the organization role taxonomy and introduces
  * `installation_role_assignments` as the queryable, floor-invariant-protected
  * source of truth for "who holds installation-level `super-admin`" — see
  * design.md decision #1. No backfill step: this codebase has no existing

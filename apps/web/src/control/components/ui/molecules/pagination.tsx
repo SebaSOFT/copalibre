@@ -1,4 +1,4 @@
-/** Original composition (0141) — a listing screen's page-forward/back control. */
+/** Original composition — a listing screen's page-forward/back control. */
 import { Button } from '../atoms/button.js';
 
 export interface PaginationProps {

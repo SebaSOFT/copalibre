@@ -189,7 +189,7 @@ export function MatchConsoleRoute({
   // reloads whatever was already queued and resumes draining it. Nested
   // inside a promise chain rather than called directly — the same
   // react-hooks/set-state-in-effect workaround `PreferencesRoute.tsx`
-  // already established (0121) for a mount-time call into a setState-ing
+  // already established for a mount-time call into a setState-ing
   // async function.
   useEffect(() => {
     Promise.resolve()

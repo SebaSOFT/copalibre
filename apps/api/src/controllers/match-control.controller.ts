@@ -652,7 +652,7 @@ export class MatchControlController {
       throw new NotFoundException(`No match "${matchId}"`, {
         errorCode: 'match-control-not-found',
       });
-    // Mirrors `recordEvent`'s own status guard (0123): a queued roster
+    // Mirrors `recordEvent`'s own status guard: a queued roster
     // selection reaching a match that finalized in the meantime is refused
     // the same way a live submission would be, not silently accepted.
     if (match.status !== 'in-progress') {
@@ -2000,7 +2000,7 @@ export class MatchControlController {
    * Shared by `console` and `rosters`: folds each entrant's stored roster
    * through recorded substitution history for current on-field state, and
    * attaches team identity for display — the one place this shape is built,
-   * so the two reads cannot silently diverge (0107).
+   * so the two reads cannot silently diverge.
    */
   private buildRosterResponses(
     matchId: string,
@@ -2044,7 +2044,7 @@ export class MatchControlController {
   }
 
   /**
-   * The generalized form of `finalize`'s own idempotency handling (0123):
+   * The generalized form of `finalize`'s own idempotency handling:
    * every other mutating console command now shares this one check/record
    * path instead of each carrying its own copy. An omitted key runs `run()`
    * unguarded — additive only, matching how `finalize` already behaves for a
@@ -2250,7 +2250,7 @@ function finalizeFingerprint(body: FinalizeRequest | undefined): string {
 
 /**
  * Every mutating console command fingerprints its own request body the same
- * way (0123): a retried idempotency key with an identical body replays the
+ * way: a retried idempotency key with an identical body replays the
  * stored response; the same key with a different body is a conflict, not a
  * silent re-application of the new one.
  */

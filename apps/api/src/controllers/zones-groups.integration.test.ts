@@ -136,7 +136,7 @@ describe('zone and group draw routes (integration)', () => {
     expect(response.statusCode).toBe(401);
   });
 
-  it('400s a zone draw without a seed, before reaching the controller (0146)', async () => {
+  it('400s a zone draw without a seed, before reaching the controller', async () => {
     const response = await harness.request({
       method: 'POST',
       url: `${base}/zones/draw/preview`,
@@ -146,7 +146,7 @@ describe('zone and group draw routes (integration)', () => {
     expect(response.statusCode).toBe(400);
   });
 
-  it('strips an extra undocumented property and previews the zone draw anyway (0146)', async () => {
+  it('strips an extra undocumented property and previews the zone draw anyway', async () => {
     const response = await harness.request({
       method: 'POST',
       url: `${base}/zones/draw/preview`,
@@ -383,7 +383,7 @@ describe('zone and group draw routes (integration)', () => {
     expect(nextStage.value.matches).toHaveLength(7);
   });
 
-  it('finds every zone whose stored promotion plan targets a stage, in zone-number order (0121)', async () => {
+  it('finds every zone whose stored promotion plan targets a stage, in zone-number order', async () => {
     // The prior test already stored zone 1 (of stage 1)'s plan targeting
     // stage 2 with two bands — reused here rather than re-created.
     const targetingStageTwo = await harness.request({
@@ -557,7 +557,7 @@ describe('zone and group draw routes (integration)', () => {
     ]);
   });
 
-  it('manually assigns zones and groups without a draw (0108)', async () => {
+  it('manually assigns zones and groups without a draw', async () => {
     const competition = new CompetitionRepository(harness.scratch.db);
     const manualStage = await withTransaction(harness.scratch.db, (uow) =>
       competition.createStageInTournament(uow, {

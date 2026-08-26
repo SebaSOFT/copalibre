@@ -271,7 +271,7 @@ describe('match roster selection (integration, 0107)', () => {
   const base = () =>
     `/organizations/liga-roster-selection/tournaments/apertura-roster-selection/matches/${matchId}`;
 
-  // A fresh key per call (0123: recordEvent/setRoster now check one too, not
+  // A fresh key per call (recordEvent/setRoster now check one too, not
   // just finalize) — a fixed key would make every subsequent POST/PUT here
   // collide against whatever the first one recorded.
   function request(method: 'GET' | 'PUT' | 'POST', url: string, token?: string, payload?: unknown) {

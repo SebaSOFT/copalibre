@@ -352,7 +352,7 @@ describe('PreferencesRoute', () => {
     expect(await screen.findByAltText('Organization emblem')).toBeTruthy();
   });
 
-  it('requires confirmation before running a statistics rebuild, and shows the result (0114)', async () => {
+  it('requires confirmation before running a statistics rebuild, and shows the result', async () => {
     (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
       ok: true,
       json: async () => [],

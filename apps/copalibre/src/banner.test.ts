@@ -58,7 +58,7 @@ describe('readPackageManifest SEA-vs-relative-path resolution', () => {
   });
 });
 
-describe('readLogoText SEA-vs-relative-path resolution (0119)', () => {
+describe('readLogoText SEA-vs-relative-path resolution', () => {
   it('reads the SEA-embedded asset when isSea() is true', () => {
     const text = readLogoText({
       isSea: () => true,

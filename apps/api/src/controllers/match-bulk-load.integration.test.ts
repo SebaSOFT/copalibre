@@ -24,7 +24,7 @@ import { MatchControlController } from './match-control.controller.js';
 const REFEREE_CAPABILITIES = CAPABILITY_TEMPLATES.referee as readonly MatchCapability[];
 
 /**
- * 0106: a match's roster, event history, and result loaded as one batch, for
+ * a match's roster, event history, and result loaded as one batch, for
  * a match played with no live console session — proven through the real HTTP
  * path, exercising the same `EventLog.record`/`recordResult` validation and
  * finalization the live console already uses.
@@ -371,10 +371,10 @@ describe('retroactive match data entry (integration, 0106)', () => {
     expect(events).toHaveLength(0);
   });
 
-  // 0146: the global ValidationPipe's @ValidateNested rules reject a batch
+  // the global ValidationPipe's @ValidateNested rules reject a batch
   // whose outer shape is valid but whose nested roster entries are not, with
   // 400 at the edge instead of a downstream handler error.
-  it('rejects a roster entry missing its entrantId from nested validation with 400 (0146)', async () => {
+  it('rejects a roster entry missing its entrantId from nested validation with 400', async () => {
     const matchId = await newScheduledMatch();
     await appoint(matchId, 'referee', REFEREE_CAPABILITIES);
 
@@ -387,7 +387,7 @@ describe('retroactive match data entry (integration, 0106)', () => {
     expect(JSON.stringify(response.json())).toContain('entrantId');
   });
 
-  it('rejects a roster member missing personId from nested validation with 400 (0146)', async () => {
+  it('rejects a roster member missing personId from nested validation with 400', async () => {
     const matchId = await newScheduledMatch();
     await appoint(matchId, 'referee', REFEREE_CAPABILITIES);
 
@@ -400,7 +400,7 @@ describe('retroactive match data entry (integration, 0106)', () => {
     expect(JSON.stringify(response.json())).toContain('personId');
   });
 
-  it('rejects a non-array rosters field with 400 (0146)', async () => {
+  it('rejects a non-array rosters field with 400', async () => {
     const matchId = await newScheduledMatch();
     await appoint(matchId, 'referee', REFEREE_CAPABILITIES);
 

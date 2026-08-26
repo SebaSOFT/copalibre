@@ -93,7 +93,7 @@ export const FOCUS_RING = {
 } as const;
 
 /**
- * Form-control and dialog/overlay contracts (0141).
+ * Form-control and dialog/overlay contracts.
  *
  * Same shape as `BUTTON_VARIANTS`: a `Record<State, TokenSet>` a component
  * consumes directly, so a rule like "an error state always renders in the
@@ -150,7 +150,7 @@ export const DIALOG_TOKENS: DialogTokens = {
 
 /**
  * Pagination, toolbar-density, form-section, and match-console template
- * contracts (0147). Extends the template tier with tokens the remaining
+ * contracts. Extends the template tier with tokens the remaining
  * 11 Control-web screens need after 0141 shipped the tier system itself.
  */
 

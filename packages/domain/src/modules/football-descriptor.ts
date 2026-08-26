@@ -6,7 +6,7 @@ import { winConditionScript } from './win-condition-scripts.js';
  * Association-football descriptor builder for rules and engine tests.
  *
  * Every statistic the standings engine used to assume is declared here, which
- * is the point of 0009: the vocabulary belongs to the module, not to
+ * is the point of the vocabulary belongs to the module, not to
  * `computeAccounting`. `played` aggregates as `count` (one per recorded
  * outcome); the rest sum. `score-difference` is deliberately absent — it is
  * derived at comparison time, and the audit trail keeps "what was recorded"

@@ -148,7 +148,7 @@ export function generateStyleGuide(cssHref = './copalibre.css'): string {
   </section>
 
   <section>
-    <h2>Densidad — marketing vs. Control-web (0141)</h2>
+    <h2>Densidad — marketing vs. Control-web</h2>
     <p>${Object.entries(CONTROL_DENSITY_SPACING)
       .map(([name, value]) => `<code>${escape(name)}: ${escape(value)}</code>`)
       .join(' &middot; ')}</p>
