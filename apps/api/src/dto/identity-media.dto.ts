@@ -1,12 +1,16 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsOptional, IsString } from 'class-validator';
 
 /** Matches `reports.controller.ts`'s established upload request shape. */
 export class UploadImageRequest {
   @ApiProperty()
+  @IsString()
   filename!: string;
   @ApiProperty()
+  @IsString()
   contentType!: string;
   @ApiProperty({ description: 'Base64-encoded file content' })
+  @IsString()
   contentBase64!: string;
 }
 
@@ -21,6 +25,8 @@ export class SetPersonNationalityRequest {
     example: 'AR',
     nullable: true,
   })
+  @IsOptional()
+  @IsString()
   nationality?: string | null;
 }
 

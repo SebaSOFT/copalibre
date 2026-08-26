@@ -1,4 +1,4 @@
-import { Module, type INestApplication } from '@nestjs/common';
+import { Module, ValidationPipe, type INestApplication } from '@nestjs/common';
 import { APP_GUARD, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { ThrottlerModule } from '@nestjs/throttler';
@@ -69,6 +69,7 @@ describe('AdminModulesController (integration)', () => {
       imports: [AdminModulesTestModule],
     }).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
   });
@@ -147,5 +148,19 @@ describe('AdminModulesController (integration)', () => {
       'orbital-frisbee',
     );
     expect(installed).toHaveLength(0);
+  });
+
+  it('400s an install without an alias, before reaching the controller (0146)', async () => {
+    const response = await inject('admin', 'POST', '/admin/modules', { range: '^1.0.0' });
+    expect(response.statusCode).toBe(400);
+  });
+
+  it('strips an extra undocumented property and installs anyway (0146)', async () => {
+    const install = await inject('admin', 'POST', '/admin/modules', {
+      alias: 'orbital-frisbee',
+      unexpectedField: 'dropped',
+    });
+    expect(install.statusCode).toBe(201);
+    expect(install.json()).toMatchObject({ kind: 'discipline', alias: 'orbital-frisbee' });
   });
 });

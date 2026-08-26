@@ -1,4 +1,4 @@
-import { Module, type INestApplication } from '@nestjs/common';
+import { Module, ValidationPipe, type INestApplication } from '@nestjs/common';
 import { APP_GUARD, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
@@ -111,6 +111,7 @@ describe('live match console (integration)', () => {
     class IntegrationModule {}
     const module = await Test.createTestingModule({ imports: [IntegrationModule] }).compile();
     app = module.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
 
@@ -306,6 +307,14 @@ describe('live match console (integration)', () => {
   it('admits only assigned active referees', async () => {
     expect((await request('GET', `${base()}/console`, 'unassigned')).statusCode).toBe(403);
     expect((await request('GET', `${base()}/console`, 'inactive')).statusCode).toBe(403);
+  });
+
+  // 0146: the global ValidationPipe rejects a body failing its DTO with 400
+  // at the edge, before the handler runs.
+  it('rejects a clock adjustment missing its elapsed seconds with 400 (0146)', async () => {
+    const response = await request('POST', `${base()}/clock`, 'referee', { segmentId });
+    expect(response.statusCode).toBe(400);
+    expect(JSON.stringify(response.json())).toContain('elapsedSeconds');
   });
 
   it('projects a descriptor-owned outcome workflow while final outcomes stay independently recordable', async () => {
@@ -784,6 +793,7 @@ describe('live match console — real catalogue foul/throw-in vocabulary (0115)'
     class IntegrationModule {}
     const module = await Test.createTestingModule({ imports: [IntegrationModule] }).compile();
     app = module.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
 

@@ -1,4 +1,16 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import {
+  Allow,
+  IsArray,
+  IsBoolean,
+  IsInt,
+  IsNumber,
+  IsObject,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
 import type { LocalizedLabel, ResultReason } from '@copalibre/domain';
 
 /**
@@ -240,40 +252,55 @@ export class MatchConsoleResponse {
 
 export class ClockAdjustmentRequest {
   @ApiProperty({ format: 'uuid' })
+  @IsString()
   segmentId!: string;
 
   @ApiProperty({ minimum: 0 })
+  @IsInt()
   elapsedSeconds!: number;
 
   @ApiPropertyOptional({ description: 'Make the selected segment the active clock segment' })
+  @IsOptional()
+  @IsBoolean()
   activate?: boolean;
 }
 
 export class RecordEventRequest {
   @ApiProperty({ description: 'Event definition code the discipline declares', example: 'goal' })
+  @IsString()
   definitionCode!: string;
 
   @ApiProperty({ format: 'uuid', description: 'Segment the event happened in' })
+  @IsString()
   segmentId!: string;
 
   @ApiProperty({ description: 'When it happened, epoch milliseconds' })
+  @IsNumber()
   occurredAt!: number;
 
   @ApiPropertyOptional({
     format: 'uuid',
     description: 'The entrant it belongs to — an id, never "home"/"away"',
   })
+  @IsOptional()
+  @IsString()
   side?: string;
 
   @ApiPropertyOptional({ format: 'uuid', description: 'The person, when the discipline needs one' })
+  @IsOptional()
+  @IsString()
   personId?: string;
 
   @ApiPropertyOptional({ type: Object, description: 'Payload validated against the definition' })
+  @IsOptional()
+  @IsObject()
   payload?: Record<string, unknown>;
 
   @ApiPropertyOptional({
     description: 'Free-text operator note, available regardless of discipline',
   })
+  @IsOptional()
+  @IsString()
   notes?: string;
 }
 
@@ -317,18 +344,28 @@ export class RosterCandidateResponse {
 
 export class SetMatchRosterMemberRequest {
   @ApiProperty({ format: 'uuid', description: 'Must be a registered player of the target entrant' })
+  @IsString()
   personId!: string;
 
+  // `number` is deliberately left undecorated by type constraints: its type
+  // is the union `number | string` (shirt numbers read "00", "7B"), which no
+  // single class-validator constraint expresses without inventing strictness.
+  // `@Allow()` accepts any value while keeping the whitelist from stripping it.
   @ApiPropertyOptional({ description: 'Shirt number; not always numeric (e.g. "00", "7B")' })
+  @Allow()
   number?: number | string;
 
   @ApiPropertyOptional({
     type: [String],
     description: 'Codes naming discipline-declared roster roles this member carries this match',
   })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
   roles?: string[];
 
   @ApiProperty({ description: 'Starter (true) or bench (false) at roster selection' })
+  @IsBoolean()
   onField!: boolean;
 }
 
@@ -339,6 +376,13 @@ export class SetMatchRosterMemberRequest {
  */
 export class SetMatchRosterRequest {
   @ApiProperty({ type: [SetMatchRosterMemberRequest] })
+  // Optional at the pipe, not in the wire contract: the handler folds a
+  // missing list to `[]` (`body.members ?? []`), and validation must not be
+  // stricter than that.
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SetMatchRosterMemberRequest)
   members!: SetMatchRosterMemberRequest[];
 }
 
@@ -349,6 +393,13 @@ export class FinalizeRequest {
       'One entry per side: entrant id, its declared statistics, placement for a heat, and why the ' +
       'result is what it is when not an ordinarily played one',
   })
+  // Inline object shape with no named class to transform into, so the pipe
+  // validates the array itself; per-side shape stays with the handler. The
+  // decorator also keeps the whitelist from stripping the property, and
+  // `@IsOptional()` lets start/pause/resume — which share this route and send
+  // no body at all — through untouched.
+  @IsOptional()
+  @IsArray()
   sides!: {
     entrantId: string;
     statistics: Record<string, number>;
@@ -357,6 +408,10 @@ export class FinalizeRequest {
   }[];
 
   @ApiPropertyOptional({ format: 'uuid', description: 'Duel matches only' })
+  // Decorated only so the whitelist keeps it: the altered-retry fingerprint
+  // must see it, and per-command policy stays with the handler.
+  @IsOptional()
+  @IsString()
   winnerEntrantId?: string;
 }
 
@@ -368,63 +423,91 @@ export class FinalizeRequest {
  */
 export class BulkRosterMemberInput {
   @ApiProperty({ format: 'uuid' })
+  @IsString()
   personId!: string;
 
+  // `number` is deliberately left undecorated by type constraints: its type
+  // is the union `number | string` (shirt numbers read "00", "7B"), which no
+  // single class-validator constraint expresses without inventing strictness.
+  // `@Allow()` accepts any value while keeping the whitelist from stripping it.
   @ApiPropertyOptional({ description: 'Shirt number; not always numeric (e.g. "00", "7B")' })
+  @Allow()
   number?: number | string;
 
   @ApiPropertyOptional({ type: [String], description: 'Discipline-declared roster role codes' })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
   roles?: string[];
 
   @ApiProperty({ description: 'Whether this member was on the field, as opposed to bench' })
+  @IsBoolean()
   onField!: boolean;
 }
 
 export class BulkRosterInput {
   @ApiProperty({ format: 'uuid' })
+  @IsString()
   entrantId!: string;
 
   @ApiProperty({ type: [BulkRosterMemberInput] })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => BulkRosterMemberInput)
   members!: BulkRosterMemberInput[];
 }
 
 export class BulkSegmentInput {
   @ApiProperty({ description: 'A segment type the bound discipline declares, e.g. "first-half"' })
+  @IsString()
   type!: string;
 
   @ApiPropertyOptional({
     description: 'Elapsed seconds when the segment ended; discipline default when omitted',
   })
+  @IsOptional()
+  @IsInt()
   elapsedSeconds?: number;
 }
 
 export class BulkEventInput {
   @ApiProperty({ description: 'Event definition code the discipline declares' })
+  @IsString()
   definitionCode!: string;
 
   @ApiProperty({
     description: 'Which submitted segment this event belongs to, 1-based, in submission order',
   })
+  @IsInt()
   segmentNumber!: number;
 
   @ApiProperty({ description: 'When it actually happened, epoch milliseconds — may be historical' })
+  @IsNumber()
   occurredAt!: number;
 
   @ApiPropertyOptional({
     format: 'uuid',
     description: 'The entrant it belongs to — an id, never "home"/"away"',
   })
+  @IsOptional()
+  @IsString()
   side?: string;
 
   @ApiPropertyOptional({ format: 'uuid', description: 'The person, when the discipline needs one' })
+  @IsOptional()
+  @IsString()
   personId?: string;
 
   @ApiPropertyOptional({ type: Object, description: 'Payload validated against the definition' })
+  @IsOptional()
+  @IsObject()
   payload?: Record<string, unknown>;
 
   @ApiPropertyOptional({
     description: 'Free-text operator note, available regardless of discipline',
   })
+  @IsOptional()
+  @IsString()
   notes?: string;
 }
 
@@ -433,24 +516,36 @@ export class BulkLoadMatchDataRequest {
     type: [BulkRosterInput],
     description: 'One entry per side; each entrant’s full roster as selected for this match',
   })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => BulkRosterInput)
   rosters!: BulkRosterInput[];
 
   @ApiProperty({
     type: [BulkSegmentInput],
     description: 'Every segment this match had, in play order — created and marked completed',
   })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => BulkSegmentInput)
   segments!: BulkSegmentInput[];
 
   @ApiProperty({
     type: [BulkEventInput],
     description: 'The match’s full event history, in the order it actually happened',
   })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => BulkEventInput)
   events!: BulkEventInput[];
 
   @ApiProperty({
     type: [Object],
     description: 'One entry per side, matching FinalizeRequest’s existing shape',
   })
+  // Inline object shape with no named class to transform into, so the pipe
+  // validates it as an opaque object only.
+  @IsObject()
   result!: {
     sides: {
       entrantId: string;
@@ -475,9 +570,13 @@ export class BulkLoadMatchDataResponse {
 
 export class CorrectionRequestDto {
   @ApiProperty({ description: 'Why the result is being corrected, in the operator’s words' })
+  @IsString()
   reason!: string;
 
   @ApiProperty({ type: [Object], description: 'The replacement result, one entry per side' })
+  // Inline object shape with no named class to transform into, so the pipe
+  // validates it as an opaque array only.
+  @IsArray()
   sides!: {
     entrantId: string;
     statistics: Record<string, number>;
@@ -486,6 +585,8 @@ export class CorrectionRequestDto {
   }[];
 
   @ApiPropertyOptional({ format: 'uuid' })
+  @IsOptional()
+  @IsString()
   winnerEntrantId?: string;
 
   @ApiPropertyOptional({
@@ -494,6 +595,8 @@ export class CorrectionRequestDto {
       'A participant report or dispute this correction cites — retained as supporting ' +
       'evidence in the audit trail. Citing one grants no authority of its own.',
   })
+  @IsOptional()
+  @IsString()
   sourceReportId?: string;
 }
 

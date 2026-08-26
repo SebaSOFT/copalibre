@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { Module, type INestApplication } from '@nestjs/common';
+import { Module, ValidationPipe, type INestApplication } from '@nestjs/common';
 import { APP_GUARD, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { ThrottlerModule } from '@nestjs/throttler';
@@ -79,6 +79,7 @@ describe('Auth Controllers', () => {
       // per-IP rate-limit bucket — follows X-Forwarded-For in these tests.
       new FastifyAdapter({ trustProxy: true }),
     );
+    app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
   });
@@ -137,6 +138,26 @@ describe('Auth Controllers', () => {
         method: 'POST',
         url: '/auth/login',
         payload: { email, password: 'wrong-password' },
+      });
+      expect(response.statusCode).toBe(401);
+    });
+
+    // 0146: the global ValidationPipe rejects a body failing its DTO with 400
+    // at the edge, instead of surfacing as a handler TypeError (500).
+    it('POST /auth/login without a password returns 400 from validation', async () => {
+      const response = await request({
+        method: 'POST',
+        url: '/auth/login',
+        payload: { email },
+      });
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('POST /auth/login strips an undocumented extra property and still evaluates the credentials', async () => {
+      const response = await request({
+        method: 'POST',
+        url: '/auth/login',
+        payload: { email, password: 'wrong-password', isAdmin: true },
       });
       expect(response.statusCode).toBe(401);
     });

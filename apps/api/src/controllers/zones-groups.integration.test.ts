@@ -136,6 +136,27 @@ describe('zone and group draw routes (integration)', () => {
     expect(response.statusCode).toBe(401);
   });
 
+  it('400s a zone draw without a seed, before reaching the controller (0146)', async () => {
+    const response = await harness.request({
+      method: 'POST',
+      url: `${base}/zones/draw/preview`,
+      token: 'organizer-org1',
+      payload: { zoneCount: 2 },
+    });
+    expect(response.statusCode).toBe(400);
+  });
+
+  it('strips an extra undocumented property and previews the zone draw anyway (0146)', async () => {
+    const response = await harness.request({
+      method: 'POST',
+      url: `${base}/zones/draw/preview`,
+      token: 'organizer-org1',
+      payload: { zoneCount: 1, seed: 99, unexpectedField: 'dropped' },
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).not.toHaveProperty('unexpectedField');
+  });
+
   it('allows only administrators to create zones and groups, while public readers can list them', async () => {
     const unauthenticated = await harness.request({
       method: 'POST',

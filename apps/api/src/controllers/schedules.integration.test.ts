@@ -63,4 +63,26 @@ describe('scheduling routes', () => {
     });
     expect([403, 404]).toContain(response.statusCode);
   });
+
+  it('400s a publish without an assignments array, before reaching the controller (0146)', async () => {
+    const response = await request({
+      method: 'POST',
+      url: scheduleUrl('stage-1'),
+      token: 'organizer-org1',
+      payload: {},
+    });
+    expect(response.statusCode).toBe(400);
+  });
+
+  it('strips an extra undocumented property and keeps the non-validation status (0146)', async () => {
+    const response = await request({
+      method: 'POST',
+      url: scheduleUrl('stage-1'),
+      token: 'organizer-org2',
+      payload: { assignments: [], unexpectedField: 'dropped' },
+    });
+    // Guards run before pipes: the outcome is the same cross-organization 403/404
+    // the well-formed payload gets — never a validation error.
+    expect([403, 404]).toContain(response.statusCode);
+  });
 });

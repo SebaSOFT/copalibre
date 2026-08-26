@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsOptional, IsString } from 'class-validator';
 
 /** Wire DTOs are camelCase, per the naming-conventions casing rule. */
 
@@ -7,10 +8,14 @@ export class IssueDisplayTokenRequest {
     format: 'uuid',
     description: 'Pins the device to one match, not the full tournament rotation',
   })
+  @IsOptional()
+  @IsString()
   matchId?: string;
   @ApiPropertyOptional({
     description: 'Operator-facing device label, e.g. "Cancha 1 - TV entrada"',
   })
+  @IsOptional()
+  @IsString()
   label?: string;
 }
 

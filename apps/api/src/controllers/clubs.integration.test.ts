@@ -1,4 +1,4 @@
-import { Module, type INestApplication } from '@nestjs/common';
+import { Module, ValidationPipe, type INestApplication } from '@nestjs/common';
 import { APP_GUARD, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
@@ -99,6 +99,7 @@ describe('club list/create/edit (integration)', () => {
 
     const moduleRef = await Test.createTestingModule({ imports: [TestModule] }).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
     await app.init();
     await app.getHttpAdapter().getInstance().ready();
   });
@@ -190,5 +191,26 @@ describe('club list/create/edit (integration)', () => {
       payload: { name: 'Club Inválido', alias: 'Not A Valid Alias!' },
     });
     expect(response.statusCode).toBe(409);
+  });
+
+  it('400s a club created without a name, before reaching the controller', async () => {
+    const response = await inject({
+      method: 'POST',
+      url: `/organizations/${organizationAlias}/clubs`,
+      headers: { authorization: 'Bearer organizer' },
+      payload: { abbreviation: 'SN' },
+    });
+    expect(response.statusCode).toBe(400);
+  });
+
+  it('strips an extra undocumented property and creates the club anyway', async () => {
+    const response = await inject({
+      method: 'POST',
+      url: `/organizations/${organizationAlias}/clubs`,
+      headers: { authorization: 'Bearer organizer' },
+      payload: { name: 'Club Propiedad Extra', unexpectedField: 'dropped' },
+    });
+    expect(response.statusCode).toBe(201);
+    expect(response.json()).not.toHaveProperty('unexpectedField');
   });
 });

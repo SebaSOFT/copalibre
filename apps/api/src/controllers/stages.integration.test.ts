@@ -1,4 +1,4 @@
-import { Module, type INestApplication } from '@nestjs/common';
+import { Module, ValidationPipe, type INestApplication } from '@nestjs/common';
 import { APP_GUARD, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
@@ -105,6 +105,7 @@ describe('stage creation routes (integration)', () => {
 
     const moduleRef = await Test.createTestingModule({ imports: [TestModule] }).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
 
@@ -242,6 +243,30 @@ describe('stage creation routes (integration)', () => {
     });
 
     expect(response.statusCode).toBe(400);
+  });
+
+  it('400s a stage whose number is not an integer, before reaching the controller', async () => {
+    const response = await request({
+      method: 'POST',
+      url: base,
+      token: 'organizer',
+      payload: { number: 'primera' },
+    });
+    expect(response.statusCode).toBe(400);
+  });
+
+  it('strips an extra undocumented property and creates the stage anyway', async () => {
+    const before = await new CompetitionRepository(scratch.db).listStagesOfTournament(tournamentId);
+    const response = await request({
+      method: 'POST',
+      url: base,
+      token: 'organizer',
+      payload: { unexpectedField: 'dropped' },
+    });
+    expect(response.statusCode).toBe(201);
+    expect(response.json()).not.toHaveProperty('unexpectedField');
+    const after = await new CompetitionRepository(scratch.db).listStagesOfTournament(tournamentId);
+    expect(after).toHaveLength(before.length + 1);
   });
 
   it('404s a fixtures listing for a stage number that does not exist', async () => {

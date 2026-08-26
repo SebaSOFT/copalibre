@@ -1,12 +1,14 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsArray, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsInt, IsOptional, IsString } from 'class-validator';
 
 /** Wire DTOs are camelCase, per the naming-conventions casing rule. */
 
 export class LoginRequest {
   @ApiProperty({ format: 'email' })
+  @IsString()
   email!: string;
   @ApiProperty()
+  @IsString()
   password!: string;
 }
 
@@ -24,18 +26,24 @@ export class AuthSuccessResponse {
 
 export class ForgotPasswordRequest {
   @ApiProperty({ format: 'email' })
+  @IsString()
   email!: string;
 }
 
 export class ResetPasswordRequest {
   @ApiProperty({ description: 'The reset token from the email link' })
+  @IsString()
   token!: string;
   @ApiProperty({ description: 'New password (min 8 characters)' })
+  @IsString()
   newPassword!: string;
 }
 
 export class CreatePatRequest {
   @ApiProperty({ description: 'Human-readable label for this token' })
+  // 0146: without a validation decorator the whitelist strips the property
+  // before the handler ever sees it.
+  @IsString()
   label!: string;
   @ApiPropertyOptional({
     description: 'Scopes to grant (defaults to the creating user scopes)',
@@ -52,6 +60,7 @@ export class CreatePatRequest {
     minimum: 1,
     maximum: 365,
   })
+  @IsInt()
   expiresInDays!: number;
 }
 

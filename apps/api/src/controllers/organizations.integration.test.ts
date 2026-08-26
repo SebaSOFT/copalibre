@@ -117,6 +117,31 @@ describe('admin-control plane', () => {
     expect(response.json()).toMatchObject({ alias: 'club-cometa' });
   });
 
+  it('400s an organization created without a name, before reaching the controller (0146)', async () => {
+    const response = await request({
+      method: 'POST',
+      url: '/organizations',
+      token: 'super-admin',
+      payload: { alias: 'club-sin-nombre' },
+    });
+    expect(response.statusCode).toBe(400);
+  });
+
+  it('strips an extra undocumented property and creates the organization anyway (0146)', async () => {
+    const response = await request({
+      method: 'POST',
+      url: '/organizations',
+      token: 'super-admin',
+      payload: {
+        alias: 'club-propiedad-extra',
+        name: 'Club Propiedad Extra',
+        unexpectedField: 'x',
+      },
+    });
+    expect(response.statusCode).toBe(201);
+    expect(response.json()).not.toHaveProperty('unexpectedField');
+  });
+
   it('defaults a new organization to Spanish and UTC when not specified', async () => {
     const response = await request({
       method: 'POST',
@@ -163,7 +188,11 @@ describe('admin-control plane', () => {
         alias: 'copa-ajena',
         name: 'Copa Ajena',
         descriptorId: '01890000-0000-7000-8000-000000000001',
-        descriptorVersion: 1,
+        descriptorVersion: '1',
+        format: 'round-robin',
+        publicRegistration: false,
+        requiresCheckIn: false,
+        customScripts: [],
       },
     });
     // Cross-organization access is denied by policy, before the descriptor
@@ -181,6 +210,10 @@ describe('admin-control plane', () => {
         name: 'Copa Sin Disciplina',
         descriptorId: '01890000-0000-7000-8000-0000000000ff',
         descriptorVersion: 9,
+        format: 'round-robin',
+        publicRegistration: false,
+        requiresCheckIn: false,
+        customScripts: [],
       },
     });
     expect(response.statusCode).toBe(400);
@@ -209,6 +242,7 @@ describe('admin-control plane', () => {
         format: 'round-robin',
         publicRegistration: true,
         requiresCheckIn: true,
+        customScripts: [],
       },
     });
 

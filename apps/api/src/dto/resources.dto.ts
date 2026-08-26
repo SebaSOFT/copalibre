@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsArray, IsIn, IsNumber, IsObject, IsOptional, IsString } from 'class-validator';
 
 /**
  * Venue/official wire shapes (0124) — organization-scoped resource
@@ -46,15 +47,20 @@ export class CreateVenueRequest {
     description: 'Lowercase kebab-case alias, unique within the organization.',
     example: 'cancha-1',
   })
+  @IsString()
   alias!: string;
 
   @ApiProperty({ example: 'Cancha 1' })
+  @IsString()
   name!: string;
 
   @ApiProperty({ example: 1 })
+  @IsNumber()
   concurrentCapacity!: number;
 
   @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
   address?: string;
 
   @ApiPropertyOptional({
@@ -62,17 +68,25 @@ export class CreateVenueRequest {
     additionalProperties: { type: 'string' },
     example: { surface: 'clay' },
   })
+  @IsOptional()
+  @IsObject()
   details?: Record<string, string>;
 }
 
 export class UpdateVenueRequest {
   @ApiPropertyOptional({ example: 'Cancha 1' })
+  @IsOptional()
+  @IsString()
   name?: string;
 
   @ApiPropertyOptional({ example: 1 })
+  @IsOptional()
+  @IsNumber()
   concurrentCapacity?: number;
 
   @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
   address?: string;
 
   @ApiPropertyOptional({
@@ -80,6 +94,8 @@ export class UpdateVenueRequest {
     additionalProperties: { type: 'string' },
     example: { surface: 'clay' },
   })
+  @IsOptional()
+  @IsObject()
   details?: Record<string, string>;
 }
 
@@ -99,16 +115,24 @@ export class OfficialResponse {
 
 export class CreateOfficialRequest {
   @ApiProperty({ example: 'Ana Gómez' })
+  @IsString()
   displayName!: string;
 
   @ApiProperty({ enum: OFFICIAL_ROLES, isArray: true })
+  @IsArray()
+  @IsIn(OFFICIAL_ROLES, { each: true })
   roles!: (typeof OFFICIAL_ROLES)[number][];
 }
 
 export class UpdateOfficialRequest {
   @ApiPropertyOptional({ example: 'Ana Gómez' })
+  @IsOptional()
+  @IsString()
   displayName?: string;
 
   @ApiPropertyOptional({ enum: OFFICIAL_ROLES, isArray: true })
+  @IsOptional()
+  @IsArray()
+  @IsIn(OFFICIAL_ROLES, { each: true })
   roles?: (typeof OFFICIAL_ROLES)[number][];
 }

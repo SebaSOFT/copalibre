@@ -1,4 +1,4 @@
-import { Module, type INestApplication } from '@nestjs/common';
+import { Module, ValidationPipe, type INestApplication } from '@nestjs/common';
 import { APP_GUARD, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { ThrottlerModule } from '@nestjs/throttler';
@@ -57,6 +57,7 @@ describe('installation bootstrap (integration)', () => {
     app = moduleRef.createNestApplication<NestFastifyApplication>(
       new FastifyAdapter({ bodyLimit: API_BODY_LIMIT_BYTES, trustProxy: true }),
     );
+    app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
   });
@@ -121,6 +122,21 @@ describe('installation bootstrap (integration)', () => {
       },
     });
     expect(rejected.statusCode).toBe(409);
+  });
+
+  // 0146: the global ValidationPipe rejects a body failing its DTO with 400
+  // at the edge, before the handler runs.
+  it('rejects a bootstrap payload missing the administrator email with 400 (0146)', async () => {
+    const response = await request({
+      method: 'POST',
+      url: '/installation/bootstrap/admin',
+      headers: { 'x-copalibre-bootstrap-token': 'bootstrap-secret' },
+      payload: {
+        organizationAlias: 'liga-validacion',
+        organizationName: 'Liga Validación',
+      },
+    });
+    expect(response.statusCode).toBe(400);
   });
 
   function request(options: {

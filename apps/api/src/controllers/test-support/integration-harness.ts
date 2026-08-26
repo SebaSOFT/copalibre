@@ -1,4 +1,4 @@
-import { Module, type Provider, type Type } from '@nestjs/common';
+import { Module, ValidationPipe, type Provider, type Type } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
@@ -91,6 +91,7 @@ export async function buildTestApp(
     new FastifyAdapter({ bodyLimit: API_BODY_LIMIT_BYTES }),
   );
   app.enableCors({ origin: 'https://app.example.com' });
+  app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
   await app.init();
   await app.getHttpAdapter().getInstance().ready();
 
