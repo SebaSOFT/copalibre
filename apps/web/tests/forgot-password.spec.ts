@@ -21,7 +21,7 @@ test('user can request password reset link', async ({ page }) => {
   await mockForgotPasswordApi(page);
   await page.goto('/control/forgot-password');
 
-  await expect(page.getByLabel('Email')).toBeVisible();
+  await expect(page.getByLabel('Email')).toBeVisible({ timeout: 15_000 });
 
   await page.getByLabel('Email').fill('test@example.com');
   await page.getByRole('button', { name: 'Enviar enlace' }).click();

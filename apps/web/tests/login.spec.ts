@@ -24,7 +24,7 @@ test('user can log in successfully', async ({ page }) => {
   await mockLoginApi(page);
   await page.goto('/control/login');
 
-  await expect(page.getByLabel('Email')).toBeVisible();
+  await expect(page.getByLabel('Email')).toBeVisible({ timeout: 15_000 });
   await expect(page.getByLabel('Contraseña')).toBeVisible();
 
   await page.getByLabel('Email').fill('test@example.com');

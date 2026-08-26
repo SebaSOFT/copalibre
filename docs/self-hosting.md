@@ -108,6 +108,22 @@ Once it passes, restart with the new version — migrations apply automatically,
 any process role starts serving traffic (`docker-compose.yml`'s `migrate` service gates every other
 role via `depends_on: condition: service_completed_successfully`).
 
+### Personal Access Token security cutover
+
+Before deploying repaired PAT authentication, invalidate credentials issued by the earlier path.
+Run the dry run first, confirm its aggregate count, then execute the irreversible cutover using the
+release image's database configuration:
+
+```bash
+docker compose run --rm --no-deps --entrypoint node api \
+  apps/copalibre/dist/main.js revoke-legacy-personal-access-tokens --dry-run
+docker compose run --rm --no-deps --entrypoint node api \
+  apps/copalibre/dist/main.js revoke-legacy-personal-access-tokens --confirm
+```
+
+Record resulting count with deployment evidence. Only then deploy repaired PAT authentication;
+users and integrations must create replacement credentials.
+
 ## Recovering A Previous Backup
 
 `./copalibre restore --file backups/<packet>.tar.gz --confirm` restores a packet made by

@@ -380,6 +380,8 @@ jobs:
       # rather than a second hand-written one — named separately so a
       # reviewer finds this capability's own signal directly.
       - run: yarn workspace @copalibre/copalibre test --testPathPatterns 'upgrade-check'
+      # Security cutover parsing, confirmation, and aggregate-only operator output.
+      - run: yarn workspace @copalibre/copalibre test --testPathPatterns 'pat-cutover'
       # Backup/restore packets plus version-aware restore safety:
       # a compressed, self-describing packet with retention pruning,
       # and a restore that refuses a newer-than-code backup, migrates, and
@@ -780,6 +782,8 @@ jobs:
       # signal directly rather than inside the broad persistence/events runs
       # above (which already include these files; this just re-surfaces them).
       - run: yarn workspace @copalibre/persistence run test:integration --testPathPatterns 'display-token'
+      # Legacy PAT cutover: active-only, auditable and idempotent revocation.
+      - run: yarn workspace @copalibre/persistence run test:integration --testPathPatterns 'personal-access-token-repository'
       - run: yarn workspace @copalibre/events run test:integration --testPathPatterns 'display-token'
       # participant-reporting: submission/authorization through the
       # real HTTP stack (the first suite in this repo to exercise a

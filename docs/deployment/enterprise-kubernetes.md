@@ -34,6 +34,36 @@ a Compose-mode installation: run `copalibre login --api-url <the cluster's publi
 then every later invocation from that directory authenticates over HTTP — no `kubectl` access
 involved.
 
+### Personal Access Token security cutover
+
+Before releasing repaired PAT authentication, run one short-lived Job using same image, ConfigMap,
+and Secret as release. Replace `my-copalibre` with Helm release name and image reference with target
+release image. Run dry run, verify aggregate count, then apply confirmation Job.
+
+```bash
+kubectl -n default create job my-copalibre-pat-cutover-dry-run \
+  --image=ghcr.io/sebasoft/copalibre:<version> \
+  --dry-run=client -o yaml -- /usr/local/bin/node apps/copalibre/dist/main.js \
+  revoke-legacy-personal-access-tokens --dry-run | \
+  kubectl -n default set env --local -f - -o yaml \
+    --from=configmap/my-copalibre-env --from=secret/my-copalibre-secret | \
+  kubectl apply -f -
+kubectl -n default wait --for=condition=complete job/my-copalibre-pat-cutover-dry-run --timeout=5m
+
+kubectl -n default create job my-copalibre-pat-cutover-confirm \
+  --image=ghcr.io/sebasoft/copalibre:<version> \
+  --dry-run=client -o yaml -- /usr/local/bin/node apps/copalibre/dist/main.js \
+  revoke-legacy-personal-access-tokens --confirm | \
+  kubectl -n default set env --local -f - -o yaml \
+    --from=configmap/my-copalibre-env --from=secret/my-copalibre-secret | \
+  kubectl apply -f -
+kubectl -n default wait --for=condition=complete job/my-copalibre-pat-cutover-confirm --timeout=5m
+```
+
+Inspect both Job logs for aggregate counts only; retain them as deployment evidence. Do not deploy
+repaired PAT authentication until confirmation Job succeeds. Existing integrations then need
+replacement credentials.
+
 ### Kubernetes-hosted module development (kind/minikube only)
 
 The chart has no `module-dev` values group — `init --kubernetes` never sets one up. A `hostPath`

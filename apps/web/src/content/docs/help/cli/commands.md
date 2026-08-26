@@ -162,6 +162,21 @@ uses, so running it twice in a row produces byte-identical `statistic_totals` ro
 engine existed, or to verify totals against the facts at any time. Requires organization-administrator
 authority once logged in via [`login`](#login).
 
+## revoke-legacy-personal-access-tokens
+
+`copalibre revoke-legacy-personal-access-tokens (--confirm | --dry-run)`
+
+Performs one irreversible security cutover for currently active Personal Access Tokens (PATs).
+Run `--dry-run`, verify resulting aggregate count, then run with `--confirm`. Command writes one
+audit record per revoked credential and prints aggregate counts only.
+
+- `--dry-run`: shows active-token count without changing credentials
+- `--confirm`: required to revoke active credentials
+
+Perform and verify this cutover before deploying repaired PAT authentication. Existing integrations
+must create replacement credentials afterward; repeating completed cutover reports zero newly
+revoked credentials.
+
 ## module
 
 `copalibre module <add|list|remove|verify>`

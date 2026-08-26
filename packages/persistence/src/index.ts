@@ -71,6 +71,7 @@ export {
   type PatScope,
   type CreatePatInput,
   type RevokePatInput,
+  type RevokeActivePatsInput,
 } from './repositories/personal-access-token-repository.js';
 export {
   AuthVerificationTokenRepository,

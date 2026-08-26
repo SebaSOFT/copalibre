@@ -184,4 +184,56 @@ describe('Personal Access Token repository (integration)', () => {
     );
     expect(audit.map((entry) => entry.action)).toEqual(['pat.created', 'pat.revoked']);
   });
+
+  it('revokes only active PATs, records each audit entry, and is idempotent', async () => {
+    const tokens = new PersonalAccessTokenRepository(scratch.db);
+    const create = (label: string, expiresAt: Date) =>
+      withTransaction(scratch.db, (uow) =>
+        tokens.create(uow, {
+          principalId,
+          label,
+          scopes: [],
+          expiresAt,
+          actor: `user:${principalId}`,
+          authorizationContext: 'test',
+        }),
+      );
+    const [first, second, expired] = await Promise.all([
+      create('Cutover Active One', new Date(Date.now() + 86400000)),
+      create('Cutover Active Two', new Date(Date.now() + 86400000)),
+      create('Cutover Expired', new Date(Date.now() - 86400000)),
+    ]);
+
+    const before = await tokens.countActive();
+    const cutover = await withTransaction(scratch.db, (uow) =>
+      tokens.revokeAllActive(uow, {
+        actor: 'operator-cli',
+        authorizationContext: 'operator-cli:revoke-legacy-personal-access-tokens',
+      }),
+    );
+    expect(cutover.revoked).toBe(before);
+    await expect(tokens.countActive()).resolves.toBe(0);
+    await expect(tokens.scopeOf(hashToken(first.rawToken))).resolves.toBeUndefined();
+    await expect(tokens.scopeOf(hashToken(second.rawToken))).resolves.toBeUndefined();
+    expect(
+      (await tokens.listByPrincipal(principalId)).find((token) => token.tokenId === expired.tokenId)
+        ?.revoked,
+    ).toBe(false);
+
+    const audit = new AuditReader(scratch.db);
+    await expect(audit.historyFor('personal-access-token', first.tokenId)).resolves.toEqual(
+      expect.arrayContaining([expect.objectContaining({ action: 'pat.revoked' })]),
+    );
+    await expect(audit.historyFor('personal-access-token', second.tokenId)).resolves.toEqual(
+      expect.arrayContaining([expect.objectContaining({ action: 'pat.revoked' })]),
+    );
+    await expect(
+      withTransaction(scratch.db, (uow) =>
+        tokens.revokeAllActive(uow, {
+          actor: 'operator-cli',
+          authorizationContext: 'operator-cli:revoke-legacy-personal-access-tokens',
+        }),
+      ),
+    ).resolves.toEqual({ revoked: 0 });
+  });
 });

@@ -39,6 +39,11 @@ export interface RevokePatInput {
   readonly authorizationContext: string;
 }
 
+export interface RevokeActivePatsInput {
+  readonly actor: string;
+  readonly authorizationContext: string;
+}
+
 /** What the API auth guard needs to know a PAT authorizes. */
 export interface PatScope {
   readonly tokenId: string;
@@ -125,6 +130,63 @@ export class PersonalAccessTokenRepository {
       resultingState: { revoked: true },
     });
     return pat;
+  }
+
+  /** Number of credentials that can currently authenticate a request. */
+  async countActive(): Promise<number> {
+    const row = await this.db
+      .selectFrom('personal_access_tokens')
+      .select((eb) => eb.fn.count<string>('token_id').as('count'))
+      .where('revoked_at', 'is', null)
+      .where('expires_at', '>', new Date())
+      .executeTakeFirstOrThrow();
+    return Number(row.count);
+  }
+
+  /**
+   * Security cutover for every credential that can authenticate now. The
+   * candidate selection, revocation, and one audit entry per credential share
+   * the supplied transaction, so a failure leaves no partial cutover behind.
+   */
+  async revokeAllActive(
+    uow: UnitOfWork,
+    input: RevokeActivePatsInput,
+  ): Promise<{ readonly revoked: number }> {
+    const now = new Date();
+    const candidates = await uow.tx
+      .selectFrom('personal_access_tokens')
+      .select('token_id')
+      .where('revoked_at', 'is', null)
+      .where('expires_at', '>', now)
+      .execute();
+    if (candidates.length === 0) return { revoked: 0 };
+
+    const revoked = await uow.tx
+      .updateTable('personal_access_tokens')
+      .set({ revoked_at: now })
+      .where(
+        'token_id',
+        'in',
+        candidates.map((candidate) => candidate.token_id),
+      )
+      .where('revoked_at', 'is', null)
+      .where('expires_at', '>', now)
+      .returning('token_id')
+      .execute();
+
+    for (const token of revoked) {
+      await uow.recordAudit({
+        organizationId: '00000000-0000-0000-0000-000000000000',
+        entityType: 'personal-access-token',
+        entityId: token.token_id,
+        action: 'pat.revoked',
+        actor: input.actor,
+        authorizationContext: input.authorizationContext,
+        previousState: { revoked: false },
+        resultingState: { revoked: true },
+      });
+    }
+    return { revoked: revoked.length };
   }
 
   /**
