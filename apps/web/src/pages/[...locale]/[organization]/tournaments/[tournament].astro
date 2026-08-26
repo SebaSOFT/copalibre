@@ -17,7 +17,7 @@ import { messages } from '../../../../lib/i18n/public-messages.en.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 
 /**
- * B1, the tournament overview (0020).
+ * B1, the tournament overview.
  *
  * Everything a spectator needs is server-rendered. The SSE stream from 0018 is
  * an improvement on this page, never a requirement for it: a venue on hotel
@@ -26,7 +26,7 @@ import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
  * The data is sample data until 0021 wires the read models; the shape is the
  * one the repositories already return.
  *
- * `[[locale]]` is an optional Astro route segment (0055): English, the
+ * `[[locale]]` is an optional Astro route segment: English, the
  * primary locale, is generated with `locale: undefined` (no URL segment);
  * every other supported language is generated with its own locale code
  * (0056 populated the remaining five alongside 0055's Spanish).

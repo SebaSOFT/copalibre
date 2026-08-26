@@ -55,7 +55,7 @@ export class EvidenceUploadDto {
 export class SubmitReportRequest {
   @ApiProperty({ description: 'What the participant believes the result was' })
   // IsObject gives the required-field presence check — ValidateNested alone
-  // does not fire when the whole property is absent (0146).
+  // does not fire when the whole property is absent.
   @IsObject()
   @ValidateNested()
   @Type(() => ProposedResultDto)

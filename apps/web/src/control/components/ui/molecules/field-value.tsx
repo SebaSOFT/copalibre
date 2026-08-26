@@ -1,5 +1,5 @@
 /**
- * Original composition (0141) — a read-only label/value pair for a detail
+ * Original composition — a read-only label/value pair for a detail
  * screen (a person's profile, a registration's submitted data). Extracted
  * from duplicate inline definitions in `PersonProfileRoute.tsx` and
  * `RegistrationReviewPage.tsx`: single-use in each host screen does not make

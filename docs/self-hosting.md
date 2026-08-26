@@ -64,7 +64,7 @@ site later supports.
 
 ## Rate Limits
 
-A few endpoints bound request volume to blunt automated abuse (0145). Limits are counted per API
+A few endpoints bound request volume to blunt automated abuse. Limits are counted per API
 process and reset on restart:
 
 | Endpoint group                                                                                                      | Key                                        | Limit         |

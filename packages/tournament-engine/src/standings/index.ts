@@ -21,7 +21,7 @@ export const DEFAULT_POINTS: PointsRules = { win: 3, draw: 1, loss: 0 };
 /**
  * The statistics the engine can derive from a duel outcome — *if* the bound
  * discipline declares them. A discipline that never names `points` gets no
- * `points` value, which is the whole point of 0009: the vocabulary is the
+ * `points` value, which is the whole point of the vocabulary is the
  * module's, and the engine may only fill in codes the module asked for.
  *
  * `played` is deliberately absent: a statistic declared with `count`

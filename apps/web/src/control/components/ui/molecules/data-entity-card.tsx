@@ -1,5 +1,5 @@
 /**
- * Original composition (0141) — Card atom + Badge atom + a metadata/actions
+ * Original composition — Card atom + Badge atom + a metadata/actions
  * layout for showing one entity (an organization, an installed module, a
  * participant) consistently across screens.
  */

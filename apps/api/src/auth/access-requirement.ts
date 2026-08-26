@@ -7,7 +7,7 @@ export const SUPER_ADMIN_SCOPE = 'copalibre.super-admin';
 /**
  * Scopes that grant unconditional, installation-level authority the moment a
  * guard sees them. Never attachable to a Personal Access Token — PATs mint
- * scoped automation credentials, not fresh installation authority (0142).
+ * scoped automation credentials, not fresh installation authority.
  */
 export const PRIVILEGED_SCOPES: readonly string[] = [SUPER_ADMIN_SCOPE];
 

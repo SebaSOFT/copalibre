@@ -45,7 +45,7 @@ export class InstallationBootstrapController {
   @Header('Cache-Control', 'no-store')
   @Throttle({
     // Same per-IP limit as the other unauthenticated brute-forceable
-    // endpoints (0145): this one mints the first installation admin.
+    // endpoints: this one mints the first installation admin.
     default: { limit: 5, ttl: 60_000 },
   })
   @SecurityPlaneTag('public-read')

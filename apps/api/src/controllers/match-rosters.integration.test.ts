@@ -364,7 +364,7 @@ describe('structured rosters and goalkeeper auto-population (integration, 0092)'
 
   const base = () => `/organizations/liga-rosters/tournaments/apertura-rosters/matches/${matchId}`;
 
-  // A fresh key per call (0123: recordEvent/setRoster now check one too, not
+  // A fresh key per call (recordEvent/setRoster now check one too, not
   // just finalize) — a fixed key would make every subsequent POST here
   // collide against whatever the first one recorded.
   function request(method: 'GET' | 'POST', url: string, token?: string, payload?: unknown) {

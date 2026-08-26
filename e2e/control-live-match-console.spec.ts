@@ -88,7 +88,7 @@ function projection(input: { readonly capabilities?: readonly string[] } = {}) {
         display: {},
         secondaryActorFields: [],
       },
-      // Real football.json vocabulary (0115), not an invented fixture: an
+      // Real football.json vocabulary, not an invented fixture: an
       // official presses "Falta", then picks its outcome — play on, a
       // restart, or a card, the last two reusing the discipline's existing
       // card events rather than declaring foul-scoped copies.
@@ -336,9 +336,7 @@ test('branches a penalty into its descriptor-declared final outcome', async ({ p
     );
 });
 
-test('records a foul, chooses a card outcome, and shows it in the ledger (0115)', async ({
-  page,
-}) => {
+test('records a foul, chooses a card outcome, and shows it in the ledger', async ({ page }) => {
   await mockMatchConsole(page);
   const target = `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
   await seedLoginTransaction(page, target);

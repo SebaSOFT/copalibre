@@ -1,5 +1,5 @@
 /**
- * Original composition (0141) — an identity chip (avatar initials + primary
+ * Original composition — an identity chip (avatar initials + primary
  * label + a truncated secondary id) for one row of any listing keyed by
  * email/principal (roles, invitations, an installation's super-admins).
  * Extracted from an inline `RoleUserCell` definition in

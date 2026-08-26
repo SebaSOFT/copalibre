@@ -1,5 +1,5 @@
 /**
- * The A5 table-projection view model (0091).
+ * The A5 table-projection view model.
  *
  * Cells arrive pre-formatted (`cell.formatted`) — the engine's own
  * `formatScalar`, not a second client-side formatter that could disagree

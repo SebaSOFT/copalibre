@@ -8,7 +8,7 @@ interface Row {
   readonly name: string;
 }
 
-describe('DataTable (0141)', () => {
+describe('DataTable', () => {
   const rows: readonly Row[] = [
     { id: '1', name: 'Uno' },
     { id: '2', name: 'Dos' },
@@ -45,7 +45,7 @@ describe('DataTable (0141)', () => {
   });
 });
 
-describe('Modal (0141)', () => {
+describe('Modal', () => {
   it('renders its title and body when open, nothing when closed', () => {
     const { rerender } = render(
       <Modal onOpenChange={() => {}} open={false} title="Invitar">

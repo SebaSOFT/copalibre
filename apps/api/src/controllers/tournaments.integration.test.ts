@@ -412,7 +412,7 @@ describe('organization-scoped tournament routes', () => {
     expect((await tournaments.findLatestRuleset(created.tournamentId))?.version).toBe(2);
   });
 
-  it('400s a custom-scripts replacement without a customScripts array, before reaching the controller (0146)', async () => {
+  it('400s a custom-scripts replacement without a customScripts array, before reaching the controller', async () => {
     const response = await request({
       method: 'PUT',
       url: '/organizations/liga-orbital/tournaments/copa-custom-scripts/custom-scripts',
@@ -422,7 +422,7 @@ describe('organization-scoped tournament routes', () => {
     expect(response.statusCode).toBe(400);
   });
 
-  it('strips an extra undocumented property and replaces custom scripts anyway (0146)', async () => {
+  it('strips an extra undocumented property and replaces custom scripts anyway', async () => {
     const updated = await request({
       method: 'PUT',
       url: '/organizations/liga-orbital/tournaments/copa-custom-scripts/custom-scripts',
@@ -665,7 +665,7 @@ describe('organization-scoped tournament routes', () => {
     expect(response.statusCode).toBe(404);
   });
 
-  it("lists the organization's active tournaments, excluding archived (0113)", async () => {
+  it("lists the organization's active tournaments, excluding archived", async () => {
     const tournaments = new TournamentRepository(scratch.db);
     const descriptor = footballDescriptor();
     await withTransaction(scratch.db as Kysely<Database>, (uow) =>
@@ -722,7 +722,7 @@ describe('organization-scoped tournament routes', () => {
     expect(aliases).not.toContain(toArchive.alias);
   });
 
-  it('creates a tournament with registration region, capacity, and check-in deadline (0132)', async () => {
+  it('creates a tournament with registration region, capacity, and check-in deadline', async () => {
     const tournaments = new TournamentRepository(scratch.db);
     const descriptor = footballDescriptor();
     await withTransaction(scratch.db as Kysely<Database>, (uow) =>
@@ -766,7 +766,7 @@ describe('organization-scoped tournament routes', () => {
     });
   });
 
-  it('creates a tournament instantiating a tournament profile and pre-creating declared stages (0132)', async () => {
+  it('creates a tournament instantiating a tournament profile and pre-creating declared stages', async () => {
     const tournaments = new TournamentRepository(scratch.db);
     const profileRepo = new TournamentProfileRepository(scratch.db);
     const competition = new CompetitionRepository(scratch.db);
@@ -842,7 +842,7 @@ describe('organization-scoped tournament routes', () => {
     ]);
   });
 
-  it('rejects capacity reduction below current accepted entrant count (0132)', async () => {
+  it('rejects capacity reduction below current accepted entrant count', async () => {
     const tournaments = new TournamentRepository(scratch.db);
     const enrollments = new EnrollmentRepository(scratch.db);
     const descriptor = footballDescriptor();
@@ -917,7 +917,7 @@ describe('organization-scoped tournament routes', () => {
     );
   });
 
-  it('lists compatible tournament profiles for a descriptor and format (0132)', async () => {
+  it('lists compatible tournament profiles for a descriptor and format', async () => {
     const tournaments = new TournamentRepository(scratch.db);
     const profileRepo = new TournamentProfileRepository(scratch.db);
     const descriptor = footballDescriptor();

@@ -41,7 +41,7 @@ export function SeedingBuilderRoute({
       .then(async (loaded) => {
         if (!live) return loaded;
         // Pre-fill only when nothing has been drawn or manually placed yet
-        // (0121) — a stage that already has seeds is never overridden by a
+        // — a stage that already has seeds is never overridden by a
         // promotion plan, so this only runs for the empty case, and any
         // failure here just leaves the builder starting empty, as before.
         if (loaded.seeds.length > 0 || !api.fetchPromotionPlansTargetingStage) return loaded;

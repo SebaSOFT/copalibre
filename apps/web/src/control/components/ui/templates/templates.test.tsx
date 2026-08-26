@@ -6,7 +6,7 @@ import { ListScreenTemplate } from './list-screen-template.js';
 import { FormScreenTemplate } from './form-screen-template.js';
 import { MatchConsoleTemplate } from './match-console-template.js';
 
-describe('ListScreenTemplate (0141)', () => {
+describe('ListScreenTemplate', () => {
   it('renders the same layout structure for two different content sets', () => {
     const { container: a } = render(
       <ListScreenTemplate
@@ -39,7 +39,7 @@ describe('ListScreenTemplate (0141)', () => {
   });
 });
 
-describe('FormScreenTemplate (0141)', () => {
+describe('FormScreenTemplate', () => {
   it('renders one section per entry, in order, with a sticky footer', () => {
     render(
       <FormScreenTemplate
@@ -71,7 +71,7 @@ describe('FormScreenTemplate (0141)', () => {
   });
 });
 
-describe('MatchConsoleTemplate (0147)', () => {
+describe('MatchConsoleTemplate', () => {
   it('renders header, workspace, primary and rail regions with template layout classes', () => {
     const { container } = render(
       <MatchConsoleTemplate

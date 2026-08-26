@@ -27,7 +27,7 @@ export interface DeleteInstallationRoleInput extends AccessAuditContext {
 
 /**
  * The installation-wide counterpart of `OrganizationAccessRepository`
- * (0140): the queryable, floor-invariant-protected source of truth for
+ * The queryable, floor-invariant-protected source of truth for
  * "who holds installation-level super-admin". Every mutation is audited in
  * the same transaction, using `SYSTEM_ORGANIZATION` as the audit record's
  * organization scope since these assignments have no organization.

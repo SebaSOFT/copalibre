@@ -18,7 +18,7 @@ import { TokenVerifier } from '../auth/token-verifier.js';
 import { DATABASE } from '../database.token.js';
 import { ResourcesController } from './resources.controller.js';
 
-/** Venue/official list/create/edit through the real HTTP stack (0124). */
+/** Venue/official list/create/edit through the real HTTP stack. */
 
 const AUDIT = { actor: 'user:seed', authorizationContext: 'seed' };
 const ORG_PLACEHOLDER = 'unset';

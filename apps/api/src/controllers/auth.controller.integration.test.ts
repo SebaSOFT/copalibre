@@ -28,7 +28,7 @@ const TOKENS: Readonly<Record<string, AuthenticatedSubject>> = {
     principalId: '550e8400-e29b-41d4-a716-446655440000',
     scopes: ['copalibre.control'],
   },
-  // 0142: a caller whose own session legitimately carries the privileged
+  // a caller whose own session legitimately carries the privileged
   // scope — used to prove even that caller cannot mint it onto a PAT.
   'superadmin-token': {
     subjectId: '550e8400-e29b-41d4-a716-446655440001',
@@ -142,7 +142,7 @@ describe('Auth Controllers', () => {
       expect(response.statusCode).toBe(401);
     });
 
-    // 0146: the global ValidationPipe rejects a body failing its DTO with 400
+    // the global ValidationPipe rejects a body failing its DTO with 400
     // at the edge, instead of surfacing as a handler TypeError (500).
     it('POST /auth/login without a password returns 400 from validation', async () => {
       const response = await request({
@@ -417,7 +417,7 @@ describe('Auth Controllers', () => {
     });
   });
 
-  // 0145: per-IP rate limiting on the unauthenticated brute-forceable
+  // per-IP rate limiting on the unauthenticated brute-forceable
   // endpoints. Every case sends an explicit X-Forwarded-For so it owns a
   // fresh bucket, independent of the requests the suites above already made.
   describe('auth endpoint rate limiting', () => {

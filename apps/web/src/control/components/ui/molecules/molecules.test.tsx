@@ -10,7 +10,7 @@ import { Pagination } from './pagination.js';
 import { EntityIdentityCell } from './entity-identity-cell.js';
 import { Input } from '../atoms/input.js';
 
-describe('FormField (0141)', () => {
+describe('FormField', () => {
   it('renders identically whether it wraps an error or not, aside from the message', () => {
     const { container: withoutError } = render(
       <FormField id="a" label="Correo">
@@ -57,7 +57,7 @@ describe('FormField (0141)', () => {
   });
 });
 
-describe('DataEntityCard (0141)', () => {
+describe('DataEntityCard', () => {
   it('renders the same structural layout for two different entity kinds', () => {
     const { container: org } = render(
       <DataEntityCard
@@ -93,7 +93,7 @@ describe('DataEntityCard (0141)', () => {
   });
 });
 
-describe('TableToolbar and Pagination (0141)', () => {
+describe('TableToolbar and Pagination', () => {
   it('renders a title, filter slot and actions slot', () => {
     render(
       <TableToolbar actions={<button type="button">Nuevo</button>} title="Roles">
@@ -145,7 +145,7 @@ describe('TableToolbar and Pagination (0141)', () => {
   });
 });
 
-describe('EntityIdentityCell (0141)', () => {
+describe('EntityIdentityCell', () => {
   it('derives initials from the local part of the email', () => {
     render(<EntityIdentityCell email="ana.gomez@example.test" id="01800000-0000-7000-8000-abc" />);
     expect(screen.getByText('AG')).toBeDefined();

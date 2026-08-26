@@ -14,7 +14,7 @@ import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './suppor
 const TOURNAMENT = '/organizations/liga-mendocina/tournaments/apertura-2026';
 const STAGE = `${TOURNAMENT}/stages/1`;
 
-/** The declared layouts a tab bar reads (0091) — one 'group-phase' layout is enough for this spec. */
+/** The declared layouts a tab bar reads — one 'group-phase' layout is enough for this spec. */
 const tableLayoutsFixture = {
   layouts: [
     {

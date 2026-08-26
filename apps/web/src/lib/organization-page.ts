@@ -1,7 +1,7 @@
 import type { PublicTournamentListingItemResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
 
 /**
- * The organization page's featured block (0110): the live tournament wins;
+ * The organization page's featured block: the live tournament wins;
  * with none, the most recent by date wins; with no tournaments at all,
  * there is no featured tournament. Derived from the listing the page
  * already fetches — no new field, no separate request (design.md).

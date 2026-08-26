@@ -170,7 +170,7 @@ export const messages = defineMessages({
     defaultMessage: 'View tournament',
   },
 
-  // Organization page (0110) — merged with the former tournament listing.
+  // Organization page — merged with the former tournament listing.
   orgPageFeaturedHeading: {
     id: 'publicWeb.orgPage.featuredHeading',
     defaultMessage: 'Featured',

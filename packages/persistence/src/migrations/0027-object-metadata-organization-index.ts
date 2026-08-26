@@ -2,7 +2,7 @@ import type { Kysely } from 'kysely';
 import type { Migration } from 'kysely/migration';
 
 /**
- * Composite index `(organization_id, status)` on `object_metadata` (0130):
+ * Composite index `(organization_id, status)` on `object_metadata`:
  * speeds up aggregate queries filtering by organization and processing status
  * (`SUM(size_bytes)`, `COUNT(*) WHERE organization_id = ? AND status = 'passed'`).
  */

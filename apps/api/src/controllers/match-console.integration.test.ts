@@ -309,9 +309,9 @@ describe('live match console (integration)', () => {
     expect((await request('GET', `${base()}/console`, 'inactive')).statusCode).toBe(403);
   });
 
-  // 0146: the global ValidationPipe rejects a body failing its DTO with 400
+  // the global ValidationPipe rejects a body failing its DTO with 400
   // at the edge, before the handler runs.
-  it('rejects a clock adjustment missing its elapsed seconds with 400 (0146)', async () => {
+  it('rejects a clock adjustment missing its elapsed seconds with 400', async () => {
     const response = await request('POST', `${base()}/clock`, 'referee', { segmentId });
     expect(response.statusCode).toBe(400);
     expect(JSON.stringify(response.json())).toContain('elapsedSeconds');
@@ -428,7 +428,7 @@ describe('live match console (integration)', () => {
     expect(recorded?.notes).toBe('Contested by home captain');
   });
 
-  it('replays a retried event recording without re-applying it, and refuses the same key with a different body (0123)', async () => {
+  it('replays a retried event recording without re-applying it, and refuses the same key with a different body', async () => {
     const key = crypto.randomUUID();
     const payload = {
       definitionCode: 'manual-penalty',
@@ -457,7 +457,7 @@ describe('live match console (integration)', () => {
     ).toHaveLength(1);
   });
 
-  it('replays a retried clock adjustment without re-applying it, and refuses the same key with a different body (0123)', async () => {
+  it('replays a retried clock adjustment without re-applying it, and refuses the same key with a different body', async () => {
     const key = crypto.randomUUID();
     const payload = { segmentId, elapsedSeconds: 45, activate: true };
     const first = await request('POST', `${base()}/clock`, 'referee', payload, key);
@@ -474,7 +474,7 @@ describe('live match console (integration)', () => {
     expect(conflict.statusCode).toBe(409);
   });
 
-  it('replays a retried start/pause/resume command without re-applying it, and refuses the same key with a different command (0123)', async () => {
+  it('replays a retried start/pause/resume command without re-applying it, and refuses the same key with a different command', async () => {
     const key = crypto.randomUUID();
     const first = await request('POST', `${base()}/commands/pause`, 'referee', undefined, key);
     const replay = await request('POST', `${base()}/commands/pause`, 'referee', undefined, key);
@@ -677,7 +677,7 @@ describe('live match console (integration)', () => {
     expect(response.statusCode).toBe(400);
   });
 
-  it('refuses a roster selection replayed after the match already finalized, exactly as a live one would be (0123)', async () => {
+  it('refuses a roster selection replayed after the match already finalized, exactly as a live one would be', async () => {
     const response = await request(
       'PUT',
       `${base()}/rosters/${entrantIds[0]}`,
@@ -724,7 +724,7 @@ describe('live match console (integration)', () => {
   }
 
   // Every POST/PUT now carries its own fresh idempotency key by default
-  // (0123: recordEvent/clock/roster/timer-resolve all check one, not just
+  // (recordEvent/clock/roster/timer-resolve all check one, not just
   // finalize) — an unrelated call reusing the same key would otherwise 409
   // against whatever the first one recorded. A test exercising idempotency
   // itself passes an explicit `idempotencyKey` to force a collision on
@@ -753,13 +753,13 @@ describe('live match console (integration)', () => {
 });
 
 /**
- * 0115: the `foul`/`throw-in` outcome-choice vocabulary is proven here against
+ * the `foul`/`throw-in` outcome-choice vocabulary is proven here against
  * the real shipped `football.json` descriptor (`loadDefaultModuleCatalogue()`),
  * not the hand-authored `footballDescriptor()` test fixture the suite above
  * uses — closing the exact gap the proposal names: the workflow machinery was
  * tested, but never yet driven by real catalogue content.
  */
-describe('live match console — real catalogue foul/throw-in vocabulary (0115)', () => {
+describe('live match console — real catalogue foul/throw-in vocabulary', () => {
   let app: INestApplication;
   let scratch: Awaited<ReturnType<typeof createMigratedDatabase>>;
   let organizationId = '';
@@ -959,7 +959,7 @@ describe('live match console — real catalogue foul/throw-in vocabulary (0115)'
     await scratch?.drop();
   });
 
-  // See the sibling `request()` above (0123): a fresh key per call by
+  // See the sibling `request()` above: a fresh key per call by
   // default, since every POST checks one now, not just finalize.
   function request(
     method: 'GET' | 'POST',

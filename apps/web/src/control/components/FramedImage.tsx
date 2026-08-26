@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { CSSProperties, JSX, ReactNode } from 'react';
 
 /**
- * The shared 410×512 profile-image frame (0122) — an organization emblem,
+ * The shared 410×512 profile-image frame — an organization emblem,
  * club emblem, or person photo, or its placeholder when none is uploaded
  * yet, all inside the same `.cl-image-frame--control` chamfer. `size` sets
  * the frame's width in pixels; `aspect-ratio: 4/5` (from the generated

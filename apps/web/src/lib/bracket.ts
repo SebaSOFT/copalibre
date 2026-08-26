@@ -132,7 +132,7 @@ export function isResolved(match: BracketMatch): boolean {
 }
 
 /**
- * A bracket card's own report page (0112) — resolved or not. `0102`'s report
+ * A bracket card's own report page — resolved or not. `0102`'s report
  * page already renders correctly for a not-yet-played match, so this needs
  * nothing about the match beyond its number.
  */

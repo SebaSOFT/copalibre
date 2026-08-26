@@ -324,7 +324,7 @@ describe('control routes', () => {
     expect(await screen.findByText('No se pudieron cargar las tablas.')).toBeTruthy();
   });
 
-  it('offers a group selector for a stage with more than one group and scopes the table to the selected one (0108)', async () => {
+  it('offers a group selector for a stage with more than one group and scopes the table to the selected one', async () => {
     const zones: readonly {
       readonly zoneId: string;
       readonly stageId: string;
@@ -368,7 +368,7 @@ describe('control routes', () => {
     expect(projectionRequests).toContainEqual({ stageNumber: 1, groupId: 'group-b' });
   });
 
-  it('shows no group selector for a single-implicit-group stage (0108)', async () => {
+  it('shows no group selector for a single-implicit-group stage', async () => {
     render(
       <StandingsControlRoute
         client={stubClient({
@@ -492,7 +492,7 @@ describe('control routes', () => {
     expect(await screen.findByText('No se pudo cargar el sembrado.')).toBeTruthy();
   });
 
-  it('pre-fills from a resolved promotion plan when the stage has no seeds yet (0121)', async () => {
+  it('pre-fills from a resolved promotion plan when the stage has no seeds yet', async () => {
     render(
       <SeedingControlRoute
         client={stubClient({
@@ -530,7 +530,7 @@ describe('control routes', () => {
     expect(rows).toEqual([expect.stringContaining('tll'), expect.stringContaining('ind')]);
   });
 
-  it('does not override an already-recorded seed order with a matching promotion plan (0121)', async () => {
+  it('does not override an already-recorded seed order with a matching promotion plan', async () => {
     const fetchPromotionPlansTargetingStage =
       jest.fn<NonNullable<ControlApiClient['fetchPromotionPlansTargetingStage']>>();
     render(
@@ -564,7 +564,7 @@ describe('control routes', () => {
     expect(fetchPromotionPlansTargetingStage).not.toHaveBeenCalled();
   });
 
-  it('starts empty when no promotion plan targets the stage (0121)', async () => {
+  it('starts empty when no promotion plan targets the stage', async () => {
     render(
       <SeedingControlRoute
         client={stubClient({

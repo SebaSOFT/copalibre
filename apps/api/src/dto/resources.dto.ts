@@ -2,7 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsArray, IsIn, IsNumber, IsObject, IsOptional, IsString } from 'class-validator';
 
 /**
- * Venue/official wire shapes (0124) — organization-scoped resource
+ * Venue/official wire shapes — organization-scoped resource
  * management, the CRUD `tournament-engine/resource-scheduling` always
  * assumed but never exposed through the API.
  */

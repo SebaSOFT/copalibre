@@ -42,7 +42,7 @@ export function StandingsRoute({
   const [groupOptions, setGroupOptions] = useState<readonly GroupOption[]>([]);
   const [selectedGroupId, setSelectedGroupId] = useState<string | undefined>(undefined);
 
-  // Every group across every zone of this stage (0108) — flat, since a
+  // Every group across every zone of this stage — flat, since a
   // group-phase standings table has no zone axis of its own to nest under.
   // `listZones`/`listGroups` are optional client methods (older test doubles
   // and any client that never wires zone/group support omit them) — checked
@@ -198,7 +198,7 @@ export function StandingsRoute({
       onSelectLayout={setActiveLayoutCode}
       organizationAlias={organizationAlias}
       projection={projectionStale ? undefined : projection}
-      /* 0108: a group-phase table with more than one group offers a selector
+      /* a group-phase table with more than one group offers a selector
          above the table; a single-implicit-group stage renders nothing
          extra, unchanged from before this capability existed. */
       groupSelector={

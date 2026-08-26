@@ -23,7 +23,7 @@ import { ClubResponse, CreateClubRequest, UpdateClubRequest } from '../dto/organ
 import { enforcePolicy } from '../policy/resource-policy.js';
 
 /**
- * Club identity management (0109) — list/create/edit a club's name, alias,
+ * Club identity management — list/create/edit a club's name, alias,
  * and abbreviation. Emblem upload is `ClubMediaController`
  * (`identity-media.controller.ts`), which already exists and needed no
  * change here.

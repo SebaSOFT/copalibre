@@ -240,7 +240,7 @@ describe('MatchConsoleRoute', () => {
     now.mockRestore();
   });
 
-  it('records a foul workflow outcome that takes no further action as an ordinary timeline entry (0115)', async () => {
+  it('records a foul workflow outcome that takes no further action as an ordinary timeline entry', async () => {
     const foulProjection: MatchConsoleResponse = {
       ...projection,
       eventDefinitions: [
@@ -1169,7 +1169,7 @@ describe('MatchConsoleRoute', () => {
     await screen.findByRole('region', { name: 'Roster selection' });
   });
 
-  describe('offline queue (0123)', () => {
+  describe('offline queue', () => {
     it('leaves a network-failed clock adjustment queued, not lost, with no error banner', async () => {
       await act(async () => {
         render(

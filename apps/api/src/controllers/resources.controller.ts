@@ -35,7 +35,7 @@ import {
 import { enforcePolicy } from '../policy/resource-policy.js';
 
 /**
- * Venue/official management (0124) — mirrors `clubs.controller.ts`'s shape
+ * Venue/official management — mirrors `clubs.controller.ts`'s shape
  * exactly: an organization-scoped, admin-authorized CRUD surface. Not part
  * of `SchedulesController`, whose base path is stage-scoped — a venue or
  * official outlives any one stage.

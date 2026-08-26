@@ -1,5 +1,5 @@
 /**
- * Original composition (0147) — Match Console template for live operator console.
+ * Original composition — Match Console template for live operator console.
  * Layout and spacing only; all match state, timers, SSE streams, offline queue,
  * and event workflows stay in MatchConsoleRoute.tsx (design.md Decisions 2, 8).
  */

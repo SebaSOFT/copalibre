@@ -363,7 +363,7 @@ test('reviews a promotion plan and confirms nothing is written to the next stage
   ).toBe(false);
 
   // The next stage's seeding builder is pre-filled from the reviewed
-  // promotion plan's order (0121) — still nothing published, only the
+  // promotion plan's order — still nothing published, only the
   // builder's own initial state.
   const seedingTarget = `/control/${ORG}/tournaments/${TOURNAMENT_ALIAS}/stages/2/seeding`;
   await seedLoginTransaction(page, seedingTarget);

@@ -117,7 +117,7 @@ describe('admin-control plane', () => {
     expect(response.json()).toMatchObject({ alias: 'club-cometa' });
   });
 
-  it('400s an organization created without a name, before reaching the controller (0146)', async () => {
+  it('400s an organization created without a name, before reaching the controller', async () => {
     const response = await request({
       method: 'POST',
       url: '/organizations',
@@ -127,7 +127,7 @@ describe('admin-control plane', () => {
     expect(response.statusCode).toBe(400);
   });
 
-  it('strips an extra undocumented property and creates the organization anyway (0146)', async () => {
+  it('strips an extra undocumented property and creates the organization anyway', async () => {
     const response = await request({
       method: 'POST',
       url: '/organizations',

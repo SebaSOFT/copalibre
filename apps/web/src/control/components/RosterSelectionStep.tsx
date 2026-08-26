@@ -140,7 +140,7 @@ function EntrantRosterEditor({
         ...(selection.number.trim() === '' ? {} : { number: selection.number.trim() }),
         ...(selection.roles.length === 0 ? {} : { roles: [...selection.roles] }),
       }));
-    // Write-ahead, same as every other console mutation (0123): persisted to
+    // Write-ahead, same as every other console mutation: persisted to
     // the durable queue before the send is attempted, so a dropped
     // connection here is queued and retried, not lost.
     const idempotencyKey = newIdempotencyKey();

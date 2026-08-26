@@ -3,7 +3,7 @@ import { dirname, join, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // Enforces "The repository README links every living documentation file"
-// (0116): every file under docs/ (excluding docs/deployment/evidence/, which
+//: every file under docs/ (excluding docs/deployment/evidence/, which
 // is point-in-time audit output, not living documentation) must be reachable
 // from a Markdown link in README.md — directly, or via a link to a
 // containing directory. Mirrors check-enterprise-readiness-docs.mjs's shape:

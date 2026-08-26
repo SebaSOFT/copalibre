@@ -21,7 +21,7 @@ import { DATABASE } from '../database.token.js';
 import { MatchControlController } from './match-control.controller.js';
 
 /**
- * End-to-end coverage of 0076: a per-side `resultReason`, set through the real
+ * End-to-end coverage of a per-side `resultReason`, set through the real
  * finalize endpoint, persists and reads back through the match-console
  * projection — the same JSON passthrough the bracket/standings renderers read
  * from (`StageReadModel`, covered separately at the unit/type level; this
@@ -190,7 +190,7 @@ describe('result reason per competitor (integration, 0076)', () => {
     await scratch?.drop();
   });
 
-  // A fresh key per call (0123: recordEvent now checks one too, not just
+  // A fresh key per call (recordEvent now checks one too, not just
   // finalize) — a fixed key would make every subsequent POST here collide
   // against whatever the first one recorded.
   function request(method: 'GET' | 'POST', url: string, token?: string, payload?: unknown) {

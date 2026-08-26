@@ -37,7 +37,7 @@ function renderPage(overrides: Partial<Parameters<typeof RegistrationReviewPage>
   return { onSetNationality, onUploadPhoto };
 }
 
-describe('RegistrationReviewPage — nationality and profile (0093)', () => {
+describe('RegistrationReviewPage — nationality and profile', () => {
   it("shows the person's flag next to their name once a nationality is set", () => {
     renderPage({ rows: [row({ personId: 'person-1', nationality: 'AR' })] });
     const summary = screen.getByText('Elías Salomón').closest('summary') as HTMLElement;

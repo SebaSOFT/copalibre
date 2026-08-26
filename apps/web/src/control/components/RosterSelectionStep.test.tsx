@@ -181,7 +181,7 @@ describe('RosterSelectionStep', () => {
     expect((scorerCheckbox as HTMLInputElement).checked).toBe(true);
   });
 
-  it('queues silently — no error banner — when the failure is a network error, not a refusal (0123)', async () => {
+  it('queues silently — no error banner — when the failure is a network error, not a refusal', async () => {
     const setMatchRoster = jest.fn(async () => {
       throw new Error('network down');
     });

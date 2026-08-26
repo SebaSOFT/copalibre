@@ -33,7 +33,7 @@ export const messages = defineMessages({
     defaultMessage: 'Platform administration',
   },
 
-  // Installation-wide super-admin console (0129).
+  // Installation-wide super-admin console.
   platformSectionLabel: { id: 'control.platform.sectionLabel', defaultMessage: 'Installation' },
   platformTitle: { id: 'control.platform.title', defaultMessage: 'Platform administration' },
   platformDescription: {
@@ -385,7 +385,7 @@ export const messages = defineMessages({
     id: 'control.matchConsole.awaitingProjection',
     defaultMessage: 'Awaiting authoritative projection...',
   },
-  // Sync status (0123) — always visible, not only surfaced on failure.
+  // Sync status — always visible, not only surfaced on failure.
   matchConsoleSyncStatus: {
     id: 'control.matchConsole.syncStatus',
     defaultMessage: 'Sync status',
@@ -551,7 +551,7 @@ export const messages = defineMessages({
   },
   matchConsoleSentOff: { id: 'control.matchConsole.sentOff', defaultMessage: 'Sent off' },
 
-  // RosterSelectionStep.tsx (0107)
+  // RosterSelectionStep.tsx
   matchConsoleNoRosterSelected: {
     id: 'control.matchConsole.noRosterSelected',
     defaultMessage: 'No roster selected for this match yet.',
@@ -1023,7 +1023,7 @@ export const messages = defineMessages({
   },
   standingsGroupSelector: { id: 'control.standings.groupSelector', defaultMessage: 'Group' },
 
-  // Zone/Group management, entrant assignment, and promotion plans (0108).
+  // Zone/Group management, entrant assignment, and promotion plans.
   zoneGroupLoading: { id: 'control.zoneGroup.loading', defaultMessage: 'Loading…' },
   zoneGroupLoadFailed: {
     id: 'control.zoneGroup.loadFailed',
@@ -1151,7 +1151,7 @@ export const messages = defineMessages({
     defaultMessage: 'Choose an organization',
   },
 
-  // Load match data (0106) — bulk/structured entry for a match played with no live console.
+  // Load match data — bulk/structured entry for a match played with no live console.
   loadMatchDataTitle: { id: 'control.loadMatchData.title', defaultMessage: 'Load match data' },
   loadMatchDataBreadcrumb: {
     id: 'control.loadMatchData.breadcrumb',
@@ -1302,7 +1302,7 @@ export const messages = defineMessages({
     defaultMessage: 'CSV loaded into the builder below for review.',
   },
 
-  // Club management (0109) — the first club-related screen in the app.
+  // Club management — the first club-related screen in the app.
   clubManagementSectionLabel: {
     id: 'control.clubManagement.sectionLabel',
     defaultMessage: 'Club management',
@@ -1368,7 +1368,7 @@ export const messages = defineMessages({
     defaultMessage: 'Emblem uploaded.',
   },
 
-  // Venue/official management (0124) — the resource pool a schedule assigns from.
+  // Venue/official management — the resource pool a schedule assigns from.
   resourceManagementSectionLabel: {
     id: 'control.resourceManagement.sectionLabel',
     defaultMessage: 'Venue and official management',
@@ -1525,7 +1525,7 @@ export const messages = defineMessages({
     defaultMessage: 'Observer',
   },
 
-  // Schedule builder (0124) — manual assignment of time, venue, and officials to a stage's fixtures.
+  // Schedule builder — manual assignment of time, venue, and officials to a stage's fixtures.
   scheduleBuilderSectionLabel: {
     id: 'control.scheduleBuilder.sectionLabel',
     defaultMessage: 'Schedule builder',
@@ -1611,7 +1611,7 @@ export const messages = defineMessages({
     defaultMessage: 'Venue',
   },
 
-  // Organization identity (0109) — name and emblem, in the org settings surface.
+  // Organization identity — name and emblem, in the org settings surface.
   orgIdentityHeading: {
     id: 'control.orgIdentity.heading',
     defaultMessage: 'Organization identity',
@@ -1645,7 +1645,7 @@ export const messages = defineMessages({
     defaultMessage: 'Emblem uploaded.',
   },
 
-  // Statistics rebuild (0114) — organizer-triggered recompute, in the org settings surface.
+  // Statistics rebuild — organizer-triggered recompute, in the org settings surface.
   statisticsRebuildHeading: {
     id: 'control.statisticsRebuild.heading',
     defaultMessage: 'Statistics rebuild',
@@ -1687,7 +1687,7 @@ export const messages = defineMessages({
     defaultMessage: 'The rebuild was refused.',
   },
 
-  // Storage usage (0130) — aggregate usage report in org settings.
+  // Storage usage — aggregate usage report in org settings.
   storageUsageHeading: {
     id: 'control.storageUsage.heading',
     defaultMessage: 'Storage usage',
@@ -1713,7 +1713,7 @@ export const messages = defineMessages({
     defaultMessage: '0 MB across 0 files',
   },
 
-  // Image crop modal (0122) — shared by every profile-image upload (org/club emblem, person photo).
+  // Image crop modal — shared by every profile-image upload (org/club emblem, person photo).
   imageCropModalTitle: { id: 'control.imageCropModal.title', defaultMessage: 'Adjust image' },
   imageCropModalZoom: { id: 'control.imageCropModal.zoom', defaultMessage: 'Zoom' },
   imageCropModalRotation: { id: 'control.imageCropModal.rotation', defaultMessage: 'Rotation' },
@@ -1729,7 +1729,7 @@ export const messages = defineMessages({
     defaultMessage: 'Could not process this image.',
   },
 
-  // Stackable notifications and stable API error localization (0126).
+  // Stackable notifications and stable API error localization.
   toastDismiss: { id: 'control.toast.dismiss', defaultMessage: 'Dismiss notification' },
   toastNotifications: { id: 'control.toast.notifications', defaultMessage: 'Notifications' },
   toastDetails: { id: 'control.toast.details', defaultMessage: 'Technical details' },

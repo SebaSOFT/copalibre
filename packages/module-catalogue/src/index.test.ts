@@ -118,7 +118,7 @@ describe('default module catalogue', () => {
     expect(serialized).toContain('{{ 1 + 1 }}');
   });
 
-  it("declares football's foul and throw-in outcome-choice workflows against real sibling event codes (0115)", async () => {
+  it("declares football's foul and throw-in outcome-choice workflows against real sibling event codes", async () => {
     const catalogue = await loadDefaultModuleCatalogue();
     const football = catalogue.disciplines.find((descriptor) => descriptor.alias === 'football');
     if (!football) throw new Error('Expected football catalogue document');
@@ -228,7 +228,7 @@ describe('default module catalogue', () => {
     );
   });
 
-  it('declares registration.region and registration.capacity defaults and field policies (0132)', async () => {
+  it('declares registration.region and registration.capacity defaults and field policies', async () => {
     const catalogue = await loadDefaultModuleCatalogue();
     for (const alias of ['football', 'tennis']) {
       const discipline = catalogue.disciplines.find((d) => d.alias === alias);

@@ -16,7 +16,7 @@ interface Props {
 const { intl, organizationAlias, tournamentAlias, stageNumber, localePrefix = '' } = Astro.props;
 const node = toNode(Astro.props.match, resultStateLabels(intl));
 const reasonLabels = resultReasonLabels(intl);
-// Every card links, resolved or not (0112) — 0102's report page already
+// Every card links, resolved or not — 0102's report page already
 // renders correctly for a not-yet-played match, so a winner-of/loser-of
 // placeholder still points somewhere real, not a dead end.
 const reportUrl = matchReportUrl({
@@ -45,7 +45,7 @@ const reportUrl = matchReportUrl({
             {slot.resultReason && (
               // A walkover 0-10 must not read like an actual 10-goal win — the
               // reason a result looks the way it does is shown, not just the
-              // number (0076).
+              // number.
               <span class="cl-badge">{reasonLabels[slot.resultReason]}</span>
             )}
             <span class="cl-stat-tile__value">{slot.score ?? '—'}</span>

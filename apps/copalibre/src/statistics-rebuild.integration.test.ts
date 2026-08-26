@@ -33,7 +33,7 @@ const COLLECTORS: readonly StatisticCollector[] = [
     measure: { kind: 'count' },
     granularity: { actor: 'person', competition: 'match' },
   },
-  // 0090: a payload-field-targeted collector — proves backfilling historical
+  // a payload-field-targeted collector — proves backfilling historical
   // multi-actor events (recorded before this collector existed) resolves the
   // attribution correctly and reproducibly, not just newly-recorded ones.
   {
@@ -291,7 +291,7 @@ describe('copalibre statistics-rebuild (integration, 0082)', () => {
  * recorded roster still contributes team figures while contributing no
  * person figures — the exact "backfill has a real limit" design.md states.
  */
-describe('statistics-rebuild — organization granularity, scope, and the no-roster limit (0114)', () => {
+describe('statistics-rebuild — organization granularity, scope, and the no-roster limit', () => {
   let scratch: ScratchDatabase;
   let db: Kysely<Database>;
   const organizationAlias = 'liga-coverage';
@@ -444,7 +444,7 @@ describe('statistics-rebuild — organization granularity, scope, and the no-ros
             // The historical reality this backfill limit is about: a match
             // with no recorded roster never had a person-attributed event
             // to begin with — match-control.controller has always refused
-            // one (0107) — so this is what pre-0107 event history actually
+            // one — so this is what pre-0107 event history actually
             // looks like, not a contrived gap.
             ...(withRoster ? { personId: rosteredPersonId } : {}),
             payload: {},

@@ -25,7 +25,7 @@ import { MatchControlController } from './match-control.controller.js';
 
 /**
  * A single recorded event with a declared `awardTo`/`target: { payloadField }`
- * attribution (0090) snapshots `segmentElapsedSeconds`, writes a `tag_facts`
+ * attribution snapshots `segmentElapsedSeconds`, writes a `tag_facts`
  * row for the payload-named person (not the primary actor), and updates a
  * live-cadence collector's total for that same payload-named person — all
  * inside the one event-recording transaction `MatchControlController.recordEvent`
@@ -109,7 +109,7 @@ describe('target attribution inside the event-recording transaction (integration
     // The 'goal' event already declares `assistedBy` in its payloadSchema
     // (football's real definition) — this fixture adds a targeted tag effect
     // and a payload-field-targeted live collector on top of it, the same way
-    // tag-facts.integration.test.ts (0073) adds only what it needs.
+    // tag-facts.integration.test.ts adds only what it needs.
     const base = footballDescriptor();
     const eventDefinitions = base.eventDefinitions.map((definition) =>
       definition.code === 'goal'

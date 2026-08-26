@@ -10,7 +10,7 @@ import {
 
 /**
  * Every mutating console command the operator can attempt while offline
- * (0123) — the durable queue's own record of *what to replay*, not the HTTP
+ * — the durable queue's own record of *what to replay*, not the HTTP
  * request itself. Finalize is included (design.md: "a queued finalize... is
  * refused and surfaced for the operator to resolve explicitly", not
  * excluded from the queue); start/pause/resume are not, since nothing in

@@ -134,7 +134,7 @@ function constraintsOn(errors: readonly ValidationError[], field: string): numbe
   return errors.filter((error) => error.property === field && error.constraints).length;
 }
 
-describe('request-body DTO validation rules (0146)', () => {
+describe('request-body DTO validation rules', () => {
   it('flags a missing required field on every decorated request DTO', async () => {
     const failures: string[] = [];
     for (const entry of REQUEST_DTOS_WITH_REQUIRED_FIELDS) {

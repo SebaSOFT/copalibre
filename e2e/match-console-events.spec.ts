@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
- * Recording an event with a secondary target actor (0090): the assist
+ * Recording an event with a secondary target actor: the assist
  * provider named via the `assistedBy` dropdown — not the scorer — is what
  * gets credited, the event's timecode renders on the timeline, and the
  * live-match statistics reflect the targeted attribution, not the primary

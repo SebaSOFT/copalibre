@@ -18,7 +18,7 @@ import { TokenVerifier } from '../auth/token-verifier.js';
 import { DATABASE } from '../database.token.js';
 import { ClubsController } from './clubs.controller.js';
 
-/** Club list/create/edit through the real HTTP stack (0109). */
+/** Club list/create/edit through the real HTTP stack. */
 
 const AUDIT = { actor: 'user:seed', authorizationContext: 'seed' };
 const ORG_PLACEHOLDER = 'unset';

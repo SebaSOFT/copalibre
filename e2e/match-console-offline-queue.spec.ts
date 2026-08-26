@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
- * 0123: the console's durable write queue. `window.__offline` (toggled from
+ * the console's durable write queue. `window.__offline` (toggled from
  * the test via `page.evaluate`) simulates "the backend is unreachable" —
  * every mocked API call rejects with a network-level error while the flag
  * is set — deliberately not Playwright's `context.setOffline(true)`, which

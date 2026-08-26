@@ -16,7 +16,7 @@ import { ReportingModule } from './modules/reporting.module.js';
 import { PublicModule } from './modules/public.module.js';
 
 /**
- * Permissive safety-net default (0145): the six endpoints with a real risk
+ * Permissive safety-net default: the six endpoints with a real risk
  * profile carry their own strict `@Throttle()` overrides; this global limit
  * only exists so a future route that forgets an override is not unlimited.
  */

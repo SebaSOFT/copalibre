@@ -356,7 +356,7 @@ describe('report/dispute submission and review (integration)', () => {
     expect(response.statusCode).toBe(401);
   });
 
-  it('400s a report with no proposed result, before reaching the controller (0146)', async () => {
+  it('400s a report with no proposed result, before reaching the controller', async () => {
     const response = await inject({
       method: 'POST',
       url: reportsPath(),
@@ -366,7 +366,7 @@ describe('report/dispute submission and review (integration)', () => {
     expect(response.statusCode).toBe(400);
   });
 
-  it('strips an extra undocumented property and persists the dispute anyway (0146)', async () => {
+  it('strips an extra undocumented property and persists the dispute anyway', async () => {
     const response = await inject({
       method: 'POST',
       url: disputesPath(),

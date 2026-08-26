@@ -422,7 +422,7 @@ describe('the registration review route container', () => {
     await waitFor(() => expect(photoCalls).toHaveLength(1));
   });
 
-  it('loads entrants needing an abbreviation and removes one from the list once set (0111)', async () => {
+  it('loads entrants needing an abbreviation and removes one from the list once set', async () => {
     const calls: unknown[] = [];
 
     await act(async () => {

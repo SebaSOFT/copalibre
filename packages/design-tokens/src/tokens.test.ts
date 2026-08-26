@@ -79,7 +79,7 @@ describe('the token source', () => {
   });
 });
 
-describe('the form-control and dialog contracts (0141)', () => {
+describe('the form-control and dialog contracts', () => {
   it.each([
     ['input', INPUT_TOKENS],
     ['select', SELECT_TOKENS],
@@ -104,7 +104,7 @@ describe('the form-control and dialog contracts (0141)', () => {
   });
 });
 
-describe('the remaining screen template token contracts (0147)', () => {
+describe('the remaining screen template token contracts', () => {
   it('resolves pagination tokens to real semantic and touch-target tokens', () => {
     expect(SEMANTIC_COLORS[PAGINATION_TOKENS.activeBackground]).toBeDefined();
     expect(SEMANTIC_COLORS[PAGINATION_TOKENS.activeText]).toBeDefined();
@@ -132,7 +132,7 @@ describe('the remaining screen template token contracts (0147)', () => {
   });
 });
 
-describe('the Control-web data-density spacing subset (0141)', () => {
+describe('the Control-web data-density spacing subset', () => {
   it('uses only values already in the shared spacing scale', () => {
     const spacingValues = Object.values(SPACING);
     for (const value of Object.values(CONTROL_DENSITY_SPACING)) {
@@ -206,7 +206,7 @@ describe('the CSS output', () => {
     expect(css).toContain('font-variant-numeric: tabular-nums;');
   });
 
-  it('emits a rule per form-control atom/state (0141)', () => {
+  it('emits a rule per form-control atom/state', () => {
     for (const atom of ['input', 'select', 'textarea', 'checkbox']) {
       for (const state of ['default', 'focus', 'error', 'disabled']) {
         expect(css).toContain(`.cl-${atom}--${state} {`);
@@ -214,18 +214,18 @@ describe('the CSS output', () => {
     }
   });
 
-  it('emits the dialog backdrop and surface rules (0141)', () => {
+  it('emits the dialog backdrop and surface rules', () => {
     expect(css).toContain('.cl-dialog-backdrop {');
     expect(css).toContain('.cl-dialog-surface {');
   });
 
-  it('emits template layout rules including match console (0147)', () => {
+  it('emits template layout rules including match console', () => {
     expect(css).toContain('.cl-match-console-screen {');
     expect(css).toContain('.cl-match-console-screen__header {');
     expect(css).toContain('.cl-match-console-screen__scoreboard {');
   });
 
-  it('scopes the Control-web density spacing under [data-density="control"] (0141)', () => {
+  it('scopes the Control-web density spacing under [data-density="control"]', () => {
     expect(css).toContain('[data-density="control"] {');
     for (const name of Object.keys(CONTROL_DENSITY_SPACING)) {
       expect(css).toContain(`--cl-density-${name}:`);
@@ -261,7 +261,7 @@ describe('the Tailwind output', () => {
     expect(generateTailwindModule()).toContain('Do not edit by hand');
   });
 
-  it('prefixes the density spacing subset (0141)', () => {
+  it('prefixes the density spacing subset', () => {
     expect(theme.densitySpacing['cl-density-row-gap']).toBe(SPACING['2']);
   });
 });

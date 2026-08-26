@@ -44,7 +44,7 @@ export type ControlRoute =
     }
   | {
       /**
-       * The bulk/structured entry screen (0106): a sibling of `matchConsole`
+       * The bulk/structured entry screen: a sibling of `matchConsole`
        * for a match played with no live console present, at `.../matches/
        * {matchId}/load` — one segment deeper than the console's own URL, not
        * a separate top-level screen, since both operate on the same match.
@@ -67,14 +67,14 @@ export type ControlRoute =
       readonly stageNumber: number;
     }
   | {
-      /** Zone/Group management and entrant assignment (0108). */
+      /** Zone/Group management and entrant assignment. */
       readonly screen: 'zoneGroups';
       readonly organizationAlias: string;
       readonly tournamentAlias: string;
       readonly stageNumber: number;
     }
   | {
-      /** A zone's promotion-plan configuration and review (0108). */
+      /** A zone's promotion-plan configuration and review. */
       readonly screen: 'promotionPlan';
       readonly organizationAlias: string;
       readonly tournamentAlias: string;
@@ -82,7 +82,7 @@ export type ControlRoute =
       readonly zoneNumber: number;
     }
   | {
-      /** The schedule builder: calendar + list, manual assignment (0124). */
+      /** The schedule builder: calendar + list, manual assignment. */
       readonly screen: 'schedule';
       readonly organizationAlias: string;
       readonly tournamentAlias: string;

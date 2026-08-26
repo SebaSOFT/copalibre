@@ -70,7 +70,7 @@ export class TiebreakTraceResponse {
 export class SeedAssignmentResponse {
   @ApiProperty({ description: '1-based seed', example: 3 })
   // Also reached as a request element via PublishSeedingRequest.seeds, so
-  // these rules run under the global pipe (0146); outbound serialization is
+  // these rules run under the global pipe; outbound serialization is
   // never validated.
   @IsInt()
   seed!: number;
@@ -160,7 +160,7 @@ export class PublishSeedingRequest {
     description: 'The full seed order, not a delta — a partial order is an ambiguous bracket',
   })
   // Handler folds an omitted list to [] and rejects it semantically, so the
-  // field stays runtime-optional here (0146).
+  // field stays runtime-optional here.
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })

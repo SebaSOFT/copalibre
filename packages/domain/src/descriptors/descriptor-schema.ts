@@ -494,7 +494,7 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
       },
     },
     /**
-     * A standard table/ranking (0091). Structure only — whether a
+     * A standard table/ranking. Structure only — whether a
      * `collector`/`composite` source's code names something this discipline
      * declares is a whole-document question, in `validateDisciplineDescriptorDocument`.
      */

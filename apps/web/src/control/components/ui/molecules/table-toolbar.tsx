@@ -1,4 +1,4 @@
-/** Original composition (0141) — a listing screen's header row: title, filter slot, actions slot. */
+/** Original composition — a listing screen's header row: title, filter slot, actions slot. */
 import type { ReactNode } from 'react';
 
 export interface TableToolbarProps {

@@ -37,7 +37,7 @@ export interface ControlApiClient {
   readonly fetchCustomScriptVocabulary?: (
     organizationAlias: string,
   ) => Promise<HookScriptVocabulary>;
-  /** The organization's active (non-archived) tournaments, for the dashboard (0113). */
+  /** The organization's active (non-archived) tournaments, for the dashboard. */
   readonly listActiveTournaments?: (
     organizationAlias: string,
   ) => Promise<readonly TournamentResponse[]>;
@@ -57,7 +57,7 @@ export interface ControlApiClient {
     entrantId: string,
     request: ReviewRegistrationRequest,
   ) => Promise<RegistrationResponse>;
-  /** Entrants that registered with no abbreviation because every derived candidate collided (0111). */
+  /** Entrants that registered with no abbreviation because every derived candidate collided. */
   readonly listEntrantsNeedingAbbreviation?: (
     organizationAlias: string,
     tournamentAlias: string,
@@ -85,7 +85,7 @@ export interface ControlApiClient {
     stageNumber: number,
     entrantId: string,
   ) => Promise<TiebreakTraceResponse>;
-  /** Every declared table layout in effect, for building a tab bar (0091). */
+  /** Every declared table layout in effect, for building a tab bar. */
   readonly fetchTableLayouts: (
     organizationAlias: string,
     tournamentAlias: string,
@@ -118,7 +118,7 @@ export interface ControlApiClient {
     stageNumber: number,
     request: PublishSeedingRequest,
   ) => Promise<SeedingClassificationResponse>;
-  /** Zone/Group management, entrant assignment, and promotion plans (0108). */
+  /** Zone/Group management, entrant assignment, and promotion plans. */
   readonly listZones?: (
     organizationAlias: string,
     tournamentAlias: string,
@@ -195,7 +195,7 @@ export interface ControlApiClient {
     stageNumber: number,
     zoneNumber: number,
   ) => Promise<PromotionPreviewResponse>;
-  /** Reverse lookup (0121): prior-stage zones whose stored plan targets this stage, already resolved. */
+  /** Reverse lookup: prior-stage zones whose stored plan targets this stage, already resolved. */
   readonly fetchPromotionPlansTargetingStage?: (
     organizationAlias: string,
     tournamentAlias: string,
@@ -276,7 +276,7 @@ export interface ControlApiClient {
     organizationAlias: string,
     tournamentAlias: string,
   ) => Promise<{ readonly status: string }>;
-  /** A person's profile — display name, nationality, photo, natural key (0093). */
+  /** A person's profile — display name, nationality, photo, natural key. */
   readonly getPerson?: (organizationAlias: string, personId: string) => Promise<PersonResponse>;
   readonly setPersonNationality?: (
     organizationAlias: string,
@@ -288,7 +288,7 @@ export interface ControlApiClient {
     personId: string,
     request: UploadImageRequest,
   ) => Promise<{ readonly objectId: string }>;
-  /** An organization's public identity — name, locale defaults, emblem (0109). */
+  /** An organization's public identity — name, locale defaults, emblem. */
   readonly getOrganization?: (organizationAlias: string) => Promise<OrganizationResponse>;
   readonly updateOrganizationSettings?: (
     organizationAlias: string,
@@ -298,11 +298,11 @@ export interface ControlApiClient {
     organizationAlias: string,
     request: UploadImageRequest,
   ) => Promise<{ readonly objectId: string }>;
-  /** An organization's aggregate storage usage (0130). */
+  /** An organization's aggregate storage usage. */
   readonly getStorageUsage?: (
     organizationAlias: string,
   ) => Promise<OrganizationStorageUsageResponse>;
-  /** Recomputes every stored statistic total from recorded events (0114); optionally one tournament. */
+  /** Recomputes every stored statistic total from recorded events; optionally one tournament. */
   readonly rebuildStatistics?: (
     organizationAlias: string,
     tournamentAlias?: string,
@@ -323,7 +323,7 @@ export interface ControlApiClient {
     clubId: string,
     request: UploadImageRequest,
   ) => Promise<{ readonly objectId: string }>;
-  /** An organization's venues and officials — the resource pool a schedule assigns from (0124). */
+  /** An organization's venues and officials — the resource pool a schedule assigns from. */
   readonly listVenues?: (organizationAlias: string) => Promise<readonly VenueResponse[]>;
   readonly createVenue?: (
     organizationAlias: string,
@@ -346,14 +346,14 @@ export interface ControlApiClient {
   ) => Promise<OfficialResponse>;
   /**
    * A stage's real generated fixtures, with `fixtureId`s, resolved from the URL's `stageNumber`.
-   * Also resolves `stageId`, which the schedule routes below address directly (0124).
+   * Also resolves `stageId`, which the schedule routes below address directly.
    */
   readonly getStageFixtures?: (
     organizationAlias: string,
     tournamentAlias: string,
     stageNumber: number,
   ) => Promise<StageFixturesResponse>;
-  /** A stage's schedule — read/preview/publish over the manual-assignment batch API (0124). */
+  /** A stage's schedule — read/preview/publish over the manual-assignment batch API. */
   readonly getSchedule?: (
     organizationAlias: string,
     tournamentAlias: string,
@@ -623,7 +623,7 @@ export interface MatchConsoleApiClient {
   ) => Promise<MatchStateResponse>;
   /**
    * A whole match — roster, event history, result — submitted as one batch,
-   * for a match played with no live console session (0106).
+   * for a match played with no live console session.
    */
   readonly bulkLoadMatch: (
     organizationAlias: string,
@@ -775,7 +775,7 @@ export interface ConfirmGroupDrawResponse extends DrawPreviewResponse {
   readonly groups: readonly GroupResponse[];
 }
 
-/** No seed/steps — a manual assignment has neither (0108). */
+/** No seed/steps — a manual assignment has neither. */
 export interface ManualZoneAssignmentRequest {
   readonly assignment: DrawAssignmentResponse;
   readonly zoneCount: number;
@@ -827,7 +827,7 @@ export interface PromotionPreviewResponse {
   readonly trace: readonly Readonly<Record<string, unknown>>[];
 }
 
-/** One prior-stage zone's resolved promotion preview, from the reverse lookup (0121). */
+/** One prior-stage zone's resolved promotion preview, from the reverse lookup. */
 export interface TargetingPromotionPreviewResponse {
   readonly zoneNumber: number;
   readonly zoneId: string;
@@ -1995,7 +1995,7 @@ function tablePath(
   return `${scoped}/tables/${encodeURIComponent(layoutCode)}`;
 }
 
-/** Scopes a stage-level table to one group's own matches and entrants only (0108). */
+/** Scopes a stage-level table to one group's own matches and entrants only. */
 function groupQuery(groupId: string | undefined): string {
   return groupId === undefined ? '' : `?groupId=${encodeURIComponent(groupId)}`;
 }

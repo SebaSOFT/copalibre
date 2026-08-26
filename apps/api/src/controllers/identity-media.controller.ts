@@ -43,7 +43,7 @@ import { enforcePolicy } from '../policy/resource-policy.js';
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
 /**
- * Person photo and club emblem upload/serve (0093).
+ * Person photo and club emblem upload/serve.
  *
  * The upload routes are `admin-control`, matching how a person/club is
  * already edited. The serve routes are deliberately `public-read`, unlike
@@ -365,7 +365,7 @@ function actorOf(request: RequestWithSubject): string {
 
 /**
  * Every profile image (organization emblem, club emblem, person photo) is
- * exactly this size on the wire — the client-side crop tool (0122) always
+ * exactly this size on the wire — the client-side crop tool always
  * outputs it, so a mismatch here means a non-conforming client, not a
  * legitimate source photo that merely needs scaling.
  */

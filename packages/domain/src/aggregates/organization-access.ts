@@ -123,7 +123,7 @@ export interface GrantorContext {
 }
 
 /**
- * The role-granting hierarchy (0140): a small, closed rule table, not a
+ * The role-granting hierarchy: a small, closed rule table, not a
  * configurable policy language.
  * - installation super-admin may grant super-admin, or any organization role
  *   (admin, club-admin, referee, broadcaster, viewer).

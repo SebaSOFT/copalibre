@@ -83,7 +83,7 @@ async function mockControlApi(
       const captured: CapturedRequest[] = [];
       Object.assign(window, { __controlRequests: captured });
       // Stateful across requests within this test: the dashboard's real
-      // tournament list (0113) reads back whatever the wizard just created.
+      // tournament list reads back whatever the wizard just created.
       const createdTournaments: unknown[] = seedTournament
         ? [
             {
@@ -299,7 +299,7 @@ test('creates a tournament from the control authoring wizard', async ({ page }) 
       }),
     );
 
-  // The dashboard's tournament list is real data now (0113), not sample
+  // The dashboard's tournament list is real data now, not sample
   // data — the tournament this test just created through the real write
   // path shows up on it. Client-side navigation (no reload) keeps the
   // in-memory session.

@@ -190,7 +190,7 @@ export function PreferencesRoute({
   // directly in an async/await body, which react-hooks/set-state-in-effect
   // flags when reachable from an effect. Nesting them inside a promise
   // chain instead keeps them out of that static reachability check — the
-  // same pattern used by ZoneGroupRoute.tsx (0108).
+  // same pattern used by ZoneGroupRoute.tsx.
   useEffect(() => {
     if (organizationAlias === undefined) return undefined;
     let live = true;

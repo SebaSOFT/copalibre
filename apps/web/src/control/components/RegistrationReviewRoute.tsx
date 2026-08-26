@@ -262,7 +262,7 @@ function toReviewRow(
   contactUnavailableLabel: string,
   experienceUnrecordedLabel: string,
 ): ReviewRegistrationRow {
-  // The API now supplies a person entrant's real displayName (0093); a team
+  // The API now supplies a person entrant's real displayName; a team
   // entrant still has none to show, so this placeholder stays the fallback.
   const displayName = row.displayName ?? row.teamId ?? row.personId ?? row.entrantId;
   return {

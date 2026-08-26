@@ -25,7 +25,7 @@ import { StandingsController } from './standings.controller.js';
 import { TableProjectionsController } from './table-projections.controller.js';
 
 /**
- * Table projections (0091) through the real HTTP stack, against real
+ * Table projections through the real HTTP stack, against real
  * PostgreSQL data: a `collector`-sourced tournament-wide ranking (live
  * cadence, updated inside the event-recording transaction target-actor
  * -attribution.integration.test.ts already proves), and a `statistics`

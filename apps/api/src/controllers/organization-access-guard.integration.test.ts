@@ -25,7 +25,7 @@ const subjects: Record<string, AuthenticatedSubject> = {
   inactive: { subjectId: 'oidc-inactive', scopes: ['copalibre.control'] },
   participant: { subjectId: 'oidc-participant', scopes: ['copalibre.participant'] },
   // Verifies fine but never accepted an invitation — no `identity_principals`
-  // row at all (0063: `GET /organizations?mine=true` must still answer 200
+  // row at all (`GET /organizations?mine=true` must still answer 200
   // with an empty list for this subject, not 403).
   noPrincipal: { subjectId: 'oidc-no-principal', scopes: ['copalibre.control'] },
 };

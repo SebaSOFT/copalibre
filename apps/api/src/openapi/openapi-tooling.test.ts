@@ -355,7 +355,7 @@ describe('breaking-change edge cases', () => {
 
 /**
  * Every controller reachable from a root module, walking `imports`
- * transitively (0079: `AppModule` itself declares none directly anymore — its
+ * transitively (`AppModule` itself declares none directly anymore — its
  * feature modules do — and a feature module may share a common import, so
  * this dedupes by module class rather than assuming a flat, one-level graph).
  */
