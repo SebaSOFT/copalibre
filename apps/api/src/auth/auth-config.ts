@@ -1,4 +1,4 @@
-/** Moved to `@copalibre/auth` in 0018; see that package for why. */
+/** Moved to `@copalibre/auth`; see that package for why. */
 export {
   authConfigFromEnv,
   ALLOWED_ALGORITHMS,

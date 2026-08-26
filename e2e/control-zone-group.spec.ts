@@ -2,12 +2,12 @@ import { expect, test, type Page } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
- * 0108 in a real browser: creating a second zone and group on a stage,
+ * Exercise zone and group management in a real browser: creating a second zone and group on a stage,
  * assigning entrants to them manually, and confirming group-scoped
  * standings reflects it (tasks.md 5.3); and configuring/reviewing a
  * promotion plan for a zone, confirming the reviewed list matches
  * `promotion-preview`'s own response, that nothing is written to the next
- * stage's seeding along the way, and — now that `0121-seeding-builder-
+ * stage's seeding along the way, and — now that the seeding builder
  * promotion-prefill` is built — that the next stage's seeding builder opens
  * pre-filled from that reviewed order, still with nothing published.
  *
@@ -355,8 +355,8 @@ test('reviews a promotion plan and confirms nothing is written to the next stage
   await expect(review.getByText(/1\.\s*aaaaaaaa/)).toBeVisible();
   await expect(review.getByText(/2\.\s*bbbbbbbb/)).toBeVisible();
 
-  // Reviewing the plan writes nothing to the next stage's seeding — 0108
-  // deferred the seeding-builder pre-fill to 0121.
+  // Reviewing the plan writes nothing to the next stage's seeding; the
+  // seeding-builder pre-fill remains deferred.
   const requestLog = await readRequestLog(page);
   expect(
     requestLog.some((entry) => entry.startsWith('POST') && entry.includes('/stages/2/seeding')),

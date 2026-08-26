@@ -22,14 +22,14 @@ import { DATABASE } from '../database.token.js';
 import { MatchControlController } from './match-control.controller.js';
 
 /**
- * `0107-match-roster-selection`: `match_rosters` had five production readers
+ * `match_rosters` had five production readers
  * and zero production writers before this change — every person-attributed
  * event was refused, unconditionally, because the eligibility set it reads
  * was always empty outside a hand-seeded test. These tests drive the real
  * `PUT .../rosters/:entrantId` route, never `insertInto('match_rosters')`
  * directly, which is exactly what let the defect ship green.
  */
-describe('match roster selection (integration, 0107)', () => {
+describe('match roster selection (integration)', () => {
   let app: INestApplication;
   let scratch: Awaited<ReturnType<typeof createMigratedDatabase>>;
   let organizationId: string;

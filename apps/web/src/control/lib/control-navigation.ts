@@ -22,7 +22,7 @@ export interface NavigationVisibilityDetail {
 
 /**
  * Emits a synthetic `navigation_visibility_changed` event when an admin route
- * is shown or hidden by feature flag (0147, design.md Decision 4).
+ * is shown or hidden by feature flag.
  */
 export function emitNavigationVisibilityChanged(detail: NavigationVisibilityDetail): void {
   if (typeof window === 'undefined') return;

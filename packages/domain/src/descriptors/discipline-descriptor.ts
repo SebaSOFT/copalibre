@@ -94,7 +94,7 @@ export interface StatisticDefinition {
  *
  * Battle-royale scoring is conventionally placement points plus performance
  * points. The performance half is discipline-specific and already covered —
- * `frags` is a declared statistic that 0009's accounting aggregates. The
+ * `frags` is a declared statistic that the accounting model aggregates. The
  * placement half is structural: every placement discipline needs a mapping from
  * finishing position to points, and none of them expresses it differently.
  */
@@ -154,7 +154,7 @@ export interface DisciplineDescriptor {
   readonly collectors?: readonly StatisticCollector[];
   /**
    * Labels a granularity on either hierarchy may carry — suspended, captain,
-   * under review (0073, `declared-tagging`). Absent means the discipline
+   * under review through declared tagging. Absent means the discipline
    * declares none; a collector's `requiresTag` must name one declared here.
    */
   readonly tags?: readonly TagDeclaration[];

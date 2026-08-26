@@ -15,9 +15,9 @@ import { runRelayPass } from './relay-runner.js';
 import { statisticsHandler } from './statistics-handler.js';
 
 /**
- * The loop 0016 left open, closed.
+ * The previously open loop, closed.
  *
- * 0016 built the statistics projection with its fold injected and nothing
+ * The statistics projection had its fold injected and nothing
  * calling it outside a test. This proves the relay is that caller: publish a
  * finalization, run a pass, and read totals that nobody wrote by hand.
  */
@@ -33,7 +33,7 @@ describe('statistics projection through the relay (integration)', () => {
   let matchId = '';
   let folded = 0;
 
-  /** Stands in for the discipline's collectors, which 0029 will resolve. */
+  /** Stands in for the discipline's collectors, which module configuration resolves. */
   const refold: Refold = async () => {
     folded += 1;
     return [

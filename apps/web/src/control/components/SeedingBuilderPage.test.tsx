@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { SeedingBuilderPage } from './SeedingBuilderPage.js';
 import { withIntl } from '../i18n/test-support.js';
 
-describe('SeedingBuilderPage (0147 template migration)', () => {
+describe('SeedingBuilderPage', () => {
   it('renders within ListScreenTemplate structure and displays seeding order and bracket canvas', async () => {
     const { container } = render(
       withIntl(

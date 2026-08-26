@@ -6,7 +6,7 @@ import type { TraceNode } from '../trace/explanation-trace.js';
  * "Scoring and tiebreakers": an ordered sequence of declared, auditable
  * accounting parameters evaluated "in sequence until it resolves the tie".
  * Definitions are serializable data (versioned configuration); evaluation is
- * deterministic and produces the trace phase 0017 renders.
+ * deterministic and produces the rendered trace.
  */
 
 export type ComparisonDirection =
@@ -17,7 +17,7 @@ export type MissingValueBehavior = 'treat-as-worst' | 'treat-as-zero' | 'invalid
 /**
  * A comparator computed from two statistics rather than read from one: K/D
  * ratio, points per game, goals per match. Declared because the ratio is not a
- * recorded statistic — 0009 keeps derived values out of accounting deliberately,
+ * recorded statistic — derived values stay out of accounting deliberately,
  * so they are expressed here, where the comparator machinery already lives.
  */
 export interface RatioDefinition {

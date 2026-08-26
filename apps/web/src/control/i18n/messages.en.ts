@@ -1139,7 +1139,7 @@ export const messages = defineMessages({
     defaultMessage: 'No promotion plan saved for this zone yet.',
   },
 
-  // Post-login landing (ControlApp.tsx's LoginLanding, 0063)
+  // Post-login landing (ControlApp.tsx's LoginLanding)
   landingEmptyTitle: { id: 'control.landing.emptyTitle', defaultMessage: 'No organizations yet' },
   landingEmptyBody: {
     id: 'control.landing.emptyBody',

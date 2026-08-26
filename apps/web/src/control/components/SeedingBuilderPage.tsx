@@ -10,7 +10,7 @@ import { messages } from '../i18n/messages.en.js';
 import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
 
 /**
- * A6 (0147 template migration) — seed assignment beside the bracket it produces.
+ * A6 — seed assignment beside the bracket it produces.
  *
  * Two panes because they answer different questions: the list is what the
  * operator changes, the canvas is what the change means. Locks live on the

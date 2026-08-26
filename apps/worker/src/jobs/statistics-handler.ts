@@ -11,9 +11,9 @@ import type { Kysely } from 'kysely';
 import type { JobHandler } from './dispatcher.js';
 
 /**
- * The handler that keeps folded figures current (0017 × 0016).
+ * The handler that keeps folded figures current.
  *
- * 0016 built the projection with its fold injected and nothing calling it in
+ * The projection had its fold injected and nothing calling it in
  * production. This is the caller: the relay hands it a finalized or superseded
  * match, and it recomputes that match's figures inside one transaction with the
  * projection version and the cursor.

@@ -84,7 +84,7 @@ export function buildManifest(version: string, createdAt: Date = new Date()): Ba
 
 /**
  * Which of the given packet filenames (basenames, not paths) a retention count would delete —
- * pure, no filesystem access (0046 design: unit-testable without a temp directory). Only names
+ * pure, no filesystem access (unit-testable without a temp directory). Only names
  * matching this command's own packet pattern are ever candidates; anything else present under
  * `backups/` is left alone. Sorts lexicographically, which matches chronological order because
  * `defaultPacketFileName`'s timestamp is zero-padded and colon-free.
@@ -106,7 +106,7 @@ export interface RestoreCompatibility {
 }
 
 /**
- * Pure — no filesystem or process access (0050 design, matching 0045's
+ * Pure — no filesystem or process access (matching the established
  * `evaluateCoreVersionCompatibility` split). A backup newer than the running
  * code is refused by default: the running code has no migration code for
  * schema changes a later release introduced, so restoring it "succeeding"

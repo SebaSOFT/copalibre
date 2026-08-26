@@ -75,7 +75,7 @@ describe('DashboardRoute', () => {
   let originalFetch: typeof fetch;
 
   beforeEach(() => {
-    // Dashboard's own device-heartbeat panel (0031, 4.4) fetches display
+    // Dashboard's own device-heartbeat panel fetches display
     // tokens on mount through its own client instance, not the one this
     // route injects — a stub here keeps that fetch from crashing a test
     // that never mocks it itself (same as control.test.tsx's own).

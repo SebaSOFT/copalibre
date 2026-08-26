@@ -33,7 +33,7 @@ describe('ControlApp', () => {
   let originalFetch: typeof fetch;
 
   beforeEach(() => {
-    // Dashboard's device-heartbeat panel (0031, 4.4), seeding, and standings
+    // Dashboard's device-heartbeat panel, seeding, and standings
     // all fetch on mount; a URL-routed stub keeps every screen from crashing
     // on a response shape it didn't ask for, matching control.test.tsx's own
     // fetch-stub pattern for the screens that only need `[]`.

@@ -4,8 +4,8 @@ const port = Number(process.env.PLAYWRIGHT_PORT ?? 4321);
 const baseURL = `http://localhost:${port}`;
 
 /**
- * E2E scaffold (task 8.1 of 0001-bootstrap-monorepo-toolchain). No specs exist yet;
- * phase 0012-public-web-astro-shell writes the first ones into e2e/.
+ * E2E scaffold. No specs exist yet;
+ * the public-web setup writes the first ones into e2e/.
  */
 export default defineConfig({
   testDir: '.',

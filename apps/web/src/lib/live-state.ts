@@ -4,7 +4,7 @@ import { decide, type ResultState } from './result-state.js';
 /**
  * Applying live events to what the server already rendered.
  *
- * A pure reducer, deliberately: the page arrives complete from 0020's
+ * A pure reducer, deliberately: the page arrives complete from the public web
  * server-rendered HTML, and the stream *patches* it. If the stream never
  * connects the page is still right — the last-known state is the state — which
  * is the whole reason the reducer starts from the rendered model rather than

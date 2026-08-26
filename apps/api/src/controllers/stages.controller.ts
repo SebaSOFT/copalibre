@@ -36,7 +36,7 @@ import { DATABASE } from '../database.token.js';
  * Stage creation.
  *
  * The step between "accepted registrations exist" and "a stage exists, ready to be seeded" — the
- * gap the 0059 walkthrough found: `CompetitionRepository.createStageInTournament` was real, tested,
+ * gap identified by a walkthrough: `CompetitionRepository.createStageInTournament` was real, tested,
  * and had no caller anywhere in `apps/api`. This endpoint only creates the stage; generating its
  * bracket is `POST .../stages/:stageNumber/seeding` (`seeding.controller.ts`), the same fixture-
  * generation path an operator already uses to reseed a later stage (see design.md).

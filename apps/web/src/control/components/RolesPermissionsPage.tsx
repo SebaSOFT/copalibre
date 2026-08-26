@@ -45,9 +45,9 @@ export function RolesPermissionsPage({
   readonly loading: boolean;
   readonly error?: string;
   /**
-   * Roles the caller may assign, per the 0140 role-granting hierarchy.
+   * Roles the caller may assign, per the role-granting hierarchy.
    * Undefined means "not yet known/not filtered" — every role is shown, matching
-   * this component's pre-0140 behavior so a caller without the new endpoint
+   * this component's previous behavior so a caller without the new endpoint
    * wired up still sees the full picker.
    */
   readonly grantableRoles?: readonly OrganizationRole[];

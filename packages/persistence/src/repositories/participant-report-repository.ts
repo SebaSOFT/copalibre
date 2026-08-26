@@ -16,8 +16,7 @@ import type { UnitOfWork } from '../transaction.js';
 
 /**
  * Published on the same transaction as an evidence insert, so the worker's
- * basic validation job (0032, minimal — no malware scan yet, see
- * 0041-object-storage-adapter) always sees a durably-committed row.
+ * basic validation job always sees a durably-committed row.
  */
 export const EVIDENCE_VALIDATION_REQUESTED_EVENT = 'report-evidence.validation-requested';
 
@@ -141,7 +140,7 @@ export class ParticipantReportRepository {
       .executeTakeFirstOrThrow();
 
     const evidence = toEvidenceFile(row);
-    // Audited regardless of the submission's eventual disposition (0032's
+    // Audited regardless of the submission's eventual disposition (the
     // evidence-storage requirement): who uploaded what, when.
     await uow.recordAudit({
       organizationId: input.organizationId,

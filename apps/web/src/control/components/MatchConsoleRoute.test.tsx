@@ -81,7 +81,7 @@ function stubClient(projection = mockProjection()): MatchConsoleApiClient {
   } as unknown as MatchConsoleApiClient;
 }
 
-describe('MatchConsoleRoute (0147 template migration)', () => {
+describe('MatchConsoleRoute', () => {
   it('renders within MatchConsoleTemplate layout with header, primary workspace, and event detail rail', async () => {
     const { container } = render(
       withIntl(

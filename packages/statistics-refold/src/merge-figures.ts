@@ -3,7 +3,7 @@ import type { StoredFigure } from '@copalibre/persistence';
 
 /**
  * Adds a live fold's marginal figures on top of what a match already stored
- * (0082's live cadence). `StatisticRepository.projectMatch` replaces a
+ * (live cadence). `StatisticRepository.projectMatch` replaces a
  * match's whole row set rather than upserting — a live-cadence write folds
  * only the single newly-recorded event (`foldStatistics({ events: [appended] })`),
  * so this is what turns that marginal contribution into the full,

@@ -206,7 +206,7 @@ export async function fetchOrganizationTournaments(
 }
 
 /**
- * Public, unauthenticated image routes (0109/0110) — safe to use directly as
+ * Public, unauthenticated image routes — safe to use directly as
  * an `<img src>`. Same-origin relative paths, like every other public route
  * this app serves; unlike the fetchers above, the browser requests these
  * directly, not this SSR-only client.

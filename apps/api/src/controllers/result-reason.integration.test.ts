@@ -27,7 +27,7 @@ import { MatchControlController } from './match-control.controller.js';
  * from (`StageReadModel`, covered separately at the unit/type level; this
  * proves the write side that feeds it).
  */
-describe('result reason per competitor (integration, 0076)', () => {
+describe('result reason per competitor (integration)', () => {
   let app: INestApplication;
   let scratch: Awaited<ReturnType<typeof createMigratedDatabase>>;
   let organizationId = '';
@@ -223,7 +223,7 @@ describe('result reason per competitor (integration, 0076)', () => {
     };
     const winner = result.sides.find((side) => side.entrantId === entrantIds[0]);
     const loser = result.sides.find((side) => side.entrantId === entrantIds[1]);
-    // An omitted reason is written explicitly as 'played', never left implicit (0076 follow-up).
+    // An omitted reason is written explicitly as 'played', never left implicit.
     expect(winner?.resultReason).toBe('played');
     expect(loser?.resultReason).toBe('walkover');
   });

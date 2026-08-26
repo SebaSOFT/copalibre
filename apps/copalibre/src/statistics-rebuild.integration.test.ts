@@ -17,7 +17,7 @@ import {
 import { runStatisticsRebuild } from './statistics-rebuild.js';
 
 /**
- * `copalibre statistics-rebuild` against real PostgreSQL (0082, task 7.4):
+ * `copalibre statistics-rebuild` against real PostgreSQL:
  * seeds finalized matches the way pre-engine history would look — no
  * `statistic_totals` rows at all — then proves the rebuild populates them and
  * running it twice changes nothing but `updated_at`/the projection version.
@@ -49,7 +49,7 @@ const COLLECTORS: readonly StatisticCollector[] = [
   },
 ];
 
-describe('copalibre statistics-rebuild (integration, 0082)', () => {
+describe('copalibre statistics-rebuild (integration)', () => {
   let scratch: ScratchDatabase;
   let db: Kysely<Database>;
   let organizationAlias: string;
@@ -132,7 +132,7 @@ describe('copalibre statistics-rebuild (integration, 0082)', () => {
 
       // Two finalized matches, pre-engine history: events and a result exist,
       // but nothing ever called `refold` — no `statistic_totals` row for
-      // either match, exactly what a deployment predating 0082 looks like.
+      // either match, exactly what a deployment without statistics refolding looks like.
       for (let round = 1; round <= 2; round += 1) {
         const [fixture] = await competition.createFixtures(uow, {
           stageId: stage.stageId,
@@ -284,7 +284,7 @@ describe('copalibre statistics-rebuild (integration, 0082)', () => {
 });
 
 /**
- * The coverage gap `0104`'s career surface shipped with, closed by `0114`:
+ * The coverage gap the career surface shipped with:
  * nothing asserted that a rebuild recomputes *organization*-granularity
  * totals specifically (every collector above is match-scoped), that scoping
  * to one tournament actually excludes another, or that a match with no
@@ -444,7 +444,7 @@ describe('statistics-rebuild — organization granularity, scope, and the no-ros
             // The historical reality this backfill limit is about: a match
             // with no recorded roster never had a person-attributed event
             // to begin with — match-control.controller has always refused
-            // one — so this is what pre-0107 event history actually
+            // one — so this is what previous event history actually
             // looks like, not a contrived gap.
             ...(withRoster ? { personId: rosteredPersonId } : {}),
             payload: {},

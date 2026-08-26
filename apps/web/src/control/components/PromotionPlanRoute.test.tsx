@@ -28,7 +28,7 @@ function stubClient(overrides: Partial<ControlApiClient> = {}): ControlApiClient
   } as unknown as ControlApiClient;
 }
 
-describe('PromotionPlanRoute (0147 template migration)', () => {
+describe('PromotionPlanRoute', () => {
   it('renders within ListScreenTemplate structure and displays promotion plan and preview', async () => {
     const { container } = render(
       withIntl(

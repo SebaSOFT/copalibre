@@ -108,7 +108,7 @@ export function toNode(match: BracketMatch, labels: ResultStateLabels): MatchNod
 /**
  * Not extracted to the message catalog — same shape as the control
  * panel's own deferred `describeSlot` (`apps/web/src/control/lib/bracket-
- * canvas.ts`, 0053 task 4.4): pure geometry computation with a dynamic match/
+ * canvas.ts`): pure geometry computation with a dynamic match/
  * seed number and no `intl` in scope at the call site, a genuinely different
  * pattern from this module's other extractions; tracked as a follow-up
  * alongside that one rather than solved differently here.
@@ -132,7 +132,7 @@ export function isResolved(match: BracketMatch): boolean {
 }
 
 /**
- * A bracket card's own report page — resolved or not. `0102`'s report
+ * A bracket card's own report page — resolved or not. The report
  * page already renders correctly for a not-yet-played match, so this needs
  * nothing about the match beyond its number.
  */

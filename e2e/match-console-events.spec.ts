@@ -130,7 +130,7 @@ async function mockMatchConsole(page: Page): Promise<void> {
                       // Credited to the assist provider's payload field, not
                       // folded onto the scoring side's own count — proves the
                       // console's request shape is what the fold engine
-                      // actually reads at 0090's attribution.
+                      // actually reads at event attribution.
                       ...(assistedBy ? { assists: (side.statistics.assists ?? 0) + 1 } : {}),
                     },
                   }

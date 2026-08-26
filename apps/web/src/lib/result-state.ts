@@ -21,7 +21,7 @@ export interface StatePresentation {
   readonly label: string;
   /** A shape, for viewers who distinguish neither the colour nor the word. */
   readonly icon: string;
-  /** The token class; `cl-state-*` maps onto 0019's semantic tokens. */
+  /** The token class; `cl-state-*` maps onto semantic tokens. */
   readonly className: string;
 }
 

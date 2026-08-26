@@ -15,7 +15,7 @@ const BADGE_ACCENT: Readonly<Record<HeartbeatStatus, string>> = {
 };
 
 /**
- * The A1 dashboard's `/tv/**` device-health panel (0031, task 4.4).
+ * The A1 dashboard's `/tv/**` device-health panel.
  *
  * The kiosk screen itself never shows a status — silent recovery is the whole
  * point of that surface — so this is the only place an operator learns a

@@ -3,7 +3,7 @@ import { createMigratedDatabase, type ScratchDatabase } from '../test-support/sc
 
 const AUDIT = { actor: 'user:organizer-1', authorizationContext: 'scope:tournament.write' };
 
-describe('organization primary language and timezone (integration, 0051)', () => {
+describe('organization primary language and timezone (integration)', () => {
   let scratch: ScratchDatabase;
   let organizations: OrganizationRepository;
 

@@ -3,7 +3,7 @@ import type { Migration } from 'kysely/migration';
 
 /**
  * Tracks each installed community module's source and attribution holder
- * (change 0036), and the object-storage references for its uploaded assets.
+ * and the object-storage references for its uploaded assets.
  * `document_id` points at the `discipline_descriptors`/`tournament_profiles`
  * row matching `kind`+`alias`+`version` — a polymorphic reference the schema
  * does not enforce with a foreign key (Postgres has none spanning two

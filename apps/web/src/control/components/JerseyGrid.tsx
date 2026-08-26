@@ -22,7 +22,7 @@ const NUMPAD_BUFFER_TIMEOUT_MS = 600;
  * `MatchConsoleRoute` used for attributing an event: two team panels of
  * jersey buttons, on-field and bench visually separated, with role badges
  * read from the bound discipline's own `rosterRoles` declaration — never a
- * hardcoded "GK"/"C" (see 0092's design.md Decision 1 addendum).
+ * hardcoded "GK"/"C".
  *
  * Selection is ambient, matching the dropdowns it replaces rather than a
  * step-by-step wizard: a jersey tap sets whichever field is currently

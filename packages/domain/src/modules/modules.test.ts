@@ -103,7 +103,7 @@ describe('discipline test builders', () => {
       );
     });
 
-    it('satisfies a three-level tiebreak binding, the defect that motivated 0009', () => {
+    it('satisfies a three-level tiebreak binding that requires declarative accounting', () => {
       const binding = bindCapabilities(tennis, {
         profileId: '01890000-0000-7000-8000-00000000p001',
         alias: 'club-ladder',

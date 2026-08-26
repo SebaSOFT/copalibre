@@ -180,7 +180,7 @@ describe('what the dashboard renders', () => {
   let originalFetch: typeof fetch;
 
   beforeEach(() => {
-    // Dashboard's device-heartbeat panel (0031, 4.4) fetches on mount; a
+    // Dashboard's device-heartbeat panel fetches on mount; a
     // stub here keeps that fetch from crashing tests that never mock it
     // themselves.
     originalFetch = globalThis.fetch;
@@ -314,7 +314,7 @@ describe('what the dashboard renders', () => {
     }
   });
 
-  it('archives a finished tournament and removes it from view (0033, 6.1)', async () => {
+  it('archives a finished tournament and removes it from view', async () => {
     Object.defineProperty(globalThis, 'fetch', {
       configurable: true,
       value: async (url: string, init?: RequestInit) => {

@@ -1,6 +1,6 @@
 /**
  * Mandarin Chinese translations, keyed to match `messages.en.ts`'s IDs exactly.
- * Best-effort machine-quality translation (owner's explicit choice, 0051):
+ * Best-effort machine-quality translation (owner's explicit choice):
  * ship now, native-speaker review later.
  */
 export const messages: Record<string, string> = {

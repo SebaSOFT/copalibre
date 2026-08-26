@@ -1,7 +1,7 @@
 /**
  * Portuguese translations, keyed to match `messages.en.ts`'s IDs exactly.
  * Best-effort machine-quality translation; native-speaker review is a
- * separate, later pass (owner's explicit choice, 0051).
+ * separate, later pass (owner's explicit choice).
  */
 export const messages: Record<string, string> = {
   'control.shell.sections': 'Seções',

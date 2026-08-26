@@ -179,7 +179,7 @@ export class DataImportExportController {
       // Populated lazily, the first time a team-membership row references a
       // given team: avoids an N+1 `squadOf` call per row, and lets a repeated
       // teamAlias within one file (or a re-run of the same file) recognise an
-      // already-enlisted person without a second `enlist` call (0065's
+      // already-enlisted person without a second `enlist` call (the
       // additive-with-idempotent-reimport contract; see design.md).
       const squadCache = new Map<string, Set<string>>();
       for (const row of session.preview.rows) {

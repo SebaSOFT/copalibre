@@ -131,7 +131,7 @@ describe('module catalogue seeding (integration)', () => {
     );
   });
 
-  it('keeps a tournament started before the foul/throw-in vocabulary on its frozen descriptor version (0115 task 3.3)', async () => {
+  it('keeps a tournament started before the foul/throw-in vocabulary on its frozen descriptor version', async () => {
     const preFoulCatalogue = withoutFoulVocabulary(catalogue, '1.0.0');
     await seedModuleCatalogue(scratch.db, preFoulCatalogue, storage);
     const tournaments = new TournamentRepository(scratch.db);
@@ -158,7 +158,7 @@ describe('module catalogue seeding (integration)', () => {
       }),
     );
 
-    // 0094's module freeze: installing the real catalogue (foul/throw-in
+    // Module freezing: installing the real catalogue (foul/throw-in
     // included, at its real 1.3.0) alongside the pinned 1.0.0 must not touch
     // what the already-started tournament resolves to.
     await seedModuleCatalogue(scratch.db, catalogue, storage);
@@ -284,7 +284,7 @@ function withNewerFootball(catalogue: ModuleCatalogue, version: string): ModuleC
  * minus the foul/throw-in vocabulary and everything it alone introduced
  * (`foul-play-on`, `free-kick-awarded`, `penalty-awarded`, `throw-in-taken`,
  * `foul-throw`) — reused card/goal/substitution events stay, since those
- * predate 0115.
+ * predate the foul/throw-in vocabulary.
  */
 const FOUL_VOCABULARY_CODES = new Set([
   'foul',

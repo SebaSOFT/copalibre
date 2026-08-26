@@ -31,7 +31,7 @@ const EMPTY_DRAFT: DraftAssignment = {
 };
 
 /**
- * The schedule builder (0124, 0147 template migration): a calendar view and a list view over one
+ * The schedule builder: a calendar view and a list view over one
  * stage's fixtures, both driving the same manual assignment batch the
  * already-accepted `tournament-engine/resource-scheduling` API accepts —
  * build, preview (showing conflicts and downstream-affected published

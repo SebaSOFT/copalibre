@@ -15,7 +15,7 @@ import { dirname, join } from 'node:path';
  *
  * This does mean `login`/the dual-path CLI commands need to run from inside
  * the installation directory (or `--directory <dir>`, once needed) — no
- * directory-independent case exists yet. `0087`'s Kubernetes instances (no
+ * directory-independent case exists yet. Kubernetes instances (no
  * local compose directory to anchor to at all) will need their own
  * mechanism when that change lands; deliberately not solved here.
  */
@@ -43,7 +43,7 @@ export async function readCredential(cwd: string): Promise<StoredCredential | un
 }
 
 /**
- * Replaces any existing credential for this directory — unlike `0084`'s
+ * Replaces any existing credential for this directory — unlike the earlier
  * installation marker, a token is expected to rotate (design.md), so
  * re-running `login` in the same directory is intentional, not refused.
  */

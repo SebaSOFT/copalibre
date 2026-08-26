@@ -7,7 +7,7 @@ import { err, ok, type Result } from '../result.js';
  * Modelling it as a transition gives one auditable moment to attach the start
  * validations to, and one clear condition for the module freeze.
  *
- * `archived` (0033-competition-lifecycle-and-archival, TMS-014) is a fifth,
+ * `archived` (TMS-014) is a fifth,
  * terminal state reachable only from `finished` — archival is a visibility
  * change, never a data change, so nothing about the module freeze or any
  * other `started`-gated behavior differs once a tournament reaches it.

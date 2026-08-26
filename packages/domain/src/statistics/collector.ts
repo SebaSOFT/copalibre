@@ -133,7 +133,7 @@ export interface CollectorVocabulary {
   readonly statisticCodes: readonly string[];
   /** Tag codes a `requiresTag` may name — the discipline's own `tags`. */
   readonly tagCodes: readonly string[];
-  /** Granularities nothing populates yet; empty since 0015. */
+  /** Granularities nothing populates yet; currently empty. */
   readonly unpopulatedGranularities?: readonly (ActorGranularity | CompetitionGranularity)[];
 }
 

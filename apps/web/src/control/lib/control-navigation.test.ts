@@ -120,7 +120,7 @@ describe('loginRedirectUrl', () => {
   });
 });
 
-describe('emitNavigationVisibilityChanged (0147, design.md Decision 4)', () => {
+describe('emitNavigationVisibilityChanged', () => {
   it('dispatches the synthetic navigation_visibility_changed event on window', () => {
     const handler = jest.fn();
     window.addEventListener('copalibre:navigation-visibility-changed', handler as EventListener);

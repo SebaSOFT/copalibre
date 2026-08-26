@@ -1,7 +1,7 @@
 /**
  * Placeholder images shown in place of a person's photo or a club's emblem
  * when none has been uploaded — a generic person silhouette and a generic
- * club-shield outline (0093 task 4.3), never a broken image or empty gap.
+ * club-shield outline, never a broken image or empty gap.
  * `currentColor` so each inherits the surrounding text color rather than a
  * hardcoded token, matching the outline-only, non-photorealistic style the
  * design calls for.

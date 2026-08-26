@@ -281,7 +281,7 @@ function arithmetic(operator: string, left: number, right: number): number | und
     case '*':
       return left * right;
     case '/':
-      // The choice 0010 made for a zero denominator: no value, never an
+      // The choice for a zero denominator: no value, never an
       // infinity, because an infinity silently ranks first.
       return right === 0 ? undefined : left / right;
     case '%':

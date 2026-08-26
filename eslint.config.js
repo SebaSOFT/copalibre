@@ -16,8 +16,8 @@ export default tseslint.config(
       '.claude/worktrees/**',
       'playwright-report/**',
       'test-results/**',
-      // Build artifacts copied into place at build time (0024's OpenAPI
-      // artifact, 0040's vendored Scalar bundle) — not source, not committed.
+      // Build artifacts copied into place at build time (the OpenAPI
+      // artifact and vendored Scalar bundle) — not source, not committed.
       'apps/web/public/openapi/**',
       'apps/web/public/vendor/**',
     ],
@@ -44,7 +44,7 @@ export default tseslint.config(
     settings: {
       // Pinned rather than detected: eslint-plugin-react's detection calls an
       // ESLint 9 context API that ESLint 10 removed, and it only fires once a
-      // .tsx file exists — which 0021 is the first phase to add.
+      // .tsx file exists — added with the first public web surface.
       react: { version: '19.2' },
     },
   },

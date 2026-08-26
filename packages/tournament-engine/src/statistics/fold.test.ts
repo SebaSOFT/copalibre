@@ -919,7 +919,7 @@ describe('target attribution', () => {
     });
   });
 
-  describe('goals-against, against the real football descriptor (0090’s own motivating example)', () => {
+  describe('goals-against, against the real football descriptor', () => {
     it('credits the conceding side, not just an own goal, so gd = gf - ga is correct for a normal goal', () => {
       const goal = footballDescriptor().eventDefinitions.find((d) => d.code === 'goal');
       if (!goal) throw new Error('football descriptor no longer declares a "goal" event');

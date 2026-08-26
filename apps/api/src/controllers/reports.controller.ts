@@ -44,7 +44,7 @@ import { enforceReportSubmission } from '../policy/resource-policy.js';
 import { resolveTournament } from './standings.controller.js';
 
 /**
- * Participant self-service result reporting and disputes (0032, TMS-013).
+ * Participant self-service result reporting and disputes.
  *
  * Neither endpoint here ever calls `CompetitionRepository.supersedeResult` —
  * a submission is a fact an operator may later cite in their own correction,

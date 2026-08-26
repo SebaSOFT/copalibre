@@ -12,7 +12,7 @@ export interface AbbreviationCandidateRow {
 
 /**
  * Entrants that registered with no abbreviation because every derived
- * candidate collided (0100, 0111). Rare and empty in the common case — the
+ * candidate collided. Rare and empty in the common case — the
  * API and the write path this calls already exist; this is only the
  * visibility and per-entrant set action neither had before.
  */

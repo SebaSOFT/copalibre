@@ -22,13 +22,13 @@ import { DATABASE } from '../database.token.js';
 import { MatchControlController } from './match-control.controller.js';
 
 /**
- * End-to-end coverage of 0074's wiring: `collectorThresholdRules` declared on
+ * End-to-end coverage of the wiring: `collectorThresholdRules` declared on
  * a compiled ruleset's config, evaluated inside `MatchControlController`'s
  * real event-recording transaction, over a stage-scoped baseline sourced from
  * real match rows — not the pure `evaluateCollectorThreshold` function on its
  * own (already covered in `packages/rules`).
  */
-describe('collector-threshold notifications across a stage (integration, 0074)', () => {
+describe('collector-threshold notifications across a stage (integration)', () => {
   let app: INestApplication;
   let scratch: Awaited<ReturnType<typeof createMigratedDatabase>>;
   let organizationId = '';

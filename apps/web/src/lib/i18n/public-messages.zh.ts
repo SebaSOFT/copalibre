@@ -1,7 +1,7 @@
 /**
  * Mandarin Chinese translations, keyed to match `public-messages.en.ts`'s IDs
  * exactly. Best-effort machine-quality translation (owner's explicit
- * choice, 0051): ship now, native-speaker review later.
+ * choice): ship now, native-speaker review later.
  */
 export const messages: Record<string, string> = {
   'publicWeb.layout.skipToContent': '跳至内容',

@@ -12,7 +12,7 @@ export class InvalidSemanticVersionError extends DomainError {
  * Semver here identifies a release; it is deliberately NOT a compatibility
  * contract. Profiles declare the capabilities they consume rather than a
  * version range, so a discipline release never invalidates a profile
- * (0008-extensible-module-foundation, design.md).
+ * (the extensible-module design).
  *
  * Parsing and comparison delegate to `semver` rather than being hand-rolled.
  */

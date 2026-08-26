@@ -7,7 +7,7 @@ import type { CSSProperties, JSX, ReactNode } from 'react';
  * yet, all inside the same `.cl-image-frame--control` chamfer. `size` sets
  * the frame's width in pixels; `aspect-ratio: 4/5` (from the generated
  * stylesheet) derives the height, so callers no longer size width and
- * height independently the way the pre-0122 `<img>`s did.
+ * height independently the way previous `<img>`s did.
  */
 export interface FramedImageProps {
   readonly src: string | undefined;

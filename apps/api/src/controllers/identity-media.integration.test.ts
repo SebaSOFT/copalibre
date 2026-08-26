@@ -33,7 +33,7 @@ import {
 
 /**
  * The person-photo/club-emblem upload and public-serve endpoints through the
- * real HTTP stack (0093, task 6.2): upload -> pending -> (mocked scanner)
+ * real HTTP stack: upload -> pending -> (mocked scanner)
  * passed -> public GET streams bytes; failed-scan -> public GET 404; absent
  * -> public GET 404; the public routes need no bearer token while the upload
  * routes still require the existing admin authorization.
@@ -51,7 +51,7 @@ function hash(value: string): string {
 /**
  * A real, decodable PNG at the platform's profile-image contract size
  * — every upload test below needs bytes `sharp` can actually read dimensions
- * from, not the placeholder text buffers the pre-0122 tests used, now that
+ * from, not the placeholder text buffers previous tests used, now that
  * `decodeImage()` runs every upload through `sharp(bytes).metadata()`.
  */
 async function conformingPng(width = 410, height = 512): Promise<Buffer> {
@@ -145,7 +145,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
         verifiedEmail: 'organizer-1@example.test',
         ...AUDIT,
       });
-      // Second admin principal for the 0145 per-principal throttle test.
+      // Second admin principal for the per-principal throttle test.
       const organizer2Token = 'organizer-2-invite-token';
       await access.createInvitation(uow, {
         organizationId: organization.organizationId,
@@ -398,7 +398,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
     expect(upload.statusCode).toBe(201);
     const { objectId } = upload.json() as { objectId: string };
 
-    // Enqueued (pending) on the same transaction as the metadata row (0041
+    // Enqueued (pending) on the same transaction as the metadata row.
     // ordering) — served as 202 with no body until the async scan passes it.
     const pending = await inject({
       method: 'GET',

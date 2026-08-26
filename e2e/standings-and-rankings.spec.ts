@@ -114,7 +114,7 @@ const topScorersFixture = {
 };
 
 // Same table, filtered to club-independiente: p-2 keeps rank 2, not
-// renumbered to 1 (0103's already-accepted whole-table-rank rule).
+// renumbered to 1 by the whole-table-rank rule.
 const topScorersFilteredToIndependiente = {
   ...topScorersFixture,
   rows: [topScorersFixture.rows[1]],
@@ -561,7 +561,7 @@ test.describe('B2: public tournament page', () => {
     await page.locator('a:has(article[data-match="1"])').click();
     await expect(page.getByRole('heading', { name: /TAL.*2.*1.*IND/ })).toBeVisible();
 
-    // Still linked though its own slots are winner-of placeholders: 0102's
+    // Still linked though its own slots are winner-of placeholders: the
     // report page renders correctly for a not-yet-played match.
     await page.goBack();
     await page.locator('a:has(article[data-match="2"])').click();
@@ -579,7 +579,7 @@ test.describe('B2: public tournament page', () => {
     await expect(page.getByRole('cell', { name: 'Goleador Uno' })).toBeVisible();
     await expect(page.getByRole('cell', { name: 'Goleador Dos' })).toBeVisible();
 
-    // Click the club filter — the interaction 0103 named as its motivation,
+    // Click the club filter — the interaction named as its motivation,
     // wired up here for the first time. The pill is a rendered club
     // emblem (placeholder, in this fixture) plus its name, both inside the
     // one filtering link.
@@ -588,7 +588,7 @@ test.describe('B2: public tournament page', () => {
     await page.waitForURL(/clubId=club-independiente/);
 
     // Only that club's player, with the same row data the unfiltered table
-    // showed for them — not recomputed as if they led a smaller table (0103's
+    // showed for them — not recomputed as if they led a smaller table (the
     // already-accepted whole-table-rank rule; verified server-side by
     // table-projections.integration.test.ts, which this fixture mirrors).
     const filteredRow = page.getByRole('row').filter({ hasText: 'Goleador Dos' });
@@ -618,7 +618,7 @@ test.describe('B2: public tournament page', () => {
   }) => {
     // The `<img>` tag's own GET goes through the network stack, not any
     // in-page fetch mock — this stands in for the real photo-serving route
-    // (0122 task 8.3: a real photo renders framed on the public page).
+    // A real photo renders framed on the public page.
     await page.route(`**/organizations/${ORGANIZATION}/persons/p-1/photo`, (route) =>
       route.fulfill({
         status: 200,
@@ -671,13 +671,13 @@ test.describe('B2: public tournament page', () => {
     await dialog.getByRole('button', { name: 'Close dialog' }).click();
 
     // The standalone profile page states the same absence (PlayerProfileView.astro
-    // already did before 0114 — this confirms it still does).
+    // already did — this confirms it still does).
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/players/p-2`);
     await expect(page.getByRole('heading', { name: 'Goleador Dos' })).toBeVisible();
     await expect(page.getByText('No career statistics recorded.')).toBeVisible();
     await expect(page.getByText('No competition history recorded.')).toBeVisible();
 
-    // No photo was uploaded for this player (0122 task 8.3): the frame
+    // No photo was uploaded for this player: the frame
     // renders the placeholder, not a broken image or an empty gap.
     await expect(page.getByRole('img', { name: 'No photo uploaded' })).toBeVisible();
   });

@@ -3,7 +3,7 @@ import { messages } from '../i18n/messages.en.js';
 
 /**
  * Device-health status for `/tv/**` kiosks, surfaced in the A1 dashboard
- * rather than on the kiosk screen itself (0031, task 4.4) — the kiosk never
+ * rather than on the kiosk screen itself — the kiosk never
  * shows a status of its own, silent failure being the whole point of that
  * surface; an operator watches for a dead device from here instead.
  */

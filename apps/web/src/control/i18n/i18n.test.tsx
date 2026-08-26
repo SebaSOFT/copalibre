@@ -32,7 +32,7 @@ const EMPTY_PROJECTION: TableProjectionResponseData = {
   projectionVersion: 3,
 };
 
-/** Every non-English catalog (0053 Spanish, 0054 the remaining five, 0057 Mandarin), keyed like `ControlIntl`'s `CATALOGS`. */
+/** Every non-English catalog, keyed like `ControlIntl`'s `CATALOGS`. */
 const NON_ENGLISH_CATALOGS: Record<string, Record<string, string>> = {
   es: esMessages,
   fr: frMessages,
@@ -52,7 +52,7 @@ function withLanguage(locale: string, children: React.ReactNode): React.JSX.Elem
   );
 }
 
-describe('message-catalog completeness (0053 task 6.4, widened to all eight languages by 0054/0057)', () => {
+describe('message-catalog completeness', () => {
   const englishIds = Object.values(messages)
     .map((descriptor) => descriptor.id)
     .sort();
@@ -75,7 +75,7 @@ describe('message-catalog completeness (0053 task 6.4, widened to all eight lang
   });
 });
 
-describe('activeControlLanguage resolution (0053, task 6.3)', () => {
+describe('activeControlLanguage resolution', () => {
   afterEach(() => localStorage.clear());
 
   it('resolves to Spanish by default, matching the organizationPrimaryLanguage placeholder', () => {
@@ -93,7 +93,7 @@ describe('activeControlLanguage resolution (0053, task 6.3)', () => {
   });
 });
 
-describe('Spanish catalog reproduces pre-extraction wording (0053, task 6.2)', () => {
+describe('Spanish catalog reproduces pre-extraction wording', () => {
   it('StandingsPage', () => {
     render(
       withLanguage(
@@ -155,7 +155,7 @@ describe('Spanish catalog reproduces pre-extraction wording (0053, task 6.2)', (
   });
 });
 
-describe('Non-English catalogs render real translated text, not an English fallback (0054 task 7.2, extended by 0057)', () => {
+describe('Non-English catalogs render real translated text, not an English fallback', () => {
   const expectedTitleAndEmptyState: Record<string, [string, string]> = {
     fr: ['Classement', 'Il n’y a pas encore de résultats dans cette phase.'],
     pt: ['Classificação', 'Ainda não há resultados nesta fase.'],

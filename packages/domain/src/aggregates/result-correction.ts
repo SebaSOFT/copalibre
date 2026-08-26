@@ -74,7 +74,7 @@ export interface CorrectionPlan {
  * Validates a correction and reports exactly what committing it would move.
  *
  * The same function serves the preview and the commit, so a preview cannot
- * promise something the commit then does differently — the rule 0012 settled
+ * promise something the commit then does differently — the established rule
  * for scheduling, applied to results.
  */
 export function planCorrection(

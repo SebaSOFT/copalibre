@@ -13,7 +13,7 @@ import { winConditionScript } from './win-condition-scripts.js';
  * It therefore declares no placement points at all. Position inside a heat is
  * recorded because it is a fact worth keeping, but the statistic the cut ranks
  * on is `best-time`, aggregated with `min` — the fastest swim, not the sum of
- * them, which is what 0009's declared aggregation modes exist to express.
+ * them, which is what declared aggregation modes exist to express.
  */
 export function swimmingDescriptor(
   overrides?: Partial<DisciplineDescriptor>,

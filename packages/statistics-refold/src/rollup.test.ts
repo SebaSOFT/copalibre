@@ -14,7 +14,7 @@ function figure(overrides: Partial<StoredFigure> = {}): StoredFigure {
   };
 }
 
-describe('rolling a read up above a collector’s stored grain (0082, task 3.1)', () => {
+describe('rolling a read up above a collector’s stored grain', () => {
   it('resolves a person’s total at team grain, via real membership', () => {
     const totals = readRolledUp(
       [

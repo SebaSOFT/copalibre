@@ -33,7 +33,7 @@ export interface MatchFoldContext {
 
 /**
  * Resolves everything `foldStatistics` needs for one match from persistence
- * (0082, task 1.1): the roster (`match_rosters` + `entrants` + `players` +
+ *: the roster (`match_rosters` + `entrants` + `players` +
  * `teams`), the competition context (stage → season → tournament →
  * organization), the discipline's declared collectors and event definitions,
  * and any hand adjustments recorded against the match.
@@ -173,7 +173,7 @@ export function createRefold(db: Kysely<Database>): Refold {
 
 /**
  * Folds and stores every `live`-cadence collector for a single newly-recorded
- * event (0082, task 4.2), inside the caller's own transaction.
+ * event, inside the caller's own transaction.
  *
  * Scoped to `event` alone, not the whole match log — `mergeFigures` is what
  * turns that marginal contribution into the accumulated total

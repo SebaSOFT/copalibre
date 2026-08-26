@@ -19,7 +19,7 @@ import type {
  * `winSegment` closes a game/set/frame, `winMatch` closes the match, and
  * `requireMargin` gates either on a minimum lead. A discipline module composes
  * these three; introducing a fourth is a core release, refused at module
- * validation otherwise (0009 design, "The win condition becomes a script over a
+ * validation otherwise. The win condition becomes a script over a
  * core-owned registry").
  *
  * Actions never mutate their input: each returns a fresh context whose

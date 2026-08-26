@@ -65,7 +65,7 @@ integrity checks.
 
 #### Scenario: Restore validation passes
 - **WHEN** the scheduled validation restores the latest backup into a freshly provisioned cluster
-- **THEN** the restored installation passes the same integrity checks defined for the Compose-level backup/restore requirement in `0030-deployment-docker-compose-cli`
+- **THEN** the restored installation passes the same integrity checks defined for the Compose-level backup/restore requirement
 
 ### Requirement: Enterprise-readiness claims are evidence-gated
 Documentation SHALL NOT assert Kubernetes enterprise-readiness without linking a dated, passing
@@ -82,4 +82,4 @@ variable introduced.
 
 #### Scenario: Kamal deploy uses the same image digest
 - **WHEN** a release is deployed via Kamal to managed VMs
-- **THEN** the deployed image digest matches the digest validated by `0034-k3s-helm-deployment`'s rolling-update test for the same release
+- **THEN** the deployed image digest matches the digest validated by the rolling-update test for the same release

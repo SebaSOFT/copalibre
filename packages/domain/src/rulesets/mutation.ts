@@ -21,7 +21,7 @@ export type MutationDecision =
   | {
       readonly allowed: true;
       readonly mutationClass: 'requires_rebuild';
-      /** What becomes invalid — reported, never rebuilt here (that is phase 0006's concern). */
+      /** What becomes invalid — reported, never rebuilt here. */
       readonly invalidates: readonly FixtureRef[];
     }
   | { readonly allowed: true; readonly mutationClass: 'blocked_after_results' };
@@ -31,7 +31,7 @@ export type MutationDecision =
  * decision record's contract: `safe` applies without side effects,
  * `requires_rebuild` reports which generated data becomes invalid,
  * `blocked_after_results` is unavailable once a valid result exists — the only
- * remaining path is the audited correction workflow (phase 0008).
+ * remaining path is the audited correction workflow.
  */
 export function evaluateMutation(
   policies: ConfigFieldPolicies,

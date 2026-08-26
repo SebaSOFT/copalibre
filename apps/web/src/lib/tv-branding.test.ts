@@ -2,7 +2,7 @@ import { resolveTvBranding, tvStateColor } from './tv-branding.js';
 import type { ResultState } from './result-state.js';
 
 describe('tvStateColor', () => {
-  it('maps every state to its fixed design token, independent of any accent (0031 5.2)', () => {
+  it('maps every state to its fixed design token, independent of any accent', () => {
     // No accent parameter exists for this function to read — the exact
     // mapping asserted here is the guarantee, not just "returns a var()".
     const expected: Readonly<Record<ResultState, string>> = {

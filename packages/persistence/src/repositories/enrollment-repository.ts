@@ -45,7 +45,7 @@ export class EnrollmentRepository {
   /**
    * Creates a club.
    *
-   * The table has existed since `0004` with nothing to write to it — clubs
+   * The table has existed with nothing to write to it — clubs
    * arrived through imports and fixtures. It gets a write path now because the
    * abbreviation has to be settable somewhere, and validated before any SQL runs
    * rather than by a check constraint that can only say "no".
@@ -351,7 +351,7 @@ export class EnrollmentRepository {
    * Reads through the caller's own executor rather than `this.db`: called
    * from inside `createTeam`'s open transaction, and a second connection
    * acquisition against the same underlying connection deadlocks under
-   * SQLite's single-connection test dialect (0040's `createRuleset` fix is
+   * SQLite's single-connection test dialect (`createRuleset` fix is
    * the same bug, same reason).
    */
   private async suggestTeamAlias(
@@ -1006,7 +1006,7 @@ export class EnrollmentRepository {
 
   /**
    * Entrant id to display name/abbreviation, for a surface that shows people
-   * rather than ids (0067's public overview/live/bracket projections).
+   * rather than ids (public overview/live/bracket projections).
    *
    * An entrant's own abbreviation wins in tournament scope; a team or club
    * label remains the fallback for legacy entrants without one.

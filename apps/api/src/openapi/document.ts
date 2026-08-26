@@ -5,24 +5,24 @@ import type { OpenAPIObject } from '@nestjs/swagger';
 /**
  * The OpenAPI artifact is generated from the decorated controllers so the spec
  * cannot drift from the implementation, then contract-linted and
- * breaking-change-checked in CI before phase 0021 serves it via Scalar.
+ * breaking-change-checked in CI before Scalar serves it.
  */
 /**
- * Bumped to 2.0.0 by 0008-extensible-module-foundation: `descriptorVersion`
+ * Bumped to 2.0.0 for `descriptorVersion`
  * changed from an integer to a semver string, which the breaking-change check
  * correctly flagged as incompatible for existing callers. No client consumes
- * the API yet (phase 0016 is the first), so nothing needs migrating — but the
+ * the API yet, so nothing needs migrating — but the
  * version reflects the contract change rather than hiding it.
  *
- * Bumped to 3.0.0 by 0023-tournament-authoring-and-registration-review:
+ * Bumped to 3.0.0 for tournament authoring and registration review:
  * tournament creation now writes the initial ruleset, so `format`,
  * `publicRegistration`, and `requiresCheckIn` are required request fields
  * instead of implied UI state.
  *
- * Bumped to 4.0.0 by 0039-roster-terminology: match capability and participant
+ * Bumped to 4.0.0 for roster terminology: match capability and participant
  * membership endpoint names changed to keep team membership separate from a match roster.
  *
- * Bumped to 5.0.0 by 0133-per-event-rule-authoring: tournament creation now
+ * Bumped to 5.0.0 for per-event rule authoring: tournament creation now
  * requires the canonical `customScripts` collection, even when it is empty.
  */
 export const OPENAPI_VERSION = '5.0.0';

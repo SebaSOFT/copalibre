@@ -7,7 +7,7 @@ export const TRANSACTION_KEY = 'copalibre.oidc.transaction';
  *
  * Exported so `ControlApp.tsx`'s `CompletingLogin` can tell this case
  * apart from a guard-redirected login (which always carries a real
- * destination) without widening the transaction shape 0062 already shipped.
+ * destination) without widening the established transaction shape.
  */
 export const DEFAULT_RETURN_TO = '/control/';
 

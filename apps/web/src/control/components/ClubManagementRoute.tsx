@@ -17,10 +17,10 @@ import { useToast } from './ToastProvider.js';
 import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
 
 /**
- * Club identity management (0109, 0147 template migration) — the first club-related component in the
+ * Club identity management — the first club-related component in the
  * app: list an organization's clubs, create one, edit its name/alias/
  * abbreviation, and upload or replace its emblem through the route
- * `0093` built with no caller until now.
+ * previously built with no caller until now.
  */
 export function ClubManagementRoute({
   organizationAlias,

@@ -440,7 +440,7 @@ describe('listing every organization a principal belongs to', () => {
   });
 });
 
-describe('role-granting hierarchy and last-admin floor invariant (0140, integration)', () => {
+describe('role-granting hierarchy and last-admin floor invariant (integration)', () => {
   let scratch: ScratchDatabase;
   let organizationId: string;
 

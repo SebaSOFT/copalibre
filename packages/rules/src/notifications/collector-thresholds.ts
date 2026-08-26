@@ -68,7 +68,7 @@ export interface CollectorThresholdInput {
  * Evaluates one threshold over an ordered event log, deterministically.
  *
  * Produces the same `NotificationInstance` the two other notification paths
- * produce, with an identity of the shape `0013` established — so delivery,
+ * produce, with an established identity shape — so delivery,
  * dedupe and the console see one thing, not a third.
  */
 export function evaluateCollectorThreshold(input: CollectorThresholdInput): NotificationEvaluation {
@@ -210,7 +210,7 @@ function isCollectorThresholdRule(candidate: unknown): candidate is CollectorThr
  * same fold `evaluateCollectorThreshold` runs internally over its own `events`
  * input, exposed so a caller can supply the result as `carriedIn`: a baseline
  * computed over events *outside* the ones being evaluated, such as a
- * stage's other matches, ahead of the general fold engine 0073 would
+ * stage's other matches, ahead of the general fold engine that would
  * otherwise provide.
  */
 export function foldCollectorTotals(

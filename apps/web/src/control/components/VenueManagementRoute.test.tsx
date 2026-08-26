@@ -41,7 +41,7 @@ function stubClient(overrides: Partial<ControlApiClient> = {}): ControlApiClient
   } as unknown as ControlApiClient;
 }
 
-describe('VenueManagementRoute (0147 template migration)', () => {
+describe('VenueManagementRoute', () => {
   it('renders within ListScreenTemplate structure and displays venues and officials', async () => {
     const { container } = render(
       withIntl(<VenueManagementRoute client={stubClient()} organizationAlias="liga-mendocina" />),

@@ -23,13 +23,13 @@ export type PayloadJsonSchema = Readonly<Record<string, unknown>>;
 /**
  * Who a score effect credits.
  *
- * `opponent` was the second value until 0014, and it only ever meant anything
+ * `opponent` was once the second value, and it only ever meant anything
  * in a duel: an eight-lane heat has no "the opponent", and neither does a
  * free-for-all. `every-other-side` says what the duel case always meant — in a
  * two-sided match it *is* the opponent, which is why the old name worked for
  * exactly as long as the engine was duel-only.
  *
- * The field is `awardTo` rather than `side` because since 0014 a *side* is an
+ * The field is `awardTo` rather than `side` because a *side* is an
  * entrant id, and this is a role relative to whoever caused the event.
  */
 export type ScoreAward = 'actor' | 'every-other-side';

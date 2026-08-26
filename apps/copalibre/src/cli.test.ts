@@ -303,7 +303,7 @@ describe('runCli', () => {
       await withTemporaryWorkingDirectory(async () => {
         // Same discoverable-compose-file setup as the migrate-failure case
         // above, and deliberately no DATABASE_URL in the environment passed
-        // to runCli — the whole point of this case. Before 0117, restore's
+        // to runCli — the whole point of this case. Previously, restore's
         // own post-migration schema check opened a second, direct database
         // connection from the host CLI process, which requires DATABASE_URL
         // there and always failed in exactly this shape: a real

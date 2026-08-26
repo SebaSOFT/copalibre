@@ -6,7 +6,7 @@ import { UnsupportedFormatError } from './errors.js';
  * Format allowlist. "The engine must not advertise or simulate support for
  * formats outside this list" (tournament-engine decision record), so this runs
  * at ruleset-configuration time — before generation, and before persistence.
- * The list grew in 0011 with the two placement formats; the rule did not.
+ * The list grew with the two placement formats; the rule did not.
  */
 export function assertSupportedFormat(
   format: string,

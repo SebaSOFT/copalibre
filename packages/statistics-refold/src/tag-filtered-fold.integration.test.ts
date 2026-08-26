@@ -26,7 +26,7 @@ import { createRefold } from './refold.js';
 /**
  * End-to-end proof that a `requiresTag` collector's fold reflects real
  * `tag_facts` rows, checked at each fact's own instant — not a value this
- * test invents, and not a join at read time (0073, task 6.2/6.3). Whether a
+ * test invents, and not a join at read time. Whether a
  * tag fact is produced from an event's declared effect is `tagFactsFrom`'s
  * own concern (`packages/tournament-engine`'s `tags.test.ts`); this test
  * writes facts directly via `TagRepository`, the same shape
@@ -58,7 +58,7 @@ const COLLECTORS: readonly StatisticCollector[] = [
   },
 ];
 
-describe('a requiresTag collector against real PostgreSQL (integration, 0073)', () => {
+describe('a requiresTag collector against real PostgreSQL (integration)', () => {
   let scratch: ScratchDatabase;
   let organizationId: string;
   let matchId: string;

@@ -8,8 +8,8 @@ const path = require('node:path');
  *
  * Computed fresh every time a `jest.config.cjs` loads, not generated and
  * committed: the mapper can never drift from the real dependency graph
- * because it *is* the real dependency graph, read live (0083's design
- * decision, after 0082 hit the same "a transitive workspace import has no
+ * because it *is* the real dependency graph, read live (the design
+ * decision followed the same "a transitive workspace import has no
  * mapper entry" bug twice via two separately hand-typed fixes).
  *
  * @param {string} consumingDir - the directory containing the calling

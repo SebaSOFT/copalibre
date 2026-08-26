@@ -54,7 +54,7 @@ export function readPackageManifest(
 
 /**
  * Reads `docs/LOGO.txt`, the single source for the larger, `--version`-only
- * mark (0118/0119) — same SEA-asset-vs-filesystem branching as
+ * mark — same SEA-asset-vs-filesystem branching as
  * `readPackageManifest`, so the source text lives in exactly one place
  * (it previously also lived as a hand-copied constant here, which
  * could silently drift from the file it was copied from).

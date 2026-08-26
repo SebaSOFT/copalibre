@@ -217,7 +217,7 @@ describe('OrganizationAccessGuard', () => {
 
     // A caller who authenticated but never accepted an invitation is not
     // refused: this route's whole point is answering "zero organizations",
-    // and that is a 200 with an empty list, not a 403 (0063 design.md).
+    // and that is a 200 with an empty list, not a 403.
     await expect(guard.canActivate(contextFor(request))).resolves.toBe(true);
     expect(request.subject?.principalId).toBeUndefined();
   });

@@ -4,7 +4,7 @@ import type { RequestWithSubject } from './request-context.js';
 
 /**
  * Rate-limit tracker keyed by the authenticated principal instead of the
- * client IP (0145 design.md): an authenticated request already carries a
+ * client IP: an authenticated request already carries a
  * stable identity, which is a better key than IP behind shared NAT or
  * corporate egress. Falls back to the default IP tracking when no subject
  * is present, so an unauthenticated request can never share a bucket with
@@ -21,7 +21,7 @@ export class PrincipalThrottlerGuard extends ThrottlerGuard {
 
 /**
  * Looser per-principal limit for authenticated, resource-heavy endpoints
- * (Argon2/Sharp/module-fetch cost — 0145 design.md D3): bounds a runaway
+ * (Argon2/Sharp/module-fetch cost): bounds a runaway
  * script or compromised token without disturbing an organizer bulk-uploading
  * participant photos in a normal session.
  */

@@ -37,7 +37,7 @@ describe('format guard', () => {
   });
 
   it.each(['free-for-all', 'heats'] as const)('accepts the placement format %s', (format) => {
-    // 0011 widened the allowlist: what is duel-only is advancement, not
+    // The allowlist is wider: what is duel-only is advancement, not
     // competition, so these generate rather than being refused.
     expect(generateFixtures({ format, entrants: entrants(4) }).ok).toBe(true);
   });

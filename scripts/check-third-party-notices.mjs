@@ -7,7 +7,7 @@ import { readFileSync, readdirSync } from 'node:fs';
  * surface, and it is also how an MIT notice quietly disappears. This makes the
  * omission a failing build rather than something found during a licence audit.
  *
- * Since 0141 the owned component layer also holds original compositions
+ * The owned component layer also holds original compositions
  * (molecules, most organisms, templates) alongside copied shadcn/ui-style
  * atoms — not every file needs a notice, only a copied one. Each file's own
  * header comment says which it is ("Copied from ..." vs. "Original

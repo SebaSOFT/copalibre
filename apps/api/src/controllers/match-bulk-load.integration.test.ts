@@ -29,7 +29,7 @@ const REFEREE_CAPABILITIES = CAPABILITY_TEMPLATES.referee as readonly MatchCapab
  * path, exercising the same `EventLog.record`/`recordResult` validation and
  * finalization the live console already uses.
  */
-describe('retroactive match data entry (integration, 0106)', () => {
+describe('retroactive match data entry (integration)', () => {
   let app: INestApplication;
   let scratch: Awaited<ReturnType<typeof createMigratedDatabase>>;
   let organizationId: string;
@@ -249,7 +249,7 @@ describe('retroactive match data entry (integration, 0106)', () => {
     return {
       // Names are never submitted — the server snapshots them from the
       // already-registered Person ('Jugador Norte'/'Jugador Sur' in
-      // beforeAll), the same policy 0107's live roster-selection route
+      // beforeAll), the same policy the live roster-selection route
       // enforces.
       rosters: [
         {

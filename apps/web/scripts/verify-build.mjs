@@ -10,8 +10,7 @@ import { readFileSync } from 'node:fs';
  *
  * English is the primary locale: the unprefixed path carries English
  * chrome, and every other supported language carries the same content
- * translated under its own `/{locale}/` prefix (0056 populated the five
- * beyond 0055's Spanish; 0057 added Mandarin). `describeSlot`'s bracket-slot
+ * translated under its own `/{locale}/` prefix. `describeSlot`'s bracket-slot
  * labels ("Ganador del N") stay Spanish regardless of locale — a documented,
  * deliberate exception (`lib/bracket.ts`), not a bug here.
  */

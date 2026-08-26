@@ -31,7 +31,7 @@ import { MatchControlController } from './match-control.controller.js';
  * inside the one event-recording transaction `MatchControlController.recordEvent`
  * drives, proven through the real HTTP path rather than the pure fold engine.
  */
-describe('target attribution inside the event-recording transaction (integration, 0090)', () => {
+describe('target attribution inside the event-recording transaction (integration)', () => {
   let app: INestApplication;
   let scratch: Awaited<ReturnType<typeof createMigratedDatabase>>;
   let organizationId: string;

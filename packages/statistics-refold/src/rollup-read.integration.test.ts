@@ -14,7 +14,7 @@ import {
 import { readRolledUpTotals } from './rollup-read.js';
 
 /**
- * The rollup read path against real `EnrollmentRepository` membership (0082,
+ * The rollup read path against real `EnrollmentRepository` membership,
  * task 3.1) — `rollup.test.ts` proves the aggregation core against hand-built
  * membership maps; this proves the maps themselves come out of real
  * PostgreSQL rows correctly.
@@ -22,7 +22,7 @@ import { readRolledUpTotals } from './rollup-read.js';
 
 const AUDIT = { actor: 'user:rollup-test', authorizationContext: 'scope:test' };
 
-describe('reading a rollup above a collector’s stored grain, against real PostgreSQL (integration, 0082)', () => {
+describe('reading a rollup above a collector’s stored grain, against real PostgreSQL (integration)', () => {
   let scratch: ScratchDatabase;
   let organizationId: string;
   let teamId: string;

@@ -22,7 +22,7 @@ const THUMBNAIL_MAX_DIMENSION = 320;
 
 /**
  * Async media processing for the object-storage capability's own registry
- * (0041 task 2): malware scan, then — for an image content type — a
+ *: malware scan, then — for an image content type — a
  * thumbnail rendition. `object_metadata` starts every row `pending`; this is
  * the only writer of `passed`/`failed` for a row it owns.
  */

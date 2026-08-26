@@ -124,7 +124,7 @@ export class StandingsController {
   }
 }
 
-/** Alias resolution plus the policy check, shared by the 0024 controllers. */
+/** Alias resolution plus the policy check, shared by the standings controllers. */
 export async function resolveTournament(
   db: Kysely<Database>,
   input: {

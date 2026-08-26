@@ -59,7 +59,7 @@ function parseAliasRange(spec: string): {
 
 /**
  * The single place every `module` subcommand decides HTTP vs.
- * direct-database (0085's dual-path, auto-detected exactly like
+ * direct-database (dual-path, auto-detected exactly like
  * `StatisticsRebuildCommand`'s): a stored credential in the current
  * directory's `.copalibre/credentials.json` (`login`'s write target) means
  * HTTP; its absence means an existing checkout/`DATABASE_URL` workflow never

@@ -15,7 +15,7 @@ import type { Page } from '@playwright/test';
  * This exercises the real production code path (`completeOidcLogin`,
  * `ControlApp`'s callback case, `navigateControl`) rather than reaching into
  * `controlTokenStore` from outside the page — which isn't possible anyway,
- * by design (0061 design.md): it's an in-memory module singleton with no
+ * by design: it's an in-memory module singleton with no
  * external access point, and adding one for tests would ship in the real
  * production bundle too.
  */

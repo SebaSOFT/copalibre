@@ -20,7 +20,7 @@ import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
 type LoadStatus = 'loading' | 'ready' | 'failed';
 
 /**
- * A minimal person-profile view (0093 task 4.5, 0147 template migration):
+ * A minimal person-profile view:
  * photo-or-placeholder, display name, nationality flag, natural key. No edit
  * affordances here — nationality and photo are set from the registration review
  * screen's expanded row (design.md's non-goal rules out a separate "edit person"

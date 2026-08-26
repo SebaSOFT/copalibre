@@ -16,7 +16,7 @@ import { messages } from '../i18n/messages.en.js';
 import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
 
 /**
- * A5 (0147 template migration) — every declared table layout (group standings, top scorers, goalkeeper
+ * A5 — every declared table layout (group standings, top scorers, goalkeeper
  * rankings, …) behind one tab bar, rendering whichever columns the active
  * layout's own API response carries. Cells arrive pre-formatted; this
  * component sorts and lays out, and formats nothing of its own.

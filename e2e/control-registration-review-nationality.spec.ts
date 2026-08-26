@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
- * 0093 task 7.1: set a person's nationality from the registration review
+ * Set a person's nationality from the registration review
  * screen and see the flag appear in the list, then open their profile and
  * see the placeholder before any photo has been uploaded.
  */
@@ -10,7 +10,7 @@ import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './suppor
 const PERSON_ID = 'person-1';
 
 /**
- * A real, tiny, decodable PNG (1×1) — 0122's crop modal opens every selected
+ * A real, tiny, decodable PNG (1×1) — the crop modal opens every selected
  * file as a real `<img>`, so placeholder text bytes wouldn't decode.
  */
 const ONE_PIXEL_PNG_BASE64 =
@@ -115,7 +115,7 @@ test('sets a nationality and sees the flag, then sees a placeholder photo on the
 });
 
 /**
- * 0122 task 8.1: the person-photo upload surface in registration review goes
+ * The person-photo upload surface in registration review goes
  * through the shared crop modal exactly like the emblem uploads do.
  */
 test('uploads a person photo through the crop modal from the registration review row', async ({

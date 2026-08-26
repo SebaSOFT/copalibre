@@ -96,7 +96,7 @@ export function parseControlPath(pathname: string): ControlRoute | undefined {
   const [, organizationAlias, ...rest] = segments;
   if (organizationAlias === undefined) return undefined;
 
-  // Checked first: `/control/callback` (0062, the OIDC redirect target) is
+  // Checked first: `/control/callback`, the OIDC redirect target, is
   // the same two-segment shape as `/control/{organization}` — without this,
   // `callback` would parse as an organization alias for the dashboard.
   // Reserved: no real organization may use this alias.

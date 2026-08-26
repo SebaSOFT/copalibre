@@ -180,9 +180,9 @@ export interface ClubsTable {
 
 export interface DisciplineDescriptorsTable {
   descriptor_id: string;
-  /** Installation-wide catalogue identity; older rows are backfilled by 0029. */
+  /** Installation-wide catalogue identity; older rows are backfilled. */
   alias: string | null;
-  /** Semver text, not an integer: see 0008-extensible-module-foundation. */
+  /** Semver text, not an integer. */
   version: string;
   name: string;
   /** Full DisciplineDescriptor JSON document (domain-validated). */
@@ -538,7 +538,7 @@ export interface AuditLogTable {
 
 /**
  * Transactional outbox. Columns mirror the SSE envelope fields the events
- * tier (phase 0010) emits in camelCase — the mapping lives here, per the
+ * tier emits in camelCase — the mapping lives here, per the
  * architecture doc's SSE contract section.
  */
 /**
@@ -631,7 +631,7 @@ export interface ProjectionVersionsTable {
 
 export interface TournamentProfilesTable {
   profile_id: string;
-  /** Installation-wide catalogue identity; older rows are backfilled by 0029. */
+  /** Installation-wide catalogue identity; older rows are backfilled. */
   alias: string | null;
   /** Semver text. */
   version: string;

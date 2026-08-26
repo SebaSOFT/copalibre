@@ -222,4 +222,4 @@ The owned component layer SHALL provide templates beyond `ListScreenTemplate` an
 
 #### Scenario: Style-guide route exposes the new template
 - **WHEN** the style-guide route lists template examples
-- **THEN** every template in the owned layer, including any added after 0141, surfaces a rendered example
+- **THEN** every template in the owned layer surfaces a rendered example

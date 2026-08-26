@@ -30,7 +30,7 @@ export interface ValidateModulePackageOptions {
 
 /**
  * The single validation entry point (task 2.6): manifest schema, artifact
- * schema, registry references (which already covers 0013's expression
+ * schema, registry references (which already covers the expression
  * checks via `validateScriptReferences` — never reimplemented here),
  * `compileEffectiveRuleset`, asset limits, `requiresCopalibre`, and reserved
  * aliases. The CLI (`copalibre module add`/`verify`) and the module
@@ -254,7 +254,7 @@ function fieldFrom(details: Record<string, unknown> | undefined): string | undef
 /**
  * An `awardTo`/`target`/`actorSource` naming `{ payloadField }` is only
  * resolvable if the event that produces the fact actually declares that
- * property — the ajv schema checks the shape (0090's descriptor-schema.ts
+ * property — the ajv schema checks the shape (`descriptor-schema.ts`
  * change), not whether the name means anything. An effect's own event
  * definition is unambiguous; a collector's `actorSource` is checked against
  * every event `definitionCodes` names (a collector watching more than one

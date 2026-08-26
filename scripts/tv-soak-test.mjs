@@ -2,7 +2,7 @@ import { writeFile } from 'node:fs/promises';
 import { chromium } from '@playwright/test';
 
 /**
- * Long-running memory-stability check for a `/tv/**` route (0031, tasks
+ * Long-running memory-stability check for a `/tv/**` route (tasks
  * 9.1-9.3).
  *
  * A kiosk is never restarted by a person, so a slow leak that a normal test

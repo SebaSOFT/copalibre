@@ -192,7 +192,7 @@ describe('SeedingBuilderPage', () => {
       ),
     );
 
-    // describeSlot (lib/bracket-canvas.ts) is not yet extracted (0053, documented
+    // describeSlot (lib/bracket-canvas.ts) is not yet extracted (documented
     // follow-up) — its dynamic match-ID interpolation stays Spanish regardless of locale.
     expect(screen.getByText('TBD · Ganador del WB-R1-M1')).toBeTruthy();
     expect(screen.getByText('BO3')).toBeTruthy();
@@ -590,7 +590,7 @@ describe('control routes', () => {
   });
 });
 
-describe('control api client, 0024 endpoints', () => {
+describe('control api client endpoints', () => {
   it('addresses the stage routes and never puts the token in the URL', async () => {
     const calls: { url: string; init?: RequestInit }[] = [];
     const client = createControlApiClient({

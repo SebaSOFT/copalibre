@@ -20,7 +20,7 @@ export type ResultReasonLabels = Readonly<Record<Exclude<ResultReason, 'played'>
  * Astro frontmatter runs in Node at build time and is stripped from the
  * client bundle for anything that isn't an explicit `client:*` island, so
  * `createIntl`/`createIntlCache` are safe to call here directly — unlike
- * 0053's control panel, where the same API running inside a `client:only`
+ * the control panel, where the same API running inside a `client:only`
  * bundle pulled a Node-only dependency into the browser (see
  * `apps/web/src/control/lib/api-client.ts`'s comment on that regression).
  * Nothing in this module is imported by `LiveMatchHero.tsx`, the one real
