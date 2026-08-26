@@ -9,13 +9,40 @@ Manages the generation, storage, validation, and revocation of long-lived API/MC
 ### Requirement: Personal Access Token (PAT) Generation
 
 The system MUST allow authenticated users to generate long-lived, revocable Personal Access Tokens
-from the preferences screen.
+from the preferences screen. A generated PAT's scopes MUST NOT exceed the requesting caller's own
+current scopes, and MUST NOT include any installation-level privileged scope regardless of whether
+the caller holds that scope.
 
 #### Scenario: User generates a new PAT
 
 - **WHEN** an authenticated user requests a new PAT
 - **THEN** the system displays the cleartext token exactly once and stores its hash, expiration
   date, and associated principal ID in the database.
+
+#### Scenario: User requests a subset of their own scopes
+
+- **WHEN** an authenticated user requests a PAT whose `scopes` are a subset of (or equal to) the
+  scopes on their own currently authenticated session
+- **THEN** the system creates the PAT with exactly the requested scopes.
+
+#### Scenario: User omits scopes
+
+- **WHEN** an authenticated user requests a PAT without specifying `scopes`
+- **THEN** the system defaults the PAT's scopes to the caller's own current session scopes.
+
+#### Scenario: User requests a scope they do not hold
+
+- **WHEN** an authenticated user requests a PAT whose `scopes` include a scope not present on their
+  own currently authenticated session
+- **THEN** the system rejects the request with a 403 and creates no token.
+
+#### Scenario: Any caller requests an installation-privileged scope
+
+- **WHEN** any authenticated user — including one whose own session already carries an
+  installation-level privileged scope such as `copalibre.super-admin` — requests a PAT whose
+  `scopes` include that privileged scope
+- **THEN** the system rejects the request with a 403 and creates no token, regardless of the
+  caller's own authority.
 
 ### Requirement: PAT Validation
 
