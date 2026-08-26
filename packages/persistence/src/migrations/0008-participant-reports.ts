@@ -2,7 +2,7 @@ import { sql, type Kysely } from 'kysely';
 import type { Migration } from 'kysely/migration';
 
 /**
- * Participant self-service reports/disputes (change 0032) — a new fact type,
+ * Participant self-service reports/disputes — a new fact type,
  * never a mutation path. `evidence` files reference the object-storage
  * adapter by bucket/key; no bytes live in this database.
  */

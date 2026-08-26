@@ -27,7 +27,7 @@ function stubClient(overrides: Partial<ControlApiClient> = {}): ControlApiClient
   } as unknown as ControlApiClient;
 }
 
-describe('ScheduleBuilderRoute (0147 template migration)', () => {
+describe('ScheduleBuilderRoute', () => {
   it('renders within ListScreenTemplate structure and displays fixtures and calendar view', async () => {
     const { container } = render(
       withIntl(

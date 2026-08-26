@@ -23,7 +23,7 @@ describe('canTransitionTournament', () => {
     expect(canTransitionTournament(from, to)).toBe(true);
   });
 
-  it('refuses every pair not on the linear path plus terminal archival (0033 5.1)', () => {
+  it('refuses every pair not on the linear path plus terminal archival', () => {
     const legal = new Set([
       'draft->published',
       'published->started',

@@ -190,7 +190,7 @@ export class PersonRepository {
 
   /**
    * Attaches an uploaded photo's object-storage reference, in the same
-   * transaction as the `object_metadata` insert (0093 design.md Decision 3).
+   * transaction as the `object_metadata` insert.
    */
   async setPhoto(
     uow: UnitOfWork,

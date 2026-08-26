@@ -19,10 +19,10 @@ interface MemberSelection {
 }
 
 /**
- * The write side of `0092`'s jersey grid: per entrant, pick which registered
+ * The write side of the jersey grid: per entrant, pick which registered
  * players are on this match's roster, their number, starter-or-bench state,
  * and any discipline-declared roster role — before recording events and
- * re-openable during the match (0107 spec).
+ * re-openable during the match.
  */
 export function RosterSelectionStep({
   entrantIds,

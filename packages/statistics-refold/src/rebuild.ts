@@ -13,7 +13,7 @@ import { createRefold } from './refold.js';
 
 /**
  * Recomputes every folded total from source facts, for an organization or
- * one tournament within it (0082, moved here from `apps/copalibre` in 0085
+ * one tournament within it (moved here from `apps/copalibre`
  * so `apps/api`'s admin HTTP surface can call the exact same logic the CLI's
  * direct-database path already uses, instead of duplicating it).
  *

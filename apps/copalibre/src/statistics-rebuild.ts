@@ -11,9 +11,9 @@ export {
 } from '@copalibre/statistics-refold';
 
 /**
- * `copalibre statistics-rebuild` (0082, task 5.1) — CLI argument parsing
+ * `copalibre statistics-rebuild` — CLI argument parsing
  * only; the recompute logic itself moved to `@copalibre/statistics-refold`
- * in 0085 so `apps/api`'s admin HTTP surface can call the exact same
+ * so `apps/api`'s admin HTTP surface can call the exact same
  * function the direct-database CLI path already used, instead of
  * duplicating it.
  */

@@ -70,7 +70,7 @@ export async function verifyInstalledModule(
  * Checks one installed module's declared `requiresCopalibre` range against a
  * CopaLibre version — the running version for `verifyInstalledModule` above,
  * or a not-yet-installed target version for a pre-upgrade compatibility check
- * (0045's `copalibre upgrade-check --target-version`). Extracted so both call
+ * (`copalibre upgrade-check --target-version`). Extracted so both call
  * sites report the exact same failure shape instead of two hand-written copies
  * of the same `semver.satisfies` check drifting apart.
  */

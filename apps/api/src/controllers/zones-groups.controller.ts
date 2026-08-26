@@ -529,7 +529,7 @@ export class ZonesGroupsController {
 
   /**
    * Shared by `previewPromotion` (one zone, the caller already knows) and
-   * `promotionPlansTargetingStage` (0121, many zones discovered by reverse
+   * `promotionPlansTargetingStage` (many zones discovered by reverse
    * lookup) — `sourceStageId` is the zone's OWN stage, which is `stageNumber`
    * in the URL for the former but resolved per-zone for the latter.
    */

@@ -56,7 +56,7 @@ export interface GroupAssignment {
  * Two product contracts are enforced here rather than trusted to callers:
  * the event log is insert-only (no update/delete method exists), and a match
  * result can never be overwritten — `recordResult` refuses when a result is
- * already present, leaving the audited correction workflow (phase 0008) as the
+ * already present, leaving the audited correction workflow as the
  * only path.
  */
 export class CompetitionRepository {
@@ -760,7 +760,7 @@ export class CompetitionRepository {
     return stage;
   }
 
-  /** Bulk fixture insert — the shape phase 0006's generator will hand over. */
+  /** Bulk fixture insert — the shape the generator will hand over. */
   async createFixtures(
     uow: UnitOfWork,
     input: {
@@ -1311,7 +1311,7 @@ export class CompetitionRepository {
    * `(matchId, entrantId)` — a second call for the same pair overwrites the
    * prior selection, audited each time; a match's roster is a revisable
    * match-time fact the console can correct, not an append-only log the way
-   * events are (0107 design.md).
+   * events are.
    */
   async setMatchRoster(
     uow: UnitOfWork,
@@ -1435,7 +1435,7 @@ export class CompetitionRepository {
   /**
    * Appends one domain fact. There is deliberately no update or delete
    * counterpart: the event log is the audit input, so corrections supersede
-   * rather than rewrite (phase 0008 owns that workflow).
+   * rather than rewrite (that workflow owns the correction).
    */
   async appendEvent(
     uow: UnitOfWork,
@@ -1515,7 +1515,7 @@ export class CompetitionRepository {
    * A collector-threshold rule's cross-match baseline: every event in
    * the stage's *other* matches whose definition code the collector watches.
    * A direct, scoped `match_events` read rather than a `statistic_totals`
-   * read — the general fold engine (`0073`) does not exist yet, and this
+   * read — the general fold engine does not exist yet, and this
    * rule needs to see the current stage's live, in-progress matches, which a
    * finalisation-triggered projection would not carry anyway. An empty
    * `definitionCodes` array (a non-event-sourced collector) short-circuits
@@ -1646,7 +1646,7 @@ export class CompetitionRepository {
     return row?.season_id;
   }
 
-  /** The tournament an edition belongs to (0082's `CompetitionContext` chain). */
+  /** The tournament an edition belongs to (`CompetitionContext` chain). */
   async tournamentOfSeason(seasonId: string): Promise<string | undefined> {
     const row = await this.db
       .selectFrom('seasons')

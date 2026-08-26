@@ -7,7 +7,7 @@ import { isDuelMatch, type DuelMatch, type FixtureGraph, type SlotSource } from 
  *
  * Given the fixture graph plus recorded outcomes, each slot is resolved by
  * walking `winner-of`/`loser-of` edges. That is what lets the correction workflow
- * (phase 0009) replay advancement deterministically after a result is superseded,
+ * replay advancement deterministically after a result is superseded,
  * instead of unwinding imperative writes.
  *
  * Only duel matches take part: a placement match produces an ordering, not a

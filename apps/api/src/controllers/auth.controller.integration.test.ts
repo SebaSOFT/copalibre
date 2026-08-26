@@ -318,7 +318,7 @@ describe('Auth Controllers', () => {
       expect(data[0].revoked).toBe(true);
     });
 
-    // 0142 scope policy regression cases. Each rejection case asserts the
+    // Scope policy regression cases. Each rejection case asserts the
     // token count for that principal is unchanged, so a 403 can never have
     // persisted a row anyway.
     async function patCount(principalId: string): Promise<number> {

@@ -92,7 +92,7 @@ export async function listEffectiveTableLayouts(
  *
  * Two figure sources feed `projectTableLayout`, bridged into the same
  * `CollectedFigure` shape: a discipline's declared `collectors` (folded into
- * `statistic_totals` by 0016/0090's pipeline, read via `StatisticRepository`)
+ * `statistic_totals` by the statistics pipeline, read via `StatisticRepository`)
  * and its declared `statistics` (entrant-scoped accounting `computeStandings`
  * already produces from recorded outcomes, never written to
  * `statistic_totals` at all). A `collector`-kind column source may name

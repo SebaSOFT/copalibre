@@ -255,8 +255,8 @@ export class RulesRegistry {
 
   /**
    * Rejects a DisciplineDescriptor referencing an unregistered notification
-   * capability or win-condition action. Phase 0002's descriptor validation
-   * calls into this; since 0009 the win condition is a script, so a module
+   * capability or win-condition action. Descriptor validation
+   * calls into this; the win condition is a script, so a module
    * that invents an action is refused here rather than failing at match time.
    */
   validateDescriptorReferences(

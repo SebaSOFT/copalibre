@@ -197,7 +197,7 @@ describe('MatchConsoleRoute', () => {
   it('captures occurredAt at the initial button press, not the workflow confirm step', async () => {
     const requests: unknown[] = [];
     // `mockReturnValue` (not `mockReturnValueOnce`) for the "Penal" phase —
-    // 0123 adds effects of its own that may call `Date.now()` incidentally
+    // The offline queue adds effects of its own that may call `Date.now()` incidentally
     // before the click even fires; a persistent value for the whole phase
     // is robust to that, where a single queued one-shot value is not.
     const now = jest.spyOn(Date, 'now').mockReturnValue(1_000);
@@ -700,7 +700,7 @@ describe('MatchConsoleRoute', () => {
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Confirm finalization' }));
     });
-    // A lost response is a network-level failure, not a refusal — 0123's
+    // A lost response is a network-level failure, not a refusal — the
     // queue leaves it queued silently (no error banner) rather than
     // reporting a failure the operator would otherwise wrongly read as
     // "nothing happened, try something else." The retry below is exactly
@@ -776,7 +776,7 @@ describe('MatchConsoleRoute', () => {
             client={client({
               recordMatchEvent: async () => {
                 // A real refusal (a `ControlApiError`, matching what the API
-                // actually throws for a non-2xx response) — 0123 only queues
+                // actually throws for a non-2xx response) — the offline queue only queues
                 // silently, with no error banner, for a network-level
                 // failure, which a plain thrown `Error` would now simulate
                 // instead.

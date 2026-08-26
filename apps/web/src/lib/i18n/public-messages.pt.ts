@@ -1,7 +1,7 @@
 /**
  * Portuguese translations, keyed to match `public-messages.en.ts`'s IDs
  * exactly. Best-effort translation; native-speaker review is a later
- * pass (owner's explicit choice, 0051).
+ * pass (owner's explicit choice).
  */
 export const messages: Record<string, string> = {
   'publicWeb.layout.skipToContent': 'Pular para o conteúdo',

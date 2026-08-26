@@ -24,7 +24,7 @@
  * **No value** — `undefined` — is how every partial case answers: no arguments,
  * a logarithm of zero, a negative square root, a division by nothing. The
  * consuming condition then applies its declared missing-value behaviour, which
- * is the choice 0010 made for a zero denominator and for the same reason: an
+ * is the choice for a zero denominator and for the same reason: an
  * infinity silently ranks first.
  */
 

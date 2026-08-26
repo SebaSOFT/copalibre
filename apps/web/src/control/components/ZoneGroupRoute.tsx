@@ -23,7 +23,7 @@ type ManualPlacements = Readonly<Record<string, string>>;
 
 /**
  * Zone/Group management, entrant assignment, and the doorway to a zone's
- * promotion plan (0108, 0147 template migration) — the UI half of `0099-zone-group-and-promotion`.
+ * promotion plan — the UI half of zone and group promotion.
  * Client-side manual placements are only sent on "Save assignment"; nothing
  * here writes per-keystroke.
  */

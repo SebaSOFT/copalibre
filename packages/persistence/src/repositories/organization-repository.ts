@@ -35,7 +35,7 @@ export interface UpdateOrganizationSettingsInput {
 /**
  * `Intl.DateTimeFormat` throws `RangeError` for an unknown time zone
  * identifier — the exact set of valid IANA identifiers, with no hand-copied
- * list or regex to keep in sync (0051 design).
+ * list or regex to keep in sync.
  */
 export function isValidTimeZone(value: string): boolean {
   try {

@@ -8,7 +8,7 @@ import { messages } from '../i18n/messages.en.js';
 type LoadStatus = 'loading' | 'ready' | 'failed';
 
 /**
- * The pending participant reports/disputes queue (0032, task 2.3/7.1).
+ * The pending participant reports/disputes queue.
  *
  * Deliberately without a bulk action: design.md's mitigation for "a flood of
  * low-quality disputes" is that this queue is reviewed one at a time, and a

@@ -5,7 +5,7 @@ import { winConditionScript } from './win-condition-scripts.js';
 /**
  * Tennis descriptor builder — the nested-scoring reference implementation.
  *
- * Tennis is the discipline that broke the pre-0009 model: one match produces
+ * Tennis is the discipline that broke the previous model: one match produces
  * three levels of score at once (matches, sets, games), and a single scalar
  * could carry none of them. It declares a statistic at every level it scores
  * at, which is what lets a profile bind `primary-scoring → matches-won`,
@@ -101,7 +101,7 @@ export function tennisDescriptor(overrides?: Partial<DisciplineDescriptor>): Dis
       },
       scoring: { pointsPerWin: 2, pointsPerDraw: 0, pointsPerLoss: 0 },
       // Cascades matches → sets → games, which is exactly the three-way tie the
-      // pre-0009 accounting could not break.
+      // previous accounting could not break.
       tiebreakers: ['matches-won', 'sets-won', 'games-won'],
       segments: { bestOf: 3, tiebreakInFinalSet: true },
     },

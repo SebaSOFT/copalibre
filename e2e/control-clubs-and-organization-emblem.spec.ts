@@ -2,14 +2,14 @@ import { expect, test } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
- * 0109 task 6.1: sign in, create a club from the new club-management
+ * Sign in, create a club from the club-management
  * screen, upload its emblem, then upload the organization's own emblem
  * from the preferences screen, confirming both leave the placeholder and
  * show an `<img>` in its place.
  */
 
 /**
- * A real, tiny, decodable PNG (1×1) — 0122's crop modal opens every selected
+ * A real, tiny, decodable PNG (1×1) — the crop modal opens every selected
  * file as a real `<img>` (a genuine browser decode, unlike a unit test), so
  * placeholder text bytes that aren't a real image would leave "Use image"
  * disabled forever.
@@ -248,7 +248,7 @@ test('keeps rapid API errors stacked and independently dismissible', async ({ pa
 });
 
 /**
- * 0114 task 5.1: trigger a statistics rebuild from the preferences screen,
+ * Trigger a statistics rebuild from the preferences screen,
  * confirm it, and assert the result readout reports the expected match
  * count.
  */

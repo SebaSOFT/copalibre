@@ -34,7 +34,7 @@ function buildMatchDataCsv(
 }
 
 /**
- * `0106-retroactive-match-data-entry`: a match played with no live console
+ * A match played with no live console
  * present, entered as one batch (roster, segments, events, result) through
  * `/control/.../matches/:matchId/load` and the `POST .../bulk-load` route —
  * mocked the same way `match-console-roster-selection.spec.ts` mocks the

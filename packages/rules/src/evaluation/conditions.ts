@@ -12,7 +12,7 @@ import { parameter, type RulesRegistry } from '../registry/rules-registry.js';
  * Until this change the whole vocabulary was Neuron's `compare_two_numbers`: a
  * rule language whose only test is a numeric comparison covers thresholds and
  * nothing else. Every phase that needed expressiveness added an *action*
- * instead, which is why 0009's win condition reads as `winSegment` and
+ * instead, which is why the win condition reads as `winSegment` and
  * `requireMargin` rather than as conditions over a score.
  *
  * Four are added, each because a stated rule needs it — "if the entrant's
@@ -225,7 +225,7 @@ export class ValueInSetCondition extends AbstractCondition<CopalibreConditionOpt
  * It reads `options.path` off the state rather than a parameter's value,
  * because a parameter's `getValue` returns `null` both for "no such path" and
  * for "recorded as null", and this condition exists precisely to tell those
- * apart. A `null` reads as *not present* — 0009's "evaluated, does not apply" —
+ * apart. A `null` reads as *not present* — "evaluated, does not apply" —
  * while the message records that the question was asked.
  */
 export class ValueExistsCondition extends AbstractCondition<CopalibreConditionOptions> {

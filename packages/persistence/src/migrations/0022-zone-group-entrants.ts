@@ -1,7 +1,7 @@
 import type { Kysely } from 'kysely';
 import type { Migration } from 'kysely/migration';
 
-/** Durable entrant membership for the zone and group draws introduced by 0099. */
+/** Durable entrant membership for zone and group draws. */
 export const zoneGroupEntrants: Migration = {
   async up(db: Kysely<unknown>): Promise<void> {
     await db.schema

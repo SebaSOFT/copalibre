@@ -22,7 +22,7 @@ import { DrawZonesRequest } from './zones-groups.dto.js';
 import { ForgotPasswordRequest, LoginRequest, ResetPasswordRequest } from './auth.dto.js';
 
 /**
- * One representative request-body DTO per DTO file (0146 task 5.1): a request
+ * One representative request-body DTO per DTO file: a request
  * missing a required field must produce exactly one validation constraint on
  * that field, proving the class-validator rules are attached and the global
  * pipe will turn what used to be a 500 into a clean 400.

@@ -24,7 +24,7 @@ export interface RollupQuery {
 }
 
 /**
- * Reads a total above a collector's stored grain (0082, task 3.1): loads the
+ * Reads a total above a collector's stored grain: loads the
  * finest-grain rows and rolls them up with `aggregateTo`, resolved by real
  * `EnrollmentRepository` membership — application-code aggregation over a
  * small, membership-bounded row set, not a second SQL join.

@@ -3,7 +3,7 @@ import { aggregateTo, type CollectedFigure } from '@copalibre/tournament-engine'
 import type { ReadTotal, StoredFigure } from '@copalibre/persistence';
 
 /**
- * Batched membership lookups a rollup resolver reads from (0082, task 3.1) —
+ * Batched membership lookups a rollup resolver reads from —
  * pre-fetched, because `aggregateTo`'s `resolve.actorAt` is synchronous.
  *
  * `person`/`player` each roll up through the team they are on; `official` and
@@ -19,7 +19,7 @@ export interface ActorMembership {
 
 /**
  * Rolls stored figures up to a coarser granularity in memory, reusing
- * `aggregateTo` exactly as built rather than a second SQL join (0082, task
+ * `aggregateTo` exactly as built rather than a second SQL join (task
  * 3.1's design decision). The caller supplies every row at the collector's own
  * stored grain; this only resolves the actor axis upward.
  */

@@ -33,7 +33,7 @@ import { TableProjectionsController } from './table-projections.controller.js';
  * accounting, bridged into synthetic figures — a code path no unit test
  * touches a real database for).
  */
-describe('table projections (integration, 0091)', () => {
+describe('table projections (integration)', () => {
   let app: INestApplication;
   let scratch: Awaited<ReturnType<typeof createMigratedDatabase>>;
   let organizationId: string;

@@ -27,7 +27,7 @@ function nextKey(): string {
 }
 
 /**
- * A zone's promotion-plan configuration and review (0108, 0147 template migration) —
+ * A zone's promotion-plan configuration and review —
  * "decision support, not automation": saving a plan and reviewing its computed
  * candidate list never writes a next stage's seeding. Only `combination.mode
  * === 'group-order'` is offered here (no config needed); `ranked`/`manual`

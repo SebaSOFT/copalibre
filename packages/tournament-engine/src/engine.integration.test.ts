@@ -13,7 +13,7 @@ import { resolveAdvancement } from './advancement/index.js';
 import type { RecordedOutcome } from '@copalibre/domain';
 
 /**
- * End-to-end: generate a fixture graph, persist it through phase 0004's
+ * End-to-end: generate a fixture graph, persist it through the persistence
  * repositories, record a result, and confirm advancement and mutation
  * classification hold against real stored state.
  */

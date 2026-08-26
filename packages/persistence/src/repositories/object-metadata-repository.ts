@@ -11,7 +11,7 @@ export type ObjectStorageMetadataStatus = 'pending' | 'passed' | 'failed';
  * Published on the same transaction as an `object_metadata` insert (task
  * 2.1), so the async media-processing job always sees a durably-committed
  * row — the same "row before job" ordering `EVIDENCE_VALIDATION_REQUESTED_EVENT`
- * already established for 0032's own evidence uploads.
+ * already established for evidence uploads.
  */
 export const OBJECT_PROCESSING_REQUESTED_EVENT = 'object-storage.processing-requested';
 
@@ -28,7 +28,7 @@ export interface ObjectMetadata {
 }
 
 /**
- * The object-storage capability's own metadata registry (0041 task 1.4) —
+ * The object-storage capability's metadata registry —
  * not every caller of `@copalibre/object-storage` needs a row here (one with
  * its own domain table, like `report_evidence`, doesn't); this is for a
  * caller with no such table, and for the async media-processing job (task 2)

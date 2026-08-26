@@ -1,7 +1,7 @@
 import { sql, type Kysely } from 'kysely';
 import type { Migration } from 'kysely/migration';
 
-/** Device-scoped display tokens for `/tv/**` surfaces, introduced by change 0031. */
+/** Device-scoped display tokens for `/tv/**` surfaces. */
 export const broadcastDisplayTokens: Migration = {
   async up(db: Kysely<unknown>): Promise<void> {
     await db.schema

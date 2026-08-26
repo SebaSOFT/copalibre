@@ -20,7 +20,7 @@ import { StreamAuthGuard } from './stream/stream-auth.guard.js';
 
 /**
  * The `/tv/**` stream's device-scoped authorization, through the real HTTP
- * stack (0031, tasks 7.1-7.2) — companion to `events.integration.test.ts`,
+ * stack — companion to `events.integration.test.ts`,
  * which covers the public and control streams the same way.
  */
 

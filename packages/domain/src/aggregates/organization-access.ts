@@ -1,7 +1,7 @@
 import { DomainError } from '../errors.js';
 import { err, ok, type Result } from '../result.js';
 
-/** The organization-local taxonomy introduced by change 0026, extended with `club-admin` by 0140. */
+/** The organization-local taxonomy, including `club-admin`. */
 export const ORGANIZATION_ROLES = [
   'admin',
   'club-admin',
@@ -115,7 +115,7 @@ export interface InstallationRoleAssignment {
 
 /**
  * Who is granting a role, resolved once by the caller (guard/controller) rather
- * than re-derived independently by every route (0140 design decision #2).
+ * than re-derived independently by every route.
  */
 export interface GrantorContext {
   readonly isSuperAdmin: boolean;

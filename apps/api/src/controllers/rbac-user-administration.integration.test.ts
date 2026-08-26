@@ -27,7 +27,7 @@ const subjects: Record<string, AuthenticatedSubject> = {
   noScope: { subjectId: 'oidc-rbac-no-scope', scopes: ['copalibre.control'] },
 };
 
-describe('RBAC user administration (0140, integration)', () => {
+describe('RBAC user administration (integration)', () => {
   let app: INestApplication;
   let scratch: Awaited<ReturnType<typeof createMigratedDatabase>>;
   let organizationId = '';

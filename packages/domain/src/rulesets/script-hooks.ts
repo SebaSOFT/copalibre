@@ -4,10 +4,10 @@ import { err, ok, type Result } from '../result.js';
 /**
  * Where a script may run.
  *
- * 0010 needed hook points for the draw and defined them inside
+ * Hook points for the draw were defined inside
  * `draw-constraints.ts`, as a detail of one feature. Four evaluations now
  * attach scripts — eligibility and advancement guards, the win condition,
- * notification rules and draw constraints — and 0014 adds match control,
+ * notification rules and draw constraints — and match control adds
  * timers and alerts. One taxonomy, owned by the core, is what stops each of
  * those growing a private one.
  *
@@ -184,7 +184,7 @@ const ALERT_CONTEXT_PATHS = [
 ] as const;
 
 /**
- * 0010 places the proposed assignment under `draw`, shaped by the caller rather
+ * The proposed assignment lives under `draw`, shaped by the caller rather
  * than by a published contract. The subtree is published as a whole until the
  * phase that pins it does so; a wildcard is the honest statement of what the
  * hook currently guarantees.
@@ -202,7 +202,7 @@ interface HookDefinition {
 
 /**
  * The taxonomy. The `draw.*`, `seed.*`, `schedule.*`, `entrant.*` and
- * `stage.advance` entries keep the identifiers 0010 gave them, so every
+ * `stage.advance` entries keep their identifiers, so every
  * constraint declared before this change validates and evaluates unchanged.
  */
 const HOOK_DEFINITIONS = {

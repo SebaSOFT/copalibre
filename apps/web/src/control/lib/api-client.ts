@@ -255,7 +255,7 @@ export interface ControlApiClient {
     tournamentAlias: string,
     kind: 'participants/individual' | 'participants/team' | 'results' | 'standings',
   ) => Promise<string>;
-  /** The A1 dashboard's device-health panel (0031, task 4.4) reads this per tournament. */
+  /** The A1 dashboard's device-health panel reads this per tournament. */
   readonly listDisplayTokens?: (
     organizationAlias: string,
     tournamentAlias: string,

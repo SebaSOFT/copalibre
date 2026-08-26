@@ -17,7 +17,7 @@ import { toEntrantValues, type EntrantAccounting } from '../standings/index.js';
  *
  * The cut reads **stage standings, never match results**. Swimming settles it:
  * qualification is by time across all heats, not by position within a heat, so
- * winning a slow heat qualifies nobody (0010 design).
+ * winning a slow heat qualifies nobody.
  */
 
 export interface QualificationInput {

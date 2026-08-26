@@ -23,9 +23,9 @@ function toLifecycle(status: TournamentResponse['status']): TournamentLifecycle 
 }
 
 /**
- * The organization dashboard's real tournament list (0105 deferred task 4.1,
- * built here as 0113): replaces the sample data `ControlApp.tsx` rendered
- * directly with `listActive` (`0100`'s admin-scoped tournament list, already
+ * The organization dashboard's real tournament list replaces the sample data
+ * `ControlApp.tsx` rendered directly with `listActive` (the admin-scoped
+ * tournament list, already
  * organization-scoped and already excluding archived tournaments).
  */
 export function DashboardRoute({

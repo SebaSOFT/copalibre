@@ -159,7 +159,7 @@ describe('default module catalogue', () => {
     );
   });
 
-  it('declares football 1.3.0 offside, VAR review, penalty shootout, and stoppage time (0131/0132)', async () => {
+  it('declares football 1.3.0 offside, VAR review, penalty shootout, and stoppage time', async () => {
     const catalogue = await loadDefaultModuleCatalogue();
     const football = catalogue.disciplines.find((descriptor) => descriptor.alias === 'football');
     if (!football) throw new Error('Expected football catalogue document');
@@ -193,7 +193,7 @@ describe('default module catalogue', () => {
     expect(football.segmentTypes.map((segment) => segment.name)).toContain('penalty-shootout');
   });
 
-  it('declares tennis 1.2.0 doubles label and best-of-five win condition matching domain builder (0131/0132)', async () => {
+  it('declares tennis 1.2.0 doubles label and best-of-five win condition matching domain builder', async () => {
     const catalogue = await loadDefaultModuleCatalogue();
     const tennis = catalogue.disciplines.find((descriptor) => descriptor.alias === 'tennis');
     if (!tennis) throw new Error('Expected tennis catalogue document');

@@ -174,7 +174,7 @@ export class TournamentRepository {
 
   /**
    * Tournament aliases (started or finished) naming this exact descriptor
-   * version — 0036's `module remove` safety check, distinct from
+   * version — the `module remove` safety check, distinct from
    * `retirableDescriptorVersions`'s catalogue-retirement question: this asks
    * whether *deleting the row* would orphan a reference a tournament record
    * still names, not whether the version is worth keeping in a browsable

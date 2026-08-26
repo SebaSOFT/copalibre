@@ -29,7 +29,7 @@ describe('copalibre doctor command (integration)', () => {
   });
 
   /**
-   * The object-storage round-trip check (0041 task 6.4) — against real
+   * The object-storage round-trip check — against real
    * infrastructure both times: real MinIO with wrong credentials for the S3
    * profile, a real read-only directory for the filesystem profile. Neither
    * scenario is reachable through `objectStorageConfigFromEnv`'s unit tests

@@ -20,7 +20,7 @@ import {
 import { createRefold, resolveMatchFold } from './refold.js';
 
 /**
- * The first real-Postgres exercise of `foldStatistics` (0082, task 7.1/7.2/7.5):
+ * The first real-Postgres exercise of `foldStatistics`:
  * `refold.ts` resolves a match's roster and competition context from real
  * tables and hands them to the already-tested fold engine — this proves the
  * wiring, not the fold's own arithmetic (that's `fold.test.ts`).
@@ -88,7 +88,7 @@ const COLLECTORS: readonly StatisticCollector[] = [
   },
 ];
 
-describe('refold against real PostgreSQL (integration, 0082)', () => {
+describe('refold against real PostgreSQL (integration)', () => {
   let scratch: ScratchDatabase;
   let organizationId: string;
   let matchId: string;

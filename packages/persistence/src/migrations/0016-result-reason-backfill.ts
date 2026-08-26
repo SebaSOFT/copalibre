@@ -10,7 +10,7 @@ import type { Database } from '../schema.js';
  * nothing forces an old row to gain a field a later release started writing.
  * The application now always writes `resultReason` explicitly going forward
  * (never relying on "absent means played"), and this migration brings every
- * existing row in line with that, the same way `0004-roster-terminology`
+ * existing row in line with that, the same way the roster-terminology migration
  * rewrote already-persisted `match_assignments` rows rather than leaving old
  * ones to be read differently from new ones forever.
  */

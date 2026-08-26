@@ -38,13 +38,13 @@ if (typeof globalThis.structuredClone !== 'function') {
   define('structuredClone', (value) => v8.deserialize(v8.serialize(value)));
 }
 
-// jsdom ships no IndexedDB implementation at all — 0123's offline queue
+// jsdom ships no IndexedDB implementation at all — the offline queue
 // (`offline-queue.ts`, via `idb`) needs a real one to be exercised under
 // test. `fake-indexeddb/auto` installs `indexedDB`/`IDBKeyRange` globally.
 require('fake-indexeddb/auto');
 
 // jsdom implements the `URL` constructor but not the Blob-registry half of
-// the API (0122's crop modal opens a selected file through an object URL).
+// the API (the crop modal opens a selected file through an object URL).
 if (typeof URL.createObjectURL !== 'function') {
   URL.createObjectURL = () => 'blob:jsdom-mock';
 }
@@ -54,7 +54,7 @@ if (typeof URL.revokeObjectURL !== 'function') {
 
 /**
  * jsdom loads no image bytes and ships no `<canvas>` renderer (that needs the
- * optional native `canvas` package, not a dependency here) — 0122's crop
+ * optional native `canvas` package, not a dependency here) — the crop
  * pipeline (`image-upload.ts#cropToPng`) needs both a `new Image()` that
  * actually "loads", and a 2D context that accepts draw calls without
  * throwing, to be exercised under test at all. `width`/`height` are set to a

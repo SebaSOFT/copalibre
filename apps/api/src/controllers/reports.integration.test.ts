@@ -29,7 +29,7 @@ import { ParticipantReportsController, ReportReviewController } from './reports.
 
 /**
  * The report/dispute submission and review endpoints through the real HTTP
- * stack (0032, tasks 6.1, 6.2, 6.4) — including `OrganizationAccessGuard`,
+ * stack — including `OrganizationAccessGuard`,
  * which no prior integration suite in this repo exercised for a participant
  * token: it is the guard that resolves `subject.participantPersonId` from a
  * real `participant_identity_links` row, and `enforceReportSubmission`

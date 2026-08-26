@@ -25,12 +25,12 @@ import { registerCopalibreConditions } from './conditions.js';
  * untouched — `type` is precisely what the registry vets and what a module may
  * not invent.
  *
- * This replaced the `state-number`/`state-string` pair 0003 introduced for
+ * This replaced the earlier `state-number`/`state-string` pair introduced for
  * reading a dot-path out of the evaluation state. A path read is the degenerate
  * expression — `{{ facts.rosterSize }}` says exactly what
  * `state-number{path: 'facts.rosterSize'}` said — so keeping both would mean
  * two spellings of one idea and two places to look for "where does this value
- * come from". 0003's rule that `value` means a literal is what made a second
+ * come from". The rule that `value` means a literal is what made a second
  * parameter type necessary; with the mode declared, one field carries both and
  * the rule is no longer paying for itself.
  *
@@ -61,7 +61,7 @@ function expressionValue(
  * A literal number, or the number an expression resolves to.
  *
  * The stored value is `number | string` because in expression mode it is the
- * source text — the honest widening 0003 avoided by inventing a second type.
+ * source text — the honest widening avoided by inventing a second type.
  * `getValue` still narrows to a number, so every caller keeps the guarantee it
  * had.
  */

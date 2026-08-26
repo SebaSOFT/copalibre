@@ -8,7 +8,7 @@ import type { Migration } from 'kysely/migration';
  * apart from the collector total it never edits.
  *
  * Keyed by stage as well as rule and actor: the `carriedIn` total this rule
- * evaluates against is itself stage-scoped (0074's bridging query only sums a
+ * evaluates against is itself stage-scoped (the bridging query only sums a
  * stage's own matches), so a consumed baseline that ignored the stage would
  * compare a number from one stage's scale against another's — the same
  * player crossing a threshold in two different stages of one tournament must

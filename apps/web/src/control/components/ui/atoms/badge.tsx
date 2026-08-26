@@ -5,7 +5,7 @@
 import type { HTMLAttributes } from 'react';
 
 export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
-  /** Required: a badge is a colour *and* a word (0019's token contract). */
+  /** Required: a badge is a colour *and* a word. */
   readonly label: string;
 }
 

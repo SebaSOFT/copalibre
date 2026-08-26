@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
- * `0107-match-roster-selection`: before this change, no route existed to
+ * Before this feature, no route existed to
  * select a match roster at all — `match_rosters` had readers and no writer,
  * so no person-attributed event could ever be recorded. This drives the new
  * roster-selection screen the console gained, mocking the new

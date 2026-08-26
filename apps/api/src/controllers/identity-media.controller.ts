@@ -48,7 +48,7 @@ const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
  * The upload routes are `admin-control`, matching how a person/club is
  * already edited. The serve routes are deliberately `public-read`, unlike
  * `reports.controller.ts`'s evidence: these are spectator-facing images
- * (0093 proposal.md — "distinct from... every other stored object"), not
+ * ("distinct from... every other stored object"), not
  * report evidence, so they carry no organization membership or capability
  * check. Each serve route resolves its own entity's stored reference
  * server-side rather than accepting an arbitrary object id, which is what

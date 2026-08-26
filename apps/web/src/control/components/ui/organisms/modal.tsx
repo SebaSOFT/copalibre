@@ -3,7 +3,7 @@
  * rewritten onto CopaLibre's tokens. See THIRD_PARTY_NOTICES.md.
  *
  * Radix Dialog supplies focus trap, `aria-modal`, Escape handling and portal
- * rendering — exactly what a hand-built `role="dialog"` div (the pre-0141
+ * rendering — exactly what a hand-built `role="dialog"` div (the previous
  * `InviteDialog` pattern) lacked (design.md Decision 5).
  */
 import type { ReactNode } from 'react';

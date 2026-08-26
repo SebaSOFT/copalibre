@@ -6,7 +6,7 @@ import { submitModule, type GitCommandRunner } from './submit.js';
 /**
  * `submitModule` is exercised only against a fake `GitCommandRunner` — never
  * the real `gh`/`git` — so no test run of this suite ever forks the real
- * `copalibre-modules` repository or opens a real pull request (0049 design).
+ * `copalibre-modules` repository or opens a real pull request.
  */
 function fakeGit(pullRequestUrl: string) {
   const calls: {

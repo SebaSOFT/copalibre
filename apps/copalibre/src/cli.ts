@@ -31,7 +31,7 @@ export async function runCli(
   const command = arguments_[0];
   if (command && VERSION_FLAGS.has(command)) {
     // The larger, deliberately-invoked-only mark, in place of the compact
-    // per-invocation banner (0118 design.md) — stdout still carries only the
+    // per-invocation banner — stdout still carries only the
     // version, unchanged, so nothing parsing it sees any difference.
     process.stderr.write(renderFullLogo());
     process.stdout.write(`${readCopalibreVersion()}\n`);

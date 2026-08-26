@@ -21,7 +21,7 @@ const OFFICIAL_ROLES: readonly OfficialRole[] = [
 ];
 
 /**
- * Venue and official management (0124, 0147 template migration) — the resource pool a schedule
+ * Venue and official management — the resource pool a schedule
  * builder assigns from. `tournament-engine/resource-scheduling`'s
  * `createVenue`/`createOfficial` have existed since the capability was
  * accepted; this is the first screen (and the first API route, wired in

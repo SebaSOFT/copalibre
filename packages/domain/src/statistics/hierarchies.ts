@@ -83,10 +83,10 @@ export class HierarchyError extends DomainError {
  * Where each granularity's identifiers come from, and which phase owes any that
  * nothing populates.
  *
- * `0016` was drafted while `season`, `person` and `player` existed only as
+ * The initial projection design was drafted while `season`, `person` and `player` existed only as
  * names, and a collector declared at one had to report itself inert rather than
  * return zero — a product that answers a question nobody can populate is a page
- * of blanks with a feature's name on it. `0015` populated all three, so nothing
+ * of blanks with a feature's name on it. All three are now populated, so nothing
  * is inert today; this record stays because the next one added will be.
  */
 export const GRANULARITY_SOURCES: Readonly<

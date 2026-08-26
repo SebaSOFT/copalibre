@@ -66,7 +66,7 @@ export function createTokenStore(now: () => number = Date.now): TokenStore {
  * The one instance every control-panel screen actually uses: written
  * by the `/control/callback` screen on a successful login, read by every
  * screen's `ControlApiClient` and by `ControlApp`'s route guard. A
- * module-level singleton rather than a React context — 0061's `ControlApp`
+ * module-level singleton rather than a React context — `ControlApp`
  * already re-renders on every navigation, which is when the guard re-checks;
  * every other consumer only ever needs to *read* the current token at
  * request time, never re-render when it changes.

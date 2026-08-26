@@ -30,7 +30,7 @@ describe('the taxonomy', () => {
     expect(SCRIPT_HOOK_IDS).toContain(hook);
   });
 
-  it("keeps 0010's identifiers, so declared constraints are unaffected", () => {
+  it('keeps declared identifiers, so declared constraints are unaffected', () => {
     expect(SCRIPT_HOOK_IDS).toEqual(
       expect.arrayContaining([
         'draw.assign-group',
@@ -84,7 +84,7 @@ describe('resolveHookAttachment', () => {
     expect(result.value.inert).toBe(false);
   });
 
-  it('reports event.recorded as operationalized by 0133', () => {
+  it('reports event.recorded as operationalized', () => {
     const result = resolveHookAttachment('event.recorded');
 
     expect(result.ok).toBe(true);
@@ -102,7 +102,7 @@ describe('resolveHookAttachment', () => {
     expect(result.value.reason).toContain('0014');
   });
 
-  it('says why the scheduling hook is inert despite 0012 having shipped', () => {
+  it('says why the scheduling hook is inert', () => {
     const result = resolveHookAttachment('schedule.assign-slot');
 
     expect(result.ok).toBe(true);

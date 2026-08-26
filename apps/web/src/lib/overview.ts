@@ -21,7 +21,7 @@ export interface OverviewMatch {
 
 export interface SideView {
   readonly name: string;
-  /** The short label from 0037; absent when nobody chose one. */
+  /** The short label; absent when nobody chose one. */
   readonly abbreviation?: string;
   readonly score?: number;
 }

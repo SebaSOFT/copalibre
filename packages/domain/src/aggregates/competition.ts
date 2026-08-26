@@ -38,7 +38,7 @@ export interface Fixture {
 export type MatchStatus = 'scheduled' | 'in-progress' | 'finalized';
 
 /**
- * One side of a stored result. Since 0009 it carries the statistic values the
+ * One side of a stored result. It carries the statistic values the
  * discipline declared rather than a single scalar, and the codes are stored
  * verbatim: a finished tournament's standings stay readable after the module
  * version that defined them is retired.

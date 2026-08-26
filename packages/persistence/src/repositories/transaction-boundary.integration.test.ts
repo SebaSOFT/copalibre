@@ -163,7 +163,7 @@ describe('transaction boundary (integration)', () => {
   // violation by always having another connection to give out; a
   // single-connection dialect (SQLite, this suite's other profile) deadlocks
   // waiting for a connection the still-open outer transaction is holding
-  // (0040 — found as a real, previously-undetected hang in `createRuleset`
+  // (found as a real, previously-undetected hang in `createRuleset`
   // and `createTeam`).
   it('creates a ruleset without contending for a second connection mid-transaction', async () => {
     const tournaments = new TournamentRepository(scratch.db);

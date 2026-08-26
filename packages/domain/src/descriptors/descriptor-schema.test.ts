@@ -191,7 +191,7 @@ describe('discipline descriptor schema', () => {
   });
 
   describe('winCondition as a rule script', () => {
-    it('rejects the pre-0009 enumerated string', () => {
+    it('rejects the previous enumerated string', () => {
       const result = validateDisciplineDescriptorDocument(
         asDocument({ winCondition: 'higher-score-wins' }),
       );
@@ -506,7 +506,7 @@ describe('discipline descriptor schema', () => {
   describe('localized labels', () => {
     it('still accepts a plain-string label and name, unmodified', () => {
       // The reference descriptor already uses plain strings throughout; this
-      // is what makes every module authored before 0071 stay valid forever.
+      // is what keeps every previously authored module valid forever.
       expect(validateDisciplineDescriptorDocument(asDocument()).ok).toBe(true);
     });
 

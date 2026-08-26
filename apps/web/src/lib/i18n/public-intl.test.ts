@@ -18,7 +18,7 @@ const NON_ENGLISH_CATALOGS = {
   Mandarin: zhMessages,
 };
 
-describe('public-web message-catalog completeness (0055 task 7.3, 0056 task 8.1, 0057 task 4.6)', () => {
+describe('public-web message-catalog completeness', () => {
   const englishIds = Object.values(messages)
     .map((descriptor) => descriptor.id)
     .sort();
@@ -46,7 +46,7 @@ describe('public-web message-catalog completeness (0055 task 7.3, 0056 task 8.1,
   );
 });
 
-describe('publicIntl formats real translated text, not an English fallback (0055 task 7.4, 0056 task 8.2, 0057 task 4.6)', () => {
+describe('publicIntl formats real translated text, not an English fallback', () => {
   it('renders Spanish chrome for a plain string', () => {
     const intl = publicIntl('es');
     expect(intl.formatMessage(messages.legendHeading)).toBe('Referencias');

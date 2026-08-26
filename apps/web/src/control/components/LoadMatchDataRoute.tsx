@@ -73,7 +73,7 @@ function readFileText(file: File): Promise<string> {
 }
 
 /**
- * The bulk/structured entry screen (0106, 0147 template migration): a match's roster, its full event
+ * The bulk/structured entry screen: a match's roster, its full event
  * history, and its result, submitted together — for a match played with no
  * live console present. Client-side only until "Submit match data" is
  * pressed; nothing here calls `setMatchRoster`/`recordMatchEvent`/

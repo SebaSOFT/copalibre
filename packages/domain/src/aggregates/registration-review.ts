@@ -106,7 +106,7 @@ export function planBulkReview(
 }
 
 /**
- * A team-membership edit applies only to a team entrant (0023/0064).
+ * A team-membership edit applies only to a team entrant.
  *
  * An individual entrant has no persistent team membership to reconcile — the
  * request is not a conflict with current state, it names a person id in a

@@ -3,7 +3,7 @@
  * (mirrors `lib/match-console.ts`'s pattern). Both derive from the ISO
  * 3166-1 alpha-2 code rather than storing anything: `Intl.DisplayNames` for
  * the localized name, and the Unicode regional-indicator symbol pair for the
- * flag — both platform-native, no new dependency (0093 design.md Decision 1).
+ * flag — both platform-native, no new dependency.
  *
  * Scoped to `apps/web/src/control` only: organizer-facing browsers render
  * flag emoji reliably; this is never sent to a `/tv/**` broadcast surface.

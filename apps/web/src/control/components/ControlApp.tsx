@@ -140,7 +140,7 @@ export function ControlApp(): React.JSX.Element | null {
       return (
         <RegistrationReviewControlRoute
           // Sample-data literal from the replaced .astro file, preserved
-          // verbatim — making it real is 0021's concern, not this change's.
+          // verbatim — making it real remains separate work.
           now="2026-08-01T19:00:00.000Z"
           organizationAlias={route.organizationAlias}
           tournamentAlias={route.tournamentAlias}
@@ -287,9 +287,9 @@ type LandingState =
  * real navigation, which would discard the token just written.
  *
  * A guard-redirected login (a real `returnTo`, set by `ControlApp`'s own
- * guard) is handled exactly as 0062 left it: navigate straight there, no
+ * guard) is handled by navigating straight there, with no
  * lookup. Only the *default* `returnTo` (`DEFAULT_RETURN_TO`, used when login
- * began with nothing to return to) triggers the 0063 organization lookup —
+ * began with nothing to return to) triggers the organization lookup —
  * `/control/` itself has no `ControlRoute`, so navigating there unconditionally
  * used to strand the operator on the "not found" screen.
  */

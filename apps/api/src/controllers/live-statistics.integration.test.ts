@@ -28,11 +28,11 @@ import { MatchControlController } from './match-control.controller.js';
 
 /**
  * A `live`-cadence collector's total is current before a match ends; a
- * default (`on-finalize`) collector's is not (0082, task 7.3 and the delta
+ * default (`on-finalize`) collector's is not (the delta
  * spec's cadence requirement) — proven through the real HTTP event-recording
  * path `MatchControlController.recordEvent` wires `foldLiveEvent` into.
  */
-describe('live-cadence statistics inside the event-recording transaction (integration, 0082)', () => {
+describe('live-cadence statistics inside the event-recording transaction (integration)', () => {
   let app: INestApplication;
   let scratch: Awaited<ReturnType<typeof createMigratedDatabase>>;
   let organizationId: string;

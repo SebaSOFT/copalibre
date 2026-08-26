@@ -54,7 +54,7 @@ function descriptor(): DisciplineDescriptor {
   };
 }
 
-describe('display-token issuance and revocation (integration, 0031)', () => {
+describe('display-token issuance and revocation (integration)', () => {
   let scratch: ScratchDatabase;
   let organizationId: string;
   let tournamentId: string;

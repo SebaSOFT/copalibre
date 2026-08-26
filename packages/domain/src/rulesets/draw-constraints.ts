@@ -11,14 +11,14 @@ import { findScriptHook, resolveHookAttachment, type ScriptHookId } from './scri
  * the rest*. Neither is expressible as an ordering — they are constraints over
  * attributes the operator knows and the system does not.
  *
- * Constraints attach to named **hook points**, which 0013 promoted out of this
+ * Constraints attach to named **hook points**, promoted out of this
  * file into `script-hooks.ts` once four evaluations shared them. The
  * identifiers are unchanged, so every constraint declared before that move
  * validates and evaluates exactly as it did; what remains here is what is
  * genuinely draw-specific.
  */
 
-/** The hooks a draw constraint may attach to, in the order 0010 declared them. */
+/** The hooks a draw constraint may attach to, in their declared order. */
 export const CONSTRAINT_HOOK_POINTS = [
   /** Placing an entrant into a group. */
   'draw.assign-group',
@@ -70,7 +70,7 @@ export interface DistributionConstraint {
 
 /**
  * The escape hatch: a rule script over the core-owned constraint action
- * registry, on the boundary 0009 established for win conditions — a module
+ * registry, on the boundary established for win conditions — a module
  * composes vocabulary, it does not introduce it. This keeps a constraint nobody
  * anticipated expressible without a core release, without giving up the
  * vetted-action guarantee.

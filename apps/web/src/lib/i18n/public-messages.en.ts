@@ -31,7 +31,7 @@ export const messages = defineMessages({
   resultStateTbd: { id: 'publicWeb.resultState.tbd', defaultMessage: 'TBD' },
   resultStateCancelled: { id: 'publicWeb.resultState.cancelled', defaultMessage: 'CANCELLED' },
 
-  // Result-reason badges (lib/bracket.ts, MatchNode.astro) — 0076. `played` renders nothing.
+  // Result-reason badges (lib/bracket.ts, MatchNode.astro). `played` renders nothing.
   resultReasonAdministrativeLoss: {
     id: 'publicWeb.resultReason.administrativeLoss',
     defaultMessage: 'ADMIN LOSS',

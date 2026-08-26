@@ -87,7 +87,7 @@ export function applyMatchCommand(
  *
  * Nothing stores a countdown. A timed penalty is a recorded event carrying a
  * duration, and how much is left is `startedAt + duration - now`, computed at
- * read — the rule 0013 established for declared timers, applied to the ones an
+ * read — the rule established for declared timers, applied to the ones an
  * operator starts. A stored countdown would not survive one recalculation, and
  * a match is recalculated every time a result is corrected.
  */

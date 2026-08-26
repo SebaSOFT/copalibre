@@ -7,7 +7,7 @@ import starlightLlmsTxt from 'starlight-llms-txt';
 import node from '@astrojs/node';
 
 // React is wired now but only used from /control/** routes starting at
-// 0022-control-web-shell-and-org-dashboard (see openspec/changes/README.md).
+// Control-web shell and organization dashboard (see openspec/changes/README.md).
 export default defineConfig({
   site: process.env.COPALIBRE_SITE ?? 'http://localhost:4321',
   adapter: node({ mode: 'standalone' }),
@@ -21,7 +21,7 @@ export default defineConfig({
       title: 'CopaLibre Help',
       description: 'Operator documentation for self-hosted CopaLibre tournaments.',
       favicon: '/copalibre-logo.svg',
-      // This site has a real top-level 404 (0061 — SPA-aware for /control/**,
+      // This site has a real top-level 404 (SPA-aware for /control/**,
       // per public-web's no-JS baseline for a genuinely missing page).
       // Starlight injects its own 404 route by default, which otherwise
       // collides with it (a warning today, a hard error in later Astro

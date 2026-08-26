@@ -31,7 +31,7 @@ interface ToastRecord extends ToastInput {
 }
 
 /**
- * The organism tier's standing operation-feedback mechanism (0141,
+ * The organism tier's standing operation-feedback mechanism,
  * control-web/admin-interface-components). A toast reports the result of a
  * completed/submitted operation ("invite sent", "save failed"); it is never
  * the right place for an in-progress field-validation problem — that is the

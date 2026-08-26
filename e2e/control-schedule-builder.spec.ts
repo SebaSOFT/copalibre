@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
- * 0124 task 7: the schedule builder end to end — create a venue and an
+ * Exercise the schedule builder end to end — create a venue and an
  * official, assign a fixture, preview, and publish; and a conflicting batch
  * that blocks publish until resolved.
  */

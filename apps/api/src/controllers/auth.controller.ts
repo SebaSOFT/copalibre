@@ -41,7 +41,7 @@ import {
 
 /**
  * Per-IP rate limit for the unauthenticated, brute-forceable endpoints
- * (0145 design.md D3): tight enough to blunt automated guessing, generous
+ *: tight enough to blunt automated guessing, generous
  * enough that a real user retrying a mistyped password or re-requesting a
  * reset email once or twice never notices. Keyed by client IP — see
  * main.ts's trustProxy note for why that is the real client behind this

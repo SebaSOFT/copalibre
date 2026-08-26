@@ -17,7 +17,7 @@ async function bootstrap(): Promise<void> {
   if (process.env.COPALIBRE_APP_URL) {
     app.enableCors({ origin: process.env.COPALIBRE_APP_URL });
   }
-  // Global request validation (0146, audit H-4): every @Body DTO decorated
+  // Global request validation: every @Body DTO decorated
   // with class-validator rules is enforced here; unknown properties are
   // stripped (whitelist) but not yet rejected — forbidNonWhitelisted is a
   // deliberate later flip once stripping proves harmless in deployment.

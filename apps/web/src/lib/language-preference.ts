@@ -16,7 +16,7 @@ export interface LanguageResolutionInputs {
 }
 
 /**
- * Pure — no DOM/`localStorage`/`navigator` access (0051 design, matching this session's established
+ * Pure — no DOM/`localStorage`/`navigator` access, matching this session's established
  * pure/I/O-split convention). Resolution order per the `platform/internationalization` spec: an
  * explicit stored preference, then the organization's primary language when known, then the best
  * browser-language match, then English.
@@ -40,7 +40,7 @@ export function resolveLanguage(inputs: LanguageResolutionInputs): SupportedLang
 }
 
 /**
- * Per-browser only — never synced to a user account (owner decision, 0051 proposal): control and TV
+ * Per-browser only — never synced to a user account (owner decision): control and TV
  * surfaces are permitted a simpler locale mechanism than the public surface's path-prefix routing.
  */
 export function readStoredLanguagePreference(): string | null {

@@ -23,7 +23,7 @@ export type LocalizedLabel = { readonly en: string } & Partial<
  * A plain string is treated as English-only, for every requested language —
  * this is what makes every already-authored module (which never adopted
  * `LocalizedLabel`) render exactly as it does today, unconditionally: the
- * plain-string form is accepted forever, not deprecated (0071 design.md).
+ * plain-string form is accepted forever, not deprecated.
  */
 export function resolveLabel(label: string | LocalizedLabel, language: SupportedLanguage): string {
   if (typeof label === 'string') return label;

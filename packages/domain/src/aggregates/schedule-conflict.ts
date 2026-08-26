@@ -17,7 +17,7 @@ import { DomainError } from '../errors.js';
  * as a preview an operator reads, and once inside the transaction that commits.
  * Those must be the same computation or the preview is a guess. A preview that
  * can disagree with the commit is worse than no preview, which is the same
- * conclusion 0010 reached for the stage transition.
+ * conclusion reached for the stage transition.
  */
 
 export type ConflictKind =

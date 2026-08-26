@@ -6,7 +6,7 @@ import { validateModulePackage } from '@copalibre/module-distribution';
  * Runs the identical validation `copalibre module add` runs, against every
  * module directory in a checked-out module repository — the reusable
  * `module-validation.yml` workflow calls this against a pull request's
- * content (0036-community-module-distribution task 5.1), and
+ * content, and
  * `k8s`-unrelated `ci.yml`'s `module-validation` job (task 8.1) calls it
  * against the reference repository's fixtures on every PR to this repo, so
  * a core change that breaks the module contract fails here rather than in

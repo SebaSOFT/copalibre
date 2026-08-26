@@ -8,7 +8,7 @@ import type { ProcessRunner } from './process-runner.js';
 
 /**
  * `createBackupPacket`/`restoreBackupPacket` stage under a relative
- * `backups/` directory, matching the real Compose bind mount (0046 design).
+ * `backups/` directory, matching the real Compose bind mount.
  * Tests run inside their own temporary working directory rather than the
  * repo's real `backups/`, restoring `process.cwd()` afterwards.
  */

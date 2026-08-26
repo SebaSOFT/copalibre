@@ -9,11 +9,11 @@ import type { JobHandler } from './dispatcher.js';
 import { payloadOf } from './relay-runner.js';
 
 /**
- * Async validation for report/dispute evidence (0032, task 3.2) — content
+ * Async validation for report/dispute evidence — content
  * type and size only.
  *
  * Deliberately minimal: no malware scanning, no thumbnails. This is the
- * stopgap adapter's own job type, sized to what 0032 needs; 0041-object-
+ * stopgap adapter's own job type, sized to the feature's needs; the object-
  * storage-adapter is the follow-up that adds real scanning behind ClamAV
  * without this job's callers needing to change.
  */

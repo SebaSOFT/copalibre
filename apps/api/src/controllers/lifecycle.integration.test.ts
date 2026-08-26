@@ -19,7 +19,7 @@ import { DataExportController } from './data-export.controller.js';
 import { TournamentsController } from './tournaments.controller.js';
 
 /**
- * Tournament archival through the real HTTP stack (0033, tasks 5.1-5.3): the
+ * Tournament archival through the real HTTP stack: the
  * active-only listing, the legal-transition guard against a real database,
  * and export continuing to serve an archived tournament identically to a
  * finished one.

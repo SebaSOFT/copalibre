@@ -3,7 +3,7 @@ import { tennisDescriptor, type RecordedOutcome } from '@copalibre/domain';
 import { computeStandings } from './index.js';
 
 /**
- * Regression cover for the defect that motivated 0009.
+ * Regression cover for the defect that motivated declarative accounting.
  *
  * A tennis group bound correctly by phase 8 (`primary-scoring → matches-won`,
  * `secondary-scoring → sets-won`, `tertiary-scoring → games-won`) still ranked
@@ -89,7 +89,7 @@ function played(
 const group = ['alfa', 'bravo', 'charlie'];
 
 describe('tennis group regression', () => {
-  it('resolves the three-way tie the pre-0009 accounting could not', () => {
+  it('resolves the three-way tie previous accounting could not', () => {
     const standings = computeStandings(
       tennis,
       group,

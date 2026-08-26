@@ -4,7 +4,7 @@
  *
  * A discipline scores in nested units — points inside games inside sets inside
  * a match — and the win condition is the rule that turns those tallies into a
- * closed segment or a closed match. Phase 0009 makes it a rule script over a
+ * closed segment or a closed match. The rule model makes it a script over a
  * core-owned action registry rather than an enumerated string, because
  * `'higher-score-wins'` cannot express "first to 6 games by a margin of 2, or a
  * tiebreak to 7 by a margin of 2 at 6-6, best of 3 sets".

@@ -1049,10 +1049,10 @@ export class MatchControlController {
         });
       }
 
-      // Tag facts (0073, `declared-tagging`): a declared `{ kind: 'tag' }`
+      // Tag facts: a declared `{ kind: 'tag' }`
       // effect on this one event produces a fact now, in the same
       // transaction — commits with the event or not at all, the same
-      // reasoning `0082`'s live-cadence fold above already applies. Scoped to
+      // reasoning the live-cadence fold above already applies. Scoped to
       // `[appended]`, not the whole log: every earlier event already
       // produced its own facts when *it* was recorded.
       if (foldContext) {
@@ -1398,7 +1398,7 @@ export class MatchControlController {
     const baseSequence = await competition.nextEventSequence(matchId);
 
     // Name/nationality are snapshotted from Person, never taken from the
-    // submission — the same policy 0107's live roster-selection route
+    // submission — the same policy the live roster-selection route
     // enforces, so a bulk-loaded match's roster can never disagree with the
     // identity it names, whether it arrived live or after the fact.
     const rosterPersonIds = body.rosters.flatMap((roster) =>
@@ -1649,7 +1649,7 @@ export class MatchControlController {
    * One planning path for the preview and the commit.
    *
    * Splitting them is how a preview starts promising something the commit
-   * refuses — the lesson 0012 wrote down for scheduling, and a correction has
+   * refuses — the scheduling lesson, and a correction has
    * more at stake than a schedule.
    */
   private async planCorrectionFor(
@@ -1895,7 +1895,7 @@ export class MatchControlController {
    * A team entrant's name and its club id, keyed by entrant id — what
    * `JerseyGrid.tsx`'s team header needs to replace the raw
    * `entrantId.slice(-8)` it renders today, and to resolve the club's
-   * emblem via the entity-scoped serve route (0093 task 4.7).
+   * emblem via the entity-scoped serve route.
    */
   private async teamIdentityByEntrant(entrantIds: readonly string[]): Promise<{
     readonly teamNameByEntrant: ReadonlyMap<string, string>;
@@ -1981,7 +1981,7 @@ export class MatchControlController {
 
   /**
    * A team entrant's roster candidates are its registered players; a person
-   * entrant (an individual competitor) rosters exactly themselves (0107
+   * entrant (an individual competitor) rosters exactly themselves
    * design.md).
    */
   private async eligiblePersonIdsFor(entrant: {
@@ -2261,7 +2261,7 @@ function fingerprintOf(body: unknown): string {
 }
 
 /**
- * Every idempotent route (0123, finalize included) shares this same
+ * Every idempotent route, including finalize, shares this same
  * replay-or-conflict check, not a copy of it per route.
  */
 function replayCommand<T>(

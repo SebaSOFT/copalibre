@@ -106,7 +106,7 @@ export async function readInstallationMarker(cwd: string): Promise<InstallationM
  * a directory stays pinned to the CLI version that created it. Running
  * several CopaLibre versions side by side means running the matching CLI
  * version per directory, not one binary managing every schema version
- * (0084's design decision) — so a mismatch is refused explicitly rather
+ * (the design decision) — so a mismatch is refused explicitly rather
  * than silently risking the wrong migration/compose shape.
  */
 export function assertVersionCompatible(

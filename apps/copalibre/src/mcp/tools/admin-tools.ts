@@ -8,7 +8,7 @@ import { runUpgradeCheck } from '../../upgrade-check.js';
 import type { McpToolDefinition } from '../tool.js';
 
 /**
- * The three installation-action tools call existing logic in-process (0047
+ * The three installation-action tools call existing logic in-process
  * design): the same functions the CLI's own `doctor`/`upgrade-check` commands
  * and `module list` call, never shelling back out to `copalibre` itself.
  */

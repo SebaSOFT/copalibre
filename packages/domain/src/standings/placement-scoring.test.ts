@@ -52,7 +52,7 @@ describe('applyPlacementScoring', () => {
     const scored = applyPlacementScoring(arena, corrected);
     expect(scored.ok).toBe(true);
     if (!scored.ok) return;
-    // A discipline that computed its own points had a reason; 0009 settled that
+    // A discipline that computed its own points had a reason; declarative accounting settled that
     // the engine does not second-guess a recorded fact.
     expect(scored.value.sides[0]?.statistics['placement-points']).toBe(15);
   });

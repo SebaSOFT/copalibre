@@ -25,11 +25,11 @@ import { MatchControlController } from './match-control.controller.js';
 /**
  * A recorded event carrying a declared `{ kind: 'tag' }` effect produces a
  * real `tag_facts` row, written in the same transaction as the event itself
- * (0073, task 3.1/3.2 and task 6.1) — the wiring `declared-tagging` never had
+ * — the declared-tagging wiring never had
  * before this change, proven through the real HTTP event-recording path
  * `MatchControlController.recordEvent` now drives `tagFactsFrom` from.
  */
-describe('tag facts inside the event-recording transaction (integration, 0073)', () => {
+describe('tag facts inside the event-recording transaction (integration)', () => {
   let app: INestApplication;
   let scratch: Awaited<ReturnType<typeof createMigratedDatabase>>;
   let organizationId: string;
@@ -122,7 +122,7 @@ describe('tag facts inside the event-recording transaction (integration, 0073)',
       eventDefinitions,
       // `producedAt` is required for a fact to be produced at all —
       // `tagScopeFor` falls back to it when the tournament configures no
-      // scope of its own, which this test (deliberately, per 0073's scope)
+      // scope of its own, which this test deliberately
       // never does.
       tags: [{ code: 'captain', label: 'Captain', appliesTo: ['person'], producedAt: 'match' }],
     });

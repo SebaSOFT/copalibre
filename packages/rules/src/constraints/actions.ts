@@ -12,7 +12,7 @@ import type { RulesRegistry } from '../registry/rules-registry.js';
  * A declarative `separation` or `distribution` covers what operators actually
  * ask for; this is the escape hatch for what they ask for next. A script
  * composes these two actions over the facts the draw supplies, on the same
- * boundary 0009 set for win conditions: a module composes vocabulary, it never
+ * boundary set for win conditions: a module composes vocabulary, it never
  * introduces it, so a constraint nobody anticipated needs no core release while
  * a new *action* still does.
  */

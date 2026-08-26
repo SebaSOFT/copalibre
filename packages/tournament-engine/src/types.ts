@@ -6,7 +6,7 @@ import type { PlacementOptions } from './fixtures/placement.js';
  *
  * Slots are declarative (`winner-of`/`loser-of` a match) rather than mutated
  * pointers, so advancement is recomputed from structure — which is what lets the
- * correction workflow (phase 0009) replay deterministically after a result is
+ * correction workflow replay deterministically after a result is
  * superseded instead of unwinding imperative writes.
  */
 
@@ -48,7 +48,7 @@ export interface DuelMatch extends GeneratedMatchBase {
  * N sides producing an ordering, not a winner: an FFA lobby, a swimming heat,
  * an athletics final. It feeds stage standings and nothing else — qualification
  * is by result across all heats, so "winner of heat 3" is not a thing a slot
- * may source from (0009 design, "Placement matches carry no advancement edges").
+ * may source from. Placement matches carry no advancement edges.
  */
 export interface PlacementMatch extends GeneratedMatchBase {
   readonly shape: 'placement';
@@ -80,7 +80,7 @@ export interface FixtureGraph {
   readonly format: TournamentFormat;
   readonly entrantCount: number;
   readonly matches: readonly GeneratedMatch[];
-  /** Rounds per bracket, for UI layout (phase 0018 renders from this). */
+  /** Rounds per bracket, for UI layout. */
   readonly rounds: readonly {
     readonly bracket: BracketKind;
     readonly round: number;

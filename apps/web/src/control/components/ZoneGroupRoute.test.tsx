@@ -43,7 +43,7 @@ function stubClient(overrides: Partial<ControlApiClient> = {}): ControlApiClient
   } as unknown as ControlApiClient;
 }
 
-describe('ZoneGroupRoute (0147 template migration)', () => {
+describe('ZoneGroupRoute', () => {
   it('renders within ListScreenTemplate structure and displays zones and groups', async () => {
     const { container } = render(
       withIntl(

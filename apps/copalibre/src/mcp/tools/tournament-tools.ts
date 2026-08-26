@@ -2,7 +2,7 @@ import { apiGet, apiPost, type ApiClientConfig } from '../api-client.js';
 import type { McpToolDefinition } from '../tool.js';
 
 /**
- * The five tournament-operational tools (0047 design): a curated starting
+ * The five tournament-operational tools: a curated starting
  * set — get/list/create/publish a tournament and read an organization — not
  * an exhaustive wrapper of every `apps/api` endpoint. Each calls `apps/api`
  * over HTTP with the bearer token `server.ts` only builds this module with

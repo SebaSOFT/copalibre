@@ -43,8 +43,8 @@ import { enforcePolicy } from '../policy/resource-policy.js';
 import { DATABASE } from '../database.token.js';
 
 /**
- * Thin pass-through to phase 0004's repositories — no tournament business logic
- * here; phases 0006–0008 add that behind this same guard/policy layer.
+ * Thin pass-through to persistence repositories — no tournament business logic
+ * here; later work adds that behind this same guard/policy layer.
  */
 @ApiTags('organizations')
 @Controller('organizations')

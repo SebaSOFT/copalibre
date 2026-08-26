@@ -5,7 +5,7 @@ import type { ModuleAssetDescriptor, ModuleAssetKind } from './manifest.js';
 import { ASSETS_DIRECTORY_NAME } from './package-format.js';
 
 /**
- * Asset limits (0036-community-module-distribution, task 2.4). No owner
+ * Asset limits. No owner
  * decision fixed these numbers; they are a reasonable first pass for
  * web-served background/logo imagery, kept in one place so they are easy to
  * revise without touching the validation logic itself. `copalibre module

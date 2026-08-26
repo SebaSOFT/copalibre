@@ -8,7 +8,7 @@ import { winConditionScript } from './win-condition-scripts.js';
  * Its scoring is the shape the whole placement format exists for: points for
  * where you finished, plus points for what you did. The first half is
  * structural and comes from `placementScoring`; the second is `frags`, an
- * ordinary declared statistic that 0009's accounting already sums. Nothing in
+ * ordinary declared statistic that the accounting model already sums. Nothing in
  * the engine knows which is which — the standings add both.
  *
  * The table stops at tenth because that is what these formats actually do: a

@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 /**
- * The `/tv/**` kiosk and overlay surface (0031, tasks 8.1-8.3).
+ * The `/tv/**` kiosk and overlay surface.
  *
  * Every scenario here is about the property that makes this surface
  * different from the public web: nobody is present to click anything, so a

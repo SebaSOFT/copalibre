@@ -2,10 +2,10 @@ import { expect, test, type Page } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
- * Tournament archival from the A1 dashboard (0033, task 6.1).
+ * Tournament archival from the A1 dashboard.
  *
- * The dashboard's tournament list is real data since 0113 (`listActive`,
- * `0100`'s admin-scoped organization tournament list) — archiving removes
+ * The dashboard's tournament list is real data (`listActive`,
+ * the admin-scoped organization tournament list) — archiving removes
  * the card from the operator's own view immediately, via local state rather
  * than a refetch (`DashboardRoute.tsx`'s own comment: the operator sees the
  * result of their own action either way). The public route resolving

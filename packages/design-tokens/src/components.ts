@@ -151,7 +151,7 @@ export const DIALOG_TOKENS: DialogTokens = {
 /**
  * Pagination, toolbar-density, form-section, and match-console template
  * contracts. Extends the template tier with tokens the remaining
- * 11 Control-web screens need after 0141 shipped the tier system itself.
+ * 11 Control-web screens need after the tier system shipped.
  */
 
 export interface PaginationTokens {

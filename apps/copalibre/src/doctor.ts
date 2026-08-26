@@ -37,7 +37,7 @@ export interface DoctorDependencies {
   readonly fetch: typeof fetch;
   /** Installed community discipline versions no started/finished tournament references (task 4.7). */
   readonly retirableModules: (connectionString: string) => Promise<readonly RetirableModule[]>;
-  /** Puts, reads back, and deletes a small probe object against the configured profile (0041 task 3.1). */
+  /** Puts, reads back, and deletes a small probe object against the configured profile. */
   readonly objectStorageRoundTrip: (environment: NodeJS.ProcessEnv) => Promise<void>;
 }
 
@@ -220,7 +220,7 @@ export async function validateRetirableModules(
 }
 
 /**
- * A real write/read/delete round-trip (0041 task 3.1-3.2), replacing the
+ * A real write/read/delete round-trip, replacing the
  * former URL-reachability-only check — reachability passes on a bucket that
  * exists but denies writes, or credentials that resolve DNS fine and then
  * fail every request. `objectStorageConfigFromEnv` never leaves this

@@ -371,7 +371,7 @@ export class SetMatchRosterMemberRequest {
 
 /**
  * `name`/`nationality` are deliberately absent — the handler snapshots both
- * from `Person` (0107 design.md), so the stored record cannot disagree with
+ * from `Person`, so the stored record cannot disagree with
  * the identity it names.
  */
 export class SetMatchRosterRequest {
@@ -417,7 +417,7 @@ export class FinalizeRequest {
 
 /**
  * `name`/`nationality` are deliberately absent — the handler snapshots both
- * from `Person`, the same policy 0107's live roster-selection route
+ * from `Person`, the same policy the live roster-selection route
  * enforces, so a bulk-loaded roster can never disagree with the identity
  * it names.
  */

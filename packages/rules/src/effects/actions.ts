@@ -12,7 +12,7 @@ import {
 } from './declared-effects.js';
 
 /**
- * The effectful actions (0013-scripting-hook-surface, extended by 0016).
+ * The effectful actions.
  *
  * Each one **declares** an effect and performs none. The contract is enforced
  * by shape rather than by discipline: an action appends a draft to the

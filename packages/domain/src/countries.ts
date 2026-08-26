@@ -3,7 +3,7 @@
  *
  * The canonical list `validatePerson` checks a supplied `nationality`
  * against, and the list `apps/web`'s `CountrySelect` enumerates as options
- * (see 0093 design.md Decision 1). Localized names and flags are derived
+ * Localized names and flags are derived
  * elsewhere (`Intl.DisplayNames`, Unicode regional-indicator symbols) —
  * this file carries only the codes themselves.
  */

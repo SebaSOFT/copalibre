@@ -12,7 +12,7 @@
  * A club streaming four screens from one venue arrives as four connections from
  * one address, and so does a scraper. The per-address cap is therefore generous
  * and the *global* cap is the real protection — and the venue surfaces in
- * `0031` are told to use the authenticated device path precisely so a shared
+ * public-display clients are told to use the authenticated device path precisely so a shared
  * address never decides whether the scoreboard works.
  */
 

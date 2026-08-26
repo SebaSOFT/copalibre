@@ -1,7 +1,7 @@
 import type { CompilationProvenance } from '@copalibre/domain';
 
 /**
- * The explanation-trace contract. Phase 0017's Standings screen renders this
+ * The explanation-trace contract. The Standings screen renders this
  * structure directly ("Tiebreaker Resolution Trace"), so from this phase on
  * its shape is a public contract: JSON-serializable, deterministic for
  * identical inputs (no timestamps, no randomness), stable across releases.

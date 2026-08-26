@@ -82,7 +82,7 @@ export const RULE_SCRIPT_SCHEMA: JsonSchemaDocument = Object.freeze({
           // evaluation, which is the worst place to learn it. The schema
           // tightens rather than the loader normalising, because a normalised
           // document differs from the submitted one and module identity is a
-          // signature-adjacent concern in 0034. An empty array is fine — it
+          // signature-adjacent concern. An empty array is fine — it
           // means "no conditions", which is a rule that always fires.
           required: ['conditions', 'actions'],
           properties: {
@@ -326,7 +326,7 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
     },
     collectors: { type: 'array', items: { $ref: '#/definitions/collector' } },
     /**
-     * Tag declarations (0073, `declared-tagging`). The structure is checked
+     * Tag declarations. The structure is checked
      * here; whether a collector's `requiresTag` names one declared here is a
      * question about the whole document and lives in
      * `validateDisciplineDescriptorDocument`.
@@ -610,7 +610,7 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
       ],
     },
     /**
-     * A tag declaration (0073, `declared-tagging`). `label` is a plain string
+     * A tag declaration. `label` is a plain string
      * (unlike a collector's `LOCALIZED_LABEL_SCHEMA` label) — matching
      * `TagDeclaration`'s own domain type exactly.
      */
@@ -664,7 +664,7 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
       },
     },
     /**
-     * An effect was `{ type: 'object' }` until 0014 — anything at all installed,
+     * An effect was once `{ type: 'object' }` — anything at all installed,
      * and the TypeScript union describing it was a claim the gate never
      * checked. A module could ship `{ kind: 'score', side: 'opponent' }`, pass
      * installation, and mean nothing at match time. Each kind now states its

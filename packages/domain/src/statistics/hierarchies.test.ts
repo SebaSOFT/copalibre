@@ -38,7 +38,7 @@ describe('the two axes', () => {
     }
   });
 
-  it('has nothing inert left: 0015 populated the last three', () => {
+  it('has nothing inert left: the last three are populated', () => {
     // A collector declared at a granularity nobody populates would have to
     // report itself inert; answering with zero is a page of blanks.
     expect([

@@ -44,7 +44,7 @@ test('a direct dependency maps to its src/index.ts', () => {
   assert.equal(mapper['^@copalibre/domain$'], '<rootDir>/../../packages/domain/src/index.ts');
 });
 
-test("a two-level transitive dependency is mapped without being the consumer's own dependency (0082's exact shape)", () => {
+test("a two-level transitive dependency is mapped without being the consumer's own dependency", () => {
   const consumerDir = fixtureRepo(
     {
       '@copalibre/statistics-refold': { '@copalibre/tournament-engine': '*' },

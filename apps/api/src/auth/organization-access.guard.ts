@@ -69,7 +69,7 @@ export class OrganizationAccessGuard implements CanActivate {
       // this is the one route whose whole purpose is to answer "does this
       // account have any footprint at all" — a caller who authenticated but
       // never accepted an invitation legitimately has none yet, and the
-      // correct response is an empty result, not a 403 (0063 design.md).
+      // correct response is an empty result, not a 403.
       const principal = await new IdentityPrincipalRepository(this.db).findByOidcSubject(
         subject.subjectId,
       );

@@ -22,7 +22,7 @@ import { DATABASE } from '../database.token.js';
 import { MatchControlController } from './match-control.controller.js';
 
 /**
- * Structured rosters and goalkeeper auto-population (0092, tasks 3.2/3.3),
+ * Structured rosters and goalkeeper auto-population,
  * proven through the real HTTP path: `consoleProjection` returns structured
  * `rosters`/`rosterRoles` with on-field state resolved from substitution
  * history, and recording a `goal` event auto-populates `payload.goalkeeperId`
@@ -30,7 +30,7 @@ import { MatchControlController } from './match-control.controller.js';
  * goalkeeper subsequent goals attribute to once a substitution changes who
  * is on the pitch.
  */
-describe('structured rosters and goalkeeper auto-population (integration, 0092)', () => {
+describe('structured rosters and goalkeeper auto-population (integration)', () => {
   let app: INestApplication;
   let scratch: Awaited<ReturnType<typeof createMigratedDatabase>>;
   let organizationId: string;
@@ -108,7 +108,7 @@ describe('structured rosters and goalkeeper auto-population (integration, 0092)'
 
     // Real football descriptor, unmodified: `goal`'s `roster-role-snapshot`
     // effect and `rosterRoles: [{goalkeeper}, {captain}]` are already
-    // declared on it (0092, tasks 1.1a/1.3c).
+    // declared on it.
     const descriptor = footballDescriptor();
 
     const tournaments = new TournamentRepository(scratch.db);

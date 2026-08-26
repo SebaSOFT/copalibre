@@ -12,7 +12,7 @@ import { err, ok, type Result } from '../result.js';
 /**
  * A recorded match event is a timestamped domain fact. The event log is the
  * source input for calculation and later audit — append-only, never edited in
- * place (corrections are a supersession workflow, phase 0008).
+ * place (corrections are a supersession workflow).
  */
 export interface RecordedEvent {
   readonly eventId: string;
@@ -26,7 +26,7 @@ export interface RecordedEvent {
    * The entrant this event belongs to, named the way `OutcomeSide` names one.
    *
    * It was `'home' | 'away'` until this correction, which is the positional
-   * fiction 0009 removed from results and 0013 refused to reintroduce in the
+   * fiction removed from results and not reintroduced in the
    * hook context, where being at home is a property *of a side*. Two slots
    * cannot say which of an eight-lane heat's entrants a card belongs to, and a
    * discipline where nobody is at home had to pick one anyway.

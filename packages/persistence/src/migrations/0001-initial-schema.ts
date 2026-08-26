@@ -276,7 +276,7 @@ export const initialSchema: Migration = {
     // One row per scheduled fixture. `starts_at` is epoch milliseconds rather
     // than a timestamptz: a schedule is compared and published, never rendered
     // here, and an epoch is the one representation that means the same thing to
-    // every surface (0013's context decision, applied to storage).
+    // every surface (the context decision applied to storage).
     await db.schema
       .createTable('fixture_schedules')
       .addColumn('fixture_schedule_id', 'uuid', (col) => col.primaryKey())
@@ -346,7 +346,7 @@ export const initialSchema: Migration = {
       .execute();
 
     // Who takes the field. One row per entrant per match, replaced when
-    // the match roster changes and audited every time. Migration 0004 renames
+    // the match roster changes and audited every time. A later migration renames
     // this historical table to match_rosters; the original name stays here so
     // established databases retain a valid migration chain.
     await db.schema
@@ -437,7 +437,7 @@ export const initialSchema: Migration = {
       .addColumn('dead_lettered_at', 'timestamptz')
       .addColumn('failures', 'jsonb', (col) => col.notNull().defaultTo(sql`'[]'`))
       .execute();
-    // Phase 0009's relay poll: oldest unconsumed first.
+    // Relay poll: oldest unconsumed first.
     await db.schema
       .createIndex('outbox_events_poll_idx')
       .on('outbox_events')

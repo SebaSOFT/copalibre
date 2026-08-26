@@ -21,7 +21,7 @@ function stubClient(overrides: Partial<ControlApiClient> = {}): ControlApiClient
   } as unknown as ControlApiClient;
 }
 
-describe('ClubManagementRoute (0147 template migration)', () => {
+describe('ClubManagementRoute', () => {
   it('renders within ListScreenTemplate structure and displays club list', async () => {
     const { container } = render(
       withIntl(<ClubManagementRoute client={stubClient()} organizationAlias="liga-mendocina" />),

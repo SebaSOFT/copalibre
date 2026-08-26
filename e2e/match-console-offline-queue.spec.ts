@@ -102,7 +102,7 @@ async function mockMatchConsole(page: Page): Promise<void> {
           // are already queued ahead of it — the server-side "same
           // validation a live action goes through" is proven directly in
           // match-console.integration.test.ts's own idempotency coverage
-          // (0123 task 6.3); this mock only needs to stand in for a refusal
+          // This mock only needs to stand in for a refusal.
           // being possible at all, so the drain-continues-past-it behavior
           // is provable from the UI.
           if (body.definitionCode === 'refuse-me') {
@@ -155,7 +155,7 @@ async function setOffline(page: Page, offline: boolean): Promise<void> {
 /**
  * This control shell defaults to Spanish; select English by value (not by
  * its translated label) so every English assertion below holds regardless
- * of that default — the same fix 0122's own e2e specs needed.
+ * of that default — the same fix the crop-modal e2e specs needed.
  */
 async function selectEnglish(page: Page): Promise<void> {
   await page.getByRole('combobox').first().selectOption('en');

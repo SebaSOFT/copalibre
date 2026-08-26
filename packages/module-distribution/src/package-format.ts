@@ -2,7 +2,7 @@ import { readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
 /**
- * A module package's on-disk layout (0036-community-module-distribution,
+ * A module package's on-disk layout,
  * task 1.2):
  *
  *   <module-directory>/

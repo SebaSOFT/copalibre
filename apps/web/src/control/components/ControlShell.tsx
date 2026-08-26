@@ -74,7 +74,7 @@ function ControlShellChrome({
     window.location.assign('/control/');
   };
   return (
-    // data-density scopes the denser Control-web spacing composition (0141,
+    // data-density scopes the denser Control-web spacing composition,
     // design.md Decision 4) to every screen under this shell — never the
     // public/marketing Astro surfaces, which never render this component.
     <div className="cl-control" data-density="control">

@@ -1,7 +1,7 @@
 import { sql, type Kysely } from 'kysely';
 import type { Migration } from 'kysely/migration';
 
-/** Organization membership and opaque invitations introduced by change 0026. */
+/** Organization membership and opaque invitations. */
 export const organizationAccess: Migration = {
   async up(db: Kysely<unknown>): Promise<void> {
     await db.schema

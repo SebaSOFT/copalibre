@@ -13,7 +13,7 @@ import { fixtureDescriptor, footballDescriptor, type RecordedOutcome } from '@co
 
 /**
  * A league discipline declaring the football-shaped vocabulary explicitly —
- * which since 0009 is the only way to get it: the engine assumes no code.
+ * which is the only way to get it: the engine assumes no code.
  */
 const leagueDescriptor = fixtureDescriptor({
   statistics: [
