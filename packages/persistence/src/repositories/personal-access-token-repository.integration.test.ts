@@ -153,6 +153,12 @@ describe('Personal Access Token repository (integration)', () => {
     const listed = await tokens.listByPrincipal(principalId);
     const found = listed.find((t) => t.tokenId === issued.tokenId);
     expect(found?.lastUsedAt).toEqual(expect.any(String));
+
+    await tokens.touchLastUsed(issued.tokenId);
+
+    const listedAgain = await tokens.listByPrincipal(principalId);
+    const foundAgain = listedAgain.find((t) => t.tokenId === issued.tokenId);
+    expect(foundAgain?.lastUsedAt).toEqual(found?.lastUsedAt);
   });
 
   it('records creation and revocation in the audit trail', async () => {

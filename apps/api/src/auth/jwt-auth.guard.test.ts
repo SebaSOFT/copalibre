@@ -197,7 +197,7 @@ describe('JwtAuthGuard', () => {
     );
 
     await expect(guard.canActivate(context)).resolves.toBe(true);
-    expect(scopeOf).toHaveBeenCalledWith(hashToken('validtoken'));
+    expect(scopeOf).toHaveBeenCalledWith(hashToken('clpat_validtoken'));
     expect(request.subject).toEqual({
       subjectId: 'org-1-admin',
       scopes: ['copalibre.control'],
@@ -216,6 +216,37 @@ describe('JwtAuthGuard', () => {
     const guard = new JwtAuthGuard(reflector, rejectingVerifier(), {} as Kysely<Database>);
 
     await expect(guard.canActivate(context)).rejects.toBeInstanceOf(UnauthorizedException);
+  });
+
+  it('does not let a usage-heartbeat failure reject valid PAT authentication', async () => {
+    jest.spyOn(PersonalAccessTokenRepository.prototype, 'scopeOf').mockResolvedValue({
+      tokenId: 'token-1',
+      principalId: 'org-1-admin',
+      scopes: ['copalibre.control'],
+    });
+    jest
+      .spyOn(PersonalAccessTokenRepository.prototype, 'touchLastUsed')
+      .mockRejectedValue(new Error('database unavailable'));
+    const mockDb = {
+      selectFrom: jest.fn().mockReturnValue({
+        selectAll: jest.fn().mockReturnValue({
+          where: jest.fn().mockReturnValue({
+            executeTakeFirst: jest
+              .fn()
+              .mockResolvedValue({ email: 'admin@example.com' } as unknown as never),
+          }),
+        }),
+      }),
+    };
+    const request: RequestWithSubject = { headers: { authorization: 'Bearer clpat_validtoken' } };
+    const { context, reflector } = contextFor(request, 'admin-control');
+    const guard = new JwtAuthGuard(
+      reflector,
+      rejectingVerifier(),
+      mockDb as unknown as Kysely<Database>,
+    );
+
+    await expect(guard.canActivate(context)).resolves.toBe(true);
   });
 });
 
