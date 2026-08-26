@@ -16,6 +16,7 @@ import { ModuleSubmitCommand } from './module-submit-command.js';
 import { ModuleValidateLocalCommand } from './module-validate-local-command.js';
 import { ModuleVerifyCommand } from './module-verify-command.js';
 import { RestoreCommand } from './restore-command.js';
+import { RevokeLegacyPersonalAccessTokensCommand } from './revoke-legacy-personal-access-tokens-command.js';
 import { StartCommand } from './start-command.js';
 import { StatisticsRebuildCommand } from './statistics-rebuild-command.js';
 import { UpgradeCheckCommand } from './upgrade-check-command.js';
@@ -29,6 +30,7 @@ export const commandClasses: readonly CommandClass<CliContext>[] = [
   MigrateCommand,
   BackupCommand,
   RestoreCommand,
+  RevokeLegacyPersonalAccessTokensCommand,
   UpgradeCheckCommand,
   CreateAdminCommand,
   LoginCommand,

@@ -385,6 +385,26 @@ describe('runCli', () => {
     });
   });
 
+  describe('revoke-legacy-personal-access-tokens', () => {
+    it('refuses without confirmation before opening a database connection', async () => {
+      const stderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+      try {
+        const result = await runCli(
+          ['revoke-legacy-personal-access-tokens'],
+          {},
+          { run: jest.fn(async () => 0) },
+        );
+        expect(result).toBe(1);
+        expect(stderr).toHaveBeenCalledWith(
+          'copalibre revoke-legacy-personal-access-tokens failed: ' +
+            'revoke-legacy-personal-access-tokens requires --confirm (or use --dry-run)\n',
+        );
+      } finally {
+        stderr.mockRestore();
+      }
+    });
+  });
+
   describe('marker-aware compose dispatch', () => {
     it('an installation marker alone (no discoverable compose file) is enough for doctor/start/migrate/upgrade-check to proceed', async () => {
       await withTemporaryWorkingDirectory(async () => {

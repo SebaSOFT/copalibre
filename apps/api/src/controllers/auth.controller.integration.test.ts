@@ -8,6 +8,7 @@ import { Test } from '@nestjs/testing';
 import * as argon2 from 'argon2';
 import {
   AuthVerificationTokenRepository,
+  PersonalAccessTokenRepository,
   withTransaction,
   newId,
   type Database,
@@ -316,6 +317,32 @@ describe('Auth Controllers', () => {
       const data = JSON.parse(getResponse.payload);
       expect(data).toHaveLength(1);
       expect(data[0].revoked).toBe(true);
+    });
+
+    it('rejects a bulk-revoked PAT on the protected API path', async () => {
+      const issued = await request({
+        method: 'POST',
+        url: '/auth/pat',
+        token: 'admin-token',
+        payload: { label: 'Bulk Cutover Test', expiresInDays: 30 },
+      });
+      expect(issued.statusCode).toBe(201);
+      const credential = JSON.parse(issued.payload) as { readonly token: string };
+
+      await withTransaction(scratch.db, (uow) =>
+        new PersonalAccessTokenRepository(scratch.db).revokeAllActive(uow, {
+          actor: 'operator-cli',
+          authorizationContext: 'operator-cli:revoke-legacy-personal-access-tokens',
+        }),
+      );
+
+      const afterCutover = await request({
+        method: 'GET',
+        url: '/auth/pat',
+        token: credential.token,
+      });
+      expect(afterCutover.statusCode).toBe(401);
+      expect(afterCutover.payload).not.toContain(credential.token);
     });
 
     // Scope policy regression cases. Each rejection case asserts the
