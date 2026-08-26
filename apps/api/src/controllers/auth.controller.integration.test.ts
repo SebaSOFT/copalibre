@@ -1,6 +1,9 @@
+import { jest } from '@jest/globals';
 import { Module, type INestApplication } from '@nestjs/common';
 import { APP_GUARD, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { PrincipalThrottlerGuard } from '../auth/principal-throttler.guard.js';
 import { Test } from '@nestjs/testing';
 import * as argon2 from 'argon2';
 import {
@@ -14,6 +17,7 @@ import { createMigratedDatabase } from '../../../../packages/persistence/src/tes
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 import type { AuthenticatedSubject } from '../auth/request-context.js';
 import { SUPER_ADMIN_SCOPE } from '../auth/access-requirement.js';
+import { AUTH_THROTTLE_LIMIT, AUTH_THROTTLE_TTL_MS } from './auth.controller.js';
 import { TokenVerifier } from '../auth/token-verifier.js';
 import { DATABASE } from '../database.token.js';
 import { NativeAuthController, PersonalAccessTokenController } from './auth.controller.js';
@@ -54,17 +58,27 @@ describe('Auth Controllers', () => {
 
     @Module({
       controllers: [NativeAuthController, PersonalAccessTokenController],
+      imports: [
+        // Same permissive default as AppModule; the strict per-route limits
+        // under test come from the controllers' own @Throttle decorators.
+        ThrottlerModule.forRoot([{ ttl: 60_000, limit: 1_000 }]),
+      ],
       providers: [
         { provide: DATABASE, useValue: scratch.db },
         { provide: TokenVerifier, useValue: new FakeTokenVerifier() },
         { provide: APP_GUARD, useClass: JwtAuthGuard },
+        { provide: APP_GUARD, useClass: PrincipalThrottlerGuard },
         Reflector,
       ],
     })
     class TestModule {}
 
     const moduleRef = await Test.createTestingModule({ imports: [TestModule] }).compile();
-    app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    app = moduleRef.createNestApplication<NestFastifyApplication>(
+      // trustProxy mirrors main.ts so a request's `ip` — and therefore the
+      // per-IP rate-limit bucket — follows X-Forwarded-For in these tests.
+      new FastifyAdapter({ trustProxy: true }),
+    );
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
   });
@@ -379,6 +393,100 @@ describe('Auth Controllers', () => {
       });
       expect(response.statusCode).toBe(400);
       expect(await patCount('550e8400-e29b-41d4-a716-446655440000')).toBe(before);
+    });
+  });
+
+  // 0145: per-IP rate limiting on the unauthenticated brute-forceable
+  // endpoints. Every case sends an explicit X-Forwarded-For so it owns a
+  // fresh bucket, independent of the requests the suites above already made.
+  describe('auth endpoint rate limiting', () => {
+    function fromIp(ip: string): (payload: unknown) => Promise<{ statusCode: number }> {
+      return (payload) =>
+        (app as NestFastifyApplication).inject({
+          method: 'POST',
+          url: '/auth/login',
+          headers: { 'x-forwarded-for': ip },
+          payload: payload as never,
+        }) as unknown as Promise<{ statusCode: number }>;
+    }
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('evaluates login attempts at or below the per-window limit normally', async () => {
+      const send = fromIp('10.9.0.1');
+      for (let i = 0; i < AUTH_THROTTLE_LIMIT; i++) {
+        const response = await send({ email: 'test@example.com', password: 'wrong' });
+        expect(response.statusCode).toBe(401);
+      }
+    });
+
+    it('rejects further attempts from that IP with 429 once the limit is exceeded', async () => {
+      const send = fromIp('10.9.0.2');
+      for (let i = 0; i < AUTH_THROTTLE_LIMIT; i++) {
+        const response = await send({ email: 'test@example.com', password: 'wrong' });
+        expect(response.statusCode).toBe(401);
+      }
+      const over = await send({ email: 'test@example.com', password: 'my-secret-password' });
+      expect(over.statusCode).toBe(429);
+    });
+
+    it('tracks different client IPs independently', async () => {
+      const otherIp = fromIp('10.9.0.3');
+      const response = await otherIp({ email: 'test@example.com', password: 'whatever' });
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('allows attempts again after the window elapses', async () => {
+      const send = fromIp('10.9.0.4');
+      for (let i = 0; i < AUTH_THROTTLE_LIMIT + 1; i++) {
+        await send({ email: 'test@example.com', password: 'wrong' });
+      }
+      expect((await send({ email: 'test@example.com', password: 'wrong' })).statusCode).toBe(429);
+
+      // Advance the clock past the throttle window without touching timers —
+      // the in-memory storage computes windows from Date.now().
+      const spy = jest.spyOn(Date, 'now').mockReturnValue(Date.now() + AUTH_THROTTLE_TTL_MS + 1);
+      try {
+        const afterWindow = await send({ email: 'test@example.com', password: 'wrong' });
+        expect(afterWindow.statusCode).toBe(401);
+      } finally {
+        spy.mockRestore();
+      }
+    });
+
+    it('applies its own per-IP window to forgot-password and reset-password', async () => {
+      const injectIp = (url: string, payload: unknown) =>
+        (app as NestFastifyApplication).inject({
+          method: 'POST',
+          url,
+          headers: { 'x-forwarded-for': '10.9.0.5' },
+          payload: payload as never,
+        });
+      for (let i = 0; i < AUTH_THROTTLE_LIMIT; i++) {
+        const response = await injectIp('/auth/forgot-password', { email: 'test@example.com' });
+        expect(response.statusCode).toBe(200);
+      }
+      expect(
+        (await injectIp('/auth/forgot-password', { email: 'test@example.com' })).statusCode,
+      ).toBe(429);
+
+      // Separate route, separate bucket — but the same per-IP window applies.
+      // A too-short password keeps the response deterministic (400) while the
+      // request is still being evaluated.
+      for (let i = 0; i < AUTH_THROTTLE_LIMIT; i++) {
+        const response = await injectIp('/auth/reset-password', {
+          token: 'irrelevant',
+          newPassword: 'short',
+        });
+        expect(response.statusCode).toBe(400);
+      }
+      const overLimit = await injectIp('/auth/reset-password', {
+        token: 'irrelevant',
+        newPassword: 'short',
+      });
+      expect(overLimit.statusCode).toBe(429);
     });
   });
 });

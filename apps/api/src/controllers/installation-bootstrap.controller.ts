@@ -1,5 +1,6 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { Body, Controller, Headers, Header, Inject, Post } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import {
   ConflictException,
   ForbiddenException,
@@ -42,6 +43,11 @@ export class InstallationBootstrapController {
 
   @Post('admin')
   @Header('Cache-Control', 'no-store')
+  @Throttle({
+    // Same per-IP limit as the other unauthenticated brute-forceable
+    // endpoints (0145): this one mints the first installation admin.
+    default: { limit: 5, ttl: 60_000 },
+  })
   @SecurityPlaneTag('public-read')
   @ApiOperation({
     summary: 'Create first organization administrator',

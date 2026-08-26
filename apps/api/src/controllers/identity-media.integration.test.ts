@@ -1,6 +1,8 @@
 import { Module, type INestApplication } from '@nestjs/common';
 import { APP_GUARD, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { PrincipalThrottlerGuard } from '../auth/principal-throttler.guard.js';
 import { Test } from '@nestjs/testing';
 import sharp from 'sharp';
 import type { ObjectStorageAdapter } from '@copalibre/object-storage';
@@ -18,6 +20,7 @@ import { createMigratedDatabase } from '../../../../packages/persistence/src/tes
 import type { Kysely } from 'kysely';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 import { OrganizationAccessGuard } from '../auth/organization-access.guard.js';
+import { RESOURCE_THROTTLE_LIMIT } from '../auth/principal-throttler.guard.js';
 import type { AuthenticatedSubject } from '../auth/request-context.js';
 import { TokenVerifier } from '../auth/token-verifier.js';
 import { DATABASE } from '../database.token.js';
@@ -68,6 +71,13 @@ class FakeTokenVerifier {
     const subjects: Record<string, AuthenticatedSubject> = {
       organizer: {
         subjectId: 'organizer-1',
+        organizationId: ORG_PLACEHOLDER,
+        scopes: ['copalibre.control'],
+      },
+      // 0145: a second admin principal, to prove per-principal throttle
+      // buckets are tracked independently.
+      'organizer-2': {
+        subjectId: 'organizer-2',
         organizationId: ORG_PLACEHOLDER,
         scopes: ['copalibre.control'],
       },
@@ -135,6 +145,24 @@ describe('person photo / club emblem upload and public serve (integration)', () 
         verifiedEmail: 'organizer-1@example.test',
         ...AUDIT,
       });
+      // Second admin principal for the 0145 per-principal throttle test.
+      const organizer2Token = 'organizer-2-invite-token';
+      await access.createInvitation(uow, {
+        organizationId: organization.organizationId,
+        recipientEmail: 'organizer-2@example.test',
+        role: 'admin',
+        status: 'active',
+        token: organizer2Token,
+        tokenHash: hash(organizer2Token),
+        expiresAt: '2099-01-01T00:00:00.000Z',
+        ...AUDIT,
+      });
+      await access.acceptInvitation(uow, {
+        tokenHash: hash(organizer2Token),
+        subjectId: 'organizer-2',
+        verifiedEmail: 'organizer-2@example.test',
+        ...AUDIT,
+      });
     });
 
     const person = await withTransaction(db, (uow) =>
@@ -157,12 +185,14 @@ describe('person photo / club emblem upload and public serve (integration)', () 
 
     @Module({
       controllers: [PersonMediaController, ClubMediaController, OrganizationMediaController],
+      imports: [ThrottlerModule.forRoot([{ ttl: 60_000, limit: 1_000 }])],
       providers: [
         { provide: DATABASE, useValue: db },
         { provide: TokenVerifier, useClass: FakeTokenVerifier },
         { provide: OBJECT_STORAGE, useValue: new FakeObjectStorage() },
         { provide: APP_GUARD, useClass: JwtAuthGuard },
         { provide: APP_GUARD, useClass: OrganizationAccessGuard },
+        { provide: APP_GUARD, useClass: PrincipalThrottlerGuard },
         Reflector,
       ],
     })
@@ -474,5 +504,44 @@ describe('person photo / club emblem upload and public serve (integration)', () 
       payload: { nationality: 'AR' },
     });
     expect(response.statusCode).toBe(401);
+  });
+
+  it('throttles photo uploads per principal and tracks principals independently (0145)', async () => {
+    const uploadAs = async (token: string): Promise<{ statusCode: number }> => {
+      const person = await withTransaction(db, (uow) =>
+        new PersonRepository(db).register(uow, {
+          organizationId: currentOrganizationId,
+          displayName: 'Retrato Throttle',
+          ...AUDIT,
+        }),
+      );
+      const response = await inject({
+        method: 'POST',
+        url: `/organizations/${organizationAlias}/persons/${person.person.personId}/photo`,
+        headers: { authorization: `Bearer ${token}` },
+        payload: {
+          filename: 'photo.png',
+          contentType: 'image/png',
+          contentBase64: (await conformingPng()).toString('base64'),
+        },
+      });
+      return response;
+    };
+
+    // Exhaust the first principal's bucket. Uploads before the limit succeed
+    // normally; the request that exceeds it is rejected with 429 without
+    // reaching the handler.
+    let sawThrottled = false;
+    for (let i = 0; i < RESOURCE_THROTTLE_LIMIT * 2 && !sawThrottled; i++) {
+      const response = await uploadAs('organizer');
+      if (response.statusCode === 429) sawThrottled = true;
+      else expect(response.statusCode).toBe(201);
+    }
+    expect(sawThrottled).toBe(true);
+
+    // The second principal's bucket is untouched — an admin uploading in the
+    // same window is not locked out by someone else's volume.
+    const otherPrincipal = await uploadAs('organizer-2');
+    expect(otherPrincipal.statusCode).toBe(201);
   });
 });
