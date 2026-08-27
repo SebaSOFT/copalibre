@@ -62,6 +62,7 @@ import {
 } from '../auth/principal-throttler.guard.js';
 import { RequireScopes } from '../auth/required-scopes.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
+import { SharedThrottle } from '../auth/shared-throttle.decorator.js';
 import {
   InstallModuleRequest,
   InstallModuleResponse,
@@ -144,6 +145,7 @@ export class AdminModulesController {
 
   @Post()
   @Throttle({ default: { limit: RESOURCE_THROTTLE_LIMIT, ttl: RESOURCE_THROTTLE_TTL_MS } })
+  @SharedThrottle()
   @SecurityPlaneTag('admin-control')
   @RequireSuperAdmin()
   @RequireScopes(SUPER_ADMIN_SCOPE)
@@ -264,6 +266,7 @@ export class AdminModulesController {
   @Post('verify')
   @HttpCode(200)
   @Throttle({ default: { limit: RESOURCE_THROTTLE_LIMIT, ttl: RESOURCE_THROTTLE_TTL_MS } })
+  @SharedThrottle()
   @SecurityPlaneTag('admin-control')
   @RequireSuperAdmin()
   @RequireScopes(SUPER_ADMIN_SCOPE)

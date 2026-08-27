@@ -16,6 +16,8 @@ module.exports = {
     'src/openapi/contract-lint.ts',
     'src/openapi/breaking-change.ts',
     'src/openapi/collect-planes.ts',
+    '!src/**/*.test.ts',
+    '!src/**/*.integration.test.ts',
   ],
   coverageThreshold: {
     global: { lines: 90, branches: 85, functions: 90, statements: 90 },

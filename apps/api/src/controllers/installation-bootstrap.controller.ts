@@ -22,6 +22,7 @@ import {
 } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
+import { SharedThrottle } from '../auth/shared-throttle.decorator.js';
 import { DATABASE } from '../database.token.js';
 import {
   BootstrapAdministratorRequest,
@@ -48,6 +49,7 @@ export class InstallationBootstrapController {
     // endpoints: this one mints the first installation admin.
     default: { limit: 5, ttl: 60_000 },
   })
+  @SharedThrottle()
   @SecurityPlaneTag('public-read')
   @ApiOperation({
     summary: 'Create first organization administrator',

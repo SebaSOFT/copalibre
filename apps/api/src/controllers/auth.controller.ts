@@ -26,6 +26,7 @@ import {
 import { PRIVILEGED_SCOPES, RequireSelf, SUPER_ADMIN_SCOPE } from '../auth/access-requirement.js';
 import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
+import { SharedThrottle } from '../auth/shared-throttle.decorator.js';
 import { Throttle } from '@nestjs/throttler';
 import { DATABASE } from '../database.token.js';
 import {
@@ -63,6 +64,7 @@ export class NativeAuthController {
   @Post('login')
   @HttpCode(200)
   @Throttle({ default: { limit: AUTH_THROTTLE_LIMIT, ttl: AUTH_THROTTLE_TTL_MS } })
+  @SharedThrottle()
   @SecurityPlaneTag('public-read')
   @ApiOperation({ summary: 'Authenticate with email and password' })
   @ApiOkResponse({ type: LoginResponse })
@@ -94,6 +96,7 @@ export class NativeAuthController {
   @Post('forgot-password')
   @HttpCode(200)
   @Throttle({ default: { limit: AUTH_THROTTLE_LIMIT, ttl: AUTH_THROTTLE_TTL_MS } })
+  @SharedThrottle()
   @SecurityPlaneTag('public-read')
   @ApiOperation({ summary: 'Request a password reset email' })
   @ApiOkResponse({ type: AuthSuccessResponse })
@@ -135,6 +138,7 @@ export class NativeAuthController {
   @Post('reset-password')
   @HttpCode(200)
   @Throttle({ default: { limit: AUTH_THROTTLE_LIMIT, ttl: AUTH_THROTTLE_TTL_MS } })
+  @SharedThrottle()
   @SecurityPlaneTag('public-read')
   @ApiOperation({ summary: 'Reset password using a verification token' })
   @ApiOkResponse({ type: AuthSuccessResponse })
