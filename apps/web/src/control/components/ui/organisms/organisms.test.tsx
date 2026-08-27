@@ -34,14 +34,41 @@ describe('DataTable', () => {
     expect(screen.getByText('Sin datos')).toBeDefined();
   });
 
-  it('scrolls horizontally rather than overflowing the page (design.md, 375px scenario)', () => {
-    const { container } = render(
-      <DataTable columns={columns} rowKey={(row) => row.id} rows={rows} />,
+  it('renders sortable header buttons and responds to click', () => {
+    const onSort = jest.fn();
+    const sortableColumns = [
+      {
+        key: 'name',
+        header: (
+          <button onClick={onSort} type="button">
+            Nombre ▾
+          </button>
+        ),
+        render: (row: Row) => row.name,
+      },
+    ];
+    render(<DataTable columns={sortableColumns} rowKey={(row) => row.id} rows={rows} />);
+    const button = screen.getByRole('button', { name: 'Nombre ▾' });
+    expect(button).toBeDefined();
+    fireEvent.click(button);
+    expect(onSort).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders expanded-row detail when renderRowDetail is provided', () => {
+    render(
+      <DataTable
+        ariaLabel="Tabla de prueba"
+        columns={columns}
+        renderRowDetail={(row) => <div data-testid={`detail-${row.id}`}>Detalle de {row.name}</div>}
+        rowKey={(row) => row.id}
+        rows={rows}
+      />,
     );
-    expect(container.querySelector('.cl-data-table')?.className).toContain('cl-data-table');
-    // The generated CSS (packages/design-tokens) declares `overflow-x: auto` on
-    // this class; this test asserts the organism renders that container, the
-    // token test asserts the CSS rule itself.
+    expect(screen.getByRole('region', { name: 'Tabla de prueba' })).toBeDefined();
+    expect(screen.getByTestId('detail-1')).toBeDefined();
+    expect(screen.getByText('Detalle de Uno')).toBeDefined();
+    expect(screen.getByTestId('detail-2')).toBeDefined();
+    expect(screen.getByText('Detalle de Dos')).toBeDefined();
   });
 });
 

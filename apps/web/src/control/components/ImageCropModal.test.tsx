@@ -9,6 +9,19 @@ function confirmImageLoaded(): void {
 }
 
 describe('ImageCropModal', () => {
+  it('renders with dialog semantics, title, and close button', () => {
+    render(
+      withIntl(
+        <ImageCropModal imageSrc="blob:source" onCancel={jest.fn()} onConfirm={jest.fn()} />,
+      ),
+    );
+
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toBeDefined();
+    expect(screen.getByText('Adjust image')).toBeDefined();
+    expect(screen.getByRole('button', { name: '×' })).toBeDefined();
+  });
+
   it('calls onCancel and never onConfirm when Cancel is clicked', () => {
     const onCancel = jest.fn();
     const onConfirm = jest.fn();
@@ -22,6 +35,19 @@ describe('ImageCropModal', () => {
     expect(onConfirm).not.toHaveBeenCalled();
   });
 
+  it('calls onCancel when close button (×) is clicked', () => {
+    const onCancel = jest.fn();
+    const onConfirm = jest.fn();
+    render(
+      withIntl(<ImageCropModal imageSrc="blob:source" onCancel={onCancel} onConfirm={onConfirm} />),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '×' }));
+
+    expect(onCancel).toHaveBeenCalledTimes(1);
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
   it('calls onCancel and never onConfirm on Escape', () => {
     const onCancel = jest.fn();
     const onConfirm = jest.fn();
@@ -29,7 +55,7 @@ describe('ImageCropModal', () => {
       withIntl(<ImageCropModal imageSrc="blob:source" onCancel={onCancel} onConfirm={onConfirm} />),
     );
 
-    fireEvent.keyDown(document, { key: 'Escape' });
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape', code: 'Escape' });
 
     expect(onCancel).toHaveBeenCalledTimes(1);
     expect(onConfirm).not.toHaveBeenCalled();
@@ -74,12 +100,8 @@ describe('ImageCropModal', () => {
       ),
     );
 
-    const zoom = (screen.getByText('Zoom').closest('label') as HTMLLabelElement).querySelector(
-      'input',
-    ) as HTMLInputElement;
-    const rotation = (
-      screen.getByText('Rotation').closest('label') as HTMLLabelElement
-    ).querySelector('input') as HTMLInputElement;
+    const zoom = screen.getByLabelText('Zoom') as HTMLInputElement;
+    const rotation = screen.getByLabelText('Rotation') as HTMLInputElement;
 
     fireEvent.change(zoom, { target: { value: '2' } });
     fireEvent.change(rotation, { target: { value: '90' } });

@@ -219,6 +219,25 @@ test('creates a club, uploads its emblem, then uploads the organization emblem',
   await expect(page.getByAltText('Escudo de la organización')).toBeVisible({ timeout: 10000 });
 });
 
+test('supports keyboard dismiss (Escape) on image crop modal', async ({ page }) => {
+  await mockControlApi(page);
+
+  const preferencesTarget = `/control/${ORG_ALIAS}/preferences`;
+  await seedLoginTransaction(page, preferencesTarget);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${preferencesTarget}`);
+
+  await page.getByLabel('Subir escudo').setInputFiles({
+    name: 'org-emblem.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(ONE_PIXEL_PNG_BASE64, 'base64'),
+  });
+  const orgDialog = page.getByRole('dialog', { name: 'Ajustar imagen' });
+  await expect(orgDialog).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(orgDialog).toBeHidden();
+});
+
 test('keeps rapid API errors stacked and independently dismissible', async ({ page }) => {
   await mockControlApi(page);
 

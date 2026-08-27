@@ -1,7 +1,11 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { EntrantName } from '../../components/EntrantName.js';
-import type { TableLayoutSummaryResponse, TableProjectionResponseData } from '../lib/api-client.js';
+import type {
+  TableLayoutSummaryResponse,
+  TableProjectionResponseData,
+  TableRowResponseData,
+} from '../lib/api-client.js';
 import {
   distributionBars,
   nextSort,
@@ -14,6 +18,7 @@ import {
 import { messages } from '../i18n/messages.en.js';
 
 import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
+import { DataTable, type DataTableColumn } from './ui/organisms/data-table.js';
 
 /**
  * A5 — every declared table layout (group standings, top scorers, goalkeeper
@@ -61,7 +66,10 @@ export function StandingsPage({
   const [sort, setSort] = useState<ActiveSort | undefined>(undefined);
 
   const tabs = tableLayoutTabs(layouts, intl.locale);
-  const columns = projection ? tableColumns(projection.columns, intl.locale) : [];
+  const columns = useMemo(
+    () => (projection ? tableColumns(projection.columns, intl.locale) : []),
+    [projection, intl.locale],
+  );
   const rows = projection ? sortRows(projection.rows, sort) : [];
   const nameColumnCode = projection?.columns.find((column) =>
     ['entrant-name', 'actor-name'].includes(column.code),
@@ -85,6 +93,61 @@ export function StandingsPage({
       )
       .finally(() => setPending((current) => current.filter((id) => id !== actorId)));
   };
+
+  const dataTableColumns: readonly DataTableColumn<TableRowResponseData>[] = useMemo(() => {
+    if (!projection) return [];
+    const baseCols: DataTableColumn<TableRowResponseData>[] = columns.map((column) => ({
+      key: column.code,
+      header: (
+        <button
+          className="cl-focusable"
+          onClick={() => setSort(nextSort(sort, column.code))}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            color: 'inherit',
+            font: 'inherit',
+            padding: 0,
+            cursor: 'pointer',
+          }}
+          title={column.label}
+          type="button"
+        >
+          {column.shortLabel}
+          {sort?.columnCode === column.code ? (sort.direction === 'desc' ? ' ▾' : ' ▴') : ''}
+        </button>
+      ),
+      render: (row: TableRowResponseData) => {
+        const cell = row.cells[column.code];
+        const isEntrantName = row.entrantName !== undefined && cell?.formatted === row.entrantName;
+        return isEntrantName ? (
+          <EntrantName abbreviation={row.entrantAbbreviation} fullName={row.entrantName} />
+        ) : (
+          (cell?.formatted ?? '—')
+        );
+      },
+    }));
+
+    if (isGroupPhase) {
+      baseCols.push({
+        key: 'tiebreak',
+        header: <FormattedMessage {...messages.standingsTiebreak} />,
+        render: (row: TableRowResponseData) => {
+          const indicator = tiebreakIndicator(row);
+          return indicator.kind === 'none' ? (
+            <span>—</span>
+          ) : (
+            <span className="cl-badge">
+              <span aria-hidden="true">{indicator.icon}</span>{' '}
+              {intl.formatMessage(messages.standingsSharedRank)}
+            </span>
+          );
+        },
+      });
+    }
+
+    return baseCols;
+  }, [projection, columns, sort, isGroupPhase, intl]);
 
   const breadcrumbNode = (
     <span>
@@ -169,127 +232,35 @@ export function StandingsPage({
             </div>
           )}
 
-          <div
-            aria-label={intl.formatMessage(messages.standingsSectionLabel)}
-            className="cl-data-table cl-card cl-chamfer cl-chamfer--control"
-            role="region"
-            tabIndex={0}
-          >
-            <table className="cl-data-table__table">
-              <thead>
-                <tr>
-                  {columns.map((column) => (
-                    <th key={column.code} scope="col">
-                      <button
-                        className="cl-focusable"
-                        onClick={() => setSort(nextSort(sort, column.code))}
-                        style={{
-                          background: 'transparent',
-                          border: 'none',
-                          color: 'inherit',
-                          font: 'inherit',
-                          padding: 0,
-                          cursor: 'pointer',
-                        }}
-                        title={column.label}
-                        type="button"
-                      >
-                        {column.shortLabel}
-                        {sort?.columnCode === column.code
-                          ? sort.direction === 'desc'
-                            ? ' ▾'
-                            : ' ▴'
-                          : ''}
-                      </button>
-                    </th>
-                  ))}
-                  {isGroupPhase && (
-                    <th scope="col">
-                      <FormattedMessage {...messages.standingsTiebreak} />
-                    </th>
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => {
-                  const indicator = tiebreakIndicator(row);
-                  return (
-                    <tr key={row.actorId}>
-                      <td colSpan={columns.length + (isGroupPhase ? 1 : 0)} style={{ padding: 0 }}>
-                        <details
-                          className="cl-focusable"
-                          onToggle={(event) => {
-                            if (isGroupPhase && event.currentTarget.open) expand(row.actorId);
-                          }}
-                        >
-                          <summary
-                            style={{
-                              display: 'grid',
-                              gridTemplateColumns: `repeat(${columns.length}, minmax(3rem, 1fr)) 10rem`,
-                              gap: 'var(--cl-space-3)',
-                              alignItems: 'center',
-                              padding: 'var(--cl-space-4)',
-                              cursor: 'pointer',
-                            }}
-                          >
-                            {columns.map((column) => {
-                              const cell = row.cells[column.code];
-                              const isEntrantName =
-                                row.entrantName !== undefined &&
-                                cell?.formatted === row.entrantName;
-                              return (
-                                <span key={column.code}>
-                                  {isEntrantName ? (
-                                    <EntrantName
-                                      abbreviation={row.entrantAbbreviation}
-                                      fullName={row.entrantName}
-                                    />
-                                  ) : (
-                                    (cell?.formatted ?? '—')
-                                  )}
-                                </span>
-                              );
-                            })}
-                            {isGroupPhase && (
-                              <span>
-                                {indicator.kind === 'none' ? (
-                                  <span>—</span>
-                                ) : (
-                                  <span className="cl-badge">
-                                    <span aria-hidden="true">{indicator.icon}</span>{' '}
-                                    {intl.formatMessage(messages.standingsSharedRank)}
-                                  </span>
-                                )}
-                              </span>
-                            )}
-                          </summary>
-
-                          {isGroupPhase && (
-                            <div
-                              style={{
-                                padding: '0 var(--cl-space-4) var(--cl-space-4) var(--cl-space-6)',
-                              }}
-                            >
-                              <TiebreakTrace
-                                lines={traces[row.actorId]}
-                                loading={pending.includes(row.actorId)}
-                              />
-                            </div>
-                          )}
-                        </details>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-
-            {rows.length === 0 && (
-              <p className="cl-data-table__empty">
-                <FormattedMessage {...messages.standingsNoResultsYet} />
-              </p>
-            )}
-          </div>
+          <DataTable
+            ariaLabel={intl.formatMessage(messages.standingsSectionLabel)}
+            columns={dataTableColumns}
+            emptyMessage={intl.formatMessage(messages.standingsNoResultsYet)}
+            renderRowDetail={
+              isGroupPhase
+                ? (row) => (
+                    <details
+                      className="cl-focusable"
+                      onToggle={(event) => {
+                        if (event.currentTarget.open) expand(row.actorId);
+                      }}
+                    >
+                      <summary style={{ cursor: 'pointer' }}>
+                        <FormattedMessage {...messages.standingsTiebreak} />
+                      </summary>
+                      <div style={{ padding: 'var(--cl-space-2) 0' }}>
+                        <TiebreakTrace
+                          lines={traces[row.actorId]}
+                          loading={pending.includes(row.actorId)}
+                        />
+                      </div>
+                    </details>
+                  )
+                : undefined
+            }
+            rowKey={(row) => row.actorId}
+            rows={rows}
+          />
         </>
       )}
     </div>
