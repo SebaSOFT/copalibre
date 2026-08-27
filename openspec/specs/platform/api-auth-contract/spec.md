@@ -83,8 +83,8 @@ addition to external OIDC JWTs.
 ### Requirement: Request body runtime validation
 
 The API SHALL validate every write request's body against its declared DTO shape at runtime before
-any handler code executes, rejecting a request whose required fields are missing or malformed, and
-stripping any property not declared on the DTO.
+any handler code executes, rejecting a request whose required fields are missing, malformed, or not
+declared on the DTO.
 
 #### Scenario: Missing required field
 
@@ -94,8 +94,7 @@ stripping any property not declared on the DTO.
 #### Scenario: Unexpected property
 
 - **WHEN** a client sends a write request whose body includes a property not declared on its DTO
-- **THEN** the API removes that property before the request reaches handler code and processes the
-  remaining, declared fields normally
+- **THEN** the API rejects the request with a structured 400 validation response before handler code executes
 
 #### Scenario: Well-formed request is unaffected
 
