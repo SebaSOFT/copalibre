@@ -29,6 +29,7 @@ import {
   RESOURCE_THROTTLE_TTL_MS,
 } from '../auth/principal-throttler.guard.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
+import { SharedThrottle } from '../auth/shared-throttle.decorator.js';
 import { DATABASE } from '../database.token.js';
 import { OBJECT_STORAGE } from '../object-storage.token.js';
 import {
@@ -94,6 +95,7 @@ export class PersonMediaController {
 
   @Post('photo')
   @Throttle({ default: { limit: RESOURCE_THROTTLE_LIMIT, ttl: RESOURCE_THROTTLE_TTL_MS } })
+  @SharedThrottle()
   @SecurityPlaneTag('admin-control')
   @RequireOrganizationRole('admin')
   @ApiBearerAuth()
@@ -202,6 +204,7 @@ export class ClubMediaController {
 
   @Post('emblem')
   @Throttle({ default: { limit: RESOURCE_THROTTLE_LIMIT, ttl: RESOURCE_THROTTLE_TTL_MS } })
+  @SharedThrottle()
   @SecurityPlaneTag('admin-control')
   @RequireOrganizationRole('admin')
   @ApiBearerAuth()
@@ -278,6 +281,7 @@ export class OrganizationMediaController {
 
   @Post('emblem')
   @Throttle({ default: { limit: RESOURCE_THROTTLE_LIMIT, ttl: RESOURCE_THROTTLE_TTL_MS } })
+  @SharedThrottle()
   @SecurityPlaneTag('admin-control')
   @RequireOrganizationRole('admin')
   @ApiBearerAuth()

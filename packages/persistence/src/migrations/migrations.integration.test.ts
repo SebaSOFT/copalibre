@@ -150,6 +150,7 @@ describe('migrations (integration)', () => {
       expect.arrayContaining([expect.objectContaining({ name: 'details' })]),
     );
     expect(afterUp).toContain('declared_effects');
+    expect(afterUp).toContain('shared_rate_limit_counters');
     const customScriptsColumn = afterUpTables
       .find((table) => table.name === 'tournament_rulesets')
       ?.columns.find((column) => column.name === 'custom_scripts');
@@ -170,6 +171,14 @@ describe('migrations (integration)', () => {
             `.execute(scratch.db)
           ).rows[0]?.dflt_value;
     expect(defaultExpression).toContain('[]');
+
+    const sharedCountersDown = await migrateDownOneStep(scratch.db);
+    expect(sharedCountersDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe(
+      '0029-rbac-user-administration',
+    );
+    const afterSharedCountersDown = (await scratch.db.introspection.getTables()).map((t) => t.name);
+    expect(afterSharedCountersDown).not.toContain('shared_rate_limit_counters');
 
     const rbacDown = await migrateDownOneStep(scratch.db);
     expect(rbacDown.error).toBeUndefined();

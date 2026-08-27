@@ -70,6 +70,16 @@ export interface AuthVerificationTokensTable {
   created_at: Timestamp;
 }
 
+/** Opaque, expiring counters used for installation-wide security throttles. */
+export interface SharedRateLimitCountersTable {
+  bucket_key: string;
+  hit_count: number;
+  window_expires_at: Timestamp;
+  block_expires_at: Timestamp | null;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+}
+
 /** Accepted, organization-local access assignment for one verified OIDC subject. */
 export interface OrganizationRoleAssignmentsTable {
   assignment_id: string;
@@ -858,6 +868,7 @@ export interface Database {
   display_tokens: DisplayTokensTable;
   personal_access_tokens: PersonalAccessTokensTable;
   auth_verification_tokens: AuthVerificationTokensTable;
+  shared_rate_limit_counters: SharedRateLimitCountersTable;
   participant_reports: ParticipantReportsTable;
   report_evidence: ReportEvidenceTable;
   clubs: ClubsTable;

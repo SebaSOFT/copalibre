@@ -268,6 +268,7 @@ jobs:
       # covers `adjustStatistic`, which declares a movement and performs none.
       - run: yarn workspace @copalibre/rules test:coverage
       - run: yarn workspace @copalibre/api test:coverage
+      - run: yarn workspace @copalibre/api test:integration --testPathPatterns 'shared-throttler-storage'
       # Includes the golden-fixture regression set, the discipline-driven
       # accounting and tennis regression suites, the determinism guard for
       # seed allocation and the constrained draw, and the placement-stage
