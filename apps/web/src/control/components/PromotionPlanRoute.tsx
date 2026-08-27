@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import {
   ControlApiError,
@@ -70,28 +70,6 @@ export function PromotionPlanRoute({
   const [previewError, setPreviewError] = useState<string>();
   const [loading, setLoading] = useState(true);
 
-  const refreshPreview = useCallback(async (): Promise<void> => {
-    const fetchPromotionPreview = api.fetchPromotionPreview;
-    if (!fetchPromotionPreview) return;
-    try {
-      const loaded = await fetchPromotionPreview(
-        organizationAlias,
-        tournamentAlias,
-        stageNumber,
-        zoneNumber,
-      );
-      setPreview(loaded);
-      setPreviewError(undefined);
-    } catch (error) {
-      setPreview(undefined);
-      setPreviewError(
-        error instanceof ControlApiError
-          ? error.message
-          : intl.formatMessage(messages.promotionNoPlanYet),
-      );
-    }
-  }, [api, organizationAlias, tournamentAlias, stageNumber, zoneNumber, intl]);
-
   useEffect(() => {
     let live = true;
     (api.listZones?.(organizationAlias, tournamentAlias, stageNumber) ?? Promise.resolve([]))
@@ -139,13 +117,27 @@ export function PromotionPlanRoute({
 
   useEffect(() => {
     let live = true;
-    refreshPreview().then(() => {
-      if (!live) return;
-    });
+    const fetchPromotionPreview = api.fetchPromotionPreview;
+    if (!fetchPromotionPreview) return undefined;
+    fetchPromotionPreview(organizationAlias, tournamentAlias, stageNumber, zoneNumber)
+      .then((loaded) => {
+        if (!live) return;
+        setPreview(loaded);
+        setPreviewError(undefined);
+      })
+      .catch((error: unknown) => {
+        if (!live) return;
+        setPreview(undefined);
+        setPreviewError(
+          error instanceof ControlApiError
+            ? error.message
+            : intl.formatMessage(messages.promotionNoPlanYet),
+        );
+      });
     return () => {
       live = false;
     };
-  }, [refreshPreview]);
+  }, [api, organizationAlias, tournamentAlias, stageNumber, zoneNumber, intl]);
 
   const addBand = (): void => {
     setBands((current) => [...current, { key: nextKey(), zoneRef: '', count: '1' }]);
@@ -175,7 +167,25 @@ export function PromotionPlanRoute({
           : {}),
       });
       push({ severity: 'success', message: intl.formatMessage(messages.promotionPlanSaved) });
-      void refreshPreview();
+      if (api.fetchPromotionPreview) {
+        try {
+          const loaded = await api.fetchPromotionPreview(
+            organizationAlias,
+            tournamentAlias,
+            stageNumber,
+            zoneNumber,
+          );
+          setPreview(loaded);
+          setPreviewError(undefined);
+        } catch (previewErr) {
+          setPreview(undefined);
+          setPreviewError(
+            previewErr instanceof ControlApiError
+              ? previewErr.message
+              : intl.formatMessage(messages.promotionNoPlanYet),
+          );
+        }
+      }
     } catch (error) {
       pushError(error);
     }
