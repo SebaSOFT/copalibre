@@ -431,6 +431,14 @@ export {
   type ResourceAssignment,
 } from './aggregates/resource.js';
 export {
+  computeSlotCountPerVenue,
+  generateScheduleSlots,
+  validateSchedule,
+  ScheduleError,
+  type Schedule,
+  type ScheduleSlot,
+} from './aggregates/schedule.js';
+export {
   classifyScheduleMutation,
   type ScheduleMutationContext,
 } from './aggregates/schedule-mutation.js';
@@ -441,6 +449,7 @@ export {
   type ConflictKind,
   type ScheduleConflict,
   type ScheduleContext,
+  type SlotInfo,
   type RestRule,
 } from './aggregates/schedule-conflict.js';
 export type {

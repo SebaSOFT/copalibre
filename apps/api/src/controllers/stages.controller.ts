@@ -157,10 +157,14 @@ export class StagesController {
       });
 
     const fixtures = await competition.listFixturesOfStage(stage.stageId);
+    const matches = await competition.listMatchesForStage(stage.stageId);
+    const matchByFixture = new Map(matches.map((m) => [m.fixtureId, m.matchId]));
+
     return {
       stageId: stage.stageId,
       fixtures: fixtures.map((fixture) => ({
         fixtureId: fixture.fixtureId,
+        matchId: matchByFixture.get(fixture.fixtureId) ?? fixture.fixtureId,
         round: fixture.round,
         ...(fixture.homeEntrantId === undefined ? {} : { homeEntrantId: fixture.homeEntrantId }),
         ...(fixture.awayEntrantId === undefined ? {} : { awayEntrantId: fixture.awayEntrantId }),

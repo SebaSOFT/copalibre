@@ -5,6 +5,7 @@ import {
   type ControlApiClient,
   type OfficialResponse,
   type OfficialRole,
+  type ScheduleDetailResponse,
   type VenueResponse,
 } from '../lib/api-client.js';
 import { controlTokenStore } from '../session/token-store.js';
@@ -24,11 +25,8 @@ const OFFICIAL_ROLES: readonly OfficialRole[] = [
 ];
 
 /**
- * Venue and official management — the resource pool a schedule
- * builder assigns from. `tournament-engine/resource-scheduling`'s
- * `createVenue`/`createOfficial` have existed since the capability was
- * accepted; this is the first screen (and the first API route, wired in
- * `apps/api/src/controllers/resources.controller.ts`) that reaches them.
+ * Venue, official, and schedule management — the resource pool a schedule
+ * builder assigns from.
  */
 export function VenueManagementRoute({
   organizationAlias,
@@ -51,6 +49,7 @@ export function VenueManagementRoute({
 
   const [venues, setVenues] = useState<readonly VenueResponse[]>([]);
   const [officials, setOfficials] = useState<readonly OfficialResponse[]>([]);
+  const [schedules, setSchedules] = useState<readonly ScheduleDetailResponse[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [newVenueName, setNewVenueName] = useState('');
@@ -59,6 +58,13 @@ export function VenueManagementRoute({
 
   const [newOfficialName, setNewOfficialName] = useState('');
   const [newOfficialRoles, setNewOfficialRoles] = useState<readonly OfficialRole[]>([]);
+
+  const [newScheduleName, setNewScheduleName] = useState('');
+  const [newScheduleStartsAt, setNewScheduleStartsAt] = useState('');
+  const [newScheduleEndsAt, setNewScheduleEndsAt] = useState('');
+  const [newScheduleSlotMinutes, setNewScheduleSlotMinutes] = useState('60');
+  const [newScheduleTurnaroundMinutes, setNewScheduleTurnaroundMinutes] = useState('15');
+  const [newScheduleVenueIds, setNewScheduleVenueIds] = useState<readonly string[]>([]);
 
   const [selectedVenueId, setSelectedVenueId] = useState<string>();
   const [editVenueName, setEditVenueName] = useState('');
@@ -72,14 +78,19 @@ export function VenueManagementRoute({
   const [editOfficialName, setEditOfficialName] = useState('');
   const [editOfficialRoles, setEditOfficialRoles] = useState<readonly OfficialRole[]>([]);
 
+  const [selectedScheduleId, setSelectedScheduleId] = useState<string>();
+  const [editScheduleName, setEditScheduleName] = useState('');
+
   const reload = useCallback(async (): Promise<void> => {
     try {
-      const [loadedVenues, loadedOfficials] = await Promise.all([
+      const [loadedVenues, loadedOfficials, loadedSchedules] = await Promise.all([
         api.listVenues?.(organizationAlias) ?? Promise.resolve([]),
         api.listOfficials?.(organizationAlias) ?? Promise.resolve([]),
+        api.listSchedules?.(organizationAlias) ?? Promise.resolve([]),
       ]);
       setVenues(loadedVenues);
       setOfficials(loadedOfficials);
+      setSchedules(loadedSchedules);
     } catch {
       push({
         severity: 'error',
@@ -93,11 +104,13 @@ export function VenueManagementRoute({
     Promise.all([
       api.listVenues?.(organizationAlias) ?? Promise.resolve([]),
       api.listOfficials?.(organizationAlias) ?? Promise.resolve([]),
+      api.listSchedules?.(organizationAlias) ?? Promise.resolve([]),
     ])
-      .then(([loadedVenues, loadedOfficials]) => {
+      .then(([loadedVenues, loadedOfficials, loadedSchedules]) => {
         if (live) {
           setVenues(loadedVenues);
           setOfficials(loadedOfficials);
+          setSchedules(loadedSchedules);
         }
       })
       .catch(() => {
@@ -134,12 +147,23 @@ export function VenueManagementRoute({
     setEditOfficialRoles(official.roles);
   };
 
+  const selectSchedule = (schedule: ScheduleDetailResponse): void => {
+    setSelectedScheduleId(schedule.scheduleId);
+    setEditScheduleName(schedule.name);
+  };
+
   const toggleRole = (
     current: readonly OfficialRole[],
     role: OfficialRole,
     set: (next: readonly OfficialRole[]) => void,
   ): void => {
     set(current.includes(role) ? current.filter((r) => r !== role) : [...current, role]);
+  };
+
+  const toggleScheduleVenue = (venueId: string): void => {
+    setNewScheduleVenueIds((current) =>
+      current.includes(venueId) ? current.filter((id) => id !== venueId) : [...current, venueId],
+    );
   };
 
   async function createVenue(): Promise<void> {
@@ -227,6 +251,76 @@ export function VenueManagementRoute({
     }
   }
 
+  async function createSchedule(): Promise<void> {
+    if (
+      !api.createSchedule ||
+      newScheduleName.trim() === '' ||
+      newScheduleStartsAt === '' ||
+      newScheduleEndsAt === '' ||
+      newScheduleVenueIds.length === 0
+    )
+      return;
+    const startsAt = Date.parse(newScheduleStartsAt);
+    const endsAt = Date.parse(newScheduleEndsAt);
+    const slotMinutes = parseInt(newScheduleSlotMinutes, 10);
+    const turnaroundMinutes = parseInt(newScheduleTurnaroundMinutes, 10);
+    if (!Number.isFinite(startsAt) || !Number.isFinite(endsAt)) return;
+    try {
+      await api.createSchedule(organizationAlias, {
+        name: newScheduleName.trim(),
+        startsAt,
+        endsAt,
+        slotMinutes: isNaN(slotMinutes) ? 60 : slotMinutes,
+        turnaroundMinutes: isNaN(turnaroundMinutes) ? 15 : turnaroundMinutes,
+        venueIds: newScheduleVenueIds,
+      });
+      setNewScheduleName('');
+      setNewScheduleStartsAt('');
+      setNewScheduleEndsAt('');
+      setNewScheduleVenueIds([]);
+      push({
+        severity: 'success',
+        message: intl.formatMessage(messages.resourceManagementScheduleCreated),
+      });
+      void reload();
+    } catch (error) {
+      pushError(error);
+    }
+  }
+
+  async function saveSchedule(): Promise<void> {
+    if (!api.updateSchedule || selectedScheduleId === undefined) return;
+    try {
+      await api.updateSchedule(organizationAlias, selectedScheduleId, {
+        name: editScheduleName.trim(),
+      });
+      push({
+        severity: 'success',
+        message: intl.formatMessage(messages.resourceManagementScheduleSaved),
+      });
+      void reload();
+    } catch (error) {
+      pushError(error);
+    }
+  }
+
+  async function deleteSchedule(scheduleId: string): Promise<void> {
+    if (!api.deleteSchedule) return;
+    try {
+      await api.deleteSchedule(organizationAlias, scheduleId);
+      if (selectedScheduleId === scheduleId) {
+        setSelectedScheduleId(undefined);
+      }
+      push({
+        severity: 'success',
+        message: intl.formatMessage(messages.resourceManagementScheduleDeleted),
+      });
+      void reload();
+    } catch (error) {
+      pushError(error);
+    }
+  }
+
   const roleLabel = (role: OfficialRole): string => {
     switch (role) {
       case 'referee':
@@ -251,9 +345,11 @@ export function VenueManagementRoute({
 
   const selectedVenue = venues.find((venue) => venue.venueId === selectedVenueId);
   const selectedOfficial = officials.find((official) => official.officialId === selectedOfficialId);
+  const selectedSchedule = schedules.find((s) => s.scheduleId === selectedScheduleId);
 
   const listingNode = (
     <div className="cl-platform-sections">
+      {/* Venues */}
       <Card
         aria-label={intl.formatMessage(messages.resourceManagementVenuesHeading)}
         className="cl-chamfer cl-chamfer--control"
@@ -372,74 +468,231 @@ export function VenueManagementRoute({
                   value={editVenueAddress}
                 />
               </FormField>
-            </div>
 
-            <div className="cl-platform-sections">
-              <header className="cl-card__header">
-                <h3 className="cl-card__title">
+              <fieldset className="cl-role-user">
+                <legend className="cl-label">
                   <FormattedMessage {...messages.resourceManagementDetailsHeading} />
-                </h3>
-              </header>
-              <p className="cl-card__description">
-                <FormattedMessage {...messages.resourceManagementDetailsHint} />
-              </p>
-              {editVenueDetails.map((row, index) => (
-                <div key={index} className="cl-role-user">
-                  <Input
-                    aria-label={intl.formatMessage(messages.resourceManagementDetailKey)}
-                    onChange={(event) =>
-                      setEditVenueDetails((current) =>
-                        current.map((entry, entryIndex) =>
-                          entryIndex === index ? { ...entry, key: event.target.value } : entry,
-                        ),
-                      )
-                    }
-                    placeholder={intl.formatMessage(messages.resourceManagementDetailKey)}
-                    value={row.key}
-                  />
-                  <Input
-                    aria-label={intl.formatMessage(messages.resourceManagementDetailValue)}
-                    onChange={(event) =>
-                      setEditVenueDetails((current) =>
-                        current.map((entry, entryIndex) =>
-                          entryIndex === index ? { ...entry, value: event.target.value } : entry,
-                        ),
-                      )
-                    }
-                    placeholder={intl.formatMessage(messages.resourceManagementDetailValue)}
-                    value={row.value}
-                  />
-                  <Button
-                    onClick={() =>
-                      setEditVenueDetails((current) =>
-                        current.filter((_entry, entryIndex) => entryIndex !== index),
-                      )
-                    }
-                    type="button"
-                    variant="secondary"
-                  >
-                    <FormattedMessage {...messages.resourceManagementRemoveDetail} />
-                  </Button>
-                </div>
-              ))}
-              <Button
-                onClick={() =>
-                  setEditVenueDetails((current) => [...current, { key: '', value: '' }])
-                }
-                type="button"
-                variant="secondary"
-              >
-                <FormattedMessage {...messages.resourceManagementAddDetail} />
+                </legend>
+                <p className="cl-card__description">
+                  <FormattedMessage {...messages.resourceManagementDetailsHint} />
+                </p>
+                {editVenueDetails.map((detail, index) => (
+                  <div key={index} className="cl-platform-form-grid">
+                    <Input
+                      aria-label={intl.formatMessage(messages.resourceManagementDetailKey)}
+                      onChange={(event) => {
+                        const next = [...editVenueDetails];
+                        next[index] = { ...next[index], key: event.target.value };
+                        setEditVenueDetails(next);
+                      }}
+                      placeholder={intl.formatMessage(messages.resourceManagementDetailKey)}
+                      value={detail.key}
+                    />
+                    <Input
+                      aria-label={intl.formatMessage(messages.resourceManagementDetailValue)}
+                      onChange={(event) => {
+                        const next = [...editVenueDetails];
+                        next[index] = { ...next[index], value: event.target.value };
+                        setEditVenueDetails(next);
+                      }}
+                      placeholder={intl.formatMessage(messages.resourceManagementDetailValue)}
+                      value={detail.value}
+                    />
+                    <Button
+                      onClick={() =>
+                        setEditVenueDetails(editVenueDetails.filter((_, i) => i !== index))
+                      }
+                      type="button"
+                      variant="secondary"
+                    >
+                      <FormattedMessage {...messages.resourceManagementRemoveDetail} />
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  onClick={() => setEditVenueDetails([...editVenueDetails, { key: '', value: '' }])}
+                  type="button"
+                  variant="secondary"
+                >
+                  <FormattedMessage {...messages.resourceManagementAddDetail} />
+                </Button>
+              </fieldset>
+
+              <Button onClick={() => void saveVenue()} type="button">
+                <FormattedMessage {...messages.resourceManagementSaveVenueChanges} />
               </Button>
             </div>
-
-            <Button onClick={() => void saveVenue()} type="button">
-              <FormattedMessage {...messages.resourceManagementSaveVenueChanges} />
-            </Button>
           </div>
         </Card>
       )}
 
+      {/* Schedules */}
+      <Card
+        aria-label={intl.formatMessage(messages.resourceManagementSchedulesHeading)}
+        className="cl-chamfer cl-chamfer--control"
+      >
+        <header className="cl-card__header">
+          <h2 className="cl-card__title">
+            <FormattedMessage {...messages.resourceManagementSchedulesHeading} />
+          </h2>
+        </header>
+        <div className="cl-card__content">
+          <ul>
+            {schedules.map((schedule) => (
+              <li key={schedule.scheduleId} className="cl-role-user">
+                <span>
+                  <strong>{schedule.name}</strong> —{' '}
+                  <FormattedMessage
+                    {...messages.resourceManagementScheduleSlotsCount}
+                    values={{ count: schedule.slots.length }}
+                  />
+                </span>
+                <div>
+                  <Button
+                    onClick={() => selectSchedule(schedule)}
+                    type="button"
+                    variant="secondary"
+                  >
+                    <FormattedMessage {...messages.resourceManagementEdit} />
+                  </Button>
+                  <Button
+                    onClick={() => void deleteSchedule(schedule.scheduleId)}
+                    type="button"
+                    variant="secondary"
+                  >
+                    <FormattedMessage {...messages.resourceManagementDeleteSchedule} />
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+          {schedules.length === 0 && (
+            <p className="cl-card__description">
+              <FormattedMessage {...messages.resourceManagementSchedulesEmpty} />
+            </p>
+          )}
+
+          {api.createSchedule && (
+            <div className="cl-platform-form-grid">
+              <FormField
+                id="new-schedule-name"
+                label={intl.formatMessage(messages.resourceManagementNewScheduleName)}
+              >
+                <Input
+                  aria-label={intl.formatMessage(messages.resourceManagementNewScheduleName)}
+                  id="new-schedule-name"
+                  onChange={(event) => setNewScheduleName(event.target.value)}
+                  value={newScheduleName}
+                />
+              </FormField>
+              <FormField
+                id="new-schedule-starts-at"
+                label={intl.formatMessage(messages.resourceManagementNewScheduleStartsAt)}
+              >
+                <Input
+                  aria-label={intl.formatMessage(messages.resourceManagementNewScheduleStartsAt)}
+                  id="new-schedule-starts-at"
+                  onChange={(event) => setNewScheduleStartsAt(event.target.value)}
+                  type="datetime-local"
+                  value={newScheduleStartsAt}
+                />
+              </FormField>
+              <FormField
+                id="new-schedule-ends-at"
+                label={intl.formatMessage(messages.resourceManagementNewScheduleEndsAt)}
+              >
+                <Input
+                  aria-label={intl.formatMessage(messages.resourceManagementNewScheduleEndsAt)}
+                  id="new-schedule-ends-at"
+                  onChange={(event) => setNewScheduleEndsAt(event.target.value)}
+                  type="datetime-local"
+                  value={newScheduleEndsAt}
+                />
+              </FormField>
+              <FormField
+                id="new-schedule-slot-minutes"
+                label={intl.formatMessage(messages.resourceManagementNewScheduleSlotMinutes)}
+              >
+                <Input
+                  aria-label={intl.formatMessage(messages.resourceManagementNewScheduleSlotMinutes)}
+                  id="new-schedule-slot-minutes"
+                  min={1}
+                  onChange={(event) => setNewScheduleSlotMinutes(event.target.value)}
+                  type="number"
+                  value={newScheduleSlotMinutes}
+                />
+              </FormField>
+              <FormField
+                id="new-schedule-turnaround-minutes"
+                label={intl.formatMessage(messages.resourceManagementNewScheduleTurnaroundMinutes)}
+              >
+                <Input
+                  aria-label={intl.formatMessage(
+                    messages.resourceManagementNewScheduleTurnaroundMinutes,
+                  )}
+                  id="new-schedule-turnaround-minutes"
+                  min={0}
+                  onChange={(event) => setNewScheduleTurnaroundMinutes(event.target.value)}
+                  type="number"
+                  value={newScheduleTurnaroundMinutes}
+                />
+              </FormField>
+              <fieldset className="cl-role-user">
+                <legend className="cl-label">
+                  <FormattedMessage {...messages.resourceManagementNewScheduleVenues} />
+                </legend>
+                {venues.map((venue) => (
+                  <label key={venue.venueId} className="cl-toggle cl-focusable">
+                    <input
+                      checked={newScheduleVenueIds.includes(venue.venueId)}
+                      className="cl-checkbox cl-focusable"
+                      onChange={() => toggleScheduleVenue(venue.venueId)}
+                      type="checkbox"
+                    />
+                    <span>{venue.name}</span>
+                  </label>
+                ))}
+              </fieldset>
+              <Button onClick={() => void createSchedule()} type="button">
+                <FormattedMessage {...messages.resourceManagementAddSchedule} />
+              </Button>
+            </div>
+          )}
+        </div>
+      </Card>
+
+      {selectedSchedule && (
+        <Card
+          aria-label={intl.formatMessage(messages.resourceManagementEditScheduleHeading)}
+          className="cl-chamfer cl-chamfer--control"
+        >
+          <header className="cl-card__header">
+            <h2 className="cl-card__title">
+              <FormattedMessage {...messages.resourceManagementEditScheduleHeading} />
+            </h2>
+          </header>
+          <div className="cl-card__content">
+            <div className="cl-platform-form-grid">
+              <FormField
+                id="edit-schedule-name"
+                label={intl.formatMessage(messages.resourceManagementNewScheduleName)}
+              >
+                <Input
+                  aria-label={intl.formatMessage(messages.resourceManagementNewScheduleName)}
+                  id="edit-schedule-name"
+                  onChange={(event) => setEditScheduleName(event.target.value)}
+                  value={editScheduleName}
+                />
+              </FormField>
+              <Button onClick={() => void saveSchedule()} type="button">
+                <FormattedMessage {...messages.resourceManagementScheduleSaved} />
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Officials */}
       <Card
         aria-label={intl.formatMessage(messages.resourceManagementOfficialsHeading)}
         className="cl-chamfer cl-chamfer--control"
@@ -454,7 +707,8 @@ export function VenueManagementRoute({
             {officials.map((official) => (
               <li key={official.officialId} className="cl-role-user">
                 <span>
-                  {official.displayName} — {official.roles.map(roleLabel).join(', ')}
+                  {official.displayName}
+                  {official.roles.length > 0 && ` — ${official.roles.map(roleLabel).join(', ')}`}
                 </span>
                 <Button onClick={() => selectOfficial(official)} type="button" variant="secondary">
                   <FormattedMessage {...messages.resourceManagementEdit} />

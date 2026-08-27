@@ -29,22 +29,16 @@ export class TimeWindowDto {
 export class ScheduleAssignmentDto {
   @ApiProperty({ format: 'uuid' })
   @IsString()
-  fixtureId!: string;
+  matchId!: string;
 
-  @ApiProperty({ type: TimeWindowDto })
-  @ValidateNested()
-  @Type(() => TimeWindowDto)
-  window!: TimeWindowDto;
-
-  @ApiPropertyOptional({ format: 'uuid', description: 'Venue hosting the fixture' })
-  @IsOptional()
+  @ApiProperty({ format: 'uuid' })
   @IsString()
-  venueId?: string;
+  slotId!: string;
 
   @ApiPropertyOptional({
     type: [String],
     format: 'uuid',
-    description: 'Officials assigned to the fixture',
+    description: 'Officials assigned to the match',
   })
   @IsOptional()
   @IsArray()
@@ -52,9 +46,33 @@ export class ScheduleAssignmentDto {
   officialIds?: string[];
 }
 
+export class ScheduleAssignmentResponse {
+  @ApiProperty({ format: 'uuid' })
+  matchId!: string;
+
+  @ApiProperty({ format: 'uuid' })
+  fixtureId!: string;
+
+  @ApiProperty({ format: 'uuid' })
+  slotId!: string;
+
+  @ApiProperty({ format: 'uuid', description: 'Venue hosting the slot' })
+  venueId!: string;
+
+  @ApiProperty({ type: TimeWindowDto })
+  window!: TimeWindowDto;
+
+  @ApiPropertyOptional({
+    type: [String],
+    format: 'uuid',
+    description: 'Officials assigned to the match',
+  })
+  officialIds?: string[];
+}
+
 export class RestRuleDto {
   @ApiProperty({
-    description: "Minimum minutes between an entrant's consecutive fixtures",
+    description: "Minimum minutes between an entrant's consecutive matches",
     example: 45,
   })
   @IsNumber()
@@ -77,16 +95,16 @@ export class ScheduleRequest {
 
 export class ScheduleConflictDto {
   @ApiProperty({
-    enum: ['venue-double-booked', 'official-double-booked', 'rest-rule'],
+    enum: ['venue-double-booked', 'official-double-booked', 'rest-rule', 'match-finalized'],
     description: 'Which rule the schedule breaks',
   })
   kind!: string;
 
   @ApiProperty({ format: 'uuid' })
-  fixtureId!: string;
+  matchId!: string;
 
-  @ApiProperty({ format: 'uuid', description: 'The fixture it clashes with' })
-  conflictsWithFixtureId!: string;
+  @ApiProperty({ format: 'uuid', description: 'The match it clashes with' })
+  conflictsWithMatchId!: string;
 
   @ApiProperty({ description: 'Venue, official or entrant the clash is about' })
   resourceId!: string;
@@ -107,24 +125,27 @@ export class SchedulePreviewResponse {
   @ApiProperty({
     type: [String],
     format: 'uuid',
-    description: 'Already-published fixtures this batch would move',
+    description: 'Already-published matches this batch would move',
   })
-  affectedPublishedFixtures!: string[];
+  affectedPublishedMatches!: string[];
 }
 
 export class ScheduleResponse {
-  @ApiProperty({ type: [ScheduleAssignmentDto] })
-  assignments!: ScheduleAssignmentDto[];
+  @ApiProperty({ type: [ScheduleAssignmentResponse] })
+  assignments!: ScheduleAssignmentResponse[];
 }
 
 /**
- * A generated fixture, real `fixtureId` included — what a schedule builder
+ * A generated fixture, real `fixtureId` and materialized `matchId` included — what a schedule builder
  * assigns a time and venue to. Distinct from the bracket graph's own node
  * ids, which are never persisted.
  */
 export class FixtureResponse {
   @ApiProperty({ format: 'uuid' })
   fixtureId!: string;
+
+  @ApiProperty({ format: 'uuid', description: 'Primary match for this fixture' })
+  matchId!: string;
 
   @ApiProperty({ description: '1-based round within the stage', example: 1 })
   round!: number;

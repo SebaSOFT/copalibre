@@ -325,4 +325,67 @@ describe('venue/official list/create/edit (integration)', () => {
     expect(body.errorCode).toBe('bad-request');
     expect(body.message).toContain('property unexpectedField should not exist');
   });
+
+  // ---------------------------------------------------------------------------
+  // Schedule Grid Management
+  // ---------------------------------------------------------------------------
+
+  it('creates, lists, updates and removes a schedule grid', async () => {
+    // 1. Create venue first
+    const venueRes = await inject({
+      method: 'POST',
+      url: `/organizations/${organizationAlias}/venues`,
+      headers: { authorization: 'Bearer organizer' },
+      payload: { alias: 'cancha-grid', name: 'Cancha Grid', concurrentCapacity: 1 },
+    });
+    expect(venueRes.statusCode).toBe(201);
+    const venue = venueRes.json() as { venueId: string };
+
+    // 2. Create schedule
+    const createRes = await inject({
+      method: 'POST',
+      url: `/organizations/${organizationAlias}/schedules`,
+      headers: { authorization: 'Bearer organizer' },
+      payload: {
+        name: 'Horario Fin de Semana',
+        startsAt: 1785333600000,
+        endsAt: 1785355200000,
+        slotMinutes: 60,
+        turnaroundMinutes: 15,
+        venueIds: [venue.venueId],
+      },
+    });
+    expect(createRes.statusCode).toBe(201);
+    const created = createRes.json() as { scheduleId: string; name: string; slots: unknown[] };
+    expect(created.name).toBe('Horario Fin de Semana');
+    expect(created.slots.length).toBeGreaterThanOrEqual(2);
+
+    // 3. List schedules
+    const listRes = await inject({
+      method: 'GET',
+      url: `/organizations/${organizationAlias}/schedules`,
+      headers: { authorization: 'Bearer organizer' },
+    });
+    expect(listRes.statusCode).toBe(200);
+    const list = listRes.json() as { scheduleId: string }[];
+    expect(list.some((s) => s.scheduleId === created.scheduleId)).toBe(true);
+
+    // 4. Update schedule name
+    const updateRes = await inject({
+      method: 'PATCH',
+      url: `/organizations/${organizationAlias}/schedules/${created.scheduleId}`,
+      headers: { authorization: 'Bearer organizer' },
+      payload: { name: 'Horario Modificado' },
+    });
+    expect(updateRes.statusCode).toBe(200);
+    expect(updateRes.json()).toMatchObject({ name: 'Horario Modificado' });
+
+    // 5. Delete schedule
+    const deleteRes = await inject({
+      method: 'DELETE',
+      url: `/organizations/${organizationAlias}/schedules/${created.scheduleId}`,
+      headers: { authorization: 'Bearer organizer' },
+    });
+    expect(deleteRes.statusCode).toBe(200);
+  });
 });

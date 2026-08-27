@@ -311,20 +311,45 @@ describe('public projections routes', () => {
           })
           .execute();
         await uow.tx
-          .insertInto('fixture_schedules')
+          .insertInto('schedules')
           .values({
-            fixture_schedule_id: scheduleId,
-            fixture_id: fixture.fixtureId,
+            schedule_id: scheduleId,
+            organization_id: organizationId,
+            name: 'Main Schedule',
+            starts_at: '1767225600000',
+            ends_at: '1767232800000',
+            slot_minutes: 90,
+            turnaround_minutes: 15,
+            created_at: now,
+          })
+          .execute();
+        await uow.tx
+          .insertInto('schedule_venues')
+          .values({ schedule_id: scheduleId, venue_id: venueId })
+          .execute();
+        const slotId = '77777777-7777-7777-8777-777777777777';
+        await uow.tx
+          .insertInto('schedule_slots')
+          .values({
+            slot_id: slotId,
+            schedule_id: scheduleId,
             venue_id: venueId,
             starts_at: '1767225600000',
-            duration_minutes: 90,
+            created_at: now,
+          })
+          .execute();
+        await uow.tx
+          .insertInto('match_schedule_assignments')
+          .values({
+            match_id: match.matchId,
+            slot_id: slotId,
             published: true,
             created_at: now,
           })
           .execute();
         await uow.tx
-          .insertInto('fixture_schedule_officials')
-          .values({ fixture_schedule_id: scheduleId, official_id: officialId })
+          .insertInto('match_schedule_officials')
+          .values({ match_id: match.matchId, official_id: officialId })
           .execute();
         await uow.tx
           .insertInto('match_rosters')

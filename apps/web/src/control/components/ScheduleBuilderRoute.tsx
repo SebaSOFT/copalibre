@@ -7,38 +7,34 @@ import {
   type OfficialResponse,
   type ScheduleAssignmentDto,
   type ScheduleConflictDto,
+  type ScheduleDetailResponse,
   type VenueResponse,
 } from '../lib/api-client.js';
 import { controlLinkClick } from '../lib/control-navigation.js';
 import { controlTokenStore } from '../session/token-store.js';
 import { Button } from './ui/atoms/button.js';
 import { Card } from './ui/atoms/card.js';
-import { Input } from './ui/atoms/input.js';
 import { FormField } from './ui/molecules/form-field.js';
 import { messages } from '../i18n/messages.en.js';
 import { useToast } from './ToastProvider.js';
 import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
 
 interface DraftAssignment {
-  readonly startsAt: string;
-  readonly durationMinutes: string;
-  readonly venueId: string;
+  readonly slotId: string;
   readonly officialIds: readonly string[];
 }
 
 const EMPTY_DRAFT: DraftAssignment = {
-  startsAt: '',
-  durationMinutes: '',
-  venueId: '',
+  slotId: '',
   officialIds: [],
 };
 
 /**
  * The schedule builder: a calendar view and a list view over one
  * stage's fixtures, both driving the same manual assignment batch the
- * already-accepted `tournament-engine/resource-scheduling` API accepts —
+ * accepted `tournament-engine/resource-scheduling` API accepts at match/slot grain —
  * build, preview (showing conflicts and downstream-affected published
- * fixtures exactly as the API reports them), then explicitly publish.
+ * matches exactly as the API reports them), then explicitly publish.
  */
 export function ScheduleBuilderRoute({
   organizationAlias,
@@ -67,11 +63,12 @@ export function ScheduleBuilderRoute({
   const [fixtures, setFixtures] = useState<readonly FixtureResponse[]>([]);
   const [venues, setVenues] = useState<readonly VenueResponse[]>([]);
   const [officials, setOfficials] = useState<readonly OfficialResponse[]>([]);
+  const [schedules, setSchedules] = useState<readonly ScheduleDetailResponse[]>([]);
   const [drafts, setDrafts] = useState<Readonly<Record<string, DraftAssignment>>>({});
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | undefined>(undefined);
   const [conflicts, setConflicts] = useState<readonly ScheduleConflictDto[]>([]);
-  const [affectedPublishedFixtures, setAffectedPublishedFixtures] = useState<readonly string[]>([]);
+  const [affectedPublishedMatches, setAffectedPublishedMatches] = useState<readonly string[]>([]);
   const [committable, setCommittable] = useState(false);
   const [previewed, setPreviewed] = useState(false);
 
@@ -80,18 +77,24 @@ export function ScheduleBuilderRoute({
     [drafts],
   );
 
+  const allSlots = useMemo(() => {
+    return schedules.flatMap((s) =>
+      s.slots.map((slot) => ({ ...slot, slotMinutes: s.slotMinutes })),
+    );
+  }, [schedules]);
+
+  const slotById = useMemo(() => {
+    return new Map(allSlots.map((slot) => [slot.slotId, slot]));
+  }, [allSlots]);
+
   function assignmentFrom(
-    fixtureId: string,
+    matchId: string,
     draft: DraftAssignment,
   ): ScheduleAssignmentDto | undefined {
-    if (draft.startsAt === '' || draft.durationMinutes === '') return undefined;
-    const startsAt = Date.parse(draft.startsAt);
-    const durationMinutes = Number(draft.durationMinutes);
-    if (!Number.isFinite(startsAt) || !Number.isFinite(durationMinutes)) return undefined;
+    if (draft.slotId === '') return undefined;
     return {
-      fixtureId,
-      window: { startsAt, durationMinutes },
-      ...(draft.venueId === '' ? {} : { venueId: draft.venueId }),
+      matchId,
+      slotId: draft.slotId,
       ...(draft.officialIds.length === 0 ? {} : { officialIds: draft.officialIds }),
     };
   }
@@ -99,7 +102,7 @@ export function ScheduleBuilderRoute({
   const batch = useMemo(
     () =>
       fixtures
-        .map((fixture) => assignmentFrom(fixture.fixtureId, draftFor(fixture.fixtureId)))
+        .map((fixture) => assignmentFrom(fixture.matchId, draftFor(fixture.fixtureId)))
         .filter((assignment): assignment is ScheduleAssignmentDto => assignment !== undefined),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- assignmentFrom is a pure local helper, not a dep
     [fixtures, drafts, draftFor],
@@ -108,16 +111,18 @@ export function ScheduleBuilderRoute({
   const reload = useCallback(async (): Promise<void> => {
     setLoading(true);
     try {
-      const [fixturesResponse, loadedVenues, loadedOfficials] = await Promise.all([
+      const [fixturesResponse, loadedVenues, loadedOfficials, loadedSchedules] = await Promise.all([
         api.getStageFixtures?.(organizationAlias, tournamentAlias, stageNumber),
         api.listVenues?.(organizationAlias) ?? Promise.resolve([]),
         api.listOfficials?.(organizationAlias) ?? Promise.resolve([]),
+        api.listSchedules?.(organizationAlias) ?? Promise.resolve([]),
       ]);
       if (!fixturesResponse) throw new Error('no fixtures client configured');
       setStageId(fixturesResponse.stageId);
       setFixtures(fixturesResponse.fixtures);
       setVenues(loadedVenues);
       setOfficials(loadedOfficials);
+      setSchedules(loadedSchedules);
 
       const schedule = await api.getSchedule?.(
         organizationAlias,
@@ -127,9 +132,7 @@ export function ScheduleBuilderRoute({
       const nextDrafts: Record<string, DraftAssignment> = {};
       for (const assignment of schedule?.assignments ?? []) {
         nextDrafts[assignment.fixtureId] = {
-          startsAt: new Date(assignment.window.startsAt).toISOString().slice(0, 16),
-          durationMinutes: String(assignment.window.durationMinutes),
-          venueId: assignment.venueId ?? '',
+          slotId: assignment.slotId,
           officialIds: assignment.officialIds ?? [],
         };
       }
@@ -163,7 +166,7 @@ export function ScheduleBuilderRoute({
         assignments: batch,
       });
       setConflicts(result.conflicts);
-      setAffectedPublishedFixtures(result.affectedPublishedFixtures);
+      setAffectedPublishedMatches(result.affectedPublishedMatches);
       setCommittable(result.committable);
       setPreviewed(true);
     } catch (error) {
@@ -209,7 +212,7 @@ export function ScheduleBuilderRoute({
   ].filter((entrantId): entrantId is string => entrantId !== undefined);
   const scheduledEntrantIds = new Set(
     fixtures
-      .filter((fixture) => draftFor(fixture.fixtureId).startsAt !== '')
+      .filter((fixture) => draftFor(fixture.fixtureId).slotId !== '')
       .flatMap((fixture) => [fixture.homeEntrantId, fixture.awayEntrantId]),
   );
 
@@ -256,8 +259,10 @@ export function ScheduleBuilderRoute({
               <ul>
                 {fixtures.map((fixture) => {
                   const draft = draftFor(fixture.fixtureId);
-                  const assigned = draft.startsAt !== '';
-                  const venue = venues.find((candidate) => candidate.venueId === draft.venueId);
+                  const assignedSlot = slotById.get(draft.slotId);
+                  const venue = assignedSlot
+                    ? venues.find((c) => c.venueId === assignedSlot.venueId)
+                    : undefined;
                   const assignedOfficials = officials.filter((candidate) =>
                     draft.officialIds.includes(candidate.officialId),
                   );
@@ -272,10 +277,10 @@ export function ScheduleBuilderRoute({
                         {fixture.homeEntrantId ?? '—'} vs {fixture.awayEntrantId ?? '—'}
                       </span>
                       <span>
-                        {assigned ? (
+                        {assignedSlot ? (
                           <>
-                            {draft.startsAt}
-                            {draft.durationMinutes && ` (${draft.durationMinutes}m)`}
+                            {new Date(assignedSlot.startsAt).toISOString().slice(0, 16)}
+                            {assignedSlot.slotMinutes && ` (${assignedSlot.slotMinutes}m)`}
                             {venue && ` @ ${venue.name}`}
                             {assignedOfficials.length > 0 &&
                               ` · ${assignedOfficials.map((candidate) => candidate.displayName).join(', ')}`}
@@ -306,57 +311,38 @@ export function ScheduleBuilderRoute({
                 return (
                   <div key={fixture.fixtureId} className="cl-platform-form-grid">
                     <FormField
-                      id={`start-time-${fixture.fixtureId}`}
+                      id={`slot-${fixture.fixtureId}`}
                       label={intl.formatMessage(messages.scheduleBuilderStartTime)}
                     >
-                      <Input
-                        aria-label={`${intl.formatMessage(messages.scheduleBuilderStartTime)} — ${fixture.fixtureId}`}
-                        id={`start-time-${fixture.fixtureId}`}
-                        onChange={(event) =>
-                          setDraft(fixture.fixtureId, { startsAt: event.target.value })
-                        }
-                        type="datetime-local"
-                        value={draft.startsAt}
-                      />
-                    </FormField>
-                    <FormField
-                      id={`duration-${fixture.fixtureId}`}
-                      label={intl.formatMessage(messages.scheduleBuilderDuration)}
-                    >
-                      <Input
-                        aria-label={`${intl.formatMessage(messages.scheduleBuilderDuration)} — ${fixture.fixtureId}`}
-                        id={`duration-${fixture.fixtureId}`}
-                        min={1}
-                        onChange={(event) =>
-                          setDraft(fixture.fixtureId, { durationMinutes: event.target.value })
-                        }
-                        type="number"
-                        value={draft.durationMinutes}
-                      />
-                    </FormField>
-                    <FormField
-                      id={`venue-${fixture.fixtureId}`}
-                      label={intl.formatMessage(messages.scheduleBuilderVenue)}
-                    >
                       <select
-                        aria-label={`${intl.formatMessage(messages.scheduleBuilderVenue)} — ${fixture.fixtureId}`}
+                        aria-label={`${intl.formatMessage(messages.scheduleBuilderStartTime)} — ${fixture.fixtureId}`}
                         className="cl-select cl-select--default cl-focusable"
-                        id={`venue-${fixture.fixtureId}`}
+                        id={`slot-${fixture.fixtureId}`}
                         onChange={(event) =>
-                          setDraft(fixture.fixtureId, { venueId: event.target.value })
+                          setDraft(fixture.fixtureId, { slotId: event.target.value })
                         }
-                        value={draft.venueId}
+                        value={draft.slotId}
                       >
                         <option value="">
-                          {intl.formatMessage(messages.scheduleBuilderNoVenue)}
+                          {intl.formatMessage(messages.scheduleBuilderUnassigned)}
                         </option>
-                        {venues.map((venue) => (
-                          <option key={venue.venueId} value={venue.venueId}>
-                            {venue.name}
-                          </option>
-                        ))}
+                        {allSlots.map((slot) => {
+                          const venue = venues.find((v) => v.venueId === slot.venueId);
+                          const isOccupied =
+                            slot.matchCount >= (venue?.concurrentCapacity ?? 1) &&
+                            draft.slotId !== slot.slotId;
+                          return (
+                            <option key={slot.slotId} disabled={isOccupied} value={slot.slotId}>
+                              {new Date(slot.startsAt).toISOString().slice(0, 16)}
+                              {venue ? ` @ ${venue.name}` : ''}
+                              {` (${slot.matchCount}/${venue?.concurrentCapacity ?? 1})`}
+                              {isOccupied ? ' (Full)' : ''}
+                            </option>
+                          );
+                        })}
                       </select>
                     </FormField>
+
                     <fieldset className="cl-role-user">
                       <legend className="cl-label">
                         <FormattedMessage {...messages.scheduleBuilderOfficials} />
@@ -417,7 +403,7 @@ export function ScheduleBuilderRoute({
                 </div>
               )}
 
-              {previewed && affectedPublishedFixtures.length > 0 && (
+              {previewed && affectedPublishedMatches.length > 0 && (
                 <p className="cl-inline-alert" role="alert">
                   <FormattedMessage {...messages.scheduleBuilderAffectedPublishedHeading} />
                 </p>

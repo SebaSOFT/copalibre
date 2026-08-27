@@ -1524,6 +1524,66 @@ export const messages = defineMessages({
     id: 'control.resourceManagement.roleObserver',
     defaultMessage: 'Observer',
   },
+  resourceManagementSchedulesHeading: {
+    id: 'control.resourceManagement.schedulesHeading',
+    defaultMessage: 'Schedules',
+  },
+  resourceManagementSchedulesEmpty: {
+    id: 'control.resourceManagement.schedulesEmpty',
+    defaultMessage: 'This organization has no schedules yet.',
+  },
+  resourceManagementNewScheduleName: {
+    id: 'control.resourceManagement.newScheduleName',
+    defaultMessage: 'Schedule name',
+  },
+  resourceManagementNewScheduleStartsAt: {
+    id: 'control.resourceManagement.newScheduleStartsAt',
+    defaultMessage: 'Starts at',
+  },
+  resourceManagementNewScheduleEndsAt: {
+    id: 'control.resourceManagement.newScheduleEndsAt',
+    defaultMessage: 'Ends at',
+  },
+  resourceManagementNewScheduleSlotMinutes: {
+    id: 'control.resourceManagement.newScheduleSlotMinutes',
+    defaultMessage: 'Slot minutes',
+  },
+  resourceManagementNewScheduleTurnaroundMinutes: {
+    id: 'control.resourceManagement.newScheduleTurnaroundMinutes',
+    defaultMessage: 'Turnaround minutes',
+  },
+  resourceManagementNewScheduleVenues: {
+    id: 'control.resourceManagement.newScheduleVenues',
+    defaultMessage: 'Venues',
+  },
+  resourceManagementAddSchedule: {
+    id: 'control.resourceManagement.addSchedule',
+    defaultMessage: 'Add schedule',
+  },
+  resourceManagementScheduleCreated: {
+    id: 'control.resourceManagement.scheduleCreated',
+    defaultMessage: 'Schedule created.',
+  },
+  resourceManagementScheduleSaved: {
+    id: 'control.resourceManagement.scheduleSaved',
+    defaultMessage: 'Schedule saved.',
+  },
+  resourceManagementScheduleDeleted: {
+    id: 'control.resourceManagement.scheduleDeleted',
+    defaultMessage: 'Schedule removed.',
+  },
+  resourceManagementEditScheduleHeading: {
+    id: 'control.resourceManagement.editScheduleHeading',
+    defaultMessage: 'Edit schedule',
+  },
+  resourceManagementScheduleSlotsCount: {
+    id: 'control.resourceManagement.scheduleSlotsCount',
+    defaultMessage: '{count} slots generated',
+  },
+  resourceManagementDeleteSchedule: {
+    id: 'control.resourceManagement.deleteSchedule',
+    defaultMessage: 'Delete schedule',
+  },
 
   // Schedule builder — manual assignment of time, venue, and officials to a stage's fixtures.
   scheduleBuilderSectionLabel: {

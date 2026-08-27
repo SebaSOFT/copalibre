@@ -2,6 +2,7 @@ import { checkReadinessAgainst } from '../test-support/readiness-probe.js';
 import { createScratchDatabase, type ScratchDatabase } from '../test-support/scratch-database.js';
 import { sql, type Kysely } from 'kysely';
 import {
+  createMigrator,
   EXPECTED_SCHEMA_VERSION,
   migrateDownOneStep,
   migrateToLatest,
@@ -151,6 +152,16 @@ describe('migrations (integration)', () => {
     );
     expect(afterUp).toContain('declared_effects');
     expect(afterUp).toContain('shared_rate_limit_counters');
+    expect(afterUp).toContain('schedules');
+    expect(afterUp).toContain('schedule_venues');
+    expect(afterUp).toContain('schedule_slots');
+    expect(afterUp).toContain('match_schedule_assignments');
+    expect(afterUp).toContain('match_schedule_officials');
+    expect(afterUp).not.toContain('fixture_schedules');
+    expect(afterUp).not.toContain('fixture_schedule_officials');
+    expect(afterUpTables.find((table) => table.name === 'fixtures')?.columns).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'scheduled_at' })]),
+    );
     const customScriptsColumn = afterUpTables
       .find((table) => table.name === 'tournament_rulesets')
       ?.columns.find((column) => column.name === 'custom_scripts');
@@ -171,6 +182,24 @@ describe('migrations (integration)', () => {
             `.execute(scratch.db)
           ).rows[0]?.dflt_value;
     expect(defaultExpression).toContain('[]');
+
+    const schedulesDown = await migrateDownOneStep(scratch.db);
+    expect(schedulesDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe(
+      '0030-shared-rate-limit-counters',
+    );
+    const afterSchedulesDownTables = await scratch.db.introspection.getTables();
+    const afterSchedulesDown = afterSchedulesDownTables.map((t) => t.name);
+    expect(afterSchedulesDown).not.toContain('schedules');
+    expect(afterSchedulesDown).not.toContain('schedule_venues');
+    expect(afterSchedulesDown).not.toContain('schedule_slots');
+    expect(afterSchedulesDown).not.toContain('match_schedule_assignments');
+    expect(afterSchedulesDown).not.toContain('match_schedule_officials');
+    expect(afterSchedulesDown).toContain('fixture_schedules');
+    expect(afterSchedulesDown).toContain('fixture_schedule_officials');
+    expect(afterSchedulesDownTables.find((table) => table.name === 'fixtures')?.columns).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'scheduled_at' })]),
+    );
 
     const sharedCountersDown = await migrateDownOneStep(scratch.db);
     expect(sharedCountersDown.error).toBeUndefined();
@@ -690,6 +719,99 @@ describe('migrations (integration)', () => {
       undefined,
       'walkover',
     ]);
+  });
+
+  it('refuses 0031-schedules migration when legacy fixture_schedules has null venue_id', async () => {
+    const migrator = createMigrator(scratch.db);
+    await migrator.migrateTo('0030-shared-rate-limit-counters');
+
+    const orgId = '11111111-1111-7111-8111-111111111111';
+    const tournamentId = '22222222-2222-7222-8222-222222222222';
+    const seasonId = '33333333-3333-7333-8333-333333333333';
+    const stageId = '44444444-4444-7444-8444-444444444444';
+    const fixtureId = '55555555-5555-7555-8555-555555555555';
+    const scheduleId = '66666666-6666-7666-8666-666666666666';
+
+    await scratch.db
+      .insertInto('organizations')
+      .values({
+        organization_id: orgId,
+        alias: 'test-org',
+        name: 'Test Org',
+        primary_language: 'es',
+        timezone: 'UTC',
+        created_at: new Date(),
+      })
+      .execute();
+
+    const descriptorId = '00000000-0000-7000-8000-000000000001';
+    await scratch.db
+      .insertInto('discipline_descriptors')
+      .values({
+        descriptor_id: descriptorId,
+        version: '1.0.0',
+        alias: 'disc-1',
+        name: 'Disc 1',
+        document: JSON.stringify({}),
+        created_at: new Date(),
+      })
+      .execute();
+
+    await scratch.db
+      .insertInto('tournaments')
+      .values({
+        tournament_id: tournamentId,
+        organization_id: orgId,
+        descriptor_id: descriptorId,
+        descriptor_version: '1.0.0',
+        alias: 'tour-1',
+        name: 'Tour 1',
+        status: 'active',
+        created_at: new Date(),
+      })
+      .execute();
+
+    await scratch.db
+      .insertInto('seasons')
+      .values({
+        season_id: seasonId,
+        tournament_id: tournamentId,
+        ordinal: 1,
+        name: 'Season 1',
+        created_at: new Date(),
+      })
+      .execute();
+
+    await scratch.db
+      .insertInto('stages')
+      .values({
+        stage_id: stageId,
+        season_id: seasonId,
+        number: 1,
+        name: 'Stage 1',
+        format: 'round-robin',
+        created_at: new Date(),
+      })
+      .execute();
+
+    await scratch.db
+      .insertInto('fixtures')
+      .values({
+        fixture_id: fixtureId,
+        stage_id: stageId,
+        round: 1,
+        created_at: new Date(),
+      })
+      .execute();
+
+    await sql`
+      INSERT INTO fixture_schedules (fixture_schedule_id, fixture_id, venue_id, starts_at, duration_minutes, published, created_at)
+      VALUES (${scheduleId}, ${fixtureId}, NULL, '1700000000000', 60, false, ${new Date()})
+    `.execute(scratch.db);
+
+    const result = await migrator.migrateToLatest();
+    expect(result.error).toBeDefined();
+    expect(String(result.error)).toContain('fixture_schedules row(s) with NULL venue_id');
   });
 });
 

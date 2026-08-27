@@ -493,26 +493,27 @@ export class PublicProjectionsController {
 
     const [schedule, officials, rosterRows, segments, events, descriptor] = await Promise.all([
       this.db
-        .selectFrom('fixture_schedules')
-        .leftJoin('venues', 'venues.venue_id', 'fixture_schedules.venue_id')
+        .selectFrom('match_schedule_assignments')
+        .innerJoin('schedule_slots', 'schedule_slots.slot_id', 'match_schedule_assignments.slot_id')
+        .leftJoin('venues', 'venues.venue_id', 'schedule_slots.venue_id')
         .select([
-          'fixture_schedules.starts_at',
-          'fixture_schedules.published',
+          'schedule_slots.starts_at',
+          'match_schedule_assignments.published',
           'venues.name as venue_name',
         ])
-        .where('fixture_schedules.fixture_id', '=', match.fixture_id)
+        .where('match_schedule_assignments.match_id', '=', match.match_id)
         .executeTakeFirst(),
       this.db
-        .selectFrom('fixture_schedules')
+        .selectFrom('match_schedule_assignments')
         .innerJoin(
-          'fixture_schedule_officials',
-          'fixture_schedule_officials.fixture_schedule_id',
-          'fixture_schedules.fixture_schedule_id',
+          'match_schedule_officials',
+          'match_schedule_officials.match_id',
+          'match_schedule_assignments.match_id',
         )
-        .innerJoin('officials', 'officials.official_id', 'fixture_schedule_officials.official_id')
+        .innerJoin('officials', 'officials.official_id', 'match_schedule_officials.official_id')
         .select(['officials.display_name', 'officials.roles'])
-        .where('fixture_schedules.fixture_id', '=', match.fixture_id)
-        .where('fixture_schedules.published', '=', true)
+        .where('match_schedule_assignments.match_id', '=', match.match_id)
+        .where('match_schedule_assignments.published', '=', true)
         .orderBy('officials.display_name')
         .execute(),
       this.db

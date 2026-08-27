@@ -24,8 +24,12 @@ import type { OpenAPIObject } from '@nestjs/swagger';
  *
  * Bumped to 5.0.0 for per-event rule authoring: tournament creation now
  * requires the canonical `customScripts` collection, even when it is empty.
+ *
+ * Bumped to 6.0.0 for match-grain scheduling: schedule assignment requests now
+ * specify `matchId` and `slotId` against organization schedule grids, and fixture
+ * responses include the fixture's primary `matchId`.
  */
-export const OPENAPI_VERSION = '5.0.0';
+export const OPENAPI_VERSION = '6.0.0';
 
 export function buildOpenApiDocument(app: INestApplication): OpenAPIObject {
   const config = new DocumentBuilder()

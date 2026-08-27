@@ -7,6 +7,8 @@ import type {
   Match,
   Official,
   ResourceAssignment,
+  Schedule,
+  ScheduleSlot,
   Venue,
   Organization,
   IdentityPrincipal,
@@ -26,11 +28,13 @@ import type {
   ClubsTable,
   EntrantAttributesTable,
   EntrantsTable,
-  FixtureSchedulesTable,
   FixturesTable,
   GroupsTable,
   OfficialsTable,
   VenuesTable,
+  SchedulesTable,
+  ScheduleSlotsTable,
+  MatchScheduleAssignmentsTable,
   MatchEventsTable,
   MatchesTable,
   OrganizationsTable,
@@ -68,10 +72,6 @@ export type FixtureRow = Selectable<FixturesTable>;
 export type EntrantAttributeRow = Selectable<EntrantAttributesTable>;
 export type VenueRow = Selectable<VenuesTable>;
 export type OfficialRow = Selectable<OfficialsTable>;
-type ScheduleRow = Pick<
-  Selectable<FixtureSchedulesTable>,
-  'fixture_id' | 'venue_id' | 'starts_at' | 'duration_minutes'
->;
 export type MatchRow = Selectable<MatchesTable>;
 export type SegmentRow = Selectable<SegmentsTable>;
 export type MatchEventRow = Selectable<MatchEventsTable>;
@@ -225,19 +225,45 @@ export function toOfficial(row: OfficialRow): Official {
   };
 }
 
+export type ScheduleRow = Selectable<SchedulesTable>;
+export type ScheduleSlotRow = Selectable<ScheduleSlotsTable>;
+export type MatchScheduleAssignmentRow = Selectable<MatchScheduleAssignmentsTable>;
+
+export function toSchedule(row: ScheduleRow, venueIds: readonly string[]): Schedule {
+  return {
+    scheduleId: row.schedule_id,
+    organizationId: row.organization_id,
+    name: row.name,
+    startsAt: Number(row.starts_at),
+    endsAt: Number(row.ends_at),
+    slotMinutes: row.slot_minutes,
+    turnaroundMinutes: row.turnaround_minutes,
+    venueIds,
+  };
+}
+
+export function toScheduleSlot(row: ScheduleSlotRow): ScheduleSlot {
+  return {
+    slotId: row.slot_id,
+    scheduleId: row.schedule_id,
+    venueId: row.venue_id,
+    startsAt: Number(row.starts_at),
+  };
+}
+
 /**
  * `starts_at` is a bigint, which pg hands back as a string to avoid losing
  * precision. Converting here keeps that a storage detail: the domain has only
  * ever seen an epoch number.
  */
 export function toResourceAssignment(
-  row: ScheduleRow,
-  officialIds: readonly string[],
+  row: Pick<MatchScheduleAssignmentRow, 'match_id' | 'slot_id'> &
+    Partial<MatchScheduleAssignmentRow>,
+  officialIds: readonly string[] = [],
 ): ResourceAssignment {
   return {
-    fixtureId: row.fixture_id,
-    window: { startsAt: Number(row.starts_at), durationMinutes: row.duration_minutes },
-    ...(row.venue_id === null ? {} : { venueId: row.venue_id }),
+    matchId: row.match_id,
+    slotId: row.slot_id,
     ...(officialIds.length === 0 ? {} : { officialIds }),
   };
 }
@@ -280,7 +306,6 @@ export function toFixture(row: FixtureRow): Fixture {
     round: row.round,
     ...(row.home_entrant_id === null ? {} : { homeEntrantId: row.home_entrant_id }),
     ...(row.away_entrant_id === null ? {} : { awayEntrantId: row.away_entrant_id }),
-    ...(row.scheduled_at === null ? {} : { scheduledAt: toIsoString(row.scheduled_at) }),
   };
 }
 

@@ -12,6 +12,7 @@ import { OrganizationRepository } from './organization-repository.js';
 import { EnrollmentRepository } from './enrollment-repository.js';
 import { ObjectMetadataRepository } from './object-metadata-repository.js';
 import { AliasRepository } from './alias-repository.js';
+import { ScheduleRepository } from './schedule-repository.js';
 import { TournamentRepository } from './tournament-repository.js';
 
 const AUDIT = { actor: 'user:organizer-1', authorizationContext: 'scope:tournament.write' };
@@ -680,9 +681,9 @@ describe('repositories (integration)', () => {
     expect(audit.map((entry) => entry.action)).toContain('fixtures.regenerated');
   });
 
-  it('refuses to replace fixtures once a match has been created against one of them', async () => {
+  it('replaces fixtures when matches are scheduled, and refuses once a match has started', async () => {
     const disciplineDescriptor = descriptor();
-    const { stageId, fixtureId, entrantId } = await withTransaction(scratch.db, async (uow) => {
+    const { stageId, entrantId } = await withTransaction(scratch.db, async (uow) => {
       await tournaments.saveDescriptor(uow, disciplineDescriptor, { organizationId, ...AUDIT });
       const tournament = await tournaments.create(uow, {
         organizationId,
@@ -717,15 +718,48 @@ describe('repositories (integration)', () => {
         ...AUDIT,
       });
       if (!fixture) throw new Error('fixture was not created');
-      await competition.createMatch(uow, {
-        fixtureId: fixture.fixtureId,
-        number: 1,
-        organizationId,
-        ...AUDIT,
-      });
-      return { stageId: stage.stageId, fixtureId: fixture.fixtureId, entrantId: entrant.entrantId };
+      return { stageId: stage.stageId, entrantId: entrant.entrantId };
     });
 
+    // 1. Matches are materialized and scheduled; replacing fixtures succeeds
+    const replaced = await withTransaction(scratch.db, (uow) =>
+      competition.replaceFixtures(uow, {
+        stageId,
+        fixtures: [{ round: 1, homeEntrantId: entrantId }],
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+    expect(replaced).toHaveLength(1);
+    const newFixture = replaced[0];
+    if (!newFixture) throw new Error('no fixture replaced');
+    const newFixtureId = newFixture.fixtureId;
+
+    // Verify exactly one match was created for the new fixture
+    const matchesAfterReplace = await scratch.db
+      .selectFrom('matches')
+      .selectAll()
+      .where('fixture_id', '=', newFixtureId)
+      .execute();
+    expect(matchesAfterReplace).toHaveLength(1);
+    const firstMatch = matchesAfterReplace[0];
+    if (!firstMatch) throw new Error('no match created');
+    expect(firstMatch.status).toBe('scheduled');
+
+    // 2. Start the match (status -> in-progress)
+    const matchId = firstMatch.match_id;
+    await withTransaction(scratch.db, (uow) =>
+      competition.applyCommand(uow, {
+        matchId,
+        command: 'start',
+        status: 'in-progress',
+        grantedBy: 'official:1',
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+
+    // 3. Now replacing fixtures must be refused
     await expect(
       withTransaction(scratch.db, (uow) =>
         competition.replaceFixtures(uow, {
@@ -737,13 +771,73 @@ describe('repositories (integration)', () => {
       ),
     ).rejects.toBeInstanceOf(InvariantViolationError);
 
-    // Nothing was touched: the original fixture is still exactly there.
+    // Nothing was touched: the fixture is still there.
     const remaining = await scratch.db
       .selectFrom('fixtures')
       .selectAll()
       .where('stage_id', '=', stageId)
       .execute();
-    expect(remaining.map((row) => row.fixture_id)).toEqual([fixtureId]);
+    expect(remaining.map((row) => row.fixture_id)).toEqual([newFixtureId]);
+  });
+
+  it('createMatch is idempotent and createFixtures materializes match 1', async () => {
+    const disciplineDescriptor = descriptor();
+    const { fixtureId } = await withTransaction(scratch.db, async (uow) => {
+      await tournaments.saveDescriptor(uow, disciplineDescriptor, { organizationId, ...AUDIT });
+      const tournament = await tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-idempotent-match',
+        name: 'Copa Idempotent Match',
+        descriptor: disciplineDescriptor,
+        ...AUDIT,
+      });
+      const stage = await competition.createStageInTournament(uow, {
+        tournamentId: tournament.tournamentId,
+        number: 1,
+        name: 'Stage 1',
+        format: 'round-robin',
+        organizationId,
+        ...AUDIT,
+      });
+      const [fixture] = await competition.createFixtures(uow, {
+        stageId: stage.stageId,
+        fixtures: [{ round: 1 }],
+        organizationId,
+        ...AUDIT,
+      });
+      if (!fixture) throw new Error('fixture was not created');
+      return { fixtureId: fixture.fixtureId };
+    });
+
+    // createFixtures already materialized match 1
+    const initialMatches = await scratch.db
+      .selectFrom('matches')
+      .selectAll()
+      .where('fixture_id', '=', fixtureId)
+      .execute();
+    expect(initialMatches).toHaveLength(1);
+    const firstInitial = initialMatches[0];
+    if (!firstInitial) throw new Error('no initial match');
+    expect(firstInitial.number).toBe(1);
+    const initialMatchId = firstInitial.match_id;
+
+    // createMatch for match 1 returns existing match and does NOT insert or audit again
+    const secondCall = await withTransaction(scratch.db, (uow) =>
+      competition.createMatch(uow, {
+        fixtureId,
+        number: 1,
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+    expect(secondCall.matchId).toBe(initialMatchId);
+
+    const matchesAfter = await scratch.db
+      .selectFrom('matches')
+      .selectAll()
+      .where('fixture_id', '=', fixtureId)
+      .execute();
+    expect(matchesAfter).toHaveLength(1);
   });
 
   it('refuses to replace fixtures with an empty set', async () => {
@@ -1714,7 +1808,6 @@ describe('public overview projection (integration)', () => {
             round: 1,
             homeEntrantId: homeEntrant.entrantId,
             awayEntrantId: awayEntrant.entrantId,
-            scheduledAt: '2026-08-01T20:00:00.000Z',
           },
         ],
         organizationId,
@@ -1727,6 +1820,34 @@ describe('public overview projection (integration)', () => {
         organizationId,
         ...AUDIT,
       });
+
+      const schedulesRepo = new ScheduleRepository(scratch.db);
+      const venue = await schedulesRepo.createVenue(uow, {
+        organizationId,
+        alias: 'court-overview',
+        name: 'Cancha Overview',
+        concurrentCapacity: 1,
+        ...AUDIT,
+      });
+      const sched = await schedulesRepo.createSchedule(uow, {
+        organizationId,
+        name: 'Horario Overview',
+        startsAt: Date.parse('2026-08-01T20:00:00.000Z'),
+        endsAt: Date.parse('2026-08-01T22:00:00.000Z'),
+        slotMinutes: 90,
+        turnaroundMinutes: 15,
+        venueIds: [venue.venueId],
+        ...AUDIT,
+      });
+      const slots = await schedulesRepo.listScheduleSlots(sched.scheduleId, uow);
+      const firstSlot = slots[0];
+      if (!firstSlot) throw new Error('no slot created');
+      await schedulesRepo.publishSchedule(uow, {
+        organizationId,
+        assignments: [{ matchId: match.matchId, slotId: firstSlot.slotId }],
+        ...AUDIT,
+      });
+
       await competition.recordResult(uow, {
         matchId: match.matchId,
         result: {

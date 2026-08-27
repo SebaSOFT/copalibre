@@ -769,7 +769,6 @@ export class CompetitionRepository {
         readonly round: number;
         readonly homeEntrantId?: string;
         readonly awayEntrantId?: string;
-        readonly scheduledAt?: string;
         readonly zoneId?: string;
         readonly groupId?: string;
       }[];
@@ -804,7 +803,6 @@ export class CompetitionRepository {
           round: fixture.round,
           home_entrant_id: fixture.homeEntrantId ?? null,
           away_entrant_id: fixture.awayEntrantId ?? null,
-          scheduled_at: fixture.scheduledAt ? new Date(fixture.scheduledAt) : null,
           created_at: new Date(),
         })),
       )
@@ -812,6 +810,30 @@ export class CompetitionRepository {
       .execute();
 
     const fixtures = rows.map(toFixture);
+
+    if (fixtures.length > 0) {
+      const matchRows = fixtures.map((fixture) => ({
+        match_id: newId(),
+        fixture_id: fixture.fixtureId,
+        number: 1,
+        status: 'scheduled' as const,
+        result: null,
+        created_at: new Date(),
+      }));
+      await uow.tx.insertInto('matches').values(matchRows).execute();
+
+      for (const m of matchRows) {
+        await uow.recordAudit({
+          organizationId: input.organizationId,
+          entityType: 'match',
+          entityId: m.match_id,
+          action: 'match.created',
+          actor: input.actor,
+          authorizationContext: input.authorizationContext,
+          resultingState: { ...toMatch(m) },
+        });
+      }
+    }
 
     await uow.recordAudit({
       organizationId: input.organizationId,
@@ -853,10 +875,8 @@ export class CompetitionRepository {
   /**
    * Replaces a stage's fixture graph in place — the write side of reseeding.
    * Only reachable once `classifyEngineMutation` has already refused a
-   * `blocked_after_results` request, but a fixture with a match already
-   * attached (started, even without a final result) is still a record this
-   * would orphan, so that case is refused here too rather than trusted to the
-   * classification alone.
+   * `blocked_after_results` request. Guarded against matches that have
+   * progressed beyond scheduled or have results recorded.
    */
   async replaceFixtures(
     uow: UnitOfWork,
@@ -866,7 +886,6 @@ export class CompetitionRepository {
         readonly round: number;
         readonly homeEntrantId?: string;
         readonly awayEntrantId?: string;
-        readonly scheduledAt?: string;
         readonly zoneId?: string;
         readonly groupId?: string;
       }[];
@@ -883,10 +902,13 @@ export class CompetitionRepository {
       .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
       .select('matches.match_id')
       .where('fixtures.stage_id', '=', input.stageId)
+      .where((eb) =>
+        eb.or([eb('matches.status', '!=', 'scheduled'), eb('matches.result', 'is not', null)]),
+      )
       .executeTakeFirst();
     if (attached) {
       throw new InvariantViolationError(
-        'Cannot replace fixtures once a match has been created against them',
+        'Cannot replace fixtures once a match has started or recorded results',
         { stageId: input.stageId },
       );
     }
@@ -897,6 +919,12 @@ export class CompetitionRepository {
       .where('stage_id', '=', input.stageId)
       .executeTakeFirstOrThrow();
 
+    const stageFixtureIds = uow.tx
+      .selectFrom('fixtures')
+      .select('fixture_id')
+      .where('stage_id', '=', input.stageId);
+
+    await uow.tx.deleteFrom('matches').where('fixture_id', 'in', stageFixtureIds).execute();
     await uow.tx.deleteFrom('fixtures').where('stage_id', '=', input.stageId).execute();
 
     const scopedFixtures = await Promise.all(
@@ -916,7 +944,6 @@ export class CompetitionRepository {
           round: fixture.round,
           home_entrant_id: fixture.homeEntrantId ?? null,
           away_entrant_id: fixture.awayEntrantId ?? null,
-          scheduled_at: fixture.scheduledAt ? new Date(fixture.scheduledAt) : null,
           created_at: new Date(),
         })),
       )
@@ -924,6 +951,22 @@ export class CompetitionRepository {
       .execute();
 
     const fixtures = rows.map(toFixture);
+
+    if (fixtures.length > 0) {
+      await uow.tx
+        .insertInto('matches')
+        .values(
+          fixtures.map((fixture) => ({
+            match_id: newId(),
+            fixture_id: fixture.fixtureId,
+            number: 1,
+            status: 'scheduled',
+            result: null,
+            created_at: new Date(),
+          })),
+        )
+        .execute();
+    }
 
     await uow.recordAudit({
       organizationId: input.organizationId,
@@ -951,6 +994,16 @@ export class CompetitionRepository {
     uow: UnitOfWork,
     input: { readonly fixtureId: string; readonly number: number } & AuditContext,
   ): Promise<Match> {
+    const existing = await uow.tx
+      .selectFrom('matches')
+      .selectAll()
+      .where('fixture_id', '=', input.fixtureId)
+      .where('number', '=', input.number)
+      .executeTakeFirst();
+    if (existing) {
+      return toMatch(existing);
+    }
+
     const matchId = newId();
     const row = await uow.tx
       .insertInto('matches')
@@ -976,6 +1029,18 @@ export class CompetitionRepository {
       resultingState: { ...match },
     });
     return match;
+  }
+
+  async listMatchesForStage(stageId: string, uow?: UnitOfWork): Promise<readonly Match[]> {
+    const handle = uow?.tx ?? this.db;
+    const rows = await handle
+      .selectFrom('matches')
+      .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
+      .selectAll('matches')
+      .where('fixtures.stage_id', '=', stageId)
+      .orderBy('matches.number')
+      .execute();
+    return rows.map(toMatch);
   }
 
   /**

@@ -1,8 +1,13 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { VenueManagementRoute } from './components/VenueManagementRoute.js';
-import { ControlApiError } from './lib/api-client.js';
-import type { ControlApiClient, OfficialResponse, VenueResponse } from './lib/api-client.js';
+import {
+  ControlApiError,
+  type ControlApiClient,
+  type OfficialResponse,
+  type ScheduleDetailResponse,
+  type VenueResponse,
+} from './lib/api-client.js';
 import { withIntl } from './i18n/test-support.js';
 
 const oneVenue: readonly VenueResponse[] = [
@@ -482,6 +487,68 @@ describe('VenueManagementRoute', () => {
     await screen.findByText('El árbitro ya existe');
   });
 
+  it('creates a schedule grid and displays the generated slot count', async () => {
+    const schedules: ScheduleDetailResponse[] = [];
+    const createSchedule = jest.fn<NonNullable<ControlApiClient['createSchedule']>>(
+      async (_org, body) => {
+        const created: ScheduleDetailResponse = {
+          scheduleId: 'schedule-1',
+          organizationId: 'org-1',
+          name: body.name,
+          startsAt: body.startsAt,
+          endsAt: body.endsAt,
+          slotMinutes: body.slotMinutes,
+          turnaroundMinutes: body.turnaroundMinutes,
+          venueIds: body.venueIds,
+          slots: [
+            {
+              slotId: 'slot-1',
+              scheduleId: 'schedule-1',
+              venueId: 'venue-1',
+              startsAt: body.startsAt,
+              matchCount: 0,
+            },
+            {
+              slotId: 'slot-2',
+              scheduleId: 'schedule-1',
+              venueId: 'venue-1',
+              startsAt: body.startsAt + (body.slotMinutes + body.turnaroundMinutes) * 60000,
+              matchCount: 0,
+            },
+          ],
+        };
+        schedules.push(created);
+        return created;
+      },
+    );
+    const client = stubClient({
+      listVenues: () => Promise.resolve(oneVenue),
+      listSchedules: () => Promise.resolve(schedules),
+      createSchedule,
+    });
+    render(withIntl(<VenueManagementRoute client={client} organizationAlias="liga-mendocina" />));
+
+    await screen.findByText('This organization has no schedules yet.');
+    fireEvent.change(screen.getByLabelText('Schedule name'), {
+      target: { value: 'Torneo Apertura Grid' },
+    });
+    fireEvent.change(screen.getByLabelText('Starts at'), {
+      target: { value: '2026-08-01T14:00' },
+    });
+    fireEvent.change(screen.getByLabelText('Ends at'), {
+      target: { value: '2026-08-01T18:00' },
+    });
+    fireEvent.click(screen.getByLabelText('Cancha 1'));
+
+    await act(async () => {
+      fireEvent.click(screen.getByText('Add schedule'));
+    });
+
+    expect(createSchedule).toHaveBeenCalled();
+    await screen.findByText('Schedule created.');
+    await screen.findByText(/2 slots generated/);
+  });
+
   it('ignores create clicks when the client has no create methods', async () => {
     const client = stubClient({ listVenues: () => Promise.resolve([]) });
     render(withIntl(<VenueManagementRoute client={client} organizationAlias="liga-mendocina" />));
@@ -512,6 +579,7 @@ function stubClient(overrides: Partial<ControlApiClient>): ControlApiClient {
     deleteOrganizationRole: () => Promise.reject(new Error('not used')),
     listVenues: () => Promise.resolve([]),
     listOfficials: () => Promise.resolve([]),
+    listSchedules: () => Promise.resolve([]),
     ...overrides,
   };
 }

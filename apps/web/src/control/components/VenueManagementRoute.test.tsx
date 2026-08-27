@@ -23,6 +23,7 @@ function stubClient(overrides: Partial<ControlApiClient> = {}): ControlApiClient
           roles: ['referee'],
         },
       ]),
+    listSchedules: () => Promise.resolve([]),
     createVenue: () =>
       Promise.resolve({
         venueId: 'venue-2',

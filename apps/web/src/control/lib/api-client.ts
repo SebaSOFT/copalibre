@@ -344,6 +344,23 @@ export interface ControlApiClient {
     officialId: string,
     request: UpdateOfficialRequest,
   ) => Promise<OfficialResponse>;
+  /** Organization schedule grids */
+  readonly listSchedules?: (
+    organizationAlias: string,
+  ) => Promise<readonly ScheduleDetailResponse[]>;
+  readonly createSchedule?: (
+    organizationAlias: string,
+    request: CreateScheduleRequest,
+  ) => Promise<ScheduleDetailResponse>;
+  readonly updateSchedule?: (
+    organizationAlias: string,
+    scheduleId: string,
+    request: UpdateScheduleRequest,
+  ) => Promise<ScheduleDetailResponse>;
+  readonly deleteSchedule?: (
+    organizationAlias: string,
+    scheduleId: string,
+  ) => Promise<{ readonly success: boolean }>;
   /**
    * A stage's real generated fixtures, with `fixtureId`s, resolved from the URL's `stageNumber`.
    * Also resolves `stageId`, which the schedule routes below address directly.
@@ -478,15 +495,61 @@ export interface UpdateOfficialRequest {
   readonly roles?: readonly OfficialRole[];
 }
 
+export interface ScheduleSlotResponse {
+  readonly slotId: string;
+  readonly scheduleId: string;
+  readonly venueId: string;
+  readonly startsAt: number;
+  readonly matchCount: number;
+}
+
+export interface ScheduleDetailResponse {
+  readonly scheduleId: string;
+  readonly organizationId: string;
+  readonly name: string;
+  readonly startsAt: number;
+  readonly endsAt: number;
+  readonly slotMinutes: number;
+  readonly turnaroundMinutes: number;
+  readonly venueIds: readonly string[];
+  readonly slots: readonly ScheduleSlotResponse[];
+}
+
+export interface CreateScheduleRequest {
+  readonly name: string;
+  readonly startsAt: number;
+  readonly endsAt: number;
+  readonly slotMinutes: number;
+  readonly turnaroundMinutes: number;
+  readonly venueIds: readonly string[];
+}
+
+export interface UpdateScheduleRequest {
+  readonly name?: string;
+  readonly startsAt?: number;
+  readonly endsAt?: number;
+  readonly slotMinutes?: number;
+  readonly turnaroundMinutes?: number;
+  readonly venueIds?: readonly string[];
+}
+
 export interface TimeWindowDto {
   readonly startsAt: number;
   readonly durationMinutes: number;
 }
 
 export interface ScheduleAssignmentDto {
+  readonly matchId: string;
+  readonly slotId: string;
+  readonly officialIds?: readonly string[];
+}
+
+export interface ScheduleAssignmentResponse {
+  readonly matchId: string;
   readonly fixtureId: string;
+  readonly slotId: string;
+  readonly venueId: string;
   readonly window: TimeWindowDto;
-  readonly venueId?: string;
   readonly officialIds?: readonly string[];
 }
 
@@ -501,8 +564,8 @@ export interface ScheduleRequest {
 
 export interface ScheduleConflictDto {
   readonly kind: string;
-  readonly fixtureId: string;
-  readonly conflictsWithFixtureId: string;
+  readonly matchId: string;
+  readonly conflictsWithMatchId: string;
   readonly resourceId: string;
   readonly detail: string;
 }
@@ -510,15 +573,16 @@ export interface ScheduleConflictDto {
 export interface SchedulePreviewResponse {
   readonly committable: boolean;
   readonly conflicts: readonly ScheduleConflictDto[];
-  readonly affectedPublishedFixtures: readonly string[];
+  readonly affectedPublishedMatches: readonly string[];
 }
 
 export interface ScheduleResponse {
-  readonly assignments: readonly ScheduleAssignmentDto[];
+  readonly assignments: readonly ScheduleAssignmentResponse[];
 }
 
 export interface FixtureResponse {
   readonly fixtureId: string;
+  readonly matchId: string;
   readonly round: number;
   readonly homeEntrantId?: string;
   readonly awayEntrantId?: string;
@@ -1892,6 +1956,34 @@ export function createControlApiClient(input: {
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/officials/${encodeURIComponent(officialId)}`,
         { method: 'PATCH', body, token: input.accessToken?.() },
+      ),
+
+    listSchedules: (organizationAlias) =>
+      requestJson<readonly ScheduleDetailResponse[]>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/schedules`,
+        { token: input.accessToken?.() },
+      ),
+
+    createSchedule: (organizationAlias, body) =>
+      requestJson<ScheduleDetailResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/schedules`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    updateSchedule: (organizationAlias, scheduleId, body) =>
+      requestJson<ScheduleDetailResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/schedules/${encodeURIComponent(scheduleId)}`,
+        { method: 'PATCH', body, token: input.accessToken?.() },
+      ),
+
+    deleteSchedule: (organizationAlias, scheduleId) =>
+      requestJson<{ readonly success: boolean }>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/schedules/${encodeURIComponent(scheduleId)}`,
+        { method: 'DELETE', token: input.accessToken?.() },
       ),
 
     getStageFixtures: (organizationAlias, tournamentAlias, stageNumber) =>

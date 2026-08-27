@@ -10,6 +10,8 @@ import {
   toOrganizationInvitation,
   toOrganizationRoleAssignment,
   toResourceAssignment,
+  toSchedule,
+  toScheduleSlot,
   toVenue,
   toOrganization,
   toRecordedEvent,
@@ -281,14 +283,12 @@ describe('snake_case row → camelCase domain mapping', () => {
         round: 1,
         home_entrant_id: 'e-1',
         away_entrant_id: null,
-        scheduled_at: CREATED,
         created_at: CREATED,
       } as FixtureRow),
     ).toMatchObject({
       zoneId: 'z-1',
       groupId: 'g-1',
       homeEntrantId: 'e-1',
-      scheduledAt: '2026-07-29T12:00:00.000Z',
     });
   });
 
@@ -525,36 +525,82 @@ describe('scheduling rows', () => {
     });
   });
 
-  it('converts a bigint epoch back to a number, which is a storage detail', () => {
-    // pg hands a bigint back as a string to avoid losing precision; the domain
-    // has only ever seen an epoch number.
+  it('maps a schedule row and venue ids to Schedule', () => {
+    const schedule = toSchedule(
+      {
+        schedule_id: 's-1',
+        organization_id: 'org-1',
+        name: 'Horario',
+        starts_at: '1785333600000',
+        ends_at: '1785355200000',
+        slot_minutes: 90,
+        turnaround_minutes: 15,
+        created_at: CREATED,
+      },
+      ['v-1', 'v-2'],
+    );
+
+    expect(schedule).toEqual({
+      scheduleId: 's-1',
+      organizationId: 'org-1',
+      name: 'Horario',
+      startsAt: 1785333600000,
+      endsAt: 1785355200000,
+      slotMinutes: 90,
+      turnaroundMinutes: 15,
+      venueIds: ['v-1', 'v-2'],
+    });
+  });
+
+  it('maps a schedule slot row to ScheduleSlot', () => {
+    const slot = toScheduleSlot({
+      slot_id: 'slot-1',
+      schedule_id: 's-1',
+      venue_id: 'v-1',
+      starts_at: '1785333600000',
+      created_at: CREATED,
+    });
+
+    expect(slot).toEqual({
+      slotId: 'slot-1',
+      scheduleId: 's-1',
+      venueId: 'v-1',
+      startsAt: 1785333600000,
+    });
+  });
+
+  it('maps a match schedule assignment row and officials to ResourceAssignment', () => {
     const assignment = toResourceAssignment(
       {
-        fixture_id: 'f-1',
-        venue_id: 'v-1',
-        starts_at: '1785333600000',
-        duration_minutes: 90,
+        match_id: 'm-1',
+        slot_id: 'slot-1',
+        published: true,
+        created_at: CREATED,
       },
       ['o-1'],
     );
 
     expect(assignment).toEqual({
-      fixtureId: 'f-1',
-      window: { startsAt: 1785333600000, durationMinutes: 90 },
-      venueId: 'v-1',
+      matchId: 'm-1',
+      slotId: 'slot-1',
       officialIds: ['o-1'],
     });
   });
 
-  it('omits a venue and officials that were never assigned', () => {
+  it('omits officials when none were assigned', () => {
     const assignment = toResourceAssignment(
-      { fixture_id: 'f-2', venue_id: null, starts_at: '1785333600000', duration_minutes: 60 },
+      {
+        match_id: 'm-2',
+        slot_id: 'slot-2',
+        published: false,
+        created_at: CREATED,
+      },
       [],
     );
 
     expect(assignment).toEqual({
-      fixtureId: 'f-2',
-      window: { startsAt: 1785333600000, durationMinutes: 60 },
+      matchId: 'm-2',
+      slotId: 'slot-2',
     });
   });
 });
