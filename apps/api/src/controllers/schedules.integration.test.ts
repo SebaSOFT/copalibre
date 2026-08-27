@@ -74,15 +74,16 @@ describe('scheduling routes', () => {
     expect(response.statusCode).toBe(400);
   });
 
-  it('strips an extra undocumented property and keeps the non-validation status', async () => {
+  it('rejects an extra undocumented property with 400 before handler execution', async () => {
     const response = await request({
       method: 'POST',
       url: scheduleUrl('stage-1'),
-      token: 'organizer-org2',
+      token: 'organizer-org1',
       payload: { assignments: [], unexpectedField: 'dropped' },
     });
-    // Guards run before pipes: the outcome is the same cross-organization 403/404
-    // the well-formed payload gets — never a validation error.
-    expect([403, 404]).toContain(response.statusCode);
+    expect(response.statusCode).toBe(400);
+    const body = response.json();
+    expect(body.errorCode).toBe('bad-request');
+    expect(body.message).toContain('property unexpectedField should not exist');
   });
 });

@@ -1,6 +1,8 @@
-import { Module, ValidationPipe, type INestApplication } from '@nestjs/common';
-import { APP_GUARD, Reflector } from '@nestjs/core';
+import { Module, type INestApplication } from '@nestjs/common';
+import { APP_FILTER, APP_GUARD, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
+import { ApiExceptionFilter } from '../http/error-contract.js';
+import { createApiValidationPipe } from '../http/validation.js';
 import { Test } from '@nestjs/testing';
 import {
   OrganizationAccessRepository,
@@ -90,6 +92,7 @@ describe('club list/create/edit (integration)', () => {
       providers: [
         { provide: DATABASE, useValue: db },
         { provide: TokenVerifier, useClass: FakeTokenVerifier },
+        { provide: APP_FILTER, useClass: ApiExceptionFilter },
         { provide: APP_GUARD, useClass: JwtAuthGuard },
         { provide: APP_GUARD, useClass: OrganizationAccessGuard },
         Reflector,
@@ -99,7 +102,7 @@ describe('club list/create/edit (integration)', () => {
 
     const moduleRef = await Test.createTestingModule({ imports: [TestModule] }).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
-    app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
+    app.useGlobalPipes(createApiValidationPipe());
     await app.init();
     await app.getHttpAdapter().getInstance().ready();
   });
@@ -203,14 +206,16 @@ describe('club list/create/edit (integration)', () => {
     expect(response.statusCode).toBe(400);
   });
 
-  it('strips an extra undocumented property and creates the club anyway', async () => {
+  it('rejects an extra undocumented property with 400 when creating a club', async () => {
     const response = await inject({
       method: 'POST',
       url: `/organizations/${organizationAlias}/clubs`,
       headers: { authorization: 'Bearer organizer' },
       payload: { name: 'Club Propiedad Extra', unexpectedField: 'dropped' },
     });
-    expect(response.statusCode).toBe(201);
-    expect(response.json()).not.toHaveProperty('unexpectedField');
+    expect(response.statusCode).toBe(400);
+    const body = response.json();
+    expect(body.errorCode).toBe('bad-request');
+    expect(body.message).toContain('property unexpectedField should not exist');
   });
 });

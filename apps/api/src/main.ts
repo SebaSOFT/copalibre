@@ -1,9 +1,9 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
-import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
+import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module.js';
 import { API_BODY_LIMIT_BYTES } from './http-body-limit.js';
 import { DEFAULT_PORT } from './role.js';
+import { createApiValidationPipe } from './http/validation.js';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -19,9 +19,8 @@ async function bootstrap(): Promise<void> {
   }
   // Global request validation: every @Body DTO decorated
   // with class-validator rules is enforced here; unknown properties are
-  // stripped (whitelist) but not yet rejected — forbidNonWhitelisted is a
-  // deliberate later flip once stripping proves harmless in deployment.
-  app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
+  // rejected with structured 400 validation responses.
+  app.useGlobalPipes(createApiValidationPipe());
   const port = Number(process.env.PORT ?? DEFAULT_PORT);
   await app.listen(port, '0.0.0.0');
 }

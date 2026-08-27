@@ -1,6 +1,7 @@
-import { Module, ValidationPipe, type INestApplication } from '@nestjs/common';
+import { Module, type INestApplication } from '@nestjs/common';
 import { APP_GUARD, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
+import { createApiValidationPipe } from '../http/validation.js';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { PrincipalThrottlerGuard } from '../auth/principal-throttler.guard.js';
 import { Test } from '@nestjs/testing';
@@ -57,7 +58,7 @@ describe('installation bootstrap (integration)', () => {
     app = moduleRef.createNestApplication<NestFastifyApplication>(
       new FastifyAdapter({ bodyLimit: API_BODY_LIMIT_BYTES, trustProxy: true }),
     );
-    app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
+    app.useGlobalPipes(createApiValidationPipe());
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
   });

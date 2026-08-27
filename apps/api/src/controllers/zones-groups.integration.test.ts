@@ -146,15 +146,17 @@ describe('zone and group draw routes (integration)', () => {
     expect(response.statusCode).toBe(400);
   });
 
-  it('strips an extra undocumented property and previews the zone draw anyway', async () => {
+  it('rejects an extra undocumented property with 400 when previewing the zone draw', async () => {
     const response = await harness.request({
       method: 'POST',
       url: `${base}/zones/draw/preview`,
       token: 'organizer-org1',
       payload: { zoneCount: 1, seed: 99, unexpectedField: 'dropped' },
     });
-    expect(response.statusCode).toBe(200);
-    expect(response.json()).not.toHaveProperty('unexpectedField');
+    expect(response.statusCode).toBe(400);
+    const body = response.json();
+    expect(body.errorCode).toBe('bad-request');
+    expect(body.message).toContain('property unexpectedField should not exist');
   });
 
   it('allows only administrators to create zones and groups, while public readers can list them', async () => {

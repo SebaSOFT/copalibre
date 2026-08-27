@@ -1,7 +1,9 @@
 import { createHash } from 'node:crypto';
-import { Module, ValidationPipe, type INestApplication } from '@nestjs/common';
-import { APP_GUARD, Reflector } from '@nestjs/core';
+import { Module, type INestApplication } from '@nestjs/common';
+import { APP_FILTER, APP_GUARD, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
+import { ApiExceptionFilter } from '../http/error-contract.js';
+import { createApiValidationPipe } from '../http/validation.js';
 import { Test } from '@nestjs/testing';
 import { winConditionScript, type DisciplineDescriptor } from '@copalibre/domain';
 import type { ObjectStorageAdapter } from '@copalibre/object-storage';
@@ -264,6 +266,7 @@ describe('report/dispute submission and review (integration)', () => {
         { provide: DATABASE, useValue: db },
         { provide: TokenVerifier, useClass: FakeTokenVerifier },
         { provide: OBJECT_STORAGE, useValue: new FakeObjectStorage() },
+        { provide: APP_FILTER, useClass: ApiExceptionFilter },
         { provide: APP_GUARD, useClass: JwtAuthGuard },
         { provide: APP_GUARD, useClass: OrganizationAccessGuard },
         Reflector,
@@ -273,7 +276,7 @@ describe('report/dispute submission and review (integration)', () => {
 
     const moduleRef = await Test.createTestingModule({ imports: [TestModule] }).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
-    app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
+    app.useGlobalPipes(createApiValidationPipe());
     await app.init();
     await app.getHttpAdapter().getInstance().ready();
   });
@@ -366,7 +369,7 @@ describe('report/dispute submission and review (integration)', () => {
     expect(response.statusCode).toBe(400);
   });
 
-  it('strips an extra undocumented property and persists the dispute anyway', async () => {
+  it('rejects an extra undocumented property with 400 when submitting a dispute', async () => {
     const response = await inject({
       method: 'POST',
       url: disputesPath(),
@@ -376,8 +379,10 @@ describe('report/dispute submission and review (integration)', () => {
         unexpectedField: 'dropped',
       },
     });
-    expect(response.statusCode).toBe(201);
-    expect(response.json()).not.toHaveProperty('unexpectedField');
+    expect(response.statusCode).toBe(400);
+    const body = response.json();
+    expect(body.errorCode).toBe('bad-request');
+    expect(body.message).toContain('property unexpectedField should not exist');
   });
 
   it('lets an operator list and dismiss a pending report without changing the result (7.2-adjacent, 6.4)', async () => {

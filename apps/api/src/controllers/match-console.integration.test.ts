@@ -1,6 +1,7 @@
-import { Module, ValidationPipe, type INestApplication } from '@nestjs/common';
+import { Module, type INestApplication } from '@nestjs/common';
 import { APP_GUARD, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
+import { createApiValidationPipe } from '../http/validation.js';
 import { Test } from '@nestjs/testing';
 import { footballDescriptor } from '@copalibre/domain';
 import { loadDefaultModuleCatalogue } from '@copalibre/module-catalogue';
@@ -111,7 +112,7 @@ describe('live match console (integration)', () => {
     class IntegrationModule {}
     const module = await Test.createTestingModule({ imports: [IntegrationModule] }).compile();
     app = module.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
-    app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
+    app.useGlobalPipes(createApiValidationPipe());
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
 
@@ -793,7 +794,7 @@ describe('live match console — real catalogue foul/throw-in vocabulary', () =>
     class IntegrationModule {}
     const module = await Test.createTestingModule({ imports: [IntegrationModule] }).compile();
     app = module.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
-    app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
+    app.useGlobalPipes(createApiValidationPipe());
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
 
