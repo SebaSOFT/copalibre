@@ -668,10 +668,25 @@ export class ScheduleRepository {
     readonly assignments: readonly ResourceAssignment[];
     readonly restRule?: RestRule;
   }): Promise<SchedulePreview> {
+    const matchIds = input.assignments.map((a) => a.matchId);
+    if (matchIds.length > 0) {
+      const notRequiredMatches = await this.db
+        .selectFrom('matches')
+        .select('match_id')
+        .where('match_id', 'in', matchIds)
+        .where('status', '=', 'not-required')
+        .execute();
+
+      if (notRequiredMatches.length > 0) {
+        throw new InvariantViolationError('Cannot schedule a not-required match', {
+          notRequiredMatchIds: notRequiredMatches.map((m) => m.match_id),
+        });
+      }
+    }
+
     const context = await this.contextFor(input.organizationId, input.restRule);
     const conflicts = detectConflicts(input.assignments, context);
 
-    const matchIds = input.assignments.map((a) => a.matchId);
     const publishedMatches =
       matchIds.length === 0
         ? []
@@ -705,6 +720,20 @@ export class ScheduleRepository {
     if (input.assignments.length === 0) {
       throw new InvariantViolationError('Cannot publish an empty schedule assignment batch', {
         organizationId: input.organizationId,
+      });
+    }
+
+    const matchIds = input.assignments.map((a) => a.matchId);
+    const notRequiredMatches = await uow.tx
+      .selectFrom('matches')
+      .select('match_id')
+      .where('match_id', 'in', matchIds)
+      .where('status', '=', 'not-required')
+      .execute();
+
+    if (notRequiredMatches.length > 0) {
+      throw new InvariantViolationError('Cannot schedule a not-required match', {
+        notRequiredMatchIds: notRequiredMatches.map((m) => m.match_id),
       });
     }
 
@@ -827,6 +856,7 @@ export class ScheduleRepository {
       .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
       .select(['match_schedule_assignments.match_id', 'match_schedule_assignments.slot_id'])
       .where('fixtures.stage_id', '=', stageId)
+      .where('matches.status', '!=', 'not-required')
       .execute();
 
     if (rows.length === 0) return [];
@@ -862,6 +892,7 @@ export class ScheduleRepository {
         'schedules.slot_minutes',
       ])
       .where('fixtures.stage_id', '=', stageId)
+      .where('matches.status', '!=', 'not-required')
       .execute();
 
     if (rows.length === 0) return [];
@@ -932,10 +963,12 @@ export class ScheduleRepository {
 
     const assignmentRows = await executor
       .selectFrom('match_schedule_assignments')
+      .innerJoin('matches', 'matches.match_id', 'match_schedule_assignments.match_id')
       .innerJoin('schedule_slots', 'schedule_slots.slot_id', 'match_schedule_assignments.slot_id')
       .innerJoin('schedules', 'schedules.schedule_id', 'schedule_slots.schedule_id')
       .select(['match_schedule_assignments.match_id', 'match_schedule_assignments.slot_id'])
       .where('schedules.organization_id', '=', organizationId)
+      .where('matches.status', '!=', 'not-required')
       .execute();
 
     const officialRows =
@@ -972,6 +1005,7 @@ export class ScheduleRepository {
         'matches.status',
       ])
       .where('tournaments.organization_id', '=', organizationId)
+      .where('matches.status', '!=', 'not-required')
       .execute();
 
     const entrantsByMatch = new Map<string, readonly string[]>();
