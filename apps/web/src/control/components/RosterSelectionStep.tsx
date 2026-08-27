@@ -9,6 +9,8 @@ import {
 import { currentEpochMilliseconds, newIdempotencyKey } from '../lib/match-console.js';
 import { drainQueue, enqueue } from '../lib/offline-queue.js';
 import { Button } from './ui/atoms/button.js';
+import { Card } from './ui/atoms/card.js';
+import { Input } from './ui/atoms/input.js';
 import { messages } from '../i18n/messages.en.js';
 
 interface MemberSelection {
@@ -174,7 +176,7 @@ function EntrantRosterEditor({
 
   if (!candidates) {
     return (
-      <div className="cl-card cl-chamfer cl-chamfer--control" style={editorStyle}>
+      <Card className="cl-chamfer cl-chamfer--control" style={editorStyle}>
         {status.error ? (
           <p className="cl-inline-alert" role="alert">
             {status.error}
@@ -182,12 +184,12 @@ function EntrantRosterEditor({
         ) : (
           <p>{intl.formatMessage(messages.matchConsoleRosterLoading)}</p>
         )}
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div className="cl-card cl-chamfer cl-chamfer--control" style={editorStyle}>
+    <Card className="cl-chamfer cl-chamfer--control" style={editorStyle}>
       <h3 style={headerStyle}>{existingRoster?.teamName ?? entrantId.slice(-8)}</h3>
       {status.error && (
         <p className="cl-inline-alert" role="alert">
@@ -203,6 +205,7 @@ function EntrantRosterEditor({
               <label style={checkboxLabelStyle}>
                 <input
                   checked={selection.included}
+                  className="cl-checkbox cl-focusable"
                   onChange={(event) =>
                     update(candidate.personId, { included: event.target.checked })
                   }
@@ -210,7 +213,7 @@ function EntrantRosterEditor({
                 />
                 {candidate.name}
               </label>
-              <input
+              <Input
                 aria-label={intl.formatMessage(messages.matchConsoleRosterNumber, {
                   name: candidate.name,
                 })}
@@ -223,6 +226,7 @@ function EntrantRosterEditor({
               <label style={checkboxLabelStyle}>
                 <input
                   checked={selection.onField}
+                  className="cl-checkbox cl-focusable"
                   disabled={!selection.included}
                   onChange={(event) =>
                     update(candidate.personId, { onField: event.target.checked })
@@ -237,6 +241,7 @@ function EntrantRosterEditor({
                     <label key={role.code} style={checkboxLabelStyle}>
                       <input
                         checked={selection.roles.includes(role.code)}
+                        className="cl-checkbox cl-focusable"
                         disabled={!selection.included}
                         onChange={(event) =>
                           update(candidate.personId, {
@@ -262,7 +267,7 @@ function EntrantRosterEditor({
       <Button disabled={status.saving} onClick={() => void save()} type="button">
         {intl.formatMessage(messages.matchConsoleRosterSave)}
       </Button>
-    </div>
+    </Card>
   );
 }
 

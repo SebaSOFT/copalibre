@@ -16,7 +16,8 @@ import {
   type ActiveSort,
 } from '../lib/table-projections.js';
 import { messages } from '../i18n/messages.en.js';
-
+import { Button } from './ui/atoms/button.js';
+import { FormField } from './ui/molecules/form-field.js';
 import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
 import { DataTable, type DataTableColumn } from './ui/organisms/data-table.js';
 
@@ -170,28 +171,26 @@ export function StandingsPage({
       {tabs.length > 1 && (
         <div role="tablist" className="cl-table-toolbar__filters">
           {tabs.map((tab) => (
-            <button
+            <Button
               aria-selected={tab.code === activeLayoutCode}
-              className={`cl-btn cl-focusable ${tab.code === activeLayoutCode ? 'cl-btn--primary' : 'cl-btn--secondary'}`}
               key={tab.code}
               onClick={() => onSelectLayout?.(tab.code)}
               role="tab"
               type="button"
+              variant={tab.code === activeLayoutCode ? 'primary' : 'secondary'}
             >
               {tab.label}
-            </button>
+            </Button>
           ))}
         </div>
       )}
 
       {groupSelector && (
-        <label className="cl-form-field">
-          <span className="cl-label">
-            <FormattedMessage {...messages.standingsGroupSelector} />
-          </span>
+        <FormField id="standings-group" label={intl.formatMessage(messages.standingsGroupSelector)}>
           <select
             aria-label={intl.formatMessage(messages.standingsGroupSelector)}
-            className="cl-select cl-select--default"
+            className="cl-select cl-select--default cl-focusable"
+            id="standings-group"
             onChange={(event) => groupSelector.onSelect(event.target.value)}
             value={groupSelector.selectedGroupId ?? ''}
           >
@@ -201,7 +200,7 @@ export function StandingsPage({
               </option>
             ))}
           </select>
-        </label>
+        </FormField>
       )}
     </div>
   );
@@ -222,13 +221,9 @@ export function StandingsPage({
 
           {onExportCsv && (
             <div>
-              <button
-                className="cl-btn cl-btn--secondary cl-focusable"
-                onClick={onExportCsv}
-                type="button"
-              >
+              <Button onClick={onExportCsv} type="button" variant="secondary">
                 <FormattedMessage {...messages.standingsExportCsv} />
-              </button>
+              </Button>
             </div>
           )}
 

@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { FormattedMessage, useIntl, type MessageDescriptor } from 'react-intl';
 import { Button } from './ui/atoms/button.js';
+import { Card } from './ui/atoms/card.js';
+import { FormField } from './ui/molecules/form-field.js';
 import { CountrySelect } from './CountrySelect.js';
 import {
   personPhotoUrl,
@@ -150,6 +152,7 @@ export function RegistrationReviewPage({
         <input
           aria-label={intl.formatMessage(messages.reviewSelectVisible)}
           checked={allVisibleSelected}
+          className="cl-checkbox cl-focusable"
           onChange={() => setState((current) => toggleAllVisible(current, rows))}
           type="checkbox"
         />
@@ -179,6 +182,7 @@ export function RegistrationReviewPage({
                   displayName: row.displayName,
                 })}
                 checked={selected.has(row.entrantId)}
+                className="cl-checkbox cl-focusable"
                 onChange={() => setState((current) => toggleRow(current, row.entrantId))}
                 onClick={(event) => event.stopPropagation()}
                 type="checkbox"
@@ -217,7 +221,7 @@ export function RegistrationReviewPage({
                 value={row.experience}
               />
               {personId !== undefined && (
-                <div className="cl-card cl-chamfer cl-chamfer--control">
+                <Card className="cl-chamfer cl-chamfer--control">
                   <span className="cl-label">
                     {intl.formatMessage(messages.reviewNationalityLabel)}
                   </span>
@@ -254,14 +258,15 @@ export function RegistrationReviewPage({
                         : undefined
                     }
                   />
-                  <label className="cl-form-field">
-                    <span className="cl-label">
-                      <FormattedMessage {...messages.reviewUploadPhoto} />
-                    </span>
+                  <FormField
+                    id={`review-photo-${personId}`}
+                    label={intl.formatMessage(messages.reviewUploadPhoto)}
+                  >
                     <input
                       accept="image/*"
                       aria-label={intl.formatMessage(messages.reviewUploadPhoto)}
-                      className="cl-input cl-input--default"
+                      className="cl-input cl-input--default cl-focusable"
+                      id={`review-photo-${personId}`}
                       onChange={(event) => {
                         const file = event.currentTarget.files?.[0];
                         if (!file) return;
@@ -270,7 +275,7 @@ export function RegistrationReviewPage({
                       }}
                       type="file"
                     />
-                  </label>
+                  </FormField>
                   <a
                     className="cl-focusable"
                     href={`/control/${organizationAlias}/persons/${personId}`}
@@ -278,7 +283,7 @@ export function RegistrationReviewPage({
                   >
                     <FormattedMessage {...messages.reviewViewProfile} />
                   </a>
-                </div>
+                </Card>
               )}
               <div className="cl-role-user">
                 <Button type="button" variant="secondary">

@@ -7,6 +7,8 @@ import type {
 } from '../lib/api-client.js';
 import { messages } from '../i18n/messages.en.js';
 import { Button } from './ui/atoms/button.js';
+import { Input } from './ui/atoms/input.js';
+import { FormField } from './ui/molecules/form-field.js';
 import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
 import { DataTable, type DataTableColumn } from './ui/organisms/data-table.js';
 import { Modal } from './ui/organisms/modal.js';
@@ -243,6 +245,7 @@ function RoleStatusToggle({
       <input
         aria-label={intl.formatMessage(messages.rolesStatusOf, { email: row.email })}
         checked={row.status === 'active'}
+        className="cl-checkbox cl-focusable"
         disabled={disabled}
         onChange={(event) => onChange(event.target.checked ? 'active' : 'inactive')}
         title={
@@ -337,21 +340,21 @@ export function InviteDialog({
           void onSubmit(email, role, active ? 'active' : 'inactive');
         }}
       >
-        <label className="cl-form-field">
-          <FormattedMessage {...messages.rolesInviteDialogEmail} />
-          <input
-            className="cl-input cl-input--default cl-focusable"
+        <FormField id="invite-email" label={intl.formatMessage(messages.rolesInviteDialogEmail)}>
+          <Input
+            aria-label={intl.formatMessage(messages.rolesInviteDialogEmail)}
+            id="invite-email"
             onChange={(event) => setEmail(event.target.value)}
             required
             type="email"
             value={email}
           />
-        </label>
-        <label className="cl-form-field">
-          <FormattedMessage {...messages.rolesInviteDialogRole} />
+        </FormField>
+        <FormField id="invite-role" label={intl.formatMessage(messages.rolesInviteDialogRole)}>
           <select
             aria-label={intl.formatMessage(messages.rolesInviteDialogRoleAriaLabel)}
             className="cl-select cl-select--default cl-focusable"
+            id="invite-role"
             onChange={(event) => setRole(event.target.value as OrganizationRole)}
             value={role}
           >
@@ -361,14 +364,17 @@ export function InviteDialog({
               </option>
             ))}
           </select>
-        </label>
-        <label className="cl-role-status">
+        </FormField>
+        <label className="cl-toggle cl-focusable">
           <input
             checked={active}
+            className="cl-checkbox cl-focusable"
             onChange={(event) => setActive(event.target.checked)}
             type="checkbox"
           />
-          <FormattedMessage {...messages.rolesInviteDialogActiveOnAccept} />
+          <span>
+            <FormattedMessage {...messages.rolesInviteDialogActiveOnAccept} />
+          </span>
         </label>
       </form>
     </Modal>

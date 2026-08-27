@@ -6,9 +6,15 @@ import type { HTMLAttributes } from 'react';
 
 export function Card({
   className = '',
+  role,
   ...rest
 }: HTMLAttributes<HTMLDivElement>): React.JSX.Element {
-  return <div className={`cl-card cl-chamfer cl-chamfer--control ${className}`} {...rest} />;
+  const computedRole =
+    role ?? (rest['aria-label'] || rest['aria-labelledby'] ? 'region' : undefined);
+  const classes = className.includes('cl-chamfer')
+    ? `cl-card ${className}`
+    : `cl-card cl-chamfer cl-chamfer--control ${className}`;
+  return <div className={classes.trim()} role={computedRole} {...rest} />;
 }
 
 export function CardHeader({

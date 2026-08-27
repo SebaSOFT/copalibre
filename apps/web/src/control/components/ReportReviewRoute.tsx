@@ -4,6 +4,9 @@ import { createControlApiClient, type ControlApiClient } from '../lib/api-client
 import { KIND_LABEL, summaryOf, type ReportRow } from '../lib/reports.js';
 import { controlTokenStore } from '../session/token-store.js';
 import { messages } from '../i18n/messages.en.js';
+import { Badge } from './ui/atoms/badge.js';
+import { Button } from './ui/atoms/button.js';
+import { Card } from './ui/atoms/card.js';
 
 type LoadStatus = 'loading' | 'ready' | 'failed';
 
@@ -64,9 +67,9 @@ export function ReportReviewRoute({
       .then(() => setRows((current) => current.filter((row) => row.reportId !== reportId)));
 
   return (
-    <section
+    <Card
       aria-label={intl.formatMessage(messages.reportSectionLabel)}
-      className="cl-card cl-chamfer cl-chamfer--control"
+      className="cl-chamfer cl-chamfer--control"
     >
       <h1>
         <FormattedMessage {...messages.reportTitle} />
@@ -89,8 +92,8 @@ export function ReportReviewRoute({
       <ul>
         {rows.map((row) => (
           <li key={row.reportId}>
-            <article className="cl-card">
-              <span className="cl-badge">{intl.formatMessage(KIND_LABEL[row.kind])}</span>
+            <Card>
+              <Badge label={intl.formatMessage(KIND_LABEL[row.kind])} />
               <p>{summaryOf(row) ?? intl.formatMessage(messages.reportGenericSummary)}</p>
               <p>
                 <time dateTime={row.submittedAt}>{row.submittedAt}</time>
@@ -104,14 +107,18 @@ export function ReportReviewRoute({
                   ))}
                 </ul>
               )}
-              <button onClick={() => void dismiss(row.reportId, '')} type="button">
+              <Button
+                onClick={() => void dismiss(row.reportId, '')}
+                type="button"
+                variant="secondary"
+              >
                 <FormattedMessage {...messages.reportDismiss} />
-              </button>
-            </article>
+              </Button>
+            </Card>
           </li>
         ))}
       </ul>
-    </section>
+    </Card>
   );
 }
 

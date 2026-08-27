@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useIntl } from 'react-intl';
 import { ISO_3166_ALPHA_2_CODES, isSupportedLanguage } from '@copalibre/domain';
 import { countryFlag, countryName } from '../lib/country.js';
+import { Input } from './ui/atoms/input.js';
 import { messages } from '../i18n/messages.en.js';
 
 /**
@@ -38,13 +39,11 @@ export function CountrySelect({
 
   return (
     <div style={containerStyle}>
-      <input
+      <Input
         aria-label={intl.formatMessage(messages.countrySelectLabel)}
-        className="cl-focusable"
         id={id}
         onChange={(event) => setQuery(event.target.value)}
         placeholder={intl.formatMessage(messages.countrySelectSearchPlaceholder)}
-        style={inputStyle}
         type="text"
         value={query}
       />
@@ -72,13 +71,6 @@ export function CountrySelect({
 }
 
 const containerStyle: React.CSSProperties = { display: 'grid', gap: 'var(--cl-space-1)' };
-const inputStyle: React.CSSProperties = {
-  minHeight: 44,
-  background: 'var(--cl-surface-base)',
-  color: 'var(--cl-text-primary)',
-  border: '1px solid var(--cl-border-muted)',
-  padding: 'var(--cl-space-2) var(--cl-space-3)',
-};
 const listStyle: React.CSSProperties = {
   listStyle: 'none',
   margin: 0,

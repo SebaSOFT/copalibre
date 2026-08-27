@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import {
   ControlApiError,
@@ -9,6 +9,9 @@ import {
 } from '../lib/api-client.js';
 import { controlTokenStore } from '../session/token-store.js';
 import { Button } from './ui/atoms/button.js';
+import { Card } from './ui/atoms/card.js';
+import { Input } from './ui/atoms/input.js';
+import { FormField } from './ui/molecules/form-field.js';
 import { messages } from '../i18n/messages.en.js';
 import { useToast } from './ToastProvider.js';
 
@@ -20,10 +23,10 @@ interface BandRow {
   readonly count: string;
 }
 
-let rowCounter = 0;
+let bandKeySequence = 0;
 function nextKey(): string {
-  rowCounter += 1;
-  return `band-${rowCounter}`;
+  bandKeySequence += 1;
+  return `band-${bandKeySequence}`;
 }
 
 /**
@@ -59,54 +62,63 @@ export function PromotionPlanRoute({
     [client],
   );
 
-  const [zone, setZone] = useState<ZoneResponse | undefined>(undefined);
-  const [loading, setLoading] = useState(true);
-  const [nextStageNumber, setNextStageNumber] = useState('');
+  const [zone, setZone] = useState<ZoneResponse>();
+  const [nextStageNumber, setNextStageNumber] = useState('2');
   const [perGroupAdvance, setPerGroupAdvance] = useState('1');
   const [bands, setBands] = useState<readonly BandRow[]>([]);
-  const [preview, setPreview] = useState<PromotionPreviewResponse | undefined>(undefined);
-  const [previewError, setPreviewError] = useState<string | undefined>(undefined);
+  const [preview, setPreview] = useState<PromotionPreviewResponse>();
+  const [previewError, setPreviewError] = useState<string>();
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const load = async (): Promise<void> => {
-      try {
-        const zones = await api.listZones?.(organizationAlias, tournamentAlias, stageNumber);
-        setZone(zones?.find((candidate) => candidate.number === zoneNumber));
-      } catch {
-        setZone(undefined);
-      } finally {
-        setLoading(false);
-      }
+    let live = true;
+    (api.listZones?.(organizationAlias, tournamentAlias, stageNumber) ?? Promise.resolve([]))
+      .then((loadedZones) => {
+        if (!live) return;
+        const loadedZone = loadedZones.find((z) => z.number === zoneNumber);
+        setZone(loadedZone);
+        const zoneWithPlan = loadedZone as
+          | (ZoneResponse & {
+              promotionPlan?: {
+                nextStageNumber: number;
+                rules: {
+                  perGroupAdvance?: number;
+                  bands?: readonly { zoneRef: string; count: number }[];
+                };
+              };
+            })
+          | undefined;
+        if (zoneWithPlan?.promotionPlan) {
+          setNextStageNumber(String(zoneWithPlan.promotionPlan.nextStageNumber));
+          if (zoneWithPlan.promotionPlan.rules.perGroupAdvance !== undefined) {
+            setPerGroupAdvance(String(zoneWithPlan.promotionPlan.rules.perGroupAdvance));
+          }
+          if (zoneWithPlan.promotionPlan.rules.bands) {
+            setBands(
+              zoneWithPlan.promotionPlan.rules.bands.map((band) => ({
+                key: nextKey(),
+                zoneRef: band.zoneRef,
+                count: String(band.count),
+              })),
+            );
+          }
+        }
+      })
+      .catch(() => {
+        // Ignored for initial render; save path will re-validate.
+      })
+      .finally(() => {
+        if (live) setLoading(false);
+      });
+    return () => {
+      live = false;
     };
-    void load();
   }, [api, organizationAlias, tournamentAlias, stageNumber, zoneNumber]);
-
-  const loadPreview = useCallback(async (): Promise<void> => {
-    try {
-      const loaded = await api.fetchPromotionPreview?.(
-        organizationAlias,
-        tournamentAlias,
-        stageNumber,
-        zoneNumber,
-      );
-      setPreview(loaded);
-      setPreviewError(undefined);
-    } catch (error) {
-      setPreview(undefined);
-      setPreviewError(
-        error instanceof ControlApiError
-          ? error.message
-          : intl.formatMessage(messages.promotionNoPlanYet),
-      );
-    }
-  }, [api, organizationAlias, tournamentAlias, stageNumber, zoneNumber, intl]);
 
   useEffect(() => {
     let live = true;
     const fetchPromotionPreview = api.fetchPromotionPreview;
-    if (!fetchPromotionPreview) {
-      return undefined;
-    }
+    if (!fetchPromotionPreview) return undefined;
     fetchPromotionPreview(organizationAlias, tournamentAlias, stageNumber, zoneNumber)
       .then((loaded) => {
         if (!live) return;
@@ -127,15 +139,17 @@ export function PromotionPlanRoute({
     };
   }, [api, organizationAlias, tournamentAlias, stageNumber, zoneNumber, intl]);
 
-  function addBand(): void {
-    setBands((current) => [...current, { key: nextKey(), zoneRef: '', count: '' }]);
-  }
-  function updateBand(key: string, patch: Partial<BandRow>): void {
+  const addBand = (): void => {
+    setBands((current) => [...current, { key: nextKey(), zoneRef: '', count: '1' }]);
+  };
+
+  const updateBand = (key: string, patch: Partial<BandRow>): void => {
     setBands((current) => current.map((row) => (row.key === key ? { ...row, ...patch } : row)));
-  }
-  function removeBand(key: string): void {
+  };
+
+  const removeBand = (key: string): void => {
     setBands((current) => current.filter((row) => row.key !== key));
-  }
+  };
 
   async function savePlan(): Promise<void> {
     if (!api.savePromotionPlan) return;
@@ -153,7 +167,25 @@ export function PromotionPlanRoute({
           : {}),
       });
       push({ severity: 'success', message: intl.formatMessage(messages.promotionPlanSaved) });
-      void loadPreview();
+      if (api.fetchPromotionPreview) {
+        try {
+          const loaded = await api.fetchPromotionPreview(
+            organizationAlias,
+            tournamentAlias,
+            stageNumber,
+            zoneNumber,
+          );
+          setPreview(loaded);
+          setPreviewError(undefined);
+        } catch (previewErr) {
+          setPreview(undefined);
+          setPreviewError(
+            previewErr instanceof ControlApiError
+              ? previewErr.message
+              : intl.formatMessage(messages.promotionNoPlanYet),
+          );
+        }
+      }
     } catch (error) {
       pushError(error);
     }
@@ -176,9 +208,9 @@ export function PromotionPlanRoute({
 
   const listingNode = (
     <div className="cl-platform-sections">
-      <section
+      <Card
         aria-label={intl.formatMessage(messages.promotionConfigHeading)}
-        className="cl-card cl-chamfer cl-chamfer--control"
+        className="cl-chamfer cl-chamfer--control"
       >
         <header className="cl-card__header">
           <h2 className="cl-card__title">
@@ -187,32 +219,32 @@ export function PromotionPlanRoute({
         </header>
         <div className="cl-card__content">
           <div className="cl-platform-form-grid">
-            <label className="cl-form-field">
-              <span className="cl-label">
-                <FormattedMessage {...messages.promotionNextStageNumber} />
-              </span>
-              <input
+            <FormField
+              id="promotion-next-stage"
+              label={intl.formatMessage(messages.promotionNextStageNumber)}
+            >
+              <Input
                 aria-label={intl.formatMessage(messages.promotionNextStageNumber)}
-                className="cl-input cl-input--default"
+                id="promotion-next-stage"
                 min="1"
                 onChange={(event) => setNextStageNumber(event.target.value)}
                 type="number"
                 value={nextStageNumber}
               />
-            </label>
-            <label className="cl-form-field">
-              <span className="cl-label">
-                <FormattedMessage {...messages.promotionPerGroupAdvance} />
-              </span>
-              <input
+            </FormField>
+            <FormField
+              id="promotion-per-group-advance"
+              label={intl.formatMessage(messages.promotionPerGroupAdvance)}
+            >
+              <Input
                 aria-label={intl.formatMessage(messages.promotionPerGroupAdvance)}
-                className="cl-input cl-input--default"
+                id="promotion-per-group-advance"
                 min="1"
                 onChange={(event) => setPerGroupAdvance(event.target.value)}
                 type="number"
                 value={perGroupAdvance}
               />
-            </label>
+            </FormField>
           </div>
 
           <div>
@@ -222,16 +254,14 @@ export function PromotionPlanRoute({
             <ul>
               {bands.map((row) => (
                 <li key={row.key} className="cl-role-user">
-                  <input
+                  <Input
                     aria-label={intl.formatMessage(messages.promotionBandZoneRef)}
-                    className="cl-input cl-input--default"
                     onChange={(event) => updateBand(row.key, { zoneRef: event.target.value })}
                     placeholder={intl.formatMessage(messages.promotionBandZoneRef)}
                     value={row.zoneRef}
                   />
-                  <input
+                  <Input
                     aria-label={intl.formatMessage(messages.promotionBandCount)}
-                    className="cl-input cl-input--default"
                     min="1"
                     onChange={(event) => updateBand(row.key, { count: event.target.value })}
                     type="number"
@@ -253,11 +283,11 @@ export function PromotionPlanRoute({
             <FormattedMessage {...messages.promotionSavePlan} />
           </Button>
         </footer>
-      </section>
+      </Card>
 
-      <section
+      <Card
         aria-label={intl.formatMessage(messages.promotionReviewHeading)}
-        className="cl-card cl-chamfer cl-chamfer--control"
+        className="cl-chamfer cl-chamfer--control"
       >
         <header className="cl-card__header">
           <h2 className="cl-card__title">
@@ -280,7 +310,7 @@ export function PromotionPlanRoute({
             </ol>
           )}
         </div>
-      </section>
+      </Card>
     </div>
   );
 

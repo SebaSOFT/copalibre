@@ -9,6 +9,9 @@ import {
 import { controlTokenStore } from '../session/token-store.js';
 import { AbbreviationReviewSection } from './AbbreviationReviewSection.js';
 import { RegistrationReviewPage, type ReviewRegistrationRow } from './RegistrationReviewPage.js';
+import { Button } from './ui/atoms/button.js';
+import { Card } from './ui/atoms/card.js';
+import { FormField } from './ui/molecules/form-field.js';
 import { messages } from '../i18n/messages.en.js';
 
 type LoadStatus = 'loading' | 'ready' | 'failed';
@@ -34,6 +37,10 @@ export function RegistrationReviewRoute({
       }),
     [client],
   );
+  const csvApi = api as Required<
+    Pick<ControlApiClient, 'createCsvImport' | 'fetchCsvImport' | 'commitCsvImport'>
+  >;
+
   const [rows, setRows] = useState<readonly ReviewRegistrationRow[]>([]);
   const [status, setStatus] = useState<LoadStatus>('loading');
   const [csv, setCsv] = useState<CsvImportPreviewResponse>();
@@ -41,9 +48,6 @@ export function RegistrationReviewRoute({
   const [abbreviationCandidates, setAbbreviationCandidates] = useState<
     readonly RegistrationResponse[]
   >([]);
-  const csvApi = api as Required<
-    Pick<ControlApiClient, 'createCsvImport' | 'fetchCsvImport' | 'commitCsvImport'>
-  >;
 
   useEffect(() => {
     let live = true;
@@ -106,14 +110,19 @@ export function RegistrationReviewRoute({
 
   return (
     <>
-      <section
+      <Card
         aria-label={intl.formatMessage(messages.registrationImportSection)}
-        className="cl-card cl-chamfer cl-chamfer--control"
+        className="cl-chamfer cl-chamfer--control"
       >
-        <label>
-          <FormattedMessage {...messages.registrationCsvLabel} />
+        <FormField
+          id="registration-csv-file"
+          label={intl.formatMessage(messages.registrationCsvLabel)}
+        >
           <input
             accept=".csv,text/csv"
+            aria-label={intl.formatMessage(messages.registrationCsvLabel)}
+            className="cl-input cl-input--default cl-focusable"
+            id="registration-csv-file"
             onChange={(event) => {
               const file = event.currentTarget.files?.[0];
               if (!file) return;
@@ -143,7 +152,7 @@ export function RegistrationReviewRoute({
             }}
             type="file"
           />
-        </label>
+        </FormField>
         {csvStatus && <p className="cl-inline-alert">{csvStatus}</p>}
         {csv?.preview && (
           <div>
@@ -165,7 +174,7 @@ export function RegistrationReviewRoute({
                   })}
                 </p>
               ))}
-            <button
+            <Button
               disabled={!csv.preview.valid || csv.status !== 'review-ready'}
               onClick={() =>
                 void csvApi
@@ -178,10 +187,10 @@ export function RegistrationReviewRoute({
               type="button"
             >
               <FormattedMessage {...messages.registrationConfirmImport} />
-            </button>
+            </Button>
           </div>
         )}
-      </section>
+      </Card>
       <AbbreviationReviewSection
         onSetAbbreviation={
           api.setEntrantAbbreviation &&
