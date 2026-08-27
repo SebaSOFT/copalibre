@@ -1,7 +1,9 @@
 import { jest } from '@jest/globals';
-import { Module, ValidationPipe, type INestApplication } from '@nestjs/common';
-import { APP_GUARD, Reflector } from '@nestjs/core';
+import { Module, type INestApplication } from '@nestjs/common';
+import { ApiExceptionFilter } from '../http/error-contract.js';
+import { APP_FILTER, APP_GUARD, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
+import { createApiValidationPipe } from '../http/validation.js';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { PrincipalThrottlerGuard } from '../auth/principal-throttler.guard.js';
 import { Test } from '@nestjs/testing';
@@ -67,6 +69,7 @@ describe('Auth Controllers', () => {
       providers: [
         { provide: DATABASE, useValue: scratch.db },
         { provide: TokenVerifier, useValue: new FakeTokenVerifier() },
+        { provide: APP_FILTER, useClass: ApiExceptionFilter },
         { provide: APP_GUARD, useClass: JwtAuthGuard },
         { provide: APP_GUARD, useClass: PrincipalThrottlerGuard },
         Reflector,
@@ -80,7 +83,7 @@ describe('Auth Controllers', () => {
       // per-IP rate-limit bucket — follows X-Forwarded-For in these tests.
       new FastifyAdapter({ trustProxy: true }),
     );
-    app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
+    app.useGlobalPipes(createApiValidationPipe());
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
   });
@@ -154,13 +157,15 @@ describe('Auth Controllers', () => {
       expect(response.statusCode).toBe(400);
     });
 
-    it('POST /auth/login strips an undocumented extra property and still evaluates the credentials', async () => {
+    it('POST /auth/login rejects an undocumented extra property with 400', async () => {
       const response = await request({
         method: 'POST',
         url: '/auth/login',
         payload: { email, password: 'wrong-password', isAdmin: true },
       });
-      expect(response.statusCode).toBe(401);
+      expect(response.statusCode).toBe(400);
+      const body = JSON.parse(response.body);
+      expect(body.message).toContain('property isAdmin should not exist');
     });
 
     it('POST /auth/forgot-password returns 200', async () => {
@@ -542,6 +547,39 @@ describe('Auth Controllers', () => {
         newPassword: 'short',
       });
       expect(overLimit.statusCode).toBe(429);
+    });
+
+    it('rejects undeclared body properties with 400 before handler execution on unauthenticated endpoints', async () => {
+      const response = await request({
+        method: 'POST',
+        url: '/auth/login',
+        payload: {
+          email: 'test@example.com',
+          password: 'password123',
+          unexpectedSecurityField: 'malformed-or-injected',
+        },
+      });
+      expect(response.statusCode).toBe(400);
+      const body = JSON.parse(response.payload);
+      expect(body.errorCode).toBe('bad-request');
+      expect(body.message).toContain('property unexpectedSecurityField should not exist');
+    });
+
+    it('rejects undeclared body properties on protected token creation endpoint', async () => {
+      const response = await request({
+        method: 'POST',
+        url: '/auth/pat',
+        token: 'admin-token',
+        payload: {
+          label: 'Test PAT',
+          expiresInDays: 30,
+          injectedScope: 'super-admin',
+        },
+      });
+      expect(response.statusCode).toBe(400);
+      const body = JSON.parse(response.payload);
+      expect(body.errorCode).toBe('bad-request');
+      expect(body.message).toContain('property injectedScope should not exist');
     });
   });
 });

@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsArray, IsNumber, IsOptional, ValidateNested } from 'class-validator';
+import { IsArray, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
 
 /**
  * Scheduling wire shapes.
@@ -15,23 +15,30 @@ export class TimeWindowDto {
     description: 'Start of the reserved window, epoch milliseconds',
     example: 1785333600000,
   })
+  @IsNumber()
   startsAt!: number;
 
   @ApiProperty({
     description: 'How long the resource is reserved — not how long the match takes',
     example: 90,
   })
+  @IsNumber()
   durationMinutes!: number;
 }
 
 export class ScheduleAssignmentDto {
   @ApiProperty({ format: 'uuid' })
+  @IsString()
   fixtureId!: string;
 
   @ApiProperty({ type: TimeWindowDto })
+  @ValidateNested()
+  @Type(() => TimeWindowDto)
   window!: TimeWindowDto;
 
   @ApiPropertyOptional({ format: 'uuid', description: 'Venue hosting the fixture' })
+  @IsOptional()
+  @IsString()
   venueId?: string;
 
   @ApiPropertyOptional({
@@ -39,6 +46,9 @@ export class ScheduleAssignmentDto {
     format: 'uuid',
     description: 'Officials assigned to the fixture',
   })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
   officialIds?: string[];
 }
 
@@ -54,6 +64,8 @@ export class RestRuleDto {
 export class ScheduleRequest {
   @ApiProperty({ type: [ScheduleAssignmentDto] })
   @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ScheduleAssignmentDto)
   assignments!: ScheduleAssignmentDto[];
 
   @ApiPropertyOptional({ type: RestRuleDto })

@@ -1,4 +1,4 @@
-import { Module, ValidationPipe, type Provider, type Type } from '@nestjs/common';
+import { Module, type Provider, type Type } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
@@ -11,6 +11,7 @@ import { TokenVerifier } from '../../auth/token-verifier.js';
 import { DATABASE } from '../../database.token.js';
 import { API_BODY_LIMIT_BYTES } from '../../http-body-limit.js';
 import { ApiExceptionFilter } from '../../http/error-contract.js';
+import { createApiValidationPipe } from '../../http/validation.js';
 
 /**
  * End-to-end through the real HTTP stack (Fastify + guard + policy +
@@ -91,7 +92,7 @@ export async function buildTestApp(
     new FastifyAdapter({ bodyLimit: API_BODY_LIMIT_BYTES }),
   );
   app.enableCors({ origin: 'https://app.example.com' });
-  app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
+  app.useGlobalPipes(createApiValidationPipe());
   await app.init();
   await app.getHttpAdapter().getInstance().ready();
 

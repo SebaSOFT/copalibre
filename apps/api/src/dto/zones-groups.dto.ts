@@ -87,6 +87,7 @@ export class DrawConstraintRequest {
       },
     ],
   })
+  @IsOptional()
   scope?: string | { beforeRound: string };
 
   @ApiPropertyOptional({ example: 'san-juan' })
@@ -150,6 +151,7 @@ export class DrawAssignmentResponse {
     type: 'object',
     additionalProperties: { type: 'number' },
   })
+  @IsObject()
   groups!: Record<string, number>;
 }
 
@@ -183,6 +185,8 @@ export class ConfirmGroupDrawResponse extends DrawPreviewResponse {
 export class ManualZoneAssignmentRequest {
   @ApiProperty({ type: DrawAssignmentResponse })
   @IsObject()
+  @ValidateNested()
+  @Type(() => DrawAssignmentResponse)
   assignment!: DrawAssignmentResponse;
 
   @ApiProperty({ minimum: 1, example: 4 })
@@ -193,6 +197,8 @@ export class ManualZoneAssignmentRequest {
 export class ManualGroupAssignmentRequest {
   @ApiProperty({ type: DrawAssignmentResponse })
   @IsObject()
+  @ValidateNested()
+  @Type(() => DrawAssignmentResponse)
   assignment!: DrawAssignmentResponse;
 
   @ApiProperty({ minimum: 1, example: 4 })

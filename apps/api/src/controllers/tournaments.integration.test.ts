@@ -422,15 +422,17 @@ describe('organization-scoped tournament routes', () => {
     expect(response.statusCode).toBe(400);
   });
 
-  it('strips an extra undocumented property and replaces custom scripts anyway', async () => {
+  it('rejects an extra undocumented property with 400 when replacing custom scripts', async () => {
     const updated = await request({
       method: 'PUT',
       url: '/organizations/liga-orbital/tournaments/copa-custom-scripts/custom-scripts',
       token: 'organizer-org1',
       payload: { customScripts: [], unexpectedField: 'dropped' },
     });
-    expect(updated.statusCode).toBe(200);
-    expect(updated.json()).toEqual({ customScripts: [] });
+    expect(updated.statusCode).toBe(400);
+    const body = JSON.parse(updated.payload as string);
+    expect(body.errorCode).toBe('bad-request');
+    expect(body.message).toContain('property unexpectedField should not exist');
   });
 
   it('names an offending custom-script reference and blocks updates after a persisted result', async () => {
@@ -965,6 +967,40 @@ describe('organization-scoped tournament routes', () => {
     const body = JSON.parse(response.payload as string);
     expect(Array.isArray(body)).toBe(true);
     expect(body.some((p: { alias: string }) => p.alias === 'compatible-cup')).toBe(true);
+  });
+
+  it('rejects tournament creation with undeclared fields and performs no write', async () => {
+    const descriptor = footballDescriptor();
+    const payload = {
+      alias: 'rejected-undeclared-tournament',
+      name: 'Rejected Undeclared Tournament',
+      descriptorId: descriptor.descriptorId,
+      descriptorVersion: descriptor.version,
+      format: 'single-elimination',
+      publicRegistration: true,
+      requiresCheckIn: false,
+      customScripts: [],
+      unexpectedInjectedField: 'malicious-data',
+    };
+
+    const response = await request({
+      method: 'POST',
+      url: '/organizations/liga-orbital/tournaments',
+      token: 'organizer-org1',
+      payload,
+    });
+
+    expect(response.statusCode).toBe(400);
+    const body = JSON.parse(response.payload as string);
+    expect(body.errorCode).toBe('bad-request');
+    expect(body.message).toContain('property unexpectedInjectedField should not exist');
+
+    const tournamentRepo = new TournamentRepository(scratch.db as Kysely<Database>);
+    const found = await tournamentRepo.findByScopedAlias(
+      'liga-orbital',
+      'rejected-undeclared-tournament',
+    );
+    expect(found).toBeUndefined();
   });
 });
 

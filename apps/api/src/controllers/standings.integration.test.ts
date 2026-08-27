@@ -1,6 +1,8 @@
-import { Module, ValidationPipe, type INestApplication } from '@nestjs/common';
-import { APP_GUARD, Reflector } from '@nestjs/core';
+import { Module, type INestApplication } from '@nestjs/common';
+import { APP_FILTER, APP_GUARD, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
+import { ApiExceptionFilter } from '../http/error-contract.js';
+import { createApiValidationPipe } from '../http/validation.js';
 import { Test } from '@nestjs/testing';
 import type { DisciplineDescriptor } from '@copalibre/domain';
 import {
@@ -89,6 +91,7 @@ describe('standings and seeding routes (integration)', () => {
       providers: [
         { provide: DATABASE, useValue: scratch.db },
         { provide: TokenVerifier, useValue: new FakeTokenVerifier(() => organizationId) },
+        { provide: APP_FILTER, useClass: ApiExceptionFilter },
         { provide: APP_GUARD, useClass: JwtAuthGuard },
         Reflector,
       ],
@@ -97,7 +100,7 @@ describe('standings and seeding routes (integration)', () => {
 
     const moduleRef = await Test.createTestingModule({ imports: [TestModule] }).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
-    app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
+    app.useGlobalPipes(createApiValidationPipe());
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
 
@@ -342,7 +345,7 @@ describe('standings and seeding routes (integration)', () => {
     expect(response.statusCode).toBe(400);
   });
 
-  it('strips an extra undocumented property and publishes the seed order anyway', async () => {
+  it('rejects an extra undocumented property with 400 when publishing seed order', async () => {
     const reversed = [...entrantIds].reverse();
     const response = await request({
       method: 'POST',
@@ -353,8 +356,10 @@ describe('standings and seeding routes (integration)', () => {
         unexpectedField: 'dropped',
       },
     });
-    expect(response.statusCode).toBe(200);
-    expect(response.json()).toMatchObject({ mutationClass: 'requires_rebuild', persisted: true });
+    expect(response.statusCode).toBe(400);
+    const body = response.json();
+    expect(body.errorCode).toBe('bad-request');
+    expect(body.message).toContain('property unexpectedField should not exist');
   });
 
   it('refuses a seed order that places an entrant twice', async () => {

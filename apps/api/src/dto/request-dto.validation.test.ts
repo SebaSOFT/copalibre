@@ -168,4 +168,46 @@ describe('request-body DTO validation rules', () => {
     );
     expect(clock).toHaveLength(0);
   });
+
+  it('rejects unexpected non-whitelisted properties on request DTOs when forbidNonWhitelisted is active', async () => {
+    const loginErrors = await validate(
+      plainToInstance(LoginRequest, {
+        email: 'a@b.c',
+        password: 'secret123',
+        undeclaredProperty: 'should-fail',
+      }),
+      { whitelist: true, forbidNonWhitelisted: true },
+    );
+    expect(loginErrors.length).toBeGreaterThanOrEqual(1);
+    expect(loginErrors.some((e) => e.property === 'undeclaredProperty')).toBe(true);
+
+    const orgErrors = await validate(
+      plainToInstance(CreateOrganizationRequest, {
+        alias: 'org-alias',
+        name: 'Org Name',
+        extraField: 999,
+      }),
+      { whitelist: true, forbidNonWhitelisted: true },
+    );
+    expect(orgErrors.length).toBeGreaterThanOrEqual(1);
+    expect(orgErrors.some((e) => e.property === 'extraField')).toBe(true);
+  });
+
+  it('rejects unexpected non-whitelisted properties in nested DTO structures', async () => {
+    const scheduleErrors = await validate(
+      plainToInstance(ScheduleRequest, {
+        assignments: [
+          {
+            fixtureId: 'f-1',
+            window: { startsAt: 1000, durationMinutes: 90, extraWindowField: true },
+            unexpectedAssignmentField: 'bad',
+          },
+        ],
+      }),
+      { whitelist: true, forbidNonWhitelisted: true },
+    );
+    expect(scheduleErrors.length).toBeGreaterThanOrEqual(1);
+    const assignmentError = scheduleErrors.find((e) => e.property === 'assignments');
+    expect(assignmentError).toBeDefined();
+  });
 });

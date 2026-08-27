@@ -127,7 +127,7 @@ describe('admin-control plane', () => {
     expect(response.statusCode).toBe(400);
   });
 
-  it('strips an extra undocumented property and creates the organization anyway', async () => {
+  it('rejects an extra undocumented property with 400 when creating an organization', async () => {
     const response = await request({
       method: 'POST',
       url: '/organizations',
@@ -138,8 +138,10 @@ describe('admin-control plane', () => {
         unexpectedField: 'x',
       },
     });
-    expect(response.statusCode).toBe(201);
-    expect(response.json()).not.toHaveProperty('unexpectedField');
+    expect(response.statusCode).toBe(400);
+    const body = response.json();
+    expect(body.errorCode).toBe('bad-request');
+    expect(body.message).toContain('property unexpectedField should not exist');
   });
 
   it('defaults a new organization to Spanish and UTC when not specified', async () => {
