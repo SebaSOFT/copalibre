@@ -3,6 +3,7 @@ import type { DisciplineDescriptorDocument } from './discipline-descriptor.js';
 import { DescriptorValidationError } from '../errors.js';
 import { err, ok, type Result } from '../result.js';
 import { SUPPORTED_LANGUAGES } from '../i18n.js';
+import { validateSeriesDeclaration } from '../aggregates/series.js';
 
 /**
  * The wire schema of a submitted discipline module.
@@ -357,6 +358,7 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
     tableLayouts: { type: 'array', items: { $ref: '#/definitions/tableLayout' } },
     notificationRuleCapabilities: { type: 'array', items: { type: 'string', minLength: 1 } },
     winCondition: { $ref: RULE_SCRIPT_SCHEMA_ID },
+    series: { $ref: '#/definitions/series' },
     uiMetadata: { type: 'object' },
     defaults: { type: 'object' },
     fieldPolicies: { type: 'object' },
@@ -780,6 +782,17 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
         },
       },
     },
+    series: {
+      type: 'object',
+      required: ['span'],
+      properties: {
+        span: { type: 'integer', minimum: 2 },
+        resolutionClass: { enum: ['best-of', 'aggregate', 'points-per-leg'] },
+        resolutionScript: { $ref: RULE_SCRIPT_SCHEMA_ID },
+        neutralGround: { type: 'boolean' },
+        standingsAccounting: { enum: ['series', 'match'] },
+      },
+    },
   },
 });
 
@@ -860,6 +873,28 @@ export function validateDisciplineDescriptorDocument(
       );
     }
   }
+
+  const rawDoc = document as Record<string, unknown>;
+  const seriesDeclarations = [
+    rawDoc.series,
+    (rawDoc.defaults as Record<string, unknown> | undefined)?.series,
+  ].filter((s) => s !== undefined);
+
+  for (const s of seriesDeclarations) {
+    const valid = validateSeriesDeclaration(s);
+    if (!valid.ok) {
+      return err(
+        new DescriptorValidationError(
+          `Discipline descriptor series declaration is invalid: ${valid.error.message}`,
+          {
+            field: valid.error.details?.field ?? 'series',
+            ...valid.error.details,
+          },
+        ),
+      );
+    }
+  }
+
   return ok(descriptor);
 }
 

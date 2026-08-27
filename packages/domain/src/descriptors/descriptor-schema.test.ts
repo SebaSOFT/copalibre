@@ -538,4 +538,63 @@ describe('discipline descriptor schema', () => {
       expect(result.ok).toBe(false);
     });
   });
+
+  describe('series declaration', () => {
+    it('accepts a valid best-of series declaration', () => {
+      const result = validateDisciplineDescriptorDocument(
+        asDocument({
+          series: { span: 5, resolutionClass: 'best-of', neutralGround: false },
+        }),
+      );
+      expect(result.ok).toBe(true);
+    });
+
+    it('accepts a valid aggregate series declaration', () => {
+      const result = validateDisciplineDescriptorDocument(
+        asDocument({
+          series: { span: 2, resolutionClass: 'aggregate' },
+        }),
+      );
+      expect(result.ok).toBe(true);
+    });
+
+    it('refuses a declaration naming both a class and a script and names the offending field', () => {
+      const result = validateDisciplineDescriptorDocument(
+        asDocument({
+          series: {
+            span: 5,
+            resolutionClass: 'best-of',
+            resolutionScript: { id: 'custom-series', rules: [] },
+          },
+        }),
+      );
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.error.details?.field).toBe('series.resolutionScript');
+      expect(result.error.message).toContain('both a resolution class and a resolution script');
+    });
+
+    it('refuses an even-span best-of and names the offending field', () => {
+      const result = validateDisciplineDescriptorDocument(
+        asDocument({
+          series: { span: 4, resolutionClass: 'best-of' },
+        }),
+      );
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.error.details?.field).toBe('series.span');
+      expect(result.error.message).toContain('odd span');
+    });
+
+    it('refuses a series with span less than 2', () => {
+      const result = validateDisciplineDescriptorDocument(
+        asDocument({
+          series: { span: 1, resolutionClass: 'best-of' },
+        }),
+      );
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.error.details?.field).toBe('series.span');
+    });
+  });
 });

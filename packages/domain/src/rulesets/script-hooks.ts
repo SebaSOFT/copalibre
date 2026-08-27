@@ -191,6 +191,13 @@ const ALERT_CONTEXT_PATHS = [
  */
 const DRAW_CONTEXT_PATHS = ['draw.*'] as const;
 
+const SERIES_CONTEXT_PATHS = [
+  'series.span',
+  'series.neutralGround',
+  'series.sides.*',
+  'series.matches.*',
+] as const;
+
 /** Guards place their facts at the context root, likewise caller-shaped. */
 const GUARD_CONTEXT_PATHS = ['*'] as const;
 
@@ -323,6 +330,11 @@ const HOOK_DEFINITIONS = {
       ownedBy: '0023',
       note: 'What an operator configures an alert from is the console phase’s open gate',
     },
+  },
+  'series.resolved': {
+    context: [...SERIES_CONTEXT_PATHS, ...ENVIRONMENT_CONTEXT_PATHS],
+    polarity: 'permissive',
+    evaluation: { status: 'evaluated', by: '0158' },
   },
 } as const satisfies Record<string, HookDefinition>;
 

@@ -183,6 +183,24 @@ describe('compileEffectiveRuleset', () => {
     }
   });
 
+  it('stage-level series override wins over a discipline default', () => {
+    const descriptor = fixtureDescriptor({
+      defaults: {
+        ...fixtureDescriptor().defaults,
+        series: { span: 2, resolutionClass: 'aggregate' },
+      },
+    });
+    const result = compileEffectiveRuleset(
+      descriptor,
+      undefined,
+      stage({ series: { span: 5, resolutionClass: 'best-of' } }),
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.config.series).toEqual({ span: 5, resolutionClass: 'best-of' });
+    }
+  });
+
   it('records full provenance versions on the compiled snapshot', () => {
     const result = compileEffectiveRuleset(
       fixtureDescriptor(),
