@@ -453,7 +453,7 @@ export interface paths {
         put?: never;
         /**
          * Dry-run a schedule batch
-         * @description Runs the identical conflict detection the commit runs, against the identical state, and reports instead of writing — including which already-published fixtures the batch would move.
+         * @description Runs the identical conflict detection the commit runs, against the identical state, and reports instead of writing — including which already-published matches the batch would move.
          */
         post: operations["SchedulesController_preview"];
         delete?: never;
@@ -1831,6 +1831,42 @@ export interface paths {
         patch: operations["ResourcesController_updateOfficial"];
         trace?: never;
     };
+    "/organizations/{organizationAlias}/schedules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List an organization's schedules with generated slots and occupancy */
+        get: operations["ResourcesController_listSchedules"];
+        put?: never;
+        /** Create a schedule grid */
+        post: operations["ResourcesController_createSchedule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/schedules/{scheduleId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a schedule grid */
+        delete: operations["ResourcesController_deleteSchedule"];
+        options?: never;
+        head?: never;
+        /** Edit a schedule grid */
+        patch: operations["ResourcesController_updateSchedule"];
+        trace?: never;
+    };
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones": {
         parameters: {
             query?: never;
@@ -2528,24 +2564,36 @@ export interface components {
              */
             durationMinutes: number;
         };
-        ScheduleAssignmentDto: {
+        ScheduleAssignmentResponse: {
+            /** Format: uuid */
+            matchId: string;
             /** Format: uuid */
             fixtureId: string;
-            window: components["schemas"]["TimeWindowDto"];
+            /** Format: uuid */
+            slotId: string;
             /**
              * Format: uuid
-             * @description Venue hosting the fixture
+             * @description Venue hosting the slot
              */
-            venueId?: string;
-            /** @description Officials assigned to the fixture */
+            venueId: string;
+            window: components["schemas"]["TimeWindowDto"];
+            /** @description Officials assigned to the match */
             officialIds?: string[];
         };
         ScheduleResponse: {
-            assignments: components["schemas"]["ScheduleAssignmentDto"][];
+            assignments: components["schemas"]["ScheduleAssignmentResponse"][];
+        };
+        ScheduleAssignmentDto: {
+            /** Format: uuid */
+            matchId: string;
+            /** Format: uuid */
+            slotId: string;
+            /** @description Officials assigned to the match */
+            officialIds?: string[];
         };
         RestRuleDto: {
             /**
-             * @description Minimum minutes between an entrant's consecutive fixtures
+             * @description Minimum minutes between an entrant's consecutive matches
              * @example 45
              */
             minimumMinutes: number;
@@ -2559,14 +2607,14 @@ export interface components {
              * @description Which rule the schedule breaks
              * @enum {string}
              */
-            kind: "venue-double-booked" | "official-double-booked" | "rest-rule";
+            kind: "venue-double-booked" | "official-double-booked" | "rest-rule" | "match-finalized";
             /** Format: uuid */
-            fixtureId: string;
+            matchId: string;
             /**
              * Format: uuid
-             * @description The fixture it clashes with
+             * @description The match it clashes with
              */
-            conflictsWithFixtureId: string;
+            conflictsWithMatchId: string;
             /** @description Venue, official or entrant the clash is about */
             resourceId: string;
             /** @description Human-readable explanation an operator can act on */
@@ -2576,8 +2624,8 @@ export interface components {
             /** @description Whether the batch would publish as it stands */
             committable: boolean;
             conflicts: components["schemas"]["ScheduleConflictDto"][];
-            /** @description Already-published fixtures this batch would move */
-            affectedPublishedFixtures: string[];
+            /** @description Already-published matches this batch would move */
+            affectedPublishedMatches: string[];
         };
         MatchStateResponse: {
             /** Format: uuid */
@@ -3138,6 +3186,11 @@ export interface components {
         FixtureResponse: {
             /** Format: uuid */
             fixtureId: string;
+            /**
+             * Format: uuid
+             * @description Primary match for this fixture
+             */
+            matchId: string;
             /**
              * @description 1-based round within the stage
              * @example 1
@@ -3966,6 +4019,108 @@ export interface components {
             /** @example Ana Gómez */
             displayName?: string;
             roles?: ("referee" | "assistant" | "table-official" | "observer")[];
+        };
+        ScheduleSlotResponse: {
+            /** Format: uuid */
+            slotId: string;
+            /** Format: uuid */
+            scheduleId: string;
+            /** Format: uuid */
+            venueId: string;
+            /**
+             * @description Start of the slot, epoch milliseconds
+             * @example 1785333600000
+             */
+            startsAt: number;
+            /**
+             * @description Number of matches assigned to this slot
+             * @example 0
+             */
+            matchCount: number;
+        };
+        ScheduleDetailResponse: {
+            /** Format: uuid */
+            scheduleId: string;
+            /** Format: uuid */
+            organizationId: string;
+            /** @example Main Schedule */
+            name: string;
+            /**
+             * @description Grid starts at, epoch milliseconds
+             * @example 1785333600000
+             */
+            startsAt: number;
+            /**
+             * @description Grid ends at, epoch milliseconds
+             * @example 1785376800000
+             */
+            endsAt: number;
+            /**
+             * @description Duration of each match slot in minutes
+             * @example 90
+             */
+            slotMinutes: number;
+            /**
+             * @description Turnaround buffer between slots in minutes
+             * @example 15
+             */
+            turnaroundMinutes: number;
+            /** @description Venues covered by this schedule grid */
+            venueIds: string[];
+            /** @description Generated grid slots */
+            slots: components["schemas"]["ScheduleSlotResponse"][];
+        };
+        CreateScheduleRequest: {
+            /** @example Main Schedule */
+            name: string;
+            /**
+             * @description Grid start epoch milliseconds
+             * @example 1785333600000
+             */
+            startsAt: number;
+            /**
+             * @description Grid end epoch milliseconds
+             * @example 1785376800000
+             */
+            endsAt: number;
+            /**
+             * @description Slot duration in minutes
+             * @example 90
+             */
+            slotMinutes: number;
+            /**
+             * @description Turnaround buffer in minutes
+             * @example 15
+             */
+            turnaroundMinutes: number;
+            /** @description Venues to cover */
+            venueIds: string[];
+        };
+        UpdateScheduleRequest: {
+            /** @example Main Schedule */
+            name?: string;
+            /**
+             * @description Grid start epoch milliseconds
+             * @example 1785333600000
+             */
+            startsAt?: number;
+            /**
+             * @description Grid end epoch milliseconds
+             * @example 1785376800000
+             */
+            endsAt?: number;
+            /**
+             * @description Slot duration in minutes
+             * @example 90
+             */
+            slotMinutes?: number;
+            /**
+             * @description Turnaround buffer in minutes
+             * @example 15
+             */
+            turnaroundMinutes?: number;
+            /** @description Venues to cover */
+            venueIds?: string[];
         };
         ZoneResponse: {
             /** Format: uuid */
@@ -7761,6 +7916,102 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OfficialResponse"];
+                };
+            };
+        };
+    };
+    ResourcesController_listSchedules: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScheduleDetailResponse"][];
+                };
+            };
+        };
+    };
+    ResourcesController_createSchedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateScheduleRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScheduleDetailResponse"];
+                };
+            };
+        };
+    };
+    ResourcesController_deleteSchedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                scheduleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success?: boolean;
+                    };
+                };
+            };
+        };
+    };
+    ResourcesController_updateSchedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                scheduleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateScheduleRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScheduleDetailResponse"];
                 };
             };
         };

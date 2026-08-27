@@ -1,4 +1,4 @@
-import { Controller, Get, Inject, Param, Patch, Post, Body, Req } from '@nestjs/common';
+import { Controller, Get, Inject, Param, Patch, Post, Delete, Body, Req } from '@nestjs/common';
 import {
   BadRequestException,
   ConflictException,
@@ -12,7 +12,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import type { Kysely } from 'kysely';
-import { ResourceError, type Official } from '@copalibre/domain';
+import { ResourceError, ScheduleError, type Official } from '@copalibre/domain';
 import {
   InvariantViolationError,
   OrganizationRepository,
@@ -26,9 +26,12 @@ import { SecurityPlaneTag } from '../auth/security-plane.js';
 import { DATABASE } from '../database.token.js';
 import {
   CreateOfficialRequest,
+  CreateScheduleRequest,
   CreateVenueRequest,
   OfficialResponse,
+  ScheduleDetailResponse,
   UpdateOfficialRequest,
+  UpdateScheduleRequest,
   UpdateVenueRequest,
   VenueResponse,
 } from '../dto/resources.dto.js';
@@ -223,6 +226,164 @@ export class ResourcesController {
         throw new ConflictException(error.message, { errorCode: 'resource-conflict' });
       if (error instanceof ResourceError)
         throw new BadRequestException(error.message, { errorCode: 'resource-bad-request' });
+      throw error;
+    }
+  }
+
+  @Get('schedules')
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "List an organization's schedules with generated slots and occupancy" })
+  @ApiOkResponse({ type: ScheduleDetailResponse, isArray: true })
+  async listSchedules(
+    @Param('organizationAlias') organizationAlias: string,
+    @Req() request: RequestWithSubject,
+  ): Promise<readonly ScheduleDetailResponse[]> {
+    const organizationId = await resolveAdminOrganization(this.db, organizationAlias, request);
+    const schedules = new ScheduleRepository(this.db);
+    const list = await schedules.listSchedules(organizationId);
+    const result: ScheduleDetailResponse[] = [];
+    for (const s of list) {
+      const slots = await schedules.listScheduleSlots(s.scheduleId);
+      result.push({
+        ...s,
+        venueIds: [...s.venueIds],
+        slots: slots.map((slot) => ({ ...slot })),
+      });
+    }
+    return result;
+  }
+
+  @Post('schedules')
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create a schedule grid' })
+  @ApiCreatedResponse({ type: ScheduleDetailResponse })
+  async createSchedule(
+    @Param('organizationAlias') organizationAlias: string,
+    @Body() body: CreateScheduleRequest,
+    @Req() request: RequestWithSubject,
+  ): Promise<ScheduleDetailResponse> {
+    const organizationId = await resolveAdminOrganization(this.db, organizationAlias, request);
+    const subject = request.subject;
+    const schedules = new ScheduleRepository(this.db);
+    try {
+      const schedule = await withTransaction(this.db, (uow) =>
+        schedules.createSchedule(uow, {
+          organizationId,
+          name: body.name,
+          startsAt: body.startsAt,
+          endsAt: body.endsAt,
+          slotMinutes: body.slotMinutes,
+          turnaroundMinutes: body.turnaroundMinutes,
+          venueIds: body.venueIds,
+          actor: `user:${subject?.subjectId ?? 'unknown'}`,
+          authorizationContext: (subject?.scopes ?? []).join(' '),
+        }),
+      );
+      const slots = await schedules.listScheduleSlots(schedule.scheduleId);
+      return {
+        ...schedule,
+        venueIds: [...schedule.venueIds],
+        slots: slots.map((slot) => ({ ...slot })),
+      };
+    } catch (error) {
+      if (error instanceof InvariantViolationError)
+        throw new ConflictException(error.message, { errorCode: 'schedule-conflict' });
+      if (error instanceof ScheduleError)
+        throw new BadRequestException(error.message, { errorCode: 'schedule-bad-request' });
+      throw error;
+    }
+  }
+
+  @Patch('schedules/:scheduleId')
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Edit a schedule grid' })
+  @ApiOkResponse({ type: ScheduleDetailResponse })
+  async updateSchedule(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('scheduleId') scheduleId: string,
+    @Body() body: UpdateScheduleRequest,
+    @Req() request: RequestWithSubject,
+  ): Promise<ScheduleDetailResponse> {
+    const organizationId = await resolveAdminOrganization(this.db, organizationAlias, request);
+    const schedules = new ScheduleRepository(this.db);
+    const existing = await schedules.findSchedule(scheduleId);
+    if (!existing || existing.organizationId !== organizationId) {
+      throw new NotFoundException(`No schedule "${scheduleId}" in this organization`, {
+        errorCode: 'schedule-not-found',
+      });
+    }
+    const subject = request.subject;
+    try {
+      const updated = await withTransaction(this.db, (uow) =>
+        schedules.updateSchedule(uow, {
+          scheduleId,
+          organizationId,
+          ...(body.name !== undefined ? { name: body.name } : {}),
+          ...(body.startsAt !== undefined ? { startsAt: body.startsAt } : {}),
+          ...(body.endsAt !== undefined ? { endsAt: body.endsAt } : {}),
+          ...(body.slotMinutes !== undefined ? { slotMinutes: body.slotMinutes } : {}),
+          ...(body.turnaroundMinutes !== undefined
+            ? { turnaroundMinutes: body.turnaroundMinutes }
+            : {}),
+          ...(body.venueIds !== undefined ? { venueIds: body.venueIds } : {}),
+          actor: `user:${subject?.subjectId ?? 'unknown'}`,
+          authorizationContext: (subject?.scopes ?? []).join(' '),
+        }),
+      );
+      const slots = await schedules.listScheduleSlots(updated.scheduleId);
+      return {
+        ...updated,
+        venueIds: [...updated.venueIds],
+        slots: slots.map((slot) => ({ ...slot })),
+      };
+    } catch (error) {
+      if (error instanceof InvariantViolationError)
+        throw new ConflictException(error.message, { errorCode: 'schedule-conflict' });
+      if (error instanceof ScheduleError)
+        throw new BadRequestException(error.message, { errorCode: 'schedule-bad-request' });
+      throw error;
+    }
+  }
+
+  @Delete('schedules/:scheduleId')
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationRole('admin')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Remove a schedule grid' })
+  @ApiOkResponse({ schema: { type: 'object', properties: { success: { type: 'boolean' } } } })
+  async deleteSchedule(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('scheduleId') scheduleId: string,
+    @Req() request: RequestWithSubject,
+  ): Promise<{ success: boolean }> {
+    const organizationId = await resolveAdminOrganization(this.db, organizationAlias, request);
+    const schedules = new ScheduleRepository(this.db);
+    const existing = await schedules.findSchedule(scheduleId);
+    if (!existing || existing.organizationId !== organizationId) {
+      throw new NotFoundException(`No schedule "${scheduleId}" in this organization`, {
+        errorCode: 'schedule-not-found',
+      });
+    }
+    const subject = request.subject;
+    try {
+      await withTransaction(this.db, (uow) =>
+        schedules.removeSchedule(uow, {
+          scheduleId,
+          organizationId,
+          actor: `user:${subject?.subjectId ?? 'unknown'}`,
+          authorizationContext: (subject?.scopes ?? []).join(' '),
+        }),
+      );
+      return { success: true };
+    } catch (error) {
+      if (error instanceof InvariantViolationError)
+        throw new ConflictException(error.message, { errorCode: 'schedule-conflict' });
       throw error;
     }
   }

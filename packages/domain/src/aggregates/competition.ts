@@ -32,7 +32,6 @@ export interface Fixture {
   readonly round: number;
   readonly homeEntrantId?: string;
   readonly awayEntrantId?: string;
-  readonly scheduledAt?: string;
 }
 
 export type MatchStatus = 'scheduled' | 'in-progress' | 'finalized';

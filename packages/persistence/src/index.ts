@@ -105,7 +105,11 @@ export {
   type ParticipantTeamMembership,
 } from './repositories/enrollment-repository.js';
 export { CompetitionRepository } from './repositories/competition-repository.js';
-export { ScheduleRepository, type SchedulePreview } from './repositories/schedule-repository.js';
+export {
+  ScheduleRepository,
+  type SchedulePreview,
+  type ScheduleAssignmentDetail,
+} from './repositories/schedule-repository.js';
 export { MatchAssignmentRepository } from './repositories/match-assignment-repository.js';
 export {
   MatchCommandIdempotencyRepository,

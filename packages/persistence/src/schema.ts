@@ -399,7 +399,6 @@ export interface FixturesTable {
   round: number;
   home_entrant_id: string | null;
   away_entrant_id: string | null;
-  scheduled_at: Timestamp | null;
   created_at: Timestamp;
 }
 
@@ -422,19 +421,42 @@ export interface OfficialsTable {
   created_at: Timestamp;
 }
 
-export interface FixtureSchedulesTable {
-  fixture_schedule_id: string;
-  fixture_id: string;
-  venue_id: string | null;
+export interface SchedulesTable {
+  schedule_id: string;
+  organization_id: string;
+  name: string;
   /** Epoch milliseconds. Read back as a string by pg's bigint mapping. */
   starts_at: string;
-  duration_minutes: number;
+  /** Epoch milliseconds. Read back as a string by pg's bigint mapping. */
+  ends_at: string;
+  slot_minutes: number;
+  turnaround_minutes: number;
+  created_at: Timestamp;
+}
+
+export interface ScheduleVenuesTable {
+  schedule_id: string;
+  venue_id: string;
+}
+
+export interface ScheduleSlotsTable {
+  slot_id: string;
+  schedule_id: string;
+  venue_id: string;
+  /** Epoch milliseconds. Read back as a string by pg's bigint mapping. */
+  starts_at: string;
+  created_at: Timestamp;
+}
+
+export interface MatchScheduleAssignmentsTable {
+  match_id: string;
+  slot_id: string;
   published: boolean;
   created_at: Timestamp;
 }
 
-export interface FixtureScheduleOfficialsTable {
-  fixture_schedule_id: string;
+export interface MatchScheduleOfficialsTable {
+  match_id: string;
   official_id: string;
 }
 
@@ -885,8 +907,11 @@ export interface Database {
   csv_import_sessions: CsvImportSessionsTable;
   venues: VenuesTable;
   officials: OfficialsTable;
-  fixture_schedules: FixtureSchedulesTable;
-  fixture_schedule_officials: FixtureScheduleOfficialsTable;
+  schedules: SchedulesTable;
+  schedule_venues: ScheduleVenuesTable;
+  schedule_slots: ScheduleSlotsTable;
+  match_schedule_assignments: MatchScheduleAssignmentsTable;
+  match_schedule_officials: MatchScheduleOfficialsTable;
   seasons: SeasonsTable;
   stages: StagesTable;
   zones: ZonesTable;

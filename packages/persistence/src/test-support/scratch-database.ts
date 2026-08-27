@@ -103,9 +103,11 @@ function sqliteDriverWithDateBindings(database: DatabaseConstructor.Database) {
     prepare(query: string) {
       const statement = database.prepare(query);
       const bind = (parameters: readonly unknown[]) =>
-        parameters.map((parameter) =>
-          parameter instanceof Date ? parameter.toISOString() : parameter,
-        );
+        parameters.map((parameter) => {
+          if (parameter instanceof Date) return parameter.toISOString();
+          if (typeof parameter === 'boolean') return parameter ? 1 : 0;
+          return parameter;
+        });
       return {
         reader: statement.reader,
         all: (parameters: readonly unknown[]) => statement.all(bind(parameters)),

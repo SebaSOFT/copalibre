@@ -1,6 +1,5 @@
 import type { Kysely } from 'kysely';
 import type { Database } from '../schema.js';
-import { toIsoString } from '../mapping.js';
 
 /**
  * The read side of a tournament's public overview/live pages.
@@ -36,12 +35,18 @@ export class PublicOverviewReadModel {
       .innerJoin('stages', 'stages.stage_id', 'fixtures.stage_id')
       .innerJoin('seasons', 'seasons.season_id', 'stages.season_id')
       .leftJoin('matches', 'matches.fixture_id', 'fixtures.fixture_id')
+      .leftJoin('match_schedule_assignments', (join) =>
+        join
+          .onRef('match_schedule_assignments.match_id', '=', 'matches.match_id')
+          .on('match_schedule_assignments.published', '=', true),
+      )
+      .leftJoin('schedule_slots', 'schedule_slots.slot_id', 'match_schedule_assignments.slot_id')
       .select([
         'fixtures.fixture_id',
         'fixtures.round',
         'fixtures.home_entrant_id',
         'fixtures.away_entrant_id',
-        'fixtures.scheduled_at',
+        'schedule_slots.starts_at as scheduled_starts_at',
         'stages.number as stage_number',
         'matches.match_id',
         'matches.number as match_number',
@@ -68,7 +73,9 @@ export class PublicOverviewReadModel {
         ...(row.home_entrant_id === null ? {} : { homeEntrantId: row.home_entrant_id }),
         ...(row.away_entrant_id === null ? {} : { awayEntrantId: row.away_entrant_id }),
         ...(result?.sides === undefined ? {} : { scores: scoresOf(result.sides) }),
-        ...(row.scheduled_at === null ? {} : { scheduledAt: toIsoString(row.scheduled_at) }),
+        ...(row.scheduled_starts_at === null || row.scheduled_starts_at === undefined
+          ? {}
+          : { scheduledAt: new Date(Number(row.scheduled_starts_at)).toISOString() }),
       };
     });
   }

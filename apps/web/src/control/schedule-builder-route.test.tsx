@@ -6,6 +6,7 @@ import type {
   ControlApiClient,
   FixtureResponse,
   OfficialResponse,
+  ScheduleDetailResponse,
   ScheduleResponse,
   SchedulePreviewResponse,
   StageFixturesResponse,
@@ -16,12 +17,24 @@ import { withIntl } from './i18n/test-support.js';
 const STAGE_ID = 'stage-1';
 
 const oneFixture: readonly FixtureResponse[] = [
-  { fixtureId: 'fixture-1', round: 1, homeEntrantId: 'entrant-a', awayEntrantId: 'entrant-b' },
+  {
+    fixtureId: 'fixture-1',
+    matchId: 'match-1',
+    round: 1,
+    homeEntrantId: 'entrant-a',
+    awayEntrantId: 'entrant-b',
+  },
 ];
 
 const twoFixtures: readonly FixtureResponse[] = [
   ...oneFixture,
-  { fixtureId: 'fixture-2', round: 1, homeEntrantId: 'entrant-c', awayEntrantId: 'entrant-d' },
+  {
+    fixtureId: 'fixture-2',
+    matchId: 'match-2',
+    round: 1,
+    homeEntrantId: 'entrant-c',
+    awayEntrantId: 'entrant-d',
+  },
 ];
 
 const oneVenue: readonly VenueResponse[] = [
@@ -43,6 +56,28 @@ const oneOfficial: readonly OfficialResponse[] = [
   },
 ];
 
+const oneSchedule: readonly ScheduleDetailResponse[] = [
+  {
+    scheduleId: 'schedule-1',
+    organizationId: 'org-1',
+    name: 'Schedule 1',
+    startsAt: Date.UTC(2026, 7, 1, 14, 0),
+    endsAt: Date.UTC(2026, 7, 1, 16, 0),
+    slotMinutes: 60,
+    turnaroundMinutes: 15,
+    venueIds: ['venue-1'],
+    slots: [
+      {
+        slotId: 'slot-1',
+        scheduleId: 'schedule-1',
+        venueId: 'venue-1',
+        startsAt: Date.UTC(2026, 7, 1, 14, 0),
+        matchCount: 0,
+      },
+    ],
+  },
+];
+
 describe('ScheduleBuilderRoute', () => {
   it('builds its own client when none is injected', async () => {
     render(
@@ -55,14 +90,10 @@ describe('ScheduleBuilderRoute', () => {
       ),
     );
 
-    // No assertions on the (real, unmocked) network outcome — this only
-    // proves the component constructs a working default client rather than
-    // crashing when a caller supplies none, the same as every other
-    // production mount.
     await waitFor(() => expect(screen.queryByText('Loading…')).toBeNull());
   });
 
-  it('shows a fixture as unassigned until it has a start time', async () => {
+  it('shows a fixture as unassigned until it has a slot', async () => {
     const client = stubClient({
       getStageFixtures: () => Promise.resolve({ stageId: STAGE_ID, fixtures: oneFixture }),
       getSchedule: () => Promise.resolve({ assignments: [] }),
@@ -99,18 +130,21 @@ describe('ScheduleBuilderRoute', () => {
     );
 
     const dayOff = await screen.findAllByText(/No match scheduled in this range/);
-    // Both entrants of the one fixture: neither has a scheduled time yet.
     expect(dayOff).toHaveLength(2);
   });
 
   it('does not mark an entrant with an existing scheduled assignment as a day off', async () => {
     const client = stubClient({
       getStageFixtures: () => Promise.resolve({ stageId: STAGE_ID, fixtures: oneFixture }),
+      listSchedules: () => Promise.resolve(oneSchedule),
       getSchedule: () =>
         Promise.resolve({
           assignments: [
             {
+              matchId: 'match-1',
               fixtureId: 'fixture-1',
+              slotId: 'slot-1',
+              venueId: 'venue-1',
               window: { startsAt: Date.UTC(2026, 7, 1, 14, 0), durationMinutes: 60 },
             },
           ],
@@ -135,7 +169,7 @@ describe('ScheduleBuilderRoute', () => {
     const previewSchedule = jest.fn<NonNullable<ControlApiClient['previewSchedule']>>(async () => ({
       committable: true,
       conflicts: [],
-      affectedPublishedFixtures: [],
+      affectedPublishedMatches: [],
     }));
     const publishSchedule = jest.fn<NonNullable<ControlApiClient['publishSchedule']>>(async () => ({
       assignments: [],
@@ -145,6 +179,7 @@ describe('ScheduleBuilderRoute', () => {
       getSchedule: () => Promise.resolve({ assignments: [] }),
       listVenues: () => Promise.resolve(oneVenue),
       listOfficials: () => Promise.resolve(oneOfficial),
+      listSchedules: () => Promise.resolve(oneSchedule),
       previewSchedule,
       publishSchedule,
     });
@@ -161,10 +196,7 @@ describe('ScheduleBuilderRoute', () => {
 
     await screen.findAllByText(/Round 1/);
     fireEvent.change(screen.getByLabelText(/Start time — fixture-1/), {
-      target: { value: '2026-08-01T14:00' },
-    });
-    fireEvent.change(screen.getByLabelText(/Duration \(minutes\) — fixture-1/), {
-      target: { value: '60' },
+      target: { value: 'slot-1' },
     });
 
     await act(async () => {
@@ -183,19 +215,20 @@ describe('ScheduleBuilderRoute', () => {
     const client = stubClient({
       getStageFixtures: () => Promise.resolve({ stageId: STAGE_ID, fixtures: twoFixtures }),
       getSchedule: () => Promise.resolve({ assignments: [] }),
+      listSchedules: () => Promise.resolve(oneSchedule),
       previewSchedule: () =>
         Promise.resolve({
           committable: false,
           conflicts: [
             {
               kind: 'venue-double-booked',
-              fixtureId: 'fixture-1',
-              conflictsWithFixtureId: 'fixture-2',
+              matchId: 'match-1',
+              conflictsWithMatchId: 'match-2',
               resourceId: 'venue-1',
               detail: 'Venue "venue-1" hosts 1 fixture(s) at once',
             },
           ],
-          affectedPublishedFixtures: [],
+          affectedPublishedMatches: [],
         }),
     });
     render(
@@ -211,10 +244,7 @@ describe('ScheduleBuilderRoute', () => {
 
     await screen.findAllByText(/Round 1/);
     fireEvent.change(screen.getByLabelText(/Start time — fixture-1/), {
-      target: { value: '2026-08-01T14:00' },
-    });
-    fireEvent.change(screen.getByLabelText(/Duration \(minutes\) — fixture-1/), {
-      target: { value: '60' },
+      target: { value: 'slot-1' },
     });
 
     await act(async () => {
@@ -229,19 +259,20 @@ describe('ScheduleBuilderRoute', () => {
     const client = stubClient({
       getStageFixtures: () => Promise.resolve({ stageId: STAGE_ID, fixtures: oneFixture }),
       getSchedule: () => Promise.resolve({ assignments: [] }),
+      listSchedules: () => Promise.resolve(oneSchedule),
       previewSchedule: () =>
         Promise.resolve({
           committable: false,
           conflicts: [
             {
               kind: 'match-finalized',
-              fixtureId: 'fixture-1',
-              conflictsWithFixtureId: 'fixture-1',
-              resourceId: 'fixture-1',
+              matchId: 'match-1',
+              conflictsWithMatchId: 'match-1',
+              resourceId: 'match-1',
               detail: 'Fixture "fixture-1"\'s match has already been finalized',
             },
           ],
-          affectedPublishedFixtures: [],
+          affectedPublishedMatches: [],
         }),
     });
     render(
@@ -257,10 +288,7 @@ describe('ScheduleBuilderRoute', () => {
 
     await screen.findAllByText(/Round 1/);
     fireEvent.change(screen.getByLabelText(/Start time — fixture-1/), {
-      target: { value: '2026-08-01T14:00' },
-    });
-    fireEvent.change(screen.getByLabelText(/Duration \(minutes\) — fixture-1/), {
-      target: { value: '60' },
+      target: { value: 'slot-1' },
     });
     await act(async () => {
       fireEvent.click(screen.getByText('Preview'));
@@ -274,8 +302,9 @@ describe('ScheduleBuilderRoute', () => {
     const client = stubClient({
       getStageFixtures: () => Promise.resolve({ stageId: STAGE_ID, fixtures: oneFixture }),
       getSchedule: () => Promise.resolve({ assignments: [] }),
+      listSchedules: () => Promise.resolve(oneSchedule),
       previewSchedule: () =>
-        Promise.resolve({ committable: true, conflicts: [], affectedPublishedFixtures: [] }),
+        Promise.resolve({ committable: true, conflicts: [], affectedPublishedMatches: [] }),
       publishSchedule: () => Promise.reject(new ControlApiError(400, 'El lote fue rechazado')),
     });
     render(
@@ -291,10 +320,7 @@ describe('ScheduleBuilderRoute', () => {
 
     await screen.findAllByText(/Round 1/);
     fireEvent.change(screen.getByLabelText(/Start time — fixture-1/), {
-      target: { value: '2026-08-01T14:00' },
-    });
-    fireEvent.change(screen.getByLabelText(/Duration \(minutes\) — fixture-1/), {
-      target: { value: '60' },
+      target: { value: 'slot-1' },
     });
     await act(async () => {
       fireEvent.click(screen.getByText('Preview'));
@@ -306,12 +332,13 @@ describe('ScheduleBuilderRoute', () => {
     await screen.findByText('El lote fue rechazado');
   });
 
-  it('assigns a venue via the select and toggles an official on and off', async () => {
+  it('toggles an official on and off', async () => {
     const client = stubClient({
       getStageFixtures: () => Promise.resolve({ stageId: STAGE_ID, fixtures: oneFixture }),
       getSchedule: () => Promise.resolve({ assignments: [] }),
       listVenues: () => Promise.resolve(oneVenue),
       listOfficials: () => Promise.resolve(oneOfficial),
+      listSchedules: () => Promise.resolve(oneSchedule),
     });
     render(
       withIntl(
@@ -325,10 +352,6 @@ describe('ScheduleBuilderRoute', () => {
     );
 
     await screen.findAllByText(/Round 1/);
-    fireEvent.change(screen.getByLabelText(/Venue — fixture-1/), {
-      target: { value: 'venue-1' },
-    });
-    expect((screen.getByLabelText(/Venue — fixture-1/) as HTMLSelectElement).value).toBe('venue-1');
 
     const officialCheckbox = screen.getByLabelText('Ana Gómez') as HTMLInputElement;
     fireEvent.click(officialCheckbox);
@@ -341,6 +364,7 @@ describe('ScheduleBuilderRoute', () => {
     const client = stubClient({
       getStageFixtures: () => Promise.resolve({ stageId: STAGE_ID, fixtures: oneFixture }),
       getSchedule: () => Promise.resolve({ assignments: [] }),
+      listSchedules: () => Promise.resolve(oneSchedule),
       previewSchedule: () => Promise.reject(new Error('network down')),
     });
     render(
@@ -356,10 +380,7 @@ describe('ScheduleBuilderRoute', () => {
 
     await screen.findAllByText(/Round 1/);
     fireEvent.change(screen.getByLabelText(/Start time — fixture-1/), {
-      target: { value: '2026-08-01T14:00' },
-    });
-    fireEvent.change(screen.getByLabelText(/Duration \(minutes\) — fixture-1/), {
-      target: { value: '60' },
+      target: { value: 'slot-1' },
     });
     await act(async () => {
       fireEvent.click(screen.getByText('Preview'));
@@ -372,6 +393,7 @@ describe('ScheduleBuilderRoute', () => {
     const client = stubClient({
       getStageFixtures: () => Promise.resolve({ stageId: STAGE_ID, fixtures: oneFixture }),
       getSchedule: () => Promise.resolve({ assignments: [] }),
+      listSchedules: () => Promise.resolve(oneSchedule),
       previewSchedule: () => Promise.reject(new ControlApiError(400, 'El lote fue rechazado')),
     });
     render(
@@ -387,10 +409,7 @@ describe('ScheduleBuilderRoute', () => {
 
     await screen.findAllByText(/Round 1/);
     fireEvent.change(screen.getByLabelText(/Start time — fixture-1/), {
-      target: { value: '2026-08-01T14:00' },
-    });
-    fireEvent.change(screen.getByLabelText(/Duration \(minutes\) — fixture-1/), {
-      target: { value: '60' },
+      target: { value: 'slot-1' },
     });
     await act(async () => {
       fireEvent.click(screen.getByText('Preview'));
@@ -403,8 +422,9 @@ describe('ScheduleBuilderRoute', () => {
     const client = stubClient({
       getStageFixtures: () => Promise.resolve({ stageId: STAGE_ID, fixtures: oneFixture }),
       getSchedule: () => Promise.resolve({ assignments: [] }),
+      listSchedules: () => Promise.resolve(oneSchedule),
       previewSchedule: () =>
-        Promise.resolve({ committable: true, conflicts: [], affectedPublishedFixtures: [] }),
+        Promise.resolve({ committable: true, conflicts: [], affectedPublishedMatches: [] }),
       publishSchedule: () => Promise.reject(new Error('network down')),
     });
     render(
@@ -420,10 +440,7 @@ describe('ScheduleBuilderRoute', () => {
 
     await screen.findAllByText(/Round 1/);
     fireEvent.change(screen.getByLabelText(/Start time — fixture-1/), {
-      target: { value: '2026-08-01T14:00' },
-    });
-    fireEvent.change(screen.getByLabelText(/Duration \(minutes\) — fixture-1/), {
-      target: { value: '60' },
+      target: { value: 'slot-1' },
     });
     await act(async () => {
       fireEvent.click(screen.getByText('Preview'));
@@ -439,7 +456,7 @@ describe('ScheduleBuilderRoute', () => {
     const previewSchedule = jest.fn<NonNullable<ControlApiClient['previewSchedule']>>(async () => ({
       committable: true,
       conflicts: [],
-      affectedPublishedFixtures: [],
+      affectedPublishedMatches: [],
     }));
     const client = stubClient({
       getStageFixtures: () => Promise.resolve({ stageId: STAGE_ID, fixtures: oneFixture }),
@@ -536,11 +553,12 @@ function stubClient(overrides: Partial<ControlApiClient>): ControlApiClient {
     deleteOrganizationRole: () => Promise.reject(new Error('not used')),
     listVenues: () => Promise.resolve([]),
     listOfficials: () => Promise.resolve([]),
+    listSchedules: () => Promise.resolve([]),
     getStageFixtures: (): Promise<StageFixturesResponse> =>
       Promise.resolve({ stageId: STAGE_ID, fixtures: [] }),
     getSchedule: (): Promise<ScheduleResponse> => Promise.resolve({ assignments: [] }),
     previewSchedule: (): Promise<SchedulePreviewResponse> =>
-      Promise.resolve({ committable: true, conflicts: [], affectedPublishedFixtures: [] }),
+      Promise.resolve({ committable: true, conflicts: [], affectedPublishedMatches: [] }),
     publishSchedule: (): Promise<ScheduleResponse> => Promise.resolve({ assignments: [] }),
     ...overrides,
   };

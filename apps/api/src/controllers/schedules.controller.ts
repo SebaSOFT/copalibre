@@ -14,8 +14,8 @@ import {
   TournamentRepository,
   withTransaction,
   type Database,
+  type ScheduleAssignmentDetail,
 } from '@copalibre/persistence';
-import type { ResourceAssignment } from '@copalibre/domain';
 import type { Kysely } from 'kysely';
 import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
@@ -25,7 +25,7 @@ import {
   ScheduleRequest,
   ScheduleResponse,
   SchedulePreviewResponse,
-  type ScheduleAssignmentDto,
+  type ScheduleAssignmentResponse,
 } from '../dto/schedule.dto.js';
 import { enforcePolicy } from '../policy/resource-policy.js';
 import { DATABASE } from '../database.token.js';
@@ -59,7 +59,7 @@ export class SchedulesController {
     @Param('stageId') stageId: string,
   ): Promise<ScheduleResponse> {
     await this.resolveTournament(organizationAlias, tournamentAlias);
-    const assignments = await new ScheduleRepository(this.db).listSchedule(stageId);
+    const assignments = await new ScheduleRepository(this.db).listScheduleDetailsForStage(stageId);
     return { assignments: assignments.map(SchedulesController.toDto) };
   }
 
@@ -71,7 +71,7 @@ export class SchedulesController {
     summary: 'Dry-run a schedule batch',
     description:
       'Runs the identical conflict detection the commit runs, against the identical state, and ' +
-      'reports instead of writing — including which already-published fixtures the batch would move.',
+      'reports instead of writing — including which already-published matches the batch would move.',
   })
   @ApiOkResponse({ type: SchedulePreviewResponse })
   @ApiUnauthorizedResponse({ type: ProblemResponse })
@@ -79,7 +79,7 @@ export class SchedulesController {
   async preview(
     @Param('organizationAlias') organizationAlias: string,
     @Param('tournamentAlias') tournamentAlias: string,
-    @Param('stageId') stageId: string,
+    @Param('stageId') _stageId: string,
     @Body() body: ScheduleRequest,
     @Req() request: RequestWithSubject,
   ): Promise<SchedulePreviewResponse> {
@@ -91,7 +91,7 @@ export class SchedulesController {
     });
 
     const preview = await new ScheduleRepository(this.db).previewSchedule({
-      stageId,
+      organizationId: tournament.organizationId,
       assignments: body.assignments,
       ...(body.restRule ? { restRule: body.restRule } : {}),
     });
@@ -99,7 +99,7 @@ export class SchedulesController {
     return {
       committable: preview.committable,
       conflicts: preview.conflicts.map((conflict) => ({ ...conflict })),
-      affectedPublishedFixtures: [...preview.affectedPublishedFixtures],
+      affectedPublishedMatches: [...preview.affectedPublishedMatches],
     };
   }
 
@@ -133,16 +133,16 @@ export class SchedulesController {
 
     const schedules = new ScheduleRepository(this.db);
     try {
-      const assignments = await withTransaction(this.db, (uow) =>
+      await withTransaction(this.db, (uow) =>
         schedules.publishSchedule(uow, {
-          stageId,
+          organizationId: tournament.organizationId,
           assignments: body.assignments,
           ...(body.restRule ? { restRule: body.restRule } : {}),
-          organizationId: tournament.organizationId,
           actor: `user:${subject?.subjectId ?? 'unknown'}`,
           authorizationContext: (subject?.scopes ?? []).join(' '),
         }),
       );
+      const assignments = await schedules.listScheduleDetailsForStage(stageId);
       return { assignments: assignments.map(SchedulesController.toDto) };
     } catch (cause) {
       // A conflicting schedule is the caller's mistake, not a server fault, and
@@ -161,11 +161,13 @@ export class SchedulesController {
   }
 
   /** Readonly domain arrays become plain ones at the wire boundary. */
-  private static toDto(assignment: ResourceAssignment): ScheduleAssignmentDto {
+  private static toDto(assignment: ScheduleAssignmentDetail): ScheduleAssignmentResponse {
     return {
+      matchId: assignment.matchId,
       fixtureId: assignment.fixtureId,
+      slotId: assignment.slotId,
+      venueId: assignment.venueId,
       window: { ...assignment.window },
-      ...(assignment.venueId === undefined ? {} : { venueId: assignment.venueId }),
       ...(assignment.officialIds === undefined ? {} : { officialIds: [...assignment.officialIds] }),
     };
   }

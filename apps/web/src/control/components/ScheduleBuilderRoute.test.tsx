@@ -11,6 +11,7 @@ function stubClient(overrides: Partial<ControlApiClient> = {}): ControlApiClient
         fixtures: [
           {
             fixtureId: 'fixture-1',
+            matchId: 'match-1',
             round: 1,
             homeEntrantId: 'Godoy Cruz',
             awayEntrantId: 'Independiente Rivadavia',

@@ -38,6 +38,7 @@ import { objectMetadataOrganizationIndex } from './0027-object-metadata-organiza
 import { tournamentRulesetCustomScripts } from './0028-tournament-ruleset-custom-scripts.js';
 import { rbacUserAdministration } from './0029-rbac-user-administration.js';
 import { sharedRateLimitCounters } from './0030-shared-rate-limit-counters.js';
+import { schedules } from './0031-schedules.js';
 
 /**
  * Migrations are explicit, ordered, and code-defined (no filesystem scanning),
@@ -76,6 +77,7 @@ export const MIGRATIONS: Readonly<Record<string, Migration>> = {
   '0028-tournament-ruleset-custom-scripts': tournamentRulesetCustomScripts,
   '0029-rbac-user-administration': rbacUserAdministration,
   '0030-shared-rate-limit-counters': sharedRateLimitCounters,
+  '0031-schedules': schedules,
 };
 
 /** The version `apps/api`'s readiness check expects to find applied. */

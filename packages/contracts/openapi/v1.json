@@ -1493,7 +1493,7 @@
     },
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageId}/schedule/preview": {
       "post": {
-        "description": "Runs the identical conflict detection the commit runs, against the identical state, and reports instead of writing — including which already-published fixtures the batch would move.",
+        "description": "Runs the identical conflict detection the commit runs, against the identical state, and reports instead of writing — including which already-published matches the batch would move.",
         "operationId": "SchedulesController_preview",
         "parameters": [
           {
@@ -6558,6 +6558,190 @@
         ]
       }
     },
+    "/organizations/{organizationAlias}/schedules": {
+      "get": {
+        "operationId": "ResourcesController_listSchedules",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ScheduleDetailResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List an organization's schedules with generated slots and occupancy",
+        "tags": [
+          "resources"
+        ]
+      },
+      "post": {
+        "operationId": "ResourcesController_createSchedule",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateScheduleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleDetailResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a schedule grid",
+        "tags": [
+          "resources"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/schedules/{scheduleId}": {
+      "patch": {
+        "operationId": "ResourcesController_updateSchedule",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "scheduleId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateScheduleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleDetailResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Edit a schedule grid",
+        "tags": [
+          "resources"
+        ]
+      },
+      "delete": {
+        "operationId": "ResourcesController_deleteSchedule",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "scheduleId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a schedule grid",
+        "tags": [
+          "resources"
+        ]
+      }
+    },
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones": {
       "get": {
         "operationId": "ZonesGroupsController_listZones",
@@ -7878,7 +8062,7 @@
   "info": {
     "title": "CopaLibre API",
     "description": "Self-hosted tournament management API.\n\nAuthentication is JWT Bearer, validated against the operator-selected\nidentity provider’s JWKS. Browsers use Authorization Code + PKCE and\nhold the access token in memory only — never localStorage. A token\npassed as a query parameter is ignored, because URLs leak into proxy\nlogs, browser history, metrics, traces and screenshots.\n\nEvery route declares one security plane: public-read,\nauthenticated-interaction, admin-control, or integration.\nauthenticated-interaction and admin-control share this same bearer\ntransport and differ only in authorization policy.",
-    "version": "5.0.0",
+    "version": "6.0.0",
     "contact": {}
   },
   "tags": [],
@@ -9129,23 +9313,31 @@
           "durationMinutes"
         ]
       },
-      "ScheduleAssignmentDto": {
+      "ScheduleAssignmentResponse": {
         "type": "object",
         "properties": {
+          "matchId": {
+            "type": "string",
+            "format": "uuid"
+          },
           "fixtureId": {
             "type": "string",
             "format": "uuid"
           },
-          "window": {
-            "$ref": "#/components/schemas/TimeWindowDto"
+          "slotId": {
+            "type": "string",
+            "format": "uuid"
           },
           "venueId": {
             "type": "string",
             "format": "uuid",
-            "description": "Venue hosting the fixture"
+            "description": "Venue hosting the slot"
+          },
+          "window": {
+            "$ref": "#/components/schemas/TimeWindowDto"
           },
           "officialIds": {
-            "description": "Officials assigned to the fixture",
+            "description": "Officials assigned to the match",
             "type": "array",
             "items": {
               "type": "string",
@@ -9154,7 +9346,10 @@
           }
         },
         "required": [
+          "matchId",
           "fixtureId",
+          "slotId",
+          "venueId",
           "window"
         ]
       },
@@ -9164,7 +9359,7 @@
           "assignments": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/ScheduleAssignmentDto"
+              "$ref": "#/components/schemas/ScheduleAssignmentResponse"
             }
           }
         },
@@ -9172,12 +9367,37 @@
           "assignments"
         ]
       },
+      "ScheduleAssignmentDto": {
+        "type": "object",
+        "properties": {
+          "matchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slotId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "officialIds": {
+            "description": "Officials assigned to the match",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "required": [
+          "matchId",
+          "slotId"
+        ]
+      },
       "RestRuleDto": {
         "type": "object",
         "properties": {
           "minimumMinutes": {
             "type": "number",
-            "description": "Minimum minutes between an entrant's consecutive fixtures",
+            "description": "Minimum minutes between an entrant's consecutive matches",
             "example": 45
           }
         },
@@ -9210,18 +9430,19 @@
             "enum": [
               "venue-double-booked",
               "official-double-booked",
-              "rest-rule"
+              "rest-rule",
+              "match-finalized"
             ],
             "description": "Which rule the schedule breaks"
           },
-          "fixtureId": {
+          "matchId": {
             "type": "string",
             "format": "uuid"
           },
-          "conflictsWithFixtureId": {
+          "conflictsWithMatchId": {
             "type": "string",
             "format": "uuid",
-            "description": "The fixture it clashes with"
+            "description": "The match it clashes with"
           },
           "resourceId": {
             "type": "string",
@@ -9234,8 +9455,8 @@
         },
         "required": [
           "kind",
-          "fixtureId",
-          "conflictsWithFixtureId",
+          "matchId",
+          "conflictsWithMatchId",
           "resourceId",
           "detail"
         ]
@@ -9253,8 +9474,8 @@
               "$ref": "#/components/schemas/ScheduleConflictDto"
             }
           },
-          "affectedPublishedFixtures": {
-            "description": "Already-published fixtures this batch would move",
+          "affectedPublishedMatches": {
+            "description": "Already-published matches this batch would move",
             "type": "array",
             "items": {
               "type": "string",
@@ -9265,7 +9486,7 @@
         "required": [
           "committable",
           "conflicts",
-          "affectedPublishedFixtures"
+          "affectedPublishedMatches"
         ]
       },
       "MatchStateResponse": {
@@ -10778,6 +10999,11 @@
             "type": "string",
             "format": "uuid"
           },
+          "matchId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Primary match for this fixture"
+          },
           "round": {
             "type": "number",
             "description": "1-based round within the stage",
@@ -10794,6 +11020,7 @@
         },
         "required": [
           "fixtureId",
+          "matchId",
           "round"
         ]
       },
@@ -13132,6 +13359,185 @@
                 "table-official",
                 "observer"
               ]
+            }
+          }
+        }
+      },
+      "ScheduleSlotResponse": {
+        "type": "object",
+        "properties": {
+          "slotId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "scheduleId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "venueId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "startsAt": {
+            "type": "number",
+            "description": "Start of the slot, epoch milliseconds",
+            "example": 1785333600000
+          },
+          "matchCount": {
+            "type": "number",
+            "description": "Number of matches assigned to this slot",
+            "example": 0
+          }
+        },
+        "required": [
+          "slotId",
+          "scheduleId",
+          "venueId",
+          "startsAt",
+          "matchCount"
+        ]
+      },
+      "ScheduleDetailResponse": {
+        "type": "object",
+        "properties": {
+          "scheduleId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "organizationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "example": "Main Schedule"
+          },
+          "startsAt": {
+            "type": "number",
+            "description": "Grid starts at, epoch milliseconds",
+            "example": 1785333600000
+          },
+          "endsAt": {
+            "type": "number",
+            "description": "Grid ends at, epoch milliseconds",
+            "example": 1785376800000
+          },
+          "slotMinutes": {
+            "type": "number",
+            "description": "Duration of each match slot in minutes",
+            "example": 90
+          },
+          "turnaroundMinutes": {
+            "type": "number",
+            "description": "Turnaround buffer between slots in minutes",
+            "example": 15
+          },
+          "venueIds": {
+            "description": "Venues covered by this schedule grid",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "slots": {
+            "description": "Generated grid slots",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScheduleSlotResponse"
+            }
+          }
+        },
+        "required": [
+          "scheduleId",
+          "organizationId",
+          "name",
+          "startsAt",
+          "endsAt",
+          "slotMinutes",
+          "turnaroundMinutes",
+          "venueIds",
+          "slots"
+        ]
+      },
+      "CreateScheduleRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Main Schedule"
+          },
+          "startsAt": {
+            "type": "number",
+            "description": "Grid start epoch milliseconds",
+            "example": 1785333600000
+          },
+          "endsAt": {
+            "type": "number",
+            "description": "Grid end epoch milliseconds",
+            "example": 1785376800000
+          },
+          "slotMinutes": {
+            "type": "number",
+            "description": "Slot duration in minutes",
+            "example": 90
+          },
+          "turnaroundMinutes": {
+            "type": "number",
+            "description": "Turnaround buffer in minutes",
+            "example": 15
+          },
+          "venueIds": {
+            "description": "Venues to cover",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "startsAt",
+          "endsAt",
+          "slotMinutes",
+          "turnaroundMinutes",
+          "venueIds"
+        ]
+      },
+      "UpdateScheduleRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Main Schedule"
+          },
+          "startsAt": {
+            "type": "number",
+            "description": "Grid start epoch milliseconds",
+            "example": 1785333600000
+          },
+          "endsAt": {
+            "type": "number",
+            "description": "Grid end epoch milliseconds",
+            "example": 1785376800000
+          },
+          "slotMinutes": {
+            "type": "number",
+            "description": "Slot duration in minutes",
+            "example": 90
+          },
+          "turnaroundMinutes": {
+            "type": "number",
+            "description": "Turnaround buffer in minutes",
+            "example": 15
+          },
+          "venueIds": {
+            "description": "Venues to cover",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
             }
           }
         }

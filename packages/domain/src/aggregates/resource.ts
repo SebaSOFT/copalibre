@@ -64,9 +64,8 @@ export interface TimeWindow {
 }
 
 export interface ResourceAssignment {
-  readonly fixtureId: string;
-  readonly window: TimeWindow;
-  readonly venueId?: string;
+  readonly matchId: string;
+  readonly slotId: string;
   readonly officialIds?: readonly string[];
 }
 
