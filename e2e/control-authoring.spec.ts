@@ -126,8 +126,8 @@ async function mockControlApi(
           const created = {
             tournamentId: 'tournament-002',
             organizationId: 'org-liga-mendocina',
-            alias: 'apertura-local',
-            name: 'Apertura Local',
+            alias: (body as { alias?: string })?.alias ?? 'apertura-local',
+            name: (body as { name?: string })?.name ?? 'Apertura Local',
             rulesetId: 'ruleset-002',
             status: 'draft',
           };
@@ -306,6 +306,54 @@ test('creates a tournament from the control authoring wizard', async ({ page }) 
   await page.getByRole('link', { name: 'Panel' }).click();
   await page.waitForURL('**/control/liga-mendocina');
   await expect(page.getByText('Apertura Local')).toBeVisible();
+});
+
+test('completes tournament authoring via keyboard and without overflow at 375px', async ({
+  page,
+}) => {
+  await mockControlApi(page);
+  await page.setViewportSize({ width: 375, height: 800 });
+
+  const target = '/control/liga-mendocina/tournaments/new';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  // Assert no body horizontal overflow on initial step
+  const overflowStep1 = await page.evaluate(
+    () => document.body.scrollWidth <= document.documentElement.clientWidth,
+  );
+  expect(overflowStep1).toBe(true);
+
+  // Fill Step 1 (name & alias)
+  await page.getByLabel('Nombre').fill('Copa Teclado');
+  await page.getByLabel('Alias').fill('copa-teclado');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  // Step 2 (discipline)
+  await expect(page.getByLabel('Disciplina')).toBeVisible();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  // Step 3 (format & profile)
+  await expect(page.getByLabel('Formato')).toBeVisible();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  // Step 4 (rules)
+  await expect(page.getByLabel('Agregar regla para cada evento registrado')).toBeVisible();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  // Step 5 (window)
+  await page.getByLabel('Región').fill('Mendoza');
+  await page.getByLabel('Capacidad').fill('8');
+  await page.getByRole('button', { name: 'Crear torneo' }).click();
+
+  await expect(page.getByText('Torneo creado: copa-teclado')).toBeVisible();
+
+  // Assert no body horizontal overflow after completion
+  const overflowFinal = await page.evaluate(
+    () => document.body.scrollWidth <= document.documentElement.clientWidth,
+  );
+  expect(overflowFinal).toBe(true);
 });
 
 test('shows a named backend rule refusal without replacing it with a generic error', async ({
