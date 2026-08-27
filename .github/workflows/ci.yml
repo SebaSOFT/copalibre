@@ -741,6 +741,9 @@ jobs:
       # idempotency, authorization, audit/outbox, reconciliation, and CSV
       # import/export contracts discovered by the workspace integration glob.
       - run: yarn workspace @copalibre/api test:integration
+      # Multi-match series lifecycle: generation, scheduling, atomic surplus
+      # match anullment, aggregate ties, and qualification cuts.
+      - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'series'
       # Live-cadence statistics: a collector declaring `live` updates
       # inside `recordEvent`'s own transaction, before the match ends; a
       # default-cadence collector's total stays absent until finalize — named
