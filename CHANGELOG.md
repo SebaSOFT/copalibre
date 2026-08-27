@@ -1,3 +1,20 @@
+## 0.6.0-preview (2026-08-27)
+
+### Features
+
+- **api:** enforce unknown request fields rejection on write DTOs ([faab927](https://github.com/SebaSOFT/copalibre/commit/faab927))
+- **api:** global request ValidationPipe with decorated request DTOs ([ff5db2c](https://github.com/SebaSOFT/copalibre/commit/ff5db2c))
+- **api:** shared rate limiting through PostgreSQL for horizontal scaling ([7b80070](https://github.com/SebaSOFT/copalibre/commit/7b80070))
+- **api:** rate-limit auth and resource-heavy endpoints with shared counter storage ([64b3c45](https://github.com/SebaSOFT/copalibre/commit/64b3c45))
+- **security:** block PAT scope privilege escalation ([696a71a](https://github.com/SebaSOFT/copalibre/commit/696a71a))
+- **security:** revoke legacy un-scoped personal access tokens ([d48c6d3](https://github.com/SebaSOFT/copalibre/commit/d48c6d3))
+- **auth:** restore personal access token authentication with permission scoping ([1fd787a](https://github.com/SebaSOFT/copalibre/commit/1fd787a))
+- **web:** complete atomic design component system and UI ownership guard ([274c88f](https://github.com/SebaSOFT/copalibre/commit/274c88f))
+- **web:** migrate tournament wizard to owned UI components ([3c99cba](https://github.com/SebaSOFT/copalibre/commit/3c99cba))
+- **web:** migrate crop overlay to modal and standings to data-table ([2799322](https://github.com/SebaSOFT/copalibre/commit/2799322))
+- **web:** migrate admin screens to atomic design templates ([03129fb](https://github.com/SebaSOFT/copalibre/commit/03129fb))
+- **ci:** release workflow pre-release detection and GHCR latest tag gating
+
 ## 0.5.0-beta (2026-08-25)
 
 ### Features
