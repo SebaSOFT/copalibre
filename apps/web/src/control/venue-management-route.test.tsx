@@ -1,5 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { VenueManagementRoute } from './components/VenueManagementRoute.js';
 import {
   ControlApiError,
@@ -547,6 +547,101 @@ describe('VenueManagementRoute', () => {
     expect(createSchedule).toHaveBeenCalled();
     await screen.findByText('Schedule created.');
     await screen.findByText(/2 slots generated/);
+  });
+
+  it('edits and saves an existing schedule', async () => {
+    const existingSchedule: ScheduleDetailResponse = {
+      scheduleId: 'sched-1',
+      organizationId: 'org-1',
+      name: 'Horario Apertura',
+      startsAt: Date.now(),
+      endsAt: Date.now() + 3600000,
+      slotMinutes: 60,
+      turnaroundMinutes: 0,
+      venueIds: ['venue-1'],
+      slots: [],
+    };
+    const updateSchedule = jest.fn<NonNullable<ControlApiClient['updateSchedule']>>(async () => {
+      return { ...existingSchedule, name: 'Horario Clausura' };
+    });
+    const client = stubClient({
+      listVenues: () => Promise.resolve(oneVenue),
+      listSchedules: () => Promise.resolve([existingSchedule]),
+      updateSchedule,
+    });
+    render(withIntl(<VenueManagementRoute client={client} organizationAlias="liga-mendocina" />));
+
+    const scheduleRegion = await screen.findByRole('region', { name: 'Schedules' });
+    fireEvent.click(within(scheduleRegion).getByText('Edit'));
+
+    const editCard = await screen.findByRole('region', { name: 'Edit schedule' });
+    fireEvent.change(within(editCard).getByLabelText('Schedule name'), {
+      target: { value: 'Horario Clausura' },
+    });
+    await act(async () => {
+      fireEvent.click(within(editCard).getByText('Save schedule'));
+    });
+    expect(updateSchedule).toHaveBeenCalledWith('liga-mendocina', 'sched-1', {
+      name: 'Horario Clausura',
+    });
+    await screen.findByText('Schedule saved.');
+  });
+
+  it('deletes an existing schedule', async () => {
+    const existingSchedule: ScheduleDetailResponse = {
+      scheduleId: 'sched-1',
+      organizationId: 'org-1',
+      name: 'Horario Apertura',
+      startsAt: Date.now(),
+      endsAt: Date.now() + 3600000,
+      slotMinutes: 60,
+      turnaroundMinutes: 0,
+      venueIds: ['venue-1'],
+      slots: [],
+    };
+    const deleteSchedule = jest.fn<NonNullable<ControlApiClient['deleteSchedule']>>(async () => ({
+      success: true,
+    }));
+    const client = stubClient({
+      listVenues: () => Promise.resolve(oneVenue),
+      listSchedules: () => Promise.resolve([existingSchedule]),
+      deleteSchedule,
+    });
+    render(withIntl(<VenueManagementRoute client={client} organizationAlias="liga-mendocina" />));
+
+    const scheduleRegion = await screen.findByRole('region', { name: 'Schedules' });
+    await act(async () => {
+      fireEvent.click(within(scheduleRegion).getByText('Delete schedule'));
+    });
+    expect(deleteSchedule).toHaveBeenCalledWith('liga-mendocina', 'sched-1');
+    await screen.findByText('Schedule removed.');
+  });
+
+  it('reports errors when schedule creation or deletion fails', async () => {
+    const existingSchedule: ScheduleDetailResponse = {
+      scheduleId: 'sched-1',
+      organizationId: 'org-1',
+      name: 'Horario Apertura',
+      startsAt: Date.now(),
+      endsAt: Date.now() + 3600000,
+      slotMinutes: 60,
+      turnaroundMinutes: 0,
+      venueIds: ['venue-1'],
+      slots: [],
+    };
+    const client = stubClient({
+      listVenues: () => Promise.resolve(oneVenue),
+      listSchedules: () => Promise.resolve([existingSchedule]),
+      createSchedule: () => Promise.reject(new Error('creation failed')),
+      deleteSchedule: () => Promise.reject(new Error('delete failed')),
+    });
+    render(withIntl(<VenueManagementRoute client={client} organizationAlias="liga-mendocina" />));
+
+    const scheduleRegion = await screen.findByRole('region', { name: 'Schedules' });
+    await act(async () => {
+      fireEvent.click(within(scheduleRegion).getByText('Delete schedule'));
+    });
+    await screen.findByText('The request could not be completed. Try again.');
   });
 
   it('ignores create clicks when the client has no create methods', async () => {

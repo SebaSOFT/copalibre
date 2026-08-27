@@ -552,6 +552,7 @@ export const messages: Record<string, string> = {
   'control.resourceManagement.scheduleDeleted': 'Grade de horários removida.',
   'control.resourceManagement.editScheduleHeading': 'Editar grade de horários',
   'control.resourceManagement.scheduleSlotsCount': '{count} vagas geradas',
+  'control.resourceManagement.saveScheduleChanges': 'Salvar programação',
   'control.resourceManagement.deleteSchedule': 'Excluir grade de horários',
   'control.scheduleBuilder.sectionLabel': 'Construtor de horários',
   'control.scheduleBuilder.title': 'Horários',

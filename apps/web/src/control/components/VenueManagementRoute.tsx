@@ -685,7 +685,7 @@ export function VenueManagementRoute({
                 />
               </FormField>
               <Button onClick={() => void saveSchedule()} type="button">
-                <FormattedMessage {...messages.resourceManagementScheduleSaved} />
+                <FormattedMessage {...messages.resourceManagementSaveScheduleChanges} />
               </Button>
             </div>
           </div>

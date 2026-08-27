@@ -554,6 +554,7 @@ export const messages: Record<string, string> = {
   'control.resourceManagement.scheduleDeleted': 'Расписание удалено.',
   'control.resourceManagement.editScheduleHeading': 'Редактировать расписание',
   'control.resourceManagement.scheduleSlotsCount': 'Сгенерировано слотов: {count}',
+  'control.resourceManagement.saveScheduleChanges': 'Сохранить расписание',
   'control.resourceManagement.deleteSchedule': 'Удалить расписание',
   'control.scheduleBuilder.sectionLabel': 'Конструктор расписания',
   'control.scheduleBuilder.title': 'Расписание',

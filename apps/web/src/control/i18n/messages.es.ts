@@ -555,6 +555,7 @@ export const messages: Record<string, string> = {
   'control.resourceManagement.scheduleDeleted': 'Horario eliminado.',
   'control.resourceManagement.editScheduleHeading': 'Editar horario',
   'control.resourceManagement.scheduleSlotsCount': '{count} turnos generados',
+  'control.resourceManagement.saveScheduleChanges': 'Guardar cronograma',
   'control.resourceManagement.deleteSchedule': 'Eliminar horario',
   'control.scheduleBuilder.sectionLabel': 'Armador de horarios',
   'control.scheduleBuilder.title': 'Horarios',

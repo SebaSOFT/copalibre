@@ -540,6 +540,7 @@ export const messages: Record<string, string> = {
   'control.resourceManagement.scheduleDeleted': '赛程表已删除。',
   'control.resourceManagement.editScheduleHeading': '编辑赛程表',
   'control.resourceManagement.scheduleSlotsCount': '已生成 {count} 个时段',
+  'control.resourceManagement.saveScheduleChanges': '保存赛程',
   'control.resourceManagement.deleteSchedule': '删除赛程表',
   'control.scheduleBuilder.sectionLabel': '赛程编排',
   'control.scheduleBuilder.title': '赛程',

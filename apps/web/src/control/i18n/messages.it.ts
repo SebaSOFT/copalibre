@@ -556,6 +556,7 @@ export const messages: Record<string, string> = {
   'control.resourceManagement.scheduleDeleted': 'Piano orario rimosso.',
   'control.resourceManagement.editScheduleHeading': 'Modifica piano orario',
   'control.resourceManagement.scheduleSlotsCount': '{count} slot generati',
+  'control.resourceManagement.saveScheduleChanges': 'Salva programma',
   'control.resourceManagement.deleteSchedule': 'Elimina piano orario',
   'control.scheduleBuilder.sectionLabel': 'Costruttore del calendario',
   'control.scheduleBuilder.title': 'Calendario',

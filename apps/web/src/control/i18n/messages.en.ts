@@ -1580,6 +1580,10 @@ export const messages = defineMessages({
     id: 'control.resourceManagement.scheduleSlotsCount',
     defaultMessage: '{count} slots generated',
   },
+  resourceManagementSaveScheduleChanges: {
+    id: 'control.resourceManagement.saveScheduleChanges',
+    defaultMessage: 'Save schedule',
+  },
   resourceManagementDeleteSchedule: {
     id: 'control.resourceManagement.deleteSchedule',
     defaultMessage: 'Delete schedule',

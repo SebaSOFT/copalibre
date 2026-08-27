@@ -558,6 +558,7 @@ export const messages: Record<string, string> = {
   'control.resourceManagement.scheduleDeleted': 'Planning supprimé.',
   'control.resourceManagement.editScheduleHeading': 'Modifier le planning',
   'control.resourceManagement.scheduleSlotsCount': '{count} créneaux générés',
+  'control.resourceManagement.saveScheduleChanges': 'Enregistrer le calendrier',
   'control.resourceManagement.deleteSchedule': 'Supprimer le planning',
   'control.scheduleBuilder.sectionLabel': 'Constructeur de calendrier',
   'control.scheduleBuilder.title': 'Calendrier',

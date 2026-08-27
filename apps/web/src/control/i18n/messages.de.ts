@@ -559,6 +559,7 @@ export const messages: Record<string, string> = {
   'control.resourceManagement.scheduleDeleted': 'Spielplan gelöscht.',
   'control.resourceManagement.editScheduleHeading': 'Spielplan bearbeiten',
   'control.resourceManagement.scheduleSlotsCount': '{count} Slots generiert',
+  'control.resourceManagement.saveScheduleChanges': 'Zeitplan speichern',
   'control.resourceManagement.deleteSchedule': 'Spielplan löschen',
   'control.scheduleBuilder.sectionLabel': 'Spielplan-Editor',
   'control.scheduleBuilder.title': 'Spielplan',
