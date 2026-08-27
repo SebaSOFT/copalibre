@@ -11,6 +11,7 @@ import {
   type SupportedLanguage,
 } from '../../lib/language-preference.js';
 import { ToastProvider } from './ToastProvider.js';
+import { Button } from './ui/atoms/button.js';
 
 export function ControlShell({
   organizationAlias,
@@ -129,9 +130,9 @@ function ControlShellChrome({
           )}
         </ul>
         <LanguageSwitcher onChange={onLocaleChange} value={locale} />
-        <button className="cl-focusable" onClick={logout} style={logoutButtonStyle} type="button">
+        <Button onClick={logout} style={logoutButtonStyle} type="button" variant="secondary">
           <FormattedMessage {...messages.shellLogout} />
-        </button>
+        </Button>
       </nav>
       <main className="cl-control__main">
         <div className="cl-control-screen">{children}</div>

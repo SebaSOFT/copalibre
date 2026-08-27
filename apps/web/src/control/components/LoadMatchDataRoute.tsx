@@ -16,6 +16,9 @@ import {
 } from '../lib/match-data-builder.js';
 import { controlTokenStore } from '../session/token-store.js';
 import { Button } from './ui/atoms/button.js';
+import { Card } from './ui/atoms/card.js';
+import { Input } from './ui/atoms/input.js';
+import { FormField } from './ui/molecules/form-field.js';
 import { messages } from '../i18n/messages.en.js';
 import { useToast } from './ToastProvider.js';
 import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
@@ -385,9 +388,9 @@ export function LoadMatchDataRoute({
 
   const listingNode = (
     <div className="cl-platform-sections">
-      <section
+      <Card
         aria-label={intl.formatMessage(messages.loadMatchDataRosterHeading)}
-        className="cl-card cl-chamfer cl-chamfer--control"
+        className="cl-chamfer cl-chamfer--control"
       >
         <header className="cl-card__header">
           <h2 className="cl-card__title">
@@ -398,7 +401,7 @@ export function LoadMatchDataRoute({
           {projection.entrantIds.map((entrantId) => {
             const candidates = candidatesByEntrant.get(entrantId);
             return (
-              <div key={entrantId} className="cl-card cl-chamfer cl-chamfer--control">
+              <Card key={entrantId} className="cl-chamfer cl-chamfer--control">
                 <header className="cl-card__header">
                   <h3 className="cl-label">
                     {projection.rosters.find((roster) => roster.entrantId === entrantId)
@@ -415,9 +418,10 @@ export function LoadMatchDataRoute({
                         if (!selection) return null;
                         return (
                           <li key={candidate.personId} className="cl-role-user">
-                            <label className="cl-form-field">
+                            <label className="cl-toggle cl-focusable">
                               <input
                                 checked={selection.included}
+                                className="cl-checkbox cl-focusable"
                                 onChange={(event) =>
                                   updateSelection(entrantId, candidate.personId, {
                                     included: event.target.checked,
@@ -425,11 +429,10 @@ export function LoadMatchDataRoute({
                                 }
                                 type="checkbox"
                               />
-                              {candidate.name}
+                              <span>{candidate.name}</span>
                             </label>
-                            <input
+                            <Input
                               aria-label={`${candidate.name} number`}
-                              className="cl-input cl-input--default"
                               disabled={!selection.included}
                               onChange={(event) =>
                                 updateSelection(entrantId, candidate.personId, {
@@ -438,9 +441,10 @@ export function LoadMatchDataRoute({
                               }
                               value={selection.number}
                             />
-                            <label className="cl-form-field">
+                            <label className="cl-toggle cl-focusable">
                               <input
                                 checked={selection.onField}
+                                className="cl-checkbox cl-focusable"
                                 disabled={!selection.included}
                                 onChange={(event) =>
                                   updateSelection(entrantId, candidate.personId, {
@@ -449,14 +453,15 @@ export function LoadMatchDataRoute({
                                 }
                                 type="checkbox"
                               />
-                              {intl.formatMessage(messages.matchConsoleOnField)}
+                              <span>{intl.formatMessage(messages.matchConsoleOnField)}</span>
                             </label>
                             {projection.rosterRoles.length > 0 && (
                               <span className="cl-role-user">
                                 {projection.rosterRoles.map((role) => (
-                                  <label key={role.code} className="cl-form-field">
+                                  <label key={role.code} className="cl-toggle cl-focusable">
                                     <input
                                       checked={selection.roles.includes(role.code)}
+                                      className="cl-checkbox cl-focusable"
                                       disabled={!selection.included}
                                       onChange={(event) =>
                                         updateSelection(entrantId, candidate.personId, {
@@ -467,7 +472,7 @@ export function LoadMatchDataRoute({
                                       }
                                       type="checkbox"
                                     />
-                                    {role.badge ?? role.code}
+                                    <span>{role.badge ?? role.code}</span>
                                   </label>
                                 ))}
                               </span>
@@ -478,15 +483,15 @@ export function LoadMatchDataRoute({
                     </ul>
                   )}
                 </div>
-              </div>
+              </Card>
             );
           })}
         </div>
-      </section>
+      </Card>
 
-      <section
+      <Card
         aria-label={intl.formatMessage(messages.loadMatchDataSegmentsHeading)}
-        className="cl-card cl-chamfer cl-chamfer--control"
+        className="cl-chamfer cl-chamfer--control"
       >
         <header className="cl-card__header">
           <h2 className="cl-card__title">
@@ -498,25 +503,25 @@ export function LoadMatchDataRoute({
             {segments.map((row, index) => (
               <li key={row.key} className="cl-role-user">
                 <strong>{index + 1}</strong>
-                <label className="cl-form-field">
-                  <span className="cl-label">
-                    <FormattedMessage {...messages.loadMatchDataSegmentType} />
-                  </span>
-                  <input
+                <FormField
+                  id={`segment-type-${row.key}`}
+                  label={intl.formatMessage(messages.loadMatchDataSegmentType)}
+                >
+                  <Input
                     aria-label={intl.formatMessage(messages.loadMatchDataSegmentType)}
-                    className="cl-input cl-input--default"
+                    id={`segment-type-${row.key}`}
                     onChange={(event) => updateSegment(row.key, { type: event.target.value })}
                     placeholder={intl.formatMessage(messages.loadMatchDataSegmentTypePlaceholder)}
                     value={row.type}
                   />
-                </label>
-                <label className="cl-form-field">
-                  <span className="cl-label">
-                    <FormattedMessage {...messages.loadMatchDataSegmentElapsedSeconds} />
-                  </span>
-                  <input
+                </FormField>
+                <FormField
+                  id={`segment-elapsed-${row.key}`}
+                  label={intl.formatMessage(messages.loadMatchDataSegmentElapsedSeconds)}
+                >
+                  <Input
                     aria-label={intl.formatMessage(messages.loadMatchDataSegmentElapsedSeconds)}
-                    className="cl-input cl-input--default"
+                    id={`segment-elapsed-${row.key}`}
                     min="0"
                     onChange={(event) =>
                       updateSegment(row.key, { elapsedSeconds: event.target.value })
@@ -524,7 +529,7 @@ export function LoadMatchDataRoute({
                     type="number"
                     value={row.elapsedSeconds}
                   />
-                </label>
+                </FormField>
                 <Button onClick={() => removeSegment(row.key)} type="button" variant="secondary">
                   <FormattedMessage {...messages.loadMatchDataRemoveSegment} />
                 </Button>
@@ -535,11 +540,11 @@ export function LoadMatchDataRoute({
             <FormattedMessage {...messages.loadMatchDataAddSegment} />
           </Button>
         </div>
-      </section>
+      </Card>
 
-      <section
+      <Card
         aria-label={intl.formatMessage(messages.loadMatchDataEventsHeading)}
-        className="cl-card cl-chamfer cl-chamfer--control"
+        className="cl-chamfer cl-chamfer--control"
       >
         <header className="cl-card__header">
           <h2 className="cl-card__title">
@@ -556,13 +561,14 @@ export function LoadMatchDataRoute({
             {events.map((row, index) => (
               <li key={row.key} className="cl-card cl-chamfer cl-chamfer--control">
                 <div className="cl-platform-form-grid">
-                  <label className="cl-form-field">
-                    <span className="cl-label">
-                      <FormattedMessage {...messages.loadMatchDataEventDefinition} />
-                    </span>
+                  <FormField
+                    id={`event-def-${row.key}`}
+                    label={intl.formatMessage(messages.loadMatchDataEventDefinition)}
+                  >
                     <select
                       aria-label={intl.formatMessage(messages.loadMatchDataEventDefinition)}
-                      className="cl-select cl-select--default"
+                      className="cl-select cl-select--default cl-focusable"
+                      id={`event-def-${row.key}`}
                       onChange={(event) =>
                         updateEvent(row.key, { definitionCode: event.target.value })
                       }
@@ -574,14 +580,15 @@ export function LoadMatchDataRoute({
                         </option>
                       ))}
                     </select>
-                  </label>
-                  <label className="cl-form-field">
-                    <span className="cl-label">
-                      <FormattedMessage {...messages.loadMatchDataEventSegment} />
-                    </span>
+                  </FormField>
+                  <FormField
+                    id={`event-seg-${row.key}`}
+                    label={intl.formatMessage(messages.loadMatchDataEventSegment)}
+                  >
                     <select
                       aria-label={intl.formatMessage(messages.loadMatchDataEventSegment)}
-                      className="cl-select cl-select--default"
+                      className="cl-select cl-select--default cl-focusable"
+                      id={`event-seg-${row.key}`}
                       onChange={(event) =>
                         updateEvent(row.key, { segmentNumber: event.target.value })
                       }
@@ -594,26 +601,27 @@ export function LoadMatchDataRoute({
                         </option>
                       ))}
                     </select>
-                  </label>
-                  <label className="cl-form-field">
-                    <span className="cl-label">
-                      <FormattedMessage {...messages.loadMatchDataEventOccurredAt} />
-                    </span>
-                    <input
+                  </FormField>
+                  <FormField
+                    id={`event-occurred-${row.key}`}
+                    label={intl.formatMessage(messages.loadMatchDataEventOccurredAt)}
+                  >
+                    <Input
                       aria-label={intl.formatMessage(messages.loadMatchDataEventOccurredAt)}
-                      className="cl-input cl-input--default"
+                      id={`event-occurred-${row.key}`}
                       onChange={(event) => updateEvent(row.key, { occurredAt: event.target.value })}
                       type="datetime-local"
                       value={row.occurredAt}
                     />
-                  </label>
-                  <label className="cl-form-field">
-                    <span className="cl-label">
-                      <FormattedMessage {...messages.loadMatchDataEventSide} />
-                    </span>
+                  </FormField>
+                  <FormField
+                    id={`event-side-${row.key}`}
+                    label={intl.formatMessage(messages.loadMatchDataEventSide)}
+                  >
                     <select
                       aria-label={intl.formatMessage(messages.loadMatchDataEventSide)}
-                      className="cl-select cl-select--default"
+                      className="cl-select cl-select--default cl-focusable"
+                      id={`event-side-${row.key}`}
                       onChange={(event) => updateEvent(row.key, { side: event.target.value })}
                       value={row.side}
                     >
@@ -626,14 +634,15 @@ export function LoadMatchDataRoute({
                         </option>
                       ))}
                     </select>
-                  </label>
-                  <label className="cl-form-field">
-                    <span className="cl-label">
-                      <FormattedMessage {...messages.loadMatchDataEventPerson} />
-                    </span>
+                  </FormField>
+                  <FormField
+                    id={`event-person-${row.key}`}
+                    label={intl.formatMessage(messages.loadMatchDataEventPerson)}
+                  >
                     <select
                       aria-label={intl.formatMessage(messages.loadMatchDataEventPerson)}
-                      className="cl-select cl-select--default"
+                      className="cl-select cl-select--default cl-focusable"
+                      id={`event-person-${row.key}`}
                       onChange={(event) => updateEvent(row.key, { personId: event.target.value })}
                       value={row.personId}
                     >
@@ -646,18 +655,18 @@ export function LoadMatchDataRoute({
                         </option>
                       ))}
                     </select>
-                  </label>
-                  <label className="cl-form-field">
-                    <span className="cl-label">
-                      <FormattedMessage {...messages.loadMatchDataEventNotes} />
-                    </span>
-                    <input
+                  </FormField>
+                  <FormField
+                    id={`event-notes-${row.key}`}
+                    label={intl.formatMessage(messages.loadMatchDataEventNotes)}
+                  >
+                    <Input
                       aria-label={intl.formatMessage(messages.loadMatchDataEventNotes)}
-                      className="cl-input cl-input--default"
+                      id={`event-notes-${row.key}`}
                       onChange={(event) => updateEvent(row.key, { notes: event.target.value })}
                       value={row.notes}
                     />
-                  </label>
+                  </FormField>
                 </div>
                 <div className="cl-role-user">
                   <Button
@@ -687,11 +696,11 @@ export function LoadMatchDataRoute({
             <FormattedMessage {...messages.loadMatchDataAddEvent} />
           </Button>
         </div>
-      </section>
+      </Card>
 
-      <section
+      <Card
         aria-label={intl.formatMessage(messages.loadMatchDataCsvHeading)}
-        className="cl-card cl-chamfer cl-chamfer--control"
+        className="cl-chamfer cl-chamfer--control"
       >
         <header className="cl-card__header">
           <h2 className="cl-card__title">
@@ -739,11 +748,11 @@ export function LoadMatchDataRoute({
             </div>
           )}
         </div>
-      </section>
+      </Card>
 
-      <section
+      <Card
         aria-label={intl.formatMessage(messages.loadMatchDataResultHeading)}
-        className="cl-card cl-chamfer cl-chamfer--control"
+        className="cl-chamfer cl-chamfer--control"
       >
         <header className="cl-card__header">
           <h2 className="cl-card__title">
@@ -751,13 +760,11 @@ export function LoadMatchDataRoute({
           </h2>
         </header>
         <div className="cl-card__content">
-          <label className="cl-form-field">
-            <span className="cl-label">
-              <FormattedMessage {...messages.loadMatchDataWinner} />
-            </span>
+          <FormField id="match-winner" label={intl.formatMessage(messages.loadMatchDataWinner)}>
             <select
               aria-label={intl.formatMessage(messages.loadMatchDataWinner)}
-              className="cl-select cl-select--default"
+              className="cl-select cl-select--default cl-focusable"
+              id="match-winner"
               onChange={(event) => setWinnerEntrantId(event.target.value)}
               value={winnerEntrantId}
             >
@@ -768,7 +775,7 @@ export function LoadMatchDataRoute({
                 </option>
               ))}
             </select>
-          </label>
+          </FormField>
         </div>
         <footer className="cl-card__footer">
           <Button disabled={submitting} onClick={() => void submit()} type="button">
@@ -777,7 +784,7 @@ export function LoadMatchDataRoute({
               : intl.formatMessage(messages.loadMatchDataSubmit)}
           </Button>
         </footer>
-      </section>
+      </Card>
     </div>
   );
 

@@ -12,6 +12,9 @@ import {
 import { controlLinkClick } from '../lib/control-navigation.js';
 import { controlTokenStore } from '../session/token-store.js';
 import { Button } from './ui/atoms/button.js';
+import { Card } from './ui/atoms/card.js';
+import { Input } from './ui/atoms/input.js';
+import { FormField } from './ui/molecules/form-field.js';
 import { messages } from '../i18n/messages.en.js';
 import { useToast } from './ToastProvider.js';
 import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
@@ -212,7 +215,7 @@ export function ScheduleBuilderRoute({
 
   const breadcrumbNode = (
     <span>
-      {organizationAlias} &gt; {tournamentAlias} &gt; Stage {stageNumber}
+      {organizationAlias} / {tournamentAlias} / Stage {stageNumber}
     </span>
   );
 
@@ -240,9 +243,9 @@ export function ScheduleBuilderRoute({
 
       {fixtures.length > 0 && (
         <>
-          <section
+          <Card
             aria-label={intl.formatMessage(messages.scheduleBuilderCalendarViewLabel)}
-            className="cl-card cl-chamfer cl-chamfer--control"
+            className="cl-chamfer cl-chamfer--control"
           >
             <header className="cl-card__header">
               <h2 className="cl-card__title">
@@ -286,11 +289,11 @@ export function ScheduleBuilderRoute({
                 })}
               </ul>
             </div>
-          </section>
+          </Card>
 
-          <section
+          <Card
             aria-label={intl.formatMessage(messages.scheduleBuilderListViewLabel)}
-            className="cl-card cl-chamfer cl-chamfer--control"
+            className="cl-chamfer cl-chamfer--control"
           >
             <header className="cl-card__header">
               <h2 className="cl-card__title">
@@ -302,27 +305,27 @@ export function ScheduleBuilderRoute({
                 const draft = draftFor(fixture.fixtureId);
                 return (
                   <div key={fixture.fixtureId} className="cl-platform-form-grid">
-                    <label className="cl-form-field">
-                      <span className="cl-label">
-                        <FormattedMessage {...messages.scheduleBuilderStartTime} />
-                      </span>
-                      <input
+                    <FormField
+                      id={`start-time-${fixture.fixtureId}`}
+                      label={intl.formatMessage(messages.scheduleBuilderStartTime)}
+                    >
+                      <Input
                         aria-label={`${intl.formatMessage(messages.scheduleBuilderStartTime)} — ${fixture.fixtureId}`}
-                        className="cl-input cl-input--default"
+                        id={`start-time-${fixture.fixtureId}`}
                         onChange={(event) =>
                           setDraft(fixture.fixtureId, { startsAt: event.target.value })
                         }
                         type="datetime-local"
                         value={draft.startsAt}
                       />
-                    </label>
-                    <label className="cl-form-field">
-                      <span className="cl-label">
-                        <FormattedMessage {...messages.scheduleBuilderDuration} />
-                      </span>
-                      <input
+                    </FormField>
+                    <FormField
+                      id={`duration-${fixture.fixtureId}`}
+                      label={intl.formatMessage(messages.scheduleBuilderDuration)}
+                    >
+                      <Input
                         aria-label={`${intl.formatMessage(messages.scheduleBuilderDuration)} — ${fixture.fixtureId}`}
-                        className="cl-input cl-input--default"
+                        id={`duration-${fixture.fixtureId}`}
                         min={1}
                         onChange={(event) =>
                           setDraft(fixture.fixtureId, { durationMinutes: event.target.value })
@@ -330,14 +333,15 @@ export function ScheduleBuilderRoute({
                         type="number"
                         value={draft.durationMinutes}
                       />
-                    </label>
-                    <label className="cl-form-field">
-                      <span className="cl-label">
-                        <FormattedMessage {...messages.scheduleBuilderVenue} />
-                      </span>
+                    </FormField>
+                    <FormField
+                      id={`venue-${fixture.fixtureId}`}
+                      label={intl.formatMessage(messages.scheduleBuilderVenue)}
+                    >
                       <select
                         aria-label={`${intl.formatMessage(messages.scheduleBuilderVenue)} — ${fixture.fixtureId}`}
-                        className="cl-select cl-select--default"
+                        className="cl-select cl-select--default cl-focusable"
+                        id={`venue-${fixture.fixtureId}`}
                         onChange={(event) =>
                           setDraft(fixture.fixtureId, { venueId: event.target.value })
                         }
@@ -352,19 +356,20 @@ export function ScheduleBuilderRoute({
                           </option>
                         ))}
                       </select>
-                    </label>
+                    </FormField>
                     <fieldset className="cl-role-user">
                       <legend className="cl-label">
                         <FormattedMessage {...messages.scheduleBuilderOfficials} />
                       </legend>
                       {officials.map((official) => (
-                        <label key={official.officialId} className="cl-form-field">
+                        <label key={official.officialId} className="cl-toggle cl-focusable">
                           <input
                             checked={draft.officialIds.includes(official.officialId)}
+                            className="cl-checkbox cl-focusable"
                             onChange={() => toggleOfficial(fixture.fixtureId, official.officialId)}
                             type="checkbox"
                           />
-                          {official.displayName}
+                          <span>{official.displayName}</span>
                         </label>
                       ))}
                     </fieldset>
@@ -380,9 +385,9 @@ export function ScheduleBuilderRoute({
                   </p>
                 ))}
             </div>
-          </section>
+          </Card>
 
-          <section className="cl-card cl-chamfer cl-chamfer--control">
+          <Card className="cl-chamfer cl-chamfer--control">
             <header className="cl-card__header">
               <div className="cl-role-user">
                 <Button disabled={batch.length === 0} onClick={() => void preview()} type="button">
@@ -418,7 +423,7 @@ export function ScheduleBuilderRoute({
                 </p>
               )}
             </div>
-          </section>
+          </Card>
         </>
       )}
     </div>

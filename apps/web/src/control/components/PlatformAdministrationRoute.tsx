@@ -15,6 +15,7 @@ import { useToast } from './ToastProvider.js';
 import { RolesPermissionsRoute } from './RolesPermissionsRoute.js';
 import { Button } from './ui/atoms/button.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/atoms/card.js';
+import { Input } from './ui/atoms/input.js';
 import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
 import { DataTable, type DataTableColumn } from './ui/organisms/data-table.js';
 import { FormField } from './ui/molecules/form-field.js';
@@ -383,8 +384,7 @@ export function PlatformAdministrationRoute({
                     id="platform-org-alias"
                     label={intl.formatMessage(messages.platformOrganizationAlias)}
                   >
-                    <input
-                      className="cl-input cl-input--default cl-focusable"
+                    <Input
                       id="platform-org-alias"
                       onChange={(event) =>
                         setOrganization((current) => ({ ...current, alias: event.target.value }))
@@ -397,8 +397,7 @@ export function PlatformAdministrationRoute({
                     id="platform-org-name"
                     label={intl.formatMessage(messages.platformOrganizationName)}
                   >
-                    <input
-                      className="cl-input cl-input--default cl-focusable"
+                    <Input
                       id="platform-org-name"
                       onChange={(event) =>
                         setOrganization((current) => ({ ...current, name: event.target.value }))
@@ -434,8 +433,7 @@ export function PlatformAdministrationRoute({
                     id="platform-org-timezone"
                     label={intl.formatMessage(messages.platformTimezone)}
                   >
-                    <input
-                      className="cl-input cl-input--default cl-focusable"
+                    <Input
                       id="platform-org-timezone"
                       onChange={(event) =>
                         setOrganization((current) => ({ ...current, timezone: event.target.value }))
@@ -463,8 +461,7 @@ export function PlatformAdministrationRoute({
                     id="platform-admin-email"
                     label={intl.formatMessage(messages.platformFirstAdminEmail)}
                   >
-                    <input
-                      className="cl-input cl-input--default cl-focusable"
+                    <Input
                       id="platform-admin-email"
                       onChange={(event) => setAdminEmail(event.target.value)}
                       required
@@ -476,12 +473,7 @@ export function PlatformAdministrationRoute({
                     id="platform-admin-role"
                     label={intl.formatMessage(messages.platformFirstAdminRole)}
                   >
-                    <input
-                      className="cl-input cl-input--disabled"
-                      id="platform-admin-role"
-                      readOnly
-                      value="admin"
-                    />
+                    <Input id="platform-admin-role" readOnly value="admin" />
                   </FormField>
                   <Button disabled={busy === 'invitation'} type="submit">
                     <FormattedMessage {...messages.platformInviteAdministrator} />
@@ -506,8 +498,7 @@ export function PlatformAdministrationRoute({
                   id="platform-manage-org-alias"
                   label={intl.formatMessage(messages.platformManageOrganizationAlias)}
                 >
-                  <input
-                    className="cl-input cl-input--default cl-focusable"
+                  <Input
                     id="platform-manage-org-alias"
                     onChange={(event) => setManageOrgAlias(event.target.value)}
                     value={manageOrgAlias}
@@ -566,8 +557,7 @@ export function PlatformAdministrationRoute({
                   id="platform-super-admin-principal"
                   label={intl.formatMessage(messages.platformSuperAdminPrincipalId)}
                 >
-                  <input
-                    className="cl-input cl-input--default cl-focusable"
+                  <Input
                     id="platform-super-admin-principal"
                     onChange={(event) => setNewSuperAdminPrincipalId(event.target.value)}
                     required
@@ -622,8 +612,7 @@ export function PlatformAdministrationRoute({
                   id="platform-module-alias"
                   label={intl.formatMessage(messages.platformModuleAlias)}
                 >
-                  <input
-                    className="cl-input cl-input--default cl-focusable"
+                  <Input
                     id="platform-module-alias"
                     onChange={(event) => setAlias(event.target.value)}
                     required
@@ -634,8 +623,7 @@ export function PlatformAdministrationRoute({
                   id="platform-module-range"
                   label={intl.formatMessage(messages.platformVersionRange)}
                 >
-                  <input
-                    className="cl-input cl-input--default cl-focusable"
+                  <Input
                     id="platform-module-range"
                     onChange={(event) => setRange(event.target.value)}
                     placeholder="^1.0.0"
@@ -646,8 +634,7 @@ export function PlatformAdministrationRoute({
                   id="platform-module-source"
                   label={intl.formatMessage(messages.platformAlternateSource)}
                 >
-                  <input
-                    className="cl-input cl-input--default cl-focusable"
+                  <Input
                     id="platform-module-source"
                     onChange={(event) => setSource(event.target.value)}
                     placeholder="file:///…"

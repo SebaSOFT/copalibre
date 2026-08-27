@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { isAbbreviation, MAX_ABBREVIATION_LENGTH } from '@copalibre/domain';
 import { Button } from './ui/atoms/button.js';
+import { Card } from './ui/atoms/card.js';
+import { Input } from './ui/atoms/input.js';
 import { messages } from '../i18n/messages.en.js';
 import { useToast } from './ToastProvider.js';
 
@@ -51,9 +53,9 @@ export function AbbreviationReviewSection({
   }
 
   return (
-    <section
+    <Card
       aria-label={intl.formatMessage(messages.abbreviationReviewSectionLabel)}
-      className="cl-card cl-chamfer cl-chamfer--control"
+      className="cl-chamfer cl-chamfer--control"
       style={sectionStyle}
     >
       <h2 style={titleStyle}>
@@ -67,11 +69,10 @@ export function AbbreviationReviewSection({
         rows.map((row) => (
           <div key={row.entrantId} style={rowStyle}>
             <span>{row.displayName}</span>
-            <input
+            <Input
               aria-label={intl.formatMessage(messages.abbreviationReviewInputLabel, {
                 displayName: row.displayName,
               })}
-              className="cl-focusable"
               onChange={(event) =>
                 setDrafts((current) => ({ ...current, [row.entrantId]: event.target.value }))
               }
@@ -88,7 +89,7 @@ export function AbbreviationReviewSection({
           </div>
         ))
       )}
-    </section>
+    </Card>
   );
 }
 

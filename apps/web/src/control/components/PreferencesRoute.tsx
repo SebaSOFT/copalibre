@@ -13,6 +13,9 @@ import { FramedImage } from './FramedImage.js';
 import { ImageCropModal } from './ImageCropModal.js';
 import { ClubEmblemPlaceholder } from './placeholders.js';
 import { Button } from './ui/atoms/button.js';
+import { Card } from './ui/atoms/card.js';
+import { Input } from './ui/atoms/input.js';
+import { FormField } from './ui/molecules/form-field.js';
 import { messages as controlMessages } from '../i18n/messages.en.js';
 import { useToast } from './ToastProvider.js';
 
@@ -309,12 +312,11 @@ export function PreferencesRoute({
         <FormattedMessage {...messages.title} />
       </h1>
 
-      <section
+      <Card
+        className="cl-chamfer cl-chamfer--control"
         style={{
           marginTop: '2rem',
-          background: 'var(--cl-surface-alt)',
           padding: preferencesSectionPadding,
-          borderRadius: '8px',
         }}
       >
         <h2>
@@ -334,52 +336,30 @@ export function PreferencesRoute({
             flexWrap: 'wrap',
           }}
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <label htmlFor="pat-label">
-              <FormattedMessage {...messages.patLabel} />
-            </label>
-            <input
+          <FormField id="pat-label" label={intl.formatMessage(messages.patLabel)}>
+            <Input
               id="pat-label"
-              type="text"
-              value={label}
               onChange={(e) => setLabel(e.target.value)}
               required
-              style={{ padding: '0.5rem', border: '1px solid var(--cl-border-base)' }}
+              type="text"
+              value={label}
             />
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <label htmlFor="pat-expires">
-              <FormattedMessage {...messages.patExpiresIn} />
-            </label>
-            <input
+          </FormField>
+          <FormField id="pat-expires" label={intl.formatMessage(messages.patExpiresIn)}>
+            <Input
               id="pat-expires"
-              type="number"
-              min="1"
-              max="365"
-              value={expiresInDays}
+              max={365}
+              min={1}
               onChange={(e) => setExpiresInDays(parseInt(e.target.value))}
               required
-              style={{
-                padding: '0.5rem',
-                border: '1px solid var(--cl-border-base)',
-                width: '80px',
-              }}
+              style={{ width: '80px' }}
+              type="number"
+              value={expiresInDays}
             />
-          </div>
-          <button
-            type="submit"
-            disabled={!label.trim()}
-            style={{
-              padding: '0.5rem 1rem',
-              background: 'var(--cl-state-live)',
-              color: 'var(--cl-surface-base)',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-            }}
-          >
+          </FormField>
+          <Button disabled={!label.trim()} type="submit">
             <FormattedMessage {...messages.createPat} />
-          </button>
+          </Button>
         </form>
 
         {newToken && (
@@ -442,34 +422,27 @@ export function PreferencesRoute({
                         Expira: {new Date(token.expiresAt).toLocaleDateString()}
                       </div>
                     </div>
-                    <button
-                      onClick={() => handleRevoke(token.tokenId)}
-                      style={{
-                        background: 'transparent',
-                        color: 'var(--cl-state-destructive)',
-                        border: '1px solid currentColor',
-                        padding: '0.25rem 0.5rem',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                      }}
+                    <Button
+                      onClick={() => void handleRevoke(token.tokenId)}
+                      type="button"
+                      variant="destructive-outline"
                     >
                       <FormattedMessage {...messages.revokePat} />
-                    </button>
+                    </Button>
                   </li>
                 ))}
             </ul>
           )}
         </div>
-      </section>
+      </Card>
 
       {organizationAlias !== undefined && (
-        <section
+        <Card
           aria-label={intl.formatMessage(controlMessages.orgIdentityHeading)}
+          className="cl-chamfer cl-chamfer--control"
           style={{
             marginTop: '2rem',
-            background: 'var(--cl-surface-alt)',
             padding: preferencesSectionPadding,
-            borderRadius: '8px',
           }}
         >
           <h2>
@@ -504,11 +477,15 @@ export function PreferencesRoute({
               />
 
               {api.uploadOrganizationEmblem && (
-                <label>
-                  <FormattedMessage {...controlMessages.orgIdentityUploadEmblem} />
+                <FormField
+                  id="org-emblem-upload"
+                  label={intl.formatMessage(controlMessages.orgIdentityUploadEmblem)}
+                >
                   <input
                     accept="image/*"
                     aria-label={intl.formatMessage(controlMessages.orgIdentityUploadEmblem)}
+                    className="cl-input cl-input--default cl-focusable"
+                    id="org-emblem-upload"
                     onChange={(event) => {
                       const file = event.currentTarget.files?.[0];
                       if (file) setEmblemCropSrc(URL.createObjectURL(file));
@@ -516,41 +493,39 @@ export function PreferencesRoute({
                     }}
                     type="file"
                   />
-                </label>
+                </FormField>
               )}
 
               <div
                 style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}
               >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  <label htmlFor="org-name">
-                    <FormattedMessage {...controlMessages.orgIdentityName} />
-                  </label>
-                  <input
+                <FormField
+                  id="org-name"
+                  label={intl.formatMessage(controlMessages.orgIdentityName)}
+                >
+                  <Input
                     id="org-name"
                     onChange={(event) => setOrgName(event.target.value)}
-                    style={{ padding: '0.5rem', border: '1px solid var(--cl-border-base)' }}
                     type="text"
                     value={orgName}
                   />
-                </div>
+                </FormField>
                 <Button onClick={() => void saveOrganizationName()} type="button">
                   <FormattedMessage {...controlMessages.orgIdentitySave} />
                 </Button>
               </div>
             </div>
           )}
-        </section>
+        </Card>
       )}
 
       {organizationAlias !== undefined && (
-        <section
+        <Card
           aria-label={intl.formatMessage(controlMessages.statisticsRebuildHeading)}
+          className="cl-chamfer cl-chamfer--control"
           style={{
             marginTop: '2rem',
-            background: 'var(--cl-surface-alt)',
             padding: preferencesSectionPadding,
-            borderRadius: '8px',
           }}
         >
           <h2>
@@ -577,21 +552,20 @@ export function PreferencesRoute({
               flexWrap: 'wrap',
             }}
           >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <label htmlFor="rebuild-tournament">
-                <FormattedMessage {...controlMessages.statisticsRebuildTournamentLabel} />
-              </label>
-              <input
+            <FormField
+              id="rebuild-tournament"
+              label={intl.formatMessage(controlMessages.statisticsRebuildTournamentLabel)}
+            >
+              <Input
                 id="rebuild-tournament"
                 onChange={(event) => setRebuildTournamentAlias(event.target.value)}
                 placeholder={intl.formatMessage(
                   controlMessages.statisticsRebuildTournamentPlaceholder,
                 )}
-                style={{ padding: '0.5rem', border: '1px solid var(--cl-border-base)' }}
                 type="text"
                 value={rebuildTournamentAlias}
               />
-            </div>
+            </FormField>
             {!rebuildConfirming ? (
               <Button
                 disabled={!api.rebuildStatistics}
@@ -620,17 +594,16 @@ export function PreferencesRoute({
               <FormattedMessage {...controlMessages.statisticsRebuildConfirmPrompt} />
             </p>
           )}
-        </section>
+        </Card>
       )}
 
       {organizationAlias !== undefined && (
-        <section
+        <Card
           aria-label={intl.formatMessage(controlMessages.storageUsageHeading)}
+          className="cl-chamfer cl-chamfer--control"
           style={{
             marginTop: '2rem',
-            background: 'var(--cl-surface-alt)',
             padding: preferencesSectionPadding,
-            borderRadius: '8px',
           }}
         >
           <h2>
@@ -659,7 +632,7 @@ export function PreferencesRoute({
               />
             </p>
           ) : null}
-        </section>
+        </Card>
       )}
 
       {emblemCropSrc !== undefined && (

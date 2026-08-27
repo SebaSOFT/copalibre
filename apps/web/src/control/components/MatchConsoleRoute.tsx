@@ -31,6 +31,10 @@ import {
   type QueuedMutation,
 } from '../lib/offline-queue.js';
 import { Button } from './ui/atoms/button.js';
+import { Card } from './ui/atoms/card.js';
+import { Input } from './ui/atoms/input.js';
+import { Textarea } from './ui/atoms/textarea.js';
+import { FormField } from './ui/molecules/form-field.js';
 import { ClockRing } from './ui/organisms/clock-ring.js';
 import { JerseyGrid } from './JerseyGrid.js';
 import { RosterSelectionStep } from './RosterSelectionStep.js';
@@ -540,21 +544,19 @@ export function MatchConsoleRoute({
 
   const primaryNode = (
     <>
-      <section className="cl-card cl-chamfer cl-chamfer--control">
+      <Card className="cl-chamfer cl-chamfer--control">
         <header className="cl-card__header">
           <h2 className="cl-card__title">
             <FormattedMessage {...messages.matchConsoleClockAndPeriod} />
           </h2>
         </header>
         <div className="cl-platform-form-grid">
-          <label className="cl-form-field">
-            <span className="cl-label">
-              <FormattedMessage {...messages.matchConsoleSegment} />
-            </span>
+          <FormField id="console-segment" label={intl.formatMessage(messages.matchConsoleSegment)}>
             <select
               aria-label={intl.formatMessage(messages.matchConsoleActiveSegment)}
-              className="cl-select cl-select--default"
+              className="cl-select cl-select--default cl-focusable"
               disabled={!canControlClock}
+              id="console-segment"
               onChange={(event) => setSelectedSegmentId(event.target.value)}
               value={selectedSegmentId}
             >
@@ -564,21 +566,21 @@ export function MatchConsoleRoute({
                 </option>
               ))}
             </select>
-          </label>
-          <label className="cl-form-field">
-            <span className="cl-label">
-              <FormattedMessage {...messages.matchConsoleElapsedSeconds} />
-            </span>
-            <input
+          </FormField>
+          <FormField
+            id="console-elapsed-seconds"
+            label={intl.formatMessage(messages.matchConsoleElapsedSeconds)}
+          >
+            <Input
               aria-label={intl.formatMessage(messages.matchConsoleElapsedSeconds)}
-              className="cl-input cl-input--default"
               disabled={!canControlClock}
+              id="console-elapsed-seconds"
               min="0"
               onChange={(event) => setElapsedSeconds(event.target.value)}
               type="number"
               value={elapsedSeconds}
             />
-          </label>
+          </FormField>
           <Button
             disabled={!canControlClock || selectedSegmentId === ''}
             onClick={() =>
@@ -621,9 +623,9 @@ export function MatchConsoleRoute({
             <FormattedMessage {...messages.matchConsoleApplyClock} />
           </Button>
         </div>
-      </section>
+      </Card>
 
-      <section className="cl-card cl-chamfer cl-chamfer--control">
+      <Card className="cl-chamfer cl-chamfer--control">
         <header className="cl-card__header">
           <div className="cl-role-user">
             <h2 className="cl-card__title">
@@ -701,14 +703,12 @@ export function MatchConsoleRoute({
             )
           )}
           <div className="cl-platform-form-grid">
-            <label className="cl-form-field">
-              <span className="cl-label">
-                <FormattedMessage {...messages.matchConsoleStaff} />
-              </span>
+            <FormField id="console-staff" label={intl.formatMessage(messages.matchConsoleStaff)}>
               <select
                 aria-label={intl.formatMessage(messages.matchConsoleEventStaff)}
-                className="cl-select cl-select--default"
+                className="cl-select cl-select--default cl-focusable"
                 disabled={!canRecord || projection.eligibleStaffIds.length === 0}
+                id="console-staff"
                 onChange={(event) => {
                   setSelectedStaffId(event.target.value);
                   if (event.target.value) setSelectedPersonId('');
@@ -722,7 +722,7 @@ export function MatchConsoleRoute({
                   </option>
                 ))}
               </select>
-            </label>
+            </FormField>
           </div>
           <div className="cl-role-user">
             {permittedEvents.map((definition) => (
@@ -739,9 +739,9 @@ export function MatchConsoleRoute({
             ))}
           </div>
           {conditionalEvent && (
-            <div
+            <Card
               aria-label={intl.formatMessage(messages.matchConsoleEventOutcome)}
-              className="cl-card cl-chamfer cl-chamfer--control"
+              className="cl-chamfer cl-chamfer--control"
             >
               <strong>{resolveLabel(conditionalEvent.label, language)}</strong>
               <div className="cl-role-user">
@@ -768,24 +768,24 @@ export function MatchConsoleRoute({
                   );
                 })}
               </div>
-            </div>
+            </Card>
           )}
-          <label className="cl-form-field">
-            <span className="cl-label">
-              <FormattedMessage {...messages.matchConsoleDescription} />
-            </span>
-            <input
+          <FormField
+            id="console-description"
+            label={intl.formatMessage(messages.matchConsoleDescription)}
+          >
+            <Input
               aria-label={intl.formatMessage(messages.matchConsoleEventDescription)}
-              className="cl-input cl-input--default"
               disabled={!canRecord}
+              id="console-description"
               onChange={(event) => setDescription(event.target.value)}
               value={description}
             />
-          </label>
+          </FormField>
         </div>
-      </section>
+      </Card>
 
-      <section className="cl-card cl-chamfer cl-chamfer--control">
+      <Card className="cl-chamfer cl-chamfer--control">
         <header className="cl-card__header">
           <h2 className="cl-card__title">
             <FormattedMessage {...messages.matchConsoleFinalize} />
@@ -832,13 +832,13 @@ export function MatchConsoleRoute({
             </div>
           )}
         </div>
-      </section>
+      </Card>
     </>
   );
 
   const railNode = (
     <>
-      <section className="cl-card cl-chamfer cl-chamfer--control">
+      <Card className="cl-chamfer cl-chamfer--control">
         <header className="cl-card__header">
           <h2 className="cl-card__title">
             <FormattedMessage {...messages.matchConsoleActiveTimers} />
@@ -888,9 +888,9 @@ export function MatchConsoleRoute({
             </ul>
           )}
         </div>
-      </section>
+      </Card>
 
-      <section className="cl-card cl-chamfer cl-chamfer--control">
+      <Card className="cl-chamfer cl-chamfer--control">
         <header className="cl-card__header">
           <h2 className="cl-card__title">
             <FormattedMessage {...messages.matchConsoleEventLedger} />
@@ -929,22 +929,19 @@ export function MatchConsoleRoute({
               </li>
             ))}
           </ol>
-          <label className="cl-form-field">
-            <span className="cl-label">
-              <FormattedMessage {...messages.matchConsoleLogNote} />
-            </span>
-            <textarea
+          <FormField id="console-log-note" label={intl.formatMessage(messages.matchConsoleLogNote)}>
+            <Textarea
               aria-label={intl.formatMessage(messages.matchConsoleLogNote)}
-              className="cl-input cl-input--default"
+              id="console-log-note"
               onChange={(event) => setLogNote(event.target.value)}
               placeholder=""
               value={logNote}
             />
-          </label>
+          </FormField>
         </div>
-      </section>
+      </Card>
 
-      <section className="cl-card cl-chamfer cl-chamfer--control">
+      <Card className="cl-chamfer cl-chamfer--control">
         <header className="cl-card__header">
           <h2 className="cl-card__title">
             <FormattedMessage {...messages.matchConsoleOperationalSignal} />
@@ -967,7 +964,7 @@ export function MatchConsoleRoute({
             ))}
           </div>
         </div>
-      </section>
+      </Card>
     </>
   );
 

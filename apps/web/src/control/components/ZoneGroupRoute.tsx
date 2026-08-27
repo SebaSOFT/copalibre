@@ -11,6 +11,9 @@ import {
 import { controlLinkClick } from '../lib/control-navigation.js';
 import { controlTokenStore } from '../session/token-store.js';
 import { Button } from './ui/atoms/button.js';
+import { Card } from './ui/atoms/card.js';
+import { Input } from './ui/atoms/input.js';
+import { FormField } from './ui/molecules/form-field.js';
 import { messages } from '../i18n/messages.en.js';
 import { useToast } from './ToastProvider.js';
 
@@ -295,6 +298,7 @@ export function ZoneGroupRoute({
   if (loading) {
     return <p className="cl-inline-alert">{intl.formatMessage(messages.zoneGroupLoading)}</p>;
   }
+
   if (loadError) {
     return (
       <p className="cl-inline-alert" role="alert">
@@ -303,21 +307,20 @@ export function ZoneGroupRoute({
     );
   }
 
-  const selectedZone = zones.find((zone) => zone.number === selectedZoneNumber);
-
   const breadcrumbNode = (
     <span>
-      {intl.formatMessage(messages.zoneGroupBreadcrumb, { tournamentAlias, stageNumber })}
+      {organizationAlias} / {tournamentAlias} / Stage {stageNumber}
     </span>
   );
 
   const titleNode = <FormattedMessage {...messages.zoneGroupTitle} />;
+  const selectedZone = zones.find((z) => z.number === selectedZoneNumber);
 
   const listingNode = (
     <div className="cl-platform-sections">
-      <section
+      <Card
         aria-label={intl.formatMessage(messages.zoneGroupZonesHeading)}
-        className="cl-card cl-chamfer cl-chamfer--control"
+        className="cl-chamfer cl-chamfer--control"
       >
         <header className="cl-card__header">
           <h2 className="cl-card__title">
@@ -334,9 +337,8 @@ export function ZoneGroupRoute({
           </ul>
           {api.createZone && (
             <div className="cl-platform-form-grid">
-              <input
+              <Input
                 aria-label={intl.formatMessage(messages.zoneGroupNewZoneName)}
-                className="cl-input cl-input--default"
                 onChange={(event) => setNewZoneName(event.target.value)}
                 placeholder={intl.formatMessage(messages.zoneGroupNewZoneName)}
                 value={newZoneName}
@@ -347,11 +349,11 @@ export function ZoneGroupRoute({
             </div>
           )}
         </div>
-      </section>
+      </Card>
 
-      <section
+      <Card
         aria-label={intl.formatMessage(messages.zoneGroupAssignZonesHeading)}
-        className="cl-card cl-chamfer cl-chamfer--control"
+        className="cl-chamfer cl-chamfer--control"
       >
         <header className="cl-card__header">
           <h2 className="cl-card__title">
@@ -360,53 +362,54 @@ export function ZoneGroupRoute({
         </header>
         <div className="cl-card__content">
           <div className="cl-role-user">
-            <label className="cl-form-field">
+            <label className="cl-toggle cl-focusable">
               <input
                 checked={zoneMode === 'draw'}
                 name="zone-assign-mode"
                 onChange={() => setZoneMode('draw')}
                 type="radio"
               />
-              <FormattedMessage {...messages.zoneGroupAutomaticDraw} />
+              <span>
+                <FormattedMessage {...messages.zoneGroupAutomaticDraw} />
+              </span>
             </label>
-            <label className="cl-form-field">
+            <label className="cl-toggle cl-focusable">
               <input
                 checked={zoneMode === 'manual'}
                 name="zone-assign-mode"
                 onChange={() => setZoneMode('manual')}
                 type="radio"
               />
-              <FormattedMessage {...messages.zoneGroupManualPlacement} />
+              <span>
+                <FormattedMessage {...messages.zoneGroupManualPlacement} />
+              </span>
             </label>
           </div>
 
           {zoneMode === 'draw' ? (
             <div className="cl-platform-form-grid">
-              <label className="cl-form-field">
-                <span className="cl-label">
-                  <FormattedMessage {...messages.zoneGroupZoneCount} />
-                </span>
-                <input
+              <FormField
+                id="zone-draw-count"
+                label={intl.formatMessage(messages.zoneGroupZoneCount)}
+              >
+                <Input
                   aria-label={intl.formatMessage(messages.zoneGroupZoneCount)}
-                  className="cl-input cl-input--default"
+                  id="zone-draw-count"
                   min="1"
                   onChange={(event) => setZoneCount(event.target.value)}
                   type="number"
                   value={zoneCount}
                 />
-              </label>
-              <label className="cl-form-field">
-                <span className="cl-label">
-                  <FormattedMessage {...messages.zoneGroupSeed} />
-                </span>
-                <input
+              </FormField>
+              <FormField id="zone-draw-seed" label={intl.formatMessage(messages.zoneGroupSeed)}>
+                <Input
                   aria-label={intl.formatMessage(messages.zoneGroupSeed)}
-                  className="cl-input cl-input--default"
+                  id="zone-draw-seed"
                   onChange={(event) => setZoneSeed(event.target.value)}
                   type="number"
                   value={zoneSeed}
                 />
-              </label>
+              </FormField>
               <Button onClick={() => void previewZoneDraw()} type="button" variant="secondary">
                 <FormattedMessage {...messages.zoneGroupPreviewDraw} />
               </Button>
@@ -420,11 +423,10 @@ export function ZoneGroupRoute({
                 {entrants.map((entrant) => (
                   <li key={entrant.entrantId} className="cl-role-user">
                     <span>{entrantLabel(entrant.entrantId)}</span>
-                    <input
+                    <Input
                       aria-label={intl.formatMessage(messages.zoneGroupPlacementNumber, {
                         name: entrantLabel(entrant.entrantId),
                       })}
-                      className="cl-input cl-input--default"
                       min="1"
                       onChange={(event) =>
                         setZonePlacements((current) => ({
@@ -452,17 +454,15 @@ export function ZoneGroupRoute({
             </p>
           )}
         </div>
-      </section>
+      </Card>
 
       {zones.length > 0 && (
         <>
-          <label className="cl-form-field">
-            <span className="cl-label">
-              <FormattedMessage {...messages.zoneGroupSelectZone} />
-            </span>
+          <FormField id="zone-select" label={intl.formatMessage(messages.zoneGroupSelectZone)}>
             <select
               aria-label={intl.formatMessage(messages.zoneGroupSelectZone)}
-              className="cl-select cl-select--default"
+              className="cl-select cl-select--default cl-focusable"
+              id="zone-select"
               onChange={(event) => setSelectedZoneNumber(Number(event.target.value))}
               value={selectedZoneNumber ?? ''}
             >
@@ -472,11 +472,11 @@ export function ZoneGroupRoute({
                 </option>
               ))}
             </select>
-          </label>
+          </FormField>
 
-          <section
+          <Card
             aria-label={intl.formatMessage(messages.zoneGroupGroupsHeading)}
-            className="cl-card cl-chamfer cl-chamfer--control"
+            className="cl-chamfer cl-chamfer--control"
           >
             <header className="cl-card__header">
               <h2 className="cl-card__title">
@@ -493,9 +493,8 @@ export function ZoneGroupRoute({
               </ul>
               {api.createGroup && (
                 <div className="cl-platform-form-grid">
-                  <input
+                  <Input
                     aria-label={intl.formatMessage(messages.zoneGroupNewGroupName)}
-                    className="cl-input cl-input--default"
                     onChange={(event) => setNewGroupName(event.target.value)}
                     placeholder={intl.formatMessage(messages.zoneGroupNewGroupName)}
                     value={newGroupName}
@@ -506,11 +505,11 @@ export function ZoneGroupRoute({
                 </div>
               )}
             </div>
-          </section>
+          </Card>
 
-          <section
+          <Card
             aria-label={intl.formatMessage(messages.zoneGroupAssignGroupsHeading)}
-            className="cl-card cl-chamfer cl-chamfer--control"
+            className="cl-chamfer cl-chamfer--control"
           >
             <header className="cl-card__header">
               <h2 className="cl-card__title">
@@ -519,53 +518,57 @@ export function ZoneGroupRoute({
             </header>
             <div className="cl-card__content">
               <div className="cl-role-user">
-                <label className="cl-form-field">
+                <label className="cl-toggle cl-focusable">
                   <input
                     checked={groupMode === 'draw'}
                     name="group-assign-mode"
                     onChange={() => setGroupMode('draw')}
                     type="radio"
                   />
-                  <FormattedMessage {...messages.zoneGroupAutomaticDraw} />
+                  <span>
+                    <FormattedMessage {...messages.zoneGroupAutomaticDraw} />
+                  </span>
                 </label>
-                <label className="cl-form-field">
+                <label className="cl-toggle cl-focusable">
                   <input
                     checked={groupMode === 'manual'}
                     name="group-assign-mode"
                     onChange={() => setGroupMode('manual')}
                     type="radio"
                   />
-                  <FormattedMessage {...messages.zoneGroupManualPlacement} />
+                  <span>
+                    <FormattedMessage {...messages.zoneGroupManualPlacement} />
+                  </span>
                 </label>
               </div>
 
               {groupMode === 'draw' ? (
                 <div className="cl-platform-form-grid">
-                  <label className="cl-form-field">
-                    <span className="cl-label">
-                      <FormattedMessage {...messages.zoneGroupGroupCount} />
-                    </span>
-                    <input
+                  <FormField
+                    id="group-draw-count"
+                    label={intl.formatMessage(messages.zoneGroupGroupCount)}
+                  >
+                    <Input
                       aria-label={intl.formatMessage(messages.zoneGroupGroupCount)}
-                      className="cl-input cl-input--default"
+                      id="group-draw-count"
                       min="1"
                       onChange={(event) => setGroupCount(event.target.value)}
                       type="number"
                       value={groupCount}
                     />
-                  </label>
-                  <label className="cl-form-field">
-                    <span className="cl-label">
-                      <FormattedMessage {...messages.zoneGroupSeed} />
-                    </span>
-                    <input
+                  </FormField>
+                  <FormField
+                    id="group-draw-seed"
+                    label={intl.formatMessage(messages.zoneGroupSeed)}
+                  >
+                    <Input
                       aria-label={intl.formatMessage(messages.zoneGroupSeed)}
-                      className="cl-input cl-input--default"
+                      id="group-draw-seed"
                       onChange={(event) => setGroupSeed(event.target.value)}
                       type="number"
                       value={groupSeed}
                     />
-                  </label>
+                  </FormField>
                   <Button onClick={() => void previewGroupDraw()} type="button" variant="secondary">
                     <FormattedMessage {...messages.zoneGroupPreviewDraw} />
                   </Button>
@@ -583,11 +586,10 @@ export function ZoneGroupRoute({
                     {zoneEntrantIds.map((entrantId) => (
                       <li key={entrantId} className="cl-role-user">
                         <span>{entrantLabel(entrantId)}</span>
-                        <input
+                        <Input
                           aria-label={intl.formatMessage(messages.zoneGroupPlacementNumber, {
                             name: entrantLabel(entrantId),
                           })}
-                          className="cl-input cl-input--default"
                           min="1"
                           onChange={(event) =>
                             setGroupPlacements((current) => ({
@@ -615,7 +617,7 @@ export function ZoneGroupRoute({
                 </p>
               )}
             </div>
-          </section>
+          </Card>
 
           {selectedZone && (
             <a

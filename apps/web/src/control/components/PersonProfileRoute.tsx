@@ -12,6 +12,7 @@ import { isSupportedLanguage } from '@copalibre/domain';
 import { controlTokenStore } from '../session/token-store.js';
 import { FramedImage } from './FramedImage.js';
 import { PersonPhotoPlaceholder } from './placeholders.js';
+import { Card } from './ui/atoms/card.js';
 import { FieldValue } from './ui/molecules/field-value.js';
 import { messages } from '../i18n/messages.en.js';
 
@@ -100,7 +101,7 @@ export function PersonProfileRoute({
   );
 
   const cardNode = (
-    <div className="cl-card cl-chamfer cl-chamfer--control">
+    <Card className="cl-chamfer cl-chamfer--control">
       <FramedImage
         key={person.photoObjectId ?? 'none'}
         alt={intl.formatMessage(messages.personProfilePhotoAlt, {
@@ -135,7 +136,7 @@ export function PersonProfileRoute({
             : `${person.naturalKey.kind}: ${person.naturalKey.value}`
         }
       />
-    </div>
+    </Card>
   );
 
   return <ListScreenTemplate breadcrumb={breadcrumbNode} listing={cardNode} title={titleNode} />;

@@ -9,6 +9,9 @@ import {
 } from '../lib/api-client.js';
 import { controlTokenStore } from '../session/token-store.js';
 import { Button } from './ui/atoms/button.js';
+import { Card } from './ui/atoms/card.js';
+import { Input } from './ui/atoms/input.js';
+import { FormField } from './ui/molecules/form-field.js';
 import { messages } from '../i18n/messages.en.js';
 import { useToast } from './ToastProvider.js';
 import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
@@ -49,29 +52,27 @@ export function VenueManagementRoute({
   const [venues, setVenues] = useState<readonly VenueResponse[]>([]);
   const [officials, setOfficials] = useState<readonly OfficialResponse[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | undefined>(undefined);
 
   const [newVenueName, setNewVenueName] = useState('');
   const [newVenueAlias, setNewVenueAlias] = useState('');
   const [newVenueCapacity, setNewVenueCapacity] = useState('1');
 
-  const [selectedVenueId, setSelectedVenueId] = useState<string | undefined>(undefined);
-  const [editVenueName, setEditVenueName] = useState('');
-  const [editVenueCapacity, setEditVenueCapacity] = useState('1');
-  const [editVenueAddress, setEditVenueAddress] = useState('');
-  const [editVenueDetails, setEditVenueDetails] = useState<
-    readonly { readonly key: string; readonly value: string }[]
-  >([]);
-
   const [newOfficialName, setNewOfficialName] = useState('');
   const [newOfficialRoles, setNewOfficialRoles] = useState<readonly OfficialRole[]>([]);
 
-  const [selectedOfficialId, setSelectedOfficialId] = useState<string | undefined>(undefined);
+  const [selectedVenueId, setSelectedVenueId] = useState<string>();
+  const [editVenueName, setEditVenueName] = useState('');
+  const [editVenueCapacity, setEditVenueCapacity] = useState('');
+  const [editVenueAddress, setEditVenueAddress] = useState('');
+  const [editVenueDetails, setEditVenueDetails] = useState<
+    readonly { key: string; value: string }[]
+  >([]);
+
+  const [selectedOfficialId, setSelectedOfficialId] = useState<string>();
   const [editOfficialName, setEditOfficialName] = useState('');
   const [editOfficialRoles, setEditOfficialRoles] = useState<readonly OfficialRole[]>([]);
 
   const reload = useCallback(async (): Promise<void> => {
-    setLoading(true);
     try {
       const [loadedVenues, loadedOfficials] = await Promise.all([
         api.listVenues?.(organizationAlias) ?? Promise.resolve([]),
@@ -79,50 +80,76 @@ export function VenueManagementRoute({
       ]);
       setVenues(loadedVenues);
       setOfficials(loadedOfficials);
-      setLoadError(undefined);
     } catch {
-      setLoadError(intl.formatMessage(messages.resourceManagementLoadFailed));
-    } finally {
-      setLoading(false);
+      push({
+        severity: 'error',
+        message: intl.formatMessage(messages.resourceManagementLoadFailed),
+      });
     }
-  }, [api, organizationAlias, intl]);
+  }, [api, intl, organizationAlias, push]);
 
   useEffect(() => {
-    void Promise.resolve().then(() => reload());
-  }, [reload]);
+    let live = true;
+    Promise.all([
+      api.listVenues?.(organizationAlias) ?? Promise.resolve([]),
+      api.listOfficials?.(organizationAlias) ?? Promise.resolve([]),
+    ])
+      .then(([loadedVenues, loadedOfficials]) => {
+        if (live) {
+          setVenues(loadedVenues);
+          setOfficials(loadedOfficials);
+        }
+      })
+      .catch(() => {
+        if (live) {
+          push({
+            severity: 'error',
+            message: intl.formatMessage(messages.resourceManagementLoadFailed),
+          });
+        }
+      })
+      .finally(() => {
+        if (live) setLoading(false);
+      });
+    return () => {
+      live = false;
+    };
+  }, [api, intl, organizationAlias, push]);
 
-  function selectVenue(venue: VenueResponse): void {
+  const selectVenue = (venue: VenueResponse): void => {
     setSelectedVenueId(venue.venueId);
     setEditVenueName(venue.name);
-    setEditVenueCapacity(String(venue.concurrentCapacity));
+    setEditVenueCapacity(venue.concurrentCapacity ? String(venue.concurrentCapacity) : '');
     setEditVenueAddress(venue.address ?? '');
     setEditVenueDetails(
-      Object.entries(venue.details ?? {}).map(([key, value]) => ({ key, value })),
+      venue.details
+        ? Object.entries(venue.details).map(([key, value]) => ({ key, value: String(value) }))
+        : [],
     );
-  }
+  };
 
-  function selectOfficial(official: OfficialResponse): void {
+  const selectOfficial = (official: OfficialResponse): void => {
     setSelectedOfficialId(official.officialId);
     setEditOfficialName(official.displayName);
     setEditOfficialRoles(official.roles);
-  }
+  };
 
-  function detailsFrom(
-    rows: readonly { readonly key: string; readonly value: string }[],
-  ): Record<string, string> | undefined {
-    const entries = rows.filter((row) => row.key.trim() !== '');
-    if (entries.length === 0) return undefined;
-    return Object.fromEntries(entries.map((row) => [row.key.trim(), row.value]));
-  }
+  const toggleRole = (
+    current: readonly OfficialRole[],
+    role: OfficialRole,
+    set: (next: readonly OfficialRole[]) => void,
+  ): void => {
+    set(current.includes(role) ? current.filter((r) => r !== role) : [...current, role]);
+  };
 
   async function createVenue(): Promise<void> {
     if (!api.createVenue || newVenueName.trim() === '' || newVenueAlias.trim() === '') return;
-    const capacity = Number(newVenueCapacity);
+    const capacity = parseInt(newVenueCapacity, 10);
     try {
       await api.createVenue(organizationAlias, {
-        alias: newVenueAlias.trim(),
         name: newVenueName.trim(),
-        concurrentCapacity: Number.isFinite(capacity) ? capacity : 1,
+        alias: newVenueAlias.trim(),
+        concurrentCapacity: isNaN(capacity) ? 1 : capacity,
       });
       setNewVenueName('');
       setNewVenueAlias('');
@@ -139,30 +166,33 @@ export function VenueManagementRoute({
 
   async function saveVenue(): Promise<void> {
     if (!api.updateVenue || selectedVenueId === undefined) return;
-    const capacity = Number(editVenueCapacity);
+    const capacity = parseInt(editVenueCapacity, 10);
+    const detailsObject: Record<string, string> = {};
+    for (const entry of editVenueDetails) {
+      if (entry.key.trim() !== '') {
+        detailsObject[entry.key.trim()] = entry.value;
+      }
+    }
     try {
-      const updated = await api.updateVenue(organizationAlias, selectedVenueId, {
+      await api.updateVenue(organizationAlias, selectedVenueId, {
         name: editVenueName.trim(),
-        concurrentCapacity: Number.isFinite(capacity) ? capacity : 1,
-        ...(editVenueAddress.trim() === '' ? {} : { address: editVenueAddress.trim() }),
-        details: detailsFrom(editVenueDetails),
+        concurrentCapacity: isNaN(capacity) ? 1 : capacity,
+        address: editVenueAddress.trim() === '' ? undefined : editVenueAddress.trim(),
+        details: Object.keys(detailsObject).length > 0 ? detailsObject : undefined,
       });
       push({
         severity: 'success',
         message: intl.formatMessage(messages.resourceManagementVenueSaved),
       });
-      setVenues((current) =>
-        current.map((venue) => (venue.venueId === updated.venueId ? updated : venue)),
-      );
+      void reload();
     } catch (error) {
       pushError(error);
     }
   }
 
   async function createOfficial(): Promise<void> {
-    if (!api.createOfficial || newOfficialName.trim() === '' || newOfficialRoles.length === 0) {
+    if (!api.createOfficial || newOfficialName.trim() === '' || newOfficialRoles.length === 0)
       return;
-    }
     try {
       await api.createOfficial(organizationAlias, {
         displayName: newOfficialName.trim(),
@@ -183,7 +213,7 @@ export function VenueManagementRoute({
   async function saveOfficial(): Promise<void> {
     if (!api.updateOfficial || selectedOfficialId === undefined) return;
     try {
-      const updated = await api.updateOfficial(organizationAlias, selectedOfficialId, {
+      await api.updateOfficial(organizationAlias, selectedOfficialId, {
         displayName: editOfficialName.trim(),
         roles: editOfficialRoles,
       });
@@ -191,17 +221,13 @@ export function VenueManagementRoute({
         severity: 'success',
         message: intl.formatMessage(messages.resourceManagementOfficialSaved),
       });
-      setOfficials((current) =>
-        current.map((official) =>
-          official.officialId === updated.officialId ? updated : official,
-        ),
-      );
+      void reload();
     } catch (error) {
       pushError(error);
     }
   }
 
-  function roleLabel(role: OfficialRole): string {
+  const roleLabel = (role: OfficialRole): string => {
     switch (role) {
       case 'referee':
         return intl.formatMessage(messages.resourceManagementRoleReferee);
@@ -212,43 +238,25 @@ export function VenueManagementRoute({
       case 'observer':
         return intl.formatMessage(messages.resourceManagementRoleObserver);
     }
-  }
-
-  function toggleRole(
-    roles: readonly OfficialRole[],
-    role: OfficialRole,
-    setRoles: (roles: readonly OfficialRole[]) => void,
-  ): void {
-    setRoles(
-      roles.includes(role) ? roles.filter((candidate) => candidate !== role) : [...roles, role],
-    );
-  }
-
-  const selectedVenue = venues.find((venue) => venue.venueId === selectedVenueId);
-  const selectedOfficial = officials.find((official) => official.officialId === selectedOfficialId);
+  };
 
   if (loading) {
     return (
       <p className="cl-inline-alert">{intl.formatMessage(messages.resourceManagementLoading)}</p>
     );
   }
-  if (loadError) {
-    return (
-      <p className="cl-inline-alert" role="alert">
-        {loadError}
-      </p>
-    );
-  }
 
   const breadcrumbNode = <span>{organizationAlias}</span>;
-
   const titleNode = <FormattedMessage {...messages.resourceManagementTitle} />;
+
+  const selectedVenue = venues.find((venue) => venue.venueId === selectedVenueId);
+  const selectedOfficial = officials.find((official) => official.officialId === selectedOfficialId);
 
   const listingNode = (
     <div className="cl-platform-sections">
-      <section
+      <Card
         aria-label={intl.formatMessage(messages.resourceManagementVenuesHeading)}
-        className="cl-card cl-chamfer cl-chamfer--control"
+        className="cl-chamfer cl-chamfer--control"
       >
         <header className="cl-card__header">
           <h2 className="cl-card__title">
@@ -274,56 +282,53 @@ export function VenueManagementRoute({
 
           {api.createVenue && (
             <div className="cl-platform-form-grid">
-              <label className="cl-form-field">
-                <span className="cl-label">
-                  <FormattedMessage {...messages.resourceManagementNewVenueName} />
-                </span>
-                <input
+              <FormField
+                id="new-venue-name"
+                label={intl.formatMessage(messages.resourceManagementNewVenueName)}
+              >
+                <Input
                   aria-label={intl.formatMessage(messages.resourceManagementNewVenueName)}
-                  className="cl-input cl-input--default"
+                  id="new-venue-name"
                   onChange={(event) => setNewVenueName(event.target.value)}
-                  style={{ minWidth: 0, padding: 'var(--cl-space-2)' }}
                   value={newVenueName}
                 />
-              </label>
-              <label className="cl-form-field">
-                <span className="cl-label">
-                  <FormattedMessage {...messages.resourceManagementNewVenueAlias} />
-                </span>
-                <input
+              </FormField>
+              <FormField
+                id="new-venue-alias"
+                label={intl.formatMessage(messages.resourceManagementNewVenueAlias)}
+              >
+                <Input
                   aria-label={intl.formatMessage(messages.resourceManagementNewVenueAlias)}
-                  className="cl-input cl-input--default"
+                  id="new-venue-alias"
                   onChange={(event) => setNewVenueAlias(event.target.value)}
-                  style={{ minWidth: 0, padding: 'var(--cl-space-2)' }}
                   value={newVenueAlias}
                 />
-              </label>
-              <label className="cl-form-field">
-                <span className="cl-label">
-                  <FormattedMessage {...messages.resourceManagementNewVenueCapacity} />
-                </span>
-                <input
+              </FormField>
+              <FormField
+                id="new-venue-capacity"
+                label={intl.formatMessage(messages.resourceManagementNewVenueCapacity)}
+              >
+                <Input
                   aria-label={intl.formatMessage(messages.resourceManagementNewVenueCapacity)}
-                  className="cl-input cl-input--default"
+                  id="new-venue-capacity"
                   min={1}
                   onChange={(event) => setNewVenueCapacity(event.target.value)}
-                  style={{ minWidth: 0, padding: 'var(--cl-space-2)' }}
                   type="number"
                   value={newVenueCapacity}
                 />
-              </label>
+              </FormField>
               <Button onClick={() => void createVenue()} type="button">
                 <FormattedMessage {...messages.resourceManagementAddVenue} />
               </Button>
             </div>
           )}
         </div>
-      </section>
+      </Card>
 
       {selectedVenue && (
-        <section
+        <Card
           aria-label={intl.formatMessage(messages.resourceManagementEditVenueHeading)}
-          className="cl-card cl-chamfer cl-chamfer--control"
+          className="cl-chamfer cl-chamfer--control"
         >
           <header className="cl-card__header">
             <h2 className="cl-card__title">
@@ -332,41 +337,41 @@ export function VenueManagementRoute({
           </header>
           <div className="cl-card__content">
             <div className="cl-platform-form-grid">
-              <label className="cl-form-field">
-                <span className="cl-label">
-                  <FormattedMessage {...messages.resourceManagementVenueName} />
-                </span>
-                <input
+              <FormField
+                id="edit-venue-name"
+                label={intl.formatMessage(messages.resourceManagementVenueName)}
+              >
+                <Input
                   aria-label={intl.formatMessage(messages.resourceManagementVenueName)}
-                  className="cl-input cl-input--default"
+                  id="edit-venue-name"
                   onChange={(event) => setEditVenueName(event.target.value)}
                   value={editVenueName}
                 />
-              </label>
-              <label className="cl-form-field">
-                <span className="cl-label">
-                  <FormattedMessage {...messages.resourceManagementVenueCapacity} />
-                </span>
-                <input
+              </FormField>
+              <FormField
+                id="edit-venue-capacity"
+                label={intl.formatMessage(messages.resourceManagementVenueCapacity)}
+              >
+                <Input
                   aria-label={intl.formatMessage(messages.resourceManagementVenueCapacity)}
-                  className="cl-input cl-input--default"
+                  id="edit-venue-capacity"
                   min={1}
                   onChange={(event) => setEditVenueCapacity(event.target.value)}
                   type="number"
                   value={editVenueCapacity}
                 />
-              </label>
-              <label className="cl-form-field">
-                <span className="cl-label">
-                  <FormattedMessage {...messages.resourceManagementVenueAddress} />
-                </span>
-                <input
+              </FormField>
+              <FormField
+                id="edit-venue-address"
+                label={intl.formatMessage(messages.resourceManagementVenueAddress)}
+              >
+                <Input
                   aria-label={intl.formatMessage(messages.resourceManagementVenueAddress)}
-                  className="cl-input cl-input--default"
+                  id="edit-venue-address"
                   onChange={(event) => setEditVenueAddress(event.target.value)}
                   value={editVenueAddress}
                 />
-              </label>
+              </FormField>
             </div>
 
             <div className="cl-platform-sections">
@@ -380,9 +385,8 @@ export function VenueManagementRoute({
               </p>
               {editVenueDetails.map((row, index) => (
                 <div key={index} className="cl-role-user">
-                  <input
+                  <Input
                     aria-label={intl.formatMessage(messages.resourceManagementDetailKey)}
-                    className="cl-input cl-input--default"
                     onChange={(event) =>
                       setEditVenueDetails((current) =>
                         current.map((entry, entryIndex) =>
@@ -393,9 +397,8 @@ export function VenueManagementRoute({
                     placeholder={intl.formatMessage(messages.resourceManagementDetailKey)}
                     value={row.key}
                   />
-                  <input
+                  <Input
                     aria-label={intl.formatMessage(messages.resourceManagementDetailValue)}
-                    className="cl-input cl-input--default"
                     onChange={(event) =>
                       setEditVenueDetails((current) =>
                         current.map((entry, entryIndex) =>
@@ -434,12 +437,12 @@ export function VenueManagementRoute({
               <FormattedMessage {...messages.resourceManagementSaveVenueChanges} />
             </Button>
           </div>
-        </section>
+        </Card>
       )}
 
-      <section
+      <Card
         aria-label={intl.formatMessage(messages.resourceManagementOfficialsHeading)}
-        className="cl-card cl-chamfer cl-chamfer--control"
+        className="cl-chamfer cl-chamfer--control"
       >
         <header className="cl-card__header">
           <h2 className="cl-card__title">
@@ -467,29 +470,31 @@ export function VenueManagementRoute({
 
           {api.createOfficial && (
             <div className="cl-platform-form-grid">
-              <label className="cl-form-field">
-                <span className="cl-label">
-                  <FormattedMessage {...messages.resourceManagementNewOfficialName} />
-                </span>
-                <input
+              <FormField
+                id="new-official-name"
+                label={intl.formatMessage(messages.resourceManagementNewOfficialName)}
+              >
+                <Input
                   aria-label={intl.formatMessage(messages.resourceManagementNewOfficialName)}
-                  className="cl-input cl-input--default"
+                  id="new-official-name"
                   onChange={(event) => setNewOfficialName(event.target.value)}
                   value={newOfficialName}
                 />
-              </label>
+              </FormField>
               <fieldset className="cl-role-user">
                 <legend className="cl-label">
                   <FormattedMessage {...messages.resourceManagementOfficialRoles} />
                 </legend>
                 {OFFICIAL_ROLES.map((role) => (
-                  <label key={role} className="cl-form-field">
+                  <label key={role} className="cl-toggle cl-focusable">
                     <input
+                      aria-label={roleLabel(role)}
                       checked={newOfficialRoles.includes(role)}
+                      className="cl-checkbox cl-focusable"
                       onChange={() => toggleRole(newOfficialRoles, role, setNewOfficialRoles)}
                       type="checkbox"
                     />
-                    {roleLabel(role)}
+                    <span>{roleLabel(role)}</span>
                   </label>
                 ))}
               </fieldset>
@@ -499,12 +504,12 @@ export function VenueManagementRoute({
             </div>
           )}
         </div>
-      </section>
+      </Card>
 
       {selectedOfficial && (
-        <section
+        <Card
           aria-label={intl.formatMessage(messages.resourceManagementEditOfficialHeading)}
-          className="cl-card cl-chamfer cl-chamfer--control"
+          className="cl-chamfer cl-chamfer--control"
         >
           <header className="cl-card__header">
             <h2 className="cl-card__title">
@@ -513,29 +518,31 @@ export function VenueManagementRoute({
           </header>
           <div className="cl-card__content">
             <div className="cl-platform-form-grid">
-              <label className="cl-form-field">
-                <span className="cl-label">
-                  <FormattedMessage {...messages.resourceManagementOfficialName} />
-                </span>
-                <input
+              <FormField
+                id="edit-official-name"
+                label={intl.formatMessage(messages.resourceManagementOfficialName)}
+              >
+                <Input
                   aria-label={intl.formatMessage(messages.resourceManagementOfficialName)}
-                  className="cl-input cl-input--default"
+                  id="edit-official-name"
                   onChange={(event) => setEditOfficialName(event.target.value)}
                   value={editOfficialName}
                 />
-              </label>
+              </FormField>
               <fieldset className="cl-role-user">
                 <legend className="cl-label">
                   <FormattedMessage {...messages.resourceManagementOfficialRoles} />
                 </legend>
                 {OFFICIAL_ROLES.map((role) => (
-                  <label key={role} className="cl-form-field">
+                  <label key={role} className="cl-toggle cl-focusable">
                     <input
+                      aria-label={roleLabel(role)}
                       checked={editOfficialRoles.includes(role)}
+                      className="cl-checkbox cl-focusable"
                       onChange={() => toggleRole(editOfficialRoles, role, setEditOfficialRoles)}
                       type="checkbox"
                     />
-                    {roleLabel(role)}
+                    <span>{roleLabel(role)}</span>
                   </label>
                 ))}
               </fieldset>
@@ -544,7 +551,7 @@ export function VenueManagementRoute({
               </Button>
             </div>
           </div>
-        </section>
+        </Card>
       )}
     </div>
   );

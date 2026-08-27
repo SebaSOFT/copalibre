@@ -1,9 +1,12 @@
 import { useState } from 'react';
-import { defineMessages, FormattedMessage } from 'react-intl';
+import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
 import { beginOidcLogin } from '../session/oidc-login.js';
 import { navigateControl } from '../lib/control-navigation.js';
 import { controlApiErrorFromResponse } from '../lib/api-client.js';
 import { controlTokenStore } from '../session/token-store.js';
+import { Button } from './ui/atoms/button.js';
+import { Input } from './ui/atoms/input.js';
+import { FormField } from './ui/molecules/form-field.js';
 import { useToast } from './ToastProvider.js';
 
 const messages = defineMessages({
@@ -25,6 +28,7 @@ const messages = defineMessages({
 });
 
 export function LoginRoute(): React.JSX.Element {
+  const intl = useIntl();
   const { pushError } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -70,35 +74,27 @@ export function LoginRoute(): React.JSX.Element {
         onSubmit={handleLogin}
         style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '2rem' }}
       >
-        <div>
-          <label htmlFor="login-email" style={{ display: 'block', marginBottom: '0.5rem' }}>
-            <FormattedMessage {...messages.emailLabel} />
-          </label>
-          <input
+        <FormField id="login-email" label={intl.formatMessage(messages.emailLabel)}>
+          <Input
             id="login-email"
-            type="email"
-            value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            style={inputStyle}
+            type="email"
+            value={email}
           />
-        </div>
-        <div>
-          <label htmlFor="login-password" style={{ display: 'block', marginBottom: '0.5rem' }}>
-            <FormattedMessage {...messages.passwordLabel} />
-          </label>
-          <input
+        </FormField>
+        <FormField id="login-password" label={intl.formatMessage(messages.passwordLabel)}>
+          <Input
             id="login-password"
-            type="password"
-            value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            style={inputStyle}
+            type="password"
+            value={password}
           />
-        </div>
-        <button type="submit" disabled={loading} style={primaryButtonStyle}>
+        </FormField>
+        <Button disabled={loading} type="submit">
           <FormattedMessage {...messages.loginSubmit} />
-        </button>
+        </Button>
       </form>
       <div style={{ marginTop: '1rem' }}>
         <a
@@ -116,14 +112,15 @@ export function LoginRoute(): React.JSX.Element {
         style={{ margin: '2rem 0', border: 'none', borderTop: '1px solid var(--cl-border-base)' }}
       />
 
-      <button onClick={() => beginOidcLogin()} type="button" style={secondaryButtonStyle}>
+      <Button onClick={() => beginOidcLogin()} type="button" variant="secondary">
         <FormattedMessage {...messages.oidcButton} />
-      </button>
+      </Button>
     </AuthLayout>
   );
 }
 
 export function ForgotPasswordRoute(): React.JSX.Element {
+  const intl = useIntl();
   const { push, pushError } = useToast();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -156,22 +153,18 @@ export function ForgotPasswordRoute(): React.JSX.Element {
         onSubmit={handleSubmit}
         style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '2rem' }}
       >
-        <div>
-          <label htmlFor="forgot-email" style={{ display: 'block', marginBottom: '0.5rem' }}>
-            <FormattedMessage {...messages.emailLabel} />
-          </label>
-          <input
+        <FormField id="forgot-email" label={intl.formatMessage(messages.emailLabel)}>
+          <Input
             id="forgot-email"
-            type="email"
-            value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            style={inputStyle}
+            type="email"
+            value={email}
           />
-        </div>
-        <button type="submit" disabled={loading} style={primaryButtonStyle}>
+        </FormField>
+        <Button disabled={loading} type="submit">
           <FormattedMessage {...messages.forgotSubmit} />
-        </button>
+        </Button>
       </form>
       <div style={{ marginTop: '2rem' }}>
         <a
@@ -189,6 +182,7 @@ export function ForgotPasswordRoute(): React.JSX.Element {
 }
 
 export function ResetPasswordRoute(): React.JSX.Element {
+  const intl = useIntl();
   const { push, pushError } = useToast();
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -246,25 +240,24 @@ export function ResetPasswordRoute(): React.JSX.Element {
         onSubmit={handleSubmit}
         style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '2rem' }}
       >
-        <div>
-          <label htmlFor="reset-password" style={{ display: 'block', marginBottom: '0.5rem' }}>
-            <FormattedMessage {...messages.passwordLabel} /> (min 8 char)
-          </label>
-          <input
+        <FormField
+          id="reset-password"
+          label={`${intl.formatMessage(messages.passwordLabel)} (min 8 char)`}
+        >
+          <Input
+            disabled={success}
             id="reset-password"
+            minLength={8}
+            onChange={(e) => setPassword(e.target.value)}
+            required
             type="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            minLength={8}
-            required
-            style={inputStyle}
-            disabled={success}
           />
-        </div>
+        </FormField>
         {!success && (
-          <button type="submit" disabled={loading} style={primaryButtonStyle}>
+          <Button disabled={loading} type="submit">
             <FormattedMessage {...messages.resetSubmit} />
-          </button>
+          </Button>
         )}
       </form>
       {success && (
@@ -300,11 +293,11 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
     >
       <header style={{ display: 'flex', alignItems: 'center', gap: 'var(--cl-space-3)' }}>
         <img
-          src="/copalibre-logo.svg"
           alt=""
-          width="44"
           height="44"
+          src="/copalibre-logo.svg"
           style={{ border: '1px solid var(--cl-state-live)', padding: '4px' }}
+          width="44"
         />
         <div style={{ display: 'grid', gap: '2px' }}>
           <strong
@@ -340,31 +333,3 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
     </main>
   );
 }
-
-const inputStyle = {
-  width: '100%',
-  padding: '0.75rem',
-  border: '1px solid var(--cl-border-base)',
-  borderRadius: '4px',
-  fontFamily: 'inherit',
-};
-
-const primaryButtonStyle = {
-  minHeight: '48px',
-  border: '1px solid var(--cl-state-live)',
-  borderRadius: '4px',
-  padding: 'var(--cl-space-3) var(--cl-space-5)',
-  background: 'var(--cl-state-live)',
-  color: 'var(--cl-surface-base)',
-  fontFamily: 'var(--cl-font-body)',
-  fontSize: 'var(--cl-font-size-sm)',
-  fontWeight: 700,
-  cursor: 'pointer',
-  marginTop: '1rem',
-};
-
-const secondaryButtonStyle = {
-  ...primaryButtonStyle,
-  background: 'transparent',
-  color: 'var(--cl-text-primary)',
-};

@@ -11,6 +11,7 @@ import { LanguageSwitcher } from '../i18n/LanguageSwitcher.js';
 import { messages } from '../i18n/messages.en.js';
 import { controlLinkClick } from '../lib/control-navigation.js';
 import { controlTokenStore } from '../session/token-store.js';
+import { Button } from './ui/atoms/button.js';
 import {
   writeStoredLanguagePreference,
   type SupportedLanguage,
@@ -137,7 +138,7 @@ function DashboardBody({
           ))}
         </ul>
         <LanguageSwitcher onChange={onLocaleChange} value={locale} />
-        <button
+        <Button
           onClick={() => {
             controlTokenStore.clear();
             // A real navigation: /control/ (login) is a separate page from
@@ -146,9 +147,10 @@ function DashboardBody({
             window.location.assign('/control/');
           }}
           type="button"
+          variant="secondary"
         >
           <FormattedMessage {...messages.shellLogout} />
-        </button>
+        </Button>
       </nav>
 
       <main>
@@ -162,23 +164,43 @@ function DashboardBody({
           {visibleTournaments.map((card) => (
             <div key={card.tournamentId}>
               <TournamentCard card={card} />
-              <p>
-                <button onClick={() => download(card.alias, 'participants/team')} type="button">
+              <p style={{ display: 'flex', gap: 'var(--cl-space-2)', flexWrap: 'wrap' }}>
+                <Button
+                  onClick={() => download(card.alias, 'participants/team')}
+                  type="button"
+                  variant="secondary"
+                >
                   <FormattedMessage {...messages.dashboardParticipantsCsv} />
-                </button>
-                <button onClick={() => download(card.alias, 'results')} type="button">
+                </Button>
+                <Button
+                  onClick={() => download(card.alias, 'results')}
+                  type="button"
+                  variant="secondary"
+                >
                   <FormattedMessage {...messages.dashboardResultsCsv} />
-                </button>
-                <button onClick={() => download(card.alias, 'standings')} type="button">
+                </Button>
+                <Button
+                  onClick={() => download(card.alias, 'standings')}
+                  type="button"
+                  variant="secondary"
+                >
                   <FormattedMessage {...messages.dashboardStandingsCsv} />
-                </button>
-                <button onClick={() => downloadConfiguration(card.alias)} type="button">
+                </Button>
+                <Button
+                  onClick={() => downloadConfiguration(card.alias)}
+                  type="button"
+                  variant="secondary"
+                >
                   <FormattedMessage {...messages.dashboardConfigurationJson} />
-                </button>
+                </Button>
                 {card.lifecycle === 'finished' && (
-                  <button onClick={() => archive(card.alias)} type="button">
+                  <Button
+                    onClick={() => archive(card.alias)}
+                    type="button"
+                    variant="destructive-outline"
+                  >
                     <FormattedMessage {...messages.dashboardArchive} />
-                  </button>
+                  </Button>
                 )}
               </p>
             </div>

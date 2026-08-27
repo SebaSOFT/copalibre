@@ -11,6 +11,9 @@ import { FramedImage } from './FramedImage.js';
 import { ImageCropModal } from './ImageCropModal.js';
 import { ClubEmblemPlaceholder } from './placeholders.js';
 import { Button } from './ui/atoms/button.js';
+import { Card } from './ui/atoms/card.js';
+import { Input } from './ui/atoms/input.js';
+import { FormField } from './ui/molecules/form-field.js';
 import { messages } from '../i18n/messages.en.js';
 import { useToast } from './ToastProvider.js';
 
@@ -42,40 +45,37 @@ export function ClubManagementRoute({
   );
 
   const [clubs, setClubs] = useState<readonly ClubResponse[]>([]);
+  const [selectedClubId, setSelectedClubId] = useState<string>();
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | undefined>(undefined);
+  const [loadError, setLoadError] = useState<string>();
 
   const [newName, setNewName] = useState('');
   const [newAlias, setNewAlias] = useState('');
   const [newAbbreviation, setNewAbbreviation] = useState('');
 
-  const [selectedClubId, setSelectedClubId] = useState<string | undefined>(undefined);
   const [editName, setEditName] = useState('');
   const [editAlias, setEditAlias] = useState('');
   const [editAbbreviation, setEditAbbreviation] = useState('');
-  const [emblemCropSrc, setEmblemCropSrc] = useState<string | undefined>(undefined);
+  const [emblemCropSrc, setEmblemCropSrc] = useState<string>();
 
   const reload = useCallback(async (): Promise<void> => {
-    setLoading(true);
     try {
-      const loaded = (await api.listClubs?.(organizationAlias)) ?? [];
+      const loaded = await (api.listClubs?.(organizationAlias) ?? Promise.resolve([]));
       setClubs(loaded);
       setLoadError(undefined);
     } catch {
       setLoadError(intl.formatMessage(messages.clubManagementLoadFailed));
-    } finally {
-      setLoading(false);
     }
-  }, [api, organizationAlias, intl]);
+  }, [api, intl, organizationAlias]);
 
   useEffect(() => {
     let live = true;
-    const listClubs = api.listClubs;
-    (listClubs ? listClubs(organizationAlias) : Promise.resolve([]))
+    (api.listClubs?.(organizationAlias) ?? Promise.resolve([]))
       .then((loaded) => {
-        if (!live) return;
-        setClubs(loaded);
-        setLoadError(undefined);
+        if (live) {
+          setClubs(loaded);
+          setLoadError(undefined);
+        }
       })
       .catch(() => {
         if (live) setLoadError(intl.formatMessage(messages.clubManagementLoadFailed));
@@ -86,14 +86,14 @@ export function ClubManagementRoute({
     return () => {
       live = false;
     };
-  }, [api, organizationAlias, intl]);
+  }, [api, intl, organizationAlias]);
 
-  function selectClub(club: ClubResponse): void {
+  const selectClub = (club: ClubResponse): void => {
     setSelectedClubId(club.clubId);
     setEditName(club.name);
     setEditAlias(club.alias ?? '');
     setEditAbbreviation(club.abbreviation ?? '');
-  }
+  };
 
   async function createClub(): Promise<void> {
     if (!api.createClub || newName.trim() === '') return;
@@ -106,7 +106,10 @@ export function ClubManagementRoute({
       setNewName('');
       setNewAlias('');
       setNewAbbreviation('');
-      push({ severity: 'success', message: intl.formatMessage(messages.clubManagementCreated) });
+      push({
+        severity: 'success',
+        message: intl.formatMessage(messages.clubManagementCreated),
+      });
       void reload();
     } catch (error) {
       pushError(error);
@@ -121,7 +124,10 @@ export function ClubManagementRoute({
         alias: editAlias.trim(),
         ...(editAbbreviation.trim() === '' ? {} : { abbreviation: editAbbreviation.trim() }),
       });
-      push({ severity: 'success', message: intl.formatMessage(messages.clubManagementSaved) });
+      push({
+        severity: 'success',
+        message: intl.formatMessage(messages.clubManagementSaved),
+      });
       setClubs((current) =>
         current.map((club) => (club.clubId === updated.clubId ? updated : club)),
       );
@@ -130,7 +136,7 @@ export function ClubManagementRoute({
     }
   }
 
-  async function uploadEmblem(output: {
+  async function uploadClubEmblem(output: {
     contentBase64: string;
     contentType: 'image/png';
   }): Promise<void> {
@@ -168,9 +174,9 @@ export function ClubManagementRoute({
 
   const listingNode = (
     <div className="cl-platform-sections">
-      <section
+      <Card
         aria-label={intl.formatMessage(messages.clubManagementTitle)}
-        className="cl-card cl-chamfer cl-chamfer--control"
+        className="cl-chamfer cl-chamfer--control"
       >
         <ul>
           {clubs.map((club) => (
@@ -205,50 +211,50 @@ export function ClubManagementRoute({
 
         {api.createClub && (
           <div className="cl-platform-form-grid">
-            <label className="cl-form-field">
-              <span className="cl-label">
-                <FormattedMessage {...messages.clubManagementNewClubName} />
-              </span>
-              <input
+            <FormField
+              id="new-club-name"
+              label={intl.formatMessage(messages.clubManagementNewClubName)}
+            >
+              <Input
                 aria-label={intl.formatMessage(messages.clubManagementNewClubName)}
-                className="cl-input cl-input--default"
+                id="new-club-name"
                 onChange={(event) => setNewName(event.target.value)}
                 value={newName}
               />
-            </label>
-            <label className="cl-form-field">
-              <span className="cl-label">
-                <FormattedMessage {...messages.clubManagementNewClubAlias} />
-              </span>
-              <input
+            </FormField>
+            <FormField
+              id="new-club-alias"
+              label={intl.formatMessage(messages.clubManagementNewClubAlias)}
+            >
+              <Input
                 aria-label={intl.formatMessage(messages.clubManagementNewClubAlias)}
-                className="cl-input cl-input--default"
+                id="new-club-alias"
                 onChange={(event) => setNewAlias(event.target.value)}
                 value={newAlias}
               />
-            </label>
-            <label className="cl-form-field">
-              <span className="cl-label">
-                <FormattedMessage {...messages.clubManagementNewClubAbbreviation} />
-              </span>
-              <input
+            </FormField>
+            <FormField
+              id="new-club-abbreviation"
+              label={intl.formatMessage(messages.clubManagementNewClubAbbreviation)}
+            >
+              <Input
                 aria-label={intl.formatMessage(messages.clubManagementNewClubAbbreviation)}
-                className="cl-input cl-input--default"
+                id="new-club-abbreviation"
                 onChange={(event) => setNewAbbreviation(event.target.value)}
                 value={newAbbreviation}
               />
-            </label>
+            </FormField>
             <Button onClick={() => void createClub()} type="button">
               <FormattedMessage {...messages.clubManagementAddClub} />
             </Button>
           </div>
         )}
-      </section>
+      </Card>
 
       {selectedClub && (
-        <section
+        <Card
           aria-label={intl.formatMessage(messages.clubManagementEditHeading)}
-          className="cl-card cl-chamfer cl-chamfer--control"
+          className="cl-chamfer cl-chamfer--control"
         >
           <header className="cl-card__header">
             <h2 className="cl-card__title">
@@ -277,14 +283,15 @@ export function ClubManagementRoute({
             />
 
             {api.uploadClubEmblem && (
-              <label className="cl-form-field">
-                <span className="cl-label">
-                  <FormattedMessage {...messages.clubManagementUploadEmblem} />
-                </span>
+              <FormField
+                id="edit-club-emblem"
+                label={intl.formatMessage(messages.clubManagementUploadEmblem)}
+              >
                 <input
                   accept="image/*"
                   aria-label={intl.formatMessage(messages.clubManagementUploadEmblem)}
-                  className="cl-input cl-input--default"
+                  className="cl-input cl-input--default cl-focusable"
+                  id="edit-club-emblem"
                   onChange={(event) => {
                     const file = event.currentTarget.files?.[0];
                     if (file) setEmblemCropSrc(URL.createObjectURL(file));
@@ -292,49 +299,49 @@ export function ClubManagementRoute({
                   }}
                   type="file"
                 />
-              </label>
+              </FormField>
             )}
 
             <div className="cl-platform-form-grid">
-              <label className="cl-form-field">
-                <span className="cl-label">
-                  <FormattedMessage {...messages.clubManagementName} />
-                </span>
-                <input
+              <FormField
+                id="edit-club-name"
+                label={intl.formatMessage(messages.clubManagementName)}
+              >
+                <Input
                   aria-label={intl.formatMessage(messages.clubManagementName)}
-                  className="cl-input cl-input--default"
+                  id="edit-club-name"
                   onChange={(event) => setEditName(event.target.value)}
                   value={editName}
                 />
-              </label>
-              <label className="cl-form-field">
-                <span className="cl-label">
-                  <FormattedMessage {...messages.clubManagementAlias} />
-                </span>
-                <input
+              </FormField>
+              <FormField
+                id="edit-club-alias"
+                label={intl.formatMessage(messages.clubManagementAlias)}
+              >
+                <Input
                   aria-label={intl.formatMessage(messages.clubManagementAlias)}
-                  className="cl-input cl-input--default"
+                  id="edit-club-alias"
                   onChange={(event) => setEditAlias(event.target.value)}
                   value={editAlias}
                 />
-              </label>
-              <label className="cl-form-field">
-                <span className="cl-label">
-                  <FormattedMessage {...messages.clubManagementAbbreviation} />
-                </span>
-                <input
+              </FormField>
+              <FormField
+                id="edit-club-abbreviation"
+                label={intl.formatMessage(messages.clubManagementAbbreviation)}
+              >
+                <Input
                   aria-label={intl.formatMessage(messages.clubManagementAbbreviation)}
-                  className="cl-input cl-input--default"
+                  id="edit-club-abbreviation"
                   onChange={(event) => setEditAbbreviation(event.target.value)}
                   value={editAbbreviation}
                 />
-              </label>
+              </FormField>
               <Button onClick={() => void saveClub()} type="button">
                 <FormattedMessage {...messages.clubManagementSaveChanges} />
               </Button>
             </div>
           </div>
-        </section>
+        </Card>
       )}
 
       {emblemCropSrc !== undefined && (
@@ -347,7 +354,7 @@ export function ClubManagementRoute({
           onConfirm={(output) => {
             URL.revokeObjectURL(emblemCropSrc);
             setEmblemCropSrc(undefined);
-            void uploadEmblem(output);
+            void uploadClubEmblem(output);
           }}
         />
       )}

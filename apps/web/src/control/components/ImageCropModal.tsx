@@ -7,6 +7,7 @@ import { cropToPng, type CropArea } from '../lib/image-upload.js';
 import { messages } from '../i18n/messages.en.js';
 import { Modal } from './ui/organisms/modal.js';
 import { Button } from './ui/atoms/button.js';
+import { Input } from './ui/atoms/input.js';
 import { FormField } from './ui/molecules/form-field.js';
 
 /**
@@ -88,8 +89,7 @@ export function ImageCropModal({
 
       <div style={controlsStyle}>
         <FormField id="crop-zoom" label={intl.formatMessage(messages.imageCropModalZoom)}>
-          <input
-            className="cl-input cl-input--default cl-focusable"
+          <Input
             id="crop-zoom"
             max={3}
             min={1}
@@ -100,8 +100,7 @@ export function ImageCropModal({
           />
         </FormField>
         <FormField id="crop-rotation" label={intl.formatMessage(messages.imageCropModalRotation)}>
-          <input
-            className="cl-input cl-input--default cl-focusable"
+          <Input
             id="crop-rotation"
             max={360}
             min={0}
