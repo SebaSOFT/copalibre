@@ -187,6 +187,37 @@ describe('the tournament setup wizard screen', () => {
       },
     ]);
   });
+
+  it('associates labels with inputs, updates progress, and disables continue on invalid input', () => {
+    render(withIntl(<TournamentSetupWizard disciplines={sampleDisciplines()} />));
+
+    const progressTile = screen.getByTestId('wizard-progress');
+    expect(progressTile.textContent).toContain('20%');
+
+    const nameInput = screen.getByLabelText('Name') as HTMLInputElement;
+    const aliasInput = screen.getByLabelText('Alias') as HTMLInputElement;
+    expect(nameInput.id).toBe('wizard-name');
+    expect(aliasInput.id).toBe('wizard-alias');
+
+    const continueBtn = screen.getByRole('button', { name: 'Continue' }) as HTMLButtonElement;
+    expect(continueBtn.disabled).toBe(true);
+
+    fireEvent.change(nameInput, { target: { value: 'Liga San Rafael' } });
+    fireEvent.change(aliasInput, { target: { value: 'INVALID ALIAS' } });
+    expect(continueBtn.disabled).toBe(true);
+
+    fireEvent.change(aliasInput, { target: { value: 'liga-san-rafael' } });
+    expect(continueBtn.disabled).toBe(false);
+
+    fireEvent.click(continueBtn);
+    expect(progressTile.textContent).toContain('40%');
+    expect((screen.getByLabelText('Discipline') as HTMLSelectElement).id).toBe('wizard-discipline');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    expect(progressTile.textContent).toContain('20%');
+    expect(screen.getByLabelText('Name')).toBeDefined();
+    expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe('Liga San Rafael');
+  });
 });
 
 describe('wizard state transitions and validators', () => {

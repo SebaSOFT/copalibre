@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { Button } from './ui/atoms/button.js';
 import { Card } from './ui/atoms/card.js';
+import { Input } from './ui/atoms/input.js';
+import { Textarea } from './ui/atoms/textarea.js';
+import { FormField } from './ui/molecules/form-field.js';
 import {
   WIZARD_STEPS,
   addCustomRule,
@@ -97,13 +100,13 @@ export function TournamentSetupWizard({
   }
 
   return (
-    <section aria-label={intl.formatMessage(messages.wizardTitle)} style={stackStyle}>
-      <header style={headerStyle}>
+    <section aria-label={intl.formatMessage(messages.wizardTitle)} className="cl-form-screen">
+      <header className="cl-form-screen__header">
         <div>
-          <p style={metaStyle}>
+          <p className="cl-form-screen__breadcrumb">
             <FormattedMessage {...messages.wizardBreadcrumb} />
           </p>
-          <h1 style={titleStyle}>
+          <h1 className="cl-form-screen__title">
             <FormattedMessage {...messages.wizardTitle} />
           </h1>
         </div>
@@ -115,15 +118,51 @@ export function TournamentSetupWizard({
         </div>
       </header>
 
-      <Card style={{ minWidth: 0, maxWidth: '100%', overflow: 'hidden' }}>
-        <ol aria-label={intl.formatMessage(messages.wizardSteps)} style={stepperStyle}>
+      <Card
+        className="cl-chamfer cl-chamfer--control"
+        style={{ minWidth: 0, maxWidth: '100%', overflow: 'hidden' }}
+      >
+        <ol
+          aria-label={intl.formatMessage(messages.wizardSteps)}
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(5, minmax(8rem, 1fr))',
+            gap: 'var(--cl-space-3)',
+            listStyle: 'none',
+            padding: 0,
+            margin: 0,
+            width: '100%',
+            maxWidth: '100%',
+            overflowX: 'auto',
+            scrollbarGutter: 'stable',
+          }}
+        >
           {WIZARD_STEPS.map((step, index) => (
-            <li key={step.id} style={stepStyle}>
+            <li
+              key={step.id}
+              style={{
+                display: 'grid',
+                gap: 'var(--cl-space-2)',
+                justifyItems: 'center',
+                color: 'var(--cl-text-secondary)',
+                fontFamily: 'var(--cl-font-mono)',
+                textTransform: 'uppercase',
+                fontSize: 'var(--cl-font-size-xs)',
+              }}
+            >
               <span
                 aria-current={step.id === state.step ? 'step' : undefined}
                 style={{
-                  ...stepNumberStyle,
-                  ...(step.id === state.step ? stepNumberActiveStyle : {}),
+                  display: 'grid',
+                  placeItems: 'center',
+                  width: 32,
+                  height: 32,
+                  borderWidth: 2,
+                  borderStyle: 'solid',
+                  borderColor:
+                    step.id === state.step ? 'var(--cl-state-live)' : 'var(--cl-border-muted)',
+                  background: step.id === state.step ? 'var(--cl-state-live)' : 'transparent',
+                  color: step.id === state.step ? 'var(--cl-surface-base)' : 'inherit',
                 }}
               >
                 {index + 1}
@@ -134,35 +173,34 @@ export function TournamentSetupWizard({
         </ol>
       </Card>
 
-      <Card>
+      <Card className="cl-chamfer cl-chamfer--control">
         {state.step === 'name' && (
-          <div style={formGridStyle}>
-            <Field label={intl.formatMessage(messages.wizardFieldName)}>
-              <input
-                aria-label={intl.formatMessage(messages.wizardFieldName)}
-                className="cl-focusable"
+          <div className="cl-platform-form-grid">
+            <FormField id="wizard-name" label={intl.formatMessage(messages.wizardFieldName)}>
+              <Input
+                id="wizard-name"
                 onChange={(event) => patch({ name: event.target.value })}
-                style={fieldStyle}
                 value={state.name ?? ''}
               />
-            </Field>
-            <Field label={intl.formatMessage(messages.wizardFieldAlias)}>
-              <input
-                aria-label={intl.formatMessage(messages.wizardFieldAlias)}
-                className="cl-focusable"
+            </FormField>
+            <FormField id="wizard-alias" label={intl.formatMessage(messages.wizardFieldAlias)}>
+              <Input
+                id="wizard-alias"
                 onChange={(event) => patch({ alias: event.target.value })}
-                style={fieldStyle}
                 value={state.alias ?? ''}
               />
-            </Field>
+            </FormField>
           </div>
         )}
 
         {state.step === 'discipline' && (
-          <Field label={intl.formatMessage(messages.wizardFieldDiscipline)}>
+          <FormField
+            id="wizard-discipline"
+            label={intl.formatMessage(messages.wizardFieldDiscipline)}
+          >
             <select
-              aria-label={intl.formatMessage(messages.wizardFieldDiscipline)}
-              className="cl-focusable"
+              className="cl-select cl-select--default cl-focusable"
+              id="wizard-discipline"
               onChange={(event) => {
                 const discipline = disciplines.find(
                   (one) => one.descriptorId === event.target.value,
@@ -175,7 +213,6 @@ export function TournamentSetupWizard({
                   profileVersion: undefined,
                 });
               }}
-              style={fieldStyle}
               value={state.descriptorId ?? ''}
             >
               {disciplines.map((discipline) => (
@@ -188,15 +225,15 @@ export function TournamentSetupWizard({
                 </option>
               ))}
             </select>
-          </Field>
+          </FormField>
         )}
 
         {state.step === 'format' && (
-          <div style={formGridStyle}>
-            <Field label={intl.formatMessage(messages.wizardFieldFormat)}>
+          <div className="cl-platform-form-grid">
+            <FormField id="wizard-format" label={intl.formatMessage(messages.wizardFieldFormat)}>
               <select
-                aria-label={intl.formatMessage(messages.wizardFieldFormat)}
-                className="cl-focusable"
+                className="cl-select cl-select--default cl-focusable"
+                id="wizard-format"
                 onChange={(event) =>
                   patch({
                     format: event.target.value,
@@ -204,7 +241,6 @@ export function TournamentSetupWizard({
                     profileVersion: undefined,
                   })
                 }
-                style={fieldStyle}
                 value={state.format ?? ''}
               >
                 {formats.map((format) => (
@@ -213,13 +249,16 @@ export function TournamentSetupWizard({
                   </option>
                 ))}
               </select>
-            </Field>
+            </FormField>
 
             {profiles.length > 0 && (
-              <Field label={intl.formatMessage(messages.wizardFieldProfile)}>
+              <FormField
+                id="wizard-profile"
+                label={intl.formatMessage(messages.wizardFieldProfile)}
+              >
                 <select
-                  aria-label={intl.formatMessage(messages.wizardFieldProfile)}
-                  className="cl-focusable"
+                  className="cl-select cl-select--default cl-focusable"
+                  id="wizard-profile"
                   onChange={(event) => {
                     const selectedProfile = profiles.find(
                       (p) => p.profileId === event.target.value,
@@ -229,7 +268,6 @@ export function TournamentSetupWizard({
                       profileVersion: selectedProfile?.version,
                     });
                   }}
-                  style={fieldStyle}
                   value={state.profileId ?? ''}
                 >
                   <option value="">{intl.formatMessage(messages.wizardProfileNone)}</option>
@@ -240,87 +278,119 @@ export function TournamentSetupWizard({
                     </option>
                   ))}
                 </select>
-              </Field>
+              </FormField>
             )}
           </div>
         )}
 
         {state.step === 'window' && (
-          <div style={formGridStyle}>
-            <Field label={intl.formatMessage(messages.wizardFieldRegion)}>
-              <input
-                aria-label={intl.formatMessage(messages.wizardFieldRegion)}
-                className="cl-focusable"
+          <div className="cl-platform-form-grid">
+            <FormField id="wizard-region" label={intl.formatMessage(messages.wizardFieldRegion)}>
+              <Input
+                id="wizard-region"
                 onChange={(event) => patch({ region: event.target.value })}
-                style={fieldStyle}
                 value={state.region ?? ''}
               />
-            </Field>
-            <Field label={intl.formatMessage(messages.wizardFieldCapacity)}>
-              <input
-                aria-label={intl.formatMessage(messages.wizardFieldCapacity)}
-                className="cl-focusable"
+            </FormField>
+            <FormField
+              id="wizard-capacity"
+              label={intl.formatMessage(messages.wizardFieldCapacity)}
+            >
+              <Input
+                id="wizard-capacity"
                 min={2}
                 onChange={(event) =>
                   patch({
                     capacity: event.target.value === '' ? undefined : Number(event.target.value),
                   })
                 }
-                style={fieldStyle}
                 type="number"
                 value={state.capacity ?? ''}
               />
-            </Field>
-            <label style={toggleStyle}>
+            </FormField>
+            <label
+              className="cl-toggle cl-focusable"
+              htmlFor="wizard-public-registration"
+              style={{ display: 'flex', alignItems: 'center', gap: 'var(--cl-space-2)' }}
+            >
               <input
                 checked={state.publicRegistration}
+                className="cl-checkbox cl-focusable"
+                id="wizard-public-registration"
                 onChange={(event) => patch({ publicRegistration: event.target.checked })}
                 type="checkbox"
               />
-              <FormattedMessage {...messages.wizardPublicRegistration} />
+              <span>
+                <FormattedMessage {...messages.wizardPublicRegistration} />
+              </span>
             </label>
-            <label style={toggleStyle}>
+            <label
+              className="cl-toggle cl-focusable"
+              htmlFor="wizard-requires-check-in"
+              style={{ display: 'flex', alignItems: 'center', gap: 'var(--cl-space-2)' }}
+            >
               <input
                 checked={state.requiresCheckIn}
+                className="cl-checkbox cl-focusable"
+                id="wizard-requires-check-in"
                 onChange={(event) => patch({ requiresCheckIn: event.target.checked })}
                 type="checkbox"
               />
-              <FormattedMessage {...messages.wizardRequiresCheckIn} />
+              <span>
+                <FormattedMessage {...messages.wizardRequiresCheckIn} />
+              </span>
             </label>
             {state.requiresCheckIn && (
-              <Field label={intl.formatMessage(messages.wizardFieldCheckInClosesAt)}>
-                <input
-                  aria-label={intl.formatMessage(messages.wizardFieldCheckInClosesAt)}
-                  className="cl-focusable"
+              <FormField
+                id="wizard-check-in-closes-at"
+                label={intl.formatMessage(messages.wizardFieldCheckInClosesAt)}
+              >
+                <Input
+                  id="wizard-check-in-closes-at"
                   onChange={(event) => patch({ checkInClosesAt: event.target.value })}
-                  style={fieldStyle}
                   type="datetime-local"
                   value={state.checkInClosesAt ?? ''}
                 />
-              </Field>
+              </FormField>
             )}
           </div>
         )}
 
         {state.step === 'rules' && (
-          <div style={ruleStackStyle}>
-            <label style={toggleStyle}>
+          <div style={{ display: 'grid', gap: 'var(--cl-space-4)' }}>
+            <label
+              className="cl-toggle cl-focusable"
+              htmlFor="wizard-enable-custom-rule"
+              style={{ display: 'flex', alignItems: 'center', gap: 'var(--cl-space-2)' }}
+            >
               <input
                 checked={state.customRuleEnabled}
+                className="cl-checkbox cl-focusable"
+                id="wizard-enable-custom-rule"
                 onChange={(event) => patch({ customRuleEnabled: event.target.checked })}
                 type="checkbox"
               />
-              <FormattedMessage {...messages.wizardEnableCustomRule} />
+              <span>
+                <FormattedMessage {...messages.wizardEnableCustomRule} />
+              </span>
             </label>
             {state.customRuleEnabled && (
               <>
-                <p style={ruleHelpStyle}>
+                <p style={{ margin: 0, color: 'var(--cl-text-secondary)' }}>
                   <FormattedMessage {...messages.wizardRuleHookHelp} />
                 </p>
                 {state.customRules.length > 0 && (
-                  <ol style={ruleStackStyle}>
+                  <ol style={{ display: 'grid', gap: 'var(--cl-space-4)' }}>
                     {state.customRules.map((rule, index) => (
-                      <li key={`${rule.actionType}-${index}`} style={savedRuleStyle}>
+                      <li
+                        key={`${rule.actionType}-${index}`}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: 'var(--cl-space-3)',
+                        }}
+                      >
                         <span>
                           {index + 1}. {rule.conditionType ?? 'always'} → {rule.actionType}
                         </span>
@@ -335,15 +405,17 @@ export function TournamentSetupWizard({
                     ))}
                   </ol>
                 )}
-                <div style={formGridStyle}>
-                  <Field label={intl.formatMessage(messages.wizardRuleCondition)}>
+                <div className="cl-platform-form-grid">
+                  <FormField
+                    id="wizard-rule-condition"
+                    label={intl.formatMessage(messages.wizardRuleCondition)}
+                  >
                     <select
-                      aria-label={intl.formatMessage(messages.wizardRuleCondition)}
-                      className="cl-focusable"
+                      className="cl-select cl-select--default cl-focusable"
+                      id="wizard-rule-condition"
                       onChange={(event) =>
                         patch({ customRuleConditionType: event.target.value || undefined })
                       }
-                      style={fieldStyle}
                       value={state.customRuleConditionType ?? ''}
                     >
                       <option value="">
@@ -355,15 +427,17 @@ export function TournamentSetupWizard({
                         </option>
                       ))}
                     </select>
-                  </Field>
-                  <Field label={intl.formatMessage(messages.wizardRuleAction)}>
+                  </FormField>
+                  <FormField
+                    id="wizard-rule-action"
+                    label={intl.formatMessage(messages.wizardRuleAction)}
+                  >
                     <select
-                      aria-label={intl.formatMessage(messages.wizardRuleAction)}
-                      className="cl-focusable"
+                      className="cl-select cl-select--default cl-focusable"
+                      id="wizard-rule-action"
                       onChange={(event) =>
                         patch({ customRuleActionType: event.target.value || undefined })
                       }
-                      style={fieldStyle}
                       value={state.customRuleActionType ?? ''}
                     >
                       <option value="">
@@ -375,7 +449,7 @@ export function TournamentSetupWizard({
                         </option>
                       ))}
                     </select>
-                  </Field>
+                  </FormField>
                 </div>
                 {selectedCondition === undefined && (
                   <p className="cl-inline-alert">
@@ -426,14 +500,21 @@ export function TournamentSetupWizard({
         )}
 
         {problems.length > 0 && (
-          <ul className="cl-inline-alert" style={problemStyle}>
+          <ul className="cl-inline-alert" style={{ marginTop: 'var(--cl-space-4)' }}>
             {problems.map((problem) => (
               <li key={problem.id}>{intl.formatMessage(problem)}</li>
             ))}
           </ul>
         )}
 
-        <footer style={footerStyle}>
+        <footer
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            gap: 'var(--cl-space-3)',
+            marginTop: 'var(--cl-space-6)',
+          }}
+        >
           <Button
             onClick={() => patch({ step: previousStep(state) })}
             type="button"
@@ -482,23 +563,27 @@ function ElementAuthoringFields({
   readonly onOptionsChange: (key: string, value: string) => void;
 }): React.JSX.Element {
   return (
-    <fieldset style={ruleFieldsetStyle}>
+    <fieldset
+      style={{
+        border: '1px solid var(--cl-border-muted)',
+        padding: 'var(--cl-space-4)',
+      }}
+    >
       <legend>
         {entry.type} · {entry.description}
       </legend>
-      <div style={formGridStyle}>
+      <div className="cl-platform-form-grid">
         {(entry.authoring?.parameters ?? []).map((parameter) => {
           const key = parameterValueKey(kind, entry.type, parameter.name);
           const choices = parameter.valueSchema['enum'];
           const label = `${parameter.description}${parameter.required ? ' *' : ''}`;
           return (
-            <Field key={key} label={label}>
+            <FormField id={key} key={key} label={label}>
               {Array.isArray(choices) ? (
                 <select
-                  aria-label={label}
-                  className="cl-focusable"
+                  className="cl-select cl-select--default cl-focusable"
+                  id={key}
                   onChange={(event) => onValueChange(key, event.target.value)}
-                  style={fieldStyle}
                   value={values[key] ?? ''}
                 >
                   <option value="" />
@@ -509,155 +594,31 @@ function ElementAuthoringFields({
                   ))}
                 </select>
               ) : (
-                <input
-                  aria-label={label}
-                  className="cl-focusable"
+                <Input
+                  id={key}
                   onChange={(event) => onValueChange(key, event.target.value)}
                   placeholder={parameter.allowExpression ? '{{ event.payload.value }}' : undefined}
-                  style={fieldStyle}
                   type={parameter.valueSchema['type'] === 'number' ? 'number' : 'text'}
                   value={values[key] ?? ''}
                 />
               )}
-            </Field>
+            </FormField>
           );
         })}
         {entry.authoring?.optionsSchema && (
-          <Field label={optionsLabel}>
-            <textarea
+          <FormField id={`options-${entry.type}`} label={optionsLabel}>
+            <Textarea
               aria-label={`${entry.type} options`}
-              className="cl-focusable"
+              id={`options-${entry.type}`}
               onChange={(event) =>
                 onOptionsChange(elementOptionsKey(kind, entry.type), event.target.value)
               }
               rows={4}
-              style={fieldStyle}
               value={options[elementOptionsKey(kind, entry.type)] ?? '{}'}
             />
-          </Field>
+          </FormField>
         )}
       </div>
     </fieldset>
   );
 }
-
-function Field({
-  label,
-  children,
-}: {
-  readonly label: string;
-  readonly children: React.ReactNode;
-}): React.JSX.Element {
-  return (
-    <label style={labelStyle}>
-      <span>{label}</span>
-      {children}
-    </label>
-  );
-}
-
-const stackStyle: React.CSSProperties = { display: 'grid', gap: 'var(--cl-space-6)' };
-const headerStyle: React.CSSProperties = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  gap: 'var(--cl-space-4)',
-  alignItems: 'end',
-  flexWrap: 'wrap',
-};
-const titleStyle: React.CSSProperties = {
-  margin: 0,
-  fontFamily: 'var(--cl-font-display)',
-  fontSize: 'var(--cl-font-size-3xl)',
-  textTransform: 'uppercase',
-};
-const metaStyle: React.CSSProperties = {
-  margin: 0,
-  color: 'var(--cl-state-live)',
-  fontFamily: 'var(--cl-font-mono)',
-  fontSize: 'var(--cl-font-size-xs)',
-  textTransform: 'uppercase',
-};
-const stepperStyle: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(5, minmax(8rem, 1fr))',
-  gap: 'var(--cl-space-3)',
-  listStyle: 'none',
-  padding: 0,
-  margin: 0,
-  width: '100%',
-  maxWidth: '100%',
-  overflowX: 'auto',
-  scrollbarGutter: 'stable',
-};
-const stepStyle: React.CSSProperties = {
-  display: 'grid',
-  gap: 'var(--cl-space-2)',
-  justifyItems: 'center',
-  color: 'var(--cl-text-secondary)',
-  fontFamily: 'var(--cl-font-mono)',
-  textTransform: 'uppercase',
-  fontSize: 'var(--cl-font-size-xs)',
-};
-const stepNumberStyle: React.CSSProperties = {
-  display: 'grid',
-  placeItems: 'center',
-  width: 32,
-  height: 32,
-  borderWidth: 2,
-  borderStyle: 'solid',
-  borderColor: 'var(--cl-border-muted)',
-};
-const stepNumberActiveStyle: React.CSSProperties = {
-  borderColor: 'var(--cl-state-live)',
-  background: 'var(--cl-state-live)',
-  color: 'var(--cl-surface-base)',
-};
-const formGridStyle: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
-  gap: 'var(--cl-space-4)',
-};
-const labelStyle: React.CSSProperties = {
-  display: 'grid',
-  gap: 'var(--cl-space-2)',
-  color: 'var(--cl-text-secondary)',
-  fontFamily: 'var(--cl-font-mono)',
-  fontSize: 'var(--cl-font-size-xs)',
-  textTransform: 'uppercase',
-};
-const fieldStyle: React.CSSProperties = {
-  width: '100%',
-  minWidth: 0,
-  maxWidth: '100%',
-  minHeight: 44,
-  background: 'var(--cl-surface-base)',
-  color: 'var(--cl-text-primary)',
-  border: '1px solid var(--cl-border-muted)',
-  padding: 'var(--cl-space-3)',
-  font: 'inherit',
-};
-const toggleStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 'var(--cl-space-2)',
-  color: 'var(--cl-text-primary)',
-};
-const problemStyle: React.CSSProperties = { marginTop: 'var(--cl-space-4)' };
-const footerStyle: React.CSSProperties = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  gap: 'var(--cl-space-3)',
-  marginTop: 'var(--cl-space-6)',
-};
-const ruleStackStyle: React.CSSProperties = { display: 'grid', gap: 'var(--cl-space-4)' };
-const savedRuleStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  gap: 'var(--cl-space-3)',
-};
-const ruleHelpStyle: React.CSSProperties = { margin: 0, color: 'var(--cl-text-secondary)' };
-const ruleFieldsetStyle: React.CSSProperties = {
-  border: '1px solid var(--cl-border-muted)',
-  padding: 'var(--cl-space-4)',
-};
