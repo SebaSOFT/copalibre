@@ -10,8 +10,8 @@ email updates, account linking).
 ### Requirement: Native Password Authentication
 
 The system MUST support creating and verifying native user passwords securely. Login, installation
-bootstrap, and password-reset requests MUST be rate-limited per source IP to bound automated
-credential-guessing and repeated-bootstrap attempts.
+bootstrap, and password-reset requests MUST be rate-limited per source IP across all API replicas
+to bound automated credential-guessing and repeated-bootstrap attempts.
 
 #### Scenario: User logs in with local credentials
 
@@ -26,20 +26,22 @@ credential-guessing and repeated-bootstrap attempts.
 
 #### Scenario: Login attempts within the rate limit succeed normally
 
-- **WHEN** a source IP submits login attempts at or below the configured per-window limit
-- **THEN** the system evaluates each attempt normally (accepting valid credentials, rejecting invalid
-  ones) without additional throttling behavior.
+- **WHEN** a source IP submits login attempts at or below the configured per-window limit across
+  all API replicas
+- **THEN** the system evaluates each attempt normally (accepting valid credentials, rejecting
+  invalid ones) without additional throttling behavior.
 
 #### Scenario: Login attempts exceeding the rate limit are rejected
 
-- **WHEN** a source IP exceeds the configured per-window limit of login attempts
+- **WHEN** a source IP exceeds the configured per-window limit of login attempts across one or
+  more API replicas
 - **THEN** the system rejects further attempts from that IP with a 429 response until the window
   resets, without evaluating the submitted credentials.
 
 #### Scenario: Installation bootstrap attempts exceeding the rate limit are rejected
 
 - **WHEN** a source IP exceeds the configured per-window limit of requests to the installation
-  bootstrap endpoint
+  bootstrap endpoint across one or more API replicas
 - **THEN** the system rejects further attempts from that IP with a 429 response until the window
   resets.
 

@@ -242,7 +242,7 @@ test('creates a second zone and group, assigns entrants manually, and reflects i
   await groupAssignRegion.getByLabel('Deportivo Norte — número').fill('2');
   await groupAssignRegion.getByLabel('Atlético Sur — número').fill('2');
   await groupAssignRegion.getByText('Guardar asignación').click();
-  await expect(page.getByText('Asignación guardada.')).toBeVisible();
+  await expect(page.getByText('Asignación guardada.').last()).toBeVisible();
 
   // Group-scoped standings now offers the new group and scopes the table to
   // it. A fresh navigation (not an in-app link) reloads the whole document,

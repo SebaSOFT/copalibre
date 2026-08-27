@@ -246,7 +246,7 @@ test('expands a tied standings row and shows the engine’s trace', async ({ pag
   await page.waitForURL(`**${target}`);
 
   await expect(page.getByText('Proyección v12')).toBeVisible();
-  await page.locator('summary').filter({ hasText: 'Deportivo Norte' }).click();
+  await page.locator('tr', { hasText: 'Deportivo Norte' }).locator('+ tr summary').click();
 
   const trace = page.getByLabel('Traza de desempate');
   await expect(trace).toBeVisible();
@@ -257,8 +257,28 @@ test('expands a tied standings row and shows the engine’s trace', async ({ pag
   // The row nobody had to break a tie for fetches its own real (empty) trace
   // — every row is a candidate to expand now, not only the ones a
   // precomputed flag marked in advance.
-  await page.locator('summary').filter({ hasText: 'Club Cometa' }).click();
+  await page.locator('tr', { hasText: 'Club Cometa' }).locator('+ tr summary').click();
   await expect(page.getByText('El motor no registró comparadores.')).toBeVisible();
+});
+
+test('scrolls standings horizontally at 375px without page overflow', async ({ page }) => {
+  await mockControlApi(page);
+
+  await page.setViewportSize({ width: 375, height: 667 });
+  const target = '/control/liga-mendocina/tournaments/apertura-2026/stages/1/standings';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  const tableRegion = page.locator('.cl-data-table');
+  await expect(tableRegion).toBeVisible();
+  const hasScroll = await tableRegion.evaluate((el) => el.scrollWidth >= el.clientWidth);
+  expect(hasScroll).toBe(true);
+
+  const bodyOverflow = await page.evaluate(
+    () => document.body.scrollWidth <= document.documentElement.clientWidth,
+  );
+  expect(bodyOverflow).toBe(true);
 });
 
 test('keeps locked seeds through a randomize', async ({ page }) => {

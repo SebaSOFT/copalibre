@@ -40,10 +40,11 @@ const projection: TableProjectionResponseData = {
 };
 
 function openRow(entrantId: string): HTMLDetailsElement {
-  const row = screen
-    .getAllByText(entrantId)
-    .map((node) => node.closest('details'))
-    .find((node): node is HTMLDetailsElement => node !== null) as HTMLDetailsElement;
+  const tr = screen.getAllByText(entrantId)[0]?.closest('tr');
+  const detailTr = tr?.nextElementSibling;
+  const row = (detailTr?.querySelector('details') ??
+    tr?.querySelector('details') ??
+    document.querySelector(`details`)) as HTMLDetailsElement;
   row.open = true;
   fireEvent(row, new Event('toggle'));
   return row;
