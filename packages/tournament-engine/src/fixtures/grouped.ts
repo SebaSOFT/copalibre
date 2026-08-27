@@ -1,4 +1,4 @@
-import { err, ok, type Result } from '@copalibre/domain';
+import { err, ok, type Result, type SeriesConfigurationError } from '@copalibre/domain';
 import type { InvalidEntrantsError, UnsupportedFormatError } from '../errors.js';
 import type { GenerateFixturesInput, GeneratedMatch } from '../types.js';
 import { generateFixtures } from './index.js';
@@ -33,7 +33,10 @@ export interface ScopedGeneratedFixture {
  */
 export function generateGroupedFixtures(
   input: GenerateGroupedFixturesInput,
-): Result<readonly ScopedGeneratedFixture[], UnsupportedFormatError | InvalidEntrantsError> {
+): Result<
+  readonly ScopedGeneratedFixture[],
+  UnsupportedFormatError | InvalidEntrantsError | SeriesConfigurationError
+> {
   const fixtures: ScopedGeneratedFixture[] = [];
   for (const group of input.groups) {
     const generated = generateFixtures({

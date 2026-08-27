@@ -14,7 +14,16 @@ import type { DuelMatch, SlotSource } from '../types.js';
  * winner become byes so downstream slots stay resolvable.
  */
 export function pruneEmptyMatches(matches: readonly DuelMatch[]): readonly DuelMatch[] {
-  const byId = new Map(matches.map((match) => [match.id, match]));
+  const byId = new Map<string, DuelMatch>();
+  for (const match of matches) {
+    byId.set(match.id, match);
+    const fixtureId = match.matchNumber
+      ? match.id.replace(new RegExp(`-${match.matchNumber}$`), '')
+      : match.id;
+    if (!byId.has(fixtureId)) {
+      byId.set(fixtureId, match);
+    }
+  }
   const emptiness = new Map<string, boolean>();
 
   /** True when this slot can never hold a participant. */

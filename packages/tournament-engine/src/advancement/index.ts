@@ -1,4 +1,5 @@
 import type { RecordedOutcome } from '@copalibre/domain';
+import { resolveSeries } from '@copalibre/domain';
 import { PlacementAdvancementError } from '../errors.js';
 import { isDuelMatch, type DuelMatch, type FixtureGraph, type SlotSource } from '../types.js';
 
@@ -42,28 +43,94 @@ export function resolveAdvancement(
   const duels = graph.matches.filter(isDuelMatch);
   const byId = new Map(duels.map((match) => [match.id, match]));
   const outcomeById = new Map(outcomes.map((outcome) => [outcome.matchId, outcome]));
+
+  // Group duels by fixture ID (stripping -1, -2 etc. suffix when multi-match)
+  const fixtures = new Map<string, DuelMatch[]>();
+  for (const match of duels) {
+    const fixtureId = match.matchNumber
+      ? match.id.replace(new RegExp(`-${match.matchNumber}$`), '')
+      : match.id;
+    const existing = fixtures.get(fixtureId) ?? [];
+    existing.push(match);
+    fixtures.set(fixtureId, existing);
+  }
+
   const cache = new Map<string, ResolvedMatch>();
 
   const resolveSlot = (slot: SlotSource, stack: ReadonlySet<string>): ResolvedSlot => {
     if (slot.kind === 'entrant') return { state: 'entrant', entrantId: slot.entrantId };
     if (slot.kind === 'bye') return { state: 'empty' };
     if (stack.has(slot.matchId)) return { state: 'pending' }; // malformed cycle
-    const source = byId.get(slot.matchId);
-    if (!source) return { state: 'empty' };
 
-    const resolved = resolveMatch(source, new Set(stack).add(slot.matchId));
-    if (slot.kind === 'winner-of') {
-      return resolved.winnerEntrantId
-        ? { state: 'entrant', entrantId: resolved.winnerEntrantId }
-        : bothEmpty(resolved)
-          ? { state: 'empty' }
-          : { state: 'pending' };
+    const singleMatch = byId.get(slot.matchId);
+    const sourceMatches = fixtures.get(slot.matchId) ?? (singleMatch ? [singleMatch] : []);
+    const firstMatch = sourceMatches[0];
+    if (!firstMatch) return { state: 'empty' };
+
+    const slotA = resolveSlot(firstMatch.slotA, new Set(stack).add(slot.matchId));
+    const slotB = resolveSlot(firstMatch.slotB, new Set(stack).add(slot.matchId));
+
+    // Bye handling
+    let winnerEntrantId: string | undefined;
+    let decidedByBye = false;
+
+    if (slotA.state === 'entrant' && slotB.state === 'empty') {
+      winnerEntrantId = slotA.entrantId;
+      decidedByBye = true;
+    } else if (slotB.state === 'entrant' && slotA.state === 'empty') {
+      winnerEntrantId = slotB.entrantId;
+      decidedByBye = true;
+    } else if (slotA.state === 'entrant' && slotB.state === 'entrant') {
+      if (firstMatch.series || sourceMatches.length > 1) {
+        const seriesMatches = sourceMatches.map((m, idx) => {
+          const mNum = m.matchNumber ?? idx + 1;
+          const out = outcomeById.get(m.id);
+          if (!out) {
+            return { number: mNum, status: 'scheduled' as const };
+          }
+          return {
+            number: mNum,
+            status: 'finalized' as const,
+            result: {
+              winnerEntrantId: out.winnerEntrantId,
+              sides: out.sides.map((s) => ({
+                entrantId: s.entrantId,
+                statistics: s.statistics,
+              })),
+              recordedAt: '',
+            },
+          };
+        });
+
+        const seriesResolution = resolveSeries({
+          declaration: firstMatch.series ?? {
+            span: sourceMatches.length,
+            resolutionClass: 'best-of',
+          },
+          sides: [slotA.entrantId, slotB.entrantId],
+          matches: seriesMatches,
+        });
+
+        if (seriesResolution.status === 'decided') {
+          winnerEntrantId = seriesResolution.winnerEntrantId;
+        }
+      } else {
+        const out = outcomeById.get(firstMatch.id);
+        winnerEntrantId = out?.winnerEntrantId;
+      }
     }
-    // loser-of: a bye match has no loser.
-    if (resolved.decidedByBye) return { state: 'empty' };
-    if (!resolved.winnerEntrantId) return { state: 'pending' };
-    const loser = [resolved.slotA, resolved.slotB].find(
-      (side) => side.state === 'entrant' && side.entrantId !== resolved.winnerEntrantId,
+
+    if (slot.kind === 'winner-of') {
+      if (winnerEntrantId) return { state: 'entrant', entrantId: winnerEntrantId };
+      if (slotA.state === 'empty' && slotB.state === 'empty') return { state: 'empty' };
+      return { state: 'pending' };
+    }
+
+    // loser-of
+    if (decidedByBye) return { state: 'empty' };
+    if (!winnerEntrantId) return { state: 'pending' };
+    const loser = [slotA, slotB].find(
+      (side) => side.state === 'entrant' && side.entrantId !== winnerEntrantId,
     );
     return loser && loser.state === 'entrant'
       ? { state: 'entrant', entrantId: loser.entrantId }
@@ -78,7 +145,6 @@ export function resolveAdvancement(
     const slotB = resolveSlot(match.slotB, stack);
     const outcome = outcomeById.get(match.id);
 
-    // A single occupied side against an empty one advances unopposed.
     const byeWinner =
       slotA.state === 'entrant' && slotB.state === 'empty'
         ? slotA.entrantId
@@ -94,14 +160,14 @@ export function resolveAdvancement(
       winnerEntrantId: outcome?.winnerEntrantId ?? byeWinner,
       decidedByBye: byeWinner !== undefined && !outcome,
     };
-    // Only cache fully-determined resolutions; a stack-limited 'pending' could
-    // differ once resolved from the top.
     if (!stack.size) cache.set(match.id, resolved);
     return resolved;
   };
 
   return duels.map((match) => resolveMatch(match, new Set()));
 }
+
+export const advanceEntrants = resolveAdvancement;
 
 /**
  * A slot sourcing from a placement match is a generation defect, not operator
@@ -129,10 +195,6 @@ export function assertNoPlacementEdges(graph: FixtureGraph): void {
       }
     }
   }
-}
-
-function bothEmpty(resolved: ResolvedMatch): boolean {
-  return resolved.slotA.state === 'empty' && resolved.slotB.state === 'empty';
 }
 
 /** Matches ready to play now: fully resolved and without an outcome. */
