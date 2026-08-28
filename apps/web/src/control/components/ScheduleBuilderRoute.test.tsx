@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { ScheduleBuilderRoute } from './ScheduleBuilderRoute.js';
 import { withIntl } from '../i18n/test-support.js';
-import type { ControlApiClient } from '../lib/api-client.js';
+import type { ControlApiClient, FixtureSeriesResponse } from '../lib/api-client.js';
 
 const VENUE = {
   venueId: 'venue-1',
@@ -20,17 +20,17 @@ const SCHEDULE = {
   ],
 };
 
-const SERIES = {
+const SERIES: FixtureSeriesResponse = {
   span: 5,
-  resolutionClass: 'best-of' as const,
+  resolutionClass: 'best-of',
   guaranteedMatches: 3,
   matchesPlayed: 0,
-  anulledMatchNumbers: [] as readonly number[],
+  anulledMatchNumbers: [],
 };
 
 function seriesFixture(
   matches: readonly { number: number; status: string; releasedSlotId?: string }[],
-  series: Partial<typeof SERIES> = {},
+  series: Partial<FixtureSeriesResponse> = {},
 ) {
   return {
     fixtureId: 'fixture-1',

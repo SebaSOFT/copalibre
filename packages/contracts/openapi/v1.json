@@ -10394,6 +10394,57 @@
           "reason"
         ]
       },
+      "SeriesCorrectionPreview": {
+        "type": "object",
+        "properties": {
+          "before": {
+            "type": "string",
+            "description": "The series result as it stands now, in the engine’s own words"
+          },
+          "after": {
+            "type": "string",
+            "description": "The series result the correction would leave behind"
+          },
+          "decidedAtMatchNumber": {
+            "type": "number",
+            "description": "Play-order number at which the series stands decided now, if it is"
+          },
+          "decidedAtMatchNumberAfter": {
+            "type": "number",
+            "description": "Play-order number at which it would stand decided after the correction"
+          },
+          "decisionPointMoves": {
+            "type": "boolean",
+            "description": "Whether the point at which the series became decided moves"
+          },
+          "unchanged": {
+            "type": "boolean",
+            "description": "Whether the series result and its decision point are both untouched"
+          },
+          "becomingNotRequired": {
+            "description": "Games that would stop being required — scheduled today, anulled after",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "becomingScheduled": {
+            "description": "Games that would return from not-required to scheduled. Each comes back holding no slot: the one it had was released when the series settled.",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "before",
+          "after",
+          "decisionPointMoves",
+          "unchanged",
+          "becomingNotRequired",
+          "becomingScheduled"
+        ]
+      },
       "CorrectionPreviewResponse": {
         "type": "object",
         "properties": {
@@ -10409,6 +10460,14 @@
             "allOf": [
               {
                 "$ref": "#/components/schemas/BlockedPropagationDto"
+              }
+            ]
+          },
+          "series": {
+            "description": "Present only when the corrected match belongs to a series",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SeriesCorrectionPreview"
               }
             ]
           }

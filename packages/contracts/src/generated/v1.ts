@@ -2954,11 +2954,31 @@ export interface components {
             /** @description Why nothing downstream was rebuilt */
             reason: string;
         };
+        SeriesCorrectionPreview: {
+            /** @description The series result as it stands now, in the engine’s own words */
+            before: string;
+            /** @description The series result the correction would leave behind */
+            after: string;
+            /** @description Play-order number at which the series stands decided now, if it is */
+            decidedAtMatchNumber?: number;
+            /** @description Play-order number at which it would stand decided after the correction */
+            decidedAtMatchNumberAfter?: number;
+            /** @description Whether the point at which the series became decided moves */
+            decisionPointMoves: boolean;
+            /** @description Whether the series result and its decision point are both untouched */
+            unchanged: boolean;
+            /** @description Games that would stop being required — scheduled today, anulled after */
+            becomingNotRequired: number[];
+            /** @description Games that would return from not-required to scheduled. Each comes back holding no slot: the one it had was released when the series settled. */
+            becomingScheduled: number[];
+        };
         CorrectionPreviewResponse: {
             /** @description Entrants whose recorded numbers move */
             changedEntrantIds: string[];
             /** @description Present when a started downstream stage is deliberately not rebuilt */
             blockedPropagation?: components["schemas"]["BlockedPropagationDto"];
+            /** @description Present only when the corrected match belongs to a series */
+            series?: components["schemas"]["SeriesCorrectionPreview"];
         };
         CorrectionEntryDto: {
             occurredAt: string;

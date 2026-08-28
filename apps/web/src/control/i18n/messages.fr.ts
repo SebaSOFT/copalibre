@@ -155,6 +155,7 @@ export const messages: Record<string, string> = {
   'control.matchConsole.lastSynced': 'Dernière synchronisation {time}',
   'control.matchConsole.neverSynced': 'Pas encore synchronisé',
   'control.matchConsole.refusedAction': 'Refusé ({kind}) : {reason}',
+  'control.matchConsole.refusedContents': 'Vous avez saisi : {contents}',
   'control.matchConsole.dismiss': 'Ignorer',
   'control.matchConsole.controls': 'Contrôles du match',
   'control.matchConsole.currentScoreboard': 'Tableau des scores actuel',

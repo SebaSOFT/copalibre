@@ -4,8 +4,9 @@ import {
   type SeriesDeclaration,
   type SeriesResolutionResult,
 } from '@copalibre/domain';
-import { TournamentRepository, type Database } from '@copalibre/persistence';
+import { CompetitionRepository, TournamentRepository, type Database } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
+import { ConflictException } from '../http/error-contract.js';
 
 /**
  * Reads a stage's effective series declaration out of the dot-path `OverrideSet` it is
@@ -101,4 +102,161 @@ export function resolveFixtureSeries(input: {
     sides: [homeEntrantId, awayEntrantId],
     matches: input.matches as Parameters<typeof resolveSeries>[0]['matches'],
   });
+}
+
+/**
+ * Refuses a console command whose target match a decided series has already anulled, naming
+ * the series result that did it.
+ *
+ * The refusal itself is not new — the engine has always refused a lifecycle command against a
+ * `not-required` match, and this changes none of that. What it adds is the *reason*: an
+ * operator who spent an outage recording a result for game five, and comes back to a flat
+ * "match is not-required", has been told what happened to their work but not why. Naming the
+ * series ("Alfa won the best-of-five three–nil at game three") is the difference between a
+ * refusal they can act on — perhaps as a correction to an earlier game — and one they can only
+ * be baffled by.
+ *
+ * A conflict rather than a bad request, and deliberately so: nothing about the command is
+ * malformed. It is a correct command that lost a race with a result recorded elsewhere, which
+ * is exactly what 409 means, and it is what keeps the queued item marked refused-and-retained
+ * rather than discarded.
+ */
+export async function refuseIfAnulledBySeries(
+  db: Kysely<Database>,
+  input: {
+    readonly match: {
+      readonly matchId: string;
+      readonly fixtureId: string;
+      readonly status: string;
+    };
+    readonly tournamentId: string;
+    readonly stageId: string;
+  },
+): Promise<void> {
+  if (input.match.status !== 'not-required') return;
+
+  const declaration = await readStageSeries(db, {
+    tournamentId: input.tournamentId,
+    stageId: input.stageId,
+  });
+  const competition = new CompetitionRepository(db);
+  const [fixtures, matches] = await Promise.all([
+    competition.listFixturesOfStage(input.stageId),
+    competition.listMatchesForStage(input.stageId),
+  ]);
+  const fixture = fixtures.find((candidate) => candidate.fixtureId === input.match.fixtureId);
+  const own = matches
+    .filter((candidate) => candidate.fixtureId === input.match.fixtureId)
+    .sort((a, b) => a.number - b.number);
+  const number = own.find((candidate) => candidate.matchId === input.match.matchId)?.number;
+
+  const resolution =
+    declaration === undefined || fixture === undefined
+      ? undefined
+      : resolveFixtureSeries({
+          declaration,
+          homeEntrantId: fixture.homeEntrantId,
+          awayEntrantId: fixture.awayEntrantId,
+          matches: own,
+        });
+
+  // A match anulled with no series to point at is still refused — it is still a match the
+  // record says was never played. It just cannot say more than that.
+  const because =
+    resolution === undefined
+      ? 'because its series was already settled'
+      : `because ${resolution.explanation}`;
+  const which = number === undefined ? 'This match' : `Game ${number} of the series`;
+
+  throw new ConflictException(
+    `${which} will not be played ${because}. Nothing recorded against it can be applied; ` +
+      'if the result belongs to an earlier game of the series, raise it as a correction there.',
+    { errorCode: 'match-control-conflict' },
+  );
+}
+
+export interface SeriesCorrectionOutlook {
+  readonly before: string;
+  readonly after: string;
+  readonly decidedAtMatchNumber?: number;
+  readonly decidedAtMatchNumberAfter?: number;
+  readonly decisionPointMoves: boolean;
+  readonly unchanged: boolean;
+  readonly becomingNotRequired: readonly number[];
+  readonly becomingScheduled: readonly number[];
+}
+
+/**
+ * What correcting one game would do to its series, resolved twice through the engine's own
+ * evaluator: once as the record stands, once with the proposed result substituted in.
+ *
+ * Two resolutions rather than a rule about which corrections matter, because "does this change
+ * the series?" is a question only the resolver can answer — a corrected 2–1 that becomes 3–1
+ * changes nothing, and a corrected 2–1 that becomes 1–2 changes everything, and no amount of
+ * inspecting the diff of two scorelines tells them apart.
+ *
+ * Returns `undefined` for a match belonging to no series. Everything else — including a
+ * correction that changes nothing at all — comes back populated, because an operator needs to
+ * be told the result holds, not left to infer it from silence.
+ */
+export function previewSeriesCorrection(input: {
+  readonly declaration: SeriesDeclaration;
+  readonly homeEntrantId?: string;
+  readonly awayEntrantId?: string;
+  readonly matches: readonly {
+    readonly matchId: string;
+    readonly number: number;
+    readonly status: string;
+    readonly result?: unknown;
+  }[];
+  readonly correctedMatchId: string;
+  readonly replacement: unknown;
+}): SeriesCorrectionOutlook | undefined {
+  const before = resolveFixtureSeries(input);
+  if (before === undefined) return undefined;
+
+  const after = resolveFixtureSeries({
+    ...input,
+    matches: input.matches.map((match) =>
+      match.matchId === input.correctedMatchId
+        ? { ...match, status: 'finalized', result: input.replacement }
+        : match,
+    ),
+  });
+  if (after === undefined) return undefined;
+
+  const beforeAnulled = new Set(before.anulledMatchNumbers);
+  const afterAnulled = new Set(after.anulledMatchNumbers);
+  const becomingNotRequired = [...afterAnulled].filter((n) => !beforeAnulled.has(n)).sort();
+  const becomingScheduled = [...beforeAnulled].filter((n) => !afterAnulled.has(n)).sort();
+
+  const decidedBefore = decisionPointOf(before);
+  const decidedAfter = decisionPointOf(after);
+  const decisionPointMoves = decidedBefore !== decidedAfter;
+
+  return {
+    before: before.explanation,
+    after: after.explanation,
+    ...(decidedBefore === undefined ? {} : { decidedAtMatchNumber: decidedBefore }),
+    ...(decidedAfter === undefined ? {} : { decidedAtMatchNumberAfter: decidedAfter }),
+    decisionPointMoves,
+    unchanged:
+      !decisionPointMoves &&
+      before.status === after.status &&
+      before.winnerEntrantId === after.winnerEntrantId &&
+      becomingNotRequired.length === 0 &&
+      becomingScheduled.length === 0,
+    becomingNotRequired,
+    becomingScheduled,
+  };
+}
+
+/**
+ * The game at which a decided series became decided: everything after it is surplus, so the
+ * count of surplus games subtracted from the span names it. An undecided series has no such
+ * point, which is not the same as its point being game one.
+ */
+function decisionPointOf(resolution: SeriesResolutionResult): number | undefined {
+  if (resolution.status !== 'decided') return undefined;
+  return resolution.span - resolution.anulledMatchNumbers.length;
 }

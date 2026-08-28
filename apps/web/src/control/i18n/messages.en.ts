@@ -409,6 +409,10 @@ export const messages = defineMessages({
     id: 'control.matchConsole.refusedAction',
     defaultMessage: 'Refused ({kind}): {reason}',
   },
+  matchConsoleRefusedContents: {
+    id: 'control.matchConsole.refusedContents',
+    defaultMessage: 'You recorded: {contents}',
+  },
   matchConsoleDismiss: { id: 'control.matchConsole.dismiss', defaultMessage: 'Dismiss' },
   matchConsoleControls: {
     id: 'control.matchConsole.controls',

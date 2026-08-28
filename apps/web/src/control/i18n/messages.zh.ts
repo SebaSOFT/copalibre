@@ -150,6 +150,7 @@ export const messages: Record<string, string> = {
   'control.matchConsole.lastSynced': '上次同步：{time}',
   'control.matchConsole.neverSynced': '尚未同步',
   'control.matchConsole.refusedAction': '被拒绝（{kind}）：{reason}',
+  'control.matchConsole.refusedContents': '你记录的内容：{contents}',
   'control.matchConsole.dismiss': '关闭',
   'control.matchConsole.controls': '比赛控制',
   'control.matchConsole.currentScoreboard': '当前比分',
