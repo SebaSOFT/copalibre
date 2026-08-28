@@ -94,6 +94,13 @@ import {
 } from '../dto/match-control.dto.js';
 import { ProblemResponse } from '../dto/organization.dto.js';
 import { enforceMatchCommand } from '../policy/resource-policy.js';
+import {
+  previewSeriesCorrection,
+  readStageSeries,
+  refuseIfAnulledBySeries,
+  resolveFixtureSeries,
+  type SeriesCorrectionOutlook,
+} from './stage-series.js';
 import { DATABASE } from '../database.token.js';
 
 /**
@@ -214,6 +221,16 @@ export class MatchControlController {
         errorCode: 'match-control-not-found',
       });
 
+    // Before the generic status guard, so an operator whose match a series anulled during an
+    // outage is told which series settled it rather than only that the match is not-required.
+    if (match.status === 'not-required') {
+      await refuseIfAnulledBySeries(this.db, {
+        match,
+        tournamentId: tournament.tournamentId,
+        stageId: await this.stageOf(matchId),
+      });
+    }
+
     // Finalize alone requires a key (irreversible, so "just resend it" must be
     // safe by construction); start/pause/resume accept one but don't require
     // it — additive only, per design.md's Migration Plan — and fingerprint on
@@ -329,6 +346,20 @@ export class MatchControlController {
             },
             ...audit,
           });
+          // In the same transaction as the result that caused it: a series decided by this
+          // finalize anulls the games it no longer needs and releases their slots, and a
+          // record where the result landed but the anulling did not is exactly the incoherent
+          // state the product refuses. `anullSurplusMatches` is 0158's; deciding *when* to
+          // call it is what was missing, and without it every surface downstream of here —
+          // the builder's contingency marks, the public bar, the offline conflict — describes
+          // a state the engine never reaches.
+          await this.anullSurplusOf(uow, {
+            matchId,
+            stageId,
+            tournamentId: tournament.tournamentId,
+            ...audit,
+          });
+
           await idempotency.record(uow, {
             idempotencyKey: idempotencyKey ?? '',
             matchId,
@@ -652,6 +683,16 @@ export class MatchControlController {
       throw new NotFoundException(`No match "${matchId}"`, {
         errorCode: 'match-control-not-found',
       });
+
+    // Before the generic status guard, so an operator whose match a series anulled during an
+    // outage is told which series settled it rather than only that the match is not-required.
+    if (match.status === 'not-required') {
+      await refuseIfAnulledBySeries(this.db, {
+        match,
+        tournamentId: tournament.tournamentId,
+        stageId: await this.stageOf(matchId),
+      });
+    }
     // Mirrors `recordEvent`'s own status guard: a queued roster
     // selection reaching a match that finalized in the meantime is refused
     // the same way a live submission would be, not silently accepted.
@@ -821,6 +862,16 @@ export class MatchControlController {
       throw new NotFoundException(`No match "${matchId}"`, {
         errorCode: 'match-control-not-found',
       });
+
+    // Before the generic status guard, so an operator whose match a series anulled during an
+    // outage is told which series settled it rather than only that the match is not-required.
+    if (match.status === 'not-required') {
+      await refuseIfAnulledBySeries(this.db, {
+        match,
+        tournamentId: tournament.tournamentId,
+        stageId: await this.stageOf(matchId),
+      });
+    }
     if (match.status !== 'in-progress') {
       throw new BadRequestException(
         `Match "${matchId}" is ${match.status}; events are recorded while it is in progress`,
@@ -1342,6 +1393,16 @@ export class MatchControlController {
       throw new NotFoundException(`No match "${matchId}"`, {
         errorCode: 'match-control-not-found',
       });
+
+    // Before the generic status guard, so an operator whose match a series anulled during an
+    // outage is told which series settled it rather than only that the match is not-required.
+    if (match.status === 'not-required') {
+      await refuseIfAnulledBySeries(this.db, {
+        match,
+        tournamentId: tournament.tournamentId,
+        stageId: await this.stageOf(matchId),
+      });
+    }
     if (match.result) {
       throw new ConflictException(
         `Match ${matchId} already has a result; use the audited correction workflow to supersede it`,
@@ -1558,11 +1619,72 @@ export class MatchControlController {
       body,
       request,
     );
+    const series = await this.seriesOutlookFor(organizationAlias, tournamentAlias, matchId, body);
 
     return {
       changedEntrantIds: [...plan.changedEntrantIds],
       ...(plan.blockedPropagation ? { blockedPropagation: { ...plan.blockedPropagation } } : {}),
+      ...(series === undefined
+        ? {}
+        : {
+            series: {
+              ...series,
+              becomingNotRequired: [...series.becomingNotRequired],
+              becomingScheduled: [...series.becomingScheduled],
+            },
+          }),
     };
+  }
+
+  /**
+   * What this correction would do to the series the match belongs to, or nothing at all for a
+   * match belonging to none — which is almost every match, and which must stay exactly as
+   * cheap and exactly as unchanged as it was.
+   */
+  private async seriesOutlookFor(
+    organizationAlias: string,
+    tournamentAlias: string,
+    matchId: string,
+    body: CorrectionRequestDto,
+  ): Promise<SeriesCorrectionOutlook | undefined> {
+    const tournament = await this.resolveTournament(organizationAlias, tournamentAlias);
+    const competition = new CompetitionRepository(this.db);
+    const match = await competition.findMatch(matchId);
+    if (!match) return undefined;
+
+    const stageId = await this.stageOf(matchId);
+    const declaration = await readStageSeries(this.db, {
+      tournamentId: tournament.tournamentId,
+      stageId,
+    });
+    if (declaration === undefined) return undefined;
+
+    const [fixtures, matches] = await Promise.all([
+      competition.listFixturesOfStage(stageId),
+      competition.listMatchesForStage(stageId),
+    ]);
+    const fixture = fixtures.find((candidate) => candidate.fixtureId === match.fixtureId);
+    if (!fixture) return undefined;
+
+    return previewSeriesCorrection({
+      declaration,
+      ...(fixture.homeEntrantId === undefined ? {} : { homeEntrantId: fixture.homeEntrantId }),
+      ...(fixture.awayEntrantId === undefined ? {} : { awayEntrantId: fixture.awayEntrantId }),
+      matches: matches
+        .filter((candidate) => candidate.fixtureId === match.fixtureId)
+        .sort((a, b) => a.number - b.number),
+      correctedMatchId: matchId,
+      replacement: {
+        sides: body.sides.map((side) => ({
+          entrantId: side.entrantId,
+          statistics: side.statistics,
+          ...(side.placement === undefined ? {} : { placement: side.placement }),
+          resultReason: side.resultReason ?? 'played',
+        })),
+        ...(body.winnerEntrantId === undefined ? {} : { winnerEntrantId: body.winnerEntrantId }),
+        recordedAt: new Date().toISOString(),
+      },
+    });
   }
 
   @Post('corrections')
@@ -1594,8 +1716,14 @@ export class MatchControlController {
       request,
     );
 
-    await withTransaction(this.db, (uow) =>
-      new CompetitionRepository(this.db).supersedeResult(uow, {
+    // Computed against the record as it stands, before the correction is written: this is the
+    // same outlook the preview showed, so what the operator agreed to is what gets applied.
+    const series = await this.seriesOutlookFor(organizationAlias, tournamentAlias, matchId, body);
+    const competition = new CompetitionRepository(this.db);
+    const match = await competition.findMatch(matchId);
+
+    await withTransaction(this.db, async (uow) => {
+      await competition.supersedeResult(uow, {
         matchId,
         result: plan.replacement,
         reason: plan.reason,
@@ -1604,12 +1732,34 @@ export class MatchControlController {
         organizationId,
         actor: request.subject?.subjectId ?? 'unknown',
         authorizationContext: `capability:${granted.capability} via ${granted.grantedBy}`,
-      }),
-    );
+      });
+
+      // A correction that revives a game brings it back playable and unplaced — the slot it
+      // held was released when the series settled, and may belong to someone else by now.
+      if (match && series !== undefined && series.becomingScheduled.length > 0) {
+        await competition.reinstateAnulledMatches(uow, {
+          fixtureId: match.fixtureId,
+          matchNumbers: series.becomingScheduled,
+          reason: `Reinstated by the correction to match ${matchId}: ${plan.reason}`,
+          organizationId,
+          actor: request.subject?.subjectId ?? 'unknown',
+          authorizationContext: `capability:${granted.capability} via ${granted.grantedBy}`,
+        });
+      }
+    });
 
     return {
       changedEntrantIds: [...plan.changedEntrantIds],
       ...(plan.blockedPropagation ? { blockedPropagation: { ...plan.blockedPropagation } } : {}),
+      ...(series === undefined
+        ? {}
+        : {
+            series: {
+              ...series,
+              becomingNotRequired: [...series.becomingNotRequired],
+              becomingScheduled: [...series.becomingScheduled],
+            },
+          }),
     };
   }
 
@@ -1711,6 +1861,60 @@ export class MatchControlController {
         errorCode: 'match-control-bad-request',
       });
     return { plan: planned.value, organizationId: tournament.organizationId, granted };
+  }
+
+  /**
+   * Anulls the games a series no longer needs, once the result that decided it is written.
+   *
+   * Reads the fixture's matches through the caller's own transaction, so the result recorded a
+   * moment ago is part of what the resolver sees — resolving against a committed snapshot would
+   * decide the series one game late, every time.
+   *
+   * Does nothing at all for a match belonging to no series, which is very nearly every match.
+   */
+  private async anullSurplusOf(
+    uow: UnitOfWork,
+    input: {
+      readonly matchId: string;
+      readonly stageId: string;
+      readonly tournamentId: string;
+      readonly organizationId: string;
+      readonly actor: string;
+      readonly authorizationContext: string;
+    },
+  ): Promise<void> {
+    const declaration = await readStageSeries(this.db, {
+      tournamentId: input.tournamentId,
+      stageId: input.stageId,
+    });
+    if (declaration === undefined) return;
+
+    const competition = new CompetitionRepository(this.db);
+    const match = await competition.findMatch(input.matchId, uow);
+    if (!match) return;
+
+    const fixtures = await competition.listFixturesOfStage(input.stageId);
+    const fixture = fixtures.find((candidate) => candidate.fixtureId === match.fixtureId);
+    if (!fixture) return;
+
+    const matches = await competition.listMatchesForStage(input.stageId, uow);
+    const resolution = resolveFixtureSeries({
+      declaration,
+      ...(fixture.homeEntrantId === undefined ? {} : { homeEntrantId: fixture.homeEntrantId }),
+      ...(fixture.awayEntrantId === undefined ? {} : { awayEntrantId: fixture.awayEntrantId }),
+      matches: matches
+        .filter((candidate) => candidate.fixtureId === match.fixtureId)
+        .sort((a, b) => a.number - b.number),
+    });
+    if (resolution === undefined || resolution.anulledMatchNumbers.length === 0) return;
+
+    await competition.anullSurplusMatches(uow, {
+      fixtureId: match.fixtureId,
+      anulledMatchNumbers: resolution.anulledMatchNumbers,
+      organizationId: input.organizationId,
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+    });
   }
 
   private async resolveTournament(organizationAlias: string, tournamentAlias: string) {

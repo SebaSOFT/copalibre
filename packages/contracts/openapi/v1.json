@@ -3789,6 +3789,99 @@
         ]
       }
     },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/series/preview": {
+      "post": {
+        "description": "Reports, per field, whether the proposed span/resolutionClass/neutralGround values are safe, require a rebuild (naming how many fixtures it would invalidate), or are blocked because the series already has a result — never applies anything itself.",
+        "operationId": "StagesController_previewSeriesMutation",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SeriesDeclarationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeriesMutationPreviewResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Classify a proposed series edit before it is applied",
+        "tags": [
+          "stages"
+        ]
+      }
+    },
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/fixtures": {
       "get": {
         "description": "What a schedule builder assigns a time and venue to — distinct from the bracket graph’s own node ids, which are never persisted.",
@@ -8714,6 +8807,33 @@
           "seasons"
         ]
       },
+      "SeriesDeclarationRequest": {
+        "type": "object",
+        "properties": {
+          "span": {
+            "type": "number",
+            "description": "Total number of scheduled matches in the series.",
+            "example": 5
+          },
+          "resolutionClass": {
+            "type": "string",
+            "description": "Closed set of declarative resolution classes.",
+            "enum": [
+              "best-of",
+              "aggregate",
+              "points-per-leg"
+            ],
+            "example": "best-of"
+          },
+          "neutralGround": {
+            "type": "boolean",
+            "description": "Whether the series is held on neutral ground (no home/away side alternation)."
+          }
+        },
+        "required": [
+          "span"
+        ]
+      },
       "CreateTournamentRequest": {
         "type": "object",
         "properties": {
@@ -8779,6 +8899,14 @@
             "items": {
               "$ref": "#/components/schemas/HookScriptAttachmentRequest"
             }
+          },
+          "series": {
+            "description": "Declares this tournament’s crosses as multi-match series by default. Absent stays the default: no series, a single match per cross, requiring no further action.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SeriesDeclarationRequest"
+              }
+            ]
           }
         },
         "required": [
@@ -10266,6 +10394,57 @@
           "reason"
         ]
       },
+      "SeriesCorrectionPreview": {
+        "type": "object",
+        "properties": {
+          "before": {
+            "type": "string",
+            "description": "The series result as it stands now, in the engine’s own words"
+          },
+          "after": {
+            "type": "string",
+            "description": "The series result the correction would leave behind"
+          },
+          "decidedAtMatchNumber": {
+            "type": "number",
+            "description": "Play-order number at which the series stands decided now, if it is"
+          },
+          "decidedAtMatchNumberAfter": {
+            "type": "number",
+            "description": "Play-order number at which it would stand decided after the correction"
+          },
+          "decisionPointMoves": {
+            "type": "boolean",
+            "description": "Whether the point at which the series became decided moves"
+          },
+          "unchanged": {
+            "type": "boolean",
+            "description": "Whether the series result and its decision point are both untouched"
+          },
+          "becomingNotRequired": {
+            "description": "Games that would stop being required — scheduled today, anulled after",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "becomingScheduled": {
+            "description": "Games that would return from not-required to scheduled. Each comes back holding no slot: the one it had was released when the series settled.",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "before",
+          "after",
+          "decisionPointMoves",
+          "unchanged",
+          "becomingNotRequired",
+          "becomingScheduled"
+        ]
+      },
       "CorrectionPreviewResponse": {
         "type": "object",
         "properties": {
@@ -10281,6 +10460,14 @@
             "allOf": [
               {
                 "$ref": "#/components/schemas/BlockedPropagationDto"
+              }
+            ]
+          },
+          "series": {
+            "description": "Present only when the corrected match belongs to a series",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SeriesCorrectionPreview"
               }
             ]
           }
@@ -10955,6 +11142,14 @@
             "type": "string",
             "description": "Defaults to the tournament’s own configured format. Validated against the tournament’s discipline descriptor when supplied.",
             "example": "round-robin"
+          },
+          "series": {
+            "description": "Declares this stage’s crosses as multi-match series. Absent stays the default: no series, a single match per cross, requiring no further action.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SeriesDeclarationRequest"
+              }
+            ]
           }
         }
       },
@@ -10982,6 +11177,14 @@
           "format": {
             "type": "string",
             "example": "round-robin"
+          },
+          "series": {
+            "description": "Absent when this stage declares no series.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SeriesDeclarationRequest"
+              }
+            ]
           }
         },
         "required": [
@@ -10990,6 +11193,145 @@
           "number",
           "name",
           "format"
+        ]
+      },
+      "SeriesMutationFieldPreview": {
+        "type": "object",
+        "properties": {
+          "field": {
+            "type": "string",
+            "example": "series.span"
+          },
+          "mutationClass": {
+            "type": "string",
+            "enum": [
+              "safe",
+              "requires_rebuild",
+              "blocked_after_results"
+            ],
+            "description": "Absent when the field is refused outright — see `blocked`."
+          },
+          "invalidatedFixtureCount": {
+            "type": "number",
+            "description": "Fixtures a `requires_rebuild` change would invalidate."
+          },
+          "blocked": {
+            "type": "boolean",
+            "description": "True when this field cannot be changed as proposed; see `reason`."
+          },
+          "reason": {
+            "type": "string",
+            "description": "Present when `blocked` — names the audited correction workflow."
+          }
+        },
+        "required": [
+          "field"
+        ]
+      },
+      "SeriesMutationPreviewResponse": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SeriesMutationFieldPreview"
+            }
+          }
+        },
+        "required": [
+          "fields"
+        ]
+      },
+      "FixtureMatchResponse": {
+        "type": "object",
+        "properties": {
+          "matchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "number": {
+            "type": "number",
+            "description": "1-based play order within the fixture",
+            "example": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "scheduled",
+              "in-progress",
+              "finalized",
+              "not-required"
+            ],
+            "description": "`not-required` is a game a decided series anulled — never played, never deleted"
+          },
+          "releasedSlotId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The slot this match had occupied before a decided series freed it. Present only on an anulled match that held one; the slot itself is free and open to anyone."
+          }
+        },
+        "required": [
+          "matchId",
+          "number",
+          "status"
+        ]
+      },
+      "FixtureSeriesResponse": {
+        "type": "object",
+        "properties": {
+          "span": {
+            "type": "number",
+            "description": "Total scheduled matches in the series",
+            "example": 5
+          },
+          "resolutionClass": {
+            "type": "string",
+            "enum": [
+              "best-of",
+              "aggregate",
+              "points-per-leg"
+            ]
+          },
+          "guaranteedMatches": {
+            "type": "number",
+            "description": "How many games will certainly be played whatever the results — a best-of-five is three; every game beyond this one is contingent on the series still being alive",
+            "example": 3
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "decided",
+              "undecided",
+              "finished-unresolved"
+            ]
+          },
+          "explanation": {
+            "type": "string",
+            "description": "Why the series stands where it does, in words"
+          },
+          "winnerEntrantId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Side the series has settled on, if any"
+          },
+          "matchesPlayed": {
+            "type": "number",
+            "description": "Games of the series finalized so far",
+            "example": 3
+          },
+          "anulledMatchNumbers": {
+            "description": "Play-order numbers a decided series no longer requires. A match still `scheduled` here is one whose slot the decision would free but has not freed yet.",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "span",
+          "guaranteedMatches",
+          "matchesPlayed",
+          "anulledMatchNumbers"
         ]
       },
       "FixtureResponse": {
@@ -11002,7 +11344,7 @@
           "matchId": {
             "type": "string",
             "format": "uuid",
-            "description": "Primary match for this fixture"
+            "description": "First match of this fixture — the only one unless it declares a series"
           },
           "round": {
             "type": "number",
@@ -11016,12 +11358,23 @@
           "awayEntrantId": {
             "type": "string",
             "format": "uuid"
+          },
+          "matches": {
+            "description": "Every match of this fixture in play order; exactly one unless it is a series",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FixtureMatchResponse"
+            }
+          },
+          "series": {
+            "$ref": "#/components/schemas/FixtureSeriesResponse"
           }
         },
         "required": [
           "fixtureId",
           "matchId",
-          "round"
+          "round",
+          "matches"
         ]
       },
       "StageFixturesResponse": {
@@ -12374,6 +12727,123 @@
           "kind"
         ]
       },
+      "PublicSeriesGameResponse": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "number",
+            "description": "1-based play order within the series",
+            "example": 4
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "scheduled",
+              "in-progress",
+              "finalized",
+              "not-required"
+            ],
+            "description": "`not-required` is a game the series ended before reaching"
+          },
+          "winnerEntrantId": {
+            "type": "string",
+            "description": "Winner of this game, when it has one"
+          },
+          "winner": {
+            "type": "string",
+            "enum": [
+              "home",
+              "away"
+            ],
+            "description": "Which side of the cross won, so a renderer matches no entrant ids itself"
+          },
+          "scores": {
+            "description": "Scores in the cross’s own side order — home first, away second",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "number",
+          "status"
+        ]
+      },
+      "PublicSeriesStateResponse": {
+        "type": "object",
+        "properties": {
+          "span": {
+            "type": "number",
+            "description": "Total games in the series, played or not",
+            "example": 5
+          },
+          "resolutionClass": {
+            "type": "string",
+            "enum": [
+              "best-of",
+              "aggregate",
+              "points-per-leg"
+            ]
+          },
+          "games": {
+            "description": "Every game in play order — by game number, not by when it was finalized",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicSeriesGameResponse"
+            }
+          },
+          "homeGamesWon": {
+            "type": "number",
+            "description": "Games won by the home side",
+            "example": 2
+          },
+          "awayGamesWon": {
+            "type": "number",
+            "description": "Games won by the away side",
+            "example": 1
+          },
+          "aggregateScores": {
+            "description": "Summed score across every played game, home first. What decides an `aggregate` tie, and meaningless for a best-of, where games won is the score.",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "decided",
+              "undecided",
+              "finished-unresolved"
+            ]
+          },
+          "winnerEntrantId": {
+            "type": "string",
+            "description": "The side the series settled on; absent while undecided"
+          },
+          "winner": {
+            "type": "string",
+            "enum": [
+              "home",
+              "away"
+            ],
+            "description": "Which side of the cross advanced"
+          },
+          "explanation": {
+            "type": "string",
+            "description": "Why the series stands where it does, in the engine’s own words"
+          }
+        },
+        "required": [
+          "span",
+          "games",
+          "homeGamesWon",
+          "awayGamesWon",
+          "status",
+          "explanation"
+        ]
+      },
       "PublicBracketMatchResponse": {
         "type": "object",
         "properties": {
@@ -12405,6 +12875,14 @@
             "items": {
               "$ref": "#/components/schemas/PublicBracketSlotResponse"
             }
+          },
+          "series": {
+            "description": "Present only on a cross settled by a series",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublicSeriesStateResponse"
+              }
+            ]
           }
         },
         "required": [

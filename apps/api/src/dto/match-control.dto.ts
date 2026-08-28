@@ -608,6 +608,53 @@ export class BlockedPropagationDto {
   reason!: string;
 }
 
+/**
+ * What a correction does to the series the corrected match belongs to.
+ *
+ * Always reported in full for a match in a series — including when nothing changes. A preview
+ * that omitted the section when the result held would leave an operator unable to tell "this
+ * correction is safe" from "the preview forgot to check", and those are not the same answer.
+ */
+export class SeriesCorrectionPreview {
+  @ApiProperty({ description: 'The series result as it stands now, in the engine’s own words' })
+  before!: string;
+
+  @ApiProperty({ description: 'The series result the correction would leave behind' })
+  after!: string;
+
+  @ApiPropertyOptional({
+    description: 'Play-order number at which the series stands decided now, if it is',
+  })
+  decidedAtMatchNumber?: number;
+
+  @ApiPropertyOptional({
+    description: 'Play-order number at which it would stand decided after the correction',
+  })
+  decidedAtMatchNumberAfter?: number;
+
+  @ApiProperty({ description: 'Whether the point at which the series became decided moves' })
+  decisionPointMoves!: boolean;
+
+  @ApiProperty({
+    description: 'Whether the series result and its decision point are both untouched',
+  })
+  unchanged!: boolean;
+
+  @ApiProperty({
+    type: [Number],
+    description: 'Games that would stop being required — scheduled today, anulled after',
+  })
+  becomingNotRequired!: number[];
+
+  @ApiProperty({
+    type: [Number],
+    description:
+      'Games that would return from not-required to scheduled. Each comes back holding no ' +
+      'slot: the one it had was released when the series settled.',
+  })
+  becomingScheduled!: number[];
+}
+
 export class CorrectionPreviewResponse {
   @ApiProperty({ type: [String], description: 'Entrants whose recorded numbers move' })
   changedEntrantIds!: string[];
@@ -617,6 +664,12 @@ export class CorrectionPreviewResponse {
     description: 'Present when a started downstream stage is deliberately not rebuilt',
   })
   blockedPropagation?: BlockedPropagationDto;
+
+  @ApiPropertyOptional({
+    type: SeriesCorrectionPreview,
+    description: 'Present only when the corrected match belongs to a series',
+  })
+  series?: SeriesCorrectionPreview;
 }
 
 export class CorrectionEntryDto {

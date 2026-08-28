@@ -79,7 +79,24 @@ export interface WizardState {
   readonly customRuleValues: Readonly<Record<string, string>>;
   readonly customRuleOptions: Readonly<Record<string, string>>;
   readonly customRules: readonly WizardRuleDraft[];
+  /**
+   * Off by default and requiring no operator action: a tournament authored
+   * without touching these controls submits exactly the request it did before
+   * they existed — no `series` key at all, not a `series` of span 1.
+   */
+  readonly seriesEnabled: boolean;
+  readonly seriesSpan?: number;
+  readonly seriesResolutionClass?: SeriesResolutionClass;
+  readonly seriesNeutralGround: boolean;
 }
+
+export type SeriesResolutionClass = 'best-of' | 'aggregate' | 'points-per-leg';
+
+export const SERIES_RESOLUTION_CLASSES: readonly SeriesResolutionClass[] = [
+  'best-of',
+  'aggregate',
+  'points-per-leg',
+];
 
 export function initialWizard(): WizardState {
   return {
@@ -90,6 +107,8 @@ export function initialWizard(): WizardState {
     customRuleValues: {},
     customRuleOptions: {},
     customRules: [],
+    seriesEnabled: false,
+    seriesNeutralGround: false,
   };
 }
 
@@ -129,9 +148,10 @@ export function stepProblems(
       if (state.format === undefined) return [messages.wizardProblemChooseFormat];
       // Guards against a stale selection: changing the discipline after
       // choosing a format must not carry the old one through.
-      return formatsFor(disciplines, state.descriptorId).includes(state.format)
-        ? []
-        : [messages.wizardProblemFormatNotSupported];
+      if (!formatsFor(disciplines, state.descriptorId).includes(state.format)) {
+        return [messages.wizardProblemFormatNotSupported];
+      }
+      return seriesProblems(state);
     }
     case 'rules': {
       if (!state.customRuleEnabled) return [];
@@ -150,6 +170,37 @@ export function stepProblems(
         : [];
   }
 }
+
+/**
+ * The two refusals, client-side, mirroring the server's own checks so the
+ * operator meets them while authoring rather than on submit. Both refuse a
+ * configuration that cannot cohere, never an unusual-but-valid one: a placement
+ * match has no two sides to settle, and an even-span `best-of` has no majority.
+ */
+export function seriesProblems(state: WizardState): readonly MessageDescriptor[] {
+  if (!state.seriesEnabled) return [];
+
+  const problems: MessageDescriptor[] = [];
+  if (state.format !== undefined && PLACEMENT_FORMATS.includes(state.format)) {
+    problems.push(messages.wizardProblemSeriesOnPlacementFormat);
+  }
+  if (
+    state.seriesSpan === undefined ||
+    !Number.isInteger(state.seriesSpan) ||
+    state.seriesSpan < 2
+  ) {
+    problems.push(messages.wizardProblemSeriesSpan);
+  } else if (state.seriesResolutionClass === 'best-of' && state.seriesSpan % 2 === 0) {
+    problems.push(messages.wizardProblemSeriesEvenBestOf);
+  }
+  return problems;
+}
+
+/**
+ * Read from the client rather than the API only because it decides which *label*
+ * to show; the server refuses a series on a placement format regardless.
+ */
+const PLACEMENT_FORMATS: readonly string[] = ['free-for-all', 'heats'];
 
 export function canContinue(
   state: WizardState,
@@ -209,6 +260,25 @@ export function toCreateRequest(
     ...(state.profileId !== undefined ? { profileId: state.profileId } : {}),
     ...(state.profileVersion !== undefined ? { profileVersion: state.profileVersion } : {}),
     customScripts: customScriptsFrom(state, vocabulary),
+    ...seriesFrom(state),
+  };
+}
+
+/**
+ * Absent, not empty, when no series is declared — a tournament authored without
+ * touching the series controls submits the request it submitted before they
+ * existed, byte for byte.
+ */
+function seriesFrom(state: WizardState): Pick<CreateTournamentRequest, 'series'> | object {
+  if (!state.seriesEnabled || state.seriesSpan === undefined) return {};
+  return {
+    series: {
+      span: state.seriesSpan,
+      ...(state.seriesResolutionClass === undefined
+        ? {}
+        : { resolutionClass: state.seriesResolutionClass }),
+      ...(state.seriesNeutralGround ? { neutralGround: true } : {}),
+    },
   };
 }
 

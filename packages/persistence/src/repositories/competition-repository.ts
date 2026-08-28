@@ -1021,6 +1021,19 @@ export class CompetitionRepository {
 
     const matchIds = matches.map((m) => m.match_id);
 
+    // Read the assignments before deleting them: the slot an anulled game had occupied is a
+    // fact an organizer still needs after it is freed ("game five is no longer required — it
+    // had Court 2 at 19:00, now free"), and once the row is gone the audit trail is the only
+    // place that fact can live.
+    const releasedAssignments = await uow.tx
+      .selectFrom('match_schedule_assignments')
+      .select(['match_id', 'slot_id'])
+      .where('match_id', 'in', matchIds)
+      .execute();
+    const releasedSlotByMatch = new Map(
+      releasedAssignments.map((row) => [row.match_id, row.slot_id]),
+    );
+
     await uow.tx
       .updateTable('matches')
       .set({ status: 'not-required' })
@@ -1039,6 +1052,7 @@ export class CompetitionRepository {
         ...toMatch(m),
         status: 'not-required',
       };
+      const releasedSlotId = releasedSlotByMatch.get(m.match_id);
       await uow.recordAudit({
         organizationId: input.organizationId,
         entityType: 'match',
@@ -1046,6 +1060,10 @@ export class CompetitionRepository {
         action: 'match.anulled',
         actor: input.actor,
         authorizationContext: input.authorizationContext,
+        previousState: {
+          ...toMatch(m),
+          ...(releasedSlotId === undefined ? {} : { releasedSlotId }),
+        },
         resultingState: { ...updatedMatch },
       });
       await uow.publishEvent({
@@ -1059,11 +1077,83 @@ export class CompetitionRepository {
           fixtureId: input.fixtureId,
           number: m.number,
           status: 'not-required',
+          ...(releasedSlotId === undefined ? {} : { releasedSlotId }),
         },
       });
     }
 
     return matches.map((m) => ({ ...toMatch(m), status: 'not-required' as const }));
+  }
+
+  /**
+   * Returns anulled matches a correction has made necessary again to `scheduled`, as an audited
+   * fact naming the correction that revived them.
+   *
+   * Deliberately restores no schedule: the slot each of these held was released when the series
+   * settled, and by now it may be occupied by someone else's match, in another venue's grid, on
+   * a day that has already been published. Silently re-taking it would double-book a real match;
+   * silently taking a different one would invent a fixture time nobody chose. So the match comes
+   * back playable and unplaced, and an organizer places it — which is also the only way the
+   * decision to give it a slot ends up in the record with a name against it.
+   */
+  async reinstateAnulledMatches(
+    uow: UnitOfWork,
+    input: {
+      readonly fixtureId: string;
+      readonly matchNumbers: readonly number[];
+      /** The correction that revived them, named in the audit record. */
+      readonly reason: string;
+    } & AuditContext,
+  ): Promise<readonly Match[]> {
+    if (input.matchNumbers.length === 0) return [];
+
+    const matches = await uow.tx
+      .selectFrom('matches')
+      .selectAll()
+      .where('fixture_id', '=', input.fixtureId)
+      .where('number', 'in', input.matchNumbers)
+      .where('status', '=', 'not-required')
+      .execute();
+
+    if (matches.length === 0) return [];
+
+    const matchIds = matches.map((m) => m.match_id);
+    await uow.tx
+      .updateTable('matches')
+      .set({ status: 'scheduled' })
+      .where('match_id', 'in', matchIds)
+      .execute();
+
+    for (const m of matches) {
+      const reinstated: Match = { ...toMatch(m), status: 'scheduled' };
+      await uow.recordAudit({
+        organizationId: input.organizationId,
+        entityType: 'match',
+        entityId: m.match_id,
+        action: 'match.reinstated',
+        actor: input.actor,
+        authorizationContext: input.authorizationContext,
+        previousState: { ...toMatch(m) },
+        resultingState: { ...reinstated },
+        reason: input.reason,
+      });
+      await uow.publishEvent({
+        organizationId: input.organizationId,
+        stream: `match:${m.match_id}`,
+        entityId: m.match_id,
+        eventType: 'match.reinstated',
+        projectionVersion: 1,
+        payload: {
+          matchId: m.match_id,
+          fixtureId: input.fixtureId,
+          number: m.number,
+          status: 'scheduled',
+          reason: input.reason,
+        },
+      });
+    }
+
+    return matches.map((m) => ({ ...toMatch(m), status: 'scheduled' as const }));
   }
 
   async createMatch(
@@ -1117,6 +1207,39 @@ export class CompetitionRepository {
       .orderBy('matches.number')
       .execute();
     return rows.map(toMatch);
+  }
+
+  /**
+   * The slot each anulled match of a stage had occupied before a decided series freed it.
+   *
+   * Sourced from the `match.anulled` audit record rather than from a schedule table, because
+   * anulling deletes the assignment — the slot goes back to whoever wants it. A builder that
+   * only reported "no longer required" would leave an organizer wondering what happened to
+   * Court 2 at 19:00; this is what lets it say so. A match anulled while unscheduled has no
+   * entry, which is not the same as one whose slot the audit record predates.
+   */
+  async listReleasedSlotsOfStage(stageId: string): Promise<ReadonlyMap<string, string>> {
+    const rows = await this.db
+      .selectFrom('audit_log')
+      .innerJoin('matches', 'matches.match_id', 'audit_log.entity_id')
+      .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
+      .select(['audit_log.entity_id as match_id', 'audit_log.previous_state as previous_state'])
+      .where('fixtures.stage_id', '=', stageId)
+      .where('audit_log.entity_type', '=', 'match')
+      .where('audit_log.action', '=', 'match.anulled')
+      .orderBy('audit_log.occurred_at', 'desc')
+      .execute();
+
+    const released = new Map<string, string>();
+    for (const row of rows) {
+      if (released.has(row.match_id)) continue;
+      const previous = row.previous_state;
+      const parsed = (typeof previous === 'string' ? JSON.parse(previous) : previous) as
+        { readonly releasedSlotId?: unknown } | null | undefined;
+      const slotId = parsed?.releasedSlotId;
+      if (typeof slotId === 'string') released.set(row.match_id, slotId);
+    }
+    return released;
   }
 
   /**
@@ -1737,8 +1860,9 @@ export class CompetitionRepository {
     return match;
   }
 
-  async findMatch(matchId: string): Promise<Match | undefined> {
-    return this.findMatchIn(this.db, matchId);
+  /** Reads through the caller's transaction when given one, so a write it just made is visible. */
+  async findMatch(matchId: string, uow?: UnitOfWork): Promise<Match | undefined> {
+    return this.findMatchIn(uow?.tx ?? this.db, matchId);
   }
 
   private async findMatchIn(

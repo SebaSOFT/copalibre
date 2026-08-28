@@ -155,6 +155,7 @@ export const messages: Record<string, string> = {
   'control.matchConsole.lastSynced': 'Ultima sincronizzazione {time}',
   'control.matchConsole.neverSynced': 'Non ancora sincronizzato',
   'control.matchConsole.refusedAction': 'Rifiutato ({kind}): {reason}',
+  'control.matchConsole.refusedContents': 'Hai registrato: {contents}',
   'control.matchConsole.dismiss': 'Ignora',
   'control.matchConsole.controls': 'Controlli della partita',
   'control.matchConsole.currentScoreboard': 'Tabellone segnapunti attuale',
@@ -336,6 +337,20 @@ export const messages: Record<string, string> = {
   'control.wizard.problem.chooseFormat': 'Scegli un formato',
   'control.wizard.problem.formatNotSupported': 'La disciplina scelta non supporta quel formato',
   'control.wizard.problem.minParticipants': 'Un torneo richiede almeno due partecipanti',
+  'control.wizard.problem.seriesOnPlacementFormat':
+    'Questo formato classifica tutti i partecipanti invece di opporne due, quindi non può essere deciso da una serie',
+  'control.wizard.problem.seriesSpan': 'Una serie comprende almeno due partite',
+  'control.wizard.problem.seriesEvenBestOf':
+    'Una serie al meglio di richiede un numero dispari di partite perché una parte ottenga la maggioranza. Usa Aggregato o Punti per gara per un numero pari.',
+  'control.wizard.series.enable': 'Decidere ogni incrocio con una serie di partite',
+  'control.wizard.series.help':
+    'Lascia disattivato per giocare una partita per incrocio. Attivandolo vengono programmate più partite tra le stesse due parti e l’incrocio si decide considerandole tutte insieme.',
+  'control.wizard.field.seriesSpan': 'Partite per serie',
+  'control.wizard.field.seriesResolutionClass': 'Decisa da',
+  'control.wizard.series.class.bestOf': 'Al meglio di — la prima parte a ottenere la maggioranza',
+  'control.wizard.series.class.aggregate': 'Aggregato — punteggi di tutte le partite sommati',
+  'control.wizard.series.class.pointsPerLeg': 'Punti per gara — ogni partita assegna punti',
+  'control.wizard.field.seriesNeutralGround': 'Giocata in campo neutro (senza andata e ritorno)',
 
   'control.wizard.breadcrumb': 'Tornei > Nuovo',
   'control.wizard.title': 'Crea torneo',
@@ -583,6 +598,17 @@ export const messages: Record<string, string> = {
   'control.scheduleBuilder.entrantColumn': 'Partecipante',
   'control.scheduleBuilder.timeColumn': 'Orario',
   'control.scheduleBuilder.venueColumn': 'Sede',
+  'control.scheduleBuilder.seriesHeading': 'Serie da {span} partite — {played} giocate',
+  'control.scheduleBuilder.seriesGame': 'Partita {number} di {span}',
+  'control.scheduleBuilder.contingencyCertain': 'Sarà giocata',
+  'control.scheduleBuilder.contingencyContingent': 'Si gioca solo se la serie è ancora aperta',
+  'control.scheduleBuilder.contingencyNotRequired': 'Non più necessaria — la serie è già decisa',
+  'control.scheduleBuilder.releasedSlot': 'Occupava {slot}. Quello slot è libero.',
+  'control.scheduleBuilder.releasedSlotUnknown':
+    'Non occupava alcuno slot quando la serie si è decisa.',
+  'control.scheduleBuilder.pendingReleasesHeading':
+    'Slot che questa decisione di serie libererebbe',
+  'control.scheduleBuilder.pendingRelease': 'Partita {number} — {slot}',
   'control.orgIdentity.heading': "Identità dell'organizzazione",
   'control.orgIdentity.loading': 'Caricamento…',
   'control.orgIdentity.loadFailed': "Impossibile caricare le impostazioni dell'organizzazione.",

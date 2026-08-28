@@ -409,6 +409,10 @@ export const messages = defineMessages({
     id: 'control.matchConsole.refusedAction',
     defaultMessage: 'Refused ({kind}): {reason}',
   },
+  matchConsoleRefusedContents: {
+    id: 'control.matchConsole.refusedContents',
+    defaultMessage: 'You recorded: {contents}',
+  },
   matchConsoleDismiss: { id: 'control.matchConsole.dismiss', defaultMessage: 'Dismiss' },
   matchConsoleControls: {
     id: 'control.matchConsole.controls',
@@ -881,6 +885,20 @@ export const messages = defineMessages({
     id: 'control.wizard.problem.formatNotSupported',
     defaultMessage: 'The chosen discipline does not support that format',
   },
+  wizardProblemSeriesOnPlacementFormat: {
+    id: 'control.wizard.problem.seriesOnPlacementFormat',
+    defaultMessage:
+      'This format ranks every entrant rather than pitting two against each other, so it cannot be settled by a series',
+  },
+  wizardProblemSeriesSpan: {
+    id: 'control.wizard.problem.seriesSpan',
+    defaultMessage: 'A series spans at least two matches',
+  },
+  wizardProblemSeriesEvenBestOf: {
+    id: 'control.wizard.problem.seriesEvenBestOf',
+    defaultMessage:
+      'A best-of series needs an odd number of matches so one side can win the majority. Use Aggregate or Points per leg for an even number.',
+  },
   wizardProblemMinParticipants: {
     id: 'control.wizard.problem.minParticipants',
     defaultMessage: 'A tournament needs at least two participants',
@@ -906,6 +924,39 @@ export const messages = defineMessages({
   wizardFieldAlias: { id: 'control.wizard.field.alias', defaultMessage: 'Alias' },
   wizardFieldDiscipline: { id: 'control.wizard.field.discipline', defaultMessage: 'Discipline' },
   wizardFieldFormat: { id: 'control.wizard.field.format', defaultMessage: 'Format' },
+  wizardEnableSeries: {
+    id: 'control.wizard.series.enable',
+    defaultMessage: 'Settle each cross with a series of matches',
+  },
+  wizardSeriesHelp: {
+    id: 'control.wizard.series.help',
+    defaultMessage:
+      'Leave this off to play one match per cross. Turning it on schedules several matches between the same two sides and decides the cross from all of them together.',
+  },
+  wizardFieldSeriesSpan: {
+    id: 'control.wizard.field.seriesSpan',
+    defaultMessage: 'Matches per series',
+  },
+  wizardFieldSeriesResolutionClass: {
+    id: 'control.wizard.field.seriesResolutionClass',
+    defaultMessage: 'Decided by',
+  },
+  wizardSeriesClassBestOf: {
+    id: 'control.wizard.series.class.bestOf',
+    defaultMessage: 'Best of — first side to win the majority',
+  },
+  wizardSeriesClassAggregate: {
+    id: 'control.wizard.series.class.aggregate',
+    defaultMessage: 'Aggregate — scores from every match added together',
+  },
+  wizardSeriesClassPointsPerLeg: {
+    id: 'control.wizard.series.class.pointsPerLeg',
+    defaultMessage: 'Points per leg — each match awards points',
+  },
+  wizardFieldSeriesNeutralGround: {
+    id: 'control.wizard.field.seriesNeutralGround',
+    defaultMessage: 'Played on neutral ground (no home and away)',
+  },
   wizardEnableCustomRule: {
     id: 'control.wizard.rule.enable',
     defaultMessage: 'Add rule for every recorded event',
@@ -1673,6 +1724,46 @@ export const messages = defineMessages({
   scheduleBuilderVenueColumn: {
     id: 'control.scheduleBuilder.venueColumn',
     defaultMessage: 'Venue',
+  },
+
+  // A series in the builder. Every contingency is stated in words: which game will be
+  // played, which only if the series is still alive, and which now will not be. Color
+  // carries none of it.
+  scheduleBuilderSeriesHeading: {
+    id: 'control.scheduleBuilder.seriesHeading',
+    defaultMessage: 'Series of {span} games — {played} played',
+  },
+  scheduleBuilderSeriesGame: {
+    id: 'control.scheduleBuilder.seriesGame',
+    defaultMessage: 'Game {number} of {span}',
+  },
+  scheduleBuilderContingencyCertain: {
+    id: 'control.scheduleBuilder.contingencyCertain',
+    defaultMessage: 'Will be played',
+  },
+  scheduleBuilderContingencyContingent: {
+    id: 'control.scheduleBuilder.contingencyContingent',
+    defaultMessage: 'Played only if the series is still undecided',
+  },
+  scheduleBuilderContingencyNotRequired: {
+    id: 'control.scheduleBuilder.contingencyNotRequired',
+    defaultMessage: 'No longer required — the series is already settled',
+  },
+  scheduleBuilderReleasedSlot: {
+    id: 'control.scheduleBuilder.releasedSlot',
+    defaultMessage: 'Had held {slot}. That slot is free.',
+  },
+  scheduleBuilderReleasedSlotUnknown: {
+    id: 'control.scheduleBuilder.releasedSlotUnknown',
+    defaultMessage: 'Held no slot when the series settled.',
+  },
+  scheduleBuilderPendingReleasesHeading: {
+    id: 'control.scheduleBuilder.pendingReleasesHeading',
+    defaultMessage: 'Slots this series decision would free',
+  },
+  scheduleBuilderPendingRelease: {
+    id: 'control.scheduleBuilder.pendingRelease',
+    defaultMessage: 'Game {number} — {slot}',
   },
 
   // Organization identity — name and emblem, in the org settings surface.

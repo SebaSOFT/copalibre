@@ -21,6 +21,7 @@ import {
 import { controlLinkClick } from '../lib/control-navigation.js';
 import { controlTokenStore } from '../session/token-store.js';
 import {
+  describeQueuedAction,
   drainQueue,
   enqueue,
   listPending,
@@ -489,6 +490,15 @@ export function MatchConsoleRoute({
                   {intl.formatMessage(messages.matchConsoleRefusedAction, {
                     kind: mutation.action.kind,
                     reason: mutation.refusalReason ?? '',
+                  })}
+                </span>
+                {/* What was actually recorded, kept in front of the operator. A refusal
+                    caused by a series decision means this match will never be played, and
+                    these contents are the only basis for deciding whether the result
+                    belongs elsewhere — as a correction to an earlier game, most often. */}
+                <span className="cl-card__description">
+                  {intl.formatMessage(messages.matchConsoleRefusedContents, {
+                    contents: describeQueuedAction(mutation.action),
                   })}
                 </span>
                 <Button

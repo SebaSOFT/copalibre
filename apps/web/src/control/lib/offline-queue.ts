@@ -248,3 +248,48 @@ async function replay(client: MatchConsoleApiClient, mutation: QueuedMutation): 
 function isRefusal(error: unknown): boolean {
   return error instanceof ControlApiError;
 }
+
+/**
+ * What the operator actually recorded, in one line.
+ *
+ * A refused item shows its kind and the server's reason, which answers "why was this rejected"
+ * but not "what am I about to lose". When the refusal is a series decision — the match was
+ * anulled while the operator was offline and will never be played — the contents are the whole
+ * point: they are the only way to judge whether the result belongs somewhere else, typically as
+ * a correction to an earlier game of the same series. So the queue keeps the item and this
+ * renders what is in it.
+ *
+ * Deliberately structural rather than pretty: entrant and person ids read as ids because that
+ * is what the queue durably holds, and inventing names it never stored would be a guess.
+ */
+export function describeQueuedAction(action: QueuedAction): string {
+  switch (action.kind) {
+    case 'finalize': {
+      const scores = action.request.sides
+        .map((side) => `${side.entrantId} ${summariseStatistics(side.statistics)}`)
+        .join(' — ');
+      const winner =
+        action.request.winnerEntrantId === undefined
+          ? ''
+          : `, winner ${action.request.winnerEntrantId}`;
+      return `Final result: ${scores}${winner}`;
+    }
+    case 'record-event': {
+      const who = action.request.personId ?? action.request.side;
+      return `Event ${action.request.definitionCode}${who === undefined ? '' : ` for ${who}`}`;
+    }
+    case 'roster-select':
+      return `Roster for ${action.entrantId}: ${action.request.members.length} named`;
+    case 'clock-adjust':
+      return `Clock set to ${action.request.elapsedSeconds}s`;
+    case 'timer-resolve':
+      return `Timer ${action.timerId} resolved`;
+  }
+}
+
+/** Every recorded statistic, in its declared order — no discipline's scoring key is assumed. */
+function summariseStatistics(statistics: Record<string, number>): string {
+  const entries = Object.entries(statistics);
+  if (entries.length === 0) return '(nothing recorded)';
+  return entries.map(([code, value]) => `${code} ${value}`).join(' ');
+}

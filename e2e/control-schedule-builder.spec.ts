@@ -27,11 +27,27 @@ interface OfficialRecord {
 }
 
 interface ScheduleAssignment {
-  readonly fixtureId: string;
-  readonly window: { readonly startsAt: number; readonly durationMinutes: number };
-  readonly venueId?: string;
+  readonly matchId: string;
+  readonly slotId: string;
   readonly officialIds?: readonly string[];
 }
+
+/**
+ * A slot is the placeable unit — a venue and a time already reserved — since scheduling moved
+ * to match grain. The builder picks one, rather than typing a start time and a duration.
+ */
+const SCHEDULES = [
+  {
+    scheduleId: 'schedule-1',
+    organizationId: 'org-1',
+    name: 'Fecha 1',
+    slotMinutes: 60,
+    slots: [
+      { slotId: 'slot-1', venueId: 'venue-1', startsAt: '2026-08-01T14:00:00.000Z', matchCount: 0 },
+      { slotId: 'slot-2', venueId: 'venue-1', startsAt: '2026-08-01T16:00:00.000Z', matchCount: 0 },
+    ],
+  },
+];
 
 let venues: VenueRecord[] = [];
 let officials: OfficialRecord[] = [];
@@ -40,23 +56,36 @@ let nextVenueId = 1;
 let nextOfficialId = 1;
 
 const fixtures = [
-  { fixtureId: 'fixture-1', round: 1, homeEntrantId: 'entrant-a', awayEntrantId: 'entrant-b' },
-  { fixtureId: 'fixture-2', round: 1, homeEntrantId: 'entrant-c', awayEntrantId: 'entrant-d' },
+  {
+    fixtureId: 'fixture-1',
+    matchId: 'match-1',
+    round: 1,
+    homeEntrantId: 'entrant-a',
+    awayEntrantId: 'entrant-b',
+    matches: [{ matchId: 'match-1', number: 1, status: 'scheduled' }],
+  },
+  {
+    fixtureId: 'fixture-2',
+    matchId: 'match-2',
+    round: 1,
+    homeEntrantId: 'entrant-c',
+    awayEntrantId: 'entrant-d',
+    matches: [{ matchId: 'match-2', number: 1, status: 'scheduled' }],
+  },
 ];
 
-/** A single-capacity venue hosting both fixtures at once is exactly one conflict. */
+/** Two matches placed in one slot at a single-capacity venue is exactly one conflict. */
 function detectConflicts(
   assignments: readonly ScheduleAssignment[],
 ): readonly { readonly detail: string }[] {
   const conflicts: { detail: string }[] = [];
   for (const [index, a] of assignments.entries()) {
     for (const b of assignments.slice(index + 1)) {
-      if (a.venueId === undefined || a.venueId !== b.venueId) continue;
-      const overlaps =
-        a.window.startsAt < b.window.startsAt + b.window.durationMinutes * 60_000 &&
-        b.window.startsAt < a.window.startsAt + a.window.durationMinutes * 60_000;
-      if (overlaps) {
-        conflicts.push({ detail: `Venue "${a.venueId}" hosts 1 fixture(s) at once` });
+      if (a.slotId !== b.slotId) continue;
+      const slot = SCHEDULES[0]?.slots.find((one) => one.slotId === a.slotId);
+      const venue = venues.find((one) => one.venueId === slot?.venueId);
+      if ((venue?.concurrentCapacity ?? 1) < 2) {
+        conflicts.push({ detail: `Venue "${slot?.venueId}" hosts 1 fixture(s) at once` });
       }
     }
   }
@@ -96,6 +125,11 @@ async function mockControlApi(page: import('@playwright/test').Page): Promise<vo
               window as unknown as { __createVenue: (body: unknown) => Promise<unknown> }
             ).__createVenue(body),
             { status: 201 },
+          );
+        }
+        if (url === `/organizations/${orgAlias}/schedules` && method === 'GET') {
+          return Response.json(
+            await (window as unknown as { __schedules: () => Promise<unknown> }).__schedules(),
           );
         }
         if (url === `/organizations/${orgAlias}/officials` && method === 'GET') {
@@ -192,11 +226,12 @@ async function mockControlApi(page: import('@playwright/test').Page): Promise<vo
       return created;
     },
   );
+  await page.exposeFunction('__schedules', () => SCHEDULES);
   await page.exposeFunction('__fixtures', () => ({ stageId: STAGE_ID, fixtures }));
   await page.exposeFunction('__schedule', () => ({ assignments: published }));
   await page.exposeFunction('__preview', (assignments: readonly ScheduleAssignment[]) => {
     const conflicts = detectConflicts(assignments);
-    return { committable: conflicts.length === 0, conflicts, affectedPublishedFixtures: [] };
+    return { committable: conflicts.length === 0, conflicts, affectedPublishedMatches: [] };
   });
   await page.exposeFunction('__publish', (assignments: readonly ScheduleAssignment[]) => {
     published = [...assignments];
@@ -232,18 +267,19 @@ test('creates a venue and an official, assigns a fixture, previews, and publishe
   await page.waitForURL(`**${scheduleTarget}`);
 
   await expect(page.getByText('Ronda 1').first()).toBeVisible();
-  await page.getByLabel('Hora de inicio — fixture-1').fill('2026-08-01T14:00');
-  await page.getByLabel('Duración (minutos) — fixture-1').fill('60');
-  await page.getByLabel('Cancha — fixture-1').selectOption({ label: 'Cancha 1' });
+  await page.getByLabel('Hora de inicio — entrant-a vs entrant-b').selectOption('slot-1');
 
   await page.getByText('Previsualizar').click();
   await expect(page.getByText('Publicar')).toBeEnabled();
   await page.getByText('Publicar').click();
 
   await expect(page.getByText('Horario publicado.')).toBeVisible();
-  // fixture-1 is no longer among the unassigned calendar rows — only
-  // fixture-2 (never assigned in this test) remains "Sin asignar".
-  await expect(page.getByText('Sin asignar')).toHaveCount(1);
+  // fixture-1 is no longer among the unassigned calendar rows — only fixture-2 (never
+  // assigned in this test) remains "Sin asignar". Scoped to the calendar: the list view's
+  // slot picker carries an unassigned option on every row, which is not a row's state.
+  await expect(
+    page.locator('[aria-label="Vista de calendario"]').getByText('Sin asignar'),
+  ).toHaveCount(1);
 });
 
 test('a conflicting batch shows the conflict and blocks publish until resolved', async ({
@@ -267,13 +303,9 @@ test('a conflicting batch shows the conflict and blocks publish until resolved',
 
   await expect(page.getByText('Ronda 1').first()).toBeVisible();
 
-  await page.getByLabel('Hora de inicio — fixture-1').fill('2026-08-01T14:00');
-  await page.getByLabel('Duración (minutos) — fixture-1').fill('60');
-  await page.getByLabel('Cancha — fixture-1').selectOption({ label: 'Cancha 1' });
-
-  await page.getByLabel('Hora de inicio — fixture-2').fill('2026-08-01T14:30');
-  await page.getByLabel('Duración (minutos) — fixture-2').fill('60');
-  await page.getByLabel('Cancha — fixture-2').selectOption({ label: 'Cancha 1' });
+  // Both matches into the same slot at a venue that can host only one.
+  await page.getByLabel('Hora de inicio — entrant-a vs entrant-b').selectOption('slot-1');
+  await page.getByLabel('Hora de inicio — entrant-c vs entrant-d').selectOption('slot-1');
 
   await page.getByText('Previsualizar').click();
   await expect(page.getByText('Conflictos')).toBeVisible();

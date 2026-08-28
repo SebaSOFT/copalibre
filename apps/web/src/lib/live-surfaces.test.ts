@@ -2,7 +2,14 @@ import type { EventEnvelope } from '@copalibre/realtime';
 import { decide, presentState, resultLegend, type ResultStateLabels } from './result-state.js';
 import { describeSlot, isResolved, matchReportUrl, toNode, toRounds } from './bracket.js';
 import { sampleBracket } from './bracket-sample.js';
-import { seriesDecided, seriesScore, seriesSegments } from './series.js';
+import {
+  seriesDecided,
+  seriesPending,
+  seriesScore,
+  seriesSegments,
+  toSeriesInput,
+  type PublicSeriesState,
+} from './series.js';
 import { applyEvent, applyEvents, markConnected } from './live-state.js';
 import { sampleDashboard } from './live-sample.js';
 
@@ -188,6 +195,146 @@ describe('the series bar', () => {
     });
     expect(seriesDecided({ bestOf: 3, results: ['home', 'home'] })).toBe(true);
     expect(seriesDecided({ bestOf: 5, results: ['home', 'home'] })).toBe(false);
+  });
+
+  it('marks a game that will not be played, in its own position (0159 task 4.5)', () => {
+    // Not the same as `upcoming`, and not appended on the end: game five of a series decided
+    // in four is the fifth segment, because that is where a spectator looks for it.
+    expect(
+      seriesSegments({
+        bestOf: 5,
+        results: ['home', 'away', 'home', 'home'],
+        notRequired: [5],
+      }),
+    ).toEqual(['won-home', 'won-away', 'won-home', 'won-home', 'not-required']);
+  });
+
+  it('distinguishes a game that will not be played from one merely upcoming', () => {
+    const segments = seriesSegments({
+      bestOf: 5,
+      results: ['home', 'home', 'home'],
+      notRequired: [4, 5],
+    });
+    expect(segments.slice(3)).toEqual(['not-required', 'not-required']);
+    expect(segments).not.toContain('upcoming');
+  });
+});
+
+describe('wiring the series bar to a projection (0159 tasks 4.2, 4.3, 4.4)', () => {
+  function state(overrides: Partial<PublicSeriesState> = {}): PublicSeriesState {
+    return {
+      span: 5,
+      resolutionClass: 'best-of',
+      games: [],
+      homeGamesWon: 0,
+      awayGamesWon: 0,
+      status: 'undecided',
+      explanation: '',
+      ...overrides,
+    };
+  }
+
+  it('shows the full span after one game, one won and the rest still to play', () => {
+    const input = toSeriesInput(
+      state({
+        games: [
+          { number: 1, status: 'finalized', winner: 'home' },
+          { number: 2, status: 'scheduled' },
+          { number: 3, status: 'scheduled' },
+          { number: 4, status: 'scheduled' },
+          { number: 5, status: 'scheduled' },
+        ],
+        homeGamesWon: 1,
+      }),
+    );
+
+    expect(seriesSegments(input)).toEqual([
+      'won-home',
+      'upcoming',
+      'upcoming',
+      'upcoming',
+      'upcoming',
+    ]);
+  });
+
+  it('reads games in play order, not in the order they were finalized', () => {
+    const input = toSeriesInput(
+      state({
+        games: [
+          { number: 3, status: 'finalized', winner: 'away' },
+          { number: 1, status: 'finalized', winner: 'home' },
+          { number: 2, status: 'finalized', winner: 'home' },
+          { number: 4, status: 'scheduled' },
+          { number: 5, status: 'scheduled' },
+        ],
+      }),
+    );
+
+    expect(input.results).toEqual(['home', 'home', 'away']);
+  });
+
+  it('marks a series decided early, its surplus games no longer required', () => {
+    const input = toSeriesInput(
+      state({
+        status: 'decided',
+        winner: 'home',
+        games: [
+          { number: 1, status: 'finalized', winner: 'home' },
+          { number: 2, status: 'finalized', winner: 'home' },
+          { number: 3, status: 'finalized', winner: 'home' },
+          { number: 4, status: 'not-required' },
+          { number: 5, status: 'not-required' },
+        ],
+      }),
+    );
+
+    expect(seriesSegments(input)).toEqual([
+      'won-home',
+      'won-home',
+      'won-home',
+      'not-required',
+      'not-required',
+    ]);
+  });
+
+  it('carries an aggregate tie’s two legs and its summed score', () => {
+    const tie = state({
+      span: 2,
+      resolutionClass: 'aggregate',
+      status: 'decided',
+      winner: 'away',
+      aggregateScores: [2, 3],
+      games: [
+        { number: 1, status: 'finalized', winner: 'home', scores: [2, 1] },
+        { number: 2, status: 'finalized', winner: 'away', scores: [0, 2] },
+      ],
+    });
+
+    expect(toSeriesInput(tie).bestOf).toBe(2);
+    expect(tie.aggregateScores).toEqual([2, 3]);
+    // Both legs remain readable individually: a 2-1 and a 0-2 is a different story from a
+    // 1-0 and a 1-3, and the aggregate alone hides which it was.
+    expect(tie.games.map((game) => game.scores)).toEqual([
+      [2, 1],
+      [0, 2],
+    ]);
+    expect(seriesPending(tie)).toBe(false);
+  });
+
+  it('holds a series at two games to one pending, with no winner', () => {
+    const twoOne = state({
+      games: [
+        { number: 1, status: 'finalized', winner: 'home' },
+        { number: 2, status: 'finalized', winner: 'away' },
+        { number: 3, status: 'finalized', winner: 'home' },
+        { number: 4, status: 'scheduled' },
+        { number: 5, status: 'scheduled' },
+      ],
+    });
+
+    expect(seriesPending(twoOne)).toBe(true);
+    expect(twoOne.winner).toBeUndefined();
+    expect(seriesScore(toSeriesInput(twoOne))).toEqual({ home: 2, away: 1 });
   });
 });
 

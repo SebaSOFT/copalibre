@@ -4,7 +4,9 @@
 Provides the single, framework-free source of truth for what a tournament, its configuration, and
 its recorded facts are, so every consuming package and app shares identical domain rules instead of
 re-deriving them.
+
 ## Requirements
+
 ### Requirement: Framework-free domain package
 `packages/domain` SHALL contain no import of `@nestjs/*` or `fastify`, so it can be consumed by any
 process role (`api`, `worker`, `events`, `scheduler`) and by future non-Node consumers without
@@ -219,3 +221,35 @@ membership in a team — as distinct levels, rather than collapsing ones that la
 - **THEN** the stage has exactly one implicit zone and that zone exactly one implicit group, and every
   reader — old or new — sees the same fixture graph and standings it would have before zones and groups
   existed
+
+### Requirement: A match states that it was never required
+The match status vocabulary SHALL carry a terminal value meaning the match was generated and scheduled
+but is no longer needed, distinct from both a match awaiting play and a match that concluded. A match
+in that state SHALL accept no lifecycle command and SHALL contribute nothing to accounting, and the slot
+it had occupied SHALL remain readable from the fact that anulled it, even though it no longer holds it.
+
+#### Scenario: A status vocabulary that says what happened
+- **WHEN** the status of a match anulled by an early series decision is read
+- **THEN** it states the not-required value, distinguishable without inference from a match still to be
+  played and from a match that finished
+
+#### Scenario: A lifecycle command against a not-required match is refused
+- **WHEN** any match lifecycle command is issued against a not-required match
+- **THEN** it is refused, and the match's status is unchanged
+
+### Requirement: A series declaration is part of the configuration hierarchy
+The series a fixture is settled by SHALL be declared through the existing configuration inheritance
+hierarchy — discipline descriptor, tournament ruleset, stage configuration — and SHALL resolve by the
+same precedence every other configuration field resolves by. A discipline whose competitions are
+conventionally decided over several matches SHALL be able to declare that as its default, and a
+tournament or a stage SHALL be able to override it.
+
+#### Scenario: A discipline default is overridden by a stage
+- **WHEN** a discipline declares a two-match aggregate series by default and a stage declares a
+  best-of-five
+- **THEN** the effective configuration for that stage is the best-of-five, by the precedence the
+  hierarchy already defines
+
+#### Scenario: A tournament with no series declaration anywhere
+- **WHEN** no level of the hierarchy declares a series
+- **THEN** the effective configuration settles every fixture by a single match

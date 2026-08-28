@@ -83,6 +83,105 @@ Crucially, if you modify **any** infrastructure or deployment file, you MUST exp
 
 Use scoped Conventional Commit subjects, such as `feat(api): add match projection` or `fix(persistence): preserve elapsed clock`. Keep commits narrowly focused. PRs must describe behavior, OpenSpec change ID, tests run, migration/configuration impact, and screenshots for UI changes. Git ignore rules are authoritative: never force-add anything under `openspec/changes/`, whether active or archived. Commit only accepted specification deltas under `openspec/specs/`. Never commit `.env` files, credentials, or production connection strings.
 
+## Tooling Reference
+
+Concrete usage notes for the tools this project's workflow depends on. See `.claude/skills/*/SKILL.md`
+for the full skill instructions; this section is the quick-reference cheat sheet.
+
+### CodeGraph (MCP: `codegraph_explore`, CLI: `codegraph explore "..."`)
+
+- `.codegraph/codegraph.db` is a pre-built SQLite index of every symbol/edge/file in this monorepo
+  (30+ languages, TS/JS included). It lags file writes by ~1s via a watcher.
+- One tool, `codegraph_explore`. Pass either symbol/file names or a natural-language question. Returns
+  verbatim line-numbered source (safe to `Edit` from directly, same shape as `Read`), the call graph
+  between the returned symbols (including dynamic-dispatch hops like callbacks/JSX that grep misses),
+  and a blast-radius summary of callers/tests.
+- Use it **before** Read/Grep/Find for "how does X work," "where is X defined," locating a symbol before
+  editing, or checking what depends on something before changing it. Fall back to grep/find/Read only for
+  what CodeGraph can't answer (e.g. a known line range in a file you already have open).
+- A `UserPromptSubmit` hook auto-surfaces matching indexed symbols for each prompt — treat those as
+  already-read context and query `codegraph_explore` once with the relevant names rather than re-deriving
+  them by hand.
+
+### rtk (Rust Token Killer)
+
+- Token-optimized proxy CLI (`rtk <subcommand>`) that filters/compacts output before it reaches context —
+  git, gh, glab, docker, kubectl, psql, pnpm/npm/npx, jest/vitest/playwright, tsc, eslint, prettier, aws,
+  and more (`rtk --help` lists ~50 subcommands).
+- A shell hook transparently rewrites plain commands (`git status` → `rtk git status`) — no manual
+  invocation needed for day-to-day git/gh/test/lint calls; 0 token overhead to the rewrite itself.
+- Useful direct invocations: `rtk gain` (savings analytics), `rtk gain --history`, `rtk discover` (finds
+  missed savings opportunities in session history), `rtk proxy <cmd>` (bypass filtering to debug a raw
+  command that looks wrong when filtered), `rtk err` / `rtk test` (show only failures/warnings from a
+  command's output).
+- Verify a working install with `rtk --version` and `rtk gain`; `rtk gain` failing (vs. "command not
+  found") usually means a name-colliding `rtk` (Rust Type Kit) is on `PATH` instead.
+
+### Tavily CLI (`tvly`) — web operations
+
+- Replaces built-in WebFetch/WebSearch for anything involving a URL: `tvly search`, `tvly extract <url>`,
+  `tvly crawl <url>`, `tvly map <url>` (URL discovery, no content), `tvly research run/status/poll` (deep
+  research jobs). `--json` for machine-readable output.
+- Auth: `tvly login --api-key tvly-...` or `TAVILY_API_KEY` env var; `tvly auth` checks status.
+- Use for reading current docs (e.g. dependency upgrade notes), checking a GitHub Actions marketplace
+  action's current inputs, or any "look this up online" request — never guess at API/library behavior
+  that a fetch would settle.
+
+### feature-delivery skill
+
+- SebaSOFT's cross-project shipping protocol (`.claude/skills/feature-delivery/SKILL.md`): investigate
+  with CodeGraph first, plan with OpenSpec, one change per branch, verify locally before opening a PR,
+  wait for explicit human merge approval (never self-merge), then archive the change and promote its spec
+  deltas.
+  Concrete per-project specifics (branch naming, gate suite, promotion mechanics) live in this file's
+  ["Feature Delivery Pipeline"](#feature-delivery-pipeline) section below — the skill explicitly defers to
+  that.
+- Key behavioral rules worth remembering: design docs get an explicit Non-Goals list; prefer extending an
+  existing declarative mechanism over inventing a new domain primitive; ask (`AskUserQuestion`) only for
+  genuine product/privacy/scope decisions, never for things answerable by reading code; one OpenSpec
+  change per branch/PR, never batched.
+
+### OpenSpec CLI (`openspec`)
+
+- `openspec/` holds `changes/` (in-flight proposals) and `specs/` (accepted baseline), configured via
+  `openspec/config.yaml`.
+- Core commands used in this repo's cycle: `openspec change show <id>`, `openspec validate <id>
+--strict` (required before considering a proposal or its updates done), `openspec archive <id> --yes`
+  (after merge), `openspec spec show/list/validate`, `openspec list` (active changes), `openspec view`
+  (interactive dashboard), `openspec status <change>` (artifact completion), `openspec context` (working
+  context for the resolved root).
+- The dedicated skills (`openspec-propose`, `openspec-apply-change`, `openspec-explore`,
+  `openspec-update-change`, `openspec-sync-specs`, `openspec-archive-change`, and their `opsx:*`
+  equivalents) wrap these commands for the propose → implement → archive/promote lifecycle described in
+  Feature Delivery Pipeline below.
+
+### git and GitHub CLI (`git`, `gh`)
+
+- Standard `git`; `rtk git <subcommand>` (status/diff/log/show/add/commit/push/pull/branch/fetch/stash/
+  worktree) gives compact output and is what the shell hook substitutes automatically.
+- `gh` (v2.98+) for PRs/issues/runs/repo: `gh pr create/view/checks`, `gh issue`, `gh run`, `gh api` for
+  anything not covered by a subcommand. `rtk gh <pr|issue|run|repo>` gives the same token-optimized
+  wrapping.
+- This repo's remote is `github.com/SebaSOFT/copalibre`. Branch/commit/PR conventions (Conventional
+  Commits, `change/00NN-slug` branch naming, PR description contents, never force-adding
+  `openspec/changes/`) are covered under "Changes and Reviews" and "Feature Delivery Pipeline" above —
+  this entry is only the tool-invocation reference.
+
+### agent-browser CLI
+
+- Browser automation CLI for AI agents (`agent-browser <command>`), installed via the Node toolchain
+  (`~/.nvm/.../bin/agent-browser`, v0.34+).
+- Start with `agent-browser skills get core --full` for the full workflow/selector reference rather than
+  guessing from flags — the CLI ships its own skill docs, version-matched to the binary. Specialized
+  skills exist for Electron apps, Slack, exploratory testing, and cloud browser providers
+  (`agent-browser skills list`).
+- Core verbs: `open <url>`, `read [url]` (agent-readable text extraction), `click`/`type`/`fill`/`press`
+  by selector or `@ref`, `snapshot` (accessibility tree with refs, the primary way an agent finds
+  elements), `screenshot`/`pdf`, `eval <js>`, `get <what>`/`is <what>` for state, `connect <port|url>` to
+  attach via CDP.
+- Use this for the "start the dev server and use the feature in a browser before reporting complete" step
+  required for UI/frontend changes (see Code and Architecture guidance above), not just ad hoc scraping.
+
 ## Feature Delivery Pipeline
 
 Follow the `feature-delivery` skill for the full shape of shipping a change. The concrete cycle in this

@@ -534,10 +534,12 @@ describe('standings and seeding routes (integration)', () => {
       [
         {
           matchId: 'persisted-winners',
+          fixtureId: 'fixture-winners',
           round: 1,
           position: 1,
           status: 'finalized',
           scores: [2, 0],
+          games: [{ matchId: 'persisted-winners', number: 1, status: 'finalized', scores: [2, 0] }],
         },
       ],
       { ambiguousPositions: new Set(['1:1']) },

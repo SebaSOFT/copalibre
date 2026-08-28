@@ -90,6 +90,35 @@ export const messages = defineMessages({
     id: 'publicWeb.series.ariaLabel',
     defaultMessage: 'Best of {bestOf} series: {home} to {away}',
   },
+  seriesGameWonHome: {
+    id: 'publicWeb.series.gameWonHome',
+    defaultMessage: 'Game {number}: won by the home side',
+  },
+  seriesGameWonAway: {
+    id: 'publicWeb.series.gameWonAway',
+    defaultMessage: 'Game {number}: won by the away side',
+  },
+  seriesGameCurrent: {
+    id: 'publicWeb.series.gameCurrent',
+    defaultMessage: 'Game {number}: in progress',
+  },
+  seriesGameUpcoming: {
+    id: 'publicWeb.series.gameUpcoming',
+    defaultMessage: 'Game {number}: still to play',
+  },
+  seriesGameNotRequired: {
+    id: 'publicWeb.series.gameNotRequired',
+    defaultMessage: 'Game {number}: will not be played',
+  },
+  seriesPending: {
+    id: 'publicWeb.series.pending',
+    defaultMessage: 'Series undecided at {home}–{away}',
+  },
+  seriesDecided: { id: 'publicWeb.series.decided', defaultMessage: '{winner} won the series' },
+  seriesAggregate: {
+    id: 'publicWeb.series.aggregate',
+    defaultMessage: 'On aggregate {home}–{away}',
+  },
 
   // LiveMatchHero.tsx (formatted at build time, passed down as a prop)
   liveUsingLastKnown: {

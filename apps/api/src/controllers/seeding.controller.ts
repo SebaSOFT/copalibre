@@ -53,6 +53,7 @@ import {
   SeedingResponse,
 } from '../dto/standings.dto.js';
 import { resolveTournament } from './standings.controller.js';
+import { readStageSeries } from './stage-series.js';
 import { DATABASE } from '../database.token.js';
 
 /**
@@ -135,7 +136,7 @@ export class SeedingController {
     @Body() body: PublishSeedingRequest,
     @Req() request: RequestWithSubject,
   ): Promise<SeedingClassificationResponse> {
-    const { stageId, organizationId, record } = await this.stage(
+    const { stageId, tournamentId, organizationId, record } = await this.stage(
       organizationAlias,
       tournamentAlias,
       stageNumber,
@@ -172,6 +173,14 @@ export class SeedingController {
     const newGraph = this.graphOf(record.format, orderedEntrantIds);
     const fixtures = resolvedFixtureInputs(newGraph);
 
+    // A stage declaring a series materializes its whole span up front, so every game of a
+    // best-of-five is a real match with its own id from the moment the bracket exists — that
+    // is what the schedule builder places in slots, and what the engine later anulls if the
+    // series decides early. A stage declaring none passes no `matchCount` at all and gets the
+    // one match per fixture it has always got.
+    const declaration = await readStageSeries(this.db, { tournamentId, stageId });
+    const seriesSpan = declaration === undefined ? {} : { matchCount: declaration.span };
+
     const competition = new CompetitionRepository(this.db);
     try {
       await withTransaction(this.db, (uow) =>
@@ -179,6 +188,7 @@ export class SeedingController {
           ? competition.replaceFixtures(uow, {
               stageId,
               fixtures,
+              ...seriesSpan,
               organizationId,
               actor: actorOf(request),
               authorizationContext: authorizationContextOf(request),
@@ -186,6 +196,7 @@ export class SeedingController {
           : competition.createFixtures(uow, {
               stageId,
               fixtures,
+              ...seriesSpan,
               organizationId,
               actor: actorOf(request),
               authorizationContext: authorizationContextOf(request),
@@ -238,6 +249,7 @@ export class SeedingController {
     request: RequestWithSubject,
   ): Promise<{
     readonly stageId: string;
+    readonly tournamentId: string;
     readonly organizationId: string;
     readonly record: NonNullable<Awaited<ReturnType<StageReadModel['stageRecord']>>>;
   }> {
@@ -266,7 +278,12 @@ export class SeedingController {
       ? record
       : { ...record, entrantIds: await acceptedEntrantIds(this.db, tournament.tournamentId) };
 
-    return { stageId: stage.stageId, organizationId, record: effectiveRecord };
+    return {
+      stageId: stage.stageId,
+      tournamentId: tournament.tournamentId,
+      organizationId,
+      record: effectiveRecord,
+    };
   }
 }
 

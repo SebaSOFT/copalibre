@@ -44,6 +44,16 @@ const DISCIPLINES: readonly DisciplineOption[] = [
   },
 ];
 
+/** A discipline offering a real placement format, for the series refusal. */
+const PLACEMENT_DISCIPLINES: readonly DisciplineOption[] = [
+  {
+    descriptorId: 'd-placement',
+    version: '1.0.0',
+    name: 'Atletismo',
+    supportedFormats: ['free-for-all', 'heats'],
+  },
+];
+
 const HOOK_VOCABULARY: HookScriptVocabulary = {
   hooks: ['event.recorded'],
   entries: [
@@ -162,6 +172,115 @@ describe('the wizard gates each step', () => {
 
   it('refuses to submit an incomplete wizard', () => {
     expect(() => toCreateRequest(wizard())).toThrow('not complete');
+  });
+
+  describe('series declaration (0159)', () => {
+    const complete = {
+      alias: 'copa-verano',
+      name: 'Copa Verano',
+      descriptorId: 'd-football',
+      descriptorVersion: '1.2.0',
+      format: 'round-robin',
+    } as const;
+
+    it('submits a declared series alongside the rest of the request', () => {
+      const request = toCreateRequest(
+        wizard({
+          ...complete,
+          seriesEnabled: true,
+          seriesSpan: 5,
+          seriesResolutionClass: 'best-of',
+          seriesNeutralGround: true,
+        }),
+      );
+
+      expect(request.series).toEqual({
+        span: 5,
+        resolutionClass: 'best-of',
+        neutralGround: true,
+      });
+    });
+
+    it('omits neutralGround rather than sending false, so an untouched toggle adds nothing', () => {
+      const request = toCreateRequest(
+        wizard({
+          ...complete,
+          seriesEnabled: true,
+          seriesSpan: 3,
+          seriesResolutionClass: 'best-of',
+        }),
+      );
+
+      expect(request.series).toEqual({ span: 3, resolutionClass: 'best-of' });
+    });
+
+    it('drops a series left configured but switched back off', () => {
+      const request = toCreateRequest(
+        wizard({
+          ...complete,
+          seriesEnabled: false,
+          seriesSpan: 5,
+          seriesResolutionClass: 'best-of',
+        }),
+      );
+
+      expect('series' in request).toBe(false);
+    });
+
+    it('refuses a series on a placement format, naming the two-sides reason', () => {
+      const problems = stepProblems(
+        wizard({
+          ...complete,
+          step: 'format',
+          descriptorId: 'd-placement',
+          format: 'free-for-all',
+          seriesEnabled: true,
+          seriesSpan: 3,
+          seriesResolutionClass: 'best-of',
+        }),
+        PLACEMENT_DISCIPLINES,
+      ).map((problem) => problem.id);
+
+      expect(problems).toContain('control.wizard.problem.seriesOnPlacementFormat');
+    });
+
+    it('refuses an even-span best-of but accepts the same span as an aggregate', () => {
+      const evenBestOf = wizard({
+        ...complete,
+        step: 'format',
+        seriesEnabled: true,
+        seriesSpan: 4,
+        seriesResolutionClass: 'best-of',
+      });
+      expect(stepProblems(evenBestOf, DISCIPLINES).map((p) => p.id)).toContain(
+        'control.wizard.problem.seriesEvenBestOf',
+      );
+      expect(canContinue(evenBestOf, DISCIPLINES)).toBe(false);
+
+      // The same even span is coherent for the classes the refusal points at.
+      expect(canContinue({ ...evenBestOf, seriesResolutionClass: 'aggregate' }, DISCIPLINES)).toBe(
+        true,
+      );
+    });
+
+    it('refuses a span below two', () => {
+      const problems = stepProblems(
+        wizard({
+          ...complete,
+          step: 'format',
+          seriesEnabled: true,
+          seriesSpan: 1,
+          seriesResolutionClass: 'best-of',
+        }),
+        DISCIPLINES,
+      ).map((problem) => problem.id);
+
+      expect(problems).toContain('control.wizard.problem.seriesSpan');
+    });
+
+    it('leaves the format step unblocked when no series is declared', () => {
+      expect(canContinue(wizard({ ...complete, step: 'format' }), DISCIPLINES)).toBe(true);
+    });
   });
 
   it('validates schema-driven parameters and composes multiple conditionless rules', () => {

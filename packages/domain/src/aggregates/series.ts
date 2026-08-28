@@ -113,7 +113,8 @@ export function validateSeriesDeclaration(
     if (doc.resolutionClass === 'best-of' && doc.span % 2 === 0) {
       return err(
         new SeriesConfigurationError(
-          `A best-of series must have an odd span; received ${doc.span}`,
+          `A best-of series must have an odd span so a majority exists; an even span of ${doc.span} ` +
+            'has no majority. Use "aggregate" or "points-per-leg" for an even-span series instead.',
           { field: 'series.span', span: doc.span },
         ),
       );

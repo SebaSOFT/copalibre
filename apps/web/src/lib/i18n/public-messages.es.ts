@@ -46,6 +46,14 @@ export const messages: Record<string, string> = {
   'publicWeb.ticker.empty': 'Todavía no hay partidos programados.',
 
   'publicWeb.series.ariaLabel': 'Serie al mejor de {bestOf}: {home} a {away}',
+  'publicWeb.series.gameWonHome': 'Partido {number}: ganado por el local',
+  'publicWeb.series.gameWonAway': 'Partido {number}: ganado por el visitante',
+  'publicWeb.series.gameCurrent': 'Partido {number}: en juego',
+  'publicWeb.series.gameUpcoming': 'Partido {number}: por jugarse',
+  'publicWeb.series.gameNotRequired': 'Partido {number}: no se jugará',
+  'publicWeb.series.pending': 'Serie indefinida {home}–{away}',
+  'publicWeb.series.decided': '{winner} ganó la serie',
+  'publicWeb.series.aggregate': 'Global {home}–{away}',
 
   'publicWeb.live.usingLastKnown': 'Mostrando el último estado conocido.',
 

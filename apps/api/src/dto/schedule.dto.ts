@@ -136,6 +136,77 @@ export class ScheduleResponse {
 }
 
 /**
+ * One match of a fixture, in play order.
+ *
+ * A single-match fixture has exactly one of these and a series has one per game, which is
+ * what lets a builder place game one and game four in slots at different venues on different
+ * days: the placeable thing is the match, never the cross.
+ */
+export class FixtureMatchResponse {
+  @ApiProperty({ format: 'uuid' })
+  matchId!: string;
+
+  @ApiProperty({ description: '1-based play order within the fixture', example: 1 })
+  number!: number;
+
+  @ApiProperty({
+    enum: ['scheduled', 'in-progress', 'finalized', 'not-required'],
+    description: '`not-required` is a game a decided series anulled — never played, never deleted',
+  })
+  status!: string;
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description:
+      'The slot this match had occupied before a decided series freed it. Present only on an ' +
+      'anulled match that held one; the slot itself is free and open to anyone.',
+  })
+  releasedSlotId?: string;
+}
+
+/**
+ * A fixture's series state, absent entirely on a fixture that declares no series.
+ *
+ * Read from the engine's own resolver rather than re-derived, so what a builder shows and what
+ * the engine decided cannot drift.
+ */
+export class FixtureSeriesResponse {
+  @ApiProperty({ description: 'Total scheduled matches in the series', example: 5 })
+  span!: number;
+
+  @ApiPropertyOptional({ enum: ['best-of', 'aggregate', 'points-per-leg'] })
+  resolutionClass?: string;
+
+  @ApiProperty({
+    description:
+      'How many games will certainly be played whatever the results — a best-of-five is ' +
+      'three; every game beyond this one is contingent on the series still being alive',
+    example: 3,
+  })
+  guaranteedMatches!: number;
+
+  @ApiPropertyOptional({ enum: ['decided', 'undecided', 'finished-unresolved'] })
+  status?: string;
+
+  @ApiPropertyOptional({ description: 'Why the series stands where it does, in words' })
+  explanation?: string;
+
+  @ApiPropertyOptional({ format: 'uuid', description: 'Side the series has settled on, if any' })
+  winnerEntrantId?: string;
+
+  @ApiProperty({ description: 'Games of the series finalized so far', example: 3 })
+  matchesPlayed!: number;
+
+  @ApiProperty({
+    type: [Number],
+    description:
+      'Play-order numbers a decided series no longer requires. A match still `scheduled` here ' +
+      'is one whose slot the decision would free but has not freed yet.',
+  })
+  anulledMatchNumbers!: number[];
+}
+
+/**
  * A generated fixture, real `fixtureId` and materialized `matchId` included — what a schedule builder
  * assigns a time and venue to. Distinct from the bracket graph's own node
  * ids, which are never persisted.
@@ -144,7 +215,10 @@ export class FixtureResponse {
   @ApiProperty({ format: 'uuid' })
   fixtureId!: string;
 
-  @ApiProperty({ format: 'uuid', description: 'Primary match for this fixture' })
+  @ApiProperty({
+    format: 'uuid',
+    description: 'First match of this fixture — the only one unless it declares a series',
+  })
   matchId!: string;
 
   @ApiProperty({ description: '1-based round within the stage', example: 1 })
@@ -155,6 +229,15 @@ export class FixtureResponse {
 
   @ApiPropertyOptional({ format: 'uuid' })
   awayEntrantId?: string;
+
+  @ApiProperty({
+    type: [FixtureMatchResponse],
+    description: 'Every match of this fixture in play order; exactly one unless it is a series',
+  })
+  matches!: FixtureMatchResponse[];
+
+  @ApiPropertyOptional({ type: FixtureSeriesResponse })
+  series?: FixtureSeriesResponse;
 }
 
 export class StageFixturesResponse {

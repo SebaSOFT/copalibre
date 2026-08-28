@@ -46,7 +46,9 @@ notifications, or public views would be affected by the change.
 
 ### Requirement: Atomic publication
 A schedule or batch of schedule changes SHALL publish in full or not at all; no partially-applied
-schedule state SHALL ever be visible on a public surface.
+schedule state SHALL ever be visible on a public surface. Freeing the slots held by matches anulled by an
+early series decision SHALL take part in the same atomic publication, so a freed slot and the anulled
+match that vacated it never disagree on a public surface.
 
 #### Scenario: A batch publish with one invalid assignment fails entirely
 - **WHEN** a batch of schedule assignments is submitted for publication and one assignment fails conflict detection
@@ -56,20 +58,35 @@ schedule state SHALL ever be visible on a public surface.
 - **WHEN** two schedule-publish operations targeting overlapping resources are submitted concurrently
 - **THEN** at most one succeeds atomically and the other is rejected with a conflict, never producing a mixed result
 
+#### Scenario: An early series decision frees its slots atomically
+- **WHEN** a series becomes decided while later matches are placed in published slots
+- **THEN** those matches become not-required and their assignments are removed in one atomic publication,
+  leaving the slots free and their schedules otherwise untouched, and no public surface shows a freed slot
+  still holding a scheduled match
+
+#### Scenario: A failed release leaves the anulling unapplied
+- **WHEN** removing an anulled match's assignment fails anywhere in the batch
+- **THEN** neither the removal nor the anulling takes effect, and the series' matches remain as they were
+
 ### Requirement: Schedule mutation respects mutation classification
 Schedule changes SHALL be classified `safe`, `requires_rebuild`, or `blocked_after_results` per the
 domain's mutation model, and the system SHALL enforce that classification. Classification is evaluated
-against the match being rescheduled, so one concluded match never blocks the rescheduling of another.
+against the match being rescheduled, so one concluded match never blocks the rescheduling of another. A
+match anulled by a series decision SHALL be treated as concluded for this purpose: its schedule is
+history, not a plan.
 
 #### Scenario: Rescheduling a completed match is blocked
 - **WHEN** an operator attempts to move a match that has already concluded to a different slot
 - **THEN** the system rejects the change as `blocked_after_results`, directing the operator to the audited correction workflow
 
 #### Scenario: A concluded match does not block an unstarted sibling
-- **WHEN** a fixture holds one concluded match and one unstarted match, and the unstarted one is
-  rescheduled
+- **WHEN** a fixture holds one concluded match and one unstarted match, and the unstarted one is rescheduled
 - **THEN** the change is accepted, because classification reads the match being changed rather than the
   fixture holding it
+
+#### Scenario: Rescheduling a not-required match is blocked
+- **WHEN** an operator attempts to move a match anulled by a series decision into another slot
+- **THEN** the system rejects the change, naming the series result that anulled it
 
 ### Requirement: A venue carries a validated alias
 

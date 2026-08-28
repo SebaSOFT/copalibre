@@ -155,6 +155,7 @@ export const messages: Record<string, string> = {
   'control.matchConsole.lastSynced': 'Dernière synchronisation {time}',
   'control.matchConsole.neverSynced': 'Pas encore synchronisé',
   'control.matchConsole.refusedAction': 'Refusé ({kind}) : {reason}',
+  'control.matchConsole.refusedContents': 'Vous avez saisi : {contents}',
   'control.matchConsole.dismiss': 'Ignorer',
   'control.matchConsole.controls': 'Contrôles du match',
   'control.matchConsole.currentScoreboard': 'Tableau des scores actuel',
@@ -338,6 +339,20 @@ export const messages: Record<string, string> = {
   'control.wizard.problem.formatNotSupported':
     'La discipline choisie ne prend pas en charge ce format',
   'control.wizard.problem.minParticipants': 'Un tournoi nécessite au moins deux participants',
+  'control.wizard.problem.seriesOnPlacementFormat':
+    'Ce format classe tous les participants au lieu d’en opposer deux, il ne peut donc pas être décidé par une série',
+  'control.wizard.problem.seriesSpan': 'Une série compte au moins deux matchs',
+  'control.wizard.problem.seriesEvenBestOf':
+    'Une série au meilleur de exige un nombre impair de matchs pour qu’un camp obtienne la majorité. Utilisez Cumulé ou Points par match pour un nombre pair.',
+  'control.wizard.series.enable': 'Décider chaque confrontation par une série de matchs',
+  'control.wizard.series.help':
+    'Laissez désactivé pour jouer un match par confrontation. Activé, plusieurs matchs entre les deux mêmes camps sont programmés et la confrontation se décide sur leur ensemble.',
+  'control.wizard.field.seriesSpan': 'Matchs par série',
+  'control.wizard.field.seriesResolutionClass': 'Décidée par',
+  'control.wizard.series.class.bestOf': 'Au meilleur de — le premier camp à obtenir la majorité',
+  'control.wizard.series.class.aggregate': 'Cumulé — scores de tous les matchs additionnés',
+  'control.wizard.series.class.pointsPerLeg': 'Points par match — chaque match attribue des points',
+  'control.wizard.field.seriesNeutralGround': 'Jouée sur terrain neutre (sans aller-retour)',
 
   'control.wizard.breadcrumb': 'Tournois > Nouveau',
   'control.wizard.title': 'Créer un tournoi',
@@ -584,6 +599,17 @@ export const messages: Record<string, string> = {
   'control.scheduleBuilder.entrantColumn': 'Participant',
   'control.scheduleBuilder.timeColumn': 'Heure',
   'control.scheduleBuilder.venueColumn': 'Lieu',
+  'control.scheduleBuilder.seriesHeading': 'Série de {span} matchs — {played} joués',
+  'control.scheduleBuilder.seriesGame': 'Match {number} sur {span}',
+  'control.scheduleBuilder.contingencyCertain': 'Sera joué',
+  'control.scheduleBuilder.contingencyContingent': 'Joué seulement si la série reste indécise',
+  'control.scheduleBuilder.contingencyNotRequired': 'Plus nécessaire — la série est déjà décidée',
+  'control.scheduleBuilder.releasedSlot': 'Occupait {slot}. Ce créneau est libre.',
+  'control.scheduleBuilder.releasedSlotUnknown':
+    'N’occupait aucun créneau lorsque la série s’est décidée.',
+  'control.scheduleBuilder.pendingReleasesHeading':
+    'Créneaux que cette décision de série libérerait',
+  'control.scheduleBuilder.pendingRelease': 'Match {number} — {slot}',
   'control.orgIdentity.heading': "Identité de l'organisation",
   'control.orgIdentity.loading': 'Chargement…',
   'control.orgIdentity.loadFailed': 'Impossible de charger les paramètres de l’organisation.',
