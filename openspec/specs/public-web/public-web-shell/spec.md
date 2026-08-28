@@ -35,11 +35,24 @@ through this page without a site rebuild.
 ### Requirement: Public pages function without JavaScript
 Core public content (tournament identity, schedule, standings, rules) SHALL be present in the
 server-rendered HTML and readable with JavaScript disabled; JavaScript SHALL only add live
-enhancement (e.g. the score ticker, live standings refresh).
+enhancement (e.g. the score ticker, live standings refresh). Where a standings table's rows are counted
+in a unit a spectator cannot see from the numbers alone — a stage whose crosses are series — the unit
+SHALL be part of that server-rendered content, on the same terms as the table it qualifies.
 
 #### Scenario: No-JS baseline
 - **WHEN** the tournament overview page is requested with JavaScript execution disabled
 - **THEN** tournament identity, schedule facts, and the standings preview table are still present in the rendered HTML
+
+#### Scenario: A series stage's standings say what they are counting, with no JavaScript
+- **WHEN** the overview page for a tournament whose stage declares a series is requested with
+  JavaScript execution disabled
+- **THEN** the standings preview names whether a row counts one result per series or one per played
+  match, in the server-rendered HTML
+
+#### Scenario: A tournament of single matches is unchanged
+- **WHEN** the overview page for a tournament declaring no series is requested
+- **THEN** the standings preview carries no unit statement, and the rendered HTML is unchanged from
+  before accounting grain existed
 
 ### Requirement: Sitemap includes only public canonical routes
 The site SHALL generate `sitemap.xml` from public canonical routes only, excluding `/control/**`,

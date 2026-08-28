@@ -11,6 +11,9 @@ venues — as one advancement decision made from several recorded results.
 A fixture between two entrants SHALL be settled either by a single match, which remains the default, or
 by a series of matches when the effective configuration declares one. A fixture that declares no series
 SHALL generate exactly one match and behave identically to a fixture generated before series existed.
+The matches of a series SHALL be identified as belonging to it by the fixture carried explicitly on
+every recorded outcome the accounting engine reads; membership SHALL NOT be inferred from the shape,
+formatting or any substring of a match identifier.
 
 #### Scenario: A fixture with no declared series is unchanged
 - **WHEN** fixtures are generated for a stage whose configuration declares no series
@@ -26,6 +29,12 @@ SHALL generate exactly one match and behave identically to a fixture generated b
 - **WHEN** a series is declared on a stage whose format produces placement matches
 - **THEN** the configuration is rejected with an explicit error, because a series settles a cross
   between two sides and a placement match has no two sides to settle
+
+#### Scenario: Series membership survives an opaque match identifier
+- **WHEN** the matches of a series carry identifiers with no ordinal suffix, no shared prefix and no
+  recoverable sequence
+- **THEN** accounting still groups them into the one series they belong to, because membership is
+  carried on the outcome rather than parsed out of the identifier
 
 ### Requirement: Resolution classes are core-owned, with a scripted escape
 The engine SHALL own a closed set of series resolution classes and SHALL evaluate them itself:
@@ -113,7 +122,15 @@ its matches SHALL carry no home side at all rather than an arbitrary one.
 The effective ruleset SHALL declare whether a series contributes one outcome to standings and statistic
 accounting or one outcome per played match. Neither SHALL be assumed: a play-off series that decides a
 bracket edge while still producing per-match player statistics and a two-legged tie that produces a
-single aggregate result are both intended uses.
+single aggregate result are both intended uses. A declaration that names no grain SHALL account per
+match, and every surface that displays such a table SHALL state the grain it is showing rather than
+leave a reader to infer it.
+
+Under series-grain accounting a statistic the discipline declares with `count` aggregation SHALL be
+folded once per resolved series, so that a table's counted total and its win/draw/loss totals are in the
+same unit. Under match-grain accounting it SHALL be folded once per played match. Statistics the
+discipline declares with any other aggregation SHALL fold every played match's value under either grain,
+because a goal scored in game two was scored whatever a standings row is counted in.
 
 #### Scenario: A series declared to contribute one outcome
 - **WHEN** a five-match series is resolved under a ruleset declaring series-grain accounting
@@ -124,10 +141,25 @@ single aggregate result are both intended uses.
 - **THEN** standings account every played match as its own result, and the matches that were never
   played contribute nothing
 
+#### Scenario: A counted total is in the same unit as the results beside it
+- **WHEN** a best-of-three that went the distance is accounted under series-grain accounting
+- **THEN** the winning side's counted total reads one, and that total equals the sum of its wins, draws
+  and losses
+
+#### Scenario: A counted total follows match grain when match grain is declared
+- **WHEN** the same best-of-three is accounted under match-grain accounting
+- **THEN** the winning side's counted total reads three, and that total equals the sum of its wins,
+  draws and losses
+
 #### Scenario: Statistic collectors fold every played match regardless of the declared grain
 - **WHEN** statistics are collected over a resolved series under either declared grain
 - **THEN** every fact recorded in every played match is folded exactly once, because a player's goals
   in game two happened whatever the standings grain says
+
+#### Scenario: A grain that is not declared is reported, not silently chosen
+- **WHEN** standings are computed for a stage whose series declaration names no accounting grain
+- **THEN** accounting proceeds per match and the calculation reports that it did, so the choice is
+  visible to every surface reading it
 
 ### Requirement: Series resolution is explainable
 A resolved series SHALL carry an explanation trace on the same contract standings and win conditions
@@ -161,7 +193,8 @@ require an artificial bracket around it.
 ### Requirement: Series configuration is classified for mutation
 Declaring, removing, or changing the shape of a series SHALL be classified `safe`,
 `requires_rebuild`, or `blocked_after_results` per the domain's mutation model, and the classification
-SHALL be enforced.
+SHALL be enforced. Changing the declared accounting grain SHALL be classified alongside the other
+series fields and SHALL be reported before it is applied.
 
 #### Scenario: Lengthening a series before it starts rebuilds it
 - **WHEN** an operator changes a stage from best-of-three to best-of-five before any match of the
@@ -179,3 +212,9 @@ SHALL be enforced.
 - **WHEN** an operator attempts to change a series from `best-of` to `aggregate` after a match of that
   series has been finalized
 - **THEN** the change is rejected as `blocked_after_results`
+
+#### Scenario: Changing the accounting grain after a result exists is classified before it is applied
+- **WHEN** an operator proposes changing a stage's series accounting grain after a match of that series
+  has been finalized
+- **THEN** the proposal is classified and reported, naming that already-published standings are counted
+  in the current grain, before anything is written

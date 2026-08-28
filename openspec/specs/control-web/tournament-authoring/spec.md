@@ -73,12 +73,21 @@ request; the wizard SHALL NOT collect a value, validate it, and then discard it 
 
 ### Requirement: Wizard offers every field the API already accepts
 A field already accepted by the tournament-creation endpoint SHALL be reachable from the wizard; the
-wizard SHALL NOT omit a step for a field the API is already prepared to receive.
+wizard SHALL NOT omit a step for a field the API is already prepared to receive. A field the domain
+validates and the engine reads SHALL NOT be left unreachable from both the wizard and the endpoint:
+a declared, validated, engine-honoured setting that no surface can set is a setting the product does
+not have.
 
 #### Scenario: Check-in closing time is configurable in the wizard
 - **WHEN** an organizer enables "Requires Check-in" during setup
 - **THEN** the wizard offers a field to set when checked-in team memberships stop being editable, and a
   value set there reaches the created tournament's configuration
+
+#### Scenario: A validated engine setting is reachable from the product
+- **WHEN** the domain validates a configuration field and the engine changes its behavior according to
+  it
+- **THEN** that field is accepted by the endpoint and offered by the wizard, so no organizer has to
+  write a ruleset by hand to reach behavior the engine already implements
 
 ### Requirement: Wizard offers explicit tournament-profile selection
 When the selected discipline and format combination has one or more compatible `TournamentProfile`
@@ -132,3 +141,76 @@ than a generic failure.
 - **WHEN** a composed rule fails backend vetting because of a stale or unregistered element type
 - **THEN** the wizard displays which element was rejected and why, using the backend's own refusal
   message rather than a generic error
+
+### Requirement: A stage declares whether its crosses are settled by a series
+The tournament authoring surface SHALL let an operator declare, per stage, whether each cross is
+settled by a single match or by a series, and when by a series, how many matches it spans, which
+resolution class decides it, whether it is played on neutral ground, and whether it counts towards
+standings as one result per series or one result per played match. Declaring no series SHALL
+remain the default and SHALL require no operator action.
+
+The accounting grain SHALL be offered as an explicit control naming what each choice does to the
+standings table, not by its label alone. It SHALL preselect one result per played match, which is what
+an undeclared grain has always meant, so that an operator with no view is never blocked and an operator
+with one can see what they are getting. An operator declaring no series SHALL see no such control.
+
+#### Scenario: An operator declares a best-of-five play-off stage
+- **WHEN** an operator authoring a single-elimination stage declares a five-match series resolved by
+  majority
+- **THEN** the stage is stored with that declaration, and generating it produces five matches per cross
+
+#### Scenario: An operator declares a two-legged tie
+- **WHEN** an operator declares a two-match series resolved on aggregate
+- **THEN** the stage is stored with that declaration, and the authoring surface states that sides
+  reverse between the two matches
+
+#### Scenario: Declaring nothing leaves the stage as it is today
+- **WHEN** an operator authors a stage without touching the series controls
+- **THEN** the stage settles every cross by a single match, and the authored configuration is identical
+  to what the same inputs produced before series existed
+
+#### Scenario: The accounting grain is offered with the rest of the declaration
+- **WHEN** an operator turns on a multi-match series during setup
+- **THEN** the surface offers a control choosing between one result per series and one result per
+  played match, preselecting one result per played match, with each option describing its effect on the
+  standings table
+
+#### Scenario: The chosen grain reaches the stored declaration
+- **WHEN** an operator declares a best-of-five counting as one result per series and completes
+  authoring
+- **THEN** the stored declaration records series-grain accounting, and reopening the stage shows that
+  choice
+
+#### Scenario: A stage with no series offers no grain
+- **WHEN** an operator authors a stage without declaring a series
+- **THEN** no accounting-grain control is shown, and the authored configuration is byte-identical to
+  one produced before the control existed
+
+### Requirement: A series declaration is refused where it cannot hold
+The authoring surface SHALL refuse a series declaration that the engine cannot generate, naming the
+reason, before the stage is stored. This is a refusal for a configuration that would be incoherent, not
+a judgement about what a sport usually does.
+
+#### Scenario: A series on a placement stage is refused
+- **WHEN** an operator attempts to declare a series on a stage whose format is heats or free-for-all
+- **THEN** the declaration is refused, naming that a series settles a cross between two sides and a
+  placement match has none
+
+#### Scenario: An even-length best-of series is refused
+- **WHEN** an operator declares a `best-of` series spanning an even number of matches
+- **THEN** the declaration is refused, naming that no majority exists, and the operator is pointed at
+  the aggregate and points-per-leg classes, which an even count does suit
+
+### Requirement: Changing a stage's series declaration is mutation-classified
+An edit to a published tournament's series declaration SHALL be classified and reported to the operator
+before it is applied, on the same contract every other authoring edit already follows.
+
+#### Scenario: The operator is told what a rebuild would change
+- **WHEN** an operator lengthens a series on a published, unstarted stage
+- **THEN** the surface reports the change as requiring a rebuild and names how many matches would be
+  generated, before the edit is committed
+
+#### Scenario: A blocked series edit names the correction workflow
+- **WHEN** an operator attempts to shorten a series after a match of it has been finalized
+- **THEN** the edit is refused as blocked after results, directing the operator to the audited
+  correction workflow
