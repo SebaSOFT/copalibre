@@ -6,6 +6,7 @@ import { Input } from './ui/atoms/input.js';
 import { Textarea } from './ui/atoms/textarea.js';
 import { FormField } from './ui/molecules/form-field.js';
 import {
+  SERIES_RESOLUTION_CLASSES,
   WIZARD_STEPS,
   addCustomRule,
   canContinue,
@@ -21,6 +22,7 @@ import {
   stepProblems,
   toCreateRequest,
   type DisciplineOption,
+  type SeriesResolutionClass,
   type TournamentProfileOption,
   type WizardState,
 } from '../lib/wizard.js';
@@ -30,6 +32,17 @@ import { localizedText } from '../../lib/localized-label.js';
 
 const EMPTY_PROFILES: readonly TournamentProfileOption[] = [];
 const EMPTY_VOCABULARY: HookScriptVocabulary = { hooks: [], entries: [] };
+
+/**
+ * Each class answers a different question for the operator, so each gets its own
+ * sentence rather than a bare enum value the wizard would otherwise render raw.
+ */
+const SERIES_CLASS_LABELS: Record<SeriesResolutionClass, typeof messages.wizardSeriesClassBestOf> =
+  {
+    'best-of': messages.wizardSeriesClassBestOf,
+    aggregate: messages.wizardSeriesClassAggregate,
+    'points-per-leg': messages.wizardSeriesClassPointsPerLeg,
+  };
 
 export function TournamentSetupWizard({
   disciplines,
@@ -280,6 +293,110 @@ export function TournamentSetupWizard({
                 </select>
               </FormField>
             )}
+
+            <div style={{ display: 'grid', gap: 'var(--cl-space-4)', gridColumn: '1 / -1' }}>
+              <label
+                className="cl-toggle cl-focusable"
+                htmlFor="wizard-enable-series"
+                style={{ display: 'flex', alignItems: 'center', gap: 'var(--cl-space-2)' }}
+              >
+                <input
+                  checked={state.seriesEnabled}
+                  className="cl-checkbox cl-focusable"
+                  id="wizard-enable-series"
+                  onChange={(event) =>
+                    patch({
+                      seriesEnabled: event.target.checked,
+                      // Defaults appear only once the operator opts in, so an
+                      // untouched wizard submits no series at all.
+                      ...(event.target.checked && state.seriesSpan === undefined
+                        ? { seriesSpan: 3, seriesResolutionClass: 'best-of' as const }
+                        : {}),
+                    })
+                  }
+                  type="checkbox"
+                />
+                <span>
+                  <FormattedMessage {...messages.wizardEnableSeries} />
+                </span>
+              </label>
+
+              {!state.seriesEnabled && (
+                <p style={{ margin: 0, color: 'var(--cl-text-secondary)' }}>
+                  <FormattedMessage {...messages.wizardSeriesHelp} />
+                </p>
+              )}
+
+              {state.seriesEnabled && (
+                <div className="cl-platform-form-grid">
+                  <FormField
+                    id="wizard-series-span"
+                    label={intl.formatMessage(messages.wizardFieldSeriesSpan)}
+                  >
+                    <Input
+                      id="wizard-series-span"
+                      inputMode="numeric"
+                      min={2}
+                      onChange={(event) =>
+                        patch({
+                          seriesSpan:
+                            event.target.value === ''
+                              ? undefined
+                              : Number.parseInt(event.target.value, 10),
+                        })
+                      }
+                      type="number"
+                      value={state.seriesSpan ?? ''}
+                    />
+                  </FormField>
+
+                  <FormField
+                    id="wizard-series-class"
+                    label={intl.formatMessage(messages.wizardFieldSeriesResolutionClass)}
+                  >
+                    <select
+                      className="cl-select cl-select--default cl-focusable"
+                      id="wizard-series-class"
+                      onChange={(event) =>
+                        patch({
+                          seriesResolutionClass: event.target
+                            .value as WizardState['seriesResolutionClass'],
+                        })
+                      }
+                      value={state.seriesResolutionClass ?? ''}
+                    >
+                      {SERIES_RESOLUTION_CLASSES.map((resolutionClass) => (
+                        <option key={resolutionClass} value={resolutionClass}>
+                          {intl.formatMessage(SERIES_CLASS_LABELS[resolutionClass])}
+                        </option>
+                      ))}
+                    </select>
+                  </FormField>
+
+                  <label
+                    className="cl-toggle cl-focusable"
+                    htmlFor="wizard-series-neutral-ground"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 'var(--cl-space-2)',
+                      gridColumn: '1 / -1',
+                    }}
+                  >
+                    <input
+                      checked={state.seriesNeutralGround}
+                      className="cl-checkbox cl-focusable"
+                      id="wizard-series-neutral-ground"
+                      onChange={(event) => patch({ seriesNeutralGround: event.target.checked })}
+                      type="checkbox"
+                    />
+                    <span>
+                      <FormattedMessage {...messages.wizardFieldSeriesNeutralGround} />
+                    </span>
+                  </label>
+                </div>
+              )}
+            </div>
           </div>
         )}
 

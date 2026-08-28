@@ -329,6 +329,20 @@ export const messages: Record<string, string> = {
   'control.wizard.problem.chooseFormat': '请选择一种赛制',
   'control.wizard.problem.formatNotSupported': '所选项目不支持该赛制',
   'control.wizard.problem.minParticipants': '一项赛事至少需要两名参赛者',
+  'control.wizard.problem.seriesOnPlacementFormat':
+    '该赛制对所有参赛者排名，而非让两方对阵，因此无法通过系列赛决出胜负',
+  'control.wizard.problem.seriesSpan': '一轮系列赛至少包含两场比赛',
+  'control.wizard.problem.seriesEvenBestOf':
+    '几胜制系列赛需要奇数场比赛，一方才能赢得多数。若要偶数场，请改用总比分或每场积分。',
+  'control.wizard.series.enable': '以系列赛决出每组对阵',
+  'control.wizard.series.help':
+    '保持关闭则每组对阵只打一场。开启后会为同样的两方安排多场比赛，并综合所有比赛决出该组对阵。',
+  'control.wizard.field.seriesSpan': '每轮系列赛场数',
+  'control.wizard.field.seriesResolutionClass': '决胜方式',
+  'control.wizard.series.class.bestOf': '几胜制 — 率先赢得多数场次的一方',
+  'control.wizard.series.class.aggregate': '总比分 — 各场比分相加',
+  'control.wizard.series.class.pointsPerLeg': '每场积分 — 每场比赛各自计分',
+  'control.wizard.field.seriesNeutralGround': '在中立场地进行（不分主客场）',
 
   'control.wizard.breadcrumb': '赛事 > 新建',
   'control.wizard.title': '创建赛事',

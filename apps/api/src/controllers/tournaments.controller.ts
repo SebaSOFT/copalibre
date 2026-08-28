@@ -27,8 +27,11 @@ import {
   SUPPORTED_FORMATS,
   TOURNAMENT_CUSTOM_SCRIPT_HOOKS,
   compileProfile,
+  isPlacementFormat,
   validateHookScriptAttachment,
+  validateSeriesDeclaration,
   type HookScriptAttachment,
+  type TournamentFormat,
   type TournamentProfile,
 } from '@copalibre/domain';
 import {
@@ -226,6 +229,24 @@ export class TournamentsController {
 
     const customScripts = validateCustomScripts(body.customScripts ?? []);
 
+    if (body.series !== undefined) {
+      // A placement format produces an ordering, not two sides that could contest
+      // a series — refused before anything is stored, so the wizard surfaces it as
+      // a configuration refusal rather than the operator meeting it at generation.
+      if (isPlacementFormat(body.format as TournamentFormat)) {
+        throw new BadRequestException(
+          `Format "${body.format}" produces an ordering rather than two sides, so it cannot declare a series`,
+          { errorCode: 'tournament-bad-request' },
+        );
+      }
+      const validated = validateSeriesDeclaration(body.series);
+      if (!validated.ok) {
+        throw new BadRequestException(validated.error.message, {
+          errorCode: 'tournament-bad-request',
+        });
+      }
+    }
+
     let profileToBind: TournamentProfile | undefined;
     if (body.profileId !== undefined && body.profileVersion !== undefined) {
       const profileRepo = new TournamentProfileRepository(this.db);
@@ -272,6 +293,17 @@ export class TournamentsController {
               : { 'registration.checkInClosesAt': body.checkInClosesAt }),
             ...(body.region === undefined ? {} : { 'registration.region': body.region }),
             ...(body.capacity === undefined ? {} : { 'registration.capacity': body.capacity }),
+            ...(body.series === undefined
+              ? {}
+              : {
+                  'series.span': body.series.span,
+                  ...(body.series.resolutionClass === undefined
+                    ? {}
+                    : { 'series.resolutionClass': body.series.resolutionClass }),
+                  ...(body.series.neutralGround === undefined
+                    ? {}
+                    : { 'series.neutralGround': body.series.neutralGround }),
+                }),
           },
           customScripts,
           actor: `user:${subject?.subjectId ?? 'unknown'}`,

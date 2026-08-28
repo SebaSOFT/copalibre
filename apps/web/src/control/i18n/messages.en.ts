@@ -881,6 +881,20 @@ export const messages = defineMessages({
     id: 'control.wizard.problem.formatNotSupported',
     defaultMessage: 'The chosen discipline does not support that format',
   },
+  wizardProblemSeriesOnPlacementFormat: {
+    id: 'control.wizard.problem.seriesOnPlacementFormat',
+    defaultMessage:
+      'This format ranks every entrant rather than pitting two against each other, so it cannot be settled by a series',
+  },
+  wizardProblemSeriesSpan: {
+    id: 'control.wizard.problem.seriesSpan',
+    defaultMessage: 'A series spans at least two matches',
+  },
+  wizardProblemSeriesEvenBestOf: {
+    id: 'control.wizard.problem.seriesEvenBestOf',
+    defaultMessage:
+      'A best-of series needs an odd number of matches so one side can win the majority. Use Aggregate or Points per leg for an even number.',
+  },
   wizardProblemMinParticipants: {
     id: 'control.wizard.problem.minParticipants',
     defaultMessage: 'A tournament needs at least two participants',
@@ -906,6 +920,39 @@ export const messages = defineMessages({
   wizardFieldAlias: { id: 'control.wizard.field.alias', defaultMessage: 'Alias' },
   wizardFieldDiscipline: { id: 'control.wizard.field.discipline', defaultMessage: 'Discipline' },
   wizardFieldFormat: { id: 'control.wizard.field.format', defaultMessage: 'Format' },
+  wizardEnableSeries: {
+    id: 'control.wizard.series.enable',
+    defaultMessage: 'Settle each cross with a series of matches',
+  },
+  wizardSeriesHelp: {
+    id: 'control.wizard.series.help',
+    defaultMessage:
+      'Leave this off to play one match per cross. Turning it on schedules several matches between the same two sides and decides the cross from all of them together.',
+  },
+  wizardFieldSeriesSpan: {
+    id: 'control.wizard.field.seriesSpan',
+    defaultMessage: 'Matches per series',
+  },
+  wizardFieldSeriesResolutionClass: {
+    id: 'control.wizard.field.seriesResolutionClass',
+    defaultMessage: 'Decided by',
+  },
+  wizardSeriesClassBestOf: {
+    id: 'control.wizard.series.class.bestOf',
+    defaultMessage: 'Best of — first side to win the majority',
+  },
+  wizardSeriesClassAggregate: {
+    id: 'control.wizard.series.class.aggregate',
+    defaultMessage: 'Aggregate — scores from every match added together',
+  },
+  wizardSeriesClassPointsPerLeg: {
+    id: 'control.wizard.series.class.pointsPerLeg',
+    defaultMessage: 'Points per leg — each match awards points',
+  },
+  wizardFieldSeriesNeutralGround: {
+    id: 'control.wizard.field.seriesNeutralGround',
+    defaultMessage: 'Played on neutral ground (no home and away)',
+  },
   wizardEnableCustomRule: {
     id: 'control.wizard.rule.enable',
     defaultMessage: 'Add rule for every recorded event',

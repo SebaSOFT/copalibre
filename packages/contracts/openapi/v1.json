@@ -3789,6 +3789,99 @@
         ]
       }
     },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/series/preview": {
+      "post": {
+        "description": "Reports, per field, whether the proposed span/resolutionClass/neutralGround values are safe, require a rebuild (naming how many fixtures it would invalidate), or are blocked because the series already has a result — never applies anything itself.",
+        "operationId": "StagesController_previewSeriesMutation",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SeriesDeclarationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeriesMutationPreviewResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Classify a proposed series edit before it is applied",
+        "tags": [
+          "stages"
+        ]
+      }
+    },
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/fixtures": {
       "get": {
         "description": "What a schedule builder assigns a time and venue to — distinct from the bracket graph’s own node ids, which are never persisted.",
@@ -8714,6 +8807,33 @@
           "seasons"
         ]
       },
+      "SeriesDeclarationRequest": {
+        "type": "object",
+        "properties": {
+          "span": {
+            "type": "number",
+            "description": "Total number of scheduled matches in the series.",
+            "example": 5
+          },
+          "resolutionClass": {
+            "type": "string",
+            "description": "Closed set of declarative resolution classes.",
+            "enum": [
+              "best-of",
+              "aggregate",
+              "points-per-leg"
+            ],
+            "example": "best-of"
+          },
+          "neutralGround": {
+            "type": "boolean",
+            "description": "Whether the series is held on neutral ground (no home/away side alternation)."
+          }
+        },
+        "required": [
+          "span"
+        ]
+      },
       "CreateTournamentRequest": {
         "type": "object",
         "properties": {
@@ -8779,6 +8899,14 @@
             "items": {
               "$ref": "#/components/schemas/HookScriptAttachmentRequest"
             }
+          },
+          "series": {
+            "description": "Declares this tournament’s crosses as multi-match series by default. Absent stays the default: no series, a single match per cross, requiring no further action.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SeriesDeclarationRequest"
+              }
+            ]
           }
         },
         "required": [
@@ -10955,6 +11083,14 @@
             "type": "string",
             "description": "Defaults to the tournament’s own configured format. Validated against the tournament’s discipline descriptor when supplied.",
             "example": "round-robin"
+          },
+          "series": {
+            "description": "Declares this stage’s crosses as multi-match series. Absent stays the default: no series, a single match per cross, requiring no further action.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SeriesDeclarationRequest"
+              }
+            ]
           }
         }
       },
@@ -10982,6 +11118,14 @@
           "format": {
             "type": "string",
             "example": "round-robin"
+          },
+          "series": {
+            "description": "Absent when this stage declares no series.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SeriesDeclarationRequest"
+              }
+            ]
           }
         },
         "required": [
@@ -10990,6 +11134,53 @@
           "number",
           "name",
           "format"
+        ]
+      },
+      "SeriesMutationFieldPreview": {
+        "type": "object",
+        "properties": {
+          "field": {
+            "type": "string",
+            "example": "series.span"
+          },
+          "mutationClass": {
+            "type": "string",
+            "enum": [
+              "safe",
+              "requires_rebuild",
+              "blocked_after_results"
+            ],
+            "description": "Absent when the field is refused outright — see `blocked`."
+          },
+          "invalidatedFixtureCount": {
+            "type": "number",
+            "description": "Fixtures a `requires_rebuild` change would invalidate."
+          },
+          "blocked": {
+            "type": "boolean",
+            "description": "True when this field cannot be changed as proposed; see `reason`."
+          },
+          "reason": {
+            "type": "string",
+            "description": "Present when `blocked` — names the audited correction workflow."
+          }
+        },
+        "required": [
+          "field"
+        ]
+      },
+      "SeriesMutationPreviewResponse": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SeriesMutationFieldPreview"
+            }
+          }
+        },
+        "required": [
+          "fields"
         ]
       },
       "FixtureResponse": {

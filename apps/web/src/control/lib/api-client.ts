@@ -913,6 +913,17 @@ export interface CreateTournamentRequest {
   readonly profileId?: string;
   readonly profileVersion?: string;
   readonly customScripts: readonly HookScriptAttachment[];
+  readonly series?: SeriesDeclaration;
+}
+
+/**
+ * Declared here rather than at a stage, because the wizard authors one tournament
+ * before any stage exists. It rides the same dot-path override layer server-side.
+ */
+export interface SeriesDeclaration {
+  readonly span: number;
+  readonly resolutionClass?: 'best-of' | 'aggregate' | 'points-per-leg';
+  readonly neutralGround?: boolean;
 }
 
 export interface HookScriptAttachment {

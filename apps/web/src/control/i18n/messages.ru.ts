@@ -337,6 +337,20 @@ export const messages: Record<string, string> = {
   'control.wizard.problem.chooseFormat': 'Выберите формат',
   'control.wizard.problem.formatNotSupported': 'Выбранная дисциплина не поддерживает этот формат',
   'control.wizard.problem.minParticipants': 'Турниру нужно как минимум два участника',
+  'control.wizard.problem.seriesOnPlacementFormat':
+    'Этот формат ранжирует всех участников, а не сводит двоих, поэтому он не может решаться серией',
+  'control.wizard.problem.seriesSpan': 'Серия включает минимум два матча',
+  'control.wizard.problem.seriesEvenBestOf':
+    'Серии до N побед нужно нечётное число матчей, чтобы одна сторона набрала большинство. Для чётного числа используйте По сумме или Очки за матч.',
+  'control.wizard.series.enable': 'Решать каждую пару серией матчей',
+  'control.wizard.series.help':
+    'Оставьте выключенным, чтобы играть один матч на пару. При включении между теми же двумя сторонами назначается несколько матчей, и пара решается по их совокупности.',
+  'control.wizard.field.seriesSpan': 'Матчей в серии',
+  'control.wizard.field.seriesResolutionClass': 'Решается по',
+  'control.wizard.series.class.bestOf': 'До N побед — первая сторона, набравшая большинство',
+  'control.wizard.series.class.aggregate': 'По сумме — счёт всех матчей складывается',
+  'control.wizard.series.class.pointsPerLeg': 'Очки за матч — каждый матч приносит очки',
+  'control.wizard.field.seriesNeutralGround': 'Играется на нейтральном поле (без дома и гостей)',
 
   'control.wizard.breadcrumb': 'Турниры > Новый',
   'control.wizard.title': 'Создать турнир',

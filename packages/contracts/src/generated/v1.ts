@@ -968,6 +968,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/series/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Classify a proposed series edit before it is applied
+         * @description Reports, per field, whether the proposed span/resolutionClass/neutralGround values are safe, require a rebuild (naming how many fixtures it would invalidate), or are blocked because the series already has a result — never applies anything itself.
+         */
+        post: operations["StagesController_previewSeriesMutation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/fixtures": {
         parameters: {
             query?: never;
@@ -2328,6 +2348,21 @@ export interface components {
             ruleset: components["schemas"]["TournamentConfigurationRulesetResponse"];
             seasons: components["schemas"]["TournamentConfigurationSeasonResponse"][];
         };
+        SeriesDeclarationRequest: {
+            /**
+             * @description Total number of scheduled matches in the series.
+             * @example 5
+             */
+            span: number;
+            /**
+             * @description Closed set of declarative resolution classes.
+             * @example best-of
+             * @enum {string}
+             */
+            resolutionClass?: "best-of" | "aggregate" | "points-per-leg";
+            /** @description Whether the series is held on neutral ground (no home/away side alternation). */
+            neutralGround?: boolean;
+        };
         CreateTournamentRequest: {
             /** @example copa-verano */
             alias: string;
@@ -2379,6 +2414,8 @@ export interface components {
              * @default []
              */
             customScripts: components["schemas"]["HookScriptAttachmentRequest"][];
+            /** @description Declares this tournament’s crosses as multi-match series by default. Absent stays the default: no series, a single match per cross, requiring no further action. */
+            series?: components["schemas"]["SeriesDeclarationRequest"];
         };
         TournamentCustomScriptsResponse: {
             customScripts: components["schemas"]["HookScriptAttachmentRequest"][];
@@ -3164,6 +3201,8 @@ export interface components {
              * @example round-robin
              */
             format?: string;
+            /** @description Declares this stage’s crosses as multi-match series. Absent stays the default: no series, a single match per cross, requiring no further action. */
+            series?: components["schemas"]["SeriesDeclarationRequest"];
         };
         StageResponse: {
             /** Format: uuid */
@@ -3182,6 +3221,26 @@ export interface components {
             name: string;
             /** @example round-robin */
             format: string;
+            /** @description Absent when this stage declares no series. */
+            series?: components["schemas"]["SeriesDeclarationRequest"];
+        };
+        SeriesMutationFieldPreview: {
+            /** @example series.span */
+            field: string;
+            /**
+             * @description Absent when the field is refused outright — see `blocked`.
+             * @enum {string}
+             */
+            mutationClass?: "safe" | "requires_rebuild" | "blocked_after_results";
+            /** @description Fixtures a `requires_rebuild` change would invalidate. */
+            invalidatedFixtureCount?: number;
+            /** @description True when this field cannot be changed as proposed; see `reason`. */
+            blocked?: boolean;
+            /** @description Present when `blocked` — names the audited correction workflow. */
+            reason?: string;
+        };
+        SeriesMutationPreviewResponse: {
+            fields: components["schemas"]["SeriesMutationFieldPreview"][];
         };
         FixtureResponse: {
             /** Format: uuid */
@@ -6384,6 +6443,57 @@ export interface operations {
                 };
             };
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    StagesController_previewSeriesMutation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                stageNumber: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SeriesDeclarationRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeriesMutationPreviewResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

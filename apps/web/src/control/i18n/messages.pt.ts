@@ -335,6 +335,20 @@ export const messages: Record<string, string> = {
   'control.wizard.problem.chooseFormat': 'Escolha um formato',
   'control.wizard.problem.formatNotSupported': 'A modalidade escolhida não suporta esse formato',
   'control.wizard.problem.minParticipants': 'Um torneio precisa de pelo menos dois participantes',
+  'control.wizard.problem.seriesOnPlacementFormat':
+    'Este formato classifica todos os participantes em vez de opor dois, portanto não pode ser decidido por série',
+  'control.wizard.problem.seriesSpan': 'Uma série abrange pelo menos duas partidas',
+  'control.wizard.problem.seriesEvenBestOf':
+    'Uma série melhor de precisa de um número ímpar de partidas para que um lado vença a maioria. Use Agregado ou Pontos por jogo para um número par.',
+  'control.wizard.series.enable': 'Decidir cada confronto com uma série de partidas',
+  'control.wizard.series.help':
+    'Deixe desligado para jogar uma partida por confronto. Ao ativar, várias partidas entre os mesmos dois lados são agendadas e o confronto é decidido por todas elas juntas.',
+  'control.wizard.field.seriesSpan': 'Partidas por série',
+  'control.wizard.field.seriesResolutionClass': 'Decidido por',
+  'control.wizard.series.class.bestOf': 'Melhor de — o primeiro lado a vencer a maioria',
+  'control.wizard.series.class.aggregate': 'Agregado — placares de todas as partidas somados',
+  'control.wizard.series.class.pointsPerLeg': 'Pontos por jogo — cada partida concede pontos',
+  'control.wizard.field.seriesNeutralGround': 'Jogado em campo neutro (sem mando de campo)',
 
   'control.wizard.breadcrumb': 'Torneios > Novo',
   'control.wizard.title': 'Criar torneio',

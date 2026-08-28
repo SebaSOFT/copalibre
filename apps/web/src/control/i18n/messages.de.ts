@@ -339,6 +339,20 @@ export const messages: Record<string, string> = {
   'control.wizard.problem.formatNotSupported':
     'Die gewählte Disziplin unterstützt dieses Format nicht',
   'control.wizard.problem.minParticipants': 'Ein Turnier benötigt mindestens zwei Teilnehmer',
+  'control.wizard.problem.seriesOnPlacementFormat':
+    'Dieses Format platziert alle Teilnehmer, statt zwei gegeneinander antreten zu lassen, und kann daher nicht durch eine Serie entschieden werden',
+  'control.wizard.problem.seriesSpan': 'Eine Serie umfasst mindestens zwei Spiele',
+  'control.wizard.problem.seriesEvenBestOf':
+    'Eine Best-of-Serie braucht eine ungerade Anzahl Spiele, damit eine Seite die Mehrheit gewinnen kann. Nutze Gesamtergebnis oder Punkte pro Spiel für eine gerade Anzahl.',
+  'control.wizard.series.enable': 'Jede Paarung mit einer Serie von Spielen entscheiden',
+  'control.wizard.series.help':
+    'Ausgeschaltet lassen, um ein Spiel pro Paarung auszutragen. Eingeschaltet werden mehrere Spiele zwischen denselben zwei Seiten angesetzt und die Paarung wird aus allen zusammen entschieden.',
+  'control.wizard.field.seriesSpan': 'Spiele pro Serie',
+  'control.wizard.field.seriesResolutionClass': 'Entschieden durch',
+  'control.wizard.series.class.bestOf': 'Best of — die erste Seite mit der Mehrheit',
+  'control.wizard.series.class.aggregate': 'Gesamtergebnis — Ergebnisse aller Spiele addiert',
+  'control.wizard.series.class.pointsPerLeg': 'Punkte pro Spiel — jedes Spiel vergibt Punkte',
+  'control.wizard.field.seriesNeutralGround': 'Auf neutralem Platz (ohne Heim und Auswärts)',
 
   'control.wizard.breadcrumb': 'Turniere > Neu',
   'control.wizard.title': 'Turnier erstellen',

@@ -336,6 +336,20 @@ export const messages: Record<string, string> = {
   'control.wizard.problem.chooseFormat': 'Elegí un formato',
   'control.wizard.problem.formatNotSupported': 'Ese formato no lo soporta la disciplina elegida',
   'control.wizard.problem.minParticipants': 'Un torneo necesita al menos dos participantes',
+  'control.wizard.problem.seriesOnPlacementFormat':
+    'Este formato ordena a todos los participantes en vez de enfrentar a dos, así que no se puede definir por serie',
+  'control.wizard.problem.seriesSpan': 'Una serie abarca al menos dos partidos',
+  'control.wizard.problem.seriesEvenBestOf':
+    'Una serie al mejor de necesita un número impar de partidos para que un lado gane la mayoría. Usá Global o Puntos por partido si querés un número par.',
+  'control.wizard.series.enable': 'Definir cada cruce con una serie de partidos',
+  'control.wizard.series.help':
+    'Dejalo apagado para jugar un partido por cruce. Al activarlo se programan varios partidos entre los mismos dos lados y el cruce se define con todos ellos juntos.',
+  'control.wizard.field.seriesSpan': 'Partidos por serie',
+  'control.wizard.field.seriesResolutionClass': 'Se define por',
+  'control.wizard.series.class.bestOf': 'Mejor de — el primero en ganar la mayoría',
+  'control.wizard.series.class.aggregate': 'Global — se suman los goles de todos los partidos',
+  'control.wizard.series.class.pointsPerLeg': 'Puntos por partido — cada partido otorga puntos',
+  'control.wizard.field.seriesNeutralGround': 'Se juega en cancha neutral (sin local ni visitante)',
 
   'control.wizard.breadcrumb': 'Torneos > Nuevo',
   'control.wizard.title': 'Crear torneo',

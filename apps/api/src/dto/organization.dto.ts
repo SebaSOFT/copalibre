@@ -2,10 +2,12 @@ import { Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
+  IsIn,
   IsInt,
   IsObject,
   IsOptional,
   IsString,
+  Min,
   ValidateNested,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -347,6 +349,40 @@ export class HookScriptVocabularyResponse {
   entries!: readonly RegistryEntryResponse[];
 }
 
+/**
+ * A series declaration, as authored. Crosses the wire as this typed shape but is
+ * persisted as `series.span` / `series.resolutionClass` / `series.neutralGround`
+ * entries in an `OverrideSet` — the tournament's ruleset overrides when declared
+ * at creation, a stage's `StageConfiguration.overrides` when declared per stage.
+ * That is the same dot-path mechanism every other configurable field already uses,
+ * so `evaluateMutation` classifies an edit to one without a second vocabulary.
+ */
+export class SeriesDeclarationRequest {
+  @IsInt()
+  @Min(2)
+  @ApiProperty({
+    description: 'Total number of scheduled matches in the series.',
+    example: 5,
+  })
+  span!: number;
+
+  @IsOptional()
+  @IsIn(['best-of', 'aggregate', 'points-per-leg'])
+  @ApiPropertyOptional({
+    description: 'Closed set of declarative resolution classes.',
+    enum: ['best-of', 'aggregate', 'points-per-leg'],
+    example: 'best-of',
+  })
+  resolutionClass?: 'best-of' | 'aggregate' | 'points-per-leg';
+
+  @IsOptional()
+  @IsBoolean()
+  @ApiPropertyOptional({
+    description: 'Whether the series is held on neutral ground (no home/away side alternation).',
+  })
+  neutralGround?: boolean;
+}
+
 export class CreateTournamentRequest {
   @IsString()
   @ApiProperty({ example: 'copa-verano' })
@@ -433,6 +469,17 @@ export class CreateTournamentRequest {
     description: 'Organizer-authored scripts evaluated at supported tournament hooks.',
   })
   customScripts!: HookScriptAttachmentRequest[];
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => SeriesDeclarationRequest)
+  @ApiPropertyOptional({
+    type: SeriesDeclarationRequest,
+    description:
+      'Declares this tournament’s crosses as multi-match series by default. Absent stays the ' +
+      'default: no series, a single match per cross, requiring no further action.',
+  })
+  series?: SeriesDeclarationRequest;
 }
 
 export class CreateStageRequest {
@@ -458,6 +505,46 @@ export class CreateStageRequest {
     example: 'round-robin',
   })
   format?: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => SeriesDeclarationRequest)
+  @ApiPropertyOptional({
+    type: SeriesDeclarationRequest,
+    description:
+      'Declares this stage’s crosses as multi-match series. Absent stays the default: no series, ' +
+      'a single match per cross, requiring no further action.',
+  })
+  series?: SeriesDeclarationRequest;
+}
+
+export class SeriesMutationFieldPreview {
+  @ApiProperty({ example: 'series.span' })
+  field!: string;
+
+  @ApiPropertyOptional({
+    enum: ['safe', 'requires_rebuild', 'blocked_after_results'],
+    description: 'Absent when the field is refused outright — see `blocked`.',
+  })
+  mutationClass?: 'safe' | 'requires_rebuild' | 'blocked_after_results';
+
+  @ApiPropertyOptional({ description: 'Fixtures a `requires_rebuild` change would invalidate.' })
+  invalidatedFixtureCount?: number;
+
+  @ApiPropertyOptional({
+    description: 'True when this field cannot be changed as proposed; see `reason`.',
+  })
+  blocked?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Present when `blocked` — names the audited correction workflow.',
+  })
+  reason?: string;
+}
+
+export class SeriesMutationPreviewResponse {
+  @ApiProperty({ type: [SeriesMutationFieldPreview] })
+  fields!: SeriesMutationFieldPreview[];
 }
 
 export class StageResponse {
@@ -478,6 +565,12 @@ export class StageResponse {
 
   @ApiProperty({ example: 'round-robin' })
   format!: string;
+
+  @ApiPropertyOptional({
+    type: SeriesDeclarationRequest,
+    description: 'Absent when this stage declares no series.',
+  })
+  series?: SeriesDeclarationRequest;
 }
 
 export class ProblemResponse {

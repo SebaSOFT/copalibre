@@ -71,12 +71,23 @@ function descriptor(): DisciplineDescriptor {
     eventDefinitions: [],
     statistics: [{ code: 'points', label: 'Puntos', aggregation: 'sum' }],
     scoringInputs: [],
-    availableFormats: ['round-robin'],
+    // 'free-for-all' is declared alongside 'round-robin' so a series-on-placement
+    // refusal (task 1.2) can be proven without a second descriptor fixture.
+    availableFormats: ['round-robin', 'free-for-all'],
     notificationRuleCapabilities: [],
     winCondition: {},
     defaults: {},
     fieldPolicies: {
       format: { permission: { kind: 'replaced' }, mutationClass: 'requires_rebuild' },
+      'series.span': { permission: { kind: 'replaced' }, mutationClass: 'requires_rebuild' },
+      'series.resolutionClass': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'blocked_after_results',
+      },
+      'series.neutralGround': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'requires_rebuild',
+      },
     },
   } as unknown as DisciplineDescriptor;
 }
@@ -214,6 +225,15 @@ describe('stage creation routes (integration)', () => {
     expect(body).toMatchObject({ number: 1, name: 'Stage 1', format: 'round-robin' });
     expect(typeof body.stageId).toBe('string');
     expect(typeof body.seasonId).toBe('string');
+    // Task 1.1: declaring no series is the default and stays untouched — no
+    // `series` key at all, and no stage_configuration row is written for it.
+    expect(body.series).toBeUndefined();
+    const row = await scratch.db
+      .selectFrom('stages')
+      .select('stage_configuration_id')
+      .where('stage_id', '=', body.stageId)
+      .executeTakeFirstOrThrow();
+    expect(row.stage_configuration_id).toBeNull();
   });
 
   it('creates the next stage as the sequential default number', async () => {
@@ -409,4 +429,216 @@ describe('stage creation routes (integration)', () => {
       expect(publish.statusCode).toBe(422);
     },
   );
+
+  describe('series declaration (0159)', () => {
+    const seriesTournamentAlias = 'apertura-0066-series';
+    const seriesBase = `/organizations/${organizationAlias}/tournaments/${seriesTournamentAlias}/stages`;
+    let seriesTournamentId = '';
+    let homeEntrantId = '';
+    let awayEntrantId = '';
+
+    beforeAll(async () => {
+      const discipline = descriptor();
+      const enrollment = new EnrollmentRepository(scratch.db);
+
+      await withTransaction(scratch.db, async (uow) => {
+        const tournament = await new TournamentRepository(scratch.db).create(uow, {
+          organizationId,
+          alias: seriesTournamentAlias,
+          name: 'Apertura con series',
+          descriptor: discipline,
+          ...AUDIT,
+        });
+        seriesTournamentId = tournament.tournamentId;
+        await new TournamentRepository(scratch.db).createRuleset(uow, {
+          tournamentId: tournament.tournamentId,
+          organizationId,
+          descriptor: discipline,
+          overrides: { format: 'round-robin' },
+          ...AUDIT,
+        });
+
+        const boca = await enrollment.createTeam(uow, { organizationId, name: 'Boca', ...AUDIT });
+        const bocaEntrant = await enrollment.registerEntrant(uow, {
+          tournamentId: tournament.tournamentId,
+          entrantRef: { kind: 'team', teamId: boca.teamId },
+          organizationId,
+          ...AUDIT,
+        });
+        homeEntrantId = bocaEntrant.entrantId;
+
+        const river = await enrollment.createTeam(uow, { organizationId, name: 'River', ...AUDIT });
+        const riverEntrant = await enrollment.registerEntrant(uow, {
+          tournamentId: tournament.tournamentId,
+          entrantRef: { kind: 'team', teamId: river.teamId },
+          organizationId,
+          ...AUDIT,
+        });
+        awayEntrantId = riverEntrant.entrantId;
+      });
+
+      for (const entrantId of [homeEntrantId, awayEntrantId]) {
+        await withTransaction(scratch.db, (uow) =>
+          enrollment.setEntrantStatus(uow, {
+            entrantId,
+            status: 'accepted',
+            organizationId,
+            ...AUDIT,
+          }),
+        );
+      }
+    });
+
+    it('persists a declared series as stage-configuration overrides and echoes it back (task 1.1)', async () => {
+      const response = await request({
+        method: 'POST',
+        url: seriesBase,
+        token: 'organizer',
+        payload: { series: { span: 5, resolutionClass: 'best-of' } },
+      });
+      expect(response.statusCode).toBe(201);
+      const body = response.json();
+      expect(body.series).toEqual({ span: 5, resolutionClass: 'best-of' });
+
+      const row = await scratch.db
+        .selectFrom('stages')
+        .innerJoin(
+          'stage_configurations',
+          'stage_configurations.stage_configuration_id',
+          'stages.stage_configuration_id',
+        )
+        .select('stage_configurations.overrides')
+        .where('stages.stage_id', '=', body.stageId)
+        .executeTakeFirstOrThrow();
+      const overrides =
+        typeof row.overrides === 'string' ? JSON.parse(row.overrides) : row.overrides;
+      expect(overrides).toEqual({ 'series.span': 5, 'series.resolutionClass': 'best-of' });
+    });
+
+    it('refuses a series on a placement-format stage before storing anything (task 1.2)', async () => {
+      const before = await new CompetitionRepository(scratch.db).listStagesOfTournament(
+        seriesTournamentId,
+      );
+      const response = await request({
+        method: 'POST',
+        url: seriesBase,
+        token: 'organizer',
+        payload: { format: 'free-for-all', series: { span: 3, resolutionClass: 'best-of' } },
+      });
+      expect(response.statusCode).toBe(400);
+      expect(response.json().message).toContain('two sides');
+      const after = await new CompetitionRepository(scratch.db).listStagesOfTournament(
+        seriesTournamentId,
+      );
+      expect(after).toHaveLength(before.length);
+    });
+
+    it('refuses an even-span best-of, naming aggregate and points-per-leg (task 1.3)', async () => {
+      const response = await request({
+        method: 'POST',
+        url: seriesBase,
+        token: 'organizer',
+        payload: { series: { span: 4, resolutionClass: 'best-of' } },
+      });
+      expect(response.statusCode).toBe(400);
+      const message = response.json().message as string;
+      expect(message).toContain('aggregate');
+      expect(message).toContain('points-per-leg');
+    });
+
+    it(
+      'previews a series mutation’s classification without applying it, and blocks a ' +
+        'shortening naming the audited correction workflow once a result exists (task 1.4)',
+      async () => {
+        const created = await request({
+          method: 'POST',
+          url: seriesBase,
+          token: 'organizer',
+          payload: { series: { span: 5, resolutionClass: 'best-of' } },
+        });
+        expect(created.statusCode).toBe(201);
+        const { stageId, number: stageNumber } = created.json();
+        const previewUrl = `${seriesBase}/${stageNumber}/series/preview`;
+
+        const lengthen = await request({
+          method: 'POST',
+          url: previewUrl,
+          token: 'organizer',
+          payload: { span: 7, resolutionClass: 'best-of' },
+        });
+        expect(lengthen.statusCode).toBe(200);
+        const lengthenFields = lengthen.json().fields as {
+          field: string;
+          mutationClass?: string;
+          invalidatedFixtureCount?: number;
+          blocked?: boolean;
+        }[];
+        const spanPreview = lengthenFields.find((f) => f.field === 'series.span');
+        expect(spanPreview).toMatchObject({ mutationClass: 'requires_rebuild' });
+        // No fixtures generated yet for this stage — nothing to invalidate.
+        expect(spanPreview?.invalidatedFixtureCount).toBe(0);
+        const classPreview = lengthenFields.find((f) => f.field === 'series.resolutionClass');
+        expect(classPreview).toMatchObject({ mutationClass: 'blocked_after_results' });
+        expect(classPreview?.blocked).toBeUndefined();
+
+        // Generate and publish fixtures, then finalize one result, so the stage
+        // genuinely `hasRecordedResults` for the next preview.
+        const seedingUrl = `${seriesBase}/${stageNumber}/seeding`;
+        const seedingPreview = await request({
+          method: 'GET',
+          url: seedingUrl,
+          token: 'organizer',
+        });
+        await request({
+          method: 'POST',
+          url: seedingUrl,
+          token: 'organizer',
+          payload: { seeds: seedingPreview.json().seeds },
+        });
+        const fixtureRow = await scratch.db
+          .selectFrom('fixtures')
+          .select('fixture_id')
+          .where('stage_id', '=', stageId)
+          .executeTakeFirstOrThrow();
+        const matchRow = await scratch.db
+          .selectFrom('matches')
+          .select('match_id')
+          .where('fixture_id', '=', fixtureRow.fixture_id)
+          .executeTakeFirstOrThrow();
+
+        const competition = new CompetitionRepository(scratch.db);
+        await withTransaction(scratch.db, (uow) =>
+          competition.recordResult(uow, {
+            matchId: matchRow.match_id,
+            result: {
+              sides: [
+                { entrantId: homeEntrantId, statistics: { points: 3 } },
+                { entrantId: awayEntrantId, statistics: { points: 0 } },
+              ],
+              winnerEntrantId: homeEntrantId,
+              recordedAt: new Date().toISOString(),
+            },
+            organizationId,
+            ...AUDIT,
+          }),
+        );
+
+        const shorten = await request({
+          method: 'POST',
+          url: previewUrl,
+          token: 'organizer',
+          payload: { span: 3, resolutionClass: 'best-of' },
+        });
+        expect(shorten.statusCode).toBe(200);
+        const shortenFields = shorten.json().fields as {
+          field: string;
+          blocked?: boolean;
+          reason?: string;
+        }[];
+        const shortenSpan = shortenFields.find((f) => f.field === 'series.span');
+        expect(shortenSpan?.blocked).toBe(true);
+        expect(shortenSpan?.reason).toContain('audited correction workflow');
+      },
+    );
+  });
 });

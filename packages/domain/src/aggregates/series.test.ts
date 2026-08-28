@@ -56,7 +56,7 @@ describe('validateSeriesDeclaration', () => {
     }
   });
 
-  it('rejects an even span for best-of', () => {
+  it('rejects an even span for best-of, naming both suggested alternatives', () => {
     const result = validateSeriesDeclaration({
       span: 4,
       resolutionClass: 'best-of',
@@ -65,6 +65,8 @@ describe('validateSeriesDeclaration', () => {
     if (!result.ok) {
       expect(result.error.details?.field).toBe('series.span');
       expect(result.error.message).toContain('odd span');
+      expect(result.error.message).toContain('aggregate');
+      expect(result.error.message).toContain('points-per-leg');
     }
   });
 
