@@ -568,7 +568,10 @@ export class ZonesGroupsController {
         errorCode: 'zone-group-not-found',
       });
     }
-    const seriesDeclaration = await readStageSeries(this.db, { tournamentId, stageId: sourceStageId });
+    const seriesDeclaration = await readStageSeries(this.db, {
+      tournamentId,
+      stageId: sourceStageId,
+    });
     const groupAccountings = new Map(
       groupRecords.map((entry) => [
         entry.group.groupId,

@@ -100,9 +100,9 @@ function groupOutcomesByFixture(
 }
 
 /** A fixture's outcomes reshaped into the games `resolveSeries` reads. */
-function seriesMatchesOf(fixtureOutcomes: readonly RecordedOutcome[]): Parameters<
-  typeof resolveSeries
->[0]['matches'] {
+function seriesMatchesOf(
+  fixtureOutcomes: readonly RecordedOutcome[],
+): Parameters<typeof resolveSeries>[0]['matches'] {
   return fixtureOutcomes.map((out, idx) => {
     const matchNumberMatch = out.matchId.match(/-([0-9]+)$/);
     const number = matchNumberMatch && matchNumberMatch[1] ? Number(matchNumberMatch[1]) : idx + 1;

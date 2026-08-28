@@ -230,9 +230,7 @@ describe('the tournament setup wizard screen', () => {
 
     fireEvent.click(screen.getByLabelText('Settle each cross with a series of matches'));
 
-    const grainSelect = screen.getByLabelText(
-      'Counts towards standings as',
-    ) as HTMLSelectElement;
+    const grainSelect = screen.getByLabelText('Counts towards standings as') as HTMLSelectElement;
     expect(grainSelect.value).toBe('match');
 
     fireEvent.click(screen.getByLabelText('Settle each cross with a series of matches'));
@@ -247,9 +245,7 @@ describe('the tournament setup wizard screen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     fireEvent.click(screen.getByLabelText('Settle each cross with a series of matches'));
 
-    const grainSelect = screen.getByLabelText(
-      'Counts towards standings as',
-    ) as HTMLSelectElement;
+    const grainSelect = screen.getByLabelText('Counts towards standings as') as HTMLSelectElement;
     fireEvent.change(grainSelect, { target: { value: 'series' } });
     expect(grainSelect.value).toBe('series');
 
@@ -258,9 +254,9 @@ describe('the tournament setup wizard screen', () => {
     // class already survive a toggle.
     fireEvent.click(screen.getByLabelText('Settle each cross with a series of matches'));
     fireEvent.click(screen.getByLabelText('Settle each cross with a series of matches'));
-    expect(
-      (screen.getByLabelText('Counts towards standings as') as HTMLSelectElement).value,
-    ).toBe('series');
+    expect((screen.getByLabelText('Counts towards standings as') as HTMLSelectElement).value).toBe(
+      'series',
+    );
   });
 });
 

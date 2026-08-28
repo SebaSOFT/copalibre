@@ -70,7 +70,9 @@ const isPlayerRanking =
     projection?.grain !== undefined && (
       <p class="cl-standings-grain">
         {intl.formatMessage(
-          projection.grain === 'series' ? messages.standingsGrainSeries : messages.standingsGrainMatch,
+          projection.grain === 'series'
+            ? messages.standingsGrainSeries
+            : messages.standingsGrainMatch,
         )}
       </p>
     )

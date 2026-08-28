@@ -210,7 +210,9 @@ export async function readTableProjection(
   // per `match-series`' own note that a statistic named `played` is a
   // football-descriptor convention, not a platform concept.
   const countStatisticCodes = new Set(
-    descriptor.statistics.filter((statistic) => statistic.aggregation === 'count').map((s) => s.code),
+    descriptor.statistics
+      .filter((statistic) => statistic.aggregation === 'count')
+      .map((s) => s.code),
   );
   const countColumnCode = layout.columns.find(
     (column) => column.source.kind === 'collector' && countStatisticCodes.has(column.source.code),

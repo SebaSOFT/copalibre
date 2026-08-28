@@ -345,7 +345,8 @@ export const messages: Record<string, string> = {
   'control.wizard.series.class.pointsPerLeg': '每场积分 — 每场比赛各自计分',
   'control.wizard.field.seriesNeutralGround': '在中立场地进行（不分主客场）',
   'control.wizard.field.seriesStandingsAccounting': '计入积分榜的方式',
-  'control.wizard.series.accounting.match': '每场比赛计一个结果 — 系列赛中的每场比赛各自为积分榜贡献一次胜、平或负',
+  'control.wizard.series.accounting.match':
+    '每场比赛计一个结果 — 系列赛中的每场比赛各自为积分榜贡献一次胜、平或负',
   'control.wizard.series.accounting.series':
     '每个系列赛计一个结果 — 无论进行了多少场比赛，整个系列赛只为积分榜贡献一次胜、平或负',
 

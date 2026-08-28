@@ -443,7 +443,9 @@ describe('computeStandings', () => {
         outcomes,
         pipeline,
         DEFAULT_POINTS,
-        { seriesDeclaration: { span: 3, resolutionClass: 'best-of', standingsAccounting: 'series' } },
+        {
+          seriesDeclaration: { span: 3, resolutionClass: 'best-of', standingsAccounting: 'series' },
+        },
       );
 
       expect(standings.grain).toBe('series');
@@ -559,12 +561,24 @@ describe('computeStandings', () => {
       ];
       const declaration = { span: 3, resolutionClass: 'best-of' as const };
 
-      const seriesGrain = computeAccounting(football, ['alfa', 'bravo'], distanceOutcomes, undefined, {
-        seriesDeclaration: { ...declaration, standingsAccounting: 'series' },
-      });
-      const matchGrain = computeAccounting(football, ['alfa', 'bravo'], distanceOutcomes, undefined, {
-        seriesDeclaration: { ...declaration, standingsAccounting: 'match' },
-      });
+      const seriesGrain = computeAccounting(
+        football,
+        ['alfa', 'bravo'],
+        distanceOutcomes,
+        undefined,
+        {
+          seriesDeclaration: { ...declaration, standingsAccounting: 'series' },
+        },
+      );
+      const matchGrain = computeAccounting(
+        football,
+        ['alfa', 'bravo'],
+        distanceOutcomes,
+        undefined,
+        {
+          seriesDeclaration: { ...declaration, standingsAccounting: 'match' },
+        },
+      );
 
       const seriesAlfa = seriesGrain.find((a) => a.entrantId === 'alfa');
       const matchAlfa = matchGrain.find((a) => a.entrantId === 'alfa');
@@ -630,7 +644,9 @@ describe('computeStandings', () => {
         seriesOutcomes,
         { ...pipeline, parameters: pointsOnly() },
         undefined,
-        { seriesDeclaration: { span: 3, resolutionClass: 'best-of', standingsAccounting: 'series' } },
+        {
+          seriesDeclaration: { span: 3, resolutionClass: 'best-of', standingsAccounting: 'series' },
+        },
       );
 
       const alfaTrace = traceForEntrant(standings.trace, 'alfa');
@@ -661,7 +677,9 @@ describe('computeStandings', () => {
         seriesOutcomes,
         { ...pipeline, parameters: pointsOnly() },
         undefined,
-        { seriesDeclaration: { span: 3, resolutionClass: 'best-of', standingsAccounting: 'match' } },
+        {
+          seriesDeclaration: { span: 3, resolutionClass: 'best-of', standingsAccounting: 'match' },
+        },
       );
 
       expect(standings.grain).toBe('match');

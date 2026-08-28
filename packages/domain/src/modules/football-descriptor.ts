@@ -570,7 +570,10 @@ export function footballDescriptor(
         permission: { kind: 'replaced' },
         mutationClass: 'blocked_after_results',
       },
-      'series.neutralGround': { permission: { kind: 'replaced' }, mutationClass: 'requires_rebuild' },
+      'series.neutralGround': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'requires_rebuild',
+      },
       'series.standingsAccounting': {
         permission: { kind: 'replaced' },
         mutationClass: 'requires_rebuild',
