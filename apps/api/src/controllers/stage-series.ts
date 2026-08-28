@@ -260,3 +260,133 @@ function decisionPointOf(resolution: SeriesResolutionResult): number | undefined
   if (resolution.status !== 'decided') return undefined;
   return resolution.span - resolution.anulledMatchNumbers.length;
 }
+
+export interface PublicSeriesGame {
+  readonly number: number;
+  readonly status: string;
+  readonly winnerEntrantId?: string;
+  /** Which side of the cross won, so a renderer never has to match entrant ids itself. */
+  readonly winner?: 'home' | 'away';
+  readonly scores?: readonly number[];
+}
+
+export interface PublicSeriesState {
+  readonly span: number;
+  readonly resolutionClass?: string;
+  readonly games: readonly PublicSeriesGame[];
+  readonly homeGamesWon: number;
+  readonly awayGamesWon: number;
+  readonly aggregateScores?: readonly number[];
+  readonly status: string;
+  readonly winnerEntrantId?: string;
+  readonly winner?: 'home' | 'away';
+  readonly explanation: string;
+}
+
+/**
+ * A cross's series state as a public surface renders it.
+ *
+ * Games come back in play order — by game number, not by when they were finalized. A game
+ * played late still occupies its own position, because a spectator reading "game three" means
+ * the third game of the series, not the third one somebody got round to entering.
+ *
+ * The aggregate is reported for every class but only *means* something for `aggregate`, where
+ * a two-legged tie has no notion of games won and the summed score is the entire answer. A
+ * best-of's spectator is asking "how many left?", which `homeGamesWon` and `span` answer.
+ */
+export function publicSeriesState(input: {
+  readonly declaration: SeriesDeclaration;
+  readonly homeEntrantId?: string;
+  readonly awayEntrantId?: string;
+  readonly games: readonly {
+    readonly number: number;
+    readonly status: string;
+    readonly result?: {
+      readonly sides: readonly {
+        readonly entrantId: string;
+        readonly statistics?: Record<string, number>;
+      }[];
+      readonly winnerEntrantId?: string;
+    };
+  }[];
+}): PublicSeriesState | undefined {
+  const resolution = resolveFixtureSeries({ ...input, matches: input.games });
+  if (resolution === undefined) return undefined;
+  const home = input.homeEntrantId;
+  const away = input.awayEntrantId;
+
+  const ordered = [...input.games].sort((a, b) => a.number - b.number);
+  const games = ordered.map((game) => {
+    const scores =
+      game.result === undefined
+        ? undefined
+        : ([scoreOf(game.result, home), scoreOf(game.result, away)] as const);
+    const winnerEntrantId = game.result?.winnerEntrantId;
+    return {
+      number: game.number,
+      status: game.status,
+      ...(winnerEntrantId === undefined ? {} : { winnerEntrantId }),
+      ...(sideOf(winnerEntrantId, home, away) === undefined
+        ? {}
+        : { winner: sideOf(winnerEntrantId, home, away) }),
+      ...(scores === undefined ? {} : { scores: [...scores] }),
+    };
+  });
+
+  const aggregate = games.reduce<[number, number]>(
+    (running, game) => [running[0] + (game.scores?.[0] ?? 0), running[1] + (game.scores?.[1] ?? 0)],
+    [0, 0],
+  );
+  const anyScore = games.some((game) => game.scores !== undefined);
+
+  return {
+    span: input.declaration.span,
+    ...(input.declaration.resolutionClass === undefined
+      ? {}
+      : { resolutionClass: input.declaration.resolutionClass }),
+    games,
+    homeGamesWon: games.filter((game) => game.winnerEntrantId === home).length,
+    awayGamesWon: games.filter((game) => game.winnerEntrantId === away).length,
+    ...(anyScore ? { aggregateScores: aggregate } : {}),
+    status: resolution.status,
+    ...(resolution.winnerEntrantId === undefined
+      ? {}
+      : { winnerEntrantId: resolution.winnerEntrantId }),
+    ...(sideOf(resolution.winnerEntrantId, home, away) === undefined
+      ? {}
+      : { winner: sideOf(resolution.winnerEntrantId, home, away) }),
+    explanation: resolution.explanation,
+  };
+}
+
+/** Which side of the cross an entrant is, or neither — a draw names no side. */
+function sideOf(
+  entrantId: string | undefined,
+  home: string | undefined,
+  away: string | undefined,
+): 'home' | 'away' | undefined {
+  if (entrantId === undefined) return undefined;
+  if (entrantId === home) return 'home';
+  if (entrantId === away) return 'away';
+  return undefined;
+}
+
+/**
+ * One side's score in one game, read the same way the engine's own aggregate resolver reads it
+ * — the first of `score`, `goals` or `points` the discipline recorded. A discipline that names
+ * its scoring statistic something else contributes nothing to the aggregate here, exactly as it
+ * contributes nothing there; the two must agree, and agreeing wrongly is still better than a
+ * public surface and an engine disagreeing about who advanced.
+ */
+function scoreOf(
+  result: {
+    readonly sides: readonly {
+      readonly entrantId: string;
+      readonly statistics?: Record<string, number>;
+    }[];
+  },
+  entrantId: string | undefined,
+): number {
+  const side = result.sides.find((candidate) => candidate.entrantId === entrantId);
+  return side?.statistics?.score ?? side?.statistics?.goals ?? side?.statistics?.points ?? 0;
+}

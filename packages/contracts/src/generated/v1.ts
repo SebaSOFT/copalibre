@@ -3765,6 +3765,61 @@ export interface components {
              */
             resultReason?: "played" | "administrative-loss" | "walkover" | "forfeit-abandonment" | "disqualified" | "did-not-finish";
         };
+        PublicSeriesGameResponse: {
+            /**
+             * @description 1-based play order within the series
+             * @example 4
+             */
+            number: number;
+            /**
+             * @description `not-required` is a game the series ended before reaching
+             * @enum {string}
+             */
+            status: "scheduled" | "in-progress" | "finalized" | "not-required";
+            /** @description Winner of this game, when it has one */
+            winnerEntrantId?: string;
+            /**
+             * @description Which side of the cross won, so a renderer matches no entrant ids itself
+             * @enum {string}
+             */
+            winner?: "home" | "away";
+            /** @description Scores in the cross’s own side order — home first, away second */
+            scores?: number[];
+        };
+        PublicSeriesStateResponse: {
+            /**
+             * @description Total games in the series, played or not
+             * @example 5
+             */
+            span: number;
+            /** @enum {string} */
+            resolutionClass?: "best-of" | "aggregate" | "points-per-leg";
+            /** @description Every game in play order — by game number, not by when it was finalized */
+            games: components["schemas"]["PublicSeriesGameResponse"][];
+            /**
+             * @description Games won by the home side
+             * @example 2
+             */
+            homeGamesWon: number;
+            /**
+             * @description Games won by the away side
+             * @example 1
+             */
+            awayGamesWon: number;
+            /** @description Summed score across every played game, home first. What decides an `aggregate` tie, and meaningless for a best-of, where games won is the score. */
+            aggregateScores?: number[];
+            /** @enum {string} */
+            status: "decided" | "undecided" | "finished-unresolved";
+            /** @description The side the series settled on; absent while undecided */
+            winnerEntrantId?: string;
+            /**
+             * @description Which side of the cross advanced
+             * @enum {string}
+             */
+            winner?: "home" | "away";
+            /** @description Why the series stands where it does, in the engine’s own words */
+            explanation: string;
+        };
         PublicBracketMatchResponse: {
             matchId: string;
             /** @enum {string} */
@@ -3774,6 +3829,8 @@ export interface components {
             status: string;
             format?: string;
             slots: components["schemas"]["PublicBracketSlotResponse"][];
+            /** @description Present only on a cross settled by a series */
+            series?: components["schemas"]["PublicSeriesStateResponse"];
         };
         PublicBracketResponse: {
             matches: components["schemas"]["PublicBracketMatchResponse"][];

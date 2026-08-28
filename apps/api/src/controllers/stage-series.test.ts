@@ -1,4 +1,8 @@
-import { guaranteedMatchCount, previewSeriesCorrection } from './stage-series.js';
+import {
+  guaranteedMatchCount,
+  previewSeriesCorrection,
+  publicSeriesState,
+} from './stage-series.js';
 import type { SeriesDeclaration } from '@copalibre/domain';
 
 const BEST_OF_FIVE: SeriesDeclaration = { span: 5, resolutionClass: 'best-of' };
@@ -134,6 +138,105 @@ describe('previewSeriesCorrection (0159 tasks 3.1, 3.2)', () => {
         correctedMatchId: 'm-1',
         replacement: win('alfa', 'bravo'),
       }),
+    ).toBeUndefined();
+  });
+});
+
+describe('publicSeriesState (0159 tasks 4.1, 4.3, 4.4)', () => {
+  it('reports every game in play order, however out of order they were finalized', () => {
+    const state = publicSeriesState({
+      declaration: BEST_OF_FIVE,
+      ...SIDES,
+      games: [
+        { number: 3, status: 'finalized', result: win('bravo', 'alfa') },
+        { number: 1, status: 'finalized', result: win('alfa', 'bravo') },
+        { number: 2, status: 'finalized', result: win('alfa', 'bravo') },
+        { number: 4, status: 'scheduled' },
+        { number: 5, status: 'scheduled' },
+      ],
+    });
+
+    expect(state?.games.map((game) => game.number)).toEqual([1, 2, 3, 4, 5]);
+    expect(state?.games.map((game) => game.winner)).toEqual([
+      'home',
+      'home',
+      'away',
+      undefined,
+      undefined,
+    ]);
+  });
+
+  it('leaves a series at two games to one undecided, naming no winner', () => {
+    const state = publicSeriesState({
+      declaration: BEST_OF_FIVE,
+      ...SIDES,
+      games: [
+        { number: 1, status: 'finalized', result: win('alfa', 'bravo') },
+        { number: 2, status: 'finalized', result: win('bravo', 'alfa') },
+        { number: 3, status: 'finalized', result: win('alfa', 'bravo') },
+        { number: 4, status: 'scheduled' },
+        { number: 5, status: 'scheduled' },
+      ],
+    });
+
+    expect(state?.status).toBe('undecided');
+    expect(state?.winner).toBeUndefined();
+    expect(state?.winnerEntrantId).toBeUndefined();
+    expect(state?.homeGamesWon).toBe(2);
+    expect(state?.awayGamesWon).toBe(1);
+  });
+
+  it('sums an aggregate tie and names the side that advanced', () => {
+    const leg = (home: number, away: number) => ({
+      sides: [
+        { entrantId: 'alfa', statistics: { goals: home } },
+        { entrantId: 'bravo', statistics: { goals: away } },
+      ],
+      ...(home === away ? {} : { winnerEntrantId: home > away ? 'alfa' : 'bravo' }),
+    });
+
+    const state = publicSeriesState({
+      declaration: { span: 2, resolutionClass: 'aggregate' },
+      ...SIDES,
+      games: [
+        { number: 1, status: 'finalized', result: leg(2, 1) },
+        { number: 2, status: 'finalized', result: leg(0, 2) },
+      ],
+    });
+
+    expect(state?.aggregateScores).toEqual([2, 3]);
+    expect(state?.status).toBe('decided');
+    expect(state?.winner).toBe('away');
+    // Both legs stay individually readable alongside the aggregate.
+    expect(state?.games.map((game) => game.scores)).toEqual([
+      [2, 1],
+      [0, 2],
+    ]);
+  });
+
+  it('marks the games a series ended before reaching', () => {
+    const state = publicSeriesState({
+      declaration: BEST_OF_FIVE,
+      ...SIDES,
+      games: [
+        { number: 1, status: 'finalized', result: win('alfa', 'bravo') },
+        { number: 2, status: 'finalized', result: win('alfa', 'bravo') },
+        { number: 3, status: 'finalized', result: win('alfa', 'bravo') },
+        { number: 4, status: 'not-required' },
+        { number: 5, status: 'not-required' },
+      ],
+    });
+
+    expect(state?.games.slice(3).map((game) => game.status)).toEqual([
+      'not-required',
+      'not-required',
+    ]);
+    expect(state?.winner).toBe('home');
+  });
+
+  it('reports nothing for a cross nobody has reached yet', () => {
+    expect(
+      publicSeriesState({ declaration: BEST_OF_FIVE, homeEntrantId: 'alfa', games: [] }),
     ).toBeUndefined();
   });
 });

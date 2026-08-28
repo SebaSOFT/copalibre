@@ -45,6 +45,14 @@ export const messages: Record<string, string> = {
   'publicWeb.ticker.empty': '暂无已安排的比赛。',
 
   'publicWeb.series.ariaLabel': '{bestOf} 局系列赛：{home} 比 {away}',
+  'publicWeb.series.gameWonHome': '第 {number} 场：主队获胜',
+  'publicWeb.series.gameWonAway': '第 {number} 场：客队获胜',
+  'publicWeb.series.gameCurrent': '第 {number} 场：进行中',
+  'publicWeb.series.gameUpcoming': '第 {number} 场：尚未进行',
+  'publicWeb.series.gameNotRequired': '第 {number} 场：不会进行',
+  'publicWeb.series.pending': '系列赛未分胜负，{home}–{away}',
+  'publicWeb.series.decided': '{winner} 赢得系列赛',
+  'publicWeb.series.aggregate': '两回合总比分 {home}–{away}',
 
   'publicWeb.live.usingLastKnown': '正在显示最后已知状态。',
 

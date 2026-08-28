@@ -12727,6 +12727,123 @@
           "kind"
         ]
       },
+      "PublicSeriesGameResponse": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "number",
+            "description": "1-based play order within the series",
+            "example": 4
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "scheduled",
+              "in-progress",
+              "finalized",
+              "not-required"
+            ],
+            "description": "`not-required` is a game the series ended before reaching"
+          },
+          "winnerEntrantId": {
+            "type": "string",
+            "description": "Winner of this game, when it has one"
+          },
+          "winner": {
+            "type": "string",
+            "enum": [
+              "home",
+              "away"
+            ],
+            "description": "Which side of the cross won, so a renderer matches no entrant ids itself"
+          },
+          "scores": {
+            "description": "Scores in the cross’s own side order — home first, away second",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "number",
+          "status"
+        ]
+      },
+      "PublicSeriesStateResponse": {
+        "type": "object",
+        "properties": {
+          "span": {
+            "type": "number",
+            "description": "Total games in the series, played or not",
+            "example": 5
+          },
+          "resolutionClass": {
+            "type": "string",
+            "enum": [
+              "best-of",
+              "aggregate",
+              "points-per-leg"
+            ]
+          },
+          "games": {
+            "description": "Every game in play order — by game number, not by when it was finalized",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicSeriesGameResponse"
+            }
+          },
+          "homeGamesWon": {
+            "type": "number",
+            "description": "Games won by the home side",
+            "example": 2
+          },
+          "awayGamesWon": {
+            "type": "number",
+            "description": "Games won by the away side",
+            "example": 1
+          },
+          "aggregateScores": {
+            "description": "Summed score across every played game, home first. What decides an `aggregate` tie, and meaningless for a best-of, where games won is the score.",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "decided",
+              "undecided",
+              "finished-unresolved"
+            ]
+          },
+          "winnerEntrantId": {
+            "type": "string",
+            "description": "The side the series settled on; absent while undecided"
+          },
+          "winner": {
+            "type": "string",
+            "enum": [
+              "home",
+              "away"
+            ],
+            "description": "Which side of the cross advanced"
+          },
+          "explanation": {
+            "type": "string",
+            "description": "Why the series stands where it does, in the engine’s own words"
+          }
+        },
+        "required": [
+          "span",
+          "games",
+          "homeGamesWon",
+          "awayGamesWon",
+          "status",
+          "explanation"
+        ]
+      },
       "PublicBracketMatchResponse": {
         "type": "object",
         "properties": {
@@ -12758,6 +12875,14 @@
             "items": {
               "$ref": "#/components/schemas/PublicBracketSlotResponse"
             }
+          },
+          "series": {
+            "description": "Present only on a cross settled by a series",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublicSeriesStateResponse"
+              }
+            ]
           }
         },
         "required": [

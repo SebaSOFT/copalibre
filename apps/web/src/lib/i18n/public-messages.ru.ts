@@ -46,6 +46,14 @@ export const messages: Record<string, string> = {
   'publicWeb.ticker.empty': 'Пока нет запланированных матчей.',
 
   'publicWeb.series.ariaLabel': 'Серия до {bestOf} побед: {home} — {away}',
+  'publicWeb.series.gameWonHome': 'Матч {number}: выиграл хозяин',
+  'publicWeb.series.gameWonAway': 'Матч {number}: выиграл гость',
+  'publicWeb.series.gameCurrent': 'Матч {number}: идёт',
+  'publicWeb.series.gameUpcoming': 'Матч {number}: ещё предстоит',
+  'publicWeb.series.gameNotRequired': 'Матч {number}: не будет сыгран',
+  'publicWeb.series.pending': 'Серия не решена при {home}–{away}',
+  'publicWeb.series.decided': '{winner} выиграл серию',
+  'publicWeb.series.aggregate': 'По сумме {home}–{away}',
 
   'publicWeb.live.usingLastKnown': 'Отображается последнее известное состояние.',
 

@@ -332,6 +332,82 @@ export class PublicBracketSlotResponse {
   resultReason?: string;
 }
 
+/**
+ * One game of a series, as a spectator reads it: which position it holds, whether it was won
+ * and by whom, and whether it is still to come or now will not be played at all.
+ */
+export class PublicSeriesGameResponse {
+  @ApiProperty({ description: '1-based play order within the series', example: 4 })
+  number!: number;
+
+  @ApiProperty({
+    enum: ['scheduled', 'in-progress', 'finalized', 'not-required'],
+    description: '`not-required` is a game the series ended before reaching',
+  })
+  status!: string;
+
+  @ApiPropertyOptional({ description: 'Winner of this game, when it has one' })
+  winnerEntrantId?: string;
+
+  @ApiPropertyOptional({
+    enum: ['home', 'away'],
+    description: 'Which side of the cross won, so a renderer matches no entrant ids itself',
+  })
+  winner?: string;
+
+  @ApiPropertyOptional({
+    type: [Number],
+    description: 'Scores in the cross’s own side order — home first, away second',
+  })
+  scores?: number[];
+}
+
+/**
+ * A cross's series state.
+ *
+ * Present only on a cross a series settles; absent everywhere else, so a single-match cross
+ * renders exactly as it did before this existed and shows no series indication at all.
+ */
+export class PublicSeriesStateResponse {
+  @ApiProperty({ description: 'Total games in the series, played or not', example: 5 })
+  span!: number;
+
+  @ApiPropertyOptional({ enum: ['best-of', 'aggregate', 'points-per-leg'] })
+  resolutionClass?: string;
+
+  @ApiProperty({
+    type: [PublicSeriesGameResponse],
+    description: 'Every game in play order — by game number, not by when it was finalized',
+  })
+  games!: PublicSeriesGameResponse[];
+
+  @ApiProperty({ description: 'Games won by the home side', example: 2 })
+  homeGamesWon!: number;
+
+  @ApiProperty({ description: 'Games won by the away side', example: 1 })
+  awayGamesWon!: number;
+
+  @ApiPropertyOptional({
+    type: [Number],
+    description:
+      'Summed score across every played game, home first. What decides an `aggregate` tie, ' +
+      'and meaningless for a best-of, where games won is the score.',
+  })
+  aggregateScores?: number[];
+
+  @ApiProperty({ enum: ['decided', 'undecided', 'finished-unresolved'] })
+  status!: string;
+
+  @ApiPropertyOptional({ description: 'The side the series settled on; absent while undecided' })
+  winnerEntrantId?: string;
+
+  @ApiPropertyOptional({ enum: ['home', 'away'], description: 'Which side of the cross advanced' })
+  winner?: string;
+
+  @ApiProperty({ description: 'Why the series stands where it does, in the engine’s own words' })
+  explanation!: string;
+}
+
 export class PublicBracketMatchResponse {
   @ApiProperty()
   matchId!: string;
@@ -353,6 +429,12 @@ export class PublicBracketMatchResponse {
 
   @ApiProperty({ type: [PublicBracketSlotResponse] })
   slots!: PublicBracketSlotResponse[];
+
+  @ApiPropertyOptional({
+    type: PublicSeriesStateResponse,
+    description: 'Present only on a cross settled by a series',
+  })
+  series?: PublicSeriesStateResponse;
 }
 
 export class PublicBracketResponse {

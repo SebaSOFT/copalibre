@@ -1,30 +1,108 @@
 ---
 import type { IntlShape } from 'react-intl';
-import { seriesScore, seriesSegments, type SeriesInput } from '../lib/series.ts';
+import { seriesScore, seriesSegments, type SegmentState, type SeriesInput } from '../lib/series.ts';
 import { messages } from '../lib/i18n/public-messages.en.ts';
 
 interface Props {
   readonly series: SeriesInput;
   readonly intl: IntlShape;
+  /** The two sides, so the bar can name who advanced rather than say "home". */
+  readonly homeName?: string;
+  readonly awayName?: string;
+  /** Present on an `aggregate` tie: the summed score, home first. */
+  readonly aggregateScores?: readonly number[];
+  /** Which side the series settled on; absent while it is still undecided. */
+  readonly winner?: 'home' | 'away';
 }
-const { series, intl } = Astro.props;
+const { series, intl, homeName, awayName, aggregateScores, winner } = Astro.props;
 const segments = seriesSegments(series);
 const score = seriesScore(series);
+
+/*
+  Every state carries a word and a mark, never a color. "This match may never happen" is not
+  something a spectator can guess from a shade, and the mark keeps it legible where the words
+  will not fit — the two together mean a monochrome screen loses nothing.
+*/
+const MARKS: Record<SegmentState, string> = {
+  'won-home': '▲',
+  'won-away': '▼',
+  current: '●',
+  upcoming: '·',
+  'not-required': '×',
+};
+
+const LABELS: Record<SegmentState, typeof messages.seriesGameWonHome> = {
+  'won-home': messages.seriesGameWonHome,
+  'won-away': messages.seriesGameWonAway,
+  current: messages.seriesGameCurrent,
+  upcoming: messages.seriesGameUpcoming,
+  'not-required': messages.seriesGameNotRequired,
+};
+
+const winnerName = winner === 'home' ? homeName : winner === 'away' ? awayName : undefined;
 ---
 
-<div
-  class="cl-series"
-  role="img"
-  aria-label={intl.formatMessage(messages.seriesAriaLabel, {
-    bestOf: series.bestOf,
-    home: score.home,
-    away: score.away,
-  })}
->
+<div class="cl-series">
+  <ol
+    class="cl-series__segments"
+    aria-label={intl.formatMessage(messages.seriesAriaLabel, {
+      bestOf: series.bestOf,
+      home: score.home,
+      away: score.away,
+    })}
+  >
+    {
+      segments.map((segment, index) => (
+        <li
+          class={`cl-series__segment cl-series__segment--${segment} cl-chamfer`}
+          data-state={segment}
+        >
+          <span aria-hidden="true">{MARKS[segment]}</span>
+          <span class="cl-visually-hidden">
+            {intl.formatMessage(LABELS[segment], { number: index + 1 })}
+          </span>
+        </li>
+      ))
+    }
+  </ol>
+
+  <p class="cl-series__score">{score.home} — {score.away}</p>
+
   {
-    segments.map((segment) => (
-      <span class={`cl-series__segment cl-series__segment--${segment} cl-chamfer`} />
-    ))
+    /*
+      A cross standing at two games to one is not a cross nobody has started, and a bracket
+      that showed neither a winner nor a reason would read as missing data. The score is what
+      makes "pending" legible rather than alarming.
+    */
+  }
+  {
+    winner === undefined ? (
+      <p class="cl-series__pending">
+        {intl.formatMessage(messages.seriesPending, { home: score.home, away: score.away })}
+      </p>
+    ) : (
+      <p class="cl-series__decided">
+        {intl.formatMessage(messages.seriesDecided, {
+          winner: winnerName ?? (winner === 'home' ? '1' : '2'),
+        })}
+      </p>
+    )
+  }
+
+  {
+    /*
+      A two-legged tie has no notion of games won, so the aggregate is the whole answer and is
+      shown alongside the individual legs rather than instead of them.
+    */
+  }
+  {
+    aggregateScores !== undefined && (
+      <p class="cl-series__aggregate">
+        {intl.formatMessage(messages.seriesAggregate, {
+          home: aggregateScores[0] ?? 0,
+          away: aggregateScores[1] ?? 0,
+        })}
+      </p>
+    )
   }
 </div>
-<p>{score.home} — {score.away}</p>

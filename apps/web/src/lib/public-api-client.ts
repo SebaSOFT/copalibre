@@ -16,6 +16,7 @@ import type { ResultReason } from '@copalibre/domain';
 import type { OverviewInput, MatchState } from './overview.js';
 import type { LiveDashboard } from './live-state.js';
 import type { BracketMatch, SlotSource } from './bracket.js';
+import type { PublicSeriesState } from './series.js';
 
 function getApiBaseUrl(): string {
   // We avoid process.env in Astro client code, but this file is strictly server-only
@@ -193,6 +194,7 @@ export function mapBracketResponse(response: PublicBracketResponse): {
           return { kind: 'loser-of', matchNumber: s.matchId ? parseInt(s.matchId) : 0 };
         return { kind: 'entrant', name: s.name ?? 'TBD', abbreviation: s.abbreviation };
       }),
+      ...(m.series === undefined ? {} : { series: m.series as PublicSeriesState }),
     })),
   };
 }

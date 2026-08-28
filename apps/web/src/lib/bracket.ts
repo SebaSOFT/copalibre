@@ -1,5 +1,6 @@
 import type { ResultReason } from '@copalibre/domain';
 import { presentState, type ResultState, type ResultStateLabels } from './result-state.js';
+import type { PublicSeriesState } from './series.js';
 
 /**
  * The bracket, as a list of rounds rather than a tree.
@@ -27,6 +28,12 @@ export interface BracketMatch {
   /** Parallel to `scores` — why a side's result is what it is. */
   readonly resultReasons?: readonly (ResultReason | undefined)[];
   readonly state: ResultState;
+  /**
+   * Present only on a cross a series settles. Absent everywhere else, which is what keeps a
+   * single-match cross rendering exactly as it did before series existed — no bar, no score,
+   * no indication of any kind.
+   */
+  readonly series?: PublicSeriesState;
 }
 
 export interface BracketRound {

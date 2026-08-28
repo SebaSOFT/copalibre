@@ -2,7 +2,9 @@
 import type { IntlShape } from 'react-intl';
 import { EntrantName } from './EntrantName.tsx';
 import StateBadge from './StateBadge.astro';
+import SeriesStateBar from './SeriesStateBar.astro';
 import { matchReportUrl, toNode, type BracketMatch } from '../lib/bracket.ts';
+import { toSeriesInput } from '../lib/series.ts';
 import { resultReasonLabels, resultStateLabels } from '../lib/i18n/public-intl.ts';
 
 interface Props {
@@ -26,6 +28,15 @@ const reportUrl = matchReportUrl({
   matchNumber: node.matchNumber,
   localePrefix,
 });
+
+// Absent on every cross settled by a single match, which is what keeps those rendering
+// exactly as they did before series existed — no bar, no aggregate, no indication at all.
+const series = Astro.props.match.series;
+const seriesInput = series === undefined ? undefined : toSeriesInput(series);
+const legScores =
+  series === undefined
+    ? []
+    : series.games.filter((game) => game.scores !== undefined && game.status === 'finalized');
 ---
 
 <a href={reportUrl}>
@@ -53,5 +64,32 @@ const reportUrl = matchReportUrl({
         ))
       }
     </ol>
+    {
+      series !== undefined && seriesInput !== undefined && (
+        <SeriesStateBar
+          aggregateScores={
+            series.resolutionClass === 'aggregate' ? series.aggregateScores : undefined
+          }
+          awayName={node.slots[1]?.fullName ?? node.slots[1]?.label}
+          homeName={node.slots[0]?.fullName ?? node.slots[0]?.label}
+          intl={intl}
+          series={seriesInput}
+          winner={series.winner}
+        />
+      )
+    }
+    {
+      /* Each leg's own score alongside the aggregate: a 1-0 and a 1-2 that sums to 2-2 is a
+         different story from a 0-0 and a 2-2, and the aggregate alone hides which it was. */
+      series?.resolutionClass === 'aggregate' && legScores.length > 0 && (
+        <ol class="cl-series__legs">
+          {legScores.map((game) => (
+            <li>
+              {game.scores?.[0] ?? 0} — {game.scores?.[1] ?? 0}
+            </li>
+          ))}
+        </ol>
+      )
+    }
   </article>
 </a>

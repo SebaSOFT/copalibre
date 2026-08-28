@@ -11,6 +11,7 @@ import {
   withTransaction,
   StageReadModel,
   PublicOverviewReadModel,
+  type StageMatchRecord,
 } from '@copalibre/persistence';
 import {
   PublicOverviewResponse,
@@ -30,6 +31,7 @@ import { readStandings } from '../standings/read.js';
 import { listEffectiveTableLayouts, readTableProjection } from '../table-projections/read.js';
 
 import { toBracketMatch, ambiguousRoundPositions } from './seeding.controller.js';
+import { publicSeriesState, readStageSeries, type PublicSeriesState } from './stage-series.js';
 import { tableResponse } from './table-projections.controller.js';
 import { generateFixtures } from '@copalibre/tournament-engine';
 import {
@@ -742,25 +744,101 @@ export class PublicProjectionsController {
       Array.from(entrantIds),
     );
 
+    // Keyed by the round/position the bracket graph and the read model agree on, so a series
+    // rides onto the cross it settles rather than onto a match id neither side shares.
+    const seriesByPosition = await this.seriesByPosition(
+      tournament.tournamentId,
+      stage.stageId,
+      stageMatchesMapped,
+    );
+
     return {
-      matches: bracketMatches.map((m) => ({
-        matchId: m.matchId,
-        bracket: m.bracket,
-        round: m.round,
-        position: m.position,
-        status: m.status,
-        format: m.format,
-        slots: m.slots.map((s) => ({
-          kind: s.kind,
-          entrantId: s.entrantId,
-          name: s.entrantId ? (names.get(s.entrantId)?.name ?? 'Unknown') : undefined,
-          abbreviation: s.entrantId ? names.get(s.entrantId)?.abbreviation : undefined,
-          matchId: s.matchId,
-          score: s.score,
-          resultReason: s.resultReason,
-        })),
-      })),
+      matches: bracketMatches.map((m) => {
+        const series = seriesByPosition.get(`${m.round}:${m.position}`);
+        return {
+          matchId: m.matchId,
+          bracket: m.bracket,
+          round: m.round,
+          position: m.position,
+          status: m.status,
+          format: m.format,
+          slots: m.slots.map((s) => ({
+            kind: s.kind,
+            entrantId: s.entrantId,
+            name: s.entrantId ? (names.get(s.entrantId)?.name ?? 'Unknown') : undefined,
+            abbreviation: s.entrantId ? names.get(s.entrantId)?.abbreviation : undefined,
+            matchId: s.matchId,
+            score: s.score,
+            resultReason: s.resultReason,
+          })),
+          ...(series === undefined
+            ? {}
+            : {
+                series: {
+                  span: series.span,
+                  ...(series.resolutionClass === undefined
+                    ? {}
+                    : { resolutionClass: series.resolutionClass }),
+                  games: series.games.map((game) => ({
+                    number: game.number,
+                    status: game.status,
+                    ...(game.winnerEntrantId === undefined
+                      ? {}
+                      : { winnerEntrantId: game.winnerEntrantId }),
+                    ...(game.winner === undefined ? {} : { winner: game.winner }),
+                    ...(game.scores === undefined ? {} : { scores: [...game.scores] }),
+                  })),
+                  homeGamesWon: series.homeGamesWon,
+                  awayGamesWon: series.awayGamesWon,
+                  ...(series.aggregateScores === undefined
+                    ? {}
+                    : { aggregateScores: [...series.aggregateScores] }),
+                  status: series.status,
+                  ...(series.winnerEntrantId === undefined
+                    ? {}
+                    : { winnerEntrantId: series.winnerEntrantId }),
+                  ...(series.winner === undefined ? {} : { winner: series.winner }),
+                  explanation: series.explanation,
+                },
+              }),
+        };
+      }),
     };
+  }
+
+  /**
+   * Every cross of a stage that a series settles, by `round:position`.
+   *
+   * Returns an empty map — and reads nothing beyond the one declaration lookup — for a stage
+   * declaring no series, which is very nearly every stage. Nothing about this endpoint changes
+   * for one.
+   */
+  private async seriesByPosition(
+    tournamentId: string,
+    stageId: string,
+    records: readonly StageMatchRecord[],
+  ): Promise<ReadonlyMap<string, PublicSeriesState>> {
+    const declaration = await readStageSeries(this.db, { tournamentId, stageId });
+    if (declaration === undefined) return new Map();
+
+    const matches = await new CompetitionRepository(this.db).listMatchesForStage(stageId);
+    const byFixture = new Map<string, typeof matches>();
+    for (const match of matches) {
+      byFixture.set(match.fixtureId, [...(byFixture.get(match.fixtureId) ?? []), match]);
+    }
+
+    const states = new Map<string, PublicSeriesState>();
+    for (const record of records) {
+      const games = byFixture.get(record.fixtureId) ?? [];
+      const state = publicSeriesState({
+        declaration,
+        ...(record.homeEntrantId === undefined ? {} : { homeEntrantId: record.homeEntrantId }),
+        ...(record.awayEntrantId === undefined ? {} : { awayEntrantId: record.awayEntrantId }),
+        games,
+      });
+      if (state !== undefined) states.set(`${record.round}:${record.position}`, state);
+    }
+    return states;
   }
 
   // 'public/tables', not 'tables': the admin `TableProjectionsController`
