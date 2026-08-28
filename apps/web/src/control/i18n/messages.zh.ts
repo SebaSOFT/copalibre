@@ -344,6 +344,11 @@ export const messages: Record<string, string> = {
   'control.wizard.series.class.aggregate': '总比分 — 各场比分相加',
   'control.wizard.series.class.pointsPerLeg': '每场积分 — 每场比赛各自计分',
   'control.wizard.field.seriesNeutralGround': '在中立场地进行（不分主客场）',
+  'control.wizard.field.seriesStandingsAccounting': '计入积分榜的方式',
+  'control.wizard.series.accounting.match':
+    '每场比赛计一个结果 — 系列赛中的每场比赛各自为积分榜贡献一次胜、平或负',
+  'control.wizard.series.accounting.series':
+    '每个系列赛计一个结果 — 无论进行了多少场比赛，整个系列赛只为积分榜贡献一次胜、平或负',
 
   'control.wizard.breadcrumb': '赛事 > 新建',
   'control.wizard.title': '创建赛事',
@@ -386,6 +391,10 @@ export const messages: Record<string, string> = {
   'control.standings.exportCsv': '导出 CSV',
   'control.standings.noLayouts': '该项目未为此赛事声明任何表格。',
   'control.standings.groupSelector': '小组',
+  'control.standings.grain.series': '此表按每个系列赛计一个结果。',
+  'control.standings.grain.match': '此表按每场已赛比赛计一个结果。',
+  'control.standings.column.series.label': '系列赛',
+  'control.standings.column.series.shortLabel': '系',
   'control.zoneGroup.loading': '加载中…',
   'control.zoneGroup.loadFailed': '无法加载区域和小组。',
   'control.zoneGroup.saveFailed': '请求被拒绝。',

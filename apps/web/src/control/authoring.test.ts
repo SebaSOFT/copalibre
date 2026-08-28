@@ -227,6 +227,41 @@ describe('the wizard gates each step', () => {
       expect('series' in request).toBe(false);
     });
 
+    it('preselects match grain, sending no standingsAccounting key when untouched (0160)', () => {
+      expect(initialWizard().seriesStandingsAccounting).toBe('match');
+
+      const request = toCreateRequest(
+        wizard({
+          ...complete,
+          seriesEnabled: true,
+          seriesSpan: 3,
+          seriesResolutionClass: 'best-of',
+        }),
+      );
+
+      // Byte-identical to the request a wizard authored before this control
+      // existed: no `standingsAccounting` key, not one explicitly set to `match`.
+      expect(request.series).toEqual({ span: 3, resolutionClass: 'best-of' });
+    });
+
+    it('sends standingsAccounting only once the operator declares series grain (0160)', () => {
+      const request = toCreateRequest(
+        wizard({
+          ...complete,
+          seriesEnabled: true,
+          seriesSpan: 5,
+          seriesResolutionClass: 'best-of',
+          seriesStandingsAccounting: 'series',
+        }),
+      );
+
+      expect(request.series).toEqual({
+        span: 5,
+        resolutionClass: 'best-of',
+        standingsAccounting: 'series',
+      });
+    });
+
     it('refuses a series on a placement format, naming the two-sides reason', () => {
       const problems = stepProblems(
         wizard({

@@ -272,6 +272,8 @@ export function tableResponse(result: TableProjectionResult): TableProjectionRes
       cells: row.cells,
     })),
     projectionVersion: result.projectionVersion,
+    ...(result.grain === undefined ? {} : { grain: result.grain }),
+    ...(result.countColumnCode === undefined ? {} : { countColumnCode: result.countColumnCode }),
   };
 }
 

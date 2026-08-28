@@ -41,8 +41,22 @@ const effectiveLayoutCode = activeLayoutCode ?? layout?.code;
 const heading = layout
   ? localizedText(layout.label, intl.locale)
   : intl.formatMessage(messages.standingsHeading);
-const columns = projection?.columns ?? [];
+const rawColumns = projection?.columns ?? [];
 const rows = projection?.rows ?? [];
+// Relabelled only under series grain — match grain keeps the discipline's own
+// wording for the column, which already reads as counting matches.
+const columns =
+  projection?.grain === 'series' && projection.countColumnCode !== undefined
+    ? rawColumns.map((column) =>
+        column.code === projection.countColumnCode
+          ? {
+              ...column,
+              header: intl.formatMessage(messages.standingsColumnSeriesLabel),
+              shortHeader: intl.formatMessage(messages.standingsColumnSeriesShortLabel),
+            }
+          : column,
+      )
+    : rawColumns;
 const isPlayerRanking =
   layout?.target === 'player-ranking' ||
   layout?.entityGranularity === 'person' ||
@@ -51,6 +65,18 @@ const isPlayerRanking =
 
 <section aria-labelledby="standings-heading" class="cl-standings-section">
   <h2 id="standings-heading">{heading}</h2>
+
+  {
+    projection?.grain !== undefined && (
+      <p class="cl-standings-grain">
+        {intl.formatMessage(
+          projection.grain === 'series'
+            ? messages.standingsGrainSeries
+            : messages.standingsGrainMatch,
+        )}
+      </p>
+    )
+  }
 
   {
     layouts.length > 1 && (
@@ -338,6 +364,11 @@ const isPlayerRanking =
   .cl-table-tab--active {
     border-bottom-color: var(--cl-color-primary, #2563eb);
     color: var(--cl-color-primary, #2563eb);
+  }
+  .cl-standings-grain {
+    margin: 0 0 12px 0;
+    font-size: var(--cl-font-size-sm);
+    color: var(--cl-color-text-subtle, #6b7280);
   }
   .cl-club-filter {
     display: flex;

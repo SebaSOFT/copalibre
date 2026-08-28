@@ -352,6 +352,11 @@ export const messages: Record<string, string> = {
   'control.wizard.series.class.aggregate': 'По сумме — счёт всех матчей складывается',
   'control.wizard.series.class.pointsPerLeg': 'Очки за матч — каждый матч приносит очки',
   'control.wizard.field.seriesNeutralGround': 'Играется на нейтральном поле (без дома и гостей)',
+  'control.wizard.field.seriesStandingsAccounting': 'Засчитывается в таблицу как',
+  'control.wizard.series.accounting.match':
+    'Один результат за матч — каждый матч серии добавляет в таблицу свою победу, ничью или поражение',
+  'control.wizard.series.accounting.series':
+    'Один результат за серию — вся серия добавляет в таблицу одну победу, ничью или поражение, независимо от числа сыгранных матчей',
 
   'control.wizard.breadcrumb': 'Турниры > Новый',
   'control.wizard.title': 'Создать турнир',
@@ -394,6 +399,10 @@ export const messages: Record<string, string> = {
   'control.standings.exportCsv': 'Экспорт в CSV',
   'control.standings.noLayouts': 'Эта дисциплина не объявляет таблиц для этого турнира.',
   'control.standings.groupSelector': 'Группа',
+  'control.standings.grain.series': 'Эта таблица засчитывает один результат за серию.',
+  'control.standings.grain.match': 'Эта таблица засчитывает один результат за сыгранный матч.',
+  'control.standings.column.series.label': 'Серии',
+  'control.standings.column.series.shortLabel': 'С',
   'control.zoneGroup.loading': 'Загрузка…',
   'control.zoneGroup.loadFailed': 'Не удалось загрузить зоны и группы.',
   'control.zoneGroup.saveFailed': 'Запрос отклонён.',

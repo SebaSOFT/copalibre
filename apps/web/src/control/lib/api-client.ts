@@ -780,6 +780,10 @@ export interface TableProjectionResponseData {
   readonly defaultSort: readonly TableSortRuleResponse[];
   readonly rows: readonly TableRowResponseData[];
   readonly projectionVersion: number;
+  /** Absent for a stage declaring no series — there is no grain to report. */
+  readonly grain?: SeriesAccountingGrain;
+  /** The `code` of the column `grain` changes the unit of. Present only alongside `grain`. */
+  readonly countColumnCode?: string;
 }
 
 export interface SeedingResponse {
@@ -950,7 +954,11 @@ export interface SeriesDeclaration {
   readonly span: number;
   readonly resolutionClass?: SeriesResolutionClass;
   readonly neutralGround?: boolean;
+  /** Absent accounts per match — an undeclared grain has always meant this. */
+  readonly standingsAccounting?: SeriesAccountingGrain;
 }
+
+export type SeriesAccountingGrain = 'series' | 'match';
 
 export interface HookScriptAttachment {
   readonly hook: string;

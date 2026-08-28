@@ -382,6 +382,31 @@ describe('public-api-client', () => {
       expect(result.matches[0].startsAt).toBe('');
       expect(result.standings[0].played).toBe(0);
     });
+
+    it('carries the standings grain through, omitting it when the response names none (0160)', () => {
+      const withoutGrain = mapOverviewResponse({
+        organizationAlias: 'org',
+        tournamentAlias: 't',
+        organizationName: 'Org',
+        tournamentName: 'T',
+        ruleset: {},
+        matches: [],
+        standingsPreview: [],
+      } as unknown as Parameters<typeof mapOverviewResponse>[0]);
+      expect('standingsGrain' in withoutGrain).toBe(false);
+
+      const withGrain = mapOverviewResponse({
+        organizationAlias: 'org',
+        tournamentAlias: 't',
+        organizationName: 'Org',
+        tournamentName: 'T',
+        ruleset: {},
+        matches: [],
+        standingsPreview: [],
+        standingsGrain: 'series',
+      } as unknown as Parameters<typeof mapOverviewResponse>[0]);
+      expect(withGrain.standingsGrain).toBe('series');
+    });
   });
 
   describe('mapLiveResponse', () => {

@@ -366,6 +366,7 @@ export class PublicProjectionsController {
 
     const stages = await new CompetitionRepository(this.db).listStages(season.seasonId);
     let standingsPreview: PublicOverviewResponse['standingsPreview'] = undefined;
+    let standingsGrain: PublicOverviewResponse['standingsGrain'] = undefined;
     if (stages.length > 0) {
       const stage = stages[0];
       if (stage) {
@@ -384,6 +385,7 @@ export class PublicProjectionsController {
           sharedRank: r.sharedRank,
           statistics: r.statistics,
         }));
+        standingsGrain = standings.grain;
       }
     }
 
@@ -428,6 +430,7 @@ export class PublicProjectionsController {
         scheduledAt: m.scheduledAt,
       })),
       standingsPreview,
+      standingsGrain,
       clubs: clubRows.map((c) => ({
         clubId: c.clubId,
         name: c.name,

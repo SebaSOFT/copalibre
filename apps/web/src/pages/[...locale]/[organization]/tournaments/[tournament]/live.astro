@@ -95,6 +95,17 @@ const reportPath = (stageNumber: number, matchNumber: number) =>
   </ul>
 
   <h2>{intl.formatMessage(messages.livePageLeadersHeading)}</h2>
+  {
+    model.standingsGrain !== undefined && (
+      <p class="cl-standings-grain">
+        {intl.formatMessage(
+          model.standingsGrain === 'series'
+            ? messages.standingsGrainSeries
+            : messages.standingsGrainMatch,
+        )}
+      </p>
+    )
+  }
   <table>
     <thead
       ><tr

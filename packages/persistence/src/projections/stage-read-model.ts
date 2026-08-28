@@ -173,7 +173,7 @@ export class StageReadModel {
     let query = this.db
       .selectFrom('matches')
       .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
-      .select(['matches.match_id', 'matches.result'])
+      .select(['matches.match_id', 'matches.result', 'fixtures.fixture_id'])
       .where('fixtures.stage_id', '=', stageId)
       .where('matches.result', 'is not', null);
     if (groupId !== undefined) query = query.where('fixtures.group_id', '=', groupId);
@@ -185,6 +185,7 @@ export class StageReadModel {
       return [
         {
           matchId: row.match_id,
+          fixtureId: row.fixture_id,
           sides: result.sides,
           ...(result.winnerEntrantId === undefined
             ? {}

@@ -8828,6 +8828,15 @@
           "neutralGround": {
             "type": "boolean",
             "description": "Whether the series is held on neutral ground (no home/away side alternation)."
+          },
+          "standingsAccounting": {
+            "type": "string",
+            "description": "Whether standings and statistic accounting count one outcome per resolved series or one per played match. Absent accounts per match — the same default an undeclared grain has always meant — and is reported as such by every surface that reads it back.",
+            "enum": [
+              "series",
+              "match"
+            ],
+            "example": "series"
           }
         },
         "required": [
@@ -10668,6 +10677,14 @@
             "items": {
               "type": "string"
             }
+          },
+          "grain": {
+            "type": "string",
+            "description": "Whether these rows count one result per series or one per played match. Absent when the stage declares no series at all — there is only one unit a single-match stage can be counted in.",
+            "enum": [
+              "series",
+              "match"
+            ]
           }
         },
         "required": [
@@ -10908,6 +10925,18 @@
           "projectionVersion": {
             "type": "number",
             "description": "Freshest `statistic-totals` projection version among this scope’s matches; 0 when none has been folded yet"
+          },
+          "grain": {
+            "type": "string",
+            "description": "Whether a team-granularity, stage-scoped column counts one result per series or one per played match. Absent for a tournament-scoped or non-team layout, or a stage declaring no series at all.",
+            "enum": [
+              "series",
+              "match"
+            ]
+          },
+          "countColumnCode": {
+            "type": "string",
+            "description": "The `code` of this layout’s column whose value is a `count`-aggregated statistic — the one column `grain` changes the unit of. Present only alongside `grain`."
           }
         },
         "required": [
@@ -12349,6 +12378,14 @@
             "items": {
               "$ref": "#/components/schemas/PublicStandingsRowResponse"
             }
+          },
+          "standingsGrain": {
+            "type": "string",
+            "description": "Whether `standingsPreview` rows count one result per series or one per played match. Absent when the previewed stage declares no series at all.",
+            "enum": [
+              "series",
+              "match"
+            ]
           },
           "clubs": {
             "type": "array",

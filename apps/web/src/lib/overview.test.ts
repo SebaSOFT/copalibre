@@ -53,6 +53,22 @@ describe('the overview model', () => {
       }),
     ).toThrow();
   });
+
+  it('omits standingsGrain for a stage declaring no series, and carries it through when declared (0160)', () => {
+    expect('standingsGrain' in model).toBe(false);
+
+    const seriesGrain = buildOverview({
+      ...sampleOverview('liga-mendocina', 'apertura-2026'),
+      standingsGrain: 'series',
+    });
+    expect(seriesGrain.standingsGrain).toBe('series');
+
+    const matchGrain = buildOverview({
+      ...sampleOverview('liga-mendocina', 'apertura-2026'),
+      standingsGrain: 'match',
+    });
+    expect(matchGrain.standingsGrain).toBe('match');
+  });
 });
 
 describe('what the sitemap advertises', () => {

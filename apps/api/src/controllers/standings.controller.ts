@@ -76,6 +76,7 @@ export class StandingsController {
       fullyResolved: result.fullyResolved,
       rows: result.rows,
       trace: result.trace,
+      ...(result.grain === undefined ? {} : { grain: result.grain }),
     };
   }
 

@@ -172,6 +172,9 @@ export class StagesController {
               ...(body.series.neutralGround === undefined
                 ? {}
                 : { 'series.neutralGround': body.series.neutralGround }),
+              ...(body.series.standingsAccounting === undefined
+                ? {}
+                : { 'series.standingsAccounting': body.series.standingsAccounting }),
             },
             actor: actorOf(request),
             authorizationContext: authorizationContextOf(request),
@@ -262,6 +265,9 @@ export class StagesController {
       ...(body.neutralGround === undefined
         ? []
         : [['series.neutralGround', body.neutralGround] as [string, unknown]]),
+      ...(body.standingsAccounting === undefined
+        ? []
+        : [['series.standingsAccounting', body.standingsAccounting] as [string, unknown]]),
     ];
 
     const fields = proposed.map(([field, nextValue]) => {

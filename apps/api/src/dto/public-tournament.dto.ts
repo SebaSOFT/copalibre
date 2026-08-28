@@ -111,6 +111,14 @@ export class PublicOverviewResponse {
   @ApiPropertyOptional({ type: [PublicStandingsRowResponse] })
   standingsPreview?: PublicStandingsRowResponse[];
 
+  @ApiPropertyOptional({
+    description:
+      'Whether `standingsPreview` rows count one result per series or one per played match. ' +
+      'Absent when the previewed stage declares no series at all.',
+    enum: ['series', 'match'],
+  })
+  standingsGrain?: 'series' | 'match';
+
   @ApiPropertyOptional({ type: [PublicOverviewClubResponse] })
   clubs?: PublicOverviewClubResponse[];
 

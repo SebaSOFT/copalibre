@@ -351,6 +351,11 @@ export const messages: Record<string, string> = {
   'control.wizard.series.class.aggregate': 'Global — se suman los goles de todos los partidos',
   'control.wizard.series.class.pointsPerLeg': 'Puntos por partido — cada partido otorga puntos',
   'control.wizard.field.seriesNeutralGround': 'Se juega en cancha neutral (sin local ni visitante)',
+  'control.wizard.field.seriesStandingsAccounting': 'Cuenta para la tabla de posiciones como',
+  'control.wizard.series.accounting.match':
+    'Un resultado por partido — cada partido de la serie suma su propia victoria, empate o derrota a la tabla',
+  'control.wizard.series.accounting.series':
+    'Un resultado por serie — toda la serie suma una única victoria, empate o derrota a la tabla, sin importar cuántos partidos hicieron falta',
 
   'control.wizard.breadcrumb': 'Torneos > Nuevo',
   'control.wizard.title': 'Crear torneo',
@@ -393,6 +398,10 @@ export const messages: Record<string, string> = {
   'control.standings.exportCsv': 'Exportar CSV',
   'control.standings.noLayouts': 'Esta disciplina no declara tablas para este torneo.',
   'control.standings.groupSelector': 'Grupo',
+  'control.standings.grain.series': 'Esta tabla cuenta un resultado por serie.',
+  'control.standings.grain.match': 'Esta tabla cuenta un resultado por partido jugado.',
+  'control.standings.column.series.label': 'Series',
+  'control.standings.column.series.shortLabel': 'S',
   'control.zoneGroup.loading': 'Cargando…',
   'control.zoneGroup.loadFailed': 'No se pudieron cargar las zonas y grupos.',
   'control.zoneGroup.saveFailed': 'Se rechazó la solicitud.',

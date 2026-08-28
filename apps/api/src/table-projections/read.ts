@@ -14,6 +14,7 @@ import {
   type ActorGranularity,
   type CompetitionGranularity,
   type DisciplineDescriptor,
+  type SeriesAccountingGrain,
   type StatisticCollector,
   type TableLayoutDefinition,
 } from '@copalibre/domain';
@@ -26,6 +27,7 @@ import {
   type Database,
 } from '@copalibre/persistence';
 import { standingsPipeline } from '../standings/pipeline.js';
+import { readStageSeries } from '../controllers/stage-series.js';
 
 export interface TableProjectionScope {
   readonly organizationId: string;
@@ -45,6 +47,19 @@ export interface TableProjectionResult {
   readonly layout: TableLayoutDefinition;
   readonly rows: readonly TableRow[];
   readonly projectionVersion: number;
+  /**
+   * The accounting grain in force for this layout's stage, when the layout
+   * bridges `computeStandings`' own accounting (team-granularity, stage-scoped).
+   * Absent for a tournament-scoped or non-team layout, which has no series
+   * grain to report.
+   */
+  readonly grain?: SeriesAccountingGrain;
+  /**
+   * The layout's own column whose value is a `count`-aggregated statistic —
+   * present only alongside `grain`, since that is the one column the grain
+   * changes the unit of.
+   */
+  readonly countColumnCode?: string;
 }
 
 export interface TableLayoutSummary {
@@ -152,19 +167,20 @@ export async function readTableProjection(
     matchIds,
   });
 
-  const statisticFigures =
+  const bridged =
     scope.stageId && layout.entityGranularity === 'team'
       ? await statisticsBridgeFigures(db, {
           descriptor,
+          tournamentId: scope.tournament.tournamentId,
           stageId: scope.stageId,
           groupId: scope.groupId,
           codes: [...referencedCodes].filter(
             (code) => !collectorByCode.has(code) && statisticCodes.has(code),
           ),
         })
-      : [];
+      : undefined;
 
-  const figures = [...collectorFigures, ...statisticFigures];
+  const figures = [...collectorFigures, ...(bridged?.figures ?? [])];
 
   const actors =
     layout.entityGranularity === 'team'
@@ -188,7 +204,26 @@ export async function readTableProjection(
     );
   }
 
-  return { layout, rows, projectionVersion };
+  // The column whose value is a `count`-aggregated statistic — the one whose
+  // unit the declared grain actually changes. `played`/`heats`/`rounds` are
+  // discipline vocabulary; the rule is written against the aggregation mode,
+  // per `match-series`' own note that a statistic named `played` is a
+  // football-descriptor convention, not a platform concept.
+  const countStatisticCodes = new Set(
+    descriptor.statistics
+      .filter((statistic) => statistic.aggregation === 'count')
+      .map((s) => s.code),
+  );
+  const countColumnCode = layout.columns.find(
+    (column) => column.source.kind === 'collector' && countStatisticCodes.has(column.source.code),
+  )?.code;
+
+  return {
+    layout,
+    rows,
+    projectionVersion,
+    ...(bridged?.grain === undefined ? {} : { grain: bridged.grain, countColumnCode }),
+  };
 }
 
 /** Every collector/statistic code a layout's columns or filter could resolve. */
@@ -288,21 +323,39 @@ async function statisticsBridgeFigures(
   db: Kysely<Database>,
   input: {
     readonly descriptor: DisciplineDescriptor;
+    readonly tournamentId: string;
     readonly stageId: string;
     readonly groupId?: string;
     readonly codes: readonly string[];
   },
-): Promise<readonly CollectedFigure[]> {
-  if (input.codes.length === 0) return [];
+): Promise<{
+  readonly figures: readonly CollectedFigure[];
+  /** Absent for a stage declaring no series — there is no grain to report. */
+  readonly grain: SeriesAccountingGrain | undefined;
+}> {
+  const seriesDeclaration = await readStageSeries(db, {
+    tournamentId: input.tournamentId,
+    stageId: input.stageId,
+  });
+  const grain: SeriesAccountingGrain | undefined =
+    seriesDeclaration === undefined
+      ? undefined
+      : seriesDeclaration.standingsAccounting === 'series'
+        ? 'series'
+        : 'match';
+
+  if (input.codes.length === 0) return { figures: [], grain };
 
   const record = await new StageReadModel(db).stageRecord(input.stageId, input.groupId);
-  if (!record) return [];
+  if (!record) return { figures: [], grain };
 
   const standings = computeStandings(
     input.descriptor,
     record.entrantIds,
     record.outcomes,
     standingsPipeline(input.descriptor, record.overrides),
+    undefined,
+    { seriesDeclaration },
   );
 
   const figures: CollectedFigure[] = [];
@@ -321,7 +374,7 @@ async function statisticsBridgeFigures(
       });
     }
   }
-  return figures;
+  return { figures, grain: seriesDeclaration === undefined ? undefined : standings.grain };
 }
 
 async function teamActors(

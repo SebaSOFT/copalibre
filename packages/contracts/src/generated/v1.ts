@@ -2362,6 +2362,12 @@ export interface components {
             resolutionClass?: "best-of" | "aggregate" | "points-per-leg";
             /** @description Whether the series is held on neutral ground (no home/away side alternation). */
             neutralGround?: boolean;
+            /**
+             * @description Whether standings and statistic accounting count one outcome per resolved series or one per played match. Absent accounts per match — the same default an undeclared grain has always meant — and is reported as such by every surface that reads it back.
+             * @example series
+             * @enum {string}
+             */
+            standingsAccounting?: "series" | "match";
         };
         CreateTournamentRequest: {
             /** @example copa-verano */
@@ -3062,6 +3068,11 @@ export interface components {
              *     ]
              */
             trace: string[];
+            /**
+             * @description Whether these rows count one result per series or one per played match. Absent when the stage declares no series at all — there is only one unit a single-match stage can be counted in.
+             * @enum {string}
+             */
+            grain?: "series" | "match";
         };
         TiebreakTraceResponse: {
             /** Format: uuid */
@@ -3132,6 +3143,13 @@ export interface components {
             rows: components["schemas"]["TableRowResponse"][];
             /** @description Freshest `statistic-totals` projection version among this scope’s matches; 0 when none has been folded yet */
             projectionVersion: number;
+            /**
+             * @description Whether a team-granularity, stage-scoped column counts one result per series or one per played match. Absent for a tournament-scoped or non-team layout, or a stage declaring no series at all.
+             * @enum {string}
+             */
+            grain?: "series" | "match";
+            /** @description The `code` of this layout’s column whose value is a `count`-aggregated statistic — the one column `grain` changes the unit of. Present only alongside `grain`. */
+            countColumnCode?: string;
         };
         SeedAssignmentResponse: {
             /**
@@ -3657,6 +3675,11 @@ export interface components {
             disciplineImages?: components["schemas"]["PublicObjectReferenceResponse"][];
             matches: components["schemas"]["PublicOverviewMatchResponse"][];
             standingsPreview?: components["schemas"]["PublicStandingsRowResponse"][];
+            /**
+             * @description Whether `standingsPreview` rows count one result per series or one per played match. Absent when the previewed stage declares no series at all.
+             * @enum {string}
+             */
+            standingsGrain?: "series" | "match";
             clubs?: components["schemas"]["PublicOverviewClubResponse"][];
             ruleset: {
                 [key: string]: string;

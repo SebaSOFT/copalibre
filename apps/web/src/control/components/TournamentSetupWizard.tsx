@@ -26,7 +26,11 @@ import {
   type TournamentProfileOption,
   type WizardState,
 } from '../lib/wizard.js';
-import type { HookScriptVocabulary, HookVocabularyEntry } from '../lib/api-client.js';
+import type {
+  HookScriptVocabulary,
+  HookVocabularyEntry,
+  SeriesAccountingGrain,
+} from '../lib/api-client.js';
 import { messages } from '../i18n/messages.en.js';
 import { localizedText } from '../../lib/localized-label.js';
 
@@ -43,6 +47,19 @@ const SERIES_CLASS_LABELS: Record<SeriesResolutionClass, typeof messages.wizardS
     aggregate: messages.wizardSeriesClassAggregate,
     'points-per-leg': messages.wizardSeriesClassPointsPerLeg,
   };
+
+/**
+ * Each option states what it does to the standings table, not the platform's
+ * own vocabulary for it — an operator choosing here is choosing a consequence,
+ * not a label.
+ */
+const SERIES_ACCOUNTING_LABELS: Record<
+  SeriesAccountingGrain,
+  typeof messages.wizardSeriesAccountingMatch
+> = {
+  match: messages.wizardSeriesAccountingMatch,
+  series: messages.wizardSeriesAccountingSeries,
+};
 
 export function TournamentSetupWizard({
   disciplines,
@@ -394,6 +411,30 @@ export function TournamentSetupWizard({
                       <FormattedMessage {...messages.wizardFieldSeriesNeutralGround} />
                     </span>
                   </label>
+
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <FormField
+                      id="wizard-series-accounting"
+                      label={intl.formatMessage(messages.wizardFieldSeriesStandingsAccounting)}
+                    >
+                      <select
+                        className="cl-select cl-select--default cl-focusable"
+                        id="wizard-series-accounting"
+                        onChange={(event) =>
+                          patch({
+                            seriesStandingsAccounting: event.target.value as SeriesAccountingGrain,
+                          })
+                        }
+                        value={state.seriesStandingsAccounting}
+                      >
+                        {(['match', 'series'] as const).map((grain) => (
+                          <option key={grain} value={grain}>
+                            {intl.formatMessage(SERIES_ACCOUNTING_LABELS[grain])}
+                          </option>
+                        ))}
+                      </select>
+                    </FormField>
+                  </div>
                 </div>
               )}
             </div>

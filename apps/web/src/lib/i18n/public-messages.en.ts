@@ -62,6 +62,22 @@ export const messages = defineMessages({
   standingsTeam: { id: 'publicWeb.standings.team', defaultMessage: 'Team' },
   standingsPlayed: { id: 'publicWeb.standings.played', defaultMessage: 'MP' },
   standingsPoints: { id: 'publicWeb.standings.points', defaultMessage: 'Pts' },
+  standingsGrainSeries: {
+    id: 'publicWeb.standings.grain.series',
+    defaultMessage: 'This table counts one result per series.',
+  },
+  standingsGrainMatch: {
+    id: 'publicWeb.standings.grain.match',
+    defaultMessage: 'This table counts one result per played match.',
+  },
+  standingsColumnSeriesLabel: {
+    id: 'publicWeb.standings.column.series.label',
+    defaultMessage: 'Series',
+  },
+  standingsColumnSeriesShortLabel: {
+    id: 'publicWeb.standings.column.series.shortLabel',
+    defaultMessage: 'S',
+  },
 
   // TournamentHero.astro
   heroLiveCount: { id: 'publicWeb.hero.liveCount', defaultMessage: '{count} LIVE' },
