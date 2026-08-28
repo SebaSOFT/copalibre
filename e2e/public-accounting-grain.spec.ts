@@ -143,7 +143,9 @@ test('7.3: the public standings preview names the grain, with JavaScript disable
 test('7.3: a single-match tournament’s preview carries no such statement, unchanged from before this change', async ({
   page,
 }) => {
-  const { grain: _grain, countColumnCode: _countColumnCode, ...withoutGrain } = DEFAULT_PROJECTION;
+  const withoutGrain: Record<string, unknown> = { ...DEFAULT_PROJECTION };
+  delete withoutGrain.grain;
+  delete withoutGrain.countColumnCode;
   projection = withoutGrain;
 
   await page.goto(overviewPath);
