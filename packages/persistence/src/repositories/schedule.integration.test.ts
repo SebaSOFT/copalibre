@@ -730,4 +730,83 @@ describe('scheduling (integration)', () => {
       ),
     ).rejects.toBeInstanceOf(InvariantViolationError);
   });
+
+  it('handles multi-match series, anulls surplus matches, frees slots atomically, and refuses scheduling not-required matches', async () => {
+    const { stage, slots } = await seedStage('copa-series-sched');
+    const competition = new CompetitionRepository(scratch.db);
+
+    // Create a multi-match fixture with 3 matches (matchCount: 3)
+    const fixtures = await withTransaction(scratch.db, (uow) =>
+      competition.createFixtures(uow, {
+        stageId: stage.stageId,
+        matchCount: 3,
+        fixtures: [{ round: 1 }],
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+
+    const fixture = item(fixtures, 0);
+    const stageMatches = await scratch.db
+      .selectFrom('matches')
+      .selectAll()
+      .where('fixture_id', '=', fixture.fixtureId)
+      .orderBy('number')
+      .execute();
+
+    expect(stageMatches).toHaveLength(3);
+    expect(stageMatches.map((m) => m.number)).toEqual([1, 2, 3]);
+
+    const [m1, m2, m3] = stageMatches as [
+      (typeof stageMatches)[0],
+      (typeof stageMatches)[1],
+      (typeof stageMatches)[2],
+    ];
+
+    // Assign all 3 matches to schedule slots
+    await withTransaction(scratch.db, (uow) =>
+      schedules.publishSchedule(uow, {
+        organizationId,
+        assignments: [
+          { matchId: m1.match_id, slotId: item(slots, 0).slotId },
+          { matchId: m2.match_id, slotId: item(slots, 1).slotId },
+          { matchId: m3.match_id, slotId: item(slots, 2).slotId },
+        ],
+        ...AUDIT,
+      }),
+    );
+
+    const initialAssignments = await schedules.listScheduleForStage(stage.stageId);
+    expect(initialAssignments).toHaveLength(3);
+
+    // Now anull surplus match 3 (e.g. series decided 2-0)
+    const anulled = await withTransaction(scratch.db, (uow) =>
+      competition.anullSurplusMatches(uow, {
+        fixtureId: fixture.fixtureId,
+        anulledMatchNumbers: [3],
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+
+    expect(anulled).toHaveLength(1);
+    expect(anulled[0]?.status).toBe('not-required');
+
+    // Verify slot for match 3 was atomically freed
+    const afterAnullAssignments = await schedules.listScheduleForStage(stage.stageId);
+    expect(afterAnullAssignments.map((a) => a.matchId).sort()).toEqual(
+      [m1.match_id, m2.match_id].sort(),
+    );
+
+    // Verify publishing a schedule assignment for a not-required match is rejected
+    await expect(
+      withTransaction(scratch.db, (uow) =>
+        schedules.publishSchedule(uow, {
+          organizationId,
+          assignments: [{ matchId: m3.match_id, slotId: item(slots, 2).slotId }],
+          ...AUDIT,
+        }),
+      ),
+    ).rejects.toBeInstanceOf(InvariantViolationError);
+  });
 });

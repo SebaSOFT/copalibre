@@ -14,6 +14,10 @@ export interface MutationContext {
   readonly hasRecordedResults: boolean;
   /** Fixtures already generated under the field's scope. */
   readonly generatedFixtures?: readonly FixtureRef[];
+  /** Previous value before mutation. */
+  readonly previousValue?: unknown;
+  /** New proposed value. */
+  readonly nextValue?: unknown;
 }
 
 export type MutationDecision =
@@ -41,6 +45,30 @@ export function evaluateMutation(
   const policy = policies[fieldPath];
   if (!policy) {
     return err(new MutationBlockedError(`No field policy declares "${fieldPath}"`, { fieldPath }));
+  }
+
+  // Value-aware series span policy: shortening is blocked_after_results, lengthening before results is requires_rebuild
+  if (
+    fieldPath === 'series.span' &&
+    typeof context.previousValue === 'number' &&
+    typeof context.nextValue === 'number'
+  ) {
+    if (context.nextValue < context.previousValue) {
+      if (context.hasRecordedResults) {
+        return err(
+          new MutationBlockedError(
+            `Field "${fieldPath}" is blocked after results; use the audited correction workflow`,
+            { fieldPath },
+          ),
+        );
+      }
+      return ok({ allowed: true, mutationClass: 'blocked_after_results' });
+    }
+    return ok({
+      allowed: true,
+      mutationClass: 'requires_rebuild',
+      invalidates: context.generatedFixtures ?? [],
+    });
   }
 
   switch (policy.mutationClass) {

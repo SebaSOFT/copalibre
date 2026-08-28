@@ -175,23 +175,27 @@ guarantee.
 
 ### Requirement: Officials assigned to a fixture are shown on its match report
 
-The match report page SHALL show every official assigned via the fixture's published schedule, each
-with their declared role, for a match already played or still upcoming.
+The match report page SHALL show every official assigned to that match through its published schedule
+assignment, each with their declared role, for a match already played or still upcoming. Officials belong
+to the match, so a match played alongside another in the same slot SHALL report only its own.
 
 #### Scenario: An upcoming match's assigned officials are visible before kickoff
-- **WHEN** a fixture has a published schedule naming two officials with roles `referee` and
+- **WHEN** a match has a published assignment naming two officials with roles `referee` and
   `table-official`
 - **THEN** the match report for that (not-yet-played) match lists both officials with their roles
 
 #### Scenario: A finished match still shows who officiated it
-- **WHEN** a match has been finalized and its fixture's schedule named assigned officials
-- **THEN** the match report continues to show those officials, unaffected by the match's completed
-  status
+- **WHEN** a match has been finalized and its assignment named officials
+- **THEN** the match report continues to show those officials, unaffected by the match's completed status
 
 #### Scenario: An unpublished schedule shows no officials, distinguishably from none assigned
-- **WHEN** a fixture's schedule exists but has not been published
+- **WHEN** a match's assignment exists but has not been published
 - **THEN** the match report shows the schedule as not yet published, rather than presenting an empty
-  officials list indistinguishably from a published schedule with none assigned
+  officials list indistinguishably from a published assignment with none assigned
+
+#### Scenario: Two matches sharing a slot report their own officials
+- **WHEN** two matches are played in the same slot of one venue, each with its own referee
+- **THEN** each match report lists that match's referee only
 
 ### Requirement: The event timeline renders labels from the bound discipline descriptor
 

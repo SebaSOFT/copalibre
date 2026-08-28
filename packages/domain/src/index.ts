@@ -452,6 +452,18 @@ export {
   type SlotInfo,
   type RestRule,
 } from './aggregates/schedule-conflict.js';
+export {
+  validateSeriesDeclaration,
+  resolveSeries,
+  SeriesConfigurationError,
+  type SeriesDeclaration,
+  type SeriesResolutionClass,
+  type SeriesAccountingGrain,
+  type SeriesResolutionStatus,
+  type SeriesResolutionResult,
+  type SeriesTraceNode,
+  type ResolveSeriesInput,
+} from './aggregates/series.js';
 export type {
   Stage,
   Fixture,

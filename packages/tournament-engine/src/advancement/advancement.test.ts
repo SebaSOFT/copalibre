@@ -283,4 +283,73 @@ describe('unlockedByFinalization', () => {
 
     expect(once).toEqual(again);
   });
+
+  describe('series advancement', () => {
+    it('advancement remains pending while a multi-match series is undecided, and advances upon series decision', () => {
+      const result = generateFixtures({
+        format: 'single-elimination',
+        entrants: entrants(4),
+        series: { span: 3, resolutionClass: 'best-of' },
+      });
+      if (!result.ok) throw result.error;
+      const g = result.value;
+
+      // Match 1 of SE-R1-M1 is won by e1 (score 1-0 in series)
+      const afterMatch1 = resolveAdvancement(g, [win('SE-R1-M1-1', 'e1', 'e4')]);
+      const finalAfterMatch1 = afterMatch1.find((m) => m.matchId.startsWith('SE-R2-M1'));
+      expect(finalAfterMatch1?.slotA.state).toBe('pending');
+
+      // Match 2 of SE-R1-M1 is won by e1 (score 2-0 in series -> decided!)
+      const afterMatch2 = resolveAdvancement(g, [
+        win('SE-R1-M1-1', 'e1', 'e4'),
+        win('SE-R1-M1-2', 'e1', 'e4'),
+      ]);
+      const finalAfterMatch2 = afterMatch2.find((m) => m.matchId.startsWith('SE-R2-M1'));
+      expect(finalAfterMatch2?.slotA).toEqual({ state: 'entrant', entrantId: 'e1' });
+    });
+
+    it('evaluates whole first series outcome before triggering double-elimination grand final reset', () => {
+      const result = generateFixtures({
+        format: 'double-elimination',
+        entrants: entrants(4),
+        series: { span: 3, resolutionClass: 'best-of' },
+      });
+      if (!result.ok) throw result.error;
+      const g = result.value;
+
+      // Play WB, LB up to GF
+      const wbAndLbOutcomes: RecordedOutcome[] = [
+        // WB R1
+        win('WB-R1-M1-1', 'e1', 'e4'),
+        win('WB-R1-M1-2', 'e1', 'e4'),
+        win('WB-R1-M2-1', 'e2', 'e3'),
+        win('WB-R1-M2-2', 'e2', 'e3'),
+        // WB Final: e1 wins
+        win('WB-R2-M1-1', 'e1', 'e2'),
+        win('WB-R2-M1-2', 'e1', 'e2'),
+        // LB R1: e4 wins
+        win('LB-R1-M1-1', 'e4', 'e3'),
+        win('LB-R1-M1-2', 'e4', 'e3'),
+        // LB Final: e2 wins
+        win('LB-R2-M1-1', 'e2', 'e4'),
+        win('LB-R2-M1-2', 'e2', 'e4'),
+      ];
+
+      // Grand Final 1: Losers champion e2 plays winners champion e1
+      // e2 wins match 1 (1-0), GF reset remains pending
+      const gfInFlight = resolveAdvancement(g, [...wbAndLbOutcomes, win('GF-R1-M1-1', 'e2', 'e1')]);
+      const resetInFlight = gfInFlight.find((m) => m.matchId.startsWith('GF-R2-M1'));
+      expect(resetInFlight?.slotA.state).toBe('pending');
+
+      // e2 wins match 2 (2-0 -> e2 wins GF series 1), triggering bracket reset series
+      const gfSeriesWonByLoser = resolveAdvancement(g, [
+        ...wbAndLbOutcomes,
+        win('GF-R1-M1-1', 'e2', 'e1'),
+        win('GF-R1-M1-2', 'e2', 'e1'),
+      ]);
+      const resetTriggered = gfSeriesWonByLoser.find((m) => m.matchId.startsWith('GF-R2-M1'));
+      expect(resetTriggered?.slotA).toEqual({ state: 'entrant', entrantId: 'e2' });
+      expect(resetTriggered?.slotB).toEqual({ state: 'entrant', entrantId: 'e1' });
+    });
+  });
 });

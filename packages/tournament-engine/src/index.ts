@@ -118,6 +118,7 @@ export {
 } from './statistics/table-projection.js';
 export {
   resolveAdvancement,
+  advanceEntrants,
   unlockedByFinalization,
   playableMatches,
   type ResolvedSlot,

@@ -1,4 +1,5 @@
 import type { DuelMatch, SeededEntrant, SlotSource } from '../types.js';
+import type { SeriesDeclaration } from '@copalibre/domain';
 import { pruneEmptyMatches } from './prune.js';
 import { buildEliminationTree, nextPowerOfTwo } from './single-elimination.js';
 
@@ -31,22 +32,28 @@ export interface DoubleEliminationGraph {
   readonly bracketResetId: string;
 }
 
-export function buildDoubleElimination(entrants: readonly SeededEntrant[]): DoubleEliminationGraph {
+export function buildDoubleElimination(
+  entrants: readonly SeededEntrant[],
+  series?: SeriesDeclaration,
+): DoubleEliminationGraph {
   const size = nextPowerOfTwo(entrants.length);
-  const winners = buildEliminationTree(entrants, 'WB', 'winners');
+  const winners = buildEliminationTree(entrants, 'WB', 'winners', series);
   const matches: DuelMatch[] = [...winners.matches];
 
   const wbRounds = winners.roundCount;
   const losersMatches: DuelMatch[] = [];
+  const span = series?.span ?? 1;
 
   // Losers of each winners-bracket round, in bracket order, as they drop in.
   const dropsByWbRound = new Map<number, SlotSource[]>();
   for (let round = 1; round <= wbRounds; round += 1) {
+    const roundMatches = winners.matches.filter((match) => match.round === round);
+    const fixtureIds = [
+      ...new Set(roundMatches.map((m) => (span > 1 ? m.id.replace(/-[0-9]+$/, '') : m.id))),
+    ];
     dropsByWbRound.set(
       round,
-      winners.matches
-        .filter((match) => match.round === round)
-        .map((match) => ({ kind: 'loser-of', matchId: match.id }) as SlotSource),
+      fixtureIds.map((matchId) => ({ kind: 'loser-of', matchId }) as SlotSource),
     );
   }
 
@@ -78,17 +85,53 @@ export function buildDoubleElimination(entrants: readonly SeededEntrant[]): Doub
       pairs = pairUp(survivors);
     }
 
-    const created: DuelMatch[] = pairs.map(([slotA, slotB], index) => ({
-      id: `LB-R${lbRound}-M${index + 1}`,
-      shape: 'duel' as const,
-      bracket: 'losers' as const,
-      round: lbRound,
-      position: index + 1,
-      slotA,
-      slotB,
-    }));
+    const created: DuelMatch[] = [];
+    const roundSurvivors: SlotSource[] = [];
+
+    for (let index = 0; index < pairs.length; index += 1) {
+      const pair = pairs[index];
+      if (!pair) continue;
+      const [slotA, slotB] = pair;
+      const position = index + 1;
+      const baseId = `LB-R${lbRound}-M${position}`;
+
+      if (span > 1) {
+        for (let m = 1; m <= span; m += 1) {
+          const homeSlot = series?.neutralGround
+            ? undefined
+            : m % 2 === 1
+              ? ('A' as const)
+              : ('B' as const);
+          created.push({
+            id: `${baseId}-${m}`,
+            shape: 'duel',
+            bracket: 'losers',
+            round: lbRound,
+            position,
+            slotA,
+            slotB,
+            matchNumber: m,
+            homeSlot,
+            ...(series ? { series } : {}),
+          });
+        }
+        roundSurvivors.push({ kind: 'winner-of', matchId: baseId });
+      } else {
+        created.push({
+          id: baseId,
+          shape: 'duel',
+          bracket: 'losers',
+          round: lbRound,
+          position,
+          slotA,
+          slotB,
+        });
+        roundSurvivors.push({ kind: 'winner-of', matchId: baseId });
+      }
+    }
+
     losersMatches.push(...created);
-    survivors = created.map((match) => ({ kind: 'winner-of', matchId: match.id }));
+    survivors = roundSurvivors;
 
     // Guard against a malformed shape looping forever.
     if (created.length === 0) break;
@@ -97,34 +140,84 @@ export function buildDoubleElimination(entrants: readonly SeededEntrant[]): Doub
   matches.push(...losersMatches);
 
   const winnersFinalId = winners.finalMatchId;
-  const losersFinalId = losersMatches.at(-1)?.id ?? winnersFinalId;
+  const lastLoserMatch = losersMatches.at(-1);
+  const losersFinalId = lastLoserMatch
+    ? span > 1
+      ? lastLoserMatch.id.replace(/-[0-9]+$/, '')
+      : lastLoserMatch.id
+    : winnersFinalId;
 
   // Grand final: winners champion vs losers champion.
   const grandFinalId = 'GF-R1-M1';
-  matches.push({
-    id: grandFinalId,
-    shape: 'duel',
-    bracket: 'grand-final',
-    round: 1,
-    position: 1,
-    slotA: { kind: 'winner-of', matchId: winnersFinalId },
-    slotB: { kind: 'winner-of', matchId: losersFinalId },
-  });
+  if (span > 1) {
+    for (let m = 1; m <= span; m += 1) {
+      const homeSlot = series?.neutralGround
+        ? undefined
+        : m % 2 === 1
+          ? ('A' as const)
+          : ('B' as const);
+      matches.push({
+        id: `${grandFinalId}-${m}`,
+        shape: 'duel',
+        bracket: 'grand-final',
+        round: 1,
+        position: 1,
+        slotA: { kind: 'winner-of', matchId: winnersFinalId },
+        slotB: { kind: 'winner-of', matchId: losersFinalId },
+        matchNumber: m,
+        homeSlot,
+        ...(series ? { series } : {}),
+      });
+    }
+  } else {
+    matches.push({
+      id: grandFinalId,
+      shape: 'duel',
+      bracket: 'grand-final',
+      round: 1,
+      position: 1,
+      slotA: { kind: 'winner-of', matchId: winnersFinalId },
+      slotB: { kind: 'winner-of', matchId: losersFinalId },
+    });
+  }
 
   // Bracket reset: generated, but played only if the losers champion takes the
   // first grand final — the winners champion has not yet lost a match, so a
   // single loss cannot eliminate them.
   const bracketResetId = 'GF-R2-M1';
-  matches.push({
-    id: bracketResetId,
-    shape: 'duel',
-    bracket: 'grand-final',
-    round: 2,
-    position: 1,
-    slotA: { kind: 'winner-of', matchId: grandFinalId },
-    slotB: { kind: 'loser-of', matchId: grandFinalId },
-    conditional: 'bracket-reset',
-  });
+  if (span > 1) {
+    for (let m = 1; m <= span; m += 1) {
+      const homeSlot = series?.neutralGround
+        ? undefined
+        : m % 2 === 1
+          ? ('A' as const)
+          : ('B' as const);
+      matches.push({
+        id: `${bracketResetId}-${m}`,
+        shape: 'duel',
+        bracket: 'grand-final',
+        round: 2,
+        position: 1,
+        slotA: { kind: 'winner-of', matchId: grandFinalId },
+        slotB: { kind: 'loser-of', matchId: grandFinalId },
+        conditional: 'bracket-reset',
+        matchNumber: m,
+        homeSlot,
+        ...(series ? { series } : {}),
+      });
+    }
+  } else {
+    matches.push({
+      id: bracketResetId,
+      shape: 'duel',
+      bracket: 'grand-final',
+      round: 2,
+      position: 1,
+      slotA: { kind: 'winner-of', matchId: grandFinalId },
+      slotB: { kind: 'loser-of', matchId: grandFinalId },
+      conditional: 'bracket-reset',
+    });
+  }
 
   void size;
   // Bye padding can leave losers-bracket matches with no possible participant on

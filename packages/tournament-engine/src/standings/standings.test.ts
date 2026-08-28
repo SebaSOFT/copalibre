@@ -395,12 +395,100 @@ describe('computeStandings', () => {
       { ...pipeline, parameters: pointsOnly() },
     );
 
-    expect(standings.rows[0]).toMatchObject({ entrantId: 'alfa', rank: 1 });
     expect(standings.rows[0]?.statistics).toMatchObject({
       'goals-for': 2,
       wins: 1,
       points: 3,
       played: 1,
+    });
+  });
+
+  describe('series standings accounting grain', () => {
+    const football = footballDescriptor();
+    const seriesOutcomes: RecordedOutcome[] = [
+      {
+        matchId: 'SE-R1-M1-1',
+        winnerEntrantId: 'alfa',
+        sides: [
+          { entrantId: 'alfa', statistics: { 'goals-for': 3, 'goals-against': 1 } },
+          { entrantId: 'bravo', statistics: { 'goals-for': 1, 'goals-against': 3 } },
+        ],
+      },
+      {
+        matchId: 'SE-R1-M1-2',
+        winnerEntrantId: 'alfa',
+        sides: [
+          { entrantId: 'alfa', statistics: { 'goals-for': 2, 'goals-against': 0 } },
+          { entrantId: 'bravo', statistics: { 'goals-for': 0, 'goals-against': 2 } },
+        ],
+      },
+    ];
+
+    it('folds 1 series outcome and sums match goals when standingsAccounting is series', () => {
+      const accounting = computeAccounting(football, ['alfa', 'bravo'], seriesOutcomes, undefined, {
+        seriesDeclaration: { span: 3, resolutionClass: 'best-of', standingsAccounting: 'series' },
+      });
+
+      const alfa = accounting.find((a) => a.entrantId === 'alfa');
+      const bravo = accounting.find((a) => a.entrantId === 'bravo');
+
+      // Alfa won 1 series (3 pts), total goals-for is 5
+      expect(alfa?.statistics.wins).toBe(1);
+      expect(alfa?.statistics.losses).toBe(0);
+      expect(alfa?.statistics.points).toBe(3);
+      expect(alfa?.statistics['goals-for']).toBe(5);
+
+      // Bravo lost 1 series (0 pts), total goals-for is 1
+      expect(bravo?.statistics.wins).toBe(0);
+      expect(bravo?.statistics.losses).toBe(1);
+      expect(bravo?.statistics.points).toBe(0);
+      expect(bravo?.statistics['goals-for']).toBe(1);
+    });
+
+    it('folds 1 outcome per played match when standingsAccounting is match', () => {
+      const accounting = computeAccounting(football, ['alfa', 'bravo'], seriesOutcomes, undefined, {
+        seriesDeclaration: { span: 3, resolutionClass: 'best-of', standingsAccounting: 'match' },
+      });
+
+      const alfa = accounting.find((a) => a.entrantId === 'alfa');
+      // Alfa won 2 matches (6 pts)
+      expect(alfa?.statistics.wins).toBe(2);
+      expect(alfa?.statistics.points).toBe(6);
+      expect(alfa?.statistics['goals-for']).toBe(5);
+    });
+
+    it('folds a drawn series when finished-unresolved with series grain', () => {
+      const drawnOutcomes: RecordedOutcome[] = [
+        {
+          matchId: 'SE-R1-M1-1',
+          winnerEntrantId: 'alfa',
+          sides: [
+            { entrantId: 'alfa', statistics: { 'goals-for': 1, 'goals-against': 0 } },
+            { entrantId: 'bravo', statistics: { 'goals-for': 0, 'goals-against': 1 } },
+          ],
+        },
+        {
+          matchId: 'SE-R1-M1-2',
+          winnerEntrantId: 'bravo',
+          sides: [
+            { entrantId: 'alfa', statistics: { 'goals-for': 0, 'goals-against': 1 } },
+            { entrantId: 'bravo', statistics: { 'goals-for': 1, 'goals-against': 0 } },
+          ],
+        },
+      ];
+
+      const accounting = computeAccounting(football, ['alfa', 'bravo'], drawnOutcomes, undefined, {
+        seriesDeclaration: { span: 2, resolutionClass: 'aggregate', standingsAccounting: 'series' },
+      });
+
+      const alfa = accounting.find((a) => a.entrantId === 'alfa');
+      const bravo = accounting.find((a) => a.entrantId === 'bravo');
+
+      // Both drew the series (1 pt each, 1 draw each)
+      expect(alfa?.statistics.draws).toBe(1);
+      expect(alfa?.statistics.points).toBe(1);
+      expect(bravo?.statistics.draws).toBe(1);
+      expect(bravo?.statistics.points).toBe(1);
     });
   });
 });

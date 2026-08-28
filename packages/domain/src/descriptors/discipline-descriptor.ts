@@ -6,6 +6,7 @@ import type { ConfigFieldPolicies, RulesetConfig } from './override-policy.js';
 import type { TableLayoutDefinition } from './table-layout.js';
 import type { LocalizedLabel } from '../i18n-label.js';
 import type { ObjectReference } from '@copalibre/object-storage';
+import type { SeriesDeclaration } from '../aggregates/series.js';
 
 /**
  * Reusable, versioned profile for a sport, esports title, or competition
@@ -195,6 +196,8 @@ export interface DisciplineDescriptor {
    * where it does not.
    */
   readonly winCondition: RuleScript;
+  /** Optional default series configuration for competitions under this discipline. */
+  readonly series?: SeriesDeclaration;
   /** Presentation hints for editors/consoles — never behavior. */
   readonly uiMetadata?: Readonly<Record<string, unknown>>;
   /** The configuration tree overrides act on. */

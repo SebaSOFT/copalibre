@@ -86,4 +86,64 @@ describe('evaluateMutation', () => {
       expect(afterResults.error.code).toBe('MUTATION_BLOCKED_AFTER_RESULTS');
     }
   });
+
+  describe('series configuration mutation policies', () => {
+    it('classifies lengthening series.span before results as requires_rebuild', () => {
+      const result = evaluateMutation(policies, 'series.span', {
+        hasRecordedResults: false,
+        previousValue: 3,
+        nextValue: 5,
+        generatedFixtures,
+      });
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.mutationClass).toBe('requires_rebuild');
+        if (result.value.mutationClass === 'requires_rebuild') {
+          expect(result.value.invalidates).toEqual(generatedFixtures);
+        }
+      }
+    });
+
+    it('classifies shortening series.span before results as blocked_after_results', () => {
+      const result = evaluateMutation(policies, 'series.span', {
+        hasRecordedResults: false,
+        previousValue: 5,
+        nextValue: 3,
+      });
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.mutationClass).toBe('blocked_after_results');
+      }
+    });
+
+    it('rejects shortening series.span after results exist', () => {
+      const result = evaluateMutation(policies, 'series.span', {
+        hasRecordedResults: true,
+        previousValue: 5,
+        nextValue: 3,
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.code).toBe('MUTATION_BLOCKED_AFTER_RESULTS');
+      }
+    });
+
+    it('classifies changing resolution class as blocked_after_results before results and rejects after results', () => {
+      const before = evaluateMutation(policies, 'series.resolutionClass', {
+        hasRecordedResults: false,
+      });
+      expect(before.ok).toBe(true);
+      if (before.ok) {
+        expect(before.value.mutationClass).toBe('blocked_after_results');
+      }
+
+      const after = evaluateMutation(policies, 'series.resolutionClass', {
+        hasRecordedResults: true,
+      });
+      expect(after.ok).toBe(false);
+      if (!after.ok) {
+        expect(after.error.code).toBe('MUTATION_BLOCKED_AFTER_RESULTS');
+      }
+    });
+  });
 });

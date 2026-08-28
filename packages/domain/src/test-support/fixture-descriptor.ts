@@ -125,6 +125,30 @@ export function fixtureDescriptor(overrides?: Partial<DisciplineDescriptor>): Di
         permission: { kind: 'merged', strategy: 'append-list' },
         mutationClass: 'safe',
       },
+      series: {
+        permission: { kind: 'replaced' },
+        mutationClass: 'requires_rebuild',
+      },
+      'series.span': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'requires_rebuild',
+      },
+      'series.resolutionClass': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'blocked_after_results',
+      },
+      'series.resolutionScript': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'blocked_after_results',
+      },
+      'series.neutralGround': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'requires_rebuild',
+      },
+      'series.standingsAccounting': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'requires_rebuild',
+      },
     },
     ...overrides,
   };

@@ -765,12 +765,14 @@ export class CompetitionRepository {
     uow: UnitOfWork,
     input: {
       readonly stageId: string;
+      readonly matchCount?: number;
       readonly fixtures: readonly {
         readonly round: number;
         readonly homeEntrantId?: string;
         readonly awayEntrantId?: string;
         readonly zoneId?: string;
         readonly groupId?: string;
+        readonly matchCount?: number;
       }[];
     } & AuditContext,
   ): Promise<readonly Fixture[]> {
@@ -812,14 +814,17 @@ export class CompetitionRepository {
     const fixtures = rows.map(toFixture);
 
     if (fixtures.length > 0) {
-      const matchRows = fixtures.map((fixture) => ({
-        match_id: newId(),
-        fixture_id: fixture.fixtureId,
-        number: 1,
-        status: 'scheduled' as const,
-        result: null,
-        created_at: new Date(),
-      }));
+      const matchRows = fixtures.flatMap((fixture, fixtureIndex) => {
+        const count = input.fixtures[fixtureIndex]?.matchCount ?? input.matchCount ?? 1;
+        return Array.from({ length: count }, (_, mIdx) => ({
+          match_id: newId(),
+          fixture_id: fixture.fixtureId,
+          number: mIdx + 1,
+          status: 'scheduled' as const,
+          result: null,
+          created_at: new Date(),
+        }));
+      });
       await uow.tx.insertInto('matches').values(matchRows).execute();
 
       for (const m of matchRows) {
@@ -882,12 +887,14 @@ export class CompetitionRepository {
     uow: UnitOfWork,
     input: {
       readonly stageId: string;
+      readonly matchCount?: number;
       readonly fixtures: readonly {
         readonly round: number;
         readonly homeEntrantId?: string;
         readonly awayEntrantId?: string;
         readonly zoneId?: string;
         readonly groupId?: string;
+        readonly matchCount?: number;
       }[];
     } & AuditContext,
   ): Promise<readonly Fixture[]> {
@@ -953,19 +960,18 @@ export class CompetitionRepository {
     const fixtures = rows.map(toFixture);
 
     if (fixtures.length > 0) {
-      await uow.tx
-        .insertInto('matches')
-        .values(
-          fixtures.map((fixture) => ({
-            match_id: newId(),
-            fixture_id: fixture.fixtureId,
-            number: 1,
-            status: 'scheduled',
-            result: null,
-            created_at: new Date(),
-          })),
-        )
-        .execute();
+      const matchRows = fixtures.flatMap((fixture, fixtureIndex) => {
+        const count = input.fixtures[fixtureIndex]?.matchCount ?? input.matchCount ?? 1;
+        return Array.from({ length: count }, (_, mIdx) => ({
+          match_id: newId(),
+          fixture_id: fixture.fixtureId,
+          number: mIdx + 1,
+          status: 'scheduled' as const,
+          result: null,
+          created_at: new Date(),
+        }));
+      });
+      await uow.tx.insertInto('matches').values(matchRows).execute();
     }
 
     await uow.recordAudit({
@@ -975,7 +981,7 @@ export class CompetitionRepository {
       action: 'fixtures.regenerated',
       actor: input.actor,
       authorizationContext: input.authorizationContext,
-      previousState: { fixtureCount: Number(previousCount.count) },
+      previousState: { fixtureCount: previousCount.count },
       resultingState: { fixtureCount: fixtures.length },
     });
     await uow.publishEvent({
@@ -988,6 +994,76 @@ export class CompetitionRepository {
     });
 
     return fixtures;
+  }
+
+  /**
+   * Anulls unplayed surplus matches of a decided series, setting their status
+   * to `not-required` and freeing their schedule slot assignments atomically.
+   */
+  async anullSurplusMatches(
+    uow: UnitOfWork,
+    input: {
+      readonly fixtureId: string;
+      readonly anulledMatchNumbers: readonly number[];
+    } & AuditContext,
+  ): Promise<readonly Match[]> {
+    if (input.anulledMatchNumbers.length === 0) return [];
+
+    const matches = await uow.tx
+      .selectFrom('matches')
+      .selectAll()
+      .where('fixture_id', '=', input.fixtureId)
+      .where('number', 'in', input.anulledMatchNumbers)
+      .where('status', '=', 'scheduled')
+      .execute();
+
+    if (matches.length === 0) return [];
+
+    const matchIds = matches.map((m) => m.match_id);
+
+    await uow.tx
+      .updateTable('matches')
+      .set({ status: 'not-required' })
+      .where('match_id', 'in', matchIds)
+      .execute();
+
+    await uow.tx.deleteFrom('match_schedule_officials').where('match_id', 'in', matchIds).execute();
+
+    await uow.tx
+      .deleteFrom('match_schedule_assignments')
+      .where('match_id', 'in', matchIds)
+      .execute();
+
+    for (const m of matches) {
+      const updatedMatch: Match = {
+        ...toMatch(m),
+        status: 'not-required',
+      };
+      await uow.recordAudit({
+        organizationId: input.organizationId,
+        entityType: 'match',
+        entityId: m.match_id,
+        action: 'match.anulled',
+        actor: input.actor,
+        authorizationContext: input.authorizationContext,
+        resultingState: { ...updatedMatch },
+      });
+      await uow.publishEvent({
+        organizationId: input.organizationId,
+        stream: `match:${m.match_id}`,
+        entityId: m.match_id,
+        eventType: 'match.anulled',
+        projectionVersion: 1,
+        payload: {
+          matchId: m.match_id,
+          fixtureId: input.fixtureId,
+          number: m.number,
+          status: 'not-required',
+        },
+      });
+    }
+
+    return matches.map((m) => ({ ...toMatch(m), status: 'not-required' as const }));
   }
 
   async createMatch(

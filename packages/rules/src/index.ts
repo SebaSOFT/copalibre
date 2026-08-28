@@ -199,6 +199,12 @@ export {
   type ConstraintState,
 } from './constraints/actions.js';
 
+export {
+  registerSeriesResolutionVocabulary,
+  WinSeriesAction,
+  type SeriesResolutionState,
+} from './series/actions.js';
+
 import { registerDeclaredEffectActions } from './effects/actions.js';
 import { registerCopalibreConditions } from './evaluation/conditions.js';
 import {
@@ -207,6 +213,7 @@ import {
 } from './evaluation/vocabulary.js';
 import { registerWinConditionVocabulary } from './win-condition/actions.js';
 import { registerConstraintVocabulary } from './constraints/actions.js';
+import { registerSeriesResolutionVocabulary } from './series/actions.js';
 import { RulesRegistry } from './registry/rules-registry.js';
 
 export function createDefaultRulesRegistry(): RulesRegistry {
@@ -214,6 +221,7 @@ export function createDefaultRulesRegistry(): RulesRegistry {
   registerCopalibreVocabulary(registry);
   registerWinConditionVocabulary(registry);
   registerConstraintVocabulary(registry);
+  registerSeriesResolutionVocabulary(registry);
   return registry;
 }
 
@@ -225,5 +233,6 @@ export function createHookScriptRegistry(): RulesRegistry {
   registerCopalibreConditions(registry);
   registerCopalibreParameters(registry);
   registerDeclaredEffectActions(registry);
+  registerSeriesResolutionVocabulary(registry);
   return registry;
 }

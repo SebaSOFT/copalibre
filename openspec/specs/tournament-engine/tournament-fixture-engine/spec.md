@@ -4,7 +4,9 @@
 Deterministically turns a tournament's entrant list and format selection into a fixture graph,
 computes standings with a full explanation trace, and advances the competition as results arrive —
 for exactly the six MVP formats, no more.
+
 ## Requirements
+
 ### Requirement: Only the six MVP formats are supported
 The engine SHALL generate fixtures only for single elimination, double elimination, round robin,
 league, round robin single-leg, and round robin home-and-away. It SHALL reject any other format
@@ -187,3 +189,42 @@ read from those fixtures as before, unaffected by later registration changes.
   afterward
 - **THEN** the stage's entrant pool continues to reflect its generated fixtures, not the tournament's
   current registration list
+
+### Requirement: Generating a fixture materializes the match it holds
+Generating a stage's fixtures SHALL create, in the same transaction, the match each fixture holds,
+numbered from 1 within that fixture. A generated fixture SHALL NOT exist without the match it is a cross
+for, so every surface that names a match names a real one and every playable unit exists to be scheduled.
+
+#### Scenario: Generation produces a match per fixture
+- **WHEN** a stage's fixtures are generated
+- **THEN** each generated fixture holds exactly one match, numbered 1, created in the same transaction as
+  the fixture
+
+#### Scenario: A fixture holds each match number once
+- **WHEN** the match numbered 1 of a fixture is requested a second time
+- **THEN** the fixture's existing match is returned rather than a second one being created, and the
+  fixture still holds exactly one match
+
+#### Scenario: Every surface reads a real match identifier
+- **WHEN** a projection reports a generated fixture's match
+- **THEN** it reports that match's own identifier, not the fixture's identifier standing in for one
+
+### Requirement: Regeneration replaces matches only while none has progressed
+Regenerating a stage's fixtures SHALL replace the matches those fixtures held along with the fixtures
+themselves, and the schedule assignments those matches held. It SHALL refuse when any of those matches has
+progressed beyond being scheduled — a recorded result, or a status other than scheduled — directing the
+operator to the audited correction workflow, exactly as the mutation classification it already enforces
+requires.
+
+#### Scenario: Regeneration before any match starts succeeds
+- **WHEN** a stage whose matches are all still scheduled is reseeded
+- **THEN** the previous fixtures, their matches, and their schedule assignments are replaced by the newly
+  generated ones, and each new fixture again holds exactly one match with no assignment
+
+#### Scenario: Regeneration after a match has started is refused
+- **WHEN** a stage is reseeded and one of its matches is in progress or has a recorded result
+- **THEN** the regeneration is refused and no fixture, match, or assignment of that stage is altered
+
+#### Scenario: Regeneration frees the slots its matches held
+- **WHEN** a stage whose matches are placed in slots is reseeded
+- **THEN** those slots become free, and the schedules holding them are otherwise unchanged

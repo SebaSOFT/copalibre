@@ -1894,4 +1894,107 @@ describe('public overview projection (integration)', () => {
     expect(scheduled).toMatchObject({ stageNumber: 2, round: 1, status: 'scheduled' });
     expect(scheduled?.scheduledAt).toBeUndefined();
   });
+
+  it('creates multi-match fixtures, supports replaceFixtures with matchCount, and anulls surplus matches', async () => {
+    const competition = new CompetitionRepository(scratch.db);
+    const tournaments = new TournamentRepository(scratch.db);
+
+    const tournament = await withTransaction(scratch.db, async (uow) => {
+      const d = descriptor();
+      await tournaments.saveDescriptor(uow, d, { organizationId, ...AUDIT });
+      return tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-multi-match-repo',
+        name: 'Copa Multi-Match Repo',
+        descriptor: d,
+        ...AUDIT,
+      });
+    });
+
+    const stage = await withTransaction(scratch.db, (uow) =>
+      competition.createStageInTournament(uow, {
+        tournamentId: tournament.tournamentId,
+        number: 1,
+        name: 'Knockout',
+        format: 'single-elimination',
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+
+    // Create fixture with matchCount: 3
+    const fixtures = await withTransaction(scratch.db, (uow) =>
+      competition.createFixtures(uow, {
+        stageId: stage.stageId,
+        matchCount: 3,
+        fixtures: [{ round: 1 }],
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+
+    const fixture = fixtures[0];
+    if (!fixture) throw new Error('no fixture created');
+    const matches = await scratch.db
+      .selectFrom('matches')
+      .selectAll()
+      .where('fixture_id', '=', fixture.fixtureId)
+      .orderBy('number')
+      .execute();
+
+    expect(matches).toHaveLength(3);
+    expect(matches.map((m) => m.number)).toEqual([1, 2, 3]);
+    expect(matches.every((m) => m.status === 'scheduled')).toBe(true);
+
+    // Replace fixtures with matchCount: 5
+    const replacedFixtures = await withTransaction(scratch.db, (uow) =>
+      competition.replaceFixtures(uow, {
+        stageId: stage.stageId,
+        matchCount: 5,
+        fixtures: [{ round: 1 }],
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+
+    const replacedFixture = replacedFixtures[0];
+    if (!replacedFixture) throw new Error('no replaced fixture');
+    const replacedMatches = await scratch.db
+      .selectFrom('matches')
+      .selectAll()
+      .where('fixture_id', '=', replacedFixture.fixtureId)
+      .orderBy('number')
+      .execute();
+
+    expect(replacedMatches).toHaveLength(5);
+    expect(replacedMatches.map((m) => m.number)).toEqual([1, 2, 3, 4, 5]);
+
+    // Anull surplus matches 4 and 5
+    const anulled = await withTransaction(scratch.db, (uow) =>
+      competition.anullSurplusMatches(uow, {
+        fixtureId: replacedFixture.fixtureId,
+        anulledMatchNumbers: [4, 5],
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+
+    expect(anulled).toHaveLength(2);
+    expect(anulled.map((m) => m.status)).toEqual(['not-required', 'not-required']);
+
+    const finalMatches = await scratch.db
+      .selectFrom('matches')
+      .selectAll()
+      .where('fixture_id', '=', replacedFixture.fixtureId)
+      .orderBy('number')
+      .execute();
+
+    expect(finalMatches.map((m) => m.status)).toEqual([
+      'scheduled',
+      'scheduled',
+      'scheduled',
+      'not-required',
+      'not-required',
+    ]);
+  });
 });

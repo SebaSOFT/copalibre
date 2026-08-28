@@ -1,4 +1,4 @@
-import type { TournamentFormat } from '@copalibre/domain';
+import type { TournamentFormat, SeriesDeclaration } from '@copalibre/domain';
 import type { PlacementOptions } from './fixtures/placement.js';
 
 /**
@@ -37,6 +37,10 @@ export interface DuelMatch extends GeneratedMatchBase {
   readonly slotB: SlotSource;
   /** For round-robin home/away, which side is at home. Absent when not applicable. */
   readonly homeSlot?: 'A' | 'B';
+  /** 1-based match number within the fixture series (1..N). When omitted, represents match 1. */
+  readonly matchNumber?: number;
+  /** Series configuration if this match is part of a multi-match series. */
+  readonly series?: SeriesDeclaration;
   /**
    * Only present on double-elimination grand finals: generated conditionally,
    * played solely when the losers-bracket champion wins the first grand final.
@@ -101,4 +105,6 @@ export interface GenerateFixturesInput {
   readonly homeAndAway?: boolean;
   /** Placement formats only: rounds, lobby size, and the draw that fills them. */
   readonly placement?: PlacementOptions;
+  /** Series configuration for multi-match fixtures. */
+  readonly series?: SeriesDeclaration;
 }

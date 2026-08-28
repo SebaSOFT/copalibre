@@ -8,23 +8,41 @@ conflicts before publication and guaranteeing a schedule is never seen half-publ
 
 ### Requirement: Conflict detection before commit
 The system SHALL detect venue double-booking, official double-booking, and configurable rest-rule
-violations before a schedule assignment is committed.
+violations before a schedule assignment is committed. Venue and time are read from the slot an assignment
+names, and officials from the match, so detection evaluates each **match** independently.
 
 #### Scenario: Double-booked venue is rejected
-- **WHEN** a fixture is assigned a venue and time slot that overlaps another fixture already assigned to the same venue
-- **THEN** the assignment is rejected with an explicit conflict report naming both fixtures
+- **WHEN** a match is placed in a slot whose venue is already at its concurrent capacity for that moment
+- **THEN** the assignment is rejected with an explicit conflict report naming both matches
 
 #### Scenario: Rest-rule violation is rejected
-- **WHEN** an entrant is assigned a fixture starting sooner than the configured minimum rest period after their previous fixture
-- **THEN** the assignment is rejected with an explicit rest-rule violation report
+- **WHEN** an entrant is placed in a slot starting sooner than the configured minimum rest period after
+  their previous match
+- **THEN** the assignment is rejected with an explicit rest-rule violation report naming both matches
+
+#### Scenario: A venue's changeover is not an entrant's rest
+- **WHEN** a schedule declares a changeover shorter than the configured rest rule, and one entrant is
+  placed in two consecutive slots
+- **THEN** the rest-rule violation is reported, because the changeover governs the venue and the rest rule
+  governs the entrant
+
+#### Scenario: Two matches of one fixture are placed independently
+- **WHEN** a fixture holds more than one match and each is placed in its own slot
+- **THEN** each is evaluated on its own, and two matches of the same fixture in different slots conflict
+  with nothing by virtue of sharing a fixture
 
 ### Requirement: Downstream-impact preview
-Before committing a schedule change, the system SHALL show which already-published fixtures,
+Before committing a schedule change, the system SHALL show which already-published matches,
 notifications, or public views would be affected by the change.
 
 #### Scenario: Rescheduling a published match shows affected downstream items
-- **WHEN** an operator proposes moving a published, unstarted match to a new time slot
-- **THEN** the system returns a preview listing every already-published fixture, notification, or public view that references the old time before the change is committed
+- **WHEN** an operator proposes moving a published, unstarted match to a different slot
+- **THEN** the system returns a preview listing every already-published match, notification, or public view that references the old time before the change is committed
+
+#### Scenario: The preview names matches, not the fixtures holding them
+- **WHEN** a preview is returned for a proposed schedule change
+- **THEN** every affected item it lists identifies the match whose placement changes, so a fixture
+  holding more than one match is never reported ambiguously
 
 ### Requirement: Atomic publication
 A schedule or batch of schedule changes SHALL publish in full or not at all; no partially-applied
@@ -40,11 +58,18 @@ schedule state SHALL ever be visible on a public surface.
 
 ### Requirement: Schedule mutation respects mutation classification
 Schedule changes SHALL be classified `safe`, `requires_rebuild`, or `blocked_after_results` per the
-domain's mutation model, and the system SHALL enforce that classification.
+domain's mutation model, and the system SHALL enforce that classification. Classification is evaluated
+against the match being rescheduled, so one concluded match never blocks the rescheduling of another.
 
 #### Scenario: Rescheduling a completed match is blocked
-- **WHEN** an operator attempts to change the scheduled time of a fixture whose match has already concluded
+- **WHEN** an operator attempts to move a match that has already concluded to a different slot
 - **THEN** the system rejects the change as `blocked_after_results`, directing the operator to the audited correction workflow
+
+#### Scenario: A concluded match does not block an unstarted sibling
+- **WHEN** a fixture holds one concluded match and one unstarted match, and the unstarted one is
+  rescheduled
+- **THEN** the change is accepted, because classification reads the match being changed rather than the
+  fixture holding it
 
 ### Requirement: A venue carries a validated alias
 
@@ -85,9 +110,9 @@ venue with none SHALL behave exactly as one already does today.
 
 ### Requirement: Venues and officials are reachable through the API
 
-An organization's venues and officials SHALL be creatable and listable through the API, not only through
-direct data-store access. This is what an operator-facing venue/official management surface, and the
-schedule builder that assigns them, depend on.
+An organization's venues, officials, and schedules SHALL be creatable and listable through the API, not
+only through direct data-store access. This is what an operator-facing resource-management surface, and
+the schedule builder that assigns them, depend on.
 
 #### Scenario: An organizer creates a venue through the API
 - **WHEN** an authorized organizer submits a new venue's alias, name, capacity, and optional details
@@ -97,7 +122,90 @@ schedule builder that assigns them, depend on.
 - **WHEN** an authorized organizer submits a new official's display name and roles
 - **THEN** the official is stored and included in the organization's official list thereafter
 
+#### Scenario: An organizer creates a schedule through the API
+- **WHEN** an authorized organizer submits a schedule's name, range, slot length, changeover, and venues
+- **THEN** the schedule is stored with its generated slots and included in the organization's schedule
+  list thereafter
+
 #### Scenario: Listing venues and officials requires no prior knowledge of their ids
 - **WHEN** an authorized organizer requests an organization's venues or officials
 - **THEN** every one already created for that organization is returned, without the caller needing to
   already know any of their ids
+
+### Requirement: An assignment places a match in a slot
+A schedule assignment SHALL identify the match it applies to and the slot that match is played in, and
+nothing else. Venue, start and duration SHALL be read from the slot, and the fixture from the match, so a
+caller states a placement rather than restating facts the slot and the match already hold.
+
+#### Scenario: An assignment names a match and a slot
+- **WHEN** a schedule assignment is submitted
+- **THEN** it carries a match identifier and a slot identifier, and carries no venue and no time window
+  of its own
+
+#### Scenario: The read side still reports venue, time and fixture
+- **WHEN** an assignment is read back
+- **THEN** it reports the match, its fixture, the slot, the slot's venue, and the window the slot covers,
+  resolved rather than stored on the assignment
+
+#### Scenario: A fixture may hold more than one scheduled match
+- **WHEN** a fixture holds more than one match and each is placed in its own slot
+- **THEN** all of them are stored, and reading the fixture's schedule returns every one of them
+
+### Requirement: Officials are assigned to the match they officiate
+Officials SHALL be assigned to a match, not to the slot or schedule the match is played in. A slot
+holding more than one match SHALL be able to state a different set of officials for each.
+
+#### Scenario: Two matches in one slot carry different officials
+- **WHEN** a venue with capacity for two hosts two matches in one slot, each with its own referee
+- **THEN** each match reports its own official, and neither reports the other's
+
+#### Scenario: A match's officials survive its rescheduling
+- **WHEN** a match is moved from one slot to another
+- **THEN** the officials assigned to it are unchanged, because they were never a property of the slot
+
+### Requirement: Conflict detection covers the whole organization
+Conflict detection SHALL evaluate every match scheduled anywhere in the organization, not only those of
+the stage being scheduled. A venue over capacity, an official in two places, or an entrant denied their
+rest SHALL be detected whether the two matches belong to one stage, two stages, or two tournaments.
+
+#### Scenario: A clash across two stages is detected
+- **WHEN** a match of one stage is placed at a venue and moment already at capacity because of a match of
+  a different stage
+- **THEN** the assignment is rejected, naming both matches
+
+#### Scenario: A clash across two tournaments is detected
+- **WHEN** an official is already assigned to a match of another tournament in an overlapping slot
+- **THEN** the assignment is rejected as an official conflict naming both matches
+
+### Requirement: An unpublished assignment never reaches a public surface
+An assignment that has not been published SHALL NOT appear on any public or broadcast surface, including
+as a date on a tournament overview. Publication is a fact of the assignment, not of the slot or the
+schedule, and reading the assignment store directly SHALL NOT bypass it.
+
+#### Scenario: An unpublished assignment shows no date publicly
+- **WHEN** a match has an assignment that has not been published, and a spectator views the tournament
+  overview
+- **THEN** the match is shown with no scheduled time, exactly as if none had been assigned
+
+#### Scenario: Publishing makes the date public
+- **WHEN** that same assignment is published
+- **THEN** the tournament overview shows its date
+
+#### Scenario: An occupied slot is not itself public
+- **WHEN** a slot holds one published and one unpublished assignment
+- **THEN** the public surface shows the published match only, and the slot's existence discloses nothing
+  about the other
+
+### Requirement: A schedule is the only source of when a match is played
+The scheduled time of a match SHALL be read from its assignment's slot and from nowhere else. No second
+stored value SHALL carry a match's or a fixture's playing time, so two surfaces can never report
+different dates for one match.
+
+#### Scenario: Every surface reads one source
+- **WHEN** two public surfaces report the scheduled time of the same match
+- **THEN** both report the same value, because both read the assignment's slot
+
+#### Scenario: A match with no assignment has no scheduled time
+- **WHEN** a match has been generated but never placed in a slot
+- **THEN** every surface reports it as having no scheduled time, rather than one surface reporting a time
+  from another store

@@ -1,7 +1,13 @@
 import type { EntrantValues, TiebreakPipeline, TraceNode } from '@copalibre/rules';
 import { resolveTiebreak } from '@copalibre/rules';
 import { slotsOf, type GeneratedMatch } from '../types.js';
-import type { DisciplineDescriptor, RecordedOutcome, StatisticDefinition } from '@copalibre/domain';
+import type {
+  DisciplineDescriptor,
+  RecordedOutcome,
+  StatisticDefinition,
+  SeriesDeclaration,
+} from '@copalibre/domain';
+import { resolveSeries } from '@copalibre/domain';
 
 /**
  * Standings assembly. This module computes *accounting parameters* only and
@@ -78,40 +84,134 @@ export function computeAccounting(
   entrantIds: readonly string[],
   outcomes: readonly RecordedOutcome[],
   points: PointsRules = DEFAULT_POINTS,
+  options?: { readonly seriesDeclaration?: SeriesDeclaration },
 ): readonly EntrantAccounting[] {
   const accumulators = new Map<string, EntrantAccumulator>(
     entrantIds.map((id) => [id, emptyAccumulator(descriptor)]),
   );
 
-  for (const outcome of outcomes) {
-    // A lone side is a bye or walkover record, not a contest — nobody played
-    // anyone. Beyond that no arity is assumed: two sides and eight are folded
-    // by the same path.
-    if (outcome.sides.length < 2) continue;
+  const seriesDec = options?.seriesDeclaration;
+  const isSeriesGrain = seriesDec?.standingsAccounting === 'series';
 
-    for (const side of outcome.sides) {
-      const acc = accumulators.get(side.entrantId);
-      if (!acc) continue;
-      const values = {
-        ...derivedFor(descriptor, outcome, side.entrantId, points),
-        ...side.statistics,
-      };
+  if (isSeriesGrain && seriesDec) {
+    // Group outcomes by fixture ID
+    const fixtures = new Map<string, RecordedOutcome[]>();
+    for (const outcome of outcomes) {
+      const fixtureId = outcome.matchId.replace(/-[0-9]+$/, '');
+      const existing = fixtures.get(fixtureId) ?? [];
+      existing.push(outcome);
+      fixtures.set(fixtureId, existing);
+    }
 
-      for (const stat of descriptor.statistics) {
-        const statAcc = acc.stats[stat.code];
-        if (!statAcc) continue;
+    for (const [, fixtureOutcomes] of fixtures) {
+      const first = fixtureOutcomes[0];
+      if (!first || first.sides.length < 2 || !first.sides[0] || !first.sides[1]) continue;
+      const sides: readonly [string, string] = [first.sides[0].entrantId, first.sides[1].entrantId];
 
-        const value = values[stat.code];
-        if (typeof value !== 'number') {
-          // A `count` statistic counts appearances — "played" is the canonical
-          // case — so it accrues whether or not the recorder wrote a value.
-          if (stat.aggregation === 'count') statAcc.count += 1;
-          continue;
+      // Fold non-derived raw statistics and counts for every played match
+      for (const outcome of fixtureOutcomes) {
+        for (const side of outcome.sides) {
+          const acc = accumulators.get(side.entrantId);
+          if (!acc) continue;
+          for (const stat of descriptor.statistics) {
+            if (
+              stat.code === DERIVABLE_STATISTICS.wins ||
+              stat.code === DERIVABLE_STATISTICS.losses ||
+              stat.code === DERIVABLE_STATISTICS.draws ||
+              stat.code === DERIVABLE_STATISTICS.points
+            ) {
+              continue;
+            }
+            const statAcc = acc.stats[stat.code];
+            if (!statAcc) continue;
+            const value = side.statistics[stat.code];
+            if (typeof value !== 'number') {
+              if (stat.aggregation === 'count') statAcc.count += 1;
+              continue;
+            }
+            statAcc.sum += value;
+            statAcc.count += 1;
+            statAcc.max = Math.max(statAcc.max, value);
+            statAcc.min = Math.min(statAcc.min, value);
+          }
         }
-        statAcc.sum += value;
-        statAcc.count += 1;
-        statAcc.max = Math.max(statAcc.max, value);
-        statAcc.min = Math.min(statAcc.min, value);
+      }
+
+      // Fold 1 series outcome
+      const seriesMatches = fixtureOutcomes.map((out, idx) => {
+        const matchNumberMatch = out.matchId.match(/-([0-9]+)$/);
+        const number =
+          matchNumberMatch && matchNumberMatch[1] ? Number(matchNumberMatch[1]) : idx + 1;
+        return {
+          number,
+          status: 'finalized' as const,
+          result: {
+            winnerEntrantId: out.winnerEntrantId,
+            sides: out.sides.map((s) => ({ entrantId: s.entrantId, statistics: s.statistics })),
+            recordedAt: '',
+          },
+        };
+      });
+
+      const seriesResult = resolveSeries({
+        declaration: seriesDec,
+        sides,
+        matches: seriesMatches,
+        pointsRules: points,
+      });
+
+      if (seriesResult.status === 'decided' && seriesResult.winnerEntrantId) {
+        const winner = seriesResult.winnerEntrantId;
+        const loser = sides.find((s) => s !== winner);
+
+        const winAcc = accumulators.get(winner);
+        if (winAcc) {
+          addDerivedStat(winAcc, descriptor, DERIVABLE_STATISTICS.wins, 1);
+          addDerivedStat(winAcc, descriptor, DERIVABLE_STATISTICS.points, points.win);
+        }
+        if (loser) {
+          const loseAcc = accumulators.get(loser);
+          if (loseAcc) {
+            addDerivedStat(loseAcc, descriptor, DERIVABLE_STATISTICS.losses, 1);
+            addDerivedStat(loseAcc, descriptor, DERIVABLE_STATISTICS.points, points.loss);
+          }
+        }
+      } else if (seriesResult.status === 'finished-unresolved') {
+        for (const sideId of sides) {
+          const drawAcc = accumulators.get(sideId);
+          if (drawAcc) {
+            addDerivedStat(drawAcc, descriptor, DERIVABLE_STATISTICS.draws, 1);
+            addDerivedStat(drawAcc, descriptor, DERIVABLE_STATISTICS.points, points.draw);
+          }
+        }
+      }
+    }
+  } else {
+    for (const outcome of outcomes) {
+      if (outcome.sides.length < 2) continue;
+
+      for (const side of outcome.sides) {
+        const acc = accumulators.get(side.entrantId);
+        if (!acc) continue;
+        const values = {
+          ...derivedFor(descriptor, outcome, side.entrantId, points),
+          ...side.statistics,
+        };
+
+        for (const stat of descriptor.statistics) {
+          const statAcc = acc.stats[stat.code];
+          if (!statAcc) continue;
+
+          const value = values[stat.code];
+          if (typeof value !== 'number') {
+            if (stat.aggregation === 'count') statAcc.count += 1;
+            continue;
+          }
+          statAcc.sum += value;
+          statAcc.count += 1;
+          statAcc.max = Math.max(statAcc.max, value);
+          statAcc.min = Math.min(statAcc.min, value);
+        }
       }
     }
   }
@@ -127,6 +227,22 @@ export function computeAccounting(
 
     return { entrantId, statistics };
   });
+}
+
+function addDerivedStat(
+  acc: EntrantAccumulator,
+  descriptor: DisciplineDescriptor,
+  statCode: string,
+  val: number,
+): void {
+  const declared = descriptor.statistics.find((s) => s.code === statCode);
+  if (!declared) return;
+  const statAcc = acc.stats[statCode];
+  if (!statAcc) return;
+  statAcc.sum += val;
+  statAcc.count += 1;
+  statAcc.max = Math.max(statAcc.max, val);
+  statAcc.min = Math.min(statAcc.min, val);
 }
 
 /**
