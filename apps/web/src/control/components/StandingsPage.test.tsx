@@ -297,4 +297,73 @@ describe('StandingsPage', () => {
 
     expect(screen.getByText('No data to chart.')).toBeTruthy();
   });
+
+  describe('series accounting grain (0160)', () => {
+    it('states the grain and relabels the counted column under series grain', () => {
+      render(
+        withIntl(
+          <StandingsPage
+            activeLayoutCode={groupPhaseLayout.code}
+            layouts={[groupPhaseLayout]}
+            organizationAlias="liga-mendocina"
+            projection={{
+              ...projection,
+              columns: [
+                { code: 'name', header: 'Team', format: 'text' },
+                { code: 'played', header: 'Played', shortHeader: 'PJ', format: 'number' },
+              ],
+              grain: 'series',
+              countColumnCode: 'played',
+            }}
+            tournamentName="Apertura"
+          />,
+        ),
+      );
+
+      expect(screen.getByText('This table counts one result per series.')).toBeTruthy();
+      expect(screen.getByRole('button', { name: 'S' })).toBeTruthy();
+      expect(screen.queryByRole('button', { name: 'PJ' })).toBeNull();
+    });
+
+    it('states match grain without touching the column label', () => {
+      render(
+        withIntl(
+          <StandingsPage
+            activeLayoutCode={groupPhaseLayout.code}
+            layouts={[groupPhaseLayout]}
+            organizationAlias="liga-mendocina"
+            projection={{
+              ...projection,
+              columns: [
+                { code: 'name', header: 'Team', format: 'text' },
+                { code: 'played', header: 'Played', shortHeader: 'PJ', format: 'number' },
+              ],
+              grain: 'match',
+              countColumnCode: 'played',
+            }}
+            tournamentName="Apertura"
+          />,
+        ),
+      );
+
+      expect(screen.getByText('This table counts one result per played match.')).toBeTruthy();
+      expect(screen.getByRole('button', { name: 'PJ' })).toBeTruthy();
+    });
+
+    it('renders no grain statement for a stage declaring no series, unchanged from before this change', () => {
+      render(
+        withIntl(
+          <StandingsPage
+            activeLayoutCode={groupPhaseLayout.code}
+            layouts={[groupPhaseLayout]}
+            organizationAlias="liga-mendocina"
+            projection={projection}
+            tournamentName="Apertura"
+          />,
+        ),
+      );
+
+      expect(screen.queryByTestId('standings-grain-statement')).toBeNull();
+    });
+  });
 });

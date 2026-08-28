@@ -95,25 +95,31 @@ function valueText(value: unknown): string {
  *
  * The **first** comparator observes everybody, because everybody starts in one
  * undifferentiated group; being separated by it is being ranked, not being
- * tie-broken. So an entrant only has a trace worth expanding once a *second*
- * comparator had to look at it, which is exactly the case the screen calls a
- * resolved tie.
+ * tie-broken. So an entrant only has a *comparator* trace worth expanding once
+ * a *second* comparator had to look at it, which is exactly the case the
+ * screen calls a resolved tie. An `aggregation` node is a different kind of
+ * fact — what decided the row's own result, under series-grain accounting —
+ * and is never a screening step every entrant passes through by default, so
+ * it always surfaces when present, with no tie-count threshold to clear.
  */
 export function traceForEntrant(
   trace: readonly TraceNode[],
   entrantId: string,
   options: { readonly stillTied?: boolean } = {},
 ): readonly TraceNode[] {
-  const observed = trace.filter(
-    (node) => node.values !== undefined && Object.hasOwn(node.values, entrantId),
-  );
-  if (observed.length < 2) return [];
+  const concernsEntrant = (node: TraceNode): boolean =>
+    node.values !== undefined && Object.hasOwn(node.values, entrantId);
+
+  const aggregation = trace.filter((node) => node.kind === 'aggregation' && concernsEntrant(node));
+
+  const observed = trace.filter((node) => node.kind === 'comparator' && concernsEntrant(node));
+  if (observed.length < 2) return aggregation;
 
   // The exhaustion notice belongs to the entrants it still applies to. Shown on
   // a row the pipeline did separate, it would say the opposite of what happened.
-  if (options.stillTied !== true) return observed;
-  const exhausted = trace.filter((node) => node.values === undefined);
-  return [...observed, ...exhausted];
+  if (options.stillTied !== true) return [...aggregation, ...observed];
+  const exhausted = trace.filter((node) => node.kind === 'comparator' && node.values === undefined);
+  return [...aggregation, ...observed, ...exhausted];
 }
 
 /** Whether a row has a tiebreak trace to expand at all. */

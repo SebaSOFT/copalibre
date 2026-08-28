@@ -218,6 +218,50 @@ describe('the tournament setup wizard screen', () => {
     expect(screen.getByLabelText('Name')).toBeDefined();
     expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe('Liga San Rafael');
   });
+
+  it('offers the accounting-grain control only once series is enabled, preselecting match grain (0160)', () => {
+    render(withIntl(<TournamentSetupWizard disciplines={sampleDisciplines()} />));
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Grano' } });
+    fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-grano' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+    expect(screen.queryByLabelText('Counts towards standings as')).toBeNull();
+
+    fireEvent.click(screen.getByLabelText('Settle each cross with a series of matches'));
+
+    const grainSelect = screen.getByLabelText(
+      'Counts towards standings as',
+    ) as HTMLSelectElement;
+    expect(grainSelect.value).toBe('match');
+
+    fireEvent.click(screen.getByLabelText('Settle each cross with a series of matches'));
+    expect(screen.queryByLabelText('Counts towards standings as')).toBeNull();
+  });
+
+  it('captures an explicit choice of series grain in the control’s own value (0160)', () => {
+    render(withIntl(<TournamentSetupWizard disciplines={sampleDisciplines()} />));
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Grano' } });
+    fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-grano' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByLabelText('Settle each cross with a series of matches'));
+
+    const grainSelect = screen.getByLabelText(
+      'Counts towards standings as',
+    ) as HTMLSelectElement;
+    fireEvent.change(grainSelect, { target: { value: 'series' } });
+    expect(grainSelect.value).toBe('series');
+
+    // Toggling series off hides the control without discarding its value —
+    // re-enabling shows the same choice, the same way span and resolution
+    // class already survive a toggle.
+    fireEvent.click(screen.getByLabelText('Settle each cross with a series of matches'));
+    fireEvent.click(screen.getByLabelText('Settle each cross with a series of matches'));
+    expect(
+      (screen.getByLabelText('Counts towards standings as') as HTMLSelectElement).value,
+    ).toBe('series');
+  });
 });
 
 describe('wizard state transitions and validators', () => {

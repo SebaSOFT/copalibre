@@ -381,6 +381,18 @@ export class SeriesDeclarationRequest {
     description: 'Whether the series is held on neutral ground (no home/away side alternation).',
   })
   neutralGround?: boolean;
+
+  @IsOptional()
+  @IsIn(['series', 'match'])
+  @ApiPropertyOptional({
+    description:
+      'Whether standings and statistic accounting count one outcome per resolved series or one ' +
+      'per played match. Absent accounts per match — the same default an undeclared grain has ' +
+      'always meant — and is reported as such by every surface that reads it back.',
+    enum: ['series', 'match'],
+    example: 'series',
+  })
+  standingsAccounting?: 'series' | 'match';
 }
 
 export class CreateTournamentRequest {

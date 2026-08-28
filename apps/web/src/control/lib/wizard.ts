@@ -6,6 +6,7 @@ import type {
   CreateTournamentRequest,
   HookScriptVocabulary,
   HookVocabularyEntry,
+  SeriesAccountingGrain,
 } from './api-client.js';
 
 /**
@@ -88,6 +89,12 @@ export interface WizardState {
   readonly seriesSpan?: number;
   readonly seriesResolutionClass?: SeriesResolutionClass;
   readonly seriesNeutralGround: boolean;
+  /**
+   * Preselected `match`, which is what an undeclared grain has always meant —
+   * an operator who never opens this control gets the request they got before
+   * it existed.
+   */
+  readonly seriesStandingsAccounting: SeriesAccountingGrain;
 }
 
 export type SeriesResolutionClass = 'best-of' | 'aggregate' | 'points-per-leg';
@@ -109,6 +116,7 @@ export function initialWizard(): WizardState {
     customRules: [],
     seriesEnabled: false,
     seriesNeutralGround: false,
+    seriesStandingsAccounting: 'match',
   };
 }
 
@@ -278,6 +286,9 @@ function seriesFrom(state: WizardState): Pick<CreateTournamentRequest, 'series'>
         ? {}
         : { resolutionClass: state.seriesResolutionClass }),
       ...(state.seriesNeutralGround ? { neutralGround: true } : {}),
+      ...(state.seriesStandingsAccounting === 'series'
+        ? { standingsAccounting: 'series' as const }
+        : {}),
     },
   };
 }

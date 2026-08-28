@@ -48,4 +48,12 @@ export interface RecordedOutcome {
   readonly sides: readonly OutcomeSide[];
   /** Duel matches only; derivable from statistics via the win condition. */
   readonly winnerEntrantId?: string;
+  /**
+   * The fixture this match belongs to. How the accounting engine groups a
+   * series' matches back into the one result they contribute — never by
+   * parsing `matchId`, which is an opaque UUIDv7 for a persisted match.
+   * Absent only for an outcome a caller assembled without a fixture to name;
+   * every outcome the persistence layer reads carries it.
+   */
+  readonly fixtureId?: string;
 }

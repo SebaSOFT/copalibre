@@ -561,6 +561,20 @@ export function footballDescriptor(
       // A cup tie cannot end level, so replacing the win condition is permitted.
       winCondition: { permission: { kind: 'replaced' }, mutationClass: 'requires_rebuild' },
       tableLayouts: { permission: { kind: 'replaced' }, mutationClass: 'safe' },
+      // Series fields, classified the same way `fixtureDescriptor`'s test-support
+      // descriptor already does: span/neutralGround/standingsAccounting rebuild
+      // the graph or its accounting; resolutionClass is blocked once a game of
+      // the series it governs has a result.
+      'series.span': { permission: { kind: 'replaced' }, mutationClass: 'requires_rebuild' },
+      'series.resolutionClass': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'blocked_after_results',
+      },
+      'series.neutralGround': { permission: { kind: 'replaced' }, mutationClass: 'requires_rebuild' },
+      'series.standingsAccounting': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'requires_rebuild',
+      },
     },
     ...overrides,
   };

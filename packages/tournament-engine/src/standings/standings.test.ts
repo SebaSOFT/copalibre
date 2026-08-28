@@ -1,4 +1,5 @@
 import type { TiebreakPipeline } from '@copalibre/rules';
+import { traceForEntrant } from '@copalibre/rules';
 import { expectGolden } from '../test-support/golden.js';
 import { generateFixtures } from '../fixtures/index.js';
 import { isDuelMatch } from '../types.js';
@@ -401,13 +402,76 @@ describe('computeStandings', () => {
       points: 3,
       played: 1,
     });
+    expect(standings.grain).toBe('match');
+  });
+
+  describe('with an optional series declaration', () => {
+    const outcomes = [
+      outcome('m1', 'a', 3, 'b', 0),
+      outcome('m2', 'a', 2, 'c', 0),
+      outcome('m3', 'b', 1, 'c', 0),
+    ];
+
+    it('produces byte-identical output whether the option is omitted or passed as undefined', () => {
+      const omitted = computeStandings(leagueDescriptor, ['a', 'b', 'c'], outcomes, pipeline);
+      const explicitUndefined = computeStandings(
+        leagueDescriptor,
+        ['a', 'b', 'c'],
+        outcomes,
+        pipeline,
+        DEFAULT_POINTS,
+        undefined,
+      );
+      const declaredButNoSeries = computeStandings(
+        leagueDescriptor,
+        ['a', 'b', 'c'],
+        outcomes,
+        pipeline,
+        DEFAULT_POINTS,
+        {},
+      );
+
+      expect(explicitUndefined).toEqual(omitted);
+      expect(declaredButNoSeries).toEqual(omitted);
+      expect(omitted.grain).toBe('match');
+    });
+
+    it('reports the declared grain once a series declaration names one', () => {
+      const standings = computeStandings(
+        leagueDescriptor,
+        ['a', 'b', 'c'],
+        outcomes,
+        pipeline,
+        DEFAULT_POINTS,
+        { seriesDeclaration: { span: 3, resolutionClass: 'best-of', standingsAccounting: 'series' } },
+      );
+
+      expect(standings.grain).toBe('series');
+    });
+
+    it('reports match grain when the declaration names no accounting grain', () => {
+      const standings = computeStandings(
+        leagueDescriptor,
+        ['a', 'b', 'c'],
+        outcomes,
+        pipeline,
+        DEFAULT_POINTS,
+        { seriesDeclaration: { span: 3, resolutionClass: 'best-of' } },
+      );
+
+      expect(standings.grain).toBe('match');
+    });
   });
 
   describe('series standings accounting grain', () => {
     const football = footballDescriptor();
+    // Persisted-shape opaque ids (UUIDv7), never an engine-graph id like
+    // `SE-R1-M1-1` that happens to strip to a fixture id — membership is
+    // carried on `fixtureId`, not recoverable from `matchId` at all.
     const seriesOutcomes: RecordedOutcome[] = [
       {
-        matchId: 'SE-R1-M1-1',
+        matchId: '018f5b3a-9c11-7c40-8f21-1a2b3c4d5e01',
+        fixtureId: '018f5b3a-9c00-7c40-8f21-1a2b3c4d5e00',
         winnerEntrantId: 'alfa',
         sides: [
           { entrantId: 'alfa', statistics: { 'goals-for': 3, 'goals-against': 1 } },
@@ -415,7 +479,8 @@ describe('computeStandings', () => {
         ],
       },
       {
-        matchId: 'SE-R1-M1-2',
+        matchId: '018f5b3a-9c22-7c40-8f21-1a2b3c4d5e02',
+        fixtureId: '018f5b3a-9c00-7c40-8f21-1a2b3c4d5e00',
         winnerEntrantId: 'alfa',
         sides: [
           { entrantId: 'alfa', statistics: { 'goals-for': 2, 'goals-against': 0 } },
@@ -432,17 +497,19 @@ describe('computeStandings', () => {
       const alfa = accounting.find((a) => a.entrantId === 'alfa');
       const bravo = accounting.find((a) => a.entrantId === 'bravo');
 
-      // Alfa won 1 series (3 pts), total goals-for is 5
+      // Alfa won 1 series (3 pts), total goals-for is 5, played reads 1 series
       expect(alfa?.statistics.wins).toBe(1);
       expect(alfa?.statistics.losses).toBe(0);
       expect(alfa?.statistics.points).toBe(3);
       expect(alfa?.statistics['goals-for']).toBe(5);
+      expect(alfa?.statistics.played).toBe(1);
 
-      // Bravo lost 1 series (0 pts), total goals-for is 1
+      // Bravo lost 1 series (0 pts), total goals-for is 1, played reads 1 series
       expect(bravo?.statistics.wins).toBe(0);
       expect(bravo?.statistics.losses).toBe(1);
       expect(bravo?.statistics.points).toBe(0);
       expect(bravo?.statistics['goals-for']).toBe(1);
+      expect(bravo?.statistics.played).toBe(1);
     });
 
     it('folds 1 outcome per played match when standingsAccounting is match', () => {
@@ -451,16 +518,20 @@ describe('computeStandings', () => {
       });
 
       const alfa = accounting.find((a) => a.entrantId === 'alfa');
-      // Alfa won 2 matches (6 pts)
+      // Alfa won 2 matches (6 pts), played reads 2 matches
       expect(alfa?.statistics.wins).toBe(2);
       expect(alfa?.statistics.points).toBe(6);
       expect(alfa?.statistics['goals-for']).toBe(5);
+      expect(alfa?.statistics.played).toBe(2);
     });
 
-    it('folds a drawn series when finished-unresolved with series grain', () => {
-      const drawnOutcomes: RecordedOutcome[] = [
+    it('counts a series that went the distance once under series grain and once per game under match grain, always equal to wins + draws + losses', () => {
+      // A best-of-three decided in three games: alfa takes game one, bravo
+      // levels it in game two, alfa wins game three to take the series 2-1.
+      const distanceOutcomes: RecordedOutcome[] = [
         {
-          matchId: 'SE-R1-M1-1',
+          matchId: '018f5b3a-9e11-7c40-8f21-1a2b3c4d5e21',
+          fixtureId: '018f5b3a-9e00-7c40-8f21-1a2b3c4d5e20',
           winnerEntrantId: 'alfa',
           sides: [
             { entrantId: 'alfa', statistics: { 'goals-for': 1, 'goals-against': 0 } },
@@ -468,7 +539,66 @@ describe('computeStandings', () => {
           ],
         },
         {
-          matchId: 'SE-R1-M1-2',
+          matchId: '018f5b3a-9e22-7c40-8f21-1a2b3c4d5e22',
+          fixtureId: '018f5b3a-9e00-7c40-8f21-1a2b3c4d5e20',
+          winnerEntrantId: 'bravo',
+          sides: [
+            { entrantId: 'alfa', statistics: { 'goals-for': 0, 'goals-against': 1 } },
+            { entrantId: 'bravo', statistics: { 'goals-for': 1, 'goals-against': 0 } },
+          ],
+        },
+        {
+          matchId: '018f5b3a-9e33-7c40-8f21-1a2b3c4d5e23',
+          fixtureId: '018f5b3a-9e00-7c40-8f21-1a2b3c4d5e20',
+          winnerEntrantId: 'alfa',
+          sides: [
+            { entrantId: 'alfa', statistics: { 'goals-for': 2, 'goals-against': 1 } },
+            { entrantId: 'bravo', statistics: { 'goals-for': 1, 'goals-against': 2 } },
+          ],
+        },
+      ];
+      const declaration = { span: 3, resolutionClass: 'best-of' as const };
+
+      const seriesGrain = computeAccounting(football, ['alfa', 'bravo'], distanceOutcomes, undefined, {
+        seriesDeclaration: { ...declaration, standingsAccounting: 'series' },
+      });
+      const matchGrain = computeAccounting(football, ['alfa', 'bravo'], distanceOutcomes, undefined, {
+        seriesDeclaration: { ...declaration, standingsAccounting: 'match' },
+      });
+
+      const seriesAlfa = seriesGrain.find((a) => a.entrantId === 'alfa');
+      const matchAlfa = matchGrain.find((a) => a.entrantId === 'alfa');
+
+      expect(seriesAlfa?.statistics.played).toBe(1);
+      expect(matchAlfa?.statistics.played).toBe(3);
+
+      for (const row of [...seriesGrain, ...matchGrain]) {
+        expect(row.statistics.played).toBe(
+          (row.statistics.wins ?? 0) + (row.statistics.draws ?? 0) + (row.statistics.losses ?? 0),
+        );
+      }
+
+      // A non-count aggregation (goals-for is `sum`) folds every played match
+      // under either grain — a goal scored in game two was scored whatever
+      // the row is counted in.
+      expect(seriesAlfa?.statistics['goals-for']).toBe(matchAlfa?.statistics['goals-for']);
+      expect(seriesAlfa?.statistics['goals-for']).toBe(3);
+    });
+
+    it('folds a drawn series when finished-unresolved with series grain', () => {
+      const drawnOutcomes: RecordedOutcome[] = [
+        {
+          matchId: '018f5b3a-9d11-7c40-8f21-1a2b3c4d5e11',
+          fixtureId: '018f5b3a-9d00-7c40-8f21-1a2b3c4d5e10',
+          winnerEntrantId: 'alfa',
+          sides: [
+            { entrantId: 'alfa', statistics: { 'goals-for': 1, 'goals-against': 0 } },
+            { entrantId: 'bravo', statistics: { 'goals-for': 0, 'goals-against': 1 } },
+          ],
+        },
+        {
+          matchId: '018f5b3a-9d22-7c40-8f21-1a2b3c4d5e12',
+          fixtureId: '018f5b3a-9d00-7c40-8f21-1a2b3c4d5e10',
           winnerEntrantId: 'bravo',
           sides: [
             { entrantId: 'alfa', statistics: { 'goals-for': 0, 'goals-against': 1 } },
@@ -484,11 +614,58 @@ describe('computeStandings', () => {
       const alfa = accounting.find((a) => a.entrantId === 'alfa');
       const bravo = accounting.find((a) => a.entrantId === 'bravo');
 
-      // Both drew the series (1 pt each, 1 draw each)
+      // Both drew the series (1 pt each, 1 draw each, played reads 1 series each)
       expect(alfa?.statistics.draws).toBe(1);
       expect(alfa?.statistics.points).toBe(1);
+      expect(alfa?.statistics.played).toBe(1);
       expect(bravo?.statistics.draws).toBe(1);
       expect(bravo?.statistics.points).toBe(1);
+      expect(bravo?.statistics.played).toBe(1);
+    });
+
+    it('names the deciding series in the trace of every row it decided', () => {
+      const standings = computeStandings(
+        football,
+        ['alfa', 'bravo'],
+        seriesOutcomes,
+        { ...pipeline, parameters: pointsOnly() },
+        undefined,
+        { seriesDeclaration: { span: 3, resolutionClass: 'best-of', standingsAccounting: 'series' } },
+      );
+
+      const alfaTrace = traceForEntrant(standings.trace, 'alfa');
+      const bravoTrace = traceForEntrant(standings.trace, 'bravo');
+
+      // Exactly one series decided this fixture, so exactly one named result
+      // per row — matching the "played: 1" this test's sibling already
+      // asserts, per standings-explainability's own reconciliation scenario.
+      const aggregationNodes = (nodes: typeof alfaTrace) =>
+        nodes.filter((node) => node.kind === 'aggregation');
+      expect(aggregationNodes(alfaTrace)).toHaveLength(1);
+      expect(aggregationNodes(bravoTrace)).toHaveLength(1);
+
+      const alfaNode = aggregationNodes(alfaTrace)[0];
+      const bravoNode = aggregationNodes(bravoTrace)[0];
+      // Both rows point at the same fixture's decision, verbatim — never two
+      // separately composed explanations of the one series.
+      expect(alfaNode).toEqual(bravoNode);
+      expect(alfaNode?.values).toMatchObject({ alfa: 'won', bravo: 'lost' });
+      expect(alfaNode?.detail).toEqual(expect.any(String));
+      expect(alfaNode?.detail?.length).toBeGreaterThan(0);
+    });
+
+    it('reports match grain and no series trace when standingsAccounting is match', () => {
+      const standings = computeStandings(
+        football,
+        ['alfa', 'bravo'],
+        seriesOutcomes,
+        { ...pipeline, parameters: pointsOnly() },
+        undefined,
+        { seriesDeclaration: { span: 3, resolutionClass: 'best-of', standingsAccounting: 'match' } },
+      );
+
+      expect(standings.grain).toBe('match');
+      expect(standings.trace.some((node) => node.kind === 'aggregation')).toBe(false);
     });
   });
 });

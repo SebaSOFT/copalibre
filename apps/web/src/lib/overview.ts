@@ -47,6 +47,8 @@ export interface OverviewModel {
   readonly seasonName?: string;
   readonly matches: readonly OverviewMatch[];
   readonly standings: readonly StandingsRowView[];
+  /** Absent when the previewed stage declares no series at all. */
+  readonly standingsGrain?: 'series' | 'match';
   readonly clubs?: readonly ClubView[];
   readonly ruleset: readonly { readonly label: string; readonly value: string }[];
   readonly canonicalPath: string;
@@ -60,6 +62,7 @@ export interface OverviewInput extends RouteInput {
   readonly seasonName?: string;
   readonly matches: readonly OverviewMatch[];
   readonly standings: readonly StandingsRowView[];
+  readonly standingsGrain?: 'series' | 'match';
   readonly clubs?: readonly ClubView[];
   readonly ruleset: readonly { readonly label: string; readonly value: string }[];
 }
@@ -71,6 +74,7 @@ export function buildOverview(input: OverviewInput): OverviewModel {
     ...(input.seasonName === undefined ? {} : { seasonName: input.seasonName }),
     matches: input.matches,
     standings: input.standings,
+    ...(input.standingsGrain === undefined ? {} : { standingsGrain: input.standingsGrain }),
     ...(input.clubs === undefined ? {} : { clubs: input.clubs }),
     ruleset: input.ruleset,
     canonicalPath: publicPath(input),

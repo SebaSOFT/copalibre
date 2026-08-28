@@ -146,6 +146,7 @@ export function mapOverviewResponse(response: PublicOverviewResponse): OverviewI
       played: s.statistics['played'] ?? 0,
       points: s.statistics['points'] ?? 0,
     })),
+    ...(response.standingsGrain === undefined ? {} : { standingsGrain: response.standingsGrain }),
     clubs: response.clubs?.map((c) => ({
       clubId: c.clubId,
       name: c.name,

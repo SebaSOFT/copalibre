@@ -67,10 +67,23 @@ export function StandingsPage({
   const [sort, setSort] = useState<ActiveSort | undefined>(undefined);
 
   const tabs = tableLayoutTabs(layouts, intl.locale);
-  const columns = useMemo(
-    () => (projection ? tableColumns(projection.columns, intl.locale) : []),
-    [projection, intl.locale],
-  );
+  const columns = useMemo(() => {
+    if (!projection) return [];
+    const base = tableColumns(projection.columns, intl.locale);
+    // The one column the declared grain changes the unit of — relabelled only
+    // under series grain; match grain keeps the discipline's own wording,
+    // which already reads as counting matches by convention.
+    if (projection.grain !== 'series' || projection.countColumnCode === undefined) return base;
+    return base.map((column) =>
+      column.code === projection.countColumnCode
+        ? {
+            ...column,
+            label: intl.formatMessage(messages.standingsColumnSeriesLabel),
+            shortLabel: intl.formatMessage(messages.standingsColumnSeriesShortLabel),
+          }
+        : column,
+    );
+  }, [projection, intl]);
   const rows = projection ? sortRows(projection.rows, sort) : [];
   const nameColumnCode = projection?.columns.find((column) =>
     ['entrant-name', 'actor-name'].includes(column.code),
@@ -217,6 +230,16 @@ export function StandingsPage({
 
       {projection && (
         <>
+          {projection.grain !== undefined && (
+            <p className="cl-form-field__help" data-testid="standings-grain-statement">
+              <FormattedMessage
+                {...(projection.grain === 'series'
+                  ? messages.standingsGrainSeries
+                  : messages.standingsGrainMatch)}
+              />
+            </p>
+          )}
+
           <PointsDistribution bars={bars} />
 
           {onExportCsv && (

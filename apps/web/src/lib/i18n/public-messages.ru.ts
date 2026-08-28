@@ -32,6 +32,10 @@ export const messages: Record<string, string> = {
   'publicWeb.standings.team': 'Команда',
   'publicWeb.standings.played': 'И',
   'publicWeb.standings.points': 'Очки',
+  'publicWeb.standings.grain.series': 'Эта таблица засчитывает один результат за серию.',
+  'publicWeb.standings.grain.match': 'Эта таблица засчитывает один результат за сыгранный матч.',
+  'publicWeb.standings.column.series.label': 'Серии',
+  'publicWeb.standings.column.series.shortLabel': 'С',
 
   'publicWeb.hero.liveCount': '{count} В ЭФИРЕ',
   'publicWeb.hero.noLiveMatches': 'НЕТ МАТЧЕЙ В ЭФИРЕ',

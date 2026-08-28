@@ -6,6 +6,8 @@ import type {
   RecordedOutcome,
   StatisticDefinition,
   SeriesDeclaration,
+  SeriesAccountingGrain,
+  SeriesTraceNode,
 } from '@copalibre/domain';
 import { resolveSeries } from '@copalibre/domain';
 
@@ -58,6 +60,12 @@ export interface Standings {
   /** The pipeline's trace, verbatim. Never a bare ranking number. */
   readonly trace: readonly TraceNode[];
   readonly fullyResolved: boolean;
+  /**
+   * The grain this calculation actually accounted in. `match` whenever the
+   * stage's series declares no grain — never left unstated, per
+   * `match-series`' "neither SHALL be assumed" requirement.
+   */
+  readonly grain: SeriesAccountingGrain;
 }
 
 interface StatisticAccumulator {
@@ -69,6 +77,127 @@ interface StatisticAccumulator {
 
 interface EntrantAccumulator {
   stats: Record<string, StatisticAccumulator>;
+}
+
+/**
+ * Groups outcomes by the fixture they belong to. Membership is carried
+ * explicitly on the outcome — a persisted match id is an opaque UUIDv7 and
+ * cannot be parsed back into the fixture it settles. Shared by the accounting
+ * fold below and by `seriesAccountingTrace`, so the two never disagree about
+ * which outcomes make up one series.
+ */
+function groupOutcomesByFixture(
+  outcomes: readonly RecordedOutcome[],
+): ReadonlyMap<string, readonly RecordedOutcome[]> {
+  const fixtures = new Map<string, RecordedOutcome[]>();
+  for (const outcome of outcomes) {
+    const fixtureId = outcome.fixtureId ?? outcome.matchId;
+    const existing = fixtures.get(fixtureId) ?? [];
+    existing.push(outcome);
+    fixtures.set(fixtureId, existing);
+  }
+  return fixtures;
+}
+
+/** A fixture's outcomes reshaped into the games `resolveSeries` reads. */
+function seriesMatchesOf(fixtureOutcomes: readonly RecordedOutcome[]): Parameters<
+  typeof resolveSeries
+>[0]['matches'] {
+  return fixtureOutcomes.map((out, idx) => {
+    const matchNumberMatch = out.matchId.match(/-([0-9]+)$/);
+    const number = matchNumberMatch && matchNumberMatch[1] ? Number(matchNumberMatch[1]) : idx + 1;
+    return {
+      number,
+      status: 'finalized' as const,
+      result: {
+        winnerEntrantId: out.winnerEntrantId,
+        sides: out.sides.map((s) => ({ entrantId: s.entrantId, statistics: s.statistics })),
+        recordedAt: '',
+      },
+    };
+  });
+}
+
+/**
+ * A `SeriesTraceNode` (the domain's own vocabulary) reshaped into a
+ * `TraceNode` (the rules engine's), so a series-resolution trace can sit
+ * inside `Standings.trace` beside the tiebreak pipeline's own nodes. Every
+ * field but `kind` carries over unchanged — `lineOf` never renders `kind` — so
+ * the rendered text stays the engine's own. `kind: 'series'` has no
+ * `TraceNode` counterpart and becomes `'aggregation'`, the closest existing
+ * vocabulary entry for "a fold decided something."
+ */
+function toTraceNode(node: SeriesTraceNode): TraceNode {
+  const kind: TraceNode['kind'] = node.kind === 'series' ? 'aggregation' : node.kind;
+  return {
+    kind,
+    id: node.id,
+    label: node.label,
+    outcome: node.outcome,
+    ...(node.values === undefined ? {} : { values: node.values }),
+    ...(node.detail === undefined ? {} : { detail: node.detail }),
+    ...(node.children === undefined ? {} : { children: node.children.map(toTraceNode) }),
+  };
+}
+
+/**
+ * The series-resolution trace for every fixture of a series-grain stage, one
+ * node per fixture, `values` naming the entrants it settled so
+ * `traceForEntrant` (`@copalibre/rules`) surfaces it on both rows a decided
+ * or drawn series touches.
+ *
+ * Re-derives `resolveSeries`'s own decision per fixture rather than having
+ * `computeAccounting` thread it out: the accounting fold and this trace are
+ * both deterministic functions of the same outcomes and declaration, so
+ * re-deriving cannot disagree with the fold, and a caller that only wants
+ * accounting numbers (`zones-groups.controller.ts`'s promotion preview) pays
+ * nothing for a trace it never asked for.
+ */
+function seriesAccountingTrace(
+  outcomes: readonly RecordedOutcome[],
+  seriesDeclaration: SeriesDeclaration,
+  points: PointsRules,
+): readonly TraceNode[] {
+  const fixtures = groupOutcomesByFixture(outcomes);
+  const nodes: TraceNode[] = [];
+
+  for (const [fixtureId, fixtureOutcomes] of fixtures) {
+    const first = fixtureOutcomes[0];
+    if (!first || first.sides.length < 2 || !first.sides[0] || !first.sides[1]) continue;
+    const sides: readonly [string, string] = [first.sides[0].entrantId, first.sides[1].entrantId];
+
+    const seriesResult = resolveSeries({
+      declaration: seriesDeclaration,
+      sides,
+      matches: seriesMatchesOf(fixtureOutcomes),
+      pointsRules: points,
+    });
+
+    if (seriesResult.status !== 'decided' && seriesResult.status !== 'finished-unresolved') {
+      continue;
+    }
+
+    const loser = sides.find((side) => side !== seriesResult.winnerEntrantId);
+    const values: Record<string, unknown> =
+      seriesResult.status === 'decided' && seriesResult.winnerEntrantId
+        ? {
+            [seriesResult.winnerEntrantId]: 'won',
+            ...(loser === undefined ? {} : { [loser]: 'lost' }),
+          }
+        : { [sides[0]]: 'drawn', [sides[1]]: 'drawn' };
+
+    nodes.push({
+      kind: 'aggregation',
+      id: fixtureId,
+      label: `Series ${fixtureId}`,
+      outcome: seriesResult.status,
+      values,
+      detail: seriesResult.explanation,
+      children: seriesResult.trace.map(toTraceNode),
+    });
+  }
+
+  return nodes;
 }
 
 /**
@@ -94,21 +223,28 @@ export function computeAccounting(
   const isSeriesGrain = seriesDec?.standingsAccounting === 'series';
 
   if (isSeriesGrain && seriesDec) {
-    // Group outcomes by fixture ID
-    const fixtures = new Map<string, RecordedOutcome[]>();
-    for (const outcome of outcomes) {
-      const fixtureId = outcome.matchId.replace(/-[0-9]+$/, '');
-      const existing = fixtures.get(fixtureId) ?? [];
-      existing.push(outcome);
-      fixtures.set(fixtureId, existing);
-    }
+    const fixtures = groupOutcomesByFixture(outcomes);
+
+    const foldSeriesCount = (entrantId: string): void => {
+      const acc = accumulators.get(entrantId);
+      if (!acc) return;
+      for (const stat of descriptor.statistics) {
+        if (stat.aggregation !== 'count') continue;
+        const statAcc = acc.stats[stat.code];
+        if (!statAcc) continue;
+        statAcc.count += 1;
+      }
+    };
 
     for (const [, fixtureOutcomes] of fixtures) {
       const first = fixtureOutcomes[0];
       if (!first || first.sides.length < 2 || !first.sides[0] || !first.sides[1]) continue;
       const sides: readonly [string, string] = [first.sides[0].entrantId, first.sides[1].entrantId];
 
-      // Fold non-derived raw statistics and counts for every played match
+      // Fold every played match's non-count statistics: a goal scored in game
+      // two was scored whatever the standings row is counted in. A
+      // `count`-aggregated statistic folds once for the series as a whole,
+      // below, once it is known to have resolved.
       for (const outcome of fixtureOutcomes) {
         for (const side of outcome.sides) {
           const acc = accumulators.get(side.entrantId);
@@ -118,17 +254,15 @@ export function computeAccounting(
               stat.code === DERIVABLE_STATISTICS.wins ||
               stat.code === DERIVABLE_STATISTICS.losses ||
               stat.code === DERIVABLE_STATISTICS.draws ||
-              stat.code === DERIVABLE_STATISTICS.points
+              stat.code === DERIVABLE_STATISTICS.points ||
+              stat.aggregation === 'count'
             ) {
               continue;
             }
             const statAcc = acc.stats[stat.code];
             if (!statAcc) continue;
             const value = side.statistics[stat.code];
-            if (typeof value !== 'number') {
-              if (stat.aggregation === 'count') statAcc.count += 1;
-              continue;
-            }
+            if (typeof value !== 'number') continue;
             statAcc.sum += value;
             statAcc.count += 1;
             statAcc.max = Math.max(statAcc.max, value);
@@ -138,20 +272,7 @@ export function computeAccounting(
       }
 
       // Fold 1 series outcome
-      const seriesMatches = fixtureOutcomes.map((out, idx) => {
-        const matchNumberMatch = out.matchId.match(/-([0-9]+)$/);
-        const number =
-          matchNumberMatch && matchNumberMatch[1] ? Number(matchNumberMatch[1]) : idx + 1;
-        return {
-          number,
-          status: 'finalized' as const,
-          result: {
-            winnerEntrantId: out.winnerEntrantId,
-            sides: out.sides.map((s) => ({ entrantId: s.entrantId, statistics: s.statistics })),
-            recordedAt: '',
-          },
-        };
-      });
+      const seriesMatches = seriesMatchesOf(fixtureOutcomes);
 
       const seriesResult = resolveSeries({
         declaration: seriesDec,
@@ -176,6 +297,8 @@ export function computeAccounting(
             addDerivedStat(loseAcc, descriptor, DERIVABLE_STATISTICS.points, points.loss);
           }
         }
+        foldSeriesCount(winner);
+        if (loser) foldSeriesCount(loser);
       } else if (seriesResult.status === 'finished-unresolved') {
         for (const sideId of sides) {
           const drawAcc = accumulators.get(sideId);
@@ -183,6 +306,7 @@ export function computeAccounting(
             addDerivedStat(drawAcc, descriptor, DERIVABLE_STATISTICS.draws, 1);
             addDerivedStat(drawAcc, descriptor, DERIVABLE_STATISTICS.points, points.draw);
           }
+          foldSeriesCount(sideId);
         }
       }
     }
@@ -320,8 +444,12 @@ export function computeStandings(
   outcomes: readonly RecordedOutcome[],
   pipeline: TiebreakPipeline,
   points: PointsRules = DEFAULT_POINTS,
+  options?: { readonly seriesDeclaration?: SeriesDeclaration },
 ): Standings {
-  const accounting = computeAccounting(descriptor, entrantIds, outcomes, points);
+  const accounting = computeAccounting(descriptor, entrantIds, outcomes, points, options);
+  const seriesDeclaration = options?.seriesDeclaration;
+  const grain: SeriesAccountingGrain =
+    seriesDeclaration?.standingsAccounting === 'series' ? 'series' : 'match';
   const byId = new Map(accounting.map((row) => [row.entrantId, row]));
   const resolution = resolveTiebreak(pipeline, entrantIds, toEntrantValues(accounting));
 
@@ -336,7 +464,15 @@ export function computeStandings(
     rank += group.length;
   }
 
-  return { rows, trace: resolution.trace, fullyResolved: resolution.fullyResolved };
+  // Series trace nodes lead the comparator pipeline's own — an entrant's row
+  // explains what decided its result before it explains how a tie among
+  // several such results was broken.
+  const trace =
+    grain === 'series' && seriesDeclaration
+      ? [...seriesAccountingTrace(outcomes, seriesDeclaration, points), ...resolution.trace]
+      : resolution.trace;
+
+  return { rows, trace, fullyResolved: resolution.fullyResolved, grain };
 }
 
 /**

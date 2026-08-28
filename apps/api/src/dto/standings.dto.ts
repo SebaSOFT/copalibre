@@ -53,6 +53,15 @@ export class StandingsResponse {
     example: ['Rule 1 (Puntos): a=13, b=13 → Tie not fully resolved by Puntos'],
   })
   trace!: string[];
+
+  @ApiPropertyOptional({
+    description:
+      'Whether these rows count one result per series or one per played match. Absent when the ' +
+      'stage declares no series at all — there is only one unit a single-match stage can be ' +
+      'counted in.',
+    enum: ['series', 'match'],
+  })
+  grain?: 'series' | 'match';
 }
 
 export class TiebreakTraceResponse {

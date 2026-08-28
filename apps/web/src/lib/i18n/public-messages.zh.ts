@@ -32,6 +32,10 @@ export const messages: Record<string, string> = {
   'publicWeb.standings.team': '队伍',
   'publicWeb.standings.played': '场次',
   'publicWeb.standings.points': '积分',
+  'publicWeb.standings.grain.series': '此表按每个系列赛计一个结果。',
+  'publicWeb.standings.grain.match': '此表按每场已赛比赛计一个结果。',
+  'publicWeb.standings.column.series.label': '系列赛',
+  'publicWeb.standings.column.series.shortLabel': '系',
 
   'publicWeb.hero.liveCount': '{count} 场进行中',
   'publicWeb.hero.noLiveMatches': '当前没有进行中的比赛',

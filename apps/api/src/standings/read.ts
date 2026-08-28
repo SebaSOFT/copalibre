@@ -12,6 +12,7 @@ import { traceForEntrant, traceLines } from '@copalibre/rules';
 import type { TraceNode } from '@copalibre/rules';
 import { computeStandings } from '@copalibre/tournament-engine';
 import { standingsPipeline } from './pipeline.js';
+import { readStageSeries } from '../controllers/stage-series.js';
 
 /**
  * Returns the standings for a stage, materialised or live-calculated.
@@ -53,6 +54,13 @@ export async function readStandings(
   const version = await new ProjectionStore(db).versionOf('standings', stageId);
   const projectionVersion = version?.version ?? 0;
 
+  // Resolved once, regardless of which branch below reads it: a stage
+  // declaring no series states no grain at all, on either path.
+  const seriesDeclaration = await readStageSeries(db, {
+    tournamentId: tournament.tournamentId,
+    stageId,
+  });
+
   if (stored) {
     return {
       stageId,
@@ -61,6 +69,10 @@ export async function readStandings(
       rows: stored.rows.map(toStoredRowResponse),
       trace: storedTraceLines(stored.trace),
       rawTrace: stored.trace,
+      // A materialised snapshot predates this grain and was always computed
+      // at match grain; snapshots are returned verbatim, never reinterpreted,
+      // reported only for a stage whose series declaration exists today.
+      ...(seriesDeclaration === undefined ? {} : { grain: 'match' as const }),
     };
   }
 
@@ -82,6 +94,8 @@ export async function readStandings(
     record.entrantIds,
     record.outcomes,
     standingsPipeline(descriptor, record.overrides),
+    undefined,
+    { seriesDeclaration },
   );
 
   return {
@@ -97,6 +111,7 @@ export async function readStandings(
     })),
     trace: traceLines(standings.trace).map((line) => line),
     rawTrace: standings.trace,
+    ...(seriesDeclaration === undefined ? {} : { grain: standings.grain }),
   };
 }
 

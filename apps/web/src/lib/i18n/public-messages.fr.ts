@@ -32,6 +32,10 @@ export const messages: Record<string, string> = {
   'publicWeb.standings.team': 'Équipe',
   'publicWeb.standings.played': 'MJ',
   'publicWeb.standings.points': 'Pts',
+  'publicWeb.standings.grain.series': 'Ce tableau compte un résultat par série.',
+  'publicWeb.standings.grain.match': 'Ce tableau compte un résultat par match joué.',
+  'publicWeb.standings.column.series.label': 'Séries',
+  'publicWeb.standings.column.series.shortLabel': 'S',
 
   'publicWeb.hero.liveCount': '{count} EN DIRECT',
   'publicWeb.hero.noLiveMatches': 'AUCUN MATCH EN DIRECT',

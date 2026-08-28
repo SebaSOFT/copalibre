@@ -119,4 +119,20 @@ export class TableProjectionResponse {
       'Freshest `statistic-totals` projection version among this scope’s matches; 0 when none has been folded yet',
   })
   projectionVersion!: number;
+
+  @ApiPropertyOptional({
+    description:
+      'Whether a team-granularity, stage-scoped column counts one result per series or one per ' +
+      'played match. Absent for a tournament-scoped or non-team layout, or a stage declaring no ' +
+      'series at all.',
+    enum: ['series', 'match'],
+  })
+  grain?: 'series' | 'match';
+
+  @ApiPropertyOptional({
+    description:
+      'The `code` of this layout’s column whose value is a `count`-aggregated statistic — the one ' +
+      'column `grain` changes the unit of. Present only alongside `grain`.',
+  })
+  countColumnCode?: string;
 }

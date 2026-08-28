@@ -316,6 +316,18 @@ jobs:
       # through its existing catalog comparison, so it needs no new step.
       - run: yarn workspace @copalibre/web test --testPathPatterns 'schedule-series|offline-queue|live-surfaces'
       - run: yarn workspace @copalibre/api test --testPathPatterns 'stage-series'
+      # Series accounting grain: the fixture-grouping fix that replaces the
+      # id-munging heuristic, the count-fold rule under series vs. match
+      # grain, and the series' own resolution trace folded into a row's
+      # explanation — named separately so a reviewer scanning the job log
+      # finds this capability's own signal directly. The wizard/standings-
+      # surface coverage lives alongside 0159's own tests in the same files
+      # rather than a new one, so this pattern names those files directly.
+      # The locale parity check in enterprise-readiness-doc-lint already
+      # covers the new strings through its existing catalog comparison, so
+      # it needs no new step.
+      - run: yarn workspace @copalibre/tournament-engine test --testPathPatterns 'standings'
+      - run: yarn workspace @copalibre/web test --testPathPatterns 'authoring\.test|authoring-ui\.test|StandingsPage\.test|overview\.test|public-api-client\.test'
       # Contextual control-panel help links: every screen's helpPath
       # resolves to a real Starlight page, named separately so a reviewer
       # finds this capability's own signal directly.
@@ -594,6 +606,13 @@ jobs:
       # with colour forced off.
       - name: Series operations and surfaces (E2E)
         run: yarn test:e2e -- e2e/control-series-schedule.spec.ts e2e/public-series-surfaces.spec.ts
+      # Series accounting grain: the public standings preview and the live
+      # page's leaders table both name the grain in server-rendered HTML —
+      # one run of each with JavaScript disabled proves the statement never
+      # depended on it — and a single-match tournament's preview is
+      # unchanged. Named separately so a failure says so directly.
+      - name: Series accounting grain (E2E)
+        run: yarn test:e2e -- e2e/public-accounting-grain.spec.ts
       # Accelerated TV soak-test proxy. design.md describes
       # the per-PR-eligible proxy as a 2-hour run; a literal 2 hours on every
       # PR would be a severe, ongoing CI-turnaround regression this repo does
@@ -766,6 +785,14 @@ jobs:
       # pattern above so a failure says which half broke — the engine 0158 built
       # or the surfaces 0159 wired onto it.
       - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'series-operations'
+      # Series accounting grain, through the real read path: a series-grain
+      # decision accounted as one result per side, a match-grain declaration
+      # accounting every played game with the unplayed one contributing
+      # nothing, an undeclared-series stage reporting no grain at all, and a
+      # materialised snapshot returned verbatim rather than recomputed —
+      # named separately so a reviewer finds this capability's own signal
+      # directly.
+      - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'accounting-grain'
       # Live-cadence statistics: a collector declaring `live` updates
       # inside `recordEvent`'s own transaction, before the match ends; a
       # default-cadence collector's total stays absent until finalize — named

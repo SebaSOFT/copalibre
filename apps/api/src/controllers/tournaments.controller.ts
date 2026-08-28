@@ -303,6 +303,9 @@ export class TournamentsController {
                   ...(body.series.neutralGround === undefined
                     ? {}
                     : { 'series.neutralGround': body.series.neutralGround }),
+                  ...(body.series.standingsAccounting === undefined
+                    ? {}
+                    : { 'series.standingsAccounting': body.series.standingsAccounting }),
                 }),
           },
           customScripts,

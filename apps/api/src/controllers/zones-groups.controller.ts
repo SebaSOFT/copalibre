@@ -72,6 +72,7 @@ import {
 } from '../dto/zones-groups.dto.js';
 import { resolveTournament } from './standings.controller.js';
 import { standingsPipeline } from '../standings/pipeline.js';
+import { readStageSeries } from './stage-series.js';
 
 @ApiTags('zones and groups')
 @Controller('organizations/:organizationAlias/tournaments/:tournamentAlias/stages/:stageNumber')
@@ -461,6 +462,7 @@ export class ZonesGroupsController {
 
     try {
       return await this.computePromotionPreview(
+        context.tournamentId,
         context.tournament,
         context.stage.stageId,
         zone,
@@ -504,6 +506,7 @@ export class ZonesGroupsController {
         if (!zone) return undefined;
         try {
           const preview = await this.computePromotionPreview(
+            context.tournamentId,
             context.tournament,
             zone.stageId,
             zone,
@@ -534,6 +537,7 @@ export class ZonesGroupsController {
    * in the URL for the former but resolved per-zone for the latter.
    */
   private async computePromotionPreview(
+    tournamentId: string,
     tournament: { readonly disciplineRef: { descriptorId: string; version: string } },
     sourceStageId: string,
     zone: { readonly zoneId: string; readonly number: number },
@@ -564,10 +568,13 @@ export class ZonesGroupsController {
         errorCode: 'zone-group-not-found',
       });
     }
+    const seriesDeclaration = await readStageSeries(this.db, { tournamentId, stageId: sourceStageId });
     const groupAccountings = new Map(
       groupRecords.map((entry) => [
         entry.group.groupId,
-        computeAccounting(descriptor, entry.record.entrantIds, entry.record.outcomes),
+        computeAccounting(descriptor, entry.record.entrantIds, entry.record.outcomes, undefined, {
+          seriesDeclaration,
+        }),
       ]),
     );
     const groupNumbers = new Map(

@@ -957,6 +957,20 @@ export const messages = defineMessages({
     id: 'control.wizard.field.seriesNeutralGround',
     defaultMessage: 'Played on neutral ground (no home and away)',
   },
+  wizardFieldSeriesStandingsAccounting: {
+    id: 'control.wizard.field.seriesStandingsAccounting',
+    defaultMessage: 'Counts towards standings as',
+  },
+  wizardSeriesAccountingMatch: {
+    id: 'control.wizard.series.accounting.match',
+    defaultMessage:
+      'One result per match — every game in the series adds its own win, draw or loss to the standings table',
+  },
+  wizardSeriesAccountingSeries: {
+    id: 'control.wizard.series.accounting.series',
+    defaultMessage:
+      'One result per series — the whole series adds a single win, draw or loss to the standings table, however many games it took',
+  },
   wizardEnableCustomRule: {
     id: 'control.wizard.rule.enable',
     defaultMessage: 'Add rule for every recorded event',
@@ -1073,6 +1087,22 @@ export const messages = defineMessages({
     defaultMessage: 'This discipline declares no tables for this tournament.',
   },
   standingsGroupSelector: { id: 'control.standings.groupSelector', defaultMessage: 'Group' },
+  standingsGrainSeries: {
+    id: 'control.standings.grain.series',
+    defaultMessage: 'This table counts one result per series.',
+  },
+  standingsGrainMatch: {
+    id: 'control.standings.grain.match',
+    defaultMessage: 'This table counts one result per played match.',
+  },
+  standingsColumnSeriesLabel: {
+    id: 'control.standings.column.series.label',
+    defaultMessage: 'Series',
+  },
+  standingsColumnSeriesShortLabel: {
+    id: 'control.standings.column.series.shortLabel',
+    defaultMessage: 'S',
+  },
 
   // Zone/Group management, entrant assignment, and promotion plans.
   zoneGroupLoading: { id: 'control.zoneGroup.loading', defaultMessage: 'Loading…' },
