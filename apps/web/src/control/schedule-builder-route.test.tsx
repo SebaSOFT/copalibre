@@ -195,7 +195,7 @@ describe('ScheduleBuilderRoute', () => {
     );
 
     await screen.findAllByText(/Round 1/);
-    fireEvent.change(screen.getByLabelText(/Start time — fixture-1/), {
+    fireEvent.change(screen.getByLabelText(/Start time — entrant-a vs entrant-b/), {
       target: { value: 'slot-1' },
     });
 
@@ -243,7 +243,7 @@ describe('ScheduleBuilderRoute', () => {
     );
 
     await screen.findAllByText(/Round 1/);
-    fireEvent.change(screen.getByLabelText(/Start time — fixture-1/), {
+    fireEvent.change(screen.getByLabelText(/Start time — entrant-a vs entrant-b/), {
       target: { value: 'slot-1' },
     });
 
@@ -287,7 +287,7 @@ describe('ScheduleBuilderRoute', () => {
     );
 
     await screen.findAllByText(/Round 1/);
-    fireEvent.change(screen.getByLabelText(/Start time — fixture-1/), {
+    fireEvent.change(screen.getByLabelText(/Start time — entrant-a vs entrant-b/), {
       target: { value: 'slot-1' },
     });
     await act(async () => {
@@ -319,7 +319,7 @@ describe('ScheduleBuilderRoute', () => {
     );
 
     await screen.findAllByText(/Round 1/);
-    fireEvent.change(screen.getByLabelText(/Start time — fixture-1/), {
+    fireEvent.change(screen.getByLabelText(/Start time — entrant-a vs entrant-b/), {
       target: { value: 'slot-1' },
     });
     await act(async () => {
@@ -379,7 +379,7 @@ describe('ScheduleBuilderRoute', () => {
     );
 
     await screen.findAllByText(/Round 1/);
-    fireEvent.change(screen.getByLabelText(/Start time — fixture-1/), {
+    fireEvent.change(screen.getByLabelText(/Start time — entrant-a vs entrant-b/), {
       target: { value: 'slot-1' },
     });
     await act(async () => {
@@ -408,7 +408,7 @@ describe('ScheduleBuilderRoute', () => {
     );
 
     await screen.findAllByText(/Round 1/);
-    fireEvent.change(screen.getByLabelText(/Start time — fixture-1/), {
+    fireEvent.change(screen.getByLabelText(/Start time — entrant-a vs entrant-b/), {
       target: { value: 'slot-1' },
     });
     await act(async () => {
@@ -439,7 +439,7 @@ describe('ScheduleBuilderRoute', () => {
     );
 
     await screen.findAllByText(/Round 1/);
-    fireEvent.change(screen.getByLabelText(/Start time — fixture-1/), {
+    fireEvent.change(screen.getByLabelText(/Start time — entrant-a vs entrant-b/), {
       target: { value: 'slot-1' },
     });
     await act(async () => {

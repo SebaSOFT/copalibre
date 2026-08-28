@@ -53,6 +53,7 @@ import {
 } from '../dto/organization.dto.js';
 import { StageFixturesResponse } from '../dto/schedule.dto.js';
 import { resolveTournament } from './standings.controller.js';
+import { guaranteedMatchCount, readStageSeries, resolveFixtureSeries } from './stage-series.js';
 import { DATABASE } from '../database.token.js';
 
 /**
@@ -321,17 +322,76 @@ export class StagesController {
 
     const fixtures = await competition.listFixturesOfStage(stage.stageId);
     const matches = await competition.listMatchesForStage(stage.stageId);
-    const matchByFixture = new Map(matches.map((m) => [m.fixtureId, m.matchId]));
+    const declaration = await readStageSeries(this.db, {
+      tournamentId: tournament.tournamentId,
+      stageId: stage.stageId,
+    });
+    // Only paid for when a series exists: a stage of single matches anulls nothing, so there is
+    // no released slot to look up and no audit scan to run.
+    const releasedSlots =
+      declaration === undefined
+        ? new Map<string, string>()
+        : await competition.listReleasedSlotsOfStage(stage.stageId);
+
+    const matchesByFixture = new Map<string, typeof matches>();
+    for (const match of matches) {
+      matchesByFixture.set(match.fixtureId, [
+        ...(matchesByFixture.get(match.fixtureId) ?? []),
+        match,
+      ]);
+    }
 
     return {
       stageId: stage.stageId,
-      fixtures: fixtures.map((fixture) => ({
-        fixtureId: fixture.fixtureId,
-        matchId: matchByFixture.get(fixture.fixtureId) ?? fixture.fixtureId,
-        round: fixture.round,
-        ...(fixture.homeEntrantId === undefined ? {} : { homeEntrantId: fixture.homeEntrantId }),
-        ...(fixture.awayEntrantId === undefined ? {} : { awayEntrantId: fixture.awayEntrantId }),
-      })),
+      fixtures: fixtures.map((fixture) => {
+        const own = [...(matchesByFixture.get(fixture.fixtureId) ?? [])].sort(
+          (a, b) => a.number - b.number,
+        );
+        const resolution =
+          declaration === undefined
+            ? undefined
+            : resolveFixtureSeries({
+                declaration,
+                homeEntrantId: fixture.homeEntrantId,
+                awayEntrantId: fixture.awayEntrantId,
+                matches: own,
+              });
+
+        return {
+          fixtureId: fixture.fixtureId,
+          matchId: own[0]?.matchId ?? fixture.fixtureId,
+          round: fixture.round,
+          ...(fixture.homeEntrantId === undefined ? {} : { homeEntrantId: fixture.homeEntrantId }),
+          ...(fixture.awayEntrantId === undefined ? {} : { awayEntrantId: fixture.awayEntrantId }),
+          matches: own.map((match) => {
+            const releasedSlotId = releasedSlots.get(match.matchId);
+            return {
+              matchId: match.matchId,
+              number: match.number,
+              status: match.status,
+              ...(releasedSlotId === undefined ? {} : { releasedSlotId }),
+            };
+          }),
+          ...(declaration === undefined
+            ? {}
+            : {
+                series: {
+                  span: declaration.span,
+                  ...(declaration.resolutionClass === undefined
+                    ? {}
+                    : { resolutionClass: declaration.resolutionClass }),
+                  guaranteedMatches: guaranteedMatchCount(declaration),
+                  matchesPlayed: resolution?.matchesPlayed ?? 0,
+                  anulledMatchNumbers: [...(resolution?.anulledMatchNumbers ?? [])],
+                  ...(resolution === undefined ? {} : { status: resolution.status }),
+                  ...(resolution === undefined ? {} : { explanation: resolution.explanation }),
+                  ...(resolution?.winnerEntrantId === undefined
+                    ? {}
+                    : { winnerEntrantId: resolution.winnerEntrantId }),
+                },
+              }),
+        };
+      }),
     };
   }
 

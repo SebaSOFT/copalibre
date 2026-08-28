@@ -1722,6 +1722,46 @@ export const messages = defineMessages({
     defaultMessage: 'Venue',
   },
 
+  // A series in the builder. Every contingency is stated in words: which game will be
+  // played, which only if the series is still alive, and which now will not be. Color
+  // carries none of it.
+  scheduleBuilderSeriesHeading: {
+    id: 'control.scheduleBuilder.seriesHeading',
+    defaultMessage: 'Series of {span} games — {played} played',
+  },
+  scheduleBuilderSeriesGame: {
+    id: 'control.scheduleBuilder.seriesGame',
+    defaultMessage: 'Game {number} of {span}',
+  },
+  scheduleBuilderContingencyCertain: {
+    id: 'control.scheduleBuilder.contingencyCertain',
+    defaultMessage: 'Will be played',
+  },
+  scheduleBuilderContingencyContingent: {
+    id: 'control.scheduleBuilder.contingencyContingent',
+    defaultMessage: 'Played only if the series is still undecided',
+  },
+  scheduleBuilderContingencyNotRequired: {
+    id: 'control.scheduleBuilder.contingencyNotRequired',
+    defaultMessage: 'No longer required — the series is already settled',
+  },
+  scheduleBuilderReleasedSlot: {
+    id: 'control.scheduleBuilder.releasedSlot',
+    defaultMessage: 'Had held {slot}. That slot is free.',
+  },
+  scheduleBuilderReleasedSlotUnknown: {
+    id: 'control.scheduleBuilder.releasedSlotUnknown',
+    defaultMessage: 'Held no slot when the series settled.',
+  },
+  scheduleBuilderPendingReleasesHeading: {
+    id: 'control.scheduleBuilder.pendingReleasesHeading',
+    defaultMessage: 'Slots this series decision would free',
+  },
+  scheduleBuilderPendingRelease: {
+    id: 'control.scheduleBuilder.pendingRelease',
+    defaultMessage: 'Game {number} — {slot}',
+  },
+
   // Organization identity — name and emblem, in the org settings surface.
   orgIdentityHeading: {
     id: 'control.orgIdentity.heading',

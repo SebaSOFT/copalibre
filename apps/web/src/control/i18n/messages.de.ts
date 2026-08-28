@@ -600,6 +600,19 @@ export const messages: Record<string, string> = {
   'control.scheduleBuilder.entrantColumn': 'Teilnehmer',
   'control.scheduleBuilder.timeColumn': 'Zeit',
   'control.scheduleBuilder.venueColumn': 'Austragungsort',
+  'control.scheduleBuilder.seriesHeading': 'Serie über {span} Spiele — {played} gespielt',
+  'control.scheduleBuilder.seriesGame': 'Spiel {number} von {span}',
+  'control.scheduleBuilder.contingencyCertain': 'Wird gespielt',
+  'control.scheduleBuilder.contingencyContingent':
+    'Wird nur gespielt, wenn die Serie noch offen ist',
+  'control.scheduleBuilder.contingencyNotRequired':
+    'Nicht mehr nötig — die Serie ist bereits entschieden',
+  'control.scheduleBuilder.releasedSlot': 'Belegte {slot}. Dieser Termin ist frei.',
+  'control.scheduleBuilder.releasedSlotUnknown':
+    'Belegte keinen Termin, als die Serie entschieden war.',
+  'control.scheduleBuilder.pendingReleasesHeading':
+    'Termine, die diese Serienentscheidung freigeben würde',
+  'control.scheduleBuilder.pendingRelease': 'Spiel {number} — {slot}',
   'control.orgIdentity.heading': 'Organisationsidentität',
   'control.orgIdentity.loading': 'Wird geladen…',
   'control.orgIdentity.loadFailed': 'Organisationseinstellungen konnten nicht geladen werden.',

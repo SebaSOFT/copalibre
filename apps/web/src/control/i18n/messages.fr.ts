@@ -598,6 +598,17 @@ export const messages: Record<string, string> = {
   'control.scheduleBuilder.entrantColumn': 'Participant',
   'control.scheduleBuilder.timeColumn': 'Heure',
   'control.scheduleBuilder.venueColumn': 'Lieu',
+  'control.scheduleBuilder.seriesHeading': 'Série de {span} matchs — {played} joués',
+  'control.scheduleBuilder.seriesGame': 'Match {number} sur {span}',
+  'control.scheduleBuilder.contingencyCertain': 'Sera joué',
+  'control.scheduleBuilder.contingencyContingent': 'Joué seulement si la série reste indécise',
+  'control.scheduleBuilder.contingencyNotRequired': 'Plus nécessaire — la série est déjà décidée',
+  'control.scheduleBuilder.releasedSlot': 'Occupait {slot}. Ce créneau est libre.',
+  'control.scheduleBuilder.releasedSlotUnknown':
+    'N’occupait aucun créneau lorsque la série s’est décidée.',
+  'control.scheduleBuilder.pendingReleasesHeading':
+    'Créneaux que cette décision de série libérerait',
+  'control.scheduleBuilder.pendingRelease': 'Match {number} — {slot}',
   'control.orgIdentity.heading': "Identité de l'organisation",
   'control.orgIdentity.loading': 'Chargement…',
   'control.orgIdentity.loadFailed': 'Impossible de charger les paramètres de l’organisation.',

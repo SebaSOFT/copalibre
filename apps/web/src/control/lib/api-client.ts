@@ -580,12 +580,36 @@ export interface ScheduleResponse {
   readonly assignments: readonly ScheduleAssignmentResponse[];
 }
 
+export interface FixtureMatchResponse {
+  readonly matchId: string;
+  /** 1-based play order within the fixture. */
+  readonly number: number;
+  readonly status: 'scheduled' | 'in-progress' | 'finalized' | 'not-required';
+  /** The slot this match had occupied before a decided series freed it. */
+  readonly releasedSlotId?: string;
+}
+
+export interface FixtureSeriesResponse {
+  readonly span: number;
+  readonly resolutionClass?: SeriesResolutionClass;
+  /** Games that will certainly be played whatever the results; the rest are contingent. */
+  readonly guaranteedMatches: number;
+  readonly status?: 'decided' | 'undecided' | 'finished-unresolved';
+  readonly explanation?: string;
+  readonly winnerEntrantId?: string;
+  readonly matchesPlayed: number;
+  readonly anulledMatchNumbers: readonly number[];
+}
+
 export interface FixtureResponse {
   readonly fixtureId: string;
   readonly matchId: string;
   readonly round: number;
   readonly homeEntrantId?: string;
   readonly awayEntrantId?: string;
+  /** Every match of this fixture in play order; exactly one unless it declares a series. */
+  readonly matches?: readonly FixtureMatchResponse[];
+  readonly series?: FixtureSeriesResponse;
 }
 
 export interface StageFixturesResponse {
@@ -920,9 +944,11 @@ export interface CreateTournamentRequest {
  * Declared here rather than at a stage, because the wizard authors one tournament
  * before any stage exists. It rides the same dot-path override layer server-side.
  */
+export type SeriesResolutionClass = 'best-of' | 'aggregate' | 'points-per-leg';
+
 export interface SeriesDeclaration {
   readonly span: number;
-  readonly resolutionClass?: 'best-of' | 'aggregate' | 'points-per-leg';
+  readonly resolutionClass?: SeriesResolutionClass;
   readonly neutralGround?: boolean;
 }
 

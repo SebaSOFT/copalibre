@@ -3242,12 +3242,61 @@ export interface components {
         SeriesMutationPreviewResponse: {
             fields: components["schemas"]["SeriesMutationFieldPreview"][];
         };
+        FixtureMatchResponse: {
+            /** Format: uuid */
+            matchId: string;
+            /**
+             * @description 1-based play order within the fixture
+             * @example 1
+             */
+            number: number;
+            /**
+             * @description `not-required` is a game a decided series anulled — never played, never deleted
+             * @enum {string}
+             */
+            status: "scheduled" | "in-progress" | "finalized" | "not-required";
+            /**
+             * Format: uuid
+             * @description The slot this match had occupied before a decided series freed it. Present only on an anulled match that held one; the slot itself is free and open to anyone.
+             */
+            releasedSlotId?: string;
+        };
+        FixtureSeriesResponse: {
+            /**
+             * @description Total scheduled matches in the series
+             * @example 5
+             */
+            span: number;
+            /** @enum {string} */
+            resolutionClass?: "best-of" | "aggregate" | "points-per-leg";
+            /**
+             * @description How many games will certainly be played whatever the results — a best-of-five is three; every game beyond this one is contingent on the series still being alive
+             * @example 3
+             */
+            guaranteedMatches: number;
+            /** @enum {string} */
+            status?: "decided" | "undecided" | "finished-unresolved";
+            /** @description Why the series stands where it does, in words */
+            explanation?: string;
+            /**
+             * Format: uuid
+             * @description Side the series has settled on, if any
+             */
+            winnerEntrantId?: string;
+            /**
+             * @description Games of the series finalized so far
+             * @example 3
+             */
+            matchesPlayed: number;
+            /** @description Play-order numbers a decided series no longer requires. A match still `scheduled` here is one whose slot the decision would free but has not freed yet. */
+            anulledMatchNumbers: number[];
+        };
         FixtureResponse: {
             /** Format: uuid */
             fixtureId: string;
             /**
              * Format: uuid
-             * @description Primary match for this fixture
+             * @description First match of this fixture — the only one unless it declares a series
              */
             matchId: string;
             /**
@@ -3259,6 +3308,9 @@ export interface components {
             homeEntrantId?: string;
             /** Format: uuid */
             awayEntrantId?: string;
+            /** @description Every match of this fixture in play order; exactly one unless it is a series */
+            matches: components["schemas"]["FixtureMatchResponse"][];
+            series?: components["schemas"]["FixtureSeriesResponse"];
         };
         StageFixturesResponse: {
             /**

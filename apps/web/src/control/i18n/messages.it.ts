@@ -597,6 +597,17 @@ export const messages: Record<string, string> = {
   'control.scheduleBuilder.entrantColumn': 'Partecipante',
   'control.scheduleBuilder.timeColumn': 'Orario',
   'control.scheduleBuilder.venueColumn': 'Sede',
+  'control.scheduleBuilder.seriesHeading': 'Serie da {span} partite — {played} giocate',
+  'control.scheduleBuilder.seriesGame': 'Partita {number} di {span}',
+  'control.scheduleBuilder.contingencyCertain': 'Sarà giocata',
+  'control.scheduleBuilder.contingencyContingent': 'Si gioca solo se la serie è ancora aperta',
+  'control.scheduleBuilder.contingencyNotRequired': 'Non più necessaria — la serie è già decisa',
+  'control.scheduleBuilder.releasedSlot': 'Occupava {slot}. Quello slot è libero.',
+  'control.scheduleBuilder.releasedSlotUnknown':
+    'Non occupava alcuno slot quando la serie si è decisa.',
+  'control.scheduleBuilder.pendingReleasesHeading':
+    'Slot che questa decisione di serie libererebbe',
+  'control.scheduleBuilder.pendingRelease': 'Partita {number} — {slot}',
   'control.orgIdentity.heading': "Identità dell'organizzazione",
   'control.orgIdentity.loading': 'Caricamento…',
   'control.orgIdentity.loadFailed': "Impossibile caricare le impostazioni dell'organizzazione.",
