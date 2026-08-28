@@ -714,11 +714,20 @@ export class PublicProjectionsController {
     const stage = stages.find((s) => s.number === stageNumber);
     if (!stage) throw new NotFoundException({ errorCode: 'public-projection-not-found' });
 
-    const stageMatchesMapped = await new StageReadModel(this.db).matches(stage.stageId);
+    const readModel = new StageReadModel(this.db);
+    const stageMatchesMapped = await readModel.matches(stage.stageId);
+    const record = await readModel.stageRecord(stage.stageId);
 
+    // Seeded from the stage's own entrants, the same way the control panel's bracket is: the
+    // graph's shape is a function of format plus seed order, and generating from an empty
+    // entrant list produces no graph at all — which is what this endpoint used to return for
+    // every stage, an empty bracket the public web then rendered as an empty page.
     const generated = generateFixtures({
       format: stage.format as Parameters<typeof generateFixtures>[0]['format'],
-      entrants: [],
+      entrants: (record?.entrantIds ?? []).map((entrantId, index) => ({
+        entrantId,
+        seed: index + 1,
+      })),
     });
     if (!generated.ok) {
       return { matches: [] };

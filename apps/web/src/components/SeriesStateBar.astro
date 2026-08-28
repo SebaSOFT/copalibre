@@ -54,13 +54,14 @@ const winnerName = winner === 'home' ? homeName : winner === 'away' ? awayName :
     {
       segments.map((segment, index) => (
         <li
+          aria-label={intl.formatMessage(LABELS[segment], { number: index + 1 })}
           class={`cl-series__segment cl-series__segment--${segment} cl-chamfer`}
           data-state={segment}
+          title={intl.formatMessage(LABELS[segment], { number: index + 1 })}
         >
-          <span aria-hidden="true">{MARKS[segment]}</span>
-          <span class="cl-visually-hidden">
-            {intl.formatMessage(LABELS[segment], { number: index + 1 })}
-          </span>
+          {/* The mark carries the state where the words will not fit, so nothing here
+              depends on a colour; the label carries the same fact in words. */}
+          {MARKS[segment]}
         </li>
       ))
     }

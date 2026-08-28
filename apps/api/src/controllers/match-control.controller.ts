@@ -98,6 +98,7 @@ import {
   previewSeriesCorrection,
   readStageSeries,
   refuseIfAnulledBySeries,
+  resolveFixtureSeries,
   type SeriesCorrectionOutlook,
 } from './stage-series.js';
 import { DATABASE } from '../database.token.js';
@@ -345,6 +346,20 @@ export class MatchControlController {
             },
             ...audit,
           });
+          // In the same transaction as the result that caused it: a series decided by this
+          // finalize anulls the games it no longer needs and releases their slots, and a
+          // record where the result landed but the anulling did not is exactly the incoherent
+          // state the product refuses. `anullSurplusMatches` is 0158's; deciding *when* to
+          // call it is what was missing, and without it every surface downstream of here —
+          // the builder's contingency marks, the public bar, the offline conflict — describes
+          // a state the engine never reaches.
+          await this.anullSurplusOf(uow, {
+            matchId,
+            stageId,
+            tournamentId: tournament.tournamentId,
+            ...audit,
+          });
+
           await idempotency.record(uow, {
             idempotencyKey: idempotencyKey ?? '',
             matchId,
@@ -1846,6 +1861,60 @@ export class MatchControlController {
         errorCode: 'match-control-bad-request',
       });
     return { plan: planned.value, organizationId: tournament.organizationId, granted };
+  }
+
+  /**
+   * Anulls the games a series no longer needs, once the result that decided it is written.
+   *
+   * Reads the fixture's matches through the caller's own transaction, so the result recorded a
+   * moment ago is part of what the resolver sees — resolving against a committed snapshot would
+   * decide the series one game late, every time.
+   *
+   * Does nothing at all for a match belonging to no series, which is very nearly every match.
+   */
+  private async anullSurplusOf(
+    uow: UnitOfWork,
+    input: {
+      readonly matchId: string;
+      readonly stageId: string;
+      readonly tournamentId: string;
+      readonly organizationId: string;
+      readonly actor: string;
+      readonly authorizationContext: string;
+    },
+  ): Promise<void> {
+    const declaration = await readStageSeries(this.db, {
+      tournamentId: input.tournamentId,
+      stageId: input.stageId,
+    });
+    if (declaration === undefined) return;
+
+    const competition = new CompetitionRepository(this.db);
+    const match = await competition.findMatch(input.matchId, uow);
+    if (!match) return;
+
+    const fixtures = await competition.listFixturesOfStage(input.stageId);
+    const fixture = fixtures.find((candidate) => candidate.fixtureId === match.fixtureId);
+    if (!fixture) return;
+
+    const matches = await competition.listMatchesForStage(input.stageId, uow);
+    const resolution = resolveFixtureSeries({
+      declaration,
+      ...(fixture.homeEntrantId === undefined ? {} : { homeEntrantId: fixture.homeEntrantId }),
+      ...(fixture.awayEntrantId === undefined ? {} : { awayEntrantId: fixture.awayEntrantId }),
+      matches: matches
+        .filter((candidate) => candidate.fixtureId === match.fixtureId)
+        .sort((a, b) => a.number - b.number),
+    });
+    if (resolution === undefined || resolution.anulledMatchNumbers.length === 0) return;
+
+    await competition.anullSurplusMatches(uow, {
+      fixtureId: match.fixtureId,
+      anulledMatchNumbers: resolution.anulledMatchNumbers,
+      organizationId: input.organizationId,
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+    });
   }
 
   private async resolveTournament(organizationAlias: string, tournamentAlias: string) {

@@ -1860,8 +1860,9 @@ export class CompetitionRepository {
     return match;
   }
 
-  async findMatch(matchId: string): Promise<Match | undefined> {
-    return this.findMatchIn(this.db, matchId);
+  /** Reads through the caller's transaction when given one, so a write it just made is visible. */
+  async findMatch(matchId: string, uow?: UnitOfWork): Promise<Match | undefined> {
+    return this.findMatchIn(uow?.tx ?? this.db, matchId);
   }
 
   private async findMatchIn(
