@@ -29,6 +29,7 @@ describe('platform administration console', () => {
         calls.push({ url, body: init?.body ? JSON.parse(String(init.body)) : undefined });
         if (url === '/installation/super-admins') return json([]);
         if (url === '/admin/modules') return json([]);
+        if (url === '/disciplines') return json([]);
         if (url === '/organizations') {
           return json(
             {
@@ -63,7 +64,7 @@ describe('platform administration console', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Invite administrator' })),
     );
 
-    expect(calls.slice(2)).toEqual([
+    expect(calls.slice(3)).toEqual([
       {
         url: '/organizations',
         body: {

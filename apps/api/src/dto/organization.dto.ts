@@ -727,6 +727,9 @@ export class DisciplineSummaryResponse {
   @ApiProperty({ format: 'uuid' })
   descriptorId!: string;
 
+  @ApiProperty({ example: 'orbital-frisbee' })
+  alias!: string;
+
   @ApiProperty({ example: '1.2.0' })
   version!: string;
 

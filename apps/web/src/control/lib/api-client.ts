@@ -20,6 +20,18 @@ export interface ControlApiClient {
   readonly installModule?: (request: InstallModuleRequest) => Promise<InstallModuleResponse>;
   readonly removeModule?: (alias: string) => Promise<RemoveModuleResponse>;
   readonly verifyModules?: () => Promise<readonly ModuleVerifyResultResponse[]>;
+  /** Validates an authored discipline/profile document without installing it. */
+  readonly validateAuthoredModule?: (
+    request: AuthoredModuleRequest,
+  ) => Promise<AuthoredModuleValidationResponse>;
+  /** Packages, validates and installs an authored document, exactly as `installModule` would. */
+  readonly installAuthoredModule?: (
+    request: AuthoredModuleRequest,
+  ) => Promise<InstallModuleResponse>;
+  /** Contributes an already-installed authored module upstream. */
+  readonly submitAuthoredModule?: (
+    request: AuthoredModuleSubmitRequest,
+  ) => Promise<AuthoredModuleSubmitResponse>;
   readonly listDisciplines: () => Promise<readonly DisciplineOption[]>;
   readonly listCompatibleProfiles?: (
     descriptorId: string,
@@ -396,6 +408,13 @@ export type InstallModuleRequest = components['schemas']['InstallModuleRequest']
 export type InstallModuleResponse = components['schemas']['InstallModuleResponse'];
 export type RemoveModuleResponse = components['schemas']['RemoveModuleResponse'];
 export type ModuleVerifyResultResponse = components['schemas']['ModuleVerifyResultResponse'];
+export type AuthoredModuleRequest = components['schemas']['AuthoredModuleRequest'];
+export type AuthoredModuleValidationResponse =
+  components['schemas']['AuthoredModuleValidationResponse'];
+export type AuthoredModuleValidationFailureResponse =
+  components['schemas']['AuthoredModuleValidationFailureResponse'];
+export type AuthoredModuleSubmitRequest = components['schemas']['AuthoredModuleSubmitRequest'];
+export type AuthoredModuleSubmitResponse = components['schemas']['AuthoredModuleSubmitResponse'];
 
 export interface OrganizationResponse {
   readonly organizationId: string;
@@ -1410,6 +1429,27 @@ export function createControlApiClient(input: {
         input.fetch,
         `${baseUrl}/admin/modules/verify`,
         { method: 'POST', token: input.accessToken?.() },
+      ),
+
+    validateAuthoredModule: (body) =>
+      requestJson<AuthoredModuleValidationResponse>(
+        input.fetch,
+        `${baseUrl}/admin/authored-modules/validate`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    installAuthoredModule: (body) =>
+      requestJson<InstallModuleResponse>(input.fetch, `${baseUrl}/admin/authored-modules`, {
+        method: 'POST',
+        body,
+        token: input.accessToken?.(),
+      }),
+
+    submitAuthoredModule: (body) =>
+      requestJson<AuthoredModuleSubmitResponse>(
+        input.fetch,
+        `${baseUrl}/admin/authored-modules/submit`,
+        { method: 'POST', body, token: input.accessToken?.() },
       ),
 
     listDisciplines: () =>

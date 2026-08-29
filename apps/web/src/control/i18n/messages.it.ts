@@ -46,6 +46,10 @@ export const messages: Record<string, string> = {
   'control.platform.users.createSuperAdmin': 'Concedi super-admin',
   'control.platform.modules.heading': 'Moduli installati',
   'control.platform.modules.description': 'Installa, rimuovi, verifica e cerca aggiornamenti.',
+  'control.platform.modules.authorDiscipline': 'Crea una disciplina',
+  'control.platform.modules.authorProfile': 'Crea un profilo torneo',
+  'control.platform.modules.contribute': 'Contribuisci',
+  'control.platform.modules.contributed': 'Pull request aperta: {url}',
   'control.platform.modules.checkUpdates': 'Cerca aggiornamenti',
   'control.platform.modules.updatesAvailable': 'Aggiornamenti disponibili',
   'control.platform.modules.alias': 'Alias modulo',
@@ -742,4 +746,153 @@ export const messages: Record<string, string> = {
   'control.wizard.rule.options': 'Opzioni (JSON)',
   'control.wizard.rule.addAnother': "Aggiungi un'altra regola",
   'control.wizard.rule.remove': 'Rimuovi',
+
+  'control.descriptor.wizardTitle': 'Crea una disciplina',
+  'control.descriptor.wizardSteps': 'Passaggi',
+  'control.descriptor.stepName': 'Nome',
+  'control.descriptor.stepAuthorship': 'Paternità',
+  'control.descriptor.stepParticipants': 'Partecipanti',
+  'control.descriptor.stepStatistics': 'Statistiche ed eventi',
+  'control.descriptor.stepFormats': 'Formati',
+  'control.descriptor.stepWinCondition': 'Condizione di vittoria',
+  'control.descriptor.fieldAlias': 'Alias',
+  'control.descriptor.decisionAlias':
+    "L'identità stabile con cui questa disciplina viene installata. Parole minuscole separate da trattini; non può essere modificata dopo l'installazione.",
+  'control.descriptor.fieldVersion': 'Versione',
+  'control.descriptor.fieldName': 'Nome',
+  'control.descriptor.fieldDescription': 'Descrizione',
+  'control.descriptor.translationHelp':
+    "L'inglese è obbligatorio. Ogni altra lingua lasciata vuota ricade sull'inglese per quel lettore.",
+  'control.descriptor.problemAliasFormat':
+    "L'alias deve essere composto da parole minuscole separate da trattini.",
+  'control.descriptor.problemVersion': 'La versione è obbligatoria.',
+  'control.descriptor.problemNameEnglish': 'È richiesto un nome in inglese.',
+  'control.descriptor.fieldAuthor': 'Autore',
+  'control.descriptor.decisionAuthor':
+    "Accreditato come autore di questa disciplina. Mai impostato di default sull'identità dell'installazione — la pubblicazione viene rifiutata senza questo dato.",
+  'control.descriptor.fieldLicence': 'Licenza',
+  'control.descriptor.decisionLicence':
+    'La licenza con cui questa disciplina viene pubblicata, ad esempio AGPL-3.0-only.',
+  'control.descriptor.fieldSourceUrl': 'URL sorgente (facoltativo)',
+  'control.descriptor.problemAuthor': "L'autore è obbligatorio.",
+  'control.descriptor.problemLicence': 'La licenza è obbligatoria.',
+  'control.descriptor.fieldParticipantTypes': 'Tipi di partecipante',
+  'control.descriptor.decisionParticipantTypes':
+    "Se un iscritto è una singola persona o un'intera squadra. Questo determina da cosa è composta una rosa.",
+  'control.descriptor.fieldMinPlayers': 'Giocatori minimi',
+  'control.descriptor.fieldMaxPlayers': 'Giocatori massimi',
+  'control.descriptor.decisionRosterConstraints':
+    "Quanti giocatori può avere una rosa — verificato all'iscrizione e al check-in.",
+  'control.descriptor.fieldAllowMidTournamentChanges':
+    'Consenti modifiche alla rosa durante il torneo',
+  'control.descriptor.problemParticipantTypes': 'Scegli almeno un tipo di partecipante.',
+  'control.descriptor.problemRosterConstraints':
+    'Il massimo di giocatori deve essere almeno pari al minimo, ed entrambi almeno 1.',
+  'control.descriptor.segmentTypesHeading': 'Tipi di segmento',
+  'control.descriptor.decisionSegmentTypes':
+    'Le fasi in cui è diviso un incontro (tempi, set, round). Facoltativo — una disciplina decisa in un incontro ininterrotto non ne dichiara nessuno.',
+  'control.descriptor.fieldSegmentTypeName': 'Nome del segmento',
+  'control.descriptor.fieldSegmentTypeLabel': 'Etichetta del segmento',
+  'control.descriptor.fieldSegmentTimed': 'Cronometrato',
+  'control.descriptor.add': 'Aggiungi',
+  'control.descriptor.remove': 'Rimuovi',
+  'control.descriptor.statisticsHeading': 'Statistiche',
+  'control.descriptor.decisionStatistics':
+    'Cosa viene conteggiato e come si accumula nel corso di una competizione — questo è il vocabolario con cui si costruiscono le classifiche. Una disciplina che non dichiara nulla dichiara una disciplina senza classifica.',
+  'control.descriptor.fieldStatisticCode': 'Codice della statistica',
+  'control.descriptor.fieldStatisticLabel': 'Etichetta della statistica',
+  'control.descriptor.eventsHeading': 'Definizioni di evento',
+  'control.descriptor.decisionEvents':
+    'Cosa può essere registrato durante un incontro. Un evento può assegnare una delle statistiche dichiarate sopra a ogni occorrenza.',
+  'control.descriptor.fieldEventCode': "Codice dell'evento",
+  'control.descriptor.fieldEventLabel': "Etichetta dell'evento",
+  'control.descriptor.fieldEventAwardsStatistic': 'Assegna statistica',
+  'control.descriptor.fieldEventAwardsDelta': 'Quantità assegnata',
+  'control.descriptor.eventAwardsNone': 'Non assegna nulla',
+  'control.descriptor.problemNoStatistics': 'Dichiara almeno una statistica.',
+  'control.descriptor.problemEventUndeclaredStatistic':
+    'Un evento assegna una statistica non più dichiarata. Rimuovilo o dichiara di nuovo la statistica.',
+  'control.descriptor.fieldAvailableFormats': 'Formati disponibili',
+  'control.descriptor.decisionFormats':
+    'In quali formati di torneo un organizzatore può disputare questa disciplina. Si possono dichiarare solo formati supportati dalla piattaforma.',
+  'control.descriptor.problemNoFormats': 'Scegli almeno un formato.',
+  'control.descriptor.scoringInputsHeading': 'Input di punteggio',
+  'control.descriptor.decisionScoringInputs':
+    'Input opzionali con nome che un referto di incontro può portare oltre agli eventi registrati — derivati da eventi, oppure inseriti direttamente da un operatore.',
+  'control.descriptor.fieldScoringInputCode': "Codice dell'input",
+  'control.descriptor.fieldScoringInputLabel': "Etichetta dell'input",
+  'control.descriptor.fieldWinConditionMode': 'Forma della condizione di vittoria',
+  'control.descriptor.decisionWinConditionMode':
+    "Semplice: un solo punteggio decide l'incontro (calcio). Segmentata: i segmenti (set, giochi) si chiudono prima e l'incontro si decide per segmenti vinti (tennis).",
+  'control.descriptor.winConditionModeSimple': "Semplice — un solo punteggio decide l'incontro",
+  'control.descriptor.winConditionModeSegmented':
+    "Segmentata — i segmenti si chiudono prima, poi l'incontro",
+  'control.descriptor.fieldSegmentMargin':
+    'Margine richiesto per chiudere un segmento (facoltativo)',
+  'control.descriptor.fieldSegmentName': 'Segmento che si chiude',
+  'control.descriptor.fieldSegmentTarget': 'Unità necessarie per chiudere il segmento',
+  'control.descriptor.fieldTiebreakAt': 'Lo spareggio scatta a (facoltativo)',
+  'control.descriptor.fieldTiebreakTarget': 'Obiettivo dello spareggio (facoltativo)',
+  'control.descriptor.fieldTiebreakMargin': 'Margine dello spareggio (facoltativo)',
+  'control.descriptor.fieldWinMatchUnitSimple': "Statistica che decide l'incontro",
+  'control.descriptor.fieldWinMatchUnitSegmented': "Segmento conteggiato per decidere l'incontro",
+  'control.descriptor.decisionWinMatchUnit':
+    "Cosa decide l'incontro — un codice di statistica dichiarato in modalità semplice, oppure il nome del segmento chiuso in modalità segmentata.",
+  'control.descriptor.fieldWinMatchTarget': 'Obiettivo necessario per vincere (facoltativo)',
+  'control.descriptor.decisionWinMatchTarget':
+    'Lascia vuoto per un incontro che si chiude solo a tempo regolamentare concluso con un leader chiaro (un punteggio pari resta pari). Imposta un numero per "primo a N".',
+  'control.descriptor.problemWinConditionUnit': "Scegli cosa decide l'incontro.",
+  'control.descriptor.problemSegmentName': 'Scegli quale segmento si chiude.',
+  'control.descriptor.problemSegmentTarget':
+    'Le unità necessarie per chiudere il segmento devono essere almeno 1.',
+  'control.descriptor.problemSegmentUndeclared':
+    'Il segmento che si chiude deve essere uno dichiarato nel passaggio dei partecipanti.',
+  'control.descriptor.back': 'Indietro',
+  'control.descriptor.continue': 'Continua',
+  'control.descriptor.authorAndInstall': 'Crea e installa',
+
+  'control.profile.wizardTitle': 'Crea un profilo torneo',
+  'control.profile.wizardSteps': 'Passaggi',
+  'control.profile.stepName': 'Nome',
+  'control.profile.stepAuthorship': 'Paternità',
+  'control.profile.stepStages': 'Fasi',
+  'control.profile.stepPoints': 'Punti',
+  'control.profile.fieldAlias': 'Alias',
+  'control.profile.decisionAlias':
+    "L'identità stabile con cui questo profilo viene installato. Parole minuscole separate da trattini; non può essere modificata dopo l'installazione.",
+  'control.profile.fieldVersion': 'Versione',
+  'control.profile.fieldName': 'Nome',
+  'control.profile.fieldDescription': 'Descrizione',
+  'control.profile.problemAliasFormat':
+    "L'alias deve essere composto da parole minuscole separate da trattini.",
+  'control.profile.problemVersion': 'La versione è obbligatoria.',
+  'control.profile.problemNameEnglish': 'È richiesto un nome in inglese.',
+  'control.profile.fieldAuthor': 'Autore',
+  'control.profile.decisionAuthor':
+    "Accreditato come autore di questo profilo. Mai impostato di default sull'identità dell'installazione — la pubblicazione viene rifiutata senza questo dato.",
+  'control.profile.fieldLicence': 'Licenza',
+  'control.profile.fieldSourceUrl': 'URL sorgente (facoltativo)',
+  'control.profile.problemAuthor': "L'autore è obbligatorio.",
+  'control.profile.problemLicence': 'La licenza è obbligatoria.',
+  'control.profile.fieldDiscipline': 'Verifica i formati delle fasi rispetto a',
+  'control.profile.decisionDiscipline':
+    'La disciplina installata rispetto alla quale viene verificato il formato di ogni fase. Il profilo stesso non nomina mai una disciplina — può essere usato con qualsiasi disciplina i cui formati corrispondano.',
+  'control.profile.problemDiscipline':
+    'Scegli una disciplina rispetto alla quale verificare i formati delle fasi.',
+  'control.profile.stagesHeading': 'Fasi',
+  'control.profile.decisionStages':
+    'Le fasi della competizione, in ordine — ad esempio una fase a gironi che alimenta una fase a eliminazione diretta. Il formato di ogni fase deve essere uno di quelli dichiarati dalla disciplina scelta.',
+  'control.profile.fieldStageName': 'Nome della fase',
+  'control.profile.problemNoStages': 'Dichiara almeno una fase.',
+  'control.profile.problemStageFormat':
+    'Il formato di ogni fase deve essere uno di quelli dichiarati dalla disciplina scelta.',
+  'control.profile.fieldPointsWin': 'Punti per una vittoria',
+  'control.profile.fieldPointsDraw': 'Punti per un pareggio',
+  'control.profile.fieldPointsLoss': 'Punti per una sconfitta',
+  'control.profile.problemNegativePoints': 'I punti non possono essere negativi.',
+  'control.profile.add': 'Aggiungi',
+  'control.profile.remove': 'Rimuovi',
+  'control.profile.back': 'Indietro',
+  'control.profile.continue': 'Continua',
+  'control.profile.authorAndInstall': 'Crea e installa',
 };

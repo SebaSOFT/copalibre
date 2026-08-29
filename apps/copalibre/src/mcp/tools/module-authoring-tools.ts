@@ -1,6 +1,5 @@
-import type { ModuleKind } from '@copalibre/module-distribution';
+import { submitModule, type ModuleKind } from '@copalibre/module-distribution';
 import { scaffoldModule } from '../../module-authoring/scaffold.js';
-import { submitModule } from '../../module-authoring/submit.js';
 import { validateLocalModule } from '../../module-authoring/validate-local.js';
 import { systemProcessRunner } from '../../process-runner.js';
 import type { McpToolDefinition } from '../tool.js';

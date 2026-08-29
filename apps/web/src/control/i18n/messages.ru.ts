@@ -48,6 +48,10 @@ export const messages: Record<string, string> = {
   'control.platform.modules.heading': 'Установленные модули',
   'control.platform.modules.description':
     'Установка, удаление, проверка и поиск обновлений модулей.',
+  'control.platform.modules.authorDiscipline': 'Создать дисциплину',
+  'control.platform.modules.authorProfile': 'Создать профиль турнира',
+  'control.platform.modules.contribute': 'Внести вклад',
+  'control.platform.modules.contributed': 'Открыт пул-реквест: {url}',
   'control.platform.modules.checkUpdates': 'Проверить обновления',
   'control.platform.modules.updatesAvailable': 'Доступные обновления',
   'control.platform.modules.alias': 'Псевдоним модуля',
@@ -738,4 +742,152 @@ export const messages: Record<string, string> = {
   'control.wizard.rule.options': 'Параметры (JSON)',
   'control.wizard.rule.addAnother': 'Добавить ещё одно правило',
   'control.wizard.rule.remove': 'Удалить',
+
+  'control.descriptor.wizardTitle': 'Создать дисциплину',
+  'control.descriptor.wizardSteps': 'Шаги',
+  'control.descriptor.stepName': 'Название',
+  'control.descriptor.stepAuthorship': 'Авторство',
+  'control.descriptor.stepParticipants': 'Участники',
+  'control.descriptor.stepStatistics': 'Статистика и события',
+  'control.descriptor.stepFormats': 'Форматы',
+  'control.descriptor.stepWinCondition': 'Условие победы',
+  'control.descriptor.fieldAlias': 'Псевдоним',
+  'control.descriptor.decisionAlias':
+    'Устойчивый идентификатор, под которым устанавливается эта дисциплина. Слова в нижнем регистре через дефис; после установки изменить нельзя.',
+  'control.descriptor.fieldVersion': 'Версия',
+  'control.descriptor.fieldName': 'Название',
+  'control.descriptor.fieldDescription': 'Описание',
+  'control.descriptor.translationHelp':
+    'Английский обязателен. Любой другой язык, оставленный пустым, для такого читателя переключается на английский.',
+  'control.descriptor.problemAliasFormat':
+    'Псевдоним должен состоять из слов в нижнем регистре через дефис.',
+  'control.descriptor.problemVersion': 'Версия обязательна.',
+  'control.descriptor.problemNameEnglish': 'Требуется название на английском языке.',
+  'control.descriptor.fieldAuthor': 'Автор',
+  'control.descriptor.decisionAuthor':
+    'Указывается как автор этой дисциплины. Никогда не подставляется по умолчанию из личности инсталляции — без этого публикация отклоняется.',
+  'control.descriptor.fieldLicence': 'Лицензия',
+  'control.descriptor.decisionLicence':
+    'Лицензия, под которой публикуется эта дисциплина, например AGPL-3.0-only.',
+  'control.descriptor.fieldSourceUrl': 'URL источника (необязательно)',
+  'control.descriptor.problemAuthor': 'Автор обязателен.',
+  'control.descriptor.problemLicence': 'Лицензия обязательна.',
+  'control.descriptor.fieldParticipantTypes': 'Типы участников',
+  'control.descriptor.decisionParticipantTypes':
+    'Является ли участник отдельным человеком или целой командой. Это определяет, из чего состоит состав.',
+  'control.descriptor.fieldMinPlayers': 'Минимум игроков',
+  'control.descriptor.fieldMaxPlayers': 'Максимум игроков',
+  'control.descriptor.decisionRosterConstraints':
+    'Сколько игроков может быть в составе — проверяется при регистрации и на чек-ине.',
+  'control.descriptor.fieldAllowMidTournamentChanges':
+    'Разрешить изменения состава во время турнира',
+  'control.descriptor.problemParticipantTypes': 'Выберите хотя бы один тип участника.',
+  'control.descriptor.problemRosterConstraints':
+    'Максимум игроков должен быть не меньше минимума, и оба значения — не меньше 1.',
+  'control.descriptor.segmentTypesHeading': 'Типы сегментов',
+  'control.descriptor.decisionSegmentTypes':
+    'Фазы, на которые делится матч (таймы, партии, раунды). Необязательно — дисциплина, решаемая в одном непрерывном матче, не объявляет ни одного.',
+  'control.descriptor.fieldSegmentTypeName': 'Название сегмента',
+  'control.descriptor.fieldSegmentTypeLabel': 'Метка сегмента',
+  'control.descriptor.fieldSegmentTimed': 'С хронометражем',
+  'control.descriptor.add': 'Добавить',
+  'control.descriptor.remove': 'Удалить',
+  'control.descriptor.statisticsHeading': 'Статистика',
+  'control.descriptor.decisionStatistics':
+    'Что подсчитывается и как накапливается на протяжении соревнования — это словарь, из которого строятся турнирные таблицы. Дисциплина, ничего не объявляющая, объявляет дисциплину без таблицы.',
+  'control.descriptor.fieldStatisticCode': 'Код статистики',
+  'control.descriptor.fieldStatisticLabel': 'Метка статистики',
+  'control.descriptor.eventsHeading': 'Определения событий',
+  'control.descriptor.decisionEvents':
+    'Что может быть зафиксировано во время матча. Событие может начислять одну из указанных выше статистик при каждом наступлении.',
+  'control.descriptor.fieldEventCode': 'Код события',
+  'control.descriptor.fieldEventLabel': 'Метка события',
+  'control.descriptor.fieldEventAwardsStatistic': 'Начисляет статистику',
+  'control.descriptor.fieldEventAwardsDelta': 'Начисляемое количество',
+  'control.descriptor.eventAwardsNone': 'Ничего не начисляет',
+  'control.descriptor.problemNoStatistics': 'Объявите хотя бы одну статистику.',
+  'control.descriptor.problemEventUndeclaredStatistic':
+    'Событие начисляет статистику, которая больше не объявлена. Удалите его или снова объявите статистику.',
+  'control.descriptor.fieldAvailableFormats': 'Доступные форматы',
+  'control.descriptor.decisionFormats':
+    'В каких форматах турнира организатор может провести эту дисциплину. Можно объявлять только форматы, поддерживаемые платформой.',
+  'control.descriptor.problemNoFormats': 'Выберите хотя бы один формат.',
+  'control.descriptor.scoringInputsHeading': 'Входные данные для подсчёта очков',
+  'control.descriptor.decisionScoringInputs':
+    'Необязательные именованные значения, которые отчёт о матче может нести помимо зафиксированных событий — производные от событий или введённые оператором напрямую.',
+  'control.descriptor.fieldScoringInputCode': 'Код входного значения',
+  'control.descriptor.fieldScoringInputLabel': 'Метка входного значения',
+  'control.descriptor.fieldWinConditionMode': 'Форма условия победы',
+  'control.descriptor.decisionWinConditionMode':
+    'Простая: матч решает единственный счёт (футбол). Сегментированная: сегменты (партии, геймы) закрываются первыми, и матч решается по выигранным сегментам (теннис).',
+  'control.descriptor.winConditionModeSimple': 'Простая — матч решает единственный счёт',
+  'control.descriptor.winConditionModeSegmented':
+    'Сегментированная — сначала закрываются сегменты, затем матч',
+  'control.descriptor.fieldSegmentMargin': 'Требуемый отрыв для закрытия сегмента (необязательно)',
+  'control.descriptor.fieldSegmentName': 'Закрываемый сегмент',
+  'control.descriptor.fieldSegmentTarget': 'Единиц требуется для закрытия сегмента',
+  'control.descriptor.fieldTiebreakAt': 'Тай-брейк начинается при (необязательно)',
+  'control.descriptor.fieldTiebreakTarget': 'Цель тай-брейка (необязательно)',
+  'control.descriptor.fieldTiebreakMargin': 'Отрыв в тай-брейке (необязательно)',
+  'control.descriptor.fieldWinMatchUnitSimple': 'Статистика, решающая матч',
+  'control.descriptor.fieldWinMatchUnitSegmented': 'Сегмент, засчитываемый для решения матча',
+  'control.descriptor.decisionWinMatchUnit':
+    'Что решает матч — объявленный код статистики в простом режиме или название закрытого сегмента в сегментированном режиме.',
+  'control.descriptor.fieldWinMatchTarget': 'Цель, необходимая для победы (необязательно)',
+  'control.descriptor.decisionWinMatchTarget':
+    'Оставьте пустым для матча, который закрывается только по окончании основного времени с явным лидером (равный счёт остаётся ничьей). Укажите число для «первый до N».',
+  'control.descriptor.problemWinConditionUnit': 'Выберите, что решает матч.',
+  'control.descriptor.problemSegmentName': 'Выберите, какой сегмент закрывается.',
+  'control.descriptor.problemSegmentTarget':
+    'Количество единиц для закрытия сегмента должно быть не меньше 1.',
+  'control.descriptor.problemSegmentUndeclared':
+    'Закрываемый сегмент должен быть одним из объявленных на шаге участников.',
+  'control.descriptor.back': 'Назад',
+  'control.descriptor.continue': 'Далее',
+  'control.descriptor.authorAndInstall': 'Создать и установить',
+
+  'control.profile.wizardTitle': 'Создать профиль турнира',
+  'control.profile.wizardSteps': 'Шаги',
+  'control.profile.stepName': 'Название',
+  'control.profile.stepAuthorship': 'Авторство',
+  'control.profile.stepStages': 'Этапы',
+  'control.profile.stepPoints': 'Очки',
+  'control.profile.fieldAlias': 'Псевдоним',
+  'control.profile.decisionAlias':
+    'Устойчивый идентификатор, под которым устанавливается этот профиль. Слова в нижнем регистре через дефис; после установки изменить нельзя.',
+  'control.profile.fieldVersion': 'Версия',
+  'control.profile.fieldName': 'Название',
+  'control.profile.fieldDescription': 'Описание',
+  'control.profile.problemAliasFormat':
+    'Псевдоним должен состоять из слов в нижнем регистре через дефис.',
+  'control.profile.problemVersion': 'Версия обязательна.',
+  'control.profile.problemNameEnglish': 'Требуется название на английском языке.',
+  'control.profile.fieldAuthor': 'Автор',
+  'control.profile.decisionAuthor':
+    'Указывается как автор этого профиля. Никогда не подставляется по умолчанию из личности инсталляции — без этого публикация отклоняется.',
+  'control.profile.fieldLicence': 'Лицензия',
+  'control.profile.fieldSourceUrl': 'URL источника (необязательно)',
+  'control.profile.problemAuthor': 'Автор обязателен.',
+  'control.profile.problemLicence': 'Лицензия обязательна.',
+  'control.profile.fieldDiscipline': 'Проверять форматы этапов по',
+  'control.profile.decisionDiscipline':
+    'Установленная дисциплина, по которой проверяется формат каждого этапа. Сам профиль никогда не называет дисциплину — его можно использовать с любой дисциплиной, чьи форматы совпадают.',
+  'control.profile.problemDiscipline':
+    'Выберите дисциплину, по которой проверяются форматы этапов.',
+  'control.profile.stagesHeading': 'Этапы',
+  'control.profile.decisionStages':
+    'Этапы соревнования по порядку — например, групповой этап, ведущий к плей-офф. Формат каждого этапа должен быть одним из объявленных выбранной дисциплиной.',
+  'control.profile.fieldStageName': 'Название этапа',
+  'control.profile.problemNoStages': 'Объявите хотя бы один этап.',
+  'control.profile.problemStageFormat':
+    'Формат каждого этапа должен быть одним из объявленных выбранной дисциплиной.',
+  'control.profile.fieldPointsWin': 'Очки за победу',
+  'control.profile.fieldPointsDraw': 'Очки за ничью',
+  'control.profile.fieldPointsLoss': 'Очки за поражение',
+  'control.profile.problemNegativePoints': 'Очки не могут быть отрицательными.',
+  'control.profile.add': 'Добавить',
+  'control.profile.remove': 'Удалить',
+  'control.profile.back': 'Назад',
+  'control.profile.continue': 'Далее',
+  'control.profile.authorAndInstall': 'Создать и установить',
 };

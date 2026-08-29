@@ -6,7 +6,7 @@ import type { UnitOfWork } from '../transaction.js';
 import type { AuditContext } from './enrollment-repository.js';
 
 export type InstalledModuleKind = 'discipline' | 'tournament-profile';
-export type ModuleSourceKind = 'curated' | 'alternate';
+export type ModuleSourceKind = 'curated' | 'alternate' | 'authored';
 
 export interface InstalledModule {
   readonly moduleId: string;

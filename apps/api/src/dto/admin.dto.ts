@@ -39,8 +39,8 @@ export class InstalledModuleResponse {
   @ApiProperty({ example: '1.0.0' })
   version!: string;
 
-  @ApiProperty({ enum: ['curated', 'alternate'] })
-  sourceKind!: 'curated' | 'alternate';
+  @ApiProperty({ enum: ['curated', 'alternate', 'authored'] })
+  sourceKind!: 'curated' | 'alternate' | 'authored';
 
   @ApiProperty({ example: 'SebaSOFT' })
   attributionAuthor!: string;

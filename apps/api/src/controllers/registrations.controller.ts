@@ -403,6 +403,7 @@ export class DisciplinesController {
 
     return descriptors.map((descriptor) => ({
       descriptorId: descriptor.descriptorId,
+      alias: descriptor.document.alias,
       version: descriptor.version,
       name: descriptor.document.name,
       description: descriptor.document.description,

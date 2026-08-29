@@ -15,7 +15,7 @@ const execFileAsync = promisify(execFile);
  * to avoid two modules' versions colliding on one tag name.
  */
 
-export type ModuleSourceKind = 'curated' | 'alternate';
+export type ModuleSourceKind = 'curated' | 'alternate' | 'authored';
 
 export interface ModuleSource {
   readonly kind: ModuleSourceKind;
@@ -31,6 +31,16 @@ export const CURATED_MODULE_REPOSITORY: ModuleSource = {
 export function alternateModuleSource(repositoryUrl: string): ModuleSource {
   return { kind: 'alternate', repositoryUrl };
 }
+
+/**
+ * A module authored locally through the control-panel builder (openspec
+ * 0164) — never fetched from anywhere, so it carries no repository URL.
+ * `sourceFor()` returns this for an installed `'authored'`-kind module
+ * rather than attempting to resolve one, since there is nothing to check
+ * for updates against until (and unless) it is later submitted and merged
+ * upstream, which installs as an ordinary `'curated'` update instead.
+ */
+export const AUTHORED_MODULE_SOURCE: ModuleSource = { kind: 'authored', repositoryUrl: '' };
 
 export class ModuleFetchError extends Error {
   constructor(message: string) {

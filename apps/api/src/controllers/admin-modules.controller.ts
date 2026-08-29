@@ -129,6 +129,10 @@ export class AdminModulesController {
     const latestInstalledByAlias = latestPerAlias(modules);
     const outdatedModules: OutdatedModuleResponse[] = [];
     for (const module_ of latestInstalledByAlias) {
+      // A locally-authored module (openspec 0164) has no upstream repository
+      // to check for updates against until it is submitted and merged —
+      // at which point it installs again as an ordinary curated update.
+      if (module_.sourceKind === 'authored') continue;
       const source = sourceFor(module_);
       const versions = await listPublishedVersions(source, module_.alias);
       const latestPublished = [...versions].sort(semver.rcompare)[0];

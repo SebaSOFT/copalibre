@@ -1658,6 +1658,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/authored-modules/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Validate an authored document without installing it */
+        post: operations["AuthoredModulesController_validate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/authored-modules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Package, validate and install an authored document, exactly as `module add` would */
+        post: operations["AuthoredModulesController_install"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/authored-modules/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Contribute an already-installed authored module upstream, via `module submit` */
+        post: operations["AuthoredModulesController_submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{organizationAlias}/persons/{personId}": {
         parameters: {
             query?: never;
@@ -2554,6 +2605,8 @@ export interface components {
         DisciplineSummaryResponse: {
             /** Format: uuid */
             descriptorId: string;
+            /** @example orbital-frisbee */
+            alias: string;
             /** @example 1.2.0 */
             version: string;
             /**
@@ -4024,7 +4077,7 @@ export interface components {
             /** @example 1.0.0 */
             version: string;
             /** @enum {string} */
-            sourceKind: "curated" | "alternate";
+            sourceKind: "curated" | "alternate" | "authored";
             /** @example SebaSOFT */
             attributionAuthor: string;
         };
@@ -4092,6 +4145,52 @@ export interface components {
             /** @example true */
             ok: boolean;
             failures: components["schemas"]["ModuleVerifyFailureResponse"][];
+        };
+        AuthoredModuleRequest: {
+            /** @enum {string} */
+            kind: "discipline" | "tournament-profile";
+            /** @description The authored discipline descriptor or tournament profile document (no descriptorId/profileId — those are assigned on install), validated against the same schema an installed module passes. */
+            document: {
+                [key: string]: unknown;
+            };
+            /**
+             * @description For a tournament profile only: the installed discipline alias each stage's format is checked against. Omitted for a discipline document.
+             * @example orbital-frisbee
+             */
+            disciplineAlias?: string;
+        };
+        AuthoredModuleValidationFailureResponse: {
+            /** @example artifact */
+            stage: string;
+            /** @example statistics[0].aggregation */
+            field?: string;
+            /** @example must have required property "aggregation" */
+            message: string;
+        };
+        AuthoredModuleValidationResponse: {
+            ok: boolean;
+            failures: components["schemas"]["AuthoredModuleValidationFailureResponse"][];
+        };
+        AuthoredModuleSubmitRequest: {
+            /** @enum {string} */
+            kind: "discipline" | "tournament-profile";
+            /** @example orbital-frisbee */
+            alias: string;
+            /** @example 1.0.0 */
+            version: string;
+            /**
+             * @description Allow-listed fork target; omit to fork/submit against the curated repository
+             * @example someone/copalibre-modules
+             */
+            upstreamRepository?: string;
+            /** @example main */
+            baseBranch?: string;
+        };
+        AuthoredModuleSubmitResponse: {
+            /** @example https://github.com/SebaSOFT/copalibre-modules/pull/42 */
+            pullRequestUrl: string;
+            /** @example add-discipline-orbital-frisbee */
+            branch: string;
         };
         NaturalKeyResponse: {
             /** @example dni */
@@ -7787,6 +7886,123 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ModuleVerifyResultResponse"][];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    AuthoredModulesController_validate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuthoredModuleRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthoredModuleValidationResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    AuthoredModulesController_install: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuthoredModuleRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstallModuleResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    AuthoredModulesController_submit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuthoredModuleSubmitRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthoredModuleSubmitResponse"];
                 };
             };
             401: {
