@@ -23,6 +23,15 @@ describe('organization capabilities', () => {
     }
   });
 
+  it('never resolves a role to a capability outside the declared vocabulary', () => {
+    const declared = new Set<string>(ORGANIZATION_CAPABILITIES);
+    for (const role of ORGANIZATION_ROLES) {
+      for (const capability of capabilitiesForRole(role)) {
+        expect(declared.has(capability)).toBe(true);
+      }
+    }
+  });
+
   it('gives admin every declared capability', () => {
     const admin = capabilitiesForRole('admin');
     for (const capability of ORGANIZATION_CAPABILITIES) {
