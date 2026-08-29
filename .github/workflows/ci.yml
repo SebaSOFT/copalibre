@@ -156,7 +156,10 @@ jobs:
           node-version: 24
           cache: yarn
       - run: yarn install --immutable
-      - run: yarn workspace @copalibre/api test --testPathPatterns 'access-coverage'
+      # role-capabilities (openspec 0165): the declared capability vocabulary
+      # and role mapping every guard below resolves through.
+      - run: yarn workspace @copalibre/domain test --testPathPatterns 'role-capabilities'
+      - run: yarn workspace @copalibre/api test --testPathPatterns 'access-coverage|capability-guard'
 
   license-scan:
     name: License scan
@@ -223,6 +226,13 @@ jobs:
       - run: node scripts/check-descriptor-guide-coverage.mjs
       - run: node --test scripts/check-control-ui-ownership.test.mjs
       - run: node scripts/check-control-ui-ownership.mjs
+      # Role manual capability lists (openspec 0165): generated from
+      # role-capabilities.ts, gated against it in both directions —
+      # an undocumented grant and an over-promised claim both fail.
+      - run: node --test scripts/generate-role-manuals.test.mjs
+      - run: node scripts/generate-role-manuals.mjs --check
+      - run: node --test scripts/check-role-manual-drift.test.mjs
+      - run: node scripts/check-role-manual-drift.mjs
 
   # Later phases' suites run under the same job via the root `yarn test:coverage`
   # fan-out. This includes the console projection, descriptor validation,
@@ -680,6 +690,15 @@ jobs:
       # one red line in the full suite.
       - name: Descriptor and profile builders (E2E)
         run: yarn test:e2e -- e2e/control-descriptor-profile-builders.spec.ts
+      # Role manuals and navigation (openspec 0165): control-panel nav
+      # follows the declared capability mapping for admin, club-admin,
+      # tournament-admin and referee; each role manual page is one click
+      # from the help index and names what it inherits and cannot do; a
+      # club-admin's refusal outside their club names ownership through the
+      # real UI; and the invite dialog's tournament picker gates
+      # submission — named separately so a failure says so directly.
+      - name: Role manuals and navigation (E2E)
+        run: yarn test:e2e -- e2e/role-manual-navigation.spec.ts
       # Accelerated TV soak-test proxy. design.md describes
       # the per-PR-eligible proxy as a 2-hour run; a literal 2 hours on every
       # PR would be a severe, ongoing CI-turnaround regression this repo does
@@ -852,6 +871,14 @@ jobs:
       # pattern above so a failure says which half broke — the engine 0158 built
       # or the surfaces 0159 wired onto it.
       - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'series-operations'
+      # Club and tournament resource scope, through the real HTTP stack
+      # (openspec 0165): a club-admin admitted to their own club and refused
+      # on another, admin reaching a club-admin's resource by inheritance, a
+      # tournament-admin admitted within its named tournament and refused
+      # against a different one, and refused organization-wide authority
+      # (user administration, org settings, club management) — named
+      # separately so a reviewer finds this capability's own signal directly.
+      - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'role-scope'
       # Series accounting grain, through the real read path: a series-grain
       # decision accounted as one result per side, a match-grain declaration
       # accounting every played game with the unplayed one contributing
