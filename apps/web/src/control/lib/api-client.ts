@@ -1094,10 +1094,17 @@ export interface CsvImportPreviewResponse {
   };
 }
 
-export type OrganizationRole = 'admin' | 'club-admin' | 'referee' | 'broadcaster' | 'viewer';
+export type OrganizationRole =
+  'admin' | 'club-admin' | 'tournament-admin' | 'referee' | 'broadcaster' | 'viewer';
 export type OrganizationMemberStatus = 'active' | 'inactive';
 export type GrantableRole =
-  'super-admin' | 'admin' | 'club-admin' | 'referee' | 'broadcaster' | 'viewer';
+  | 'super-admin'
+  | 'admin'
+  | 'club-admin'
+  | 'tournament-admin'
+  | 'referee'
+  | 'broadcaster'
+  | 'viewer';
 
 export interface OrganizationRoleResponse {
   readonly assignmentId: string;
@@ -1105,17 +1112,25 @@ export interface OrganizationRoleResponse {
   readonly email: string;
   readonly role: OrganizationRole;
   readonly status: OrganizationMemberStatus;
+  /** Set only for a club-scoped role (club-admin). */
+  readonly clubId?: string;
+  /** Set only for a tournament-scoped role (tournament-admin). */
+  readonly tournamentId?: string;
 }
 
 export interface InviteOrganizationUserRequest {
   readonly email: string;
   readonly role: OrganizationRole;
   readonly status: OrganizationMemberStatus;
+  readonly clubId?: string;
+  readonly tournamentId?: string;
 }
 
 export interface ChangeOrganizationRoleRequest {
   readonly role: OrganizationRole;
   readonly status: OrganizationMemberStatus;
+  readonly clubId?: string;
+  readonly tournamentId?: string;
 }
 
 export interface InvitationResponse {

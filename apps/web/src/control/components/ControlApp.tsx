@@ -419,6 +419,8 @@ function roleMessage(role: MyOrganizationResponse['role']) {
       return messages.rolesRoleAdmin;
     case 'club-admin':
       return messages.rolesRoleClubAdmin;
+    case 'tournament-admin':
+      return messages.rolesRoleTournamentAdmin;
     case 'referee':
       return messages.rolesRoleReferee;
     case 'broadcaster':

@@ -312,6 +312,7 @@ export const messages: Record<string, string> = {
   'control.roles.lastActiveAdminNotice': '组织必须始终保留至少一名激活的管理员。',
   'control.roles.role.admin': '管理员',
   'control.roles.role.clubAdmin': '俱乐部管理员',
+  'control.roles.role.tournamentAdmin': '赛事管理员',
   'control.roles.role.referee': '裁判',
   'control.roles.role.broadcaster': '转播',
   'control.roles.role.viewer': '观察员',
@@ -320,6 +321,10 @@ export const messages: Record<string, string> = {
   'control.roles.inviteDialog.role': '角色',
   'control.roles.inviteDialog.roleAriaLabel': '邀请角色',
   'control.roles.inviteDialog.activeOnAccept': '接受后生效',
+  'control.roles.inviteDialog.club': '俱乐部',
+  'control.roles.inviteDialog.clubAriaLabel': '所管理的俱乐部',
+  'control.roles.inviteDialog.tournament': '赛事',
+  'control.roles.inviteDialog.tournamentAriaLabel': '所管理的赛事',
   'control.roles.inviteDialog.cancel': '取消',
   'control.roles.inviteDialog.submit': '发送邀请',
 

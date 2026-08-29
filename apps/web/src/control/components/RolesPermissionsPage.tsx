@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { FormattedMessage, useIntl, type MessageDescriptor } from 'react-intl';
 import type {
+  ClubResponse,
   OrganizationMemberStatus,
   OrganizationRole,
   OrganizationRoleResponse,
+  TournamentResponse,
 } from '../lib/api-client.js';
 import { messages } from '../i18n/messages.en.js';
 import { Button } from './ui/atoms/button.js';
@@ -18,6 +20,7 @@ import { useToast } from './ToastProvider.js';
 const ROLE_LABEL: Record<OrganizationRole, MessageDescriptor> = {
   admin: messages.rolesRoleAdmin,
   'club-admin': messages.rolesRoleClubAdmin,
+  'tournament-admin': messages.rolesRoleTournamentAdmin,
   referee: messages.rolesRoleReferee,
   broadcaster: messages.rolesRoleBroadcaster,
   viewer: messages.rolesRoleViewer,
@@ -27,6 +30,7 @@ const ROLE_LABEL: Record<OrganizationRole, MessageDescriptor> = {
 const ALL_ROLES: readonly OrganizationRole[] = [
   'admin',
   'club-admin',
+  'tournament-admin',
   'referee',
   'broadcaster',
   'viewer',
@@ -38,6 +42,8 @@ export function RolesPermissionsPage({
   loading,
   error,
   grantableRoles,
+  clubs,
+  tournaments,
   onChange,
   onDelete,
   onInvite,
@@ -53,6 +59,10 @@ export function RolesPermissionsPage({
    * wired up still sees the full picker.
    */
   readonly grantableRoles?: readonly OrganizationRole[];
+  /** Clubs in this organization, for the club-admin invite picker. Empty until loaded. */
+  readonly clubs?: readonly ClubResponse[];
+  /** Tournaments in this organization, for the tournament-admin invite picker. Empty until loaded. */
+  readonly tournaments?: readonly TournamentResponse[];
   readonly onChange: (
     assignmentId: string,
     role: OrganizationRole,
@@ -63,6 +73,7 @@ export function RolesPermissionsPage({
     email: string,
     role: OrganizationRole,
     status: OrganizationMemberStatus,
+    scope?: { readonly clubId?: string; readonly tournamentId?: string },
   ) => Promise<void>;
 }): React.JSX.Element {
   const assignableRoles = grantableRoles ?? ALL_ROLES;
@@ -175,14 +186,16 @@ export function RolesPermissionsPage({
       <InviteDialog
         assignableRoles={assignableRoles}
         busy={busy === 'invite'}
+        clubs={clubs ?? []}
         onClose={() => setInviteOpen(false)}
-        onSubmit={(email, role, status) =>
+        onSubmit={(email, role, status, scope) =>
           run('invite', async () => {
-            await onInvite(email, role, status);
+            await onInvite(email, role, status, scope);
             setInviteOpen(false);
           })
         }
         open={inviteOpen}
+        tournaments={tournaments ?? []}
       />
     </>
   );
@@ -296,17 +309,24 @@ export function InviteDialog({
   open,
   busy,
   assignableRoles,
+  clubs,
+  tournaments,
   onClose,
   onSubmit,
 }: {
   readonly open: boolean;
   readonly busy: boolean;
   readonly assignableRoles: readonly OrganizationRole[];
+  /** Clubs in this organization; the club-admin picker lists only these. */
+  readonly clubs: readonly ClubResponse[];
+  /** Tournaments in this organization; the tournament-admin picker lists only these. */
+  readonly tournaments: readonly TournamentResponse[];
   readonly onClose: () => void;
   readonly onSubmit: (
     email: string,
     role: OrganizationRole,
     status: OrganizationMemberStatus,
+    scope?: { readonly clubId?: string; readonly tournamentId?: string },
   ) => Promise<void>;
 }): React.JSX.Element {
   const intl = useIntl();
@@ -315,6 +335,8 @@ export function InviteDialog({
     assignableRoles.includes('viewer') ? 'viewer' : (assignableRoles[0] ?? 'viewer'),
   );
   const [active, setActive] = useState(true);
+  const [clubId, setClubId] = useState<string>('');
+  const [tournamentId, setTournamentId] = useState<string>('');
   return (
     <Modal
       footer={
@@ -322,7 +344,15 @@ export function InviteDialog({
           <Button onClick={onClose} type="button" variant="secondary">
             <FormattedMessage {...messages.rolesInviteDialogCancel} />
           </Button>
-          <Button disabled={busy} form="invite-dialog-form" type="submit">
+          <Button
+            disabled={
+              busy ||
+              (role === 'club-admin' && clubId === '') ||
+              (role === 'tournament-admin' && tournamentId === '')
+            }
+            form="invite-dialog-form"
+            type="submit"
+          >
             <FormattedMessage {...messages.rolesInviteDialogSubmit} />
           </Button>
         </>
@@ -337,7 +367,10 @@ export function InviteDialog({
         id="invite-dialog-form"
         onSubmit={(event) => {
           event.preventDefault();
-          void onSubmit(email, role, active ? 'active' : 'inactive');
+          void onSubmit(email, role, active ? 'active' : 'inactive', {
+            ...(role === 'club-admin' ? { clubId } : {}),
+            ...(role === 'tournament-admin' ? { tournamentId } : {}),
+          });
         }}
       >
         <FormField id="invite-email" label={intl.formatMessage(messages.rolesInviteDialogEmail)}>
@@ -365,6 +398,47 @@ export function InviteDialog({
             ))}
           </select>
         </FormField>
+        {role === 'club-admin' && (
+          <FormField id="invite-club" label={intl.formatMessage(messages.rolesInviteDialogClub)}>
+            <select
+              aria-label={intl.formatMessage(messages.rolesInviteDialogClubAriaLabel)}
+              className="cl-select cl-select--default cl-focusable"
+              id="invite-club"
+              onChange={(event) => setClubId(event.target.value)}
+              required
+              value={clubId}
+            >
+              <option value="" />
+              {clubs.map((club) => (
+                <option key={club.clubId} value={club.clubId}>
+                  {club.name}
+                </option>
+              ))}
+            </select>
+          </FormField>
+        )}
+        {role === 'tournament-admin' && (
+          <FormField
+            id="invite-tournament"
+            label={intl.formatMessage(messages.rolesInviteDialogTournament)}
+          >
+            <select
+              aria-label={intl.formatMessage(messages.rolesInviteDialogTournamentAriaLabel)}
+              className="cl-select cl-select--default cl-focusable"
+              id="invite-tournament"
+              onChange={(event) => setTournamentId(event.target.value)}
+              required
+              value={tournamentId}
+            >
+              <option value="" />
+              {tournaments.map((tournament) => (
+                <option key={tournament.tournamentId} value={tournament.tournamentId}>
+                  {tournament.name}
+                </option>
+              ))}
+            </select>
+          </FormField>
+        )}
         <label className="cl-toggle cl-focusable">
           <input
             checked={active}

@@ -320,6 +320,7 @@ export const messages: Record<string, string> = {
     'В организации всегда должен быть хотя бы один активный админ.',
   'control.roles.role.admin': 'Админ',
   'control.roles.role.clubAdmin': 'Админ клуба',
+  'control.roles.role.tournamentAdmin': 'Админ турнира',
   'control.roles.role.referee': 'Судья',
   'control.roles.role.broadcaster': 'Трансляция',
   'control.roles.role.viewer': 'Наблюдатель',
@@ -328,6 +329,10 @@ export const messages: Record<string, string> = {
   'control.roles.inviteDialog.role': 'Роль',
   'control.roles.inviteDialog.roleAriaLabel': 'Роль приглашения',
   'control.roles.inviteDialog.activeOnAccept': 'Активен после принятия',
+  'control.roles.inviteDialog.club': 'Клуб',
+  'control.roles.inviteDialog.clubAriaLabel': 'Администрируемый клуб',
+  'control.roles.inviteDialog.tournament': 'Турнир',
+  'control.roles.inviteDialog.tournamentAriaLabel': 'Администрируемый турнир',
   'control.roles.inviteDialog.cancel': 'Отмена',
   'control.roles.inviteDialog.submit': 'Отправить приглашение',
 

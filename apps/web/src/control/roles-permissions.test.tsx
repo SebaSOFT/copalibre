@@ -78,6 +78,139 @@ describe('roles and permissions control', () => {
     ]);
   });
 
+  it('shows a club picker, scoped to this organization, only for club-admin', async () => {
+    const invitations: unknown[] = [];
+    render(
+      withIntl(
+        <RolesPermissionsPage
+          clubs={[
+            { clubId: 'club-1', organizationId: 'org-1', name: 'Club Uno' },
+            { clubId: 'club-2', organizationId: 'org-1', name: 'Club Dos' },
+          ]}
+          loading={false}
+          onChange={async () => undefined}
+          onDelete={async () => undefined}
+          onInvite={async (email, role, status, scope) =>
+            void invitations.push({ email, role, status, scope })
+          }
+          organizationAlias="liga-mendocina"
+          rows={rows}
+        />,
+      ),
+    );
+
+    fireEvent.click(screen.getByText('Add recipient'));
+    expect(screen.queryByLabelText('Club administered')).toBeNull();
+
+    fireEvent.change(screen.getByLabelText('Invitation role'), {
+      target: { value: 'club-admin' },
+    });
+    const clubPicker = screen.getByLabelText('Club administered');
+    expect(
+      Array.from(clubPicker.querySelectorAll('option'))
+        .map((option) => option.textContent)
+        .filter(Boolean),
+    ).toEqual(['Club Uno', 'Club Dos']);
+
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'club@example.test' } });
+    fireEvent.change(clubPicker, { target: { value: 'club-2' } });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Send invitation'));
+    });
+
+    expect(invitations).toEqual([
+      {
+        email: 'club@example.test',
+        role: 'club-admin',
+        status: 'active',
+        scope: { clubId: 'club-2' },
+      },
+    ]);
+  });
+
+  it('shows a tournament picker, scoped to this organization, only for tournament-admin', async () => {
+    const invitations: unknown[] = [];
+    render(
+      withIntl(
+        <RolesPermissionsPage
+          loading={false}
+          onChange={async () => undefined}
+          onDelete={async () => undefined}
+          onInvite={async (email, role, status, scope) =>
+            void invitations.push({ email, role, status, scope })
+          }
+          organizationAlias="liga-mendocina"
+          rows={rows}
+          tournaments={[
+            { tournamentId: 'tournament-1', alias: 'apertura', name: 'Apertura' },
+            { tournamentId: 'tournament-2', alias: 'clausura', name: 'Clausura' },
+          ]}
+        />,
+      ),
+    );
+
+    fireEvent.click(screen.getByText('Add recipient'));
+    expect(screen.queryByLabelText('Tournament administered')).toBeNull();
+
+    fireEvent.change(screen.getByLabelText('Invitation role'), {
+      target: { value: 'tournament-admin' },
+    });
+    const tournamentPicker = screen.getByLabelText('Tournament administered');
+    expect(
+      Array.from(tournamentPicker.querySelectorAll('option'))
+        .map((option) => option.textContent)
+        .filter(Boolean),
+    ).toEqual(['Apertura', 'Clausura']);
+
+    fireEvent.change(screen.getByLabelText('Email'), {
+      target: { value: 'tournament@example.test' },
+    });
+    fireEvent.change(tournamentPicker, { target: { value: 'tournament-1' } });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Send invitation'));
+    });
+
+    expect(invitations).toEqual([
+      {
+        email: 'tournament@example.test',
+        role: 'tournament-admin',
+        status: 'active',
+        scope: { tournamentId: 'tournament-1' },
+      },
+    ]);
+  });
+
+  it('disables submit for a scoped role until a club or tournament is chosen', async () => {
+    render(
+      withIntl(
+        <RolesPermissionsPage
+          clubs={[{ clubId: 'club-1', organizationId: 'org-1', name: 'Club Uno' }]}
+          loading={false}
+          onChange={async () => undefined}
+          onDelete={async () => undefined}
+          onInvite={async () => undefined}
+          organizationAlias="liga-mendocina"
+          rows={rows}
+        />,
+      ),
+    );
+
+    fireEvent.click(screen.getByText('Add recipient'));
+    fireEvent.change(screen.getByLabelText('Invitation role'), {
+      target: { value: 'club-admin' },
+    });
+    expect(
+      (screen.getByText('Send invitation').closest('button') as HTMLButtonElement).disabled,
+    ).toBe(true);
+
+    fireEvent.change(screen.getByLabelText('Club administered'), {
+      target: { value: 'club-1' },
+    });
+    expect(
+      (screen.getByText('Send invitation').closest('button') as HTMLButtonElement).disabled,
+    ).toBe(false);
+  });
+
   it('loads role rows through the route and reflects a mutation locally', async () => {
     const changeOrganizationRole = jest.fn(async () => ({ ...rows[0], role: 'viewer' as const }));
     const client = controlClient({
@@ -95,6 +228,53 @@ describe('roles and permissions control', () => {
     expect(changeOrganizationRole).toHaveBeenCalledWith('liga-mendocina', 'assignment-1', {
       role: 'viewer',
       status: 'active',
+    });
+  });
+
+  it("loads the invite dialog's club and tournament pickers scoped to the requested organization", async () => {
+    const listClubs = jest.fn(async (organizationAlias: string) => {
+      expect(organizationAlias).toBe('liga-mendocina');
+      return [{ clubId: 'club-1', organizationId: 'org-1', name: 'Club Uno' }];
+    });
+    const listActiveTournaments = jest.fn(async (organizationAlias: string) => {
+      expect(organizationAlias).toBe('liga-mendocina');
+      return [{ tournamentId: 'tournament-1', alias: 'apertura', name: 'Apertura' }];
+    });
+    const inviteOrganizationUser = jest.fn(async () => ({
+      invitationId: 'invite-1',
+      expiresAt: '2099-01-01T00:00:00.000Z',
+    }));
+    const client = controlClient({
+      listOrganizationRoles: async () => rows,
+      listClubs,
+      listActiveTournaments,
+      inviteOrganizationUser,
+    });
+    render(withIntl(<RolesPermissionsRoute client={client} organizationAlias="liga-mendocina" />));
+
+    await screen.findByText('referee@example.test');
+    await waitFor(() => expect(listClubs).toHaveBeenCalledWith('liga-mendocina'));
+    await waitFor(() => expect(listActiveTournaments).toHaveBeenCalledWith('liga-mendocina'));
+
+    fireEvent.click(screen.getByText('Add recipient'));
+    fireEvent.change(screen.getByLabelText('Invitation role'), {
+      target: { value: 'tournament-admin' },
+    });
+    fireEvent.change(screen.getByLabelText('Email'), {
+      target: { value: 'tournament@example.test' },
+    });
+    fireEvent.change(screen.getByLabelText('Tournament administered'), {
+      target: { value: 'tournament-1' },
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Send invitation'));
+    });
+
+    expect(inviteOrganizationUser).toHaveBeenCalledWith('liga-mendocina', {
+      email: 'tournament@example.test',
+      role: 'tournament-admin',
+      status: 'active',
+      tournamentId: 'tournament-1',
     });
   });
 
