@@ -148,6 +148,7 @@ export {
   RULE_SCRIPT_SCHEMA,
   type JsonSchemaDocument,
 } from './descriptors/descriptor-schema.js';
+export { DESCRIPTOR_FIELD_EXPLANATIONS } from './descriptors/descriptor-field-explanations.js';
 export {
   TOURNAMENT_PROFILE_SCHEMA,
   validateTournamentProfileDocument,
