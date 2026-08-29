@@ -3,6 +3,7 @@ title: Platform administration
 description: Create organizations, manage installation super-admins, and install discipline/profile modules.
 capabilities:
   - control-web/platform-administration
+  - control-web/descriptor-authoring
   - platform/default-module-catalogue
 roles:
   - super-admin
@@ -36,6 +37,14 @@ Discipline and tournament-profile modules are installed here by alias, an option
 optional alternate source for a module not in the default catalogue. Installed modules are listed with
 their kind, version, and source, and can be verified or removed. Checking for updates compares installed
 versions against what each module's source currently publishes, without installing anything until asked.
+
+## Authoring a discipline or tournament profile
+
+A new discipline or tournament profile can be built here through a guided wizard, without hand-writing a
+descriptor document. The wizard explains what each choice causes during a competition rather than what it
+is named, and produces a document that passes the same validation an installed module passes. Authoring a
+discipline is installation-level authority, the same as installing one: it changes what every organization
+in the installation can run.
 
 ## What you cannot do here
 
