@@ -6,6 +6,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { rolesForCapability } from '@copalibre/domain';
 import {
   IdentityPrincipalRepository,
   OrganizationAccessRepository,
@@ -150,7 +151,11 @@ export class OrganizationAccessGuard implements CanActivate {
       principalId: principal.principalId,
       grantorContext: this.resolveGrantorContext(subject, organizationId, assignment.role),
     };
-    if (!requirement.roles.includes(assignment.role)) {
+    const admittedRoles =
+      requirement.kind === 'organization-capability'
+        ? rolesForCapability(requirement.capability)
+        : requirement.roles;
+    if (!admittedRoles.includes(assignment.role)) {
       throw new ForbiddenException('Subject organization role is not authorized for this route');
     }
     return true;
