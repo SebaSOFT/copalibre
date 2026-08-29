@@ -7,6 +7,7 @@ capabilities:
 roles:
   - admin
   - club-admin
+  - tournament-admin
   - referee
   - broadcaster
   - viewer
@@ -15,6 +16,16 @@ roles:
 
 CopaLibre mantiene risultati, iscrizioni e attività operativa sotto il controllo di ciascuna
 organizzazione.
+
+## Cosa può fare il mio ruolo?
+
+Ogni ruolo ha la propria pagina, generata dalla stessa dichiarazione che il prodotto applica
+realmente:
+
+- [Admin](/it/help/roles/admin/) · [Admin del club](/it/help/roles/club-admin/) ·
+  [Admin del torneo](/it/help/roles/tournament-admin/) · [Arbitro](/it/help/roles/referee/) ·
+  [Trasmissione](/it/help/roles/broadcaster/) · [Viewer](/it/help/roles/viewer/) ·
+  [Super-admin](/it/help/roles/super-admin/)
 
 ## Prima di iniziare
 
