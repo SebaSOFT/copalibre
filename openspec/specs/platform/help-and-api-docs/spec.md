@@ -294,3 +294,59 @@ page. An empty path SHALL fail the build exactly as a missing one does.
 - **WHEN** a super administrator opens the platform-administration console and activates its help link
 - **THEN** they land on a page describing organization creation, module installation and super-admin
   administration
+
+### Requirement: An agent-facing authoring contract is published separately from operator help
+The help site SHALL publish an authoring guide addressed to a machine reader, describing the shape and
+meaning of a discipline descriptor and a tournament configuration: every field, what it governs while a
+competition runs, which sets are closed and why, the win-condition script vocabulary, and the boundary
+between what a descriptor fixes and what a tournament ruleset may override.
+
+It SHALL be published with its own retrievable index, distinct from `llms.txt` and `llms-full.txt`, so
+an agent can fetch the authoring contract without also fetching the operator-facing documentation. The
+existing two files SHALL keep their current scope and content unchanged.
+
+The machine-readable descriptor schema SHALL be served at a stable documentation URL, so an agent can
+fetch and validate against the same schema the installation enforces.
+
+Like the existing files intended for machine consumption, the authoring guide and its index SHALL be
+English only.
+
+#### Scenario: The authoring index is retrievable on its own
+- **WHEN** the help site is built
+- **THEN** an authoring index is produced containing the authoring guide's content, and it does not
+  contain the operator help pages
+
+#### Scenario: The operator-facing files are unchanged
+- **WHEN** the help site is built
+- **THEN** `llms.txt` and `llms-full.txt` carry exactly the operator documentation they carried before
+  the authoring guide existed
+
+#### Scenario: The schema is fetchable and current
+- **WHEN** an agent fetches the published descriptor schema URL
+- **THEN** it receives the same schema the installation validates against, generated at build time
+  rather than hand-copied
+
+#### Scenario: A field's entry says what it does, not only what it is
+- **WHEN** an agent reads the authoring guide's entry for any descriptor field
+- **THEN** the entry states what that field causes during a competition, so a regulation's clause can be
+  mapped onto it
+
+### Requirement: The authoring guide carries worked transcriptions from real regulations
+The authoring guide SHALL include at least two complete transcriptions from published competition
+regulations into validating descriptors — one discipline whose matches have two sides and a clock, and
+one whose matches produce an ordering rather than a winner — each stating which clause of the regulation
+produced which declaration, and which clauses could not be expressed and why.
+
+#### Scenario: Two shapes of competition are worked through
+- **WHEN** an agent reads the authoring guide
+- **THEN** it finds a full transcription for a two-sided timed discipline and one for a placement
+  discipline, not a single example generalized from
+
+#### Scenario: A transcription's output validates
+- **WHEN** the descriptor produced by any worked transcription is validated
+- **THEN** it passes, so the guide cannot document a mapping the platform would reject
+
+#### Scenario: What could not be expressed is stated
+- **WHEN** a regulation contains a rule the descriptor cannot express
+- **THEN** the transcription names it and says why, rather than omitting it silently and leaving an
+  agent to conclude the mapping was complete

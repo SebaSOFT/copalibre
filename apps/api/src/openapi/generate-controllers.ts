@@ -1,6 +1,7 @@
 import { HealthController } from '../health.controller.js';
 import { AdminModulesController } from '../controllers/admin-modules.controller.js';
 import { AdminStatisticsController } from '../controllers/admin-statistics.controller.js';
+import { AuthoredModulesController } from '../controllers/authored-modules.controller.js';
 import { DataExportController } from '../controllers/data-export.controller.js';
 import { DataImportExportController } from '../controllers/data-import-export.controller.js';
 import { InstallationBootstrapController } from '../controllers/installation-bootstrap.controller.js';
@@ -90,6 +91,7 @@ export const OPENAPI_CONTROLLERS = [
   PersonalAccessTokenController,
   AdminStatisticsController,
   AdminModulesController,
+  AuthoredModulesController,
   PersonMediaController,
   ClubMediaController,
   OrganizationMediaController,

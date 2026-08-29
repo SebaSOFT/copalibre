@@ -7,7 +7,12 @@ import {
   type InstalledModule,
 } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
-import { CURATED_MODULE_REPOSITORY, alternateModuleSource, type ModuleSource } from './fetch.js';
+import {
+  AUTHORED_MODULE_SOURCE,
+  CURATED_MODULE_REPOSITORY,
+  alternateModuleSource,
+  type ModuleSource,
+} from './fetch.js';
 
 /**
  * Shared between `apps/copalibre`'s direct-database CLI path and `apps/api`'s
@@ -50,9 +55,9 @@ export function resolveSource(
 export function sourceFor(
   installed: Pick<InstalledModule, 'sourceKind' | 'sourceRepositoryUrl'>,
 ): ModuleSource {
-  return installed.sourceKind === 'curated'
-    ? CURATED_MODULE_REPOSITORY
-    : alternateModuleSource(installed.sourceRepositoryUrl);
+  if (installed.sourceKind === 'curated') return CURATED_MODULE_REPOSITORY;
+  if (installed.sourceKind === 'authored') return AUTHORED_MODULE_SOURCE;
+  return alternateModuleSource(installed.sourceRepositoryUrl);
 }
 
 export function latestPerAlias(modules: readonly InstalledModule[]): readonly InstalledModule[] {

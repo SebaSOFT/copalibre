@@ -1,8 +1,7 @@
 import { parseArgs } from 'node:util';
-import type { ModuleKind } from '@copalibre/module-distribution';
+import { submitModule, type ModuleKind } from '@copalibre/module-distribution';
 import { systemProcessRunner } from '../process-runner.js';
 import { scaffoldModule } from './scaffold.js';
-import { submitModule } from './submit.js';
 import { validateLocalModule } from './validate-local.js';
 
 const MODULE_KINDS: readonly ModuleKind[] = ['discipline', 'tournament-profile'];

@@ -318,6 +318,23 @@ jobs:
       # The public overview's view model, plus the standings/seeding view
       # models and the bracket-canvas geometry.
       - run: yarn workspace @copalibre/web test:coverage
+      # Descriptor and profile builders (openspec 0164): the discipline and
+      # tournament-profile authoring wizards' pure state logic (step gating,
+      # win-condition composition, document assembly) and component
+      # behavior (decision hints, in-surface refusal, server-failure
+      # rendering) — named separately so a reviewer scanning the job log
+      # finds this capability's own signal directly. The locale parity
+      # check already covers the new strings through its existing catalog
+      # comparison (run as part of the `web test:coverage` step above), so
+      # it needs no new step.
+      - run: yarn workspace @copalibre/web test --testPathPatterns 'descriptor-builder|profile-builder'
+      # The authored-module packaging helper packageAuthoredModule
+      # (openspec 0164) — writes an authored document to the on-disk
+      # package layout every other module source already produces, proven
+      # to be a package `validateModulePackage` accepts. Already covered by
+      # the workspace's own `test:coverage` step above; named separately so
+      # a reviewer finds this capability's own signal directly.
+      - run: yarn workspace @copalibre/module-distribution test --testPathPatterns 'author'
       # Wizard decision descriptions: the three-tier resolution order, the
       # reversibility sentence derived from ConfigFieldPolicies, and the
       # decision-hint atom's accessible wiring — named separately so a
@@ -654,6 +671,15 @@ jobs:
       # unchanged. Named separately so a failure says so directly.
       - name: Series accounting grain (E2E)
         run: yarn test:e2e -- e2e/public-accounting-grain.spec.ts
+      # Descriptor and profile builders: authoring a complete discipline
+      # through the builder with every decision explained and an incomplete
+      # declaration refused in the surface before submission; a profile
+      # stage format the discipline does not declare refused; and
+      # publication refused without authorship or an English name — named
+      # separately so a failure says so directly rather than arriving as
+      # one red line in the full suite.
+      - name: Descriptor and profile builders (E2E)
+        run: yarn test:e2e -- e2e/control-descriptor-profile-builders.spec.ts
       # Accelerated TV soak-test proxy. design.md describes
       # the per-PR-eligible proxy as a 2-hour run; a literal 2 hours on every
       # PR would be a severe, ongoing CI-turnaround regression this repo does
@@ -834,6 +860,18 @@ jobs:
       # named separately so a reviewer finds this capability's own signal
       # directly.
       - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'accounting-grain'
+      # Descriptor and profile builders (openspec 0164): authoring a
+      # discipline through the API, installing it, creating a tournament
+      # and playing a match against it — the proof that an authored
+      # discipline is an ordinary one; a profile validated against it
+      # pre-creating both stages on tournament creation; revision into a
+      # new version with a started tournament's referenced version
+      # protected; re-seeding the bundled catalogue leaving an authored
+      # module untouched; and authoring refused for an organization
+      # administrator, permitted for a super administrator — named
+      # separately so a reviewer finds this capability's own signal
+      # directly.
+      - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'authored-modules'
       # Worked transcriptions (openspec 0163): the authoring guide's two
       # example descriptors — a two-sided timed discipline, a placement
       # discipline — install through the real path, not just the schema

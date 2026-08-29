@@ -22,6 +22,9 @@
       "path": "../../packages/rules/tsconfig.json"
     },
     {
+      "path": "../seed/tsconfig.json"
+    },
+    {
       "path": "../../packages/statistics-refold/tsconfig.json"
     },
     {

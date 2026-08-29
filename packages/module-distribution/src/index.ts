@@ -36,6 +36,7 @@ export {
 } from './validate.js';
 
 export {
+  AUTHORED_MODULE_SOURCE,
   CURATED_MODULE_REPOSITORY,
   ModuleFetchError,
   alternateModuleSource,
@@ -66,3 +67,17 @@ export {
   runningCopalibreVersion,
   sourceFor,
 } from './operations.js';
+
+export {
+  packageAuthoredModule,
+  type AuthoredModule,
+  type PackagedAuthoredModule,
+} from './author.js';
+
+export {
+  submitModule,
+  systemGitCommandRunner,
+  type GitCommandRunner,
+  type SubmitOptions,
+  type SubmitResult,
+} from './submit.js';

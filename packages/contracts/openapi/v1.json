@@ -5898,6 +5898,177 @@
         ]
       }
     },
+    "/admin/authored-modules/validate": {
+      "post": {
+        "operationId": "AuthoredModulesController_validate",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthoredModuleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoredModuleValidationResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Validate an authored document without installing it",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/admin/authored-modules": {
+      "post": {
+        "operationId": "AuthoredModulesController_install",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthoredModuleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstallModuleResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Package, validate and install an authored document, exactly as `module add` would",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/admin/authored-modules/submit": {
+      "post": {
+        "operationId": "AuthoredModulesController_submit",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthoredModuleSubmitRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthoredModuleSubmitResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Contribute an already-installed authored module upstream, via `module submit`",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/organizations/{organizationAlias}/persons/{personId}": {
       "get": {
         "operationId": "PersonMediaController_getPerson",
@@ -9304,6 +9475,10 @@
             "type": "string",
             "format": "uuid"
           },
+          "alias": {
+            "type": "string",
+            "example": "orbital-frisbee"
+          },
           "version": {
             "type": "string",
             "example": "1.2.0"
@@ -9495,6 +9670,7 @@
         },
         "required": [
           "descriptorId",
+          "alias",
           "version",
           "name",
           "supportedFormats"
@@ -13405,7 +13581,8 @@
             "type": "string",
             "enum": [
               "curated",
-              "alternate"
+              "alternate",
+              "authored"
             ]
           },
           "attributionAuthor": {
@@ -13575,6 +13752,122 @@
           "version",
           "ok",
           "failures"
+        ]
+      },
+      "AuthoredModuleRequest": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "discipline",
+              "tournament-profile"
+            ]
+          },
+          "document": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "The authored discipline descriptor or tournament profile document (no descriptorId/profileId — those are assigned on install), validated against the same schema an installed module passes."
+          },
+          "disciplineAlias": {
+            "type": "string",
+            "description": "For a tournament profile only: the installed discipline alias each stage's format is checked against. Omitted for a discipline document.",
+            "example": "orbital-frisbee"
+          }
+        },
+        "required": [
+          "kind",
+          "document"
+        ]
+      },
+      "AuthoredModuleValidationFailureResponse": {
+        "type": "object",
+        "properties": {
+          "stage": {
+            "type": "string",
+            "example": "artifact"
+          },
+          "field": {
+            "type": "string",
+            "example": "statistics[0].aggregation"
+          },
+          "message": {
+            "type": "string",
+            "example": "must have required property \"aggregation\""
+          }
+        },
+        "required": [
+          "stage",
+          "message"
+        ]
+      },
+      "AuthoredModuleValidationResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "failures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuthoredModuleValidationFailureResponse"
+            }
+          }
+        },
+        "required": [
+          "ok",
+          "failures"
+        ]
+      },
+      "AuthoredModuleSubmitRequest": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "discipline",
+              "tournament-profile"
+            ]
+          },
+          "alias": {
+            "type": "string",
+            "example": "orbital-frisbee"
+          },
+          "version": {
+            "type": "string",
+            "example": "1.0.0"
+          },
+          "upstreamRepository": {
+            "type": "string",
+            "description": "Allow-listed fork target; omit to fork/submit against the curated repository",
+            "example": "someone/copalibre-modules"
+          },
+          "baseBranch": {
+            "type": "string",
+            "example": "main"
+          }
+        },
+        "required": [
+          "kind",
+          "alias",
+          "version"
+        ]
+      },
+      "AuthoredModuleSubmitResponse": {
+        "type": "object",
+        "properties": {
+          "pullRequestUrl": {
+            "type": "string",
+            "example": "https://github.com/SebaSOFT/copalibre-modules/pull/42"
+          },
+          "branch": {
+            "type": "string",
+            "example": "add-discipline-orbital-frisbee"
+          }
+        },
+        "required": [
+          "pullRequestUrl",
+          "branch"
         ]
       },
       "NaturalKeyResponse": {

@@ -32,6 +32,8 @@ export const WIZARD_STEPS: readonly {
 
 export interface DisciplineOption {
   readonly descriptorId: string;
+  /** The discipline's catalogue alias — used to validate an authored profile's stage formats against it (openspec 0164). */
+  readonly alias?: string;
   readonly version: string;
   readonly name: string | LocalizedLabel;
   readonly description?: string | LocalizedLabel;

@@ -120,6 +120,19 @@ export const messages = defineMessages({
     id: 'control.platform.modules.description',
     defaultMessage: 'Install, remove, verify, and check published module updates.',
   },
+  platformAuthorDiscipline: {
+    id: 'control.platform.modules.authorDiscipline',
+    defaultMessage: 'Author a discipline',
+  },
+  platformAuthorProfile: {
+    id: 'control.platform.modules.authorProfile',
+    defaultMessage: 'Author a tournament profile',
+  },
+  platformContribute: { id: 'control.platform.modules.contribute', defaultMessage: 'Contribute' },
+  platformModuleContributed: {
+    id: 'control.platform.modules.contributed',
+    defaultMessage: 'Opened pull request: {url}',
+  },
   platformCheckUpdates: {
     id: 'control.platform.modules.checkUpdates',
     defaultMessage: 'Check for updates',
@@ -2091,5 +2104,434 @@ export const messages = defineMessages({
   apiErrorInternalServer: {
     id: 'control.apiError.internalServer',
     defaultMessage: 'An unexpected server error occurred. Try again.',
+  },
+
+  // Discipline descriptor builder (openspec 0164)
+  descriptorWizardTitle: {
+    id: 'control.descriptor.wizardTitle',
+    defaultMessage: 'Author a discipline',
+  },
+  descriptorWizardSteps: { id: 'control.descriptor.wizardSteps', defaultMessage: 'Steps' },
+  descriptorStepName: { id: 'control.descriptor.stepName', defaultMessage: 'Name' },
+  descriptorStepAuthorship: {
+    id: 'control.descriptor.stepAuthorship',
+    defaultMessage: 'Authorship',
+  },
+  descriptorStepParticipants: {
+    id: 'control.descriptor.stepParticipants',
+    defaultMessage: 'Participants',
+  },
+  descriptorStepStatistics: {
+    id: 'control.descriptor.stepStatistics',
+    defaultMessage: 'Statistics & events',
+  },
+  descriptorStepFormats: { id: 'control.descriptor.stepFormats', defaultMessage: 'Formats' },
+  descriptorStepWinCondition: {
+    id: 'control.descriptor.stepWinCondition',
+    defaultMessage: 'Win condition',
+  },
+  descriptorFieldAlias: { id: 'control.descriptor.fieldAlias', defaultMessage: 'Alias' },
+  descriptorDecisionAlias: {
+    id: 'control.descriptor.decisionAlias',
+    defaultMessage:
+      'The stable identity this discipline installs under. Lowercase words separated by hyphens; cannot be changed once installed.',
+  },
+  descriptorFieldVersion: { id: 'control.descriptor.fieldVersion', defaultMessage: 'Version' },
+  descriptorFieldName: { id: 'control.descriptor.fieldName', defaultMessage: 'Name' },
+  descriptorFieldDescription: {
+    id: 'control.descriptor.fieldDescription',
+    defaultMessage: 'Description',
+  },
+  descriptorTranslationHelp: {
+    id: 'control.descriptor.translationHelp',
+    defaultMessage:
+      'English is required. Any other language left blank falls back to English for that reader.',
+  },
+  descriptorProblemAliasFormat: {
+    id: 'control.descriptor.problemAliasFormat',
+    defaultMessage: 'Alias must be lowercase words separated by hyphens.',
+  },
+  descriptorProblemVersion: {
+    id: 'control.descriptor.problemVersion',
+    defaultMessage: 'Version is required.',
+  },
+  descriptorProblemNameEnglish: {
+    id: 'control.descriptor.problemNameEnglish',
+    defaultMessage: 'An English name is required.',
+  },
+  descriptorFieldAuthor: { id: 'control.descriptor.fieldAuthor', defaultMessage: 'Author' },
+  descriptorDecisionAuthor: {
+    id: 'control.descriptor.decisionAuthor',
+    defaultMessage:
+      'Credited as this discipline’s author. Never defaulted to the installation’s own identity — publication is refused without it.',
+  },
+  descriptorFieldLicence: { id: 'control.descriptor.fieldLicence', defaultMessage: 'Licence' },
+  descriptorDecisionLicence: {
+    id: 'control.descriptor.decisionLicence',
+    defaultMessage: 'The licence this discipline is published under, e.g. AGPL-3.0-only.',
+  },
+  descriptorFieldSourceUrl: {
+    id: 'control.descriptor.fieldSourceUrl',
+    defaultMessage: 'Source URL (optional)',
+  },
+  descriptorProblemAuthor: {
+    id: 'control.descriptor.problemAuthor',
+    defaultMessage: 'Author is required.',
+  },
+  descriptorProblemLicence: {
+    id: 'control.descriptor.problemLicence',
+    defaultMessage: 'Licence is required.',
+  },
+  descriptorFieldParticipantTypes: {
+    id: 'control.descriptor.fieldParticipantTypes',
+    defaultMessage: 'Participant types',
+  },
+  descriptorDecisionParticipantTypes: {
+    id: 'control.descriptor.decisionParticipantTypes',
+    defaultMessage:
+      'Whether an entrant is one person or a full team. This decides what a roster is built from.',
+  },
+  descriptorFieldMinPlayers: {
+    id: 'control.descriptor.fieldMinPlayers',
+    defaultMessage: 'Minimum players',
+  },
+  descriptorFieldMaxPlayers: {
+    id: 'control.descriptor.fieldMaxPlayers',
+    defaultMessage: 'Maximum players',
+  },
+  descriptorDecisionRosterConstraints: {
+    id: 'control.descriptor.decisionRosterConstraints',
+    defaultMessage: 'How many players a roster may carry — checked at registration and check-in.',
+  },
+  descriptorFieldAllowMidTournamentChanges: {
+    id: 'control.descriptor.fieldAllowMidTournamentChanges',
+    defaultMessage: 'Allow roster changes mid-tournament',
+  },
+  descriptorProblemParticipantTypes: {
+    id: 'control.descriptor.problemParticipantTypes',
+    defaultMessage: 'Choose at least one participant type.',
+  },
+  descriptorProblemRosterConstraints: {
+    id: 'control.descriptor.problemRosterConstraints',
+    defaultMessage: 'Maximum players must be at least the minimum, and both at least 1.',
+  },
+  descriptorSegmentTypesHeading: {
+    id: 'control.descriptor.segmentTypesHeading',
+    defaultMessage: 'Segment types',
+  },
+  descriptorDecisionSegmentTypes: {
+    id: 'control.descriptor.decisionSegmentTypes',
+    defaultMessage:
+      'The phases a match is divided into (halves, sets, rounds). Optional — a discipline decided in one uninterrupted match declares none.',
+  },
+  descriptorFieldSegmentTypeName: {
+    id: 'control.descriptor.fieldSegmentTypeName',
+    defaultMessage: 'Segment name',
+  },
+  descriptorFieldSegmentTypeLabel: {
+    id: 'control.descriptor.fieldSegmentTypeLabel',
+    defaultMessage: 'Segment label',
+  },
+  descriptorFieldSegmentTimed: {
+    id: 'control.descriptor.fieldSegmentTimed',
+    defaultMessage: 'Timed',
+  },
+  descriptorAdd: { id: 'control.descriptor.add', defaultMessage: 'Add' },
+  descriptorRemove: { id: 'control.descriptor.remove', defaultMessage: 'Remove' },
+  descriptorStatisticsHeading: {
+    id: 'control.descriptor.statisticsHeading',
+    defaultMessage: 'Statistics',
+  },
+  descriptorDecisionStatistics: {
+    id: 'control.descriptor.decisionStatistics',
+    defaultMessage:
+      'What gets counted and how it folds across a competition — this is the vocabulary standings are built from. A discipline that declares nothing declares a discipline with no standings.',
+  },
+  descriptorFieldStatisticCode: {
+    id: 'control.descriptor.fieldStatisticCode',
+    defaultMessage: 'Statistic code',
+  },
+  descriptorFieldStatisticLabel: {
+    id: 'control.descriptor.fieldStatisticLabel',
+    defaultMessage: 'Statistic label',
+  },
+  descriptorFieldAggregation: {
+    id: 'control.descriptor.fieldAggregation',
+    defaultMessage: 'Aggregation mode',
+  },
+  descriptorEventsHeading: {
+    id: 'control.descriptor.eventsHeading',
+    defaultMessage: 'Event definitions',
+  },
+  descriptorDecisionEvents: {
+    id: 'control.descriptor.decisionEvents',
+    defaultMessage:
+      'What can be recorded during a match. An event may award one of the statistics declared above each time it occurs.',
+  },
+  descriptorFieldEventCode: {
+    id: 'control.descriptor.fieldEventCode',
+    defaultMessage: 'Event code',
+  },
+  descriptorFieldEventLabel: {
+    id: 'control.descriptor.fieldEventLabel',
+    defaultMessage: 'Event label',
+  },
+  descriptorFieldEventCategory: {
+    id: 'control.descriptor.fieldEventCategory',
+    defaultMessage: 'Event category',
+  },
+  descriptorFieldEventActorRequirement: {
+    id: 'control.descriptor.fieldEventActorRequirement',
+    defaultMessage: 'Actor requirement',
+  },
+  descriptorFieldEventAwardsStatistic: {
+    id: 'control.descriptor.fieldEventAwardsStatistic',
+    defaultMessage: 'Awards statistic',
+  },
+  descriptorFieldEventAwardsDelta: {
+    id: 'control.descriptor.fieldEventAwardsDelta',
+    defaultMessage: 'Amount awarded',
+  },
+  descriptorEventAwardsNone: {
+    id: 'control.descriptor.eventAwardsNone',
+    defaultMessage: 'Awards nothing',
+  },
+  descriptorProblemNoStatistics: {
+    id: 'control.descriptor.problemNoStatistics',
+    defaultMessage: 'Declare at least one statistic.',
+  },
+  descriptorProblemEventUndeclaredStatistic: {
+    id: 'control.descriptor.problemEventUndeclaredStatistic',
+    defaultMessage:
+      'An event awards a statistic that is no longer declared. Remove it or re-declare the statistic.',
+  },
+  descriptorFieldAvailableFormats: {
+    id: 'control.descriptor.fieldAvailableFormats',
+    defaultMessage: 'Available formats',
+  },
+  descriptorDecisionFormats: {
+    id: 'control.descriptor.decisionFormats',
+    defaultMessage:
+      'Which tournament formats an organizer may run this discipline in. Only platform-supported formats can be declared.',
+  },
+  descriptorProblemNoFormats: {
+    id: 'control.descriptor.problemNoFormats',
+    defaultMessage: 'Choose at least one format.',
+  },
+  descriptorScoringInputsHeading: {
+    id: 'control.descriptor.scoringInputsHeading',
+    defaultMessage: 'Scoring inputs',
+  },
+  descriptorDecisionScoringInputs: {
+    id: 'control.descriptor.decisionScoringInputs',
+    defaultMessage:
+      'Optional named inputs a match report can carry beyond recorded events — derived from events, or entered by an operator directly.',
+  },
+  descriptorFieldScoringInputCode: {
+    id: 'control.descriptor.fieldScoringInputCode',
+    defaultMessage: 'Scoring input code',
+  },
+  descriptorFieldScoringInputLabel: {
+    id: 'control.descriptor.fieldScoringInputLabel',
+    defaultMessage: 'Scoring input label',
+  },
+  descriptorFieldScoringInputSource: {
+    id: 'control.descriptor.fieldScoringInputSource',
+    defaultMessage: 'Scoring input source',
+  },
+  descriptorFieldWinConditionMode: {
+    id: 'control.descriptor.fieldWinConditionMode',
+    defaultMessage: 'Win condition shape',
+  },
+  descriptorDecisionWinConditionMode: {
+    id: 'control.descriptor.decisionWinConditionMode',
+    defaultMessage:
+      'Simple: one score decides the match (football). Segmented: segments (sets, games) close first and the match is decided by segments won (tennis).',
+  },
+  descriptorWinConditionModeSimple: {
+    id: 'control.descriptor.winConditionModeSimple',
+    defaultMessage: 'Simple — one score decides the match',
+  },
+  descriptorWinConditionModeSegmented: {
+    id: 'control.descriptor.winConditionModeSegmented',
+    defaultMessage: 'Segmented — segments close first, then the match',
+  },
+  descriptorFieldSegmentMargin: {
+    id: 'control.descriptor.fieldSegmentMargin',
+    defaultMessage: 'Margin required to close a segment (optional)',
+  },
+  descriptorFieldSegmentName: {
+    id: 'control.descriptor.fieldSegmentName',
+    defaultMessage: 'Segment that closes',
+  },
+  descriptorFieldSegmentTarget: {
+    id: 'control.descriptor.fieldSegmentTarget',
+    defaultMessage: 'Units needed to close the segment',
+  },
+  descriptorFieldTiebreakAt: {
+    id: 'control.descriptor.fieldTiebreakAt',
+    defaultMessage: 'Tiebreak triggers at (optional)',
+  },
+  descriptorFieldTiebreakTarget: {
+    id: 'control.descriptor.fieldTiebreakTarget',
+    defaultMessage: 'Tiebreak target (optional)',
+  },
+  descriptorFieldTiebreakMargin: {
+    id: 'control.descriptor.fieldTiebreakMargin',
+    defaultMessage: 'Tiebreak margin (optional)',
+  },
+  descriptorFieldWinMatchUnitSimple: {
+    id: 'control.descriptor.fieldWinMatchUnitSimple',
+    defaultMessage: 'Statistic that decides the match',
+  },
+  descriptorFieldWinMatchUnitSegmented: {
+    id: 'control.descriptor.fieldWinMatchUnitSegmented',
+    defaultMessage: 'Segment counted to decide the match',
+  },
+  descriptorDecisionWinMatchUnit: {
+    id: 'control.descriptor.decisionWinMatchUnit',
+    defaultMessage:
+      'What the match is decided on — a declared statistic code in simple mode, or the closed segment’s name in segmented mode.',
+  },
+  descriptorFieldWinMatchTarget: {
+    id: 'control.descriptor.fieldWinMatchTarget',
+    defaultMessage: 'Target needed to win (optional)',
+  },
+  descriptorDecisionWinMatchTarget: {
+    id: 'control.descriptor.decisionWinMatchTarget',
+    defaultMessage:
+      'Leave blank for a match that closes only once regulation ends with a clear leader (a level score draws). Set a number for "first to N".',
+  },
+  descriptorProblemWinConditionUnit: {
+    id: 'control.descriptor.problemWinConditionUnit',
+    defaultMessage: 'Choose what decides the match.',
+  },
+  descriptorProblemSegmentName: {
+    id: 'control.descriptor.problemSegmentName',
+    defaultMessage: 'Choose which segment closes.',
+  },
+  descriptorProblemSegmentTarget: {
+    id: 'control.descriptor.problemSegmentTarget',
+    defaultMessage: 'Units needed to close the segment must be at least 1.',
+  },
+  descriptorProblemSegmentUndeclared: {
+    id: 'control.descriptor.problemSegmentUndeclared',
+    defaultMessage: 'The segment that closes must be one declared in the participants step.',
+  },
+  descriptorBack: { id: 'control.descriptor.back', defaultMessage: 'Back' },
+  descriptorContinue: { id: 'control.descriptor.continue', defaultMessage: 'Continue' },
+  descriptorAuthorAndInstall: {
+    id: 'control.descriptor.authorAndInstall',
+    defaultMessage: 'Author and install',
+  },
+
+  // Tournament profile builder (openspec 0164)
+  profileWizardTitle: {
+    id: 'control.profile.wizardTitle',
+    defaultMessage: 'Author a tournament profile',
+  },
+  profileWizardSteps: { id: 'control.profile.wizardSteps', defaultMessage: 'Steps' },
+  profileStepName: { id: 'control.profile.stepName', defaultMessage: 'Name' },
+  profileStepAuthorship: { id: 'control.profile.stepAuthorship', defaultMessage: 'Authorship' },
+  profileStepStages: { id: 'control.profile.stepStages', defaultMessage: 'Stages' },
+  profileStepPoints: { id: 'control.profile.stepPoints', defaultMessage: 'Points' },
+  profileFieldAlias: { id: 'control.profile.fieldAlias', defaultMessage: 'Alias' },
+  profileDecisionAlias: {
+    id: 'control.profile.decisionAlias',
+    defaultMessage:
+      'The stable identity this profile installs under. Lowercase words separated by hyphens; cannot be changed once installed.',
+  },
+  profileFieldVersion: { id: 'control.profile.fieldVersion', defaultMessage: 'Version' },
+  profileFieldName: { id: 'control.profile.fieldName', defaultMessage: 'Name' },
+  profileFieldDescription: {
+    id: 'control.profile.fieldDescription',
+    defaultMessage: 'Description',
+  },
+  profileProblemAliasFormat: {
+    id: 'control.profile.problemAliasFormat',
+    defaultMessage: 'Alias must be lowercase words separated by hyphens.',
+  },
+  profileProblemVersion: {
+    id: 'control.profile.problemVersion',
+    defaultMessage: 'Version is required.',
+  },
+  profileProblemNameEnglish: {
+    id: 'control.profile.problemNameEnglish',
+    defaultMessage: 'An English name is required.',
+  },
+  profileFieldAuthor: { id: 'control.profile.fieldAuthor', defaultMessage: 'Author' },
+  profileDecisionAuthor: {
+    id: 'control.profile.decisionAuthor',
+    defaultMessage:
+      'Credited as this profile’s author. Never defaulted to the installation’s own identity — publication is refused without it.',
+  },
+  profileFieldLicence: { id: 'control.profile.fieldLicence', defaultMessage: 'Licence' },
+  profileFieldSourceUrl: {
+    id: 'control.profile.fieldSourceUrl',
+    defaultMessage: 'Source URL (optional)',
+  },
+  profileProblemAuthor: {
+    id: 'control.profile.problemAuthor',
+    defaultMessage: 'Author is required.',
+  },
+  profileProblemLicence: {
+    id: 'control.profile.problemLicence',
+    defaultMessage: 'Licence is required.',
+  },
+  profileFieldDiscipline: {
+    id: 'control.profile.fieldDiscipline',
+    defaultMessage: 'Check stage formats against',
+  },
+  profileDecisionDiscipline: {
+    id: 'control.profile.decisionDiscipline',
+    defaultMessage:
+      'The installed discipline each stage’s format is checked against. The profile itself never names a discipline — it can be used with any discipline whose formats match.',
+  },
+  profileProblemDiscipline: {
+    id: 'control.profile.problemDiscipline',
+    defaultMessage: 'Choose a discipline to check stage formats against.',
+  },
+  profileStagesHeading: { id: 'control.profile.stagesHeading', defaultMessage: 'Stages' },
+  profileDecisionStages: {
+    id: 'control.profile.decisionStages',
+    defaultMessage:
+      'The competition’s phases, in order — a group stage feeding a knockout stage, for example. Each stage’s format must be one the chosen discipline declares.',
+  },
+  profileFieldStageName: { id: 'control.profile.fieldStageName', defaultMessage: 'Stage name' },
+  profileFieldStageFormat: {
+    id: 'control.profile.fieldStageFormat',
+    defaultMessage: 'Stage format',
+  },
+  profileProblemNoStages: {
+    id: 'control.profile.problemNoStages',
+    defaultMessage: 'Declare at least one stage.',
+  },
+  profileProblemStageFormat: {
+    id: 'control.profile.problemStageFormat',
+    defaultMessage: 'Every stage’s format must be one the chosen discipline declares.',
+  },
+  profileFieldPointsWin: {
+    id: 'control.profile.fieldPointsWin',
+    defaultMessage: 'Points for a win',
+  },
+  profileFieldPointsDraw: {
+    id: 'control.profile.fieldPointsDraw',
+    defaultMessage: 'Points for a draw',
+  },
+  profileFieldPointsLoss: {
+    id: 'control.profile.fieldPointsLoss',
+    defaultMessage: 'Points for a loss',
+  },
+  profileProblemNegativePoints: {
+    id: 'control.profile.problemNegativePoints',
+    defaultMessage: 'Points cannot be negative.',
+  },
+  profileAdd: { id: 'control.profile.add', defaultMessage: 'Add' },
+  profileRemove: { id: 'control.profile.remove', defaultMessage: 'Remove' },
+  profileBack: { id: 'control.profile.back', defaultMessage: 'Back' },
+  profileContinue: { id: 'control.profile.continue', defaultMessage: 'Continue' },
+  profileAuthorAndInstall: {
+    id: 'control.profile.authorAndInstall',
+    defaultMessage: 'Author and install',
   },
 });

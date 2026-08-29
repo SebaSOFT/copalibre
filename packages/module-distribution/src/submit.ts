@@ -3,7 +3,7 @@ import { cp, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
-import type { ModuleManifest } from '@copalibre/module-distribution';
+import type { ModuleManifest } from './manifest.js';
 
 const execFileAsync = promisify(execFile);
 

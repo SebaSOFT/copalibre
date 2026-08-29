@@ -3,6 +3,8 @@ import { FormattedMessage, useIntl } from 'react-intl';
 import type { CreateOrganizationRequest } from '@copalibre/contracts';
 import {
   createControlApiClient,
+  type AuthoredModuleRequest,
+  type AuthoredModuleValidationFailureResponse,
   type ControlApiClient,
   type InstalledModuleResponse,
   type InstallationSuperAdminResponse,
@@ -13,6 +15,9 @@ import { controlTokenStore } from '../session/token-store.js';
 import { messages } from '../i18n/messages.en.js';
 import { useToast } from './ToastProvider.js';
 import { RolesPermissionsRoute } from './RolesPermissionsRoute.js';
+import { DescriptorBuilderWizard } from './DescriptorBuilderWizard.js';
+import { ProfileBuilderWizard } from './ProfileBuilderWizard.js';
+import type { DisciplineOption } from '../lib/wizard.js';
 import { Button } from './ui/atoms/button.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/atoms/card.js';
 import { Input } from './ui/atoms/input.js';
@@ -59,6 +64,26 @@ export function PlatformAdministrationRoute({
   const [newSuperAdminPrincipalId, setNewSuperAdminPrincipalId] = useState('');
   const [manageOrgAlias, setManageOrgAlias] = useState('');
   const [managingOrgAlias, setManagingOrgAlias] = useState<string>();
+  const [authoringDiscipline, setAuthoringDiscipline] = useState(false);
+  const [authoringProfile, setAuthoringProfile] = useState(false);
+  const [authoringBusy, setAuthoringBusy] = useState(false);
+  const [authoringFailures, setAuthoringFailures] = useState<
+    readonly AuthoredModuleValidationFailureResponse[]
+  >([]);
+  const [disciplineOptions, setDisciplineOptions] = useState<readonly DisciplineOption[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    void api
+      .listDisciplines()
+      .then((result) => {
+        if (active) setDisciplineOptions(result);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [api]);
 
   const loadSuperAdmins = useCallback(async () => {
     setLoadingSuperAdmins(true);
@@ -294,6 +319,67 @@ export function PlatformAdministrationRoute({
     }
   };
 
+  const authorModule = async (
+    request: AuthoredModuleRequest,
+    onInstalled: () => void,
+  ): Promise<void> => {
+    setAuthoringBusy(true);
+    setAuthoringFailures([]);
+    try {
+      const validated = await requireApi(
+        api.validateAuthoredModule,
+        'validateAuthoredModule',
+      )(request);
+      if (!validated.ok) {
+        setAuthoringFailures(validated.failures);
+        return;
+      }
+      const installed = await requireApi(
+        api.installAuthoredModule,
+        'installAuthoredModule',
+      )(request);
+      toast.push({
+        severity: 'success',
+        message: intl.formatMessage(messages.platformModuleInstalled, {
+          alias: installed.alias,
+          version: installed.version,
+        }),
+      });
+      onInstalled();
+      await loadModules();
+      if (installed.kind === 'discipline') {
+        await api
+          .listDisciplines()
+          .then(setDisciplineOptions)
+          .catch(() => {});
+      }
+    } catch (cause) {
+      pushVerbatimError(toast, cause);
+    } finally {
+      setAuthoringBusy(false);
+    }
+  };
+
+  const contributeModule = async (module_: InstalledModuleResponse): Promise<void> => {
+    setBusy(`contribute:${module_.alias}`);
+    try {
+      const result = await requireApi(
+        api.submitAuthoredModule,
+        'submitAuthoredModule',
+      )({ kind: module_.kind, alias: module_.alias, version: module_.version });
+      toast.push({
+        severity: 'success',
+        message: intl.formatMessage(messages.platformModuleContributed, {
+          url: result.pullRequestUrl,
+        }),
+      });
+    } catch (cause) {
+      pushVerbatimError(toast, cause);
+    } finally {
+      setBusy(undefined);
+    }
+  };
+
   const moduleColumns: readonly DataTableColumn<InstalledModuleResponse>[] = [
     { key: 'kind', header: <FormattedMessage {...messages.platformKind} />, render: (m) => m.kind },
     {
@@ -341,6 +427,16 @@ export function PlatformAdministrationRoute({
             >
               <FormattedMessage {...messages.platformRemove} />
             </Button>
+            {module_.sourceKind === 'authored' && (
+              <Button
+                disabled={busy !== undefined}
+                onClick={() => void contributeModule(module_)}
+                type="button"
+                variant="secondary"
+              >
+                <FormattedMessage {...messages.platformContribute} />
+              </Button>
+            )}
             {result && (
               <span
                 aria-label={
@@ -581,16 +677,51 @@ export function PlatformAdministrationRoute({
                   <FormattedMessage {...messages.platformModulesDescription} />
                 </CardDescription>
               </div>
-              <Button
-                disabled={busy === 'outdated'}
-                onClick={() => void checkOutdated()}
-                type="button"
-                variant="secondary"
-              >
-                <FormattedMessage {...messages.platformCheckUpdates} />
-              </Button>
+              <div style={{ display: 'flex', gap: 'var(--cl-space-3)' }}>
+                <Button
+                  disabled={busy === 'outdated'}
+                  onClick={() => void checkOutdated()}
+                  type="button"
+                  variant="secondary"
+                >
+                  <FormattedMessage {...messages.platformCheckUpdates} />
+                </Button>
+                <Button
+                  onClick={() => setAuthoringDiscipline((current) => !current)}
+                  type="button"
+                  variant="secondary"
+                >
+                  <FormattedMessage {...messages.platformAuthorDiscipline} />
+                </Button>
+                <Button
+                  onClick={() => setAuthoringProfile((current) => !current)}
+                  type="button"
+                  variant="secondary"
+                >
+                  <FormattedMessage {...messages.platformAuthorProfile} />
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
+              {authoringDiscipline && (
+                <DescriptorBuilderWizard
+                  busy={authoringBusy}
+                  failures={authoringFailures}
+                  onSubmit={(request) =>
+                    void authorModule(request, () => setAuthoringDiscipline(false))
+                  }
+                />
+              )}
+              {authoringProfile && (
+                <ProfileBuilderWizard
+                  busy={authoringBusy}
+                  disciplines={disciplineOptions}
+                  failures={authoringFailures}
+                  onSubmit={(request) =>
+                    void authorModule(request, () => setAuthoringProfile(false))
+                  }
+                />
+              )}
               {outdated.length > 0 && (
                 <ul
                   aria-label={intl.formatMessage(messages.platformUpdatesAvailable)}
