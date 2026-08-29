@@ -246,6 +246,7 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
         properties: {
           code: { type: 'string', minLength: 1 },
           label: LOCALIZED_LABEL_SCHEMA,
+          description: LOCALIZED_LABEL_SCHEMA,
           category: { enum: ['positive', 'negative', 'neutral'] },
           permittedSegmentTypes: { type: 'array', items: { type: 'string', minLength: 1 } },
           actorRequirement: { enum: ['none', 'side', 'person', 'person-or-staff'] },
@@ -270,6 +271,7 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
           code: { type: 'string', minLength: 1 },
           label: LOCALIZED_LABEL_SCHEMA,
           aggregation: { enum: [...AGGREGATION_MODES] },
+          description: LOCALIZED_LABEL_SCHEMA,
         },
       },
     },
@@ -283,6 +285,7 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
           code: { type: 'string', minLength: 1 },
           label: LOCALIZED_LABEL_SCHEMA,
           source: { enum: ['event-derived', 'operator-entered'] },
+          description: LOCALIZED_LABEL_SCHEMA,
         },
       },
     },
@@ -300,6 +303,14 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
           'heats',
         ],
       },
+    },
+    // The discipline's own explanation of a format it lists in
+    // `availableFormats`; absent for a format falls back to the platform's
+    // catalogued description. Never required — most disciplines mean exactly
+    // what the platform already says.
+    formatDescriptions: {
+      type: 'object',
+      additionalProperties: LOCALIZED_LABEL_SCHEMA,
     },
     // Structural, not discipline-specific: every placement discipline needs a
     // position-to-points mapping and none of them expresses it differently.
@@ -777,6 +788,7 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
             properties: {
               definitionCode: { type: 'string', minLength: 1 },
               label: LOCALIZED_LABEL_SCHEMA,
+              description: LOCALIZED_LABEL_SCHEMA,
             },
           },
         },

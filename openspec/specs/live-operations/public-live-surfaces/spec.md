@@ -92,3 +92,42 @@ not the match's entrants are already determined.
   existing requirement)
 - **THEN** the card still links to that match's report page, which renders correctly for a not-yet-
   played match
+
+### Requirement: A cross settled by a series is rendered as a series
+Public live surfaces SHALL render a cross settled by a series as one cross showing its series state —
+matches won by each side, the match in progress, and the matches still to play — rather than as
+unrelated matches. The series state SHALL be legible without color alone and SHALL carry a text
+equivalent for assistive technology.
+
+#### Scenario: A best-of-five shows its full span from the start
+- **WHEN** a spectator views a best-of-five series after one match has been played
+- **THEN** all five positions are shown, one marked won, one marked in progress or next, and the
+  remainder marked still to play, so the spectator can see how many are left
+
+#### Scenario: A two-legged tie shows its aggregate
+- **WHEN** a spectator views a two-match aggregate series after both matches are finalized
+- **THEN** the summed score across both matches is shown alongside each individual match score, and the
+  side that advanced is named
+
+#### Scenario: Series state does not rely on color
+- **WHEN** a spectator views a series with color unavailable
+- **THEN** which matches are won, in progress and still to play remains distinguishable from text and
+  shape alone
+
+#### Scenario: A single-match cross is unchanged
+- **WHEN** a spectator views a cross settled by a single match
+- **THEN** it renders exactly as it does today, with no series indication
+
+### Requirement: A series cross states what it is waiting for
+The bracket view SHALL mark a cross whose series is undecided as pending, naming the series score, and
+SHALL NOT show a winner for a cross whose series has not resolved. A match that will not be played
+because the series ended early SHALL be shown as no longer required rather than as pending forever.
+
+#### Scenario: An undecided series does not advance on the bracket
+- **WHEN** a best-of-five stands at two matches to one
+- **THEN** the cross is marked pending, states the two-to-one series score, and the downstream cross
+  shows no entrant from it
+
+#### Scenario: An unplayed game states that it will not be played
+- **WHEN** a spectator views the fifth game of a series decided in four
+- **THEN** it is shown as no longer required, distinguishable from a game that is merely upcoming

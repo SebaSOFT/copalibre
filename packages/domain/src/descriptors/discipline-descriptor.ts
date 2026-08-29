@@ -88,6 +88,8 @@ export interface StatisticDefinition {
   readonly code: string;
   readonly label: string | LocalizedLabel;
   readonly aggregation: 'sum' | 'count' | 'max' | 'min' | 'average';
+  /** What this statistic counts, in competition terms. Optional: absent renders no explanation. */
+  readonly description?: string | LocalizedLabel;
 }
 
 /**
@@ -109,6 +111,8 @@ export interface ScoringInputDefinition {
   readonly code: string;
   readonly label: string | LocalizedLabel;
   readonly source: 'event-derived' | 'operator-entered';
+  /** What this input does to the score, in competition terms. Optional: absent renders no explanation. */
+  readonly description?: string | LocalizedLabel;
 }
 
 /**
@@ -187,6 +191,15 @@ export interface DisciplineDescriptor {
     readonly beyondTable?: number;
   };
   readonly availableFormats: readonly TournamentFormat[];
+  /**
+   * A discipline's own explanation of what a format it lists in
+   * `availableFormats` does during its competition — a discipline that calls
+   * `single-elimination` a "cup draw" explains it in those terms. Absent for a
+   * format resolves to the platform's own catalogued description instead.
+   */
+  readonly formatDescriptions?: Readonly<
+    Partial<Record<TournamentFormat, string | LocalizedLabel>>
+  >;
   /** Stable identifiers of notification-rule capabilities the discipline permits. */
   readonly notificationRuleCapabilities: readonly string[];
   /**

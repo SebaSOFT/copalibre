@@ -23,6 +23,59 @@ describe('discipline descriptor schema', () => {
     expect(validateDisciplineDescriptorDocument(asDocument()).ok).toBe(true);
   });
 
+  it('accepts a descriptor declaring descriptions on a statistic, an event definition, a scoring input, an event-workflow option, and a format', () => {
+    const result = validateDisciplineDescriptorDocument(
+      asDocument({
+        statistics: [
+          { code: 'points', label: 'Points', aggregation: 'sum', description: 'Match points' },
+        ],
+        eventDefinitions: [
+          {
+            code: 'goal',
+            label: 'Goal',
+            description: 'Awards one point to the scoring side',
+            category: 'positive',
+            permittedSegmentTypes: ['half'],
+            actorRequirement: 'person',
+            payloadSchema: { type: 'object', properties: {} },
+            workflow: {
+              kind: 'outcome-choice',
+              options: [
+                {
+                  definitionCode: 'goal-confirmed',
+                  label: 'Confirmed',
+                  description: 'The goal stands and the score updates',
+                },
+              ],
+            },
+          },
+          {
+            code: 'goal-confirmed',
+            label: 'Confirmed',
+            category: 'neutral',
+            permittedSegmentTypes: ['half'],
+            actorRequirement: 'none',
+            payloadSchema: { type: 'object', properties: {} },
+          },
+        ],
+        scoringInputs: [
+          { code: 'goals', label: 'Goals', source: 'event-derived', description: 'Goals scored' },
+        ],
+        formatDescriptions: { 'round-robin': 'Every entrant plays every other entrant once' },
+      }),
+    );
+
+    expect(result.ok).toBe(true);
+  });
+
+  it('accepts a descriptor declaring none of the new descriptions, unchanged', () => {
+    const result = validateDisciplineDescriptorDocument(asDocument());
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.statistics[0]?.description).toBeUndefined();
+    expect(result.value.formatDescriptions).toBeUndefined();
+  });
+
   it('accepts between one and ten optional object-storage image references', () => {
     expect(
       validateDisciplineDescriptorDocument(

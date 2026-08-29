@@ -377,6 +377,58 @@ export const messages: Record<string, string> = {
   'control.wizard.create': 'Создать турнир',
   'control.wizard.continue': 'Продолжить',
 
+  'control.wizard.decision.discipline':
+    'Определяет правила, статистику и события, доступные для этого соревнования.',
+  'control.wizard.decision.format':
+    'Определяет, как формируются встречи и как участники проходят дальше.',
+  'control.wizard.decision.seriesSpan':
+    'Сколько матчей может включать серия; то, как они складываются в единого победителя, определяется ниже.',
+  'control.wizard.decision.seriesResolutionClass':
+    'Определяет, как матчи серии складываются в единый результат.',
+  'control.wizard.decision.seriesNeutralGround':
+    'Отмечает серию как сыгранную на нейтральном поле, поэтому ни одна из сторон не считается хозяином.',
+  'control.wizard.decision.seriesStandingsAccounting':
+    'Определяет, учитывает ли таблица каждый матч серии отдельно или всю серию как единый результат.',
+  'control.wizard.decision.region':
+    'Группирует этот турнир для региональной фильтрации в публичных списках; не ограничивает, где проходят матчи.',
+  'control.wizard.decision.capacity': 'Максимальное число участников, которое примет турнир.',
+  'control.wizard.decision.publicRegistration':
+    'Позволяет участникам регистрироваться самостоятельно, а не только через организатора.',
+  'control.wizard.decision.requiresCheckIn':
+    'Требует, чтобы каждый участник прошёл регистрацию перед началом турнира, иначе он будет отмечен как отсутствующий.',
+  'control.wizard.decision.checkInClosesAt':
+    'Момент закрытия регистрации; участник, не прошедший её к этому времени, отмечается как отсутствующий.',
+  'control.wizard.format.singleElimination.description':
+    'Одно поражение выбывает участника из турнирной сетки.',
+  'control.wizard.format.doubleElimination.description':
+    'Участник выбывает только после двух поражений — через сетку победителей и сетку проигравших.',
+  'control.wizard.format.roundRobin.description':
+    'Каждый участник играет с каждым другим один раз; таблица упорядочена по набранным очкам.',
+  'control.wizard.format.league.description':
+    'Каждый участник играет с каждым другим по расписанию сезона; таблица упорядочена по набранным очкам.',
+  'control.wizard.format.roundRobinSingleLeg.description':
+    'Каждый участник играет с каждым другим ровно один раз, без ответного матча.',
+  'control.wizard.format.roundRobinHomeAway.description':
+    'Каждый участник играет с каждым другим дважды, по разу на своём поле.',
+  'control.wizard.format.freeForAll.description':
+    'Все участники соревнуются одновременно в одном заезде; таблица упорядочена по месту финиша.',
+  'control.wizard.format.heats.description':
+    'Участники соревнуются в нескольких заездах; таблица упорядочена по месту финиша по всем заездам.',
+  'control.wizard.series.class.bestOf.description':
+    'Серия завершается, как только одна из сторон выигрывает достаточно матчей, чтобы оставшиеся матчи стали неважны.',
+  'control.wizard.series.class.aggregate.description':
+    'Победитель серии определяется по суммарному счёту всех матчей, а не по числу выигранных матчей.',
+  'control.wizard.series.class.pointsPerLeg.description':
+    'Каждый матч серии приносит свои очки; победителем серии становится тот, кто набрал больше всего очков в сумме.',
+  'control.wizard.series.accounting.match.description':
+    'Таблица учитывает каждый матч серии как отдельный результат.',
+  'control.wizard.series.accounting.series.description':
+    'Таблица учитывает всю серию как единый результат, а не каждый матч по отдельности.',
+  'control.wizard.mutation.requiresRebuild':
+    'Изменение этого параметра после формирования встреч аннулирует их и создаёт заново.',
+  'control.wizard.mutation.blockedAfterResults':
+    'Это нельзя изменить после появления результата; вместо этого используйте процедуру аудируемого исправления.',
+
   'control.standings.sectionLabel': 'Турнирная таблица',
   'control.standings.title': 'Турнирная таблица',
   'control.standings.projectionVersion': 'Проекция v{version}',

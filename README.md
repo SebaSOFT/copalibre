@@ -179,25 +179,14 @@ authentication contract). Every change is planned and tracked as an OpenSpec pro
 
 ## Roadmap
 
-Active, unimplemented proposals — see [`openspec/changes/`](openspec/changes/) for each one's full
-design:
-
-- Filling help-site page-set gaps across the seven non-English locales so each one covers every page
-  English has
-- Cutting the `0.6.0-preview` release, including pre-release-aware image/`:latest` tagging
-- RBAC user administration — an admin floor, an organization-admin vs. club-operator role
-  distinction, and a user-management entry point in the super-admin console
-- An atomic design system (tokens → atoms → molecules → organisms) for the control panel, closing
-  the gap between the public-facing surfaces' realized visual identity and the admin screens' current
-  hand-rolled layouts
-- Closing a personal-access-token scope privilege-escalation gap in `POST /auth/pat`
-- Rate limiting for authentication endpoints
-- A global request-validation pipe enforcing DTO validation across the API
-- Removing dangling `(0XXX)` OpenSpec change-number references left in tracked files after their
-  change archives
+`openspec/changes/` is gitignored — every proposal, active or archived, lives only in a local
+checkout, never in this file. Enumerating specific proposals here is what went stale last time: every
+item this section listed turned out to already be implemented and archived. Run `openspec list` in a
+checkout to see what is actually active right now.
 
 Every change is planned as an OpenSpec proposal before implementation — see
-[`openspec/specs/`](openspec/specs/) for the accepted, currently-implemented capability baseline.
+[`openspec/specs/`](openspec/specs/) for the accepted, currently-implemented capability baseline, which
+_is_ committed and is the durable record of what has shipped.
 
 ## Contributing
 

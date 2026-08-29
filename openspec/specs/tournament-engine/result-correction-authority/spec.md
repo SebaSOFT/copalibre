@@ -4,7 +4,9 @@
 Guarantees that once the engine calculates a result, it can only ever change through an audited,
 previewed, reason-carrying correction — never a silent overwrite — so every published outcome
 remains trustworthy and traceable.
+
 ## Requirements
+
 ### Requirement: No direct overwrite of a calculated outcome
 The system SHALL NOT provide any endpoint or operation that directly overwrites a game/set, match,
 ranking, or advancement outcome once calculated.
@@ -57,3 +59,30 @@ the full chain of prior states.
 - **WHEN** a result is corrected more than once
 - **THEN** every prior state in the chain remains individually retrievable, in order
 
+### Requirement: Correcting a match of a series previews its effect on the series
+A correction to a match belonging to a series SHALL preview, before commit, whether the correction
+changes the series result, whether it changes the point at which the series became decided, and which
+matches would consequently stop or start being required. Correcting one match SHALL NOT silently
+un-anull or anull another.
+
+#### Scenario: A correction that reverses a decided series is previewed in full
+- **WHEN** an operator proposes correcting the third match of a best-of-five that stands at three-nil
+- **THEN** the preview states the series result before and after, that the series would no longer be
+  decided, and that matches four and five would return from not-required to scheduled
+
+#### Scenario: A correction that leaves the series result intact says so
+- **WHEN** an operator proposes correcting the score of a match in a series whose result the correction
+  does not change
+- **THEN** the preview states that the series result and its decision point are unaffected, and that no
+  match changes its required state
+
+#### Scenario: Reinstating an anulled match restores it explicitly
+- **WHEN** a committed correction makes a previously anulled match necessary again
+- **THEN** the match returns to a playable state as an audited fact naming the correction that caused
+  it, and it carries no schedule until one is assigned, because the slot it held was released
+
+#### Scenario: A series correction does not auto-propagate into a started downstream stage
+- **WHEN** a correction would change which entrant won a series whose winner already appears in a
+  started downstream stage
+- **THEN** propagation is blocked pending an authorized resolution, exactly as it is for a single-match
+  result

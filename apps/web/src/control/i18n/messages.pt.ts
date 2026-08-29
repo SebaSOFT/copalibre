@@ -375,6 +375,58 @@ export const messages: Record<string, string> = {
   'control.wizard.create': 'Criar torneio',
   'control.wizard.continue': 'Continuar',
 
+  'control.wizard.decision.discipline':
+    'Determina as regras, estatísticas e eventos disponíveis para esta competição.',
+  'control.wizard.decision.format':
+    'Decide como os confrontos são gerados e como os participantes avançam.',
+  'control.wizard.decision.seriesSpan':
+    'Quantas partidas a série pode disputar; como elas se combinam em um único vencedor é decidido abaixo.',
+  'control.wizard.decision.seriesResolutionClass':
+    'Decide como as partidas de uma série se combinam em um único resultado.',
+  'control.wizard.decision.seriesNeutralGround':
+    'Marca a série como disputada em campo neutro, de modo que nenhum lado é registrado como mandante.',
+  'control.wizard.decision.seriesStandingsAccounting':
+    'Decide se a classificação conta cada partida da série separadamente ou a série como um único resultado.',
+  'control.wizard.decision.region':
+    'Agrupa este torneio para filtragem regional nas listagens públicas; não restringe onde as partidas são jogadas.',
+  'control.wizard.decision.capacity': 'O número máximo de participantes que o torneio aceitará.',
+  'control.wizard.decision.publicRegistration':
+    'Permite que os participantes se inscrevam publicamente em vez de serem adicionados apenas por um organizador.',
+  'control.wizard.decision.requiresCheckIn':
+    'Exige que cada participante confirme presença antes do início do torneio, ou será marcado como ausente.',
+  'control.wizard.decision.checkInClosesAt':
+    'O momento em que o check-in se encerra; um participante que não confirmou presença até então é marcado como ausente.',
+  'control.wizard.format.singleElimination.description':
+    'Uma derrota elimina o participante do chaveamento.',
+  'control.wizard.format.doubleElimination.description':
+    'Um participante só é eliminado após duas derrotas, por meio de um chaveamento de vencedores e outro de perdedores.',
+  'control.wizard.format.roundRobin.description':
+    'Cada participante enfrenta todos os outros uma vez; a classificação é ordenada por pontos acumulados.',
+  'control.wizard.format.league.description':
+    'Cada participante enfrenta todos os outros ao longo de um calendário de temporada; a classificação é ordenada por pontos acumulados.',
+  'control.wizard.format.roundRobinSingleLeg.description':
+    'Cada participante enfrenta todos os outros exatamente uma vez, sem partida de volta.',
+  'control.wizard.format.roundRobinHomeAway.description':
+    'Cada participante enfrenta todos os outros duas vezes, uma na casa de cada lado.',
+  'control.wizard.format.freeForAll.description':
+    'Todos os participantes competem juntos na mesma bateria ao mesmo tempo; a classificação é ordenada pela posição de chegada.',
+  'control.wizard.format.heats.description':
+    'Os participantes competem em várias baterias; a classificação é ordenada pela posição de chegada em todas as baterias.',
+  'control.wizard.series.class.bestOf.description':
+    'A série termina assim que um lado vence partidas suficientes para tornar as partidas restantes irrelevantes.',
+  'control.wizard.series.class.aggregate.description':
+    'O vencedor da série é decidido pelo placar total de todas as partidas, não por quem venceu mais partidas.',
+  'control.wizard.series.class.pointsPerLeg.description':
+    'Cada partida da série concede seus próprios pontos; o vencedor da série é quem acumula mais pontos no total.',
+  'control.wizard.series.accounting.match.description':
+    'A classificação conta cada partida da série como seu próprio resultado.',
+  'control.wizard.series.accounting.series.description':
+    'A classificação conta a série inteira como um único resultado, não cada partida separadamente.',
+  'control.wizard.mutation.requiresRebuild':
+    'Alterar isso depois que os confrontos forem gerados invalida e os regenera.',
+  'control.wizard.mutation.blockedAfterResults':
+    'Isso não pode ser alterado depois que existir um resultado; use o fluxo de correção auditado em vez disso.',
+
   'control.standings.sectionLabel': 'Classificação',
   'control.standings.title': 'Classificação',
   'control.standings.projectionVersion': 'Projeção v{version}',

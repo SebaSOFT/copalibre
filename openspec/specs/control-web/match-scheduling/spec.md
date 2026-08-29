@@ -84,3 +84,39 @@ range, slot length, changeover, and venues).
 #### Scenario: A venue or official is available to the schedule builder immediately
 - **WHEN** a venue, official, or schedule is created from the management screen
 - **THEN** it is available in the schedule builder without any further step
+
+### Requirement: The builder presents each game of a series as its own row
+The schedule builder SHALL present every match of a series as its own placeable row, numbered in play
+order, each placed in its own slot and carrying its own officials, so that game one and game two of the
+same cross can sit in slots at different venues on different days.
+
+#### Scenario: Each game of a series is its own schedulable row
+- **WHEN** an organizer opens the schedule builder for a stage declaring a best-of-five series
+- **THEN** each fixture presents five rows, numbered in play order, each placeable in its own slot and
+  carrying its own officials
+
+#### Scenario: The rows of one series are shown as one cross
+- **WHEN** an organizer views a series in the list view
+- **THEN** its rows are grouped under the cross they settle, so five rows never read as five unrelated
+  matches between the same two entrants
+
+### Requirement: The builder states which games are contingent
+The schedule builder SHALL distinguish the matches of a series that will certainly be played from those
+that will only be played if the series is still undecided by then, and SHALL state that distinction in
+text rather than by color alone. A match anulled by a decided series SHALL be shown as no longer
+required, naming the slot it had occupied, rather than disappearing from the view.
+
+#### Scenario: Contingent games are marked before the series starts
+- **WHEN** an organizer views an unstarted best-of-five series in the schedule builder
+- **THEN** the first three games are marked as certain and games four and five are marked as contingent
+  on the series still being alive, in text
+
+#### Scenario: An anulled game states why it will not be played
+- **WHEN** an organizer views a best-of-five that was decided in three
+- **THEN** games four and five are shown as no longer required, naming the series result that settled it,
+  and still naming the slot they had occupied even though it is now free
+
+#### Scenario: Freeing a contingent slot is visible before it is committed
+- **WHEN** a series decision would remove the assignments of its remaining games
+- **THEN** the organizer sees which slots would be freed, and at which venues and times, before the
+  removal is committed

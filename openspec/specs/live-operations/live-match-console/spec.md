@@ -292,8 +292,11 @@ originally attempted, against its normal authorized command endpoint — the sam
 a live console action already goes through. No separate merge or conflict-resolution logic SHALL apply.
 An action the server would accept from a live console SHALL be accepted from the queue. An action the
 server would refuse from a live console — including a finalize whose target match is no longer eligible,
-or is already finalized with a different result — SHALL be refused from the queue, surfaced against that
-specific queued item, and SHALL NOT prevent the remaining queued actions from being attempted.
+or is already finalized with a different result, or whose target match was anulled by a series decision
+taken while the operator was offline — SHALL be refused from the queue, surfaced against that specific
+queued item, and SHALL NOT prevent the remaining queued actions from being attempted. A refusal caused
+by a series decision SHALL name that series result, so the operator is told why the match they recorded
+against will never be played.
 
 #### Scenario: Queued events from one operator replay alongside events recorded by others
 - **WHEN** a reconnection replays queued event-recording actions for a match that also received other
@@ -315,6 +318,17 @@ specific queued item, and SHALL NOT prevent the remaining queued actions from be
 #### Scenario: One refused item does not block the rest of the queue
 - **WHEN** one queued action among several is refused during replay
 - **THEN** the remaining queued actions are still attempted, in order
+
+#### Scenario: A queued action against a match anulled by a series decision is refused, naming the series
+- **WHEN** a queued action is replayed for a match that became not-required because its series was
+  decided while the operator was offline
+- **THEN** the action is refused and surfaced against that queued item, naming the series result that
+  anulled the match, and the operator's recorded work is neither applied nor discarded
+
+#### Scenario: The operator can still see what they recorded
+- **WHEN** a queued action is refused because its match was anulled
+- **THEN** the queued item and its contents remain visible to the operator, so they can decide whether
+  it belongs elsewhere — for example as a correction to an earlier match of the same series
 
 ### Requirement: Sync status is always visible while the console is open
 

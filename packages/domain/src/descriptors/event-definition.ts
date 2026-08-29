@@ -49,6 +49,8 @@ export interface EventWorkflow {
   readonly options: readonly {
     readonly definitionCode: string;
     readonly label: string | LocalizedLabel;
+    /** What choosing this outcome does. Optional: absent renders the label alone. */
+    readonly description?: string | LocalizedLabel;
   }[];
 }
 
@@ -101,6 +103,8 @@ export interface EventDefinition {
   /** Stable identifier within the discipline, e.g. "goal", "yellow-card". */
   readonly code: string;
   readonly label: string | LocalizedLabel;
+  /** What recording this event does during the competition. Optional: absent renders the label alone. */
+  readonly description?: string | LocalizedLabel;
   readonly category: EventCategory;
   /** Segment types (by name) during which this event may be recorded. */
   readonly permittedSegmentTypes: readonly string[];

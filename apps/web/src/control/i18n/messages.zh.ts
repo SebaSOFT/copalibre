@@ -369,6 +369,49 @@ export const messages: Record<string, string> = {
   'control.wizard.create': '创建赛事',
   'control.wizard.continue': '继续',
 
+  'control.wizard.decision.discipline': '决定本次比赛可用的规则、统计数据和事件。',
+  'control.wizard.decision.format': '决定赛程如何生成以及参赛者如何晋级。',
+  'control.wizard.decision.seriesSpan':
+    '系列赛可进行的比赛场数；这些比赛如何合并为一个胜者将在下方决定。',
+  'control.wizard.decision.seriesResolutionClass': '决定系列赛中的比赛如何合并为一个结果。',
+  'control.wizard.decision.seriesNeutralGround':
+    '将系列赛标记为在中立场地进行，因此没有一方被记录为主场。',
+  'control.wizard.decision.seriesStandingsAccounting':
+    '决定排名是将系列赛中的每场比赛单独计分，还是将整个系列赛作为一个结果计分。',
+  'control.wizard.decision.region':
+    '为公开列表中的地区筛选对本赛事分组；不限制比赛实际举办的地点。',
+  'control.wizard.decision.capacity': '赛事将接受的最大参赛者人数。',
+  'control.wizard.decision.publicRegistration': '允许参赛者自行公开报名，而不仅由组织者添加。',
+  'control.wizard.decision.requiresCheckIn': '要求每位参赛者在赛事开始前签到，否则将被标记为缺席。',
+  'control.wizard.decision.checkInClosesAt': '签到截止的时刻；届时尚未签到的参赛者将被标记为缺席。',
+  'control.wizard.format.singleElimination.description': '一次失利即被淘汰出对阵表。',
+  'control.wizard.format.doubleElimination.description':
+    '参赛者只有在两次失利后才会被淘汰，经由胜者组和败者组对阵表。',
+  'control.wizard.format.roundRobin.description':
+    '每位参赛者与其他所有参赛者各赛一场；排名按累计积分排序。',
+  'control.wizard.format.league.description':
+    '每位参赛者在整个赛季赛程中与其他所有参赛者交锋；排名按累计积分排序。',
+  'control.wizard.format.roundRobinSingleLeg.description':
+    '每位参赛者与其他所有参赛者恰好交锋一次，没有回程赛。',
+  'control.wizard.format.roundRobinHomeAway.description':
+    '每位参赛者与其他所有参赛者交锋两次，双方各主场一次。',
+  'control.wizard.format.freeForAll.description':
+    '所有参赛者同时在同一轮次中竞争；排名按名次排序。',
+  'control.wizard.format.heats.description': '参赛者在多个轮次中竞争；排名按所有轮次的名次排序。',
+  'control.wizard.series.class.bestOf.description':
+    '一旦一方赢得的比赛场数已使剩余比赛无关紧要，系列赛即结束。',
+  'control.wizard.series.class.aggregate.description':
+    '系列赛的胜者由所有比赛的总比分决定，而非由谁赢得的比赛场数更多决定。',
+  'control.wizard.series.class.pointsPerLeg.description':
+    '系列赛中的每场比赛都授予各自的积分；系列赛的胜者是总积分最多的一方。',
+  'control.wizard.series.accounting.match.description':
+    '排名将系列赛中的每场比赛计为其自身的结果。',
+  'control.wizard.series.accounting.series.description':
+    '排名将整个系列赛计为一个结果，而不是逐场比赛分别计算。',
+  'control.wizard.mutation.requiresRebuild': '在赛程生成后更改此项会使其失效并重新生成。',
+  'control.wizard.mutation.blockedAfterResults':
+    '一旦已有结果，此项将无法再更改；请改用经审计的更正流程。',
+
   'control.standings.sectionLabel': '排名',
   'control.standings.title': '排名',
   'control.standings.projectionVersion': '投影版本 {version}',

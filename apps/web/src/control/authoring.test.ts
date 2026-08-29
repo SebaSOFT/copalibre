@@ -5,11 +5,14 @@ import {
   elementOptionsKey,
   formatsFor,
   initialWizard,
+  mutationClassOf,
   nextStep,
   parameterValueKey,
   previousStep,
   progress,
   removeCustomRule,
+  resolveDecisionDescription,
+  reversibilityMessageKey,
   stepProblems,
   toCreateRequest,
   type DisciplineOption,
@@ -564,5 +567,60 @@ describe('mutation-classification feedback', () => {
     expect(mutationFeedback({ mutationClass: 'safe', hasRecordedResults: true })).toEqual({
       kind: 'none',
     });
+  });
+});
+
+describe('decision description resolution (openspec 0161)', () => {
+  it('resolves the descriptor-declared description over the platform catalogue for the same field', () => {
+    expect(resolveDecisionDescription('Decides the tie on total goals', 'Platform text')).toBe(
+      'Decides the tie on total goals',
+    );
+  });
+
+  it('falls back to the platform catalogue when the descriptor declares none', () => {
+    expect(resolveDecisionDescription(undefined, 'Platform text')).toBe('Platform text');
+  });
+
+  it('resolves to nothing when neither the descriptor nor the catalogue declares one', () => {
+    expect(resolveDecisionDescription(undefined, undefined)).toBeUndefined();
+  });
+
+  it('reads the mutation class from the field policy at its dot-path', () => {
+    const policies = {
+      format: {
+        permission: { kind: 'replaced' as const },
+        mutationClass: 'blocked_after_results' as const,
+      },
+    };
+    expect(mutationClassOf(policies, 'format')).toBe('blocked_after_results');
+    expect(mutationClassOf(policies, 'series.span')).toBeUndefined();
+    expect(mutationClassOf(undefined, 'format')).toBeUndefined();
+  });
+
+  it('derives the reversibility message key from the mutation class rather than authoring one per field', () => {
+    expect(reversibilityMessageKey('blocked_after_results')).toBe('blockedAfterResults');
+    expect(reversibilityMessageKey('requires_rebuild')).toBe('requiresRebuild');
+    expect(reversibilityMessageKey('safe')).toBeUndefined();
+    expect(reversibilityMessageKey(undefined)).toBeUndefined();
+  });
+
+  it('tracks a change to the declared mutation class with no copy edit', () => {
+    // The same field, before and after a hypothetical policy change from
+    // requires_rebuild to blocked_after_results — the rendered sentence key
+    // follows the policy automatically.
+    const before = {
+      format: {
+        permission: { kind: 'replaced' as const },
+        mutationClass: 'requires_rebuild' as const,
+      },
+    };
+    const after = {
+      format: {
+        permission: { kind: 'replaced' as const },
+        mutationClass: 'blocked_after_results' as const,
+      },
+    };
+    expect(reversibilityMessageKey(mutationClassOf(before, 'format'))).toBe('requiresRebuild');
+    expect(reversibilityMessageKey(mutationClassOf(after, 'format'))).toBe('blockedAfterResults');
   });
 });

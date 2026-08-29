@@ -376,6 +376,58 @@ export const messages: Record<string, string> = {
   'control.wizard.create': 'Crear torneo',
   'control.wizard.continue': 'Continuar',
 
+  'control.wizard.decision.discipline':
+    'Determina las reglas, estadísticas y eventos disponibles para esta competición.',
+  'control.wizard.decision.format':
+    'Decide cómo se generan los cruces y cómo avanzan los participantes.',
+  'control.wizard.decision.seriesSpan':
+    'Cuántos partidos puede jugar la serie; cómo se combinan en un solo ganador se decide abajo.',
+  'control.wizard.decision.seriesResolutionClass':
+    'Decide cómo se combinan los partidos de una serie en un solo resultado.',
+  'control.wizard.decision.seriesNeutralGround':
+    'Marca la serie como jugada en cancha neutral, de modo que ningún lado queda registrado como local.',
+  'control.wizard.decision.seriesStandingsAccounting':
+    'Decide si las posiciones cuentan cada partido de la serie por separado o la serie como un solo resultado.',
+  'control.wizard.decision.region':
+    'Agrupa este torneo para el filtrado regional en los listados públicos; no restringe dónde se juegan los partidos.',
+  'control.wizard.decision.capacity': 'La cantidad máxima de participantes que aceptará el torneo.',
+  'control.wizard.decision.publicRegistration':
+    'Permite que los participantes se registren públicamente en lugar de ser agregados solo por un organizador.',
+  'control.wizard.decision.requiresCheckIn':
+    'Requiere que cada participante confirme su presencia antes de que comience el torneo, o queda marcado como ausente.',
+  'control.wizard.decision.checkInClosesAt':
+    'El momento en que cierra el check-in; un participante que no confirmó su presencia para entonces queda marcado como ausente.',
+  'control.wizard.format.singleElimination.description':
+    'Una derrota elimina al participante del cuadro.',
+  'control.wizard.format.doubleElimination.description':
+    'Un participante queda eliminado solo tras dos derrotas, mediante un cuadro de ganadores y uno de perdedores.',
+  'control.wizard.format.roundRobin.description':
+    'Todos los participantes juegan una vez contra todos los demás; las posiciones se ordenan por puntos acumulados.',
+  'control.wizard.format.league.description':
+    'Todos los participantes juegan contra todos los demás a lo largo de un calendario de temporada; las posiciones se ordenan por puntos acumulados.',
+  'control.wizard.format.roundRobinSingleLeg.description':
+    'Todos los participantes juegan exactamente una vez contra todos los demás, sin partido de vuelta.',
+  'control.wizard.format.roundRobinHomeAway.description':
+    'Todos los participantes juegan dos veces contra todos los demás, una en la sede de cada lado.',
+  'control.wizard.format.freeForAll.description':
+    'Todos los participantes compiten juntos en la misma manga a la vez; las posiciones se ordenan por posición de llegada.',
+  'control.wizard.format.heats.description':
+    'Los participantes compiten en múltiples mangas; las posiciones se ordenan por posición de llegada en todas las mangas.',
+  'control.wizard.series.class.bestOf.description':
+    'La serie termina en cuanto un lado ganó suficientes partidos como para volver irrelevantes los restantes.',
+  'control.wizard.series.class.aggregate.description':
+    'El ganador de la serie se decide por el puntaje total de todos los partidos, no por quién ganó más partidos.',
+  'control.wizard.series.class.pointsPerLeg.description':
+    'Cada partido de la serie otorga sus propios puntos; el ganador de la serie es quien acumula más en total.',
+  'control.wizard.series.accounting.match.description':
+    'Las posiciones cuentan cada partido de la serie como su propio resultado.',
+  'control.wizard.series.accounting.series.description':
+    'Las posiciones cuentan toda la serie como un solo resultado, no cada partido por separado.',
+  'control.wizard.mutation.requiresRebuild':
+    'Cambiar esto después de generar los cruces los invalida y los regenera.',
+  'control.wizard.mutation.blockedAfterResults':
+    'Esto no se puede cambiar una vez que existe un resultado; usá el flujo de corrección auditado en su lugar.',
+
   'control.standings.sectionLabel': 'Posiciones',
   'control.standings.title': 'Posiciones',
   'control.standings.projectionVersion': 'Proyección v{version}',

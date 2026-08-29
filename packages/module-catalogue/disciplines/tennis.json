@@ -570,6 +570,19 @@
     "segments": {
       "permission": { "kind": "merged", "strategy": "shallow-object" },
       "mutationClass": "requires_rebuild"
+    },
+    "series.span": { "permission": { "kind": "replaced" }, "mutationClass": "requires_rebuild" },
+    "series.resolutionClass": {
+      "permission": { "kind": "replaced" },
+      "mutationClass": "blocked_after_results"
+    },
+    "series.neutralGround": {
+      "permission": { "kind": "replaced" },
+      "mutationClass": "requires_rebuild"
+    },
+    "series.standingsAccounting": {
+      "permission": { "kind": "replaced" },
+      "mutationClass": "requires_rebuild"
     }
   }
 }
