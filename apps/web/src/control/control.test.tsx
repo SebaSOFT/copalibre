@@ -255,9 +255,10 @@ describe('what the dashboard renders', () => {
     Object.defineProperty(globalThis, 'fetch', {
       configurable: true,
       value: async (url: string) => {
-        // The device-heartbeat panel also fetches on mount; only exports are
-        // this test's concern, so its own request is answered but not counted.
-        if (url.includes('/display-tokens')) {
+        // The device-heartbeat panel and the nav's own role lookup also
+        // fetch on mount; only exports are this test's concern, so their
+        // requests are answered but not counted.
+        if (url.includes('/display-tokens') || url === '/organizations?mine=true') {
           return new Response('[]', { headers: { 'content-type': 'application/json' } });
         }
         requests.push(url);

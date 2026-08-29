@@ -380,8 +380,14 @@ describe('ControlApp default-returnTo login landing', () => {
     await waitFor(() => expect(screen.getByText('No se pudo completar el acceso')).toBeDefined());
   });
 
-  it('leaves a guard-redirected login (a real returnTo) untouched — no lookup performed', async () => {
-    let organizationsRequested = false;
+  it('leaves a guard-redirected login (a real returnTo) untouched — the redirect decision itself performs no lookup', async () => {
+    // The destination screen fetches organizations on its own, afterward, to
+    // resolve its nav role (openspec 0165) — expected and unrelated to this
+    // test. What must stay true is narrower: `CompletingLogin`'s redirect
+    // decision for a real (non-default) returnTo never awaits that lookup
+    // first, so a request to it before the pathname changes would mean the
+    // fast path regressed into blocking on one.
+    let organizationsRequestedBeforeRedirect = false;
     originalFetch = globalThis.fetch;
     Object.defineProperty(globalThis, 'fetch', {
       configurable: true,
@@ -390,7 +396,12 @@ describe('ControlApp default-returnTo login landing', () => {
         if (url === 'https://identity.example/token') {
           return json({ access_token: 'fresh-access-token', expires_in: 3600 });
         }
-        if (url.includes('/organizations?mine=true')) organizationsRequested = true;
+        if (
+          url.includes('/organizations?mine=true') &&
+          window.location.pathname !== '/control/liga-mendocina'
+        ) {
+          organizationsRequestedBeforeRedirect = true;
+        }
         return json([]);
       },
     });
@@ -400,6 +411,6 @@ describe('ControlApp default-returnTo login landing', () => {
     render(<ControlApp />);
 
     await waitFor(() => expect(window.location.pathname).toBe('/control/liga-mendocina'));
-    expect(organizationsRequested).toBe(false);
+    expect(organizationsRequestedBeforeRedirect).toBe(false);
   });
 });
