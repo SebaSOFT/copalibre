@@ -34,6 +34,7 @@ describe('help page capability and role coverage', () => {
       uncoveredRoles(pages, [
         'admin',
         'club-admin',
+        'tournament-admin',
         'referee',
         'broadcaster',
         'viewer',

@@ -77,6 +77,28 @@ export default defineConfig({
           ],
         },
         {
+          label: 'Role manuals',
+          translations: {
+            es: 'Manuales de rol',
+            fr: 'Manuels de rôle',
+            pt: 'Manuais de função',
+            it: 'Manuali dei ruoli',
+            de: 'Rollenhandbücher',
+            ru: 'Руководства по ролям',
+            zh: '角色手册',
+          },
+          items: [
+            'help/roles',
+            'help/roles/admin',
+            'help/roles/club-admin',
+            'help/roles/tournament-admin',
+            'help/roles/referee',
+            'help/roles/broadcaster',
+            'help/roles/viewer',
+            'help/roles/super-admin',
+          ],
+        },
+        {
           label: 'Control panel',
           translations: {
             es: 'Panel de control',
