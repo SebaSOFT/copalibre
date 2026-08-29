@@ -71,7 +71,9 @@ hostnames, private paths, or production example credentials.
 Each control-panel screen SHALL render a visible link to a Starlight help page that explains that
 specific screen's purpose and its key data fields, distinct from a generic link to the help site's
 homepage. The link SHALL resolve to the Starlight page in the operator's currently active display
-language, using the same locale-prefix routing the help site itself uses for every other page.
+language, using the same locale-prefix routing the help site itself uses for every other page. The page
+SHALL describe the screen as it currently behaves; a page describing a surface the screen no longer
+presents SHALL be treated as a defect rather than as documentation.
 
 #### Scenario: An operator on the seeding screen reaches seeding-specific help
 
@@ -96,6 +98,13 @@ language, using the same locale-prefix routing the help site itself uses for eve
 
 - **WHEN** an operator using the control panel in English activates a screen's help link
 - **THEN** they land on the unprefixed default-locale Starlight page
+
+#### Scenario: A page describing a replaced surface is a defect
+
+- **WHEN** a screen's controls change such that its help page describes affordances the screen no longer
+  offers
+- **THEN** the page is updated in the same change that altered the screen, and the documentation lint
+  treats an unclaimed capability as the signal that it was not
 
 ### Requirement: Help site documents CLI installation, updating, and every command
 
@@ -226,3 +235,62 @@ unreachable, when this is not the case.
 
 - **WHEN** a file exists under `docs/deployment/evidence/`
 - **THEN** the check does not require it to be linked from `README.md`
+
+### Requirement: Every shipped capability is documented, not every screen
+The help site SHALL carry a page for each accepted capability an operator can exercise, whether or not
+that capability has a screen of its own. A capability whose accepted specification declares operator-
+facing requirements and which no help page claims to document SHALL fail the documentation lint.
+
+A page SHALL declare the capabilities it documents, so the gate compares the specification against what
+the documentation asserts rather than against a filename.
+
+#### Scenario: A capability shipped without documentation fails the gate
+- **WHEN** an accepted capability declares operator-facing requirements and no help page claims it
+- **THEN** the documentation lint fails, naming the capability and the specification path, rather than
+  the site building successfully with the gap in it
+
+#### Scenario: A capability with no operator-facing surface needs no page
+- **WHEN** a capability's requirements govern only internal behavior an operator never invokes
+- **THEN** it is exempt from the gate without an entry having to be added anywhere to excuse it
+
+#### Scenario: Multi-match series is documented
+- **WHEN** an operator looks for how to declare a series, schedule its games, correct one of them, or
+  read one on a public bracket
+- **THEN** the help site explains each, including what an anulled game means and what happens to a
+  result recorded offline against one
+
+#### Scenario: Match-grain scheduling is documented as it currently behaves
+- **WHEN** an operator reads the scheduling help
+- **THEN** it describes placing a match into a slot, not the venue-and-duration surface that preceded it
+
+### Requirement: A help page states the roles it is written for
+Each help page SHALL declare which roles can perform what it describes, and SHALL NOT instruct a reader
+to use a control their role cannot reach. Where a task requires a role the reader does not hold, the
+page SHALL name the role that can perform it rather than describing the control as if it were available.
+
+#### Scenario: A page names its audience
+- **WHEN** a reader opens any help page
+- **THEN** the page states which roles the task it describes is available to
+
+#### Scenario: A referee is not told to use an organizer's control
+- **WHEN** a page describes a task available only to an organization administrator
+- **THEN** it names that role as the one who performs it, rather than presenting the control as
+  something any reader can open
+
+#### Scenario: Every role has documentation
+- **WHEN** the documentation lint runs
+- **THEN** every role in the organization and installation taxonomies is named by at least one page, so
+  no role ships with nothing written for it
+
+### Requirement: A declared help path resolves to a real page
+A control-panel screen's declared help path SHALL be non-empty and SHALL resolve to an existing help
+page. An empty path SHALL fail the build exactly as a missing one does.
+
+#### Scenario: An empty help path fails the build
+- **WHEN** a control-panel route declares an empty help path
+- **THEN** the build fails naming that route, rather than treating the empty string as an opt-out
+
+#### Scenario: The platform-administration console has help
+- **WHEN** a super administrator opens the platform-administration console and activates its help link
+- **THEN** they land on a page describing organization creation, module installation and super-admin
+  administration

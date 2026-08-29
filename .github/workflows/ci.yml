@@ -212,6 +212,15 @@ jobs:
       - run: node scripts/check-help-locale-parity.mjs
       - run: node --test scripts/check-help-coverage.test.mjs
       - run: node scripts/check-help-coverage.mjs
+      # Descriptor-authoring guide coverage (openspec 0163): every field the
+      # discipline descriptor schema declares has a non-empty explanation,
+      # and no explanation names a field the schema no longer has — the same
+      # map copalibre_descriptor_schema returns and the published guide's
+      # generated reference page renders. Needs @copalibre/domain built,
+      # unlike this job's other checks, since it imports the real schema.
+      - run: yarn workspace @copalibre/domain build
+      - run: node --test scripts/check-descriptor-guide-coverage.test.mjs
+      - run: node scripts/check-descriptor-guide-coverage.mjs
       - run: node --test scripts/check-control-ui-ownership.test.mjs
       - run: node scripts/check-control-ui-ownership.mjs
 
@@ -409,6 +418,12 @@ jobs:
       # cannot silently drift from the real command set — named separately so
       # a reviewer finds this capability's own signal directly.
       - run: yarn workspace @copalibre/copalibre test --testPathPatterns 'help-text|cli-docs-parity'
+      # Descriptor-authoring MCP tools: copalibre_descriptor_schema and
+      # copalibre_descriptor_validate call the domain validator directly
+      # (never restate it), with no token and no HTTP surface — named
+      # separately so a reviewer finds this capability's own signal
+      # directly. Also covered by the broader 'mcp' pattern step below.
+      - run: yarn workspace @copalibre/copalibre test --testPathPatterns 'descriptor-authoring-tools'
       # Non-destructive upgrade path: upgrade-check evaluates installed
       # modules' declared compatibility against a target version and reports
       # pending migrations, reusing module-distribution's install-time check
@@ -819,6 +834,13 @@ jobs:
       # named separately so a reviewer finds this capability's own signal
       # directly.
       - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'accounting-grain'
+      # Worked transcriptions (openspec 0163): the authoring guide's two
+      # example descriptors — a two-sided timed discipline, a placement
+      # discipline — install through the real path, not just the schema
+      # validator in isolation. A schema change that invalidates a
+      # documented example fails here, not by misleading an agent reading
+      # the guide.
+      - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'worked-transcription'
       # Live-cadence statistics: a collector declaring `live` updates
       # inside `recordEvent`'s own transaction, before the match ends; a
       # default-cadence collector's total stays absent until finalize — named
