@@ -26,7 +26,7 @@ import {
 } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
 import {
-  RequireOrganizationRole,
+  RequireOrganizationCapability,
   RequireParticipantSelfService,
 } from '../auth/access-requirement.js';
 import type { RequestWithSubject } from '../auth/request-context.js';
@@ -286,7 +286,7 @@ export class ReportReviewController {
 
   @Get()
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.review-reports')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List pending participant reports and disputes' })
   @ApiOkResponse({ type: ParticipantReportResponse, isArray: true })
@@ -307,7 +307,7 @@ export class ReportReviewController {
   @Post(':reportId/review')
   @HttpCode(200)
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.review-reports')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Mark a report or dispute reviewed or dismissed',

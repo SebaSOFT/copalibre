@@ -11,7 +11,7 @@ import {
 import { runStatisticsRebuild } from '@copalibre/statistics-refold';
 import type { Database } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
-import { RequireOrganizationRole } from '../auth/access-requirement.js';
+import { RequireOrganizationCapability } from '../auth/access-requirement.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
 import { StatisticsRebuildRequest, StatisticsRebuildResponse } from '../dto/admin.dto.js';
 import { ProblemResponse } from '../dto/organization.dto.js';
@@ -32,7 +32,7 @@ export class AdminStatisticsController {
   @Post('rebuild')
   @HttpCode(200)
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.rebuild-statistics')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Recompute every folded statistic total from source facts',

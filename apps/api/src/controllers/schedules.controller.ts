@@ -19,7 +19,7 @@ import {
 import type { Kysely } from 'kysely';
 import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
-import { RequireOrganizationRole } from '../auth/access-requirement.js';
+import { RequireOrganizationCapability } from '../auth/access-requirement.js';
 import { ProblemResponse } from '../dto/organization.dto.js';
 import {
   ScheduleRequest,
@@ -65,7 +65,7 @@ export class SchedulesController {
 
   @Post('preview')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-schedule')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Dry-run a schedule batch',
@@ -105,7 +105,7 @@ export class SchedulesController {
 
   @Post()
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-schedule')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Publish a schedule batch',

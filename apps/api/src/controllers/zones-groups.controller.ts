@@ -47,7 +47,7 @@ import {
 } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
 import type { RequestWithSubject } from '../auth/request-context.js';
-import { RequireOrganizationRole } from '../auth/access-requirement.js';
+import { RequireOrganizationCapability } from '../auth/access-requirement.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
 import { DATABASE } from '../database.token.js';
 import { ProblemResponse } from '../dto/organization.dto.js';
@@ -95,7 +95,7 @@ export class ZonesGroupsController {
 
   @Post('zones')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-zones-groups')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a manually named zone before fixture generation' })
   @ApiCreatedResponse({ type: ZoneResponse })
@@ -162,7 +162,7 @@ export class ZonesGroupsController {
 
   @Post('zones/:zoneNumber/groups')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-zones-groups')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a manually named group before fixture generation' })
   @ApiCreatedResponse({ type: GroupResponse })
@@ -200,7 +200,7 @@ export class ZonesGroupsController {
   @Post('zones/draw/preview')
   @HttpCode(200)
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-zones-groups')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Preview a deterministic zone draw without writing it' })
   @ApiOkResponse({ type: DrawPreviewResponse })
@@ -221,7 +221,7 @@ export class ZonesGroupsController {
   @Post('zones/draw')
   @HttpCode(200)
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-zones-groups')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Confirm and durably record a deterministic zone draw' })
   @ApiOkResponse({ type: ConfirmZoneDrawResponse })
@@ -259,7 +259,7 @@ export class ZonesGroupsController {
   @Post('zones/:zoneNumber/groups/draw/preview')
   @HttpCode(200)
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-zones-groups')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Preview a deterministic group draw without writing it' })
   @ApiOkResponse({ type: DrawPreviewResponse })
@@ -282,7 +282,7 @@ export class ZonesGroupsController {
   @Post('zones/:zoneNumber/groups/draw')
   @HttpCode(200)
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-zones-groups')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Confirm and durably record a deterministic group draw' })
   @ApiOkResponse({ type: ConfirmGroupDrawResponse })
@@ -322,7 +322,7 @@ export class ZonesGroupsController {
   @Post('zones/assign')
   @HttpCode(200)
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-zones-groups')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Manually assign entrants to zones, without a draw' })
   @ApiOkResponse({ type: ManualZoneAssignmentResponse })
@@ -360,7 +360,7 @@ export class ZonesGroupsController {
   @Post('zones/:zoneNumber/groups/assign')
   @HttpCode(200)
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-zones-groups')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Manually assign entrants to groups, without a draw' })
   @ApiOkResponse({ type: ManualGroupAssignmentResponse })
@@ -399,7 +399,7 @@ export class ZonesGroupsController {
 
   @Post('zones/:zoneNumber/promotion-plan')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-zones-groups')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Save a zone promotion plan without seeding its next stage' })
   @ApiCreatedResponse({ type: PromotionPlanResponse })
@@ -436,7 +436,7 @@ export class ZonesGroupsController {
 
   @Get('zones/:zoneNumber/promotion-preview')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-zones-groups')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Preview a zone promotion plan without writing or generating fixtures' })
   @ApiOkResponse({ type: PromotionPreviewResponse })
@@ -475,7 +475,7 @@ export class ZonesGroupsController {
 
   @Get('promotion-plans')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-zones-groups')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'List resolved promotion previews from prior-stage zones targeting this stage',

@@ -75,7 +75,7 @@ import { foldLiveEvent, resolveMatchFold } from '@copalibre/statistics-refold';
 import type { Kysely } from 'kysely';
 import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
-import { RequireOrganizationRole } from '../auth/access-requirement.js';
+import { RequireOrganizationCapability } from '../auth/access-requirement.js';
 import {
   BulkLoadMatchDataRequest,
   BulkLoadMatchDataResponse,
@@ -165,7 +165,7 @@ export class MatchControlController {
 
   @Get('console')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin', 'referee')
+  @RequireOrganizationCapability('org.operate-match')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Read the authoritative state required by a match-control console',
@@ -187,7 +187,7 @@ export class MatchControlController {
 
   @Post('commands/:command')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin', 'referee')
+  @RequireOrganizationCapability('org.operate-match')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Start, pause, resume or finalize',
@@ -395,7 +395,7 @@ export class MatchControlController {
 
   @Post('clock')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin', 'referee')
+  @RequireOrganizationCapability('org.operate-match')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Adjust the authoritative elapsed time or active segment' })
   @ApiHeader({
@@ -497,7 +497,7 @@ export class MatchControlController {
 
   @Post('timers/:timerId/resolve')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin', 'referee')
+  @RequireOrganizationCapability('org.operate-match')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Resolve a discipline-declared timer early' })
   @ApiHeader({
@@ -579,7 +579,7 @@ export class MatchControlController {
 
   @Get('rosters')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin', 'referee')
+  @RequireOrganizationCapability('org.operate-match')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Read the current roster selection for both sides',
@@ -610,7 +610,7 @@ export class MatchControlController {
 
   @Get('rosters/:entrantId/candidates')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin', 'referee')
+  @RequireOrganizationCapability('org.operate-match')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'List an entrant’s registered players, eligible to be named to its match roster',
@@ -636,7 +636,7 @@ export class MatchControlController {
 
   @Put('rosters/:entrantId')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin', 'referee')
+  @RequireOrganizationCapability('org.operate-match')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Select or revise one entrant’s roster for this match',
@@ -819,7 +819,7 @@ export class MatchControlController {
 
   @Post('events')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin', 'referee')
+  @RequireOrganizationCapability('org.operate-match')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Record a discipline event',
@@ -1365,7 +1365,7 @@ export class MatchControlController {
 
   @Post('bulk-load')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin', 'referee')
+  @RequireOrganizationCapability('org.operate-match')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Load a whole match’s roster, event history, and result in one submission',
@@ -1594,7 +1594,7 @@ export class MatchControlController {
 
   @Post('corrections/preview')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.correct-match-results')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Dry-run a correction',
@@ -1689,7 +1689,7 @@ export class MatchControlController {
 
   @Post('corrections')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.correct-match-results')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Supersede a result',
@@ -1765,7 +1765,7 @@ export class MatchControlController {
 
   @Get('corrections')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.correct-match-results')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Read what this result has been',

@@ -1,26 +1,17 @@
-import { rolesForCapability, type OrganizationRole } from '@copalibre/domain';
 import { ACCESS_REQUIREMENT_KEY, type AccessRequirement } from './access-requirement.js';
 import { SECURITY_PLANE_KEY, type SecurityPlane } from './security-plane.js';
-import { DELIBERATE_EQUIVALENCE_EXCEPTIONS, ROUTE_CAPABILITIES } from './route-capability-mapping.js';
+import { ROUTE_CAPABILITIES } from './route-capability-mapping.js';
 import { OPENAPI_CONTROLLERS } from '../openapi/generate-controllers.js';
 
 const PATH_METADATA = 'path';
 
-/**
- * `tournament-admin` did not exist as a role before this change, so it never
- * admitted any route — every route it now resolves to is the deliberate
- * point of adding the role (task 3.3), not a case needing a per-route
- * call-out the way `club-admin`'s pre-existing-role narrowing does.
- */
-const NEW_ROLE_ADDITIONS_ALWAYS_ALLOWED: ReadonlySet<string> = new Set(['tournament-admin']);
-
-interface OrganizationRoleRoute {
+interface DeclaredRoute {
   readonly key: string;
-  readonly roles: readonly OrganizationRole[];
+  readonly requirement: AccessRequirement | undefined;
 }
 
-function organizationRoleRoutes(): readonly OrganizationRoleRoute[] {
-  const routes: OrganizationRoleRoute[] = [];
+function declaredRoutes(): readonly DeclaredRoute[] {
+  const routes: DeclaredRoute[] = [];
 
   for (const controller of OPENAPI_CONTROLLERS) {
     const classPlane = Reflect.getMetadata(SECURITY_PLANE_KEY, controller) as
@@ -44,8 +35,7 @@ function organizationRoleRoutes(): readonly OrganizationRoleRoute[] {
       const requirement =
         (Reflect.getMetadata(ACCESS_REQUIREMENT_KEY, handler) as AccessRequirement | undefined) ??
         classRequirement;
-      if (requirement?.kind !== 'organization-role') continue;
-      routes.push({ key: `${controller.name}.${property}`, roles: requirement.roles });
+      routes.push({ key: `${controller.name}.${property}`, requirement });
     }
   }
 
@@ -53,70 +43,60 @@ function organizationRoleRoutes(): readonly OrganizationRoleRoute[] {
   return routes;
 }
 
-describe('capability guard equivalence (pre-conversion)', () => {
-  it('resolves every organization-role route to a declared capability', () => {
-    const routes = organizationRoleRoutes();
-    const missing = routes
+/**
+ * Every route this change identified as role-guarded (task 1.1's
+ * enumeration) is converted to `RequireOrganizationCapability` (task 2.2).
+ * `route-capability-mapping.ts`'s `ROUTE_CAPABILITIES` was the oracle
+ * `capability-guard-equivalence.test.ts` checked pre-conversion — it
+ * verified, once, that resolving each entry's capability through
+ * `rolesForCapability` reproduced the roles that route admitted before this
+ * change (deliberate exceptions named and reasoned in `design.md`). That
+ * history does not need re-deriving on every run; what this file guards
+ * against now is drift between the two things that must stay in lockstep
+ * going forward: no route left on the legacy role-listing guard, and every
+ * capability-guarded route naming exactly the capability the mapping
+ * declares for it — so an accidental typo during conversion, or a later
+ * hand-edit of one without the other, fails here.
+ */
+describe('capability guard equivalence (post-conversion)', () => {
+  it('leaves no route on the legacy role-listing guard', () => {
+    const legacy = declaredRoutes()
+      .filter((route) => route.requirement?.kind === 'organization-role')
+      .map((route) => route.key);
+
+    expect(legacy).toEqual([]);
+  });
+
+  it('names a capability for every route the mapping declares one for, and vice versa', () => {
+    const capabilityRoutes = declaredRoutes().filter(
+      (route) => route.requirement?.kind === 'organization-capability',
+    );
+    const currentKeys = new Set(capabilityRoutes.map((route) => route.key));
+
+    const missing = Object.keys(ROUTE_CAPABILITIES).filter((key) => !currentKeys.has(key));
+    const undeclared = capabilityRoutes
       .filter((route) => ROUTE_CAPABILITIES[route.key] === undefined)
       .map((route) => route.key);
 
     expect(missing).toEqual([]);
+    expect(undeclared).toEqual([]);
   });
 
-  it('has no mapping entry for a route that no longer exists', () => {
-    const currentKeys = new Set(organizationRoleRoutes().map((route) => route.key));
-    const stale = Object.keys(ROUTE_CAPABILITIES).filter((key) => !currentKeys.has(key));
+  it("guards each route with exactly the mapping's declared capability", () => {
+    const mismatches: string[] = [];
 
-    expect(stale).toEqual([]);
-  });
+    for (const route of declaredRoutes()) {
+      if (route.requirement?.kind !== 'organization-capability') continue;
+      const declaredCapability = ROUTE_CAPABILITIES[route.key];
+      if (declaredCapability === undefined) continue; // reported above
 
-  it('names every deliberate exception in the route-capability mapping', () => {
-    const orphaned = Object.keys(DELIBERATE_EQUIVALENCE_EXCEPTIONS).filter(
-      (key) => ROUTE_CAPABILITIES[key] === undefined,
-    );
-
-    expect(orphaned).toEqual([]);
-  });
-
-  it('never drops a role a route admits today', () => {
-    const routes = organizationRoleRoutes();
-    const removals: string[] = [];
-
-    for (const route of routes) {
-      const capability = ROUTE_CAPABILITIES[route.key];
-      if (capability === undefined) continue; // reported by the completeness test above
-
-      const mappedRoles = new Set(rolesForCapability(capability));
-      for (const role of route.roles) {
-        if (!mappedRoles.has(role)) {
-          removals.push(`${route.key}: "${role}" admitted today, absent from "${capability}"`);
-        }
+      if (route.requirement.capability !== declaredCapability) {
+        mismatches.push(
+          `${route.key}: guard requires "${route.requirement.capability}", mapping declares "${declaredCapability}"`,
+        );
       }
     }
 
-    expect(removals).toEqual([]);
-  });
-
-  it('adds no role beyond a named tournament-admin introduction or a named deliberate exception', () => {
-    const routes = organizationRoleRoutes();
-    const unexplained: string[] = [];
-
-    for (const route of routes) {
-      const capability = ROUTE_CAPABILITIES[route.key];
-      if (capability === undefined) continue; // reported by the completeness test above
-
-      const todayRoles = new Set(route.roles);
-      const exceptionRoles = new Set(DELIBERATE_EQUIVALENCE_EXCEPTIONS[route.key] ?? []);
-      const mappedRoles = rolesForCapability(capability);
-
-      for (const role of mappedRoles) {
-        if (todayRoles.has(role)) continue;
-        if (NEW_ROLE_ADDITIONS_ALWAYS_ALLOWED.has(role)) continue;
-        if (exceptionRoles.has(role)) continue;
-        unexplained.push(`${route.key}: "${role}" newly admitted by "${capability}", not named as an exception`);
-      }
-    }
-
-    expect(unexplained).toEqual([]);
+    expect(mismatches).toEqual([]);
   });
 });

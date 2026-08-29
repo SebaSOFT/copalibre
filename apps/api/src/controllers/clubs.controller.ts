@@ -15,7 +15,7 @@ import {
   withTransaction,
   type Database,
 } from '@copalibre/persistence';
-import { RequireOrganizationRole } from '../auth/access-requirement.js';
+import { RequireOrganizationCapability } from '../auth/access-requirement.js';
 import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
 import { DATABASE } from '../database.token.js';
@@ -35,7 +35,7 @@ export class ClubsController {
 
   @Get()
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-clubs')
   @ApiBearerAuth()
   @ApiOperation({ summary: "List an organization's clubs" })
   @ApiOkResponse({ type: ClubResponse, isArray: true })
@@ -49,7 +49,7 @@ export class ClubsController {
 
   @Post()
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-clubs')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a club' })
   @ApiCreatedResponse({ type: ClubResponse })
@@ -80,7 +80,7 @@ export class ClubsController {
 
   @Patch(':clubId')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-clubs')
   @ApiBearerAuth()
   @ApiOperation({ summary: "Edit a club's name, alias, or abbreviation" })
   @ApiOkResponse({ type: ClubResponse })

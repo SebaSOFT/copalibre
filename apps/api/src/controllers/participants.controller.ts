@@ -16,7 +16,7 @@ import {
 } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
 import {
-  RequireOrganizationRole,
+  RequireOrganizationCapability,
   RequireParticipantSelfService,
 } from '../auth/access-requirement.js';
 import type { RequestWithSubject } from '../auth/request-context.js';
@@ -124,7 +124,7 @@ export class ParticipantIdentityLinksController {
 
   @Post(':personId/identity-link')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-persons')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Pre-link a participant identity by email' })
   @ApiCreatedResponse({ type: ParticipantIdentityLinkResponse })

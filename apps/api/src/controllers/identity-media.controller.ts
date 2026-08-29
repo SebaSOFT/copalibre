@@ -22,7 +22,7 @@ import {
   type Database,
   type ObjectMetadata,
 } from '@copalibre/persistence';
-import { RequireOrganizationRole } from '../auth/access-requirement.js';
+import { RequireOrganizationCapability } from '../auth/access-requirement.js';
 import type { RequestWithSubject } from '../auth/request-context.js';
 import {
   RESOURCE_THROTTLE_LIMIT,
@@ -66,7 +66,7 @@ export class PersonMediaController {
 
   @Get()
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-persons')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Read a person’s profile (display name, nationality, photo, natural key)',
@@ -97,7 +97,7 @@ export class PersonMediaController {
   @Throttle({ default: { limit: RESOURCE_THROTTLE_LIMIT, ttl: RESOURCE_THROTTLE_TTL_MS } })
   @SharedThrottle()
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-persons')
   @ApiBearerAuth()
   @ApiOperation({ summary: "Upload a person's photo (must be exactly 410×512px, ±1%)" })
   @ApiCreatedResponse({ type: UploadImageResponse })
@@ -163,7 +163,7 @@ export class PersonMediaController {
 
   @Patch('nationality')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-persons')
   @ApiBearerAuth()
   @ApiOperation({ summary: "Set or clear a person's nationality" })
   @ApiOkResponse({ type: PersonNationalityResponse })
@@ -206,7 +206,7 @@ export class ClubMediaController {
   @Throttle({ default: { limit: RESOURCE_THROTTLE_LIMIT, ttl: RESOURCE_THROTTLE_TTL_MS } })
   @SharedThrottle()
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-clubs')
   @ApiBearerAuth()
   @ApiOperation({ summary: "Upload a club's emblem (must be exactly 410×512px, ±1%)" })
   @ApiCreatedResponse({ type: UploadImageResponse })
@@ -283,7 +283,7 @@ export class OrganizationMediaController {
   @Throttle({ default: { limit: RESOURCE_THROTTLE_LIMIT, ttl: RESOURCE_THROTTLE_TTL_MS } })
   @SharedThrottle()
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-settings')
   @ApiBearerAuth()
   @ApiOperation({ summary: "Upload an organization's emblem (must be exactly 410×512px, ±1%)" })
   @ApiCreatedResponse({ type: UploadImageResponse })

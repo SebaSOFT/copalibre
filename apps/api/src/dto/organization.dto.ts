@@ -666,7 +666,8 @@ export class InviteOrganizationUserRequest {
   @IsString()
   @ApiPropertyOptional({
     format: 'uuid',
-    description: 'Required exactly when `role` is a tournament-scoped role (e.g. tournament-admin).',
+    description:
+      'Required exactly when `role` is a tournament-scoped role (e.g. tournament-admin).',
   })
   tournamentId?: string;
   @IsString()
@@ -689,7 +690,8 @@ export class ChangeOrganizationRoleRequest {
   @IsString()
   @ApiPropertyOptional({
     format: 'uuid',
-    description: 'Required exactly when `role` is a tournament-scoped role (e.g. tournament-admin).',
+    description:
+      'Required exactly when `role` is a tournament-scoped role (e.g. tournament-admin).',
   })
   tournamentId?: string;
   @IsString()

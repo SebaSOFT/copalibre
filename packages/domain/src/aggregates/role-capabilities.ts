@@ -120,15 +120,16 @@ const REFEREE_DIRECT_CAPABILITIES: readonly OrganizationCapability[] = ['org.ope
 // today's access means declaring them, honestly, as holding nothing yet.
 const NO_DIRECT_CAPABILITIES: readonly OrganizationCapability[] = [];
 
-const DIRECT_ROLE_CAPABILITIES: Readonly<Record<OrganizationRole, readonly OrganizationCapability[]>> =
-  Object.freeze({
-    admin: ADMIN_DIRECT_CAPABILITIES,
-    'club-admin': CLUB_ADMIN_DIRECT_CAPABILITIES,
-    'tournament-admin': TOURNAMENT_OPERATIONAL_CAPABILITIES,
-    referee: REFEREE_DIRECT_CAPABILITIES,
-    broadcaster: NO_DIRECT_CAPABILITIES,
-    viewer: NO_DIRECT_CAPABILITIES,
-  });
+const DIRECT_ROLE_CAPABILITIES: Readonly<
+  Record<OrganizationRole, readonly OrganizationCapability[]>
+> = Object.freeze({
+  admin: ADMIN_DIRECT_CAPABILITIES,
+  'club-admin': CLUB_ADMIN_DIRECT_CAPABILITIES,
+  'tournament-admin': TOURNAMENT_OPERATIONAL_CAPABILITIES,
+  referee: REFEREE_DIRECT_CAPABILITIES,
+  broadcaster: NO_DIRECT_CAPABILITIES,
+  viewer: NO_DIRECT_CAPABILITIES,
+});
 
 /**
  * Declared inheritance: a role on the left holds everything a role on the
@@ -153,7 +154,9 @@ export function capabilitiesForRole(role: OrganizationRole): readonly Organizati
 }
 
 /** Which role(s) named directly, or by inheritance, hold this capability. */
-export function rolesForCapability(capability: OrganizationCapability): readonly OrganizationRole[] {
+export function rolesForCapability(
+  capability: OrganizationCapability,
+): readonly OrganizationRole[] {
   return ORGANIZATION_ROLES.filter((role) => capabilitiesForRole(role).includes(capability));
 }
 

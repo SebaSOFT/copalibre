@@ -42,7 +42,7 @@ import {
 import type { Kysely } from 'kysely';
 import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
-import { RequireOrganizationRole } from '../auth/access-requirement.js';
+import { RequireOrganizationCapability } from '../auth/access-requirement.js';
 import {
   CreateTournamentRequest,
   HookScriptVocabularyResponse,
@@ -71,7 +71,7 @@ export class TournamentsController {
 
   @Get('custom-script-vocabulary')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.create-tournaments')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Read supported tournament hook-script vocabulary' })
   @ApiOkResponse({ type: HookScriptVocabularyResponse })
@@ -148,7 +148,7 @@ export class TournamentsController {
 
   @Get(':tournamentAlias/export')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-tournament-lifecycle')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Export the current tournament configuration as JSON' })
   @ApiOkResponse({ type: TournamentConfigurationExportResponse })
@@ -178,7 +178,7 @@ export class TournamentsController {
 
   @Post()
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.create-tournaments')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Create a tournament in draft status',
@@ -350,7 +350,7 @@ export class TournamentsController {
 
   @Get(':tournamentAlias/custom-scripts')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-tournament-lifecycle')
   @ApiBearerAuth()
   @ApiOperation({ summary: "Read tournament's organizer-authored hook scripts" })
   @ApiOkResponse({ type: TournamentCustomScriptsResponse })
@@ -379,7 +379,7 @@ export class TournamentsController {
 
   @Put(':tournamentAlias/custom-scripts')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-tournament-lifecycle')
   @ApiBearerAuth()
   @ApiOperation({ summary: "Replace tournament's organizer-authored hook scripts" })
   @ApiOkResponse({ type: TournamentCustomScriptsResponse })
@@ -448,7 +448,7 @@ export class TournamentsController {
   @Post(':tournamentAlias/publish')
   @HttpCode(200)
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-tournament-lifecycle')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Publish a tournament',
@@ -492,7 +492,7 @@ export class TournamentsController {
   @Post(':tournamentAlias/archive')
   @HttpCode(200)
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-tournament-lifecycle')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Archive a finished tournament',
@@ -546,7 +546,7 @@ export class TournamentsController {
 
   @Get()
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.create-tournaments')
   @ApiBearerAuth()
   @ApiOperation({
     summary: "List the organization's active (non-archived) tournaments",

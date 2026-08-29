@@ -48,7 +48,7 @@ import {
 import type { Kysely } from 'kysely';
 import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
-import { RequireOrganizationRole } from '../auth/access-requirement.js';
+import { RequireOrganizationCapability } from '../auth/access-requirement.js';
 import {
   BulkReviewRequest,
   BulkReviewResponse,
@@ -85,7 +85,7 @@ export class RegistrationsController {
 
   @Get()
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-registrations')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'List a tournament’s registrations',
@@ -122,7 +122,7 @@ export class RegistrationsController {
   @Post(':entrantId/review')
   @HttpCode(200)
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-registrations')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Accept, refuse or withdraw one registration',
@@ -171,7 +171,7 @@ export class RegistrationsController {
   @Post('bulk-review')
   @HttpCode(200)
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-registrations')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Review several registrations',
@@ -215,7 +215,7 @@ export class RegistrationsController {
   @Post(':entrantId/team-memberships')
   @HttpCode(200)
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-registrations')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Edit a registration’s team memberships',
@@ -465,7 +465,7 @@ export class EntrantsController {
 
   @Patch(':entrantId/abbreviation')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-registrations')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Set one entrant’s tournament-scoped abbreviation' })
   @ApiOkResponse({ type: RegistrationResponse })
@@ -517,7 +517,7 @@ export class EntrantsController {
 
   @Get('needing-abbreviation')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-registrations')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List entrants awaiting an officer-chosen abbreviation' })
   @ApiOkResponse({ type: RegistrationResponse, isArray: true })

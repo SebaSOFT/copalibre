@@ -25,7 +25,7 @@ import type { Kysely } from 'kysely';
 import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
 import {
-  RequireOrganizationRole,
+  RequireOrganizationCapability,
   RequireSelf,
   RequireSuperAdmin,
   SUPER_ADMIN_SCOPE,
@@ -158,7 +158,7 @@ export class OrganizationsController {
 
   @Patch(':organizationAlias/settings')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-settings')
   @ApiBearerAuth()
   @ApiOperation({
     summary: "Update an organization's name, primary language and/or timezone",
@@ -207,7 +207,7 @@ export class OrganizationsController {
 
   @Get(':organizationAlias/storage-usage')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-settings')
   @ApiBearerAuth()
   @ApiOperation({
     summary: "Get an organization's aggregate storage usage",
