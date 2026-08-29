@@ -189,3 +189,22 @@ pull request against the upstream repository.
 - **WHEN** `copalibre module submit` runs against a local module package
 - **THEN** the local package's `manifest.json`/`artifact.json`/`assets/` are copied, not moved or
   edited, and remain usable for a further local `module add --source` install afterward
+
+### Requirement: A module may be authored through a guided surface as well as scaffolded
+A module package MAY be produced by a guided authoring surface in addition to `module scaffold`. A
+package produced either way SHALL be indistinguishable to validation, installation and submission: the
+same validation applies, the same install path runs, and the same submission flow contributes it.
+
+#### Scenario: An authored package validates identically to a scaffolded one
+- **WHEN** `module validate-local` is run against a package produced by the authoring surface
+- **THEN** it reports validity on exactly the same terms it reports for a scaffolded package
+
+#### Scenario: Authoring adds no second install mechanism
+- **WHEN** a module authored through the surface is installed
+- **THEN** it installs through the path `module add` uses, and no authored-module-specific install code
+  path exists
+
+#### Scenario: An authored package submits through the existing flow
+- **WHEN** an authored package is contributed upstream
+- **THEN** `module submit`'s behavior applies unchanged, including that the local package is copied
+  rather than moved and remains installable afterward
