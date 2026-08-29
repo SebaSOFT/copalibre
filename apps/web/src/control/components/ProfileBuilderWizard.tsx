@@ -15,6 +15,7 @@ import {
   nextStep,
   previousStep,
   progress,
+  renumbered,
   stepProblems,
   toAuthoredModuleRequest,
   type ProfileStageDraft,
@@ -196,9 +197,9 @@ export function ProfileBuilderWizard({
             <div style={{ gridColumn: '1 / -1' }}>
               <StageList
                 allowedFormats={allowedFormats}
-                onAdd={(stage) => patch({ stages: [...state.stages, stage] })}
+                onAdd={(stage) => patch({ stages: renumbered([...state.stages, stage]) })}
                 onRemove={(index) =>
-                  patch({ stages: state.stages.filter((_stage, i) => i !== index) })
+                  patch({ stages: renumbered(state.stages.filter((_stage, i) => i !== index)) })
                 }
                 stages={state.stages}
               />
@@ -393,6 +394,7 @@ function StageList({
           value={draft.name}
         />
         <select
+          aria-label={intl.formatMessage(messages.profileFieldStageFormat)}
           className="cl-select cl-select--default cl-focusable"
           onChange={(event) => setDraft({ ...draft, format: event.target.value })}
           value={draft.format}

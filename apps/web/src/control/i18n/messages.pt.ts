@@ -798,11 +798,14 @@ export const messages: Record<string, string> = {
     'O que é contabilizado e como se acumula ao longo de uma competição — este é o vocabulário com que as classificações são construídas. Uma disciplina que não declara nada declara uma disciplina sem classificação.',
   'control.descriptor.fieldStatisticCode': 'Código da estatística',
   'control.descriptor.fieldStatisticLabel': 'Rótulo da estatística',
+  'control.descriptor.fieldAggregation': 'Modo de agregação',
   'control.descriptor.eventsHeading': 'Definições de evento',
   'control.descriptor.decisionEvents':
     'O que pode ser registrado durante uma partida. Um evento pode conceder uma das estatísticas declaradas acima a cada ocorrência.',
   'control.descriptor.fieldEventCode': 'Código do evento',
   'control.descriptor.fieldEventLabel': 'Rótulo do evento',
+  'control.descriptor.fieldEventCategory': 'Categoria do evento',
+  'control.descriptor.fieldEventActorRequirement': 'Requisito de ator',
   'control.descriptor.fieldEventAwardsStatistic': 'Concede estatística',
   'control.descriptor.fieldEventAwardsDelta': 'Quantidade concedida',
   'control.descriptor.eventAwardsNone': 'Não concede nada',
@@ -818,6 +821,7 @@ export const messages: Record<string, string> = {
     'Entradas nomeadas opcionais que um relatório de partida pode carregar além dos eventos registrados — derivadas de eventos, ou inseridas diretamente por um operador.',
   'control.descriptor.fieldScoringInputCode': 'Código da entrada',
   'control.descriptor.fieldScoringInputLabel': 'Rótulo da entrada',
+  'control.descriptor.fieldScoringInputSource': 'Origem da entrada',
   'control.descriptor.fieldWinConditionMode': 'Formato da condição de vitória',
   'control.descriptor.decisionWinConditionMode':
     'Simples: um único placar decide a partida (futebol). Segmentada: os segmentos (sets, jogos) fecham primeiro e a partida é decidida por segmentos vencidos (tênis).',
@@ -879,6 +883,7 @@ export const messages: Record<string, string> = {
   'control.profile.decisionStages':
     'As fases da competição, em ordem — por exemplo, uma fase de grupos que alimenta uma fase eliminatória. O formato de cada fase deve ser um declarado pela disciplina escolhida.',
   'control.profile.fieldStageName': 'Nome da fase',
+  'control.profile.fieldStageFormat': 'Formato da fase',
   'control.profile.problemNoStages': 'Declare pelo menos uma fase.',
   'control.profile.problemStageFormat':
     'O formato de cada fase deve ser um declarado pela disciplina escolhida.',

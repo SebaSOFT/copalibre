@@ -785,6 +785,7 @@ function StatisticList({
           value={draft.label}
         />
         <select
+          aria-label={intl.formatMessage(messages.descriptorFieldAggregation)}
           className="cl-select cl-select--default cl-focusable"
           onChange={(event) =>
             setDraft({ ...draft, aggregation: event.target.value as StatisticDraft['aggregation'] })
@@ -879,6 +880,7 @@ function EventDefinitionList({
           value={draft.label}
         />
         <select
+          aria-label={intl.formatMessage(messages.descriptorFieldEventCategory)}
           className="cl-select cl-select--default cl-focusable"
           onChange={(event) =>
             setDraft({ ...draft, category: event.target.value as EventDefinitionDraft['category'] })
@@ -892,6 +894,7 @@ function EventDefinitionList({
           ))}
         </select>
         <select
+          aria-label={intl.formatMessage(messages.descriptorFieldEventActorRequirement)}
           className="cl-select cl-select--default cl-focusable"
           onChange={(event) =>
             setDraft({
@@ -1035,6 +1038,7 @@ function ScoringInputList({
           value={draft.label}
         />
         <select
+          aria-label={intl.formatMessage(messages.descriptorFieldScoringInputSource)}
           className="cl-select cl-select--default cl-focusable"
           onChange={(event) =>
             setDraft({ ...draft, source: event.target.value as ScoringInputDraft['source'] })

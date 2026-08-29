@@ -760,11 +760,14 @@ export const messages: Record<string, string> = {
     '记录哪些内容以及如何在整个赛事中累计 — 这是构建积分榜所依据的词汇表。不声明任何统计项即声明了一个没有积分榜的项目。',
   'control.descriptor.fieldStatisticCode': '统计项代码',
   'control.descriptor.fieldStatisticLabel': '统计项标签',
+  'control.descriptor.fieldAggregation': '聚合方式',
   'control.descriptor.eventsHeading': '事件定义',
   'control.descriptor.decisionEvents':
     '比赛中可以记录的内容。事件每次发生时可以为上方声明的某一统计项计分。',
   'control.descriptor.fieldEventCode': '事件代码',
   'control.descriptor.fieldEventLabel': '事件标签',
+  'control.descriptor.fieldEventCategory': '事件类别',
+  'control.descriptor.fieldEventActorRequirement': '主体要求',
   'control.descriptor.fieldEventAwardsStatistic': '计入的统计项',
   'control.descriptor.fieldEventAwardsDelta': '计入数量',
   'control.descriptor.eventAwardsNone': '不计入任何统计项',
@@ -780,6 +783,7 @@ export const messages: Record<string, string> = {
     '比赛报告除已记录事件外可携带的可选具名输入项 — 可来自事件推导，也可由操作员直接录入。',
   'control.descriptor.fieldScoringInputCode': '输入项代码',
   'control.descriptor.fieldScoringInputLabel': '输入项标签',
+  'control.descriptor.fieldScoringInputSource': '输入项来源',
   'control.descriptor.fieldWinConditionMode': '获胜条件形式',
   'control.descriptor.decisionWinConditionMode':
     '简单模式：由单一比分决定比赛胜负（足球）。分段模式：赛段（盘、局）先各自结束，再按已获胜的赛段数决定整场比赛（网球）。',
@@ -837,6 +841,7 @@ export const messages: Record<string, string> = {
   'control.profile.decisionStages':
     '赛事按顺序划分的各个阶段 — 例如小组赛阶段之后进入淘汰赛阶段。每个阶段的赛制都必须是所选项目已声明的赛制之一。',
   'control.profile.fieldStageName': '阶段名称',
+  'control.profile.fieldStageFormat': '阶段赛制',
   'control.profile.problemNoStages': '至少声明一个阶段。',
   'control.profile.problemStageFormat': '每个阶段的赛制都必须是所选项目已声明的赛制之一。',
   'control.profile.fieldPointsWin': '胜场积分',

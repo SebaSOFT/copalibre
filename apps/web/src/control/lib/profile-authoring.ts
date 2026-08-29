@@ -37,6 +37,11 @@ export interface ProfileStageDraft {
   readonly format: string;
 }
 
+/** Keeps `number` a contiguous 1-based sequence after an add or a remove — never a gap or a duplicate. */
+export function renumbered(stages: readonly ProfileStageDraft[]): readonly ProfileStageDraft[] {
+  return stages.map((stage, index) => ({ ...stage, number: index + 1 }));
+}
+
 export interface ProfileWizardState {
   readonly step: ProfileStepId;
   readonly alias: string;

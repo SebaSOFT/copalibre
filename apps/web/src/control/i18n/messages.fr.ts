@@ -802,11 +802,14 @@ export const messages: Record<string, string> = {
     "Ce qui est comptabilisé et comment cela s'accumule tout au long d'une compétition — c'est le vocabulaire à partir duquel les classements sont construits. Une discipline qui ne déclare rien déclare une discipline sans classement.",
   'control.descriptor.fieldStatisticCode': 'Code de la statistique',
   'control.descriptor.fieldStatisticLabel': 'Libellé de la statistique',
+  'control.descriptor.fieldAggregation': "Mode d'agrégation",
   'control.descriptor.eventsHeading': "Définitions d'événement",
   'control.descriptor.decisionEvents':
     "Ce qui peut être enregistré pendant un match. Un événement peut attribuer l'une des statistiques déclarées ci-dessus à chaque occurrence.",
   'control.descriptor.fieldEventCode': "Code de l'événement",
   'control.descriptor.fieldEventLabel': "Libellé de l'événement",
+  'control.descriptor.fieldEventCategory': "Catégorie de l'événement",
+  'control.descriptor.fieldEventActorRequirement': "Exigence d'acteur",
   'control.descriptor.fieldEventAwardsStatistic': 'Attribue la statistique',
   'control.descriptor.fieldEventAwardsDelta': 'Quantité attribuée',
   'control.descriptor.eventAwardsNone': "N'attribue rien",
@@ -822,6 +825,7 @@ export const messages: Record<string, string> = {
     "Entrées nommées facultatives qu'un rapport de match peut porter au-delà des événements enregistrés — dérivées d'événements, ou saisies directement par un opérateur.",
   'control.descriptor.fieldScoringInputCode': "Code de l'entrée",
   'control.descriptor.fieldScoringInputLabel': "Libellé de l'entrée",
+  'control.descriptor.fieldScoringInputSource': "Source de l'entrée",
   'control.descriptor.fieldWinConditionMode': 'Forme de la condition de victoire',
   'control.descriptor.decisionWinConditionMode':
     'Simple : un seul score décide du match (football). Segmentée : les segments (sets, manches) se ferment en premier et le match se décide par segments gagnés (tennis).',
@@ -883,6 +887,7 @@ export const messages: Record<string, string> = {
   'control.profile.decisionStages':
     "Les phases de la compétition, dans l'ordre — par exemple une phase de groupes menant à une phase éliminatoire. Le format de chaque phase doit être l'un de ceux déclarés par la discipline choisie.",
   'control.profile.fieldStageName': 'Nom de la phase',
+  'control.profile.fieldStageFormat': 'Format de la phase',
   'control.profile.problemNoStages': 'Déclarez au moins une phase.',
   'control.profile.problemStageFormat':
     'Le format de chaque phase doit être l’un de ceux déclarés par la discipline choisie.',

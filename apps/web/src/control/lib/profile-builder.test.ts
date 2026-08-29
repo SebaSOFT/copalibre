@@ -6,6 +6,7 @@ import {
   nextStep,
   previousStep,
   progress,
+  renumbered,
   stepProblems,
   toAuthoredDocument,
   toAuthoredModuleRequest,
@@ -114,6 +115,25 @@ describe('profile wizard step gating', () => {
     };
     expect(canSubmit(partial, DISCIPLINES)).toBe(false);
     expect(canSubmit(completeState(), DISCIPLINES)).toBe(true);
+  });
+});
+
+describe('renumbered', () => {
+  it('keeps a contiguous 1-based sequence after a stage in the middle is removed', () => {
+    const stages = renumbered([
+      { number: 1, name: 'A', format: 'round-robin' },
+      { number: 2, name: 'B', format: 'round-robin' },
+      { number: 3, name: 'C', format: 'round-robin' },
+    ]);
+    const withoutB = renumbered(stages.filter((stage) => stage.name !== 'B'));
+    expect(withoutB.map((stage) => stage.number)).toEqual([1, 2]);
+    expect(withoutB.map((stage) => stage.name)).toEqual(['A', 'C']);
+  });
+
+  it('assigns the next contiguous number to a newly added stage', () => {
+    const stages = renumbered([{ number: 1, name: 'A', format: 'round-robin' }]);
+    const withB = renumbered([...stages, { number: 99, name: 'B', format: 'round-robin' }]);
+    expect(withB.map((stage) => stage.number)).toEqual([1, 2]);
   });
 });
 

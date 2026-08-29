@@ -801,11 +801,14 @@ export const messages: Record<string, string> = {
     'Cosa viene conteggiato e come si accumula nel corso di una competizione — questo è il vocabolario con cui si costruiscono le classifiche. Una disciplina che non dichiara nulla dichiara una disciplina senza classifica.',
   'control.descriptor.fieldStatisticCode': 'Codice della statistica',
   'control.descriptor.fieldStatisticLabel': 'Etichetta della statistica',
+  'control.descriptor.fieldAggregation': 'Modalità di aggregazione',
   'control.descriptor.eventsHeading': 'Definizioni di evento',
   'control.descriptor.decisionEvents':
     'Cosa può essere registrato durante un incontro. Un evento può assegnare una delle statistiche dichiarate sopra a ogni occorrenza.',
   'control.descriptor.fieldEventCode': "Codice dell'evento",
   'control.descriptor.fieldEventLabel': "Etichetta dell'evento",
+  'control.descriptor.fieldEventCategory': "Categoria dell'evento",
+  'control.descriptor.fieldEventActorRequirement': 'Requisito attore',
   'control.descriptor.fieldEventAwardsStatistic': 'Assegna statistica',
   'control.descriptor.fieldEventAwardsDelta': 'Quantità assegnata',
   'control.descriptor.eventAwardsNone': 'Non assegna nulla',
@@ -821,6 +824,7 @@ export const messages: Record<string, string> = {
     'Input opzionali con nome che un referto di incontro può portare oltre agli eventi registrati — derivati da eventi, oppure inseriti direttamente da un operatore.',
   'control.descriptor.fieldScoringInputCode': "Codice dell'input",
   'control.descriptor.fieldScoringInputLabel': "Etichetta dell'input",
+  'control.descriptor.fieldScoringInputSource': "Origine dell'input",
   'control.descriptor.fieldWinConditionMode': 'Forma della condizione di vittoria',
   'control.descriptor.decisionWinConditionMode':
     "Semplice: un solo punteggio decide l'incontro (calcio). Segmentata: i segmenti (set, giochi) si chiudono prima e l'incontro si decide per segmenti vinti (tennis).",
@@ -883,6 +887,7 @@ export const messages: Record<string, string> = {
   'control.profile.decisionStages':
     'Le fasi della competizione, in ordine — ad esempio una fase a gironi che alimenta una fase a eliminazione diretta. Il formato di ogni fase deve essere uno di quelli dichiarati dalla disciplina scelta.',
   'control.profile.fieldStageName': 'Nome della fase',
+  'control.profile.fieldStageFormat': 'Formato della fase',
   'control.profile.problemNoStages': 'Dichiara almeno una fase.',
   'control.profile.problemStageFormat':
     'Il formato di ogni fase deve essere uno di quelli dichiarati dalla disciplina scelta.',

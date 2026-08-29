@@ -2255,6 +2255,10 @@ export const messages = defineMessages({
     id: 'control.descriptor.fieldStatisticLabel',
     defaultMessage: 'Statistic label',
   },
+  descriptorFieldAggregation: {
+    id: 'control.descriptor.fieldAggregation',
+    defaultMessage: 'Aggregation mode',
+  },
   descriptorEventsHeading: {
     id: 'control.descriptor.eventsHeading',
     defaultMessage: 'Event definitions',
@@ -2271,6 +2275,14 @@ export const messages = defineMessages({
   descriptorFieldEventLabel: {
     id: 'control.descriptor.fieldEventLabel',
     defaultMessage: 'Event label',
+  },
+  descriptorFieldEventCategory: {
+    id: 'control.descriptor.fieldEventCategory',
+    defaultMessage: 'Event category',
+  },
+  descriptorFieldEventActorRequirement: {
+    id: 'control.descriptor.fieldEventActorRequirement',
+    defaultMessage: 'Actor requirement',
   },
   descriptorFieldEventAwardsStatistic: {
     id: 'control.descriptor.fieldEventAwardsStatistic',
@@ -2322,6 +2334,10 @@ export const messages = defineMessages({
   descriptorFieldScoringInputLabel: {
     id: 'control.descriptor.fieldScoringInputLabel',
     defaultMessage: 'Scoring input label',
+  },
+  descriptorFieldScoringInputSource: {
+    id: 'control.descriptor.fieldScoringInputSource',
+    defaultMessage: 'Scoring input source',
   },
   descriptorFieldWinConditionMode: {
     id: 'control.descriptor.fieldWinConditionMode',
@@ -2482,6 +2498,10 @@ export const messages = defineMessages({
       'The competition’s phases, in order — a group stage feeding a knockout stage, for example. Each stage’s format must be one the chosen discipline declares.',
   },
   profileFieldStageName: { id: 'control.profile.fieldStageName', defaultMessage: 'Stage name' },
+  profileFieldStageFormat: {
+    id: 'control.profile.fieldStageFormat',
+    defaultMessage: 'Stage format',
+  },
   profileProblemNoStages: {
     id: 'control.profile.problemNoStages',
     defaultMessage: 'Declare at least one stage.',

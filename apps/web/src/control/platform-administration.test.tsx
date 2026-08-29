@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { jest } from '@jest/globals';
 import { PlatformAdministrationRoute } from './components/PlatformAdministrationRoute.js';
 import { createControlApiClient } from './lib/api-client.js';
@@ -340,5 +340,133 @@ describe('platform administration console', () => {
           .some((alert) => alert.textContent?.includes('Module already installed')),
       ).toBe(true),
     );
+  });
+
+  it('authors and installs a discipline through the inline builder, then closes it', async () => {
+    const installed: unknown[] = [];
+    const client = createControlApiClient({
+      fetch: jest.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        const method = init?.method ?? 'GET';
+        if (url === '/admin/modules' && method === 'GET') return json([]);
+        if (url === '/installation/super-admins') return json([]);
+        if (url === '/disciplines') return json([]);
+        if (url === '/admin/authored-modules/validate' && method === 'POST') {
+          return json({ ok: true, failures: [] });
+        }
+        if (url === '/admin/authored-modules' && method === 'POST') {
+          const body = JSON.parse(String(init?.body));
+          installed.push(body);
+          return json(
+            {
+              kind: 'discipline',
+              alias: 'e2e-sport',
+              version: '0.1.0',
+              unsatisfiedRequiredCapabilities: [],
+            },
+            201,
+          );
+        }
+        return json({}, 200);
+      }),
+    });
+    render(withIntl(<PlatformAdministrationRoute client={client} />));
+    await screen.findByText('No modules are installed.');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Author a discipline' }));
+    const wizard = screen.getByRole('region', { name: 'Author a discipline' });
+    expect(screen.queryByRole('button', { name: 'Author and install' })).toBeNull();
+
+    fireEvent.change(within(wizard).getByLabelText('Alias'), { target: { value: 'e2e-sport' } });
+    fireEvent.change(within(wizard).getByLabelText('Name *'), {
+      target: { value: 'E2E Sport' },
+    });
+    fireEvent.click(within(wizard).getByRole('button', { name: 'Continue' }));
+    fireEvent.change(within(wizard).getByLabelText('Author'), {
+      target: { value: 'E2E Author' },
+    });
+    fireEvent.click(within(wizard).getByRole('button', { name: 'Continue' }));
+    fireEvent.click(within(wizard).getByLabelText('team', { exact: true }));
+    fireEvent.click(within(wizard).getByRole('button', { name: 'Continue' }));
+    fireEvent.change(within(wizard).getByLabelText('Statistic code'), {
+      target: { value: 'points' },
+    });
+    fireEvent.change(within(wizard).getByLabelText('Statistic label'), {
+      target: { value: 'Points' },
+    });
+    fireEvent.click(within(wizard).getAllByRole('button', { name: 'Add' })[0] as HTMLButtonElement);
+    fireEvent.click(within(wizard).getByRole('button', { name: 'Continue' }));
+    fireEvent.click(within(wizard).getByLabelText('round-robin', { exact: true }));
+    fireEvent.click(within(wizard).getByRole('button', { name: 'Continue' }));
+    fireEvent.change(within(wizard).getByLabelText('Statistic that decides the match'), {
+      target: { value: 'points' },
+    });
+
+    await act(async () =>
+      fireEvent.click(within(wizard).getByRole('button', { name: 'Author and install' })),
+    );
+    await screen.findByText('e2e-sport 0.1.0 installed.');
+    expect(installed).toHaveLength(1);
+    // The wizard closes; only the toggle button remains.
+    expect(screen.queryByRole('region', { name: 'Author a discipline' })).toBeNull();
+  });
+
+  it('contributes an authored module upstream and reports the opened pull request', async () => {
+    const client = createControlApiClient({
+      fetch: jest.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        const method = init?.method ?? 'GET';
+        if (url === '/admin/modules' && method === 'GET') {
+          return json([{ ...installedModule, sourceKind: 'authored' as const }]);
+        }
+        if (url === '/installation/super-admins') return json([]);
+        if (url === '/admin/authored-modules/submit' && method === 'POST') {
+          return json(
+            {
+              pullRequestUrl: 'https://github.com/SebaSOFT/copalibre-modules/pull/1',
+              branch: 'add-discipline-football',
+            },
+            201,
+          );
+        }
+        return json({}, 200);
+      }),
+    });
+    render(withIntl(<PlatformAdministrationRoute client={client} />));
+    await screen.findByText('CopaLibre');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Contribute' }));
+    await screen.findByText(
+      'Opened pull request: https://github.com/SebaSOFT/copalibre-modules/pull/1',
+    );
+  });
+
+  it('opens the tournament profile builder toggle and closes it again', async () => {
+    const client = createControlApiClient({
+      fetch: jest.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url === '/admin/modules') return json([]);
+        if (url === '/installation/super-admins') return json([]);
+        if (url === '/disciplines') {
+          return json([
+            {
+              descriptorId: 'd-1',
+              alias: 'football',
+              version: '1.0.0',
+              name: 'Football',
+              supportedFormats: ['round-robin'],
+            },
+          ]);
+        }
+        return json({}, 200);
+      }),
+    });
+    render(withIntl(<PlatformAdministrationRoute client={client} />));
+    await screen.findByText('No modules are installed.');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Author a tournament profile' }));
+    await screen.findByRole('heading', { name: 'Author a tournament profile' });
+    fireEvent.click(screen.getByRole('button', { name: 'Author a tournament profile' }));
+    expect(screen.queryByRole('heading', { name: 'Author a tournament profile' })).toBeNull();
   });
 });

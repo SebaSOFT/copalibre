@@ -812,11 +812,14 @@ export const messages: Record<string, string> = {
     'Was gezählt wird und wie es sich über einen Wettbewerb summiert — das ist das Vokabular, aus dem Tabellen aufgebaut werden. Eine Disziplin, die nichts deklariert, deklariert eine Disziplin ohne Tabelle.',
   'control.descriptor.fieldStatisticCode': 'Statistikcode',
   'control.descriptor.fieldStatisticLabel': 'Statistikbezeichnung',
+  'control.descriptor.fieldAggregation': 'Aggregationsmodus',
   'control.descriptor.eventsHeading': 'Ereignisdefinitionen',
   'control.descriptor.decisionEvents':
     'Was während eines Spiels erfasst werden kann. Ein Ereignis kann bei jedem Auftreten eine der oben deklarierten Statistiken vergeben.',
   'control.descriptor.fieldEventCode': 'Ereignis-Code',
   'control.descriptor.fieldEventLabel': 'Ereignisbezeichnung',
+  'control.descriptor.fieldEventCategory': 'Ereigniskategorie',
+  'control.descriptor.fieldEventActorRequirement': 'Akteursanforderung',
   'control.descriptor.fieldEventAwardsStatistic': 'Vergibt Statistik',
   'control.descriptor.fieldEventAwardsDelta': 'Vergebene Menge',
   'control.descriptor.eventAwardsNone': 'Vergibt nichts',
@@ -832,6 +835,7 @@ export const messages: Record<string, string> = {
     'Optionale benannte Eingaben, die ein Spielbericht zusätzlich zu den erfassten Ereignissen tragen kann — aus Ereignissen abgeleitet oder direkt von einem Bediener eingegeben.',
   'control.descriptor.fieldScoringInputCode': 'Eingabecode',
   'control.descriptor.fieldScoringInputLabel': 'Eingabebezeichnung',
+  'control.descriptor.fieldScoringInputSource': 'Eingabequelle',
   'control.descriptor.fieldWinConditionMode': 'Form der Siegbedingung',
   'control.descriptor.decisionWinConditionMode':
     'Einfach: Ein einziger Punktestand entscheidet das Spiel (Fußball). Segmentiert: Segmente (Sätze, Spiele) werden zuerst abgeschlossen, und das Spiel wird nach gewonnenen Segmenten entschieden (Tennis).',
@@ -895,6 +899,7 @@ export const messages: Record<string, string> = {
   'control.profile.decisionStages':
     'Die Phasen des Wettbewerbs, in Reihenfolge — zum Beispiel eine Gruppenphase, die in eine K.-o.-Phase mündet. Das Format jeder Phase muss eines sein, das die gewählte Disziplin deklariert.',
   'control.profile.fieldStageName': 'Phasenname',
+  'control.profile.fieldStageFormat': 'Phasenformat',
   'control.profile.problemNoStages': 'Deklarieren Sie mindestens eine Phase.',
   'control.profile.problemStageFormat':
     'Das Format jeder Phase muss eines sein, das die gewählte Disziplin deklariert.',

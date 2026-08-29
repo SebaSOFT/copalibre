@@ -797,11 +797,14 @@ export const messages: Record<string, string> = {
     'Что подсчитывается и как накапливается на протяжении соревнования — это словарь, из которого строятся турнирные таблицы. Дисциплина, ничего не объявляющая, объявляет дисциплину без таблицы.',
   'control.descriptor.fieldStatisticCode': 'Код статистики',
   'control.descriptor.fieldStatisticLabel': 'Метка статистики',
+  'control.descriptor.fieldAggregation': 'Режим агрегации',
   'control.descriptor.eventsHeading': 'Определения событий',
   'control.descriptor.decisionEvents':
     'Что может быть зафиксировано во время матча. Событие может начислять одну из указанных выше статистик при каждом наступлении.',
   'control.descriptor.fieldEventCode': 'Код события',
   'control.descriptor.fieldEventLabel': 'Метка события',
+  'control.descriptor.fieldEventCategory': 'Категория события',
+  'control.descriptor.fieldEventActorRequirement': 'Требование к субъекту',
   'control.descriptor.fieldEventAwardsStatistic': 'Начисляет статистику',
   'control.descriptor.fieldEventAwardsDelta': 'Начисляемое количество',
   'control.descriptor.eventAwardsNone': 'Ничего не начисляет',
@@ -817,6 +820,7 @@ export const messages: Record<string, string> = {
     'Необязательные именованные значения, которые отчёт о матче может нести помимо зафиксированных событий — производные от событий или введённые оператором напрямую.',
   'control.descriptor.fieldScoringInputCode': 'Код входного значения',
   'control.descriptor.fieldScoringInputLabel': 'Метка входного значения',
+  'control.descriptor.fieldScoringInputSource': 'Источник входного значения',
   'control.descriptor.fieldWinConditionMode': 'Форма условия победы',
   'control.descriptor.decisionWinConditionMode':
     'Простая: матч решает единственный счёт (футбол). Сегментированная: сегменты (партии, геймы) закрываются первыми, и матч решается по выигранным сегментам (теннис).',
@@ -878,6 +882,7 @@ export const messages: Record<string, string> = {
   'control.profile.decisionStages':
     'Этапы соревнования по порядку — например, групповой этап, ведущий к плей-офф. Формат каждого этапа должен быть одним из объявленных выбранной дисциплиной.',
   'control.profile.fieldStageName': 'Название этапа',
+  'control.profile.fieldStageFormat': 'Формат этапа',
   'control.profile.problemNoStages': 'Объявите хотя бы один этап.',
   'control.profile.problemStageFormat':
     'Формат каждого этапа должен быть одним из объявленных выбранной дисциплиной.',
