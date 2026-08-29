@@ -93,7 +93,7 @@ import {
   SetMatchRosterRequest,
 } from '../dto/match-control.dto.js';
 import { ProblemResponse } from '../dto/organization.dto.js';
-import { enforceMatchCommand } from '../policy/resource-policy.js';
+import { enforceMatchCommand, enforcePolicy } from '../policy/resource-policy.js';
 import {
   previewSeriesCorrection,
   readStageSeries,
@@ -253,7 +253,10 @@ export class MatchControlController {
     const granted = enforceMatchCommand({
       plane: 'admin-control',
       subject: request.subject,
-      resource: { organizationId: tournament.organizationId },
+      resource: {
+        organizationId: tournament.organizationId,
+        ownerTournamentId: tournament.tournamentId,
+      },
       assignments: await new MatchAssignmentRepository(this.db).forSubject({
         organizationId: tournament.organizationId,
         subjectId: request.subject?.subjectId ?? '',
@@ -438,7 +441,10 @@ export class MatchControlController {
     const granted = enforceMatchCommand({
       plane: 'admin-control',
       subject: request.subject,
-      resource: { organizationId: tournament.organizationId },
+      resource: {
+        organizationId: tournament.organizationId,
+        ownerTournamentId: tournament.tournamentId,
+      },
       assignments: await new MatchAssignmentRepository(this.db).forSubject({
         organizationId: tournament.organizationId,
         subjectId: request.subject?.subjectId ?? '',
@@ -544,7 +550,10 @@ export class MatchControlController {
     const granted = enforceMatchCommand({
       plane: 'admin-control',
       subject: request.subject,
-      resource: { organizationId: tournament.organizationId },
+      resource: {
+        organizationId: tournament.organizationId,
+        ownerTournamentId: tournament.tournamentId,
+      },
       assignments: await new MatchAssignmentRepository(this.db).forSubject({
         organizationId: tournament.organizationId,
         subjectId: request.subject?.subjectId ?? '',
@@ -593,8 +602,17 @@ export class MatchControlController {
     @Param('organizationAlias') organizationAlias: string,
     @Param('tournamentAlias') tournamentAlias: string,
     @Param('matchId') matchId: string,
+    @Req() request: RequestWithSubject,
   ): Promise<ConsoleRosterResponse[]> {
-    await this.resolveTournament(organizationAlias, tournamentAlias);
+    const tournament = await this.resolveTournament(organizationAlias, tournamentAlias);
+    enforcePolicy({
+      plane: 'admin-control',
+      subject: request.subject,
+      resource: {
+        organizationId: tournament.organizationId,
+        ownerTournamentId: tournament.tournamentId,
+      },
+    });
     const competition = new CompetitionRepository(this.db);
     const [rosters, events] = await Promise.all([
       this.db
@@ -622,8 +640,17 @@ export class MatchControlController {
     @Param('tournamentAlias') tournamentAlias: string,
     @Param('matchId') matchId: string,
     @Param('entrantId') entrantId: string,
+    @Req() request: RequestWithSubject,
   ): Promise<RosterCandidateResponse[]> {
-    await this.resolveTournament(organizationAlias, tournamentAlias);
+    const tournament = await this.resolveTournament(organizationAlias, tournamentAlias);
+    enforcePolicy({
+      plane: 'admin-control',
+      subject: request.subject,
+      resource: {
+        organizationId: tournament.organizationId,
+        ownerTournamentId: tournament.tournamentId,
+      },
+    });
     const entrant = await this.resolveRosterEntrant(matchId, entrantId);
     const eligiblePersonIds = await this.eligiblePersonIdsFor(entrant);
     const persons = await new PersonRepository(this.db).findPersons([...eligiblePersonIds]);
@@ -707,7 +734,10 @@ export class MatchControlController {
     const granted = enforceMatchCommand({
       plane: 'admin-control',
       subject: request.subject,
-      resource: { organizationId: tournament.organizationId },
+      resource: {
+        organizationId: tournament.organizationId,
+        ownerTournamentId: tournament.tournamentId,
+      },
       assignments: await new MatchAssignmentRepository(this.db).forSubject({
         organizationId: tournament.organizationId,
         subjectId: request.subject?.subjectId ?? '',
@@ -883,7 +913,10 @@ export class MatchControlController {
     const granted = enforceMatchCommand({
       plane: 'admin-control',
       subject: request.subject,
-      resource: { organizationId: tournament.organizationId },
+      resource: {
+        organizationId: tournament.organizationId,
+        ownerTournamentId: tournament.tournamentId,
+      },
       assignments: await new MatchAssignmentRepository(this.db).forSubject({
         organizationId: tournament.organizationId,
         subjectId: request.subject?.subjectId ?? '',
@@ -1442,7 +1475,10 @@ export class MatchControlController {
       granted = enforceMatchCommand({
         plane: 'admin-control',
         subject: request.subject,
-        resource: { organizationId: tournament.organizationId },
+        resource: {
+          organizationId: tournament.organizationId,
+          ownerTournamentId: tournament.tournamentId,
+        },
         assignments,
         capability,
         match: matchContext,
@@ -1778,8 +1814,17 @@ export class MatchControlController {
     @Param('organizationAlias') organizationAlias: string,
     @Param('tournamentAlias') tournamentAlias: string,
     @Param('matchId') matchId: string,
+    @Req() request: RequestWithSubject,
   ): Promise<CorrectionHistoryResponse> {
-    await this.resolveTournament(organizationAlias, tournamentAlias);
+    const tournament = await this.resolveTournament(organizationAlias, tournamentAlias);
+    enforcePolicy({
+      plane: 'admin-control',
+      subject: request.subject,
+      resource: {
+        organizationId: tournament.organizationId,
+        ownerTournamentId: tournament.tournamentId,
+      },
+    });
     const entries = await new AuditReader(this.db).historyFor('match', matchId);
 
     return {
@@ -1821,7 +1866,10 @@ export class MatchControlController {
     const granted = enforceMatchCommand({
       plane: 'admin-control',
       subject: request.subject,
-      resource: { organizationId: tournament.organizationId },
+      resource: {
+        organizationId: tournament.organizationId,
+        ownerTournamentId: tournament.tournamentId,
+      },
       assignments: await new MatchAssignmentRepository(this.db).forSubject({
         organizationId: tournament.organizationId,
         subjectId: request.subject?.subjectId ?? '',
@@ -1956,6 +2004,14 @@ export class MatchControlController {
     request: RequestWithSubject,
   ): Promise<MatchConsoleResponse> {
     const tournament = await this.resolveTournament(organizationAlias, tournamentAlias);
+    enforcePolicy({
+      plane: 'admin-control',
+      subject: request.subject,
+      resource: {
+        organizationId: tournament.organizationId,
+        ownerTournamentId: tournament.tournamentId,
+      },
+    });
     const competition = new CompetitionRepository(this.db);
     const match = await competition.findMatch(matchId);
     if (!match)

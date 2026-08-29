@@ -161,5 +161,17 @@ export async function resolveTournament(
     );
   }
 
+  // A second check, now that the tournament is resolved: the first pass only
+  // refuses on organization scope, since a tournament-admin's ownership scope
+  // is a property of the tournament, not answerable before it is known.
+  enforcePolicy({
+    plane: 'admin-control',
+    subject: input.request.subject,
+    resource: {
+      organizationId: organization.organizationId,
+      ownerTournamentId: tournament.tournamentId,
+    },
+  });
+
   return { organizationId: organization.organizationId, tournament };
 }

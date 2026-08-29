@@ -87,7 +87,10 @@ export class SchedulesController {
     enforcePolicy({
       plane: 'admin-control',
       subject: request.subject,
-      resource: { organizationId: tournament.organizationId },
+      resource: {
+        organizationId: tournament.organizationId,
+        ownerTournamentId: tournament.tournamentId,
+      },
     });
 
     const preview = await new ScheduleRepository(this.db).previewSchedule({
@@ -128,7 +131,10 @@ export class SchedulesController {
     enforcePolicy({
       plane: 'admin-control',
       subject,
-      resource: { organizationId: tournament.organizationId },
+      resource: {
+        organizationId: tournament.organizationId,
+        ownerTournamentId: tournament.tournamentId,
+      },
     });
 
     const schedules = new ScheduleRepository(this.db);

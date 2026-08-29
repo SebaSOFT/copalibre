@@ -176,6 +176,14 @@ export class DataExportController {
       throw new NotFoundException(`No tournament "${tournamentAlias}"`, {
         errorCode: 'data-export-not-found',
       });
+    enforcePolicy({
+      plane: 'admin-control',
+      subject: request.subject,
+      resource: {
+        organizationId: organization.organizationId,
+        ownerTournamentId: tournament.tournamentId,
+      },
+    });
     return tournament.tournamentId;
   }
 }

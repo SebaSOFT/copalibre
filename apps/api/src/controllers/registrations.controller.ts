@@ -379,6 +379,14 @@ export class RegistrationsController {
         errorCode: 'registration-not-found',
       });
     }
+    enforcePolicy({
+      plane: 'admin-control',
+      subject: request.subject,
+      resource: {
+        organizationId: organization.organizationId,
+        ownerTournamentId: tournament.tournamentId,
+      },
+    });
 
     return { organizationId: organization.organizationId, tournament };
   }
@@ -559,6 +567,14 @@ export class EntrantsController {
       throw new NotFoundException(`No tournament "${tournamentAlias}"`, {
         errorCode: 'registration-not-found',
       });
+    enforcePolicy({
+      plane: 'admin-control',
+      subject: request.subject,
+      resource: {
+        organizationId: organization.organizationId,
+        ownerTournamentId: tournament.tournamentId,
+      },
+    });
     return { organizationId: organization.organizationId, tournament };
   }
 }

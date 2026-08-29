@@ -329,6 +329,14 @@ export class DataImportExportController {
         errorCode: 'data-import-not-found',
       });
     }
+    enforcePolicy({
+      plane: 'admin-control',
+      subject: request.subject,
+      resource: {
+        organizationId: organization.organizationId,
+        ownerTournamentId: tournament.tournamentId,
+      },
+    });
     return { organizationId: organization.organizationId, tournamentId: tournament.tournamentId };
   }
 }
