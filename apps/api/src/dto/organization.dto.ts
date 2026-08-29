@@ -12,8 +12,10 @@ import {
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  ORGANIZATION_ROLES,
   SUPPORTED_LANGUAGES,
   type LocalizedLabel,
+  type OrganizationRole,
   type SupportedLanguage,
 } from '@copalibre/domain';
 
@@ -105,10 +107,10 @@ export class MyOrganizationResponse {
   organizationName!: string;
 
   @ApiProperty({
-    enum: ['admin', 'club-admin', 'referee', 'broadcaster', 'viewer'],
+    enum: ORGANIZATION_ROLES,
     description: "The caller's active role in this organization",
   })
-  role!: 'admin' | 'club-admin' | 'referee' | 'broadcaster' | 'viewer';
+  role!: OrganizationRole;
 }
 
 export class UpdateOrganizationSettingsRequest {
@@ -647,7 +649,7 @@ export class OrganizationRoleResponse {
   principalId!: string;
   @ApiProperty()
   email!: string;
-  @ApiProperty({ enum: ['admin', 'club-admin', 'referee', 'broadcaster', 'viewer'] })
+  @ApiProperty({ enum: ORGANIZATION_ROLES })
   role!: string;
   @ApiProperty({ enum: ['active', 'inactive'] })
   status!: string;
@@ -658,8 +660,15 @@ export class InviteOrganizationUserRequest {
   @ApiProperty({ format: 'email' })
   email!: string;
   @IsString()
-  @ApiProperty({ enum: ['admin', 'club-admin', 'referee', 'broadcaster', 'viewer'] })
-  role!: 'admin' | 'club-admin' | 'referee' | 'broadcaster' | 'viewer';
+  @ApiProperty({ enum: ORGANIZATION_ROLES })
+  role!: OrganizationRole;
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Required exactly when `role` is a tournament-scoped role (e.g. tournament-admin).',
+  })
+  tournamentId?: string;
   @IsString()
   @ApiProperty({ enum: ['active', 'inactive'] })
   status!: 'active' | 'inactive';
@@ -674,8 +683,15 @@ export class OrganizationInvitationResponse {
 
 export class ChangeOrganizationRoleRequest {
   @IsString()
-  @ApiProperty({ enum: ['admin', 'club-admin', 'referee', 'broadcaster', 'viewer'] })
-  role!: 'admin' | 'club-admin' | 'referee' | 'broadcaster' | 'viewer';
+  @ApiProperty({ enum: ORGANIZATION_ROLES })
+  role!: OrganizationRole;
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Required exactly when `role` is a tournament-scoped role (e.g. tournament-admin).',
+  })
+  tournamentId?: string;
   @IsString()
   @ApiProperty({ enum: ['active', 'inactive'] })
   status!: 'active' | 'inactive';
@@ -683,14 +699,12 @@ export class ChangeOrganizationRoleRequest {
 
 export class GrantableRolesResponse {
   @ApiProperty({
-    enum: ['super-admin', 'admin', 'club-admin', 'referee', 'broadcaster', 'viewer'],
+    enum: ['super-admin', ...ORGANIZATION_ROLES],
     isArray: true,
     description:
       'Roles the caller may grant in this organization, per the 0140 role-granting hierarchy.',
   })
-  roles!: readonly (
-    'super-admin' | 'admin' | 'club-admin' | 'referee' | 'broadcaster' | 'viewer'
-  )[];
+  roles!: readonly ('super-admin' | OrganizationRole)[];
 }
 
 export class InstallationSuperAdminResponse {

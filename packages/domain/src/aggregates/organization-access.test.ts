@@ -1,6 +1,7 @@
 import {
   canCreateOrganizationInvitation,
   canGrantRole,
+  isTournamentScopedRole,
   normaliseEmail,
   validateOrganizationInvitation,
   wouldLeaveInstallationWithoutSuperAdmin,
@@ -90,6 +91,56 @@ describe('organization access', () => {
       expect(wouldLeaveInstallationWithoutSuperAdmin(0)).toBe(true);
       expect(wouldLeaveInstallationWithoutSuperAdmin(1)).toBe(false);
       expect(wouldLeaveInstallationWithoutSuperAdmin(2)).toBe(false);
+    });
+  });
+
+  describe('isTournamentScopedRole', () => {
+    it('is true only for tournament-admin', () => {
+      expect(isTournamentScopedRole('tournament-admin')).toBe(true);
+      expect(isTournamentScopedRole('admin')).toBe(false);
+      expect(isTournamentScopedRole('club-admin')).toBe(false);
+      expect(isTournamentScopedRole('referee')).toBe(false);
+      expect(isTournamentScopedRole('broadcaster')).toBe(false);
+      expect(isTournamentScopedRole('viewer')).toBe(false);
+    });
+  });
+
+  describe('validateOrganizationInvitation tournament scoping', () => {
+    const base = {
+      invitationId: 'invite-1',
+      organizationId: 'org-1',
+      recipientEmail: 'admin@liga.example',
+      status: 'active' as const,
+      expiresAt: '2026-08-10T00:00:00.000Z',
+    };
+
+    it('requires a tournamentId when the role is tournament-scoped', () => {
+      const rejected = validateOrganizationInvitation({
+        ...base,
+        role: 'tournament-admin',
+      });
+      expect(rejected.ok).toBe(false);
+    });
+
+    it('accepts a tournament-admin invitation naming a tournament', () => {
+      const accepted = validateOrganizationInvitation({
+        ...base,
+        role: 'tournament-admin',
+        tournamentId: 'tournament-1',
+      });
+      expect(accepted).toEqual({
+        ok: true,
+        value: { ...base, role: 'tournament-admin', tournamentId: 'tournament-1' },
+      });
+    });
+
+    it('refuses a tournamentId on a non-tournament-scoped role', () => {
+      const rejected = validateOrganizationInvitation({
+        ...base,
+        role: 'admin',
+        tournamentId: 'tournament-1',
+      });
+      expect(rejected.ok).toBe(false);
     });
   });
 });

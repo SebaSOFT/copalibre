@@ -8418,6 +8418,7 @@
             "enum": [
               "admin",
               "club-admin",
+              "tournament-admin",
               "referee",
               "broadcaster",
               "viewer"
@@ -11768,6 +11769,7 @@
             "enum": [
               "admin",
               "club-admin",
+              "tournament-admin",
               "referee",
               "broadcaster",
               "viewer"
@@ -11801,6 +11803,7 @@
                 "super-admin",
                 "admin",
                 "club-admin",
+                "tournament-admin",
                 "referee",
                 "broadcaster",
                 "viewer"
@@ -11824,10 +11827,16 @@
             "enum": [
               "admin",
               "club-admin",
+              "tournament-admin",
               "referee",
               "broadcaster",
               "viewer"
             ]
+          },
+          "tournamentId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Required exactly when `role` is a tournament-scoped role (e.g. tournament-admin)."
           },
           "status": {
             "type": "string",
@@ -11868,10 +11877,16 @@
             "enum": [
               "admin",
               "club-admin",
+              "tournament-admin",
               "referee",
               "broadcaster",
               "viewer"
             ]
+          },
+          "tournamentId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Required exactly when `role` is a tournament-scoped role (e.g. tournament-admin)."
           },
           "status": {
             "type": "string",

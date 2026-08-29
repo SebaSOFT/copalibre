@@ -1,15 +1,27 @@
 import { DomainError } from '../errors.js';
 import { err, ok, type Result } from '../result.js';
 
-/** The organization-local taxonomy, including `club-admin`. */
+/**
+ * The organization-local taxonomy. `tournament-admin` is scoped to exactly one
+ * tournament — see `role-capabilities.ts`'s `TOURNAMENT_SCOPED_ROLES`
+ * and `OrganizationRoleAssignment.tournamentId`, required exactly for this role.
+ */
 export const ORGANIZATION_ROLES = [
   'admin',
   'club-admin',
+  'tournament-admin',
   'referee',
   'broadcaster',
   'viewer',
 ] as const;
 export type OrganizationRole = (typeof ORGANIZATION_ROLES)[number];
+
+/** Roles whose assignment names one resource within the organization rather than the whole organization. */
+export const TOURNAMENT_SCOPED_ROLES = ['tournament-admin'] as const;
+
+export function isTournamentScopedRole(role: OrganizationRole): boolean {
+  return (TOURNAMENT_SCOPED_ROLES as readonly OrganizationRole[]).includes(role);
+}
 
 export const ORGANIZATION_MEMBER_STATUSES = ['active', 'inactive'] as const;
 export type OrganizationMemberStatus = (typeof ORGANIZATION_MEMBER_STATUSES)[number];
@@ -39,6 +51,8 @@ export interface OrganizationRoleAssignment {
   readonly role: OrganizationRole;
   readonly status: OrganizationMemberStatus;
   readonly deletedAt?: string;
+  /** Required exactly when `role` is a tournament-scoped role (`isTournamentScopedRole`); absent otherwise. */
+  readonly tournamentId?: string;
 }
 
 /** An email-bound assignment awaiting acceptance by its verified OIDC recipient. */
@@ -49,6 +63,8 @@ export interface OrganizationInvitation {
   readonly role: OrganizationRole;
   readonly status: OrganizationMemberStatus;
   readonly expiresAt: string;
+  /** Required exactly when `role` is a tournament-scoped role (`isTournamentScopedRole`); absent otherwise. */
+  readonly tournamentId?: string;
 }
 
 export class OrganizationAccessError extends DomainError {
@@ -83,6 +99,19 @@ export function validateOrganizationInvitation(
   }
   if (!Number.isFinite(Date.parse(invitation.expiresAt))) {
     return err(new OrganizationAccessError('An organization invitation needs a valid expiry'));
+  }
+  const tournamentScoped = isTournamentScopedRole(invitation.role);
+  if (tournamentScoped && invitation.tournamentId === undefined) {
+    return err(
+      new OrganizationAccessError(`The "${invitation.role}" role requires naming a tournament`),
+    );
+  }
+  if (!tournamentScoped && invitation.tournamentId !== undefined) {
+    return err(
+      new OrganizationAccessError(
+        `A tournament may only be named when the role is tournament-scoped, not "${invitation.role}"`,
+      ),
+    );
   }
   return ok({ ...invitation, recipientEmail: normaliseEmail(invitation.recipientEmail) });
 }
@@ -126,7 +155,7 @@ export interface GrantorContext {
  * The role-granting hierarchy: a small, closed rule table, not a
  * configurable policy language.
  * - installation super-admin may grant super-admin, or any organization role
- *   (admin, club-admin, referee, broadcaster, viewer).
+ *   (admin, club-admin, tournament-admin, referee, broadcaster, viewer).
  * - an organization admin may grant any organization role except super-admin
  *   (which is not itself an organization role) — this reuses the existing,
  *   unchanged authority an organization admin already has to grant
