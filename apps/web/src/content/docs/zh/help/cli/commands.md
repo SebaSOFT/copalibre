@@ -1,6 +1,10 @@
 ---
 title: 命令参考
 description: 每个 copalibre CLI 命令、其用法及其选项标志。
+capabilities: []
+roles:
+  - super-admin
+  - admin
 ---
 
 每个命令都以完全相同的用法文本响应 `--help`/`-h`，这些文本由 CLI 内部的同一处来源生成——本页面无法以不同于 CLI 实际执行方式的方式来描述某个命令。`copalibre --version` 仅输出已安装的版本号，供脚本使用。

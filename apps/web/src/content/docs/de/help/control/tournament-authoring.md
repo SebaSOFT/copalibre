@@ -1,6 +1,18 @@
 ---
 title: Turniererstellung
 description: Was der Turniererstellungs-Assistent konfiguriert und was jedes Feld bedeutet.
+capabilities:
+  - control-web/tournament-authoring
+  - tournament-engine/discipline-driven-results
+  - tournament-engine/tournament-fixture-engine
+  - tournament-engine/tournament-profile
+  - tournament-engine/tournament-domain-model
+  - tournament-engine/competition-identity
+  - tournament-engine/rules-engine
+  - tournament-engine/scripting-hook-surface
+  - tournament-engine/placement-stage-format
+roles:
+  - admin
 ---
 
 ## Wofür dieser Bildschirm ist

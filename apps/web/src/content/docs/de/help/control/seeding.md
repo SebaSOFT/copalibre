@@ -1,6 +1,11 @@
 ---
 title: Auslosung und Setzung
 description: Was Setzpositionen, Freilose und die Auslosungsbeschränkungen sind, die dieser Bildschirm beachtet.
+capabilities:
+  - tournament-engine/bracket-seeding-builder
+  - tournament-engine/draw-constraints
+roles:
+  - admin
 ---
 
 ## Wofür dieser Bildschirm ist

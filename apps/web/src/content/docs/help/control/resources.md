@@ -1,6 +1,10 @@
 ---
 title: Venues & officials
 description: List, create, and edit an organization's venues and officials — what the schedule builder assigns.
+capabilities:
+  - tournament-engine/resource-scheduling
+roles:
+  - admin
 ---
 
 ## What this screen is for

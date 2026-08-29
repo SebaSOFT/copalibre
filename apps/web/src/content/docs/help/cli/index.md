@@ -1,6 +1,11 @@
 ---
 title: The copalibre CLI
 description: Installing, updating, and the command reference for the copalibre CLI.
+capabilities:
+  - platform/api-auth-contract
+roles:
+  - super-admin
+  - admin
 ---
 
 The `copalibre` CLI operates a self-hosted installation: it installs, validates configuration,

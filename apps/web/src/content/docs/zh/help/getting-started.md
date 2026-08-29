@@ -1,6 +1,16 @@
 ---
 title: 你的第一项赛事
 description: 创建并发布一项赛事的初始流程。
+capabilities:
+  - platform/native-auth
+  - control-web/control-web-shell
+roles:
+  - admin
+  - club-admin
+  - referee
+  - broadcaster
+  - viewer
+  - super-admin
 ---
 
 ## 创建赛事

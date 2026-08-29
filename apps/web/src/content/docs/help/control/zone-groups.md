@@ -1,6 +1,10 @@
 ---
 title: Zones and groups
 description: Create zones and groups within a stage, and assign entrants to them.
+capabilities:
+  - control-web/zone-group-management
+roles:
+  - admin
 ---
 
 ## What this screen is for

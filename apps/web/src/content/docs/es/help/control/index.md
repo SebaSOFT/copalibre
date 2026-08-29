@@ -1,6 +1,20 @@
 ---
 title: Panel de control
 description: Qué es cada pantalla del panel de control de CopaLibre.
+capabilities:
+  - control-web/organization-dashboard
+  - control-web/control-web-shell
+  - control-web/admin-interface-components
+  - control-web/notification-system
+  - platform/design-tokens
+  - platform/organization-directory
+  - tournament-engine/competition-lifecycle
+roles:
+  - admin
+  - club-admin
+  - referee
+  - broadcaster
+  - viewer
 ---
 
 Cada pantalla del panel de control tiene un enlace "¿Qué es esta pantalla?" en su barra lateral que

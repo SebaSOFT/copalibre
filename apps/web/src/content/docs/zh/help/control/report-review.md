@@ -1,6 +1,10 @@
 ---
 title: 举报与争议审核
 description: 参赛者的举报/争议是什么，审核它们会产生什么后果。
+capabilities:
+  - control-web/participant-reporting
+roles:
+  - admin
 ---
 
 ## 此界面的用途

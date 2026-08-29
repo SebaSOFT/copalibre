@@ -1,6 +1,11 @@
 ---
 title: Clubes
 description: Liste, crie e edite os clubes de uma organização, e envie seus escudos.
+capabilities:
+  - control-web/identity-visuals
+roles:
+  - admin
+  - club-admin
 ---
 
 ## Para que serve esta tela

@@ -1,6 +1,10 @@
 ---
 title: Melde- und Streitfallprüfung
 description: Was Teilnehmermeldungen/-streitfälle sind und was ihre Prüfung bewirkt.
+capabilities:
+  - control-web/participant-reporting
+roles:
+  - admin
 ---
 
 ## Wofür dieser Bildschirm ist

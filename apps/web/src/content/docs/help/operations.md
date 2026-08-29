@@ -1,6 +1,11 @@
 ---
 title: Operation and traceability
 description: Rules for operating matches and correcting tournament data.
+capabilities:
+  - platform/async-job-processing
+  - platform/persistence-layer
+roles:
+  - super-admin
 ---
 
 ## Match console

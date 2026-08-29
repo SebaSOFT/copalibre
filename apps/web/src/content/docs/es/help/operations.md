@@ -1,6 +1,11 @@
 ---
 title: Operación y trazabilidad
 description: Reglas para operar partidos y corregir datos de torneo.
+capabilities:
+  - platform/async-job-processing
+  - platform/persistence-layer
+roles:
+  - super-admin
 ---
 
 ## Consola de partido

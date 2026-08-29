@@ -1,6 +1,10 @@
 ---
 title: Riferimento comandi
 description: Ogni comando del CLI copalibre, il suo uso e le sue opzioni.
+capabilities: []
+roles:
+  - super-admin
+  - admin
 ---
 
 Ogni comando risponde a `--help`/`-h` con esattamente questo testo d'uso, generato da un'unica

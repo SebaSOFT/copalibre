@@ -1,6 +1,16 @@
 ---
 title: 偏好设置
 description: 管理您的个人访问令牌和 CopaLibre 个人设置。
+capabilities:
+  - platform/internationalization
+  - platform/native-auth
+  - platform/personal-access-tokens
+roles:
+  - admin
+  - club-admin
+  - referee
+  - broadcaster
+  - viewer
 ---
 
 ## 此界面的用途

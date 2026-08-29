@@ -1,6 +1,11 @@
 ---
 title: 运营与可追溯性
 description: 操作比赛和更正赛事数据的规则。
+capabilities:
+  - platform/async-job-processing
+  - platform/persistence-layer
+roles:
+  - super-admin
 ---
 
 ## 比赛控制台

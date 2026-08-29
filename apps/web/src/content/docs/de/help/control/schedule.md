@@ -1,33 +1,42 @@
 ---
 title: Spielplan
-description: Weisen Sie den Begegnungen einer Phase eine Zeit, einen Austragungsort und Offizielle zu, prüfen Sie Konflikte in der Vorschau und veröffentlichen Sie dann.
+description: Weisen Sie jeder Begegnung einen Slot zu — eine festgelegte Startzeit, einen Austragungsort und eine Dauer — sowie die Offiziellen, die sie betreuen.
+capabilities:
+  - control-web/match-scheduling
+  - tournament-engine/schedule-slots
+roles:
+  - admin
 ---
 
 ## Wofür dieser Bildschirm ist
 
-Den Begegnungen einer Phase werden hier eine Startzeit, eine Dauer, ein Austragungsort und Offizielle
-zugewiesen — eine Kalenderansicht und eine Listenansicht über denselben Stapel. Nichts wird von einem
-Algorithmus geplant: jede Zuweisung ist eine eigene Entscheidung des Organisators, erstellt, in der
-Vorschau geprüft und dann explizit veröffentlicht.
+Jeder Begegnung einer Phase wird hier ein Slot zugewiesen — eine Kalenderansicht und eine Listenansicht
+über denselben Stapel. Ein Slot wird nicht für jede Begegnung von Hand eingegeben: Er ist eine Startzeit,
+ein Austragungsort und eine Dauer, die einmal im Ressourcenpool
+[Austragungsorte & Offizielle](/help/control/resources) festgelegt werden, und der Spielplan-Editor
+weist einer Begegnung einen davon zu — nicht umgekehrt. Offizielle werden pro Begegnung aus demselben
+Ressourcenpool aktiviert.
 
-## Wichtige Felder
+## Granularität der Begegnung, nicht der Paarung
 
-- **Startzeit / Dauer**: wann eine Begegnung zum Spielen reserviert ist und wie lange die Ressource
-  belegt wird — nicht, wie lange das Spiel tatsächlich dauert, was niemand im Voraus weiß.
-- **Austragungsort / Offizielle**: zugewiesen aus der Liste der
-  [Austragungsorte und Offiziellen](/help/control/resources) der Organisation.
+Die Planung arbeitet auf Ebene der Begegnung, nicht der Paarung zwischen zwei Teilnehmern. Eine Paarung
+mit nur einer Begegnung hat eine Begegnung zu platzieren; eine [Serie](/help/control/series) über fünf
+hat fünf, jede mit eigenem Slot und eigenen Offiziellen — die vierte und fünfte Begegnung der Serie
+können in reservierten Slots liegen, die nie gefüllt werden, wenn die Serie vorzeitig entschieden wird,
+und der Editor markiert sie als nicht mehr erforderlich, statt sie ungeplant erscheinen zu lassen.
 
 ## Vorschau vor der Veröffentlichung
 
-Bevor etwas veröffentlicht wird, zeigt der Editor den Stapel in der Vorschau und weist jeden Konflikt
-aus — einen doppelt gebuchten Austragungsort oder Offiziellen, eine Verletzung der Ruhezeitregel —
-nennt dabei die betroffenen Begegnungen und nennt jede bereits veröffentlichte Begegnung, die der
-Stapel verschieben würde. Die Veröffentlichung ist atomar: jede Zuweisung im Stapel tritt gemeinsam in
-Kraft, oder keine tut es.
+Bevor irgendetwas veröffentlicht wird, zeigt der Editor eine Vorschau des Stapels und jeden Konflikt —
+ein doppelt gebuchter Austragungsort oder Offizieller, eine Verletzung der Ruheregel — und benennt die
+betroffenen Begegnungen sowie jede bereits veröffentlichte Begegnung, die der Stapel verschieben würde.
+Die Veröffentlichung ist atomar: Jede Zuweisung im Stapel tritt gemeinsam in Kraft, oder keine.
 
 ## Was Sie hier nicht tun können
 
-Eine Begegnung umzuplanen, deren Ergebnis bereits abgeschlossen ist, wird abgelehnt: ihr Termin ist
-jetzt ein Protokolleintrag, kein Plan mehr, und eine Änderung läuft stattdessen über den protokollierten
-Korrekturablauf. Ein Teilnehmer ohne zugewiesene Begegnung wird explizit als ohne geplantes Spiel
-angezeigt — nie stillschweigend weggelassen und nie mit einem Freilos im Bracket verwechselt.
+Das Umplanen einer bereits abgeschlossenen Begegnung wird abgelehnt: Ihr Zeitplan ist jetzt ein
+Protokolleintrag, kein Plan mehr, und eine Änderung läuft stattdessen über den
+[geprüften Korrekturablauf](/help/control/corrections). Eine Begegnung ohne zugewiesenen Slot wird
+explizit als nicht geplant angezeigt — nie stillschweigend weggelassen und nie mit einem Freilos
+verwechselt. Das Erstellen oder Bearbeiten eines Austragungsorts oder Offiziellen erfolgt unter
+[Austragungsorte & Offizielle](/help/control/resources), nicht hier.

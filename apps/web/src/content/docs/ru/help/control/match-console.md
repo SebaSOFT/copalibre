@@ -1,6 +1,14 @@
 ---
 title: Консоль матча в реальном времени
 description: Что делает консоль матча и что нельзя изменить после загрузки результата.
+capabilities:
+  - live-operations/live-match-console
+  - live-operations/live-match-operations
+  - live-operations/realtime-events
+  - tournament-engine/declared-tagging
+roles:
+  - referee
+  - admin
 ---
 
 ## Назначение экрана

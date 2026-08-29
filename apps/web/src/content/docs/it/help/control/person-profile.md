@@ -1,6 +1,11 @@
 ---
 title: Profilo persona
 description: La foto, il nome visualizzato, la nazionalità e la chiave naturale di una persona, raggiungibili dalla schermata di revisione delle iscrizioni.
+capabilities:
+  - control-web/identity-visuals
+roles:
+  - admin
+  - club-admin
 ---
 
 ## A cosa serve questa schermata

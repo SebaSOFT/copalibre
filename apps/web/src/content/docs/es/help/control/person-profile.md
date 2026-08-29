@@ -1,6 +1,11 @@
 ---
 title: Perfil de la persona
 description: La foto, nombre, nacionalidad y documento de una persona, accesible desde la revisión de inscripciones.
+capabilities:
+  - control-web/identity-visuals
+roles:
+  - admin
+  - club-admin
 ---
 
 ## Para qué sirve esta pantalla

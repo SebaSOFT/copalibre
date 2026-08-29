@@ -1,6 +1,10 @@
 ---
 title: Plan de promoción
 description: Configurá cómo se combinan los grupos de una zona en el sembrado de la siguiente etapa — revisado antes de aplicarse.
+capabilities:
+  - tournament-engine/stage-qualification
+roles:
+  - admin
 ---
 
 ## Para qué sirve esta pantalla

@@ -1,6 +1,16 @@
 ---
 title: Préférences
 description: Gérez vos jetons d'accès personnels et vos paramètres personnels CopaLibre.
+capabilities:
+  - platform/internationalization
+  - platform/native-auth
+  - platform/personal-access-tokens
+roles:
+  - admin
+  - club-admin
+  - referee
+  - broadcaster
+  - viewer
 ---
 
 ## À quoi sert cet écran

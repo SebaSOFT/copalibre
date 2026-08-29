@@ -1,6 +1,14 @@
 ---
 title: Console partita dal vivo
 description: Cosa fa la console partita, e cosa non si può più cambiare una volta caricato un risultato.
+capabilities:
+  - live-operations/live-match-console
+  - live-operations/live-match-operations
+  - live-operations/realtime-events
+  - tournament-engine/declared-tagging
+roles:
+  - referee
+  - admin
 ---
 
 ## A cosa serve questa schermata

@@ -1,6 +1,9 @@
 ---
 title: Установка
 description: Как установить CopaLibre с нуля с помощью CLI copalibre.
+capabilities: []
+roles:
+  - super-admin
 ---
 
 ## Требования

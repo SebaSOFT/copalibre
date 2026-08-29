@@ -1,6 +1,11 @@
 ---
 title: Operação e rastreabilidade
 description: Regras para operar partidas e corrigir dados de torneio.
+capabilities:
+  - platform/async-job-processing
+  - platform/persistence-layer
+roles:
+  - super-admin
 ---
 
 ## Console de partida

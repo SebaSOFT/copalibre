@@ -1,6 +1,10 @@
 ---
 title: Referência de comandos
 description: Cada comando do CLI copalibre, seu uso e suas flags.
+capabilities: []
+roles:
+  - super-admin
+  - admin
 ---
 
 Cada comando responde a `--help`/`-h` com exatamente este texto de uso, gerado a partir de uma única

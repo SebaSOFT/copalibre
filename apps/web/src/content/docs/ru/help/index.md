@@ -1,6 +1,16 @@
 ---
 title: Справка CopaLibre
 description: Безопасное проведение турниров на самостоятельно размещённой платформе CopaLibre.
+capabilities:
+  - platform/help-and-api-docs
+  - platform/internationalization
+roles:
+  - admin
+  - club-admin
+  - referee
+  - broadcaster
+  - viewer
+  - super-admin
 ---
 
 CopaLibre хранит результаты, регистрации и операционную активность под контролем каждой

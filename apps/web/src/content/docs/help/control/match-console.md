@@ -1,6 +1,14 @@
 ---
 title: Live match console
 description: What the match console does, and what cannot change once a result is loaded.
+capabilities:
+  - live-operations/live-match-console
+  - live-operations/live-match-operations
+  - live-operations/realtime-events
+  - tournament-engine/declared-tagging
+roles:
+  - referee
+  - admin
 ---
 
 ## What this screen is for

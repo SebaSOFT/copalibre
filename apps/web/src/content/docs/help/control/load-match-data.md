@@ -1,6 +1,9 @@
 ---
 title: Load match data
 description: Bulk/structured entry for a match played with no live console present.
+roles:
+  - admin
+  - referee
 ---
 
 ## What this screen is for

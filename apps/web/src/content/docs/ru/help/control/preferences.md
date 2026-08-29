@@ -1,6 +1,16 @@
 ---
 title: Настройки
 description: Управление персональными токенами доступа и личными настройками CopaLibre.
+capabilities:
+  - platform/internationalization
+  - platform/native-auth
+  - platform/personal-access-tokens
+roles:
+  - admin
+  - club-admin
+  - referee
+  - broadcaster
+  - viewer
 ---
 
 ## Назначение экрана

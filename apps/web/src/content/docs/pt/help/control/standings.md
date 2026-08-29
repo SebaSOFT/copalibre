@@ -1,6 +1,15 @@
 ---
 title: Classificação
 description: O que representa a tabela de classificação de uma fase e como os desempates são explicados.
+capabilities:
+  - tournament-engine/standings-explainability
+  - tournament-engine/statistic-collectors
+roles:
+  - admin
+  - club-admin
+  - referee
+  - broadcaster
+  - viewer
 ---
 
 ## Para que serve esta tela

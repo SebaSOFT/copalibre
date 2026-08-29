@@ -1,6 +1,10 @@
 ---
 title: Проверка обращений и споров
 description: Что такое обращения/споры участников и что делает их проверка.
+capabilities:
+  - control-web/participant-reporting
+roles:
+  - admin
 ---
 
 ## Назначение экрана

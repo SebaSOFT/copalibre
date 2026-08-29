@@ -1,6 +1,10 @@
 ---
 title: 场地与裁判
 description: 列出、创建和编辑组织的场地与裁判——赛程编排会分配这些资源。
+capabilities:
+  - tournament-engine/resource-scheduling
+roles:
+  - admin
 ---
 
 ## 此界面的用途

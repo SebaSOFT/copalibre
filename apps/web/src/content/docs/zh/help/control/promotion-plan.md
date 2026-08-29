@@ -1,6 +1,10 @@
 ---
 title: 晋级方案
 description: 配置某个区域的各小组如何合并到下一阶段的种子排位中——在生效前需经过审核。
+capabilities:
+  - tournament-engine/stage-qualification
+roles:
+  - admin
 ---
 
 ## 此界面的用途

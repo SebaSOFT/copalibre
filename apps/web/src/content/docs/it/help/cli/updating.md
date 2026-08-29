@@ -1,6 +1,9 @@
 ---
 title: Aggiornamento
 description: Il percorso non distruttivo per aggiornare il framework CopaLibre e i suoi moduli installati.
+capabilities: []
+roles:
+  - super-admin
 ---
 
 ## Aggiornare il CLI copalibre stesso

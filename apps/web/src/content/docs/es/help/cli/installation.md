@@ -1,6 +1,9 @@
 ---
 title: Instalación
 description: Cómo instalar CopaLibre desde cero con el CLI copalibre.
+capabilities: []
+roles:
+  - super-admin
 ---
 
 ## Requisitos

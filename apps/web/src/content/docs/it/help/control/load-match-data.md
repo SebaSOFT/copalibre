@@ -1,6 +1,10 @@
 ---
 title: Carica dati della partita
 description: Inserimento in blocco/strutturato per una partita giocata senza console live presente.
+capabilities: []
+roles:
+  - admin
+  - referee
 ---
 
 ## A cosa serve questa schermata

@@ -1,6 +1,10 @@
 ---
 title: Zone e gironi
 description: Crea zone e gironi all'interno di una fase, e assegna i partecipanti.
+capabilities:
+  - control-web/zone-group-management
+roles:
+  - admin
 ---
 
 ## A cosa serve questa schermata

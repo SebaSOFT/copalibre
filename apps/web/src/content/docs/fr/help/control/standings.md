@@ -1,6 +1,15 @@
 ---
 title: Classement
 description: Ce que représente le tableau de classement d'une phase et comment les départages sont expliqués.
+capabilities:
+  - tournament-engine/standings-explainability
+  - tournament-engine/statistic-collectors
+roles:
+  - admin
+  - club-admin
+  - referee
+  - broadcaster
+  - viewer
 ---
 
 ## À quoi sert cet écran

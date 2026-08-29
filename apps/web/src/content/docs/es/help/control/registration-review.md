@@ -1,6 +1,11 @@
 ---
 title: Revisión de inscripciones
 description: Qué hace aceptar, rechazar o retirar una inscripción, y cómo importar participantes por CSV.
+capabilities:
+  - control-web/registration-review
+roles:
+  - admin
+  - club-admin
 ---
 
 ## Para qué sirve esta pantalla

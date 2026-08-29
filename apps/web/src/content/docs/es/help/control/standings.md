@@ -1,6 +1,15 @@
 ---
 title: Posiciones (standings)
 description: Qué representa la tabla de posiciones de una etapa y cómo se explican los desempates.
+capabilities:
+  - tournament-engine/standings-explainability
+  - tournament-engine/statistic-collectors
+roles:
+  - admin
+  - club-admin
+  - referee
+  - broadcaster
+  - viewer
 ---
 
 ## Para qué sirve esta pantalla

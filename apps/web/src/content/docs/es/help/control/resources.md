@@ -1,6 +1,10 @@
 ---
 title: Canchas y árbitros
 description: Lista, creá y editá las canchas y árbitros de una organización — lo que asigna el armador de horarios.
+capabilities:
+  - tournament-engine/resource-scheduling
+roles:
+  - admin
 ---
 
 ## Para qué sirve esta pantalla

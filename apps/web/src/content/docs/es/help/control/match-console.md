@@ -1,6 +1,14 @@
 ---
 title: Consola de partido en vivo
 description: Qué hace la consola de partido, y qué no se puede cambiar una vez cargado un resultado.
+capabilities:
+  - live-operations/live-match-console
+  - live-operations/live-match-operations
+  - live-operations/realtime-events
+  - tournament-engine/declared-tagging
+roles:
+  - referee
+  - admin
 ---
 
 ## Para qué sirve esta pantalla

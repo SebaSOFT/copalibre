@@ -1,6 +1,16 @@
 ---
 title: CopaLibre-Hilfe
 description: Sicherer Betrieb selbst gehosteter Turniere mit CopaLibre.
+capabilities:
+  - platform/help-and-api-docs
+  - platform/internationalization
+roles:
+  - admin
+  - club-admin
+  - referee
+  - broadcaster
+  - viewer
+  - super-admin
 ---
 
 CopaLibre hält Ergebnisse, Anmeldungen und Betriebsaktivitäten unter der Kontrolle jeder

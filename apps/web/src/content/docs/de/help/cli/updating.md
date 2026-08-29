@@ -1,6 +1,9 @@
 ---
 title: Aktualisierung
 description: Der nicht destruktive Weg zur Aktualisierung des CopaLibre-Frameworks und seiner installierten Module.
+capabilities: []
+roles:
+  - super-admin
 ---
 
 ## Das copalibre-CLI selbst aktualisieren

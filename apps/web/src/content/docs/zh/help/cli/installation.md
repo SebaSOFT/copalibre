@@ -1,6 +1,9 @@
 ---
 title: 安装
 description: 如何使用 copalibre CLI 从零开始安装 CopaLibre。
+capabilities: []
+roles:
+  - super-admin
 ---
 
 ## 环境要求

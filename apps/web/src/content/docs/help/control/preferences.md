@@ -1,5 +1,16 @@
 ---
 title: 'Preferences'
+description: Personal settings — interface language, email, password, and personal access tokens.
+capabilities:
+  - platform/internationalization
+  - platform/native-auth
+  - platform/personal-access-tokens
+roles:
+  - admin
+  - club-admin
+  - referee
+  - broadcaster
+  - viewer
 ---
 
 # Preferences

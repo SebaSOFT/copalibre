@@ -1,6 +1,11 @@
 ---
 title: Tirage et têtes de série
 description: Ce que sont les têtes de série, les exemptions, et les contraintes de tirage que cet écran respecte.
+capabilities:
+  - tournament-engine/bracket-seeding-builder
+  - tournament-engine/draw-constraints
+roles:
+  - admin
 ---
 
 ## À quoi sert cet écran

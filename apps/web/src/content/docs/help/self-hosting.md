@@ -1,6 +1,10 @@
 ---
 title: 'Getting started: self-hosting'
 description: Run CopaLibre from source on Windows, macOS, or Linux, then choose a reverse-proxy or Kubernetes deployment topology.
+capabilities:
+  - platform/self-hosted-deployment
+roles:
+  - super-admin
 ---
 
 This page gets a fresh checkout running on your own machine or server, then explains the two

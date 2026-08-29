@@ -1,6 +1,16 @@
 ---
 title: Preferencias
 description: Gestioná tus tokens de acceso personal y tu configuración personal de CopaLibre.
+capabilities:
+  - platform/internationalization
+  - platform/native-auth
+  - platform/personal-access-tokens
+roles:
+  - admin
+  - club-admin
+  - referee
+  - broadcaster
+  - viewer
 ---
 
 ## Para qué sirve esta pantalla

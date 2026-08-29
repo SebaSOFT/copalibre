@@ -1,6 +1,16 @@
 ---
 title: Aide CopaLibre
 description: Exploitation sécurisée de tournois autohébergés avec CopaLibre.
+capabilities:
+  - platform/help-and-api-docs
+  - platform/internationalization
+roles:
+  - admin
+  - club-admin
+  - referee
+  - broadcaster
+  - viewer
+  - super-admin
 ---
 
 CopaLibre garde les résultats, les inscriptions et l'activité opérationnelle sous le contrôle de

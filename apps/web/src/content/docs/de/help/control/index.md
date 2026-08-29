@@ -1,6 +1,20 @@
 ---
 title: Kontrollpanel
 description: Wofür jeder Bildschirm im CopaLibre-Kontrollpanel ist.
+capabilities:
+  - control-web/organization-dashboard
+  - control-web/control-web-shell
+  - control-web/admin-interface-components
+  - control-web/notification-system
+  - platform/design-tokens
+  - platform/organization-directory
+  - tournament-engine/competition-lifecycle
+roles:
+  - admin
+  - club-admin
+  - referee
+  - broadcaster
+  - viewer
 ---
 
 Jeder Bildschirm im Kontrollpanel hat einen Link „Was ist dieser Bildschirm?“ in seiner

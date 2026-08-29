@@ -1,6 +1,11 @@
 ---
 title: Personenprofil
 description: Foto, Anzeigename, Staatsangehörigkeit und natürlicher Schlüssel einer Person, erreichbar über den Bildschirm zur Anmeldungsprüfung.
+capabilities:
+  - control-web/identity-visuals
+roles:
+  - admin
+  - club-admin
 ---
 
 ## Wofür dieser Bildschirm ist

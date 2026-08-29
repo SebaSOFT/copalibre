@@ -1,6 +1,16 @@
 ---
 title: Guida CopaLibre
 description: Gestione sicura di tornei autogestiti con CopaLibre.
+capabilities:
+  - platform/help-and-api-docs
+  - platform/internationalization
+roles:
+  - admin
+  - club-admin
+  - referee
+  - broadcaster
+  - viewer
+  - super-admin
 ---
 
 CopaLibre mantiene risultati, iscrizioni e attività operativa sotto il controllo di ciascuna

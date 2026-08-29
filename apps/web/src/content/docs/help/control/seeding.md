@@ -1,6 +1,11 @@
 ---
 title: Draw and seeding
 description: What seeds, byes, and the draw constraints this screen respects are.
+capabilities:
+  - tournament-engine/bracket-seeding-builder
+  - tournament-engine/draw-constraints
+roles:
+  - admin
 ---
 
 ## What this screen is for

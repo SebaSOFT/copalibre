@@ -1,6 +1,11 @@
 ---
 title: Vereine
 description: Vereine einer Organisation auflisten, erstellen und bearbeiten, und ihre Wappen hochladen.
+capabilities:
+  - control-web/identity-visuals
+roles:
+  - admin
+  - club-admin
 ---
 
 ## Wofür dieser Bildschirm ist

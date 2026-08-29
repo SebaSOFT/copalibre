@@ -1,6 +1,10 @@
 ---
 title: Lieux et officiels
 description: Lister, créer et modifier les lieux et officiels d'une organisation — ce que le constructeur de calendrier assigne.
+capabilities:
+  - tournament-engine/resource-scheduling
+roles:
+  - admin
 ---
 
 ## À quoi sert cet écran

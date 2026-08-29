@@ -61,7 +61,9 @@ check-in is required, and SHALL record both as part of the tournament's configur
 
 ### Requirement: Wizard captures every field it validates
 Any field the wizard validates or lets the organizer set SHALL be included in the tournament-creation
-request; the wizard SHALL NOT collect a value, validate it, and then discard it before submission.
+request; the wizard SHALL NOT collect a value, validate it, and then discard it before submission. A
+field the wizard presents SHALL also be explained, so that no organizer is asked to supply a value the
+surface never told them the meaning of.
 
 #### Scenario: Capacity set in the wizard reaches the created tournament
 - **WHEN** an organizer sets a participant capacity during the window step and completes the wizard
@@ -70,6 +72,11 @@ request; the wizard SHALL NOT collect a value, validate it, and then discard it 
 #### Scenario: Region set in the wizard reaches the created tournament
 - **WHEN** an organizer sets a region during the window step and completes the wizard
 - **THEN** the created tournament's configuration records that region
+
+#### Scenario: Every presented decision carries an explanation
+- **WHEN** the wizard renders any step
+- **THEN** every decision on that step either shows a description or comes from a declaration that
+  carries none, and no decision is left unexplained because the surface forgot to ask for one
 
 ### Requirement: Wizard offers every field the API already accepts
 A field already accepted by the tournament-creation endpoint SHALL be reachable from the wizard; the
@@ -214,3 +221,56 @@ before it is applied, on the same contract every other authoring edit already fo
 - **WHEN** an operator attempts to shorten a series after a match of it has been finalized
 - **THEN** the edit is refused as blocked after results, directing the operator to the audited
   correction workflow
+
+### Requirement: Every authored decision explains what it does during the competition
+Each decision an authoring surface presents — a format, a resolution class, a tiebreak comparator, a
+check-in policy, a series accounting grain, a scoring option — SHALL carry a description explaining what
+that choice causes to happen while the competition is running, not what it is called.
+
+The description SHALL be attached to the field's own declaration rather than to the control that renders
+it, so that every surface rendering the same field shows the same explanation and a second surface
+cannot drift from the first.
+
+Where a field is a closed set of options, each option SHALL carry its own description. Where a field's
+mutation policy declares that changing it becomes `requires_rebuild` or `blocked_after_results`, the
+description SHALL say so at authoring time, so an organizer learns a choice is hard to reverse before
+they make it rather than when they are refused.
+
+A field that declares no description SHALL render exactly as it does today.
+
+#### Scenario: A closed-set decision explains each of its options
+- **WHEN** an organizer opens a step offering a series resolution class
+- **THEN** each of `best-of`, `aggregate` and `points-per-leg` is shown with a description of how it
+  decides the tie, in terms of what happens across the matches rather than in the platform's vocabulary
+
+#### Scenario: A description names execution-time consequence
+- **WHEN** an organizer reads the description of a decision that changes how standings are counted
+- **THEN** the description states what the standings will do, not what the setting is named
+
+#### Scenario: A hard-to-reverse decision says so before it is made
+- **WHEN** an organizer opens a decision whose field policy blocks changing it once a result exists
+- **THEN** the description states that the choice cannot be changed after the first result, and names
+  the audited correction workflow as the remedy
+
+#### Scenario: The explanation is reachable without a pointer
+- **WHEN** an organizer navigates the wizard by keyboard, or on a touch device
+- **THEN** every decision's description is reachable and readable without hovering, and is present in
+  the accessible name or description of the control it explains
+
+#### Scenario: A field with no declared description is unchanged
+- **WHEN** a step renders a field whose declaration carries no description
+- **THEN** the control renders exactly as it did before descriptions existed
+
+### Requirement: A discipline's own decisions are explained in the discipline's words
+Where a decision comes from an installed discipline module rather than from the platform, the
+description shown SHALL be the module's own declared text in the reader's language, not text the
+platform composed on the module's behalf.
+
+#### Scenario: A module-declared option carries the module's explanation
+- **WHEN** an organizer authors a tournament in a discipline whose descriptor declares its own formats
+  or scoring options with descriptions
+- **THEN** the wizard shows those descriptions verbatim from the descriptor
+
+#### Scenario: A module that declares no description degrades quietly
+- **WHEN** an installed discipline declares an option without a description
+- **THEN** the option is offered with its label alone and no placeholder or apology is rendered

@@ -1,6 +1,10 @@
 ---
 title: Aufstiegsplan
 description: Konfigurieren, wie sich die Gruppen einer Zone zur Setzung der nächsten Phase kombinieren — vor der Anwendung überprüft.
+capabilities:
+  - tournament-engine/stage-qualification
+roles:
+  - admin
 ---
 
 ## Wofür dieser Bildschirm ist

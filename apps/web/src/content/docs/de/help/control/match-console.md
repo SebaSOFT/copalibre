@@ -1,6 +1,14 @@
 ---
 title: Live-Spielkonsole
 description: Was die Spielkonsole tut, und was nach dem Eintragen eines Ergebnisses nicht mehr geändert werden kann.
+capabilities:
+  - live-operations/live-match-console
+  - live-operations/live-match-operations
+  - live-operations/realtime-events
+  - tournament-engine/declared-tagging
+roles:
+  - referee
+  - admin
 ---
 
 ## Wofür dieser Bildschirm ist

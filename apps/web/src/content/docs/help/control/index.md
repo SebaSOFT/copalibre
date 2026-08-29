@@ -1,6 +1,20 @@
 ---
 title: Control panel
 description: What each screen in the CopaLibre control panel is for.
+capabilities:
+  - control-web/organization-dashboard
+  - control-web/control-web-shell
+  - control-web/admin-interface-components
+  - control-web/notification-system
+  - platform/design-tokens
+  - platform/organization-directory
+  - tournament-engine/competition-lifecycle
+roles:
+  - admin
+  - club-admin
+  - referee
+  - broadcaster
+  - viewer
 ---
 
 Every control-panel screen has a "What is this screen?" link in its sidebar that leads directly to

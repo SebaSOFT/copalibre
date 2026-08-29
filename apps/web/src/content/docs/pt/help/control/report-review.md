@@ -1,6 +1,10 @@
 ---
 title: Revisão de relatórios e disputas
 description: O que são os relatórios/disputas de participantes e o que faz revisá-los.
+capabilities:
+  - control-web/participant-reporting
+roles:
+  - admin
 ---
 
 ## Para que serve esta tela

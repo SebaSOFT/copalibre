@@ -1,6 +1,11 @@
 ---
 title: Sorteio e chaveamento
 description: O que são as cabeças de chave, os byes, e as restrições de sorteio que esta tela respeita.
+capabilities:
+  - tournament-engine/bracket-seeding-builder
+  - tournament-engine/draw-constraints
+roles:
+  - admin
 ---
 
 ## Para que serve esta tela

@@ -1,6 +1,8 @@
 ---
 title: Updating
 description: The non-destructive path to updating the CopaLibre framework and its installed modules.
+roles:
+  - super-admin
 ---
 
 ## Updating the copalibre CLI itself

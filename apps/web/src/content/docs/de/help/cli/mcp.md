@@ -1,6 +1,10 @@
 ---
 title: MCP für KI
 description: Wie eine KI CopaLibre über copalibre mcp betreiben kann.
+capabilities: []
+roles:
+  - super-admin
+  - admin
 ---
 
 `copalibre mcp` startet einen lokalen [Model Context Protocol](https://modelcontextprotocol.io)-

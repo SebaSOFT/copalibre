@@ -1,6 +1,11 @@
 ---
 title: Проверка регистраций
 description: Что делают принятие, отклонение или отзыв регистрации, и как импортировать участников через CSV.
+capabilities:
+  - control-web/registration-review
+roles:
+  - admin
+  - club-admin
 ---
 
 ## Назначение экрана
