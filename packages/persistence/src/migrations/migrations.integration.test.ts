@@ -182,6 +182,30 @@ describe('migrations (integration)', () => {
             `.execute(scratch.db)
           ).rows[0]?.dflt_value;
     expect(defaultExpression).toContain('[]');
+    expect(
+      afterUpTables.find((table) => table.name === 'organization_role_assignments')?.columns,
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'club_id' }),
+        expect.objectContaining({ name: 'tournament_id' }),
+      ]),
+    );
+    expect(afterUpTables.find((table) => table.name === 'organization_invites')?.columns).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'club_id' }),
+        expect.objectContaining({ name: 'tournament_id' }),
+      ]),
+    );
+
+    const roleScopeColumnsDown = await migrateDownOneStep(scratch.db);
+    expect(roleScopeColumnsDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe('0031-schedules');
+    const afterRoleScopeColumnsDownTables = await scratch.db.introspection.getTables();
+    expect(
+      afterRoleScopeColumnsDownTables.find(
+        (table) => table.name === 'organization_role_assignments',
+      )?.columns,
+    ).not.toEqual(expect.arrayContaining([expect.objectContaining({ name: 'club_id' })]));
 
     const schedulesDown = await migrateDownOneStep(scratch.db);
     expect(schedulesDown.error).toBeUndefined();

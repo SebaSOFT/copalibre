@@ -653,6 +653,10 @@ export class OrganizationRoleResponse {
   role!: string;
   @ApiProperty({ enum: ['active', 'inactive'] })
   status!: string;
+  @ApiPropertyOptional({ format: 'uuid', description: 'Set only for a club-scoped role.' })
+  clubId?: string;
+  @ApiPropertyOptional({ format: 'uuid', description: 'Set only for a tournament-scoped role.' })
+  tournamentId?: string;
 }
 
 export class InviteOrganizationUserRequest {
@@ -670,6 +674,13 @@ export class InviteOrganizationUserRequest {
       'Required exactly when `role` is a tournament-scoped role (e.g. tournament-admin).',
   })
   tournamentId?: string;
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Required exactly when `role` is a club-scoped role (club-admin).',
+  })
+  clubId?: string;
   @IsString()
   @ApiProperty({ enum: ['active', 'inactive'] })
   status!: 'active' | 'inactive';
@@ -694,6 +705,13 @@ export class ChangeOrganizationRoleRequest {
       'Required exactly when `role` is a tournament-scoped role (e.g. tournament-admin).',
   })
   tournamentId?: string;
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Required exactly when `role` is a club-scoped role (club-admin).',
+  })
+  clubId?: string;
   @IsString()
   @ApiProperty({ enum: ['active', 'inactive'] })
   status!: 'active' | 'inactive';

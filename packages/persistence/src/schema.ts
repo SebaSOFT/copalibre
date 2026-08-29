@@ -91,6 +91,10 @@ export interface OrganizationRoleAssignmentsTable {
   created_at: Timestamp;
   updated_at: Timestamp;
   deleted_at: Timestamp | null;
+  /** Required exactly when `role` is `club-admin`; null otherwise. */
+  club_id: string | null;
+  /** Required exactly when `role` is `tournament-admin`; null otherwise. */
+  tournament_id: string | null;
 }
 
 /** An installation-wide role assignment (`super-admin` today), mirroring `organization_role_assignments` minus `organization_id`. */
@@ -116,6 +120,10 @@ export interface OrganizationInvitesTable {
   accepted_at: Timestamp | null;
   accepted_principal_id: string | null;
   created_at: Timestamp;
+  /** Required exactly when `role` is `club-admin`; null otherwise. */
+  club_id: string | null;
+  /** Required exactly when `role` is `tournament-admin`; null otherwise. */
+  tournament_id: string | null;
 }
 
 /**

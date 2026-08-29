@@ -223,6 +223,11 @@ export class ClubMediaController {
         errorCode: 'identity-media-not-found',
       });
     }
+    enforcePolicy({
+      plane: 'admin-control',
+      subject: request.subject,
+      resource: { organizationId, ownerClubId: clubId },
+    });
 
     const bytes = await decodeImage(body);
     const reference = await this.storage.put(

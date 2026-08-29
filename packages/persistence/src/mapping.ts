@@ -98,6 +98,8 @@ export function toOrganizationRoleAssignment(
     role: row.role as OrganizationRoleAssignment['role'],
     status: row.status as OrganizationRoleAssignment['status'],
     ...(row.deleted_at === null ? {} : { deletedAt: toIsoString(row.deleted_at) }),
+    ...(row.club_id === null ? {} : { clubId: row.club_id }),
+    ...(row.tournament_id === null ? {} : { tournamentId: row.tournament_id }),
   };
 }
 
@@ -131,6 +133,8 @@ export function toOrganizationInvitation(row: OrganizationInviteRow): Organizati
     role: row.role as OrganizationInvitation['role'],
     status: row.status as OrganizationInvitation['status'],
     expiresAt: toIsoString(row.expires_at),
+    ...(row.club_id === null ? {} : { clubId: row.club_id }),
+    ...(row.tournament_id === null ? {} : { tournamentId: row.tournament_id }),
   };
 }
 

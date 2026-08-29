@@ -24,6 +24,7 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
+import { ORGANIZATION_ROLES } from '@copalibre/domain';
 import {
   InstallationRoleRepository,
   OrganizationAccessRepository,
@@ -86,11 +87,10 @@ export class OrganizationAccessController {
   grantable(@Req() request: RequestWithSubject): GrantableRolesResponse {
     const grantorContext = request.subject?.grantorContext;
     const isSuperAdmin = grantorContext?.isSuperAdmin ?? false;
-    const organizationRoles = ['admin', 'club-admin', 'referee', 'broadcaster', 'viewer'] as const;
     const roles: GrantableRolesResponse['roles'] = isSuperAdmin
-      ? ['super-admin', ...organizationRoles]
+      ? ['super-admin', ...ORGANIZATION_ROLES]
       : grantorContext?.organizationAdminOf
-        ? [...organizationRoles]
+        ? [...ORGANIZATION_ROLES]
         : [];
     return { roles };
   }
@@ -117,6 +117,8 @@ export class OrganizationAccessController {
         recipientEmail: body.email,
         role: body.role,
         status: body.status,
+        ...(body.tournamentId === undefined ? {} : { tournamentId: body.tournamentId }),
+        ...(body.clubId === undefined ? {} : { clubId: body.clubId }),
         token,
         tokenHash: hash(token),
         expiresAt: new Date(Date.now() + INVITATION_TTL_MS).toISOString(),
@@ -147,6 +149,8 @@ export class OrganizationAccessController {
         assignmentId,
         role: body.role,
         status: body.status,
+        ...(body.tournamentId === undefined ? {} : { tournamentId: body.tournamentId }),
+        ...(body.clubId === undefined ? {} : { clubId: body.clubId }),
         actor: actorOf(request),
         authorizationContext: (request.subject?.scopes ?? []).join(' '),
         grantorContext: request.subject?.grantorContext,

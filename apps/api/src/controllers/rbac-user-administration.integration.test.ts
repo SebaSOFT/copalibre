@@ -33,6 +33,8 @@ describe('RBAC user administration (integration)', () => {
   let organizationId = '';
   let adminAssignmentId = '';
 
+  let clubId = '';
+
   beforeAll(async () => {
     scratch = await createMigratedDatabase('rbac-user-administration');
     const organization = await withTransaction(scratch.db, (uow) =>
@@ -44,6 +46,19 @@ describe('RBAC user administration (integration)', () => {
       }),
     );
     organizationId = organization.organizationId;
+    clubId = newId();
+    await scratch.db
+      .insertInto('clubs')
+      .values({
+        club_id: clubId,
+        organization_id: organizationId,
+        alias: 'club-rbac-api',
+        name: 'Club RBAC API',
+        abbreviation: null,
+        emblem_object_id: null,
+        created_at: new Date(),
+      })
+      .execute();
     adminAssignmentId = await seedRole(
       scratch.db,
       'oidc-rbac-admin',
@@ -96,7 +111,7 @@ describe('RBAC user administration (integration)', () => {
       const response = await request('admin', `/organizations/liga-rbac-api/roles/grantable`);
       expect(response.statusCode).toBe(200);
       expect(response.json()).toEqual({
-        roles: ['admin', 'club-admin', 'referee', 'broadcaster', 'viewer'],
+        roles: ['admin', 'club-admin', 'tournament-admin', 'referee', 'broadcaster', 'viewer'],
       });
     });
 
@@ -112,6 +127,7 @@ describe('RBAC user administration (integration)', () => {
         email: 'new-club-admin@example.test',
         role: 'club-admin',
         status: 'active',
+        clubId,
       });
       expect(response.statusCode).toBe(201);
     });

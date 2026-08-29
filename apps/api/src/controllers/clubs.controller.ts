@@ -97,6 +97,11 @@ export class ClubsController {
         errorCode: 'club-not-found',
       });
     }
+    enforcePolicy({
+      plane: 'admin-control',
+      subject: request.subject,
+      resource: { organizationId, ownerClubId: clubId },
+    });
     const subject = request.subject;
     try {
       return await withTransaction(this.db, (uow) =>

@@ -132,6 +132,7 @@ export class OrganizationAccessGuard implements CanActivate {
         ...subject,
         principalId: principal.principalId,
         grantorContext: this.resolveGrantorContext(subject, organizationId, assignment.role),
+        resourceScope: resolveResourceScope(assignment),
       };
       return true;
     }
@@ -150,6 +151,7 @@ export class OrganizationAccessGuard implements CanActivate {
       ...subject,
       principalId: principal.principalId,
       grantorContext: this.resolveGrantorContext(subject, organizationId, assignment.role),
+      resourceScope: resolveResourceScope(assignment),
     };
     const admittedRoles =
       requirement.kind === 'organization-capability'
@@ -186,4 +188,20 @@ export class OrganizationAccessGuard implements CanActivate {
       .findByAlias(organizationAlias)
       .then((row) => row?.organizationId);
   }
+}
+
+/**
+ * The resource this assignment narrows its holder's authority to —
+ * `undefined` fields for a role with no scope of that kind (e.g. `admin`
+ * carries neither), present for a `club-admin`/`tournament-admin` assignment.
+ * Read by `resource-policy.ts`'s ownership check off `subject.resourceScope`.
+ */
+function resolveResourceScope(assignment: {
+  readonly clubId?: string;
+  readonly tournamentId?: string;
+}): { readonly clubId?: string; readonly tournamentId?: string } {
+  return {
+    ...(assignment.clubId === undefined ? {} : { clubId: assignment.clubId }),
+    ...(assignment.tournamentId === undefined ? {} : { tournamentId: assignment.tournamentId }),
+  };
 }
