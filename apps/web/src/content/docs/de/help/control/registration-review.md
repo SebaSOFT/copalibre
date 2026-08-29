@@ -1,6 +1,11 @@
 ---
 title: Anmeldungsprüfung
 description: Was das Akzeptieren, Ablehnen oder Zurückziehen einer Anmeldung bewirkt, und wie man Teilnehmer per CSV importiert.
+capabilities:
+  - control-web/registration-review
+roles:
+  - admin
+  - club-admin
 ---
 
 ## Wofür dieser Bildschirm ist

@@ -23,7 +23,7 @@ export function PlatformAdministrationControlRoute({
   readonly client?: ControlApiClient;
 }): React.JSX.Element {
   return (
-    <ControlShell active="platform" helpPath="">
+    <ControlShell active="platform" helpPath="platform-administration">
       <PlatformAdministrationRoute client={client} />
     </ControlShell>
   );

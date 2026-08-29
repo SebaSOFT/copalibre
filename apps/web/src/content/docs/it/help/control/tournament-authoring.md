@@ -1,6 +1,18 @@
 ---
 title: Creazione torneo
 description: Cosa configura la procedura guidata di creazione torneo e cosa significa ogni campo.
+capabilities:
+  - control-web/tournament-authoring
+  - tournament-engine/discipline-driven-results
+  - tournament-engine/tournament-fixture-engine
+  - tournament-engine/tournament-profile
+  - tournament-engine/tournament-domain-model
+  - tournament-engine/competition-identity
+  - tournament-engine/rules-engine
+  - tournament-engine/scripting-hook-surface
+  - tournament-engine/placement-stage-format
+roles:
+  - admin
 ---
 
 ## A cosa serve questa schermata

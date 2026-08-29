@@ -1,6 +1,11 @@
 ---
 title: Perfil da pessoa
 description: A foto, o nome de exibição, a nacionalidade e a chave natural de uma pessoa, acessados a partir da tela de revisão de inscrições.
+capabilities:
+  - control-web/identity-visuals
+roles:
+  - admin
+  - club-admin
 ---
 
 ## Para que serve esta tela

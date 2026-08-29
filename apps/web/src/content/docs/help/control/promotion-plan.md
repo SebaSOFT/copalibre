@@ -1,6 +1,10 @@
 ---
 title: Promotion plan
 description: Configure how a zone's groups combine into the next stage's seeding — reviewed before acting.
+capabilities:
+  - tournament-engine/stage-qualification
+roles:
+  - admin
 ---
 
 ## What this screen is for

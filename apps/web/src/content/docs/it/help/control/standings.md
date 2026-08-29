@@ -1,6 +1,15 @@
 ---
 title: Classifica
 description: Cosa rappresenta la tabella della classifica di una fase e come vengono spiegati gli spareggi.
+capabilities:
+  - tournament-engine/standings-explainability
+  - tournament-engine/statistic-collectors
+roles:
+  - admin
+  - club-admin
+  - referee
+  - broadcaster
+  - viewer
 ---
 
 ## A cosa serve questa schermata

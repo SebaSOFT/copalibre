@@ -1,6 +1,10 @@
 ---
 title: MCP для ИИ
 description: Как ИИ может управлять CopaLibre через copalibre mcp.
+capabilities: []
+roles:
+  - super-admin
+  - admin
 ---
 
 `copalibre mcp` запускает локальный сервер [Model Context Protocol](https://modelcontextprotocol.io)

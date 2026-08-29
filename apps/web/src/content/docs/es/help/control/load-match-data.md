@@ -1,6 +1,10 @@
 ---
 title: Cargar datos del partido
 description: Carga masiva/estructurada para un partido jugado sin consola en vivo presente.
+capabilities: []
+roles:
+  - admin
+  - referee
 ---
 
 ## Para qué sirve esta pantalla

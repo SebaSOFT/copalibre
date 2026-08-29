@@ -1,6 +1,15 @@
 ---
 title: Турнирная таблица
 description: Что представляет таблица результатов этапа и как объясняются критерии разделения.
+capabilities:
+  - tournament-engine/standings-explainability
+  - tournament-engine/statistic-collectors
+roles:
+  - admin
+  - club-admin
+  - referee
+  - broadcaster
+  - viewer
 ---
 
 ## Назначение экрана

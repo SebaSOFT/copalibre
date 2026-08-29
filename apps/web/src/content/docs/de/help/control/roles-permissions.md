@@ -1,6 +1,10 @@
 ---
 title: Rollen und Berechtigungen
 description: Was jede Organisationsrolle gewährt und wie der Einladungsablauf funktioniert.
+capabilities:
+  - control-web/roles-permissions
+roles:
+  - admin
 ---
 
 ## Wofür dieser Bildschirm ist

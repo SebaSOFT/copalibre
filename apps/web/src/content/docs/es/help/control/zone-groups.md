@@ -1,6 +1,10 @@
 ---
 title: Zonas y grupos
 description: Creá zonas y grupos dentro de una etapa, y asigná entrantes a ellos.
+capabilities:
+  - control-web/zone-group-management
+roles:
+  - admin
 ---
 
 ## Para qué sirve esta pantalla

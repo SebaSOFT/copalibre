@@ -1,6 +1,11 @@
 ---
 title: Person profile
 description: A person's photo, display name, nationality, and natural key, reached from the registration review screen.
+capabilities:
+  - control-web/identity-visuals
+roles:
+  - admin
+  - club-admin
 ---
 
 ## What this screen is for

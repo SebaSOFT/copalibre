@@ -1,6 +1,20 @@
 ---
 title: Pannello di controllo
 description: Cosa fa ogni schermata del pannello di controllo di CopaLibre.
+capabilities:
+  - control-web/organization-dashboard
+  - control-web/control-web-shell
+  - control-web/admin-interface-components
+  - control-web/notification-system
+  - platform/design-tokens
+  - platform/organization-directory
+  - tournament-engine/competition-lifecycle
+roles:
+  - admin
+  - club-admin
+  - referee
+  - broadcaster
+  - viewer
 ---
 
 Ogni schermata del pannello di controllo ha un link "Cos'è questa schermata?" nella sua barra

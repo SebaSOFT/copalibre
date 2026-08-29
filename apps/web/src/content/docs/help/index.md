@@ -1,6 +1,16 @@
 ---
 title: CopaLibre Help
 description: Secure operation of self-hosted tournaments with CopaLibre.
+capabilities:
+  - platform/help-and-api-docs
+  - platform/internationalization
+roles:
+  - admin
+  - club-admin
+  - referee
+  - broadcaster
+  - viewer
+  - super-admin
 ---
 
 CopaLibre keeps results, registrations, and operational activity under each organization's control.

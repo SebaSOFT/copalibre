@@ -1,6 +1,10 @@
 ---
 title: Piano di promozione
 description: Configura come i gironi di una zona si combinano nella semina della fase successiva — rivisto prima di applicarlo.
+capabilities:
+  - tournament-engine/stage-qualification
+roles:
+  - admin
 ---
 
 ## A cosa serve questa schermata

@@ -1,6 +1,10 @@
 ---
 title: Sedi e ufficiali di gara
 description: Elenca, crea e modifica le sedi e gli ufficiali di gara di un'organizzazione — ciò che il costruttore del calendario assegna.
+capabilities:
+  - tournament-engine/resource-scheduling
+roles:
+  - admin
 ---
 
 ## A cosa serve questa schermata

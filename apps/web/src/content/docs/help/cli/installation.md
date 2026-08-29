@@ -1,6 +1,8 @@
 ---
 title: Installation
 description: How to install CopaLibre from scratch with the copalibre CLI.
+roles:
+  - super-admin
 ---
 
 ## Requirements

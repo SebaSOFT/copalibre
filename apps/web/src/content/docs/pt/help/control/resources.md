@@ -1,6 +1,10 @@
 ---
 title: Locais e árbitros
 description: Liste, crie e edite os locais e árbitros de uma organização — o que o construtor de horários atribui.
+capabilities:
+  - tournament-engine/resource-scheduling
+roles:
+  - admin
 ---
 
 ## Para que serve esta tela

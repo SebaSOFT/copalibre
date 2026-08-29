@@ -1,6 +1,10 @@
 ---
 title: 角色与权限
 description: 每个组织角色授予什么权限，以及邀请流程是如何运作的。
+capabilities:
+  - control-web/roles-permissions
+roles:
+  - admin
 ---
 
 ## 此界面的用途

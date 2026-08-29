@@ -1,6 +1,11 @@
 ---
 title: Работа и прослеживаемость
 description: Правила проведения матчей и исправления данных турнира.
+capabilities:
+  - platform/async-job-processing
+  - platform/persistence-layer
+roles:
+  - super-admin
 ---
 
 ## Консоль матча

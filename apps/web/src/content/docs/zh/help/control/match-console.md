@@ -1,6 +1,14 @@
 ---
 title: 实时比赛控制台
 description: 比赛控制台的作用，以及一旦结果录入后哪些内容无法再更改。
+capabilities:
+  - live-operations/live-match-console
+  - live-operations/live-match-operations
+  - live-operations/realtime-events
+  - tournament-engine/declared-tagging
+roles:
+  - referee
+  - admin
 ---
 
 ## 此界面的用途

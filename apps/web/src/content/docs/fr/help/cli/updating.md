@@ -1,6 +1,9 @@
 ---
 title: Mise à jour
 description: Le chemin non destructif pour mettre à jour le framework CopaLibre et ses modules installés.
+capabilities: []
+roles:
+  - super-admin
 ---
 
 ## Mettre à jour le CLI copalibre lui-même

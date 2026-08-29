@@ -1,6 +1,10 @@
 ---
 title: Зоны и группы
 description: Создавайте зоны и группы внутри этапа и назначайте им участников.
+capabilities:
+  - control-web/zone-group-management
+roles:
+  - admin
 ---
 
 ## Назначение экрана

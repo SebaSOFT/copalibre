@@ -1,6 +1,10 @@
 ---
 title: Rôles et permissions
 description: Ce que confère chaque rôle d'organisation et comment fonctionne le flux d'invitation.
+capabilities:
+  - control-web/roles-permissions
+roles:
+  - admin
 ---
 
 ## À quoi sert cet écran

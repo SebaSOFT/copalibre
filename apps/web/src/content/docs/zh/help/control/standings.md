@@ -1,6 +1,15 @@
 ---
 title: 排名
 description: 某阶段的排名表代表什么，以及决胜规则是如何解释的。
+capabilities:
+  - tournament-engine/standings-explainability
+  - tournament-engine/statistic-collectors
+roles:
+  - admin
+  - club-admin
+  - referee
+  - broadcaster
+  - viewer
 ---
 
 ## 此界面的用途

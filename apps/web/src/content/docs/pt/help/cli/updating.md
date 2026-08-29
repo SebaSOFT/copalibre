@@ -1,6 +1,9 @@
 ---
 title: Atualização
 description: O caminho não destrutivo para atualizar o framework CopaLibre e seus módulos instalados.
+capabilities: []
+roles:
+  - super-admin
 ---
 
 ## Atualizar o próprio CLI copalibre

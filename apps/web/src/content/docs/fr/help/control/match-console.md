@@ -1,6 +1,14 @@
 ---
 title: Console de match en direct
 description: Ce que fait la console de match, et ce qui ne peut plus changer une fois un résultat enregistré.
+capabilities:
+  - live-operations/live-match-console
+  - live-operations/live-match-operations
+  - live-operations/realtime-events
+  - tournament-engine/declared-tagging
+roles:
+  - referee
+  - admin
 ---
 
 ## À quoi sert cet écran

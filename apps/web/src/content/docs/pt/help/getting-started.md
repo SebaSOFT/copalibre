@@ -1,6 +1,16 @@
 ---
 title: Seu primeiro torneio
 description: O fluxo inicial para criar e publicar um torneio.
+capabilities:
+  - platform/native-auth
+  - control-web/control-web-shell
+roles:
+  - admin
+  - club-admin
+  - referee
+  - broadcaster
+  - viewer
+  - super-admin
 ---
 
 ## Criar o torneio

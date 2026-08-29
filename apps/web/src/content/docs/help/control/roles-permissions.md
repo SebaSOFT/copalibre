@@ -1,6 +1,10 @@
 ---
 title: Roles and permissions
 description: What each organization role grants and how the invitation flow works.
+capabilities:
+  - control-web/roles-permissions
+roles:
+  - admin
 ---
 
 ## What this screen is for

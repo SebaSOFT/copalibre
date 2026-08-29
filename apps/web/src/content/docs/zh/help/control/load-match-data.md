@@ -1,6 +1,10 @@
 ---
 title: 加载比赛数据
 description: 为没有实时控制台在场进行的比赛提供批量/结构化录入。
+capabilities: []
+roles:
+  - admin
+  - referee
 ---
 
 ## 此界面的用途

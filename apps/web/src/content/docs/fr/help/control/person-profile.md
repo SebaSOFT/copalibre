@@ -1,6 +1,11 @@
 ---
 title: Profil de la personne
 description: La photo, le nom d'affichage, la nationalité et la clé naturelle d'une personne, accessibles depuis l'écran de révision des inscriptions.
+capabilities:
+  - control-web/identity-visuals
+roles:
+  - admin
+  - club-admin
 ---
 
 ## À quoi sert cet écran

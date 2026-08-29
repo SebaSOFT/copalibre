@@ -1,6 +1,10 @@
 ---
 title: Référence des commandes
 description: Chaque commande du CLI copalibre, son usage et ses options.
+capabilities: []
+roles:
+  - super-admin
+  - admin
 ---
 
 Chaque commande répond à `--help`/`-h` avec exactement ce texte d'usage, généré depuis une source

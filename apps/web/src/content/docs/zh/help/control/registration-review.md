@@ -1,6 +1,11 @@
 ---
 title: 报名审核
 description: 接受、拒绝或撤回一项报名会产生什么后果，以及如何通过 CSV 导入参赛者。
+capabilities:
+  - control-web/registration-review
+roles:
+  - admin
+  - club-admin
 ---
 
 ## 此界面的用途

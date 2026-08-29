@@ -1,6 +1,10 @@
 ---
 title: Spieldaten laden
 description: Massen-/strukturierte Eingabe für ein Spiel, das ohne anwesende Live-Konsole gespielt wurde.
+capabilities: []
+roles:
+  - admin
+  - referee
 ---
 
 ## Wofür dieser Bildschirm ist

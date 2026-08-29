@@ -1,6 +1,15 @@
 ---
 title: Standings
 description: What a stage's standings table represents and how tiebreakers are explained.
+capabilities:
+  - tournament-engine/standings-explainability
+  - tournament-engine/statistic-collectors
+roles:
+  - admin
+  - club-admin
+  - referee
+  - broadcaster
+  - viewer
 ---
 
 ## What this screen is for

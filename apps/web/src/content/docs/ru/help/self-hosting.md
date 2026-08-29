@@ -1,6 +1,10 @@
 ---
 title: 'Начало работы: самостоятельный хостинг'
 description: Запустите CopaLibre из исходного кода на Windows, macOS или Linux, затем выберите топологию развёртывания с обратным прокси или Kubernetes.
+capabilities:
+  - platform/self-hosted-deployment
+roles:
+  - super-admin
 ---
 
 Эта страница помогает запустить свежий чекаут на вашей собственной машине или сервере, а затем

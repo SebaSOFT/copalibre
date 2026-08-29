@@ -1,6 +1,9 @@
 ---
 title: 更新
 description: 更新 CopaLibre 框架及其已安装模块的非破坏性路径。
+capabilities: []
+roles:
+  - super-admin
 ---
 
 ## 更新 copalibre CLI 本身

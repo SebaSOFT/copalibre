@@ -1,6 +1,11 @@
 ---
 title: Clubs
 description: Lister, créer et modifier les clubs d'une organisation, et téléverser leurs emblèmes.
+capabilities:
+  - control-web/identity-visuals
+roles:
+  - admin
+  - club-admin
 ---
 
 ## À quoi sert cet écran

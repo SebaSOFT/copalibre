@@ -1,6 +1,10 @@
 ---
 title: Carregar dados da partida
 description: Entrada em lote/estruturada para uma partida jogada sem console ao vivo presente.
+capabilities: []
+roles:
+  - admin
+  - referee
 ---
 
 ## Para que serve esta tela

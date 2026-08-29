@@ -1,6 +1,10 @@
 ---
 title: Befehlsreferenz
 description: Jeder Befehl des copalibre-CLI, seine Verwendung und seine Optionen.
+capabilities: []
+roles:
+  - super-admin
+  - admin
 ---
 
 Jeder Befehl beantwortet `--help`/`-h` mit genau diesem Verwendungstext, generiert aus einer

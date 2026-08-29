@@ -1,6 +1,10 @@
 ---
 title: Austragungsorte & Offizielle
 description: Austragungsorte und Offizielle einer Organisation auflisten, erstellen und bearbeiten — was der Spielplan-Editor zuweist.
+capabilities:
+  - tournament-engine/resource-scheduling
+roles:
+  - admin
 ---
 
 ## Wofür dieser Bildschirm ist

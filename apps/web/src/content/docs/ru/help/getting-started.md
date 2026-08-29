@@ -1,6 +1,16 @@
 ---
 title: Ваш первый турнир
 description: Начальный процесс создания и публикации турнира.
+capabilities:
+  - platform/native-auth
+  - control-web/control-web-shell
+roles:
+  - admin
+  - club-admin
+  - referee
+  - broadcaster
+  - viewer
+  - super-admin
 ---
 
 ## Создание турнира

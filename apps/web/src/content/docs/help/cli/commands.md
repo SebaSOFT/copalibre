@@ -1,6 +1,9 @@
 ---
 title: Command reference
 description: Every copalibre CLI command, its usage, and its flags.
+roles:
+  - super-admin
+  - admin
 ---
 
 Every command answers `--help`/`-h` with this exact usage text, generated from a single source

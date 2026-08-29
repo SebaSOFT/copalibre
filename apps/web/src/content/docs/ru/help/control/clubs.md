@@ -1,6 +1,11 @@
 ---
 title: Клубы
 description: Список, создание и редактирование клубов организации, загрузка их эмблем.
+capabilities:
+  - control-web/identity-visuals
+roles:
+  - admin
+  - club-admin
 ---
 
 ## Назначение экрана

@@ -1,6 +1,16 @@
 ---
 title: Il tuo primo torneo
 description: Il flusso iniziale per creare e pubblicare un torneo.
+capabilities:
+  - platform/native-auth
+  - control-web/control-web-shell
+roles:
+  - admin
+  - club-admin
+  - referee
+  - broadcaster
+  - viewer
+  - super-admin
 ---
 
 ## Crea il torneo

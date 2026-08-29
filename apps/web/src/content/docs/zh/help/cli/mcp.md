@@ -1,6 +1,10 @@
 ---
 title: 面向 AI 的 MCP
 description: AI 如何通过 copalibre mcp 操作 CopaLibre。
+capabilities: []
+roles:
+  - super-admin
+  - admin
 ---
 
 `copalibre mcp` 启动一个本地 [Model Context Protocol](https://modelcontextprotocol.io) 服务器，

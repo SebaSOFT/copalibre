@@ -1,6 +1,10 @@
 ---
 title: 区域和小组
 description: 在某阶段内创建区域和小组，并将参赛者分配到其中。
+capabilities:
+  - control-web/zone-group-management
+roles:
+  - admin
 ---
 
 ## 此界面的用途

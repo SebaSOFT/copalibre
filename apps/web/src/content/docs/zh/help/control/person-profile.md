@@ -1,6 +1,11 @@
 ---
 title: 人员资料
 description: 某人的照片、显示名称、国籍和自然键，从报名审核界面进入。
+capabilities:
+  - control-web/identity-visuals
+roles:
+  - admin
+  - club-admin
 ---
 
 ## 此界面的用途

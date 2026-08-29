@@ -1,6 +1,10 @@
 ---
 title: Zonen und Gruppen
 description: Erstellen Sie Zonen und Gruppen innerhalb einer Phase, und weisen Sie ihnen Teilnehmer zu.
+capabilities:
+  - control-web/zone-group-management
+roles:
+  - admin
 ---
 
 ## Wofür dieser Bildschirm ist

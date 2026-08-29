@@ -1,6 +1,9 @@
 ---
 title: Обновление
 description: Неразрушающий путь обновления фреймворка CopaLibre и установленных модулей.
+capabilities: []
+roles:
+  - super-admin
 ---
 
 ## Обновление самого CLI copalibre

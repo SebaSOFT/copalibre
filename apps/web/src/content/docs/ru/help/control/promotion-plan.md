@@ -1,6 +1,10 @@
 ---
 title: План повышения
 description: Настройте, как группы зоны объединяются в посев следующего этапа — проверяется перед применением.
+capabilities:
+  - tournament-engine/stage-qualification
+roles:
+  - admin
 ---
 
 ## Назначение экрана

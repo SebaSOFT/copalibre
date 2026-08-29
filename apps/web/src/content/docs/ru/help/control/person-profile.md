@@ -1,6 +1,11 @@
 ---
 title: Профиль человека
 description: Фото, отображаемое имя, гражданство и естественный ключ человека, доступные с экрана проверки регистраций.
+capabilities:
+  - control-web/identity-visuals
+roles:
+  - admin
+  - club-admin
 ---
 
 ## Назначение экрана

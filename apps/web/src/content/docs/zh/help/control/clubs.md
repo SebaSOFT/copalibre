@@ -1,6 +1,11 @@
 ---
 title: 俱乐部
 description: 列出、创建和编辑组织的俱乐部，并上传其徽章。
+capabilities:
+  - control-web/identity-visuals
+roles:
+  - admin
+  - club-admin
 ---
 
 ## 此界面的用途

@@ -1,6 +1,11 @@
 ---
 title: Fonctionnement et traçabilité
 description: Règles pour gérer les matchs et corriger les données de tournoi.
+capabilities:
+  - platform/async-job-processing
+  - platform/persistence-layer
+roles:
+  - super-admin
 ---
 
 ## Console de match

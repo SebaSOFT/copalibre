@@ -1,6 +1,10 @@
 ---
 title: Plan de promotion
 description: Configurez comment les groupes d'une zone se combinent dans le placement de l'étape suivante — révisé avant d'agir.
+capabilities:
+  - tournament-engine/stage-qualification
+roles:
+  - admin
 ---
 
 ## À quoi sert cet écran

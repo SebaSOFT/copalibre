@@ -1,6 +1,16 @@
 ---
 title: Ihr erstes Turnier
 description: Der anfängliche Ablauf zum Erstellen und Veröffentlichen eines Turniers.
+capabilities:
+  - platform/native-auth
+  - control-web/control-web-shell
+roles:
+  - admin
+  - club-admin
+  - referee
+  - broadcaster
+  - viewer
+  - super-admin
 ---
 
 ## Turnier erstellen

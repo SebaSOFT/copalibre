@@ -1,6 +1,16 @@
 ---
 title: Ayuda de CopaLibre
 description: Operación segura de torneos autohospedados con CopaLibre.
+capabilities:
+  - platform/help-and-api-docs
+  - platform/internationalization
+roles:
+  - admin
+  - club-admin
+  - referee
+  - broadcaster
+  - viewer
+  - super-admin
 ---
 
 CopaLibre mantiene resultados, inscripciones y actividad operativa bajo control de cada organización.

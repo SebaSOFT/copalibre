@@ -1,6 +1,14 @@
 ---
 title: Console de partida ao vivo
 description: O que o console de partida faz, e o que não pode mais mudar depois de um resultado registrado.
+capabilities:
+  - live-operations/live-match-console
+  - live-operations/live-match-operations
+  - live-operations/realtime-events
+  - tournament-engine/declared-tagging
+roles:
+  - referee
+  - admin
 ---
 
 ## Para que serve esta tela

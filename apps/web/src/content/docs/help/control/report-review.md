@@ -1,6 +1,10 @@
 ---
 title: Report and dispute review
 description: What participant reports/disputes are, and what reviewing them does.
+capabilities:
+  - control-web/participant-reporting
+roles:
+  - admin
 ---
 
 ## What this screen is for

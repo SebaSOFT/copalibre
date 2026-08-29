@@ -1,6 +1,15 @@
 ---
 title: Tabelle
 description: Was die Tabelle einer Phase darstellt und wie Tiebreaker erklärt werden.
+capabilities:
+  - tournament-engine/standings-explainability
+  - tournament-engine/statistic-collectors
+roles:
+  - admin
+  - club-admin
+  - referee
+  - broadcaster
+  - viewer
 ---
 
 ## Wofür dieser Bildschirm ist

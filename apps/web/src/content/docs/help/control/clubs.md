@@ -1,6 +1,11 @@
 ---
 title: Clubs
 description: List, create, and edit an organization's clubs, and upload their emblems.
+capabilities:
+  - control-web/identity-visuals
+roles:
+  - admin
+  - club-admin
 ---
 
 ## What this screen is for

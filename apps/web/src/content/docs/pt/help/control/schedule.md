@@ -1,32 +1,40 @@
 ---
 title: Horários
-description: Atribua a cada partida de uma fase um horário, local e árbitros, pré-visualize conflitos e depois publique.
+description: Atribua cada partida a um horário — um horário de início, local e duração declarados — e os árbitros que a trabalham.
+capabilities:
+  - control-web/match-scheduling
+  - tournament-engine/schedule-slots
+roles:
+  - admin
 ---
 
 ## Para que serve esta tela
 
-As partidas de uma fase recebem aqui um horário de início, duração, local e árbitros — uma vista de
-calendário e uma vista de lista sobre o mesmo lote. Nada é agendado por um algoritmo: cada atribuição
-é uma escolha do próprio organizador, montada, pré-visualizada e depois publicada explicitamente.
+Cada partida de uma fase recebe um horário aqui — uma visão de calendário e uma visão de lista sobre o
+mesmo lote. Um horário não é digitado à mão por partida: é um início, local e duração declarados uma vez
+no conjunto de recursos de [locais e árbitros](/help/control/resources), e o construtor de horários
+atribui uma partida a um deles, não o contrário. Os árbitros são ativados por partida a partir do mesmo
+conjunto de recursos.
 
-## Campos principais
+## Granularidade de partida, não de confronto
 
-- **Horário de início / duração**: quando uma partida está reservada para ser jogada, e por quanto
-  tempo o recurso fica retido — não quanto tempo a partida realmente leva, o que ninguém sabe de
-  antemão.
-- **Local / árbitros**: atribuídos a partir da lista de [locais e árbitros](/help/control/resources)
-  da organização.
+O agendamento opera sobre a partida, não sobre o confronto entre dois participantes. Um confronto de uma
+única partida tem uma partida para posicionar; uma [série](/help/control/series) de cinco tem cinco,
+cada uma com seu próprio horário e seus próprios árbitros — a quarta e a quinta partida da série podem
+ficar em horários reservados nunca preenchidos se a série for decidida antes, e o construtor as marca
+como não mais necessárias em vez de deixá-las com aparência de não agendadas.
 
 ## Pré-visualize antes de publicar
 
-Antes que algo seja publicado, o construtor pré-visualiza o lote e mostra todo conflito — um local ou
-árbitro reservado em duplicidade, uma violação da regra de descanso — nomeando as partidas envolvidas,
-e nomeia qualquer partida já publicada que o lote moveria. A publicação é atômica: cada atribuição do
-lote entra em vigor junto, ou nenhuma entra.
+Antes de qualquer publicação, o construtor pré-visualiza o lote e mostra cada conflito — um local ou
+árbitro com reserva dupla, uma violação da regra de descanso — nomeando as partidas envolvidas, e nomeia
+qualquer partida já publicada que o lote moveria. Publicar é atômico: cada atribuição do lote entra em
+vigor junto, ou nenhuma entra.
 
 ## O que você não pode fazer aqui
 
-Reagendar uma partida cujo resultado já foi finalizado é recusado: seu horário agora é um registro,
-não um plano, e alterá-lo passa pelo fluxo de correção auditada em vez disso. Um entrante sem partida
-atribuída é mostrado explicitamente como sem partida agendada — nunca omitido silenciosamente, e nunca
-confundido com um bye do chaveamento.
+Reagendar uma partida já finalizada é recusado: seu horário já é um registro, não um plano, e alterá-lo
+passa pelo [fluxo de correção auditada](/help/control/corrections). Uma partida sem horário atribuído é
+mostrada explicitamente como sem partida agendada — nunca omitida silenciosamente, e nunca confundida com
+um bye de chave. Criar ou editar um local ou árbitro acontece em
+[locais e árbitros](/help/control/resources), não aqui.

@@ -1,6 +1,11 @@
 ---
 title: Sorteo y siembra (seeding)
 description: Qué son los seeds, los byes, y las restricciones de sorteo que esta pantalla respeta.
+capabilities:
+  - tournament-engine/bracket-seeding-builder
+  - tournament-engine/draw-constraints
+roles:
+  - admin
 ---
 
 ## Para qué sirve esta pantalla

@@ -1,6 +1,10 @@
 ---
 title: Площадки и судьи
 description: Список, создание и редактирование площадок и судей организации — то, что назначает конструктор расписания.
+capabilities:
+  - tournament-engine/resource-scheduling
+roles:
+  - admin
 ---
 
 ## Назначение экрана

@@ -1,6 +1,11 @@
 ---
 title: O CLI copalibre
 description: Instalação, atualização e referência de comandos do CLI copalibre.
+capabilities:
+  - platform/api-auth-contract
+roles:
+  - super-admin
+  - admin
 ---
 
 O CLI `copalibre` opera uma instalação autohospedada: instala, valida a configuração, inicia os

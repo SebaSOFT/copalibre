@@ -1,6 +1,16 @@
 ---
 title: Einstellungen
 description: Verwalten Sie Ihre persönlichen Zugriffstoken und Ihre persönlichen CopaLibre-Einstellungen.
+capabilities:
+  - platform/internationalization
+  - platform/native-auth
+  - platform/personal-access-tokens
+roles:
+  - admin
+  - club-admin
+  - referee
+  - broadcaster
+  - viewer
 ---
 
 ## Wofür dieser Bildschirm ist

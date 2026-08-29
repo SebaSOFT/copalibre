@@ -1,6 +1,11 @@
 ---
 title: Club
 description: Elenca, crea e modifica i club di un'organizzazione, e carica i loro stemmi.
+capabilities:
+  - control-web/identity-visuals
+roles:
+  - admin
+  - club-admin
 ---
 
 ## A cosa serve questa schermata

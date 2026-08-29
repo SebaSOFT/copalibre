@@ -1,6 +1,10 @@
 ---
 title: Роли и разрешения
 description: Что даёт каждая роль в организации и как работает процесс приглашения.
+capabilities:
+  - control-web/roles-permissions
+roles:
+  - admin
 ---
 
 ## Назначение экрана

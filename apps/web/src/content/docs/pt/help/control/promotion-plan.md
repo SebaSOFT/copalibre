@@ -1,6 +1,10 @@
 ---
 title: Plano de promoção
 description: Configure como os grupos de uma zona se combinam nas cabeças de chave da próxima fase — revisado antes de aplicar.
+capabilities:
+  - tournament-engine/stage-qualification
+roles:
+  - admin
 ---
 
 ## Para que serve esta tela

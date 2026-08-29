@@ -1,6 +1,10 @@
 ---
 title: Ruoli e permessi
 description: Cosa concede ogni ruolo dell'organizzazione e come funziona il flusso di invito.
+capabilities:
+  - control-web/roles-permissions
+roles:
+  - admin
 ---
 
 ## A cosa serve questa schermata

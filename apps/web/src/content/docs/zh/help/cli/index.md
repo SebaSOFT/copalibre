@@ -1,6 +1,11 @@
 ---
 title: copalibre CLI
 description: copalibre CLI 的安装、更新与命令参考。
+capabilities:
+  - platform/api-auth-contract
+roles:
+  - super-admin
+  - admin
 ---
 
 `copalibre` CLI 用于操作自托管实例：安装、验证配置、启动进程、管理模块，以及备份/恢复数据。每次调用都接受

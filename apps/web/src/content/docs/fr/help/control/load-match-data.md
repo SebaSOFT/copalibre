@@ -1,6 +1,10 @@
 ---
 title: Charger les données du match
 description: Saisie groupée/structurée pour un match joué sans console en direct présente.
+capabilities: []
+roles:
+  - admin
+  - referee
 ---
 
 ## À quoi sert cet écran

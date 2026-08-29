@@ -1,6 +1,20 @@
 ---
 title: 控制面板
 description: CopaLibre 控制面板中每个界面的用途。
+capabilities:
+  - control-web/organization-dashboard
+  - control-web/control-web-shell
+  - control-web/admin-interface-components
+  - control-web/notification-system
+  - platform/design-tokens
+  - platform/organization-directory
+  - tournament-engine/competition-lifecycle
+roles:
+  - admin
+  - club-admin
+  - referee
+  - broadcaster
+  - viewer
 ---
 
 每个控制面板界面的侧边栏都有一个“这是什么界面？”链接，可直接跳转到本节中对应的页面。本页列出了所有界面。

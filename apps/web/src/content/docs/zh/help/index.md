@@ -1,6 +1,16 @@
 ---
 title: CopaLibre 帮助
 description: 使用 CopaLibre 安全运营自托管赛事。
+capabilities:
+  - platform/help-and-api-docs
+  - platform/internationalization
+roles:
+  - admin
+  - club-admin
+  - referee
+  - broadcaster
+  - viewer
+  - super-admin
 ---
 
 CopaLibre 让每个组织都能掌控赛果、报名与运营活动。

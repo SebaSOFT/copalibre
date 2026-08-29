@@ -1,6 +1,11 @@
 ---
 title: Registration review
 description: What accepting, rejecting, or withdrawing a registration does, and how to import participants by CSV.
+capabilities:
+  - control-web/registration-review
+roles:
+  - admin
+  - club-admin
 ---
 
 ## What this screen is for

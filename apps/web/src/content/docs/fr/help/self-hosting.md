@@ -1,6 +1,10 @@
 ---
 title: 'Premiers pas : auto-hébergement'
 description: Exécutez CopaLibre depuis les sources sur Windows, macOS ou Linux, puis choisissez une topologie de déploiement à proxy inverse ou Kubernetes.
+capabilities:
+  - platform/self-hosted-deployment
+roles:
+  - super-admin
 ---
 
 Cette page fait tourner un checkout neuf sur votre propre machine ou serveur, puis explique les deux
