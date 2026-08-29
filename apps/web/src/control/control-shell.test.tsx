@@ -152,6 +152,65 @@ describe('the control shell', () => {
   });
 });
 
+describe('the control shell — role-driven navigation', () => {
+  afterEach(() => controlTokenStore.clear());
+
+  function stubMyOrganizationsFetch(role: string): () => void {
+    const original = globalThis.fetch;
+    Object.defineProperty(globalThis, 'fetch', {
+      configurable: true,
+      value: async () =>
+        jsonResponse([
+          {
+            organizationId: 'org-1',
+            organizationAlias: 'liga-mendocina',
+            organizationName: 'Liga Mendocina',
+            role,
+          },
+        ]),
+    });
+    return () => {
+      Object.defineProperty(globalThis, 'fetch', { configurable: true, value: original });
+    };
+  }
+
+  it('hides the user-administration entry once a club-admin role resolves', async () => {
+    const restore = stubMyOrganizationsFetch('club-admin');
+    render(
+      <ControlShell helpPath="tournament-authoring" organizationAlias="liga-mendocina">
+        <p>contenido</p>
+      </ControlShell>,
+    );
+
+    await waitFor(() => expect(screen.queryByRole('link', { name: 'Roles' })).toBeNull());
+    restore();
+  });
+
+  it('hides the user-administration entry once a referee role resolves', async () => {
+    const restore = stubMyOrganizationsFetch('referee');
+    render(
+      <ControlShell helpPath="tournament-authoring" organizationAlias="liga-mendocina">
+        <p>contenido</p>
+      </ControlShell>,
+    );
+
+    await waitFor(() => expect(screen.queryByRole('link', { name: 'Roles' })).toBeNull());
+    restore();
+  });
+
+  it('keeps the user-administration entry for admin', async () => {
+    const restore = stubMyOrganizationsFetch('admin');
+    render(
+      <ControlShell helpPath="tournament-authoring" organizationAlias="liga-mendocina">
+        <p>contenido</p>
+      </ControlShell>,
+    );
+
+    await waitFor(() => expect(screen.getByRole('link', { name: 'Roles' })).toBeDefined());
+    restore();
+  });
+});
+
 describe('the control routes', () => {
   it('renders the authoring page inside the shell', () => {
     render(<TournamentAuthoringControlRoute organizationAlias="liga-mendocina" />);
