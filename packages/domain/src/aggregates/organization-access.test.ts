@@ -1,6 +1,7 @@
 import {
   canCreateOrganizationInvitation,
   canGrantRole,
+  isClubScopedRole,
   isTournamentScopedRole,
   normaliseEmail,
   validateOrganizationInvitation,
@@ -139,6 +140,53 @@ describe('organization access', () => {
         ...base,
         role: 'admin',
         tournamentId: 'tournament-1',
+      });
+      expect(rejected.ok).toBe(false);
+    });
+  });
+
+  describe('isClubScopedRole', () => {
+    it('is true only for club-admin', () => {
+      expect(isClubScopedRole('club-admin')).toBe(true);
+      expect(isClubScopedRole('admin')).toBe(false);
+      expect(isClubScopedRole('tournament-admin')).toBe(false);
+      expect(isClubScopedRole('referee')).toBe(false);
+      expect(isClubScopedRole('broadcaster')).toBe(false);
+      expect(isClubScopedRole('viewer')).toBe(false);
+    });
+  });
+
+  describe('validateOrganizationInvitation club scoping', () => {
+    const base = {
+      invitationId: 'invite-1',
+      organizationId: 'org-1',
+      recipientEmail: 'admin@liga.example',
+      status: 'active' as const,
+      expiresAt: '2026-08-10T00:00:00.000Z',
+    };
+
+    it('requires a clubId when the role is club-scoped', () => {
+      const rejected = validateOrganizationInvitation({ ...base, role: 'club-admin' });
+      expect(rejected.ok).toBe(false);
+    });
+
+    it('accepts a club-admin invitation naming a club', () => {
+      const accepted = validateOrganizationInvitation({
+        ...base,
+        role: 'club-admin',
+        clubId: 'club-1',
+      });
+      expect(accepted).toEqual({
+        ok: true,
+        value: { ...base, role: 'club-admin', clubId: 'club-1' },
+      });
+    });
+
+    it('refuses a clubId on a non-club-scoped role', () => {
+      const rejected = validateOrganizationInvitation({
+        ...base,
+        role: 'admin',
+        clubId: 'club-1',
       });
       expect(rejected.ok).toBe(false);
     });

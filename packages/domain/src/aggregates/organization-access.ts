@@ -23,6 +23,13 @@ export function isTournamentScopedRole(role: OrganizationRole): boolean {
   return (TOURNAMENT_SCOPED_ROLES as readonly OrganizationRole[]).includes(role);
 }
 
+/** Roles whose assignment names one club within the organization rather than the whole organization. */
+export const CLUB_SCOPED_ROLES = ['club-admin'] as const;
+
+export function isClubScopedRole(role: OrganizationRole): boolean {
+  return (CLUB_SCOPED_ROLES as readonly OrganizationRole[]).includes(role);
+}
+
 export const ORGANIZATION_MEMBER_STATUSES = ['active', 'inactive'] as const;
 export type OrganizationMemberStatus = (typeof ORGANIZATION_MEMBER_STATUSES)[number];
 
@@ -53,6 +60,8 @@ export interface OrganizationRoleAssignment {
   readonly deletedAt?: string;
   /** Required exactly when `role` is a tournament-scoped role (`isTournamentScopedRole`); absent otherwise. */
   readonly tournamentId?: string;
+  /** Required exactly when `role` is a club-scoped role (`isClubScopedRole`); absent otherwise. */
+  readonly clubId?: string;
 }
 
 /** An email-bound assignment awaiting acceptance by its verified OIDC recipient. */
@@ -65,6 +74,8 @@ export interface OrganizationInvitation {
   readonly expiresAt: string;
   /** Required exactly when `role` is a tournament-scoped role (`isTournamentScopedRole`); absent otherwise. */
   readonly tournamentId?: string;
+  /** Required exactly when `role` is a club-scoped role (`isClubScopedRole`); absent otherwise. */
+  readonly clubId?: string;
 }
 
 export class OrganizationAccessError extends DomainError {
@@ -110,6 +121,17 @@ export function validateOrganizationInvitation(
     return err(
       new OrganizationAccessError(
         `A tournament may only be named when the role is tournament-scoped, not "${invitation.role}"`,
+      ),
+    );
+  }
+  const clubScoped = isClubScopedRole(invitation.role);
+  if (clubScoped && invitation.clubId === undefined) {
+    return err(new OrganizationAccessError(`The "${invitation.role}" role requires naming a club`));
+  }
+  if (!clubScoped && invitation.clubId !== undefined) {
+    return err(
+      new OrganizationAccessError(
+        `A club may only be named when the role is club-scoped, not "${invitation.role}"`,
       ),
     );
   }
