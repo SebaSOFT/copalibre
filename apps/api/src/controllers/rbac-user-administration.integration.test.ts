@@ -132,6 +132,34 @@ describe('RBAC user administration (integration)', () => {
       expect(response.statusCode).toBe(201);
     });
 
+    it('refuses inviting a tournament-admin with no tournament named', async () => {
+      const response = await post('admin', `/organizations/liga-rbac-api/invitations`, {
+        email: 'new-tournament-admin@example.test',
+        role: 'tournament-admin',
+        status: 'active',
+      });
+      expect(response.statusCode).toBe(409);
+    });
+
+    it('refuses inviting a club-admin with no club named', async () => {
+      const response = await post('admin', `/organizations/liga-rbac-api/invitations`, {
+        email: 'new-club-admin-unscoped@example.test',
+        role: 'club-admin',
+        status: 'active',
+      });
+      expect(response.statusCode).toBe(409);
+    });
+
+    it('refuses naming a tournament for a role that is not tournament-scoped', async () => {
+      const response = await post('admin', `/organizations/liga-rbac-api/invitations`, {
+        email: 'new-referee-with-tournament@example.test',
+        role: 'referee',
+        status: 'active',
+        tournamentId: '01890000-0000-7000-8000-0000000000ff',
+      });
+      expect(response.statusCode).toBe(409);
+    });
+
     it('lets an organization admin invite a referee', async () => {
       const response = await post('admin', `/organizations/liga-rbac-api/invitations`, {
         email: 'new-referee@example.test',
