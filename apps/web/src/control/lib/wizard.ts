@@ -1,4 +1,4 @@
-import type { LocalizedLabel } from '@copalibre/domain';
+import type { ConfigFieldPolicies, LocalizedLabel, MutationClass } from '@copalibre/domain';
 import { Ajv } from 'ajv';
 import type { MessageDescriptor } from 'react-intl';
 import { messages } from '../i18n/messages.en.js';
@@ -36,6 +36,10 @@ export interface DisciplineOption {
   readonly name: string | LocalizedLabel;
   readonly description?: string | LocalizedLabel;
   readonly supportedFormats: readonly string[];
+  /** The discipline's own explanation of a format it supports, keyed by format. */
+  readonly formatDescriptions?: Readonly<Record<string, string | LocalizedLabel>>;
+  /** Read to warn an organizer before a hard-to-reverse decision; never enforced client-side. */
+  readonly fieldPolicies?: ConfigFieldPolicies;
 }
 
 export interface ProfileStageOption {
@@ -132,6 +136,46 @@ export function formatsFor(
   descriptorId: string | undefined,
 ): readonly string[] {
   return disciplines.find((one) => one.descriptorId === descriptorId)?.supportedFormats ?? [];
+}
+
+/**
+ * Resolves one decision's description: the descriptor's own declaration
+ * first, then the platform's catalogued text, then nothing. A discipline's
+ * vocabulary is its own to explain; the platform fills only what no module
+ * owns declares.
+ */
+export function resolveDecisionDescription(
+  descriptorText: string | undefined,
+  catalogueText: string | undefined,
+): string | undefined {
+  return descriptorText ?? catalogueText ?? undefined;
+}
+
+/** The mutation class a dot-path's field policy declares, if any is known. */
+export function mutationClassOf(
+  fieldPolicies: ConfigFieldPolicies | undefined,
+  dotPath: string,
+): MutationClass | undefined {
+  return fieldPolicies?.[dotPath]?.mutationClass;
+}
+
+/**
+ * Which catalogued reversibility sentence a mutation class appends, if any —
+ * `safe` (or an unknown field) appends nothing. Derived from the policy
+ * itself so the sentence can never drift from what a mutation attempt is
+ * later evaluated against; never authored per field.
+ */
+export function reversibilityMessageKey(
+  mutationClass: MutationClass | undefined,
+): 'requiresRebuild' | 'blockedAfterResults' | undefined {
+  switch (mutationClass) {
+    case 'requires_rebuild':
+      return 'requiresRebuild';
+    case 'blocked_after_results':
+      return 'blockedAfterResults';
+    default:
+      return undefined;
+  }
 }
 
 /** What is missing on this step, as message descriptors the caller formats via `useIntl()`. */

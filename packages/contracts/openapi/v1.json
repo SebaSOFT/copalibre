@@ -9422,6 +9422,75 @@
             "items": {
               "type": "array"
             }
+          },
+          "formatDescriptions": {
+            "type": "object",
+            "additionalProperties": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "en"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "en": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "es": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "fr": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "pt": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "it": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "de": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "ru": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "zh": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                }
+              ]
+            },
+            "description": "The discipline's own explanation of a format it supports, keyed by format. Absent for a format the wizard falls back to the platform's own catalogued explanation.",
+            "example": {
+              "round-robin": "Every entrant plays every other entrant once"
+            }
+          },
+          "fieldPolicies": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Per-dot-path override permission and mutation class from the discipline's own configuration contract. The wizard reads it to warn an organizer before a hard-to-reverse decision, not to enforce anything client-side.",
+            "example": {
+              "format": {
+                "permission": {
+                  "kind": "replaced"
+                },
+                "mutationClass": "blocked_after_results"
+              }
+            }
           }
         },
         "required": [

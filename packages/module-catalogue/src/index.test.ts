@@ -248,6 +248,18 @@ describe('default module catalogue', () => {
       });
     }
   });
+
+  it('gives every declared event-workflow outcome-choice option a description', async () => {
+    const catalogue = await loadDefaultModuleCatalogue();
+    const workflowOptions = catalogue.disciplines.flatMap((discipline) =>
+      discipline.eventDefinitions.flatMap((definition) => definition.workflow?.options ?? []),
+    );
+
+    expect(workflowOptions.length).toBeGreaterThan(0);
+    for (const option of workflowOptions) {
+      expect(option.description).toBeDefined();
+    }
+  });
 });
 
 describe('catalogue loader', () => {

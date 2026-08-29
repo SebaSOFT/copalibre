@@ -411,6 +411,10 @@ export class DisciplinesController {
       supportedFormats: descriptor.document.availableFormats.filter((format) =>
         (SUPPORTED_FORMATS as readonly string[]).includes(format),
       ),
+      ...(descriptor.document.formatDescriptions === undefined
+        ? {}
+        : { formatDescriptions: descriptor.document.formatDescriptions }),
+      fieldPolicies: descriptor.document.fieldPolicies,
     }));
   }
 }

@@ -378,6 +378,58 @@ export const messages: Record<string, string> = {
   'control.wizard.create': 'Créer le tournoi',
   'control.wizard.continue': 'Continuer',
 
+  'control.wizard.decision.discipline':
+    'Détermine les règles, statistiques et événements disponibles pour cette compétition.',
+  'control.wizard.decision.format':
+    'Décide comment les rencontres sont générées et comment les participants progressent.',
+  'control.wizard.decision.seriesSpan':
+    'Combien de matchs la série peut compter ; la façon dont ils se combinent en un seul vainqueur est décidée ci-dessous.',
+  'control.wizard.decision.seriesResolutionClass':
+    "Décide comment les matchs d'une série se combinent en un seul résultat.",
+  'control.wizard.decision.seriesNeutralGround':
+    "Marque la série comme jouée sur terrain neutre, de sorte qu'aucun camp n'est enregistré comme hôte.",
+  'control.wizard.decision.seriesStandingsAccounting':
+    'Décide si le classement compte chaque match de la série séparément ou la série comme un seul résultat.',
+  'control.wizard.decision.region':
+    'Regroupe ce tournoi pour le filtrage régional dans les listes publiques ; ne restreint pas où les matchs sont joués.',
+  'control.wizard.decision.capacity': 'Le nombre maximal de participants que le tournoi acceptera.',
+  'control.wizard.decision.publicRegistration':
+    "Permet aux participants de s'inscrire eux-mêmes publiquement au lieu d'être ajoutés uniquement par un organisateur.",
+  'control.wizard.decision.requiresCheckIn':
+    'Exige que chaque participant se présente avant le début du tournoi, sous peine d’être marqué absent.',
+  'control.wizard.decision.checkInClosesAt':
+    "Le moment où le pointage se termine ; un participant qui ne s'est pas présenté d'ici là est marqué absent.",
+  'control.wizard.format.singleElimination.description':
+    'Une défaite élimine un participant du tableau.',
+  'control.wizard.format.doubleElimination.description':
+    "Un participant n'est éliminé qu'après deux défaites, via un tableau des vainqueurs et un tableau des perdants.",
+  'control.wizard.format.roundRobin.description':
+    'Chaque participant affronte tous les autres une fois ; le classement se fait par points cumulés.',
+  'control.wizard.format.league.description':
+    'Chaque participant affronte tous les autres sur un calendrier de saison ; le classement se fait par points cumulés.',
+  'control.wizard.format.roundRobinSingleLeg.description':
+    'Chaque participant affronte tous les autres exactement une fois, sans match retour.',
+  'control.wizard.format.roundRobinHomeAway.description':
+    'Chaque participant affronte tous les autres deux fois, une fois à domicile pour chaque camp.',
+  'control.wizard.format.freeForAll.description':
+    "Tous les participants s'affrontent dans la même manche en même temps ; le classement se fait par position d'arrivée.",
+  'control.wizard.format.heats.description':
+    "Les participants s'affrontent sur plusieurs manches ; le classement se fait par position d'arrivée sur l'ensemble des manches.",
+  'control.wizard.series.class.bestOf.description':
+    "La série se termine dès qu'un camp a remporté assez de matchs pour rendre les matchs restants sans effet.",
+  'control.wizard.series.class.aggregate.description':
+    'Le vainqueur de la série est déterminé par le score total sur tous les matchs, et non par qui a gagné le plus de matchs.',
+  'control.wizard.series.class.pointsPerLeg.description':
+    'Chaque match de la série attribue ses propres points ; le vainqueur de la série est celui qui en cumule le plus au total.',
+  'control.wizard.series.accounting.match.description':
+    'Le classement compte chaque match de la série comme son propre résultat.',
+  'control.wizard.series.accounting.series.description':
+    'Le classement compte toute la série comme un seul résultat, et non chaque match séparément.',
+  'control.wizard.mutation.requiresRebuild':
+    'Modifier ceci après la génération des rencontres les invalide et les régénère.',
+  'control.wizard.mutation.blockedAfterResults':
+    "Ceci ne peut plus être modifié une fois qu'un résultat existe ; utilisez plutôt le flux de correction audité.",
+
   'control.standings.sectionLabel': 'Classement',
   'control.standings.title': 'Classement',
   'control.standings.projectionVersion': 'Projection v{version}',

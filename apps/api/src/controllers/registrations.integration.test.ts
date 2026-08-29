@@ -581,3 +581,40 @@ describe('registration review routes', () => {
     expect(squad.map((player) => player.personId)).toEqual([seeded.person.personId]);
   });
 });
+
+describe('disciplines listing (openspec 0161)', () => {
+  it("exposes each descriptor's field policies so the wizard can warn about hard-to-reverse decisions before it submits", async () => {
+    const tournaments = new TournamentRepository(scratch.db);
+    const descriptor = footballDescriptor();
+    await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+      tournaments.saveDescriptor(uow, descriptor, {
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      }),
+    );
+
+    const response = await request({ method: 'GET', url: '/disciplines' });
+    expect(response.statusCode).toBe(200);
+
+    const football = (
+      response.json() as readonly {
+        alias?: string;
+        fieldPolicies?: Record<string, { mutationClass: string }>;
+      }[]
+    ).find((entry) => entry.fieldPolicies?.['format']?.mutationClass !== undefined);
+
+    expect(football?.fieldPolicies?.['format']).toEqual({
+      permission: { kind: 'replaced' },
+      mutationClass: 'blocked_after_results',
+    });
+    expect(football?.fieldPolicies?.['series.resolutionClass']).toEqual({
+      permission: { kind: 'replaced' },
+      mutationClass: 'blocked_after_results',
+    });
+    expect(football?.fieldPolicies?.['registration.capacity']).toEqual({
+      permission: { kind: 'replaced' },
+      mutationClass: 'requires_rebuild',
+    });
+  });
+});

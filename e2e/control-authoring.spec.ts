@@ -16,6 +16,23 @@ const disciplineFixture = [
   },
 ];
 
+/** Declares a field policy (openspec 0161) so the wizard can render the reversibility sentence. */
+const disciplineWithFieldPoliciesFixture = [
+  {
+    descriptorId: 'football.default',
+    version: '1.0.0',
+    name: 'Futbol',
+    supportedFormats: ['round-robin'],
+    fieldPolicies: {
+      format: { permission: { kind: 'replaced' }, mutationClass: 'blocked_after_results' },
+      'registration.capacity': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'requires_rebuild',
+      },
+    },
+  },
+];
+
 const hookVocabularyFixture = {
   hooks: ['event.recorded'],
   entries: [
@@ -68,6 +85,7 @@ async function mockControlApi(
     readonly createRefusal?: string;
     readonly updateRefusal?: string;
     readonly seedTournament?: boolean;
+    readonly disciplines?: typeof disciplineFixture;
   } = {},
 ): Promise<void> {
   await page.addInitScript(
@@ -202,7 +220,7 @@ async function mockControlApi(
       };
     },
     {
-      disciplines: disciplineFixture,
+      disciplines: options.disciplines ?? disciplineFixture,
       hookVocabulary: hookVocabularyFixture,
       registrations: registrationsFixture,
       tokenEndpoint: TOKEN_ENDPOINT,
@@ -354,6 +372,85 @@ test('completes tournament authoring via keyboard and without overflow at 375px'
     () => document.body.scrollWidth <= document.documentElement.clientWidth,
   );
   expect(overflowFinal).toBe(true);
+});
+
+test('explains every decision on every wizard step, reachable by keyboard with no hover, in the accessibility tree (0161)', async ({
+  page,
+}) => {
+  await mockControlApi(page);
+  const target = '/control/liga-mendocina/tournaments/new';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await page.getByLabel('Nombre').fill('Copa Explicada');
+  await page.getByLabel('Alias').fill('copa-explicada');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  // Discipline step: the decision hint is bound to the control via
+  // aria-describedby and visible without any hover or pointer interaction.
+  const disciplineSelect = page.getByLabel('Disciplina');
+  const disciplineHintId = await disciplineSelect.getAttribute('aria-describedby');
+  expect(disciplineHintId).toBeTruthy();
+  await expect(page.locator(`#${disciplineHintId}`)).toBeVisible();
+  await expect(page.locator(`#${disciplineHintId}`)).toHaveText(
+    'Determina las reglas, estadísticas y eventos disponibles para esta competición.',
+  );
+
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  // Format step: the field-level hint and the reversibility-free (safe by
+  // default here) explanation are both present without opening the select.
+  const formatSelect = page.getByLabel('Formato');
+  const formatHintId = await formatSelect.getAttribute('aria-describedby');
+  expect(formatHintId).toBeTruthy();
+  await expect(page.locator(`#${formatHintId}`)).toContainText(
+    'Decide cómo se generan los cruces y cómo avanzan los participantes.',
+  );
+
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  // Window step: region and capacity each carry their own reachable hint.
+  const regionInput = page.getByLabel('Región');
+  const regionHintId = await regionInput.getAttribute('aria-describedby');
+  await expect(page.locator(`#${regionHintId}`)).toBeVisible();
+
+  const capacityInput = page.getByLabel('Capacidad');
+  const capacityHintId = await capacityInput.getAttribute('aria-describedby');
+  await expect(page.locator(`#${capacityHintId}`)).toBeVisible();
+});
+
+test('states a blocked_after_results decision cannot change after the first result before it is chosen (0161)', async ({
+  page,
+}) => {
+  await mockControlApi(page, { disciplines: disciplineWithFieldPoliciesFixture });
+  const target = '/control/liga-mendocina/tournaments/new';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await page.getByLabel('Nombre').fill('Copa Bloqueada');
+  await page.getByLabel('Alias').fill('copa-bloqueada');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  // The organizer has not chosen a format yet — the wizard states the
+  // consequence up front, before the field is even touched.
+  const formatSelect = page.getByLabel('Formato');
+  const formatHintId = await formatSelect.getAttribute('aria-describedby');
+  await expect(page.locator(`#${formatHintId}`)).toContainText(
+    'Esto no se puede cambiar una vez que existe un resultado; usá el flujo de corrección auditado en su lugar.',
+  );
+
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  const capacityInput = page.getByLabel('Capacidad');
+  const capacityHintId = await capacityInput.getAttribute('aria-describedby');
+  await expect(page.locator(`#${capacityHintId}`)).toContainText(
+    'Cambiar esto después de generar los cruces los invalida y los regenera.',
+  );
 });
 
 test('shows a named backend rule refusal without replacing it with a generic error', async ({

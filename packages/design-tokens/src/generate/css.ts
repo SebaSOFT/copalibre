@@ -269,6 +269,7 @@ function components(): string {
     '.cl-form-field { display: grid; gap: var(--cl-space-1); min-width: 0; }',
     '.cl-form-field__error { margin: 0; color: var(--cl-state-destructive); font-size: var(--cl-font-size-xs); }',
     '.cl-form-field__help { margin: 0; color: var(--cl-text-muted); font-size: var(--cl-font-size-xs); }',
+    '.cl-decision-hint { margin: 0; color: var(--cl-text-muted); font-size: var(--cl-font-size-xs); }',
     '',
     '.cl-data-entity-card__header { display: flex; align-items: center; justify-content: space-between; }',
     '.cl-data-entity-card__metadata { display: grid; gap: var(--cl-space-2); }',

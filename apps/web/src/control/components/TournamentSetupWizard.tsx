@@ -4,6 +4,7 @@ import { Button } from './ui/atoms/button.js';
 import { Card } from './ui/atoms/card.js';
 import { Input } from './ui/atoms/input.js';
 import { Textarea } from './ui/atoms/textarea.js';
+import { DecisionHint } from './ui/atoms/decision-hint.js';
 import { FormField } from './ui/molecules/form-field.js';
 import {
   SERIES_RESOLUTION_CLASSES,
@@ -14,11 +15,14 @@ import {
   elementOptionsKey,
   formatsFor,
   initialWizard,
+  mutationClassOf,
   nextStep,
   parameterValueKey,
   previousStep,
   progress,
   removeCustomRule,
+  resolveDecisionDescription,
+  reversibilityMessageKey,
   stepProblems,
   toCreateRequest,
   type DisciplineOption,
@@ -59,6 +63,37 @@ const SERIES_ACCOUNTING_LABELS: Record<
 > = {
   match: messages.wizardSeriesAccountingMatch,
   series: messages.wizardSeriesAccountingSeries,
+};
+
+/** What choosing this resolution class does, shown beside every option. */
+const SERIES_CLASS_DESCRIPTIONS: Record<
+  SeriesResolutionClass,
+  typeof messages.wizardSeriesClassBestOfDescription
+> = {
+  'best-of': messages.wizardSeriesClassBestOfDescription,
+  aggregate: messages.wizardSeriesClassAggregateDescription,
+  'points-per-leg': messages.wizardSeriesClassPointsPerLegDescription,
+};
+
+/** What choosing this accounting grain does, shown beside every option. */
+const SERIES_ACCOUNTING_DESCRIPTIONS: Record<
+  SeriesAccountingGrain,
+  typeof messages.wizardSeriesAccountingMatchDescription
+> = {
+  match: messages.wizardSeriesAccountingMatchDescription,
+  series: messages.wizardSeriesAccountingSeriesDescription,
+};
+
+/** The platform's own explanation of each format, keyed by format. */
+const FORMAT_DESCRIPTIONS: Record<string, typeof messages.wizardFormatDescriptionRoundRobin> = {
+  'single-elimination': messages.wizardFormatDescriptionSingleElimination,
+  'double-elimination': messages.wizardFormatDescriptionDoubleElimination,
+  'round-robin': messages.wizardFormatDescriptionRoundRobin,
+  league: messages.wizardFormatDescriptionLeague,
+  'round-robin-single-leg': messages.wizardFormatDescriptionRoundRobinSingleLeg,
+  'round-robin-home-away': messages.wizardFormatDescriptionRoundRobinHomeAway,
+  'free-for-all': messages.wizardFormatDescriptionFreeForAll,
+  heats: messages.wizardFormatDescriptionHeats,
 };
 
 export function TournamentSetupWizard({
@@ -120,9 +155,47 @@ export function TournamentSetupWizard({
     () => formatsFor(disciplines, state.descriptorId),
     [disciplines, state.descriptorId],
   );
+  const selectedDiscipline = disciplines.find(
+    (discipline) => discipline.descriptorId === state.descriptorId,
+  );
 
   function patch(next: Partial<WizardState>): void {
     setState((current) => ({ ...current, ...next }));
+  }
+
+  /**
+   * A decision's persistent hint text: the platform-catalogued description,
+   * with the reversibility sentence appended when the field's own
+   * `ConfigFieldPolicies` entry says a change becomes hard to reverse. The
+   * sentence is never authored per field — it is derived from the same policy
+   * a mutation attempt is later evaluated against, so the two can never drift.
+   */
+  function decisionHintText(
+    dotPath: string,
+    catalogue: (typeof messages)['wizardDecisionFormat'],
+  ): string {
+    const description = resolveDecisionDescription(undefined, intl.formatMessage(catalogue));
+    const mutationClass = mutationClassOf(selectedDiscipline?.fieldPolicies, dotPath);
+    const reversibilityKey = reversibilityMessageKey(mutationClass);
+    const reversibility =
+      reversibilityKey === 'requiresRebuild'
+        ? intl.formatMessage(messages.wizardMutationRequiresRebuild)
+        : reversibilityKey === 'blockedAfterResults'
+          ? intl.formatMessage(messages.wizardMutationBlockedAfterResults)
+          : undefined;
+    return [description, reversibility]
+      .filter((part): part is string => part !== undefined)
+      .join(' ');
+  }
+
+  /** A format option's description: the discipline's own text first, then the platform's. */
+  function formatOptionDescription(format: string): string | undefined {
+    const descriptorText = selectedDiscipline?.formatDescriptions?.[format];
+    const catalogueMessage = FORMAT_DESCRIPTIONS[format];
+    return resolveDecisionDescription(
+      descriptorText === undefined ? undefined : localizedText(descriptorText, intl.locale),
+      catalogueMessage === undefined ? undefined : intl.formatMessage(catalogueMessage),
+    );
   }
 
   function submit(): void {
@@ -229,6 +302,7 @@ export function TournamentSetupWizard({
             label={intl.formatMessage(messages.wizardFieldDiscipline)}
           >
             <select
+              aria-describedby="wizard-discipline-hint"
               className="cl-select cl-select--default cl-focusable"
               id="wizard-discipline"
               onChange={(event) => {
@@ -255,6 +329,10 @@ export function TournamentSetupWizard({
                 </option>
               ))}
             </select>
+            <DecisionHint
+              id="wizard-discipline-hint"
+              text={intl.formatMessage(messages.wizardDecisionDiscipline)}
+            />
           </FormField>
         )}
 
@@ -262,6 +340,7 @@ export function TournamentSetupWizard({
           <div className="cl-platform-form-grid">
             <FormField id="wizard-format" label={intl.formatMessage(messages.wizardFieldFormat)}>
               <select
+                aria-describedby="wizard-format-hint"
                 className="cl-select cl-select--default cl-focusable"
                 id="wizard-format"
                 onChange={(event) =>
@@ -273,12 +352,20 @@ export function TournamentSetupWizard({
                 }
                 value={state.format ?? ''}
               >
-                {formats.map((format) => (
-                  <option key={format} value={format}>
-                    {format}
-                  </option>
-                ))}
+                {formats.map((format) => {
+                  const description = formatOptionDescription(format);
+                  return (
+                    <option key={format} value={format}>
+                      {format}
+                      {description === undefined ? '' : ` — ${description}`}
+                    </option>
+                  );
+                })}
               </select>
+              <DecisionHint
+                id="wizard-format-hint"
+                text={decisionHintText('format', messages.wizardDecisionFormat)}
+              />
             </FormField>
 
             {profiles.length > 0 && (
@@ -351,6 +438,7 @@ export function TournamentSetupWizard({
                     label={intl.formatMessage(messages.wizardFieldSeriesSpan)}
                   >
                     <Input
+                      aria-describedby="wizard-series-span-hint"
                       id="wizard-series-span"
                       inputMode="numeric"
                       min={2}
@@ -365,6 +453,10 @@ export function TournamentSetupWizard({
                       type="number"
                       value={state.seriesSpan ?? ''}
                     />
+                    <DecisionHint
+                      id="wizard-series-span-hint"
+                      text={decisionHintText('series.span', messages.wizardDecisionSeriesSpan)}
+                    />
                   </FormField>
 
                   <FormField
@@ -372,6 +464,7 @@ export function TournamentSetupWizard({
                     label={intl.formatMessage(messages.wizardFieldSeriesResolutionClass)}
                   >
                     <select
+                      aria-describedby="wizard-series-class-hint"
                       className="cl-select cl-select--default cl-focusable"
                       id="wizard-series-class"
                       onChange={(event) =>
@@ -384,10 +477,18 @@ export function TournamentSetupWizard({
                     >
                       {SERIES_RESOLUTION_CLASSES.map((resolutionClass) => (
                         <option key={resolutionClass} value={resolutionClass}>
-                          {intl.formatMessage(SERIES_CLASS_LABELS[resolutionClass])}
+                          {intl.formatMessage(SERIES_CLASS_LABELS[resolutionClass])} —{' '}
+                          {intl.formatMessage(SERIES_CLASS_DESCRIPTIONS[resolutionClass])}
                         </option>
                       ))}
                     </select>
+                    <DecisionHint
+                      id="wizard-series-class-hint"
+                      text={decisionHintText(
+                        'series.resolutionClass',
+                        messages.wizardDecisionSeriesResolutionClass,
+                      )}
+                    />
                   </FormField>
 
                   <label
@@ -401,6 +502,7 @@ export function TournamentSetupWizard({
                     }}
                   >
                     <input
+                      aria-describedby="wizard-series-neutral-ground-hint"
                       checked={state.seriesNeutralGround}
                       className="cl-checkbox cl-focusable"
                       id="wizard-series-neutral-ground"
@@ -411,6 +513,13 @@ export function TournamentSetupWizard({
                       <FormattedMessage {...messages.wizardFieldSeriesNeutralGround} />
                     </span>
                   </label>
+                  <DecisionHint
+                    id="wizard-series-neutral-ground-hint"
+                    text={decisionHintText(
+                      'series.neutralGround',
+                      messages.wizardDecisionSeriesNeutralGround,
+                    )}
+                  />
 
                   <div style={{ gridColumn: '1 / -1' }}>
                     <FormField
@@ -418,6 +527,7 @@ export function TournamentSetupWizard({
                       label={intl.formatMessage(messages.wizardFieldSeriesStandingsAccounting)}
                     >
                       <select
+                        aria-describedby="wizard-series-accounting-hint"
                         className="cl-select cl-select--default cl-focusable"
                         id="wizard-series-accounting"
                         onChange={(event) =>
@@ -429,10 +539,18 @@ export function TournamentSetupWizard({
                       >
                         {(['match', 'series'] as const).map((grain) => (
                           <option key={grain} value={grain}>
-                            {intl.formatMessage(SERIES_ACCOUNTING_LABELS[grain])}
+                            {intl.formatMessage(SERIES_ACCOUNTING_LABELS[grain])} —{' '}
+                            {intl.formatMessage(SERIES_ACCOUNTING_DESCRIPTIONS[grain])}
                           </option>
                         ))}
                       </select>
+                      <DecisionHint
+                        id="wizard-series-accounting-hint"
+                        text={decisionHintText(
+                          'series.standingsAccounting',
+                          messages.wizardDecisionSeriesStandingsAccounting,
+                        )}
+                      />
                     </FormField>
                   </div>
                 </div>
@@ -445,9 +563,14 @@ export function TournamentSetupWizard({
           <div className="cl-platform-form-grid">
             <FormField id="wizard-region" label={intl.formatMessage(messages.wizardFieldRegion)}>
               <Input
+                aria-describedby="wizard-region-hint"
                 id="wizard-region"
                 onChange={(event) => patch({ region: event.target.value })}
                 value={state.region ?? ''}
+              />
+              <DecisionHint
+                id="wizard-region-hint"
+                text={decisionHintText('registration.region', messages.wizardDecisionRegion)}
               />
             </FormField>
             <FormField
@@ -455,6 +578,7 @@ export function TournamentSetupWizard({
               label={intl.formatMessage(messages.wizardFieldCapacity)}
             >
               <Input
+                aria-describedby="wizard-capacity-hint"
                 id="wizard-capacity"
                 min={2}
                 onChange={(event) =>
@@ -465,6 +589,10 @@ export function TournamentSetupWizard({
                 type="number"
                 value={state.capacity ?? ''}
               />
+              <DecisionHint
+                id="wizard-capacity-hint"
+                text={decisionHintText('registration.capacity', messages.wizardDecisionCapacity)}
+              />
             </FormField>
             <label
               className="cl-toggle cl-focusable"
@@ -472,6 +600,7 @@ export function TournamentSetupWizard({
               style={{ display: 'flex', alignItems: 'center', gap: 'var(--cl-space-2)' }}
             >
               <input
+                aria-describedby="wizard-public-registration-hint"
                 checked={state.publicRegistration}
                 className="cl-checkbox cl-focusable"
                 id="wizard-public-registration"
@@ -482,12 +611,20 @@ export function TournamentSetupWizard({
                 <FormattedMessage {...messages.wizardPublicRegistration} />
               </span>
             </label>
+            <DecisionHint
+              id="wizard-public-registration-hint"
+              text={decisionHintText(
+                'registration.publicOpen',
+                messages.wizardDecisionPublicRegistration,
+              )}
+            />
             <label
               className="cl-toggle cl-focusable"
               htmlFor="wizard-requires-check-in"
               style={{ display: 'flex', alignItems: 'center', gap: 'var(--cl-space-2)' }}
             >
               <input
+                aria-describedby="wizard-requires-check-in-hint"
                 checked={state.requiresCheckIn}
                 className="cl-checkbox cl-focusable"
                 id="wizard-requires-check-in"
@@ -498,16 +635,31 @@ export function TournamentSetupWizard({
                 <FormattedMessage {...messages.wizardRequiresCheckIn} />
               </span>
             </label>
+            <DecisionHint
+              id="wizard-requires-check-in-hint"
+              text={decisionHintText(
+                'registration.requiresCheckIn',
+                messages.wizardDecisionRequiresCheckIn,
+              )}
+            />
             {state.requiresCheckIn && (
               <FormField
                 id="wizard-check-in-closes-at"
                 label={intl.formatMessage(messages.wizardFieldCheckInClosesAt)}
               >
                 <Input
+                  aria-describedby="wizard-check-in-closes-at-hint"
                   id="wizard-check-in-closes-at"
                   onChange={(event) => patch({ checkInClosesAt: event.target.value })}
                   type="datetime-local"
                   value={state.checkInClosesAt ?? ''}
+                />
+                <DecisionHint
+                  id="wizard-check-in-closes-at-hint"
+                  text={decisionHintText(
+                    'registration.checkInClosesAt',
+                    messages.wizardDecisionCheckInClosesAt,
+                  )}
                 />
               </FormField>
             )}
@@ -569,6 +721,7 @@ export function TournamentSetupWizard({
                     label={intl.formatMessage(messages.wizardRuleCondition)}
                   >
                     <select
+                      aria-describedby="wizard-rule-condition-hint"
                       className="cl-select cl-select--default cl-focusable"
                       id="wizard-rule-condition"
                       onChange={(event) =>
@@ -585,12 +738,17 @@ export function TournamentSetupWizard({
                         </option>
                       ))}
                     </select>
+                    <DecisionHint
+                      id="wizard-rule-condition-hint"
+                      text={selectedCondition?.description}
+                    />
                   </FormField>
                   <FormField
                     id="wizard-rule-action"
                     label={intl.formatMessage(messages.wizardRuleAction)}
                   >
                     <select
+                      aria-describedby="wizard-rule-action-hint"
                       className="cl-select cl-select--default cl-focusable"
                       id="wizard-rule-action"
                       onChange={(event) =>
@@ -607,6 +765,7 @@ export function TournamentSetupWizard({
                         </option>
                       ))}
                     </select>
+                    <DecisionHint id="wizard-rule-action-hint" text={selectedAction?.description} />
                   </FormField>
                 </div>
                 {selectedCondition === undefined && (

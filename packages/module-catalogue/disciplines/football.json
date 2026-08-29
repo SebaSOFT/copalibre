@@ -133,18 +133,44 @@
         "options": [
           {
             "definitionCode": "foul-play-on",
-            "label": { "en": "Play on", "es": "Ley de ventaja" }
+            "label": { "en": "Play on", "es": "Ley de ventaja" },
+            "description": {
+              "en": "No stoppage; play continues under advantage",
+              "es": "No hay corte; el juego continúa bajo ley de ventaja"
+            }
           },
           {
             "definitionCode": "free-kick-awarded",
-            "label": { "en": "Free kick", "es": "Tiro libre" }
+            "label": { "en": "Free kick", "es": "Tiro libre" },
+            "description": {
+              "en": "Stops play and restarts it with a free kick for the fouled side",
+              "es": "Detiene el juego y lo reinicia con un tiro libre para el equipo afectado"
+            }
           },
-          { "definitionCode": "penalty-awarded", "label": { "en": "Penalty", "es": "Penal" } },
+          {
+            "definitionCode": "penalty-awarded",
+            "label": { "en": "Penalty", "es": "Penal" },
+            "description": {
+              "en": "Stops play and restarts it with a penalty kick for the fouled side",
+              "es": "Detiene el juego y lo reinicia con un penal para el equipo afectado"
+            }
+          },
           {
             "definitionCode": "yellow-card",
-            "label": { "en": "Yellow card", "es": "Tarjeta amarilla" }
+            "label": { "en": "Yellow card", "es": "Tarjeta amarilla" },
+            "description": {
+              "en": "Cautions the player; a second yellow in the match becomes a red card",
+              "es": "Amonesta al jugador; una segunda amarilla en el partido se convierte en roja"
+            }
           },
-          { "definitionCode": "red-card", "label": { "en": "Red card", "es": "Tarjeta roja" } }
+          {
+            "definitionCode": "red-card",
+            "label": { "en": "Red card", "es": "Tarjeta roja" },
+            "description": {
+              "en": "Sends the player off; their side plays the rest of the match a player short",
+              "es": "Expulsa al jugador; su equipo juega el resto del partido con uno menos"
+            }
+          }
         ]
       }
     },
@@ -182,12 +208,23 @@
       "workflow": {
         "kind": "outcome-choice",
         "options": [
-          { "definitionCode": "throw-in-taken", "label": { "en": "Taken", "es": "Ejecutado" } },
+          {
+            "definitionCode": "throw-in-taken",
+            "label": { "en": "Taken", "es": "Ejecutado" },
+            "description": {
+              "en": "The throw-in is taken and play resumes",
+              "es": "El saque de banda se ejecuta y el juego se reanuda"
+            }
+          },
           {
             "definitionCode": "foul-throw",
             "label": {
               "en": "Foul throw (awarded to opponent)",
               "es": "Saque incorrecto (para el rival)"
+            },
+            "description": {
+              "en": "The throw is disallowed and the opposing side takes it instead",
+              "es": "El saque se anula y lo ejecuta el equipo rival"
             }
           }
         ]
@@ -229,23 +266,43 @@
         "options": [
           {
             "definitionCode": "var-play-stands",
-            "label": { "en": "Play stands", "es": "Se mantiene la decisión" }
+            "label": { "en": "Play stands", "es": "Se mantiene la decisión" },
+            "description": {
+              "en": "The on-field decision is confirmed and nothing changes",
+              "es": "Se confirma la decisión en el campo y no cambia nada"
+            }
           },
           {
             "definitionCode": "var-goal-disallowed",
-            "label": { "en": "Goal disallowed", "es": "Gol anulado" }
+            "label": { "en": "Goal disallowed", "es": "Gol anulado" },
+            "description": {
+              "en": "Reverses a previously recorded goal and its score, statistics, and effects",
+              "es": "Revierte un gol registrado previamente junto con su marcador, estadísticas y efectos"
+            }
           },
           {
             "definitionCode": "var-penalty-overturned",
-            "label": { "en": "Penalty overturned", "es": "Penal revocado" }
+            "label": { "en": "Penalty overturned", "es": "Penal revocado" },
+            "description": {
+              "en": "Cancels the awarded penalty; play resumes without it",
+              "es": "Cancela el penal otorgado; el juego se reanuda sin él"
+            }
           },
           {
             "definitionCode": "red-card",
-            "label": { "en": "Card upgraded", "es": "Tarjeta elevada a roja" }
+            "label": { "en": "Card upgraded", "es": "Tarjeta elevada a roja" },
+            "description": {
+              "en": "Sends the player off; their side plays the rest of the match a player short",
+              "es": "Expulsa al jugador; su equipo juega el resto del partido con uno menos"
+            }
           },
           {
             "definitionCode": "var-card-rescinded",
-            "label": { "en": "Card rescinded", "es": "Tarjeta anulada" }
+            "label": { "en": "Card rescinded", "es": "Tarjeta anulada" },
+            "description": {
+              "en": "Removes a previously shown card from the record",
+              "es": "Elimina del registro una tarjeta mostrada previamente"
+            }
           }
         ]
       }
@@ -723,6 +780,19 @@
       "mutationClass": "requires_rebuild"
     },
     "venuePolicy.neutralGround": { "permission": { "kind": "inherited" }, "mutationClass": "safe" },
-    "winCondition": { "permission": { "kind": "replaced" }, "mutationClass": "requires_rebuild" }
+    "winCondition": { "permission": { "kind": "replaced" }, "mutationClass": "requires_rebuild" },
+    "series.span": { "permission": { "kind": "replaced" }, "mutationClass": "requires_rebuild" },
+    "series.resolutionClass": {
+      "permission": { "kind": "replaced" },
+      "mutationClass": "blocked_after_results"
+    },
+    "series.neutralGround": {
+      "permission": { "kind": "replaced" },
+      "mutationClass": "requires_rebuild"
+    },
+    "series.standingsAccounting": {
+      "permission": { "kind": "replaced" },
+      "mutationClass": "requires_rebuild"
+    }
   }
 }

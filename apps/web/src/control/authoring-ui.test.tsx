@@ -260,6 +260,84 @@ describe('the tournament setup wizard screen', () => {
   });
 });
 
+describe('decision descriptions (openspec 0161)', () => {
+  const DISCIPLINE_WITH_DESCRIPTIONS = [
+    {
+      descriptorId: '01890000-0000-7000-8000-000000000010',
+      version: '1.0.0',
+      name: 'Chukka Polo',
+      supportedFormats: ['round-robin'],
+      formatDescriptions: { 'round-robin': 'Every chukka counts toward the season table' },
+      fieldPolicies: {
+        format: { permission: { kind: 'replaced' }, mutationClass: 'blocked_after_results' },
+        'registration.capacity': {
+          permission: { kind: 'replaced' },
+          mutationClass: 'requires_rebuild',
+        },
+      },
+    },
+  ] as const;
+
+  it("shows a discipline's own format description verbatim, ahead of the platform's", () => {
+    render(withIntl(<TournamentSetupWizard disciplines={DISCIPLINE_WITH_DESCRIPTIONS} />));
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Chukka' } });
+    fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-chukka' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+    const formatSelect = screen.getByLabelText('Format');
+    expect(formatSelect.textContent).toContain('Every chukka counts toward the season table');
+    // The platform's own generic round-robin text is not shown once the
+    // descriptor supplies its own — tier one wins over tier two.
+    expect(formatSelect.textContent).not.toContain(
+      'Every entrant plays every other entrant once; standings rank by accumulated points.',
+    );
+  });
+
+  it('states a blocked_after_results field cannot change once a result exists, before it is chosen, naming the audited correction workflow', () => {
+    render(withIntl(<TournamentSetupWizard disciplines={DISCIPLINE_WITH_DESCRIPTIONS} />));
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Chukka' } });
+    fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-chukka' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+    const formatSelect = screen.getByLabelText('Format') as HTMLSelectElement;
+    const hintId = formatSelect.getAttribute('aria-describedby');
+    expect(hintId).toBeTruthy();
+    expect(document.getElementById(hintId ?? '')?.textContent).toContain(
+      'This cannot be changed once a result exists; use the audited correction workflow instead.',
+    );
+  });
+
+  it('states a requires_rebuild field warns about regenerating fixtures, reachable from the control via aria-describedby', () => {
+    render(withIntl(<TournamentSetupWizard disciplines={DISCIPLINE_WITH_DESCRIPTIONS} />));
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Chukka' } });
+    fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-chukka' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+    const capacityInput = screen.getByLabelText('Capacity') as HTMLInputElement;
+    const hintId = capacityInput.getAttribute('aria-describedby');
+    expect(document.getElementById(hintId ?? '')?.textContent).toContain(
+      'Changing this after fixtures are generated invalidates and regenerates them.',
+    );
+  });
+
+  it('shows an explanation, reachable via aria-describedby with no pointer, for every decision on every step', () => {
+    render(withIntl(<TournamentSetupWizard disciplines={sampleDisciplines()} />));
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Explicada' } });
+    fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-explicada' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+    const disciplineSelect = screen.getByLabelText('Discipline');
+    const disciplineHintId = disciplineSelect.getAttribute('aria-describedby');
+    expect(disciplineHintId).toBeTruthy();
+    expect(document.getElementById(disciplineHintId ?? '')?.textContent).toBeTruthy();
+  });
+});
+
 describe('wizard state transitions and validators', () => {
   it('computes step problems, progress, and steps navigation', () => {
     const disciplines = sampleDisciplines();

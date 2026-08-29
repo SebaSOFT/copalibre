@@ -1025,6 +1025,141 @@ export const messages = defineMessages({
   wizardCreate: { id: 'control.wizard.create', defaultMessage: 'Create tournament' },
   wizardContinue: { id: 'control.wizard.continue', defaultMessage: 'Continue' },
 
+  // Decision descriptions (openspec 0161) — what each wizard decision does
+  // during the competition, not what the setting is named.
+  wizardDecisionDiscipline: {
+    id: 'control.wizard.decision.discipline',
+    defaultMessage: 'Determines the rules, statistics and events available for this competition.',
+  },
+  wizardDecisionFormat: {
+    id: 'control.wizard.decision.format',
+    defaultMessage: 'Decides how fixtures are generated and how entrants advance.',
+  },
+  wizardDecisionSeriesSpan: {
+    id: 'control.wizard.decision.seriesSpan',
+    defaultMessage:
+      'How many matches the series can play; how they combine into one winner is decided below.',
+  },
+  wizardDecisionSeriesResolutionClass: {
+    id: 'control.wizard.decision.seriesResolutionClass',
+    defaultMessage: 'Decides how the matches in a series combine into a single result.',
+  },
+  wizardDecisionSeriesNeutralGround: {
+    id: 'control.wizard.decision.seriesNeutralGround',
+    defaultMessage:
+      'Marks the series as played at a neutral venue, so no side is recorded as host.',
+  },
+  wizardDecisionSeriesStandingsAccounting: {
+    id: 'control.wizard.decision.seriesStandingsAccounting',
+    defaultMessage:
+      'Decides whether standings count each match in the series separately or the series as a single result.',
+  },
+  wizardDecisionRegion: {
+    id: 'control.wizard.decision.region',
+    defaultMessage:
+      'Groups this tournament for regional filtering on public listings; does not restrict where matches are played.',
+  },
+  wizardDecisionCapacity: {
+    id: 'control.wizard.decision.capacity',
+    defaultMessage: 'The maximum number of entrants the tournament will accept.',
+  },
+  wizardDecisionPublicRegistration: {
+    id: 'control.wizard.decision.publicRegistration',
+    defaultMessage:
+      'Allows entrants to register themselves publicly instead of being added only by an organizer.',
+  },
+  wizardDecisionRequiresCheckIn: {
+    id: 'control.wizard.decision.requiresCheckIn',
+    defaultMessage:
+      'Requires each entrant to check in before the tournament starts, or be marked absent.',
+  },
+  wizardDecisionCheckInClosesAt: {
+    id: 'control.wizard.decision.checkInClosesAt',
+    defaultMessage:
+      'The moment check-in closes; an entrant who has not checked in by then is marked absent.',
+  },
+
+  // Format option descriptions
+  wizardFormatDescriptionSingleElimination: {
+    id: 'control.wizard.format.singleElimination.description',
+    defaultMessage: 'One loss eliminates an entrant from the bracket.',
+  },
+  wizardFormatDescriptionDoubleElimination: {
+    id: 'control.wizard.format.doubleElimination.description',
+    defaultMessage:
+      'An entrant is eliminated only after two losses, via a winners and a losers bracket.',
+  },
+  wizardFormatDescriptionRoundRobin: {
+    id: 'control.wizard.format.roundRobin.description',
+    defaultMessage:
+      'Every entrant plays every other entrant once; standings rank by accumulated points.',
+  },
+  wizardFormatDescriptionLeague: {
+    id: 'control.wizard.format.league.description',
+    defaultMessage:
+      'Every entrant plays every other entrant across a season-length schedule; standings rank by accumulated points.',
+  },
+  wizardFormatDescriptionRoundRobinSingleLeg: {
+    id: 'control.wizard.format.roundRobinSingleLeg.description',
+    defaultMessage: 'Every entrant plays every other entrant exactly once, with no return fixture.',
+  },
+  wizardFormatDescriptionRoundRobinHomeAway: {
+    id: 'control.wizard.format.roundRobinHomeAway.description',
+    defaultMessage:
+      "Every entrant plays every other entrant twice, once at each side's home venue.",
+  },
+  wizardFormatDescriptionFreeForAll: {
+    id: 'control.wizard.format.freeForAll.description',
+    defaultMessage:
+      'All entrants compete in the same heat at once; standings rank by finishing position.',
+  },
+  wizardFormatDescriptionHeats: {
+    id: 'control.wizard.format.heats.description',
+    defaultMessage:
+      'Entrants compete across multiple heats; standings rank by finishing position across every heat.',
+  },
+
+  // Series resolution class option descriptions
+  wizardSeriesClassBestOfDescription: {
+    id: 'control.wizard.series.class.bestOf.description',
+    defaultMessage:
+      'The series ends as soon as one side has won enough matches to make the remaining matches irrelevant.',
+  },
+  wizardSeriesClassAggregateDescription: {
+    id: 'control.wizard.series.class.aggregate.description',
+    defaultMessage:
+      'The series winner is decided by total score across every match, not by who won more matches.',
+  },
+  wizardSeriesClassPointsPerLegDescription: {
+    id: 'control.wizard.series.class.pointsPerLeg.description',
+    defaultMessage:
+      'Each match in the series awards its own points; the series winner is whoever accumulates the most across every leg.',
+  },
+
+  // Series standings-accounting option descriptions
+  wizardSeriesAccountingMatchDescription: {
+    id: 'control.wizard.series.accounting.match.description',
+    defaultMessage: 'Standings count each match in the series as its own result.',
+  },
+  wizardSeriesAccountingSeriesDescription: {
+    id: 'control.wizard.series.accounting.series.description',
+    defaultMessage:
+      'Standings count the whole series as a single result, not each match within it.',
+  },
+
+  // Reversibility, derived from the field's ConfigFieldPolicies mutation
+  // class — never authored per field, so the sentence can never drift from
+  // the policy that actually governs the field.
+  wizardMutationRequiresRebuild: {
+    id: 'control.wizard.mutation.requiresRebuild',
+    defaultMessage: 'Changing this after fixtures are generated invalidates and regenerates them.',
+  },
+  wizardMutationBlockedAfterResults: {
+    id: 'control.wizard.mutation.blockedAfterResults',
+    defaultMessage:
+      'This cannot be changed once a result exists; use the audited correction workflow instead.',
+  },
+
   // Standings (components/StandingsPage.tsx)
   standingsSectionLabel: { id: 'control.standings.sectionLabel', defaultMessage: 'Standings' },
   standingsTitle: { id: 'control.standings.title', defaultMessage: 'Standings' },

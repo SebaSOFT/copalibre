@@ -379,6 +379,59 @@ export const messages: Record<string, string> = {
   'control.wizard.create': 'Turnier erstellen',
   'control.wizard.continue': 'Weiter',
 
+  'control.wizard.decision.discipline':
+    'Legt fest, welche Regeln, Statistiken und Ereignisse für diesen Wettbewerb verfügbar sind.',
+  'control.wizard.decision.format':
+    'Entscheidet, wie Begegnungen erzeugt werden und wie Teilnehmer aufsteigen.',
+  'control.wizard.decision.seriesSpan':
+    'Wie viele Spiele die Serie umfassen kann; wie sie sich zu einem Sieger kombinieren, wird unten festgelegt.',
+  'control.wizard.decision.seriesResolutionClass':
+    'Entscheidet, wie sich die Spiele einer Serie zu einem einzigen Ergebnis kombinieren.',
+  'control.wizard.decision.seriesNeutralGround':
+    'Markiert die Serie als auf neutralem Platz ausgetragen, sodass keine Seite als Gastgeber gilt.',
+  'control.wizard.decision.seriesStandingsAccounting':
+    'Entscheidet, ob die Tabelle jedes Spiel der Serie einzeln zählt oder die Serie als ein einziges Ergebnis.',
+  'control.wizard.decision.region':
+    'Gruppiert dieses Turnier für die regionale Filterung in öffentlichen Listen; schränkt nicht ein, wo Spiele stattfinden.',
+  'control.wizard.decision.capacity':
+    'Die maximale Anzahl an Teilnehmern, die das Turnier zulässt.',
+  'control.wizard.decision.publicRegistration':
+    'Erlaubt Teilnehmern, sich öffentlich selbst anzumelden, statt nur von einem Organisator hinzugefügt zu werden.',
+  'control.wizard.decision.requiresCheckIn':
+    'Erfordert, dass sich jeder Teilnehmer vor Turnierbeginn eincheckt, sonst wird er als abwesend markiert.',
+  'control.wizard.decision.checkInClosesAt':
+    'Der Zeitpunkt, an dem das Einchecken endet; ein Teilnehmer, der sich bis dahin nicht eingecheckt hat, wird als abwesend markiert.',
+  'control.wizard.format.singleElimination.description':
+    'Eine Niederlage scheidet einen Teilnehmer aus dem Turnierbaum aus.',
+  'control.wizard.format.doubleElimination.description':
+    'Ein Teilnehmer scheidet erst nach zwei Niederlagen aus, über einen Gewinner- und einen Verliererbaum.',
+  'control.wizard.format.roundRobin.description':
+    'Jeder Teilnehmer spielt einmal gegen jeden anderen; die Tabelle wird nach gesammelten Punkten sortiert.',
+  'control.wizard.format.league.description':
+    'Jeder Teilnehmer spielt über einen saisonlangen Spielplan gegen jeden anderen; die Tabelle wird nach gesammelten Punkten sortiert.',
+  'control.wizard.format.roundRobinSingleLeg.description':
+    'Jeder Teilnehmer spielt genau einmal gegen jeden anderen, ohne Rückspiel.',
+  'control.wizard.format.roundRobinHomeAway.description':
+    'Jeder Teilnehmer spielt zweimal gegen jeden anderen, einmal im Heimspiel jeder Seite.',
+  'control.wizard.format.freeForAll.description':
+    'Alle Teilnehmer treten gleichzeitig im selben Lauf gegeneinander an; die Tabelle wird nach Platzierung sortiert.',
+  'control.wizard.format.heats.description':
+    'Teilnehmer treten in mehreren Läufen gegeneinander an; die Tabelle wird nach Platzierung über alle Läufe sortiert.',
+  'control.wizard.series.class.bestOf.description':
+    'Die Serie endet, sobald eine Seite genug Spiele gewonnen hat, um die verbleibenden Spiele bedeutungslos zu machen.',
+  'control.wizard.series.class.aggregate.description':
+    'Der Sieger der Serie wird anhand der Gesamtpunktzahl über alle Spiele entschieden, nicht danach, wer mehr Spiele gewonnen hat.',
+  'control.wizard.series.class.pointsPerLeg.description':
+    'Jedes Spiel der Serie vergibt eigene Punkte; Sieger der Serie ist, wer insgesamt die meisten sammelt.',
+  'control.wizard.series.accounting.match.description':
+    'Die Tabelle zählt jedes Spiel der Serie als eigenes Ergebnis.',
+  'control.wizard.series.accounting.series.description':
+    'Die Tabelle zählt die gesamte Serie als ein einziges Ergebnis, nicht jedes Spiel einzeln.',
+  'control.wizard.mutation.requiresRebuild':
+    'Eine Änderung hierzu nach Erzeugung der Begegnungen macht diese ungültig und erzeugt sie neu.',
+  'control.wizard.mutation.blockedAfterResults':
+    'Dies kann nicht mehr geändert werden, sobald ein Ergebnis existiert; verwenden Sie stattdessen den geprüften Korrekturablauf.',
+
   'control.standings.sectionLabel': 'Tabelle',
   'control.standings.title': 'Tabelle',
   'control.standings.projectionVersion': 'Projektion v{version}',
