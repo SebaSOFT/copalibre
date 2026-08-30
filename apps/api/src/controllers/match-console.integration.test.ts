@@ -311,9 +311,14 @@ describe('live match console (integration)', () => {
   });
 
   it('records no audit entry for ordinary browsing of the match console (task 3.3)', async () => {
+    // Scoped to this match's own aggregate, not a table-wide row count: an
+    // unrelated sibling test's fire-and-forget refusal recording (task 2.1
+    // is deliberately not awaited by its caller) can still be landing when
+    // this test starts, and a whole-table count races against it.
     const before = await scratch.db
       .selectFrom('audit_log')
       .select((eb) => eb.fn.countAll<string>().as('count'))
+      .where('entity_id', '=', matchId)
       .executeTakeFirstOrThrow();
 
     const publicRead = await request('GET', base());
@@ -324,6 +329,7 @@ describe('live match console (integration)', () => {
     const after = await scratch.db
       .selectFrom('audit_log')
       .select((eb) => eb.fn.countAll<string>().as('count'))
+      .where('entity_id', '=', matchId)
       .executeTakeFirstOrThrow();
     expect(after.count).toBe(before.count);
   });

@@ -233,9 +233,16 @@ describe('standings and seeding routes (integration)', () => {
   });
 
   it('records no audit entry for ordinary browsing of standings or a bracket (task 3.3)', async () => {
+    // Scoped to this stage's own aggregate, not a table-wide row count: an
+    // unrelated sibling test's fire-and-forget refusal recording (task 2.1
+    // is deliberately not awaited by its caller) can still be landing when
+    // this test starts, and a whole-table count races against it. The
+    // stage's own setup already wrote a couple of entries (stage.created,
+    // fixtures.generated); the count must simply not grow.
     const before = await scratch.db
       .selectFrom('audit_log')
       .select((eb) => eb.fn.countAll<string>().as('count'))
+      .where('entity_id', '=', stageId)
       .executeTakeFirstOrThrow();
 
     await request({ method: 'GET', url: `${base}/standings`, token: 'organizer' });
@@ -244,6 +251,7 @@ describe('standings and seeding routes (integration)', () => {
     const after = await scratch.db
       .selectFrom('audit_log')
       .select((eb) => eb.fn.countAll<string>().as('count'))
+      .where('entity_id', '=', stageId)
       .executeTakeFirstOrThrow();
     expect(after.count).toBe(before.count);
   });
@@ -490,6 +498,7 @@ describe('standings and seeding routes (integration)', () => {
     const refusal = await scratch.db
       .selectFrom('audit_log')
       .selectAll()
+      .where('organization_id', '=', organizationId)
       .where('action', '=', 'mutation.refused')
       .orderBy('occurred_at', 'desc')
       .executeTakeFirstOrThrow();
