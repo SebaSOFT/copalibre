@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { TournamentAuthoringPage } from './components/TournamentAuthoringPage.js';
 import { RegistrationReviewRoute } from './components/RegistrationReviewRoute.js';
 import { ControlApiError, type ControlApiClient } from './lib/api-client.js';
@@ -680,5 +680,101 @@ describe('the registration review route container', () => {
       { personId: 'person-1', request: { displayName: 'Mariano Otero (corrected)' } },
     ]);
     expect(screen.getByText('Mariano Otero (corrected)')).toBeDefined();
+  });
+
+  it('links a participant identity through the route and flips the row to unlink (openspec 0170)', async () => {
+    const linked: unknown[] = [];
+
+    await act(async () => {
+      render(
+        withIntl(
+          <RegistrationReviewRoute
+            organizationAlias="liga-mendocina"
+            tournamentAlias="apertura-2026"
+            client={client({
+              listRegistrations: async () => [
+                {
+                  entrantId: 'e-1',
+                  tournamentId: 't-1',
+                  status: 'pending',
+                  personId: 'person-1',
+                  displayName: 'Mariano Otero',
+                },
+                {
+                  entrantId: 'e-2',
+                  tournamentId: 't-1',
+                  status: 'pending',
+                  personId: 'person-2',
+                  displayName: 'Otra Persona',
+                },
+              ],
+              linkParticipantIdentity: async (_organizationAlias, personId, request) => {
+                linked.push({ personId, request });
+                return { principalId: 'principal-1', personId };
+              },
+            })}
+          />,
+        ),
+      );
+    });
+
+    const marianoRow = screen.getByText('Mariano Otero').closest('details') as HTMLElement;
+    fireEvent.click(within(marianoRow).getByText('Mariano Otero'));
+    fireEvent.click(within(marianoRow).getByText('Link identity'));
+    fireEvent.change(screen.getByLabelText('Email'), {
+      target: { value: 'mariano@example.test' },
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Link' }));
+    });
+
+    expect(linked).toEqual([{ personId: 'person-1', request: { email: 'mariano@example.test' } }]);
+    expect(within(marianoRow).getByRole('button', { name: 'Unlink' })).toBeDefined();
+  });
+
+  it('unlinks a participant identity through the route and flips the row back to linkable', async () => {
+    const unlinked: unknown[] = [];
+
+    await act(async () => {
+      render(
+        withIntl(
+          <RegistrationReviewRoute
+            organizationAlias="liga-mendocina"
+            tournamentAlias="apertura-2026"
+            client={client({
+              listRegistrations: async () => [
+                {
+                  entrantId: 'e-1',
+                  tournamentId: 't-1',
+                  status: 'pending',
+                  personId: 'person-1',
+                  displayName: 'Mariano Otero',
+                  hasIdentityLink: true,
+                },
+                {
+                  entrantId: 'e-2',
+                  tournamentId: 't-1',
+                  status: 'pending',
+                  personId: 'person-2',
+                  displayName: 'Otra Persona',
+                },
+              ],
+              unlinkParticipantIdentity: async (_organizationAlias, personId) => {
+                unlinked.push(personId);
+                return { principalId: 'principal-1', personId };
+              },
+            })}
+          />,
+        ),
+      );
+    });
+
+    fireEvent.click(screen.getByText('Mariano Otero'));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Unlink' }));
+    });
+
+    expect(unlinked).toEqual(['person-1']);
+    expect(screen.getAllByText('Link identity')).toHaveLength(2);
   });
 });

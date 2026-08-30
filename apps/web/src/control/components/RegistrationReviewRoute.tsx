@@ -325,6 +325,28 @@ export function RegistrationReviewRoute({
                 );
               }))
         }
+        onLinkIdentity={
+          api.linkParticipantIdentity &&
+          ((personId, request) =>
+            api.linkParticipantIdentity?.(organizationAlias, personId, request).then(() => {
+              setRows((current) =>
+                current.map((row) =>
+                  row.personId === personId ? { ...row, hasIdentityLink: true } : row,
+                ),
+              );
+            }))
+        }
+        onUnlinkIdentity={
+          api.unlinkParticipantIdentity &&
+          ((personId) =>
+            api.unlinkParticipantIdentity?.(organizationAlias, personId).then(() => {
+              setRows((current) =>
+                current.map((row) =>
+                  row.personId === personId ? { ...row, hasIdentityLink: false } : row,
+                ),
+              );
+            }))
+        }
       />
     </>
   );
@@ -348,6 +370,7 @@ function toReviewRow(
     ...(row.teamId === undefined ? {} : { teamId: row.teamId }),
     ...(row.nationality === undefined ? {} : { nationality: row.nationality }),
     ...(row.photoObjectId === undefined ? {} : { photoObjectId: row.photoObjectId }),
+    ...(row.hasIdentityLink === undefined ? {} : { hasIdentityLink: row.hasIdentityLink }),
     // RegistrationResponse identifies the entrant, not its members. Do not
     // present the team identifier as a person until the API supplies members.
     teamMembers: [],

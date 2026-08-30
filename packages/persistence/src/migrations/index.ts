@@ -40,6 +40,7 @@ import { rbacUserAdministration } from './0029-rbac-user-administration.js';
 import { sharedRateLimitCounters } from './0030-shared-rate-limit-counters.js';
 import { schedules } from './0031-schedules.js';
 import { roleScopeColumns } from './0032-role-scope-columns.js';
+import { organizationInviteRescission } from './0033-organization-invite-rescission.js';
 
 /**
  * Migrations are explicit, ordered, and code-defined (no filesystem scanning),
@@ -80,6 +81,7 @@ export const MIGRATIONS: Readonly<Record<string, Migration>> = {
   '0030-shared-rate-limit-counters': sharedRateLimitCounters,
   '0031-schedules': schedules,
   '0032-role-scope-columns': roleScopeColumns,
+  '0033-organization-invite-rescission': organizationInviteRescission,
 };
 
 /** The version `apps/api`'s readiness check expects to find applied. */

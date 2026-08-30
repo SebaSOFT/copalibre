@@ -17,6 +17,13 @@ async function mockRolesApi(page: Page, viewer = false): Promise<void> {
         },
       ];
       let invitedRole = 'viewer';
+      let pendingInvitations: {
+        invitationId: string;
+        recipientEmail: string;
+        role: string;
+        status: string;
+        expiresAt: string;
+      }[] = [];
       window.fetch = async (input, init) => {
         const url = String(input);
         const method = init?.method ?? 'GET';
@@ -37,15 +44,41 @@ async function mockRolesApi(page: Page, viewer = false): Promise<void> {
           }
           return Response.json(roles);
         }
+        if (url === invitationPath && method === 'GET') {
+          return Response.json(pendingInvitations);
+        }
         if (url === invitationPath && method === 'POST') {
-          invitedRole = JSON.parse(String(init?.body)).role;
-          return Response.json(
+          const body = JSON.parse(String(init?.body)) as { email: string; role: string };
+          invitedRole = body.role;
+          const invitationId = '01800000-0000-7000-8000-000000000003';
+          pendingInvitations = [
+            ...pendingInvitations,
             {
-              invitationId: '01800000-0000-7000-8000-000000000003',
+              invitationId,
+              recipientEmail: body.email,
+              role: body.role,
+              status: 'active',
               expiresAt: '2099-01-01T00:00:00.000Z',
             },
+          ];
+          return Response.json(
+            { invitationId, expiresAt: '2099-01-01T00:00:00.000Z' },
             { status: 201 },
           );
+        }
+        const rescindMatch = /^\/organizations\/liga-mendocina\/invitations\/([^/]+)$/.exec(url);
+        if (rescindMatch && method === 'DELETE') {
+          const invitationId = rescindMatch[1];
+          const rescinded = pendingInvitations.find(
+            (invitation) => invitation.invitationId === invitationId,
+          );
+          pendingInvitations = pendingInvitations.filter(
+            (invitation) => invitation.invitationId !== invitationId,
+          );
+          return Response.json({
+            invitationId,
+            expiresAt: rescinded?.expiresAt ?? '2099-01-01T00:00:00.000Z',
+          });
         }
         if (url === '/invitations/accept' && method === 'POST') {
           return Response.json({
@@ -100,6 +133,25 @@ test('admin invites a referee and changes a user status immediately', async ({ p
     status: 403,
     body: { message: 'Subject has no active organization role' },
   });
+});
+
+test('admin creates a pending invitation and rescinds it (openspec 0170)', async ({ page }) => {
+  await mockRolesApi(page);
+  const target = '/control/liga-mendocina/roles';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+  await expect(page.getByText('referee@example.test')).toBeVisible();
+
+  await page.getByText('Añadir destinatario').click();
+  await page.getByLabel('Correo electrónico').fill('pendiente@example.test');
+  await page.getByLabel('Rol de invitación').selectOption('viewer');
+  await page.getByText('Enviar invitación').click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+
+  await expect(page.getByText('pendiente@example.test')).toBeVisible();
+  await page.getByLabel('Retirar invitación de pendiente@example.test').click();
+  await expect(page.getByText('pendiente@example.test')).toHaveCount(0);
 });
 
 test('viewer receives server refusal instead of roles data', async ({ page }) => {

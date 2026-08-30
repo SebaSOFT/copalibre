@@ -75,6 +75,13 @@ export interface DeleteOrganizationRoleInput extends AccessAuditContext {
   readonly assignmentId: string;
 }
 
+export interface RescindOrganizationInvitationInput extends AccessAuditContext {
+  readonly organizationId: string;
+  readonly invitationId: string;
+  /** Omitted only where the caller's authority is already established some other way. */
+  readonly grantorContext?: GrantorContext;
+}
+
 /** One organization a principal has an active, non-deleted role in, with that role. */
 export interface PrincipalOrganizationMembership {
   readonly organizationId: string;
@@ -218,6 +225,7 @@ export class OrganizationAccessRepository {
         created_at: new Date(),
         club_id: checked.value.clubId ?? null,
         tournament_id: checked.value.tournamentId ?? null,
+        rescinded_at: null,
       })
       .returningAll()
       .executeTakeFirstOrThrow();
@@ -248,6 +256,85 @@ export class OrganizationAccessRepository {
     return invitation;
   }
 
+  /** Pending invitations: not yet accepted, not rescinded, not expired — what the roles-permissions screen lists. */
+  async listPendingInvitations(organizationId: string): Promise<readonly OrganizationInvitation[]> {
+    const rows = await this.db
+      .selectFrom('organization_invites')
+      .selectAll()
+      .where('organization_id', '=', organizationId)
+      .where('accepted_at', 'is', null)
+      .where('rescinded_at', 'is', null)
+      .where('expires_at', '>', new Date())
+      .orderBy('created_at', 'desc')
+      .execute();
+    return rows.map(toOrganizationInvitation);
+  }
+
+  /**
+   * Withdraws a pending invitation before it is accepted, following
+   * `deleteAssignment`'s shape: lock the row, refuse based on current state,
+   * write the terminal marker, audit with prior state. Requires the same
+   * role-granting authority `createInvitation` required for this invitation's
+   * role, so an org-admin cannot be blocked from correcting their own
+   * club-admin's invitation mistake, and a club-admin (who cannot invite at
+   * all) cannot rescind anything.
+   */
+  async rescindInvitation(
+    uow: UnitOfWork,
+    input: RescindOrganizationInvitationInput,
+  ): Promise<OrganizationInvitation> {
+    const current = await lockRowsForMutation(
+      this.db,
+      uow.tx
+        .selectFrom('organization_invites')
+        .selectAll()
+        .where('organization_id', '=', input.organizationId)
+        .where('invitation_id', '=', input.invitationId),
+    ).executeTakeFirst();
+    if (!current) throw new NotFoundError('Organization invitation was not found');
+
+    if (current.accepted_at !== null) {
+      throw new InvariantViolationError(
+        'Organization invitation was already accepted; it can no longer be rescinded',
+      );
+    }
+    if (current.rescinded_at !== null) {
+      throw new InvariantViolationError('Organization invitation was already rescinded');
+    }
+
+    if (input.grantorContext) {
+      const authorized = canGrantRole(
+        input.grantorContext,
+        current.role as OrganizationRole,
+        input.organizationId,
+      );
+      if (!authorized.ok) {
+        throw new InvariantViolationError(authorized.error.message, { reason: 'grant-denied' });
+      }
+    }
+
+    const rescindedAt = new Date();
+    const row = await uow.tx
+      .updateTable('organization_invites')
+      .set({ rescinded_at: rescindedAt })
+      .where('invitation_id', '=', input.invitationId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const invitation = toOrganizationInvitation(row);
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'organization-invitation',
+      entityId: input.invitationId,
+      action: 'organization.invitation-rescinded',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      previousState: { ...toOrganizationInvitation(current) },
+      resultingState: { ...invitation },
+    });
+    return invitation;
+  }
+
   async acceptInvitation(
     uow: UnitOfWork,
     input: AcceptOrganizationInvitationInput,
@@ -264,6 +351,9 @@ export class OrganizationAccessRepository {
     const now = input.now ?? new Date();
     if (invitation.accepted_at !== null) {
       throw new InvariantViolationError('Organization invitation was already accepted');
+    }
+    if (invitation.rescinded_at !== null) {
+      throw new InvariantViolationError('Organization invitation was rescinded');
     }
     if (invitation.expires_at <= now) {
       throw new InvariantViolationError('Organization invitation expired');

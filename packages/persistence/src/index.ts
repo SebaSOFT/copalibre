@@ -58,6 +58,7 @@ export {
   type CreateOrganizationInvitationInput,
   type DeleteOrganizationRoleInput,
   type PrincipalOrganizationMembership,
+  type RescindOrganizationInvitationInput,
 } from './repositories/organization-access-repository.js';
 export {
   InstallationRoleRepository,

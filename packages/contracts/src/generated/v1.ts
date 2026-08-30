@@ -516,7 +516,11 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Remove a person who has never been registered anywhere
+         * @description Refused by name if the person is registered as an entrant, rostered on a team, has an identity link, or has submitted a report — directing to the workflow that clears it first.
+         */
+        delete: operations["RegistrationsController_removePerson"];
         options?: never;
         head?: never;
         /**
@@ -536,7 +540,11 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Remove a team that has never been registered anywhere
+         * @description Refused by name if the team is registered as an entrant or has a rostered player — directing to the workflow that clears it first.
+         */
+        delete: operations["RegistrationsController_removeTeam"];
         options?: never;
         head?: never;
         /**
@@ -1351,11 +1359,35 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * List pending organization invitations
+         * @description Not yet accepted, not rescinded, not expired.
+         */
+        get: operations["OrganizationAccessController_listInvitations"];
         put?: never;
         /** Invite an organization user by email */
         post: operations["OrganizationAccessController_invite"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/invitations/{invitationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Rescind a pending organization invitation
+         * @description Requires the same role-granting authority the invitation itself required. Takes effect immediately — the token stops resolving from this point on, regardless of the invitation's stated expiry.
+         */
+        delete: operations["OrganizationAccessController_rescindInvitation"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1494,7 +1526,11 @@ export interface paths {
         put?: never;
         /** Pre-link a participant identity by email */
         post: operations["ParticipantIdentityLinksController_link"];
-        delete?: never;
+        /**
+         * Remove a participant identity link
+         * @description Frees the person to be linked again; does not delete the person record, their registrations, or their roster history.
+         */
+        delete: operations["ParticipantIdentityLinksController_unlink"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2981,6 +3017,8 @@ export interface components {
             photoObjectId?: string;
             /** @description The team entrant’s resulting membership. Populated only by a team-membership edit response. */
             teamMembers?: components["schemas"]["TeamMemberResponse"][];
+            /** @description Whether this person entrant already carries a participant identity link. */
+            hasIdentityLink?: boolean;
         };
         ReviewRegistrationRequest: {
             /** @enum {string} */
@@ -3960,6 +3998,28 @@ export interface components {
         GrantableRolesResponse: {
             /** @description Roles the caller may grant in this organization, per the 0140 role-granting hierarchy. */
             roles: ("super-admin" | "admin" | "club-admin" | "tournament-admin" | "referee" | "broadcaster" | "viewer")[];
+        };
+        PendingOrganizationInvitationResponse: {
+            /** Format: uuid */
+            invitationId: string;
+            /** Format: email */
+            recipientEmail: string;
+            /** @enum {string} */
+            role: "admin" | "club-admin" | "tournament-admin" | "referee" | "broadcaster" | "viewer";
+            /** @enum {string} */
+            status: "active" | "inactive";
+            /** Format: date-time */
+            expiresAt: string;
+            /**
+             * Format: uuid
+             * @description Set only for a club-scoped role.
+             */
+            clubId?: string;
+            /**
+             * Format: uuid
+             * @description Set only for a tournament-scoped role.
+             */
+            tournamentId?: string;
         };
         InviteOrganizationUserRequest: {
             /** Format: email */
@@ -6334,6 +6394,37 @@ export interface operations {
             };
         };
     };
+    RegistrationsController_removePerson: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                personId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonIdentityResponse"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
     RegistrationsController_updatePersonIdentity: {
         parameters: {
             query?: never;
@@ -6357,6 +6448,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PersonIdentityResponse"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    RegistrationsController_removeTeam: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                teamId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamIdentityResponse"];
                 };
             };
             409: {
@@ -8285,6 +8407,27 @@ export interface operations {
             };
         };
     };
+    OrganizationAccessController_listInvitations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PendingOrganizationInvitationResponse"][];
+                };
+            };
+        };
+    };
     OrganizationAccessController_invite: {
         parameters: {
             query?: never;
@@ -8302,6 +8445,28 @@ export interface operations {
         responses: {
             /** @description Invitation queued for secure delivery */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationInvitationResponse"];
+                };
+            };
+        };
+    };
+    OrganizationAccessController_rescindInvitation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                invitationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8550,6 +8715,28 @@ export interface operations {
         };
         responses: {
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ParticipantIdentityLinkResponse"];
+                };
+            };
+        };
+    };
+    ParticipantIdentityLinksController_unlink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                personId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };

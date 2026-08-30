@@ -6,6 +6,7 @@ import {
   type ControlApiClient,
   type OrganizationRole,
   type OrganizationRoleResponse,
+  type PendingOrganizationInvitationResponse,
   type TournamentResponse,
 } from '../lib/api-client.js';
 import { controlTokenStore } from '../session/token-store.js';
@@ -35,6 +36,35 @@ export function RolesPermissionsRoute({
   const [grantableRoles, setGrantableRoles] = useState<readonly OrganizationRole[]>();
   const [clubs, setClubs] = useState<readonly ClubResponse[]>([]);
   const [tournaments, setTournaments] = useState<readonly TournamentResponse[]>([]);
+  const [pendingInvitations, setPendingInvitations] = useState<
+    readonly PendingOrganizationInvitationResponse[] | undefined
+  >(undefined);
+
+  const loadPendingInvitations = useCallback(async (): Promise<void> => {
+    if (!api.listPendingInvitations) return;
+    try {
+      const loaded = await api.listPendingInvitations(organizationAlias);
+      setPendingInvitations(Array.isArray(loaded) ? loaded : []);
+    } catch {
+      // Left undefined: the section hides itself rather than showing a stale list.
+    }
+  }, [api, organizationAlias]);
+
+  useEffect(() => {
+    let current = true;
+    if (!api.listPendingInvitations) return;
+    void api
+      .listPendingInvitations(organizationAlias)
+      .then((loaded) => {
+        if (current) setPendingInvitations(Array.isArray(loaded) ? loaded : []);
+      })
+      .catch(() => {
+        // Left undefined: the section hides itself rather than showing a stale list.
+      });
+    return () => {
+      current = false;
+    };
+  }, [api, organizationAlias]);
 
   useEffect(() => {
     let current = true;
@@ -136,8 +166,18 @@ export function RolesPermissionsRoute({
       grantableRoles={grantableRoles}
       loading={loading}
       organizationAlias={organizationAlias}
+      pendingInvitations={pendingInvitations}
       rows={rows}
       tournaments={tournaments}
+      onRescindInvitation={
+        api.rescindInvitation &&
+        (async (invitationId) => {
+          await api.rescindInvitation?.(organizationAlias, invitationId);
+          setPendingInvitations((current) =>
+            current?.filter((invitation) => invitation.invitationId !== invitationId),
+          );
+        })
+      }
       onChange={async (assignmentId, role, status) => {
         const updated = await api.changeOrganizationRole(organizationAlias, assignmentId, {
           role,
@@ -154,6 +194,7 @@ export function RolesPermissionsRoute({
       onInvite={async (email, role, status, scope) => {
         await api.inviteOrganizationUser(organizationAlias, { email, role, status, ...scope });
         await load();
+        await loadPendingInvitations();
       }}
     />
   );

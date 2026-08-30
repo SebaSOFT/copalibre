@@ -9,6 +9,7 @@ import {
   type BulkReviewRequest,
   type CreatePersonRequest,
   type CreateTeamRequest,
+  type LinkParticipantIdentityRequest,
   type ReviewRegistrationRequest,
   type UpdatePersonIdentityRequest,
   type UpdateTeamIdentityRequest,
@@ -72,6 +73,8 @@ export function RegistrationReviewPage({
   onAddTeam,
   onEditPersonIdentity,
   onEditTeamIdentity,
+  onLinkIdentity,
+  onUnlinkIdentity,
 }: {
   readonly organizationAlias: string;
   readonly tournamentName: string;
@@ -98,6 +101,11 @@ export function RegistrationReviewPage({
     teamId: string,
     request: UpdateTeamIdentityRequest,
   ) => Promise<void> | void;
+  readonly onLinkIdentity?: (
+    personId: string,
+    request: LinkParticipantIdentityRequest,
+  ) => Promise<void> | void;
+  readonly onUnlinkIdentity?: (personId: string) => Promise<void> | void;
 }): React.JSX.Element {
   const intl = useIntl();
   const [state, setState] = useState(() => initialReview(10));
@@ -107,6 +115,7 @@ export function RegistrationReviewPage({
   );
   const [addOpen, setAddOpen] = useState(false);
   const [editingRow, setEditingRow] = useState<ReviewRegistrationRow | undefined>(undefined);
+  const [linkingRow, setLinkingRow] = useState<ReviewRegistrationRow | undefined>(undefined);
   const visible = visibleRows(rows, state) as readonly ReviewRegistrationRow[];
   const selected = new Set(state.selected);
   const allVisibleSelected =
@@ -321,6 +330,20 @@ export function RegistrationReviewPage({
                     <FormattedMessage {...messages.reviewEditIdentity} />
                   </Button>
                 )}
+                {row.personId !== undefined &&
+                  (row.hasIdentityLink ? (
+                    <Button
+                      onClick={() => void onUnlinkIdentity?.(row.personId as string)}
+                      type="button"
+                      variant="destructive-outline"
+                    >
+                      <FormattedMessage {...messages.reviewUnlinkIdentity} />
+                    </Button>
+                  ) : (
+                    <Button onClick={() => setLinkingRow(row)} type="button" variant="secondary">
+                      <FormattedMessage {...messages.reviewLinkIdentity} />
+                    </Button>
+                  ))}
                 <Button
                   onClick={() =>
                     void onReview?.(row.entrantId, {
@@ -424,6 +447,18 @@ export function RegistrationReviewPage({
             }
           }}
           row={editingRow}
+        />
+      )}
+
+      {linkingRow !== undefined && linkingRow.personId !== undefined && (
+        <LinkIdentityDialog
+          displayName={linkingRow.displayName}
+          key={linkingRow.entrantId}
+          onClose={() => setLinkingRow(undefined)}
+          onSubmit={async (email) => {
+            await onLinkIdentity?.(linkingRow.personId as string, { email });
+            setLinkingRow(undefined);
+          }}
         />
       )}
     </>
@@ -626,6 +661,71 @@ function EditIdentityDialog({
             id="edit-identity-alias"
             onChange={(event) => setAlias(event.target.value)}
             value={alias}
+          />
+        </FormField>
+        {error !== undefined && <p className="cl-inline-alert">{error}</p>}
+      </form>
+    </Modal>
+  );
+}
+
+function LinkIdentityDialog({
+  displayName,
+  onClose,
+  onSubmit,
+}: {
+  readonly displayName: string;
+  readonly onClose: () => void;
+  readonly onSubmit: (email: string) => Promise<void>;
+}): React.JSX.Element {
+  const intl = useIntl();
+  const [email, setEmail] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string>();
+
+  return (
+    <Modal
+      footer={
+        <>
+          <Button onClick={onClose} type="button" variant="secondary">
+            <FormattedMessage {...messages.reviewLinkIdentityCancel} />
+          </Button>
+          <Button disabled={busy || email.trim() === ''} form="link-identity-form" type="submit">
+            <FormattedMessage {...messages.reviewLinkIdentitySave} />
+          </Button>
+        </>
+      }
+      onOpenChange={(next) => {
+        if (!next) onClose();
+      }}
+      open
+      title={intl.formatMessage(messages.reviewLinkIdentityTitle, { displayName })}
+    >
+      <form
+        id="link-identity-form"
+        onSubmit={(event) => {
+          event.preventDefault();
+          setBusy(true);
+          setError(undefined);
+          void onSubmit(email.trim())
+            .catch((cause: unknown) =>
+              setError(cause instanceof Error ? cause.message : String(cause)),
+            )
+            .finally(() => setBusy(false));
+        }}
+      >
+        <FormField
+          id="link-identity-email"
+          label={intl.formatMessage(messages.reviewLinkIdentityEmailLabel)}
+        >
+          <input
+            aria-label={intl.formatMessage(messages.reviewLinkIdentityEmailLabel)}
+            className="cl-input cl-input--default cl-focusable"
+            id="link-identity-email"
+            onChange={(event) => setEmail(event.target.value)}
+            required
+            type="email"
+            value={email}
           />
         </FormField>
         {error !== undefined && <p className="cl-inline-alert">{error}</p>}

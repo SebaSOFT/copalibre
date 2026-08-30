@@ -21,6 +21,7 @@ export const AUDIT_ACTIONS = [
   'organization.created',
   'organization.settings_updated',
   'organization.invitation-created',
+  'organization.invitation-rescinded',
   'organization.role-assigned',
   'organization.role-changed',
   'organization.role-deleted',
@@ -35,6 +36,7 @@ export const AUDIT_ACTIONS = [
   'club.updated',
   'team.created',
   'team.updated',
+  'team.removed',
 
   // Persons and players
   'person.registered',
@@ -44,9 +46,11 @@ export const AUDIT_ACTIONS = [
   'person.birth-date-set',
   'person.identity-updated',
   'person.replaced',
+  'person.removed',
   'player.enlisted',
   'player.dismissed',
   'participant.identity-linked',
+  'participant.identity-unlinked',
   /** A login identity is created for the first time, by self-service signup or first OIDC login. */
   'identity.principal-registered',
   'identity.password-reset',

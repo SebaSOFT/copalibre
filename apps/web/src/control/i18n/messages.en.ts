@@ -782,6 +782,21 @@ export const messages = defineMessages({
     defaultMessage: 'Cancel',
   },
   reviewEditIdentitySave: { id: 'control.review.editIdentitySave', defaultMessage: 'Save' },
+  reviewLinkIdentity: { id: 'control.review.linkIdentity', defaultMessage: 'Link identity' },
+  reviewUnlinkIdentity: { id: 'control.review.unlinkIdentity', defaultMessage: 'Unlink' },
+  reviewLinkIdentityTitle: {
+    id: 'control.review.linkIdentityTitle',
+    defaultMessage: 'Link {displayName} to an email',
+  },
+  reviewLinkIdentityCancel: {
+    id: 'control.review.linkIdentityCancel',
+    defaultMessage: 'Cancel',
+  },
+  reviewLinkIdentitySave: { id: 'control.review.linkIdentitySave', defaultMessage: 'Link' },
+  reviewLinkIdentityEmailLabel: {
+    id: 'control.review.linkIdentityEmailLabel',
+    defaultMessage: 'Email',
+  },
 
   // AbbreviationReviewSection.tsx
   abbreviationReviewSectionLabel: {
@@ -888,6 +903,22 @@ export const messages = defineMessages({
   rolesInactive: { id: 'control.roles.inactive', defaultMessage: 'Inactive' },
   rolesDeleteOf: { id: 'control.roles.deleteOf', defaultMessage: 'Delete {email}' },
   rolesDelete: { id: 'control.roles.delete', defaultMessage: 'Delete' },
+  rolesPendingInvitationsTitle: {
+    id: 'control.roles.pendingInvitationsTitle',
+    defaultMessage: 'Pending invitations',
+  },
+  rolesPendingInvitationsEmpty: {
+    id: 'control.roles.pendingInvitationsEmpty',
+    defaultMessage: 'No pending invitations.',
+  },
+  rolesRescindInvitation: {
+    id: 'control.roles.rescindInvitation',
+    defaultMessage: 'Rescind',
+  },
+  rolesRescindInvitationOf: {
+    id: 'control.roles.rescindInvitationOf',
+    defaultMessage: 'Rescind invitation for {email}',
+  },
   rolesLastActiveAdminNotice: {
     id: 'control.roles.lastActiveAdminNotice',
     defaultMessage: 'This organization must always keep at least one active admin.',
