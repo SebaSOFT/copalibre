@@ -777,7 +777,8 @@ export class CompetitionRepository {
     }
   }
 
-  private async assertStageHasNoFixtures(uow: UnitOfWork, stageId: string): Promise<void> {
+  /** Public: also guards `TournamentRepository.updateStageConfiguration`, one layer over. */
+  async assertStageHasNoFixtures(uow: UnitOfWork, stageId: string): Promise<void> {
     const fixture = await uow.tx
       .selectFrom('fixtures')
       .select('fixture_id')

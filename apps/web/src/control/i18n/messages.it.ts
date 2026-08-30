@@ -540,6 +540,13 @@ export const messages: Record<string, string> = {
   'control.settings.mutationClass':
     '{mutationClass, select, safe {Sicura} requires_rebuild {Richiede ricostruzione} blocked_after_results {Bloccata dopo i risultati} other {Sconosciuta}}',
   'control.settings.link': 'Impostazioni torneo',
+  'control.rulesetOverrides.title': 'Regolamento',
+  'control.rulesetOverrides.link': 'Regolamento',
+  'control.rulesetOverrides.fields': 'Campi di override',
+  'control.rulesetOverrides.removeField': 'Rimuovi',
+  'control.rulesetOverrides.addField': 'Aggiungi campo',
+  'control.rulesetOverrides.newFieldLabel': 'Campo (percorso)',
+  'control.rulesetOverrides.newFieldValueLabel': 'Valore (JSON)',
   'control.stageSettings.title': 'Impostazioni fase',
   'control.stageSettings.renameLabel': 'Nuovo nome della fase',
   'control.stageSettings.renameSubmit': 'Rinomina',
@@ -548,6 +555,13 @@ export const messages: Record<string, string> = {
   'control.stageSettings.delete': 'Elimina fase',
   'control.stageSettings.seededExplanation':
     'Questa fase ha già incontri generati, quindi il formato e la rimozione sono bloccati.',
+  'control.stageConfiguration.title': 'Configurazione della fase',
+  'control.stageConfiguration.fieldLabel': 'Campo (percorso)',
+  'control.stageConfiguration.valueLabel': 'Valore (JSON)',
+  'control.stageConfiguration.apply': 'Applica',
+  'control.stageConfiguration.saved': 'Configurazione della fase salvata.',
+  'control.stageConfiguration.seededExplanation':
+    'Questa fase ha già incontri generati, quindi la sua configurazione è bloccata.',
   'control.zoneGroup.assignGroupsHeading': 'Assegna i partecipanti ai gironi',
   'control.zoneGroup.openPromotionPlan': 'Apri piano di promozione',
   'control.promotion.loading': 'Caricamento…',

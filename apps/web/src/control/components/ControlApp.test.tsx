@@ -54,6 +54,9 @@ describe('ControlApp', () => {
             hasRecordedResults: false,
           });
         }
+        if (url.includes('/configuration')) {
+          return json({ overrides: {} });
+        }
         if (url.includes('/standings')) {
           return json({
             stageId: 'stage-1',
@@ -89,6 +92,9 @@ describe('ControlApp', () => {
         if (url.endsWith('/tournaments/apertura-2026/settings')) {
           return json({ name: 'Apertura 2026', region: 'Cuyo', capacity: 16 });
         }
+        if (url.endsWith('/tournaments/apertura-2026/ruleset-overrides')) {
+          return json({ overrides: { 'scoring.pointsPerWin': 3 } });
+        }
         return json([]);
       },
     });
@@ -121,6 +127,11 @@ describe('ControlApp', () => {
       '/control/liga-mendocina/tournaments/apertura-2026/settings',
       'Configuración del torneo — apertura-2026',
       'Configuración del torneo',
+    ],
+    [
+      '/control/liga-mendocina/tournaments/apertura-2026/ruleset',
+      'Reglamento del torneo — apertura-2026',
+      'scoring.pointsPerWin',
     ],
     ['/control/liga-mendocina/clubs', 'Clubes — liga-mendocina', 'club'],
     [

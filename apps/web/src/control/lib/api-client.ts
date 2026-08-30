@@ -181,6 +181,37 @@ export interface ControlApiClient {
     tournamentAlias: string,
     request: TournamentSettingsRequest,
   ) => Promise<TournamentSettingsResponse>;
+  readonly fetchRulesetOverrides?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+  ) => Promise<RulesetOverridesResponse>;
+  readonly previewRulesetOverrides?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    request: RulesetOverridesRequest,
+  ) => Promise<MutationPreviewResponse>;
+  readonly updateRulesetOverrides?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    request: RulesetOverridesRequest,
+  ) => Promise<RulesetOverridesResponse>;
+  readonly fetchStageConfiguration?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageNumber: number,
+  ) => Promise<StageConfigurationResponse>;
+  readonly previewStageConfiguration?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageNumber: number,
+    request: StageConfigurationRequest,
+  ) => Promise<MutationPreviewResponse>;
+  readonly updateStageConfiguration?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageNumber: number,
+    request: StageConfigurationRequest,
+  ) => Promise<StageConfigurationResponse>;
   /** Zone/Group management, entrant assignment, and promotion plans. */
   readonly listZones?: (
     organizationAlias: string,
@@ -964,6 +995,24 @@ export interface TournamentSettingsResponse {
 }
 
 export type TournamentSettingsRequest = Partial<TournamentSettingsResponse>;
+
+/** Dot-path → value for a tournament ruleset's override fields (openspec 0169). */
+export interface RulesetOverridesResponse {
+  readonly overrides: Readonly<Record<string, unknown>>;
+}
+
+export interface RulesetOverridesRequest {
+  readonly overrides: Readonly<Record<string, unknown>>;
+}
+
+/** Same shape one layer down: a stage's own configuration overrides (openspec 0169). */
+export interface StageConfigurationResponse {
+  readonly overrides: Readonly<Record<string, unknown>>;
+}
+
+export interface StageConfigurationRequest {
+  readonly overrides: Readonly<Record<string, unknown>>;
+}
 
 /** One field's classification from a mutation-preview endpoint. */
 export interface MutationFieldPreview {
@@ -1869,6 +1918,27 @@ export function createControlApiClient(input: {
         { method: 'DELETE', token: input.accessToken?.() },
       ),
 
+    fetchStageConfiguration: (organizationAlias, tournamentAlias, stageNumber) =>
+      requestJson<StageConfigurationResponse>(
+        input.fetch,
+        `${stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber)}/configuration`,
+        { token: input.accessToken?.() },
+      ),
+
+    previewStageConfiguration: (organizationAlias, tournamentAlias, stageNumber, body) =>
+      requestJson<MutationPreviewResponse>(
+        input.fetch,
+        `${stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber)}/configuration/preview`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    updateStageConfiguration: (organizationAlias, tournamentAlias, stageNumber, body) =>
+      requestJson<StageConfigurationResponse>(
+        input.fetch,
+        `${stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber)}/configuration`,
+        { method: 'PUT', body, token: input.accessToken?.() },
+      ),
+
     fetchTournamentSettings: (organizationAlias, tournamentAlias) =>
       requestJson<TournamentSettingsResponse>(
         input.fetch,
@@ -1893,6 +1963,33 @@ export function createControlApiClient(input: {
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
           tournamentAlias,
         )}/settings`,
+        { method: 'PUT', body, token: input.accessToken?.() },
+      ),
+
+    fetchRulesetOverrides: (organizationAlias, tournamentAlias) =>
+      requestJson<RulesetOverridesResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
+          tournamentAlias,
+        )}/ruleset-overrides`,
+        { token: input.accessToken?.() },
+      ),
+
+    previewRulesetOverrides: (organizationAlias, tournamentAlias, body) =>
+      requestJson<MutationPreviewResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
+          tournamentAlias,
+        )}/ruleset-overrides/preview`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    updateRulesetOverrides: (organizationAlias, tournamentAlias, body) =>
+      requestJson<RulesetOverridesResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
+          tournamentAlias,
+        )}/ruleset-overrides`,
         { method: 'PUT', body, token: input.accessToken?.() },
       ),
 

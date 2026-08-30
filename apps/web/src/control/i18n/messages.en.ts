@@ -1461,6 +1461,30 @@ export const messages = defineMessages({
     defaultMessage: 'Tournament settings',
   },
 
+  // TournamentRulesetPage.tsx, TournamentRulesetRoute.tsx (openspec 0169)
+  rulesetOverridesTitle: { id: 'control.rulesetOverrides.title', defaultMessage: 'Ruleset' },
+  rulesetOverridesLink: { id: 'control.rulesetOverrides.link', defaultMessage: 'Ruleset' },
+  rulesetOverridesFields: {
+    id: 'control.rulesetOverrides.fields',
+    defaultMessage: 'Override fields',
+  },
+  rulesetOverridesRemoveField: {
+    id: 'control.rulesetOverrides.removeField',
+    defaultMessage: 'Remove',
+  },
+  rulesetOverridesAddField: {
+    id: 'control.rulesetOverrides.addField',
+    defaultMessage: 'Add field',
+  },
+  rulesetOverridesNewFieldLabel: {
+    id: 'control.rulesetOverrides.newFieldLabel',
+    defaultMessage: 'Field (dot-path)',
+  },
+  rulesetOverridesNewFieldValueLabel: {
+    id: 'control.rulesetOverrides.newFieldValueLabel',
+    defaultMessage: 'Value (JSON)',
+  },
+
   // SeedingBuilderRoute.tsx — stage rename/format-change/delete (openspec 0168)
   stageSettingsTitle: { id: 'control.stageSettings.title', defaultMessage: 'Stage settings' },
   stageRenameLabel: { id: 'control.stageSettings.renameLabel', defaultMessage: 'New stage name' },
@@ -1474,6 +1498,32 @@ export const messages = defineMessages({
   stageSeededExplanation: {
     id: 'control.stageSettings.seededExplanation',
     defaultMessage: 'This stage already has fixtures, so its format and removal are locked.',
+  },
+
+  // SeedingBuilderRoute.tsx — stage-configuration override editing (openspec 0169)
+  stageConfigurationTitle: {
+    id: 'control.stageConfiguration.title',
+    defaultMessage: 'Stage configuration',
+  },
+  stageConfigurationFieldLabel: {
+    id: 'control.stageConfiguration.fieldLabel',
+    defaultMessage: 'Field (dot-path)',
+  },
+  stageConfigurationValueLabel: {
+    id: 'control.stageConfiguration.valueLabel',
+    defaultMessage: 'Value (JSON)',
+  },
+  stageConfigurationApply: {
+    id: 'control.stageConfiguration.apply',
+    defaultMessage: 'Apply',
+  },
+  stageConfigurationSaved: {
+    id: 'control.stageConfiguration.saved',
+    defaultMessage: 'Stage configuration saved.',
+  },
+  stageConfigurationSeededExplanation: {
+    id: 'control.stageConfiguration.seededExplanation',
+    defaultMessage: 'This stage already has fixtures, so its configuration is locked.',
   },
   zoneGroupAssignGroupsHeading: {
     id: 'control.zoneGroup.assignGroupsHeading',

@@ -333,6 +333,54 @@ export class TournamentSettingsRequest {
   checkInClosesAt?: string;
 }
 
+/**
+ * Dot-path → new value for a tournament ruleset's override fields (`scoring.pointsPerWin`,
+ * `tiebreakers`, `winCondition`, ...) — every field the installed `DisciplineDescriptor` marks
+ * `replaced` or `merged`, classified by `evaluateMutation` before it is applied. `customScripts` and
+ * `registration.capacity` are excluded: they keep their own dedicated routes (`PUT .../custom-scripts`,
+ * `PUT .../settings`), which already carry field-specific validation this generic route does not.
+ */
+export class RulesetOverridesRequest {
+  @IsObject()
+  @ApiProperty({
+    type: Object,
+    description:
+      'Dot-path → new value for each ruleset override field to change. Only the named fields are ' +
+      'touched; every other stored override is left unchanged.',
+    example: { 'scoring.pointsPerWin': 4 },
+  })
+  overrides!: Record<string, unknown>;
+}
+
+export class RulesetOverridesResponse {
+  @ApiProperty({
+    type: Object,
+    description: 'The full override document after applying the edit, not only the changed fields.',
+  })
+  overrides!: Record<string, unknown>;
+}
+
+/** Same shape as `RulesetOverridesRequest`/`Response`, one layer down: a stage's own overrides. */
+export class StageConfigurationRequest {
+  @IsObject()
+  @ApiProperty({
+    type: Object,
+    description:
+      'Dot-path → new value for each stage-configuration override field to change. Refused once the ' +
+      'stage already holds a generated fixture.',
+    example: { 'segments.overtimeEnabled': true },
+  })
+  overrides!: Record<string, unknown>;
+}
+
+export class StageConfigurationResponse {
+  @ApiProperty({
+    type: Object,
+    description: 'The full stage-configuration override document, not only the changed fields.',
+  })
+  overrides!: Record<string, unknown>;
+}
+
 export class HookScriptAttachmentRequest {
   @IsString()
   @ApiProperty({ enum: ['event.recorded'] })

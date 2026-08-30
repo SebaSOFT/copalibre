@@ -62,6 +62,8 @@ import {
   CreateTournamentRequest,
   HookScriptVocabularyResponse,
   ProblemResponse,
+  RulesetOverridesRequest,
+  RulesetOverridesResponse,
   SeriesMutationFieldPreview,
   SeriesMutationPreviewResponse,
   TournamentCustomScriptsResponse,
@@ -644,6 +646,251 @@ export class TournamentsController {
         ? { checkInClosesAt: overrides['registration.checkInClosesAt'] }
         : {}),
     };
+  }
+
+  @Get(':tournamentAlias/ruleset-overrides')
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationCapability('org.manage-tournament-lifecycle')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Read a tournament's editable ruleset override fields" })
+  @ApiOkResponse({ type: RulesetOverridesResponse })
+  @ApiUnauthorizedResponse({ type: ProblemResponse })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  @ApiNotFoundResponse({ type: ProblemResponse })
+  async rulesetOverrides(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Req() request: RequestWithSubject,
+  ): Promise<RulesetOverridesResponse> {
+    const tournaments = new TournamentRepository(this.db);
+    const tournament = await tournaments.findByScopedAlias(organizationAlias, tournamentAlias);
+    if (!tournament) {
+      throw new NotFoundException(`No tournament "${tournamentAlias}"`, {
+        errorCode: 'tournament-not-found',
+      });
+    }
+    enforcePolicy({
+      plane: 'admin-control',
+      subject: request.subject,
+      resource: { organizationId: tournament.organizationId },
+    });
+
+    const ruleset = await tournaments.findLatestRuleset(tournament.tournamentId);
+    if (!ruleset) {
+      throw new NotFoundException(`Tournament "${tournamentAlias}" has no ruleset`, {
+        errorCode: 'tournament-not-found',
+      });
+    }
+    return { overrides: { ...ruleset.overrides } };
+  }
+
+  @Post(':tournamentAlias/ruleset-overrides/preview')
+  @HttpCode(200)
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationCapability('org.manage-tournament-lifecycle')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Classify a proposed ruleset-override edit before it is applied',
+    description:
+      'Reports, per touched field, whether the proposed value is safe, requires a rebuild, or is ' +
+      'blocked because a result already exists or the field names no declared policy — never applies ' +
+      'anything itself.',
+  })
+  @ApiOkResponse({ type: SeriesMutationPreviewResponse })
+  @ApiBadRequestResponse({ type: ProblemResponse })
+  @ApiUnauthorizedResponse({ type: ProblemResponse })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  @ApiNotFoundResponse({ type: ProblemResponse })
+  async previewRulesetOverrides(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Body() body: RulesetOverridesRequest,
+    @Req() request: RequestWithSubject,
+  ): Promise<SeriesMutationPreviewResponse> {
+    const tournaments = new TournamentRepository(this.db);
+    const tournament = await tournaments.findByScopedAlias(organizationAlias, tournamentAlias);
+    if (!tournament) {
+      throw new NotFoundException(`No tournament "${tournamentAlias}"`, {
+        errorCode: 'tournament-not-found',
+      });
+    }
+    enforcePolicy({
+      plane: 'admin-control',
+      subject: request.subject,
+      resource: { organizationId: tournament.organizationId },
+    });
+
+    const current = await tournaments.findLatestRuleset(tournament.tournamentId);
+    if (!current) {
+      throw new NotFoundException(`Tournament "${tournamentAlias}" has no ruleset`, {
+        errorCode: 'tournament-not-found',
+      });
+    }
+    const descriptor = await tournaments.findDescriptor(
+      current.descriptorRef.descriptorId,
+      current.descriptorRef.version,
+    );
+    if (!descriptor) {
+      throw new NotFoundException('Tournament discipline descriptor is unavailable', {
+        errorCode: 'tournament-not-found',
+      });
+    }
+
+    const fieldNames = this.dedicatedRouteFieldsOf(body.overrides);
+    const { hasRecordedResults, acceptedEntrantCount } = await tournaments.settingsMutationContext(
+      tournament.tournamentId,
+    );
+
+    const fields: SeriesMutationFieldPreview[] = fieldNames.map((field) => {
+      const nextValue = body.overrides[field];
+      const decision = evaluateMutation(descriptor.fieldPolicies, field, {
+        hasRecordedResults,
+        previousValue: current.overrides[field],
+        nextValue,
+        acceptedEntrantCount,
+      });
+      if (!decision.ok) return { field, blocked: true, reason: decision.error.message };
+      return {
+        field,
+        mutationClass: decision.value.mutationClass,
+        ...(decision.value.mutationClass === 'requires_rebuild'
+          ? { invalidatedFixtureCount: decision.value.invalidates.length }
+          : {}),
+      };
+    });
+    return { fields };
+  }
+
+  @Put(':tournamentAlias/ruleset-overrides')
+  @HttpCode(200)
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationCapability('org.manage-tournament-lifecycle')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Edit a tournament ruleset’s override fields',
+    description:
+      'Applies the same classification the preview endpoint reports; a `blocked_after_results` field ' +
+      'or one naming no declared policy refuses the whole edit rather than applying part of it. ' +
+      '`customScripts` and `registration.capacity` are refused here — edit them through their own ' +
+      'dedicated routes.',
+  })
+  @ApiOkResponse({ type: RulesetOverridesResponse })
+  @ApiBadRequestResponse({ type: ProblemResponse })
+  @ApiConflictResponse({ type: ProblemResponse })
+  @ApiUnauthorizedResponse({ type: ProblemResponse })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  @ApiNotFoundResponse({ type: ProblemResponse })
+  async updateRulesetOverrides(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Body() body: RulesetOverridesRequest,
+    @Req() request: RequestWithSubject,
+  ): Promise<RulesetOverridesResponse> {
+    const tournaments = new TournamentRepository(this.db);
+    const tournament = await tournaments.findByScopedAlias(organizationAlias, tournamentAlias);
+    if (!tournament) {
+      throw new NotFoundException(`No tournament "${tournamentAlias}"`, {
+        errorCode: 'tournament-not-found',
+      });
+    }
+    const subject = request.subject;
+    enforcePolicy({
+      plane: 'admin-control',
+      subject,
+      resource: { organizationId: tournament.organizationId },
+    });
+
+    const current = await tournaments.findLatestRuleset(tournament.tournamentId);
+    if (!current) {
+      throw new NotFoundException(`Tournament "${tournamentAlias}" has no ruleset`, {
+        errorCode: 'tournament-not-found',
+      });
+    }
+    const descriptor = await tournaments.findDescriptor(
+      current.descriptorRef.descriptorId,
+      current.descriptorRef.version,
+    );
+    if (!descriptor) {
+      throw new NotFoundException('Tournament discipline descriptor is unavailable', {
+        errorCode: 'tournament-not-found',
+      });
+    }
+
+    const fieldNames = this.dedicatedRouteFieldsOf(body.overrides);
+    const { hasRecordedResults, acceptedEntrantCount } = await tournaments.settingsMutationContext(
+      tournament.tournamentId,
+    );
+    const actor = `user:${subject?.subjectId ?? 'unknown'}`;
+    const authorizationContext = (subject?.scopes ?? []).join(' ');
+    const nextOverrides: Record<string, unknown> = { ...current.overrides };
+
+    for (const field of fieldNames) {
+      const nextValue = body.overrides[field];
+      const decision = evaluateMutation(descriptor.fieldPolicies, field, {
+        hasRecordedResults,
+        previousValue: current.overrides[field],
+        nextValue,
+        acceptedEntrantCount,
+      });
+      if (!decision.ok) {
+        await recordAuditRefusal(
+          this.db,
+          {
+            organizationId: tournament.organizationId,
+            entityType: 'tournament-ruleset',
+            entityId: current.rulesetId,
+            action: 'mutation.refused',
+            actor,
+            authorizationContext,
+            reason: decision.error.message,
+            previousState: { field, nextValue },
+          },
+          (error) => this.logger.error('Failed to record a refusal audit entry', error as Error),
+        );
+        throw new ConflictException(decision.error.message, {
+          errorCode: 'tournament-ruleset-conflict',
+        });
+      }
+      nextOverrides[field] = nextValue;
+    }
+
+    try {
+      return await withTransaction(this.db, async (uow) => {
+        if (fieldNames.length > 0) {
+          await tournaments.createRuleset(uow, {
+            tournamentId: tournament.tournamentId,
+            organizationId: tournament.organizationId,
+            descriptor,
+            overrides: nextOverrides,
+            customScripts: current.customScripts,
+            actor,
+            authorizationContext,
+            reason: 'Organizer edited ruleset overrides',
+          });
+        }
+        return { overrides: nextOverrides };
+      });
+    } catch (error) {
+      if (error instanceof InvariantViolationError) {
+        throw new ConflictException(error.message, { errorCode: 'tournament-ruleset-conflict' });
+      }
+      throw error;
+    }
+  }
+
+  /** Field names from the request, refusing `customScripts`/`registration.capacity` — each keeps its own dedicated route. */
+  private dedicatedRouteFieldsOf(overrides: Readonly<Record<string, unknown>>): readonly string[] {
+    const fields = Object.keys(overrides);
+    const misrouted = fields.filter(
+      (field) => field === 'customScripts' || field === 'registration.capacity',
+    );
+    if (misrouted.length > 0) {
+      throw new BadRequestException(
+        `Field(s) ${misrouted.join(', ')} must be edited through their own dedicated route`,
+        { errorCode: 'tournament-bad-request' },
+      );
+    }
+    return fields;
   }
 
   @Get(':tournamentAlias/custom-scripts')

@@ -363,4 +363,75 @@ describe('the control API client', () => {
       },
     ]);
   });
+
+  it('calls the ruleset-override and stage-configuration editing endpoints (openspec 0169)', async () => {
+    const calls: Array<{ url: string; method: string; body?: unknown }> = [];
+    const client = createControlApiClient({
+      accessToken: () => 'token-admin',
+      fetch: async (input, init) => {
+        calls.push({
+          url: String(input),
+          method: init?.method ?? 'GET',
+          ...(init?.body ? { body: JSON.parse(String(init.body)) } : {}),
+        });
+        return response({});
+      },
+    });
+    if (
+      !client.fetchRulesetOverrides ||
+      !client.previewRulesetOverrides ||
+      !client.updateRulesetOverrides ||
+      !client.fetchStageConfiguration ||
+      !client.previewStageConfiguration ||
+      !client.updateStageConfiguration
+    ) {
+      throw new Error('openspec 0169 client methods must be available');
+    }
+
+    await client.fetchRulesetOverrides('liga-orbital', 'copa-verano');
+    await client.previewRulesetOverrides('liga-orbital', 'copa-verano', {
+      overrides: { 'scoring.pointsPerWin': 4 },
+    });
+    await client.updateRulesetOverrides('liga-orbital', 'copa-verano', {
+      overrides: { 'scoring.pointsPerWin': 4 },
+    });
+    await client.fetchStageConfiguration('liga-orbital', 'copa-verano', 1);
+    await client.previewStageConfiguration('liga-orbital', 'copa-verano', 1, {
+      overrides: { 'segments.overtimeEnabled': true },
+    });
+    await client.updateStageConfiguration('liga-orbital', 'copa-verano', 1, {
+      overrides: { 'segments.overtimeEnabled': true },
+    });
+
+    expect(calls).toEqual([
+      {
+        url: '/organizations/liga-orbital/tournaments/copa-verano/ruleset-overrides',
+        method: 'GET',
+      },
+      {
+        url: '/organizations/liga-orbital/tournaments/copa-verano/ruleset-overrides/preview',
+        method: 'POST',
+        body: { overrides: { 'scoring.pointsPerWin': 4 } },
+      },
+      {
+        url: '/organizations/liga-orbital/tournaments/copa-verano/ruleset-overrides',
+        method: 'PUT',
+        body: { overrides: { 'scoring.pointsPerWin': 4 } },
+      },
+      {
+        url: '/organizations/liga-orbital/tournaments/copa-verano/stages/1/configuration',
+        method: 'GET',
+      },
+      {
+        url: '/organizations/liga-orbital/tournaments/copa-verano/stages/1/configuration/preview',
+        method: 'POST',
+        body: { overrides: { 'segments.overtimeEnabled': true } },
+      },
+      {
+        url: '/organizations/liga-orbital/tournaments/copa-verano/stages/1/configuration',
+        method: 'PUT',
+        body: { overrides: { 'segments.overtimeEnabled': true } },
+      },
+    ]);
+  });
 });

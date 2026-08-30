@@ -66,6 +66,9 @@ export const ROUTE_CAPABILITIES: Readonly<Record<string, OrganizationCapability>
   'TournamentsController.settings': 'org.manage-tournament-lifecycle',
   'TournamentsController.previewSettingsMutation': 'org.manage-tournament-lifecycle',
   'TournamentsController.updateSettings': 'org.manage-tournament-lifecycle',
+  'TournamentsController.rulesetOverrides': 'org.manage-tournament-lifecycle',
+  'TournamentsController.previewRulesetOverrides': 'org.manage-tournament-lifecycle',
+  'TournamentsController.updateRulesetOverrides': 'org.manage-tournament-lifecycle',
 
   // org.rebuild-statistics
   'AdminStatisticsController.rebuild': 'org.rebuild-statistics',
@@ -79,6 +82,9 @@ export const ROUTE_CAPABILITIES: Readonly<Record<string, OrganizationCapability>
   'StagesController.previewSeriesMutation': 'org.manage-stages',
   'StagesController.update': 'org.manage-stages',
   'StagesController.remove': 'org.manage-stages',
+  'StagesController.configuration': 'org.manage-stages',
+  'StagesController.previewConfigurationMutation': 'org.manage-stages',
+  'StagesController.updateConfiguration': 'org.manage-stages',
 
   // org.manage-zones-groups
   'ZonesGroupsController.assignGroupsManually': 'org.manage-zones-groups',

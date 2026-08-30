@@ -540,6 +540,13 @@ export const messages: Record<string, string> = {
   'control.settings.mutationClass':
     '{mutationClass, select, safe {Безопасно} requires_rebuild {Требует пересборки} blocked_after_results {Заблокировано после результатов} other {Неизвестно}}',
   'control.settings.link': 'Настройки турнира',
+  'control.rulesetOverrides.title': 'Регламент',
+  'control.rulesetOverrides.link': 'Регламент',
+  'control.rulesetOverrides.fields': 'Поля переопределения',
+  'control.rulesetOverrides.removeField': 'Удалить',
+  'control.rulesetOverrides.addField': 'Добавить поле',
+  'control.rulesetOverrides.newFieldLabel': 'Поле (путь)',
+  'control.rulesetOverrides.newFieldValueLabel': 'Значение (JSON)',
   'control.stageSettings.title': 'Настройки этапа',
   'control.stageSettings.renameLabel': 'Новое название этапа',
   'control.stageSettings.renameSubmit': 'Переименовать',
@@ -548,6 +555,13 @@ export const messages: Record<string, string> = {
   'control.stageSettings.delete': 'Удалить этап',
   'control.stageSettings.seededExplanation':
     'На этом этапе уже сформированы матчи, поэтому формат и удаление заблокированы.',
+  'control.stageConfiguration.title': 'Конфигурация этапа',
+  'control.stageConfiguration.fieldLabel': 'Поле (путь)',
+  'control.stageConfiguration.valueLabel': 'Значение (JSON)',
+  'control.stageConfiguration.apply': 'Применить',
+  'control.stageConfiguration.saved': 'Конфигурация этапа сохранена.',
+  'control.stageConfiguration.seededExplanation':
+    'На этом этапе уже сформированы матчи, поэтому его конфигурация заблокирована.',
   'control.zoneGroup.assignGroupsHeading': 'Распределить участников по группам',
   'control.zoneGroup.openPromotionPlan': 'Открыть план повышения',
   'control.promotion.loading': 'Загрузка…',

@@ -520,6 +520,82 @@ export class TournamentRepository {
     return configuration;
   }
 
+  /**
+   * Versions a stage's configuration the way `createStageConfiguration` writes
+   * `version: 1` — merges the changed field(s) into the current version's
+   * `overrides` and inserts a new row, never mutating a prior version in
+   * place. Requires an existing configuration; a stage with none yet is
+   * created via `createStageConfiguration` instead.
+   */
+  async updateStageConfiguration(
+    uow: UnitOfWork,
+    input: {
+      readonly stageId: string;
+      readonly organizationId: string;
+      readonly changedOverrides: OverrideSet;
+      readonly actor: string;
+      readonly authorizationContext: string;
+    },
+  ): Promise<StageConfiguration> {
+    const previous = await uow.tx
+      .selectFrom('stage_configurations')
+      .selectAll()
+      .where('stage_id', '=', input.stageId)
+      .orderBy('version', 'desc')
+      .limit(1)
+      .executeTakeFirst();
+    if (!previous) {
+      throw new NotFoundError(`Stage ${input.stageId} has no configuration to edit`, {
+        stageId: input.stageId,
+      });
+    }
+
+    const rawPrevious = previous.overrides;
+    const previousOverrides =
+      typeof rawPrevious === 'string' ? JSON.parse(rawPrevious) : (rawPrevious ?? {});
+    const mergedOverrides = { ...previousOverrides, ...input.changedOverrides };
+    const version = previous.version + 1;
+    const stageConfigurationId = newId();
+    const configuration: StageConfiguration = {
+      stageConfigurationId,
+      stageId: input.stageId,
+      version,
+      rulesetId: previous.ruleset_id,
+      overrides: mergedOverrides,
+    };
+
+    await uow.tx
+      .insertInto('stage_configurations')
+      .values({
+        stage_configuration_id: stageConfigurationId,
+        stage_id: input.stageId,
+        version,
+        ruleset_id: previous.ruleset_id,
+        overrides: JSON.stringify(mergedOverrides),
+        created_at: new Date(),
+      })
+      .execute();
+
+    await uow.tx
+      .updateTable('stages')
+      .set({ stage_configuration_id: stageConfigurationId })
+      .where('stage_id', '=', input.stageId)
+      .execute();
+
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'stage-configuration',
+      entityId: stageConfigurationId,
+      action: 'stage-configuration.updated',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      previousState: { version: previous.version, overrides: previousOverrides },
+      resultingState: { version, overrides: mergedOverrides },
+    });
+
+    return configuration;
+  }
+
   async publish(
     uow: UnitOfWork,
     input: {
