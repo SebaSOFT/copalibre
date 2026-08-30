@@ -544,6 +544,13 @@ export const messages: Record<string, string> = {
   'control.settings.mutationClass':
     '{mutationClass, select, safe {Unbedenklich} requires_rebuild {Erfordert Neuaufbau} blocked_after_results {Nach Ergebnissen gesperrt} other {Unbekannt}}',
   'control.settings.link': 'Turniereinstellungen',
+  'control.rulesetOverrides.title': 'Reglement',
+  'control.rulesetOverrides.link': 'Reglement',
+  'control.rulesetOverrides.fields': 'Überschreibbare Felder',
+  'control.rulesetOverrides.removeField': 'Entfernen',
+  'control.rulesetOverrides.addField': 'Feld hinzufügen',
+  'control.rulesetOverrides.newFieldLabel': 'Feld (Pfad)',
+  'control.rulesetOverrides.newFieldValueLabel': 'Wert (JSON)',
   'control.stageSettings.title': 'Phaseneinstellungen',
   'control.stageSettings.renameLabel': 'Neuer Phasenname',
   'control.stageSettings.renameSubmit': 'Umbenennen',
@@ -552,6 +559,13 @@ export const messages: Record<string, string> = {
   'control.stageSettings.delete': 'Phase löschen',
   'control.stageSettings.seededExplanation':
     'Diese Phase hat bereits erzeugte Spiele, daher sind Format und Löschung gesperrt.',
+  'control.stageConfiguration.title': 'Phasenkonfiguration',
+  'control.stageConfiguration.fieldLabel': 'Feld (Pfad)',
+  'control.stageConfiguration.valueLabel': 'Wert (JSON)',
+  'control.stageConfiguration.apply': 'Anwenden',
+  'control.stageConfiguration.saved': 'Phasenkonfiguration gespeichert.',
+  'control.stageConfiguration.seededExplanation':
+    'Diese Phase hat bereits erzeugte Spiele, daher ist ihre Konfiguration gesperrt.',
   'control.zoneGroup.assignGroupsHeading': 'Teilnehmer den Gruppen zuweisen',
   'control.zoneGroup.openPromotionPlan': 'Aufstiegsplan öffnen',
   'control.promotion.loading': 'Wird geladen…',

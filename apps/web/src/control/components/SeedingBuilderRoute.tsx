@@ -98,6 +98,131 @@ function StageSettingsSection({
   );
 }
 
+/**
+ * A stage's configuration override fields — the same dot-path-editing shape
+ * `TournamentRulesetPage` uses one layer up, disabled once the stage is
+ * seeded (openspec 0169).
+ */
+function StageConfigurationSection({
+  overrides,
+  seeded,
+  onApply,
+}: {
+  readonly overrides: Readonly<Record<string, unknown>>;
+  readonly seeded: boolean;
+  readonly onApply: (changed: Record<string, unknown>) => Promise<void>;
+}): React.JSX.Element {
+  const intl = useIntl();
+  const [drafts, setDrafts] = useState<{ readonly field: string; readonly value: string }[]>(
+    Object.entries(overrides).map(([field, value]) => ({ field, value: JSON.stringify(value) })),
+  );
+  const [newField, setNewField] = useState('');
+  const [newValue, setNewValue] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  return (
+    <div className="cl-card cl-chamfer cl-chamfer--control">
+      <header className="cl-card__header">
+        <h2 className="cl-card__title">
+          <FormattedMessage {...messages.stageConfigurationTitle} />
+        </h2>
+      </header>
+      <div className="cl-card__content">
+        <ul aria-label={intl.formatMessage(messages.stageConfigurationTitle)}>
+          {drafts.map((draft, index) => (
+            <li key={draft.field}>
+              <FormField id={`stage-configuration-${index}`} label={draft.field}>
+                <input
+                  className="cl-input cl-input--default cl-focusable"
+                  disabled={seeded}
+                  id={`stage-configuration-${index}`}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setDrafts((current) =>
+                      current.map((entry, entryIndex) =>
+                        entryIndex === index ? { ...entry, value } : entry,
+                      ),
+                    );
+                  }}
+                  value={draft.value}
+                />
+              </FormField>
+            </li>
+          ))}
+        </ul>
+
+        <FormField
+          id="stage-configuration-new-field"
+          label={intl.formatMessage(messages.stageConfigurationFieldLabel)}
+        >
+          <input
+            className="cl-input cl-input--default cl-focusable"
+            disabled={seeded}
+            id="stage-configuration-new-field"
+            onChange={(event) => setNewField(event.target.value)}
+            value={newField}
+          />
+        </FormField>
+        <FormField
+          id="stage-configuration-new-value"
+          label={intl.formatMessage(messages.stageConfigurationValueLabel)}
+        >
+          <input
+            className="cl-input cl-input--default cl-focusable"
+            disabled={seeded}
+            id="stage-configuration-new-value"
+            onChange={(event) => setNewValue(event.target.value)}
+            value={newValue}
+          />
+        </FormField>
+        <Button
+          disabled={seeded || newField.trim() === ''}
+          onClick={() => {
+            const field = newField.trim();
+            if (field === '' || drafts.some((draft) => draft.field === field)) return;
+            setDrafts((current) => [...current, { field, value: newValue.trim() || '""' }]);
+            setNewField('');
+            setNewValue('');
+          }}
+          type="button"
+          variant="secondary"
+        >
+          <FormattedMessage {...messages.rulesetOverridesAddField} />
+        </Button>
+
+        <Button
+          disabled={seeded || busy}
+          onClick={() => {
+            const changed: Record<string, unknown> = {};
+            for (const draft of drafts) {
+              let parsed: unknown;
+              try {
+                parsed = JSON.parse(draft.value);
+              } catch {
+                continue;
+              }
+              if (JSON.stringify(overrides[draft.field]) !== JSON.stringify(parsed)) {
+                changed[draft.field] = parsed;
+              }
+            }
+            if (Object.keys(changed).length === 0) return;
+            setBusy(true);
+            void onApply(changed).finally(() => setBusy(false));
+          }}
+          type="button"
+        >
+          <FormattedMessage {...messages.stageConfigurationApply} />
+        </Button>
+        {seeded && (
+          <p className="cl-inline-alert">
+            <FormattedMessage {...messages.stageConfigurationSeededExplanation} />
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function SeedingBuilderRoute({
   organizationAlias,
   tournamentAlias,
@@ -121,6 +246,22 @@ export function SeedingBuilderRoute({
   );
   const [seeding, setSeeding] = useState<SeedingResponse | undefined>(undefined);
   const [status, setStatus] = useState('Cargando sembrado...');
+  const [stageOverrides, setStageOverrides] = useState<Readonly<Record<string, unknown>>>({});
+
+  useEffect(() => {
+    let live = true;
+    api
+      .fetchStageConfiguration?.(organizationAlias, tournamentAlias, stageNumber)
+      .then((loaded) => {
+        if (live) setStageOverrides(loaded?.overrides ?? {});
+      })
+      .catch(() => {
+        // A stage with no configuration yet has nothing to show — same as an empty document.
+      });
+    return () => {
+      live = false;
+    };
+  }, [api, organizationAlias, tournamentAlias, stageNumber]);
 
   useEffect(() => {
     let live = true;
@@ -217,6 +358,24 @@ export function SeedingBuilderRoute({
               pushError(error);
             }) ?? Promise.resolve()
         }
+        seeded={seeding.matches.length > 0}
+      />
+      <StageConfigurationSection
+        onApply={(changed) =>
+          api
+            .updateStageConfiguration?.(organizationAlias, tournamentAlias, stageNumber, {
+              overrides: changed,
+            })
+            .then((updated) => {
+              if (!updated) return;
+              setStageOverrides(updated.overrides);
+              push({ severity: 'success', message: 'Configuración de la fase guardada.' });
+            })
+            .catch((error: unknown) => {
+              pushError(error);
+            }) ?? Promise.resolve()
+        }
+        overrides={stageOverrides}
         seeded={seeding.matches.length > 0}
       />
       <SeedingBuilderPage

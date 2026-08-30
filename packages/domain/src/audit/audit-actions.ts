@@ -79,6 +79,7 @@ export const AUDIT_ACTIONS = [
   'ruleset.versioned',
   'ruleset.compiled',
   'stage-configuration.created',
+  'stage-configuration.updated',
   'profile.published',
 
   // Competition structure

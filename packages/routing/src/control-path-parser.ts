@@ -39,6 +39,12 @@ export type ControlRoute =
       readonly tournamentAlias: string;
     }
   | {
+      /** A published tournament's ruleset override fields: edit and preview (openspec 0169). */
+      readonly screen: 'tournamentRuleset';
+      readonly organizationAlias: string;
+      readonly tournamentAlias: string;
+    }
+  | {
       readonly screen: 'reports';
       readonly organizationAlias: string;
       readonly tournamentAlias: string;
@@ -144,6 +150,9 @@ export function parseControlPath(pathname: string): ControlRoute | undefined {
   }
   if (rest.length === 3 && rest[2] === 'settings') {
     return { screen: 'tournamentSettings', organizationAlias, tournamentAlias };
+  }
+  if (rest.length === 3 && rest[2] === 'ruleset') {
+    return { screen: 'tournamentRuleset', organizationAlias, tournamentAlias };
   }
   if (rest.length === 3 && rest[2] === 'reports') {
     return { screen: 'reports', organizationAlias, tournamentAlias };

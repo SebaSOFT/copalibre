@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
+import { controlLinkClick } from '../lib/control-navigation.js';
 import { Button } from './ui/atoms/button.js';
 import { FormField } from './ui/molecules/form-field.js';
 import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
@@ -91,6 +92,15 @@ export function TournamentSettingsPage({
               .finally(() => setBusy(false));
           }}
         >
+          <a
+            className="cl-focusable"
+            href={`/control/${organizationAlias}/tournaments/${tournamentAlias}/ruleset`}
+            onClick={controlLinkClick(
+              `/control/${organizationAlias}/tournaments/${tournamentAlias}/ruleset`,
+            )}
+          >
+            <FormattedMessage {...messages.rulesetOverridesLink} />
+          </a>
           <FormField id="settings-name" label={intl.formatMessage(messages.settingsNameLabel)}>
             <input
               className="cl-input cl-input--default cl-focusable"

@@ -116,6 +116,18 @@ export function battleRoyaleDescriptor(
         permission: { kind: 'replaced' },
         mutationClass: 'requires_rebuild',
       },
+      'scoring.pointsPerWin': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'blocked_after_results',
+      },
+      'scoring.pointsPerDraw': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'blocked_after_results',
+      },
+      'scoring.pointsPerLoss': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'blocked_after_results',
+      },
       tiebreakers: {
         permission: { kind: 'merged', strategy: 'union-list' },
         mutationClass: 'requires_rebuild',

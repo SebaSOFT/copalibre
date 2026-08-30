@@ -423,6 +423,12 @@ jobs:
       # exhaustively checked pairwise — named separately so a reviewer finds
       # this capability's own signal directly.
       - run: yarn workspace @copalibre/domain test --testPathPatterns 'tournament'
+      # Ruleset and stage-configuration editing (openspec 0169): every
+      # built-in discipline's scoring.* field policies classify through
+      # evaluateMutation and compile through the built-in disciplines'
+      # descriptors — named separately so a reviewer finds this capability's
+      # own signal directly.
+      - run: yarn workspace @copalibre/domain test --testPathPatterns 'ruleset-override-mutation'
       # The soak-report growth judgment — the arithmetic that
       # decides whether the nightly and per-PR soak runs pass, tested without
       # a browser.
@@ -721,6 +727,14 @@ jobs:
       # screen — named separately so a failure says which surface broke.
       - name: Competition structure editing (E2E)
         run: yarn test:e2e -- e2e/control-competition-structure-editing.spec.ts
+      # Ruleset and stage-configuration editing (openspec 0169): a tournament's
+      # ruleset override fields edited from the dedicated ruleset screen, a
+      # blocked field refused in the UI before the save request is ever sent,
+      # and a stage's configuration override edited before seeding then found
+      # locked once seeded — named separately so a failure says which surface
+      # broke.
+      - name: Ruleset and stage configuration editing (E2E)
+        run: yarn test:e2e -- e2e/control-ruleset-and-stage-configuration-editing.spec.ts
       # Accelerated TV soak-test proxy. design.md describes
       # the per-PR-eligible proxy as a 2-hour run; a literal 2 hours on every
       # PR would be a severe, ongoing CI-turnaround regression this repo does
@@ -906,6 +920,16 @@ jobs:
       # path here writes through `UnitOfWork`, so there is no Postgres-free
       # unit-level test file to run for it either.
       - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'structure-editing|object-deletion'
+      # Ruleset and stage-configuration editing (openspec 0169): a published
+      # tournament's ruleset override fields edited and previewed through
+      # `evaluateMutation`, refused whole when one touched field is blocked or
+      # names no declared policy; a stage's own configuration override edited
+      # for as long as it holds no fixture, refused once seeded, naming that
+      # fixtures already exist. No API-layer unit-tests step is added: every
+      # path here writes through `UnitOfWork`, so there is no Postgres-free
+      # unit-level test file to run — the domain-level field-policy coverage
+      # runs separately as `ruleset-override-mutation` in the unit-tests job.
+      - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'ruleset-editing|stage-configuration-editing'
       # Direct participant authoring (openspec 0167): a person or team
       # registered without a CSV file through the same repository paths a CSV
       # row already takes, an identity edit preserving the entity's existing

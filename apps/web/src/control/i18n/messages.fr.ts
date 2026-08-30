@@ -542,6 +542,13 @@ export const messages: Record<string, string> = {
   'control.settings.mutationClass':
     '{mutationClass, select, safe {Sans risque} requires_rebuild {Nécessite une reconstruction} blocked_after_results {Bloqué après résultats} other {Inconnu}}',
   'control.settings.link': 'Paramètres du tournoi',
+  'control.rulesetOverrides.title': 'Règlement',
+  'control.rulesetOverrides.link': 'Règlement',
+  'control.rulesetOverrides.fields': 'Champs de dérogation',
+  'control.rulesetOverrides.removeField': 'Retirer',
+  'control.rulesetOverrides.addField': 'Ajouter un champ',
+  'control.rulesetOverrides.newFieldLabel': 'Champ (chemin)',
+  'control.rulesetOverrides.newFieldValueLabel': 'Valeur (JSON)',
   'control.stageSettings.title': 'Paramètres de la phase',
   'control.stageSettings.renameLabel': 'Nouveau nom de la phase',
   'control.stageSettings.renameSubmit': 'Renommer',
@@ -550,6 +557,13 @@ export const messages: Record<string, string> = {
   'control.stageSettings.delete': 'Supprimer la phase',
   'control.stageSettings.seededExplanation':
     'Cette phase possède déjà des rencontres générées ; son format et sa suppression sont verrouillés.',
+  'control.stageConfiguration.title': 'Configuration de la phase',
+  'control.stageConfiguration.fieldLabel': 'Champ (chemin)',
+  'control.stageConfiguration.valueLabel': 'Valeur (JSON)',
+  'control.stageConfiguration.apply': 'Appliquer',
+  'control.stageConfiguration.saved': 'Configuration de la phase enregistrée.',
+  'control.stageConfiguration.seededExplanation':
+    'Cette phase possède déjà des rencontres générées ; sa configuration est verrouillée.',
   'control.zoneGroup.assignGroupsHeading': 'Affecter les participants aux groupes',
   'control.zoneGroup.openPromotionPlan': 'Ouvrir le plan de promotion',
   'control.promotion.loading': 'Chargement…',
