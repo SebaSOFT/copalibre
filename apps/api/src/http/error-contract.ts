@@ -175,18 +175,23 @@ export class ApiExceptionFilter implements ExceptionFilter {
     @Inject(DATABASE) private readonly db: Kysely<Database>,
   ) {}
 
-  catch(exception: unknown, host: ArgumentsHost): void {
+  async catch(exception: unknown, host: ArgumentsHost): Promise<void> {
     const response = apiErrorResponse(exception);
+    // Recorded before the reply is sent, not after: once `reply()` below
+    // completes, the HTTP transaction is over from the transport's
+    // perspective (Fastify's `inject()` resolves the moment the response is
+    // flushed, independent of whatever this async function does next) — so
+    // "record afterward" can never be observed as done by the time a caller
+    // sees the response, only "eventually". Recording first still cannot
+    // turn this refusal into a server error: `recordAuditRefusal` swallows
+    // its own failure and reports it to `this.logger`, never rethrowing
+    // (proposal.md, "Risk concentrated in one place").
+    await this.recordRefusal(response, host);
     this.adapterHost.httpAdapter.reply(
       host.switchToHttp().getResponse(),
       response,
       response.statusCode,
     );
-    // Fired after the reply is already sent, and never awaited by the
-    // caller: recording a refusal must never add latency to, or alter, the
-    // refusal already returned (proposal.md, "Risk concentrated in one
-    // place"). A failure here reaches only `this.logger`, never the client.
-    void this.recordRefusal(response, host);
   }
 
   private async recordRefusal(response: ApiErrorResponse, host: ArgumentsHost): Promise<void> {

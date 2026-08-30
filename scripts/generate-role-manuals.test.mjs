@@ -61,7 +61,7 @@ test('refuses a page with no marker pair', () => {
 test('parses back exactly the capability ids the block lists', () => {
   const block = generatedCapabilityBlock('admin');
   const ids = documentedCapabilities(block);
-  assert.equal(ids.length, 21);
+  assert.equal(ids.length, 22);
   assert.ok(ids.includes('org.manage-clubs'));
 });
 

@@ -67,7 +67,7 @@ describe('API error contract', () => {
     });
   });
 
-  it('writes the additive response through the HTTP adapter', () => {
+  it('writes the additive response through the HTTP adapter', async () => {
     const reply = jest.fn();
     const adapterHost = { httpAdapter: { reply } } as unknown as HttpAdapterHost;
     const response = {};
@@ -76,7 +76,10 @@ describe('API error contract', () => {
     } as unknown as ArgumentsHost;
     const db = {} as unknown as ConstructorParameters<typeof ApiExceptionFilter>[1];
 
-    new ApiExceptionFilter(adapterHost, db).catch(new BadRequestException('Invalid input'), host);
+    await new ApiExceptionFilter(adapterHost, db).catch(
+      new BadRequestException('Invalid input'),
+      host,
+    );
 
     expect(reply).toHaveBeenCalledWith(
       response,
