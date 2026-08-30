@@ -160,6 +160,14 @@ jobs:
       # and role mapping every guard below resolves through.
       - run: yarn workspace @copalibre/domain test --testPathPatterns 'role-capabilities'
       - run: yarn workspace @copalibre/api test --testPathPatterns 'access-coverage|capability-guard'
+      # audit-vocabulary/audit-coverage (openspec 0166): the declared audited
+      # action vocabulary and the gate failing an aggregate mutation that
+      # records no audit entry. tasks.md names the "unit-tests" job for this
+      # step; access-coverage actually lives here, in guard-coverage — placed
+      # after it to match the task's intent (a build gate a missing audit
+      # entry fails) rather than its stale job name.
+      - run: yarn workspace @copalibre/domain test --testPathPatterns 'audit-vocabulary'
+      - run: yarn workspace @copalibre/persistence test --testPathPatterns 'audit-coverage'
 
   license-scan:
     name: License scan
@@ -699,6 +707,13 @@ jobs:
       # submission — named separately so a failure says so directly.
       - name: Role manuals and navigation (E2E)
         run: yarn test:e2e -- e2e/role-manual-navigation.spec.ts
+      # Audit trail (openspec 0166): an administrator reaches the surface
+      # from the sidenav and sees applied and refused actions with their
+      # actor and outcome; a role without org.view-audit-trail neither sees
+      # the navigation entry nor reaches the surface directly — named
+      # separately so a failure says so directly.
+      - name: Audit trail (E2E)
+        run: yarn test:e2e -- e2e/audit-trail.spec.ts
       # Accelerated TV soak-test proxy. design.md describes
       # the per-PR-eligible proxy as a 2-hour run; a literal 2 hours on every
       # PR would be a severe, ongoing CI-turnaround regression this repo does
@@ -871,6 +886,17 @@ jobs:
       # pattern above so a failure says which half broke — the engine 0158 built
       # or the surfaces 0159 wired onto it.
       - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'series-operations'
+      # Refused-attempt and audit-surface recording, through the real HTTP
+      # stack (openspec 0166): a role-refused request naming the missing
+      # capability, an unauthenticated refusal naming the actor's absence,
+      # and the audit-trail API itself (organization-scoped, paginated,
+      # gated by its own capability, a refusal to read it recorded like any
+      # other). Sensitive-read recording (exports, a person's profile) has
+      # no dedicated file — it is asserted inline in each route's own
+      # integration test (tournaments/data-export/identity-media), covered
+      # by the workspace-wide run above; named here for the two dedicated
+      # files this change adds.
+      - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'refusal-audit|audit-trail'
       # Club and tournament resource scope, through the real HTTP stack
       # (openspec 0165): a club-admin admitted to their own club and refused
       # on another, admin reaching a club-admin's resource by inheritance, a
