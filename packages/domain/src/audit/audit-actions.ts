@@ -153,6 +153,15 @@ export const AUDIT_ACTIONS = [
   // Import / export
   'csv-import.committed',
 
+  // Sensitive reads (openspec 0166) — bulk extraction and personal-data
+  // reads, recorded at the route once the read succeeds. Ordinary browsing
+  // (standings, a bracket, the match console) records nothing.
+  'tournament.configuration-exported',
+  'export.participants-downloaded',
+  'export.results-downloaded',
+  'export.standings-downloaded',
+  'person.profile-read',
+
   // Rule evaluation (decision-layer outcomes, not repository mutations)
   'rule.evaluated',
   'rule.evaluation-failed',

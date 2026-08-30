@@ -232,6 +232,22 @@ describe('standings and seeding routes (integration)', () => {
     expect((await request({ method: 'GET', url: `${base}/standings` })).statusCode).toBe(401);
   });
 
+  it('records no audit entry for ordinary browsing of standings or a bracket (task 3.3)', async () => {
+    const before = await scratch.db
+      .selectFrom('audit_log')
+      .select((eb) => eb.fn.countAll<string>().as('count'))
+      .executeTakeFirstOrThrow();
+
+    await request({ method: 'GET', url: `${base}/standings`, token: 'organizer' });
+    await request({ method: 'GET', url: `${base}/seeding`, token: 'organizer' });
+
+    const after = await scratch.db
+      .selectFrom('audit_log')
+      .select((eb) => eb.fn.countAll<string>().as('count'))
+      .executeTakeFirstOrThrow();
+    expect(after.count).toBe(before.count);
+  });
+
   it('serves an empty trace for a row no comparator separated', async () => {
     const response = await request({
       method: 'GET',

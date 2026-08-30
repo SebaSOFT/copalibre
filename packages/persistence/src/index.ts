@@ -19,9 +19,11 @@ export {
 export {
   withTransaction,
   recordAuditRefusal,
+  recordAuditRead,
   type UnitOfWork,
   type AuditEntry,
   type AuditRefusalEntry,
+  type AuditReadEntry,
   type OutboxEvent,
 } from './transaction.js';
 

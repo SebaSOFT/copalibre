@@ -310,6 +310,24 @@ describe('live match console (integration)', () => {
     expect((await request('GET', `${base()}/console`, 'inactive')).statusCode).toBe(403);
   });
 
+  it('records no audit entry for ordinary browsing of the match console (task 3.3)', async () => {
+    const before = await scratch.db
+      .selectFrom('audit_log')
+      .select((eb) => eb.fn.countAll<string>().as('count'))
+      .executeTakeFirstOrThrow();
+
+    const publicRead = await request('GET', base());
+    expect(publicRead.statusCode).toBe(200);
+    const consoleRead = await request('GET', `${base()}/console`, 'referee');
+    expect(consoleRead.statusCode).toBe(200);
+
+    const after = await scratch.db
+      .selectFrom('audit_log')
+      .select((eb) => eb.fn.countAll<string>().as('count'))
+      .executeTakeFirstOrThrow();
+    expect(after.count).toBe(before.count);
+  });
+
   // the global ValidationPipe rejects a body failing its DTO with 400
   // at the edge, before the handler runs.
   it('rejects a clock adjustment missing its elapsed seconds with 400', async () => {

@@ -41,6 +41,21 @@ export interface AuditRefusalEntry {
   readonly previousState?: Record<string, unknown>;
 }
 
+/**
+ * A sensitive read: a bulk export or a read of a person's record carrying
+ * personal data. Neither `previousState` nor `resultingState` applies —
+ * nothing changed — so this carries only what a read needs: who, what, and
+ * (via `action`/`entityType`/`entityId`) which record.
+ */
+export interface AuditReadEntry {
+  readonly organizationId: string;
+  readonly entityType: string;
+  readonly entityId: string;
+  readonly action: AuditAction;
+  readonly actor: string;
+  readonly authorizationContext: string;
+}
+
 export interface OutboxEvent {
   readonly organizationId: string;
   readonly stream: string;
@@ -125,13 +140,17 @@ export async function withTransaction<T>(
  * should pass it; the default just logs, so a script or test never loses
  * the failure silently.
  */
+function defaultFailureHandler(label: string): (error: unknown) => void {
+  return (error) => {
+    // eslint-disable-next-line no-console
+    console.error(`[audit] failed to record ${label}`, error);
+  };
+}
+
 export async function recordAuditRefusal(
   db: Kysely<Database>,
   entry: AuditRefusalEntry,
-  onRecordingFailure: (error: unknown) => void = (error) => {
-    // eslint-disable-next-line no-console
-    console.error('[audit] failed to record a refusal', error);
-  },
+  onRecordingFailure: (error: unknown) => void = defaultFailureHandler('a refusal'),
 ): Promise<void> {
   try {
     await db
@@ -147,6 +166,38 @@ export async function recordAuditRefusal(
         previous_state: entry.previousState ? JSON.stringify(entry.previousState) : null,
         resulting_state: null,
         reason: entry.reason,
+        occurred_at: new Date(),
+      })
+      .execute();
+  } catch (error) {
+    onRecordingFailure(error);
+  }
+}
+
+/**
+ * Records a sensitive read outside any transaction — a read never has one
+ * to join. Best-effort for the same reason `recordAuditRefusal` is: a
+ * failure here must never turn a successful export into a server error.
+ */
+export async function recordAuditRead(
+  db: Kysely<Database>,
+  entry: AuditReadEntry,
+  onRecordingFailure: (error: unknown) => void = defaultFailureHandler('a read'),
+): Promise<void> {
+  try {
+    await db
+      .insertInto('audit_log')
+      .values({
+        audit_id: newId(),
+        organization_id: entry.organizationId,
+        entity_type: entry.entityType,
+        entity_id: entry.entityId,
+        action: entry.action,
+        actor: entry.actor,
+        authorization_context: entry.authorizationContext,
+        previous_state: null,
+        resulting_state: null,
+        reason: null,
         occurred_at: new Date(),
       })
       .execute();
