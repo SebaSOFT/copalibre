@@ -303,3 +303,52 @@ structural consequence.
 #### Scenario: Renaming carries no structural refusal
 - **WHEN** an operator renames a stage, seeded or not
 - **THEN** the rename applies, because a name change invalidates nothing a fixture depends on
+
+### Requirement: A published tournament's ruleset overrides are editable and mutation-classified
+A tournament's `TournamentRuleset` overrides — every field the installed `DisciplineDescriptor` marks
+`replaced` or `merged`, excluding custom scripts which keep their existing dedicated edit path — SHALL
+be editable after publication. Each changed field SHALL be classified `safe`, `requires_rebuild`, or
+`blocked_after_results` before the edit is applied, on the same mutation-classification contract every
+other configuration edit already follows. An edit touching a `blocked_after_results` field SHALL be
+refused once the tournament has a recorded match result, directing the operator to the audited
+correction workflow instead. An edit SHALL never discard an override the request did not name.
+
+#### Scenario: A safe ruleset override applies without warning
+- **WHEN** an organizer edits a ruleset override field classified `safe`
+- **THEN** the edit applies immediately with no rebuild warning
+
+#### Scenario: A requires_rebuild override reports what it invalidates
+- **WHEN** an organizer edits a ruleset override field classified `requires_rebuild` on a tournament with generated fixtures
+- **THEN** the edit applies and the response names the fixtures the change invalidates
+
+#### Scenario: A blocked ruleset override is refused after results
+- **WHEN** an organizer attempts to edit a ruleset override field classified `blocked_after_results` on a tournament that already has a recorded match result
+- **THEN** the edit is refused, directing the operator to the audited correction workflow
+
+#### Scenario: Editing one field leaves every other override untouched
+- **WHEN** an organizer edits a single ruleset override field
+- **THEN** every other field already present in the ruleset's overrides is unchanged in the resulting version
+
+### Requirement: An unseeded stage's configuration overrides are editable and mutation-classified
+A `StageConfiguration`'s overrides SHALL be editable for as long as the stage holds no generated
+fixture, classified `safe`, `requires_rebuild`, or `blocked_after_results` on the same contract the
+tournament's ruleset overrides use. Once the stage holds a fixture, an edit attempt SHALL be refused,
+naming that fixtures already exist and directing the operator to the seeding workflow that governs
+fixtures instead.
+
+#### Scenario: An unseeded stage's configuration override is corrected
+- **WHEN** an operator edits a configuration override on a stage that has never been seeded
+- **THEN** the override is updated, with no fixture to invalidate
+
+#### Scenario: A seeded stage's configuration edit is refused
+- **WHEN** an operator attempts to edit a configuration override on a stage that already holds generated fixtures
+- **THEN** the edit is refused, naming that fixtures already exist
+
+### Requirement: A ruleset or stage-configuration edit is previewable before commit
+An operator SHALL be able to preview a ruleset-override or stage-configuration edit's classification
+and, where applicable, its invalidated fixtures, without applying the edit — on the same request/response
+shape the tournament's series-declaration preview already uses.
+
+#### Scenario: A preview reports classification without applying anything
+- **WHEN** an operator submits a ruleset-override or stage-configuration edit to the preview endpoint
+- **THEN** the response reports the resulting mutation classification and no stored ruleset or stage configuration changes
