@@ -22,7 +22,9 @@ StageConfiguration → MatchRuleset`, where each level may only override fields 
 explicitly marks as overridable. This applies uniformly to every overridable field, including the win
 condition (see the win-condition requirement below): a field policy of `merged` SHALL always mean an
 actual merge by the declared strategy, never a silent full replacement, regardless of which override
-path resolves that field.
+path resolves that field. A `union-list` merge SHALL recognize two array elements as the same entry
+whenever they are structurally equal, independent of the order their source document declared their
+keys in.
 
 #### Scenario: Compiling an effective ruleset from a valid override chain
 - **WHEN** a `TournamentRuleset` overrides only fields its `DisciplineDescriptor` marks `replaced` or `merged`
@@ -35,6 +37,12 @@ path resolves that field.
 #### Scenario: Rejecting an unspecified deep merge
 - **WHEN** an override targets a field with no declared merge strategy
 - **THEN** compilation fails rather than silently deep-merging
+
+#### Scenario: A union-list merge recognizes a duplicate regardless of key order
+- **WHEN** an override for a `union-list` field supplies an array element that is structurally identical
+  to one already present, but whose object keys were declared in a different order in the source
+  document
+- **THEN** the merged result contains that entry once, not twice
 
 ### Requirement: Mutation classification on configuration fields
 Every configurable field SHALL declare a mutation class of `safe`, `requires_rebuild`, or
