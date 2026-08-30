@@ -350,3 +350,45 @@ produced which declaration, and which clauses could not be expressed and why.
 - **WHEN** a regulation contains a rule the descriptor cannot express
 - **THEN** the transcription names it and says why, rather than omitting it silently and leaving an
   agent to conclude the mapping was complete
+
+### Requirement: Every role has a manual page derived from the declared mapping
+The help site SHALL publish a manual page for each role in the organization and installation taxonomies,
+stating what the role can do, what it cannot, what it inherits and from which role, and which
+control-panel screens it will see.
+
+The page's statement of what a role can do SHALL be derived from the declared role-to-capability mapping
+rather than written independently of it, so documented authority cannot disagree with enforced
+authority.
+
+#### Scenario: Each role has a page
+- **WHEN** the help site is built
+- **THEN** a manual page exists for `admin`, `club-admin`, `tournament-admin`, `referee`, `broadcaster`,
+  `viewer` and `super-admin`
+
+#### Scenario: A role page names what it inherits
+- **WHEN** a reader opens the page for a role that inherits from another
+- **THEN** the page names the inherited role and states that its capabilities are held in addition to
+  the role's own, rather than silently listing them as if they were its own
+
+#### Scenario: A role page names what the role cannot do
+- **WHEN** a reader opens any role page
+- **THEN** it states the notable authority the role does not hold, so a reader can tell "not documented"
+  from "not permitted"
+
+### Requirement: Documented authority is gated against enforced authority
+The documentation lint SHALL fail when the authority a role page describes and the authority the declared
+mapping grants disagree — in either direction. A capability granted but undocumented, and a capability
+documented but not granted, SHALL both fail.
+
+#### Scenario: An undocumented capability fails the gate
+- **WHEN** a capability is granted to a role and no role page accounts for it
+- **THEN** the lint fails naming the role and the capability
+
+#### Scenario: A documented capability that is not granted fails the gate
+- **WHEN** a role page claims authority the mapping does not grant
+- **THEN** the lint fails naming the claim, because documentation that over-promises authority is the
+  more dangerous of the two directions
+
+#### Scenario: Adding a capability fails the build until it is documented
+- **WHEN** a new capability is declared and mapped to a role
+- **THEN** the build fails until that role's page accounts for it
