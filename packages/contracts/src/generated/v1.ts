@@ -1938,6 +1938,26 @@ export interface paths {
         patch: operations["ResourcesController_updateSchedule"];
         trace?: never;
     };
+    "/organizations/{organizationAlias}/audit-trail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the organization’s audit trail
+         * @description What happened, chronologically newest first: applied changes and refused attempts alike. Optionally narrowed to one actor via ?actor=. Paginated via ?limit=&offset=.
+         */
+        get: operations["AuditTrailController_trail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones": {
         parameters: {
             query?: never;
@@ -4493,6 +4513,33 @@ export interface components {
             turnaroundMinutes?: number;
             /** @description Venues to cover */
             venueIds?: string[];
+        };
+        AuditRecordResponse: {
+            /** Format: uuid */
+            auditId: string;
+            entityType: string;
+            entityId: string;
+            action: string;
+            actor: string;
+            authorizationContext: string;
+            previousState?: {
+                [key: string]: unknown;
+            };
+            resultingState?: {
+                [key: string]: unknown;
+            };
+            reason?: string;
+            /** Format: date-time */
+            occurredAt: string;
+            /** @enum {string} */
+            outcome: "applied" | "refused";
+        };
+        AuditTrailResponse: {
+            records: components["schemas"]["AuditRecordResponse"][];
+            /** @description Total matching rows, independent of limit/offset */
+            total: number;
+            limit: number;
+            offset: number;
         };
         ZoneResponse: {
             /** Format: uuid */
@@ -8552,6 +8599,27 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ScheduleDetailResponse"];
+                };
+            };
+        };
+    };
+    AuditTrailController_trail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditTrailResponse"];
                 };
             };
         };

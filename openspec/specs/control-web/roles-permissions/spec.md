@@ -9,11 +9,13 @@ never broader than their own records.
 ## Requirements
 
 ### Requirement: Organization-scoped role taxonomy
-The system SHALL support assigning each user one of `admin`, `club-admin`, `referee`, `broadcaster`,
-or `viewer` within a given organization, and a user's role in one organization SHALL NOT grant access
-in another organization. `admin` (organization-admin) SHALL hold that role in exactly one organization
-at a time — accepting an `admin` assignment in a second organization does not extend authority from the
-first, and each organization's admin authority is independently scoped.
+The system SHALL support assigning each user one of `admin`, `club-admin`, `tournament-admin`,
+`referee`, `broadcaster`, or `viewer` within a given organization, and a user's role in one
+organization SHALL NOT grant access in another organization. `admin` (organization-admin) SHALL hold
+that role in exactly one organization at a time — accepting an `admin` assignment in a second
+organization does not extend authority from the first, and each organization's admin authority is
+independently scoped. A `tournament-admin` assignment SHALL name exactly one tournament within the
+organization; the role SHALL NOT be assignable without one.
 
 #### Scenario: Role does not cross organizations
 - **WHEN** a user holds the `admin` role in organization A
@@ -30,6 +32,14 @@ first, and each organization's admin authority is independently scoped.
 - **WHEN** a user holds the `club-admin` role in organization A
 - **AND** that user has no role in organization B
 - **THEN** the user cannot perform club-admin actions in organization B
+
+#### Scenario: tournament-admin cannot be assigned without naming a tournament
+- **WHEN** an assignment naming the `tournament-admin` role names no tournament
+- **THEN** the assignment is refused, naming that a tournament is required
+
+#### Scenario: tournament-admin does not cross tournaments
+- **WHEN** a user holds `tournament-admin` for tournament A within an organization
+- **THEN** the user has no `tournament-admin` authority over tournament B in the same organization
 
 ### Requirement: Organization bootstrap is super-admin controlled
 Only an installation-scoped `super-admin` identity SHALL create an organization. That identity
@@ -192,7 +202,9 @@ organization with zero active `admin` role assignments.
 ### Requirement: club-admin and referee cannot create or manage users
 A user holding only `club-admin` or only `referee` in an organization SHALL have no user-administration
 authority: no ability to invite, change the role or status of, or remove any user, and no
-user-administration navigation entry.
+user-administration navigation entry. This SHALL follow from those roles not holding the
+user-administration capability in the declared mapping, rather than from each user-administration route
+omitting them from a list.
 
 #### Scenario: club-admin sees no user-administration entry
 - **WHEN** a user holding only the `club-admin` role in an organization opens the Control-web console
@@ -201,6 +213,11 @@ user-administration navigation entry.
 #### Scenario: referee sees no user-administration entry
 - **WHEN** a user holding only the `referee` role in an organization opens the Control-web console
 - **THEN** no navigation entry for user administration is rendered for that organization
+
+#### Scenario: The restriction follows from the mapping
+- **WHEN** a new user-administration route is added
+- **THEN** `club-admin` and `referee` are excluded from it because they do not hold the capability, with
+  no per-route list to remember to write correctly
 
 ### Requirement: User administration is reachable from the acting identity's own admin console
 User administration (inviting, changing, and removing role assignments) SHALL be presented as one
@@ -219,3 +236,85 @@ organization-management sections already available to them.
 - **WHEN** an organization `admin` opens their organization's Control-web console
 - **THEN** a user-administration section is listed alongside the other administrative sections already
   visible to that admin
+
+### Requirement: Capabilities and their role mapping are declared in one enumerable place
+The system SHALL declare its authorization capabilities as a named, enumerable set, and SHALL declare
+which roles hold which capabilities in one place. A route SHALL be guarded by naming the capability it
+requires, not by listing the roles that happen to hold it.
+
+The declared mapping SHALL be the only authority: it SHALL be possible to answer "what can this role do"
+by reading one declaration, rather than by collecting arguments from every route in the system.
+
+#### Scenario: A role's authority is answerable from one place
+- **WHEN** the question "what can a referee do in an organization" is asked of the system
+- **THEN** it is answered from the declared mapping, without inspecting any route
+
+#### Scenario: A route names a capability, not a role list
+- **WHEN** a route requires authority
+- **THEN** it names the capability it needs, and the roles admitted follow from the mapping
+
+#### Scenario: Today's access is preserved
+- **WHEN** the mapping replaces the previous per-route role lists
+- **THEN** every route admits exactly the roles it admitted before, so no caller gains or loses access
+  as a side effect of the declaration
+
+### Requirement: Where one role holds another's authority, it is declared as inheritance
+Where a role holds every capability another role holds, that relationship SHALL be declared as
+inheritance rather than restated by repeating the junior role's capabilities in the senior role's set.
+A capability added to an inherited role SHALL be held by the inheriting role without a second edit.
+
+#### Scenario: Inheritance is expressed once
+- **WHEN** an organization administrator holds everything a club administrator holds within the
+  organization
+- **THEN** that is declared as inheritance, and the club administrator's capabilities are not repeated in
+  the organization administrator's declaration
+
+#### Scenario: An added capability propagates
+- **WHEN** a capability is added to an inherited role
+- **THEN** every role inheriting from it holds the new capability with no further declaration
+
+#### Scenario: Inheritance never crosses an organization boundary
+- **WHEN** any role inherits from another
+- **THEN** the inherited authority applies only within the organization the assignment belongs to,
+  preserving the existing rule that a role in one organization grants nothing in another
+
+### Requirement: club-admin's scope over club-owned resources is defined
+The authority a `club-admin` holds SHALL be explicitly scoped: either narrowed to the clubs that
+principal administers, on the same resource-ownership basis participant scope already uses, or declared
+organization-wide. It SHALL NOT be left undefined, with the role admitted by route lists while nothing
+narrows what it may act upon.
+
+#### Scenario: Club scope is enforced where it is declared
+- **WHEN** a `club-admin` acts on a resource belonging to a club they do not administer, and club scope
+  is the declared model
+- **THEN** the action is refused on ownership grounds, the same way participant scope is enforced
+
+#### Scenario: The scope is discoverable
+- **WHEN** an operator or a reader asks what a club administrator may act on
+- **THEN** the answer is stated by the declared model rather than inferred from which routes happen to
+  name the role
+
+### Requirement: tournament-admin holds a defined subset of admin's capabilities, scoped to one tournament
+`tournament-admin` SHALL hold every tournament-operational capability — stage, zone and group
+management, scheduling, registrations, series declaration and match assignment — and SHALL NOT hold any
+organization-wide capability, including user administration, organization settings, club management, or
+authority over any tournament other than the one its assignment names.
+
+A `tournament-admin`'s actions SHALL be scoped to the tournament their assignment names, on the same
+resource-ownership basis club scope uses. An action against a different tournament in the same
+organization SHALL be refused on ownership grounds.
+
+#### Scenario: tournament-admin acts within its own tournament
+- **WHEN** a `tournament-admin` creates a stage or manages registrations within the tournament their
+  assignment names
+- **THEN** the action succeeds on the same terms it would for an organization administrator
+
+#### Scenario: tournament-admin is refused outside its tournament
+- **WHEN** a `tournament-admin` attempts an action against a different tournament in the same
+  organization
+- **THEN** the action is refused on ownership grounds, the same way club scope is enforced
+
+#### Scenario: tournament-admin holds no organization-wide authority
+- **WHEN** a `tournament-admin` attempts to invite a user, change organization settings, or manage a
+  club
+- **THEN** the action is refused, because none of those capabilities are in the role's declared set

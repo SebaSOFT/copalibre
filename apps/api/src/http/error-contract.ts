@@ -5,7 +5,9 @@ import {
   ForbiddenException as NestForbiddenException,
   HttpException,
   HttpStatus,
+  Inject,
   Injectable,
+  Logger,
   NotFoundException as NestNotFoundException,
   ServiceUnavailableException as NestServiceUnavailableException,
   UnauthorizedException as NestUnauthorizedException,
@@ -15,6 +17,16 @@ import {
   type HttpExceptionOptions,
 } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
+import type { Kysely } from 'kysely';
+import type { AuditAction } from '@copalibre/domain';
+import {
+  recordAuditRefusal,
+  SYSTEM_ORGANIZATION,
+  type AuditRefusalEntry,
+  type Database,
+} from '@copalibre/persistence';
+import { DATABASE } from '../database.token.js';
+import type { RequestWithSubject } from '../auth/request-context.js';
 
 export interface ApiErrorResponse extends Record<string, unknown> {
   readonly statusCode: number;
@@ -88,17 +100,107 @@ export function apiErrorResponse(exception: unknown): ApiErrorResponse {
   };
 }
 
+/**
+ * Which refusal category a status code represents, per proposal.md's three
+ * illustrative scenarios (a blocked mutation, an authorization refusal, a
+ * competition-state refusal) — collapsed to two actions rather than one per
+ * refusal reason, so the filter catches "refusals... including ones that
+ * will be added later" without a controller ever registering a new one.
+ * The specific reason lives in the record's `reason` field, not the action.
+ * `undefined` for anything that is not a refusal of a consequential
+ * operation (400 validation noise, 404, 500) — design.md, "record every
+ * 4xx. Rejected: a validation error on a malformed request body is noise."
+ */
+function refusalActionFor(statusCode: number): AuditAction | undefined {
+  if (statusCode === HttpStatus.UNAUTHORIZED || statusCode === HttpStatus.FORBIDDEN) {
+    return 'authorization.refused';
+  }
+  if (statusCode === HttpStatus.CONFLICT) {
+    return 'mutation.refused';
+  }
+  return undefined;
+}
+
+export interface MinimalRefusalRequest {
+  readonly method?: string;
+  readonly url?: string;
+  readonly subject?: RequestWithSubject['subject'];
+}
+
+/**
+ * The refusal to record for this response, or `undefined` when the status
+ * is not a refusal of a consequential operation. Pure and independent of
+ * Nest/Kysely so it is testable without a fake database or `ArgumentsHost` —
+ * `ApiExceptionFilter` below is the only caller, and only wires this to
+ * `recordAuditRefusal`.
+ */
+export function refusalEntryFor(
+  response: ApiErrorResponse,
+  request: MinimalRefusalRequest,
+): AuditRefusalEntry | undefined {
+  const action = refusalActionFor(response.statusCode);
+  if (action === undefined) return undefined;
+
+  const subject = request.subject;
+  const reason =
+    typeof response.message === 'string' ? response.message : response.message.join('; ');
+  // `audit_log.entity_id` is a `uuid` column — the filter has no reliable
+  // way to resolve a route's alias params to a domain aggregate's id
+  // without its own database round trips, so a route-level refusal is
+  // scoped to the organization (already a real uuid, or the installation-
+  // wide sentinel) and the method/path go into `previousState` instead.
+  const organizationId = subject?.organizationId ?? SYSTEM_ORGANIZATION;
+
+  return {
+    organizationId,
+    entityType: 'organization',
+    entityId: organizationId,
+    action,
+    // An unauthenticated refusal names the absence rather than inventing an
+    // actor (task 2.4) — there is no subject to attribute it to.
+    actor: subject ? `user:${subject.principalId ?? subject.subjectId}` : 'unauthenticated',
+    authorizationContext: (subject?.scopes ?? []).join(' '),
+    reason,
+    previousState: { method: request.method ?? 'UNKNOWN', path: request.url ?? 'unknown' },
+  };
+}
+
 @Catch()
 @Injectable()
 export class ApiExceptionFilter implements ExceptionFilter {
-  constructor(private readonly adapterHost: HttpAdapterHost) {}
+  private readonly logger = new Logger(ApiExceptionFilter.name);
 
-  catch(exception: unknown, host: ArgumentsHost): void {
+  constructor(
+    private readonly adapterHost: HttpAdapterHost,
+    @Inject(DATABASE) private readonly db: Kysely<Database>,
+  ) {}
+
+  async catch(exception: unknown, host: ArgumentsHost): Promise<void> {
     const response = apiErrorResponse(exception);
+    // Recorded before the reply is sent, not after: once `reply()` below
+    // completes, the HTTP transaction is over from the transport's
+    // perspective (Fastify's `inject()` resolves the moment the response is
+    // flushed, independent of whatever this async function does next) — so
+    // "record afterward" can never be observed as done by the time a caller
+    // sees the response, only "eventually". Recording first still cannot
+    // turn this refusal into a server error: `recordAuditRefusal` swallows
+    // its own failure and reports it to `this.logger`, never rethrowing
+    // (proposal.md, "Risk concentrated in one place").
+    await this.recordRefusal(response, host);
     this.adapterHost.httpAdapter.reply(
       host.switchToHttp().getResponse(),
       response,
       response.statusCode,
+    );
+  }
+
+  private async recordRefusal(response: ApiErrorResponse, host: ArgumentsHost): Promise<void> {
+    const request = host.switchToHttp().getRequest<MinimalRefusalRequest>();
+    const entry = refusalEntryFor(response, request);
+    if (entry === undefined) return;
+
+    await recordAuditRefusal(this.db, entry, (error) =>
+      this.logger.error('Failed to record a refusal audit entry', error as Error),
     );
   }
 }

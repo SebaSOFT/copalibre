@@ -28,6 +28,7 @@ export const messages = defineMessages({
   navOrganization: { id: 'control.nav.organization', defaultMessage: 'Organization' },
   navAnalytics: { id: 'control.nav.analytics', defaultMessage: 'Analytics' },
   navResources: { id: 'control.nav.resources', defaultMessage: 'Venues & officials' },
+  navAuditTrail: { id: 'control.nav.auditTrail', defaultMessage: 'Audit trail' },
   navPlatformAdministration: {
     id: 'control.nav.platformAdministration',
     defaultMessage: 'Platform administration',
@@ -885,6 +886,57 @@ export const messages = defineMessages({
   rolesInviteDialogSubmit: {
     id: 'control.roles.inviteDialog.submit',
     defaultMessage: 'Send invitation',
+  },
+
+  // AuditTrailRoute.tsx
+  auditTrailTitle: { id: 'control.auditTrail.title', defaultMessage: 'Audit trail' },
+  auditTrailDescription: {
+    id: 'control.auditTrail.description',
+    defaultMessage:
+      'What happened in this organization: applied changes and refused attempts alike, newest first.',
+  },
+  auditTrailBreadcrumb: {
+    id: 'control.auditTrail.breadcrumb',
+    defaultMessage: '{organizationAlias} / Organization',
+  },
+  auditTrailLoading: { id: 'control.auditTrail.loading', defaultMessage: 'Loading the trail...' },
+  auditTrailEmpty: {
+    id: 'control.auditTrail.empty',
+    defaultMessage: 'Nothing recorded yet.',
+  },
+  auditTrailLoadFailed: {
+    id: 'control.auditTrail.loadFailed',
+    defaultMessage: 'Could not load the audit trail.',
+  },
+  auditTrailColumnTime: { id: 'control.auditTrail.columnTime', defaultMessage: 'When' },
+  auditTrailColumnActor: { id: 'control.auditTrail.columnActor', defaultMessage: 'Who' },
+  auditTrailColumnAction: { id: 'control.auditTrail.columnAction', defaultMessage: 'Action' },
+  auditTrailColumnOutcome: { id: 'control.auditTrail.columnOutcome', defaultMessage: 'Outcome' },
+  auditTrailColumnReason: { id: 'control.auditTrail.columnReason', defaultMessage: 'Reason' },
+  auditTrailOutcomeApplied: {
+    id: 'control.auditTrail.outcome.applied',
+    defaultMessage: 'Applied',
+  },
+  auditTrailOutcomeRefused: {
+    id: 'control.auditTrail.outcome.refused',
+    defaultMessage: 'Refused',
+  },
+  auditTrailActorFilterLabel: {
+    id: 'control.auditTrail.actorFilterLabel',
+    defaultMessage: 'Filter by actor',
+  },
+  auditTrailActorFilterClear: {
+    id: 'control.auditTrail.actorFilterClear',
+    defaultMessage: 'Clear filter',
+  },
+  auditTrailPreviousPage: {
+    id: 'control.auditTrail.previousPage',
+    defaultMessage: 'Previous',
+  },
+  auditTrailNextPage: { id: 'control.auditTrail.nextPage', defaultMessage: 'Next' },
+  auditTrailPageStatus: {
+    id: 'control.auditTrail.pageStatus',
+    defaultMessage: '{start}–{end} of {total}',
   },
 
   // Wizard steps (lib/wizard.ts WIZARD_STEPS)

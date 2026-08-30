@@ -109,6 +109,12 @@ export const SIDENAV: readonly {
   { id: 'resources', label: messages.navResources, path: '/resources' },
   { id: 'organization', label: messages.navOrganization, path: '/organization' },
   { id: 'analytics', label: messages.navAnalytics, path: '/analytics' },
+  {
+    id: 'audit-trail',
+    label: messages.navAuditTrail,
+    path: '/audit-trail',
+    capability: 'org.view-audit-trail',
+  },
 ];
 
 /**

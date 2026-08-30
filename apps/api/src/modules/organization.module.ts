@@ -3,6 +3,7 @@ import { OrganizationsController } from '../controllers/organizations.controller
 import { OrganizationMediaController } from '../controllers/identity-media.controller.js';
 import { ClubsController } from '../controllers/clubs.controller.js';
 import { ResourcesController } from '../controllers/resources.controller.js';
+import { AuditTrailController } from '../controllers/audit-trail.controller.js';
 import { CoreModule } from './core.module.js';
 
 @Module({
@@ -12,6 +13,7 @@ import { CoreModule } from './core.module.js';
     OrganizationMediaController,
     ClubsController,
     ResourcesController,
+    AuditTrailController,
   ],
 })
 export class OrganizationModule {}

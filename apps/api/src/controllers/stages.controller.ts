@@ -4,6 +4,7 @@ import {
   Get,
   HttpCode,
   Inject,
+  Logger,
   Param,
   ParseIntPipe,
   Post,
@@ -37,6 +38,7 @@ import {
   InvariantViolationError,
   StageReadModel,
   TournamentRepository,
+  recordAuditRefusal,
   withTransaction,
   type Database,
 } from '@copalibre/persistence';
@@ -68,6 +70,8 @@ import { DATABASE } from '../database.token.js';
 @ApiTags('stages')
 @Controller('organizations/:organizationAlias/tournaments/:tournamentAlias/stages')
 export class StagesController {
+  private readonly logger = new Logger(StagesController.name);
+
   constructor(@Inject(DATABASE) private readonly db: Kysely<Database>) {}
 
   @Post()
@@ -221,7 +225,7 @@ export class StagesController {
     @Body() body: SeriesDeclarationRequest,
     @Req() request: RequestWithSubject,
   ): Promise<SeriesMutationPreviewResponse> {
-    const { tournament } = await resolveTournament(this.db, {
+    const { tournament, organizationId } = await resolveTournament(this.db, {
       organizationAlias,
       tournamentAlias,
       request,
@@ -270,24 +274,48 @@ export class StagesController {
         : [['series.standingsAccounting', body.standingsAccounting] as [string, unknown]]),
     ];
 
-    const fields = proposed.map(([field, nextValue]) => {
-      const decision = evaluateMutation(descriptor.fieldPolicies, field, {
-        hasRecordedResults,
-        generatedFixtures,
-        previousValue: previousValues[field],
-        nextValue,
-      });
-      if (!decision.ok) {
-        return { field, blocked: true, reason: decision.error.message };
-      }
-      return {
-        field,
-        mutationClass: decision.value.mutationClass,
-        ...(decision.value.mutationClass === 'requires_rebuild'
-          ? { invalidatedFixtureCount: decision.value.invalidates.length }
-          : {}),
-      };
-    });
+    const fields = await Promise.all(
+      proposed.map(async ([field, nextValue]) => {
+        const decision = evaluateMutation(descriptor.fieldPolicies, field, {
+          hasRecordedResults,
+          generatedFixtures,
+          previousValue: previousValues[field],
+          nextValue,
+        });
+        if (!decision.ok) {
+          // A classification consulted and found blocking, returned as a
+          // 200 decision rather than thrown — the one refusal shape the
+          // central exception filter cannot see, so it is recorded here
+          // instead (design.md, "Refusals that never reach the filter").
+          // Awaited, not fire-and-forget: nothing has been sent to the
+          // caller yet, so awaiting adds no risk of altering a response
+          // already on the wire, and it removes the race a detached write
+          // would leave between this response and a reader of the trail.
+          await recordAuditRefusal(
+            this.db,
+            {
+              organizationId,
+              entityType: 'stage-series',
+              entityId: stage.stageId,
+              action: 'mutation.refused',
+              actor: actorOf(request),
+              authorizationContext: authorizationContextOf(request),
+              reason: decision.error.message,
+              previousState: { field, nextValue },
+            },
+            (error) => this.logger.error('Failed to record a refusal audit entry', error as Error),
+          );
+          return { field, blocked: true, reason: decision.error.message };
+        }
+        return {
+          field,
+          mutationClass: decision.value.mutationClass,
+          ...(decision.value.mutationClass === 'requires_rebuild'
+            ? { invalidatedFixtureCount: decision.value.invalidates.length }
+            : {}),
+        };
+      }),
+    );
 
     return { fields };
   }

@@ -40,6 +40,7 @@ import {
   UploadImageResponse,
 } from '../dto/identity-media.dto.js';
 import { enforcePolicy } from '../policy/resource-policy.js';
+import { recordSensitiveRead } from '../http/sensitive-read-audit.js';
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
@@ -84,6 +85,13 @@ export class PersonMediaController {
         errorCode: 'identity-media-not-found',
       });
     }
+    await recordSensitiveRead(this.db, {
+      organizationId,
+      entityType: 'person',
+      entityId: personId,
+      action: 'person.profile-read',
+      subject: request.subject,
+    });
     return {
       personId: person.personId,
       displayName: person.displayName,

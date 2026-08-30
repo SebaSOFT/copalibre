@@ -52,6 +52,7 @@ import {
 } from '../dto/organization.dto.js';
 import { TournamentConfigurationExportResponse } from '../dto/tournament-configuration-export.dto.js';
 import { enforcePolicy } from '../policy/resource-policy.js';
+import { recordSensitiveRead } from '../http/sensitive-read-audit.js';
 import { DATABASE } from '../database.token.js';
 import {
   exportTournamentConfiguration,
@@ -173,7 +174,15 @@ export class TournamentsController {
       subject: request.subject,
       resource: { organizationId: tournament.organizationId },
     });
-    return exportTournamentConfiguration(this.db, tournament);
+    const exported = await exportTournamentConfiguration(this.db, tournament);
+    await recordSensitiveRead(this.db, {
+      organizationId: tournament.organizationId,
+      entityType: 'tournament',
+      entityId: tournament.tournamentId,
+      action: 'tournament.configuration-exported',
+      subject: request.subject,
+    });
+    return exported;
   }
 
   @Post()

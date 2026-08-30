@@ -17,6 +17,7 @@ export type ControlRoute =
   | { readonly screen: 'platformAdministration' }
   | { readonly screen: 'dashboard'; readonly organizationAlias: string }
   | { readonly screen: 'roles'; readonly organizationAlias: string }
+  | { readonly screen: 'auditTrail'; readonly organizationAlias: string }
   | { readonly screen: 'preferences'; readonly organizationAlias: string }
   | { readonly screen: 'newTournament'; readonly organizationAlias: string }
   | { readonly screen: 'clubs'; readonly organizationAlias: string }
@@ -111,6 +112,8 @@ export function parseControlPath(pathname: string): ControlRoute | undefined {
 
   if (rest.length === 0) return { screen: 'dashboard', organizationAlias };
   if (rest.length === 1 && rest[0] === 'roles') return { screen: 'roles', organizationAlias };
+  if (rest.length === 1 && rest[0] === 'audit-trail')
+    return { screen: 'auditTrail', organizationAlias };
   if (rest.length === 1 && rest[0] === 'preferences')
     return { screen: 'preferences', organizationAlias };
   if (rest.length === 1 && rest[0] === 'clubs') return { screen: 'clubs', organizationAlias };

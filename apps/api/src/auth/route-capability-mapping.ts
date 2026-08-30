@@ -65,6 +65,9 @@ export const ROUTE_CAPABILITIES: Readonly<Record<string, OrganizationCapability>
   // org.rebuild-statistics
   'AdminStatisticsController.rebuild': 'org.rebuild-statistics',
 
+  // org.view-audit-trail
+  'AuditTrailController.trail': 'org.view-audit-trail',
+
   // org.manage-stages
   'StagesController.create': 'org.manage-stages',
   'StagesController.fixtures': 'org.manage-stages',

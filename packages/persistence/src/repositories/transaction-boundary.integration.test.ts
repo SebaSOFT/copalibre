@@ -129,7 +129,7 @@ describe('transaction boundary (integration)', () => {
           organizationId: organization.organizationId,
           entityType: 'organization',
           entityId: organization.organizationId,
-          action: 'organization.renamed',
+          action: 'organization.settings_updated',
           actor,
           authorizationContext: 'scope:organization.write',
           previousState: { name: 'History' },

@@ -18,8 +18,12 @@ export {
 
 export {
   withTransaction,
+  recordAuditRefusal,
+  recordAuditRead,
   type UnitOfWork,
   type AuditEntry,
+  type AuditRefusalEntry,
+  type AuditReadEntry,
   type OutboxEvent,
 } from './transaction.js';
 
@@ -33,7 +37,13 @@ export {
   isSchemaReady,
 } from './migrations/index.js';
 
-export { AuditReader, type AuditRecord } from './audit.js';
+export {
+  AuditReader,
+  isRefusal,
+  type AuditRecord,
+  type AuditPage,
+  type AuditPageOptions,
+} from './audit.js';
 export { OutboxReader, type OutboxRecord } from './outbox.js';
 
 export {

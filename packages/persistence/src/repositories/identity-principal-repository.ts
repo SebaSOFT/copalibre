@@ -9,6 +9,7 @@ import { newId } from '../ids.js';
 import { toIdentityPrincipal } from '../mapping.js';
 import type { Database } from '../schema.js';
 import type { UnitOfWork } from '../transaction.js';
+import { SYSTEM_ORGANIZATION } from '../relay/scheduled-jobs.js';
 
 interface OidcIdentity {
   readonly subjectId: string;
@@ -66,7 +67,17 @@ export class IdentityPrincipalRepository {
       .returningAll()
       .executeTakeFirstOrThrow();
 
-    return toIdentityPrincipal(row);
+    const principal = toIdentityPrincipal(row);
+    await uow.recordAudit({
+      organizationId: SYSTEM_ORGANIZATION,
+      entityType: 'identity-principal',
+      entityId: principal.principalId,
+      action: 'identity.principal-registered',
+      actor: input.actor ?? `principal:${principal.principalId}`,
+      authorizationContext: input.authorizationContext ?? 'self-service:signup',
+      resultingState: { email },
+    });
+    return principal;
   }
 
   async findByOidcSubject(subjectId: string): Promise<IdentityPrincipal | undefined> {
@@ -232,7 +243,17 @@ export class IdentityPrincipalRepository {
       })
       .returningAll()
       .executeTakeFirstOrThrow();
-    return toIdentityPrincipal(created);
+    const principal = toIdentityPrincipal(created);
+    await uow.recordAudit({
+      organizationId: SYSTEM_ORGANIZATION,
+      entityType: 'identity-principal',
+      entityId: principal.principalId,
+      action: 'identity.principal-registered',
+      actor: `principal:${principal.principalId}`,
+      authorizationContext: 'self-service:oidc-first-login',
+      resultingState: { email },
+    });
+    return principal;
   }
 
   private async findOrCreateByEmail(uow: UnitOfWork, email: string): Promise<IdentityPrincipal> {

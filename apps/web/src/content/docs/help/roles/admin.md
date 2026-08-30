@@ -37,6 +37,7 @@ one tournament.
 - `org.operate-match`
 - `org.rebuild-statistics`
 - `org.review-reports`
+- `org.view-audit-trail`
 - `org.view-internal-standings`
 - `org.view-internal-tables`
 
