@@ -3,15 +3,34 @@ import { APP_FILTER, APP_GUARD, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
 import { OrganizationRepository, withTransaction, type Database } from '@copalibre/persistence';
+import type { ObjectStorageAdapter } from '@copalibre/object-storage';
 import { createMigratedDatabase } from '../../../../../packages/persistence/src/test-support/scratch-database.js';
 import type { Kysely } from 'kysely';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard.js';
 import type { AuthenticatedSubject } from '../../auth/request-context.js';
 import { TokenVerifier } from '../../auth/token-verifier.js';
 import { DATABASE } from '../../database.token.js';
+import { OBJECT_STORAGE } from '../../object-storage.token.js';
 import { API_BODY_LIMIT_BYTES } from '../../http-body-limit.js';
 import { ApiExceptionFilter } from '../../http/error-contract.js';
 import { createApiValidationPipe } from '../../http/validation.js';
+
+/** In-memory storage — enough for any controller in the harness's `providers` to inject `OBJECT_STORAGE`. */
+class InMemoryTestObjectStorage implements ObjectStorageAdapter {
+  readonly profile = 'filesystem' as const;
+  private readonly objects = new Map<string, Uint8Array>();
+
+  async put(key: string, body: Uint8Array): Promise<{ key: string }> {
+    this.objects.set(key, body);
+    return { key };
+  }
+  async get(reference: { key: string }): Promise<{ body: Uint8Array; contentType?: string }> {
+    return { body: this.objects.get(reference.key) ?? new Uint8Array() };
+  }
+  async delete(reference: { key: string }): Promise<void> {
+    this.objects.delete(reference.key);
+  }
+}
 
 /**
  * End-to-end through the real HTTP stack (Fastify + guard + policy +
@@ -65,7 +84,7 @@ export async function buildTestApp(
   scratch: Awaited<ReturnType<typeof createMigratedDatabase>>;
   organizationId: string;
   request: (options: {
-    method: 'GET' | 'POST' | 'PUT' | 'PATCH';
+    method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
     url: string;
     token?: string;
     payload?: unknown;
@@ -79,6 +98,7 @@ export async function buildTestApp(
     providers: [
       { provide: DATABASE, useValue: scratch.db },
       { provide: TokenVerifier, useValue: new FakeTokenVerifier(() => organizationId) },
+      { provide: OBJECT_STORAGE, useValue: new InMemoryTestObjectStorage() },
       { provide: APP_FILTER, useClass: ApiExceptionFilter },
       { provide: APP_GUARD, useClass: JwtAuthGuard },
       Reflector,
@@ -107,7 +127,7 @@ export async function buildTestApp(
   organizationId = organization.organizationId;
 
   function request(options: {
-    method: 'GET' | 'POST' | 'PUT' | 'PATCH';
+    method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
     url: string;
     token?: string;
     payload?: unknown;

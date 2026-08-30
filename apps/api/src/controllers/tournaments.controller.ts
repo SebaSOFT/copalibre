@@ -1,4 +1,15 @@
-import { Body, Controller, Get, HttpCode, Inject, Param, Post, Put, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Inject,
+  Logger,
+  Param,
+  Post,
+  Put,
+  Req,
+} from '@nestjs/common';
 import {
   BadRequestException,
   ConflictException,
@@ -7,8 +18,10 @@ import {
 import {
   ApiBearerAuth,
   ApiBadRequestResponse,
+  ApiConflictResponse,
   ApiCreatedResponse,
   ApiForbiddenResponse,
+  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
@@ -20,6 +33,7 @@ import {
   OrganizationRepository,
   TournamentProfileRepository,
   TournamentRepository,
+  recordAuditRefusal,
   withTransaction,
   type Database,
 } from '@copalibre/persistence';
@@ -27,6 +41,7 @@ import {
   SUPPORTED_FORMATS,
   TOURNAMENT_CUSTOM_SCRIPT_HOOKS,
   compileProfile,
+  evaluateMutation,
   isPlacementFormat,
   validateHookScriptAttachment,
   validateSeriesDeclaration,
@@ -47,8 +62,12 @@ import {
   CreateTournamentRequest,
   HookScriptVocabularyResponse,
   ProblemResponse,
+  SeriesMutationFieldPreview,
+  SeriesMutationPreviewResponse,
   TournamentCustomScriptsResponse,
   TournamentResponse,
+  TournamentSettingsRequest,
+  TournamentSettingsResponse,
 } from '../dto/organization.dto.js';
 import { TournamentConfigurationExportResponse } from '../dto/tournament-configuration-export.dto.js';
 import { enforcePolicy } from '../policy/resource-policy.js';
@@ -68,6 +87,8 @@ import {
 @ApiTags('tournaments')
 @Controller('organizations/:organizationAlias/tournaments')
 export class TournamentsController {
+  private readonly logger = new Logger(TournamentsController.name);
+
   constructor(@Inject(DATABASE) private readonly db: Kysely<Database>) {}
 
   @Get('custom-script-vocabulary')
@@ -355,6 +376,274 @@ export class TournamentsController {
       }
       throw error;
     }
+  }
+
+  @Get(':tournamentAlias/settings')
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationCapability('org.manage-tournament-lifecycle')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Read a tournament's editable settings" })
+  @ApiOkResponse({ type: TournamentSettingsResponse })
+  @ApiUnauthorizedResponse({ type: ProblemResponse })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  @ApiNotFoundResponse({ type: ProblemResponse })
+  async settings(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Req() request: RequestWithSubject,
+  ): Promise<TournamentSettingsResponse> {
+    const tournaments = new TournamentRepository(this.db);
+    const tournament = await tournaments.findByScopedAlias(organizationAlias, tournamentAlias);
+    if (!tournament) {
+      throw new NotFoundException(`No tournament "${tournamentAlias}"`, {
+        errorCode: 'tournament-not-found',
+      });
+    }
+    enforcePolicy({
+      plane: 'admin-control',
+      subject: request.subject,
+      resource: { organizationId: tournament.organizationId },
+    });
+
+    const ruleset = await tournaments.findLatestRuleset(tournament.tournamentId);
+    return this.settingsResponseOf(tournament.name, ruleset?.overrides ?? {});
+  }
+
+  @Post(':tournamentAlias/settings/preview')
+  @HttpCode(200)
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationCapability('org.manage-tournament-lifecycle')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Classify a proposed tournament-settings edit before it is applied',
+    description:
+      'Reports, per field, whether the proposed name/region/capacity/checkInClosesAt values are ' +
+      'safe, require a rebuild, or are blocked because a result already exists or the record is ' +
+      'otherwise incoherent (e.g. a capacity below the current accepted-entrant count) — never ' +
+      'applies anything itself.',
+  })
+  @ApiOkResponse({ type: SeriesMutationPreviewResponse })
+  @ApiUnauthorizedResponse({ type: ProblemResponse })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  @ApiNotFoundResponse({ type: ProblemResponse })
+  async previewSettingsMutation(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Body() body: TournamentSettingsRequest,
+    @Req() request: RequestWithSubject,
+  ): Promise<SeriesMutationPreviewResponse> {
+    const tournaments = new TournamentRepository(this.db);
+    const tournament = await tournaments.findByScopedAlias(organizationAlias, tournamentAlias);
+    if (!tournament) {
+      throw new NotFoundException(`No tournament "${tournamentAlias}"`, {
+        errorCode: 'tournament-not-found',
+      });
+    }
+    enforcePolicy({
+      plane: 'admin-control',
+      subject: request.subject,
+      resource: { organizationId: tournament.organizationId },
+    });
+
+    const current = await tournaments.findLatestRuleset(tournament.tournamentId);
+    if (!current) {
+      throw new NotFoundException(`Tournament "${tournamentAlias}" has no ruleset`, {
+        errorCode: 'tournament-not-found',
+      });
+    }
+    const descriptor = await tournaments.findDescriptor(
+      current.descriptorRef.descriptorId,
+      current.descriptorRef.version,
+    );
+    if (!descriptor) {
+      throw new NotFoundException('Tournament discipline descriptor is unavailable', {
+        errorCode: 'tournament-not-found',
+      });
+    }
+
+    const { hasRecordedResults, acceptedEntrantCount } = await tournaments.settingsMutationContext(
+      tournament.tournamentId,
+    );
+
+    const fields: SeriesMutationFieldPreview[] = [];
+    if (body.name !== undefined) {
+      fields.push({ field: 'name', mutationClass: 'safe' });
+    }
+    for (const [field, nextValue] of this.proposedRegistrationFields(body)) {
+      const decision = evaluateMutation(descriptor.fieldPolicies, field, {
+        hasRecordedResults,
+        previousValue: current.overrides[field],
+        nextValue,
+        acceptedEntrantCount,
+      });
+      if (!decision.ok) {
+        fields.push({ field, blocked: true, reason: decision.error.message });
+        continue;
+      }
+      fields.push({
+        field,
+        mutationClass: decision.value.mutationClass,
+        ...(decision.value.mutationClass === 'requires_rebuild'
+          ? { invalidatedFixtureCount: decision.value.invalidates.length }
+          : {}),
+      });
+    }
+    return { fields };
+  }
+
+  @Put(':tournamentAlias/settings')
+  @HttpCode(200)
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationCapability('org.manage-tournament-lifecycle')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: "Edit a tournament's name, region, capacity or check-in close time",
+    description:
+      'Applies the same classification the preview endpoint reports; a `blocked_after_results` or ' +
+      'otherwise incoherent field (e.g. a capacity below the current accepted-entrant count) refuses ' +
+      'the whole edit rather than applying part of it.',
+  })
+  @ApiOkResponse({ type: TournamentSettingsResponse })
+  @ApiConflictResponse({ type: ProblemResponse })
+  @ApiUnauthorizedResponse({ type: ProblemResponse })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  @ApiNotFoundResponse({ type: ProblemResponse })
+  async updateSettings(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Body() body: TournamentSettingsRequest,
+    @Req() request: RequestWithSubject,
+  ): Promise<TournamentSettingsResponse> {
+    const tournaments = new TournamentRepository(this.db);
+    const tournament = await tournaments.findByScopedAlias(organizationAlias, tournamentAlias);
+    if (!tournament) {
+      throw new NotFoundException(`No tournament "${tournamentAlias}"`, {
+        errorCode: 'tournament-not-found',
+      });
+    }
+    const subject = request.subject;
+    enforcePolicy({
+      plane: 'admin-control',
+      subject,
+      resource: { organizationId: tournament.organizationId },
+    });
+
+    const current = await tournaments.findLatestRuleset(tournament.tournamentId);
+    if (!current) {
+      throw new NotFoundException(`Tournament "${tournamentAlias}" has no ruleset`, {
+        errorCode: 'tournament-not-found',
+      });
+    }
+    const descriptor = await tournaments.findDescriptor(
+      current.descriptorRef.descriptorId,
+      current.descriptorRef.version,
+    );
+    if (!descriptor) {
+      throw new NotFoundException('Tournament discipline descriptor is unavailable', {
+        errorCode: 'tournament-not-found',
+      });
+    }
+
+    const { hasRecordedResults, acceptedEntrantCount } = await tournaments.settingsMutationContext(
+      tournament.tournamentId,
+    );
+    const actor = `user:${subject?.subjectId ?? 'unknown'}`;
+    const authorizationContext = (subject?.scopes ?? []).join(' ');
+    const proposedFields = this.proposedRegistrationFields(body);
+    const nextOverrides: Record<string, unknown> = { ...current.overrides };
+
+    for (const [field, nextValue] of proposedFields) {
+      const decision = evaluateMutation(descriptor.fieldPolicies, field, {
+        hasRecordedResults,
+        previousValue: current.overrides[field],
+        nextValue,
+        acceptedEntrantCount,
+      });
+      if (!decision.ok) {
+        await recordAuditRefusal(
+          this.db,
+          {
+            organizationId: tournament.organizationId,
+            entityType: 'tournament',
+            entityId: tournament.tournamentId,
+            action: 'mutation.refused',
+            actor,
+            authorizationContext,
+            reason: decision.error.message,
+            previousState: { field, nextValue },
+          },
+          (error) => this.logger.error('Failed to record a refusal audit entry', error as Error),
+        );
+        throw new ConflictException(decision.error.message, {
+          errorCode: 'tournament-settings-conflict',
+        });
+      }
+      nextOverrides[field] = nextValue;
+    }
+
+    const finalName = body.name ?? tournament.name;
+    try {
+      return await withTransaction(this.db, async (uow) => {
+        if (body.name !== undefined) {
+          await tournaments.renameTournament(uow, {
+            tournamentId: tournament.tournamentId,
+            organizationId: tournament.organizationId,
+            name: body.name,
+            actor,
+            authorizationContext,
+          });
+        }
+        if (proposedFields.length > 0) {
+          await tournaments.createRuleset(uow, {
+            tournamentId: tournament.tournamentId,
+            organizationId: tournament.organizationId,
+            descriptor,
+            overrides: nextOverrides,
+            customScripts: current.customScripts,
+            actor,
+            authorizationContext,
+            reason: 'Organizer edited tournament settings',
+          });
+        }
+        return this.settingsResponseOf(finalName, nextOverrides);
+      });
+    } catch (error) {
+      if (error instanceof InvariantViolationError) {
+        throw new ConflictException(error.message, { errorCode: 'tournament-settings-conflict' });
+      }
+      throw error;
+    }
+  }
+
+  /** `region`/`capacity`/`checkInClosesAt` fields the operator actually proposed to change, as `registration.*` dot-paths. */
+  private proposedRegistrationFields(
+    body: TournamentSettingsRequest,
+  ): readonly (readonly [string, unknown])[] {
+    const proposed: [string, unknown][] = [];
+    if (body.region !== undefined) proposed.push(['registration.region', body.region]);
+    if (body.capacity !== undefined) proposed.push(['registration.capacity', body.capacity]);
+    if (body.checkInClosesAt !== undefined) {
+      proposed.push(['registration.checkInClosesAt', body.checkInClosesAt]);
+    }
+    return proposed;
+  }
+
+  private settingsResponseOf(
+    name: string,
+    overrides: Readonly<Record<string, unknown>>,
+  ): TournamentSettingsResponse {
+    return {
+      name,
+      ...(typeof overrides['registration.region'] === 'string'
+        ? { region: overrides['registration.region'] }
+        : {}),
+      ...(typeof overrides['registration.capacity'] === 'number'
+        ? { capacity: overrides['registration.capacity'] }
+        : {}),
+      ...(typeof overrides['registration.checkInClosesAt'] === 'string'
+        ? { checkInClosesAt: overrides['registration.checkInClosesAt'] }
+        : {}),
+    };
   }
 
   @Get(':tournamentAlias/custom-scripts')

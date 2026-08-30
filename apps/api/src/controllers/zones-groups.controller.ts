@@ -1,11 +1,13 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   Inject,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
   Req,
 } from '@nestjs/common';
@@ -66,6 +68,7 @@ import {
   ManualZoneAssignmentResponse,
   PromotionPlanResponse,
   PromotionPreviewResponse,
+  RenameRequest,
   SavePromotionPlanRequest,
   TargetingPromotionPreviewResponse,
   ZoneResponse,
@@ -120,6 +123,69 @@ export class ZonesGroupsController {
           stageId: context.stage.stageId,
           number,
           name: body.name,
+          ...context.audit,
+        }),
+      );
+    } catch (error) {
+      throwConflict(error);
+    }
+  }
+
+  @Patch('zones/:zoneNumber')
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationCapability('org.manage-zones-groups')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Rename a zone — permitted at any time, seeded or not' })
+  @ApiOkResponse({ type: ZoneResponse })
+  @ApiUnauthorizedResponse({ type: ProblemResponse })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  @ApiNotFoundResponse({ type: ProblemResponse })
+  async renameZone(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('stageNumber', ParseIntPipe) stageNumber: number,
+    @Param('zoneNumber', ParseIntPipe) zoneNumber: number,
+    @Body() body: RenameRequest,
+    @Req() request: RequestWithSubject,
+  ): Promise<ZoneResponse> {
+    const context = await this.adminStage(organizationAlias, tournamentAlias, stageNumber, request);
+    const zone = await this.zone(context.stage.stageId, zoneNumber);
+    return withTransaction(this.db, (uow) =>
+      new CompetitionRepository(this.db).renameZone(uow, {
+        zoneId: zone.zoneId,
+        name: body.name,
+        ...context.audit,
+      }),
+    );
+  }
+
+  @Delete('zones/:zoneNumber')
+  @HttpCode(200)
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationCapability('org.manage-zones-groups')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Remove a zone',
+    description: 'Refused once an entrant has been assigned into it, naming the assignment.',
+  })
+  @ApiOkResponse({ type: ZoneResponse })
+  @ApiConflictResponse({ type: ProblemResponse })
+  @ApiUnauthorizedResponse({ type: ProblemResponse })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  @ApiNotFoundResponse({ type: ProblemResponse })
+  async deleteZone(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('stageNumber', ParseIntPipe) stageNumber: number,
+    @Param('zoneNumber', ParseIntPipe) zoneNumber: number,
+    @Req() request: RequestWithSubject,
+  ): Promise<ZoneResponse> {
+    const context = await this.adminStage(organizationAlias, tournamentAlias, stageNumber, request);
+    const zone = await this.zone(context.stage.stageId, zoneNumber);
+    try {
+      return await withTransaction(this.db, (uow) =>
+        new CompetitionRepository(this.db).deleteZone(uow, {
+          zoneId: zone.zoneId,
           ...context.audit,
         }),
       );
@@ -189,6 +255,73 @@ export class ZonesGroupsController {
           zoneId: zone.zoneId,
           number,
           name: body.name,
+          ...context.audit,
+        }),
+      );
+    } catch (error) {
+      throwConflict(error);
+    }
+  }
+
+  @Patch('zones/:zoneNumber/groups/:groupNumber')
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationCapability('org.manage-zones-groups')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Rename a group — permitted at any time, seeded or not' })
+  @ApiOkResponse({ type: GroupResponse })
+  @ApiUnauthorizedResponse({ type: ProblemResponse })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  @ApiNotFoundResponse({ type: ProblemResponse })
+  async renameGroup(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('stageNumber', ParseIntPipe) stageNumber: number,
+    @Param('zoneNumber', ParseIntPipe) zoneNumber: number,
+    @Param('groupNumber', ParseIntPipe) groupNumber: number,
+    @Body() body: RenameRequest,
+    @Req() request: RequestWithSubject,
+  ): Promise<GroupResponse> {
+    const context = await this.adminStage(organizationAlias, tournamentAlias, stageNumber, request);
+    const zone = await this.zone(context.stage.stageId, zoneNumber);
+    const group = await this.group(zone.zoneId, groupNumber);
+    return withTransaction(this.db, (uow) =>
+      new CompetitionRepository(this.db).renameGroup(uow, {
+        groupId: group.groupId,
+        name: body.name,
+        ...context.audit,
+      }),
+    );
+  }
+
+  @Delete('zones/:zoneNumber/groups/:groupNumber')
+  @HttpCode(200)
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationCapability('org.manage-zones-groups')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Remove a group',
+    description: 'Refused once an entrant has been assigned into it, naming the assignment.',
+  })
+  @ApiOkResponse({ type: GroupResponse })
+  @ApiConflictResponse({ type: ProblemResponse })
+  @ApiUnauthorizedResponse({ type: ProblemResponse })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  @ApiNotFoundResponse({ type: ProblemResponse })
+  async deleteGroup(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('stageNumber', ParseIntPipe) stageNumber: number,
+    @Param('zoneNumber', ParseIntPipe) zoneNumber: number,
+    @Param('groupNumber', ParseIntPipe) groupNumber: number,
+    @Req() request: RequestWithSubject,
+  ): Promise<GroupResponse> {
+    const context = await this.adminStage(organizationAlias, tournamentAlias, stageNumber, request);
+    const zone = await this.zone(context.stage.stageId, zoneNumber);
+    const group = await this.group(zone.zoneId, groupNumber);
+    try {
+      return await withTransaction(this.db, (uow) =>
+        new CompetitionRepository(this.db).deleteGroup(uow, {
+          groupId: group.groupId,
           ...context.audit,
         }),
       );
@@ -710,6 +843,15 @@ export class ZonesGroupsController {
     if (!zone)
       throw new NotFoundException(`No zone ${zoneNumber}`, { errorCode: 'zone-group-not-found' });
     return zone;
+  }
+
+  private async group(zoneId: string, groupNumber: number) {
+    const group = (await new CompetitionRepository(this.db).listGroupsOfZone(zoneId)).find(
+      (candidate) => candidate.number === groupNumber,
+    );
+    if (!group)
+      throw new NotFoundException(`No group ${groupNumber}`, { errorCode: 'zone-group-not-found' });
+    return group;
   }
 
   private async validatePromotionPlan(

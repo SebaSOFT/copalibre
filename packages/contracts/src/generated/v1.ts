@@ -128,6 +128,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/storage-usage/objects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List stored objects no entity currently references
+         * @description Cleanup candidates for the storage-usage screen — an object still referenced as an entity's current emblem or photo never appears here.
+         */
+        get: operations["OrganizationsController_listUnreferencedObjects"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/storage-usage/objects/{objectId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete a stored object no entity currently references
+         * @description Refused, naming what references it, while it is an entity's current emblem or photo.
+         */
+        delete: operations["OrganizationsController_deleteObject"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{organizationAlias}/tournaments/custom-script-vocabulary": {
         parameters: {
             query?: never;
@@ -200,6 +240,47 @@ export interface paths {
          * @description Requires the copalibre.control scope and a token scoped to the target organization.
          */
         post: operations["TournamentsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read a tournament's editable settings */
+        get: operations["TournamentsController_settings"];
+        /**
+         * Edit a tournament's name, region, capacity or check-in close time
+         * @description Applies the same classification the preview endpoint reports; a `blocked_after_results` or otherwise incoherent field (e.g. a capacity below the current accepted-entrant count) refuses the whole edit rather than applying part of it.
+         */
+        put: operations["TournamentsController_updateSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/settings/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Classify a proposed tournament-settings edit before it is applied
+         * @description Reports, per field, whether the proposed name/region/capacity/checkInClosesAt values are safe, require a rebuild, or are blocked because a result already exists or the record is otherwise incoherent (e.g. a capacity below the current accepted-entrant count) — never applies anything itself.
+         */
+        post: operations["TournamentsController_previewSettingsMutation"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1046,6 +1127,30 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove an unseeded stage
+         * @description Refused once the stage already holds a generated fixture, or a promotion plan already targets it, naming why. Cascades the stage’s own zones, groups and their entrant assignments; never a fixture or another stage’s record.
+         */
+        delete: operations["StagesController_remove"];
+        options?: never;
+        head?: never;
+        /**
+         * Rename a stage or change its format
+         * @description A rename applies regardless of whether the stage is seeded. A format change is refused once the stage already holds a generated fixture, naming that fixtures already exist.
+         */
+        patch: operations["StagesController_update"];
         trace?: never;
     };
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/series/preview": {
@@ -2056,6 +2161,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove a zone
+         * @description Refused once an entrant has been assigned into it, naming the assignment.
+         */
+        delete: operations["ZonesGroupsController_deleteZone"];
+        options?: never;
+        head?: never;
+        /** Rename a zone — permitted at any time, seeded or not */
+        patch: operations["ZonesGroupsController_renameZone"];
+        trace?: never;
+    };
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/entrants": {
         parameters: {
             query?: never;
@@ -2089,6 +2215,27 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/groups/{groupNumber}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove a group
+         * @description Refused once an entrant has been assigned into it, naming the assignment.
+         */
+        delete: operations["ZonesGroupsController_deleteGroup"];
+        options?: never;
+        head?: never;
+        /** Rename a group — permitted at any time, seeded or not */
+        patch: operations["ZonesGroupsController_renameGroup"];
         trace?: never;
     };
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/draw/preview": {
@@ -2371,6 +2518,16 @@ export interface components {
              */
             objectCount: number;
         };
+        UnreferencedObjectResponse: {
+            /** Format: uuid */
+            objectId: string;
+            /** @example image/png */
+            contentType: string;
+            /** @example 148897 */
+            sizeBytes: number;
+            /** Format: date-time */
+            createdAt: string;
+        };
         RegistryParameterDefinitionResponse: {
             name: string;
             description: string;
@@ -2573,6 +2730,62 @@ export interface components {
             customScripts: components["schemas"]["HookScriptAttachmentRequest"][];
             /** @description Declares this tournament’s crosses as multi-match series by default. Absent stays the default: no series, a single match per cross, requiring no further action. */
             series?: components["schemas"]["SeriesDeclarationRequest"];
+        };
+        TournamentSettingsResponse: {
+            /** @example Copa Verano */
+            name: string;
+            /**
+             * @description Geographic or administrative region for tournament registration.
+             * @example South America
+             */
+            region?: string;
+            /**
+             * @description Maximum number of participants/entrants for the tournament.
+             * @example 16
+             */
+            capacity?: number;
+            /**
+             * Format: date-time
+             * @description Optional instant when checked-in team memberships stop being editable.
+             */
+            checkInClosesAt?: string;
+        };
+        TournamentSettingsRequest: {
+            /** @example Copa Verano (corregida) */
+            name?: string;
+            /**
+             * @description Geographic or administrative region for tournament registration.
+             * @example South America
+             */
+            region?: string;
+            /**
+             * @description Maximum number of participants/entrants for the tournament.
+             * @example 16
+             */
+            capacity?: number;
+            /**
+             * Format: date-time
+             * @description Optional instant when checked-in team memberships stop being editable.
+             */
+            checkInClosesAt?: string;
+        };
+        SeriesMutationFieldPreview: {
+            /** @example series.span */
+            field: string;
+            /**
+             * @description Absent when the field is refused outright — see `blocked`.
+             * @enum {string}
+             */
+            mutationClass?: "safe" | "requires_rebuild" | "blocked_after_results";
+            /** @description Fixtures a `requires_rebuild` change would invalidate. */
+            invalidatedFixtureCount?: number;
+            /** @description True when this field cannot be changed as proposed; see `reason`. */
+            blocked?: boolean;
+            /** @description Present when `blocked` — names the audited correction workflow. */
+            reason?: string;
+        };
+        SeriesMutationPreviewResponse: {
+            fields: components["schemas"]["SeriesMutationFieldPreview"][];
         };
         TournamentCustomScriptsResponse: {
             customScripts: components["schemas"]["HookScriptAttachmentRequest"][];
@@ -3490,23 +3703,14 @@ export interface components {
             /** @description Absent when this stage declares no series. */
             series?: components["schemas"]["SeriesDeclarationRequest"];
         };
-        SeriesMutationFieldPreview: {
-            /** @example series.span */
-            field: string;
+        UpdateStageRequest: {
+            /** @example Fase de grupos (corregida) */
+            name?: string;
             /**
-             * @description Absent when the field is refused outright — see `blocked`.
-             * @enum {string}
+             * @description Refused once the stage already holds a generated fixture. Validated against the tournament's discipline descriptor.
+             * @example round-robin
              */
-            mutationClass?: "safe" | "requires_rebuild" | "blocked_after_results";
-            /** @description Fixtures a `requires_rebuild` change would invalidate. */
-            invalidatedFixtureCount?: number;
-            /** @description True when this field cannot be changed as proposed; see `reason`. */
-            blocked?: boolean;
-            /** @description Present when `blocked` — names the audited correction workflow. */
-            reason?: string;
-        };
-        SeriesMutationPreviewResponse: {
-            fields: components["schemas"]["SeriesMutationFieldPreview"][];
+            format?: string;
         };
         FixtureMatchResponse: {
             /** Format: uuid */
@@ -4686,6 +4890,10 @@ export interface components {
             /** @example Zona Norte */
             name: string;
         };
+        RenameRequest: {
+            /** @example Zona Norte (corregida) */
+            name: string;
+        };
         GroupResponse: {
             /** Format: uuid */
             groupId: string;
@@ -5079,6 +5287,97 @@ export interface operations {
             };
         };
     };
+    OrganizationsController_listUnreferencedObjects: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnreferencedObjectResponse"][];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    OrganizationsController_deleteObject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                objectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnreferencedObjectResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
     TournamentsController_customScriptVocabulary: {
         parameters: {
             query?: never;
@@ -5245,6 +5544,160 @@ export interface operations {
                 };
             };
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    TournamentsController_settings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TournamentSettingsResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    TournamentsController_updateSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TournamentSettingsRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TournamentSettingsResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    TournamentsController_previewSettingsMutation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TournamentSettingsRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeriesMutationPreviewResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7056,6 +7509,120 @@ export interface operations {
                 };
             };
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    StagesController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                stageNumber: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StageResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    StagesController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                stageNumber: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateStageRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StageResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8975,6 +9542,114 @@ export interface operations {
             };
         };
     };
+    ZonesGroupsController_deleteZone: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                stageNumber: number;
+                zoneNumber: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ZoneResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    ZonesGroupsController_renameZone: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                stageNumber: number;
+                zoneNumber: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RenameRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ZoneResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
     ZonesGroupsController_zoneEntrants: {
         parameters: {
             query?: never;
@@ -9090,6 +9765,116 @@ export interface operations {
                 };
             };
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    ZonesGroupsController_deleteGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                stageNumber: number;
+                zoneNumber: number;
+                groupNumber: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    ZonesGroupsController_renameGroup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                stageNumber: number;
+                zoneNumber: number;
+                groupNumber: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RenameRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

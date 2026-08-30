@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { FormattedMessage, useIntl } from 'react-intl';
 import {
   createControlApiClient,
   type ControlApiClient,
@@ -8,7 +9,94 @@ import type { SeedAssignment } from '../lib/seeding.js';
 import { controlLinkClick } from '../lib/control-navigation.js';
 import { controlTokenStore } from '../session/token-store.js';
 import { SeedingBuilderPage } from './SeedingBuilderPage.js';
+import { Button } from './ui/atoms/button.js';
+import { FormField } from './ui/molecules/form-field.js';
 import { useToast } from './ToastProvider.js';
+import { messages } from '../i18n/messages.en.js';
+
+/**
+ * Rename/format-change/delete for the stage this builder is on (task 2.3).
+ * A rename always applies; format-change and delete are disabled once the
+ * stage is seeded — `seeded` names why in the same place the button lives,
+ * not only in a toast after the fact.
+ */
+function StageSettingsSection({
+  currentFormat,
+  seeded,
+  onRename,
+  onChangeFormat,
+  onDelete,
+}: {
+  readonly currentFormat: string;
+  readonly seeded: boolean;
+  readonly onRename: (name: string) => Promise<void>;
+  readonly onChangeFormat: (format: string) => Promise<void>;
+  readonly onDelete: () => Promise<void>;
+}): React.JSX.Element {
+  const intl = useIntl();
+  const [name, setName] = useState('');
+  const [format, setFormat] = useState(currentFormat);
+
+  return (
+    <div className="cl-card cl-chamfer cl-chamfer--control">
+      <header className="cl-card__header">
+        <h2 className="cl-card__title">
+          <FormattedMessage {...messages.stageSettingsTitle} />
+        </h2>
+      </header>
+      <div className="cl-card__content">
+        <FormField id="stage-rename" label={intl.formatMessage(messages.stageRenameLabel)}>
+          <input
+            className="cl-input cl-input--default cl-focusable"
+            id="stage-rename"
+            onChange={(event) => setName(event.target.value)}
+            value={name}
+          />
+        </FormField>
+        <Button
+          disabled={name.trim() === ''}
+          onClick={() => void onRename(name).then(() => setName(''))}
+          type="button"
+          variant="secondary"
+        >
+          <FormattedMessage {...messages.stageRenameSubmit} />
+        </Button>
+
+        <FormField id="stage-format" label={intl.formatMessage(messages.stageFormatLabel)}>
+          <input
+            className="cl-input cl-input--default cl-focusable"
+            disabled={seeded}
+            id="stage-format"
+            onChange={(event) => setFormat(event.target.value)}
+            value={format}
+          />
+        </FormField>
+        <Button
+          disabled={seeded || format.trim() === ''}
+          onClick={() => void onChangeFormat(format)}
+          type="button"
+          variant="secondary"
+        >
+          <FormattedMessage {...messages.stageFormatSubmit} />
+        </Button>
+
+        <Button
+          disabled={seeded}
+          onClick={() => void onDelete()}
+          type="button"
+          variant="destructive-outline"
+        >
+          <FormattedMessage {...messages.stageDelete} />
+        </Button>
+        {seeded && (
+          <p className="cl-inline-alert">
+            <FormattedMessage {...messages.stageSeededExplanation} />
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export function SeedingBuilderRoute({
   organizationAlias,
@@ -98,6 +186,39 @@ export function SeedingBuilderRoute({
       >
         Zonas y grupos
       </a>
+      <StageSettingsSection
+        currentFormat={seeding.format}
+        onChangeFormat={(format) =>
+          api
+            .updateStage?.(organizationAlias, tournamentAlias, stageNumber, { format })
+            .then(() => api.fetchSeeding(organizationAlias, tournamentAlias, stageNumber))
+            .then((next) => next && setSeeding(next))
+            .catch((error: unknown) => {
+              pushError(error);
+            }) ?? Promise.resolve()
+        }
+        onDelete={() =>
+          api
+            .deleteStage?.(organizationAlias, tournamentAlias, stageNumber)
+            .then(() => {
+              push({ severity: 'success', message: 'Fase eliminada.' });
+            })
+            .catch((error: unknown) => {
+              pushError(error);
+            }) ?? Promise.resolve()
+        }
+        onRename={(name) =>
+          api
+            .updateStage?.(organizationAlias, tournamentAlias, stageNumber, { name })
+            .then(() => {
+              push({ severity: 'success', message: 'Fase renombrada.' });
+            })
+            .catch((error: unknown) => {
+              pushError(error);
+            }) ?? Promise.resolve()
+        }
+        seeded={seeding.matches.length > 0}
+      />
       <SeedingBuilderPage
         hasRecordedResults={seeding.hasRecordedResults}
         matches={seeding.matches}

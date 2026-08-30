@@ -7,6 +7,7 @@ import {
   type OrganizationResponse,
   type OrganizationStorageUsageResponse,
   type StatisticsRebuildResponse,
+  type UnreferencedObjectResponse,
 } from '../lib/api-client.js';
 import { controlTokenStore } from '../session/token-store.js';
 import { FramedImage } from './FramedImage.js';
@@ -242,6 +243,44 @@ export function PreferencesRoute({
       live = false;
     };
   }, [api, organizationAlias, intl]);
+
+  const [unreferencedObjects, setUnreferencedObjects] = useState<
+    readonly UnreferencedObjectResponse[]
+  >([]);
+
+  const reloadUnreferencedObjects = useCallback(() => {
+    if (organizationAlias === undefined || !api.listUnreferencedObjects) return;
+    api
+      .listUnreferencedObjects(organizationAlias)
+      .then(setUnreferencedObjects)
+      .catch(() => {
+        // A quiet, empty-by-default list — a failed load just leaves it empty.
+      });
+  }, [api, organizationAlias]);
+
+  useEffect(() => {
+    reloadUnreferencedObjects();
+  }, [reloadUnreferencedObjects]);
+
+  async function deleteUnreferencedObject(objectId: string): Promise<void> {
+    if (!api.deleteObject || organizationAlias === undefined) return;
+    try {
+      const deleted = await api.deleteObject(organizationAlias, objectId);
+      setUnreferencedObjects((current) =>
+        current.filter((object) => object.objectId !== deleted.objectId),
+      );
+      setStorageUsage((current) =>
+        current === undefined
+          ? current
+          : {
+              totalBytes: current.totalBytes - deleted.sizeBytes,
+              objectCount: current.objectCount - 1,
+            },
+      );
+    } catch (error) {
+      pushError(error);
+    }
+  }
 
   async function saveOrganizationName(): Promise<void> {
     if (!api.updateOrganizationSettings || organizationAlias === undefined) return;
@@ -632,6 +671,24 @@ export function PreferencesRoute({
               />
             </p>
           ) : null}
+
+          {unreferencedObjects.length > 0 && (
+            <ul aria-label={intl.formatMessage(controlMessages.storageUsageUnreferencedHeading)}>
+              {unreferencedObjects.map((object) => (
+                <li key={object.objectId} className="cl-role-user">
+                  <span>{formatStorageBytes(object.sizeBytes)}</span>
+                  <span className="cl-label">{object.contentType}</span>
+                  <Button
+                    onClick={() => void deleteUnreferencedObject(object.objectId)}
+                    type="button"
+                    variant="destructive-outline"
+                  >
+                    <FormattedMessage {...controlMessages.storageUsageDeleteObject} />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
         </Card>
       )}
 

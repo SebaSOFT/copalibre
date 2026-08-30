@@ -714,6 +714,13 @@ jobs:
       # separately so a failure says so directly.
       - name: Audit trail (E2E)
         run: yarn test:e2e -- e2e/audit-trail.spec.ts
+      # Competition structure editing (openspec 0168): renaming a stage and
+      # a zone from their respective screens, a capacity reduction refused
+      # in the tournament-settings screen before the save request is ever
+      # sent, and deleting an unreferenced upload from the storage-usage
+      # screen — named separately so a failure says which surface broke.
+      - name: Competition structure editing (E2E)
+        run: yarn test:e2e -- e2e/control-competition-structure-editing.spec.ts
       # Accelerated TV soak-test proxy. design.md describes
       # the per-PR-eligible proxy as a 2-hour run; a literal 2 hours on every
       # PR would be a severe, ongoing CI-turnaround regression this repo does
@@ -886,6 +893,19 @@ jobs:
       # pattern above so a failure says which half broke — the engine 0158 built
       # or the surfaces 0159 wired onto it.
       - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'series-operations'
+      # Competition-structure editing (openspec 0168): a tournament's
+      # region/capacity/checkInClosesAt edited and previewed with the same
+      # classification a series-mutation preview already uses, a stage
+      # renamed/reformatted/removed before it holds a fixture, a zone or
+      # group renamed/removed before an entrant is assigned into it, and an
+      # unreferenced stored object deleted with its storage usage dropping
+      # by its size. No unit-tests step is added for either pattern: the
+      # domain-level capacity classification lives in the existing
+      # `rulesets/mutation.test.ts` file (covered by the workspace-wide
+      # `@copalibre/domain` run already in this job), and every API-layer
+      # path here writes through `UnitOfWork`, so there is no Postgres-free
+      # unit-level test file to run for it either.
+      - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'structure-editing|object-deletion'
       # Direct participant authoring (openspec 0167): a person or team
       # registered without a CSV file through the same repository paths a CSV
       # row already takes, an identity edit preserving the entity's existing

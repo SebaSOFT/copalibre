@@ -40,6 +40,13 @@ export class GroupResponse {
   name!: string;
 }
 
+/** Shared by a zone's and a group's rename endpoint — the only field either edits. */
+export class RenameRequest {
+  @ApiProperty({ example: 'Zona Norte (corregida)' })
+  @IsString()
+  name!: string;
+}
+
 export class CreateZoneRequest {
   @ApiPropertyOptional({ description: 'Defaults to the next 1-based zone number', example: 1 })
   @IsOptional()

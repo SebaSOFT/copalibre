@@ -86,6 +86,9 @@ describe('ControlApp', () => {
             projectionVersion: 1,
           });
         }
+        if (url.endsWith('/tournaments/apertura-2026/settings')) {
+          return json({ name: 'Apertura 2026', region: 'Cuyo', capacity: 16 });
+        }
         return json([]);
       },
     });
@@ -113,6 +116,17 @@ describe('ControlApp', () => {
       '/control/liga-mendocina/tournaments/apertura-2026/reports',
       'Reportes y disputas — apertura-2026',
       'reporte',
+    ],
+    [
+      '/control/liga-mendocina/tournaments/apertura-2026/settings',
+      'Configuración del torneo — apertura-2026',
+      'Configuración del torneo',
+    ],
+    ['/control/liga-mendocina/clubs', 'Clubes — liga-mendocina', 'club'],
+    [
+      '/control/liga-mendocina/tournaments/apertura-2026/stages/1/zones',
+      'Zonas y grupos — apertura-2026',
+      'Zona',
     ],
     [
       '/control/liga-mendocina/tournaments/apertura-2026/stages/1/seeding',

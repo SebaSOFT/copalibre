@@ -12,6 +12,7 @@ import {
   type Database,
 } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
+import type { ObjectStorageAdapter } from '@copalibre/object-storage';
 import { ApiExceptionFilter } from '../http/error-contract.js';
 import { createApiValidationPipe } from '../http/validation.js';
 import { createMigratedDatabase } from '../../../../packages/persistence/src/test-support/scratch-database.js';
@@ -20,10 +21,19 @@ import { OrganizationAccessGuard } from '../auth/organization-access.guard.js';
 import type { AuthenticatedSubject } from '../auth/request-context.js';
 import { TokenVerifier } from '../auth/token-verifier.js';
 import { DATABASE } from '../database.token.js';
+import { OBJECT_STORAGE } from '../object-storage.token.js';
 import { ClubsController } from './clubs.controller.js';
 import { DisplayTokenController } from './broadcast.controller.js';
 import { OrganizationAccessController } from './organization-access.controller.js';
 import { OrganizationsController } from './organizations.controller.js';
+
+/** Never actually invoked in these role-scope tests — DI just needs something to inject. */
+const noopObjectStorage: ObjectStorageAdapter = {
+  profile: 'filesystem',
+  put: () => Promise.reject(new Error('not used')),
+  get: () => Promise.reject(new Error('not used')),
+  delete: () => Promise.reject(new Error('not used')),
+};
 
 /**
  * Club and tournament resource ownership, through the real HTTP stack
@@ -152,6 +162,7 @@ describe('club and tournament resource scope (integration)', () => {
       ],
       providers: [
         { provide: DATABASE, useValue: scratch.db },
+        { provide: OBJECT_STORAGE, useValue: noopObjectStorage },
         {
           provide: TokenVerifier,
           useValue: {

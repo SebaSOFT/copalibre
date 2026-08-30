@@ -272,6 +272,67 @@ export class TournamentResponse {
   profileRef?: ProfileRefResponse;
 }
 
+/**
+ * A tournament's editable settings — name plus the `registration.*` fields
+ * every discipline descriptor already classifies. Used as both the current
+ * state a settings screen reads and the shape it writes back.
+ */
+export class TournamentSettingsResponse {
+  @ApiProperty({ example: 'Copa Verano' })
+  name!: string;
+
+  @ApiPropertyOptional({
+    description: 'Geographic or administrative region for tournament registration.',
+    example: 'South America',
+  })
+  region?: string;
+
+  @ApiPropertyOptional({
+    description: 'Maximum number of participants/entrants for the tournament.',
+    example: 16,
+  })
+  capacity?: number;
+
+  @ApiPropertyOptional({
+    format: 'date-time',
+    description: 'Optional instant when checked-in team memberships stop being editable.',
+  })
+  checkInClosesAt?: string;
+}
+
+/** A partial edit — every field is optional, so only the fields the operator actually changed are sent. */
+export class TournamentSettingsRequest {
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({ example: 'Copa Verano (corregida)' })
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({
+    description: 'Geographic or administrative region for tournament registration.',
+    example: 'South America',
+  })
+  region?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @ApiPropertyOptional({
+    description: 'Maximum number of participants/entrants for the tournament.',
+    example: 16,
+  })
+  capacity?: number;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({
+    format: 'date-time',
+    description: 'Optional instant when checked-in team memberships stop being editable.',
+  })
+  checkInClosesAt?: string;
+}
+
 export class HookScriptAttachmentRequest {
   @IsString()
   @ApiProperty({ enum: ['event.recorded'] })
@@ -585,6 +646,24 @@ export class StageResponse {
     description: 'Absent when this stage declares no series.',
   })
   series?: SeriesDeclarationRequest;
+}
+
+/** A partial edit — rename is always permitted; a format change is refused once the stage holds a fixture. */
+export class UpdateStageRequest {
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({ example: 'Fase de grupos (corregida)' })
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({
+    description:
+      'Refused once the stage already holds a generated fixture. Validated against the ' +
+      "tournament's discipline descriptor.",
+    example: 'round-robin',
+  })
+  format?: string;
 }
 
 export class ProblemResponse {
@@ -1105,4 +1184,19 @@ export class OrganizationStorageUsageResponse {
 
   @ApiProperty({ description: 'Total number of stored objects in passed status', example: 38 })
   objectCount!: number;
+}
+
+/** One stored object no entity currently references — a storage-usage cleanup candidate. */
+export class UnreferencedObjectResponse {
+  @ApiProperty({ format: 'uuid' })
+  objectId!: string;
+
+  @ApiProperty({ example: 'image/png' })
+  contentType!: string;
+
+  @ApiProperty({ example: 148897 })
+  sizeBytes!: number;
+
+  @ApiProperty({ format: 'date-time' })
+  createdAt!: string;
 }

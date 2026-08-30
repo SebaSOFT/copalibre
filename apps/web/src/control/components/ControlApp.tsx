@@ -11,6 +11,7 @@ import {
   PreferencesControlRoute,
   PromotionPlanControlRoute,
   RegistrationReviewControlRoute,
+  TournamentSettingsControlRoute,
   ReportReviewControlRoute,
   RolesPermissionsControlRoute,
   ScheduleControlRoute,
@@ -149,6 +150,13 @@ export function ControlApp(): React.JSX.Element | null {
           tournamentAlias={route.tournamentAlias}
         />
       );
+    case 'tournamentSettings':
+      return (
+        <TournamentSettingsControlRoute
+          organizationAlias={route.organizationAlias}
+          tournamentAlias={route.tournamentAlias}
+        />
+      );
     case 'reports':
       return (
         <ReportReviewControlRoute
@@ -241,6 +249,8 @@ function titleFor(route: ReturnType<typeof parseControlPath>): string {
       return `Perfil de la persona — ${route.organizationAlias}`;
     case 'registrations':
       return `Inscripciones — ${route.tournamentAlias}`;
+    case 'tournamentSettings':
+      return `Configuración del torneo — ${route.tournamentAlias}`;
     case 'reports':
       return `Reportes y disputas — ${route.tournamentAlias}`;
     case 'matchConsole':

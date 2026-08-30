@@ -154,6 +154,33 @@ export interface ControlApiClient {
     stageNumber: number,
     request: PublishSeedingRequest,
   ) => Promise<SeedingClassificationResponse>;
+  /** Rename applies regardless of seeding; a format change is refused once the stage holds a fixture. */
+  readonly updateStage?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageNumber: number,
+    request: UpdateStageRequest,
+  ) => Promise<StageResponse>;
+  /** Refused once the stage holds a fixture or a promotion plan already targets it. */
+  readonly deleteStage?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageNumber: number,
+  ) => Promise<StageResponse>;
+  readonly fetchTournamentSettings?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+  ) => Promise<TournamentSettingsResponse>;
+  readonly previewTournamentSettings?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    request: TournamentSettingsRequest,
+  ) => Promise<MutationPreviewResponse>;
+  readonly updateTournamentSettings?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    request: TournamentSettingsRequest,
+  ) => Promise<TournamentSettingsResponse>;
   /** Zone/Group management, entrant assignment, and promotion plans. */
   readonly listZones?: (
     organizationAlias: string,
@@ -178,6 +205,34 @@ export interface ControlApiClient {
     stageNumber: number,
     zoneNumber: number,
     request: CreateZoneOrGroupRequest,
+  ) => Promise<GroupResponse>;
+  readonly renameZone?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageNumber: number,
+    zoneNumber: number,
+    request: RenameRequest,
+  ) => Promise<ZoneResponse>;
+  readonly deleteZone?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageNumber: number,
+    zoneNumber: number,
+  ) => Promise<ZoneResponse>;
+  readonly renameGroup?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageNumber: number,
+    zoneNumber: number,
+    groupNumber: number,
+    request: RenameRequest,
+  ) => Promise<GroupResponse>;
+  readonly deleteGroup?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageNumber: number,
+    zoneNumber: number,
+    groupNumber: number,
   ) => Promise<GroupResponse>;
   readonly previewZoneDraw?: (
     organizationAlias: string,
@@ -342,6 +397,15 @@ export interface ControlApiClient {
   readonly getStorageUsage?: (
     organizationAlias: string,
   ) => Promise<OrganizationStorageUsageResponse>;
+  /** Stored objects no entity currently references — cleanup candidates for the storage-usage screen. */
+  readonly listUnreferencedObjects?: (
+    organizationAlias: string,
+  ) => Promise<readonly UnreferencedObjectResponse[]>;
+  /** Refused, naming what references it, while the object is an entity's current emblem or photo. */
+  readonly deleteObject?: (
+    organizationAlias: string,
+    objectId: string,
+  ) => Promise<UnreferencedObjectResponse>;
   /** Recomputes every stored statistic total from recorded events; optionally one tournament. */
   readonly rebuildStatistics?: (
     organizationAlias: string,
@@ -462,6 +526,13 @@ export interface UpdateOrganizationSettingsRequest {
 export interface OrganizationStorageUsageResponse {
   readonly totalBytes: number;
   readonly objectCount: number;
+}
+
+export interface UnreferencedObjectResponse {
+  readonly objectId: string;
+  readonly contentType: string;
+  readonly sizeBytes: number;
+  readonly createdAt: string;
 }
 
 export interface StatisticsRebuildResponse {
@@ -865,6 +936,46 @@ export interface GroupResponse {
   readonly zoneId: string;
   readonly number: number;
   readonly name: string;
+}
+
+/** Shared by a zone's and a group's rename action — the only field either edits. */
+export interface RenameRequest {
+  readonly name: string;
+}
+
+export interface StageResponse {
+  readonly stageId: string;
+  readonly seasonId: string;
+  readonly number: number;
+  readonly name: string;
+  readonly format: string;
+}
+
+export interface UpdateStageRequest {
+  readonly name?: string;
+  readonly format?: string;
+}
+
+export interface TournamentSettingsResponse {
+  readonly name: string;
+  readonly region?: string;
+  readonly capacity?: number;
+  readonly checkInClosesAt?: string;
+}
+
+export type TournamentSettingsRequest = Partial<TournamentSettingsResponse>;
+
+/** One field's classification from a mutation-preview endpoint. */
+export interface MutationFieldPreview {
+  readonly field: string;
+  readonly mutationClass?: 'safe' | 'requires_rebuild' | 'blocked_after_results';
+  readonly invalidatedFixtureCount?: number;
+  readonly blocked?: boolean;
+  readonly reason?: string;
+}
+
+export interface MutationPreviewResponse {
+  readonly fields: readonly MutationFieldPreview[];
 }
 
 export interface CreateZoneOrGroupRequest {
@@ -1744,6 +1855,47 @@ export function createControlApiClient(input: {
         { method: 'POST', body, token: input.accessToken?.() },
       ),
 
+    updateStage: (organizationAlias, tournamentAlias, stageNumber, body) =>
+      requestJson<StageResponse>(
+        input.fetch,
+        stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber),
+        { method: 'PATCH', body, token: input.accessToken?.() },
+      ),
+
+    deleteStage: (organizationAlias, tournamentAlias, stageNumber) =>
+      requestJson<StageResponse>(
+        input.fetch,
+        stagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber),
+        { method: 'DELETE', token: input.accessToken?.() },
+      ),
+
+    fetchTournamentSettings: (organizationAlias, tournamentAlias) =>
+      requestJson<TournamentSettingsResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
+          tournamentAlias,
+        )}/settings`,
+        { token: input.accessToken?.() },
+      ),
+
+    previewTournamentSettings: (organizationAlias, tournamentAlias, body) =>
+      requestJson<MutationPreviewResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
+          tournamentAlias,
+        )}/settings/preview`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    updateTournamentSettings: (organizationAlias, tournamentAlias, body) =>
+      requestJson<TournamentSettingsResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
+          tournamentAlias,
+        )}/settings`,
+        { method: 'PUT', body, token: input.accessToken?.() },
+      ),
+
     listZones: (organizationAlias, tournamentAlias, stageNumber) =>
       requestJson<readonly ZoneResponse[]>(
         input.fetch,
@@ -1770,6 +1922,34 @@ export function createControlApiClient(input: {
         input.fetch,
         `${zoneStagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber, zoneNumber)}/groups`,
         { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    renameZone: (organizationAlias, tournamentAlias, stageNumber, zoneNumber, body) =>
+      requestJson<ZoneResponse>(
+        input.fetch,
+        zoneStagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber, zoneNumber),
+        { method: 'PATCH', body, token: input.accessToken?.() },
+      ),
+
+    deleteZone: (organizationAlias, tournamentAlias, stageNumber, zoneNumber) =>
+      requestJson<ZoneResponse>(
+        input.fetch,
+        zoneStagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber, zoneNumber),
+        { method: 'DELETE', token: input.accessToken?.() },
+      ),
+
+    renameGroup: (organizationAlias, tournamentAlias, stageNumber, zoneNumber, groupNumber, body) =>
+      requestJson<GroupResponse>(
+        input.fetch,
+        `${zoneStagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber, zoneNumber)}/groups/${groupNumber}`,
+        { method: 'PATCH', body, token: input.accessToken?.() },
+      ),
+
+    deleteGroup: (organizationAlias, tournamentAlias, stageNumber, zoneNumber, groupNumber) =>
+      requestJson<GroupResponse>(
+        input.fetch,
+        `${zoneStagePath(baseUrl, organizationAlias, tournamentAlias, stageNumber, zoneNumber)}/groups/${groupNumber}`,
+        { method: 'DELETE', token: input.accessToken?.() },
       ),
 
     previewZoneDraw: (organizationAlias, tournamentAlias, stageNumber, body) =>
@@ -2109,6 +2289,20 @@ export function createControlApiClient(input: {
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/storage-usage`,
         { token: input.accessToken?.() },
+      ),
+
+    listUnreferencedObjects: (organizationAlias) =>
+      requestJson<readonly UnreferencedObjectResponse[]>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/storage-usage/objects`,
+        { token: input.accessToken?.() },
+      ),
+
+    deleteObject: (organizationAlias, objectId) =>
+      requestJson<UnreferencedObjectResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/storage-usage/objects/${encodeURIComponent(objectId)}`,
+        { method: 'DELETE', token: input.accessToken?.() },
       ),
 
     rebuildStatistics: (organizationAlias, tournamentAlias) =>
