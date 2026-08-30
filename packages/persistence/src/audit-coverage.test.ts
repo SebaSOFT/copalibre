@@ -124,7 +124,13 @@ describe('uncoveredMutations', () => {
   });
 
   it('does not fire for an audited mutation', () => {
-    const files = new Map([['repo.ts', REPO.body.replace('  async createClub(', 'export class Repo {\n  async createClub(') + '\n}']]);
+    const files = new Map([
+      [
+        'repo.ts',
+        REPO.body.replace('  async createClub(', 'export class Repo {\n  async createClub(') +
+          '\n}',
+      ],
+    ]);
     expect(uncoveredMutations(files)).toEqual([]);
   });
 });

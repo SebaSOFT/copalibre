@@ -23,6 +23,24 @@ export interface AuditEntry {
   readonly reason?: string;
 }
 
+/**
+ * A refused attempt at a consequential operation: authorization, lifecycle
+ * state, or mutation classification. Unlike `AuditEntry`, there is no
+ * `resultingState` — nothing happened — and `reason` is required, since
+ * "why it was refused" is the entire point of the record.
+ */
+export interface AuditRefusalEntry {
+  readonly organizationId: string;
+  readonly entityType: string;
+  readonly entityId: string;
+  readonly action: AuditAction;
+  readonly actor: string;
+  readonly authorizationContext: string;
+  readonly reason: string;
+  /** What was attempted, where it can be captured (a proposed field value, a command payload). */
+  readonly previousState?: Record<string, unknown>;
+}
+
 export interface OutboxEvent {
   readonly organizationId: string;
   readonly stream: string;
@@ -93,4 +111,46 @@ export async function withTransaction<T>(
 
     return work(uow);
   });
+}
+
+/**
+ * Records a refused attempt outside any mutation transaction — the
+ * operation was refused, often before one was ever opened (an authorization
+ * check runs before a repository is touched), so there is usually no
+ * transaction to write inside. Best-effort by design (proposal.md, "Risk
+ * concentrated in one place"): a failure here must never turn the refusal
+ * the caller already returned into a server error, so it is caught and
+ * handed to `onRecordingFailure` rather than re-thrown. Callers that have
+ * their own error-reporting channel (the API's `Logger`, for instance)
+ * should pass it; the default just logs, so a script or test never loses
+ * the failure silently.
+ */
+export async function recordAuditRefusal(
+  db: Kysely<Database>,
+  entry: AuditRefusalEntry,
+  onRecordingFailure: (error: unknown) => void = (error) => {
+    // eslint-disable-next-line no-console
+    console.error('[audit] failed to record a refusal', error);
+  },
+): Promise<void> {
+  try {
+    await db
+      .insertInto('audit_log')
+      .values({
+        audit_id: newId(),
+        organization_id: entry.organizationId,
+        entity_type: entry.entityType,
+        entity_id: entry.entityId,
+        action: entry.action,
+        actor: entry.actor,
+        authorization_context: entry.authorizationContext,
+        previous_state: entry.previousState ? JSON.stringify(entry.previousState) : null,
+        resulting_state: null,
+        reason: entry.reason,
+        occurred_at: new Date(),
+      })
+      .execute();
+  } catch (error) {
+    onRecordingFailure(error);
+  }
 }

@@ -159,6 +159,17 @@ export const AUDIT_ACTIONS = [
 
   // Object storage
   'object.scan-failed',
+
+  // Refused attempts (openspec 0166) — recorded centrally by the API
+  // exception filter (or, for a classification consulted but never thrown,
+  // at the point of classification), covering every refusal uniformly
+  // rather than growing one bespoke action per refusal reason. The specific
+  // capability/field/state that refused the attempt lives in the entry's
+  // `reason`, not in the action name.
+  /** A request was refused for lacking authentication or an authorization capability. */
+  'authorization.refused',
+  /** A change was refused by lifecycle-state or mutation-classification (blocked_after_results, a competition-state conflict, an invariant). */
+  'mutation.refused',
 ] as const satisfies readonly string[];
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

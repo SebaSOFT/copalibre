@@ -26,7 +26,8 @@ export interface RepositoryMethod {
 export function classMethods(sourceText: string): readonly RepositoryMethod[] {
   const lines = sourceText.split('\n');
   const methods: RepositoryMethod[] = [];
-  const NAME = /^ {2}(?:private |public |protected |static |async |readonly )*([a-zA-Z_$][\w$]*)\s*\(/;
+  const NAME =
+    /^ {2}(?:private |public |protected |static |async |readonly )*([a-zA-Z_$][\w$]*)\s*\(/;
 
   let current: { name: string; lines: string[] } | undefined;
   for (const line of lines) {
@@ -88,7 +89,7 @@ export const AUDIT_COVERAGE_EXCEPTIONS: Readonly<Record<string, string>> = Objec
   'identity-principal-repository.ts:findOrCreateByEmail':
     'a principal auto-provisioned as a step of linkParticipant, which already records participant.identity-linked for the operator action that caused it',
   'competition-record-repository.ts:materialiseStandings':
-    "a derived recalculation written inside the same transaction as the match finalize that caused it, already recorded as match.finalized — a second entry for its own consequence would be noise, not a distinct operator action",
+    'a derived recalculation written inside the same transaction as the match finalize that caused it, already recorded as match.finalized — a second entry for its own consequence would be noise, not a distinct operator action',
   'csv-import-repository.ts:create':
     'internal import-session state machine; the operator action is the eventual commit, audited as csv-import.committed',
   'declared-effect-repository.ts:recordOnce':

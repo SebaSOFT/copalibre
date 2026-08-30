@@ -638,6 +638,21 @@ describe('stage creation routes (integration)', () => {
         const shortenSpan = shortenFields.find((f) => f.field === 'series.span');
         expect(shortenSpan?.blocked).toBe(true);
         expect(shortenSpan?.reason).toContain('audited correction workflow');
+
+        // A classification consulted and found blocking, but returned as a
+        // 200 decision rather than thrown, is still recorded — the one
+        // refusal shape the central exception filter cannot see (openspec
+        // 0166, task 2.2).
+        const refusal = await scratch.db
+          .selectFrom('audit_log')
+          .selectAll()
+          .where('entity_type', '=', 'stage-series')
+          .where('entity_id', '=', stageId)
+          .where('action', '=', 'mutation.refused')
+          .executeTakeFirst();
+        expect(refusal).toBeDefined();
+        expect(refusal?.reason).toContain('audited correction workflow');
+        expect(refusal?.resulting_state).toBeNull();
       },
     );
   });
