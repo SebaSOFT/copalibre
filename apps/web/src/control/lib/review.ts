@@ -18,6 +18,8 @@ export interface RegistrationRow {
   readonly submittedAt: string;
   /** Present for a person-kind entrant; absent for a team entrant. */
   readonly personId?: string;
+  /** Present for a team-kind entrant; absent for a person entrant. */
+  readonly teamId?: string;
   readonly nationality?: string;
   readonly photoObjectId?: string;
 }

@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { TournamentAuthoringPage } from './components/TournamentAuthoringPage.js';
 import { RegistrationReviewRoute } from './components/RegistrationReviewRoute.js';
@@ -469,5 +470,215 @@ describe('the registration review route container', () => {
     await waitFor(() =>
       expect(screen.getByText('Every entrant already has an abbreviation.')).toBeDefined(),
     );
+  });
+
+  it('registers a walk-up person through the direct-add dialog and shows the new row', async () => {
+    const created: unknown[] = [];
+
+    await act(async () => {
+      render(
+        withIntl(
+          <RegistrationReviewRoute
+            organizationAlias="liga-mendocina"
+            tournamentAlias="apertura-2026"
+            client={client({
+              createPerson: async (_organizationAlias, _tournamentAlias, request) => {
+                created.push(request);
+                return {
+                  entrantId: 'e-3',
+                  tournamentId: 't-1',
+                  status: 'pending',
+                  personId: 'person-3',
+                  displayName: request.displayName,
+                };
+              },
+            })}
+          />,
+        ),
+      );
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add participant' }));
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Walk-up Person' } });
+    fireEvent.change(screen.getByLabelText('Alias (optional)'), {
+      target: { value: 'walk-up-alias' },
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Register' }));
+    });
+
+    expect(created).toEqual([{ displayName: 'Walk-up Person', alias: 'walk-up-alias' }]);
+    expect(screen.getByText('Walk-up Person')).toBeDefined();
+    expect(screen.queryByRole('dialog', { name: 'Add participant' })).toBeNull();
+  });
+
+  it('registers a team through the direct-add dialog once its kind is selected', async () => {
+    const created: unknown[] = [];
+
+    await act(async () => {
+      render(
+        withIntl(
+          <RegistrationReviewRoute
+            organizationAlias="liga-mendocina"
+            tournamentAlias="apertura-2026"
+            client={client({
+              createTeam: async (_organizationAlias, _tournamentAlias, request) => {
+                created.push(request);
+                return { entrantId: 'e-4', tournamentId: 't-1', status: 'pending', teamId: 't-4' };
+              },
+            })}
+          />,
+        ),
+      );
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add participant' }));
+    fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'team' } });
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Talleres' } });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Register' }));
+    });
+
+    expect(created).toEqual([{ name: 'Talleres' }]);
+  });
+
+  it('shows the refusal message from the direct-add dialog and keeps it open on failure', async () => {
+    await act(async () => {
+      render(
+        withIntl(
+          <RegistrationReviewRoute
+            organizationAlias="liga-mendocina"
+            tournamentAlias="apertura-2026"
+            client={client({
+              createPerson: async () => {
+                throw new ControlApiError(
+                  409,
+                  'Another person already uses this alias',
+                  'registration-conflict',
+                );
+              },
+            })}
+          />,
+        ),
+      );
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add participant' }));
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Persona' } });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Register' }));
+    });
+
+    expect(await screen.findByText('Another person already uses this alias')).toBeDefined();
+    expect(screen.getByRole('dialog', { name: 'Add participant' })).toBeDefined();
+  });
+
+  it('cancels the direct-add dialog without calling the API', async () => {
+    const onAdd = jest.fn<NonNullable<ControlApiClient['createPerson']>>();
+    await act(async () => {
+      render(
+        withIntl(
+          <RegistrationReviewRoute
+            organizationAlias="liga-mendocina"
+            tournamentAlias="apertura-2026"
+            client={client({ createPerson: onAdd })}
+          />,
+        ),
+      );
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add participant' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(screen.queryByRole('dialog', { name: 'Add participant' })).toBeNull();
+    expect(onAdd).not.toHaveBeenCalled();
+  });
+
+  it("edits a directly-added team's name from the per-row edit action", async () => {
+    const updated: unknown[] = [];
+
+    await act(async () => {
+      render(
+        withIntl(
+          <RegistrationReviewRoute
+            organizationAlias="liga-mendocina"
+            tournamentAlias="apertura-2026"
+            client={client({
+              listRegistrations: async () => [
+                { entrantId: 'e-1', tournamentId: 't-1', status: 'pending', teamId: 'team-1' },
+              ],
+              updateTeamIdentity: async (_organizationAlias, _tournamentAlias, teamId, request) => {
+                updated.push({ teamId, request });
+                return { teamId, name: request.name ?? '' };
+              },
+            })}
+          />,
+        ),
+      );
+    });
+
+    const summary = screen.getByText('team-1').closest('summary');
+    expect(summary).not.toBeNull();
+    fireEvent.click(summary as HTMLElement);
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+
+    const nameField = screen.getByLabelText('Name') as HTMLInputElement;
+    expect(nameField.value).toBe('team-1');
+    fireEvent.change(nameField, { target: { value: 'Talleres FC' } });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    });
+
+    expect(updated).toEqual([{ teamId: 'team-1', request: { name: 'Talleres FC' } }]);
+    expect(screen.getByText('Talleres FC')).toBeDefined();
+  });
+
+  it("edits a directly-added person's display name from the per-row edit action", async () => {
+    const updated: unknown[] = [];
+
+    await act(async () => {
+      render(
+        withIntl(
+          <RegistrationReviewRoute
+            organizationAlias="liga-mendocina"
+            tournamentAlias="apertura-2026"
+            client={client({
+              listRegistrations: async () => [
+                {
+                  entrantId: 'e-1',
+                  tournamentId: 't-1',
+                  status: 'pending',
+                  personId: 'person-1',
+                  displayName: 'Mariano Otero',
+                },
+              ],
+              updatePersonIdentity: async (
+                _organizationAlias,
+                _tournamentAlias,
+                personId,
+                request,
+              ) => {
+                updated.push({ personId, request });
+                return { personId, displayName: request.displayName ?? '' };
+              },
+            })}
+          />,
+        ),
+      );
+    });
+
+    fireEvent.click(screen.getByText('Mariano Otero'));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+
+    const nameField = screen.getByLabelText('Name') as HTMLInputElement;
+    fireEvent.change(nameField, { target: { value: 'Mariano Otero (corrected)' } });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    });
+
+    expect(updated).toEqual([
+      { personId: 'person-1', request: { displayName: 'Mariano Otero (corrected)' } },
+    ]);
+    expect(screen.getByText('Mariano Otero (corrected)')).toBeDefined();
   });
 });

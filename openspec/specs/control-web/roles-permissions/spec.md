@@ -318,3 +318,33 @@ organization SHALL be refused on ownership grounds.
 - **WHEN** a `tournament-admin` attempts to invite a user, change organization settings, or manage a
   club
 - **THEN** the action is refused, because none of those capabilities are in the role's declared set
+
+### Requirement: The audit trail is readable by an authorized operator
+The audit trail SHALL be readable through a surface scoped by the reader's own authority, answering what
+happened to a given aggregate, what a given actor did, and what was attempted and refused.
+
+A reader SHALL see only entries within organizations they hold authority in, and reading the trail SHALL
+itself require a capability rather than being available to every role. The existing correction-history
+view SHALL continue to work unchanged.
+
+#### Scenario: An organization administrator reviews what happened
+- **WHEN** an organization administrator opens the audit surface for a tournament
+- **THEN** they see the recorded actions against it in chronological order, each naming its actor, the
+  time, and whether it was applied or refused
+
+#### Scenario: The trail is scoped to the reader's authority
+- **WHEN** an operator holding authority in one organization opens the audit surface
+- **THEN** entries from organizations they hold no authority in are not returned
+
+#### Scenario: Reading the trail requires its own authority
+- **WHEN** a role that does not hold the audit-reading capability attempts to open the surface
+- **THEN** access is refused, and the refusal is itself recorded
+
+#### Scenario: An actor's own activity is answerable
+- **WHEN** an administrator asks what a given member did
+- **THEN** the surface returns that actor's recorded actions within the administrator's own
+  organizations
+
+#### Scenario: Correction history is unaffected
+- **WHEN** an operator opens a match's correction history
+- **THEN** it renders as it did before the audit surface existed

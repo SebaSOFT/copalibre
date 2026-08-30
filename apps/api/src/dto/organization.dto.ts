@@ -871,6 +871,94 @@ export class TeamMemberResponse {
   photoObjectId?: string;
 }
 
+export class CreatePersonRequest {
+  @IsString()
+  @ApiProperty({ example: 'Elías Salomón' })
+  displayName!: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({ description: 'Suggested from displayName when omitted.' })
+  alias?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({ example: 'dni' })
+  naturalKeyKind?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({ description: 'Recognised across a later CSV import naming the same key.' })
+  naturalKeyValue?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({ format: 'date', example: '2001-05-14' })
+  birthDate?: string;
+}
+
+export class CreateTeamRequest {
+  @IsString()
+  @ApiProperty({ example: 'Talleres' })
+  name!: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({ description: 'Suggested from name when omitted.' })
+  alias?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({ format: 'uuid' })
+  clubId?: string;
+}
+
+export class UpdatePersonIdentityRequest {
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional()
+  displayName?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional()
+  alias?: string;
+}
+
+export class UpdateTeamIdentityRequest {
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional()
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional()
+  alias?: string;
+}
+
+export class PersonIdentityResponse {
+  @ApiProperty({ format: 'uuid' })
+  personId!: string;
+
+  @ApiProperty()
+  displayName!: string;
+
+  @ApiPropertyOptional()
+  alias?: string;
+}
+
+export class TeamIdentityResponse {
+  @ApiProperty({ format: 'uuid' })
+  teamId!: string;
+
+  @ApiProperty()
+  name!: string;
+
+  @ApiPropertyOptional()
+  alias?: string;
+}
+
 export class RegistrationResponse {
   @ApiProperty({ format: 'uuid' })
   entrantId!: string;

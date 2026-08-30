@@ -194,6 +194,17 @@ export class EnrollmentRepository {
     const alias =
       input.alias ?? (await this.suggestTeamAlias(uow.tx, input.organizationId, input.name));
     assertEntrantAlias(alias);
+    // Only reachable with an explicit alias: a suggested one is already
+    // disambiguated against every alias this organization holds.
+    if (input.alias !== undefined) {
+      const claimed = await this.findTeamByAlias(input.organizationId, alias);
+      if (claimed) {
+        throw new InvariantViolationError('Another team already uses this alias', {
+          alias,
+          conflictsWith: claimed.teamId,
+        });
+      }
+    }
 
     const teamId = newId();
     const row = await uow.tx
@@ -235,16 +246,28 @@ export class EnrollmentRepository {
       readonly teamId: string;
       readonly organizationId: string;
       readonly name?: string;
+      readonly alias?: string;
       readonly abbreviation?: string | null;
     } & Omit<AuditContext, 'organizationId'>,
   ): Promise<Team> {
     if (input.abbreviation !== null) assertAbbreviation(input.abbreviation);
+    if (input.alias !== undefined) {
+      assertEntrantAlias(input.alias);
+      const claimed = await this.findTeamByAlias(input.organizationId, input.alias);
+      if (claimed && claimed.teamId !== input.teamId) {
+        throw new InvariantViolationError('Another team already uses this alias', {
+          alias: input.alias,
+          conflictsWith: claimed.teamId,
+        });
+      }
+    }
 
     const previous = await this.findTeam(input.teamId);
     const row = await uow.tx
       .updateTable('teams')
       .set({
         ...(input.name === undefined ? {} : { name: input.name }),
+        ...(input.alias === undefined ? {} : { alias: input.alias }),
         ...(input.abbreviation === undefined ? {} : { abbreviation: input.abbreviation }),
       })
       .where('team_id', '=', input.teamId)

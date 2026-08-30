@@ -886,6 +886,14 @@ jobs:
       # pattern above so a failure says which half broke — the engine 0158 built
       # or the surfaces 0159 wired onto it.
       - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'series-operations'
+      # Direct participant authoring (openspec 0167): a person or team
+      # registered without a CSV file through the same repository paths a CSV
+      # row already takes, an identity edit preserving the entity's existing
+      # entrant registration, and an alias collision refused on create and on
+      # edit. No unit-tests step is added for this pattern: every path here
+      # writes through UnitOfWork, so there is no Postgres-free unit-level
+      # test file to run (see the test file's own header comment).
+      - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'participant-direct-authoring'
       # Refused-attempt and audit-surface recording, through the real HTTP
       # stack (openspec 0166): a role-refused request naming the missing
       # capability, an unauthenticated refusal naming the actor's absence,

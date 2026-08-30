@@ -7,7 +7,11 @@ import { CountrySelect } from './CountrySelect.js';
 import {
   personPhotoUrl,
   type BulkReviewRequest,
+  type CreatePersonRequest,
+  type CreateTeamRequest,
   type ReviewRegistrationRequest,
+  type UpdatePersonIdentityRequest,
+  type UpdateTeamIdentityRequest,
   type UploadImageRequest,
 } from '../lib/api-client.js';
 import { controlLinkClick } from '../lib/control-navigation.js';
@@ -16,6 +20,7 @@ import { FramedImage } from './FramedImage.js';
 import { ImageCropModal } from './ImageCropModal.js';
 import { PersonPhotoPlaceholder } from './placeholders.js';
 import { FieldValue } from './ui/molecules/field-value.js';
+import { Modal } from './ui/organisms/modal.js';
 import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
 import {
   LOCK_EXPLANATION,
@@ -63,6 +68,10 @@ export function RegistrationReviewPage({
   onReview,
   onSetNationality,
   onUploadPhoto,
+  onAddPerson,
+  onAddTeam,
+  onEditPersonIdentity,
+  onEditTeamIdentity,
 }: {
   readonly organizationAlias: string;
   readonly tournamentName: string;
@@ -79,6 +88,16 @@ export function RegistrationReviewPage({
     nationality: string | null,
   ) => Promise<void> | void;
   readonly onUploadPhoto?: (personId: string, request: UploadImageRequest) => Promise<void> | void;
+  readonly onAddPerson?: (request: CreatePersonRequest) => Promise<void> | void;
+  readonly onAddTeam?: (request: CreateTeamRequest) => Promise<void> | void;
+  readonly onEditPersonIdentity?: (
+    personId: string,
+    request: UpdatePersonIdentityRequest,
+  ) => Promise<void> | void;
+  readonly onEditTeamIdentity?: (
+    teamId: string,
+    request: UpdateTeamIdentityRequest,
+  ) => Promise<void> | void;
 }): React.JSX.Element {
   const intl = useIntl();
   const [state, setState] = useState(() => initialReview(10));
@@ -86,6 +105,8 @@ export function RegistrationReviewPage({
   const [photoCrop, setPhotoCrop] = useState<{ personId: string; src: string } | undefined>(
     undefined,
   );
+  const [addOpen, setAddOpen] = useState(false);
+  const [editingRow, setEditingRow] = useState<ReviewRegistrationRow | undefined>(undefined);
   const visible = visibleRows(rows, state) as readonly ReviewRegistrationRow[];
   const selected = new Set(state.selected);
   const allVisibleSelected =
@@ -118,6 +139,9 @@ export function RegistrationReviewPage({
         </select>
       </div>
       <div className="cl-table-toolbar__actions">
+        <Button onClick={() => setAddOpen(true)} type="button">
+          <FormattedMessage {...messages.reviewAddParticipant} />
+        </Button>
         <Button
           disabled={state.selected.length === 0}
           onClick={() => void onBulkReview?.({ entrantIds: state.selected, decision: 'accepted' })}
@@ -292,6 +316,11 @@ export function RegistrationReviewPage({
                 <Button disabled={!teamMembershipEnabled} type="button" variant="secondary">
                   <FormattedMessage {...messages.reviewEditMembers} />
                 </Button>
+                {(row.personId !== undefined || row.teamId !== undefined) && (
+                  <Button onClick={() => setEditingRow(row)} type="button" variant="secondary">
+                    <FormattedMessage {...messages.reviewEditIdentity} />
+                  </Button>
+                )}
                 <Button
                   onClick={() =>
                     void onReview?.(row.entrantId, {
@@ -358,6 +387,249 @@ export function RegistrationReviewPage({
           }}
         />
       )}
+
+      <AddParticipantDialog
+        onClose={() => setAddOpen(false)}
+        onSubmit={async (input) => {
+          if (input.kind === 'person') {
+            await onAddPerson?.({
+              displayName: input.name,
+              ...(input.alias === undefined ? {} : { alias: input.alias }),
+            });
+          } else {
+            await onAddTeam?.({
+              name: input.name,
+              ...(input.alias === undefined ? {} : { alias: input.alias }),
+            });
+          }
+        }}
+        open={addOpen}
+      />
+
+      {editingRow !== undefined && (
+        <EditIdentityDialog
+          key={editingRow.entrantId}
+          onClose={() => setEditingRow(undefined)}
+          onSubmit={async (name, alias) => {
+            if (editingRow.personId !== undefined) {
+              await onEditPersonIdentity?.(editingRow.personId, {
+                ...(name === editingRow.displayName ? {} : { displayName: name }),
+                ...(alias === undefined ? {} : { alias }),
+              });
+            } else if (editingRow.teamId !== undefined) {
+              await onEditTeamIdentity?.(editingRow.teamId, {
+                ...(name === editingRow.displayName ? {} : { name }),
+                ...(alias === undefined ? {} : { alias }),
+              });
+            }
+          }}
+          row={editingRow}
+        />
+      )}
     </>
+  );
+}
+
+type ParticipantKind = 'person' | 'team';
+
+function AddParticipantDialog({
+  open,
+  onClose,
+  onSubmit,
+}: {
+  readonly open: boolean;
+  readonly onClose: () => void;
+  readonly onSubmit: (input: {
+    readonly kind: ParticipantKind;
+    readonly name: string;
+    readonly alias?: string;
+  }) => Promise<void>;
+}): React.JSX.Element {
+  const intl = useIntl();
+  const [kind, setKind] = useState<ParticipantKind>('person');
+  const [name, setName] = useState('');
+  const [alias, setAlias] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string>();
+
+  const reset = (): void => {
+    setKind('person');
+    setName('');
+    setAlias('');
+    setError(undefined);
+  };
+
+  return (
+    <Modal
+      footer={
+        <>
+          <Button
+            onClick={() => {
+              reset();
+              onClose();
+            }}
+            type="button"
+            variant="secondary"
+          >
+            <FormattedMessage {...messages.reviewAddParticipantCancel} />
+          </Button>
+          <Button disabled={busy || name.trim() === ''} form="add-participant-form" type="submit">
+            <FormattedMessage {...messages.reviewAddParticipantSubmit} />
+          </Button>
+        </>
+      }
+      onOpenChange={(next) => {
+        if (!next) {
+          reset();
+          onClose();
+        }
+      }}
+      open={open}
+      title={intl.formatMessage(messages.reviewAddParticipantTitle)}
+    >
+      <form
+        id="add-participant-form"
+        onSubmit={(event) => {
+          event.preventDefault();
+          setBusy(true);
+          setError(undefined);
+          void onSubmit({
+            kind,
+            name: name.trim(),
+            ...(alias.trim() === '' ? {} : { alias: alias.trim() }),
+          })
+            .then(() => {
+              reset();
+              onClose();
+            })
+            .catch((cause: unknown) =>
+              setError(cause instanceof Error ? cause.message : String(cause)),
+            )
+            .finally(() => setBusy(false));
+        }}
+      >
+        <FormField
+          id="add-participant-kind"
+          label={intl.formatMessage(messages.reviewParticipantKindLabel)}
+        >
+          <select
+            aria-label={intl.formatMessage(messages.reviewParticipantKindLabel)}
+            className="cl-select cl-select--default cl-focusable"
+            id="add-participant-kind"
+            onChange={(event) => setKind(event.target.value as ParticipantKind)}
+            value={kind}
+          >
+            <option value="person">
+              {intl.formatMessage(messages.reviewParticipantKindPerson)}
+            </option>
+            <option value="team">{intl.formatMessage(messages.reviewParticipantKindTeam)}</option>
+          </select>
+        </FormField>
+        <FormField
+          id="add-participant-name"
+          label={intl.formatMessage(messages.reviewParticipantNameLabel)}
+        >
+          <input
+            aria-label={intl.formatMessage(messages.reviewParticipantNameLabel)}
+            className="cl-input cl-input--default cl-focusable"
+            id="add-participant-name"
+            onChange={(event) => setName(event.target.value)}
+            required
+            value={name}
+          />
+        </FormField>
+        <FormField
+          id="add-participant-alias"
+          label={intl.formatMessage(messages.reviewParticipantAliasLabel)}
+        >
+          <input
+            aria-label={intl.formatMessage(messages.reviewParticipantAliasLabel)}
+            className="cl-input cl-input--default cl-focusable"
+            id="add-participant-alias"
+            onChange={(event) => setAlias(event.target.value)}
+            value={alias}
+          />
+        </FormField>
+        {error !== undefined && <p className="cl-inline-alert">{error}</p>}
+      </form>
+    </Modal>
+  );
+}
+
+function EditIdentityDialog({
+  row,
+  onClose,
+  onSubmit,
+}: {
+  readonly row: ReviewRegistrationRow;
+  readonly onClose: () => void;
+  readonly onSubmit: (name: string, alias?: string) => Promise<void>;
+}): React.JSX.Element {
+  const intl = useIntl();
+  const [name, setName] = useState(row.displayName);
+  const [alias, setAlias] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string>();
+
+  return (
+    <Modal
+      footer={
+        <>
+          <Button onClick={onClose} type="button" variant="secondary">
+            <FormattedMessage {...messages.reviewEditIdentityCancel} />
+          </Button>
+          <Button disabled={busy || name.trim() === ''} form="edit-identity-form" type="submit">
+            <FormattedMessage {...messages.reviewEditIdentitySave} />
+          </Button>
+        </>
+      }
+      onOpenChange={(next) => {
+        if (!next) onClose();
+      }}
+      open
+      title={intl.formatMessage(messages.reviewEditIdentityTitle)}
+    >
+      <form
+        id="edit-identity-form"
+        onSubmit={(event) => {
+          event.preventDefault();
+          setBusy(true);
+          setError(undefined);
+          void onSubmit(name.trim(), alias.trim() === '' ? undefined : alias.trim())
+            .then(onClose)
+            .catch((cause: unknown) =>
+              setError(cause instanceof Error ? cause.message : String(cause)),
+            )
+            .finally(() => setBusy(false));
+        }}
+      >
+        <FormField
+          id="edit-identity-name"
+          label={intl.formatMessage(messages.reviewParticipantNameLabel)}
+        >
+          <input
+            aria-label={intl.formatMessage(messages.reviewParticipantNameLabel)}
+            className="cl-input cl-input--default cl-focusable"
+            id="edit-identity-name"
+            onChange={(event) => setName(event.target.value)}
+            required
+            value={name}
+          />
+        </FormField>
+        <FormField
+          id="edit-identity-alias"
+          label={intl.formatMessage(messages.reviewParticipantAliasLabel)}
+        >
+          <input
+            aria-label={intl.formatMessage(messages.reviewParticipantAliasLabel)}
+            className="cl-input cl-input--default cl-focusable"
+            id="edit-identity-alias"
+            onChange={(event) => setAlias(event.target.value)}
+            value={alias}
+          />
+        </FormField>
+        {error !== undefined && <p className="cl-inline-alert">{error}</p>}
+      </form>
+    </Modal>
   );
 }

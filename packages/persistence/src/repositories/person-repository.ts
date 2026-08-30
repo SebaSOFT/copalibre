@@ -55,6 +55,17 @@ export class PersonRepository {
     if (!validatedAlias.ok) {
       throw new InvariantViolationError(validatedAlias.error.message, { alias });
     }
+    // Only reachable with an explicit alias: a suggested one is already
+    // disambiguated against every alias this organization holds.
+    if (input.alias !== undefined) {
+      const claimed = await this.findByAlias(input.organizationId, alias);
+      if (claimed) {
+        throw new InvariantViolationError('Another person already uses this alias', {
+          alias,
+          conflictsWith: claimed.personId,
+        });
+      }
+    }
 
     const person: Person = {
       personId: newId(),
@@ -100,6 +111,61 @@ export class PersonRepository {
     });
 
     return { person, recognised: false };
+  }
+
+  /**
+   * Corrects a person's own display name and/or alias — a misspelling caught
+   * after registration, not a new person. Neither field is required: an
+   * absent one is left as it was.
+   */
+  async updateIdentity(
+    uow: UnitOfWork,
+    input: {
+      readonly personId: string;
+      readonly organizationId: string;
+      readonly displayName?: string;
+      readonly alias?: string;
+    } & AuditContext,
+  ): Promise<Person> {
+    const previous = await this.findPerson(input.personId);
+    if (input.alias !== undefined) {
+      const validatedAlias = Alias.create('entrant', input.alias);
+      if (!validatedAlias.ok) {
+        throw new InvariantViolationError(validatedAlias.error.message, { alias: input.alias });
+      }
+      const claimed = await this.findByAlias(input.organizationId, input.alias);
+      if (claimed && claimed.personId !== input.personId) {
+        throw new InvariantViolationError('Another person already uses this alias', {
+          alias: input.alias,
+          conflictsWith: claimed.personId,
+        });
+      }
+    }
+
+    const row = await uow.tx
+      .updateTable('persons')
+      .set({
+        ...(input.displayName === undefined ? {} : { display_name: input.displayName }),
+        ...(input.alias === undefined ? {} : { alias: input.alias }),
+      })
+      .where('person_id', '=', input.personId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const person = toPerson(row);
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'person',
+      entityId: input.personId,
+      action: 'person.identity-updated',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      ...(previous === undefined
+        ? {}
+        : { previousState: { displayName: previous.displayName, alias: previous.alias ?? null } }),
+      resultingState: { displayName: person.displayName, alias: person.alias ?? null },
+    });
+    return person;
   }
 
   /**

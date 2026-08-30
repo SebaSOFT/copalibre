@@ -739,6 +739,49 @@ export const messages = defineMessages({
   reviewSaveNationality: { id: 'control.review.saveNationality', defaultMessage: 'Save' },
   reviewUploadPhoto: { id: 'control.review.uploadPhoto', defaultMessage: 'Upload photo' },
   reviewViewProfile: { id: 'control.review.viewProfile', defaultMessage: 'View profile' },
+  reviewAddParticipant: { id: 'control.review.addParticipant', defaultMessage: 'Add participant' },
+  reviewAddParticipantTitle: {
+    id: 'control.review.addParticipantTitle',
+    defaultMessage: 'Add participant',
+  },
+  reviewAddParticipantCancel: {
+    id: 'control.review.addParticipantCancel',
+    defaultMessage: 'Cancel',
+  },
+  reviewAddParticipantSubmit: {
+    id: 'control.review.addParticipantSubmit',
+    defaultMessage: 'Register',
+  },
+  reviewParticipantKindLabel: {
+    id: 'control.review.participantKindLabel',
+    defaultMessage: 'Type',
+  },
+  reviewParticipantKindPerson: {
+    id: 'control.review.participantKindPerson',
+    defaultMessage: 'Person',
+  },
+  reviewParticipantKindTeam: {
+    id: 'control.review.participantKindTeam',
+    defaultMessage: 'Team',
+  },
+  reviewParticipantNameLabel: {
+    id: 'control.review.participantNameLabel',
+    defaultMessage: 'Name',
+  },
+  reviewParticipantAliasLabel: {
+    id: 'control.review.participantAliasLabel',
+    defaultMessage: 'Alias (optional)',
+  },
+  reviewEditIdentity: { id: 'control.review.editIdentity', defaultMessage: 'Edit' },
+  reviewEditIdentityTitle: {
+    id: 'control.review.editIdentityTitle',
+    defaultMessage: 'Edit identity',
+  },
+  reviewEditIdentityCancel: {
+    id: 'control.review.editIdentityCancel',
+    defaultMessage: 'Cancel',
+  },
+  reviewEditIdentitySave: { id: 'control.review.editIdentitySave', defaultMessage: 'Save' },
 
   // AbbreviationReviewSection.tsx
   abbreviationReviewSectionLabel: {

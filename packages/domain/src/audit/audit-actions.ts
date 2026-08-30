@@ -42,6 +42,7 @@ export const AUDIT_ACTIONS = [
   'person.nationality-set',
   'person.photo-set',
   'person.birth-date-set',
+  'person.identity-updated',
   'person.replaced',
   'player.enlisted',
   'player.dismissed',

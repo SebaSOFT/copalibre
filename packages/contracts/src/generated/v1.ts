@@ -344,6 +344,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/persons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Register a new person directly, without a CSV file
+         * @description The walk-up case a CSV row was never meant for: one person, registered through the same path — PersonRepository.register, then registerEntrant — a CSV row already takes. A person later named again in an imported file, matching on natural key or alias, is recognised rather than duplicated.
+         */
+        post: operations["RegistrationsController_createPerson"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/teams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Register a new team directly, without a CSV file
+         * @description The late-substitute case a CSV row was never meant for: one team, registered through the same path — EnrollmentRepository.createTeam, then registerEntrant — a CSV row already takes. A team later named again in an imported file, matching on alias, is recognised rather than duplicated.
+         */
+        post: operations["RegistrationsController_createTeam"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/persons/{personId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Edit a registered person’s display name or alias
+         * @description Corrects the person’s own identity fields in place; their existing entrant registration, roster memberships and history stay attached to the same person.
+         */
+        patch: operations["RegistrationsController_updatePersonIdentity"];
+        trace?: never;
+    };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/teams/{teamId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Edit a registered team’s name or alias
+         * @description Corrects the team’s own identity fields in place; its existing entrant registration, roster and history stay attached to the same team.
+         */
+        patch: operations["RegistrationsController_updateTeamIdentity"];
+        trace?: never;
+    };
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/{entrantId}/team-memberships": {
         parameters: {
             query?: never;
@@ -2610,6 +2690,49 @@ export interface components {
             applied: components["schemas"]["RegistrationResponse"][];
             /** @description Registrations left untouched, each with the reason — never silently skipped. */
             refused: unknown[][];
+        };
+        CreatePersonRequest: {
+            /** @example Elías Salomón */
+            displayName: string;
+            /** @description Suggested from displayName when omitted. */
+            alias?: string;
+            /** @example dni */
+            naturalKeyKind?: string;
+            /** @description Recognised across a later CSV import naming the same key. */
+            naturalKeyValue?: string;
+            /**
+             * Format: date
+             * @example 2001-05-14
+             */
+            birthDate?: string;
+        };
+        CreateTeamRequest: {
+            /** @example Talleres */
+            name: string;
+            /** @description Suggested from name when omitted. */
+            alias?: string;
+            /** Format: uuid */
+            clubId?: string;
+        };
+        UpdatePersonIdentityRequest: {
+            displayName?: string;
+            alias?: string;
+        };
+        PersonIdentityResponse: {
+            /** Format: uuid */
+            personId: string;
+            displayName: string;
+            alias?: string;
+        };
+        UpdateTeamIdentityRequest: {
+            name?: string;
+            alias?: string;
+        };
+        TeamIdentityResponse: {
+            /** Format: uuid */
+            teamId: string;
+            name: string;
+            alias?: string;
         };
         EditTeamMembershipsRequest: {
             /** @description The team’s full desired membership. Anyone currently a member but not named here is removed. */
@@ -5408,6 +5531,144 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BulkReviewResponse"];
+                };
+            };
+        };
+    };
+    RegistrationsController_createPerson: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePersonRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistrationResponse"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    RegistrationsController_createTeam: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateTeamRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistrationResponse"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    RegistrationsController_updatePersonIdentity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                personId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdatePersonIdentityRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonIdentityResponse"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    RegistrationsController_updateTeamIdentity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                teamId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateTeamIdentityRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamIdentityResponse"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
                 };
             };
         };
