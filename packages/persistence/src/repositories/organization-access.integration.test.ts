@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import {
   AuditReader,
+  EnrollmentRepository,
   InvariantViolationError,
   OrganizationAccessRepository,
   OrganizationRepository,
@@ -465,6 +466,7 @@ describe('role-granting hierarchy and last-admin floor invariant (integration)',
       readonly recipientEmail: string;
       readonly role: 'admin' | 'club-admin' | 'referee' | 'broadcaster' | 'viewer';
       readonly grantorContext?: { isSuperAdmin: boolean; organizationAdminOf?: string };
+      readonly clubId?: string;
     },
   ) {
     const token = input.recipientEmail;
@@ -480,6 +482,7 @@ describe('role-granting hierarchy and last-admin floor invariant (integration)',
         actor: 'user:test',
         authorizationContext: 'copalibre.control',
         ...(input.grantorContext ? { grantorContext: input.grantorContext } : {}),
+        ...(input.clubId ? { clubId: input.clubId } : {}),
       }),
     );
     return withTransaction(scratch.db, (uow) =>
@@ -502,13 +505,23 @@ describe('role-granting hierarchy and last-admin floor invariant (integration)',
 
   it('lets a super-admin grantor invite a club-admin', async () => {
     const access = new OrganizationAccessRepository(scratch.db);
+    const club = await withTransaction(scratch.db, (uow) =>
+      new EnrollmentRepository(scratch.db).createClub(uow, {
+        organizationId,
+        name: 'Club RBAC',
+        alias: 'club-rbac',
+        actor: 'user:test',
+        authorizationContext: 'copalibre.control',
+      }),
+    );
     await expect(
       invite(access, {
         recipientEmail: 'rbac-club-admin@example.test',
         role: 'club-admin',
         grantorContext: { isSuperAdmin: true },
+        clubId: club.clubId,
       }),
-    ).resolves.toMatchObject({ role: 'club-admin' });
+    ).resolves.toMatchObject({ role: 'club-admin', clubId: club.clubId });
   });
 
   it("refuses an organization admin's grant crossing into another organization", async () => {

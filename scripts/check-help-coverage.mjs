@@ -166,7 +166,14 @@ async function main() {
 
   const claimed = claimedCapabilityIds(pages);
   const uncoveredCaps = uncoveredCapabilities(operatorFacingIds, claimed);
-  const ORGANIZATION_ROLES = ['admin', 'club-admin', 'referee', 'broadcaster', 'viewer'];
+  const ORGANIZATION_ROLES = [
+    'admin',
+    'club-admin',
+    'tournament-admin',
+    'referee',
+    'broadcaster',
+    'viewer',
+  ];
   const INSTALLATION_ROLES = ['super-admin'];
   const uncoveredR = uncoveredRoles(pages, [...ORGANIZATION_ROLES, ...INSTALLATION_ROLES]);
 

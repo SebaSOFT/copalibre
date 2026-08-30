@@ -44,18 +44,22 @@ test('a help page renders its declared roles visibly, not only in frontmatter (6
   await expect(page.getByRole('heading', { name: 'Platform administration' })).toBeVisible();
 
   // The role badge is real page content in the accessible tree, not a
-  // tooltip or attribute a reader would never see.
-  await expect(page.getByText('For roles:')).toBeVisible();
-  await expect(page.getByText('Super-admin', { exact: true })).toBeVisible();
+  // tooltip or attribute a reader would never see. Scoped to the article
+  // body: the left sidebar also links to every role's own manual page by
+  // the same name (openspec 0165), which would otherwise match twice.
+  const main = page.locator('main');
+  await expect(main.getByText('For roles:')).toBeVisible();
+  await expect(main.getByText('Super-admin', { exact: true })).toBeVisible();
 });
 
 test('a page whose declared roles do not include broadcaster does not claim one it does not declare', async ({
   page,
 }) => {
   await page.goto('/help/control/roles-permissions/');
-  await expect(page.getByText('For roles:')).toBeVisible();
-  await expect(page.getByText('Admin', { exact: true })).toBeVisible();
-  await expect(page.getByText('Broadcaster', { exact: true })).toHaveCount(0);
+  const main = page.locator('main');
+  await expect(main.getByText('For roles:')).toBeVisible();
+  await expect(main.getByText('Admin', { exact: true })).toBeVisible();
+  await expect(main.getByText('Broadcaster', { exact: true })).toHaveCount(0);
 });
 
 test('the series and schedule pages are reachable and render in a non-English locale (6.3)', async ({

@@ -8418,6 +8418,7 @@
             "enum": [
               "admin",
               "club-admin",
+              "tournament-admin",
               "referee",
               "broadcaster",
               "viewer"
@@ -11768,6 +11769,7 @@
             "enum": [
               "admin",
               "club-admin",
+              "tournament-admin",
               "referee",
               "broadcaster",
               "viewer"
@@ -11779,6 +11781,16 @@
               "active",
               "inactive"
             ]
+          },
+          "clubId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Set only for a club-scoped role."
+          },
+          "tournamentId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Set only for a tournament-scoped role."
           }
         },
         "required": [
@@ -11801,6 +11813,7 @@
                 "super-admin",
                 "admin",
                 "club-admin",
+                "tournament-admin",
                 "referee",
                 "broadcaster",
                 "viewer"
@@ -11824,10 +11837,21 @@
             "enum": [
               "admin",
               "club-admin",
+              "tournament-admin",
               "referee",
               "broadcaster",
               "viewer"
             ]
+          },
+          "tournamentId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Required exactly when `role` is a tournament-scoped role (e.g. tournament-admin)."
+          },
+          "clubId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Required exactly when `role` is a club-scoped role (club-admin)."
           },
           "status": {
             "type": "string",
@@ -11868,10 +11892,21 @@
             "enum": [
               "admin",
               "club-admin",
+              "tournament-admin",
               "referee",
               "broadcaster",
               "viewer"
             ]
+          },
+          "tournamentId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Required exactly when `role` is a tournament-scoped role (e.g. tournament-admin)."
+          },
+          "clubId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Required exactly when `role` is a club-scoped role (club-admin)."
           },
           "status": {
             "type": "string",

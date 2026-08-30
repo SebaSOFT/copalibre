@@ -189,8 +189,8 @@ describe('report/dispute submission and review (integration)', () => {
     }
 
     // The operator subject FakeTokenVerifier calls "organizer" needs a real,
-    // active admin role assignment — RequireOrganizationRole checks one, not
-    // the subject's scopes.
+    // active admin role assignment — the capability guard resolves one
+    // through rolesForCapability, not the subject's scopes.
     const organizerToken = 'organizer-invite-token';
     await withTransaction(db, async (uow) => {
       const access = new OrganizationAccessRepository(db);

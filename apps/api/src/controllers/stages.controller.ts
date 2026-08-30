@@ -43,7 +43,7 @@ import {
 import type { Kysely } from 'kysely';
 import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
-import { RequireOrganizationRole } from '../auth/access-requirement.js';
+import { RequireOrganizationCapability } from '../auth/access-requirement.js';
 import {
   CreateStageRequest,
   ProblemResponse,
@@ -72,7 +72,7 @@ export class StagesController {
 
   @Post()
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-stages')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Create a stage from the tournament’s accepted registrations',
@@ -201,7 +201,7 @@ export class StagesController {
   @Post(':stageNumber/series/preview')
   @HttpCode(200)
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-stages')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Classify a proposed series edit before it is applied',
@@ -294,7 +294,7 @@ export class StagesController {
 
   @Get(':stageNumber/fixtures')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-stages')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'A stage’s generated fixtures, with real fixture ids',

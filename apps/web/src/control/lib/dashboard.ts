@@ -1,4 +1,9 @@
 import type { MessageDescriptor } from 'react-intl';
+import {
+  capabilitiesForRole,
+  type OrganizationCapability,
+  type OrganizationRole,
+} from '@copalibre/domain';
 import { messages } from '../i18n/messages.en.js';
 
 /**
@@ -94,12 +99,27 @@ export const SIDENAV: readonly {
   readonly id: string;
   readonly label: MessageDescriptor;
   readonly path: string;
+  /** Absent means every organization member sees this entry. Present means it is shown only to a role `capabilitiesForRole` resolves this capability for — the mapping decides, not a hardcoded role list. */
+  readonly capability?: OrganizationCapability;
 }[] = [
   { id: 'dashboard', label: messages.navDashboard, path: '' },
   { id: 'live-console', label: messages.navLiveConsole, path: '/live' },
   { id: 'tournaments', label: messages.navTournaments, path: '/tournaments' },
-  { id: 'roles', label: messages.navRoles, path: '/roles' },
+  { id: 'roles', label: messages.navRoles, path: '/roles', capability: 'org.manage-users' },
   { id: 'resources', label: messages.navResources, path: '/resources' },
   { id: 'organization', label: messages.navOrganization, path: '/organization' },
   { id: 'analytics', label: messages.navAnalytics, path: '/analytics' },
 ];
+
+/**
+ * `SIDENAV` narrowed to what this role may see. An unknown role (the role
+ * has not resolved yet) shows every entry — the underlying route stays
+ * guarded server-side regardless, so this is a presentation choice, not a
+ * security boundary, matching `accessTokenHasScope`'s own "client-side
+ * presentation guard" role for `isSuperAdmin`.
+ */
+export function visibleSidenav(role: OrganizationRole | undefined): typeof SIDENAV {
+  if (role === undefined) return SIDENAV;
+  const held = capabilitiesForRole(role);
+  return SIDENAV.filter((item) => item.capability === undefined || held.includes(item.capability));
+}

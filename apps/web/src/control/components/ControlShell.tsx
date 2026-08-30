@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
-import { SIDENAV } from '../lib/dashboard.js';
+import type { OrganizationRole } from '@copalibre/domain';
+import { visibleSidenav } from '../lib/dashboard.js';
 import { activeControlLanguage, ControlIntl } from '../i18n/ControlIntl.js';
 import { LanguageSwitcher } from '../i18n/LanguageSwitcher.js';
 import { messages } from '../i18n/messages.en.js';
 import { controlLinkClick } from '../lib/control-navigation.js';
+import { createControlApiClient } from '../lib/api-client.js';
 import { accessTokenHasScope, controlTokenStore } from '../session/token-store.js';
 import {
   writeStoredLanguagePreference,
@@ -65,6 +67,28 @@ function ControlShellChrome({
 }): React.JSX.Element {
   const intl = useIntl();
   const isSuperAdmin = accessTokenHasScope(controlTokenStore.read(), 'copalibre.super-admin');
+  const [role, setRole] = useState<OrganizationRole | undefined>(undefined);
+  useEffect(() => {
+    if (!organizationAlias) return;
+    let cancelled = false;
+    createControlApiClient({
+      fetch: globalThis.fetch.bind(globalThis),
+      accessToken: () => controlTokenStore.read(),
+    })
+      .listMyOrganizations()
+      .then((organizations) => {
+        if (cancelled) return;
+        const mine = organizations.find((one) => one.organizationAlias === organizationAlias);
+        setRole(mine?.role);
+      })
+      .catch(() => {
+        // Nav visibility is a presentation guard; a failed lookup leaves
+        // every entry visible rather than blocking the shell from rendering.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [organizationAlias]);
   // Same locale-prefix routing Starlight's own pages already use for every
   // locale but the default: the root/English pages are unprefixed.
   const helpLocalePrefix = locale === 'en' ? '' : `/${locale}`;
@@ -98,7 +122,7 @@ function ControlShellChrome({
         </a>
         <ul className="cl-control__nav-list">
           {organizationAlias &&
-            SIDENAV.map((item) => (
+            visibleSidenav(role).map((item) => (
               <li key={item.id}>
                 <a
                   className="cl-focusable"

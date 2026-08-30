@@ -22,7 +22,7 @@ import {
   type Database,
 } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
-import { RequireOrganizationRole } from '../auth/access-requirement.js';
+import { RequireOrganizationCapability } from '../auth/access-requirement.js';
 import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
 import { DATABASE } from '../database.token.js';
@@ -43,7 +43,7 @@ export class DataImportExportController {
   @Post()
   @HttpCode(202)
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-tournament-data')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Queue a CSV participant import for worker validation' })
   @ApiAcceptedResponse({ type: CsvImportPreviewResponse })
@@ -101,7 +101,7 @@ export class DataImportExportController {
 
   @Get(':importId')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-tournament-data')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Read the worker-produced CSV import preview' })
   @ApiOkResponse({ type: CsvImportPreviewResponse })
@@ -132,7 +132,7 @@ export class DataImportExportController {
   @Post(':importId/commit')
   @HttpCode(200)
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-tournament-data')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Commit a reviewed CSV preview atomically' })
   @ApiOkResponse({ type: CsvImportPreviewResponse })
@@ -329,6 +329,14 @@ export class DataImportExportController {
         errorCode: 'data-import-not-found',
       });
     }
+    enforcePolicy({
+      plane: 'admin-control',
+      subject: request.subject,
+      resource: {
+        organizationId: organization.organizationId,
+        ownerTournamentId: tournament.tournamentId,
+      },
+    });
     return { organizationId: organization.organizationId, tournamentId: tournament.tournamentId };
   }
 }

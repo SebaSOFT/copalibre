@@ -10,7 +10,7 @@ import {
 } from '@nestjs/swagger';
 import { DisplayTokenRepository, withTransaction, type Database } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
-import { RequireOrganizationRole } from '../auth/access-requirement.js';
+import { RequireOrganizationCapability } from '../auth/access-requirement.js';
 import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
 import { DATABASE } from '../database.token.js';
@@ -33,7 +33,7 @@ export class DisplayTokenController {
 
   @Get()
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-display-tokens')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List display tokens issued for this tournament’s /tv/** surfaces' })
   @ApiOkResponse({ type: DisplayTokenResponse, isArray: true })
@@ -53,7 +53,7 @@ export class DisplayTokenController {
 
   @Post()
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-display-tokens')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Issue a device-scoped display token for one /tv/** route' })
   @ApiCreatedResponse({
@@ -94,7 +94,7 @@ export class DisplayTokenController {
   @Delete(':displayTokenId')
   @HttpCode(200)
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-display-tokens')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Revoke one device’s display token' })
   @ApiOkResponse({ type: DisplayTokenResponse })

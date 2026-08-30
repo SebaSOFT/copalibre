@@ -25,6 +25,10 @@ export interface ResourceRef {
   readonly organizationId: string;
   /** For participant self-service, the participant the resource belongs to. */
   readonly ownerParticipantId?: string;
+  /** The club this resource belongs to, when it is club-owned (e.g. a `ClubsController`/`ClubMediaController` resource). */
+  readonly ownerClubId?: string;
+  /** The tournament this resource belongs to, when it is tournament-scoped. */
+  readonly ownerTournamentId?: string;
 }
 
 export type PolicyDecision =
@@ -63,6 +67,27 @@ export function evaluateAuthenticatedInteraction(
   return allow();
 }
 
+/**
+ * One resource-ownership scope narrowing, parameterized by kind rather than
+ * duplicated per kind: a club-admin's assignment narrows it to one club, a
+ * tournament-admin's to one tournament, `evaluateAdminControl` applies both
+ * through this same check. Absent on either side, the check does not engage
+ * — an actor with no scope for this kind is unnarrowed for it (e.g. `admin`
+ * never carries a scope at all), and a resource with no owner of this kind
+ * is not this kind of resource (e.g. a venue is never club-owned).
+ */
+function evaluateOwnershipScope(
+  actorScope: string | undefined,
+  resourceOwner: string | undefined,
+  kind: 'club' | 'tournament',
+): PolicyDecision {
+  if (actorScope === undefined || resourceOwner === undefined) return allow();
+  if (actorScope !== resourceOwner) {
+    return deny(`subject is not scoped to administer this ${kind}`);
+  }
+  return allow();
+}
+
 /** Organizer/official consoles: org-scoped, and destructive acts need intent. */
 export function evaluateAdminControl(
   subject: AuthenticatedSubject,
@@ -72,6 +97,18 @@ export function evaluateAdminControl(
   if (!subject.organizationId || subject.organizationId !== resource.organizationId) {
     return deny('subject is not scoped to this organization');
   }
+  const clubScope = evaluateOwnershipScope(
+    subject.resourceScope?.clubId,
+    resource.ownerClubId,
+    'club',
+  );
+  if (!clubScope.allowed) return clubScope;
+  const tournamentScope = evaluateOwnershipScope(
+    subject.resourceScope?.tournamentId,
+    resource.ownerTournamentId,
+    'tournament',
+  );
+  if (!tournamentScope.allowed) return tournamentScope;
   if (options?.destructive && !options.confirmed) {
     // "explicit confirmation for destructive actions" is a policy requirement,
     // not a UI nicety — the API refuses an unconfirmed destructive command.

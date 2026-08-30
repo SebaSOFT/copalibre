@@ -20,7 +20,7 @@ import {
   withTransaction,
   type Database,
 } from '@copalibre/persistence';
-import { RequireOrganizationRole } from '../auth/access-requirement.js';
+import { RequireOrganizationCapability } from '../auth/access-requirement.js';
 import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
 import { DATABASE } from '../database.token.js';
@@ -50,7 +50,7 @@ export class ResourcesController {
 
   @Get('venues')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-resources')
   @ApiBearerAuth()
   @ApiOperation({ summary: "List an organization's venues" })
   @ApiOkResponse({ type: VenueResponse, isArray: true })
@@ -64,7 +64,7 @@ export class ResourcesController {
 
   @Post('venues')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-resources')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a venue' })
   @ApiCreatedResponse({ type: VenueResponse })
@@ -99,7 +99,7 @@ export class ResourcesController {
 
   @Patch('venues/:venueId')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-resources')
   @ApiBearerAuth()
   @ApiOperation({ summary: "Edit a venue's name, capacity, address, or details" })
   @ApiOkResponse({ type: VenueResponse })
@@ -142,7 +142,7 @@ export class ResourcesController {
 
   @Get('officials')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-resources')
   @ApiBearerAuth()
   @ApiOperation({ summary: "List an organization's officials" })
   @ApiOkResponse({ type: OfficialResponse, isArray: true })
@@ -157,7 +157,7 @@ export class ResourcesController {
 
   @Post('officials')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-resources')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create an official' })
   @ApiCreatedResponse({ type: OfficialResponse })
@@ -190,7 +190,7 @@ export class ResourcesController {
 
   @Patch('officials/:officialId')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-resources')
   @ApiBearerAuth()
   @ApiOperation({ summary: "Edit an official's name or declared roles" })
   @ApiOkResponse({ type: OfficialResponse })
@@ -232,7 +232,7 @@ export class ResourcesController {
 
   @Get('schedules')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-resources')
   @ApiBearerAuth()
   @ApiOperation({ summary: "List an organization's schedules with generated slots and occupancy" })
   @ApiOkResponse({ type: ScheduleDetailResponse, isArray: true })
@@ -257,7 +257,7 @@ export class ResourcesController {
 
   @Post('schedules')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-resources')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a schedule grid' })
   @ApiCreatedResponse({ type: ScheduleDetailResponse })
@@ -300,7 +300,7 @@ export class ResourcesController {
 
   @Patch('schedules/:scheduleId')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-resources')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Edit a schedule grid' })
   @ApiOkResponse({ type: ScheduleDetailResponse })
@@ -353,7 +353,7 @@ export class ResourcesController {
 
   @Delete('schedules/:scheduleId')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-resources')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Remove a schedule grid' })
   @ApiOkResponse({ schema: { type: 'object', properties: { success: { type: 'boolean' } } } })

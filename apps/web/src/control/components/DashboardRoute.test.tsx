@@ -182,4 +182,62 @@ describe('DashboardRoute', () => {
 
     await waitFor(() => expect(screen.getByText(/no tiene torneos/)).toBeDefined());
   });
+
+  it('hides the Roles navigation entry once a club-admin role resolves', async () => {
+    Object.defineProperty(globalThis, 'fetch', {
+      configurable: true,
+      value: async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url === '/organizations?mine=true') {
+          return new Response(
+            JSON.stringify([
+              {
+                organizationId: 'org-1',
+                organizationAlias: 'liga-mendocina',
+                organizationName: 'Liga Mendocina',
+                role: 'club-admin',
+              },
+            ]),
+            { headers: { 'content-type': 'application/json' } },
+          );
+        }
+        return new Response('[]', { headers: { 'content-type': 'application/json' } });
+      },
+    });
+
+    await act(async () => {
+      render(<DashboardRoute client={client()} organizationAlias="liga-mendocina" />);
+    });
+
+    await waitFor(() => expect(screen.queryByRole('link', { name: 'Roles' })).toBeNull());
+  });
+
+  it('keeps the Roles navigation entry for admin', async () => {
+    Object.defineProperty(globalThis, 'fetch', {
+      configurable: true,
+      value: async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url === '/organizations?mine=true') {
+          return new Response(
+            JSON.stringify([
+              {
+                organizationId: 'org-1',
+                organizationAlias: 'liga-mendocina',
+                organizationName: 'Liga Mendocina',
+                role: 'admin',
+              },
+            ]),
+            { headers: { 'content-type': 'application/json' } },
+          );
+        }
+        return new Response('[]', { headers: { 'content-type': 'application/json' } });
+      },
+    });
+
+    await act(async () => {
+      render(<DashboardRoute client={client()} organizationAlias="liga-mendocina" />);
+    });
+
+    await waitFor(() => expect(screen.getByRole('link', { name: 'Roles' })).toBeDefined());
+  });
 });

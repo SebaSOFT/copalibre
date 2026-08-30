@@ -1,8 +1,10 @@
 import {
   canCreateOrganizationInvitation,
   canGrantRole,
+  isClubScopedRole,
   isOrganizationMemberStatus,
   isOrganizationRole,
+  isTournamentScopedRole,
   normaliseEmail,
   validateOrganizationInvitation,
   wouldLeaveOrganizationWithoutAdmin,
@@ -31,6 +33,10 @@ export interface CreateOrganizationInvitationInput extends AccessAuditContext {
   readonly recipientEmail: string;
   readonly role: OrganizationRole;
   readonly status: OrganizationMemberStatus;
+  /** Required exactly when `role` is club-scoped (`isClubScopedRole`); absent otherwise. */
+  readonly clubId?: string;
+  /** Required exactly when `role` is tournament-scoped (`isTournamentScopedRole`); absent otherwise. */
+  readonly tournamentId?: string;
   readonly tokenHash: string;
   /** Used only in the trusted outbox payload sent to the SMTP delivery adapter. */
   readonly token: string;
@@ -57,6 +63,10 @@ export interface ChangeOrganizationRoleInput extends AccessAuditContext {
   readonly assignmentId: string;
   readonly role: OrganizationRole;
   readonly status: OrganizationMemberStatus;
+  /** Required exactly when `role` is club-scoped (`isClubScopedRole`); absent otherwise. */
+  readonly clubId?: string;
+  /** Required exactly when `role` is tournament-scoped (`isTournamentScopedRole`); absent otherwise. */
+  readonly tournamentId?: string;
   readonly grantorContext?: GrantorContext;
 }
 
@@ -165,6 +175,8 @@ export class OrganizationAccessRepository {
       role: input.role,
       status: input.status,
       expiresAt: input.expiresAt,
+      ...(input.clubId === undefined ? {} : { clubId: input.clubId }),
+      ...(input.tournamentId === undefined ? {} : { tournamentId: input.tournamentId }),
     });
     if (!checked.ok)
       throw new InvariantViolationError(checked.error.message, checked.error.details);
@@ -204,6 +216,8 @@ export class OrganizationAccessRepository {
         accepted_at: null,
         accepted_principal_id: null,
         created_at: new Date(),
+        club_id: checked.value.clubId ?? null,
+        tournament_id: checked.value.tournamentId ?? null,
       })
       .returningAll()
       .executeTakeFirstOrThrow();
@@ -299,6 +313,8 @@ export class OrganizationAccessRepository {
             status: invitation.status,
             updated_at: now,
             deleted_at: null,
+            club_id: invitation.club_id,
+            tournament_id: invitation.tournament_id,
           })
           .where('assignment_id', '=', existingAssignment.assignment_id)
           .returningAll()
@@ -315,6 +331,8 @@ export class OrganizationAccessRepository {
             created_at: now,
             updated_at: now,
             deleted_at: null,
+            club_id: invitation.club_id,
+            tournament_id: invitation.tournament_id,
           })
           .returningAll()
           .executeTakeFirstOrThrow();
@@ -359,6 +377,24 @@ export class OrganizationAccessRepository {
     if (!isOrganizationRole(input.role) || !isOrganizationMemberStatus(input.status)) {
       throw new InvariantViolationError('Unknown organization role or member status');
     }
+    const clubScoped = isClubScopedRole(input.role);
+    if (clubScoped && input.clubId === undefined) {
+      throw new InvariantViolationError(`The "${input.role}" role requires naming a club`);
+    }
+    if (!clubScoped && input.clubId !== undefined) {
+      throw new InvariantViolationError(
+        `A club may only be named when the role is club-scoped, not "${input.role}"`,
+      );
+    }
+    const tournamentScoped = isTournamentScopedRole(input.role);
+    if (tournamentScoped && input.tournamentId === undefined) {
+      throw new InvariantViolationError(`The "${input.role}" role requires naming a tournament`);
+    }
+    if (!tournamentScoped && input.tournamentId !== undefined) {
+      throw new InvariantViolationError(
+        `A tournament may only be named when the role is tournament-scoped, not "${input.role}"`,
+      );
+    }
     const current = await lockRowsForMutation(
       this.db,
       uow.tx
@@ -391,7 +427,13 @@ export class OrganizationAccessRepository {
 
     const row = await uow.tx
       .updateTable('organization_role_assignments')
-      .set({ role: input.role, status: input.status, updated_at: new Date() })
+      .set({
+        role: input.role,
+        status: input.status,
+        updated_at: new Date(),
+        club_id: input.clubId ?? null,
+        tournament_id: input.tournamentId ?? null,
+      })
       .where('assignment_id', '=', input.assignmentId)
       .returningAll()
       .executeTakeFirstOrThrow();

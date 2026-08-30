@@ -187,6 +187,7 @@ test('the real help-page frontmatter covers every real operator-facing capabilit
     uncoveredRoles(pages, [
       'admin',
       'club-admin',
+      'tournament-admin',
       'referee',
       'broadcaster',
       'viewer',

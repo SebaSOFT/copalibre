@@ -248,3 +248,21 @@ SHALL label its existing `team` participant type as doubles in the discipline's 
 #### Scenario: A started tournament keeps its frozen module version
 - **WHEN** a tournament was started on a tennis descriptor version predating this declaration
 - **THEN** its available win conditions are unchanged
+
+### Requirement: A locally authored module coexists with the bundled catalogue
+A discipline or profile authored in an installation SHALL coexist with the bundled catalogue without
+shadowing it. Re-seeding the bundled catalogue SHALL NOT overwrite, retire or reorder a locally authored
+module, and a locally authored module SHALL NOT be able to take an alias the bundled catalogue reserves.
+
+#### Scenario: Re-seeding leaves authored modules alone
+- **WHEN** the bundled catalogue is re-seeded on an installation holding locally authored modules
+- **THEN** the authored modules are untouched and remain installed at their own versions
+
+#### Scenario: An authored module cannot take a reserved alias
+- **WHEN** an authored module claims an alias the bundled catalogue reserves
+- **THEN** it is refused, naming the reservation
+
+#### Scenario: Both kinds are listed together
+- **WHEN** an administrator browses installed modules
+- **THEN** bundled and locally authored modules are listed together, each showing its own attribution so
+  their origin is distinguishable

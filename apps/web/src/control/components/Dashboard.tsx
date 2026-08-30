@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
+import type { OrganizationRole } from '@copalibre/domain';
 import { ActivityLog } from './ActivityLog.js';
 import { DeviceHeartbeat } from './DeviceHeartbeat.js';
 import { QuickStats } from './QuickStats.js';
 import { TournamentCard } from './TournamentCard.js';
-import { SIDENAV, type DashboardModel } from '../lib/dashboard.js';
+import { visibleSidenav, type DashboardModel } from '../lib/dashboard.js';
 import { createControlApiClient, type DisplayTokenResponse } from '../lib/api-client.js';
 import { activeControlLanguage, ControlIntl } from '../i18n/ControlIntl.js';
 import { LanguageSwitcher } from '../i18n/LanguageSwitcher.js';
@@ -86,6 +87,27 @@ function DashboardBody({
   const [devices, setDevices] = useState<readonly DeviceEntry[]>([]);
   const [now, setNow] = useState(() => Date.now());
   const [archivedAliases, setArchivedAliases] = useState<ReadonlySet<string>>(new Set());
+  const [role, setRole] = useState<OrganizationRole | undefined>(undefined);
+  useEffect(() => {
+    let cancelled = false;
+    createControlApiClient({
+      fetch: globalThis.fetch.bind(globalThis),
+      accessToken: () => controlTokenStore.read(),
+    })
+      .listMyOrganizations()
+      .then((organizations) => {
+        if (cancelled) return;
+        const mine = organizations.find((one) => one.organizationAlias === organizationAlias);
+        setRole(mine?.role);
+      })
+      .catch(() => {
+        // Same presentation-guard fallback as ControlShell: a failed lookup
+        // leaves every entry visible rather than blocking the dashboard.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [organizationAlias]);
   const visibleTournaments = model.tournaments.filter((card) => !archivedAliases.has(card.alias));
   const archive = (tournamentAlias: string) =>
     void api.archiveTournament?.(organizationAlias, tournamentAlias).then(() => {
@@ -125,7 +147,7 @@ function DashboardBody({
     <div className="cl-control">
       <nav aria-label={intl.formatMessage(messages.shellSections)}>
         <ul>
-          {SIDENAV.map((item) => (
+          {visibleSidenav(role).map((item) => (
             <li key={item.id}>
               <a
                 className="cl-focusable"

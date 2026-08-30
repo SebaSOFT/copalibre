@@ -8,7 +8,7 @@ import {
   type Database,
 } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
-import { RequireOrganizationRole } from '../auth/access-requirement.js';
+import { RequireOrganizationCapability } from '../auth/access-requirement.js';
 import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
 import { DATABASE } from '../database.token.js';
@@ -22,7 +22,7 @@ export class DataExportController {
   @Get('participants/:target')
   @Header('Content-Type', 'text/csv; charset=utf-8')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-tournament-data')
   @ApiBearerAuth()
   @ApiProduces('text/csv')
   @ApiOperation({ summary: 'Export re-importable participant CSV by stable alias' })
@@ -86,7 +86,7 @@ export class DataExportController {
   @Get('results')
   @Header('Content-Type', 'text/csv; charset=utf-8')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-tournament-data')
   @ApiBearerAuth()
   @ApiProduces('text/csv')
   @ApiOperation({ summary: 'Export calculated match results by participant alias' })
@@ -123,7 +123,7 @@ export class DataExportController {
   @Get('standings')
   @Header('Content-Type', 'text/csv; charset=utf-8')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-tournament-data')
   @ApiBearerAuth()
   @ApiProduces('text/csv')
   @ApiOperation({ summary: 'Export calculated standings by participant alias' })
@@ -176,6 +176,14 @@ export class DataExportController {
       throw new NotFoundException(`No tournament "${tournamentAlias}"`, {
         errorCode: 'data-export-not-found',
       });
+    enforcePolicy({
+      plane: 'admin-control',
+      subject: request.subject,
+      resource: {
+        organizationId: organization.organizationId,
+        ownerTournamentId: tournament.tournamentId,
+      },
+    });
     return tournament.tournamentId;
   }
 }

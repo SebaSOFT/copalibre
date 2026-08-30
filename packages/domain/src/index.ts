@@ -243,8 +243,12 @@ export {
   ORGANIZATION_ROLES,
   ORGANIZATION_MEMBER_STATUSES,
   INSTALLATION_ROLES,
+  TOURNAMENT_SCOPED_ROLES,
+  CLUB_SCOPED_ROLES,
   canCreateOrganizationInvitation,
   canGrantRole,
+  isTournamentScopedRole,
+  isClubScopedRole,
   wouldLeaveOrganizationWithoutAdmin,
   wouldLeaveInstallationWithoutSuperAdmin,
   isOrganizationMemberStatus,
@@ -262,6 +266,15 @@ export {
   type OrganizationRoleAssignment,
   type ParticipantIdentityLink,
 } from './aggregates/organization-access.js';
+export {
+  ORGANIZATION_CAPABILITIES,
+  capabilitiesForRole,
+  inheritedFrom,
+  inheritsFrom,
+  isOrganizationCapability,
+  rolesForCapability,
+  type OrganizationCapability,
+} from './aggregates/role-capabilities.js';
 export {
   validateSeason,
   competitionName,

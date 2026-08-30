@@ -850,6 +850,10 @@ export const messages = defineMessages({
   },
   rolesRoleAdmin: { id: 'control.roles.role.admin', defaultMessage: 'Admin' },
   rolesRoleClubAdmin: { id: 'control.roles.role.clubAdmin', defaultMessage: 'Club admin' },
+  rolesRoleTournamentAdmin: {
+    id: 'control.roles.role.tournamentAdmin',
+    defaultMessage: 'Tournament admin',
+  },
   rolesRoleReferee: { id: 'control.roles.role.referee', defaultMessage: 'Referee' },
   rolesRoleBroadcaster: { id: 'control.roles.role.broadcaster', defaultMessage: 'Broadcast' },
   rolesRoleViewer: { id: 'control.roles.role.viewer', defaultMessage: 'Viewer' },
@@ -863,6 +867,19 @@ export const messages = defineMessages({
   rolesInviteDialogActiveOnAccept: {
     id: 'control.roles.inviteDialog.activeOnAccept',
     defaultMessage: 'Active once accepted',
+  },
+  rolesInviteDialogClub: { id: 'control.roles.inviteDialog.club', defaultMessage: 'Club' },
+  rolesInviteDialogClubAriaLabel: {
+    id: 'control.roles.inviteDialog.clubAriaLabel',
+    defaultMessage: 'Club administered',
+  },
+  rolesInviteDialogTournament: {
+    id: 'control.roles.inviteDialog.tournament',
+    defaultMessage: 'Tournament',
+  },
+  rolesInviteDialogTournamentAriaLabel: {
+    id: 'control.roles.inviteDialog.tournamentAriaLabel',
+    defaultMessage: 'Tournament administered',
   },
   rolesInviteDialogCancel: { id: 'control.roles.inviteDialog.cancel', defaultMessage: 'Cancel' },
   rolesInviteDialogSubmit: {

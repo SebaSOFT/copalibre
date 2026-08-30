@@ -181,10 +181,10 @@ describe('table projections (integration)', () => {
         principal_id: principalId,
         email: 'referee@table-projections-test',
         // 'admin' rather than 'referee': satisfies both `MatchControlController`'s
-        // event endpoint (`RequireOrganizationRole('admin', 'referee')`) and
-        // `TableProjectionsController`'s (`RequireOrganizationRole('admin')`) with
-        // one principal, since `organization_role_assignments` holds one row per
-        // (organization, subject).
+        // event endpoint (`org.operate-match`, admitting admin and referee) and
+        // `TableProjectionsController`'s (`org.view-internal-tables`, admin only)
+        // with one principal, since `organization_role_assignments` holds one row
+        // per (organization, subject).
         role: 'admin',
         status: 'active',
         created_at: new Date(),

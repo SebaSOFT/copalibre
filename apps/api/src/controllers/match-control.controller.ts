@@ -75,7 +75,7 @@ import { foldLiveEvent, resolveMatchFold } from '@copalibre/statistics-refold';
 import type { Kysely } from 'kysely';
 import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
-import { RequireOrganizationRole } from '../auth/access-requirement.js';
+import { RequireOrganizationCapability } from '../auth/access-requirement.js';
 import {
   BulkLoadMatchDataRequest,
   BulkLoadMatchDataResponse,
@@ -93,7 +93,7 @@ import {
   SetMatchRosterRequest,
 } from '../dto/match-control.dto.js';
 import { ProblemResponse } from '../dto/organization.dto.js';
-import { enforceMatchCommand } from '../policy/resource-policy.js';
+import { enforceMatchCommand, enforcePolicy } from '../policy/resource-policy.js';
 import {
   previewSeriesCorrection,
   readStageSeries,
@@ -165,7 +165,7 @@ export class MatchControlController {
 
   @Get('console')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin', 'referee')
+  @RequireOrganizationCapability('org.operate-match')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Read the authoritative state required by a match-control console',
@@ -187,7 +187,7 @@ export class MatchControlController {
 
   @Post('commands/:command')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin', 'referee')
+  @RequireOrganizationCapability('org.operate-match')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Start, pause, resume or finalize',
@@ -253,7 +253,10 @@ export class MatchControlController {
     const granted = enforceMatchCommand({
       plane: 'admin-control',
       subject: request.subject,
-      resource: { organizationId: tournament.organizationId },
+      resource: {
+        organizationId: tournament.organizationId,
+        ownerTournamentId: tournament.tournamentId,
+      },
       assignments: await new MatchAssignmentRepository(this.db).forSubject({
         organizationId: tournament.organizationId,
         subjectId: request.subject?.subjectId ?? '',
@@ -395,7 +398,7 @@ export class MatchControlController {
 
   @Post('clock')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin', 'referee')
+  @RequireOrganizationCapability('org.operate-match')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Adjust the authoritative elapsed time or active segment' })
   @ApiHeader({
@@ -438,7 +441,10 @@ export class MatchControlController {
     const granted = enforceMatchCommand({
       plane: 'admin-control',
       subject: request.subject,
-      resource: { organizationId: tournament.organizationId },
+      resource: {
+        organizationId: tournament.organizationId,
+        ownerTournamentId: tournament.tournamentId,
+      },
       assignments: await new MatchAssignmentRepository(this.db).forSubject({
         organizationId: tournament.organizationId,
         subjectId: request.subject?.subjectId ?? '',
@@ -497,7 +503,7 @@ export class MatchControlController {
 
   @Post('timers/:timerId/resolve')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin', 'referee')
+  @RequireOrganizationCapability('org.operate-match')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Resolve a discipline-declared timer early' })
   @ApiHeader({
@@ -544,7 +550,10 @@ export class MatchControlController {
     const granted = enforceMatchCommand({
       plane: 'admin-control',
       subject: request.subject,
-      resource: { organizationId: tournament.organizationId },
+      resource: {
+        organizationId: tournament.organizationId,
+        ownerTournamentId: tournament.tournamentId,
+      },
       assignments: await new MatchAssignmentRepository(this.db).forSubject({
         organizationId: tournament.organizationId,
         subjectId: request.subject?.subjectId ?? '',
@@ -579,7 +588,7 @@ export class MatchControlController {
 
   @Get('rosters')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin', 'referee')
+  @RequireOrganizationCapability('org.operate-match')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Read the current roster selection for both sides',
@@ -593,8 +602,17 @@ export class MatchControlController {
     @Param('organizationAlias') organizationAlias: string,
     @Param('tournamentAlias') tournamentAlias: string,
     @Param('matchId') matchId: string,
+    @Req() request: RequestWithSubject,
   ): Promise<ConsoleRosterResponse[]> {
-    await this.resolveTournament(organizationAlias, tournamentAlias);
+    const tournament = await this.resolveTournament(organizationAlias, tournamentAlias);
+    enforcePolicy({
+      plane: 'admin-control',
+      subject: request.subject,
+      resource: {
+        organizationId: tournament.organizationId,
+        ownerTournamentId: tournament.tournamentId,
+      },
+    });
     const competition = new CompetitionRepository(this.db);
     const [rosters, events] = await Promise.all([
       this.db
@@ -610,7 +628,7 @@ export class MatchControlController {
 
   @Get('rosters/:entrantId/candidates')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin', 'referee')
+  @RequireOrganizationCapability('org.operate-match')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'List an entrant’s registered players, eligible to be named to its match roster',
@@ -622,8 +640,17 @@ export class MatchControlController {
     @Param('tournamentAlias') tournamentAlias: string,
     @Param('matchId') matchId: string,
     @Param('entrantId') entrantId: string,
+    @Req() request: RequestWithSubject,
   ): Promise<RosterCandidateResponse[]> {
-    await this.resolveTournament(organizationAlias, tournamentAlias);
+    const tournament = await this.resolveTournament(organizationAlias, tournamentAlias);
+    enforcePolicy({
+      plane: 'admin-control',
+      subject: request.subject,
+      resource: {
+        organizationId: tournament.organizationId,
+        ownerTournamentId: tournament.tournamentId,
+      },
+    });
     const entrant = await this.resolveRosterEntrant(matchId, entrantId);
     const eligiblePersonIds = await this.eligiblePersonIdsFor(entrant);
     const persons = await new PersonRepository(this.db).findPersons([...eligiblePersonIds]);
@@ -636,7 +663,7 @@ export class MatchControlController {
 
   @Put('rosters/:entrantId')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin', 'referee')
+  @RequireOrganizationCapability('org.operate-match')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Select or revise one entrant’s roster for this match',
@@ -707,7 +734,10 @@ export class MatchControlController {
     const granted = enforceMatchCommand({
       plane: 'admin-control',
       subject: request.subject,
-      resource: { organizationId: tournament.organizationId },
+      resource: {
+        organizationId: tournament.organizationId,
+        ownerTournamentId: tournament.tournamentId,
+      },
       assignments: await new MatchAssignmentRepository(this.db).forSubject({
         organizationId: tournament.organizationId,
         subjectId: request.subject?.subjectId ?? '',
@@ -819,7 +849,7 @@ export class MatchControlController {
 
   @Post('events')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin', 'referee')
+  @RequireOrganizationCapability('org.operate-match')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Record a discipline event',
@@ -883,7 +913,10 @@ export class MatchControlController {
     const granted = enforceMatchCommand({
       plane: 'admin-control',
       subject: request.subject,
-      resource: { organizationId: tournament.organizationId },
+      resource: {
+        organizationId: tournament.organizationId,
+        ownerTournamentId: tournament.tournamentId,
+      },
       assignments: await new MatchAssignmentRepository(this.db).forSubject({
         organizationId: tournament.organizationId,
         subjectId: request.subject?.subjectId ?? '',
@@ -1365,7 +1398,7 @@ export class MatchControlController {
 
   @Post('bulk-load')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin', 'referee')
+  @RequireOrganizationCapability('org.operate-match')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Load a whole match’s roster, event history, and result in one submission',
@@ -1442,7 +1475,10 @@ export class MatchControlController {
       granted = enforceMatchCommand({
         plane: 'admin-control',
         subject: request.subject,
-        resource: { organizationId: tournament.organizationId },
+        resource: {
+          organizationId: tournament.organizationId,
+          ownerTournamentId: tournament.tournamentId,
+        },
         assignments,
         capability,
         match: matchContext,
@@ -1594,7 +1630,7 @@ export class MatchControlController {
 
   @Post('corrections/preview')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.correct-match-results')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Dry-run a correction',
@@ -1689,7 +1725,7 @@ export class MatchControlController {
 
   @Post('corrections')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.correct-match-results')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Supersede a result',
@@ -1765,7 +1801,7 @@ export class MatchControlController {
 
   @Get('corrections')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.correct-match-results')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Read what this result has been',
@@ -1778,8 +1814,17 @@ export class MatchControlController {
     @Param('organizationAlias') organizationAlias: string,
     @Param('tournamentAlias') tournamentAlias: string,
     @Param('matchId') matchId: string,
+    @Req() request: RequestWithSubject,
   ): Promise<CorrectionHistoryResponse> {
-    await this.resolveTournament(organizationAlias, tournamentAlias);
+    const tournament = await this.resolveTournament(organizationAlias, tournamentAlias);
+    enforcePolicy({
+      plane: 'admin-control',
+      subject: request.subject,
+      resource: {
+        organizationId: tournament.organizationId,
+        ownerTournamentId: tournament.tournamentId,
+      },
+    });
     const entries = await new AuditReader(this.db).historyFor('match', matchId);
 
     return {
@@ -1821,7 +1866,10 @@ export class MatchControlController {
     const granted = enforceMatchCommand({
       plane: 'admin-control',
       subject: request.subject,
-      resource: { organizationId: tournament.organizationId },
+      resource: {
+        organizationId: tournament.organizationId,
+        ownerTournamentId: tournament.tournamentId,
+      },
       assignments: await new MatchAssignmentRepository(this.db).forSubject({
         organizationId: tournament.organizationId,
         subjectId: request.subject?.subjectId ?? '',
@@ -1956,6 +2004,14 @@ export class MatchControlController {
     request: RequestWithSubject,
   ): Promise<MatchConsoleResponse> {
     const tournament = await this.resolveTournament(organizationAlias, tournamentAlias);
+    enforcePolicy({
+      plane: 'admin-control',
+      subject: request.subject,
+      resource: {
+        organizationId: tournament.organizationId,
+        ownerTournamentId: tournament.tournamentId,
+      },
+    });
     const competition = new CompetitionRepository(this.db);
     const match = await competition.findMatch(matchId);
     if (!match)

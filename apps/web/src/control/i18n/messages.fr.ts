@@ -320,6 +320,7 @@ export const messages: Record<string, string> = {
     "L'organisation doit toujours conserver au moins un admin actif.",
   'control.roles.role.admin': 'Admin',
   'control.roles.role.clubAdmin': 'Admin de club',
+  'control.roles.role.tournamentAdmin': 'Admin de tournoi',
   'control.roles.role.referee': 'Arbitre',
   'control.roles.role.broadcaster': 'Diffusion',
   'control.roles.role.viewer': 'Observateur',
@@ -328,6 +329,10 @@ export const messages: Record<string, string> = {
   'control.roles.inviteDialog.role': 'Rôle',
   'control.roles.inviteDialog.roleAriaLabel': 'Rôle de l’invitation',
   'control.roles.inviteDialog.activeOnAccept': 'Actif une fois accepté',
+  'control.roles.inviteDialog.club': 'Club',
+  'control.roles.inviteDialog.clubAriaLabel': 'Club administré',
+  'control.roles.inviteDialog.tournament': 'Tournoi',
+  'control.roles.inviteDialog.tournamentAriaLabel': 'Tournoi administré',
   'control.roles.inviteDialog.cancel': 'Annuler',
   'control.roles.inviteDialog.submit': 'Envoyer l’invitation',
 

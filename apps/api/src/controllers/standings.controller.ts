@@ -17,7 +17,7 @@ import {
 import type { Kysely } from 'kysely';
 import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
-import { RequireOrganizationRole } from '../auth/access-requirement.js';
+import { RequireOrganizationCapability } from '../auth/access-requirement.js';
 import { ProblemResponse } from '../dto/organization.dto.js';
 import { StandingsResponse, TiebreakTraceResponse } from '../dto/standings.dto.js';
 import { enforcePolicy } from '../policy/resource-policy.js';
@@ -45,7 +45,7 @@ export class StandingsController {
 
   @Get('standings')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.view-internal-standings')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Ranked standings for one stage, with the calculation’s trace',
@@ -82,7 +82,7 @@ export class StandingsController {
 
   @Get('standings/entrants/:entrantId/trace')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.view-internal-standings')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'The comparator chain that placed one entrant',
@@ -160,6 +160,18 @@ export async function resolveTournament(
       { errorCode: 'standings-not-found' },
     );
   }
+
+  // A second check, now that the tournament is resolved: the first pass only
+  // refuses on organization scope, since a tournament-admin's ownership scope
+  // is a property of the tournament, not answerable before it is known.
+  enforcePolicy({
+    plane: 'admin-control',
+    subject: input.request.subject,
+    resource: {
+      organizationId: organization.organizationId,
+      ownerTournamentId: tournament.tournamentId,
+    },
+  });
 
   return { organizationId: organization.organizationId, tournament };
 }

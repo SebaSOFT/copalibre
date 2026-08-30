@@ -2188,7 +2188,7 @@ export interface components {
              * @description The caller's active role in this organization
              * @enum {string}
              */
-            role: "admin" | "club-admin" | "referee" | "broadcaster" | "viewer";
+            role: "admin" | "club-admin" | "tournament-admin" | "referee" | "broadcaster" | "viewer";
         };
         ProblemResponse: {
             /** @example 403 */
@@ -3488,19 +3488,39 @@ export interface components {
             principalId: string;
             email: string;
             /** @enum {string} */
-            role: "admin" | "club-admin" | "referee" | "broadcaster" | "viewer";
+            role: "admin" | "club-admin" | "tournament-admin" | "referee" | "broadcaster" | "viewer";
             /** @enum {string} */
             status: "active" | "inactive";
+            /**
+             * Format: uuid
+             * @description Set only for a club-scoped role.
+             */
+            clubId?: string;
+            /**
+             * Format: uuid
+             * @description Set only for a tournament-scoped role.
+             */
+            tournamentId?: string;
         };
         GrantableRolesResponse: {
             /** @description Roles the caller may grant in this organization, per the 0140 role-granting hierarchy. */
-            roles: ("super-admin" | "admin" | "club-admin" | "referee" | "broadcaster" | "viewer")[];
+            roles: ("super-admin" | "admin" | "club-admin" | "tournament-admin" | "referee" | "broadcaster" | "viewer")[];
         };
         InviteOrganizationUserRequest: {
             /** Format: email */
             email: string;
             /** @enum {string} */
-            role: "admin" | "club-admin" | "referee" | "broadcaster" | "viewer";
+            role: "admin" | "club-admin" | "tournament-admin" | "referee" | "broadcaster" | "viewer";
+            /**
+             * Format: uuid
+             * @description Required exactly when `role` is a tournament-scoped role (e.g. tournament-admin).
+             */
+            tournamentId?: string;
+            /**
+             * Format: uuid
+             * @description Required exactly when `role` is a club-scoped role (club-admin).
+             */
+            clubId?: string;
             /** @enum {string} */
             status: "active" | "inactive";
         };
@@ -3512,7 +3532,17 @@ export interface components {
         };
         ChangeOrganizationRoleRequest: {
             /** @enum {string} */
-            role: "admin" | "club-admin" | "referee" | "broadcaster" | "viewer";
+            role: "admin" | "club-admin" | "tournament-admin" | "referee" | "broadcaster" | "viewer";
+            /**
+             * Format: uuid
+             * @description Required exactly when `role` is a tournament-scoped role (e.g. tournament-admin).
+             */
+            tournamentId?: string;
+            /**
+             * Format: uuid
+             * @description Required exactly when `role` is a club-scoped role (club-admin).
+             */
+            clubId?: string;
             /** @enum {string} */
             status: "active" | "inactive";
         };

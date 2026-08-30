@@ -19,7 +19,7 @@ import {
 import type { Kysely } from 'kysely';
 import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
-import { RequireOrganizationRole } from '../auth/access-requirement.js';
+import { RequireOrganizationCapability } from '../auth/access-requirement.js';
 import { ProblemResponse } from '../dto/organization.dto.js';
 import {
   ScheduleRequest,
@@ -65,7 +65,7 @@ export class SchedulesController {
 
   @Post('preview')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-schedule')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Dry-run a schedule batch',
@@ -87,7 +87,10 @@ export class SchedulesController {
     enforcePolicy({
       plane: 'admin-control',
       subject: request.subject,
-      resource: { organizationId: tournament.organizationId },
+      resource: {
+        organizationId: tournament.organizationId,
+        ownerTournamentId: tournament.tournamentId,
+      },
     });
 
     const preview = await new ScheduleRepository(this.db).previewSchedule({
@@ -105,7 +108,7 @@ export class SchedulesController {
 
   @Post()
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-schedule')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Publish a schedule batch',
@@ -128,7 +131,10 @@ export class SchedulesController {
     enforcePolicy({
       plane: 'admin-control',
       subject,
-      resource: { organizationId: tournament.organizationId },
+      resource: {
+        organizationId: tournament.organizationId,
+        ownerTournamentId: tournament.tournamentId,
+      },
     });
 
     const schedules = new ScheduleRepository(this.db);

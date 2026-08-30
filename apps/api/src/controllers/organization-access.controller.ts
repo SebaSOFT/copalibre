@@ -24,6 +24,7 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
+import { ORGANIZATION_ROLES } from '@copalibre/domain';
 import {
   InstallationRoleRepository,
   OrganizationAccessRepository,
@@ -35,7 +36,7 @@ import type { Kysely } from 'kysely';
 import {
   AllowInvitationAcceptance,
   RequireOrganizationBootstrapOrAdmin,
-  RequireOrganizationRole,
+  RequireOrganizationCapability,
   RequireSuperAdmin,
   SUPER_ADMIN_SCOPE,
 } from '../auth/access-requirement.js';
@@ -64,7 +65,7 @@ export class OrganizationAccessController {
 
   @Get('roles')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-users')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List active organization role assignments' })
   @ApiOkResponse({ type: OrganizationRoleResponse, isArray: true })
@@ -77,7 +78,7 @@ export class OrganizationAccessController {
 
   @Get('roles/grantable')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-users')
   @ApiBearerAuth()
   @ApiOperation({
     summary: "The caller's grantable roles in this organization, per the role-granting hierarchy",
@@ -86,11 +87,10 @@ export class OrganizationAccessController {
   grantable(@Req() request: RequestWithSubject): GrantableRolesResponse {
     const grantorContext = request.subject?.grantorContext;
     const isSuperAdmin = grantorContext?.isSuperAdmin ?? false;
-    const organizationRoles = ['admin', 'club-admin', 'referee', 'broadcaster', 'viewer'] as const;
     const roles: GrantableRolesResponse['roles'] = isSuperAdmin
-      ? ['super-admin', ...organizationRoles]
+      ? ['super-admin', ...ORGANIZATION_ROLES]
       : grantorContext?.organizationAdminOf
-        ? [...organizationRoles]
+        ? [...ORGANIZATION_ROLES]
         : [];
     return { roles };
   }
@@ -117,6 +117,8 @@ export class OrganizationAccessController {
         recipientEmail: body.email,
         role: body.role,
         status: body.status,
+        ...(body.tournamentId === undefined ? {} : { tournamentId: body.tournamentId }),
+        ...(body.clubId === undefined ? {} : { clubId: body.clubId }),
         token,
         tokenHash: hash(token),
         expiresAt: new Date(Date.now() + INVITATION_TTL_MS).toISOString(),
@@ -130,7 +132,7 @@ export class OrganizationAccessController {
 
   @Patch('roles/:assignmentId')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-users')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Change an organization role or active status' })
   @ApiOkResponse({ type: OrganizationRoleResponse })
@@ -147,6 +149,8 @@ export class OrganizationAccessController {
         assignmentId,
         role: body.role,
         status: body.status,
+        ...(body.tournamentId === undefined ? {} : { tournamentId: body.tournamentId }),
+        ...(body.clubId === undefined ? {} : { clubId: body.clubId }),
         actor: actorOf(request),
         authorizationContext: (request.subject?.scopes ?? []).join(' '),
         grantorContext: request.subject?.grantorContext,
@@ -157,7 +161,7 @@ export class OrganizationAccessController {
   @Delete('roles/:assignmentId')
   @HttpCode(200)
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-users')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Soft-delete an organization role assignment' })
   @ApiOkResponse({ type: OrganizationRoleResponse })

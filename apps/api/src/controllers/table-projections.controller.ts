@@ -15,7 +15,7 @@ import { CompetitionRepository, type Database } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
 import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
-import { RequireOrganizationRole } from '../auth/access-requirement.js';
+import { RequireOrganizationCapability } from '../auth/access-requirement.js';
 import { ProblemResponse } from '../dto/organization.dto.js';
 import { TableLayoutListResponse, TableProjectionResponse } from '../dto/table-projections.dto.js';
 import {
@@ -52,7 +52,7 @@ export class TableProjectionsController {
 
   @Get('tables')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.view-internal-tables')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Every table layout in effect for this tournament, for building a tab bar',
@@ -82,7 +82,7 @@ export class TableProjectionsController {
 
   @Get('tables/:layoutCode')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.view-internal-tables')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'A tournament-wide table projection (player/team rankings across every stage)',
@@ -105,7 +105,7 @@ export class TableProjectionsController {
   @Get('tables/:layoutCode/csv')
   @Header('Content-Type', 'text/csv; charset=utf-8')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.view-internal-tables')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'The same tournament-wide table projection, as a CSV download' })
   @ApiProduces('text/csv')
@@ -126,7 +126,7 @@ export class TableProjectionsController {
 
   @Get('stages/:stageNumber/tables/:layoutCode')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.view-internal-tables')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'A stage-scoped table projection (group standings, match rosters, schedule tables)',
@@ -158,7 +158,7 @@ export class TableProjectionsController {
   @Get('stages/:stageNumber/tables/:layoutCode/csv')
   @Header('Content-Type', 'text/csv; charset=utf-8')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.view-internal-tables')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'The same stage-scoped table projection, as a CSV download' })
   @ApiProduces('text/csv')
