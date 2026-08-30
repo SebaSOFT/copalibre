@@ -19,6 +19,7 @@ import {
   ApiBearerAuth,
   ApiBadRequestResponse,
   ApiConflictResponse,
+  ApiCreatedResponse,
   ApiForbiddenResponse,
   ApiOkResponse,
   ApiOperation,
@@ -39,6 +40,7 @@ import {
 } from '@copalibre/domain';
 import {
   EnrollmentRepository,
+  InvariantViolationError,
   OrganizationRepository,
   PersonRepository,
   TournamentRepository,
@@ -52,12 +54,18 @@ import { RequireOrganizationCapability } from '../auth/access-requirement.js';
 import {
   BulkReviewRequest,
   BulkReviewResponse,
+  CreatePersonRequest,
+  CreateTeamRequest,
   DisciplineSummaryResponse,
   EditTeamMembershipsRequest,
+  PersonIdentityResponse,
   ProblemResponse,
   RegistrationResponse,
   ReviewRegistrationRequest,
   SetEntrantAbbreviationRequest,
+  TeamIdentityResponse,
+  UpdatePersonIdentityRequest,
+  UpdateTeamIdentityRequest,
 } from '../dto/organization.dto.js';
 import { enforcePolicy } from '../policy/resource-policy.js';
 import { DATABASE } from '../database.token.js';
@@ -210,6 +218,210 @@ export class RegistrationsController {
     }
 
     return { applied, refused: [...plan.refused] };
+  }
+
+  @Post('persons')
+  @HttpCode(201)
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationCapability('org.manage-registrations')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Register a new person directly, without a CSV file',
+    description:
+      'The walk-up case a CSV row was never meant for: one person, registered through the same ' +
+      'path — PersonRepository.register, then registerEntrant — a CSV row already takes. A ' +
+      'person later named again in an imported file, matching on natural key or alias, is ' +
+      'recognised rather than duplicated.',
+  })
+  @ApiCreatedResponse({ type: RegistrationResponse })
+  @ApiConflictResponse({ type: ProblemResponse })
+  async createPerson(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Body() body: CreatePersonRequest,
+    @Req() request: RequestWithSubject,
+  ): Promise<RegistrationResponse> {
+    const { organizationId, tournament } = await this.resolve(
+      organizationAlias,
+      tournamentAlias,
+      request,
+    );
+    const audit = {
+      actor: actorOf(request),
+      authorizationContext: authorizationContextOf(request),
+    };
+    try {
+      const { entrant, person } = await withTransaction(this.db, async (uow) => {
+        const { person } = await new PersonRepository(this.db).register(uow, {
+          organizationId,
+          displayName: body.displayName,
+          ...(body.alias === undefined ? {} : { alias: body.alias }),
+          ...(body.naturalKeyKind === undefined || body.naturalKeyValue === undefined
+            ? {}
+            : { naturalKey: { kind: body.naturalKeyKind, value: body.naturalKeyValue } }),
+          ...(body.birthDate === undefined ? {} : { birthDate: body.birthDate }),
+          ...audit,
+        });
+        const entrant = await new EnrollmentRepository(this.db).registerEntrant(uow, {
+          tournamentId: tournament.tournamentId,
+          entrantRef: { kind: 'person', personId: person.personId },
+          organizationId,
+          ...audit,
+        });
+        return { entrant, person };
+      });
+      return toResponse(entrant, new Map([[person.personId, person]]));
+    } catch (error) {
+      if (error instanceof InvariantViolationError)
+        throw new ConflictException(error.message, { errorCode: 'registration-conflict' });
+      throw error;
+    }
+  }
+
+  @Post('teams')
+  @HttpCode(201)
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationCapability('org.manage-registrations')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Register a new team directly, without a CSV file',
+    description:
+      'The late-substitute case a CSV row was never meant for: one team, registered through the ' +
+      'same path — EnrollmentRepository.createTeam, then registerEntrant — a CSV row already ' +
+      'takes. A team later named again in an imported file, matching on alias, is recognised ' +
+      'rather than duplicated.',
+  })
+  @ApiCreatedResponse({ type: RegistrationResponse })
+  @ApiConflictResponse({ type: ProblemResponse })
+  async createTeam(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Body() body: CreateTeamRequest,
+    @Req() request: RequestWithSubject,
+  ): Promise<RegistrationResponse> {
+    const { organizationId, tournament } = await this.resolve(
+      organizationAlias,
+      tournamentAlias,
+      request,
+    );
+    const audit = {
+      actor: actorOf(request),
+      authorizationContext: authorizationContextOf(request),
+    };
+    try {
+      const entrant = await withTransaction(this.db, async (uow) => {
+        const team = await new EnrollmentRepository(this.db).createTeam(uow, {
+          organizationId,
+          name: body.name,
+          ...(body.alias === undefined ? {} : { alias: body.alias }),
+          ...(body.clubId === undefined ? {} : { clubId: body.clubId }),
+          ...audit,
+        });
+        return new EnrollmentRepository(this.db).registerEntrant(uow, {
+          tournamentId: tournament.tournamentId,
+          entrantRef: { kind: 'team', teamId: team.teamId },
+          organizationId,
+          ...audit,
+        });
+      });
+      return toResponse(entrant);
+    } catch (error) {
+      if (error instanceof InvariantViolationError)
+        throw new ConflictException(error.message, { errorCode: 'registration-conflict' });
+      throw error;
+    }
+  }
+
+  @Patch('persons/:personId')
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationCapability('org.manage-registrations')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Edit a registered person’s display name or alias',
+    description:
+      'Corrects the person’s own identity fields in place; their existing entrant registration, ' +
+      'roster memberships and history stay attached to the same person.',
+  })
+  @ApiOkResponse({ type: PersonIdentityResponse })
+  @ApiConflictResponse({ type: ProblemResponse })
+  async updatePersonIdentity(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('personId') personId: string,
+    @Body() body: UpdatePersonIdentityRequest,
+    @Req() request: RequestWithSubject,
+  ): Promise<PersonIdentityResponse> {
+    const { organizationId } = await this.resolve(organizationAlias, tournamentAlias, request);
+    const people = new PersonRepository(this.db);
+    const existing = await people.findPerson(personId);
+    if (!existing || existing.organizationId !== organizationId) {
+      throw new NotFoundException(`No person ${personId} in this organization`, {
+        errorCode: 'registration-not-found',
+      });
+    }
+    try {
+      const person = await withTransaction(this.db, (uow) =>
+        people.updateIdentity(uow, {
+          personId,
+          organizationId,
+          ...(body.displayName === undefined ? {} : { displayName: body.displayName }),
+          ...(body.alias === undefined ? {} : { alias: body.alias }),
+          actor: actorOf(request),
+          authorizationContext: authorizationContextOf(request),
+        }),
+      );
+      return { personId: person.personId, displayName: person.displayName, alias: person.alias };
+    } catch (error) {
+      if (error instanceof InvariantViolationError)
+        throw new ConflictException(error.message, { errorCode: 'registration-conflict' });
+      throw error;
+    }
+  }
+
+  @Patch('teams/:teamId')
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationCapability('org.manage-registrations')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Edit a registered team’s name or alias',
+    description:
+      'Corrects the team’s own identity fields in place; its existing entrant registration, ' +
+      'roster and history stay attached to the same team.',
+  })
+  @ApiOkResponse({ type: TeamIdentityResponse })
+  @ApiConflictResponse({ type: ProblemResponse })
+  async updateTeamIdentity(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('teamId') teamId: string,
+    @Body() body: UpdateTeamIdentityRequest,
+    @Req() request: RequestWithSubject,
+  ): Promise<TeamIdentityResponse> {
+    const { organizationId } = await this.resolve(organizationAlias, tournamentAlias, request);
+    const enrollment = new EnrollmentRepository(this.db);
+    const existing = await enrollment.findTeam(teamId);
+    if (!existing || existing.organizationId !== organizationId) {
+      throw new NotFoundException(`No team ${teamId} in this organization`, {
+        errorCode: 'registration-not-found',
+      });
+    }
+    try {
+      const team = await withTransaction(this.db, (uow) =>
+        enrollment.updateTeam(uow, {
+          teamId,
+          organizationId,
+          ...(body.name === undefined ? {} : { name: body.name }),
+          ...(body.alias === undefined ? {} : { alias: body.alias }),
+          actor: actorOf(request),
+          authorizationContext: authorizationContextOf(request),
+        }),
+      );
+      return { teamId: team.teamId, name: team.name, alias: team.alias };
+    } catch (error) {
+      if (error instanceof InvariantViolationError)
+        throw new ConflictException(error.message, { errorCode: 'registration-conflict' });
+      throw error;
+    }
   }
 
   @Post(':entrantId/team-memberships')
@@ -464,6 +676,10 @@ function toResponse(
 
 function actorOf(request: RequestWithSubject): string {
   return `user:${request.subject?.subjectId ?? 'unknown'}`;
+}
+
+function authorizationContextOf(request: RequestWithSubject): string {
+  return (request.subject?.scopes ?? []).join(' ');
 }
 
 @ApiTags('entrants')
