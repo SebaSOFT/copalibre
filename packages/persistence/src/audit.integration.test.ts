@@ -1,5 +1,5 @@
-import { AuditReader } from './audit.js';
-import { withTransaction } from './transaction.js';
+import { AuditReader, isRefusal } from './audit.js';
+import { recordAuditRefusal, withTransaction } from './transaction.js';
 import { createMigratedDatabase, type ScratchDatabase } from './test-support/scratch-database.js';
 import { OrganizationRepository } from './repositories/organization-repository.js';
 
@@ -93,5 +93,65 @@ describe('AuditReader — organization/actor-scoped pagination (task 4.1)', () =
     expect(page.records.every((r) => r.actor === 'user:alice' && r.organizationId === orgA)).toBe(
       true,
     );
+  });
+});
+
+describe('AuditReader.historyFor — a refused attempt alongside applied changes (task 6.4)', () => {
+  let scratch: ScratchDatabase;
+  let organizationId: string;
+
+  beforeAll(async () => {
+    scratch = await createMigratedDatabase('audit-reader-history');
+    organizationId = (
+      await withTransaction(scratch.db, (uow) =>
+        new OrganizationRepository(scratch.db).create(uow, {
+          alias: 'liga-history',
+          name: 'Liga History',
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        }),
+      )
+    ).organizationId;
+
+    // The same aggregate: one applied change, then a refused attempt.
+    await withTransaction(scratch.db, (uow) =>
+      uow.recordAudit({
+        organizationId,
+        entityType: 'organization',
+        entityId: organizationId,
+        action: 'organization.settings_updated',
+        actor: 'user:alice',
+        authorizationContext: 'copalibre.control',
+        resultingState: { name: 'Liga History Renamed' },
+      }),
+    );
+    await recordAuditRefusal(scratch.db, {
+      organizationId,
+      entityType: 'organization',
+      entityId: organizationId,
+      action: 'mutation.refused',
+      actor: 'user:bob',
+      authorizationContext: 'copalibre.control',
+      reason: 'Field "name" is blocked after results',
+    });
+  });
+
+  afterAll(async () => {
+    await scratch.drop();
+  });
+
+  it('returns both, and the refused attempt is distinguishable from the applied change', async () => {
+    const history = await new AuditReader(scratch.db).historyFor('organization', organizationId);
+    // +1 for the organization's own `organization.created` entry.
+    expect(history).toHaveLength(3);
+
+    const applied = history.find((entry) => entry.action === 'organization.settings_updated');
+    const refused = history.find((entry) => entry.action === 'mutation.refused');
+    expect(applied).toBeDefined();
+    expect(refused).toBeDefined();
+    expect(isRefusal(applied as (typeof history)[number])).toBe(false);
+    expect(isRefusal(refused as (typeof history)[number])).toBe(true);
+    expect(refused?.reason).toBe('Field "name" is blocked after results');
+    expect(refused?.resultingState).toBeUndefined();
   });
 });

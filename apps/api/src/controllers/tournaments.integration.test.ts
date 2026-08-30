@@ -238,6 +238,17 @@ describe('organization-scoped tournament routes', () => {
     expect(document.ruleset.effective).toBeDefined();
     expect(document.seasons[0]?.stages[0]?.configuration.rawOverrides).toEqual({});
     expect(document.seasons[0]?.stages[0]?.configuration.effective).toBeDefined();
+
+    // The export itself is a sensitive read, recorded with who and when
+    // (openspec 0166, task 6.3).
+    const read = await scratch.db
+      .selectFrom('audit_log')
+      .selectAll()
+      .where('entity_id', '=', tournament.tournamentId)
+      .where('action', '=', 'tournament.configuration-exported')
+      .executeTakeFirstOrThrow();
+    expect(read.actor).toBe('user:organizer-1');
+    expect(read.resulting_state).toBeNull();
   });
 
   it('does not expose result, standings, event, or participant data after a result exists', async () => {

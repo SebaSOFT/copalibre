@@ -483,6 +483,19 @@ describe('standings and seeding routes (integration)', () => {
       .orderBy('fixture_id')
       .execute();
     expect(after).toEqual(before);
+
+    // The refusal itself is recorded — who attempted it, and why (openspec
+    // 0166, task 6.1) — through the central exception filter, with no code
+    // added at this route.
+    const refusal = await scratch.db
+      .selectFrom('audit_log')
+      .selectAll()
+      .where('action', '=', 'mutation.refused')
+      .orderBy('occurred_at', 'desc')
+      .executeTakeFirstOrThrow();
+    expect(refusal.actor).toBe('user:organizer-1');
+    expect(refusal.reason).toContain('Seeding cannot change once a result exists');
+    expect(refusal.resulting_state).toBeNull();
   });
 
   it('serves the published materialised standings when one exists', async () => {
