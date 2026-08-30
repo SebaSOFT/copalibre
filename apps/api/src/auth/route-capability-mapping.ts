@@ -99,6 +99,10 @@ export const ROUTE_CAPABILITIES: Readonly<Record<string, OrganizationCapability>
   'RegistrationsController.editTeamMemberships': 'org.manage-registrations',
   'RegistrationsController.list': 'org.manage-registrations',
   'RegistrationsController.review': 'org.manage-registrations',
+  'RegistrationsController.createPerson': 'org.manage-registrations',
+  'RegistrationsController.createTeam': 'org.manage-registrations',
+  'RegistrationsController.updatePersonIdentity': 'org.manage-registrations',
+  'RegistrationsController.updateTeamIdentity': 'org.manage-registrations',
   'EntrantsController.needingAbbreviation': 'org.manage-registrations',
   'EntrantsController.setAbbreviation': 'org.manage-registrations',
 

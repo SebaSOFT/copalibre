@@ -261,6 +261,60 @@ export function RegistrationReviewRoute({
               );
             }))
         }
+        onAddPerson={
+          api.createPerson &&
+          ((request) =>
+            api.createPerson?.(organizationAlias, tournamentAlias, request).then((created) => {
+              setRows((current) => [
+                ...current,
+                toReviewRow(
+                  created,
+                  intl.formatMessage(messages.registrationContactUnavailable),
+                  intl.formatMessage(messages.registrationExperienceUnrecorded),
+                ),
+              ]);
+            }))
+        }
+        onAddTeam={
+          api.createTeam &&
+          ((request) =>
+            api.createTeam?.(organizationAlias, tournamentAlias, request).then((created) => {
+              setRows((current) => [
+                ...current,
+                toReviewRow(
+                  created,
+                  intl.formatMessage(messages.registrationContactUnavailable),
+                  intl.formatMessage(messages.registrationExperienceUnrecorded),
+                ),
+              ]);
+            }))
+        }
+        onEditPersonIdentity={
+          api.updatePersonIdentity &&
+          ((personId, request) =>
+            api
+              .updatePersonIdentity?.(organizationAlias, tournamentAlias, personId, request)
+              .then((next) => {
+                setRows((current) =>
+                  current.map((row) =>
+                    row.personId === personId ? { ...row, displayName: next.displayName } : row,
+                  ),
+                );
+              }))
+        }
+        onEditTeamIdentity={
+          api.updateTeamIdentity &&
+          ((teamId, request) =>
+            api
+              .updateTeamIdentity?.(organizationAlias, tournamentAlias, teamId, request)
+              .then((next) => {
+                setRows((current) =>
+                  current.map((row) =>
+                    row.teamId === teamId ? { ...row, displayName: next.name } : row,
+                  ),
+                );
+              }))
+        }
       />
     </>
   );
@@ -281,6 +335,7 @@ function toReviewRow(
     submittedAt: '',
     contactEmail: contactUnavailableLabel,
     ...(row.personId === undefined ? {} : { personId: row.personId }),
+    ...(row.teamId === undefined ? {} : { teamId: row.teamId }),
     ...(row.nationality === undefined ? {} : { nationality: row.nationality }),
     ...(row.photoObjectId === undefined ? {} : { photoObjectId: row.photoObjectId }),
     // RegistrationResponse identifies the entrant, not its members. Do not

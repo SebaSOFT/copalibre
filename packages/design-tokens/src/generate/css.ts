@@ -278,7 +278,7 @@ function components(): string {
     '',
     '.cl-table-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--cl-space-3); }',
     '.cl-table-toolbar__title { margin: 0; font-family: var(--cl-font-display); text-transform: uppercase; }',
-    '.cl-table-toolbar__filters, .cl-table-toolbar__actions { display: flex; gap: var(--cl-space-2); align-items: center; }',
+    '.cl-table-toolbar__filters, .cl-table-toolbar__actions { display: flex; flex-wrap: wrap; gap: var(--cl-space-2); align-items: center; }',
     '',
     '.cl-pagination { display: flex; align-items: center; gap: var(--cl-space-3); }',
     '.cl-pagination__status { color: var(--cl-text-muted); font-family: var(--cl-font-mono); }',

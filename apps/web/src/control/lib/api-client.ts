@@ -58,6 +58,30 @@ export interface ControlApiClient {
     tournamentAlias: string,
     status?: RegistrationStatus | 'all',
   ) => Promise<readonly RegistrationResponse[]>;
+  /** Registers a new person directly, without a CSV file, and enters them as an entrant. */
+  readonly createPerson?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    request: CreatePersonRequest,
+  ) => Promise<RegistrationResponse>;
+  /** Registers a new team directly, without a CSV file, and enters them as an entrant. */
+  readonly createTeam?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    request: CreateTeamRequest,
+  ) => Promise<RegistrationResponse>;
+  readonly updatePersonIdentity?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    personId: string,
+    request: UpdatePersonIdentityRequest,
+  ) => Promise<PersonIdentityResponse>;
+  readonly updateTeamIdentity?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    teamId: string,
+    request: UpdateTeamIdentityRequest,
+  ) => Promise<TeamIdentityResponse>;
   readonly bulkReview: (
     organizationAlias: string,
     tournamentAlias: string,
@@ -1058,6 +1082,42 @@ export interface PersonResponse {
   readonly naturalKey?: { readonly kind: string; readonly value: string };
 }
 
+export interface CreatePersonRequest {
+  readonly displayName: string;
+  readonly alias?: string;
+  readonly naturalKeyKind?: string;
+  readonly naturalKeyValue?: string;
+  readonly birthDate?: string;
+}
+
+export interface CreateTeamRequest {
+  readonly name: string;
+  readonly alias?: string;
+  readonly clubId?: string;
+}
+
+export interface UpdatePersonIdentityRequest {
+  readonly displayName?: string;
+  readonly alias?: string;
+}
+
+export interface UpdateTeamIdentityRequest {
+  readonly name?: string;
+  readonly alias?: string;
+}
+
+export interface PersonIdentityResponse {
+  readonly personId: string;
+  readonly displayName: string;
+  readonly alias?: string;
+}
+
+export interface TeamIdentityResponse {
+  readonly teamId: string;
+  readonly name: string;
+  readonly alias?: string;
+}
+
 export interface BulkReviewRequest {
   readonly entrantIds: readonly string[];
   readonly decision: 'accepted' | 'refused' | 'withdrawn';
@@ -1553,6 +1613,42 @@ export function createControlApiClient(input: {
           body,
           token: input.accessToken?.(),
         },
+      ),
+
+    createPerson: (organizationAlias, tournamentAlias, body) =>
+      requestJson<RegistrationResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
+          tournamentAlias,
+        )}/registrations/persons`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    createTeam: (organizationAlias, tournamentAlias, body) =>
+      requestJson<RegistrationResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
+          tournamentAlias,
+        )}/registrations/teams`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    updatePersonIdentity: (organizationAlias, tournamentAlias, personId, body) =>
+      requestJson<PersonIdentityResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
+          tournamentAlias,
+        )}/registrations/persons/${encodeURIComponent(personId)}`,
+        { method: 'PATCH', body, token: input.accessToken?.() },
+      ),
+
+    updateTeamIdentity: (organizationAlias, tournamentAlias, teamId, body) =>
+      requestJson<TeamIdentityResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
+          tournamentAlias,
+        )}/registrations/teams/${encodeURIComponent(teamId)}`,
+        { method: 'PATCH', body, token: input.accessToken?.() },
       ),
 
     reviewRegistration: (organizationAlias, tournamentAlias, entrantId, body) =>
