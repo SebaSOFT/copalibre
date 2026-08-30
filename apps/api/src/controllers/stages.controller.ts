@@ -30,13 +30,16 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import {
+  compileEffectiveRuleset,
   evaluateMutation,
   isPlacementFormat,
   SUPPORTED_FORMATS,
   validateSeriesDeclaration,
   type TournamentFormat,
+  type TournamentRuleset,
 } from '@copalibre/domain';
 import {
+  CompetitionRecordRepository,
   CompetitionRepository,
   InvariantViolationError,
   StageReadModel,
@@ -120,7 +123,7 @@ export class StagesController {
 
     const format = await this.resolveFormat(tournament.tournamentId, descriptor, body.format);
 
-    let rulesetId: string | undefined;
+    let ruleset: TournamentRuleset | undefined;
     if (body.series !== undefined) {
       // A placement format produces an ordering, not two sides that could
       // contest a series — refused here, before anything is stored, rather
@@ -135,16 +138,16 @@ export class StagesController {
       if (!validated.ok) {
         throw new BadRequestException(validated.error.message, { errorCode: 'stage-bad-request' });
       }
-      const ruleset = await new TournamentRepository(this.db).findLatestRuleset(
+      const found = await new TournamentRepository(this.db).findLatestRuleset(
         tournament.tournamentId,
       );
-      if (!ruleset) {
+      if (!found) {
         throw new BadRequestException(
           'This tournament has no configured ruleset to attach a stage series declaration to',
           { errorCode: 'stage-bad-request' },
         );
       }
-      rulesetId = ruleset.rulesetId;
+      ruleset = found;
     }
 
     const competition = new CompetitionRepository(this.db);
@@ -169,10 +172,10 @@ export class StagesController {
           authorizationContext: authorizationContextOf(request),
         });
 
-        if (body.series !== undefined && rulesetId !== undefined) {
-          await tournaments.createStageConfiguration(uow, {
+        if (body.series !== undefined && ruleset !== undefined) {
+          const stageConfiguration = await tournaments.createStageConfiguration(uow, {
             stageId: created.stageId,
-            rulesetId,
+            rulesetId: ruleset.rulesetId,
             organizationId,
             overrides: {
               'series.span': body.series.span,
@@ -189,6 +192,18 @@ export class StagesController {
             actor: actorOf(request),
             authorizationContext: authorizationContextOf(request),
           });
+
+          const compiledStage = compileEffectiveRuleset(descriptor, ruleset, stageConfiguration);
+          if (compiledStage.ok) {
+            await new CompetitionRecordRepository(this.db).saveCompiledRuleset(uow, {
+              tournamentId: tournament.tournamentId,
+              stageId: created.stageId,
+              ruleset: compiledStage.value,
+              organizationId,
+              actor: actorOf(request),
+              authorizationContext: authorizationContextOf(request),
+            });
+          }
         }
 
         return created;
@@ -671,27 +686,38 @@ export class StagesController {
         if (fields.length === 0) return { overrides: mergedOverrides };
 
         const currentConfiguration = await tournaments.findLatestStageConfiguration(stage.stageId);
-        if (!currentConfiguration) {
-          const ruleset = await tournaments.findLatestRuleset(tournament.tournamentId);
-          if (!ruleset) {
-            throw new BadRequestException(
-              'This tournament has no configured ruleset to attach a stage configuration to',
-              { errorCode: 'stage-bad-request' },
-            );
-          }
-          await tournaments.createStageConfiguration(uow, {
+        const ruleset = await tournaments.findLatestRuleset(tournament.tournamentId);
+        if (!ruleset) {
+          throw new BadRequestException(
+            'This tournament has no configured ruleset to attach a stage configuration to',
+            { errorCode: 'stage-bad-request' },
+          );
+        }
+
+        const stageConfiguration = currentConfiguration
+          ? await tournaments.updateStageConfiguration(uow, {
+              stageId: stage.stageId,
+              organizationId,
+              changedOverrides: Object.fromEntries(fields),
+              actor: actorOf(request),
+              authorizationContext: authorizationContextOf(request),
+            })
+          : await tournaments.createStageConfiguration(uow, {
+              stageId: stage.stageId,
+              rulesetId: ruleset.rulesetId,
+              organizationId,
+              overrides: mergedOverrides,
+              actor: actorOf(request),
+              authorizationContext: authorizationContextOf(request),
+            });
+
+        const compiledStage = compileEffectiveRuleset(descriptor, ruleset, stageConfiguration);
+        if (compiledStage.ok) {
+          await new CompetitionRecordRepository(this.db).saveCompiledRuleset(uow, {
+            tournamentId: tournament.tournamentId,
             stageId: stage.stageId,
-            rulesetId: ruleset.rulesetId,
+            ruleset: compiledStage.value,
             organizationId,
-            overrides: mergedOverrides,
-            actor: actorOf(request),
-            authorizationContext: authorizationContextOf(request),
-          });
-        } else {
-          await tournaments.updateStageConfiguration(uow, {
-            stageId: stage.stageId,
-            organizationId,
-            changedOverrides: Object.fromEntries(fields),
             actor: actorOf(request),
             authorizationContext: authorizationContextOf(request),
           });

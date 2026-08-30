@@ -1032,6 +1032,7 @@ export class MatchControlController {
 
     const ruleset = await new CompetitionRecordRepository(this.db).findCompiledRuleset(
       tournament.tournamentId,
+      stageId,
     );
     const [authoredRuleset, organization, stage] = await Promise.all([
       new TournamentRepository(this.db).findLatestRuleset(tournament.tournamentId),

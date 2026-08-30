@@ -1,6 +1,6 @@
 import type { FieldPolicy, MergeStrategyName } from '../descriptors/override-policy.js';
 import { fixtureDescriptor } from '../test-support/fixture-descriptor.js';
-import { compileEffectiveRuleset } from './compiler.js';
+import { compileEffectiveRuleset, mergeWithStrategy } from './compiler.js';
 import type { StageConfiguration, TournamentRuleset } from './tournament-ruleset.js';
 
 function ruleset(overrides: Record<string, unknown>): TournamentRuleset {
@@ -240,5 +240,31 @@ describe('compileEffectiveRuleset', () => {
     const before = structuredClone(descriptor.defaults);
     compileEffectiveRuleset(descriptor, ruleset({ segments: { overtimeEnabled: true } }));
     expect(descriptor.defaults).toEqual(before);
+  });
+});
+
+describe('mergeWithStrategy union-list', () => {
+  it('dedupes string entries, unaffected by the canonical-JSON change', () => {
+    const result = mergeWithStrategy('union-list', ['points'], ['points', 'head-to-head'], 'x');
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value).toEqual(['points', 'head-to-head']);
+    }
+  });
+
+  it('dedupes object-shaped elements that differ only in key order', () => {
+    const current = [{ metric: 'points-difference', direction: 'desc' }];
+    const override = [
+      { direction: 'desc', metric: 'points-difference' },
+      { metric: 'head-to-head', direction: 'desc' },
+    ];
+    const result = mergeWithStrategy('union-list', current, override, 'x');
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value).toEqual([
+        { metric: 'points-difference', direction: 'desc' },
+        { metric: 'head-to-head', direction: 'desc' },
+      ]);
+    }
   });
 });

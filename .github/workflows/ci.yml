@@ -417,6 +417,11 @@ jobs:
       # separately so a reviewer finds this capability's own signal directly.
       - run: yarn workspace @copalibre/domain test --testPathPatterns 'participant-report'
       - run: yarn workspace @copalibre/api test --testPathPatterns 'resource-policy'
+      # union-list merge canonicalization (openspec 0171): object-shaped
+      # array elements that differ only in key order dedupe correctly, and
+      # the existing string-array case is unaffected — named separately so a
+      # reviewer finds this fix's own signal directly.
+      - run: yarn workspace @copalibre/domain test --testPathPatterns 'compiler'
       - run: yarn workspace @copalibre/worker test --testPathPatterns 'report-evidence'
       - run: yarn workspace @copalibre/web test --testPathPatterns 'control/lib/reports'
       # competition-lifecycle: the five-state legal-transition table,
@@ -985,6 +990,13 @@ jobs:
       # named separately so a reviewer finds this capability's own signal
       # directly.
       - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'accounting-grain'
+      # Compiled-ruleset persistence (openspec 0171): a stage with its own
+      # series override reading its own stage-scoped compiled row while a
+      # sibling stage falls back to the tournament's, and a custom-scripts
+      # update writing a fresh row a subsequently recorded event reads —
+      # named separately so a reviewer finds this write path's own signal
+      # directly.
+      - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'compiled-ruleset'
       # Descriptor and profile builders (openspec 0164): authoring a
       # discipline through the API, installing it, creating a tournament
       # and playing a match against it — the proof that an authored
