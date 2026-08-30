@@ -193,7 +193,9 @@ export function SeedingBuilderRoute({
             .updateStage?.(organizationAlias, tournamentAlias, stageNumber, { format })
             .then(() => api.fetchSeeding(organizationAlias, tournamentAlias, stageNumber))
             .then((next) => next && setSeeding(next))
-            .catch((error: unknown) => pushError(error)) ?? Promise.resolve()
+            .catch((error: unknown) => {
+              pushError(error);
+            }) ?? Promise.resolve()
         }
         onDelete={() =>
           api
@@ -201,7 +203,9 @@ export function SeedingBuilderRoute({
             .then(() => {
               push({ severity: 'success', message: 'Fase eliminada.' });
             })
-            .catch((error: unknown) => pushError(error)) ?? Promise.resolve()
+            .catch((error: unknown) => {
+              pushError(error);
+            }) ?? Promise.resolve()
         }
         onRename={(name) =>
           api
@@ -209,7 +213,9 @@ export function SeedingBuilderRoute({
             .then(() => {
               push({ severity: 'success', message: 'Fase renombrada.' });
             })
-            .catch((error: unknown) => pushError(error)) ?? Promise.resolve()
+            .catch((error: unknown) => {
+              pushError(error);
+            }) ?? Promise.resolve()
         }
         seeded={seeding.matches.length > 0}
       />
