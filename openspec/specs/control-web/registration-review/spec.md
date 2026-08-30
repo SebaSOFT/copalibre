@@ -129,3 +129,42 @@ generic failure.
 #### Scenario: A successfully set abbreviation removes the entrant from the list
 - **WHEN** an officer sets a free, valid abbreviation for a listed entrant
 - **THEN** that entrant no longer appears on the list on the next read
+
+### Requirement: A person or team can be registered directly, without a CSV file
+The registration-review screen SHALL let an operator register a single new person or team as an
+entrant of the tournament, through the same registration path CSV import already uses, without
+constructing a file for a single row.
+
+The direct-add action SHALL apply the same alias suggestion, validation and duplicate-recognition rules
+CSV import already applies, so a person or team added directly and one later named in an imported file
+resolve to the same record rather than producing a duplicate.
+
+#### Scenario: An operator registers a walk-up entrant
+- **WHEN** an operator on the registration-review screen adds a new person, naming a display name and
+  optionally an alias
+- **THEN** the person is registered and appears as a pending or accepted entrant of the tournament,
+  through the same path a CSV row would have taken
+
+#### Scenario: A directly added participant is recognized by a later import
+- **WHEN** a person added directly is later named again in a CSV file imported into the same
+  tournament, matching on natural key or alias
+- **THEN** the import recognizes the existing person rather than creating a duplicate
+
+#### Scenario: Direct add validates identically to CSV import
+- **WHEN** an operator attempts to register a team whose name produces an alias already claimed by a
+  different team in the organization
+- **THEN** the attempt is refused on the same terms a colliding CSV row would be
+
+### Requirement: A registered person's or team's identity fields can be edited
+The registration-review screen SHALL let an operator edit a registered person's or team's own identity
+fields — display name and alias — without withdrawing and re-registering them.
+
+#### Scenario: A misspelled team name is corrected
+- **WHEN** an operator edits a registered team's name to correct a misspelling
+- **THEN** the team's name is updated and its existing entrant registration, roster and history remain
+  attached to the same team
+
+#### Scenario: An edit cannot claim an alias already held
+- **WHEN** an operator edits a person's alias to one already claimed by a different person in the
+  organization
+- **THEN** the edit is refused, naming the collision
