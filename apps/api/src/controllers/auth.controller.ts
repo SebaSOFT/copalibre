@@ -165,6 +165,15 @@ export class NativeAuthController {
         .set({ password_hash: passwordHash, updated_at: new Date() })
         .where('principal_id', '=', verification.principalId)
         .execute();
+
+      await uow.recordAudit({
+        organizationId: SYSTEM_ORGANIZATION,
+        entityType: 'identity-principal',
+        entityId: verification.principalId,
+        action: 'identity.password-reset',
+        actor: `principal:${verification.principalId}`,
+        authorizationContext: 'self-service:password-reset',
+      });
     });
 
     return { message: 'Password has been reset successfully.' };

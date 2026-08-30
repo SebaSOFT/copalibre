@@ -1,4 +1,5 @@
 import type { Kysely, Transaction } from 'kysely';
+import type { AuditAction } from '@copalibre/domain';
 import { newId } from './ids.js';
 import type { Database } from './schema.js';
 
@@ -13,7 +14,7 @@ export interface AuditEntry {
   readonly organizationId: string;
   readonly entityType: string;
   readonly entityId: string;
-  readonly action: string;
+  readonly action: AuditAction;
   readonly actor: string;
   readonly authorizationContext: string;
   readonly previousState?: Record<string, unknown>;

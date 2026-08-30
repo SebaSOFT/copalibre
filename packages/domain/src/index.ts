@@ -275,6 +275,7 @@ export {
   rolesForCapability,
   type OrganizationCapability,
 } from './aggregates/role-capabilities.js';
+export { AUDIT_ACTIONS, isAuditAction, type AuditAction } from './audit/audit-actions.js';
 export {
   validateSeason,
   competitionName,
