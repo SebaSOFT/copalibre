@@ -152,3 +152,9 @@ All five steps are also exposed as MCP tools (`copalibre_module_scaffold`,
 `copalibre_module_validate_local`, `copalibre_module_submit`) — see [`docs/MCP.md`](MCP.md) — so an
 AI agent can drive this whole flow: read a sport's rules, ask the operator any details it needs, and
 build, validate, and submit the module without shelling out to the CLI.
+
+An installation's own platform administration console offers a third path that needs neither a
+checkout nor hand-edited JSON: a guided wizard (`DescriptorBuilderWizard`/`ProfileBuilderWizard`)
+walks a super-admin through the same discipline/profile shape field by field, installing the result
+directly — the right route for a one-off local sport or format that never needs to go through
+`copalibre-modules` review.

@@ -6,6 +6,7 @@ capabilities:
   - live-operations/live-match-operations
   - live-operations/realtime-events
   - tournament-engine/declared-tagging
+  - tournament-engine/competition-record
 roles:
   - referee
   - admin
@@ -51,3 +52,12 @@ ever sent — so a dropped signal never loses something you already did.
 What this screen does not do: recover typing or a selection you never actually submitted. If you
 were mid-edit when the connection dropped, that specific in-progress input is lost the same way it
 always was — only actions you already attempted to record are protected.
+
+## Alerts during play
+
+A discipline module can declare threshold rules against its own stat collectors — for example,
+"three yellow cards this match" — and the tournament's compiled configuration can add more.
+Crossing a declared threshold raises a notification on this screen the moment the qualifying event
+is recorded; it never blocks, suspends, or alters anything by itself. This works out of the box: a
+discipline's own default rules fire even when the organizer never configured anything for this
+tournament, so a rule the discipline ships with is never silently inert.

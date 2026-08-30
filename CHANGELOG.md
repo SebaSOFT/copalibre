@@ -1,3 +1,22 @@
+## 1.0.0 (2026-08-30)
+
+### Features
+
+- **tournament-engine:** add multi-match series generation and resolution ([9d078ce](https://github.com/SebaSOFT/copalibre/commit/9d078ce))
+- **series:** make multi-match series reachable by an organizer ([2f89a96](https://github.com/SebaSOFT/copalibre/commit/2f89a96))
+- **standings:** thread series accounting grain through engine, API, and both web surfaces ([8180e9c](https://github.com/SebaSOFT/copalibre/commit/8180e9c))
+- **control-web:** explain every wizard decision and its reversibility ([2e3bae3](https://github.com/SebaSOFT/copalibre/commit/2e3bae3))
+- **control-web:** role-aware help surfaces, gated against the spec baseline ([71f539d](https://github.com/SebaSOFT/copalibre/commit/71f539d))
+- **mcp,domain,web:** publish an agent-facing discipline-authoring contract ([5f5a36d](https://github.com/SebaSOFT/copalibre/commit/5f5a36d))
+- **web,api,module-distribution:** author disciplines and tournament profiles from the control panel ([5c597c8](https://github.com/SebaSOFT/copalibre/commit/5c597c8))
+- **auth,help:** declared organization capability mapping and role manual pages ([3c219cb](https://github.com/SebaSOFT/copalibre/commit/3c219cb))
+- **audit:** operational traceability — refusals, sensitive reads, and a readable audit trail ([2be82cf](https://github.com/SebaSOFT/copalibre/commit/2be82cf))
+- **registrations:** register participants directly, without a CSV file ([dc1c4d8](https://github.com/SebaSOFT/copalibre/commit/dc1c4d8))
+- **structure:** let organizers correct competition structure and storage ([7db7d24](https://github.com/SebaSOFT/copalibre/commit/7db7d24))
+- **rulesets:** let organizers revise ruleset and stage-configuration overrides ([a457ada](https://github.com/SebaSOFT/copalibre/commit/a457ada))
+- **access:** let admins rescind invitations, unlink participants, and remove unused persons/teams ([72cd841](https://github.com/SebaSOFT/copalibre/commit/72cd841))
+- **rulesets:** persist compiled rulesets on every write path, canonicalize union-list merges ([4a1bb2c](https://github.com/SebaSOFT/copalibre/commit/4a1bb2c))
+
 ## 0.6.0-preview (2026-08-27)
 
 ### Features

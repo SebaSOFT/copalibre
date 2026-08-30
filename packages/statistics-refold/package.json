@@ -1,6 +1,6 @@
 {
   "name": "@copalibre/statistics-refold",
-  "version": "0.6.0-preview",
+  "version": "1.0.0",
   "private": true,
   "license": "AGPL-3.0-only",
   "type": "module",

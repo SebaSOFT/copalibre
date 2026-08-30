@@ -102,6 +102,9 @@ Full walkthrough, backup/restore, and persistent-data details: [`docs/self-hosti
   engine generated (single/double elimination, round-robin, league).
 - **Match scheduling** — assign venue, time, and officials to a stage's fixtures from a calendar
   view; venues and officials managed as their own control-panel resources.
+- **Multi-match series** — declare a stage's crosses as a best-of/aggregate series instead of a
+  single match, with each game scheduled in its own slot, series-aware result correction, and
+  standings accounted at the series or match grain per organizer choice.
 - **Explainable standings** — every ranking exposes the tiebreak comparator that decided it,
   rendered from the same trace the rules engine produced — never a hidden calculation.
 - **Live match console** — real-time event recording, idempotent commands, clock/timer control,
@@ -115,6 +118,8 @@ Full walkthrough, backup/restore, and persistent-data details: [`docs/self-hosti
   per-match event timelines and rosters, and a player's cross-tournament history, reusing the
   same standings/statistics engine driving the control panel.
 - **Roles & permissions** — organization-scoped RBAC, server-enforced independent of the UI.
+- **Audit trail** — every mutation, refused attempt, and sensitive read is recorded centrally
+  against a declared action vocabulary and reviewable from its own control-panel screen.
 - **Data ownership** — reviewed CSV import/export keyed by stable aliases, not raw IDs, plus a
   one-document JSON export of a tournament's full configuration (never results or personal data).
 - **Public coverage** — schedules, live outcomes, brackets, and standings, separate from operator
@@ -128,8 +133,9 @@ Full walkthrough, backup/restore, and persistent-data details: [`docs/self-hosti
 
 A competition is two independently versioned, attributed JSON documents — never code — so adding
 a sport is a data submission, not a patch: a **discipline** (segments, events, statistics, scoring,
-available formats) and a **tournament profile** (stages, formats, points, tiebreak order). See
-[`docs/MODULES.md`](docs/MODULES.md).
+available formats) and a **tournament profile** (stages, formats, points, tiebreak order). Author
+either by hand, through a guided control-panel wizard, or programmatically via an AI agent talking
+to `copalibre mcp`'s discipline-authoring contract. See [`docs/MODULES.md`](docs/MODULES.md).
 
 Seeded today: **football**, **tennis**. Supported formats: single- and double-elimination,
 round-robin (single-leg and home/away), league, and placement stages (free-for-all/heats) that feed
