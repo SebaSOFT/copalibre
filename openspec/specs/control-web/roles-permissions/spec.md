@@ -348,3 +348,34 @@ view SHALL continue to work unchanged.
 #### Scenario: Correction history is unaffected
 - **WHEN** an operator opens a match's correction history
 - **THEN** it renders as it did before the audit surface existed
+
+### Requirement: A pending invitation can be rescinded
+An admin authorized to grant the invitation's role SHALL be able to rescind a pending (not yet
+accepted, not yet expired) organization invitation. Rescinding SHALL be audited with the invitation's
+prior state, and SHALL take effect immediately — a rescinded invitation's token SHALL NOT be usable for
+acceptance from that point on, regardless of its stated expiry.
+
+#### Scenario: Admin rescinds an invitation sent to the wrong address
+- **WHEN** an admin rescinds a pending invitation they created
+- **THEN** the invitation no longer appears in the pending-invitations list, and an audit entry records
+  the rescission with the invitation's prior state
+
+#### Scenario: Rescinding requires the same authority the invitation itself required
+- **WHEN** a `club-admin` (who cannot invite at all, per the existing role-granting hierarchy) attempts
+  to rescind a pending invitation
+- **THEN** the request is rejected with an authorization error
+
+#### Scenario: An already-accepted invitation cannot be rescinded
+- **WHEN** an admin attempts to rescind an invitation that has already been accepted
+- **THEN** the request is rejected with an explanation that the invitation is no longer pending, and no
+  audit entry for a rescission is recorded
+
+### Requirement: Acceptance of a rescinded invitation is refused with a stated reason
+Presenting a rescinded invitation's token for acceptance SHALL be refused, naming that the invitation
+was rescinded rather than returning the generic not-found response an unrecognized token produces.
+
+#### Scenario: Recipient attempts to accept after rescission
+- **WHEN** a recipient presents a valid token for an invitation that was rescinded before they accepted
+  it
+- **THEN** acceptance is refused with an explanation that the invitation was rescinded, and no role
+  assignment is created

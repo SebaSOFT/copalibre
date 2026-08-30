@@ -168,3 +168,65 @@ fields — display name and alias — without withdrawing and re-registering the
 - **WHEN** an operator edits a person's alias to one already claimed by a different person in the
   organization
 - **THEN** the edit is refused, naming the collision
+
+### Requirement: A participant identity link can be removed
+An admin SHALL be able to remove the identity link binding a participant (person) record to a login
+identity, whether that link was created by pre-link or by the participant's own first login. Removal
+SHALL be audited with the link's prior state (the linked principal), and SHALL NOT delete the person
+record, their registrations, or their roster history.
+
+#### Scenario: Admin unlinks a person linked to the wrong email
+- **WHEN** an admin removes the identity link for a person who was pre-linked to the wrong recipient
+  email
+- **THEN** the person no longer resolves to that login identity, and an audit entry records the removal
+  with the link's prior principal
+
+#### Scenario: Unlinking does not affect the person's participation record
+- **WHEN** an admin removes a person's identity link
+- **THEN** that person's existing registrations, team memberships, and statistics are unchanged
+
+#### Scenario: A person with no identity link cannot be unlinked
+- **WHEN** an admin attempts to remove an identity link for a person who has none
+- **THEN** the request is refused with an explanation, and no audit entry for a removal is recorded
+
+### Requirement: A person can be re-linked after being unlinked
+Removing a participant identity link SHALL leave the person linkable again, through the same pre-link
+action, without residue from the removed link.
+
+#### Scenario: Re-link after correcting a mistaken email
+- **WHEN** an admin unlinks a person from an incorrect email and then pre-links them to the correct one
+- **THEN** the person resolves to the new login identity, and the mistaken link is not restored by any
+  later action
+
+### Requirement: A person or team record with no entrant registration can be removed
+An admin SHALL be able to remove a `persons` or `teams` record that has never been registered as an
+entrant in any tournament, never rostered as a player, carries no participant identity link, and (for a
+person) has never submitted a participant report. Removal SHALL be audited with the record's prior state.
+
+#### Scenario: Remove a person added by mistake
+- **WHEN** an admin removes a person record that has no entrant registration, roster membership, identity
+  link, or report
+- **THEN** the record is deleted, and an audit entry records the removal with the person's prior state
+
+#### Scenario: Remove a team added by mistake
+- **WHEN** an admin removes a team record that has no entrant registration or roster membership
+- **THEN** the record is deleted, and an audit entry records the removal with the team's prior state
+
+#### Scenario: A person registered as an entrant cannot be removed
+- **WHEN** an admin attempts to remove a person who is registered as an entrant in any tournament
+- **THEN** the request is refused, naming the entrant registration as the reason, and no record is
+  deleted
+
+#### Scenario: A person or team rostered on a team cannot be removed
+- **WHEN** an admin attempts to remove a person who is a player on any team, or a team that has any
+  player on its roster
+- **THEN** the request is refused, naming the roster membership as the reason, and no record is deleted
+
+#### Scenario: A person with an identity link cannot be removed
+- **WHEN** an admin attempts to remove a person who has a participant identity link
+- **THEN** the request is refused, naming the identity link as the reason, directing the admin to unlink
+  first, and no record is deleted
+
+#### Scenario: A person who has submitted a report cannot be removed
+- **WHEN** an admin attempts to remove a person who has submitted a participant report
+- **THEN** the request is refused, naming the report as the reason, and no record is deleted
