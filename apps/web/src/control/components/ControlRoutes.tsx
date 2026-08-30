@@ -6,6 +6,7 @@ import { ReportReviewRoute } from './ReportReviewRoute.js';
 import { SeedingBuilderRoute } from './SeedingBuilderRoute.js';
 import { StandingsRoute } from './StandingsRoute.js';
 import { TournamentAuthoringPage } from './TournamentAuthoringPage.js';
+import { TournamentSettingsRoute } from './TournamentSettingsRoute.js';
 import { RolesPermissionsRoute } from './RolesPermissionsRoute.js';
 import { AuditTrailRoute } from './AuditTrailRoute.js';
 import { MatchConsoleRoute } from './MatchConsoleRoute.js';
@@ -122,6 +123,26 @@ export function RegistrationReviewControlRoute({
         organizationAlias={organizationAlias}
         tournamentAlias={tournamentAlias}
         now={now}
+      />
+    </ControlShell>
+  );
+}
+
+export function TournamentSettingsControlRoute({
+  organizationAlias,
+  tournamentAlias,
+  client,
+}: {
+  readonly organizationAlias: string;
+  readonly tournamentAlias: string;
+  readonly client?: ControlApiClient;
+}): React.JSX.Element {
+  return (
+    <ControlShell helpPath="tournament-authoring" organizationAlias={organizationAlias}>
+      <TournamentSettingsRoute
+        client={client}
+        organizationAlias={organizationAlias}
+        tournamentAlias={tournamentAlias}
       />
     </ControlShell>
   );

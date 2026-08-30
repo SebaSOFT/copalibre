@@ -303,6 +303,151 @@
         ]
       }
     },
+    "/organizations/{organizationAlias}/storage-usage/objects": {
+      "get": {
+        "description": "Cleanup candidates for the storage-usage screen — an object still referenced as an entity's current emblem or photo never appears here.",
+        "operationId": "OrganizationsController_listUnreferencedObjects",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UnreferencedObjectResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List stored objects no entity currently references",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/storage-usage/objects/{objectId}": {
+      "delete": {
+        "description": "Refused, naming what references it, while it is an entity's current emblem or photo.",
+        "operationId": "OrganizationsController_deleteObject",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "objectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnreferencedObjectResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a stored object no entity currently references",
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
     "/organizations/{organizationAlias}/tournaments/custom-script-vocabulary": {
       "get": {
         "operationId": "TournamentsController_customScriptVocabulary",
@@ -583,6 +728,258 @@
           }
         ],
         "summary": "List the organization's active (non-archived) tournaments",
+        "tags": [
+          "tournaments"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/settings": {
+      "get": {
+        "operationId": "TournamentsController_settings",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TournamentSettingsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read a tournament's editable settings",
+        "tags": [
+          "tournaments"
+        ]
+      },
+      "put": {
+        "description": "Applies the same classification the preview endpoint reports; a `blocked_after_results` or otherwise incoherent field (e.g. a capacity below the current accepted-entrant count) refuses the whole edit rather than applying part of it.",
+        "operationId": "TournamentsController_updateSettings",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TournamentSettingsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TournamentSettingsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Edit a tournament's name, region, capacity or check-in close time",
+        "tags": [
+          "tournaments"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/settings/preview": {
+      "post": {
+        "description": "Reports, per field, whether the proposed name/region/capacity/checkInClosesAt values are safe, require a rebuild, or are blocked because a result already exists or the record is otherwise incoherent (e.g. a capacity below the current accepted-entrant count) — never applies anything itself.",
+        "operationId": "TournamentsController_previewSettingsMutation",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TournamentSettingsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeriesMutationPreviewResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Classify a proposed tournament-settings edit before it is applied",
         "tags": [
           "tournaments"
         ]
@@ -4065,6 +4462,200 @@
         ]
       }
     },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}": {
+      "patch": {
+        "description": "A rename applies regardless of whether the stage is seeded. A format change is refused once the stage already holds a generated fixture, naming that fixtures already exist.",
+        "operationId": "StagesController_update",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStageRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Rename a stage or change its format",
+        "tags": [
+          "stages"
+        ]
+      },
+      "delete": {
+        "description": "Refused once the stage already holds a generated fixture, or a promotion plan already targets it, naming why. Cascades the stage’s own zones, groups and their entrant assignments; never a fixture or another stage’s record.",
+        "operationId": "StagesController_remove",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove an unseeded stage",
+        "tags": [
+          "stages"
+        ]
+      }
+    },
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/series/preview": {
       "post": {
         "description": "Reports, per field, whether the proposed span/resolutionClass/neutralGround values are safe, require a rebuild (naming how many fixtures it would invalidate), or are blocked because the series already has a result — never applies anything itself.",
@@ -7479,6 +8070,205 @@
         ]
       }
     },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}": {
+      "patch": {
+        "operationId": "ZonesGroupsController_renameZone",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "zoneNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenameRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ZoneResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Rename a zone — permitted at any time, seeded or not",
+        "tags": [
+          "zones and groups"
+        ]
+      },
+      "delete": {
+        "description": "Refused once an entrant has been assigned into it, naming the assignment.",
+        "operationId": "ZonesGroupsController_deleteZone",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "zoneNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ZoneResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a zone",
+        "tags": [
+          "zones and groups"
+        ]
+      }
+    },
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/entrants": {
       "get": {
         "operationId": "ZonesGroupsController_zoneEntrants",
@@ -7718,6 +8508,221 @@
           }
         ],
         "summary": "Create a manually named group before fixture generation",
+        "tags": [
+          "zones and groups"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones/{zoneNumber}/groups/{groupNumber}": {
+      "patch": {
+        "operationId": "ZonesGroupsController_renameGroup",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "zoneNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "groupNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenameRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Rename a group — permitted at any time, seeded or not",
+        "tags": [
+          "zones and groups"
+        ]
+      },
+      "delete": {
+        "description": "Refused once an entrant has been assigned into it, naming the assignment.",
+        "operationId": "ZonesGroupsController_deleteGroup",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "zoneNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "groupNumber",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a group",
         "tags": [
           "zones and groups"
         ]
@@ -8903,6 +9908,33 @@
           "objectCount"
         ]
       },
+      "UnreferencedObjectResponse": {
+        "type": "object",
+        "properties": {
+          "objectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "contentType": {
+            "type": "string",
+            "example": "image/png"
+          },
+          "sizeBytes": {
+            "type": "number",
+            "example": 148897
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "objectId",
+          "contentType",
+          "sizeBytes",
+          "createdAt"
+        ]
+      },
       "RegistryParameterDefinitionResponse": {
         "type": "object",
         "properties": {
@@ -9412,6 +10444,104 @@
           "publicRegistration",
           "requiresCheckIn",
           "customScripts"
+        ]
+      },
+      "TournamentSettingsResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Copa Verano"
+          },
+          "region": {
+            "type": "string",
+            "description": "Geographic or administrative region for tournament registration.",
+            "example": "South America"
+          },
+          "capacity": {
+            "type": "number",
+            "description": "Maximum number of participants/entrants for the tournament.",
+            "example": 16
+          },
+          "checkInClosesAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Optional instant when checked-in team memberships stop being editable."
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "TournamentSettingsRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Copa Verano (corregida)"
+          },
+          "region": {
+            "type": "string",
+            "description": "Geographic or administrative region for tournament registration.",
+            "example": "South America"
+          },
+          "capacity": {
+            "type": "number",
+            "description": "Maximum number of participants/entrants for the tournament.",
+            "example": 16
+          },
+          "checkInClosesAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Optional instant when checked-in team memberships stop being editable."
+          }
+        }
+      },
+      "SeriesMutationFieldPreview": {
+        "type": "object",
+        "properties": {
+          "field": {
+            "type": "string",
+            "example": "series.span"
+          },
+          "mutationClass": {
+            "type": "string",
+            "enum": [
+              "safe",
+              "requires_rebuild",
+              "blocked_after_results"
+            ],
+            "description": "Absent when the field is refused outright — see `blocked`."
+          },
+          "invalidatedFixtureCount": {
+            "type": "number",
+            "description": "Fixtures a `requires_rebuild` change would invalidate."
+          },
+          "blocked": {
+            "type": "boolean",
+            "description": "True when this field cannot be changed as proposed; see `reason`."
+          },
+          "reason": {
+            "type": "string",
+            "description": "Present when `blocked` — names the audited correction workflow."
+          }
+        },
+        "required": [
+          "field"
+        ]
+      },
+      "SeriesMutationPreviewResponse": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SeriesMutationFieldPreview"
+            }
+          }
+        },
+        "required": [
+          "fields"
         ]
       },
       "TournamentCustomScriptsResponse": {
@@ -11892,52 +13022,19 @@
           "format"
         ]
       },
-      "SeriesMutationFieldPreview": {
+      "UpdateStageRequest": {
         "type": "object",
         "properties": {
-          "field": {
+          "name": {
             "type": "string",
-            "example": "series.span"
+            "example": "Fase de grupos (corregida)"
           },
-          "mutationClass": {
+          "format": {
             "type": "string",
-            "enum": [
-              "safe",
-              "requires_rebuild",
-              "blocked_after_results"
-            ],
-            "description": "Absent when the field is refused outright — see `blocked`."
-          },
-          "invalidatedFixtureCount": {
-            "type": "number",
-            "description": "Fixtures a `requires_rebuild` change would invalidate."
-          },
-          "blocked": {
-            "type": "boolean",
-            "description": "True when this field cannot be changed as proposed; see `reason`."
-          },
-          "reason": {
-            "type": "string",
-            "description": "Present when `blocked` — names the audited correction workflow."
+            "description": "Refused once the stage already holds a generated fixture. Validated against the tournament's discipline descriptor.",
+            "example": "round-robin"
           }
-        },
-        "required": [
-          "field"
-        ]
-      },
-      "SeriesMutationPreviewResponse": {
-        "type": "object",
-        "properties": {
-          "fields": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SeriesMutationFieldPreview"
-            }
-          }
-        },
-        "required": [
-          "fields"
-        ]
+        }
       },
       "FixtureMatchResponse": {
         "type": "object",
@@ -14998,6 +16095,18 @@
           "name": {
             "type": "string",
             "example": "Zona Norte"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "RenameRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Zona Norte (corregida)"
           }
         },
         "required": [

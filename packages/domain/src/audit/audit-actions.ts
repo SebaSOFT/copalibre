@@ -75,6 +75,7 @@ export const AUDIT_ACTIONS = [
   'tournament.created',
   'tournament.published',
   'tournament.archived',
+  'tournament.renamed',
   'ruleset.versioned',
   'ruleset.compiled',
   'stage-configuration.created',
@@ -83,13 +84,20 @@ export const AUDIT_ACTIONS = [
   // Competition structure
   'season.created',
   'zone.created',
+  'zone.renamed',
+  'zone.deleted',
   'group.created',
+  'group.renamed',
+  'group.deleted',
   'zones.drawn',
   'zones.manually-assigned',
   'groups.drawn',
   'groups.manually-assigned',
   'promotion-plan.saved',
   'stage.created',
+  'stage.renamed',
+  'stage.format-changed',
+  'stage.deleted',
 
   // Fixtures and matches
   'fixtures.generated',
@@ -169,6 +177,7 @@ export const AUDIT_ACTIONS = [
 
   // Object storage
   'object.scan-failed',
+  'object.deleted',
 
   // Refused attempts (openspec 0166) — recorded centrally by the API
   // exception filter (or, for a classification consulted but never thrown,

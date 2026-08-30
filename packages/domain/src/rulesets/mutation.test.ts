@@ -146,4 +146,69 @@ describe('evaluateMutation', () => {
       }
     });
   });
+
+  describe('tournament capacity mutation policy', () => {
+    const capacityPolicies = {
+      ...policies,
+      'registration.capacity': {
+        permission: { kind: 'replaced' as const },
+        mutationClass: 'requires_rebuild' as const,
+      },
+    };
+
+    it('classifies raising capacity as requires_rebuild, with no result recorded', () => {
+      const result = evaluateMutation(capacityPolicies, 'registration.capacity', {
+        hasRecordedResults: false,
+        previousValue: 16,
+        nextValue: 32,
+        acceptedEntrantCount: 10,
+        generatedFixtures,
+      });
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.mutationClass).toBe('requires_rebuild');
+      }
+    });
+
+    it('rejects reducing capacity below the current accepted-entrant count, with no result recorded', () => {
+      const result = evaluateMutation(capacityPolicies, 'registration.capacity', {
+        hasRecordedResults: false,
+        previousValue: 16,
+        nextValue: 8,
+        acceptedEntrantCount: 10,
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error).toBeInstanceOf(MutationBlockedError);
+        expect(result.error.message).toContain('10 entrant');
+      }
+    });
+
+    it('rejects reducing capacity below the current accepted-entrant count even after a result exists', () => {
+      const result = evaluateMutation(capacityPolicies, 'registration.capacity', {
+        hasRecordedResults: true,
+        previousValue: 16,
+        nextValue: 8,
+        acceptedEntrantCount: 10,
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.message).toContain('10 entrant');
+      }
+    });
+
+    it('allows reducing capacity to exactly the current accepted-entrant count', () => {
+      const result = evaluateMutation(capacityPolicies, 'registration.capacity', {
+        hasRecordedResults: false,
+        previousValue: 16,
+        nextValue: 10,
+        acceptedEntrantCount: 10,
+        generatedFixtures,
+      });
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.mutationClass).toBe('requires_rebuild');
+      }
+    });
+  });
 });

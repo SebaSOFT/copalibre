@@ -187,6 +187,84 @@ export class CompetitionRepository {
     return toZone(row);
   }
 
+  /** Renames a zone — permitted at any time, seeded or not. */
+  async renameZone(
+    uow: UnitOfWork,
+    input: { readonly zoneId: string; readonly name: string } & AuditContext,
+  ): Promise<Zone> {
+    const row = await uow.tx
+      .updateTable('zones')
+      .set({ name: input.name })
+      .where('zone_id', '=', input.zoneId)
+      .returningAll()
+      .executeTakeFirst();
+    if (!row) {
+      throw new NotFoundError(`Zone ${input.zoneId} does not exist`, { zoneId: input.zoneId });
+    }
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'zone',
+      entityId: input.zoneId,
+      action: 'zone.renamed',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      resultingState: { name: input.name },
+    });
+    return toZone(row);
+  }
+
+  /** Removes a zone, refused once an entrant has been assigned into it. */
+  async deleteZone(
+    uow: UnitOfWork,
+    input: { readonly zoneId: string } & AuditContext,
+  ): Promise<Zone> {
+    const assigned = await uow.tx
+      .selectFrom('zone_entrants')
+      .select('entrant_id')
+      .where('zone_id', '=', input.zoneId)
+      .executeTakeFirst();
+    if (assigned) {
+      throw new InvariantViolationError(
+        'Cannot remove a zone that already has an entrant assigned',
+        {
+          zoneId: input.zoneId,
+        },
+      );
+    }
+
+    const groups = await uow.tx
+      .selectFrom('groups')
+      .select('group_id')
+      .where('zone_id', '=', input.zoneId)
+      .execute();
+    const groupIds = groups.map((group) => group.group_id);
+    if (groupIds.length > 0) {
+      await uow.tx.deleteFrom('group_entrants').where('group_id', 'in', groupIds).execute();
+      await uow.tx.deleteFrom('groups').where('group_id', 'in', groupIds).execute();
+    }
+    await uow.tx.deleteFrom('promotion_plans').where('zone_id', '=', input.zoneId).execute();
+
+    const deleted = await uow.tx
+      .deleteFrom('zones')
+      .where('zone_id', '=', input.zoneId)
+      .returningAll()
+      .executeTakeFirst();
+    if (!deleted) {
+      throw new NotFoundError(`Zone ${input.zoneId} does not exist`, { zoneId: input.zoneId });
+    }
+
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'zone',
+      entityId: input.zoneId,
+      action: 'zone.deleted',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      previousState: { ...toZone(deleted) },
+    });
+    return toZone(deleted);
+  }
+
   async listZonesOfStage(stageId: string): Promise<readonly Zone[]> {
     const rows = await this.db
       .selectFrom('zones')
@@ -265,6 +343,70 @@ export class CompetitionRepository {
       resultingState: { ...group },
     });
     return toGroup(row);
+  }
+
+  /** Renames a group — permitted at any time, seeded or not. */
+  async renameGroup(
+    uow: UnitOfWork,
+    input: { readonly groupId: string; readonly name: string } & AuditContext,
+  ): Promise<Group> {
+    const row = await uow.tx
+      .updateTable('groups')
+      .set({ name: input.name })
+      .where('group_id', '=', input.groupId)
+      .returningAll()
+      .executeTakeFirst();
+    if (!row) {
+      throw new NotFoundError(`Group ${input.groupId} does not exist`, { groupId: input.groupId });
+    }
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'group',
+      entityId: input.groupId,
+      action: 'group.renamed',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      resultingState: { name: input.name },
+    });
+    return toGroup(row);
+  }
+
+  /** Removes a group, refused once an entrant has been assigned into it. */
+  async deleteGroup(
+    uow: UnitOfWork,
+    input: { readonly groupId: string } & AuditContext,
+  ): Promise<Group> {
+    const assigned = await uow.tx
+      .selectFrom('group_entrants')
+      .select('entrant_id')
+      .where('group_id', '=', input.groupId)
+      .executeTakeFirst();
+    if (assigned) {
+      throw new InvariantViolationError(
+        'Cannot remove a group that already has an entrant assigned',
+        { groupId: input.groupId },
+      );
+    }
+
+    const deleted = await uow.tx
+      .deleteFrom('groups')
+      .where('group_id', '=', input.groupId)
+      .returningAll()
+      .executeTakeFirst();
+    if (!deleted) {
+      throw new NotFoundError(`Group ${input.groupId} does not exist`, { groupId: input.groupId });
+    }
+
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'group',
+      entityId: input.groupId,
+      action: 'group.deleted',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      previousState: { ...toGroup(deleted) },
+    });
+    return toGroup(deleted);
   }
 
   async listGroupsOfZone(zoneId: string): Promise<readonly Group[]> {
@@ -642,9 +784,10 @@ export class CompetitionRepository {
       .where('stage_id', '=', stageId)
       .executeTakeFirst();
     if (fixture) {
-      throw new InvariantViolationError('Cannot assign zones or groups after fixtures exist', {
-        stageId,
-      });
+      throw new InvariantViolationError(
+        'Cannot change this stage — its zones, groups, format or removal — after fixtures already exist',
+        { stageId },
+      );
     }
   }
 
@@ -758,6 +901,132 @@ export class CompetitionRepository {
       resultingState: { ...stage },
     });
     return stage;
+  }
+
+  /** Renames a stage — carries no structural consequence, permitted whether the stage is seeded or not. */
+  async renameStage(
+    uow: UnitOfWork,
+    input: { readonly stageId: string; readonly name: string } & AuditContext,
+  ): Promise<Stage> {
+    const row = await uow.tx
+      .updateTable('stages')
+      .set({ name: input.name })
+      .where('stage_id', '=', input.stageId)
+      .returningAll()
+      .executeTakeFirst();
+    if (!row) {
+      throw new NotFoundError(`Stage ${input.stageId} does not exist`, { stageId: input.stageId });
+    }
+    const stage = toStage(row);
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'stage',
+      entityId: input.stageId,
+      action: 'stage.renamed',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      resultingState: { name: input.name },
+    });
+    return stage;
+  }
+
+  /** Changes a stage's format, refused once it holds a fixture (`assertStageHasNoFixtures`). */
+  async changeStageFormat(
+    uow: UnitOfWork,
+    input: { readonly stageId: string; readonly format: TournamentFormat } & AuditContext,
+  ): Promise<Stage> {
+    await this.assertStageHasNoFixtures(uow, input.stageId);
+    const row = await uow.tx
+      .updateTable('stages')
+      .set({ format: input.format })
+      .where('stage_id', '=', input.stageId)
+      .returningAll()
+      .executeTakeFirst();
+    if (!row) {
+      throw new NotFoundError(`Stage ${input.stageId} does not exist`, { stageId: input.stageId });
+    }
+    const stage = toStage(row);
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'stage',
+      entityId: input.stageId,
+      action: 'stage.format-changed',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      resultingState: { format: input.format },
+    });
+    return stage;
+  }
+
+  /**
+   * Removes a stage, refused once it holds a fixture or a promotion plan
+   * already targets it — cascades only the stage's own zones, groups and
+   * their entrant assignments, never a fixture (there are none, by the guard
+   * above) and never another stage's record.
+   */
+  async deleteStage(
+    uow: UnitOfWork,
+    input: { readonly stageId: string } & AuditContext,
+  ): Promise<Stage> {
+    await this.assertStageHasNoFixtures(uow, input.stageId);
+
+    const incomingPlan = await uow.tx
+      .selectFrom('promotion_plans')
+      .select('promotion_plan_id')
+      .where('next_stage_id', '=', input.stageId)
+      .executeTakeFirst();
+    if (incomingPlan) {
+      throw new InvariantViolationError(
+        'Cannot remove a stage that a promotion plan already targets',
+        { stageId: input.stageId },
+      );
+    }
+
+    const zones = await uow.tx
+      .selectFrom('zones')
+      .select('zone_id')
+      .where('stage_id', '=', input.stageId)
+      .execute();
+    const zoneIds = zones.map((zone) => zone.zone_id);
+
+    if (zoneIds.length > 0) {
+      const groups = await uow.tx
+        .selectFrom('groups')
+        .select('group_id')
+        .where('zone_id', 'in', zoneIds)
+        .execute();
+      const groupIds = groups.map((group) => group.group_id);
+
+      if (groupIds.length > 0) {
+        await uow.tx.deleteFrom('group_entrants').where('group_id', 'in', groupIds).execute();
+        await uow.tx.deleteFrom('groups').where('group_id', 'in', groupIds).execute();
+      }
+      await uow.tx.deleteFrom('zone_entrants').where('zone_id', 'in', zoneIds).execute();
+      await uow.tx.deleteFrom('promotion_plans').where('zone_id', 'in', zoneIds).execute();
+      await uow.tx.deleteFrom('zones').where('zone_id', 'in', zoneIds).execute();
+    }
+
+    await uow.tx.deleteFrom('stage_configurations').where('stage_id', '=', input.stageId).execute();
+
+    const deleted = await uow.tx
+      .deleteFrom('stages')
+      .where('stage_id', '=', input.stageId)
+      .returningAll()
+      .executeTakeFirst();
+    if (!deleted) {
+      throw new NotFoundError(`Stage ${input.stageId} does not exist`, { stageId: input.stageId });
+    }
+
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'stage',
+      entityId: input.stageId,
+      action: 'stage.deleted',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      previousState: { ...toStage(deleted) },
+    });
+    return toStage(deleted);
   }
 
   /** Bulk fixture insert — the shape the generator will hand over. */

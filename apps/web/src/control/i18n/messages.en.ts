@@ -1423,6 +1423,58 @@ export const messages = defineMessages({
   zoneGroupGroupsHeading: { id: 'control.zoneGroup.groupsHeading', defaultMessage: 'Groups' },
   zoneGroupNewGroupName: { id: 'control.zoneGroup.newGroupName', defaultMessage: 'New group name' },
   zoneGroupAddGroup: { id: 'control.zoneGroup.addGroup', defaultMessage: 'Add group' },
+  zoneGroupRenameZoneLabel: {
+    id: 'control.zoneGroup.renameZoneLabel',
+    defaultMessage: 'Rename zone {name}',
+  },
+  zoneGroupRenameGroupLabel: {
+    id: 'control.zoneGroup.renameGroupLabel',
+    defaultMessage: 'Rename group {name}',
+  },
+  zoneGroupRename: { id: 'control.zoneGroup.rename', defaultMessage: 'Rename' },
+  zoneGroupDelete: { id: 'control.zoneGroup.delete', defaultMessage: 'Delete' },
+
+  // TournamentSettingsPage.tsx, TournamentSettingsRoute.tsx (openspec 0168)
+  settingsTitle: { id: 'control.settings.title', defaultMessage: 'Tournament settings' },
+  settingsLoading: { id: 'control.settings.loading', defaultMessage: 'Loading settings…' },
+  settingsLoadFailed: {
+    id: 'control.settings.loadFailed',
+    defaultMessage: 'Could not load the tournament settings.',
+  },
+  settingsNameLabel: { id: 'control.settings.nameLabel', defaultMessage: 'Name' },
+  settingsRegionLabel: { id: 'control.settings.regionLabel', defaultMessage: 'Region' },
+  settingsCapacityLabel: { id: 'control.settings.capacityLabel', defaultMessage: 'Capacity' },
+  settingsCheckInClosesAtLabel: {
+    id: 'control.settings.checkInClosesAtLabel',
+    defaultMessage: 'Check-in closes at',
+  },
+  settingsPreview: { id: 'control.settings.preview', defaultMessage: 'Preview' },
+  settingsSave: { id: 'control.settings.save', defaultMessage: 'Save' },
+  settingsSaved: { id: 'control.settings.saved', defaultMessage: 'Settings saved.' },
+  settingsMutationClass: {
+    id: 'control.settings.mutationClass',
+    defaultMessage:
+      '{mutationClass, select, safe {Safe} requires_rebuild {Requires rebuild} blocked_after_results {Blocked after results} other {Unknown}}',
+  },
+  tournamentSettingsLink: {
+    id: 'control.settings.link',
+    defaultMessage: 'Tournament settings',
+  },
+
+  // SeedingBuilderRoute.tsx — stage rename/format-change/delete (openspec 0168)
+  stageSettingsTitle: { id: 'control.stageSettings.title', defaultMessage: 'Stage settings' },
+  stageRenameLabel: { id: 'control.stageSettings.renameLabel', defaultMessage: 'New stage name' },
+  stageRenameSubmit: { id: 'control.stageSettings.renameSubmit', defaultMessage: 'Rename' },
+  stageFormatLabel: { id: 'control.stageSettings.formatLabel', defaultMessage: 'Format' },
+  stageFormatSubmit: {
+    id: 'control.stageSettings.formatSubmit',
+    defaultMessage: 'Change format',
+  },
+  stageDelete: { id: 'control.stageSettings.delete', defaultMessage: 'Delete stage' },
+  stageSeededExplanation: {
+    id: 'control.stageSettings.seededExplanation',
+    defaultMessage: 'This stage already has fixtures, so its format and removal are locked.',
+  },
   zoneGroupAssignGroupsHeading: {
     id: 'control.zoneGroup.assignGroupsHeading',
     defaultMessage: 'Assign entrants to groups',
@@ -2156,6 +2208,14 @@ export const messages = defineMessages({
   storageUsageEmpty: {
     id: 'control.storageUsage.empty',
     defaultMessage: '0 MB across 0 files',
+  },
+  storageUsageUnreferencedHeading: {
+    id: 'control.storageUsage.unreferencedHeading',
+    defaultMessage: 'Unused uploads',
+  },
+  storageUsageDeleteObject: {
+    id: 'control.storageUsage.deleteObject',
+    defaultMessage: 'Delete',
   },
 
   // Image crop modal — shared by every profile-image upload (org/club emblem, person photo).

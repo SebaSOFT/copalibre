@@ -218,6 +218,14 @@ describe('parseControlPath', () => {
       },
     ],
     [
+      '/control/liga-mendocina/tournaments/apertura-2026/settings',
+      {
+        screen: 'tournamentSettings',
+        organizationAlias: 'liga-mendocina',
+        tournamentAlias: 'apertura-2026',
+      },
+    ],
+    [
       '/control/liga-mendocina/tournaments/apertura-2026/reports',
       { screen: 'reports', organizationAlias: 'liga-mendocina', tournamentAlias: 'apertura-2026' },
     ],

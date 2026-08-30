@@ -59,6 +59,7 @@ export function ZoneGroupRoute({
   const [loadError, setLoadError] = useState<string | undefined>(undefined);
 
   const [newZoneName, setNewZoneName] = useState('');
+  const [zoneNameDrafts, setZoneNameDrafts] = useState<Record<number, string>>({});
   const [zoneMode, setZoneMode] = useState<AssignMode>('draw');
   const [zoneCount, setZoneCount] = useState('1');
   const [zoneSeed, setZoneSeed] = useState('1');
@@ -69,6 +70,7 @@ export function ZoneGroupRoute({
   const [groups, setGroups] = useState<readonly GroupResponse[]>([]);
   const [zoneEntrantIds, setZoneEntrantIds] = useState<readonly string[]>([]);
   const [newGroupName, setNewGroupName] = useState('');
+  const [groupNameDrafts, setGroupNameDrafts] = useState<Record<number, string>>({});
   const [groupMode, setGroupMode] = useState<AssignMode>('draw');
   const [groupCount, setGroupCount] = useState('1');
   const [groupSeed, setGroupSeed] = useState('1');
@@ -151,6 +153,73 @@ export function ZoneGroupRoute({
       });
       setNewZoneName('');
       void reload();
+    } catch (error) {
+      pushError(error);
+    }
+  }
+
+  async function renameZone(zoneNumber: number, name: string): Promise<void> {
+    if (!api.renameZone || name.trim() === '') return;
+    try {
+      await api.renameZone(organizationAlias, tournamentAlias, stageNumber, zoneNumber, {
+        name: name.trim(),
+      });
+      void reload();
+    } catch (error) {
+      pushError(error);
+    }
+  }
+
+  async function deleteZone(zoneNumber: number): Promise<void> {
+    if (!api.deleteZone) return;
+    try {
+      await api.deleteZone(organizationAlias, tournamentAlias, stageNumber, zoneNumber);
+      void reload();
+    } catch (error) {
+      pushError(error);
+    }
+  }
+
+  async function renameGroup(groupNumber: number, name: string): Promise<void> {
+    if (!api.renameGroup || selectedZoneNumber === undefined || name.trim() === '') return;
+    try {
+      await api.renameGroup(
+        organizationAlias,
+        tournamentAlias,
+        stageNumber,
+        selectedZoneNumber,
+        groupNumber,
+        { name: name.trim() },
+      );
+      const loaded = await api.listGroups?.(
+        organizationAlias,
+        tournamentAlias,
+        stageNumber,
+        selectedZoneNumber,
+      );
+      setGroups(loaded ?? []);
+    } catch (error) {
+      pushError(error);
+    }
+  }
+
+  async function deleteGroup(groupNumber: number): Promise<void> {
+    if (!api.deleteGroup || selectedZoneNumber === undefined) return;
+    try {
+      await api.deleteGroup(
+        organizationAlias,
+        tournamentAlias,
+        stageNumber,
+        selectedZoneNumber,
+        groupNumber,
+      );
+      const loaded = await api.listGroups?.(
+        organizationAlias,
+        tournamentAlias,
+        stageNumber,
+        selectedZoneNumber,
+      );
+      setGroups(loaded ?? []);
     } catch (error) {
       pushError(error);
     }
@@ -332,6 +401,40 @@ export function ZoneGroupRoute({
             {zones.map((zone) => (
               <li key={zone.number} className="cl-role-user">
                 <strong>{zone.number}.</strong> {zone.name}
+                {api.renameZone && (
+                  <>
+                    <Input
+                      aria-label={intl.formatMessage(messages.zoneGroupRenameZoneLabel, {
+                        name: zone.name,
+                      })}
+                      onChange={(event) =>
+                        setZoneNameDrafts((current) => ({
+                          ...current,
+                          [zone.number]: event.target.value,
+                        }))
+                      }
+                      value={zoneNameDrafts[zone.number] ?? zone.name}
+                    />
+                    <Button
+                      onClick={() =>
+                        void renameZone(zone.number, zoneNameDrafts[zone.number] ?? zone.name)
+                      }
+                      type="button"
+                      variant="secondary"
+                    >
+                      <FormattedMessage {...messages.zoneGroupRename} />
+                    </Button>
+                  </>
+                )}
+                {api.deleteZone && (
+                  <Button
+                    onClick={() => void deleteZone(zone.number)}
+                    type="button"
+                    variant="destructive-outline"
+                  >
+                    <FormattedMessage {...messages.zoneGroupDelete} />
+                  </Button>
+                )}
               </li>
             ))}
           </ul>
@@ -488,6 +591,43 @@ export function ZoneGroupRoute({
                 {groups.map((group) => (
                   <li key={group.number} className="cl-role-user">
                     <strong>{group.number}.</strong> {group.name}
+                    {api.renameGroup && (
+                      <>
+                        <Input
+                          aria-label={intl.formatMessage(messages.zoneGroupRenameGroupLabel, {
+                            name: group.name,
+                          })}
+                          onChange={(event) =>
+                            setGroupNameDrafts((current) => ({
+                              ...current,
+                              [group.number]: event.target.value,
+                            }))
+                          }
+                          value={groupNameDrafts[group.number] ?? group.name}
+                        />
+                        <Button
+                          onClick={() =>
+                            void renameGroup(
+                              group.number,
+                              groupNameDrafts[group.number] ?? group.name,
+                            )
+                          }
+                          type="button"
+                          variant="secondary"
+                        >
+                          <FormattedMessage {...messages.zoneGroupRename} />
+                        </Button>
+                      </>
+                    )}
+                    {api.deleteGroup && (
+                      <Button
+                        onClick={() => void deleteGroup(group.number)}
+                        type="button"
+                        variant="destructive-outline"
+                      >
+                        <FormattedMessage {...messages.zoneGroupDelete} />
+                      </Button>
+                    )}
                   </li>
                 ))}
               </ul>

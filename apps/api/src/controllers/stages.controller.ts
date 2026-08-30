@@ -1,12 +1,14 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   Inject,
   Logger,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
   Req,
 } from '@nestjs/common';
@@ -52,6 +54,7 @@ import {
   SeriesDeclarationRequest,
   SeriesMutationPreviewResponse,
   StageResponse,
+  UpdateStageRequest,
 } from '../dto/organization.dto.js';
 import { StageFixturesResponse } from '../dto/schedule.dto.js';
 import { resolveTournament } from './standings.controller.js';
@@ -200,6 +203,161 @@ export class StagesController {
         throw new ConflictException(error.message, { errorCode: 'stage-conflict' });
       throw error;
     }
+  }
+
+  @Patch(':stageNumber')
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationCapability('org.manage-stages')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Rename a stage or change its format',
+    description:
+      'A rename applies regardless of whether the stage is seeded. A format change is refused once ' +
+      'the stage already holds a generated fixture, naming that fixtures already exist.',
+  })
+  @ApiOkResponse({ type: StageResponse })
+  @ApiConflictResponse({ type: ProblemResponse })
+  @ApiUnauthorizedResponse({ type: ProblemResponse })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  @ApiNotFoundResponse({ type: ProblemResponse })
+  async update(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('stageNumber', ParseIntPipe) stageNumber: number,
+    @Body() body: UpdateStageRequest,
+    @Req() request: RequestWithSubject,
+  ): Promise<StageResponse> {
+    const { tournament } = await resolveTournament(this.db, {
+      organizationAlias,
+      tournamentAlias,
+      request,
+    });
+
+    const competition = new CompetitionRepository(this.db);
+    const stage = await this.findStage(competition, tournament.tournamentId, stageNumber);
+
+    let format = stage.format;
+    if (body.format !== undefined) {
+      const tournaments = new TournamentRepository(this.db);
+      const descriptor = await tournaments.findDescriptor(
+        tournament.disciplineRef.descriptorId,
+        tournament.disciplineRef.version,
+      );
+      if (!descriptor) {
+        throw new BadRequestException(
+          `Discipline ${tournament.disciplineRef.descriptorId}@${tournament.disciplineRef.version} is not installed`,
+          { errorCode: 'stage-bad-request' },
+        );
+      }
+      format = await this.resolveFormat(tournament.tournamentId, descriptor, body.format);
+    }
+
+    try {
+      return await withTransaction(this.db, async (uow) => {
+        let updated = stage;
+        if (body.name !== undefined) {
+          updated = await competition.renameStage(uow, {
+            stageId: stage.stageId,
+            name: body.name,
+            organizationId: tournament.organizationId,
+            actor: actorOf(request),
+            authorizationContext: authorizationContextOf(request),
+          });
+        }
+        if (body.format !== undefined) {
+          updated = await competition.changeStageFormat(uow, {
+            stageId: stage.stageId,
+            format,
+            organizationId: tournament.organizationId,
+            actor: actorOf(request),
+            authorizationContext: authorizationContextOf(request),
+          });
+        }
+        return {
+          stageId: updated.stageId,
+          seasonId: updated.seasonId,
+          number: updated.number,
+          name: updated.name,
+          format: updated.format,
+        };
+      });
+    } catch (error) {
+      if (error instanceof InvariantViolationError) {
+        throw new ConflictException(error.message, { errorCode: 'stage-conflict' });
+      }
+      throw error;
+    }
+  }
+
+  @Delete(':stageNumber')
+  @HttpCode(200)
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationCapability('org.manage-stages')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Remove an unseeded stage',
+    description:
+      'Refused once the stage already holds a generated fixture, or a promotion plan already ' +
+      'targets it, naming why. Cascades the stage’s own zones, groups and their entrant ' +
+      'assignments; never a fixture or another stage’s record.',
+  })
+  @ApiOkResponse({ type: StageResponse })
+  @ApiConflictResponse({ type: ProblemResponse })
+  @ApiUnauthorizedResponse({ type: ProblemResponse })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  @ApiNotFoundResponse({ type: ProblemResponse })
+  async remove(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('stageNumber', ParseIntPipe) stageNumber: number,
+    @Req() request: RequestWithSubject,
+  ): Promise<StageResponse> {
+    const { tournament } = await resolveTournament(this.db, {
+      organizationAlias,
+      tournamentAlias,
+      request,
+    });
+
+    const competition = new CompetitionRepository(this.db);
+    const stage = await this.findStage(competition, tournament.tournamentId, stageNumber);
+
+    try {
+      const deleted = await withTransaction(this.db, (uow) =>
+        competition.deleteStage(uow, {
+          stageId: stage.stageId,
+          organizationId: tournament.organizationId,
+          actor: actorOf(request),
+          authorizationContext: authorizationContextOf(request),
+        }),
+      );
+      return {
+        stageId: deleted.stageId,
+        seasonId: deleted.seasonId,
+        number: deleted.number,
+        name: deleted.name,
+        format: deleted.format,
+      };
+    } catch (error) {
+      if (error instanceof InvariantViolationError) {
+        throw new ConflictException(error.message, { errorCode: 'stage-conflict' });
+      }
+      throw error;
+    }
+  }
+
+  private async findStage(
+    competition: CompetitionRepository,
+    tournamentId: string,
+    stageNumber: number,
+  ) {
+    const stages = await competition.listStagesOfTournament(tournamentId);
+    const stage = stages.find((candidate) => candidate.number === stageNumber);
+    if (!stage) {
+      throw new NotFoundException(`No stage ${stageNumber} in this tournament`, {
+        errorCode: 'stage-not-found',
+      });
+    }
+    return stage;
   }
 
   @Post(':stageNumber/series/preview')

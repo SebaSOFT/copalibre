@@ -588,6 +588,80 @@ describe('PreferencesRoute', () => {
     expect(await screen.findByText('1.5 GB across 120 files')).toBeDefined();
   });
 
+  it('lists an unreferenced object and deletes it, dropping the usage total by its size', async () => {
+    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => [],
+    } as any);
+    const deleteObject = jest.fn<NonNullable<ControlApiClient['deleteObject']>>(() =>
+      Promise.resolve({
+        objectId: 'object-1',
+        contentType: 'image/png',
+        sizeBytes: 2048,
+        createdAt: '2026-01-01T00:00:00.000Z',
+      }),
+    );
+    const client = stubClient({
+      getOrganization: () => Promise.resolve(organization),
+      getStorageUsage: () => Promise.resolve({ totalBytes: 10240, objectCount: 5 }),
+      listUnreferencedObjects: () =>
+        Promise.resolve([
+          {
+            objectId: 'object-1',
+            contentType: 'image/png',
+            sizeBytes: 2048,
+            createdAt: '2026-01-01T00:00:00.000Z',
+          },
+        ]),
+      deleteObject,
+    });
+
+    render(
+      <ControlIntl locale="en">
+        <PreferencesRoute client={client} organizationAlias="liga-mendocina" />
+      </ControlIntl>,
+    );
+
+    expect(await screen.findByText('image/png')).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+
+    await waitFor(() => expect(deleteObject).toHaveBeenCalledWith('liga-mendocina', 'object-1'));
+    await waitFor(() => expect(screen.queryByText('image/png')).toBeNull());
+    expect(await screen.findByText('0.01 MB across 4 files')).toBeDefined();
+  });
+
+  it('reports an error when deleting an unreferenced object fails', async () => {
+    (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => [],
+    } as any);
+    const client = stubClient({
+      getOrganization: () => Promise.resolve(organization),
+      getStorageUsage: () => Promise.resolve({ totalBytes: 10240, objectCount: 5 }),
+      listUnreferencedObjects: () =>
+        Promise.resolve([
+          {
+            objectId: 'object-1',
+            contentType: 'image/png',
+            sizeBytes: 2048,
+            createdAt: '2026-01-01T00:00:00.000Z',
+          },
+        ]),
+      deleteObject: () => Promise.reject(new Error('object still referenced')),
+    });
+
+    render(
+      <ControlIntl locale="en">
+        <PreferencesRoute client={client} organizationAlias="liga-mendocina" />
+      </ControlIntl>,
+    );
+
+    expect(await screen.findByText('image/png')).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+
+    expect(await screen.findByText('The request could not be completed. Try again.')).toBeDefined();
+  });
+
   it('renders zero-state storage usage correctly', async () => {
     (globalThis.fetch as jest.Mock<any>).mockResolvedValueOnce({
       ok: true,

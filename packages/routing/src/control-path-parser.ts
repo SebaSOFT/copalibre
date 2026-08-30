@@ -33,6 +33,12 @@ export type ControlRoute =
       readonly tournamentAlias: string;
     }
   | {
+      /** Tournament settings: name/region/capacity/checkInClosesAt edit and preview. */
+      readonly screen: 'tournamentSettings';
+      readonly organizationAlias: string;
+      readonly tournamentAlias: string;
+    }
+  | {
       readonly screen: 'reports';
       readonly organizationAlias: string;
       readonly tournamentAlias: string;
@@ -135,6 +141,9 @@ export function parseControlPath(pathname: string): ControlRoute | undefined {
 
   if (rest.length === 3 && rest[2] === 'registrations') {
     return { screen: 'registrations', organizationAlias, tournamentAlias };
+  }
+  if (rest.length === 3 && rest[2] === 'settings') {
+    return { screen: 'tournamentSettings', organizationAlias, tournamentAlias };
   }
   if (rest.length === 3 && rest[2] === 'reports') {
     return { screen: 'reports', organizationAlias, tournamentAlias };

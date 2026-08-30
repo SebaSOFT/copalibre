@@ -6,6 +6,7 @@ import {
   type ControlApiClient,
   type RegistrationResponse,
 } from '../lib/api-client.js';
+import { controlLinkClick } from '../lib/control-navigation.js';
 import { controlTokenStore } from '../session/token-store.js';
 import { AbbreviationReviewSection } from './AbbreviationReviewSection.js';
 import { RegistrationReviewPage, type ReviewRegistrationRow } from './RegistrationReviewPage.js';
@@ -110,6 +111,15 @@ export function RegistrationReviewRoute({
 
   return (
     <>
+      <a
+        className="cl-focusable"
+        href={`/control/${organizationAlias}/tournaments/${tournamentAlias}/settings`}
+        onClick={controlLinkClick(
+          `/control/${organizationAlias}/tournaments/${tournamentAlias}/settings`,
+        )}
+      >
+        <FormattedMessage {...messages.tournamentSettingsLink} />
+      </a>
       <Card
         aria-label={intl.formatMessage(messages.registrationImportSection)}
         className="cl-chamfer cl-chamfer--control"

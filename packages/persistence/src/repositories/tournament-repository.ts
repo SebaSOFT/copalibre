@@ -258,6 +258,76 @@ export class TournamentRepository {
   }
 
   /**
+   * Whether a tournament has any recorded match result, and how many
+   * entrants it currently has accepted — the two facts a tournament-settings
+   * edit's mutation classification needs, computed together since both are
+   * cheap single-table reads.
+   */
+  async settingsMutationContext(
+    tournamentId: string,
+  ): Promise<{ readonly hasRecordedResults: boolean; readonly acceptedEntrantCount: number }> {
+    const [recordedMatch, acceptedRows] = await Promise.all([
+      this.db
+        .selectFrom('matches')
+        .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
+        .innerJoin('stages', 'stages.stage_id', 'fixtures.stage_id')
+        .innerJoin('seasons', 'seasons.season_id', 'stages.season_id')
+        .select('match_id')
+        .where('seasons.tournament_id', '=', tournamentId)
+        .where('matches.result', 'is not', null)
+        .limit(1)
+        .executeTakeFirst(),
+      this.db
+        .selectFrom('entrants')
+        .select('entrant_id')
+        .where('tournament_id', '=', tournamentId)
+        .where('status', '=', 'accepted')
+        .execute(),
+    ]);
+    return {
+      hasRecordedResults: recordedMatch !== undefined,
+      acceptedEntrantCount: acceptedRows.length,
+    };
+  }
+
+  /** Renames a tournament — its name carries no structural consequence, so this is always permitted. */
+  async renameTournament(
+    uow: UnitOfWork,
+    input: {
+      readonly tournamentId: string;
+      readonly organizationId: string;
+      readonly name: string;
+      readonly actor: string;
+      readonly authorizationContext: string;
+    },
+  ): Promise<Tournament> {
+    const row = await uow.tx
+      .updateTable('tournaments')
+      .set({ name: input.name })
+      .where('tournament_id', '=', input.tournamentId)
+      .returningAll()
+      .executeTakeFirst();
+    if (!row) {
+      throw new NotFoundError(`Tournament ${input.tournamentId} does not exist`, {
+        tournamentId: input.tournamentId,
+      });
+    }
+    const tournament = toTournament(row);
+
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'tournament',
+      entityId: input.tournamentId,
+      action: 'tournament.renamed',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      resultingState: { name: input.name },
+    });
+
+    return tournament;
+  }
+
+  /**
    * Creates a tournament ruleset version. The effective ruleset is compiled
    * before any INSERT: a forbidden/inherited/unknown override or an undeclared
    * deep merge fails here, not in the database.

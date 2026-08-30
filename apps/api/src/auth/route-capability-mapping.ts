@@ -21,6 +21,8 @@ export const ROUTE_CAPABILITIES: Readonly<Record<string, OrganizationCapability>
   // org.manage-settings
   'OrganizationsController.updateSettings': 'org.manage-settings',
   'OrganizationsController.getStorageUsage': 'org.manage-settings',
+  'OrganizationsController.listUnreferencedObjects': 'org.manage-settings',
+  'OrganizationsController.deleteObject': 'org.manage-settings',
   'OrganizationMediaController.uploadEmblem': 'org.manage-settings',
 
   // org.manage-clubs — deliberate exception, see CLUB_ADMIN_EXCEPTIONS below:
@@ -61,6 +63,9 @@ export const ROUTE_CAPABILITIES: Readonly<Record<string, OrganizationCapability>
   'TournamentsController.exportConfiguration': 'org.manage-tournament-lifecycle',
   'TournamentsController.publish': 'org.manage-tournament-lifecycle',
   'TournamentsController.updateCustomScripts': 'org.manage-tournament-lifecycle',
+  'TournamentsController.settings': 'org.manage-tournament-lifecycle',
+  'TournamentsController.previewSettingsMutation': 'org.manage-tournament-lifecycle',
+  'TournamentsController.updateSettings': 'org.manage-tournament-lifecycle',
 
   // org.rebuild-statistics
   'AdminStatisticsController.rebuild': 'org.rebuild-statistics',
@@ -72,6 +77,8 @@ export const ROUTE_CAPABILITIES: Readonly<Record<string, OrganizationCapability>
   'StagesController.create': 'org.manage-stages',
   'StagesController.fixtures': 'org.manage-stages',
   'StagesController.previewSeriesMutation': 'org.manage-stages',
+  'StagesController.update': 'org.manage-stages',
+  'StagesController.remove': 'org.manage-stages',
 
   // org.manage-zones-groups
   'ZonesGroupsController.assignGroupsManually': 'org.manage-zones-groups',
@@ -80,6 +87,10 @@ export const ROUTE_CAPABILITIES: Readonly<Record<string, OrganizationCapability>
   'ZonesGroupsController.confirmZones': 'org.manage-zones-groups',
   'ZonesGroupsController.createGroup': 'org.manage-zones-groups',
   'ZonesGroupsController.createZone': 'org.manage-zones-groups',
+  'ZonesGroupsController.renameZone': 'org.manage-zones-groups',
+  'ZonesGroupsController.deleteZone': 'org.manage-zones-groups',
+  'ZonesGroupsController.renameGroup': 'org.manage-zones-groups',
+  'ZonesGroupsController.deleteGroup': 'org.manage-zones-groups',
   'ZonesGroupsController.previewGroups': 'org.manage-zones-groups',
   'ZonesGroupsController.previewPromotion': 'org.manage-zones-groups',
   'ZonesGroupsController.previewZones': 'org.manage-zones-groups',

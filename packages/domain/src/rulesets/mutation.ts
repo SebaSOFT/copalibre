@@ -18,6 +18,8 @@ export interface MutationContext {
   readonly previousValue?: unknown;
   /** New proposed value. */
   readonly nextValue?: unknown;
+  /** Entrants currently accepted into the tournament — only meaningful for `registration.capacity`. */
+  readonly acceptedEntrantCount?: number;
 }
 
 export type MutationDecision =
@@ -69,6 +71,29 @@ export function evaluateMutation(
       mutationClass: 'requires_rebuild',
       invalidates: context.generatedFixtures ?? [],
     });
+  }
+
+  // Value-aware capacity policy: a reduction below the currently accepted-entrant
+  // count is incoherent with the existing record — refused outright, regardless of
+  // whether a match result exists, because the incoherence is with the entrant
+  // count, not with a played match.
+  if (
+    fieldPath === 'registration.capacity' &&
+    typeof context.nextValue === 'number' &&
+    typeof context.acceptedEntrantCount === 'number' &&
+    context.nextValue < context.acceptedEntrantCount
+  ) {
+    return err(
+      new MutationBlockedError(
+        `Field "${fieldPath}" cannot be reduced to ${context.nextValue}: ` +
+          `${context.acceptedEntrantCount} entrant(s) are already accepted`,
+        {
+          fieldPath,
+          nextValue: context.nextValue,
+          acceptedEntrantCount: context.acceptedEntrantCount,
+        },
+      ),
+    );
   }
 
   switch (policy.mutationClass) {
