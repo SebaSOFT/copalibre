@@ -2,9 +2,8 @@ import { Module, type INestApplication } from '@nestjs/common';
 import { APP_GUARD, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
-import { compileEffectiveRuleset, footballDescriptor } from '@copalibre/domain';
+import { footballDescriptor } from '@copalibre/domain';
 import {
-  CompetitionRecordRepository,
   CompetitionRepository,
   EnrollmentRepository,
   MatchAssignmentRepository,
@@ -20,6 +19,7 @@ import type { AuthenticatedSubject } from '../auth/request-context.js';
 import { TokenVerifier } from '../auth/token-verifier.js';
 import { DATABASE } from '../database.token.js';
 import { MatchControlController } from './match-control.controller.js';
+import { TournamentsController } from './tournaments.controller.js';
 
 /**
  * End-to-end coverage of the wiring: `collectorThresholdRules` declared on
@@ -27,6 +27,12 @@ import { MatchControlController } from './match-control.controller.js';
  * real event-recording transaction, over a stage-scoped baseline sourced from
  * real match rows — not the pure `evaluateCollectorThreshold` function on its
  * own (already covered in `packages/rules`).
+ *
+ * The tournament itself is authored through `TournamentsController`'s real
+ * `POST .../tournaments` route rather than the repository directly, so this
+ * suite also proves the discipline-default rule fires with zero organizer
+ * override, off the compiled-ruleset row that route's own write path
+ * produces — not a test-only `saveCompiledRuleset` call standing in for it.
  */
 describe('collector-threshold notifications across a stage (integration)', () => {
   let app: INestApplication;
@@ -43,15 +49,15 @@ describe('collector-threshold notifications across a stage (integration)', () =>
   beforeAll(async () => {
     scratch = await createMigratedDatabase('collector-threshold');
     @Module({
-      controllers: [MatchControlController],
+      controllers: [MatchControlController, TournamentsController],
       providers: [
         { provide: DATABASE, useValue: scratch.db },
         {
           provide: TokenVerifier,
           useValue: {
             verify: async (token: string): Promise<AuthenticatedSubject> => {
-              if (token !== 'referee') throw new Error('unknown token');
-              return { subjectId: 'referee', scopes: ['copalibre.control'], organizationId };
+              if (token !== 'referee' && token !== 'admin') throw new Error('unknown token');
+              return { subjectId: token, scopes: ['copalibre.control'], organizationId };
             },
           },
         },
@@ -97,6 +103,34 @@ describe('collector-threshold notifications across a stage (integration)', () =>
         principal_id: principalId,
         email: 'referee@test',
         role: 'referee',
+        status: 'active',
+        created_at: new Date(),
+        updated_at: new Date(),
+        deleted_at: null,
+      })
+      .execute();
+
+    const adminPrincipalId = newId();
+    await scratch.db
+      .insertInto('identity_principals')
+      .values({
+        principal_id: adminPrincipalId,
+        email: 'admin@test',
+        oidc_subject_id: 'admin',
+        name: null,
+        picture: null,
+        created_at: new Date(),
+        updated_at: new Date(),
+      })
+      .execute();
+    await scratch.db
+      .insertInto('organization_role_assignments')
+      .values({
+        assignment_id: newId(),
+        organization_id: organizationId,
+        principal_id: adminPrincipalId,
+        email: 'admin@test',
+        role: 'admin',
         status: 'active',
         created_at: new Date(),
         updated_at: new Date(),
@@ -150,25 +184,36 @@ describe('collector-threshold notifications across a stage (integration)', () =>
     const enrollment = new EnrollmentRepository(scratch.db);
     const competition = new CompetitionRepository(scratch.db);
 
-    await withTransaction(scratch.db, async (uow) => {
-      await tournaments.saveDescriptor(uow, descriptor, { organizationId, ...audit });
-      const tournament = await tournaments.create(uow, {
-        organizationId,
+    await withTransaction(scratch.db, (uow) =>
+      tournaments.saveDescriptor(uow, descriptor, { organizationId, ...audit }),
+    );
+
+    // Authored through the real route so the discipline-default
+    // `collectorThresholdRules` below is evaluated off the compiled-ruleset
+    // row `TournamentsController.create`'s own write path produces — with no
+    // organizer override at all, and no test-only `saveCompiledRuleset` call.
+    const createResponse = await (app as NestFastifyApplication).inject({
+      method: 'POST',
+      url: '/organizations/liga-prueba-ct/tournaments',
+      headers: { authorization: 'Bearer admin' },
+      payload: {
         alias: 'apertura-ct',
         name: 'Apertura CT',
-        descriptor,
-        ...audit,
-      });
+        descriptorId: descriptor.descriptorId,
+        descriptorVersion: descriptor.version,
+        format: 'round-robin',
+        publicRegistration: false,
+        requiresCheckIn: false,
+      },
+    });
+    if (createResponse.statusCode !== 201) {
+      throw new Error(
+        `Tournament creation failed in test setup: ${createResponse.statusCode} ${createResponse.body}`,
+      );
+    }
+    const tournament = createResponse.json() as { tournamentId: string };
 
-      const compiled = compileEffectiveRuleset(descriptor);
-      if (!compiled.ok) throw new Error('descriptor failed to compile in test setup');
-      await new CompetitionRecordRepository(scratch.db).saveCompiledRuleset(uow, {
-        tournamentId: tournament.tournamentId,
-        ruleset: compiled.value,
-        organizationId,
-        ...audit,
-      });
-
+    await withTransaction(scratch.db, async (uow) => {
       const norte = await enrollment.createTeam(uow, { organizationId, name: 'Norte', ...audit });
       const sur = await enrollment.createTeam(uow, { organizationId, name: 'Sur', ...audit });
       const [homeEntrant, awayEntrant] = await Promise.all([

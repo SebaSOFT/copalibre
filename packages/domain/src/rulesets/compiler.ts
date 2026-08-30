@@ -120,8 +120,8 @@ export function mergeWithStrategy(
       break;
     case 'union-list':
       if (Array.isArray(current) && Array.isArray(override)) {
-        const seen = new Set(current.map((v) => JSON.stringify(v)));
-        const additions = override.filter((v) => !seen.has(JSON.stringify(v)));
+        const seen = new Set(current.map((v) => canonicalJson(v)));
+        const additions = override.filter((v) => !seen.has(canonicalJson(v)));
         return ok([...current, ...structuredClone(additions)]);
       }
       break;
@@ -146,6 +146,20 @@ export function mergeWithStrategy(
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Key-sorted JSON serialization, so two object-shaped elements that differ only
+ * in key order dedupe as equal in `union-list`'s membership check — a bare
+ * `JSON.stringify` treats `{a:1,b:2}` and `{b:2,a:1}` as distinct.
+ */
+function canonicalJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+  if (value !== null && typeof value === 'object') {
+    const keys = Object.keys(value as Record<string, unknown>).sort();
+    return `{${keys.map((k) => `${JSON.stringify(k)}:${canonicalJson((value as Record<string, unknown>)[k])}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
 }
 
 function getAtPath(config: Record<string, unknown>, dotPath: string): unknown {

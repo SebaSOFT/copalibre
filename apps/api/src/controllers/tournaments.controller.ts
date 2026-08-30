@@ -28,6 +28,7 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import {
+  CompetitionRecordRepository,
   CompetitionRepository,
   InvariantViolationError,
   OrganizationRepository,
@@ -40,6 +41,7 @@ import {
 import {
   SUPPORTED_FORMATS,
   TOURNAMENT_CUSTOM_SCRIPT_HOOKS,
+  compileEffectiveRuleset,
   compileProfile,
   evaluateMutation,
   isPlacementFormat,
@@ -312,7 +314,7 @@ export class TournamentsController {
           actor: `user:${subject?.subjectId ?? 'unknown'}`,
           authorizationContext: (subject?.scopes ?? []).join(' '),
         });
-        const { ruleset } = await tournaments.createRuleset(uow, {
+        const { ruleset, effective } = await tournaments.createRuleset(uow, {
           tournamentId: tournament.tournamentId,
           organizationId: organization.organizationId,
           descriptor,
@@ -344,6 +346,13 @@ export class TournamentsController {
           actor: `user:${subject?.subjectId ?? 'unknown'}`,
           authorizationContext: (subject?.scopes ?? []).join(' '),
         });
+        await new CompetitionRecordRepository(this.db).saveCompiledRuleset(uow, {
+          tournamentId: tournament.tournamentId,
+          ruleset: effective,
+          organizationId: organization.organizationId,
+          actor: `user:${subject?.subjectId ?? 'unknown'}`,
+          authorizationContext: (subject?.scopes ?? []).join(' '),
+        });
 
         if (profileToBind) {
           const competition = new CompetitionRepository(this.db);
@@ -358,7 +367,7 @@ export class TournamentsController {
               authorizationContext: (subject?.scopes ?? []).join(' '),
             });
             if (stage.overrides && Object.keys(stage.overrides).length > 0) {
-              await tournaments.createStageConfiguration(uow, {
+              const stageConfiguration = await tournaments.createStageConfiguration(uow, {
                 organizationId: organization.organizationId,
                 stageId: createdStage.stageId,
                 rulesetId: ruleset.rulesetId,
@@ -366,6 +375,21 @@ export class TournamentsController {
                 actor: `user:${subject?.subjectId ?? 'unknown'}`,
                 authorizationContext: (subject?.scopes ?? []).join(' '),
               });
+              const compiledStage = compileEffectiveRuleset(
+                descriptor,
+                ruleset,
+                stageConfiguration,
+              );
+              if (compiledStage.ok) {
+                await new CompetitionRecordRepository(this.db).saveCompiledRuleset(uow, {
+                  tournamentId: tournament.tournamentId,
+                  stageId: createdStage.stageId,
+                  ruleset: compiledStage.value,
+                  organizationId: organization.organizationId,
+                  actor: `user:${subject?.subjectId ?? 'unknown'}`,
+                  authorizationContext: (subject?.scopes ?? []).join(' '),
+                });
+              }
             }
           }
         }
@@ -596,7 +620,7 @@ export class TournamentsController {
           });
         }
         if (proposedFields.length > 0) {
-          await tournaments.createRuleset(uow, {
+          const { effective } = await tournaments.createRuleset(uow, {
             tournamentId: tournament.tournamentId,
             organizationId: tournament.organizationId,
             descriptor,
@@ -605,6 +629,13 @@ export class TournamentsController {
             actor,
             authorizationContext,
             reason: 'Organizer edited tournament settings',
+          });
+          await new CompetitionRecordRepository(this.db).saveCompiledRuleset(uow, {
+            tournamentId: tournament.tournamentId,
+            ruleset: effective,
+            organizationId: tournament.organizationId,
+            actor,
+            authorizationContext,
           });
         }
         return this.settingsResponseOf(finalName, nextOverrides);
@@ -857,7 +888,7 @@ export class TournamentsController {
     try {
       return await withTransaction(this.db, async (uow) => {
         if (fieldNames.length > 0) {
-          await tournaments.createRuleset(uow, {
+          const { effective } = await tournaments.createRuleset(uow, {
             tournamentId: tournament.tournamentId,
             organizationId: tournament.organizationId,
             descriptor,
@@ -866,6 +897,13 @@ export class TournamentsController {
             actor,
             authorizationContext,
             reason: 'Organizer edited ruleset overrides',
+          });
+          await new CompetitionRecordRepository(this.db).saveCompiledRuleset(uow, {
+            tournamentId: tournament.tournamentId,
+            ruleset: effective,
+            organizationId: tournament.organizationId,
+            actor,
+            authorizationContext,
           });
         }
         return { overrides: nextOverrides };
@@ -969,8 +1007,8 @@ export class TournamentsController {
     const subject = request.subject;
 
     try {
-      const updated = await withTransaction(this.db, (uow) =>
-        tournaments.createRuleset(uow, {
+      const updated = await withTransaction(this.db, async (uow) => {
+        const result = await tournaments.createRuleset(uow, {
           tournamentId: tournament.tournamentId,
           organizationId: tournament.organizationId,
           descriptor,
@@ -979,8 +1017,16 @@ export class TournamentsController {
           actor: `user:${subject?.subjectId ?? 'unknown'}`,
           authorizationContext: (subject?.scopes ?? []).join(' '),
           reason: 'Organizer updated custom event rules',
-        }),
-      );
+        });
+        await new CompetitionRecordRepository(this.db).saveCompiledRuleset(uow, {
+          tournamentId: tournament.tournamentId,
+          ruleset: result.effective,
+          organizationId: tournament.organizationId,
+          actor: `user:${subject?.subjectId ?? 'unknown'}`,
+          authorizationContext: (subject?.scopes ?? []).join(' '),
+        });
+        return result;
+      });
       return { customScripts: [...updated.ruleset.customScripts] };
     } catch (error) {
       if (error instanceof InvariantViolationError) {
