@@ -339,6 +339,32 @@ describe('series operations (integration)', () => {
     });
     expect(committed.statusCode).toBe(201);
 
+    // The correction-history view's own shape is untouched by openspec
+    // 0166 — it whitelists exactly these five fields from AuditReader
+    // (task 4.4), unaffected by the reader gaining forOrganization/forActor.
+    const history = await request({
+      method: 'GET',
+      url: `${matchBase(thirdGame)}/corrections`,
+      token: 'organizer',
+    });
+    expect(history.statusCode).toBe(200);
+    const historyBody = history.json();
+    expect(historyBody.corrections).toHaveLength(1);
+    expect(Object.keys(historyBody.corrections[0]).sort()).toEqual([
+      'actor',
+      'occurredAt',
+      'priorState',
+      'reason',
+      'resultingState',
+    ]);
+    expect(historyBody.corrections[0]).toMatchObject({
+      actor: 'organizer-1',
+      reason: 'Scoresheet transposed the sides',
+      resultingState: expect.objectContaining({
+        winnerEntrantId: bravo,
+      }),
+    });
+
     const reinstated = await gamesOfTheSeries();
     const fourth = reinstated.games.find((game) => game.number === 4);
     if (!fourth) throw new Error('game four missing');

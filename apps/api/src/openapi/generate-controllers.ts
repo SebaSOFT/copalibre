@@ -23,6 +23,7 @@ import { TournamentProfilesController } from '../controllers/tournament-profiles
 import { ZonesGroupsController } from '../controllers/zones-groups.controller.js';
 import { ClubsController } from '../controllers/clubs.controller.js';
 import { ResourcesController } from '../controllers/resources.controller.js';
+import { AuditTrailController } from '../controllers/audit-trail.controller.js';
 import {
   InstallationRoleController,
   InvitationAcceptanceController,
@@ -97,5 +98,6 @@ export const OPENAPI_CONTROLLERS = [
   OrganizationMediaController,
   ClubsController,
   ResourcesController,
+  AuditTrailController,
   ZonesGroupsController,
 ] as const;

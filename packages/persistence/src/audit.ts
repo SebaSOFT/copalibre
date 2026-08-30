@@ -52,6 +52,22 @@ export function toAuditRecord(row: {
   };
 }
 
+/** True whenever the record is a refusal, never a completed change — see `recordAuditRefusal`. */
+export function isRefusal(record: AuditRecord): boolean {
+  return record.resultingState === undefined && record.reason !== undefined;
+}
+
+export interface AuditPage {
+  readonly records: readonly AuditRecord[];
+  /** Total matching rows, independent of `limit`/`offset` — lets a reader show "page N of M". */
+  readonly total: number;
+}
+
+export interface AuditPageOptions {
+  readonly limit: number;
+  readonly offset: number;
+}
+
 export class AuditReader {
   constructor(private readonly db: Kysely<Database>) {}
 
@@ -67,5 +83,52 @@ export class AuditReader {
       .execute();
 
     return rows.map(toAuditRecord);
+  }
+
+  /**
+   * What happened in an organization — newest first, paginated so a large
+   * trail is readable without loading it whole (task 4.1). The reader's own
+   * authority scopes which organization this is called for; this class has
+   * no opinion on authorization.
+   */
+  async forOrganization(organizationId: string, options: AuditPageOptions): Promise<AuditPage> {
+    return this.page({ organizationId }, options);
+  }
+
+  /** What one actor did, within one organization — "what did this user do". */
+  async forActor(
+    organizationId: string,
+    actor: string,
+    options: AuditPageOptions,
+  ): Promise<AuditPage> {
+    return this.page({ organizationId, actor }, options);
+  }
+
+  private async page(
+    filter: { readonly organizationId: string; readonly actor?: string },
+    options: AuditPageOptions,
+  ): Promise<AuditPage> {
+    let rowsQuery = this.db
+      .selectFrom('audit_log')
+      .selectAll()
+      .where('organization_id', '=', filter.organizationId);
+    let countQuery = this.db
+      .selectFrom('audit_log')
+      .select((eb) => eb.fn.countAll<string>().as('total'))
+      .where('organization_id', '=', filter.organizationId);
+    if (filter.actor !== undefined) {
+      rowsQuery = rowsQuery.where('actor', '=', filter.actor);
+      countQuery = countQuery.where('actor', '=', filter.actor);
+    }
+
+    const rows = await rowsQuery
+      .orderBy('occurred_at', 'desc')
+      .orderBy('audit_id', 'desc')
+      .limit(options.limit)
+      .offset(options.offset)
+      .execute();
+    const { total } = await countQuery.executeTakeFirstOrThrow();
+
+    return { records: rows.map(toAuditRecord), total: Number(total) };
   }
 }

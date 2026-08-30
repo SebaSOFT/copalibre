@@ -35,6 +35,8 @@ export const ORGANIZATION_CAPABILITIES = [
   'org.manage-tournament-lifecycle',
   /** Rebuild an organization's statistics projection. */
   'org.rebuild-statistics',
+  /** Read the organization's audit trail: what happened, what an actor did, what was refused. */
+  'org.view-audit-trail',
 
   // Tournament-operational — held by admin (unscoped) and tournament-admin
   // (scoped to the one tournament its assignment names).
@@ -112,6 +114,7 @@ const ADMIN_DIRECT_CAPABILITIES: readonly OrganizationCapability[] = [
   'org.create-tournaments',
   'org.manage-tournament-lifecycle',
   'org.rebuild-statistics',
+  'org.view-audit-trail',
   ...TOURNAMENT_OPERATIONAL_CAPABILITIES,
 ];
 const CLUB_ADMIN_DIRECT_CAPABILITIES: readonly OrganizationCapability[] = ['org.manage-clubs'];
