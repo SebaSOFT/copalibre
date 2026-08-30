@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { parseControlPath } from '@copalibre/routing';
 import {
+  AuditTrailControlRoute,
   ClubManagementControlRoute,
   LoadMatchDataControlRoute,
   MatchConsoleControlRoute,
@@ -121,6 +122,8 @@ export function ControlApp(): React.JSX.Element | null {
       return <DashboardRoute organizationAlias={route.organizationAlias} />;
     case 'roles':
       return <RolesPermissionsControlRoute organizationAlias={route.organizationAlias} />;
+    case 'auditTrail':
+      return <AuditTrailControlRoute organizationAlias={route.organizationAlias} />;
     case 'preferences':
       return <PreferencesControlRoute organizationAlias={route.organizationAlias} />;
     case 'newTournament':
@@ -226,6 +229,8 @@ function titleFor(route: ReturnType<typeof parseControlPath>): string {
       return `Panel — ${route.organizationAlias}`;
     case 'roles':
       return `Roles y permisos - ${route.organizationAlias}`;
+    case 'auditTrail':
+      return `Registro de auditoría — ${route.organizationAlias}`;
     case 'newTournament':
       return `Crear torneo — ${route.organizationAlias}`;
     case 'clubs':

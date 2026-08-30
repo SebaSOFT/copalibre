@@ -22,6 +22,19 @@ describe('visibleSidenav', () => {
     expect(visibleSidenav('viewer').map((item) => item.id)).not.toContain('roles');
   });
 
+  it('hides the audit-trail entry from every role but admin', () => {
+    for (const role of [
+      'club-admin',
+      'tournament-admin',
+      'referee',
+      'broadcaster',
+      'viewer',
+    ] as const) {
+      expect(visibleSidenav(role).map((item) => item.id)).not.toContain('audit-trail');
+    }
+    expect(visibleSidenav('admin').map((item) => item.id)).toContain('audit-trail');
+  });
+
   it('keeps every ungated entry for every role', () => {
     for (const role of [
       'club-admin',

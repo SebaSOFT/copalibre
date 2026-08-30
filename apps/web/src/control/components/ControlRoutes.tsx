@@ -7,6 +7,7 @@ import { SeedingBuilderRoute } from './SeedingBuilderRoute.js';
 import { StandingsRoute } from './StandingsRoute.js';
 import { TournamentAuthoringPage } from './TournamentAuthoringPage.js';
 import { RolesPermissionsRoute } from './RolesPermissionsRoute.js';
+import { AuditTrailRoute } from './AuditTrailRoute.js';
 import { MatchConsoleRoute } from './MatchConsoleRoute.js';
 import { LoadMatchDataRoute } from './LoadMatchDataRoute.js';
 import { ZoneGroupRoute } from './ZoneGroupRoute.js';
@@ -223,6 +224,24 @@ export function RolesPermissionsControlRoute({
   return (
     <ControlShell active="roles" helpPath="roles-permissions" organizationAlias={organizationAlias}>
       <RolesPermissionsRoute client={client} organizationAlias={organizationAlias} />
+    </ControlShell>
+  );
+}
+
+export function AuditTrailControlRoute({
+  organizationAlias,
+  client,
+}: {
+  readonly organizationAlias: string;
+  readonly client?: ControlApiClient;
+}): React.JSX.Element {
+  return (
+    <ControlShell
+      active="audit-trail"
+      helpPath="roles-permissions"
+      organizationAlias={organizationAlias}
+    >
+      <AuditTrailRoute client={client} organizationAlias={organizationAlias} />
     </ControlShell>
   );
 }

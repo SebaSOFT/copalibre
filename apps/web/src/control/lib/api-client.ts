@@ -223,6 +223,10 @@ export interface ControlApiClient {
   readonly listOrganizationRoles: (
     organizationAlias: string,
   ) => Promise<readonly OrganizationRoleResponse[]>;
+  readonly fetchAuditTrail?: (
+    organizationAlias: string,
+    options?: { readonly actor?: string; readonly limit?: number; readonly offset?: number },
+  ) => Promise<AuditTrailResponse>;
   readonly inviteOrganizationUser: (
     organizationAlias: string,
     request: InviteOrganizationUserRequest,
@@ -1146,6 +1150,27 @@ export interface MyOrganizationResponse {
   readonly role: OrganizationRole;
 }
 
+export interface AuditRecordResponse {
+  readonly auditId: string;
+  readonly entityType: string;
+  readonly entityId: string;
+  readonly action: string;
+  readonly actor: string;
+  readonly authorizationContext: string;
+  readonly previousState?: Record<string, unknown>;
+  readonly resultingState?: Record<string, unknown>;
+  readonly reason?: string;
+  readonly occurredAt: string;
+  readonly outcome: 'applied' | 'refused';
+}
+
+export interface AuditTrailResponse {
+  readonly records: readonly AuditRecordResponse[];
+  readonly total: number;
+  readonly limit: number;
+  readonly offset: number;
+}
+
 export interface GrantableRolesResponse {
   readonly roles: readonly GrantableRole[];
 }
@@ -1727,6 +1752,19 @@ export function createControlApiClient(input: {
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/roles`,
         { token: input.accessToken?.() },
       ),
+
+    fetchAuditTrail: (organizationAlias, options) => {
+      const params = new URLSearchParams();
+      if (options?.actor !== undefined) params.set('actor', options.actor);
+      if (options?.limit !== undefined) params.set('limit', String(options.limit));
+      if (options?.offset !== undefined) params.set('offset', String(options.offset));
+      const query = params.size === 0 ? '' : `?${params}`;
+      return requestJson<AuditTrailResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/audit-trail${query}`,
+        { token: input.accessToken?.() },
+      );
+    },
 
     inviteOrganizationUser: (organizationAlias, body) =>
       requestJson<InvitationResponse>(

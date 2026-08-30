@@ -142,7 +142,6 @@ export async function withTransaction<T>(
  */
 function defaultFailureHandler(label: string): (error: unknown) => void {
   return (error) => {
-    // eslint-disable-next-line no-console
     console.error(`[audit] failed to record ${label}`, error);
   };
 }

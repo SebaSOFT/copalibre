@@ -193,7 +193,7 @@ export function isAuditAction(value: string): value is AuditAction {
  * member (a new `EntrantStatus`, a new `MatchCommand`) without this file
  * being updated, these assignments fail to typecheck.
  */
-type AssertSubset<_T extends AuditAction> = true;
+type AssertSubset<T extends AuditAction> = T;
 export type _EntrantStatusActionsDeclared = AssertSubset<`entrant.${EntrantStatus}`>;
 export type _MatchCommandActionsDeclared = AssertSubset<`match.${MatchCommand}`>;
 export type _SegmentStateActionsDeclared = AssertSubset<`segment.${Segment['state']}`>;

@@ -7006,6 +7006,43 @@
         ]
       }
     },
+    "/organizations/{organizationAlias}/audit-trail": {
+      "get": {
+        "description": "What happened, chronologically newest first: applied changes and refused attempts alike. Optionally narrowed to one actor via ?actor=. Paginated via ?limit=&offset=.",
+        "operationId": "AuditTrailController_trail",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditTrailResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read the organization’s audit trail",
+        "tags": [
+          "audit-trail"
+        ]
+      }
+    },
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/zones": {
       "get": {
         "operationId": "ZonesGroupsController_listZones",
@@ -14453,6 +14490,89 @@
             }
           }
         }
+      },
+      "AuditRecordResponse": {
+        "type": "object",
+        "properties": {
+          "auditId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "entityType": {
+            "type": "string"
+          },
+          "entityId": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "authorizationContext": {
+            "type": "string"
+          },
+          "previousState": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "resultingState": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "reason": {
+            "type": "string"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "applied",
+              "refused"
+            ]
+          }
+        },
+        "required": [
+          "auditId",
+          "entityType",
+          "entityId",
+          "action",
+          "actor",
+          "authorizationContext",
+          "occurredAt",
+          "outcome"
+        ]
+      },
+      "AuditTrailResponse": {
+        "type": "object",
+        "properties": {
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditRecordResponse"
+            }
+          },
+          "total": {
+            "type": "number",
+            "description": "Total matching rows, independent of limit/offset"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "offset": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "records",
+          "total",
+          "limit",
+          "offset"
+        ]
       },
       "ZoneResponse": {
         "type": "object",
