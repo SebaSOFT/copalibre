@@ -82,6 +82,29 @@ export interface ControlApiClient {
     teamId: string,
     request: UpdateTeamIdentityRequest,
   ) => Promise<TeamIdentityResponse>;
+  /** A person with no entrant registration, roster membership, identity link, or report. */
+  readonly removePerson?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    personId: string,
+  ) => Promise<PersonIdentityResponse>;
+  /** A team with no entrant registration or rostered player. */
+  readonly removeTeam?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    teamId: string,
+  ) => Promise<TeamIdentityResponse>;
+  /** Pre-links a participant to an email before their first login. */
+  readonly linkParticipantIdentity?: (
+    organizationAlias: string,
+    personId: string,
+    request: LinkParticipantIdentityRequest,
+  ) => Promise<ParticipantIdentityLinkResponse>;
+  /** Frees the person to be linked again; does not delete the person record. */
+  readonly unlinkParticipantIdentity?: (
+    organizationAlias: string,
+    personId: string,
+  ) => Promise<ParticipantIdentityLinkResponse>;
   readonly bulkReview: (
     organizationAlias: string,
     tournamentAlias: string,
@@ -340,6 +363,14 @@ export interface ControlApiClient {
   readonly inviteOrganizationUser: (
     organizationAlias: string,
     request: InviteOrganizationUserRequest,
+  ) => Promise<InvitationResponse>;
+  /** Not yet accepted, not rescinded, not expired (openspec 0170). */
+  readonly listPendingInvitations?: (
+    organizationAlias: string,
+  ) => Promise<readonly PendingOrganizationInvitationResponse[]>;
+  readonly rescindInvitation?: (
+    organizationAlias: string,
+    invitationId: string,
   ) => Promise<InvitationResponse>;
   readonly changeOrganizationRole: (
     organizationAlias: string,
@@ -1232,6 +1263,8 @@ export interface RegistrationResponse {
   readonly nationality?: string;
   readonly photoObjectId?: string;
   readonly teamMembers?: readonly TeamMemberResponse[];
+  /** Whether this person entrant already carries a participant identity link (openspec 0170). */
+  readonly hasIdentityLink?: boolean;
 }
 
 export interface PersonResponse {
@@ -1276,6 +1309,15 @@ export interface TeamIdentityResponse {
   readonly teamId: string;
   readonly name: string;
   readonly alias?: string;
+}
+
+export interface LinkParticipantIdentityRequest {
+  readonly email: string;
+}
+
+export interface ParticipantIdentityLinkResponse {
+  readonly principalId: string;
+  readonly personId: string;
 }
 
 export interface BulkReviewRequest {
@@ -1360,6 +1402,17 @@ export interface ChangeOrganizationRoleRequest {
 export interface InvitationResponse {
   readonly invitationId: string;
   readonly expiresAt: string;
+}
+
+/** A pending (not yet accepted, not rescinded, not expired) invitation (openspec 0170). */
+export interface PendingOrganizationInvitationResponse {
+  readonly invitationId: string;
+  readonly recipientEmail: string;
+  readonly role: OrganizationRole;
+  readonly status: OrganizationMemberStatus;
+  readonly expiresAt: string;
+  readonly clubId?: string;
+  readonly tournamentId?: string;
 }
 
 /** One organization the authenticated caller belongs to, with their role. */
@@ -1811,6 +1864,42 @@ export function createControlApiClient(input: {
         { method: 'PATCH', body, token: input.accessToken?.() },
       ),
 
+    removePerson: (organizationAlias, tournamentAlias, personId) =>
+      requestJson<PersonIdentityResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
+          tournamentAlias,
+        )}/registrations/persons/${encodeURIComponent(personId)}`,
+        { method: 'DELETE', token: input.accessToken?.() },
+      ),
+
+    removeTeam: (organizationAlias, tournamentAlias, teamId) =>
+      requestJson<TeamIdentityResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
+          tournamentAlias,
+        )}/registrations/teams/${encodeURIComponent(teamId)}`,
+        { method: 'DELETE', token: input.accessToken?.() },
+      ),
+
+    linkParticipantIdentity: (organizationAlias, personId, body) =>
+      requestJson<ParticipantIdentityLinkResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/participants/${encodeURIComponent(
+          personId,
+        )}/identity-link`,
+        { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    unlinkParticipantIdentity: (organizationAlias, personId) =>
+      requestJson<ParticipantIdentityLinkResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/participants/${encodeURIComponent(
+          personId,
+        )}/identity-link`,
+        { method: 'DELETE', token: input.accessToken?.() },
+      ),
+
     reviewRegistration: (organizationAlias, tournamentAlias, entrantId, body) =>
       requestJson<RegistrationResponse>(
         input.fetch,
@@ -2144,6 +2233,22 @@ export function createControlApiClient(input: {
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/invitations`,
         { method: 'POST', body, token: input.accessToken?.() },
+      ),
+
+    listPendingInvitations: (organizationAlias) =>
+      requestJson<readonly PendingOrganizationInvitationResponse[]>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/invitations`,
+        { token: input.accessToken?.() },
+      ),
+
+    rescindInvitation: (organizationAlias, invitationId) =>
+      requestJson<InvitationResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/invitations/${encodeURIComponent(
+          invitationId,
+        )}`,
+        { method: 'DELETE', token: input.accessToken?.() },
       ),
 
     changeOrganizationRole: (organizationAlias, assignmentId, body) =>

@@ -288,6 +288,62 @@ export class EnrollmentRepository {
     return team;
   }
 
+  /**
+   * Removes a team that has never been used for anything — no entrant
+   * registration, no rostered player. Either reference refuses the removal
+   * by name, an up-front check rather than a caught foreign-key-violation
+   * error (design.md, mirroring `PersonRepository.remove`). Requires the
+   * caller to have already confirmed the team exists and belongs to this
+   * organization, matching `updateTeam`'s own contract.
+   */
+  async removeTeam(
+    uow: UnitOfWork,
+    input: { readonly teamId: string } & AuditContext,
+  ): Promise<void> {
+    const entrant = await uow.tx
+      .selectFrom('entrants')
+      .innerJoin('tournaments', 'tournaments.tournament_id', 'entrants.tournament_id')
+      .select('tournaments.name as tournament_name')
+      .where('entrants.team_id', '=', input.teamId)
+      .limit(1)
+      .executeTakeFirst();
+    if (entrant) {
+      throw new InvariantViolationError(
+        `Cannot remove: registered as an entrant in "${entrant.tournament_name}"`,
+        { teamId: input.teamId, reason: 'entrant-registration' },
+      );
+    }
+
+    const player = await uow.tx
+      .selectFrom('players')
+      .select('player_id')
+      .where('team_id', '=', input.teamId)
+      .limit(1)
+      .executeTakeFirst();
+    if (player) {
+      throw new InvariantViolationError('Cannot remove: has a player on its roster', {
+        teamId: input.teamId,
+        reason: 'roster-membership',
+      });
+    }
+
+    const deleted = await uow.tx
+      .deleteFrom('teams')
+      .where('team_id', '=', input.teamId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'team',
+      entityId: input.teamId,
+      action: 'team.removed',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      previousState: { ...toTeam(deleted) },
+    });
+  }
+
   async findTeam(teamId: string): Promise<Team | undefined> {
     const row = await this.db
       .selectFrom('teams')

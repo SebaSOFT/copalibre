@@ -820,6 +820,24 @@ export class OrganizationInvitationResponse {
   expiresAt!: string;
 }
 
+/** A pending (not yet accepted, not rescinded, not expired) invitation — what the roles-permissions screen lists. */
+export class PendingOrganizationInvitationResponse {
+  @ApiProperty({ format: 'uuid' })
+  invitationId!: string;
+  @ApiProperty({ format: 'email' })
+  recipientEmail!: string;
+  @ApiProperty({ enum: ORGANIZATION_ROLES })
+  role!: OrganizationRole;
+  @ApiProperty({ enum: ['active', 'inactive'] })
+  status!: 'active' | 'inactive';
+  @ApiProperty({ format: 'date-time' })
+  expiresAt!: string;
+  @ApiPropertyOptional({ format: 'uuid', description: 'Set only for a club-scoped role.' })
+  clubId?: string;
+  @ApiPropertyOptional({ format: 'uuid', description: 'Set only for a tournament-scoped role.' })
+  tournamentId?: string;
+}
+
 export class ChangeOrganizationRoleRequest {
   @IsString()
   @ApiProperty({ enum: ORGANIZATION_ROLES })
@@ -1124,6 +1142,11 @@ export class RegistrationResponse {
       'The team entrant’s resulting membership. Populated only by a team-membership edit response.',
   })
   teamMembers?: TeamMemberResponse[];
+
+  @ApiPropertyOptional({
+    description: 'Whether this person entrant already carries a participant identity link.',
+  })
+  hasIdentityLink?: boolean;
 }
 
 export class EditTeamMembershipsRequest {

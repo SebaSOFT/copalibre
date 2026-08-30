@@ -1974,6 +1974,67 @@
         "tags": [
           "registrations"
         ]
+      },
+      "delete": {
+        "description": "Refused by name if the person is registered as an entrant, rostered on a team, has an identity link, or has submitted a report — directing to the workflow that clears it first.",
+        "operationId": "RegistrationsController_removePerson",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "personId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonIdentityResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a person who has never been registered anywhere",
+        "tags": [
+          "registrations"
+        ]
       }
     },
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/registrations/teams/{teamId}": {
@@ -2044,6 +2105,67 @@
           }
         ],
         "summary": "Edit a registered team’s name or alias",
+        "tags": [
+          "registrations"
+        ]
+      },
+      "delete": {
+        "description": "Refused by name if the team is registered as an entrant or has a rostered player — directing to the workflow that clears it first.",
+        "operationId": "RegistrationsController_removeTeam",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "teamId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamIdentityResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a team that has never been registered anywhere",
         "tags": [
           "registrations"
         ]
@@ -5598,6 +5720,44 @@
       }
     },
     "/organizations/{organizationAlias}/invitations": {
+      "get": {
+        "description": "Not yet accepted, not rescinded, not expired.",
+        "operationId": "OrganizationAccessController_listInvitations",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PendingOrganizationInvitationResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List pending organization invitations",
+        "tags": [
+          "organization-access"
+        ]
+      },
       "post": {
         "operationId": "OrganizationAccessController_invite",
         "parameters": [
@@ -5638,6 +5798,51 @@
           }
         ],
         "summary": "Invite an organization user by email",
+        "tags": [
+          "organization-access"
+        ]
+      }
+    },
+    "/organizations/{organizationAlias}/invitations/{invitationId}": {
+      "delete": {
+        "description": "Requires the same role-granting authority the invitation itself required. Takes effect immediately — the token stops resolving from this point on, regardless of the invitation's stated expiry.",
+        "operationId": "OrganizationAccessController_rescindInvitation",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "invitationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationInvitationResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Rescind a pending organization invitation",
         "tags": [
           "organization-access"
         ]
@@ -6087,6 +6292,49 @@
           }
         ],
         "summary": "Pre-link a participant identity by email",
+        "tags": [
+          "participants"
+        ]
+      },
+      "delete": {
+        "description": "Frees the person to be linked again; does not delete the person record, their registrations, or their roster history.",
+        "operationId": "ParticipantIdentityLinksController_unlink",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "personId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParticipantIdentityLinkResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a participant identity link",
         "tags": [
           "participants"
         ]
@@ -11381,6 +11629,10 @@
             "items": {
               "$ref": "#/components/schemas/TeamMemberResponse"
             }
+          },
+          "hasIdentityLink": {
+            "type": "boolean",
+            "description": "Whether this person entrant already carries a participant identity link."
           }
         },
         "required": [
@@ -13944,6 +14196,58 @@
         },
         "required": [
           "roles"
+        ]
+      },
+      "PendingOrganizationInvitationResponse": {
+        "type": "object",
+        "properties": {
+          "invitationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "recipientEmail": {
+            "type": "string",
+            "format": "email"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "club-admin",
+              "tournament-admin",
+              "referee",
+              "broadcaster",
+              "viewer"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive"
+            ]
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "clubId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Set only for a club-scoped role."
+          },
+          "tournamentId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Set only for a tournament-scoped role."
+          }
+        },
+        "required": [
+          "invitationId",
+          "recipientEmail",
+          "role",
+          "status",
+          "expiresAt"
         ]
       },
       "InviteOrganizationUserRequest": {

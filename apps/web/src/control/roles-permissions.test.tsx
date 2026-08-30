@@ -305,6 +305,29 @@ describe('roles and permissions control', () => {
     await waitFor(() => expect(screen.queryByText('referee@example.test')).toBeNull());
   });
 
+  it('invites a user through the route with no pending-invitations endpoint available', async () => {
+    const inviteOrganizationUser = jest.fn(async () => ({
+      invitationId: 'invite-1',
+      expiresAt: '2099-01-01',
+    }));
+    const client = controlClient({
+      listOrganizationRoles: async () => rows,
+      inviteOrganizationUser,
+    });
+    render(withIntl(<RolesPermissionsRoute client={client} organizationAlias="liga-mendocina" />));
+
+    await screen.findByText('referee@example.test');
+    fireEvent.click(screen.getByText('Add recipient'));
+    fireEvent.change(screen.getByLabelText('Email'), {
+      target: { value: 'nuevo@example.test' },
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Send invitation'));
+    });
+
+    expect(inviteOrganizationUser).toHaveBeenCalled();
+  });
+
   it('invites a user through the route and reloads the row list', async () => {
     const inviteOrganizationUser = jest.fn(async () => ({
       invitationId: 'invite-1',
@@ -317,7 +340,11 @@ describe('roles and permissions control', () => {
         ...rows,
         { ...rows[0], assignmentId: 'assignment-2', email: 'viewer@example.test' },
       ]);
-    const client = controlClient({ listOrganizationRoles, inviteOrganizationUser });
+    const client = controlClient({
+      listOrganizationRoles,
+      inviteOrganizationUser,
+      listPendingInvitations: async () => [],
+    });
     render(withIntl(<RolesPermissionsRoute client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('referee@example.test');
@@ -439,6 +466,130 @@ describe('roles and permissions control', () => {
     await screen.findByText('referee@example.test');
     const select = screen.getByLabelText('Role of referee@example.test') as HTMLSelectElement;
     expect(select.options.length).toBeGreaterThan(3);
+  });
+
+  it('renders pending invitations and rescinds one (openspec 0170)', async () => {
+    const rescinded: string[] = [];
+    render(
+      withIntl(
+        <RolesPermissionsPage
+          loading={false}
+          onChange={async () => undefined}
+          onDelete={async () => undefined}
+          onInvite={async () => undefined}
+          onRescindInvitation={async (invitationId) => void rescinded.push(invitationId)}
+          organizationAlias="liga-mendocina"
+          pendingInvitations={[
+            {
+              invitationId: 'invite-1',
+              recipientEmail: 'nuevo@example.test',
+              role: 'viewer',
+              status: 'active',
+              expiresAt: '2099-01-01T00:00:00.000Z',
+            },
+          ]}
+          rows={rows}
+        />,
+      ),
+    );
+
+    expect(screen.getByText('nuevo@example.test')).toBeDefined();
+    await act(async () => {
+      fireEvent.click(screen.getByLabelText('Rescind invitation for nuevo@example.test'));
+    });
+    expect(rescinded).toEqual(['invite-1']);
+  });
+
+  it('disables rescind when no handler is supplied, and does nothing on click', () => {
+    render(
+      withIntl(
+        <RolesPermissionsPage
+          loading={false}
+          onChange={async () => undefined}
+          onDelete={async () => undefined}
+          onInvite={async () => undefined}
+          organizationAlias="liga-mendocina"
+          pendingInvitations={[
+            {
+              invitationId: 'invite-1',
+              recipientEmail: 'nuevo@example.test',
+              role: 'viewer',
+              status: 'active',
+              expiresAt: '2099-01-01T00:00:00.000Z',
+            },
+          ]}
+          rows={rows}
+        />,
+      ),
+    );
+    const button = screen.getByLabelText(
+      'Rescind invitation for nuevo@example.test',
+    ) as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+    fireEvent.click(button);
+    expect(screen.getByText('nuevo@example.test')).toBeDefined();
+  });
+
+  it('shows an empty message when there are no pending invitations', () => {
+    render(
+      withIntl(
+        <RolesPermissionsPage
+          loading={false}
+          onChange={async () => undefined}
+          onDelete={async () => undefined}
+          onInvite={async () => undefined}
+          organizationAlias="liga-mendocina"
+          pendingInvitations={[]}
+          rows={rows}
+        />,
+      ),
+    );
+    expect(screen.getByText('No pending invitations.')).toBeDefined();
+  });
+
+  it('hides the pending-invitations section entirely until it has loaded', () => {
+    render(
+      withIntl(
+        <RolesPermissionsPage
+          loading={false}
+          onChange={async () => undefined}
+          onDelete={async () => undefined}
+          onInvite={async () => undefined}
+          organizationAlias="liga-mendocina"
+          rows={rows}
+        />,
+      ),
+    );
+    expect(screen.queryByText('Pending invitations')).toBeNull();
+  });
+
+  it('loads and rescinds a pending invitation through the route', async () => {
+    const rescindInvitation = jest.fn(async () => ({
+      invitationId: 'invite-1',
+      expiresAt: '2099-01-01T00:00:00.000Z',
+    }));
+    const client = controlClient({
+      listOrganizationRoles: async () => rows,
+      listPendingInvitations: async () => [
+        {
+          invitationId: 'invite-1',
+          recipientEmail: 'nuevo@example.test',
+          role: 'viewer',
+          status: 'active',
+          expiresAt: '2099-01-01T00:00:00.000Z',
+        },
+      ],
+      rescindInvitation,
+    });
+    render(withIntl(<RolesPermissionsRoute client={client} organizationAlias="liga-mendocina" />));
+
+    await screen.findByText('nuevo@example.test');
+    await act(async () => {
+      fireEvent.click(screen.getByLabelText('Rescind invitation for nuevo@example.test'));
+    });
+
+    expect(rescindInvitation).toHaveBeenCalledWith('liga-mendocina', 'invite-1');
+    await waitFor(() => expect(screen.queryByText('nuevo@example.test')).toBeNull());
   });
 
   it('does not disable an admin row when a second active admin exists', () => {

@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   Inject,
@@ -40,6 +41,7 @@ import {
 } from '@copalibre/domain';
 import {
   EnrollmentRepository,
+  IdentityPrincipalRepository,
   InvariantViolationError,
   OrganizationRepository,
   PersonRepository,
@@ -109,7 +111,11 @@ export class RegistrationsController {
     @Query('status') status: string | undefined,
     @Req() request: RequestWithSubject,
   ): Promise<RegistrationResponse[]> {
-    const { tournament } = await this.resolve(organizationAlias, tournamentAlias, request);
+    const { organizationId, tournament } = await this.resolve(
+      organizationAlias,
+      tournamentAlias,
+      request,
+    );
     const entrants = await new EnrollmentRepository(this.db).listEntrants(tournament.tournamentId);
     const visible = entrants.filter(
       (entrant) => status === undefined || status === 'all' || entrant.status === status,
@@ -123,8 +129,12 @@ export class RegistrationsController {
       .map((ref) => ref.personId);
     const persons = await new PersonRepository(this.db).findPersons(personIds);
     const personById = new Map(persons.map((person) => [person.personId, person]));
+    const linkedPersonIds = await new IdentityPrincipalRepository(this.db).linkedPersonIds(
+      organizationId,
+      personIds,
+    );
 
-    return visible.map((entrant) => toResponse(entrant, personById));
+    return visible.map((entrant) => toResponse(entrant, personById, linkedPersonIds));
   }
 
   @Post(':entrantId/review')
@@ -424,6 +434,98 @@ export class RegistrationsController {
     }
   }
 
+  @Delete('persons/:personId')
+  @HttpCode(200)
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationCapability('org.manage-registrations')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Remove a person who has never been registered anywhere',
+    description:
+      'Refused by name if the person is registered as an entrant, rostered on a team, has an ' +
+      'identity link, or has submitted a report — directing to the workflow that clears it first.',
+  })
+  @ApiOkResponse({ type: PersonIdentityResponse })
+  @ApiConflictResponse({ type: ProblemResponse })
+  async removePerson(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('personId') personId: string,
+    @Req() request: RequestWithSubject,
+  ): Promise<PersonIdentityResponse> {
+    const { organizationId } = await this.resolve(organizationAlias, tournamentAlias, request);
+    const people = new PersonRepository(this.db);
+    const existing = await people.findPerson(personId);
+    if (!existing || existing.organizationId !== organizationId) {
+      throw new NotFoundException(`No person ${personId} in this organization`, {
+        errorCode: 'registration-not-found',
+      });
+    }
+    try {
+      await withTransaction(this.db, (uow) =>
+        people.remove(uow, {
+          personId,
+          organizationId,
+          actor: actorOf(request),
+          authorizationContext: authorizationContextOf(request),
+        }),
+      );
+      return {
+        personId: existing.personId,
+        displayName: existing.displayName,
+        alias: existing.alias,
+      };
+    } catch (error) {
+      if (error instanceof InvariantViolationError)
+        throw new ConflictException(error.message, { errorCode: 'registration-conflict' });
+      throw error;
+    }
+  }
+
+  @Delete('teams/:teamId')
+  @HttpCode(200)
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationCapability('org.manage-registrations')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Remove a team that has never been registered anywhere',
+    description:
+      'Refused by name if the team is registered as an entrant or has a rostered player — directing ' +
+      'to the workflow that clears it first.',
+  })
+  @ApiOkResponse({ type: TeamIdentityResponse })
+  @ApiConflictResponse({ type: ProblemResponse })
+  async removeTeam(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('teamId') teamId: string,
+    @Req() request: RequestWithSubject,
+  ): Promise<TeamIdentityResponse> {
+    const { organizationId } = await this.resolve(organizationAlias, tournamentAlias, request);
+    const enrollment = new EnrollmentRepository(this.db);
+    const existing = await enrollment.findTeam(teamId);
+    if (!existing || existing.organizationId !== organizationId) {
+      throw new NotFoundException(`No team ${teamId} in this organization`, {
+        errorCode: 'registration-not-found',
+      });
+    }
+    try {
+      await withTransaction(this.db, (uow) =>
+        enrollment.removeTeam(uow, {
+          teamId,
+          organizationId,
+          actor: actorOf(request),
+          authorizationContext: authorizationContextOf(request),
+        }),
+      );
+      return { teamId: existing.teamId, name: existing.name, alias: existing.alias };
+    } catch (error) {
+      if (error instanceof InvariantViolationError)
+        throw new ConflictException(error.message, { errorCode: 'registration-conflict' });
+      throw error;
+    }
+  }
+
   @Post(':entrantId/team-memberships')
   @HttpCode(200)
   @SecurityPlaneTag('admin-control')
@@ -646,6 +748,7 @@ function toResponse(
     string,
     { displayName: string; nationality?: string; photoObjectId?: string }
   > = new Map(),
+  linkedPersonIds: ReadonlySet<string> = new Set(),
 ): RegistrationResponse {
   if (entrant.entrantRef.kind === 'team') {
     return {
@@ -664,6 +767,7 @@ function toResponse(
     status: entrant.status,
     personId: entrant.entrantRef.personId,
     ...(entrant.abbreviation === undefined ? {} : { abbreviation: entrant.abbreviation }),
+    hasIdentityLink: linkedPersonIds.has(entrant.entrantRef.personId),
     ...(person === undefined
       ? {}
       : {

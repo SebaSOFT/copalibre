@@ -117,6 +117,21 @@ export class IdentityPrincipalRepository {
       : undefined;
   }
 
+  /** Which of these persons already carry an identity link — for a list screen's per-row action gate. */
+  async linkedPersonIds(
+    organizationId: string,
+    personIds: readonly string[],
+  ): Promise<ReadonlySet<string>> {
+    if (personIds.length === 0) return new Set();
+    const rows = await this.db
+      .selectFrom('participant_identity_links')
+      .select('person_id')
+      .where('organization_id', '=', organizationId)
+      .where('person_id', 'in', personIds)
+      .execute();
+    return new Set(rows.map((row) => row.person_id));
+  }
+
   /** Admins may pre-link a participant before their first OIDC login. */
   async linkParticipant(
     uow: UnitOfWork,
@@ -172,6 +187,58 @@ export class IdentityPrincipalRepository {
 
     return {
       principalId: principal.principalId,
+      organizationId: input.organizationId,
+      personId: input.personId,
+    };
+  }
+
+  /**
+   * Removes a participant identity link, freeing the person to be linked
+   * again — a hard delete, following `PersonRepository.dismiss`'s shape for a
+   * row nothing downstream foreign-keys against. Unlike `dismiss`, a missing
+   * link is refused rather than silently accepted: an unlink attempted
+   * against a person with no link is a genuine input error worth naming,
+   * where `dismiss`'s no-op guards against an already-processed retry.
+   */
+  async unlinkParticipant(
+    uow: UnitOfWork,
+    input: {
+      readonly organizationId: string;
+      readonly personId: string;
+      readonly actor: string;
+      readonly authorizationContext: string;
+    },
+  ): Promise<ParticipantIdentityLink> {
+    const existing = await uow.tx
+      .selectFrom('participant_identity_links')
+      .selectAll()
+      .where('organization_id', '=', input.organizationId)
+      .where('person_id', '=', input.personId)
+      .executeTakeFirst();
+    if (!existing) {
+      throw new NotFoundError('This participant has no identity link to remove', {
+        personId: input.personId,
+      });
+    }
+
+    await uow.tx
+      .deleteFrom('participant_identity_links')
+      .where('organization_id', '=', input.organizationId)
+      .where('person_id', '=', input.personId)
+      .execute();
+
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'participant-identity-link',
+      entityId: existing.principal_id,
+      action: 'participant.identity-unlinked',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      previousState: { principalId: existing.principal_id, personId: input.personId },
+    });
+
+    return {
+      principalId: existing.principal_id,
       organizationId: input.organizationId,
       personId: input.personId,
     };

@@ -16,6 +16,7 @@ export const ROUTE_CAPABILITIES: Readonly<Record<string, OrganizationCapability>
   'OrganizationAccessController.change': 'org.manage-users',
   'OrganizationAccessController.grantable': 'org.manage-users',
   'OrganizationAccessController.list': 'org.manage-users',
+  'OrganizationAccessController.listInvitations': 'org.manage-users',
   'OrganizationAccessController.remove': 'org.manage-users',
 
   // org.manage-settings
@@ -36,6 +37,7 @@ export const ROUTE_CAPABILITIES: Readonly<Record<string, OrganizationCapability>
 
   // org.manage-persons
   'ParticipantIdentityLinksController.link': 'org.manage-persons',
+  'ParticipantIdentityLinksController.unlink': 'org.manage-persons',
   'PersonMediaController.getPerson': 'org.manage-persons',
   'PersonMediaController.setNationality': 'org.manage-persons',
   'PersonMediaController.uploadPhoto': 'org.manage-persons',
@@ -120,6 +122,8 @@ export const ROUTE_CAPABILITIES: Readonly<Record<string, OrganizationCapability>
   'RegistrationsController.createTeam': 'org.manage-registrations',
   'RegistrationsController.updatePersonIdentity': 'org.manage-registrations',
   'RegistrationsController.updateTeamIdentity': 'org.manage-registrations',
+  'RegistrationsController.removePerson': 'org.manage-registrations',
+  'RegistrationsController.removeTeam': 'org.manage-registrations',
   'EntrantsController.needingAbbreviation': 'org.manage-registrations',
   'EntrantsController.setAbbreviation': 'org.manage-registrations',
 

@@ -434,4 +434,66 @@ describe('the control API client', () => {
       },
     ]);
   });
+
+  it('calls the invitation-rescission, identity-unlink and person/team removal endpoints (openspec 0170)', async () => {
+    const calls: Array<{ url: string; method: string; body?: unknown }> = [];
+    const client = createControlApiClient({
+      accessToken: () => 'token-admin',
+      fetch: async (input, init) => {
+        calls.push({
+          url: String(input),
+          method: init?.method ?? 'GET',
+          ...(init?.body ? { body: JSON.parse(String(init.body)) } : {}),
+        });
+        return response({});
+      },
+    });
+    if (
+      !client.listPendingInvitations ||
+      !client.rescindInvitation ||
+      !client.linkParticipantIdentity ||
+      !client.unlinkParticipantIdentity ||
+      !client.removePerson ||
+      !client.removeTeam
+    ) {
+      throw new Error('openspec 0170 client methods must be available');
+    }
+
+    await client.listPendingInvitations('liga-orbital');
+    await client.rescindInvitation('liga-orbital', 'invite-1');
+    await client.linkParticipantIdentity('liga-orbital', 'person-1', {
+      email: 'person@example.test',
+    });
+    await client.unlinkParticipantIdentity('liga-orbital', 'person-1');
+    await client.removePerson('liga-orbital', 'copa-verano', 'person-1');
+    await client.removeTeam('liga-orbital', 'copa-verano', 'team-1');
+
+    expect(calls).toEqual([
+      {
+        url: '/organizations/liga-orbital/invitations',
+        method: 'GET',
+      },
+      {
+        url: '/organizations/liga-orbital/invitations/invite-1',
+        method: 'DELETE',
+      },
+      {
+        url: '/organizations/liga-orbital/participants/person-1/identity-link',
+        method: 'POST',
+        body: { email: 'person@example.test' },
+      },
+      {
+        url: '/organizations/liga-orbital/participants/person-1/identity-link',
+        method: 'DELETE',
+      },
+      {
+        url: '/organizations/liga-orbital/tournaments/copa-verano/registrations/persons/person-1',
+        method: 'DELETE',
+      },
+      {
+        url: '/organizations/liga-orbital/tournaments/copa-verano/registrations/teams/team-1',
+        method: 'DELETE',
+      },
+    ]);
+  });
 });

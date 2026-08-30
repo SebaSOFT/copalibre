@@ -516,6 +516,90 @@ export class PersonRepository {
     });
   }
 
+  /**
+   * Removes a person who has never been used for anything — no entrant
+   * registration, no roster membership, no identity link, no submitted
+   * report. Any one of those references refuses the removal by name, an
+   * up-front check rather than a caught foreign-key-violation error, so the
+   * refusal says which of four unrelated tables is blocking (design.md).
+   * Requires the caller to have already confirmed the person exists and
+   * belongs to this organization, matching `updateIdentity`'s own contract.
+   */
+  async remove(
+    uow: UnitOfWork,
+    input: { readonly personId: string } & AuditContext,
+  ): Promise<void> {
+    const entrant = await uow.tx
+      .selectFrom('entrants')
+      .innerJoin('tournaments', 'tournaments.tournament_id', 'entrants.tournament_id')
+      .select('tournaments.name as tournament_name')
+      .where('entrants.person_id', '=', input.personId)
+      .limit(1)
+      .executeTakeFirst();
+    if (entrant) {
+      throw new InvariantViolationError(
+        `Cannot remove: registered as an entrant in "${entrant.tournament_name}"`,
+        { personId: input.personId, reason: 'entrant-registration' },
+      );
+    }
+
+    const player = await uow.tx
+      .selectFrom('players')
+      .innerJoin('teams', 'teams.team_id', 'players.team_id')
+      .select('teams.name as team_name')
+      .where('players.person_id', '=', input.personId)
+      .limit(1)
+      .executeTakeFirst();
+    if (player) {
+      throw new InvariantViolationError(`Cannot remove: rostered on team "${player.team_name}"`, {
+        personId: input.personId,
+        reason: 'roster-membership',
+      });
+    }
+
+    const link = await uow.tx
+      .selectFrom('participant_identity_links')
+      .select('principal_id')
+      .where('person_id', '=', input.personId)
+      .limit(1)
+      .executeTakeFirst();
+    if (link) {
+      throw new InvariantViolationError('Cannot remove: has an identity link — unlink first', {
+        personId: input.personId,
+        reason: 'identity-link',
+      });
+    }
+
+    const report = await uow.tx
+      .selectFrom('participant_reports')
+      .select('report_id')
+      .where('submitted_by_person_id', '=', input.personId)
+      .limit(1)
+      .executeTakeFirst();
+    if (report) {
+      throw new InvariantViolationError('Cannot remove: has submitted a participant report', {
+        personId: input.personId,
+        reason: 'participant-report',
+      });
+    }
+
+    const deleted = await uow.tx
+      .deleteFrom('persons')
+      .where('person_id', '=', input.personId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'person',
+      entityId: input.personId,
+      action: 'person.removed',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      previousState: { ...toPerson(deleted) },
+    });
+  }
+
   /** Every team this human plays for — the question the split exists to answer. */
   async playersOf(personId: string): Promise<readonly Player[]> {
     const rows = await this.db

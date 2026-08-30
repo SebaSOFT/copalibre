@@ -16,7 +16,7 @@ import {
   ForbiddenException,
   NotFoundException,
 } from '../http/error-contract.js';
-import { InvariantViolationError } from '@copalibre/persistence';
+import { InvariantViolationError, NotFoundError } from '@copalibre/persistence';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -54,6 +54,7 @@ import {
   InviteOrganizationUserRequest,
   OrganizationInvitationResponse,
   OrganizationRoleResponse,
+  PendingOrganizationInvitationResponse,
 } from '../dto/organization.dto.js';
 
 const INVITATION_TTL_MS = 24 * 60 * 60 * 1000;
@@ -95,6 +96,24 @@ export class OrganizationAccessController {
     return { roles };
   }
 
+  @Get('invitations')
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationCapability('org.manage-users')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'List pending organization invitations',
+    description: 'Not yet accepted, not rescinded, not expired.',
+  })
+  @ApiOkResponse({ type: PendingOrganizationInvitationResponse, isArray: true })
+  async listInvitations(
+    @Param('organizationAlias') alias: string,
+  ): Promise<readonly PendingOrganizationInvitationResponse[]> {
+    const organization = await this.organization(alias);
+    return new OrganizationAccessRepository(this.db).listPendingInvitations(
+      organization.organizationId,
+    );
+  }
+
   @Post('invitations')
   @SecurityPlaneTag('admin-control')
   @RequireOrganizationBootstrapOrAdmin()
@@ -122,6 +141,37 @@ export class OrganizationAccessController {
         token,
         tokenHash: hash(token),
         expiresAt: new Date(Date.now() + INVITATION_TTL_MS).toISOString(),
+        actor: actorOf(request),
+        authorizationContext: (request.subject?.scopes ?? []).join(' '),
+        grantorContext: request.subject?.grantorContext,
+      }),
+    ).catch(rethrowAsHttp);
+    return { invitationId: invitation.invitationId, expiresAt: invitation.expiresAt };
+  }
+
+  @Delete('invitations/:invitationId')
+  @HttpCode(200)
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationBootstrapOrAdmin()
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Rescind a pending organization invitation',
+    description:
+      'Requires the same role-granting authority the invitation itself required. Takes effect ' +
+      "immediately — the token stops resolving from this point on, regardless of the invitation's " +
+      'stated expiry.',
+  })
+  @ApiOkResponse({ type: OrganizationInvitationResponse })
+  async rescindInvitation(
+    @Param('organizationAlias') alias: string,
+    @Param('invitationId') invitationId: string,
+    @Req() request: RequestWithSubject,
+  ): Promise<OrganizationInvitationResponse> {
+    const organization = await this.organization(alias);
+    const invitation = await withTransaction(this.db, (uow) =>
+      new OrganizationAccessRepository(this.db).rescindInvitation(uow, {
+        organizationId: organization.organizationId,
+        invitationId,
         actor: actorOf(request),
         authorizationContext: (request.subject?.scopes ?? []).join(' '),
         grantorContext: request.subject?.grantorContext,
@@ -215,17 +265,27 @@ export class InvitationAcceptanceController {
       });
     }
     const verifiedEmail = subject.email;
-    return withTransaction(this.db, (uow) =>
-      new OrganizationAccessRepository(this.db).acceptInvitation(uow, {
-        tokenHash: hash(body.token),
-        subjectId: subject.subjectId,
-        verifiedEmail,
-        ...(subject.name === undefined ? {} : { name: subject.name }),
-        ...(subject.picture === undefined ? {} : { picture: subject.picture }),
-        actor: actorOf(request),
-        authorizationContext: subject.scopes.join(' '),
-      }),
-    );
+    try {
+      return await withTransaction(this.db, (uow) =>
+        new OrganizationAccessRepository(this.db).acceptInvitation(uow, {
+          tokenHash: hash(body.token),
+          subjectId: subject.subjectId,
+          verifiedEmail,
+          ...(subject.name === undefined ? {} : { name: subject.name }),
+          ...(subject.picture === undefined ? {} : { picture: subject.picture }),
+          actor: actorOf(request),
+          authorizationContext: subject.scopes.join(' '),
+        }),
+      );
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        throw new NotFoundException(error.message, { errorCode: 'organization-access-not-found' });
+      }
+      if (error instanceof InvariantViolationError) {
+        throw new ConflictException(error.message, { errorCode: 'organization-access-conflict' });
+      }
+      throw error;
+    }
   }
 }
 

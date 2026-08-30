@@ -5,6 +5,7 @@ import type {
   OrganizationMemberStatus,
   OrganizationRole,
   OrganizationRoleResponse,
+  PendingOrganizationInvitationResponse,
   TournamentResponse,
 } from '../lib/api-client.js';
 import { messages } from '../i18n/messages.en.js';
@@ -44,9 +45,11 @@ export function RolesPermissionsPage({
   grantableRoles,
   clubs,
   tournaments,
+  pendingInvitations,
   onChange,
   onDelete,
   onInvite,
+  onRescindInvitation,
 }: {
   readonly organizationAlias: string;
   readonly rows: readonly OrganizationRoleResponse[];
@@ -63,6 +66,8 @@ export function RolesPermissionsPage({
   readonly clubs?: readonly ClubResponse[];
   /** Tournaments in this organization, for the tournament-admin invite picker. Empty until loaded. */
   readonly tournaments?: readonly TournamentResponse[];
+  /** Invitations not yet accepted, not rescinded, not expired (openspec 0170). */
+  readonly pendingInvitations?: readonly PendingOrganizationInvitationResponse[];
   readonly onChange: (
     assignmentId: string,
     role: OrganizationRole,
@@ -75,6 +80,7 @@ export function RolesPermissionsPage({
     status: OrganizationMemberStatus,
     scope?: { readonly clubId?: string; readonly tournamentId?: string },
   ) => Promise<void>;
+  readonly onRescindInvitation?: (invitationId: string) => Promise<void>;
 }): React.JSX.Element {
   const assignableRoles = grantableRoles ?? ALL_ROLES;
   const activeAdminCount = rows.filter(
@@ -183,6 +189,44 @@ export function RolesPermissionsPage({
           </Button>
         }
       />
+      {pendingInvitations !== undefined && (
+        <section aria-label={intl.formatMessage(messages.rolesPendingInvitationsTitle)}>
+          <h2>
+            <FormattedMessage {...messages.rolesPendingInvitationsTitle} />
+          </h2>
+          {pendingInvitations.length === 0 ? (
+            <p className="cl-list-screen__empty">
+              <FormattedMessage {...messages.rolesPendingInvitationsEmpty} />
+            </p>
+          ) : (
+            <ul>
+              {pendingInvitations.map((invitation) => (
+                <li key={invitation.invitationId}>
+                  <span>{invitation.recipientEmail}</span> —{' '}
+                  <span>{intl.formatMessage(ROLE_LABEL[invitation.role])}</span>
+                  <Button
+                    aria-label={intl.formatMessage(messages.rolesRescindInvitationOf, {
+                      email: invitation.recipientEmail,
+                    })}
+                    disabled={busy === invitation.invitationId || !onRescindInvitation}
+                    onClick={() =>
+                      run(invitation.invitationId, () =>
+                        onRescindInvitation
+                          ? onRescindInvitation(invitation.invitationId)
+                          : Promise.resolve(),
+                      )
+                    }
+                    type="button"
+                    variant="destructive-outline"
+                  >
+                    <FormattedMessage {...messages.rolesRescindInvitation} />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
       <InviteDialog
         assignableRoles={assignableRoles}
         busy={busy === 'invite'}

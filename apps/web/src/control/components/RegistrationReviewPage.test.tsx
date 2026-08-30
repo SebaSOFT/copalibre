@@ -104,6 +104,86 @@ describe('RegistrationReviewPage — nationality and profile', () => {
     expect(onUploadPhoto).not.toHaveBeenCalled();
   });
 
+  it('links a participant identity through the link dialog (openspec 0170)', async () => {
+    const onLinkIdentity = jest.fn(async () => undefined);
+    render(
+      withIntl(
+        <RegistrationReviewPage
+          now="2026-08-01T00:00:00.000Z"
+          onLinkIdentity={onLinkIdentity}
+          organizationAlias="liga-orbital"
+          rows={[row({ personId: 'person-1' })]}
+          tournamentName="Copa Verano"
+        />,
+      ),
+    );
+    fireEvent.click(screen.getByText('Elías Salomón'));
+
+    fireEvent.click(screen.getByText('Link identity'));
+    fireEvent.change(screen.getByLabelText('Email'), {
+      target: { value: 'elias@example.test' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Link' }));
+
+    await waitFor(() =>
+      expect(onLinkIdentity).toHaveBeenCalledWith('person-1', { email: 'elias@example.test' }),
+    );
+  });
+
+  it('shows an error when linking a participant identity fails', async () => {
+    const onLinkIdentity = jest.fn(async () => {
+      throw new Error('Participant is already linked to another principal');
+    });
+    render(
+      withIntl(
+        <RegistrationReviewPage
+          now="2026-08-01T00:00:00.000Z"
+          onLinkIdentity={onLinkIdentity}
+          organizationAlias="liga-orbital"
+          rows={[row({ personId: 'person-1' })]}
+          tournamentName="Copa Verano"
+        />,
+      ),
+    );
+    fireEvent.click(screen.getByText('Elías Salomón'));
+    fireEvent.click(screen.getByText('Link identity'));
+    fireEvent.change(screen.getByLabelText('Email'), {
+      target: { value: 'elias@example.test' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Link' }));
+
+    expect(
+      await screen.findByText('Participant is already linked to another principal'),
+    ).toBeDefined();
+  });
+
+  it('shows an unlink action once the row already carries an identity link, and calls it', () => {
+    const onUnlinkIdentity = jest.fn(async () => undefined);
+    render(
+      withIntl(
+        <RegistrationReviewPage
+          now="2026-08-01T00:00:00.000Z"
+          onUnlinkIdentity={onUnlinkIdentity}
+          organizationAlias="liga-orbital"
+          rows={[row({ personId: 'person-1', hasIdentityLink: true })]}
+          tournamentName="Copa Verano"
+        />,
+      ),
+    );
+    fireEvent.click(screen.getByText('Elías Salomón'));
+
+    expect(screen.queryByText('Link identity')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Unlink' }));
+
+    expect(onUnlinkIdentity).toHaveBeenCalledWith('person-1');
+  });
+
+  it('offers no identity-link action for a team-kind row (no personId)', () => {
+    renderPage({ rows: [row({ personId: undefined })] });
+    expect(screen.queryByText('Link identity')).toBeNull();
+    expect(screen.queryByText('Unlink')).toBeNull();
+  });
+
   it('invokes the bulk-refuse callback for selected rows', () => {
     const onBulkReview = jest.fn<(request: BulkReviewRequest) => void>();
     render(

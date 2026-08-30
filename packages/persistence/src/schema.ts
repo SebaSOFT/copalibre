@@ -124,6 +124,8 @@ export interface OrganizationInvitesTable {
   club_id: string | null;
   /** Required exactly when `role` is `tournament-admin`; null otherwise. */
   tournament_id: string | null;
+  /** Set by an admin's withdrawal, before acceptance and before expiry. */
+  rescinded_at: Timestamp | null;
 }
 
 /**

@@ -735,6 +735,15 @@ jobs:
       # broke.
       - name: Ruleset and stage configuration editing (E2E)
         run: yarn test:e2e -- e2e/control-ruleset-and-stage-configuration-editing.spec.ts
+      # Participant identity link correction (openspec 0170): a person
+      # pre-linked to the wrong email is unlinked, then re-linked to the
+      # correct one, with the registration-review screen reflecting the
+      # final state throughout — named separately so a failure says which
+      # surface broke. Invitation rescission's own E2E coverage lives in
+      # control-roles-permissions.spec.ts, already run by the full suite
+      # above.
+      - name: Participant identity link correction (E2E)
+        run: yarn test:e2e -- e2e/control-participant-identity-link.spec.ts
       # Accelerated TV soak-test proxy. design.md describes
       # the per-PR-eligible proxy as a 2-hour run; a literal 2 hours on every
       # PR would be a severe, ongoing CI-turnaround regression this repo does
@@ -930,6 +939,17 @@ jobs:
       # unit-level test file to run — the domain-level field-policy coverage
       # runs separately as `ruleset-override-mutation` in the unit-tests job.
       - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'ruleset-editing|stage-configuration-editing'
+      # Participant and access correction (openspec 0170): a pending
+      # organization invitation rescinded before it is accepted (including a
+      # concurrent rescind/accept race, and the same role-granting authority
+      # rescind requires that creation already requires), a participant
+      # identity link removed and re-linked to a different email, and a
+      # person or team record removed once it carries no entrant
+      # registration, roster membership, identity link, or report. No
+      # API-layer unit-tests step is added: every path here writes through
+      # `UnitOfWork`, so there is no Postgres-free unit-level test file to
+      # run (see the test file's own header comment).
+      - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'participant-and-access-correction'
       # Direct participant authoring (openspec 0167): a person or team
       # registered without a CSV file through the same repository paths a CSV
       # row already takes, an identity edit preserving the entity's existing

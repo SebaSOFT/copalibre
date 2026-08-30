@@ -194,8 +194,18 @@ describe('migrations (integration)', () => {
       expect.arrayContaining([
         expect.objectContaining({ name: 'club_id' }),
         expect.objectContaining({ name: 'tournament_id' }),
+        expect.objectContaining({ name: 'rescinded_at' }),
       ]),
     );
+
+    const inviteRescissionDown = await migrateDownOneStep(scratch.db);
+    expect(inviteRescissionDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe('0032-role-scope-columns');
+    const afterInviteRescissionDownTables = await scratch.db.introspection.getTables();
+    expect(
+      afterInviteRescissionDownTables.find((table) => table.name === 'organization_invites')
+        ?.columns,
+    ).not.toEqual(expect.arrayContaining([expect.objectContaining({ name: 'rescinded_at' })]));
 
     const roleScopeColumnsDown = await migrateDownOneStep(scratch.db);
     expect(roleScopeColumnsDown.error).toBeUndefined();
