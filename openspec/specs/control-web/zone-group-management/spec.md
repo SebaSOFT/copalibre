@@ -94,3 +94,26 @@ seed order takes effect. A stage that already has seeds SHALL NOT have them over
 - **WHEN** an operator opens the seeding builder for a stage that already has a draw or manual
   placement recorded, and a promotion plan also targets that stage
 - **THEN** the seeding builder shows the already-recorded seed order, unaffected by the promotion plan
+
+### Requirement: A zone or group can be renamed or removed before an entrant is assigned into it
+An operator SHALL be able to rename a zone or group at any time, and SHALL be able to remove one
+provided no entrant has been assigned into it. Once an entrant has been assigned, removal SHALL be
+refused, naming that entrants are assigned and directing the operator to reassign them first rather than
+losing the assignment silently.
+
+#### Scenario: A wrongly-named zone is corrected
+- **WHEN** an operator renames a zone created with the wrong name
+- **THEN** the zone's name is updated and every entrant already assigned into it remains assigned
+
+#### Scenario: An empty zone is removed
+- **WHEN** an operator removes a zone into which no entrant has been assigned
+- **THEN** the zone no longer exists
+
+#### Scenario: A zone with assigned entrants cannot be removed
+- **WHEN** an operator attempts to remove a zone that already has an entrant assigned into it
+- **THEN** the removal is refused, naming that entrants are assigned, rather than the assignment being
+  silently discarded
+
+#### Scenario: The same rule applies to a group
+- **WHEN** an operator attempts to remove a group that already has an entrant assigned into it
+- **THEN** the removal is refused on the same terms a zone's removal would be

@@ -274,3 +274,32 @@ platform composed on the module's behalf.
 #### Scenario: A module that declares no description degrades quietly
 - **WHEN** an installed discipline declares an option without a description
 - **THEN** the option is offered with its label alone and no placeholder or apology is rendered
+
+### Requirement: An unseeded stage can be renamed, reformatted or removed
+A stage that has no generated fixtures SHALL be renamable, and SHALL be able to have its format changed
+or be removed entirely, before it holds any fixture. Once a stage holds a fixture, an attempt to change
+its format or remove it SHALL be refused, naming that fixtures already exist and directing the operator
+to the seeding workflow that governs fixtures instead.
+
+Renaming an unseeded or a seeded stage SHALL be permitted in either case, since a name carries no
+structural consequence.
+
+#### Scenario: An unseeded stage's format is corrected
+- **WHEN** an operator changes the format of a stage that has never been seeded
+- **THEN** the stage's format is updated, with no fixture to invalidate
+
+#### Scenario: An unseeded stage is removed
+- **WHEN** an operator removes a stage that has never been seeded
+- **THEN** the stage no longer exists and no fixture, zone or group belonging to it survives it
+
+#### Scenario: A seeded stage's format change is refused
+- **WHEN** an operator attempts to change the format of a stage that already holds generated fixtures
+- **THEN** the change is refused, naming that fixtures already exist
+
+#### Scenario: A seeded stage cannot be removed
+- **WHEN** an operator attempts to remove a stage that already holds generated fixtures
+- **THEN** the removal is refused, naming that fixtures already exist
+
+#### Scenario: Renaming carries no structural refusal
+- **WHEN** an operator renames a stage, seeded or not
+- **THEN** the rename applies, because a name change invalidates nothing a fixture depends on

@@ -103,3 +103,23 @@ existing `object_metadata` record.
 #### Scenario: An organization with no stored objects reports zero
 - **WHEN** an organization has never had an object stored
 - **THEN** the usage report returns zero bytes and zero objects, not an error
+
+### Requirement: An unreferenced stored object can be deleted
+The system SHALL let an authorized operator delete a stored object that no entity currently references,
+freeing its storage and removing its metadata record. An object still referenced by an entity — an
+organization's current emblem, a person's current photo — SHALL NOT be deletable while that reference
+stands; deletion SHALL be refused, naming what still references it.
+
+#### Scenario: An unused upload is deleted
+- **WHEN** an operator deletes an object that no entity currently references — for example, an emblem
+  that was replaced and is no longer the organization's current one
+- **THEN** the object is removed from storage and its metadata record no longer appears in the
+  organization's storage usage
+
+#### Scenario: A referenced object cannot be deleted
+- **WHEN** an operator attempts to delete an object that is an entity's current emblem or photo
+- **THEN** the deletion is refused, naming the entity that still references it
+
+#### Scenario: Storage usage reflects a deletion
+- **WHEN** an unreferenced object is deleted
+- **THEN** the organization's storage usage total decreases by that object's size
