@@ -87,6 +87,11 @@ async function nodeBinaryForTarget(target, workDir) {
   await verifyChecksum(archivePath, archiveName, `${baseUrl}/SHASUMS256.txt`);
 
   if (archiveExt === 'zip') {
+    // GHSA-jmr9-qjv8-65gv (unvalidated symlink path traversal): no fixed
+    // release exists as of this writing. The archive is checksum-verified
+    // above against nodejs.org's own published SHASUMS256.txt before this
+    // ever runs, and this script is build-time-only — never shipped, never
+    // run against arbitrary/untrusted input.
     await extractZip(archivePath, { dir: workDir });
     return join(workDir, folderName, 'node.exe');
   }
