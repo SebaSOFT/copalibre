@@ -496,4 +496,32 @@ describe('the control API client', () => {
       },
     ]);
   });
+
+  it('builds the internal matches-view query string from whichever filters are given', async () => {
+    const calls: string[] = [];
+    const client = createControlApiClient({
+      accessToken: () => 'token',
+      fetch: async (input) => {
+        calls.push(String(input));
+        return response({ matches: [] });
+      },
+    });
+    if (!client.fetchMatchesView) {
+      throw new Error('fetchMatchesView must be available');
+    }
+
+    await client.fetchMatchesView('liga-orbital', 'copa-verano');
+    await client.fetchMatchesView('liga-orbital', 'copa-verano', { state: 'live' });
+    await client.fetchMatchesView('liga-orbital', 'copa-verano', {
+      stageNumber: 2,
+      groupId: 'group-1',
+      state: 'final',
+    });
+
+    expect(calls).toEqual([
+      '/organizations/liga-orbital/tournaments/copa-verano/internal-matches-view',
+      '/organizations/liga-orbital/tournaments/copa-verano/internal-matches-view?state=live',
+      '/organizations/liga-orbital/tournaments/copa-verano/internal-matches-view?stageNumber=2&groupId=group-1&state=final',
+    ]);
+  });
 });

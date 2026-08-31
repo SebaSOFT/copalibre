@@ -1,4 +1,9 @@
-import { publicIntl, resultReasonLabels, resultStateLabels } from './public-intl.js';
+import {
+  matchCardLabels,
+  publicIntl,
+  resultReasonLabels,
+  resultStateLabels,
+} from './public-intl.js';
 import { messages } from './public-messages.en.js';
 import { messages as esMessages } from './public-messages.es.js';
 import { messages as frMessages } from './public-messages.fr.js';
@@ -123,5 +128,17 @@ describe('publicIntl formats real translated text, not an English fallback', () 
 
     const en = resultReasonLabels(publicIntl('en'));
     expect(en.walkover).toBe('W/O');
+  });
+
+  it('resolves matches-view labels as unfilled {placeholder} templates, not formatted values', () => {
+    // These must stay raw templates, never functions: MatchCard mounts on
+    // the public site via `client:load`, and Astro JSON-serializes island
+    // props, which a function does not survive.
+    const labels = matchCardLabels(publicIntl('es'));
+    expect(labels.clockAriaLabel).toBe('Tiempo transcurrido: {time}');
+    expect(labels.decidedBy).toBe('Decidido por: {factor}');
+    expect(labels.seriesAriaLabel).toBe('Serie al mejor de {bestOf}: {home} a {away}');
+    expect(labels.filters.live).toBe('En vivo');
+    expect(labels.state.final).toBe('FINAL');
   });
 });
