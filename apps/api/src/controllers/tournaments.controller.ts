@@ -8,6 +8,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
   Req,
 } from '@nestjs/common';
 import {
@@ -53,6 +54,8 @@ import {
 } from '@copalibre/domain';
 import {
   createHookScriptRegistry,
+  traceForEntrant,
+  traceLines,
   validateHookScriptDocument,
   type RuleScript,
 } from '@copalibre/rules';
@@ -74,6 +77,7 @@ import {
   TournamentSettingsResponse,
 } from '../dto/organization.dto.js';
 import { TournamentConfigurationExportResponse } from '../dto/tournament-configuration-export.dto.js';
+import { ControlMatchesViewResponse } from '../dto/matches-view.dto.js';
 import { enforcePolicy } from '../policy/resource-policy.js';
 import { recordSensitiveRead } from '../http/sensitive-read-audit.js';
 import { DATABASE } from '../database.token.js';
@@ -81,6 +85,8 @@ import {
   exportTournamentConfiguration,
   type TournamentConfigurationExportDocument,
 } from '../tournament-configuration-export.js';
+import { readMatchesView, type MatchesViewRow } from '../matches-view/read.js';
+import { seriesResponseOf } from './public-projections.controller.js';
 
 /**
  * Organization-scoped tournament routes. The path shape mirrors the URL contract
@@ -208,6 +214,61 @@ export class TournamentsController {
       subject: request.subject,
     });
     return exported;
+  }
+
+  /**
+   * The organizer-facing matches view: the same flat, filterable card list
+   * the public site shows, plus the full internal comparator trace on a
+   * finalized, tiebreak-decided match. Gated by the same capability the
+   * internal standings screen already requires — reaching this route at all
+   * already proves the viewer may see that trace, so no card is narrowed
+   * further.
+   */
+  @Get(':tournamentAlias/internal-matches-view')
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationCapability('org.view-internal-standings')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: "A tournament's matches, with the full comparator trace where relevant",
+  })
+  @ApiOkResponse({ type: ControlMatchesViewResponse })
+  @ApiUnauthorizedResponse({ type: ProblemResponse })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  async matchesView(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Query('stageNumber') stageNumberValue: string | undefined,
+    @Query('groupId') groupId: string | undefined,
+    @Query('state') state: 'all' | 'live' | 'upcoming' | 'final' | undefined,
+    @Req() request: RequestWithSubject,
+  ): Promise<ControlMatchesViewResponse> {
+    const tournament = await new TournamentRepository(this.db).findByScopedAlias(
+      organizationAlias,
+      tournamentAlias,
+    );
+    if (!tournament) {
+      throw new NotFoundException(`No tournament "${tournamentAlias}"`, {
+        errorCode: 'tournament-not-found',
+      });
+    }
+    enforcePolicy({
+      plane: 'admin-control',
+      subject: request.subject,
+      resource: {
+        organizationId: tournament.organizationId,
+        ownerTournamentId: tournament.tournamentId,
+      },
+    });
+
+    const stageNumber = stageNumberValue === undefined ? undefined : Number(stageNumberValue);
+    if (stageNumber !== undefined && (!Number.isSafeInteger(stageNumber) || stageNumber < 1)) {
+      throw new BadRequestException(`Invalid stage number "${stageNumberValue}"`, {
+        errorCode: 'tournament-bad-request',
+      });
+    }
+
+    const rows = await readMatchesView(this.db, tournament, { stageNumber, groupId, state });
+    return { matches: rows.map(controlMatchResponseOf) };
   }
 
   @Post()
@@ -1164,6 +1225,51 @@ export class TournamentsController {
 
     return new TournamentRepository(this.db).listActiveByOrganization(organization.organizationId);
   }
+}
+
+/**
+ * Every card that resolved a tiebreak gets its full trace unconditionally:
+ * reaching this route at all already required `org.view-internal-standings`
+ * for this tournament, so there is no further per-match narrowing to apply.
+ */
+function controlMatchResponseOf(
+  row: MatchesViewRow,
+): ControlMatchesViewResponse['matches'][number] {
+  const homeTrace =
+    row.homeEntrantId === undefined || row.rawTrace === undefined
+      ? []
+      : traceLines(traceForEntrant(row.rawTrace, row.homeEntrantId));
+  const awayTrace =
+    row.awayEntrantId === undefined || row.rawTrace === undefined
+      ? []
+      : traceLines(traceForEntrant(row.rawTrace, row.awayEntrantId));
+
+  return {
+    matchId: row.matchId,
+    stageNumber: row.stageNumber,
+    matchNumber: row.matchNumber,
+    round: row.round,
+    status: row.status,
+    ...(row.homeEntrantId === undefined ? {} : { homeEntrantId: row.homeEntrantId }),
+    ...(row.homeName === undefined ? {} : { homeName: row.homeName }),
+    ...(row.homeAbbreviation === undefined ? {} : { homeAbbreviation: row.homeAbbreviation }),
+    ...(row.awayEntrantId === undefined ? {} : { awayEntrantId: row.awayEntrantId }),
+    ...(row.awayName === undefined ? {} : { awayName: row.awayName }),
+    ...(row.awayAbbreviation === undefined ? {} : { awayAbbreviation: row.awayAbbreviation }),
+    ...(row.homeScore === undefined ? {} : { homeScore: row.homeScore }),
+    ...(row.awayScore === undefined ? {} : { awayScore: row.awayScore }),
+    ...(row.clockSeconds === undefined ? {} : { clockSeconds: row.clockSeconds }),
+    ...(row.venueName === undefined ? {} : { venueName: row.venueName }),
+    ...(row.latestEvent === undefined ? {} : { latestEvent: row.latestEvent }),
+    ...(row.zoneName === undefined ? {} : { zoneName: row.zoneName }),
+    ...(row.groupName === undefined ? {} : { groupName: row.groupName }),
+    ...(row.homePosition === undefined ? {} : { homePosition: row.homePosition }),
+    ...(row.awayPosition === undefined ? {} : { awayPosition: row.awayPosition }),
+    ...(row.series === undefined ? {} : { series: seriesResponseOf(row.series) }),
+    ...(row.decidingFactor === undefined ? {} : { decidingFactor: row.decidingFactor }),
+    ...(homeTrace.length === 0 ? {} : { homeTrace: [...homeTrace] }),
+    ...(awayTrace.length === 0 ? {} : { awayTrace: [...awayTrace] }),
+  };
 }
 
 function validateCustomScripts(

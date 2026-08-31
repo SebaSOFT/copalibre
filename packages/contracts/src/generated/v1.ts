@@ -222,6 +222,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/internal-matches-view": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A tournament's matches, with the full comparator trace where relevant */
+        get: operations["TournamentsController_matchesView"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{organizationAlias}/tournaments": {
         parameters: {
             query?: never;
@@ -1718,6 +1735,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/matches-view": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A tournament's matches, as a flat filterable list */
+        get: operations["PublicProjectionsController_matchesView"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/public/tables": {
         parameters: {
             query?: never;
@@ -2773,6 +2807,109 @@ export interface components {
             tournament: components["schemas"]["TournamentConfigurationIdentityResponse"];
             ruleset: components["schemas"]["TournamentConfigurationRulesetResponse"];
             seasons: components["schemas"]["TournamentConfigurationSeasonResponse"][];
+        };
+        PublicMatchesViewEventResponse: {
+            /** @description The event's own discipline-declared label */
+            label: string;
+            /** Format: date-time */
+            occurredAt: string;
+        };
+        PublicSeriesGameResponse: {
+            /**
+             * @description 1-based play order within the series
+             * @example 4
+             */
+            number: number;
+            /**
+             * @description `not-required` is a game the series ended before reaching
+             * @enum {string}
+             */
+            status: "scheduled" | "in-progress" | "finalized" | "not-required";
+            /** @description Winner of this game, when it has one */
+            winnerEntrantId?: string;
+            /**
+             * @description Which side of the cross won, so a renderer matches no entrant ids itself
+             * @enum {string}
+             */
+            winner?: "home" | "away";
+            /** @description Scores in the cross’s own side order — home first, away second */
+            scores?: number[];
+        };
+        PublicSeriesStateResponse: {
+            /**
+             * @description Total games in the series, played or not
+             * @example 5
+             */
+            span: number;
+            /** @enum {string} */
+            resolutionClass?: "best-of" | "aggregate" | "points-per-leg";
+            /** @description Every game in play order — by game number, not by when it was finalized */
+            games: components["schemas"]["PublicSeriesGameResponse"][];
+            /**
+             * @description Games won by the home side
+             * @example 2
+             */
+            homeGamesWon: number;
+            /**
+             * @description Games won by the away side
+             * @example 1
+             */
+            awayGamesWon: number;
+            /** @description Summed score across every played game, home first. What decides an `aggregate` tie, and meaningless for a best-of, where games won is the score. */
+            aggregateScores?: number[];
+            /** @enum {string} */
+            status: "decided" | "undecided" | "finished-unresolved";
+            /** @description The side the series settled on; absent while undecided */
+            winnerEntrantId?: string;
+            /**
+             * @description Which side of the cross advanced
+             * @enum {string}
+             */
+            winner?: "home" | "away";
+            /** @description Why the series stands where it does, in the engine’s own words */
+            explanation: string;
+        };
+        ControlMatchesViewMatchResponse: {
+            /** Format: uuid */
+            matchId: string;
+            stageNumber: number;
+            matchNumber: number;
+            round: number;
+            /** @enum {string} */
+            status: "upcoming" | "live" | "final";
+            /** Format: uuid */
+            homeEntrantId?: string;
+            homeName?: string;
+            homeAbbreviation?: string;
+            /** Format: uuid */
+            awayEntrantId?: string;
+            awayName?: string;
+            awayAbbreviation?: string;
+            homeScore?: number;
+            awayScore?: number;
+            /** @description Present only while the match is in progress */
+            clockSeconds?: number;
+            venueName?: string;
+            latestEvent?: components["schemas"]["PublicMatchesViewEventResponse"];
+            /** @description Absent for the implicit, single zone/group every stage defaults to */
+            zoneName?: string;
+            /** @description Absent for the implicit, single zone/group every stage defaults to */
+            groupName?: string;
+            /** @description The home entrant's current standings position */
+            homePosition?: number;
+            /** @description The away entrant's current standings position */
+            awayPosition?: number;
+            /** @description Present only on a cross settled by a series; mutually exclusive with zone/position */
+            series?: components["schemas"]["PublicSeriesStateResponse"];
+            /** @description One line naming the tiebreak comparator that decided a finalized, standings-relevant match — never the full internal comparator trace */
+            decidingFactor?: string;
+            /** @description The home entrant's full internal comparator trace — present only when the requesting subject holds org.view-internal-standings for this tournament, and only for a match whose result needed a tiebreak comparator */
+            homeTrace?: string[];
+            /** @description The away entrant's full internal comparator trace, same authorization as homeTrace */
+            awayTrace?: string[];
+        };
+        ControlMatchesViewResponse: {
+            matches: components["schemas"]["ControlMatchesViewMatchResponse"][];
         };
         SeriesDeclarationRequest: {
             /**
@@ -4418,61 +4555,6 @@ export interface components {
              */
             resultReason?: "played" | "administrative-loss" | "walkover" | "forfeit-abandonment" | "disqualified" | "did-not-finish";
         };
-        PublicSeriesGameResponse: {
-            /**
-             * @description 1-based play order within the series
-             * @example 4
-             */
-            number: number;
-            /**
-             * @description `not-required` is a game the series ended before reaching
-             * @enum {string}
-             */
-            status: "scheduled" | "in-progress" | "finalized" | "not-required";
-            /** @description Winner of this game, when it has one */
-            winnerEntrantId?: string;
-            /**
-             * @description Which side of the cross won, so a renderer matches no entrant ids itself
-             * @enum {string}
-             */
-            winner?: "home" | "away";
-            /** @description Scores in the cross’s own side order — home first, away second */
-            scores?: number[];
-        };
-        PublicSeriesStateResponse: {
-            /**
-             * @description Total games in the series, played or not
-             * @example 5
-             */
-            span: number;
-            /** @enum {string} */
-            resolutionClass?: "best-of" | "aggregate" | "points-per-leg";
-            /** @description Every game in play order — by game number, not by when it was finalized */
-            games: components["schemas"]["PublicSeriesGameResponse"][];
-            /**
-             * @description Games won by the home side
-             * @example 2
-             */
-            homeGamesWon: number;
-            /**
-             * @description Games won by the away side
-             * @example 1
-             */
-            awayGamesWon: number;
-            /** @description Summed score across every played game, home first. What decides an `aggregate` tie, and meaningless for a best-of, where games won is the score. */
-            aggregateScores?: number[];
-            /** @enum {string} */
-            status: "decided" | "undecided" | "finished-unresolved";
-            /** @description The side the series settled on; absent while undecided */
-            winnerEntrantId?: string;
-            /**
-             * @description Which side of the cross advanced
-             * @enum {string}
-             */
-            winner?: "home" | "away";
-            /** @description Why the series stands where it does, in the engine’s own words */
-            explanation: string;
-        };
         PublicBracketMatchResponse: {
             matchId: string;
             /** @enum {string} */
@@ -4487,6 +4569,44 @@ export interface components {
         };
         PublicBracketResponse: {
             matches: components["schemas"]["PublicBracketMatchResponse"][];
+        };
+        PublicMatchesViewMatchResponse: {
+            /** Format: uuid */
+            matchId: string;
+            stageNumber: number;
+            matchNumber: number;
+            round: number;
+            /** @enum {string} */
+            status: "upcoming" | "live" | "final";
+            /** Format: uuid */
+            homeEntrantId?: string;
+            homeName?: string;
+            homeAbbreviation?: string;
+            /** Format: uuid */
+            awayEntrantId?: string;
+            awayName?: string;
+            awayAbbreviation?: string;
+            homeScore?: number;
+            awayScore?: number;
+            /** @description Present only while the match is in progress */
+            clockSeconds?: number;
+            venueName?: string;
+            latestEvent?: components["schemas"]["PublicMatchesViewEventResponse"];
+            /** @description Absent for the implicit, single zone/group every stage defaults to */
+            zoneName?: string;
+            /** @description Absent for the implicit, single zone/group every stage defaults to */
+            groupName?: string;
+            /** @description The home entrant's current standings position */
+            homePosition?: number;
+            /** @description The away entrant's current standings position */
+            awayPosition?: number;
+            /** @description Present only on a cross settled by a series; mutually exclusive with zone/position */
+            series?: components["schemas"]["PublicSeriesStateResponse"];
+            /** @description One line naming the tiebreak comparator that decided a finalized, standings-relevant match — never the full internal comparator trace */
+            decidingFactor?: string;
+        };
+        PublicMatchesViewResponse: {
+            matches: components["schemas"]["PublicMatchesViewMatchResponse"][];
         };
         PublicPersonCompetitionHistoryResponse: {
             /** Format: uuid */
@@ -5623,6 +5743,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TournamentConfigurationExportResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    TournamentsController_matchesView: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ControlMatchesViewResponse"];
                 };
             };
             401: {
@@ -8991,6 +9149,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PublicBracketResponse"];
+                };
+            };
+        };
+    };
+    PublicProjectionsController_matchesView: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicMatchesViewResponse"];
                 };
             };
         };

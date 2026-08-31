@@ -126,3 +126,30 @@ export function traceForEntrant(
 export function hasTraceFor(trace: readonly TraceNode[], entrantId: string): boolean {
   return traceForEntrant(trace, entrantId).length > 0;
 }
+
+/**
+ * The one comparator that actually separated this entrant from a tied group,
+ * named for a spectator-facing summary that isn't the full trace.
+ *
+ * The pipeline stops examining an entrant once a comparator has split it out
+ * (`resolveTiebreak` only keeps evaluating still-tied groups), so the last
+ * `comparator`-kind node whose own `outcome` shows it discriminated something
+ * (`'resolved'` or `'partially-resolved'`, never `'tied-proceed'` or the
+ * `'unresolved-tie'` exhaustion notice) is the one whose split actually
+ * decided this entrant — an earlier node only re-confirmed the tie persisted.
+ * `undefined` when the entrant never needed a second comparator at all (the
+ * ordinary case: the first comparator already ranked everyone) or when every
+ * comparator that looked at it left it tied (the pipeline exhausted without
+ * resolving it).
+ */
+export function decidingFactorLabel(
+  trace: readonly TraceNode[],
+  entrantId: string,
+): string | undefined {
+  const decisive = traceForEntrant(trace, entrantId).filter(
+    (node) =>
+      node.kind === 'comparator' &&
+      (node.outcome === 'resolved' || node.outcome === 'partially-resolved'),
+  );
+  return decisive.at(-1)?.label;
+}

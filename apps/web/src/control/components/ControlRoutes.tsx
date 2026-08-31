@@ -3,6 +3,7 @@ import { ControlShell } from './ControlShell.js';
 import { PersonProfileRoute } from './PersonProfileRoute.js';
 import { RegistrationReviewRoute } from './RegistrationReviewRoute.js';
 import { ReportReviewRoute } from './ReportReviewRoute.js';
+import { MatchesViewRoute } from './MatchesViewRoute.js';
 import { SeedingBuilderRoute } from './SeedingBuilderRoute.js';
 import { StandingsRoute } from './StandingsRoute.js';
 import { TournamentAuthoringPage } from './TournamentAuthoringPage.js';
@@ -201,6 +202,26 @@ export function ReportReviewControlRoute({
   return (
     <ControlShell helpPath="report-review" organizationAlias={organizationAlias}>
       <ReportReviewRoute
+        client={client}
+        organizationAlias={organizationAlias}
+        tournamentAlias={tournamentAlias}
+      />
+    </ControlShell>
+  );
+}
+
+export function MatchesViewControlRoute({
+  organizationAlias,
+  tournamentAlias,
+  client,
+}: {
+  readonly organizationAlias: string;
+  readonly tournamentAlias: string;
+  readonly client?: ControlApiClient;
+}): React.JSX.Element {
+  return (
+    <ControlShell helpPath="matches-view" organizationAlias={organizationAlias}>
+      <MatchesViewRoute
         client={client}
         organizationAlias={organizationAlias}
         tournamentAlias={tournamentAlias}

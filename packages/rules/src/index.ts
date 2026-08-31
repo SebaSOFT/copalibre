@@ -156,6 +156,7 @@ export {
   lineOf,
   traceForEntrant,
   hasTraceFor,
+  decidingFactorLabel,
   type TraceRenderOptions,
 } from './trace/render.js';
 

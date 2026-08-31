@@ -100,6 +100,17 @@ export type ControlRoute =
       readonly organizationAlias: string;
       readonly tournamentAlias: string;
       readonly stageNumber: number;
+    }
+  | {
+      /**
+       * The matches view (openspec 0172): a flat, filterable card list of
+       * the tournament's matches, `org.view-internal-standings`-gated.
+       * Tournament-scoped, not stage-scoped — a stage/group/state filter is
+       * a query parameter on this same screen, not a distinct route.
+       */
+      readonly screen: 'matchesView';
+      readonly organizationAlias: string;
+      readonly tournamentAlias: string;
     };
 
 /** Matches a control-panel pathname against the nine real screen shapes. */
@@ -156,6 +167,9 @@ export function parseControlPath(pathname: string): ControlRoute | undefined {
   }
   if (rest.length === 3 && rest[2] === 'reports') {
     return { screen: 'reports', organizationAlias, tournamentAlias };
+  }
+  if (rest.length === 3 && rest[2] === 'matches-view') {
+    return { screen: 'matchesView', organizationAlias, tournamentAlias };
   }
   if (rest.length === 4 && rest[2] === 'matches') {
     const matchId = rest[3];

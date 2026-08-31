@@ -102,6 +102,7 @@ import {
   type SeriesCorrectionOutlook,
 } from './stage-series.js';
 import { DATABASE } from '../database.token.js';
+import { elapsedSecondsOf } from './segment-clock.js';
 
 /**
  * Running a match.
@@ -2494,15 +2495,6 @@ function rosterRoleSnapshotPayload(
     if (candidates.length === 1) payload[effect.payloadField] = candidates[0] as string;
   }
   return payload;
-}
-
-function elapsedSecondsOf(
-  segment: { readonly elapsedSeconds?: number; readonly clockStartedAt?: string },
-  now: number,
-): number {
-  const elapsed = segment.elapsedSeconds ?? 0;
-  if (!segment.clockStartedAt) return elapsed;
-  return elapsed + Math.max(0, Math.floor((now - Date.parse(segment.clockStartedAt)) / 1000));
 }
 
 function finalizeFingerprint(body: FinalizeRequest | undefined): string {

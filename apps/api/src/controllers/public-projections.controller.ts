@@ -17,6 +17,8 @@ import {
   PublicOverviewResponse,
   PublicLiveResponse,
   PublicBracketResponse,
+  PublicMatchesViewResponse,
+  PublicSeriesStateResponse,
   PublicOverviewMatchResponse,
   PublicMatchReportResponse,
   PublicPersonProfileResponse,
@@ -28,6 +30,7 @@ import { TableLayoutListResponse, TableProjectionResponse } from '../dto/table-p
 import { Kysely } from 'kysely';
 import { DATABASE } from '../database.token.js';
 import { readStandings } from '../standings/read.js';
+import { readMatchesView } from '../matches-view/read.js';
 import { listEffectiveTableLayouts, readTableProjection } from '../table-projections/read.js';
 
 import { toBracketMatch, ambiguousRoundPositions } from './seeding.controller.js';
@@ -783,38 +786,66 @@ export class PublicProjectionsController {
             score: s.score,
             resultReason: s.resultReason,
           })),
-          ...(series === undefined
-            ? {}
-            : {
-                series: {
-                  span: series.span,
-                  ...(series.resolutionClass === undefined
-                    ? {}
-                    : { resolutionClass: series.resolutionClass }),
-                  games: series.games.map((game) => ({
-                    number: game.number,
-                    status: game.status,
-                    ...(game.winnerEntrantId === undefined
-                      ? {}
-                      : { winnerEntrantId: game.winnerEntrantId }),
-                    ...(game.winner === undefined ? {} : { winner: game.winner }),
-                    ...(game.scores === undefined ? {} : { scores: [...game.scores] }),
-                  })),
-                  homeGamesWon: series.homeGamesWon,
-                  awayGamesWon: series.awayGamesWon,
-                  ...(series.aggregateScores === undefined
-                    ? {}
-                    : { aggregateScores: [...series.aggregateScores] }),
-                  status: series.status,
-                  ...(series.winnerEntrantId === undefined
-                    ? {}
-                    : { winnerEntrantId: series.winnerEntrantId }),
-                  ...(series.winner === undefined ? {} : { winner: series.winner }),
-                  explanation: series.explanation,
-                },
-              }),
+          ...(series === undefined ? {} : { series: seriesResponseOf(series) }),
         };
       }),
+    };
+  }
+
+  /**
+   * The matches view: a flat, filterable card list — the whole tournament by
+   * default, or one stage/group when named — richer than the bracket's own
+   * card (venue, clock, latest event, a one-line deciding-factor summary for
+   * a finalized tiebreak-decided match) but never the full internal
+   * comparator trace; that stays behind `org.view-internal-standings` on the
+   * control-web equivalent.
+   */
+  @Get('matches-view')
+  @SecurityPlaneTag('public-read')
+  @ApiOperation({ summary: "A tournament's matches, as a flat filterable list" })
+  @ApiOkResponse({ type: PublicMatchesViewResponse })
+  async matchesView(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Query('stageNumber') stageNumberValue: string | undefined,
+    @Query('groupId') groupId: string | undefined,
+    @Query('state') state: 'all' | 'live' | 'upcoming' | 'final' | undefined,
+  ): Promise<PublicMatchesViewResponse> {
+    const { tournament } = await this.resolvePublishedTournament(
+      organizationAlias,
+      tournamentAlias,
+    );
+    const stageNumber = stageNumberValue === undefined ? undefined : Number(stageNumberValue);
+    if (stageNumber !== undefined && (!Number.isSafeInteger(stageNumber) || stageNumber < 1)) {
+      throw new NotFoundException({ errorCode: 'public-projection-not-found' });
+    }
+
+    const rows = await readMatchesView(this.db, tournament, { stageNumber, groupId, state });
+    return {
+      matches: rows.map((row) => ({
+        matchId: row.matchId,
+        stageNumber: row.stageNumber,
+        matchNumber: row.matchNumber,
+        round: row.round,
+        status: row.status,
+        ...(row.homeEntrantId === undefined ? {} : { homeEntrantId: row.homeEntrantId }),
+        ...(row.homeName === undefined ? {} : { homeName: row.homeName }),
+        ...(row.homeAbbreviation === undefined ? {} : { homeAbbreviation: row.homeAbbreviation }),
+        ...(row.awayEntrantId === undefined ? {} : { awayEntrantId: row.awayEntrantId }),
+        ...(row.awayName === undefined ? {} : { awayName: row.awayName }),
+        ...(row.awayAbbreviation === undefined ? {} : { awayAbbreviation: row.awayAbbreviation }),
+        ...(row.homeScore === undefined ? {} : { homeScore: row.homeScore }),
+        ...(row.awayScore === undefined ? {} : { awayScore: row.awayScore }),
+        ...(row.clockSeconds === undefined ? {} : { clockSeconds: row.clockSeconds }),
+        ...(row.venueName === undefined ? {} : { venueName: row.venueName }),
+        ...(row.latestEvent === undefined ? {} : { latestEvent: row.latestEvent }),
+        ...(row.zoneName === undefined ? {} : { zoneName: row.zoneName }),
+        ...(row.groupName === undefined ? {} : { groupName: row.groupName }),
+        ...(row.homePosition === undefined ? {} : { homePosition: row.homePosition }),
+        ...(row.awayPosition === undefined ? {} : { awayPosition: row.awayPosition }),
+        ...(row.series === undefined ? {} : { series: seriesResponseOf(row.series) }),
+        ...(row.decidingFactor === undefined ? {} : { decidingFactor: row.decidingFactor }),
+      })),
     };
   }
 
@@ -1046,6 +1077,29 @@ function publicScores(
   sides: readonly { readonly statistics?: Record<string, number> }[],
 ): readonly (number | undefined)[] {
   return sides.map((side) => Object.values(side.statistics ?? {})[0]);
+}
+
+export function seriesResponseOf(series: PublicSeriesState): PublicSeriesStateResponse {
+  return {
+    span: series.span,
+    ...(series.resolutionClass === undefined ? {} : { resolutionClass: series.resolutionClass }),
+    games: series.games.map((game) => ({
+      number: game.number,
+      status: game.status,
+      ...(game.winnerEntrantId === undefined ? {} : { winnerEntrantId: game.winnerEntrantId }),
+      ...(game.winner === undefined ? {} : { winner: game.winner }),
+      ...(game.scores === undefined ? {} : { scores: [...game.scores] }),
+    })),
+    homeGamesWon: series.homeGamesWon,
+    awayGamesWon: series.awayGamesWon,
+    ...(series.aggregateScores === undefined
+      ? {}
+      : { aggregateScores: [...series.aggregateScores] }),
+    status: series.status,
+    ...(series.winnerEntrantId === undefined ? {} : { winnerEntrantId: series.winnerEntrantId }),
+    ...(series.winner === undefined ? {} : { winner: series.winner }),
+    explanation: series.explanation,
+  };
 }
 
 function publicMatchStatus(status: string): PublicMatchReportResponse['status'] {

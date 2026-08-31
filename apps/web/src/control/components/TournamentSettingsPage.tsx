@@ -101,6 +101,15 @@ export function TournamentSettingsPage({
           >
             <FormattedMessage {...messages.rulesetOverridesLink} />
           </a>
+          <a
+            className="cl-focusable"
+            href={`/control/${organizationAlias}/tournaments/${tournamentAlias}/matches-view`}
+            onClick={controlLinkClick(
+              `/control/${organizationAlias}/tournaments/${tournamentAlias}/matches-view`,
+            )}
+          >
+            <FormattedMessage {...messages.matchesViewSeeAll} />
+          </a>
           <FormField id="settings-name" label={intl.formatMessage(messages.settingsNameLabel)}>
             <input
               className="cl-input cl-input--default cl-focusable"

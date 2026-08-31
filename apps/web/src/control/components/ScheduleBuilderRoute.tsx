@@ -282,16 +282,27 @@ export function ScheduleBuilderRoute({
 
   const titleNode = <FormattedMessage {...messages.scheduleBuilderTitle} />;
 
+  const matchesViewHref = `/control/${organizationAlias}/tournaments/${tournamentAlias}/matches-view?stageNumber=${stageNumber}`;
+
   const toolbarNode = (
-    <a
-      className="cl-focusable"
-      href={`/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}/standings`}
-      onClick={controlLinkClick(
-        `/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}/standings`,
-      )}
-    >
-      <FormattedMessage {...messages.standingsTitle} />
-    </a>
+    <>
+      <a
+        className="cl-focusable"
+        href={`/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}/standings`}
+        onClick={controlLinkClick(
+          `/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}/standings`,
+        )}
+      >
+        <FormattedMessage {...messages.standingsTitle} />
+      </a>
+      <a
+        className="cl-focusable"
+        href={matchesViewHref}
+        onClick={controlLinkClick(matchesViewHref)}
+      >
+        <FormattedMessage {...messages.matchesViewSeeAll} />
+      </a>
+    </>
   );
 
   const listingNode = (
