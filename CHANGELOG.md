@@ -1,4 +1,8 @@
-## 1.0.0 (2026-08-31)
+## 1.0.1 (2026-08-31)
+
+No 1.0.0 was published: GitHub's immutable-release protections blocked completing that tag/release
+after a CI-only issue in its CLI-binary upload step, and the tag name can't be reused once that
+happens. This is the actual first stable release; everything below shipped together.
 
 ### Features
 
