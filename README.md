@@ -84,11 +84,15 @@ binary:
 ```bash
 git clone https://github.com/SebaSOFT/copalibre.git
 cd copalibre
-./copalibre init
-./copalibre doctor
-./copalibre start
-./copalibre create-admin --organization-alias my-league --organization-name "My League" --email admin@example.com
+mkdir my-league && cd my-league
+../copalibre init
+../copalibre doctor
+../copalibre start
+../copalibre create-admin --organization-alias my-league --organization-name "My League" --email admin@example.com
 ```
+
+`init` writes into the current directory, same as the downloaded binary — running it from the
+checkout root itself would collide with the checkout's own `docker-compose.yml`.
 
 See [`AGENTS.md`](AGENTS.md) for the full contributor guide.
 Full walkthrough, backup/restore, and persistent-data details: [`docs/self-hosting.md`](docs/self-hosting.md).

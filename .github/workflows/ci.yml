@@ -1276,19 +1276,31 @@ jobs:
       - run: gzip --decompress --stdout copalibre-images.tar.gz | docker load
       - name: Start JWKS stub
         run: docker compose -f docker-compose.yml -f docker-compose.jwks-test.yml --profile jwks-test up --detach jwks-stub
+      - run: mkdir -p ci-e2e-install
+      # `copalibre init` writes into the current directory (docker-compose.yml,
+      # .env, the installation marker) — running it in the checkout root
+      # would collide with the checkout's own dev-reference
+      # docker-compose.yml (the one "Start JWKS stub" above uses via -f),
+      # so this and every later step that runs `docker compose` bare
+      # operate from a fresh empty subdirectory instead, matching
+      # docs/self-hosting.md's own documented "cd into any empty directory
+      # first" flow.
       - name: Run clean-host CLI lifecycle
+        working-directory: ci-e2e-install
         run: |
-          ./copalibre init
-          ./copalibre doctor
-          ./copalibre start
-          ./copalibre create-admin --organization-alias integrity-league --organization-name "Integrity League" --email admin@example.test
+          ../copalibre init
+          ../copalibre doctor
+          ../copalibre start
+          ../copalibre create-admin --organization-alias integrity-league --organization-name "Integrity League" --email admin@example.test
       - name: Verify Compose login and PKCE
         run: yarn playwright test --config playwright.compose.config.ts
       - name: Show container logs on failure
         if: failure()
+        working-directory: ci-e2e-install
         run: docker compose logs --no-color
       - name: Remove ephemeral installation
         if: always()
+        working-directory: ci-e2e-install
         run: docker compose down --volumes --remove-orphans
 
   deploy-smoke-test:
