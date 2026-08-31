@@ -631,3 +631,96 @@ export class PublicOrganizationTournamentListResponse {
   @ApiProperty({ type: [PublicOverviewClubResponse] })
   clubs!: PublicOverviewClubResponse[];
 }
+
+/** A card's latest recorded event — deliberately generic, never a specific event code. */
+export class PublicMatchesViewEventResponse {
+  @ApiProperty({ description: "The event's own discipline-declared label" })
+  label!: string;
+
+  @ApiProperty({ format: 'date-time' })
+  occurredAt!: string;
+}
+
+export class PublicMatchesViewMatchResponse {
+  @ApiProperty({ format: 'uuid' })
+  matchId!: string;
+
+  @ApiProperty()
+  stageNumber!: number;
+
+  @ApiProperty()
+  matchNumber!: number;
+
+  @ApiProperty()
+  round!: number;
+
+  @ApiProperty({ enum: ['upcoming', 'live', 'final'] })
+  status!: 'upcoming' | 'live' | 'final';
+
+  @ApiPropertyOptional({ format: 'uuid' })
+  homeEntrantId?: string;
+
+  @ApiPropertyOptional()
+  homeName?: string;
+
+  @ApiPropertyOptional()
+  homeAbbreviation?: string;
+
+  @ApiPropertyOptional({ format: 'uuid' })
+  awayEntrantId?: string;
+
+  @ApiPropertyOptional()
+  awayName?: string;
+
+  @ApiPropertyOptional()
+  awayAbbreviation?: string;
+
+  @ApiPropertyOptional()
+  homeScore?: number;
+
+  @ApiPropertyOptional()
+  awayScore?: number;
+
+  @ApiPropertyOptional({ description: 'Present only while the match is in progress' })
+  clockSeconds?: number;
+
+  @ApiPropertyOptional()
+  venueName?: string;
+
+  @ApiPropertyOptional({ type: PublicMatchesViewEventResponse })
+  latestEvent?: PublicMatchesViewEventResponse;
+
+  @ApiPropertyOptional({
+    description: 'Absent for the implicit, single zone/group every stage defaults to',
+  })
+  zoneName?: string;
+
+  @ApiPropertyOptional({
+    description: 'Absent for the implicit, single zone/group every stage defaults to',
+  })
+  groupName?: string;
+
+  @ApiPropertyOptional({ description: "The home entrant's current standings position" })
+  homePosition?: number;
+
+  @ApiPropertyOptional({ description: "The away entrant's current standings position" })
+  awayPosition?: number;
+
+  @ApiPropertyOptional({
+    type: PublicSeriesStateResponse,
+    description: 'Present only on a cross settled by a series; mutually exclusive with zone/position',
+  })
+  series?: PublicSeriesStateResponse;
+
+  @ApiPropertyOptional({
+    description:
+      'One line naming the tiebreak comparator that decided a finalized, standings-relevant ' +
+      'match — never the full internal comparator trace',
+  })
+  decidingFactor?: string;
+}
+
+export class PublicMatchesViewResponse {
+  @ApiProperty({ type: [PublicMatchesViewMatchResponse] })
+  matches!: PublicMatchesViewMatchResponse[];
+}

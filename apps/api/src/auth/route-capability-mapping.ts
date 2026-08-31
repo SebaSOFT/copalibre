@@ -71,6 +71,7 @@ export const ROUTE_CAPABILITIES: Readonly<Record<string, OrganizationCapability>
   'TournamentsController.rulesetOverrides': 'org.manage-tournament-lifecycle',
   'TournamentsController.previewRulesetOverrides': 'org.manage-tournament-lifecycle',
   'TournamentsController.updateRulesetOverrides': 'org.manage-tournament-lifecycle',
+  'TournamentsController.matchesView': 'org.view-internal-standings',
 
   // org.rebuild-statistics
   'AdminStatisticsController.rebuild': 'org.rebuild-statistics',
