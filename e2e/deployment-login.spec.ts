@@ -26,7 +26,7 @@ test('fresh Compose installation exposes generic OIDC PKCE login', async ({ page
   expect(authorization.searchParams.get('response_type')).toBe('code');
   expect(authorization.searchParams.get('client_id')).toBe('copalibre-compose-e2e');
   expect(authorization.searchParams.get('redirect_uri')).toBe(
-    'http://127.0.0.1:4321/control/callback',
+    'http://localhost:4321/control/callback',
   );
   expect(authorization.searchParams.get('code_challenge_method')).toBe('S256');
   expect(authorization.searchParams.get('code_challenge')).toBeTruthy();
