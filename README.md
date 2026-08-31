@@ -117,6 +117,9 @@ Full walkthrough, backup/restore, and persistent-data details: [`docs/self-hosti
 - **Public leaderboards, match reports, and player careers** — tournament-wide statistic tables,
   per-match event timelines and rosters, and a player's cross-tournament history, reusing the
   same standings/statistics engine driving the control panel.
+- **Matches view** — a filterable card list of a tournament's matches (venue, clock, latest event,
+  zone/series context), on the public site as a one-line tiebreak summary and, for an authorized
+  organizer, the full standings comparator trace behind it.
 - **Roles & permissions** — organization-scoped RBAC, server-enforced independent of the UI.
 - **Audit trail** — every mutation, refused attempt, and sensitive read is recorded centrally
   against a declared action vocabulary and reviewable from its own control-panel screen.

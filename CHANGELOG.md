@@ -1,4 +1,4 @@
-## 1.0.0 (2026-08-30)
+## 1.0.0 (2026-08-31)
 
 ### Features
 
@@ -16,6 +16,7 @@
 - **rulesets:** let organizers revise ruleset and stage-configuration overrides ([a457ada](https://github.com/SebaSOFT/copalibre/commit/a457ada))
 - **access:** let admins rescind invitations, unlink participants, and remove unused persons/teams ([72cd841](https://github.com/SebaSOFT/copalibre/commit/72cd841))
 - **rulesets:** persist compiled rulesets on every write path, canonicalize union-list merges ([4a1bb2c](https://github.com/SebaSOFT/copalibre/commit/4a1bb2c))
+- **matches-view:** add a series/zone-aware matches view to the public site and control panel, with a summary or full comparator trace depending on authority ([a06b9f6](https://github.com/SebaSOFT/copalibre/commit/a06b9f6))
 
 ## 0.6.0-preview (2026-08-27)
 
