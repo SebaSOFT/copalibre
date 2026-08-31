@@ -17,7 +17,7 @@ test('fresh Compose installation exposes generic OIDC PKCE login', async ({ page
   });
 
   await page.goto('/control/');
-  await expect(page).toHaveTitle('Acceso de control — CopaLibre');
+  await expect(page).toHaveTitle('Iniciar sesión — CopaLibre');
   await expect(page.getByRole('heading', { name: 'Ingresá para operar' })).toBeVisible();
   await page.getByRole('button', { name: 'Continuar con proveedor de identidad' }).click();
 
