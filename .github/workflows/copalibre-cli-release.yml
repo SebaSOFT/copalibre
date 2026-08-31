@@ -16,11 +16,28 @@ name: CopaLibre CLI release
 # darwin) — postject itself patches the target binary's bytes without
 # executing it, so linux/windows targets have no such constraint and build
 # on ubuntu-latest.
+#
+# The workflow_dispatch fallback exists for one known gap: GitHub only wires
+# up a `workflow_run` chain once the *triggered* workflow's file has already
+# been registered against the default branch — a run of Release that lands
+# this file on the default branch for the first time in the same push (e.g.
+# a repo's very first cut through this pipeline) can complete without ever
+# firing this workflow. v0.5.0-beta shipped with no CLI binary assets for
+# exactly this reason. Re-run manually against the release tag if that
+# happens again; every step below is idempotent per-asset either way.
 
 on:
   workflow_run:
     workflows: [Release]
     types: [completed]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: >-
+          Git ref to build the binaries from (tag, branch, or SHA) — e.g.
+          v1.0.0. Defaults to the workflow's own trigger ref.
+        required: false
+        type: string
 
 concurrency:
   group: copalibre-cli-release
@@ -28,7 +45,9 @@ concurrency:
 
 jobs:
   build-and-upload:
-    if: github.event.workflow_run.conclusion == 'success'
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
     name: Build ${{ matrix.target }}
     strategy:
       fail-fast: false
@@ -55,7 +74,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ github.event.inputs.ref || github.event.workflow_run.head_sha }}
 
       # apps/copalibre/package.json's version is the same one release.yml
       # tags and creates the GitHub Release from.

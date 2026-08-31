@@ -6,8 +6,10 @@ description: >-
   the Docker Compose Level 1 install.
 type: application
 version: 0.1.0
-# apps/copalibre/package.json's "version" field is a "0.0.0" placeholder today
-# — no release-tagging pipeline exists yet in this repo. appVersion
-# tracks that same release artifact and should be set at packaging time
-# (helm package --app-version=<real-version>) once one exists.
-appVersion: '0.0.0'
+# Tracks apps/copalibre/package.json's "version" field — the same release
+# artifact release.yml tags and publishes to ghcr.io/sebasoft/copalibre and
+# ghcr.io/sebasoft/copalibre-web (see RELEASE.md). Bump alongside that file;
+# re-pin at packaging time for a specific cut with
+# `helm package --app-version=<version>` if you need to package ahead of a
+# version-bump commit landing here.
+appVersion: '1.0.0'

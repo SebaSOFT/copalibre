@@ -162,7 +162,7 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
   {
     name: 'module',
     summary: 'Manage installed discipline and tournament-profile modules',
-    usage: 'copalibre module <add|list|remove|verify>',
+    usage: 'copalibre module <add|list|remove|verify|scaffold|validate-local|submit>',
   },
   {
     name: 'mcp',
