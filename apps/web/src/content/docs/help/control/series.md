@@ -34,12 +34,25 @@ A series can also be marked as played on neutral ground, and its standings can b
 default — every game adds its own win, draw, or loss) or per series (the whole series adds a single
 result, however many games it took).
 
+Home and away are not something you set per leg: the system generates the alternation, starting with
+the first match, so a two-legged tie plays its second leg at the other entrant's ground, a best-of-five
+alternates across all five, and so on. A series marked neutral carries no home side on any of its
+matches at all, rather than an arbitrary one.
+
 ## Scheduling and playing it
 
 Each match in the series gets its own slot and its own officials on the
 [schedule](/help/control/schedule) screen. Once the series is decided — a side has clinched a best-of, or
 enough legs are unplayable to change the outcome — its remaining games are marked no longer required
 rather than left looking unscheduled or abandoned.
+
+## When a series doesn't resolve itself
+
+An **aggregate** series that ends level — the summed score is tied across every match — is not
+automatically decided: it reports as finished but unresolved, naming the equality as the reason, and
+produces no advancement until an authorized operator settles it or the discipline declares a further
+tiebreak criterion. This is the one case where finishing every scheduled match does not by itself
+produce a winner.
 
 ## What you cannot do here
 
