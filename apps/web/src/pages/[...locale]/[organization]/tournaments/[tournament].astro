@@ -90,6 +90,11 @@ const activeProjection = activeLayout
   <TournamentHero model={model} intl={intl} />
   <BroadcastStatusPanel model={model} intl={intl} />
   <ScoreTicker model={model} intl={intl} localePrefix={locale ? `/${locale}` : ''} />
+  <p>
+    <a href={`${locale ? `/${locale}` : ''}${model.canonicalPath}/matches`}>
+      {intl.formatMessage(messages.matchesViewSeeAll)}
+    </a>
+  </p>
   <StandingsPreview
     layouts={declaredLayouts}
     layout={activeLayout}

@@ -96,4 +96,22 @@ export const messages: Record<string, string> = {
   'publicWeb.orgPage.emblemPlaceholderAlt': 'Эмблема не загружена',
   'publicWeb.orgPage.notFoundTitle': 'Организация не найдена',
   'publicWeb.orgPage.notFoundBody': 'По этому адресу организация не найдена.',
+
+  'publicWeb.matchesView.pageTitle': 'Матчи',
+  'publicWeb.matchesView.filterAll': 'Все',
+  'publicWeb.matchesView.filterLive': 'В эфире',
+  'publicWeb.matchesView.filterUpcoming': 'Предстоящие',
+  'publicWeb.matchesView.filterFinal': 'Завершённые',
+  'publicWeb.matchesView.empty': 'В этой области пока нет матчей.',
+  'publicWeb.matchesView.clockAriaLabel': 'Прошло времени: {time}',
+  'publicWeb.matchesView.venueAriaLabel': 'Площадка: {venue}',
+  'publicWeb.matchesView.latestEventAriaLabel': 'Последнее событие: {event}',
+  'publicWeb.matchesView.zoneGroupAriaLabel': 'Зона/группа: {scope}',
+  'publicWeb.matchesView.positionInGroup': '{group} — позиция №{position}',
+  'publicWeb.matchesView.position': 'Позиция №{position}',
+  'publicWeb.matchesView.decidedBy': 'Решено по: {factor}',
+  'publicWeb.matchesView.decidedByAriaLabel':
+    'Решающий фактор между позициями с равными показателями. Полное объяснение доступно уполномоченному организатору в панели управления.',
+  'publicWeb.matchesView.fullTraceHeading': 'Полная трассировка компаратора турнирной таблицы',
+  'publicWeb.matchesView.seeAll': 'Смотреть все матчи',
 };

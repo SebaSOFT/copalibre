@@ -101,6 +101,61 @@ export const messages = defineMessages({
   tickerHeading: { id: 'publicWeb.ticker.heading', defaultMessage: 'Matches' },
   tickerEmpty: { id: 'publicWeb.ticker.empty', defaultMessage: 'No matches scheduled yet.' },
 
+  // matches.astro / MatchCard.tsx
+  matchesViewPageTitle: { id: 'publicWeb.matchesView.pageTitle', defaultMessage: 'Matches' },
+  matchesViewFilterAll: { id: 'publicWeb.matchesView.filterAll', defaultMessage: 'All' },
+  matchesViewFilterLive: { id: 'publicWeb.matchesView.filterLive', defaultMessage: 'Live' },
+  matchesViewFilterUpcoming: {
+    id: 'publicWeb.matchesView.filterUpcoming',
+    defaultMessage: 'Upcoming',
+  },
+  matchesViewFilterFinal: { id: 'publicWeb.matchesView.filterFinal', defaultMessage: 'Final' },
+  matchesViewEmpty: {
+    id: 'publicWeb.matchesView.empty',
+    defaultMessage: 'No matches in this scope yet.',
+  },
+  matchesViewClockAriaLabel: {
+    id: 'publicWeb.matchesView.clockAriaLabel',
+    defaultMessage: 'Elapsed time: {time}',
+  },
+  matchesViewVenueAriaLabel: {
+    id: 'publicWeb.matchesView.venueAriaLabel',
+    defaultMessage: 'Venue: {venue}',
+  },
+  matchesViewLatestEventAriaLabel: {
+    id: 'publicWeb.matchesView.latestEventAriaLabel',
+    defaultMessage: 'Latest event: {event}',
+  },
+  matchesViewZoneGroupAriaLabel: {
+    id: 'publicWeb.matchesView.zoneGroupAriaLabel',
+    defaultMessage: 'Zone/group: {scope}',
+  },
+  matchesViewPositionInGroup: {
+    id: 'publicWeb.matchesView.positionInGroup',
+    defaultMessage: '{group} — position #{position}',
+  },
+  matchesViewPosition: {
+    id: 'publicWeb.matchesView.position',
+    defaultMessage: 'Position #{position}',
+  },
+  matchesViewDecidedBy: {
+    id: 'publicWeb.matchesView.decidedBy',
+    defaultMessage: 'Decided by: {factor}',
+  },
+  matchesViewDecidedByAriaLabel: {
+    id: 'publicWeb.matchesView.decidedByAriaLabel',
+    defaultMessage:
+      'The deciding factor between tied standings rows. A full explanation is available to an authorized organizer in the control panel.',
+  },
+  matchesViewFullTraceHeading: {
+    id: 'publicWeb.matchesView.fullTraceHeading',
+    defaultMessage: 'Full standings comparator trace',
+  },
+  matchesViewSeeAll: {
+    id: 'publicWeb.matchesView.seeAll',
+    defaultMessage: 'See every match',
+  },
+
   // SeriesStateBar.astro
   seriesAriaLabel: {
     id: 'publicWeb.series.ariaLabel',

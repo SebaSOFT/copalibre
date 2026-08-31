@@ -96,4 +96,22 @@ export const messages: Record<string, string> = {
   'publicWeb.orgPage.emblemPlaceholderAlt': 'Sin escudo cargado',
   'publicWeb.orgPage.notFoundTitle': 'Organización no encontrada',
   'publicWeb.orgPage.notFoundBody': 'No existe ninguna organización en esta dirección.',
+
+  'publicWeb.matchesView.pageTitle': 'Partidos',
+  'publicWeb.matchesView.filterAll': 'Todos',
+  'publicWeb.matchesView.filterLive': 'En vivo',
+  'publicWeb.matchesView.filterUpcoming': 'Próximos',
+  'publicWeb.matchesView.filterFinal': 'Finalizados',
+  'publicWeb.matchesView.empty': 'Todavía no hay partidos en este alcance.',
+  'publicWeb.matchesView.clockAriaLabel': 'Tiempo transcurrido: {time}',
+  'publicWeb.matchesView.venueAriaLabel': 'Cancha: {venue}',
+  'publicWeb.matchesView.latestEventAriaLabel': 'Último evento: {event}',
+  'publicWeb.matchesView.zoneGroupAriaLabel': 'Zona/grupo: {scope}',
+  'publicWeb.matchesView.positionInGroup': '{group} — posición #{position}',
+  'publicWeb.matchesView.position': 'Posición #{position}',
+  'publicWeb.matchesView.decidedBy': 'Decidido por: {factor}',
+  'publicWeb.matchesView.decidedByAriaLabel':
+    'El factor decisivo entre posiciones empatadas. Un organizador autorizado puede ver la explicación completa en el panel de control.',
+  'publicWeb.matchesView.fullTraceHeading': 'Traza completa del comparador de posiciones',
+  'publicWeb.matchesView.seeAll': 'Ver todos los partidos',
 };

@@ -23,7 +23,8 @@ export class ControlMatchesViewMatchResponse extends PublicMatchesViewMatchRespo
   @ApiPropertyOptional({
     type: 'string',
     isArray: true,
-    description: "The away entrant's full internal comparator trace, same authorization as homeTrace",
+    description:
+      "The away entrant's full internal comparator trace, same authorization as homeTrace",
   })
   awayTrace?: string[];
 }

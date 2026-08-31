@@ -96,4 +96,22 @@ export const messages: Record<string, string> = {
   'publicWeb.orgPage.emblemPlaceholderAlt': 'Nessuno stemma caricato',
   'publicWeb.orgPage.notFoundTitle': 'Organizzazione non trovata',
   'publicWeb.orgPage.notFoundBody': 'Non esiste alcuna organizzazione a questo indirizzo.',
+
+  'publicWeb.matchesView.pageTitle': 'Partite',
+  'publicWeb.matchesView.filterAll': 'Tutte',
+  'publicWeb.matchesView.filterLive': 'In diretta',
+  'publicWeb.matchesView.filterUpcoming': 'In programma',
+  'publicWeb.matchesView.filterFinal': 'Concluse',
+  'publicWeb.matchesView.empty': 'Ancora nessuna partita in questo ambito.',
+  'publicWeb.matchesView.clockAriaLabel': 'Tempo trascorso: {time}',
+  'publicWeb.matchesView.venueAriaLabel': 'Sede: {venue}',
+  'publicWeb.matchesView.latestEventAriaLabel': 'Ultimo evento: {event}',
+  'publicWeb.matchesView.zoneGroupAriaLabel': 'Zona/girone: {scope}',
+  'publicWeb.matchesView.positionInGroup': '{group} — posizione n. {position}',
+  'publicWeb.matchesView.position': 'Posizione n. {position}',
+  'publicWeb.matchesView.decidedBy': 'Deciso da: {factor}',
+  'publicWeb.matchesView.decidedByAriaLabel':
+    'Il fattore decisivo tra posizioni in classifica a pari merito. Un organizzatore autorizzato può vedere la spiegazione completa nel pannello di controllo.',
+  'publicWeb.matchesView.fullTraceHeading': 'Traccia completa del comparatore di classifica',
+  'publicWeb.matchesView.seeAll': 'Vedi tutte le partite',
 };

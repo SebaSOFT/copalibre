@@ -3,6 +3,7 @@ import {
   fetchOverview,
   fetchLive,
   fetchBracket,
+  fetchMatchesView,
   fetchMatchReport,
   fetchOrganizationTournaments,
   fetchPublicTableLayouts,
@@ -10,6 +11,7 @@ import {
   mapOverviewResponse,
   mapLiveResponse,
   mapBracketResponse,
+  mapMatchesViewResponse,
   organizationEmblemUrl,
   clubEmblemUrl,
 } from './public-api-client.js';
@@ -138,6 +140,99 @@ describe('public-api-client', () => {
       await expect(fetchBracket('org1', 'tourney1', 1)).rejects.toThrow(
         /500 Internal Server Error/,
       );
+    });
+  });
+
+  describe('fetchMatchesView', () => {
+    it('reads the unfiltered tournament scope with no query string', async () => {
+      const mockData = { matches: [] };
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockData,
+      } as unknown as Response);
+
+      const result = await fetchMatchesView('org1', 'tourney1');
+      expect(result).toEqual(mockData);
+      expect(fetch).toHaveBeenCalledWith(
+        'http://api.test/organizations/org1/tournaments/tourney1/matches-view',
+      );
+    });
+
+    it('combines every given filter into the query string', async () => {
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ matches: [] }),
+      } as unknown as Response);
+
+      await fetchMatchesView('org1', 'tourney1', {
+        stageNumber: 2,
+        groupId: 'group-1',
+        state: 'live',
+      });
+      expect(fetch).toHaveBeenCalledWith(
+        'http://api.test/organizations/org1/tournaments/tourney1/matches-view?stageNumber=2&groupId=group-1&state=live',
+      );
+    });
+
+    it('returns undefined on 404', async () => {
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+      } as unknown as Response);
+
+      const result = await fetchMatchesView('org1', 'tourney1');
+      expect(result).toBeUndefined();
+    });
+  });
+
+  describe('mapMatchesViewResponse', () => {
+    it('maps every field through, including series and deciding factor', () => {
+      const response = {
+        matches: [
+          {
+            matchId: 'm1',
+            stageNumber: 1,
+            matchNumber: 1,
+            round: 1,
+            status: 'final',
+            homeName: 'Norte',
+            awayName: 'Sur',
+            homeScore: 2,
+            awayScore: 1,
+            zoneName: 'Group B',
+            homePosition: 1,
+            decidingFactor: 'Rule 2 (Head-to-head)',
+          },
+        ],
+      };
+      const result = mapMatchesViewResponse(
+        response as unknown as Parameters<typeof mapMatchesViewResponse>[0],
+      );
+      expect(result.matches).toEqual([
+        {
+          matchId: 'm1',
+          stageNumber: 1,
+          matchNumber: 1,
+          state: 'final',
+          homeName: 'Norte',
+          homeAbbreviation: undefined,
+          homeScore: 2,
+          awayName: 'Sur',
+          awayAbbreviation: undefined,
+          awayScore: 1,
+          clockSeconds: undefined,
+          venueName: undefined,
+          latestEvent: undefined,
+          zoneName: 'Group B',
+          groupName: undefined,
+          homePosition: 1,
+          awayPosition: undefined,
+          series: undefined,
+          decidingFactor: 'Rule 2 (Head-to-head)',
+        },
+      ]);
     });
   });
 

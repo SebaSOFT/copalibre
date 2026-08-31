@@ -8,6 +8,7 @@ import type { CanvasMatch } from './bracket-canvas.js';
 import type { RegistrationStatus } from './review.js';
 import type { StandingsData } from './standings.js';
 import type { DisciplineOption, TournamentProfileOption } from './wizard.js';
+import type { MatchCardData } from '../../lib/matches-view.js';
 
 export interface ControlApiClient {
   /** Every organization the authenticated caller belongs to, with their role. */
@@ -132,6 +133,19 @@ export interface ControlApiClient {
     tournamentAlias: string,
     stageNumber: number,
   ) => Promise<StandingsData>;
+  /**
+   * The matches view (openspec 0172): tournament-scoped by default, one
+   * stage/group/state when filtered — a query, not a distinct route.
+   */
+  readonly fetchMatchesView?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    filter?: {
+      readonly stageNumber?: number;
+      readonly groupId?: string;
+      readonly state?: 'all' | 'live' | 'upcoming' | 'final';
+    },
+  ) => Promise<{ readonly matches: readonly MatchCardData[] }>;
   /**
    * One row's comparator chain, fetched when it is expanded.
    *
@@ -1944,6 +1958,19 @@ export function createControlApiClient(input: {
         },
       ),
 
+    fetchMatchesView: (organizationAlias, tournamentAlias, filter = {}) => {
+      const params = new URLSearchParams();
+      if (filter.stageNumber !== undefined) params.set('stageNumber', String(filter.stageNumber));
+      if (filter.groupId !== undefined) params.set('groupId', filter.groupId);
+      if (filter.state !== undefined) params.set('state', filter.state);
+      const query = params.size > 0 ? `?${params}` : '';
+      return requestJson<{ readonly matches: readonly MatchCardData[] }>(
+        input.fetch,
+        `${tournamentPath(baseUrl, organizationAlias, tournamentAlias)}/internal-matches-view${query}`,
+        { token: input.accessToken?.() },
+      );
+    },
+
     fetchTiebreakTrace: (organizationAlias, tournamentAlias, stageNumber, entrantId) =>
       requestJson<TiebreakTraceResponse>(
         input.fetch,
@@ -2682,6 +2709,14 @@ function matchPath(
   return `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
     tournamentAlias,
   )}/matches/${encodeURIComponent(matchId)}`;
+}
+
+function tournamentPath(
+  baseUrl: string,
+  organizationAlias: string,
+  tournamentAlias: string,
+): string {
+  return `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}`;
 }
 
 function stagePath(

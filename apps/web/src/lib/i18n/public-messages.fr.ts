@@ -96,4 +96,22 @@ export const messages: Record<string, string> = {
   'publicWeb.orgPage.emblemPlaceholderAlt': 'Aucun emblème téléversé',
   'publicWeb.orgPage.notFoundTitle': 'Organisation introuvable',
   'publicWeb.orgPage.notFoundBody': "Aucune organisation n'existe à cette adresse.",
+
+  'publicWeb.matchesView.pageTitle': 'Matchs',
+  'publicWeb.matchesView.filterAll': 'Tous',
+  'publicWeb.matchesView.filterLive': 'En direct',
+  'publicWeb.matchesView.filterUpcoming': 'À venir',
+  'publicWeb.matchesView.filterFinal': 'Terminés',
+  'publicWeb.matchesView.empty': 'Aucun match dans ce périmètre pour le moment.',
+  'publicWeb.matchesView.clockAriaLabel': 'Temps écoulé : {time}',
+  'publicWeb.matchesView.venueAriaLabel': 'Lieu : {venue}',
+  'publicWeb.matchesView.latestEventAriaLabel': 'Dernier événement : {event}',
+  'publicWeb.matchesView.zoneGroupAriaLabel': 'Zone/groupe : {scope}',
+  'publicWeb.matchesView.positionInGroup': '{group} — position n° {position}',
+  'publicWeb.matchesView.position': 'Position n° {position}',
+  'publicWeb.matchesView.decidedBy': 'Décidé par : {factor}',
+  'publicWeb.matchesView.decidedByAriaLabel':
+    'Le facteur décisif entre des positions à égalité. Un organisateur autorisé peut voir l’explication complète dans le panneau de contrôle.',
+  'publicWeb.matchesView.fullTraceHeading': 'Trace complète du comparateur de classement',
+  'publicWeb.matchesView.seeAll': 'Voir tous les matchs',
 };

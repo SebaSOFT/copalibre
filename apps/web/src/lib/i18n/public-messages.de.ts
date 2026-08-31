@@ -96,4 +96,22 @@ export const messages: Record<string, string> = {
   'publicWeb.orgPage.emblemPlaceholderAlt': 'Kein Wappen hochgeladen',
   'publicWeb.orgPage.notFoundTitle': 'Organisation nicht gefunden',
   'publicWeb.orgPage.notFoundBody': 'An dieser Adresse existiert keine Organisation.',
+
+  'publicWeb.matchesView.pageTitle': 'Spiele',
+  'publicWeb.matchesView.filterAll': 'Alle',
+  'publicWeb.matchesView.filterLive': 'Live',
+  'publicWeb.matchesView.filterUpcoming': 'Bevorstehend',
+  'publicWeb.matchesView.filterFinal': 'Beendet',
+  'publicWeb.matchesView.empty': 'In diesem Bereich noch keine Spiele.',
+  'publicWeb.matchesView.clockAriaLabel': 'Verstrichene Zeit: {time}',
+  'publicWeb.matchesView.venueAriaLabel': 'Austragungsort: {venue}',
+  'publicWeb.matchesView.latestEventAriaLabel': 'Letztes Ereignis: {event}',
+  'publicWeb.matchesView.zoneGroupAriaLabel': 'Zone/Gruppe: {scope}',
+  'publicWeb.matchesView.positionInGroup': '{group} — Position #{position}',
+  'publicWeb.matchesView.position': 'Position #{position}',
+  'publicWeb.matchesView.decidedBy': 'Entschieden durch: {factor}',
+  'publicWeb.matchesView.decidedByAriaLabel':
+    'Der entscheidende Faktor zwischen gleichstehenden Tabellenplätzen. Eine vollständige Erklärung ist für einen berechtigten Organisator im Kontrollpanel verfügbar.',
+  'publicWeb.matchesView.fullTraceHeading': 'Vollständige Spur des Tabellenvergleichs',
+  'publicWeb.matchesView.seeAll': 'Alle Spiele ansehen',
 };

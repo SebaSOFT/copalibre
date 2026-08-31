@@ -6,6 +6,7 @@ import {
   ClubManagementControlRoute,
   LoadMatchDataControlRoute,
   MatchConsoleControlRoute,
+  MatchesViewControlRoute,
   PersonProfileControlRoute,
   PlatformAdministrationControlRoute,
   PreferencesControlRoute,
@@ -172,6 +173,13 @@ export function ControlApp(): React.JSX.Element | null {
           tournamentAlias={route.tournamentAlias}
         />
       );
+    case 'matchesView':
+      return (
+        <MatchesViewControlRoute
+          organizationAlias={route.organizationAlias}
+          tournamentAlias={route.tournamentAlias}
+        />
+      );
     case 'matchConsole':
       return (
         <MatchConsoleControlRoute
@@ -263,6 +271,8 @@ function titleFor(route: ReturnType<typeof parseControlPath>): string {
       return `Reglamento del torneo — ${route.tournamentAlias}`;
     case 'reports':
       return `Reportes y disputas — ${route.tournamentAlias}`;
+    case 'matchesView':
+      return `Partidos — ${route.tournamentAlias}`;
     case 'matchConsole':
       return `Operar partido — ${route.tournamentAlias}`;
     case 'loadMatchData':

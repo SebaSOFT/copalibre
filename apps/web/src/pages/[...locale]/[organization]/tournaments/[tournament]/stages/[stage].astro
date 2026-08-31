@@ -68,6 +68,11 @@ const standingsProjection = groupPhaseLayout
   disciplineImages={overviewData.disciplineImages}
 >
   <h1>{intl.formatMessage(messages.bracketPageTitle)}</h1>
+  <p>
+    <a href={`${localePrefix}${model.canonicalPath}/matches?stageNumber=${stageNumber}`}>
+      {intl.formatMessage(messages.matchesViewSeeAll)}
+    </a>
+  </p>
   <BracketView
     intl={intl}
     localePrefix={localePrefix}

@@ -95,4 +95,22 @@ export const messages: Record<string, string> = {
   'publicWeb.orgPage.emblemPlaceholderAlt': '未上传徽章',
   'publicWeb.orgPage.notFoundTitle': '未找到组织',
   'publicWeb.orgPage.notFoundBody': '该地址不存在任何组织。',
+
+  'publicWeb.matchesView.pageTitle': '比赛',
+  'publicWeb.matchesView.filterAll': '全部',
+  'publicWeb.matchesView.filterLive': '进行中',
+  'publicWeb.matchesView.filterUpcoming': '即将开始',
+  'publicWeb.matchesView.filterFinal': '已结束',
+  'publicWeb.matchesView.empty': '此范围内暂无比赛。',
+  'publicWeb.matchesView.clockAriaLabel': '已用时间：{time}',
+  'publicWeb.matchesView.venueAriaLabel': '场地：{venue}',
+  'publicWeb.matchesView.latestEventAriaLabel': '最新事件：{event}',
+  'publicWeb.matchesView.zoneGroupAriaLabel': '区域/小组：{scope}',
+  'publicWeb.matchesView.positionInGroup': '{group} — 第 {position} 名',
+  'publicWeb.matchesView.position': '第 {position} 名',
+  'publicWeb.matchesView.decidedBy': '决定因素：{factor}',
+  'publicWeb.matchesView.decidedByAriaLabel':
+    '并列名次之间的决定因素。获授权的组织者可在控制面板查看完整说明。',
+  'publicWeb.matchesView.fullTraceHeading': '完整的排名比较器追踪记录',
+  'publicWeb.matchesView.seeAll': '查看所有比赛',
 };

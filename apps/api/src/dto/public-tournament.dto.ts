@@ -708,7 +708,8 @@ export class PublicMatchesViewMatchResponse {
 
   @ApiPropertyOptional({
     type: PublicSeriesStateResponse,
-    description: 'Present only on a cross settled by a series; mutually exclusive with zone/position',
+    description:
+      'Present only on a cross settled by a series; mutually exclusive with zone/position',
   })
   series?: PublicSeriesStateResponse;
 

@@ -3,6 +3,7 @@ import type {
   PublicOverviewMatchResponse,
   PublicLiveResponse,
   PublicBracketResponse,
+  PublicMatchesViewResponse,
   PublicStandingsRowResponse,
   PublicMatchReportResponse,
   PublicPersonProfileResponse,
@@ -16,6 +17,7 @@ import type { ResultReason } from '@copalibre/domain';
 import type { OverviewInput, MatchState } from './overview.js';
 import type { LiveDashboard } from './live-state.js';
 import type { BracketMatch, SlotSource } from './bracket.js';
+import type { MatchCardData } from './matches-view.js';
 import type { PublicSeriesState } from './series.js';
 
 function getApiBaseUrl(): string {
@@ -65,6 +67,26 @@ export async function fetchBracket(
   const baseUrl = getApiBaseUrl();
   const url = `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/stages/${encodeURIComponent(stageNumber.toString())}/bracket`;
   return fetchOr404<PublicBracketResponse>(url);
+}
+
+/** `stageNumber`/`groupId`/`state` absent reads the whole tournament, unfiltered. */
+export async function fetchMatchesView(
+  organizationAlias: string,
+  tournamentAlias: string,
+  filter: {
+    readonly stageNumber?: number;
+    readonly groupId?: string;
+    readonly state?: 'all' | 'live' | 'upcoming' | 'final';
+  } = {},
+): Promise<PublicMatchesViewResponse | undefined> {
+  const baseUrl = getApiBaseUrl();
+  const params = new URLSearchParams();
+  if (filter.stageNumber !== undefined) params.set('stageNumber', String(filter.stageNumber));
+  if (filter.groupId !== undefined) params.set('groupId', filter.groupId);
+  if (filter.state !== undefined) params.set('state', filter.state);
+  const query = params.size > 0 ? `?${params}` : '';
+  const url = `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/matches-view${query}`;
+  return fetchOr404<PublicMatchesViewResponse>(url);
 }
 
 export async function fetchMatchReport(
@@ -196,6 +218,34 @@ export function mapBracketResponse(response: PublicBracketResponse): {
         return { kind: 'entrant', name: s.name ?? 'TBD', abbreviation: s.abbreviation };
       }),
       ...(m.series === undefined ? {} : { series: m.series as PublicSeriesState }),
+    })),
+  };
+}
+
+export function mapMatchesViewResponse(response: PublicMatchesViewResponse): {
+  readonly matches: readonly MatchCardData[];
+} {
+  return {
+    matches: response.matches.map((m) => ({
+      matchId: m.matchId,
+      stageNumber: m.stageNumber,
+      matchNumber: m.matchNumber,
+      state: m.status as MatchState,
+      homeName: m.homeName,
+      homeAbbreviation: m.homeAbbreviation,
+      homeScore: m.homeScore,
+      awayName: m.awayName,
+      awayAbbreviation: m.awayAbbreviation,
+      awayScore: m.awayScore,
+      clockSeconds: m.clockSeconds,
+      venueName: m.venueName,
+      latestEvent: m.latestEvent,
+      zoneName: m.zoneName,
+      groupName: m.groupName,
+      homePosition: m.homePosition,
+      awayPosition: m.awayPosition,
+      series: m.series as PublicSeriesState | undefined,
+      decidingFactor: m.decidingFactor,
     })),
   };
 }

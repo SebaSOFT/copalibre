@@ -2787,4 +2787,104 @@ export const messages = defineMessages({
     id: 'control.profile.authorAndInstall',
     defaultMessage: 'Author and install',
   },
+
+  // Matches view (openspec 0172) — MatchesViewRoute.tsx, shared MatchCard.tsx
+  matchesViewControlTitle: { id: 'control.matchesView.title', defaultMessage: 'Matches' },
+  matchesViewControlLoadFailed: {
+    id: 'control.matchesView.loadFailed',
+    defaultMessage: 'Could not load matches.',
+  },
+  matchesViewFilterAll: { id: 'control.matchesView.filterAll', defaultMessage: 'All' },
+  matchesViewFilterLive: { id: 'control.matchesView.filterLive', defaultMessage: 'Live' },
+  matchesViewFilterUpcoming: {
+    id: 'control.matchesView.filterUpcoming',
+    defaultMessage: 'Upcoming',
+  },
+  matchesViewFilterFinal: { id: 'control.matchesView.filterFinal', defaultMessage: 'Final' },
+  matchesViewEmpty: {
+    id: 'control.matchesView.empty',
+    defaultMessage: 'No matches in this scope yet.',
+  },
+  matchesViewClockAriaLabel: {
+    id: 'control.matchesView.clockAriaLabel',
+    defaultMessage: 'Elapsed time: {time}',
+  },
+  matchesViewVenueAriaLabel: {
+    id: 'control.matchesView.venueAriaLabel',
+    defaultMessage: 'Venue: {venue}',
+  },
+  matchesViewLatestEventAriaLabel: {
+    id: 'control.matchesView.latestEventAriaLabel',
+    defaultMessage: 'Latest event: {event}',
+  },
+  matchesViewZoneGroupAriaLabel: {
+    id: 'control.matchesView.zoneGroupAriaLabel',
+    defaultMessage: 'Zone/group: {scope}',
+  },
+  matchesViewPositionInGroup: {
+    id: 'control.matchesView.positionInGroup',
+    defaultMessage: '{group} — position #{position}',
+  },
+  matchesViewPosition: {
+    id: 'control.matchesView.position',
+    defaultMessage: 'Position #{position}',
+  },
+  matchesViewDecidedBy: {
+    id: 'control.matchesView.decidedBy',
+    defaultMessage: 'Decided by: {factor}',
+  },
+  matchesViewDecidedByAriaLabel: {
+    id: 'control.matchesView.decidedByAriaLabel',
+    defaultMessage: 'The deciding factor between tied standings rows.',
+  },
+  matchesViewFullTraceHeading: {
+    id: 'control.matchesView.fullTraceHeading',
+    defaultMessage: 'Full standings comparator trace',
+  },
+  matchesViewResultStateLive: {
+    id: 'control.matchesView.resultState.live',
+    defaultMessage: 'LIVE',
+  },
+  matchesViewResultStateUpcoming: {
+    id: 'control.matchesView.resultState.upcoming',
+    defaultMessage: 'UPCOMING',
+  },
+  matchesViewResultStateFinal: {
+    id: 'control.matchesView.resultState.final',
+    defaultMessage: 'FINAL',
+  },
+  matchesViewResultStateDisputed: {
+    id: 'control.matchesView.resultState.disputed',
+    defaultMessage: 'DISPUTED',
+  },
+  matchesViewResultStateWinner: {
+    id: 'control.matchesView.resultState.winner',
+    defaultMessage: 'WON',
+  },
+  matchesViewResultStateLoser: {
+    id: 'control.matchesView.resultState.loser',
+    defaultMessage: 'LOST',
+  },
+  matchesViewResultStateTbd: { id: 'control.matchesView.resultState.tbd', defaultMessage: 'TBD' },
+  matchesViewResultStateCancelled: {
+    id: 'control.matchesView.resultState.cancelled',
+    defaultMessage: 'CANCELLED',
+  },
+  matchesViewSeriesAriaLabel: {
+    id: 'control.matchesView.series.ariaLabel',
+    defaultMessage: 'Best of {bestOf} series: {home} to {away}',
+  },
+  matchesViewSeriesPending: {
+    id: 'control.matchesView.series.pending',
+    defaultMessage: 'Series undecided at {home}–{away}',
+  },
+  matchesViewSeriesDecided: {
+    id: 'control.matchesView.series.decided',
+    defaultMessage: '{winner} won the series',
+  },
+  matchesViewSeriesAggregate: {
+    id: 'control.matchesView.series.aggregate',
+    defaultMessage: 'On aggregate {home}–{away}',
+  },
+  matchesViewSeeAll: { id: 'control.matchesView.seeAll', defaultMessage: 'See every match' },
 });
