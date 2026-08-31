@@ -16,5 +16,10 @@ CDPATH=''
 SCRIPT_DIR=$(cd -- "$(dirname -- "$0")" && pwd)
 
 corepack enable
-(cd "$SCRIPT_DIR" && corepack yarn install --immutable && corepack yarn typecheck)
+(
+  cd "$SCRIPT_DIR" &&
+    corepack yarn install --immutable &&
+    corepack yarn typecheck &&
+    node apps/copalibre/scripts/build-assets.mjs
+)
 exec node --env-file-if-exists=.env "$SCRIPT_DIR/apps/copalibre/dist/main.js" "$@"
