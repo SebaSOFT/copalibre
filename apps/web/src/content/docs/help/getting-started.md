@@ -1,6 +1,16 @@
 ---
 title: Your first tournament
 description: The initial flow for creating and publishing a tournament.
+capabilities:
+  - platform/native-auth
+  - control-web/control-web-shell
+roles:
+  - admin
+  - club-admin
+  - referee
+  - broadcaster
+  - viewer
+  - super-admin
 ---
 
 ## Create the tournament

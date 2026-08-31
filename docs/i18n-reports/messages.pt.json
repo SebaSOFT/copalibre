@@ -1,0 +1,25 @@
+{
+  "locale": "pt",
+  "generatedAt": "2026-08-25T00:17:29.082Z",
+  "flaggedCount": 2,
+  "entries": [
+    {
+      "key": "control.zoneGroup.seed",
+      "englishSource": "Draw seed",
+      "currentTranslation": "Semente do sorteio",
+      "concern": "\"Semente do sorteio\" is a literal botanical translation of \"seed\" (semente = plant seed). The catalogue itself uses the correct \"cabeça de chave\" in control.seeding.toggleLockAriaLabel — internally inconsistent; glossary requires \"cabeça de chave\".",
+      "proposedReplacement": "Cabeça de chave do sorteio",
+      "glossaryHits": ["seed", "seeding", "draw"],
+      "status": "unconfirmed"
+    },
+    {
+      "key": "control.abbreviationReview.sectionLabel",
+      "englishSource": "Entrants needing an abbreviation",
+      "currentTranslation": "Inscritos que precisam de uma abreviação",
+      "concern": "\"Inscritos\" (entrant) differs from \"entrante(s)\" used in zoneGroup/promotion keys and from \"Participante\" used in scheduleBuilder.entrantColumn — three different renderings of the same glossary term \"entrant\" within one catalogue.",
+      "proposedReplacement": null,
+      "glossaryHits": ["entrant", "zone", "group"],
+      "status": "unconfirmed"
+    }
+  ]
+}

@@ -107,3 +107,107 @@ public surface's path-prefix routing.
 - **WHEN** no preference is stored, no organization scope applies, and none of the browser's languages
   match a supported code
 - **THEN** English is used
+
+### Requirement: Discipline and tournament-profile display strings resolve through the supported-language contract
+
+Every discipline or tournament-profile document's display strings (a discipline or profile's `name`,
+a segment type's, event definition's, statistic's, or scoring input's `label`) SHALL be resolvable
+against the platform's `SupportedLanguage` contract, falling back to English when the requested
+language has no translation, the same fallback behavior the rest of the platform's interface
+languages already use. A document's stable `code`/`alias` identifiers are unaffected — this
+requirement governs only human-facing display strings, never a value used for effects, capability
+binding, or persisted event/statistic records.
+
+#### Scenario: An operator sees a module label in their organization's primary language
+
+- **WHEN** an organization's `primaryLanguage` is `es` and its bound discipline's `yellow-card` event
+  definition declares `{ en: "Yellow card", es: "Tarjeta amarilla" }` as its label
+- **THEN** the match console renders "Tarjeta amarilla" for that event
+
+#### Scenario: A module with no translation for the requested language falls back to English
+
+- **WHEN** a discipline document's event label is `{ en: "Goal" }` with no `es` entry, and the
+  viewer's resolved interface language is `es`
+- **THEN** the rendered label is "Goal", not an empty string or an error
+
+#### Scenario: An existing plain-string label remains valid and renders unchanged
+
+- **WHEN** a discipline document authored before this requirement existed declares
+  `"label": "Yellow card"` as a plain string
+- **THEN** the document validates successfully and every viewer, regardless of interface language,
+  sees "Yellow card" — identical to its behavior before this requirement
+
+### Requirement: API error responses carry a stable, localizable error code
+Every API error response SHALL carry a stable, machine-readable `errorCode` (kebab-case) alongside its
+existing developer-facing `message`, so a client can resolve a translated, operator-facing message
+through the platform's eight-language contract instead of rendering the server's message text directly.
+An error response with no specific mapped code SHALL still be resolvable to one generic translated
+message on the client, never left to render an untranslated string.
+
+#### Scenario: A domain error carries a stable code
+- **WHEN** an API request fails validation against a known, named error condition (for example, a club
+  alias conflict)
+- **THEN** the error response body includes an `errorCode` value stable across releases, in addition to
+  its existing `message`
+
+#### Scenario: An error's message text never changes its code
+- **WHEN** an error response's developer-facing `message` wording is edited in a later change
+- **THEN** its `errorCode` value is unaffected, so a client-side translation mapped to that code
+  continues to resolve correctly without needing to change alongside the message text
+
+#### Scenario: The error contract never depends on request locale
+- **WHEN** an API request is made in any organization or interface-language context
+- **THEN** the response's `errorCode` and `message` are identical regardless of the requester's
+  interface-language preference — translation happens client-side, not by the API varying its response
+  by locale
+
+### Requirement: Domain-term glossary governs translation of tournament-specific vocabulary
+
+Reference: the glossary document lives at `docs/i18n-glossary.md`.
+
+The platform SHALL maintain a single glossary of domain terms (including but not limited to `roster`,
+`seed`/`seeding`, `bracket`, `entrant`, `tiebreak`, `standings`, `zone`/`group`, `alias`, `placement`)
+that name a specific tournament-software concept rather than their generic dictionary meaning, with
+per-locale guidance on the correct rendering for each of the eight supported languages. Any translation
+review, human or LLM-assisted, SHALL check flagged strings containing a glossary term against the
+glossary's guidance before treating a translation as correct.
+
+#### Scenario: A glossary term has documented per-locale guidance
+
+- **WHEN** the glossary is inspected for the term `seeding`
+- **THEN** it states the expected rendering (or explicitly "keep untranslated") for each of the eight
+  supported languages, not just English
+
+#### Scenario: The glossary is the shared reference for review, not an isolated judgment call
+
+- **WHEN** a translation review (human or LLM-assisted) flags a string containing a glossary term
+- **THEN** the review's guidance for that term matches the glossary's documented guidance, rather than
+  being decided independently per review
+
+### Requirement: Translated content accuracy review requires human confirmation before publication
+
+The system's translated interface strings and localized discipline/tournament-profile display content
+SHALL be reviewable for contextual accuracy — not only for completeness, which the existing supported-
+language and fallback requirements already guarantee — through a process that produces a report of
+flagged strings per locale, and SHALL NOT publish a changed translation for any locale until a human
+fluent in that locale has confirmed the specific change.
+
+#### Scenario: A flagged mistranslation is not applied without human confirmation
+
+- **WHEN** a content-accuracy review flags a string in a locale for likely mistranslation or wrong
+  domain-term usage
+- **THEN** the flagged string's existing translation remains published until a human fluent in that
+  locale confirms the proposed replacement
+
+#### Scenario: A review report identifies the specific string and locale, not just a pass/fail
+
+- **WHEN** a content-accuracy review completes for a locale
+- **THEN** its report names each flagged message key, its current translation, the concern, and a
+  proposed replacement — never only a locale-level score
+
+#### Scenario: Discipline and tournament-profile localized labels are in scope
+
+- **WHEN** a content-accuracy review runs for a locale
+- **THEN** it includes that locale's entries in every installed discipline or tournament-profile
+  document's localized `name` (and `description`, once that field exists) alongside the interface
+  message catalogues

@@ -1,0 +1,48 @@
+---
+/**
+ * An organization's or club's emblem, or a placeholder shield outline when
+ * none has been uploaded (0093's rule: never a broken image or an empty
+ * gap) — the public-web sibling of control-web's `ClubEmblemPlaceholder`.
+ */
+interface Props {
+  readonly src?: string;
+  readonly alt: string;
+  readonly placeholderAlt: string;
+  readonly size?: number;
+}
+
+const { src, alt, placeholderAlt, size = 48 } = Astro.props;
+---
+
+<div class="cl-image-frame cl-emblem-frame" style={`width: ${size}px`}>
+  {
+    src ? (
+      <img src={src} alt={alt} />
+    ) : (
+      <svg
+        class="cl-emblem-placeholder"
+        role="img"
+        viewBox="0 0 48 48"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <title>{placeholderAlt}</title>
+        <path
+          d="M8 6h32l-4 4v14c0 12-8 18-12 20-4-2-12-8-12-20V10z"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        />
+      </svg>
+    )
+  }
+</div>
+
+<style>
+  .cl-emblem-frame {
+    flex-shrink: 0;
+  }
+
+  .cl-emblem-placeholder {
+    color: var(--cl-text-muted, #94a3b8);
+  }
+</style>

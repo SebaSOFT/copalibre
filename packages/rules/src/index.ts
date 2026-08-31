@@ -17,12 +17,15 @@ export {
 export {
   RulesRegistry,
   type ElementKind,
+  type RegistryAuthoringDefinition,
   type RegistryEntry,
+  type RegistryParameterDefinition,
   type RuleScript,
 } from './registry/rules-registry.js';
 
 export {
   registerCopalibreVocabulary,
+  registerCopalibreParameters,
   NumberParameter,
   StringParameter,
   SetGuardOutcomeAction,
@@ -42,6 +45,8 @@ export {
   isExpressionMode,
   type TemplateSegment,
 } from './expressions/expression.js';
+/** Re-exported so a caller of `evaluateExpression`/`resolveExpressionField` outside this package can construct one without depending on `@sebasoft/neuron-js` directly. */
+export type { ExecutionContext } from '@sebasoft/neuron-js';
 export {
   EXPRESSION_FUNCTION_NAMES,
   isExpressionFunction,
@@ -51,6 +56,8 @@ export {
 export {
   evaluateCollectorThreshold,
   thresholdReadable,
+  collectorThresholdRulesFrom,
+  foldCollectorTotals,
   type CollectorThresholdRule,
   type CollectorThresholdInput,
   type ThresholdWindow,
@@ -81,6 +88,7 @@ export {
 export {
   evaluateAtHook,
   drawRecords,
+  validateHookScriptDocument,
   type HookDecision,
   type HookEvaluationInput,
 } from './evaluation/hook-evaluator.js';
@@ -148,6 +156,7 @@ export {
   lineOf,
   traceForEntrant,
   hasTraceFor,
+  decidingFactorLabel,
   type TraceRenderOptions,
 } from './trace/render.js';
 
@@ -182,3 +191,49 @@ export {
   type SegmentThresholdEvent,
   type SegmentThresholdKind,
 } from './win-condition/types.js';
+
+export {
+  registerConstraintVocabulary,
+  RejectDrawAction,
+  RequireDrawAction,
+  type ConstraintFinding,
+  type ConstraintState,
+} from './constraints/actions.js';
+
+export {
+  registerSeriesResolutionVocabulary,
+  WinSeriesAction,
+  type SeriesResolutionState,
+} from './series/actions.js';
+
+import { registerDeclaredEffectActions } from './effects/actions.js';
+import { registerCopalibreConditions } from './evaluation/conditions.js';
+import {
+  registerCopalibreParameters,
+  registerCopalibreVocabulary,
+} from './evaluation/vocabulary.js';
+import { registerWinConditionVocabulary } from './win-condition/actions.js';
+import { registerConstraintVocabulary } from './constraints/actions.js';
+import { registerSeriesResolutionVocabulary } from './series/actions.js';
+import { RulesRegistry } from './registry/rules-registry.js';
+
+export function createDefaultRulesRegistry(): RulesRegistry {
+  const registry = new RulesRegistry();
+  registerCopalibreVocabulary(registry);
+  registerWinConditionVocabulary(registry);
+  registerConstraintVocabulary(registry);
+  registerSeriesResolutionVocabulary(registry);
+  return registry;
+}
+
+export function createHookScriptRegistry(): RulesRegistry {
+  const registry = new RulesRegistry({
+    includeBuiltinActions: false,
+    enforceAuthoringDefinitions: true,
+  });
+  registerCopalibreConditions(registry);
+  registerCopalibreParameters(registry);
+  registerDeclaredEffectActions(registry);
+  registerSeriesResolutionVocabulary(registry);
+  return registry;
+}

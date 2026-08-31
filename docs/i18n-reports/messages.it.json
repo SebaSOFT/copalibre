@@ -1,0 +1,16 @@
+{
+  "locale": "it",
+  "generatedAt": "2026-08-25T00:17:29.122Z",
+  "flaggedCount": 1,
+  "entries": [
+    {
+      "key": "control.zoneGroup.seed",
+      "englishSource": "Draw seed",
+      "currentTranslation": "Seme del sorteggio",
+      "concern": "\"Seme del sorteggio\" is a literal botanical/card-suit translation of \"seed\" (seme = plant seed / card suit). The catalogue itself uses the correct \"testa di serie\" in control.seeding.toggleLockAriaLabel — internally inconsistent; glossary requires \"testa di serie\".",
+      "proposedReplacement": "Testa di serie del sorteggio",
+      "glossaryHits": ["seed", "seeding", "draw"],
+      "status": "unconfirmed"
+    }
+  ]
+}

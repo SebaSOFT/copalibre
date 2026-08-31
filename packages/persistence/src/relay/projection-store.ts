@@ -5,11 +5,11 @@ import type { Database } from '../schema.js';
 import type { UnitOfWork } from '../transaction.js';
 
 /**
- * Projection versions and the durable cursor (0017).
+ * Projection versions and the durable cursor.
  *
  * A projection version is **per projection**, not global: a monotonic counter
  * over the whole platform would make every consumer's version jump whenever an
- * unrelated tournament recalculated, and the SSE tier reading it (0018) would
+ * unrelated tournament recalculated, and the SSE tier reading it would
  * resend everything on every bump. So `(projection_type, entity_id)` carries
  * its own sequence, allocated in the same statement that increments it —
  * read-then-write would hand the same number to two workers.

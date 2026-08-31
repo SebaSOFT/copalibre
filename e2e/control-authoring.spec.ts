@@ -16,6 +16,54 @@ const disciplineFixture = [
   },
 ];
 
+/** Declares a field policy (openspec 0161) so the wizard can render the reversibility sentence. */
+const disciplineWithFieldPoliciesFixture = [
+  {
+    descriptorId: 'football.default',
+    version: '1.0.0',
+    name: 'Futbol',
+    supportedFormats: ['round-robin'],
+    fieldPolicies: {
+      format: { permission: { kind: 'replaced' }, mutationClass: 'blocked_after_results' },
+      'registration.capacity': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'requires_rebuild',
+      },
+    },
+  },
+];
+
+const hookVocabularyFixture = {
+  hooks: ['event.recorded'],
+  entries: [
+    {
+      kind: 'action',
+      type: 'notify',
+      description: 'Declare notification',
+      authoring: {
+        parameters: [
+          {
+            name: 'title',
+            description: 'Notification title',
+            required: true,
+            parameterTypes: ['simple_string'],
+            allowExpression: true,
+            valueSchema: { type: 'string', minLength: 1 },
+          },
+          {
+            name: 'message',
+            description: 'Notification message',
+            required: true,
+            parameterTypes: ['simple_string'],
+            allowExpression: true,
+            valueSchema: { type: 'string', minLength: 1 },
+          },
+        ],
+      },
+    },
+  ],
+};
+
 const registrationsFixture = [
   {
     entrantId: 'entrant-001',
@@ -31,11 +79,41 @@ const registrationsFixture = [
   },
 ];
 
-async function mockControlApi(page: Page): Promise<void> {
+async function mockControlApi(
+  page: Page,
+  options: {
+    readonly createRefusal?: string;
+    readonly updateRefusal?: string;
+    readonly seedTournament?: boolean;
+    readonly disciplines?: typeof disciplineFixture;
+  } = {},
+): Promise<void> {
   await page.addInitScript(
-    ({ disciplines, registrations, tokenEndpoint }) => {
+    ({
+      disciplines,
+      hookVocabulary,
+      registrations,
+      tokenEndpoint,
+      createRefusal,
+      updateRefusal,
+      seedTournament,
+    }) => {
       const captured: CapturedRequest[] = [];
       Object.assign(window, { __controlRequests: captured });
+      // Stateful across requests within this test: the dashboard's real
+      // tournament list reads back whatever the wizard just created.
+      const createdTournaments: unknown[] = seedTournament
+        ? [
+            {
+              tournamentId: 'tournament-001',
+              organizationId: 'org-liga-mendocina',
+              alias: 'apertura-2026',
+              name: 'Apertura 2026',
+              rulesetId: 'ruleset-001',
+              status: 'published',
+            },
+          ]
+        : [];
 
       window.fetch = async (input, init) => {
         const url = String(input);
@@ -51,13 +129,70 @@ async function mockControlApi(page: Page): Promise<void> {
           return Response.json(disciplines);
         }
 
-        if (url === '/organizations/liga-mendocina/tournaments') {
-          return Response.json({
+        if (url === '/organizations/liga-mendocina/tournaments/custom-script-vocabulary') {
+          return Response.json(hookVocabulary);
+        }
+
+        if (url === '/organizations/liga-mendocina/tournaments' && method === 'GET') {
+          return Response.json(createdTournaments);
+        }
+
+        if (url === '/organizations/liga-mendocina/tournaments' && method === 'POST') {
+          if (createRefusal) {
+            return Response.json({ message: createRefusal }, { status: 400 });
+          }
+          const created = {
             tournamentId: 'tournament-002',
-            alias: 'apertura-local',
-            name: 'Apertura Local',
+            organizationId: 'org-liga-mendocina',
+            alias: (body as { alias?: string })?.alias ?? 'apertura-local',
+            name: (body as { name?: string })?.name ?? 'Apertura Local',
             rulesetId: 'ruleset-002',
+            status: 'draft',
+          };
+          createdTournaments.push(created);
+          return Response.json(created);
+        }
+
+        if (
+          url === '/organizations/liga-mendocina/tournaments/apertura-2026/custom-scripts' &&
+          method === 'PUT'
+        ) {
+          return Response.json(
+            { message: updateRefusal ?? 'Custom scripts updated' },
+            { status: updateRefusal ? 409 : 200 },
+          );
+        }
+
+        if (
+          url === '/organizations/liga-mendocina/tournaments/apertura-2026/export' &&
+          method === 'GET'
+        ) {
+          return Response.json({
+            kind: 'copalibre-tournament-configuration',
+            schemaVersion: '1.0.0',
+            tournament: {
+              alias: 'apertura-2026',
+              name: 'Apertura 2026',
+              status: 'published',
+              disciplineRef: { descriptorId: 'football.default', version: '1.0.0' },
+            },
+            ruleset: { version: 1, rawOverrides: {}, customScripts: [], effective: {} },
+            seasons: [],
           });
+        }
+
+        if (
+          url ===
+          '/organizations/liga-mendocina/tournaments/apertura-local/registrations?status=pending'
+        ) {
+          return Response.json([]);
+        }
+
+        if (
+          url ===
+          '/organizations/liga-mendocina/tournaments/apertura-2026/registrations?status=pending'
+        ) {
+          return Response.json(registrations);
         }
 
         if (url === '/organizations/liga-mendocina/tournaments/apertura-2026/registrations') {
@@ -85,12 +220,38 @@ async function mockControlApi(page: Page): Promise<void> {
       };
     },
     {
-      disciplines: disciplineFixture,
+      disciplines: options.disciplines ?? disciplineFixture,
+      hookVocabulary: hookVocabularyFixture,
       registrations: registrationsFixture,
       tokenEndpoint: TOKEN_ENDPOINT,
+      createRefusal: options.createRefusal,
+      updateRefusal: options.updateRefusal,
+      seedTournament: options.seedTournament,
     },
   );
 }
+
+test('downloads tournament configuration JSON from the dashboard', async ({ page }) => {
+  await mockControlApi(page, { seedTournament: true });
+  const target = '/control/liga-mendocina';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await expect(page.getByText('Apertura 2026')).toBeVisible();
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Exportar configuración JSON' }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe('apertura-2026-configuration.json');
+  await expect
+    .poll(() => capturedRequests(page))
+    .toContainEqual(
+      expect.objectContaining({
+        url: '/organizations/liga-mendocina/tournaments/apertura-2026/export',
+        method: 'GET',
+      }),
+    );
+});
 
 async function capturedRequests(page: Page): Promise<readonly CapturedRequest[]> {
   return page.evaluate(() => {
@@ -110,6 +271,11 @@ test('creates a tournament from the control authoring wizard', async ({ page }) 
   await page.getByLabel('Alias').fill('apertura-local');
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByLabel('Agregar regla para cada evento registrado').check();
+  await page.getByLabel('Acción').selectOption('notify');
+  await page.getByLabel('Notification title *').fill('Actualización del partido');
+  await page.getByLabel('Notification message *').fill('{{ event.definitionCode }}');
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.getByLabel('Región').fill('Mendoza');
   await page.getByLabel('Capacidad').fill('16');
@@ -132,7 +298,214 @@ test('creates a tournament from the control authoring wizard', async ({ page }) 
           format: 'round-robin',
           publicRegistration: true,
           requiresCheckIn: true,
+          region: 'Mendoza',
+          capacity: 16,
+          customScripts: [
+            expect.objectContaining({
+              hook: 'event.recorded',
+              script: expect.objectContaining({
+                rules: [
+                  expect.objectContaining({
+                    conditions: [],
+                    actions: [expect.objectContaining({ type: 'notify' })],
+                  }),
+                ],
+              }),
+            }),
+          ],
         }),
+      }),
+    );
+
+  // The dashboard's tournament list is real data now, not sample
+  // data — the tournament this test just created through the real write
+  // path shows up on it. Client-side navigation (no reload) keeps the
+  // in-memory session.
+  await page.getByRole('link', { name: 'Panel' }).click();
+  await page.waitForURL('**/control/liga-mendocina');
+  await expect(page.getByText('Apertura Local')).toBeVisible();
+});
+
+test('completes tournament authoring via keyboard and without overflow at 375px', async ({
+  page,
+}) => {
+  await mockControlApi(page);
+  await page.setViewportSize({ width: 375, height: 800 });
+
+  const target = '/control/liga-mendocina/tournaments/new';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  // Assert no body horizontal overflow on initial step
+  const overflowStep1 = await page.evaluate(
+    () => document.body.scrollWidth <= document.documentElement.clientWidth,
+  );
+  expect(overflowStep1).toBe(true);
+
+  // Fill Step 1 (name & alias)
+  await page.getByLabel('Nombre').fill('Copa Teclado');
+  await page.getByLabel('Alias').fill('copa-teclado');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  // Step 2 (discipline)
+  await expect(page.getByLabel('Disciplina')).toBeVisible();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  // Step 3 (format & profile)
+  await expect(page.getByLabel('Formato')).toBeVisible();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  // Step 4 (rules)
+  await expect(page.getByLabel('Agregar regla para cada evento registrado')).toBeVisible();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  // Step 5 (window)
+  await page.getByLabel('Región').fill('Mendoza');
+  await page.getByLabel('Capacidad').fill('8');
+  await page.getByRole('button', { name: 'Crear torneo' }).click();
+
+  await expect(page.getByText('Torneo creado: copa-teclado')).toBeVisible();
+
+  // Assert no body horizontal overflow after completion
+  const overflowFinal = await page.evaluate(
+    () => document.body.scrollWidth <= document.documentElement.clientWidth,
+  );
+  expect(overflowFinal).toBe(true);
+});
+
+test('explains every decision on every wizard step, reachable by keyboard with no hover, in the accessibility tree (0161)', async ({
+  page,
+}) => {
+  await mockControlApi(page);
+  const target = '/control/liga-mendocina/tournaments/new';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await page.getByLabel('Nombre').fill('Copa Explicada');
+  await page.getByLabel('Alias').fill('copa-explicada');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  // Discipline step: the decision hint is bound to the control via
+  // aria-describedby and visible without any hover or pointer interaction.
+  const disciplineSelect = page.getByLabel('Disciplina');
+  const disciplineHintId = await disciplineSelect.getAttribute('aria-describedby');
+  expect(disciplineHintId).toBeTruthy();
+  await expect(page.locator(`#${disciplineHintId}`)).toBeVisible();
+  await expect(page.locator(`#${disciplineHintId}`)).toHaveText(
+    'Determina las reglas, estadísticas y eventos disponibles para esta competición.',
+  );
+
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  // Format step: the field-level hint and the reversibility-free (safe by
+  // default here) explanation are both present without opening the select.
+  const formatSelect = page.getByLabel('Formato');
+  const formatHintId = await formatSelect.getAttribute('aria-describedby');
+  expect(formatHintId).toBeTruthy();
+  await expect(page.locator(`#${formatHintId}`)).toContainText(
+    'Decide cómo se generan los cruces y cómo avanzan los participantes.',
+  );
+
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  // Window step: region and capacity each carry their own reachable hint.
+  const regionInput = page.getByLabel('Región');
+  const regionHintId = await regionInput.getAttribute('aria-describedby');
+  await expect(page.locator(`#${regionHintId}`)).toBeVisible();
+
+  const capacityInput = page.getByLabel('Capacidad');
+  const capacityHintId = await capacityInput.getAttribute('aria-describedby');
+  await expect(page.locator(`#${capacityHintId}`)).toBeVisible();
+});
+
+test('states a blocked_after_results decision cannot change after the first result before it is chosen (0161)', async ({
+  page,
+}) => {
+  await mockControlApi(page, { disciplines: disciplineWithFieldPoliciesFixture });
+  const target = '/control/liga-mendocina/tournaments/new';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await page.getByLabel('Nombre').fill('Copa Bloqueada');
+  await page.getByLabel('Alias').fill('copa-bloqueada');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  // The organizer has not chosen a format yet — the wizard states the
+  // consequence up front, before the field is even touched.
+  const formatSelect = page.getByLabel('Formato');
+  const formatHintId = await formatSelect.getAttribute('aria-describedby');
+  await expect(page.locator(`#${formatHintId}`)).toContainText(
+    'Esto no se puede cambiar una vez que existe un resultado; usá el flujo de corrección auditado en su lugar.',
+  );
+
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+
+  const capacityInput = page.getByLabel('Capacidad');
+  const capacityHintId = await capacityInput.getAttribute('aria-describedby');
+  await expect(page.locator(`#${capacityHintId}`)).toContainText(
+    'Cambiar esto después de generar los cruces los invalida y los regenera.',
+  );
+});
+
+test('shows a named backend rule refusal without replacing it with a generic error', async ({
+  page,
+}) => {
+  const refusal = 'Action "stale-action" is not registered for event.recorded';
+  await mockControlApi(page, { createRefusal: refusal });
+  const target = '/control/liga-mendocina/tournaments/new';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await page.getByLabel('Nombre').fill('Copa Regla Inválida');
+  await page.getByLabel('Alias').fill('copa-regla-invalida');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByLabel('Agregar regla para cada evento registrado').check();
+  await page.getByLabel('Acción').selectOption('notify');
+  await page.getByLabel('Notification title *').fill('Actualización');
+  await page.getByLabel('Notification message *').fill('Evento');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByRole('button', { name: 'Crear torneo' }).click();
+
+  await expect(page.getByText(refusal)).toBeVisible();
+});
+
+test('blocks a custom-script edit after a qualifying result', async ({ page }) => {
+  const refusal = 'Custom scripts cannot change after tournament results exist';
+  await mockControlApi(page, { updateRefusal: refusal });
+  const target = '/control/liga-mendocina';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  const response = await page.evaluate(async () => {
+    const result = await fetch(
+      '/organizations/liga-mendocina/tournaments/apertura-2026/custom-scripts',
+      {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ customScripts: [] }),
+      },
+    );
+    return { status: result.status, body: (await result.json()) as { message: string } };
+  });
+
+  expect(response).toEqual({ status: 409, body: { message: refusal } });
+  await expect
+    .poll(() => capturedRequests(page))
+    .toContainEqual(
+      expect.objectContaining({
+        url: '/organizations/liga-mendocina/tournaments/apertura-2026/custom-scripts',
+        method: 'PUT',
+        body: { customScripts: [] },
       }),
     );
 });

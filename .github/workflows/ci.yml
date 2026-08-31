@@ -42,61 +42,68 @@ jobs:
   # so a *backend*-only PR's release-image build still runs even though its
   # e2e-tests input was skipped. Do not simplify build's `if:` back to a
   # bare `needs` cascade without re-checking that case.
+  #
+  # cli_only/docs_only are narrower still: true only when every changed path
+  # is confined to apps/copalibre (no other workspace consumes it) or to
+  # documentation (repo-level docs/ plus a few root prose files, unioned with
+  # the Starlight content collections backend_only already excludes above).
+  # Neither category can affect apps/api's OpenAPI surface, so they currently
+  # gate only openapi-contract-lint - see scripts/classify-ci-paths.mjs for
+  # the exact patterns and scripts/classify-ci-paths.test.mjs for their
+  # tested behavior. Nothing else in this file reads either output yet;
+  # widening their reach to skip more jobs (unit-tests, module-validation,
+  # etc.) is a deliberately deferred follow-up, not done here, since several
+  # of those jobs' skip conditions need the same care documented above for
+  # integration-tests/e2e-tests before changing.
   detect-changes:
     name: Detect change scope
     runs-on: ubuntu-latest
     outputs:
       frontend_only: ${{ steps.classify.outputs.frontend_only }}
       backend_only: ${{ steps.classify.outputs.backend_only }}
+      cli_only: ${{ steps.classify.outputs.cli_only }}
+      docs_only: ${{ steps.classify.outputs.docs_only }}
       # A release candidate is a PR targeting main, a push to main (a
       # develop->main PR merging — see release.yml, 0058), or a manual
       # dispatch. Everything else (routine develop-targeting PRs) is not,
       # and skips the expensive e2e/deploy-verification chain below.
       release_candidate: ${{ github.base_ref == 'main' || (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
       - id: classify
         run: |
           if [ "${{ github.event_name }}" != "pull_request" ]; then
-            echo "frontend_only=false" >> "$GITHUB_OUTPUT"
-            echo "backend_only=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "frontend_only=false"
+              echo "backend_only=false"
+              echo "cli_only=false"
+              echo "docs_only=false"
+            } >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          changed=$(git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}")
-          # A workflow-file change is exactly the PR that must never trust
-          # either skip path — including this one, the first time it existed
-          # at all: skipping e2e-tests/integration-tests for a change to the
-          # logic that skips e2e-tests/integration-tests would mean the
-          # skip's own correctness goes unverified by the PR that changes it.
-          if [ -z "$changed" ] || echo "$changed" | grep -qE '^\.github/workflows/'; then
-            echo "frontend_only=false" >> "$GITHUB_OUTPUT"
-            echo "backend_only=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          frontend_pattern='^(apps/web/|e2e/|playwright\.config\.ts$|playwright\.compose\.config\.ts$)'
-          frontend_relevant_pattern='^(apps/web/|e2e/|playwright\.config\.ts$|playwright\.compose\.config\.ts$|packages/design-tokens/|packages/routing/|packages/realtime/)'
-          if echo "$changed" | grep -qvE "$frontend_pattern"; then
-            echo "frontend_only=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "frontend_only=true" >> "$GITHUB_OUTPUT"
-          fi
-          if echo "$changed" | grep -qE "$frontend_relevant_pattern"; then
-            echo "backend_only=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "backend_only=true" >> "$GITHUB_OUTPUT"
-          fi
+          # scripts/classify-ci-paths.mjs owns the patterns and the
+          # workflow-file escape hatch (a workflow-file change must never
+          # trust either skip path — including this one, the first time it
+          # existed at all — so the skip's own correctness always gets
+          # verified by the PR that changes it); see that file and its
+          # scripts/classify-ci-paths.test.mjs for the classification logic.
+          git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}" \
+            | node scripts/classify-ci-paths.mjs >> "$GITHUB_OUTPUT"
 
   install:
     name: Install
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # corepack must be enabled before setup-node: its yarn-cache probe invokes the
       # global yarn, which errors on the packageManager pin if it's still Yarn 1.x.
       - run: corepack enable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: yarn
@@ -107,11 +114,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: install
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # corepack must be enabled before setup-node: its yarn-cache probe invokes the
       # global yarn, which errors on the packageManager pin if it's still Yarn 1.x.
       - run: corepack enable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: yarn
@@ -124,48 +131,68 @@ jobs:
     runs-on: ubuntu-latest
     needs: install
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # corepack must be enabled before setup-node: its yarn-cache probe invokes the
       # global yarn, which errors on the packageManager pin if it's still Yarn 1.x.
       - run: corepack enable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: yarn
       - run: yarn install --immutable
       - run: yarn typecheck
 
-  # Added by 0026: a missing access decorator is a security defect, so surface
+  # A missing access decorator is a security defect, so surface
   # it as its own required check instead of burying it inside API coverage.
   guard-coverage:
     name: Guard coverage
     runs-on: ubuntu-latest
     needs: install
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: corepack enable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: yarn
       - run: yarn install --immutable
-      - run: yarn workspace @copalibre/api test --testPathPatterns 'access-coverage'
+      # role-capabilities (openspec 0165): the declared capability vocabulary
+      # and role mapping every guard below resolves through.
+      - run: yarn workspace @copalibre/domain test --testPathPatterns 'role-capabilities'
+      - run: yarn workspace @copalibre/api test --testPathPatterns 'access-coverage|capability-guard'
+      # audit-vocabulary/audit-coverage (openspec 0166): the declared audited
+      # action vocabulary and the gate failing an aggregate mutation that
+      # records no audit entry. tasks.md names the "unit-tests" job for this
+      # step; access-coverage actually lives here, in guard-coverage — placed
+      # after it to match the task's intent (a build gate a missing audit
+      # entry fails) rather than its stale job name.
+      - run: yarn workspace @copalibre/domain test --testPathPatterns 'audit-vocabulary'
+      - run: yarn workspace @copalibre/persistence test --testPathPatterns 'audit-coverage'
 
   license-scan:
     name: License scan
     runs-on: ubuntu-latest
     needs: install
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # corepack must be enabled before setup-node: its yarn-cache probe invokes the
       # global yarn, which errors on the packageManager pin if it's still Yarn 1.x.
       - run: corepack enable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: yarn
       - run: yarn install --immutable
       - run: yarn license:check
+
+  # No Node/Yarn install needed — `ubuntu-latest` ships shellcheck preinstalled,
+  # and this only ever lints one file.
+  shellcheck-install-script:
+    name: Shellcheck install.sh
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: shellcheck apps/copalibre/install.sh
 
   # Added by 0035-kubernetes-enterprise-deployment: structurally enforces
   # design.md's "enterprise-ready is an evidence-gated claim" decision —
@@ -180,77 +207,118 @@ jobs:
     runs-on: ubuntu-latest
     needs: install
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: corepack enable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: yarn
       - run: yarn install --immutable
       - run: node --test scripts/check-enterprise-readiness-docs.test.mjs
       - run: node scripts/check-enterprise-readiness-docs.mjs
+      - run: node --test scripts/check-readme-doc-links.test.mjs
+      - run: node scripts/check-readme-doc-links.mjs
+      - run: node --test scripts/i18n-content-review.test.mjs
+      - run: node --test scripts/check-help-locale-parity.test.mjs
+      - run: node scripts/check-help-locale-parity.mjs
+      - run: node --test scripts/check-help-coverage.test.mjs
+      - run: node scripts/check-help-coverage.mjs
+      # Descriptor-authoring guide coverage (openspec 0163): every field the
+      # discipline descriptor schema declares has a non-empty explanation,
+      # and no explanation names a field the schema no longer has — the same
+      # map copalibre_descriptor_schema returns and the published guide's
+      # generated reference page renders. Needs @copalibre/domain built,
+      # unlike this job's other checks, since it imports the real schema.
+      - run: yarn workspace @copalibre/domain build
+      - run: node --test scripts/check-descriptor-guide-coverage.test.mjs
+      - run: node scripts/check-descriptor-guide-coverage.mjs
+      - run: node --test scripts/check-control-ui-ownership.test.mjs
+      - run: node scripts/check-control-ui-ownership.mjs
+      # Role manual capability lists (openspec 0165): generated from
+      # role-capabilities.ts, gated against it in both directions —
+      # an undocumented grant and an over-promised claim both fail.
+      - run: node --test scripts/generate-role-manuals.test.mjs
+      - run: node scripts/generate-role-manuals.mjs --check
+      - run: node --test scripts/check-role-manual-drift.test.mjs
+      - run: node scripts/check-role-manual-drift.mjs
 
-  # Added by 0002-domain-model-core; later phases' suites run under the same job
-  # via the root `yarn test:coverage` fan-out. This includes 0025's console
-  # projection, descriptor validation, palette, idempotency-key, and reconciliation tests.
+  # Later phases' suites run under the same job via the root `yarn test:coverage`
+  # fan-out. This includes the console projection, descriptor validation,
+  # palette, idempotency-key, and reconciliation tests.
   unit-tests:
     name: Unit tests
     runs-on: ubuntu-latest
     needs: install
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # corepack must be enabled before setup-node: its yarn-cache probe invokes the
       # global yarn, which errors on the packageManager pin if it's still Yarn 1.x.
       - run: corepack enable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: yarn
       - run: yarn install --immutable
+      # The generator every jest.config.cjs's moduleNameMapper now calls
+      # — runs before test:verify-discovery below, since a bug here would make
+      # every workspace's module resolution wrong in a way a test count alone
+      # would not explain.
+      - run: node --test scripts/generate-jest-workspace-mapper.test.cjs
       # --passWithNoTests makes "zero tests discovered" look identical to success,
-      # which a broken Jest/ESM config would otherwise hide (0006).
+      # which a broken Jest/ESM config would otherwise hide.
       - run: yarn test:verify-discovery
       # First-party modules are data, so their loader/schema coverage is a
-      # separate guard against a release shipping an unreadable catalogue (0029).
+      # separate guard against a release shipping an unreadable catalogue.
       - run: yarn workspace @copalibre/module-catalogue test:coverage
-      # The S3/filesystem adapter contract (0041) — both profiles against the
+      # The S3/filesystem adapter contract — both profiles against the
       # same shared test suite; async processing and the real round-trip
       # checks run in integration, against real MinIO/clamd.
       - run: yarn workspace @copalibre/object-storage test:coverage
       # Module package validation, compatibility checking, and fetch/import
-      # logic (0036) — previously had no dedicated CI step; added here rather
+      # logic — previously had no dedicated CI step; added here rather
       # than left to only run when a broader `test:verify-discovery` count
-      # happens to pass (0045, which adds the first test for the extracted
-      # `evaluateCoreVersionCompatibility`).
+      # happens to pass, which covers the extracted
+      # `evaluateCoreVersionCompatibility`.
       - run: yarn workspace @copalibre/module-distribution test:coverage
-      # Covers the scheduling conflict detection and mutation classification
-      # (0012), which are pure domain logic; the SQL side runs in integration.
-      # Since 0015 it also carries seasons, the person/player split and the
+      # Covers the scheduling conflict detection and mutation classification,
+      # which are pure domain logic; the SQL side runs in integration.
+      # It also carries seasons, the person/player split and the
       # natural-key normalisation that decides whether two spellings of one
-      # document are one human. Since 0016 it carries the two granularity
+      # document are one human, and the two granularity
       # hierarchies, the collector declaration and the adjustment fact — a
       # collector chain that feeds itself fails here rather than at install.
       - run: yarn workspace @copalibre/domain test:coverage
-      # Golden-fixture suite included; any fixture mismatch fails the PR (0003).
-      # Covers the win-condition registry, evaluator and trace fixture (0009),
-      # and the constraint action registry and ratio comparator (0010). Since
-      # 0013 it also carries the hook surface, the four new conditions, the
+      # Golden-fixture suite included; any fixture mismatch fails the PR.
+      # Covers the win-condition registry, evaluator and trace fixture,
+      # and the constraint action registry and ratio comparator. It also
+      # carries the hook surface, the four new conditions, the
       # expression whitelist and function registry, the declared effects, and
       # the hook-evaluation trace golden — which is part of the determinism
       # guard alongside the draw and allocation goldens: a replay that stops
-      # reproducing its draws moves that fixture and fails the PR. Since 0016 it
+      # reproducing its draws moves that fixture and fails the PR. It also
       # covers `adjustStatistic`, which declares a movement and performs none.
       - run: yarn workspace @copalibre/rules test:coverage
+      # Matches view (openspec 0172): the deciding-factor summarizer, named
+      # separately so a reviewer scanning the job log finds this capability's
+      # own signal directly, even though the coverage run above already
+      # exercises it.
+      - run: yarn workspace @copalibre/rules test --testPathPatterns 'render'
       - run: yarn workspace @copalibre/api test:coverage
-      # Includes the golden-fixture regression set (0007), the discipline-driven
-      # accounting and tennis regression suites (0009), the determinism guard for
-      # seed allocation and the constrained draw (0010), and the placement-stage
-      # goldens (0011). Every advertised format has generation tests here, and a
+      - run: yarn workspace @copalibre/api test:sqlite
+      # Includes the golden-fixture regression set, the discipline-driven
+      # accounting and tennis regression suites, the determinism guard for
+      # seed allocation and the constrained draw, and the placement-stage
+      # goldens. Every advertised format has generation tests here, and a
       # duel golden moving is how this job reports an accidental regression.
-      # Since 0016 it carries the fold: figures on both axes from one pass, and
+      # It also carries the fold: figures on both axes from one pass, and
       # an average recomputed from its samples rather than averaged again.
       - run: yarn workspace @copalibre/tournament-engine test:coverage
-      # The durable job substrate (0017): the backoff curve, the dispatcher and
+      # The orchestration layer wiring the fold engine to real persistence
+      # — the pure resolution/aggregation cores (roster resolution,
+      # live-fold merge, rollup aggregation). The database calls around them
+      # run only in integration, below.
+      - run: yarn workspace @copalibre/statistics-refold test:coverage
+      # The durable job substrate: the backoff curve, the dispatcher and
       # the relay pass are pure, and a retry schedule that quietly stops growing
       # is the kind of regression only arithmetic tests catch.
       - run: yarn workspace @copalibre/worker test:coverage
@@ -263,61 +331,130 @@ jobs:
       # SQLite is a fast repository-feedback profile only. PostgreSQL remains
       # mandatory in integration-tests for migration, locking, audit and outbox.
       - run: yarn workspace @copalibre/persistence test:sqlite
-      # The catalogue seeder's own sqlite profile (0029) — previously unwired
+      # The catalogue seeder's own sqlite profile — previously unwired
       # into CI, which is how a real single-connection transaction deadlock in
-      # createRuleset/createTeam (0040) shipped undetected under this dialect.
+      # createRuleset/createTeam shipped undetected under this dialect.
       - run: yarn workspace @copalibre/seed test:sqlite
-      # The URL builder (0020): one place that knows what a thing is called on
+      # The URL builder: one place that knows what a thing is called on
       # every surface, and the alias redirect that keeps a printed URL working.
       - run: yarn workspace @copalibre/routing test:coverage
-      # The public overview's view model (0020), plus the standings/seeding view
-      # models and the bracket-canvas geometry (0024).
+      # The public overview's view model, plus the standings/seeding view
+      # models and the bracket-canvas geometry.
       - run: yarn workspace @copalibre/web test:coverage
-      # Contextual control-panel help links (0043): every screen's helpPath
+      # Descriptor and profile builders (openspec 0164): the discipline and
+      # tournament-profile authoring wizards' pure state logic (step gating,
+      # win-condition composition, document assembly) and component
+      # behavior (decision hints, in-surface refusal, server-failure
+      # rendering) — named separately so a reviewer scanning the job log
+      # finds this capability's own signal directly. The locale parity
+      # check already covers the new strings through its existing catalog
+      # comparison (run as part of the `web test:coverage` step above), so
+      # it needs no new step.
+      - run: yarn workspace @copalibre/web test --testPathPatterns 'descriptor-builder|profile-builder'
+      # The authored-module packaging helper packageAuthoredModule
+      # (openspec 0164) — writes an authored document to the on-disk
+      # package layout every other module source already produces, proven
+      # to be a package `validateModulePackage` accepts. Already covered by
+      # the workspace's own `test:coverage` step above; named separately so
+      # a reviewer finds this capability's own signal directly.
+      - run: yarn workspace @copalibre/module-distribution test --testPathPatterns 'author'
+      # Wizard decision descriptions: the three-tier resolution order, the
+      # reversibility sentence derived from ConfigFieldPolicies, and the
+      # decision-hint atom's accessible wiring — named separately so a
+      # reviewer scanning the job log finds this capability's own signal
+      # directly. The locale parity check in enterprise-readiness-doc-lint
+      # already covers the new strings through its existing catalog
+      # comparison, so it needs no new step.
+      - run: yarn workspace @copalibre/web test --testPathPatterns 'decision-hint|wizard'
+      - run: yarn workspace @copalibre/domain test --testPathPatterns 'descriptor-schema'
+      # Series operations and surfaces: the schedule builder's per-game rows,
+      # grouping and three contingency states; the offline queue surviving a
+      # refusal caused by an anulled match; and the public series bar's wiring
+      # for best-of and aggregate — named separately so a reviewer scanning the
+      # job log finds this capability's own signal directly. The locale parity
+      # check in enterprise-readiness-doc-lint already covers the new strings
+      # through its existing catalog comparison, so it needs no new step.
+      - run: yarn workspace @copalibre/web test --testPathPatterns 'schedule-series|offline-queue|live-surfaces'
+      - run: yarn workspace @copalibre/api test --testPathPatterns 'stage-series'
+      # Series accounting grain: the fixture-grouping fix that replaces the
+      # id-munging heuristic, the count-fold rule under series vs. match
+      # grain, and the series' own resolution trace folded into a row's
+      # explanation — named separately so a reviewer scanning the job log
+      # finds this capability's own signal directly. The wizard/standings-
+      # surface coverage lives alongside 0159's own tests in the same files
+      # rather than a new one, so this pattern names those files directly.
+      # The locale parity check in enterprise-readiness-doc-lint already
+      # covers the new strings through its existing catalog comparison, so
+      # it needs no new step.
+      - run: yarn workspace @copalibre/tournament-engine test --testPathPatterns 'standings'
+      - run: yarn workspace @copalibre/web test --testPathPatterns 'authoring\.test|authoring-ui\.test|StandingsPage\.test|overview\.test|public-api-client\.test'
+      # Contextual control-panel help links: every screen's helpPath
       # resolves to a real Starlight page, named separately so a reviewer
       # finds this capability's own signal directly.
-      - run: yarn workspace @copalibre/web test --testPathPatterns 'control-help-links'
-      # tv-surfaces (0031): the organizer-branding override guard and the
+      - run: yarn workspace @copalibre/web test --testPathPatterns 'control-help-links|help-coverage'
+      # Matches view (openspec 0172): the shared card component, its control-
+      # panel route (fetch/filter/render, including the full comparator trace
+      # for an authorized viewer), named separately so a reviewer scanning the
+      # job log finds this capability's own signal directly. The
+      # comparator-trace label and the routing-table entry are already
+      # covered by @copalibre/rules and @copalibre/routing's own full-suite
+      # steps above, so they need no separate step here.
+      - run: yarn workspace @copalibre/web test --testPathPatterns 'MatchCard|MatchesViewRoute'
+      # tv-surfaces: the organizer-branding override guard and the
       # device-heartbeat status classification, named separately so a reviewer
       # scanning the job log finds the TV surface's own signal directly.
       - run: yarn workspace @copalibre/web test --testPathPatterns 'tv-branding|device-heartbeat'
-      # Platform internationalization foundation (0051): the seven-language
+      # Platform internationalization foundation: the seven-language
       # contract and the per-browser interface-language resolution order —
       # named separately so a reviewer finds this capability's own signal
       # directly.
       - run: yarn workspace @copalibre/domain test --testPathPatterns 'i18n'
       - run: yarn workspace @copalibre/web test --testPathPatterns 'language-preference'
-      # Control-panel interface strings (0053): every string extracted to a
+      # Control-panel interface strings: every string extracted to a
       # message catalog with English and Spanish both populated, the
       # Spanish-fidelity regression sample, and catalog completeness — named
       # separately so a reviewer finds this capability's own signal directly.
       - run: yarn workspace @copalibre/web test --testPathPatterns 'i18n/i18n\.test'
-      # Public-web locale infrastructure (0055): the English/Spanish catalog
+      # Stackable control notifications: lifecycle, persistence, independent
+      # dismissal, and localized API error mapping get their own CI signal.
+      - run: yarn workspace @copalibre/web test --testPathPatterns 'toast|notification'
+      # Public-web locale infrastructure: the English/Spanish catalog
       # completeness check and the build-time formatter that renders real
       # translated chrome rather than an English fallback — named separately
       # so a reviewer finds this capability's own signal directly.
       - run: yarn workspace @copalibre/web test --testPathPatterns 'lib/i18n/public-intl'
-      # participant-reporting (0032): the report/dispute fact validator (never
+      # participant-reporting: the report/dispute fact validator (never
       # a field capable of directly setting authoritative state), the
       # resource-ownership party-to-match check, the evidence-validation
       # worker job's decision logic, and the pending-queue view model — named
       # separately so a reviewer finds this capability's own signal directly.
       - run: yarn workspace @copalibre/domain test --testPathPatterns 'participant-report'
       - run: yarn workspace @copalibre/api test --testPathPatterns 'resource-policy'
+      # union-list merge canonicalization (openspec 0171): object-shaped
+      # array elements that differ only in key order dedupe correctly, and
+      # the existing string-array case is unaffected — named separately so a
+      # reviewer finds this fix's own signal directly.
+      - run: yarn workspace @copalibre/domain test --testPathPatterns 'compiler'
       - run: yarn workspace @copalibre/worker test --testPathPatterns 'report-evidence'
       - run: yarn workspace @copalibre/web test --testPathPatterns 'control/lib/reports'
-      # competition-lifecycle (0033): the five-state legal-transition table,
+      # competition-lifecycle: the five-state legal-transition table,
       # exhaustively checked pairwise — named separately so a reviewer finds
       # this capability's own signal directly.
       - run: yarn workspace @copalibre/domain test --testPathPatterns 'tournament'
-      # The soak-report growth judgment (0031, 9.3) — the arithmetic that
+      # Ruleset and stage-configuration editing (openspec 0169): every
+      # built-in discipline's scoring.* field policies classify through
+      # evaluateMutation and compile through the built-in disciplines'
+      # descriptors — named separately so a reviewer finds this capability's
+      # own signal directly.
+      - run: yarn workspace @copalibre/domain test --testPathPatterns 'ruleset-override-mutation'
+      # The soak-report growth judgment — the arithmetic that
       # decides whether the nightly and per-PR soak runs pass, tested without
       # a browser.
       - run: node --test scripts/tv-soak-test.test.mjs
-      # One token source generated into CSS and Tailwind (0019); the tests are
+      # One token source generated into CSS and Tailwind; the tests are
       # what stop the two outputs drifting apart.
       - run: yarn workspace @copalibre/design-tokens test:coverage
-      # The SSE wire contract and the client both web surfaces share (0018).
+      # The SSE wire contract and the client both web surfaces share.
       # The encoder and the parser are two halves of one format, and the test
       # that reads back what the encoder wrote is what keeps them halves.
       - run: yarn workspace @copalibre/realtime test:coverage
@@ -327,94 +464,102 @@ jobs:
       # Deployment command parsing and doctor coverage must stay above their
       # local threshold; a green API suite does not exercise the operator CLI.
       - run: yarn workspace @copalibre/copalibre test:coverage
-      # Startup self-identification (0042): stderr-only, printed before any
+      # Startup self-identification: stderr-only, printed before any
       # subcommand output, discloses the real version/license from
       # package.json — named separately so a reviewer finds this
       # capability's own signal directly, matching the precedent set for
-      # tv-surfaces (0031), participant-reporting (0032) and
-      # competition-lifecycle (0033).
+      # tv-surfaces, participant-reporting and
+      # competition-lifecycle.
       - run: yarn workspace @copalibre/copalibre test --testPathPatterns 'banner'
-      # Comprehensive CLI help (0044): every command and module subcommand
+      # Comprehensive CLI help: every command and module subcommand
       # answers --help/-h from one metadata table, and the /help/cli/
       # commands.md reference page is checked against that same table so it
       # cannot silently drift from the real command set — named separately so
       # a reviewer finds this capability's own signal directly.
       - run: yarn workspace @copalibre/copalibre test --testPathPatterns 'help-text|cli-docs-parity'
-      # Non-destructive upgrade path (0045): upgrade-check evaluates installed
+      # Descriptor-authoring MCP tools: copalibre_descriptor_schema and
+      # copalibre_descriptor_validate call the domain validator directly
+      # (never restate it), with no token and no HTTP surface — named
+      # separately so a reviewer finds this capability's own signal
+      # directly. Also covered by the broader 'mcp' pattern step below.
+      - run: yarn workspace @copalibre/copalibre test --testPathPatterns 'descriptor-authoring-tools'
+      # Non-destructive upgrade path: upgrade-check evaluates installed
       # modules' declared compatibility against a target version and reports
       # pending migrations, reusing module-distribution's install-time check
       # rather than a second hand-written one — named separately so a
       # reviewer finds this capability's own signal directly.
       - run: yarn workspace @copalibre/copalibre test --testPathPatterns 'upgrade-check'
-      # Backup/restore packets (0046) plus version-aware restore safety
-      # (0050): a compressed, self-describing packet with retention pruning,
+      # Security cutover parsing, confirmation, and aggregate-only operator output.
+      - run: yarn workspace @copalibre/copalibre test --testPathPatterns 'pat-cutover'
+      # Backup/restore packets plus version-aware restore safety:
+      # a compressed, self-describing packet with retention pruning,
       # and a restore that refuses a newer-than-code backup, migrates, and
       # verifies the schema before reporting success — named separately so a
       # reviewer finds this capability's own signal directly, matching the
-      # precedent set for tv-surfaces (0031) onward.
-      - run: yarn workspace @copalibre/copalibre test --testPathPatterns 'backup-packet|backup\.test|cli-runner'
-      # copalibre mcp (0047): a local stdio MCP server exposing installation
+      # precedent set for tv-surfaces onward.
+      - run: yarn workspace @copalibre/copalibre test --testPathPatterns 'backup-packet|backup\.test|cli\.test'
+      # copalibre mcp: a local stdio MCP server exposing installation
       # actions in-process and a curated set of tournament-operational
       # actions gated behind an explicit token — named separately so a
       # reviewer finds this capability's own signal directly.
       - run: yarn workspace @copalibre/copalibre test --testPathPatterns 'mcp'
-      # AI-driven module authoring (0049): scaffold a structurally-valid
+      # AI-driven module authoring: scaffold a structurally-valid
       # module from CopaLibre's own catalogue, validate it locally, and
       # submit it as a pull request to copalibre-modules — named separately
       # so a reviewer finds this capability's own signal directly.
       - run: yarn workspace @copalibre/copalibre test --testPathPatterns 'module-authoring'
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: coverage-domain
           path: packages/domain/coverage
           retention-days: 14
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: coverage-module-catalogue
           path: packages/module-catalogue/coverage
           retention-days: 14
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: coverage-rules
           path: packages/rules/coverage
           retention-days: 14
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: coverage-api
           path: apps/api/coverage
           retention-days: 14
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: coverage-tournament-engine
           path: packages/tournament-engine/coverage
           retention-days: 14
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: coverage-worker
           path: apps/worker/coverage
           retention-days: 14
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: coverage-scheduler
           path: apps/scheduler/coverage
           retention-days: 14
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: coverage-events
           path: apps/events/coverage
           retention-days: 14
 
-  # Added by 0036-community-module-distribution task 8.1: the reusable
-  # module-validation.yml workflow (which the curated copalibre-modules
-  # repository also calls on its own pull requests) run here against that
+  # The reusable module-validation.yml workflow (which the curated
+  # copalibre-modules repository also calls on its own pull requests) run
+  # here against that
   # same reference repository's real fixtures, at this PR's own commit — so
   # a core change that breaks the module contract (a renamed registry
   # action, a tightened asset limit, a reserved-alias list edit) fails here
@@ -428,15 +573,15 @@ jobs:
       module-repository-ref: main
       copalibre-ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
-  # Added by 0022: a copied component is how an MIT notice quietly disappears.
+  # A copied component is how an MIT notice quietly disappears.
   third-party-notices:
     name: Third-party notices
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: node scripts/check-third-party-notices.mjs
 
-  # Added by 0020: the public site is built and its output inspected — the page
+  # The public site is built and its output inspected — the page
   # must be complete without JavaScript, and the sitemap must not advertise an
   # operator or venue route.
   public-web-build:
@@ -448,26 +593,25 @@ jobs:
     # here (unlike e2e-tests, which build also needs).
     if: needs.detect-changes.outputs.backend_only != 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: corepack enable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: yarn
       - run: yarn install --immutable
       # The pages import built packages and generated tokens; neither is
       # committed, so a fresh checkout has to make both. @copalibre/domain
-      # joined this list in 0053: apps/web/src/lib/language-preference.ts
-      # (0051) imports it, and 0053 is the first change to actually wire that
-      # file into a live page bundle (ControlShell's ControlIntl), so this is
-      # the first time this job's build needs it resolved.
+      # joined this list because apps/web/src/lib/language-preference.ts
+      # imports it, and that file is wired into a live page bundle
+      # (ControlShell's ControlIntl), so this job's build needs it resolved.
       - run: yarn workspace @copalibre/domain build
       - run: yarn workspace @copalibre/routing build
       - run: yarn workspace @copalibre/realtime build
       - run: yarn workspace @copalibre/design-tokens build:tokens
       - run: yarn workspace @copalibre/web verify:build
 
-  # Added by 0028: Starlight and the statically served Scalar document are a
+  # Starlight and the statically served Scalar document are a
   # separate product surface. Build and inspect them before the dependent
   # OpenAPI, integration, and browser checks run.
   docs-build:
@@ -475,27 +619,27 @@ jobs:
     runs-on: ubuntu-latest
     needs: [install, typecheck]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: corepack enable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: yarn
       - run: yarn install --immutable
-      # @copalibre/domain joined this list in 0053, same reason as the Public
-      # web build job above: apps/web/src/lib/language-preference.ts (0051)
-      # imports it, and 0053 is the first change to make that file reachable
-      # from a real build (ControlShell's ControlIntl).
+      # @copalibre/domain joined this list for the same reason as the Public
+      # web build job above: apps/web/src/lib/language-preference.ts
+      # imports it, and that file is reachable from a real build
+      # (ControlShell's ControlIntl).
       - run: yarn workspace @copalibre/domain build
       - run: yarn workspace @copalibre/routing build
       - run: yarn workspace @copalibre/realtime build
       - run: yarn workspace @copalibre/design-tokens build:tokens
       - run: yarn workspace @copalibre/web verify:docs
 
-  # Added by 0023: operator flows are client-side islands backed by the control
+  # Operator flows are client-side islands backed by the control
   # API. Playwright runs the production web build and mocks those API calls so
   # wizard submission and registration decisions fail here if route wiring drifts.
-  # 0024 adds standings trace and seeding/bracket specs; 0025 adds A4 console
+  # This also covers standings trace and seeding/bracket specs, plus A4 console
   # event, clock, timer, idempotency, capability, and reconciliation scenarios.
   e2e-tests:
     name: E2E tests
@@ -505,16 +649,16 @@ jobs:
     # above. build also needs this job (and integration-tests); it gets an
     # explicit if: rather than relying on cascade, so a backend-only PR's
     # release-image build still runs despite this input being skipped.
-    # Also skipped outright for a non-release-candidate run (0058): a routine
+    # Also skipped outright for a non-release-candidate run: a routine
     # develop-targeting PR gets fast lint/typecheck/unit/integration feedback
     # without the Playwright suite; see detect-changes' release_candidate.
     if: |
       needs.detect-changes.outputs.backend_only != 'true' &&
       needs.detect-changes.outputs.release_candidate == 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: corepack enable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: yarn
@@ -522,10 +666,10 @@ jobs:
       # The Astro build imports built packages and generated tokens; a fresh
       # checkout has neither, and Playwright's webServer reports the failure as
       # "the server did not start" rather than as the missing dist it is.
-      # @copalibre/domain joined this list in 0053, same reason as the Public
+      # @copalibre/domain joined this list for the same reason as the Public
       # web build and Help docs build jobs: apps/web/src/lib/language-preference.ts
-      # (0051) imports it, and 0053 is the first change to make that file
-      # reachable from a real build (ControlShell's ControlIntl).
+      # imports it, and that file is reachable from a real build
+      # (ControlShell's ControlIntl).
       - run: yarn workspace @copalibre/domain build
       - run: yarn workspace @copalibre/routing build
       - run: yarn workspace @copalibre/realtime build
@@ -534,13 +678,97 @@ jobs:
       # always runs (the apt-installed OS deps aren't cacheable), but it
       # skips redownloading the browser binary itself when the cache below
       # already has it at the same version.
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('yarn.lock') }}
       - run: yarn playwright install --with-deps chromium
-      - run: yarn test:e2e
-      # Accelerated TV soak-test proxy (0031, 9.2/10.2). design.md describes
+      - name: Responsive and full E2E suite
+        run: yarn test:e2e
+      # Wizard decision descriptions: every decision on every wizard step
+      # carries a reachable explanation, and a blocked_after_results field
+      # states its irreversibility before it is chosen — named separately so
+      # a failure says so directly rather than arriving as one red line in
+      # the full suite.
+      - name: Wizard decision descriptions (E2E)
+        run: yarn test:e2e -- e2e/control-authoring.spec.ts
+      # Help surfaces: every control-panel route's help link resolves to a
+      # current page (including platform administration, whose route no
+      # longer declares an empty helpPath), a page's declared roles render
+      # visibly, and the series/schedule pages are reachable in a non-English
+      # locale — named separately so a failure says so directly rather than
+      # arriving as one red line in the full suite.
+      - name: Help surfaces (E2E)
+        run: yarn test:e2e -- e2e/help-surfaces.spec.ts
+      # Series surfaces, named separately so a failure says so directly rather
+      # than arriving as one red line in the full suite: the builder's per-game
+      # rows and contingency marks, and the public bracket's series bar read
+      # with colour forced off.
+      - name: Series operations and surfaces (E2E)
+        run: yarn test:e2e -- e2e/control-series-schedule.spec.ts e2e/public-series-surfaces.spec.ts
+      # Series accounting grain: the public standings preview and the live
+      # page's leaders table both name the grain in server-rendered HTML —
+      # one run of each with JavaScript disabled proves the statement never
+      # depended on it — and a single-match tournament's preview is
+      # unchanged. Named separately so a failure says so directly.
+      - name: Series accounting grain (E2E)
+        run: yarn test:e2e -- e2e/public-accounting-grain.spec.ts
+      # Descriptor and profile builders: authoring a complete discipline
+      # through the builder with every decision explained and an incomplete
+      # declaration refused in the surface before submission; a profile
+      # stage format the discipline does not declare refused; and
+      # publication refused without authorship or an English name — named
+      # separately so a failure says so directly rather than arriving as
+      # one red line in the full suite.
+      - name: Descriptor and profile builders (E2E)
+        run: yarn test:e2e -- e2e/control-descriptor-profile-builders.spec.ts
+      # Role manuals and navigation (openspec 0165): control-panel nav
+      # follows the declared capability mapping for admin, club-admin,
+      # tournament-admin and referee; each role manual page is one click
+      # from the help index and names what it inherits and cannot do; a
+      # club-admin's refusal outside their club names ownership through the
+      # real UI; and the invite dialog's tournament picker gates
+      # submission — named separately so a failure says so directly.
+      - name: Role manuals and navigation (E2E)
+        run: yarn test:e2e -- e2e/role-manual-navigation.spec.ts
+      # Audit trail (openspec 0166): an administrator reaches the surface
+      # from the sidenav and sees applied and refused actions with their
+      # actor and outcome; a role without org.view-audit-trail neither sees
+      # the navigation entry nor reaches the surface directly — named
+      # separately so a failure says so directly.
+      - name: Audit trail (E2E)
+        run: yarn test:e2e -- e2e/audit-trail.spec.ts
+      # Competition structure editing (openspec 0168): renaming a stage and
+      # a zone from their respective screens, a capacity reduction refused
+      # in the tournament-settings screen before the save request is ever
+      # sent, and deleting an unreferenced upload from the storage-usage
+      # screen — named separately so a failure says which surface broke.
+      - name: Competition structure editing (E2E)
+        run: yarn test:e2e -- e2e/control-competition-structure-editing.spec.ts
+      # Ruleset and stage-configuration editing (openspec 0169): a tournament's
+      # ruleset override fields edited from the dedicated ruleset screen, a
+      # blocked field refused in the UI before the save request is ever sent,
+      # and a stage's configuration override edited before seeding then found
+      # locked once seeded — named separately so a failure says which surface
+      # broke.
+      - name: Ruleset and stage configuration editing (E2E)
+        run: yarn test:e2e -- e2e/control-ruleset-and-stage-configuration-editing.spec.ts
+      # Participant identity link correction (openspec 0170): a person
+      # pre-linked to the wrong email is unlinked, then re-linked to the
+      # correct one, with the registration-review screen reflecting the
+      # final state throughout — named separately so a failure says which
+      # surface broke. Invitation rescission's own E2E coverage lives in
+      # control-roles-permissions.spec.ts, already run by the full suite
+      # above.
+      - name: Participant identity link correction (E2E)
+        run: yarn test:e2e -- e2e/control-participant-identity-link.spec.ts
+      # Matches view (openspec 0172): the public card grid's server-rendered
+      # state filter and its summary-only deciding-factor line, and the
+      # control-panel equivalent's full comparator trace for an authorized
+      # organizer — named separately so a failure says which surface broke.
+      - name: Matches view (E2E)
+        run: yarn test:e2e -- e2e/public-matches-view.spec.ts e2e/control-matches-view.spec.ts
+      # Accelerated TV soak-test proxy. design.md describes
       # the per-PR-eligible proxy as a 2-hour run; a literal 2 hours on every
       # PR would be a severe, ongoing CI-turnaround regression this repo does
       # not otherwise have, so this runs the same script and threshold logic
@@ -558,14 +786,14 @@ jobs:
             --sample-interval-seconds=5 \
             --growth-threshold=0.25 \
             --report=tv-soak-report.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: tv-soak-report
           path: tv-soak-report.json
           retention-days: 14
 
-  # Added by 0024: "explainable rankings" is a claim until something proves the
+  # "Explainable rankings" is a claim until something proves the
   # text on the standings screen is the text the rules engine produced. This job
   # runs that one contract on its own so a failure names it, instead of arriving
   # as one red line among two hundred in the unit suite.
@@ -574,9 +802,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: install
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: corepack enable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: yarn
@@ -586,7 +814,7 @@ jobs:
       # disagreed, which is the failure this exists to catch.
       - run: yarn workspace @copalibre/web test --testPathPatterns 'trace-contract'
 
-  # Added by 0019: CopaLibre and sebasoft.app must look unrelated, and a brand
+  # CopaLibre and sebasoft.app must look unrelated, and a brand
   # review months later is not a control. The scan runs against generated
   # output, where a forbidden value arriving through any path shows up.
   forbidden-token-scan:
@@ -594,16 +822,16 @@ jobs:
     runs-on: ubuntu-latest
     needs: install
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: corepack enable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: yarn
       - run: yarn install --immutable
       - run: yarn workspace @copalibre/design-tokens scan:forbidden
 
-  # Added by 0004-persistence-postgres-outbox-audit: real PostgreSQL, no mocks.
+  # Real PostgreSQL, no mocks.
   integration-tests:
     name: Integration tests
     runs-on: ubuntu-latest
@@ -630,7 +858,7 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
-      # object-storage's own async media-processing suite (0041 task 7.1).
+      # object-storage's own async media-processing suite.
       # The image bakes its own HEALTHCHECK (clamdcheck.sh); GitHub Actions
       # waits for it before any step below runs, the same as postgres's
       # explicit one above.
@@ -641,11 +869,11 @@ jobs:
     env:
       DATABASE_URL: postgres://copalibre:copalibre_ci_only@localhost:5432/copalibre
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # corepack must be enabled before setup-node: its yarn-cache probe invokes the
       # global yarn, which errors on the packageManager pin if it's still Yarn 1.x.
       - run: corepack enable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: yarn
@@ -675,78 +903,207 @@ jobs:
       # Proves the one controlled migration entrypoint works before any test runs.
       - run: yarn workspace @copalibre/migrate run start
       # Explicit bootstrap only: validates the full release catalogue and proves
-      # re-seeding, aliases, audit and outbox against PostgreSQL (0029).
+      # re-seeding, aliases, audit and outbox against PostgreSQL.
       - run: yarn workspace @copalibre/seed test:integration
       # Includes the competition-record suite — a finished tournament must stay
-      # readable after the modules that produced it are deleted (0008) — the
-      # scheduling suite (0012), where atomic publication and in-transaction
+      # readable after the modules that produced it are deleted — the
+      # scheduling suite, where atomic publication and in-transaction
       # conflict detection can only be proven against a real database, and the
-      # match-operations suite (0014): a finalized result that refuses to be
+      # match-operations suite: a finalized result that refuses to be
       # overwritten, a correction that keeps what it replaced and why, and a
       # started downstream stage that is not rebuilt behind anyone's back. The
-      # person suite (0015) proves the rest against real constraints: one human
+      # person suite proves the rest against real constraints: one human
       # recognised across two spellings, holding a membership per team, and a
-      # document that never reaches the audit trail. The statistics suite (0016)
+      # document that never reaches the audit trail. The statistics suite
       # proves the projection: totals written at every declared granularity from
       # one pass, a correction that recomputes rather than compensates, and a
       # hand adjustment stored as an audited fact instead of an increment.
       - run: yarn workspace @copalibre/persistence test:integration
-      # The S3 profile against real MinIO (0041 task 6) — the unit suite
+      # The S3 profile against real MinIO — the unit suite
       # proves the same contract against a fake AWS SDK; this proves it
       # against a real endpoint. Filesystem-profile async processing and the
       # doctor round-trip check run against real clamd/MinIO too, in the
       # worker and copalibre integration steps below.
       - run: yarn workspace @copalibre/object-storage test:integration
-      # Guard/policy/controller suite through the real HTTP stack (0005),
-      # including match-scoped authorization (0014) and 0025's non-flaky
-      # idempotency, authorization, audit/outbox, reconciliation, and 0027 CSV
+      # Guard/policy/controller suite through the real HTTP stack,
+      # including match-scoped authorization and non-flaky
+      # idempotency, authorization, audit/outbox, reconciliation, and CSV
       # import/export contracts discovered by the workspace integration glob.
       - run: yarn workspace @copalibre/api test:integration
-      # 0028 proves that the help/API-reference build has no runtime API
+      # Multi-match series lifecycle: generation, scheduling, atomic surplus
+      # match anullment, aggregate ties, and qualification cuts.
+      - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'series'
+      # Series operations reaching an organizer: authoring a series through the
+      # API, the correction preview and the reinstatement that holds no slot, a
+      # queued command refused by an anulled match with the series named, and the
+      # public projection's play order. Named separately from the 'series'
+      # pattern above so a failure says which half broke — the engine 0158 built
+      # or the surfaces 0159 wired onto it.
+      - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'series-operations'
+      # Competition-structure editing (openspec 0168): a tournament's
+      # region/capacity/checkInClosesAt edited and previewed with the same
+      # classification a series-mutation preview already uses, a stage
+      # renamed/reformatted/removed before it holds a fixture, a zone or
+      # group renamed/removed before an entrant is assigned into it, and an
+      # unreferenced stored object deleted with its storage usage dropping
+      # by its size. No unit-tests step is added for either pattern: the
+      # domain-level capacity classification lives in the existing
+      # `rulesets/mutation.test.ts` file (covered by the workspace-wide
+      # `@copalibre/domain` run already in this job), and every API-layer
+      # path here writes through `UnitOfWork`, so there is no Postgres-free
+      # unit-level test file to run for it either.
+      - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'structure-editing|object-deletion'
+      # Ruleset and stage-configuration editing (openspec 0169): a published
+      # tournament's ruleset override fields edited and previewed through
+      # `evaluateMutation`, refused whole when one touched field is blocked or
+      # names no declared policy; a stage's own configuration override edited
+      # for as long as it holds no fixture, refused once seeded, naming that
+      # fixtures already exist. No API-layer unit-tests step is added: every
+      # path here writes through `UnitOfWork`, so there is no Postgres-free
+      # unit-level test file to run — the domain-level field-policy coverage
+      # runs separately as `ruleset-override-mutation` in the unit-tests job.
+      - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'ruleset-editing|stage-configuration-editing'
+      # Participant and access correction (openspec 0170): a pending
+      # organization invitation rescinded before it is accepted (including a
+      # concurrent rescind/accept race, and the same role-granting authority
+      # rescind requires that creation already requires), a participant
+      # identity link removed and re-linked to a different email, and a
+      # person or team record removed once it carries no entrant
+      # registration, roster membership, identity link, or report. No
+      # API-layer unit-tests step is added: every path here writes through
+      # `UnitOfWork`, so there is no Postgres-free unit-level test file to
+      # run (see the test file's own header comment).
+      - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'participant-and-access-correction'
+      # Direct participant authoring (openspec 0167): a person or team
+      # registered without a CSV file through the same repository paths a CSV
+      # row already takes, an identity edit preserving the entity's existing
+      # entrant registration, and an alias collision refused on create and on
+      # edit. No unit-tests step is added for this pattern: every path here
+      # writes through UnitOfWork, so there is no Postgres-free unit-level
+      # test file to run (see the test file's own header comment).
+      - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'participant-direct-authoring'
+      # Refused-attempt and audit-surface recording, through the real HTTP
+      # stack (openspec 0166): a role-refused request naming the missing
+      # capability, an unauthenticated refusal naming the actor's absence,
+      # and the audit-trail API itself (organization-scoped, paginated,
+      # gated by its own capability, a refusal to read it recorded like any
+      # other). Sensitive-read recording (exports, a person's profile) has
+      # no dedicated file — it is asserted inline in each route's own
+      # integration test (tournaments/data-export/identity-media), covered
+      # by the workspace-wide run above; named here for the two dedicated
+      # files this change adds.
+      - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'refusal-audit|audit-trail'
+      # Club and tournament resource scope, through the real HTTP stack
+      # (openspec 0165): a club-admin admitted to their own club and refused
+      # on another, admin reaching a club-admin's resource by inheritance, a
+      # tournament-admin admitted within its named tournament and refused
+      # against a different one, and refused organization-wide authority
+      # (user administration, org settings, club management) — named
+      # separately so a reviewer finds this capability's own signal directly.
+      - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'role-scope'
+      # Series accounting grain, through the real read path: a series-grain
+      # decision accounted as one result per side, a match-grain declaration
+      # accounting every played game with the unplayed one contributing
+      # nothing, an undeclared-series stage reporting no grain at all, and a
+      # materialised snapshot returned verbatim rather than recomputed —
+      # named separately so a reviewer finds this capability's own signal
+      # directly.
+      - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'accounting-grain'
+      # Compiled-ruleset persistence (openspec 0171): a stage with its own
+      # series override reading its own stage-scoped compiled row while a
+      # sibling stage falls back to the tournament's, and a custom-scripts
+      # update writing a fresh row a subsequently recorded event reads —
+      # named separately so a reviewer finds this write path's own signal
+      # directly.
+      - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'compiled-ruleset'
+      # Matches view (openspec 0172), through the real HTTP stack: the
+      # public endpoint's summary-only deciding-factor line, the
+      # control-panel endpoint's `org.view-internal-standings` gate (an
+      # admin and an in-scope tournament-admin admitted with the full
+      # comparator trace, an out-of-scope tournament-admin and a referee
+      # refused), and both endpoints' state/stage/group filters — named
+      # separately so a reviewer finds this capability's own signal
+      # directly.
+      - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'matches-view'
+      # Descriptor and profile builders (openspec 0164): authoring a
+      # discipline through the API, installing it, creating a tournament
+      # and playing a match against it — the proof that an authored
+      # discipline is an ordinary one; a profile validated against it
+      # pre-creating both stages on tournament creation; revision into a
+      # new version with a started tournament's referenced version
+      # protected; re-seeding the bundled catalogue leaving an authored
+      # module untouched; and authoring refused for an organization
+      # administrator, permitted for a super administrator — named
+      # separately so a reviewer finds this capability's own signal
+      # directly.
+      - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'authored-modules'
+      # Worked transcriptions (openspec 0163): the authoring guide's two
+      # example descriptors — a two-sided timed discipline, a placement
+      # discipline — install through the real path, not just the schema
+      # validator in isolation. A schema change that invalidates a
+      # documented example fails here, not by misleading an agent reading
+      # the guide.
+      - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'worked-transcription'
+      # Live-cadence statistics: a collector declaring `live` updates
+      # inside `recordEvent`'s own transaction, before the match ends; a
+      # default-cadence collector's total stays absent until finalize — named
+      # separately so a reviewer finds this capability's own signal directly.
+      - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'live-statistics'
+      # Proves that the help/API-reference build has no runtime API
       # dependency. Its static-build contract joins the existing integration job.
       - run: yarn workspace @copalibre/web test:integration
       # Includes the N-sided result, retired-module and segment-threshold
-      # notification suites (0009), the full stage-transition suite (0010), and
-      # the declared-effect suite (0013): one identity across two evaluations,
+      # notification suites, the full stage-transition suite, and
+      # the declared-effect suite: one identity across two evaluations,
       # a timer whose remaining time derives from one stored record, and effects
       # that never reach the outbox when the transaction rolls back.
       - run: yarn workspace @copalibre/tournament-engine test:integration
-      # The relay against real PostgreSQL (0017): `for update skip locked`, a
+      # `refold`/the rollup read path against real PostgreSQL: a
+      # match's roster and competition context resolved from real tables and
+      # folded by the real engine, a `collector`-sourced collector's total, a
+      # corrected result's recompute, and a rollup resolved through real
+      # `EnrollmentRepository` membership — named separately so a reviewer
+      # finds this capability's own signal directly.
+      - run: yarn workspace @copalibre/statistics-refold test:integration
+      # The relay against real PostgreSQL: `for update skip locked`, a
       # claim that expires after a worker dies, an idempotency marker that makes
       # a redelivery a no-op, and a dead letter that keeps its whole failure
-      # history. Also the loop 0016 left open — a finalization arriving here is
-      # what writes the folded figures. Since 0041 it also carries async media
-      # processing through the real relay against real clamd: a clean object
-      # marked passed, an EICAR-payload object marked failed and audited.
+      # history. Also the loop left open by the base scheduling flow — a
+      # finalization arriving here is what writes the folded figures. It also
+      # carries async media processing through the real relay against real
+      # clamd: a clean object marked passed, an EICAR-payload object marked
+      # failed and audited.
       - run: yarn workspace @copalibre/worker test:integration
       # Three replicas racing for one lease, and a periodic job that is enqueued
       # once per interval rather than up to three times.
       - run: yarn workspace @copalibre/scheduler test:integration
-      # The streams through the real HTTP stack (0018): the headers an SSE
+      # The streams through the real HTTP stack: the headers an SSE
       # response sets, a public path that needs no credential at all, a token in
       # a query string refused, and a cursor outside the replay window told to
       # fetch a projection instead of being replayed a partial one.
       - run: yarn workspace @copalibre/events test:integration
-      # tv-surfaces (0031): issuance/revocation/scope-binding against real
+      # tv-surfaces: issuance/revocation/scope-binding against real
       # PostgreSQL, and the device-scoped SSE guard through the real HTTP
       # stack — named separately so a reviewer finds the TV surface's own
       # signal directly rather than inside the broad persistence/events runs
       # above (which already include these files; this just re-surfaces them).
       - run: yarn workspace @copalibre/persistence run test:integration --testPathPatterns 'display-token'
+      # Legacy PAT cutover: active-only, auditable and idempotent revocation.
+      - run: yarn workspace @copalibre/persistence run test:integration --testPathPatterns 'personal-access-token-repository'
       - run: yarn workspace @copalibre/events run test:integration --testPathPatterns 'display-token'
-      # participant-reporting (0032): submission/authorization through the
+      # participant-reporting: submission/authorization through the
       # real HTTP stack (the first suite in this repo to exercise a
       # participant token through OrganizationAccessGuard end to end) and the
       # correction endpoint's sourceReportId reference, named separately so a
       # reviewer finds this capability's own signal directly.
       - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'reports'
       - run: yarn workspace @copalibre/persistence run test:integration --testPathPatterns 'match-operations'
-      # competition-lifecycle (0033): the illegal-transition rejection and
+      # competition-lifecycle: the illegal-transition rejection and
       # archival's effect on the active-only listing through the real HTTP
       # stack, and archived-tournament export byte-equality — named
       # separately so a reviewer finds this capability's own signal directly.
       - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'lifecycle'
-      # Platform internationalization foundation (0051): organization primary
+      # Platform internationalization foundation: organization primary
       # language/timezone validation and update against real PostgreSQL, and
       # the admin-gated settings endpoint through the real HTTP stack — named
       # separately so a reviewer finds this capability's own signal directly
@@ -756,25 +1113,36 @@ jobs:
       - run: yarn workspace @copalibre/api run test:integration --testPathPatterns 'organization-access-guard'
       # Runs the CLI's process-level misconfiguration contract. The API
       # bootstrap lifecycle itself is covered by the API integration suite.
-      # Since 0041 this also covers doctor's object-storage round-trip check
+      # This also covers doctor's object-storage round-trip check
       # failing clearly against real wrong MinIO credentials and a real
       # read-only filesystem path.
       - run: yarn workspace @copalibre/copalibre build
       - run: yarn workspace @copalibre/copalibre test:integration
+      # `statistics-rebuild`: populates totals for pre-engine history
+      # and reproduces them byte-for-byte on a second run — named separately
+      # so a reviewer finds this capability's own signal directly (already
+      # included in the broad run above via the workspace's own test glob).
+      - run: yarn workspace @copalibre/copalibre run test:integration --testPathPatterns 'statistics-rebuild'
 
-  # Added by 0005-api-auth-jwt-openapi-contract. Regenerates the artifact from
+  # Regenerates the artifact from
   # the decorated controllers, fails on drift from the committed copy, then runs
   # contract-lint and the breaking-change check.
   openapi-contract-lint:
     name: OpenAPI contract lint
     runs-on: ubuntu-latest
-    needs: [install, typecheck, docs-build]
+    needs: [install, typecheck, docs-build, detect-changes]
+    # Skipped for a PR confined to apps/copalibre (no other workspace
+    # consumes it, and it defines no API endpoints of its own) or to
+    # documentation (prose can't change what apps/api generates) — see
+    # detect-changes above. No other job needs this one, so a plain if: is
+    # safe here.
+    if: needs.detect-changes.outputs.cli_only != 'true' && needs.detect-changes.outputs.docs_only != 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # corepack must be enabled before setup-node: its yarn-cache probe invokes the
       # global yarn, which errors on the packageManager pin if it's still Yarn 1.x.
       - run: corepack enable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: yarn
@@ -810,7 +1178,7 @@ jobs:
     # backend-only PR needs validated. A genuine failure (not a skip) in
     # either still blocks this job either way.
     #
-    # Also gated on release_candidate (0058): skipped outright for a routine
+    # Also gated on release_candidate: skipped outright for a routine
     # develop-targeting PR, which has no need for a release image. Because
     # deployment-e2e and deploy-smoke-test both key off this job's own
     # `result` (== 'success'), gating it here is sufficient — a skip here
@@ -827,8 +1195,8 @@ jobs:
       needs.e2e-tests.result != 'failure' &&
       needs.e2e-tests.result != 'cancelled'
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
       # buildx's own GitHub Actions cache backend (type=gha) — no extra
       # action needed beyond setup-buildx-action, it talks to the runner's
       # built-in cache API directly. Every GitHub-hosted runner is a fresh
@@ -849,7 +1217,7 @@ jobs:
             --load .
       - name: Export tested images
         run: docker save copalibre:ci copalibre-web:ci | gzip > copalibre-images.tar.gz
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: copalibre-images
           path: copalibre-images.tar.gz
@@ -880,7 +1248,7 @@ jobs:
       COPALIBRE_API_URL: http://localhost:3001
       COPALIBRE_BOOTSTRAP_TOKEN: copalibre_e2e_bootstrap_only
       # A static stub (docker-compose.jwks-test.yml) that actually serves
-      # JWKS content: doctor's jwks-content check (0040) fetches this and
+      # JWKS content: doctor's jwks-content check fetches this and
       # needs a real 200-with-`keys` response, not a bare hostname.
       COPALIBRE_JWKS_URI: http://jwks-stub/jwks.json
       COPALIBRE_JWT_ISSUER: http://jwks-stub
@@ -890,37 +1258,49 @@ jobs:
       COPALIBRE_EMAIL_FROM: e2e@copalibre.invalid
       COPALIBRE_SMTP_URL: smtp://host.docker.internal:1025
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: corepack enable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: yarn
       - run: yarn install --immutable
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('yarn.lock') }}
       - run: yarn playwright install --with-deps chromium
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: copalibre-images
       - run: gzip --decompress --stdout copalibre-images.tar.gz | docker load
       - name: Start JWKS stub
         run: docker compose -f docker-compose.yml -f docker-compose.jwks-test.yml --profile jwks-test up --detach jwks-stub
+      - run: mkdir -p ci-e2e-install
+      # `copalibre init` writes into the current directory (docker-compose.yml,
+      # .env, the installation marker) — running it in the checkout root
+      # would collide with the checkout's own dev-reference
+      # docker-compose.yml (the one "Start JWKS stub" above uses via -f),
+      # so this and every later step that runs `docker compose` bare
+      # operate from a fresh empty subdirectory instead, matching
+      # docs/self-hosting.md's own documented "cd into any empty directory
+      # first" flow.
       - name: Run clean-host CLI lifecycle
+        working-directory: ci-e2e-install
         run: |
-          ./copalibre init
-          ./copalibre doctor
-          ./copalibre start
-          ./copalibre create-admin --organization-alias integrity-league --organization-name "Integrity League" --email admin@example.test
+          ../copalibre init
+          ../copalibre doctor
+          ../copalibre start
+          ../copalibre create-admin --organization-alias integrity-league --organization-name "Integrity League" --email admin@example.test
       - name: Verify Compose login and PKCE
         run: yarn playwright test --config playwright.compose.config.ts
       - name: Show container logs on failure
         if: failure()
+        working-directory: ci-e2e-install
         run: docker compose logs --no-color
       - name: Remove ephemeral installation
         if: always()
+        working-directory: ci-e2e-install
         run: docker compose down --volumes --remove-orphans
 
   deploy-smoke-test:
@@ -947,8 +1327,8 @@ jobs:
       COPALIBRE_EMAIL_FROM: noreply@copalibre.invalid
       COPALIBRE_SMTP_URL: smtp://postgres:5432
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
           name: copalibre-images
       - name: Load tested images

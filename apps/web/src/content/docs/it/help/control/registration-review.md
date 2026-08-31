@@ -1,6 +1,11 @@
 ---
 title: Revisione iscrizioni
 description: Cosa fanno accettare, rifiutare o ritirare un'iscrizione, e come importare partecipanti via CSV.
+capabilities:
+  - control-web/registration-review
+roles:
+  - admin
+  - club-admin
 ---
 
 ## A cosa serve questa schermata
@@ -17,6 +22,11 @@ lo stato precedente, lo stato risultante e chi l'ha presa.
 - **Importa da CSV**: carica un file di partecipanti; il sistema valida il contenuto e mostra
   un'anteprima riga per riga prima di confermare. Nessuna riga con errore viene importata finché il
   file non viene corretto e ritentato.
+- **Iscritti che necessitano di un'abbreviazione**: un partecipante in collisione su ogni etichetta
+  breve derivata automaticamente viene registrato senza averne una impostata, e altrimenti è
+  invisibile — questa sezione elenca quei partecipanti e ti permette di impostarne una direttamente.
+  Un valore già usato da un altro partecipante del torneo viene rifiutato sul momento, indicando il
+  conflitto; un partecipante risolto scompare dall'elenco.
 - **Revisione in blocco**: applica la stessa decisione a più iscrizioni contemporaneamente; ognuna
   rimane comunque registrata separatamente, non come un unico evento aggregato.
 

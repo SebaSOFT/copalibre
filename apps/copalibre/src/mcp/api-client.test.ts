@@ -5,7 +5,7 @@ function fakeConfig(fetchImplementation: typeof fetch) {
   return { baseUrl: 'http://api.invalid', token: 'test-token', fetchImplementation };
 }
 
-describe('apiGet/apiPost (0047)', () => {
+describe('apiGet/apiPost', () => {
   it('sends a bearer Authorization header and parses a JSON response', async () => {
     const fetchImplementation = jest.fn<typeof fetch>(
       async () => new Response(JSON.stringify({ alias: 'liga' }), { status: 200 }),

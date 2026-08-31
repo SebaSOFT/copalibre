@@ -1,9 +1,29 @@
 ---
 title: CopaLibre 帮助
 description: 使用 CopaLibre 安全运营自托管赛事。
+capabilities:
+  - platform/help-and-api-docs
+  - platform/internationalization
+roles:
+  - admin
+  - club-admin
+  - tournament-admin
+  - referee
+  - broadcaster
+  - viewer
+  - super-admin
 ---
 
 CopaLibre 让每个组织都能掌控赛果、报名与运营活动。
+
+## 我的角色能做什么？
+
+每个角色都有自己的页面，由产品实际执行的同一份声明生成：
+
+- [Admin](/zh/help/roles/admin/) · [俱乐部管理员](/zh/help/roles/club-admin/) ·
+  [赛事管理员](/zh/help/roles/tournament-admin/) · [裁判](/zh/help/roles/referee/) ·
+  [转播](/zh/help/roles/broadcaster/) · [Viewer](/zh/help/roles/viewer/) ·
+  [超级管理员](/zh/help/roles/super-admin/)
 
 ## 开始之前
 

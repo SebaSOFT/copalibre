@@ -1,6 +1,10 @@
 ---
 title: Revue des rapports et litiges
 description: Ce que sont les rapports/litiges de participants, et ce que fait leur revue.
+capabilities:
+  - control-web/participant-reporting
+roles:
+  - admin
 ---
 
 ## À quoi sert cet écran

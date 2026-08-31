@@ -3,7 +3,6 @@ import {
   MessageType,
   Synapse,
   validateExecutionContext,
-  validateScript,
   type ExecutionContext,
   type HookEmitter,
 } from '@sebasoft/neuron-js';
@@ -27,14 +26,18 @@ import {
   type DeclaredEffect,
   type EffectDraft,
 } from '../effects/declared-effects.js';
-import { GuardEvaluationError, ScriptValidationError } from '../errors.js';
+import {
+  GuardEvaluationError,
+  ScriptValidationError,
+  type UnregisteredElementError,
+} from '../errors.js';
 import { expressionResolutions, pathsRead } from '../expressions/expression.js';
 import type { RulesRegistry, RuleScript } from '../registry/rules-registry.js';
 import type { EvaluationRecord, TraceNode } from '../trace/explanation-trace.js';
 import type { GuardState } from './vocabulary.js';
 
 /**
- * Evaluating a script at a hook (0013-scripting-hook-surface).
+ * Evaluating a script at a hook.
  *
  * The four evaluations that existed before this phase each built a context,
  * executed, and normalised into the trace contract, differing only in what they
@@ -78,6 +81,29 @@ export interface HookDecision {
   }>;
 }
 
+/** Save-time validation for one published hook, without executing value-dependent logic. */
+export function validateHookScriptDocument(
+  registry: RulesRegistry,
+  hookId: ScriptHookId,
+  script: RuleScript,
+): Result<true, ScriptValidationError | UnregisteredElementError> {
+  const hook = findScriptHook(hookId);
+  if (!hook) {
+    return err(new ScriptValidationError(`Unknown script hook "${hookId}"`, { hook: hookId }));
+  }
+  const document = registry.validateScriptDocument(script);
+  if (!document.ok) return document;
+  const unpublished = unpublishedPath(hook, script);
+  return unpublished
+    ? err(
+        new ScriptValidationError(
+          `Script "${script.id}" reads "${unpublished}", which "${hook.id}" does not publish`,
+          { hook: hook.id, path: unpublished },
+        ),
+      )
+    : ok(true);
+}
+
 /** One element's draw, recorded so an auditor reads what a rule fired on. */
 interface DrawRecord {
   readonly element: string;
@@ -103,27 +129,12 @@ export function evaluateAtHook(
     return err(new ScriptValidationError(dataOnly.error.message, dataOnly.error.details));
   }
 
-  const references = registry.validateScriptReferences(input.script);
-  if (!references.ok) {
-    return err(new ScriptValidationError(references.error.message, references.error.details));
-  }
-
-  const unpublished = unpublishedPath(hook, input.script);
-  if (unpublished) {
+  const document = validateHookScriptDocument(registry, input.hook, input.script);
+  if (!document.ok) {
     return err(
-      new ScriptValidationError(
-        `Script "${input.script.id}" reads "${unpublished}", which "${hook.id}" does not publish`,
-        { hook: hook.id, path: unpublished },
-      ),
-    );
-  }
-
-  const scriptValidation = validateScript(input.script);
-  if (!scriptValidation.ok) {
-    return err(
-      new ScriptValidationError('Hook script failed Neuron-JS validation', {
-        errors: scriptValidation.errors,
-      }),
+      document.error instanceof ScriptValidationError
+        ? document.error
+        : new ScriptValidationError(document.error.message, document.error.details),
     );
   }
 

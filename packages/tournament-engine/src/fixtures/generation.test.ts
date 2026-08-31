@@ -37,7 +37,7 @@ describe('format guard', () => {
   });
 
   it.each(['free-for-all', 'heats'] as const)('accepts the placement format %s', (format) => {
-    // 0011 widened the allowlist: what is duel-only is advancement, not
+    // The allowlist is wider: what is duel-only is advancement, not
     // competition, so these generate rather than being refused.
     expect(generateFixtures({ format, entrants: entrants(4) }).ok).toBe(true);
   });
@@ -286,5 +286,128 @@ describe('determinism', () => {
       expect.arrayContaining(['winners', 'losers', 'grand-final']),
     );
     expect(rounds.every((r) => r.matchIds.length > 0)).toBe(true);
+  });
+});
+
+describe('multi-match series generation', () => {
+  it('refuses series configuration on placement formats with UnsupportedFormatError', () => {
+    for (const format of ['free-for-all', 'heats'] as const) {
+      const result = generateFixtures({
+        format,
+        entrants: entrants(4),
+        series: { span: 3, resolutionClass: 'best-of' },
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error).toBeInstanceOf(UnsupportedFormatError);
+      }
+    }
+  });
+
+  it('refuses invalid series configuration with SeriesConfigurationError', () => {
+    const evenBestOf = generateFixtures({
+      format: 'single-elimination',
+      entrants: entrants(4),
+      series: { span: 4, resolutionClass: 'best-of' },
+    });
+    expect(evenBestOf.ok).toBe(false);
+
+    const spanOne = generateFixtures({
+      format: 'single-elimination',
+      entrants: entrants(4),
+      series: { span: 1, resolutionClass: 'best-of' },
+    });
+    expect(spanOne.ok).toBe(false);
+  });
+
+  it('generates 3 matches per fixture with alternating home/away in single elimination', () => {
+    const result = generateFixtures({
+      format: 'single-elimination',
+      entrants: entrants(4),
+      series: { span: 3, resolutionClass: 'best-of', neutralGround: false },
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    // 4 entrants = 2 rounds: R1 has 2 fixtures (6 matches), R2 has 1 fixture (3 matches) = 9 matches total
+    expect(result.value.matches).toHaveLength(9);
+
+    const r1m1Matches = result.value.matches.filter((m) => m.id.startsWith('SE-R1-M1'));
+    expect(r1m1Matches).toHaveLength(3);
+    expect(r1m1Matches.map((m) => (m as DuelMatch).matchNumber)).toEqual([1, 2, 3]);
+    expect(r1m1Matches.map((m) => (m as DuelMatch).homeSlot)).toEqual(['A', 'B', 'A']);
+
+    // Check contiguous match numbers starting from 1 across every fixture
+    const fixtureIds = new Set(result.value.matches.map((m) => m.id.replace(/-[0-9]+$/, '')));
+    for (const fId of fixtureIds) {
+      const fMatches = result.value.matches.filter((m) => m.id.startsWith(fId)) as DuelMatch[];
+      const numbers = fMatches.map((m) => m.matchNumber);
+      expect(numbers).toEqual([1, 2, 3]);
+    }
+  });
+
+  it('generates homeSlot as undefined when neutralGround is true', () => {
+    const result = generateFixtures({
+      format: 'single-elimination',
+      entrants: entrants(4),
+      series: { span: 3, resolutionClass: 'best-of', neutralGround: true },
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    for (const match of result.value.matches) {
+      expect((match as DuelMatch).homeSlot).toBeUndefined();
+    }
+  });
+
+  it('generates 5 matches per fixture in double elimination including grand final reset', () => {
+    const result = generateFixtures({
+      format: 'double-elimination',
+      entrants: entrants(4),
+      series: { span: 5, resolutionClass: 'best-of' },
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    const gfReset = result.value.matches.filter(
+      (m) => isDuelMatch(m) && m.bracket === 'grand-final' && m.round === 2,
+    );
+    expect(gfReset).toHaveLength(5);
+    expect(gfReset.map((m) => (m as DuelMatch).matchNumber)).toEqual([1, 2, 3, 4, 5]);
+    expect(gfReset.every((m) => (m as DuelMatch).conditional === 'bracket-reset')).toBe(true);
+  });
+
+  it('generates N matches per pairing in round-robin preserving round structure', () => {
+    const result = generateFixtures({
+      format: 'round-robin',
+      entrants: entrants(4),
+      series: { span: 3, resolutionClass: 'best-of' },
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    // 4 entrants = 3 rounds, 2 pairings per round = 6 pairings * 3 matches = 18 matches
+    expect(result.value.matches).toHaveLength(18);
+    const r1p1 = result.value.matches.filter((m) => m.id.startsWith('RR-R1-M1'));
+    expect(r1p1).toHaveLength(3);
+    expect(r1p1.map((m) => (m as DuelMatch).matchNumber)).toEqual([1, 2, 3]);
+  });
+
+  it('matches golden fixture graphs for best-of-three single elimination and best-of-five double elimination', () => {
+    const seBo3 = generateFixtures({
+      format: 'single-elimination',
+      entrants: entrants(4),
+      series: { span: 3, resolutionClass: 'best-of' },
+    });
+    if (!seBo3.ok) throw seBo3.error;
+    expectGolden('single-elimination-bo3-4', summarise(seBo3.value.matches));
+
+    const deBo5 = generateFixtures({
+      format: 'double-elimination',
+      entrants: entrants(4),
+      series: { span: 5, resolutionClass: 'best-of' },
+    });
+    if (!deBo5.ok) throw deBo5.error;
+    expectGolden('double-elimination-bo5-4', summarise(deBo5.value.matches));
   });
 });

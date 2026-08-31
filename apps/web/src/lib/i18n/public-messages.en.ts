@@ -1,7 +1,7 @@
 import { defineMessages } from 'react-intl';
 
 /**
- * Every public-web interface string, keyed by a stable ID (0055). English is
+ * Every public-web interface string, keyed by a stable ID. English is
  * the catalog's default/source language — `defaultMessage` here is also what
  * `react-intl` falls back to for any locale missing a translation.
  *
@@ -31,6 +31,22 @@ export const messages = defineMessages({
   resultStateTbd: { id: 'publicWeb.resultState.tbd', defaultMessage: 'TBD' },
   resultStateCancelled: { id: 'publicWeb.resultState.cancelled', defaultMessage: 'CANCELLED' },
 
+  // Result-reason badges (lib/bracket.ts, MatchNode.astro). `played` renders nothing.
+  resultReasonAdministrativeLoss: {
+    id: 'publicWeb.resultReason.administrativeLoss',
+    defaultMessage: 'ADMIN LOSS',
+  },
+  resultReasonWalkover: { id: 'publicWeb.resultReason.walkover', defaultMessage: 'W/O' },
+  resultReasonForfeitAbandonment: {
+    id: 'publicWeb.resultReason.forfeitAbandonment',
+    defaultMessage: 'FORFEIT',
+  },
+  resultReasonDisqualified: {
+    id: 'publicWeb.resultReason.disqualified',
+    defaultMessage: 'DISQUALIFIED',
+  },
+  resultReasonDidNotFinish: { id: 'publicWeb.resultReason.didNotFinish', defaultMessage: 'DNF' },
+
   // ResultLegend.astro
   legendHeading: { id: 'publicWeb.legend.heading', defaultMessage: 'Legend' },
 
@@ -46,6 +62,22 @@ export const messages = defineMessages({
   standingsTeam: { id: 'publicWeb.standings.team', defaultMessage: 'Team' },
   standingsPlayed: { id: 'publicWeb.standings.played', defaultMessage: 'MP' },
   standingsPoints: { id: 'publicWeb.standings.points', defaultMessage: 'Pts' },
+  standingsGrainSeries: {
+    id: 'publicWeb.standings.grain.series',
+    defaultMessage: 'This table counts one result per series.',
+  },
+  standingsGrainMatch: {
+    id: 'publicWeb.standings.grain.match',
+    defaultMessage: 'This table counts one result per played match.',
+  },
+  standingsColumnSeriesLabel: {
+    id: 'publicWeb.standings.column.series.label',
+    defaultMessage: 'Series',
+  },
+  standingsColumnSeriesShortLabel: {
+    id: 'publicWeb.standings.column.series.shortLabel',
+    defaultMessage: 'S',
+  },
 
   // TournamentHero.astro
   heroLiveCount: { id: 'publicWeb.hero.liveCount', defaultMessage: '{count} LIVE' },
@@ -69,10 +101,94 @@ export const messages = defineMessages({
   tickerHeading: { id: 'publicWeb.ticker.heading', defaultMessage: 'Matches' },
   tickerEmpty: { id: 'publicWeb.ticker.empty', defaultMessage: 'No matches scheduled yet.' },
 
+  // matches.astro / MatchCard.tsx
+  matchesViewPageTitle: { id: 'publicWeb.matchesView.pageTitle', defaultMessage: 'Matches' },
+  matchesViewFilterAll: { id: 'publicWeb.matchesView.filterAll', defaultMessage: 'All' },
+  matchesViewFilterLive: { id: 'publicWeb.matchesView.filterLive', defaultMessage: 'Live' },
+  matchesViewFilterUpcoming: {
+    id: 'publicWeb.matchesView.filterUpcoming',
+    defaultMessage: 'Upcoming',
+  },
+  matchesViewFilterFinal: { id: 'publicWeb.matchesView.filterFinal', defaultMessage: 'Final' },
+  matchesViewEmpty: {
+    id: 'publicWeb.matchesView.empty',
+    defaultMessage: 'No matches in this scope yet.',
+  },
+  matchesViewClockAriaLabel: {
+    id: 'publicWeb.matchesView.clockAriaLabel',
+    defaultMessage: 'Elapsed time: {time}',
+  },
+  matchesViewVenueAriaLabel: {
+    id: 'publicWeb.matchesView.venueAriaLabel',
+    defaultMessage: 'Venue: {venue}',
+  },
+  matchesViewLatestEventAriaLabel: {
+    id: 'publicWeb.matchesView.latestEventAriaLabel',
+    defaultMessage: 'Latest event: {event}',
+  },
+  matchesViewZoneGroupAriaLabel: {
+    id: 'publicWeb.matchesView.zoneGroupAriaLabel',
+    defaultMessage: 'Zone/group: {scope}',
+  },
+  matchesViewPositionInGroup: {
+    id: 'publicWeb.matchesView.positionInGroup',
+    defaultMessage: '{group} — position #{position}',
+  },
+  matchesViewPosition: {
+    id: 'publicWeb.matchesView.position',
+    defaultMessage: 'Position #{position}',
+  },
+  matchesViewDecidedBy: {
+    id: 'publicWeb.matchesView.decidedBy',
+    defaultMessage: 'Decided by: {factor}',
+  },
+  matchesViewDecidedByAriaLabel: {
+    id: 'publicWeb.matchesView.decidedByAriaLabel',
+    defaultMessage:
+      'The deciding factor between tied standings rows. A full explanation is available to an authorized organizer in the control panel.',
+  },
+  matchesViewFullTraceHeading: {
+    id: 'publicWeb.matchesView.fullTraceHeading',
+    defaultMessage: 'Full standings comparator trace',
+  },
+  matchesViewSeeAll: {
+    id: 'publicWeb.matchesView.seeAll',
+    defaultMessage: 'See every match',
+  },
+
   // SeriesStateBar.astro
   seriesAriaLabel: {
     id: 'publicWeb.series.ariaLabel',
     defaultMessage: 'Best of {bestOf} series: {home} to {away}',
+  },
+  seriesGameWonHome: {
+    id: 'publicWeb.series.gameWonHome',
+    defaultMessage: 'Game {number}: won by the home side',
+  },
+  seriesGameWonAway: {
+    id: 'publicWeb.series.gameWonAway',
+    defaultMessage: 'Game {number}: won by the away side',
+  },
+  seriesGameCurrent: {
+    id: 'publicWeb.series.gameCurrent',
+    defaultMessage: 'Game {number}: in progress',
+  },
+  seriesGameUpcoming: {
+    id: 'publicWeb.series.gameUpcoming',
+    defaultMessage: 'Game {number}: still to play',
+  },
+  seriesGameNotRequired: {
+    id: 'publicWeb.series.gameNotRequired',
+    defaultMessage: 'Game {number}: will not be played',
+  },
+  seriesPending: {
+    id: 'publicWeb.series.pending',
+    defaultMessage: 'Series undecided at {home}–{away}',
+  },
+  seriesDecided: { id: 'publicWeb.series.decided', defaultMessage: '{winner} won the series' },
+  seriesAggregate: {
+    id: 'publicWeb.series.aggregate',
+    defaultMessage: 'On aggregate {home}–{away}',
   },
 
   // LiveMatchHero.tsx (formatted at build time, passed down as a prop)
@@ -95,4 +211,89 @@ export const messages = defineMessages({
 
   // pages/[organization]/tournaments/[tournament]/stages/[stage].astro
   bracketPageTitle: { id: 'publicWeb.bracketPage.title', defaultMessage: 'Bracket' },
+
+  // Player profile / career popup
+  playerProfileHeading: { id: 'publicWeb.playerProfile.heading', defaultMessage: 'Player Profile' },
+  playerProfileAge: { id: 'publicWeb.playerProfile.age', defaultMessage: 'Age: {age}' },
+  playerProfileNationality: {
+    id: 'publicWeb.playerProfile.nationality',
+    defaultMessage: 'Nationality: {country}',
+  },
+  playerProfileHistoryHeading: {
+    id: 'publicWeb.playerProfile.historyHeading',
+    defaultMessage: 'Competition History',
+  },
+  playerProfileCareerStatsHeading: {
+    id: 'publicWeb.playerProfile.careerStatsHeading',
+    defaultMessage: 'Career Statistics',
+  },
+  playerProfileNoHistory: {
+    id: 'publicWeb.playerProfile.noHistory',
+    defaultMessage: 'No competition history recorded.',
+  },
+  playerProfileNoStats: {
+    id: 'publicWeb.playerProfile.noStats',
+    defaultMessage: 'No career statistics recorded.',
+  },
+  playerProfileClose: { id: 'publicWeb.playerProfile.close', defaultMessage: 'Close' },
+  playerProfilePhotoAlt: {
+    id: 'publicWeb.playerProfile.photoAlt',
+    defaultMessage: '{name}',
+  },
+  playerProfilePhotoPlaceholderAlt: {
+    id: 'publicWeb.playerProfile.photoPlaceholderAlt',
+    defaultMessage: 'No photo uploaded',
+  },
+
+  // Organization tournament listing
+  tournamentsPageTitle: { id: 'publicWeb.tournamentsPage.title', defaultMessage: 'Tournaments' },
+  tournamentsLiveHeading: {
+    id: 'publicWeb.tournamentsPage.liveHeading',
+    defaultMessage: 'Live & Active',
+  },
+  tournamentsUpcomingHeading: {
+    id: 'publicWeb.tournamentsPage.upcomingHeading',
+    defaultMessage: 'Upcoming',
+  },
+  tournamentsFinishedHeading: {
+    id: 'publicWeb.tournamentsPage.finishedHeading',
+    defaultMessage: 'Finished & Archive',
+  },
+  tournamentsEmpty: {
+    id: 'publicWeb.tournamentsPage.empty',
+    defaultMessage: 'No published tournaments found.',
+  },
+  tournamentsChampion: { id: 'publicWeb.tournamentsPage.champion', defaultMessage: 'Champion' },
+  tournamentsRunnerUp: { id: 'publicWeb.tournamentsPage.runnerUp', defaultMessage: 'Runner-up' },
+  tournamentsViewDetails: {
+    id: 'publicWeb.tournamentsPage.viewDetails',
+    defaultMessage: 'View tournament',
+  },
+
+  // Organization page — merged with the former tournament listing.
+  orgPageFeaturedHeading: {
+    id: 'publicWeb.orgPage.featuredHeading',
+    defaultMessage: 'Featured',
+  },
+  orgPageClubsHeading: { id: 'publicWeb.orgPage.clubsHeading', defaultMessage: 'Clubs' },
+  orgPageNoClubs: {
+    id: 'publicWeb.orgPage.noClubs',
+    defaultMessage: 'No clubs registered yet.',
+  },
+  orgPageEmblemAlt: {
+    id: 'publicWeb.orgPage.emblemAlt',
+    defaultMessage: '{name} emblem',
+  },
+  orgPageEmblemPlaceholderAlt: {
+    id: 'publicWeb.orgPage.emblemPlaceholderAlt',
+    defaultMessage: 'No emblem uploaded',
+  },
+  orgPageNotFoundTitle: {
+    id: 'publicWeb.orgPage.notFoundTitle',
+    defaultMessage: 'Organization not found',
+  },
+  orgPageNotFoundBody: {
+    id: 'publicWeb.orgPage.notFoundBody',
+    defaultMessage: 'No organization exists at this address.',
+  },
 });

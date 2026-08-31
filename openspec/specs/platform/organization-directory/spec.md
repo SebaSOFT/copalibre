@@ -44,3 +44,26 @@ for having no organization role assignment yet.
 - **WHEN** a caller presents a valid access token but has no `organization_role_assignments` row at all
 - **THEN** the request succeeds with an empty list, rather than being rejected for lacking organization
   context
+
+### Requirement: An organization carries an optional emblem served publicly by reference
+
+An organization SHALL carry an optional emblem stored as an object-storage reference, on the same terms
+a club's emblem already is. Uploading it SHALL require organizer authorization; serving it by reference
+SHALL NOT require authentication, because an organization's emblem is spectator-facing material rather
+than restricted evidence.
+
+#### Scenario: An organization with no emblem is valid
+- **WHEN** an organization is created without an emblem
+- **THEN** it is valid, and every surface rendering it shows a placeholder
+
+#### Scenario: Uploading requires authorization
+- **WHEN** an unauthenticated request attempts to upload an organization emblem
+- **THEN** the upload is refused
+
+#### Scenario: Serving does not require authentication
+- **WHEN** an anonymous visitor requests an organization's emblem by reference
+- **THEN** the image is served
+
+#### Scenario: An unknown organization's emblem 404s
+- **WHEN** an emblem is requested for an organization alias that does not exist
+- **THEN** a not-found response is returned

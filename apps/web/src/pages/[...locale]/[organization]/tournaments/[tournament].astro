@@ -6,13 +6,18 @@ import StandingsPreview from '../../../../components/StandingsPreview.astro';
 import BroadcastStatusPanel from '../../../../components/BroadcastStatusPanel.astro';
 import RulesetBriefing from '../../../../components/RulesetBriefing.astro';
 import { buildOverview, displayName } from '../../../../lib/overview.ts';
-import { fetchOverview, mapOverviewResponse } from '../../../../lib/public-api-client.ts';
+import {
+  fetchOverview,
+  fetchPublicTableLayouts,
+  fetchPublicTableProjection,
+  mapOverviewResponse,
+} from '../../../../lib/public-api-client.ts';
 import { publicIntl } from '../../../../lib/i18n/public-intl.ts';
 import { messages } from '../../../../lib/i18n/public-messages.en.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 
 /**
- * B1, the tournament overview (0020).
+ * B1, the tournament overview.
  *
  * Everything a spectator needs is server-rendered. The SSE stream from 0018 is
  * an improvement on this page, never a requirement for it: a venue on hotel
@@ -21,7 +26,7 @@ import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
  * The data is sample data until 0021 wires the read models; the shape is the
  * one the repositories already return.
  *
- * `[[locale]]` is an optional Astro route segment (0055): English, the
+ * `[[locale]]` is an optional Astro route segment: English, the
  * primary locale, is generated with `locale: undefined` (no URL segment);
  * every other supported language is generated with its own locale code
  * (0056 populated the remaining five alongside 0055's Spanish).
@@ -38,6 +43,39 @@ if (!overviewData) {
 }
 
 const model = buildOverview(mapOverviewResponse(overviewData));
+
+// The default table shown on the tournament landing page — the earliest
+// stage's own group-phase layout, matching what a spectator lands here
+// expecting to see. A tournament whose discipline declares no group-phase
+// layout (or that has not played a match yet) simply renders no table.
+const layoutsResponse = await fetchPublicTableLayouts(organization!, tournament!);
+const declaredLayouts = layoutsResponse?.layouts ?? [];
+
+const earliestStageNumber = overviewData.matches.reduce(
+  (earliest, match) => Math.min(earliest, match.stageNumber),
+  Infinity,
+);
+
+const requestedTab = Astro.url.searchParams.get('tab');
+const activeClubId = Astro.url.searchParams.get('clubId') ?? undefined;
+
+const defaultLayout =
+  declaredLayouts.find((one) => one.target === 'group-phase') ?? declaredLayouts[0];
+const activeLayout =
+  (requestedTab ? declaredLayouts.find((one) => one.code === requestedTab) : undefined) ??
+  defaultLayout;
+
+const activeProjection = activeLayout
+  ? await fetchPublicTableProjection(
+      organization!,
+      tournament!,
+      activeLayout.code,
+      activeLayout.target === 'group-phase' && Number.isFinite(earliestStageNumber)
+        ? earliestStageNumber
+        : undefined,
+      activeClubId,
+    )
+  : undefined;
 ---
 
 <PublicLayout
@@ -47,10 +85,27 @@ const model = buildOverview(mapOverviewResponse(overviewData));
   })}
   canonicalPath={model.canonicalPath}
   intl={intl}
+  disciplineImages={overviewData.disciplineImages}
 >
   <TournamentHero model={model} intl={intl} />
   <BroadcastStatusPanel model={model} intl={intl} />
-  <ScoreTicker model={model} intl={intl} />
-  <StandingsPreview model={model} intl={intl} />
+  <ScoreTicker model={model} intl={intl} localePrefix={locale ? `/${locale}` : ''} />
+  <p>
+    <a href={`${locale ? `/${locale}` : ''}${model.canonicalPath}/matches`}>
+      {intl.formatMessage(messages.matchesViewSeeAll)}
+    </a>
+  </p>
+  <StandingsPreview
+    layouts={declaredLayouts}
+    layout={activeLayout}
+    projection={activeProjection}
+    activeLayoutCode={activeLayout?.code}
+    activeClubId={activeClubId}
+    clubs={model.clubs}
+    intl={intl}
+    canonicalPath={`${locale ? `/${locale}` : ''}${model.canonicalPath}`}
+    organizationAlias={organization}
+    tournamentAlias={tournament}
+  />
   <RulesetBriefing model={model} intl={intl} />
 </PublicLayout>

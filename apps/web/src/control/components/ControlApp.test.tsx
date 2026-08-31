@@ -12,6 +12,11 @@ function json(body: unknown): Response {
   return new Response(JSON.stringify(body), { headers: { 'content-type': 'application/json' } });
 }
 
+function scopedToken(scopes: string): string {
+  const payload = btoa(JSON.stringify({ scp: scopes }));
+  return `header.${payload}.signature`;
+}
+
 function transaction(overrides: Partial<OidcTransaction> = {}): OidcTransaction {
   return {
     state: 'state-123',
@@ -28,7 +33,7 @@ describe('ControlApp', () => {
   let originalFetch: typeof fetch;
 
   beforeEach(() => {
-    // Dashboard's device-heartbeat panel (0031, 4.4), seeding, and standings
+    // Dashboard's device-heartbeat panel, seeding, and standings
     // all fetch on mount; a URL-routed stub keeps every screen from crashing
     // on a response shape it didn't ask for, matching control.test.tsx's own
     // fetch-stub pattern for the screens that only need `[]`.
@@ -49,6 +54,9 @@ describe('ControlApp', () => {
             hasRecordedResults: false,
           });
         }
+        if (url.includes('/configuration')) {
+          return json({ overrides: {} });
+        }
         if (url.includes('/standings')) {
           return json({
             stageId: 'stage-1',
@@ -58,11 +66,43 @@ describe('ControlApp', () => {
             trace: [],
           });
         }
+        if (url.endsWith('/tables')) {
+          return json({
+            layouts: [
+              {
+                code: 'group-standings-default',
+                target: 'group-phase',
+                label: 'Group Standings',
+                entityGranularity: 'team',
+              },
+            ],
+          });
+        }
+        if (url.includes('/tables/')) {
+          return json({
+            layoutCode: 'group-standings-default',
+            target: 'group-phase',
+            label: 'Group Standings',
+            columns: [],
+            defaultSort: [],
+            rows: [],
+            projectionVersion: 1,
+          });
+        }
+        if (url.includes('/internal-matches-view')) {
+          return json({ matches: [] });
+        }
+        if (url.endsWith('/tournaments/apertura-2026/settings')) {
+          return json({ name: 'Apertura 2026', region: 'Cuyo', capacity: 16 });
+        }
+        if (url.endsWith('/tournaments/apertura-2026/ruleset-overrides')) {
+          return json({ overrides: { 'scoring.pointsPerWin': 3 } });
+        }
         return json([]);
       },
     });
     // Every screen except `callback` redirects to login with no session
-    // (0062) — these tests render as an authenticated operator.
+    // — these tests render as an authenticated operator.
     controlTokenStore.write('test-access-token', Date.now() + 60_000);
   });
 
@@ -87,6 +127,27 @@ describe('ControlApp', () => {
       'reporte',
     ],
     [
+      '/control/liga-mendocina/tournaments/apertura-2026/matches-view',
+      'Partidos — apertura-2026',
+      'Partidos',
+    ],
+    [
+      '/control/liga-mendocina/tournaments/apertura-2026/settings',
+      'Configuración del torneo — apertura-2026',
+      'Configuración del torneo',
+    ],
+    [
+      '/control/liga-mendocina/tournaments/apertura-2026/ruleset',
+      'Reglamento del torneo — apertura-2026',
+      'scoring.pointsPerWin',
+    ],
+    ['/control/liga-mendocina/clubs', 'Clubes — liga-mendocina', 'club'],
+    [
+      '/control/liga-mendocina/tournaments/apertura-2026/stages/1/zones',
+      'Zonas y grupos — apertura-2026',
+      'Zona',
+    ],
+    [
       '/control/liga-mendocina/tournaments/apertura-2026/stages/1/seeding',
       'Sembrado — apertura-2026',
       'Sembrado',
@@ -96,11 +157,24 @@ describe('ControlApp', () => {
       'Posiciones — apertura-2026',
       'Posiciones',
     ],
-  ])('renders the right screen and title for %s', async (path, title) => {
+    ['/control/login', 'Iniciar sesión — CopaLibre', 'Ingresá para operar'],
+    ['/control/forgot-password', 'Recuperar contraseña — CopaLibre', 'Recuperar contraseña'],
+    [
+      '/control/reset-password',
+      'Restablecer contraseña — CopaLibre',
+      'Enlace de recuperación inválido',
+    ],
+    [
+      '/control/liga-mendocina/preferences',
+      'Preferencias personales — CopaLibre',
+      'Personal Preferences',
+    ],
+  ])('renders the right screen and title for %s', async (path, title, content) => {
     at(path);
     render(<ControlApp />);
 
     await waitFor(() => expect(document.title).toBe(title));
+    expect(screen.getAllByText(content, { exact: false }).length).toBeGreaterThan(0);
   });
 
   it('renders a not-found state for an unmatched path', () => {
@@ -108,6 +182,25 @@ describe('ControlApp', () => {
     render(<ControlApp />);
 
     expect(screen.getByText('Pantalla no encontrada')).toBeDefined();
+  });
+
+  it('renders global platform administration for a super-admin token', async () => {
+    controlTokenStore.write(
+      scopedToken('copalibre.control copalibre.super-admin'),
+      Date.now() + 60_000,
+    );
+    at('/control/platform');
+    render(<ControlApp />);
+
+    await waitFor(() => expect(document.title).toBe('Administración de plataforma — CopaLibre'));
+    expect(screen.getByRole('heading', { name: 'Administración de plataforma' })).toBeDefined();
+  });
+
+  it('does not render platform administration without the super-admin scope', () => {
+    at('/control/platform');
+    render(<ControlApp />);
+
+    expect(screen.queryByRole('heading', { name: 'Administración de plataforma' })).toBeNull();
   });
 
   it('re-renders the matching screen after client-side navigation, without a page reload', async () => {
@@ -142,7 +235,7 @@ describe('ControlApp', () => {
   });
 });
 
-describe('ControlApp session guard and callback (0062)', () => {
+describe('ControlApp session guard and callback', () => {
   let originalFetch: typeof fetch;
 
   beforeEach(() => {
@@ -210,7 +303,7 @@ describe('ControlApp session guard and callback (0062)', () => {
   });
 });
 
-describe('ControlApp default-returnTo login landing (0063)', () => {
+describe('ControlApp default-returnTo login landing', () => {
   let originalFetch: typeof fetch;
 
   function membership(overrides: Partial<Record<string, unknown>> = {}) {
@@ -320,8 +413,14 @@ describe('ControlApp default-returnTo login landing (0063)', () => {
     await waitFor(() => expect(screen.getByText('No se pudo completar el acceso')).toBeDefined());
   });
 
-  it('leaves a guard-redirected login (a real returnTo) untouched — no lookup performed', async () => {
-    let organizationsRequested = false;
+  it('leaves a guard-redirected login (a real returnTo) untouched — the redirect decision itself performs no lookup', async () => {
+    // The destination screen fetches organizations on its own, afterward, to
+    // resolve its nav role (openspec 0165) — expected and unrelated to this
+    // test. What must stay true is narrower: `CompletingLogin`'s redirect
+    // decision for a real (non-default) returnTo never awaits that lookup
+    // first, so a request to it before the pathname changes would mean the
+    // fast path regressed into blocking on one.
+    let organizationsRequestedBeforeRedirect = false;
     originalFetch = globalThis.fetch;
     Object.defineProperty(globalThis, 'fetch', {
       configurable: true,
@@ -330,7 +429,12 @@ describe('ControlApp default-returnTo login landing (0063)', () => {
         if (url === 'https://identity.example/token') {
           return json({ access_token: 'fresh-access-token', expires_in: 3600 });
         }
-        if (url.includes('/organizations?mine=true')) organizationsRequested = true;
+        if (
+          url.includes('/organizations?mine=true') &&
+          window.location.pathname !== '/control/liga-mendocina'
+        ) {
+          organizationsRequestedBeforeRedirect = true;
+        }
         return json([]);
       },
     });
@@ -340,6 +444,6 @@ describe('ControlApp default-returnTo login landing (0063)', () => {
     render(<ControlApp />);
 
     await waitFor(() => expect(window.location.pathname).toBe('/control/liga-mendocina'));
-    expect(organizationsRequested).toBe(false);
+    expect(organizationsRequestedBeforeRedirect).toBe(false);
   });
 });

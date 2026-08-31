@@ -1,5 +1,35 @@
+import { Type } from 'class-transformer';
+import {
+  IsArray,
+  IsBoolean,
+  IsIn,
+  IsInt,
+  IsObject,
+  IsOptional,
+  IsString,
+  Min,
+  ValidateNested,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '@copalibre/domain';
+import {
+  ORGANIZATION_ROLES,
+  SUPPORTED_LANGUAGES,
+  type LocalizedLabel,
+  type OrganizationRole,
+  type SupportedLanguage,
+} from '@copalibre/domain';
+
+const localizedLabelOneOf = [
+  { type: 'string' as const, minLength: 1 },
+  {
+    type: 'object' as const,
+    required: ['en'],
+    additionalProperties: false,
+    properties: Object.fromEntries(
+      SUPPORTED_LANGUAGES.map((language) => [language, { type: 'string', minLength: 1 }]),
+    ),
+  },
+];
 
 /** Wire DTOs are camelCase, per the naming-conventions casing rule. */
 export class OrganizationResponse {
@@ -27,18 +57,25 @@ export class OrganizationResponse {
     example: 'America/Argentina/San_Juan',
   })
   timezone!: string;
+
+  @ApiPropertyOptional({ format: 'uuid', description: 'object_metadata.object_id of the emblem' })
+  emblemObjectId?: string;
 }
 
 export class CreateOrganizationRequest {
+  @IsString()
   @ApiProperty({
     description: 'Lowercase kebab-case alias, unique per installation',
     example: 'liga-orbital',
   })
   alias!: string;
 
+  @IsString()
   @ApiProperty({ example: 'Liga Orbital' })
   name!: string;
 
+  @IsOptional()
+  @IsString()
   @ApiPropertyOptional({
     enum: SUPPORTED_LANGUAGES,
     description:
@@ -51,6 +88,8 @@ export class CreateOrganizationRequest {
     description: 'IANA time zone identifier; defaults to "UTC" when omitted',
     example: 'America/Argentina/San_Juan',
   })
+  @IsOptional()
+  @IsString()
   timezone?: string;
 }
 
@@ -68,27 +107,98 @@ export class MyOrganizationResponse {
   organizationName!: string;
 
   @ApiProperty({
-    enum: ['admin', 'referee', 'broadcaster', 'viewer'],
+    enum: ORGANIZATION_ROLES,
     description: "The caller's active role in this organization",
   })
-  role!: 'admin' | 'referee' | 'broadcaster' | 'viewer';
+  role!: OrganizationRole;
 }
 
 export class UpdateOrganizationSettingsRequest {
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({ example: 'Liga Orbital' })
+  name?: string;
+
+  @IsOptional()
+  @IsString()
   @ApiPropertyOptional({ enum: SUPPORTED_LANGUAGES, example: 'en' })
   primaryLanguage?: string;
 
+  @IsOptional()
+  @IsString()
   @ApiPropertyOptional({ example: 'America/Argentina/San_Juan' })
   timezone?: string;
 }
 
+export class ClubResponse {
+  @ApiProperty({ format: 'uuid' })
+  clubId!: string;
+
+  @ApiProperty({ format: 'uuid' })
+  organizationId!: string;
+
+  @ApiPropertyOptional({
+    description: 'Path identifier, unique within the organization.',
+    example: 'casa-de-italia',
+  })
+  alias?: string;
+
+  @ApiProperty({ example: 'Casa de Italia' })
+  name!: string;
+
+  @ApiPropertyOptional({ example: 'C I' })
+  abbreviation?: string;
+
+  @ApiPropertyOptional({ format: 'uuid', description: 'object_metadata.object_id of the emblem' })
+  emblemObjectId?: string;
+}
+
+export class CreateClubRequest {
+  @IsString()
+  @ApiProperty({ example: 'Casa de Italia' })
+  name!: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({
+    description: 'Defaults to a suggestion derived from the name when omitted.',
+    example: 'casa-de-italia',
+  })
+  alias?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({ example: 'C I' })
+  abbreviation?: string;
+}
+
+export class UpdateClubRequest {
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({ example: 'Casa de Italia' })
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({ example: 'casa-de-italia' })
+  alias?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({ example: 'C I' })
+  abbreviation?: string;
+}
+
 export class BootstrapAdministratorRequest {
+  @IsString()
   @ApiProperty({ example: 'liga-orbital' })
   organizationAlias!: string;
 
+  @IsString()
   @ApiProperty({ example: 'Liga Orbital' })
   organizationName!: string;
 
+  @IsString()
   @ApiProperty({ format: 'email', example: 'admin@example.test' })
   email!: string;
 }
@@ -110,6 +220,14 @@ export class BootstrapAdministratorResponse {
   setupUrl!: string;
 }
 
+export class ProfileRefResponse {
+  @ApiProperty({ format: 'uuid' })
+  profileId!: string;
+
+  @ApiProperty({ example: '1.0.0' })
+  version!: string;
+}
+
 export class TournamentResponse {
   @ApiProperty({ format: 'uuid' })
   tournamentId!: string;
@@ -127,7 +245,7 @@ export class TournamentResponse {
     enum: ['draft', 'published', 'started', 'finished', 'archived'],
     description:
       "Once started, the tournament's discipline and profile versions are frozen and its results " +
-      'are materialised. Archived is legal only from finished (0033) and changes default visibility ' +
+      'are materialised. Archived is legal only from finished and changes default visibility ' +
       'only — no data is affected.',
   })
   status!: 'draft' | 'published' | 'started' | 'finished' | 'archived';
@@ -140,43 +258,40 @@ export class TournamentResponse {
 
   @ApiPropertyOptional({
     format: 'date-time',
-    description: 'When the tournament was archived (0033); absent until then.',
+    description: 'When the tournament was archived; absent until then.',
   })
   archivedAt?: string;
 
   @ApiPropertyOptional({ format: 'uuid', description: 'Active ruleset version, when one exists' })
   rulesetId?: string;
+
+  @ApiPropertyOptional({
+    type: ProfileRefResponse,
+    description: 'Profile this tournament instantiated, when one was selected at creation.',
+  })
+  profileRef?: ProfileRefResponse;
 }
 
-export class CreateTournamentRequest {
-  @ApiProperty({ example: 'copa-verano' })
-  alias!: string;
-
+/**
+ * A tournament's editable settings — name plus the `registration.*` fields
+ * every discipline descriptor already classifies. Used as both the current
+ * state a settings screen reads and the shape it writes back.
+ */
+export class TournamentSettingsResponse {
   @ApiProperty({ example: 'Copa Verano' })
   name!: string;
 
-  @ApiProperty({ format: 'uuid', description: 'DisciplineDescriptor identifier' })
-  descriptorId!: string;
-
-  @ApiProperty({
-    description:
-      'Pinned descriptor version (semver). Rulesets never track "latest": the version a tournament starts on is frozen.',
-    example: '1.2.0',
+  @ApiPropertyOptional({
+    description: 'Geographic or administrative region for tournament registration.',
+    example: 'South America',
   })
-  descriptorVersion!: string;
+  region?: string;
 
-  @ApiProperty({ example: 'round-robin' })
-  format!: string;
-
-  @ApiProperty({
-    description: 'Whether anonymous/public registration intake is open for this tournament.',
+  @ApiPropertyOptional({
+    description: 'Maximum number of participants/entrants for the tournament.',
+    example: 16,
   })
-  publicRegistration!: boolean;
-
-  @ApiProperty({
-    description: 'Whether accepted entrants must check in before eligibility is locked.',
-  })
-  requiresCheckIn!: boolean;
+  capacity?: number;
 
   @ApiPropertyOptional({
     format: 'date-time',
@@ -185,7 +300,314 @@ export class CreateTournamentRequest {
   checkInClosesAt?: string;
 }
 
+/** A partial edit — every field is optional, so only the fields the operator actually changed are sent. */
+export class TournamentSettingsRequest {
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({ example: 'Copa Verano (corregida)' })
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({
+    description: 'Geographic or administrative region for tournament registration.',
+    example: 'South America',
+  })
+  region?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @ApiPropertyOptional({
+    description: 'Maximum number of participants/entrants for the tournament.',
+    example: 16,
+  })
+  capacity?: number;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({
+    format: 'date-time',
+    description: 'Optional instant when checked-in team memberships stop being editable.',
+  })
+  checkInClosesAt?: string;
+}
+
+/**
+ * Dot-path → new value for a tournament ruleset's override fields (`scoring.pointsPerWin`,
+ * `tiebreakers`, `winCondition`, ...) — every field the installed `DisciplineDescriptor` marks
+ * `replaced` or `merged`, classified by `evaluateMutation` before it is applied. `customScripts` and
+ * `registration.capacity` are excluded: they keep their own dedicated routes (`PUT .../custom-scripts`,
+ * `PUT .../settings`), which already carry field-specific validation this generic route does not.
+ */
+export class RulesetOverridesRequest {
+  @IsObject()
+  @ApiProperty({
+    type: Object,
+    description:
+      'Dot-path → new value for each ruleset override field to change. Only the named fields are ' +
+      'touched; every other stored override is left unchanged.',
+    example: { 'scoring.pointsPerWin': 4 },
+  })
+  overrides!: Record<string, unknown>;
+}
+
+export class RulesetOverridesResponse {
+  @ApiProperty({
+    type: Object,
+    description: 'The full override document after applying the edit, not only the changed fields.',
+  })
+  overrides!: Record<string, unknown>;
+}
+
+/** Same shape as `RulesetOverridesRequest`/`Response`, one layer down: a stage's own overrides. */
+export class StageConfigurationRequest {
+  @IsObject()
+  @ApiProperty({
+    type: Object,
+    description:
+      'Dot-path → new value for each stage-configuration override field to change. Refused once the ' +
+      'stage already holds a generated fixture.',
+    example: { 'segments.overtimeEnabled': true },
+  })
+  overrides!: Record<string, unknown>;
+}
+
+export class StageConfigurationResponse {
+  @ApiProperty({
+    type: Object,
+    description: 'The full stage-configuration override document, not only the changed fields.',
+  })
+  overrides!: Record<string, unknown>;
+}
+
+export class HookScriptAttachmentRequest {
+  @IsString()
+  @ApiProperty({ enum: ['event.recorded'] })
+  hook!: string;
+
+  @IsObject()
+  @ApiProperty({ type: Object, description: 'Neuron-JS rule script document' })
+  script!: Record<string, unknown>;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional()
+  description?: string;
+}
+
+export class TournamentCustomScriptsResponse {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => HookScriptAttachmentRequest)
+  @ApiProperty({ type: [HookScriptAttachmentRequest] })
+  customScripts!: readonly HookScriptAttachmentRequest[];
+}
+
+export class RegistryParameterDefinitionResponse {
+  @ApiProperty()
+  name!: string;
+
+  @ApiProperty()
+  description!: string;
+
+  @ApiProperty()
+  required!: boolean;
+
+  @ApiProperty({ type: [String] })
+  parameterTypes!: readonly string[];
+
+  @ApiProperty()
+  allowExpression!: boolean;
+
+  @ApiProperty({ type: Object })
+  valueSchema!: Record<string, unknown>;
+}
+
+export class RegistryAuthoringDefinitionResponse {
+  @ApiPropertyOptional({ type: [RegistryParameterDefinitionResponse] })
+  parameters?: readonly RegistryParameterDefinitionResponse[];
+
+  @ApiPropertyOptional({ type: Object })
+  optionsSchema?: Record<string, unknown>;
+
+  @ApiPropertyOptional({ type: Object })
+  valueSchema?: Record<string, unknown>;
+
+  @ApiPropertyOptional()
+  allowExpression?: boolean;
+}
+
+export class RegistryEntryResponse {
+  @ApiProperty({ enum: ['parameter', 'condition', 'action', 'rule'] })
+  kind!: string;
+
+  @ApiProperty()
+  type!: string;
+
+  @ApiProperty()
+  description!: string;
+
+  @ApiPropertyOptional({ type: RegistryAuthoringDefinitionResponse })
+  authoring?: RegistryAuthoringDefinitionResponse;
+}
+
+export class HookScriptVocabularyResponse {
+  @ApiProperty({ type: [String], enum: ['event.recorded'] })
+  hooks!: readonly string[];
+
+  @ApiProperty({ type: [RegistryEntryResponse] })
+  entries!: readonly RegistryEntryResponse[];
+}
+
+/**
+ * A series declaration, as authored. Crosses the wire as this typed shape but is
+ * persisted as `series.span` / `series.resolutionClass` / `series.neutralGround`
+ * entries in an `OverrideSet` — the tournament's ruleset overrides when declared
+ * at creation, a stage's `StageConfiguration.overrides` when declared per stage.
+ * That is the same dot-path mechanism every other configurable field already uses,
+ * so `evaluateMutation` classifies an edit to one without a second vocabulary.
+ */
+export class SeriesDeclarationRequest {
+  @IsInt()
+  @Min(2)
+  @ApiProperty({
+    description: 'Total number of scheduled matches in the series.',
+    example: 5,
+  })
+  span!: number;
+
+  @IsOptional()
+  @IsIn(['best-of', 'aggregate', 'points-per-leg'])
+  @ApiPropertyOptional({
+    description: 'Closed set of declarative resolution classes.',
+    enum: ['best-of', 'aggregate', 'points-per-leg'],
+    example: 'best-of',
+  })
+  resolutionClass?: 'best-of' | 'aggregate' | 'points-per-leg';
+
+  @IsOptional()
+  @IsBoolean()
+  @ApiPropertyOptional({
+    description: 'Whether the series is held on neutral ground (no home/away side alternation).',
+  })
+  neutralGround?: boolean;
+
+  @IsOptional()
+  @IsIn(['series', 'match'])
+  @ApiPropertyOptional({
+    description:
+      'Whether standings and statistic accounting count one outcome per resolved series or one ' +
+      'per played match. Absent accounts per match — the same default an undeclared grain has ' +
+      'always meant — and is reported as such by every surface that reads it back.',
+    enum: ['series', 'match'],
+    example: 'series',
+  })
+  standingsAccounting?: 'series' | 'match';
+}
+
+export class CreateTournamentRequest {
+  @IsString()
+  @ApiProperty({ example: 'copa-verano' })
+  alias!: string;
+
+  @IsString()
+  @ApiProperty({ example: 'Copa Verano' })
+  name!: string;
+
+  @IsString()
+  @ApiProperty({ format: 'uuid', description: 'DisciplineDescriptor identifier' })
+  descriptorId!: string;
+
+  @IsString()
+  @ApiProperty({
+    description:
+      'Pinned descriptor version (semver). Rulesets never track "latest": the version a tournament starts on is frozen.',
+    example: '1.2.0',
+  })
+  descriptorVersion!: string;
+
+  @IsString()
+  @ApiProperty({ example: 'round-robin' })
+  format!: string;
+
+  @IsBoolean()
+  @ApiProperty({
+    description: 'Whether anonymous/public registration intake is open for this tournament.',
+  })
+  publicRegistration!: boolean;
+
+  @IsBoolean()
+  @ApiProperty({
+    description: 'Whether accepted entrants must check in before eligibility is locked.',
+  })
+  requiresCheckIn!: boolean;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({
+    format: 'date-time',
+    description: 'Optional instant when checked-in team memberships stop being editable.',
+  })
+  checkInClosesAt?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({
+    description: 'Geographic or administrative region for tournament registration.',
+    example: 'South America',
+  })
+  region?: string;
+
+  @IsOptional()
+  @IsInt()
+  @ApiPropertyOptional({
+    description: 'Maximum number of participants/entrants for the tournament.',
+    example: 16,
+  })
+  capacity?: number;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Optional TournamentProfile identifier to instantiate multi-stage preset.',
+  })
+  profileId?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({
+    description: 'Optional TournamentProfile version (semver).',
+    example: '1.0.0',
+  })
+  profileVersion?: string;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => HookScriptAttachmentRequest)
+  @ApiProperty({
+    type: [HookScriptAttachmentRequest],
+    default: [],
+    description: 'Organizer-authored scripts evaluated at supported tournament hooks.',
+  })
+  customScripts!: HookScriptAttachmentRequest[];
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => SeriesDeclarationRequest)
+  @ApiPropertyOptional({
+    type: SeriesDeclarationRequest,
+    description:
+      'Declares this tournament’s crosses as multi-match series by default. Absent stays the ' +
+      'default: no series, a single match per cross, requiring no further action.',
+  })
+  series?: SeriesDeclarationRequest;
+}
+
 export class CreateStageRequest {
+  @IsOptional()
+  @IsInt()
   @ApiPropertyOptional({
     description:
       'Defaults to the tournament’s next sequential stage number. Refused as a conflict if a stage with this number already exists.',
@@ -193,15 +615,59 @@ export class CreateStageRequest {
   })
   number?: number;
 
+  @IsOptional()
+  @IsString()
   @ApiPropertyOptional({ description: 'Defaults to "Stage {number}".', example: 'Fase de grupos' })
   name?: string;
 
+  @IsOptional()
+  @IsString()
   @ApiPropertyOptional({
     description:
       'Defaults to the tournament’s own configured format. Validated against the tournament’s discipline descriptor when supplied.',
     example: 'round-robin',
   })
   format?: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => SeriesDeclarationRequest)
+  @ApiPropertyOptional({
+    type: SeriesDeclarationRequest,
+    description:
+      'Declares this stage’s crosses as multi-match series. Absent stays the default: no series, ' +
+      'a single match per cross, requiring no further action.',
+  })
+  series?: SeriesDeclarationRequest;
+}
+
+export class SeriesMutationFieldPreview {
+  @ApiProperty({ example: 'series.span' })
+  field!: string;
+
+  @ApiPropertyOptional({
+    enum: ['safe', 'requires_rebuild', 'blocked_after_results'],
+    description: 'Absent when the field is refused outright — see `blocked`.',
+  })
+  mutationClass?: 'safe' | 'requires_rebuild' | 'blocked_after_results';
+
+  @ApiPropertyOptional({ description: 'Fixtures a `requires_rebuild` change would invalidate.' })
+  invalidatedFixtureCount?: number;
+
+  @ApiPropertyOptional({
+    description: 'True when this field cannot be changed as proposed; see `reason`.',
+  })
+  blocked?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Present when `blocked` — names the audited correction workflow.',
+  })
+  reason?: string;
+}
+
+export class SeriesMutationPreviewResponse {
+  @ApiProperty({ type: [SeriesMutationFieldPreview] })
+  fields!: SeriesMutationFieldPreview[];
 }
 
 export class StageResponse {
@@ -210,7 +676,7 @@ export class StageResponse {
 
   @ApiProperty({
     format: 'uuid',
-    description: 'The tournament edition this stage belongs to (0015)',
+    description: 'The tournament edition this stage belongs to',
   })
   seasonId!: string;
 
@@ -222,6 +688,30 @@ export class StageResponse {
 
   @ApiProperty({ example: 'round-robin' })
   format!: string;
+
+  @ApiPropertyOptional({
+    type: SeriesDeclarationRequest,
+    description: 'Absent when this stage declares no series.',
+  })
+  series?: SeriesDeclarationRequest;
+}
+
+/** A partial edit — rename is always permitted; a format change is refused once the stage holds a fixture. */
+export class UpdateStageRequest {
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({ example: 'Fase de grupos (corregida)' })
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({
+    description:
+      'Refused once the stage already holds a generated fixture. Validated against the ' +
+      "tournament's discipline descriptor.",
+    example: 'round-robin',
+  })
+  format?: string;
 }
 
 export class ProblemResponse {
@@ -230,9 +720,13 @@ export class ProblemResponse {
 
   @ApiProperty({ example: 'subject may only act on their own records' })
   message!: string;
+
+  @ApiProperty({ example: 'forbidden' })
+  errorCode!: string;
 }
 
 export class CreateCsvImportRequest {
+  @IsString()
   @ApiProperty({
     enum: ['individual', 'team', 'team-membership'],
     description:
@@ -242,6 +736,7 @@ export class CreateCsvImportRequest {
   })
   target!: 'individual' | 'team' | 'team-membership';
 
+  @IsString()
   @ApiProperty({
     description: 'UTF-8 CopaLibre participant CSV, limited to 4 MiB.',
     example: 'alias,displayName,naturalKeyKind,naturalKey\\nmaria-perez,Maria Perez,dni,12345678',
@@ -269,6 +764,7 @@ export class CsvImportPreviewResponse {
 }
 
 export class CommitCsvImportRequest {
+  @IsString()
   @ApiProperty({ description: 'Source hash returned by the reviewed preview.' })
   sourceHash!: string;
 }
@@ -280,17 +776,39 @@ export class OrganizationRoleResponse {
   principalId!: string;
   @ApiProperty()
   email!: string;
-  @ApiProperty({ enum: ['admin', 'referee', 'broadcaster', 'viewer'] })
+  @ApiProperty({ enum: ORGANIZATION_ROLES })
   role!: string;
   @ApiProperty({ enum: ['active', 'inactive'] })
   status!: string;
+  @ApiPropertyOptional({ format: 'uuid', description: 'Set only for a club-scoped role.' })
+  clubId?: string;
+  @ApiPropertyOptional({ format: 'uuid', description: 'Set only for a tournament-scoped role.' })
+  tournamentId?: string;
 }
 
 export class InviteOrganizationUserRequest {
+  @IsString()
   @ApiProperty({ format: 'email' })
   email!: string;
-  @ApiProperty({ enum: ['admin', 'referee', 'broadcaster', 'viewer'] })
-  role!: 'admin' | 'referee' | 'broadcaster' | 'viewer';
+  @IsString()
+  @ApiProperty({ enum: ORGANIZATION_ROLES })
+  role!: OrganizationRole;
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description:
+      'Required exactly when `role` is a tournament-scoped role (e.g. tournament-admin).',
+  })
+  tournamentId?: string;
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Required exactly when `role` is a club-scoped role (club-admin).',
+  })
+  clubId?: string;
+  @IsString()
   @ApiProperty({ enum: ['active', 'inactive'] })
   status!: 'active' | 'inactive';
 }
@@ -302,14 +820,84 @@ export class OrganizationInvitationResponse {
   expiresAt!: string;
 }
 
+/** A pending (not yet accepted, not rescinded, not expired) invitation — what the roles-permissions screen lists. */
+export class PendingOrganizationInvitationResponse {
+  @ApiProperty({ format: 'uuid' })
+  invitationId!: string;
+  @ApiProperty({ format: 'email' })
+  recipientEmail!: string;
+  @ApiProperty({ enum: ORGANIZATION_ROLES })
+  role!: OrganizationRole;
+  @ApiProperty({ enum: ['active', 'inactive'] })
+  status!: 'active' | 'inactive';
+  @ApiProperty({ format: 'date-time' })
+  expiresAt!: string;
+  @ApiPropertyOptional({ format: 'uuid', description: 'Set only for a club-scoped role.' })
+  clubId?: string;
+  @ApiPropertyOptional({ format: 'uuid', description: 'Set only for a tournament-scoped role.' })
+  tournamentId?: string;
+}
+
 export class ChangeOrganizationRoleRequest {
-  @ApiProperty({ enum: ['admin', 'referee', 'broadcaster', 'viewer'] })
-  role!: 'admin' | 'referee' | 'broadcaster' | 'viewer';
+  @IsString()
+  @ApiProperty({ enum: ORGANIZATION_ROLES })
+  role!: OrganizationRole;
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description:
+      'Required exactly when `role` is a tournament-scoped role (e.g. tournament-admin).',
+  })
+  tournamentId?: string;
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Required exactly when `role` is a club-scoped role (club-admin).',
+  })
+  clubId?: string;
+  @IsString()
+  @ApiProperty({ enum: ['active', 'inactive'] })
+  status!: 'active' | 'inactive';
+}
+
+export class GrantableRolesResponse {
+  @ApiProperty({
+    enum: ['super-admin', ...ORGANIZATION_ROLES],
+    isArray: true,
+    description:
+      'Roles the caller may grant in this organization, per the 0140 role-granting hierarchy.',
+  })
+  roles!: readonly ('super-admin' | OrganizationRole)[];
+}
+
+export class InstallationSuperAdminResponse {
+  @ApiProperty({ format: 'uuid' })
+  assignmentId!: string;
+  @ApiProperty({ format: 'uuid', description: 'CopaLibre internal principal UUIDv7' })
+  principalId!: string;
+  @ApiProperty({ enum: ['active', 'inactive'] })
+  status!: string;
+}
+
+export class CreateSuperAdminRequest {
+  @IsString()
+  @ApiProperty({
+    format: 'uuid',
+    description: 'CopaLibre internal principal UUIDv7 to grant super-admin',
+  })
+  principalId!: string;
+}
+
+export class ChangeInstallationRoleStatusRequest {
+  @IsString()
   @ApiProperty({ enum: ['active', 'inactive'] })
   status!: 'active' | 'inactive';
 }
 
 export class AcceptInvitationRequest {
+  @IsString()
   @ApiProperty({ minLength: 32 })
   token!: string;
 }
@@ -318,11 +906,27 @@ export class DisciplineSummaryResponse {
   @ApiProperty({ format: 'uuid' })
   descriptorId!: string;
 
+  @ApiProperty({ example: 'orbital-frisbee' })
+  alias!: string;
+
   @ApiProperty({ example: '1.2.0' })
   version!: string;
 
-  @ApiProperty({ example: 'Fútbol 11' })
-  name!: string;
+  @ApiProperty({
+    oneOf: localizedLabelOneOf,
+    example: 'Fútbol 11',
+    description:
+      'A plain string, or a locale-keyed object (e.g. { en: "Football", es: "Fútbol" }) for a module authored in more than one language — the client resolves it to the viewer\'s interface language.',
+  })
+  name!: string | LocalizedLabel;
+
+  @ApiPropertyOptional({
+    oneOf: localizedLabelOneOf,
+    example: { en: 'Team discipline with timed halves and goal-based scoring' },
+    description:
+      'Optional plain string or locale-keyed description. The client resolves it with the same fallback as name.',
+  })
+  description?: string | LocalizedLabel;
 
   @ApiProperty({
     isArray: true,
@@ -331,6 +935,68 @@ export class DisciplineSummaryResponse {
     example: ['single-elimination', 'round-robin'],
   })
   supportedFormats!: string[];
+
+  @ApiPropertyOptional({
+    type: 'object',
+    additionalProperties: { oneOf: localizedLabelOneOf },
+    description:
+      "The discipline's own explanation of a format it supports, keyed by format. Absent for a format the wizard falls back to the platform's own catalogued explanation.",
+    example: { 'round-robin': 'Every entrant plays every other entrant once' },
+  })
+  formatDescriptions?: Readonly<Record<string, string | LocalizedLabel>>;
+
+  @ApiPropertyOptional({
+    type: 'object',
+    additionalProperties: true,
+    description:
+      "Per-dot-path override permission and mutation class from the discipline's own configuration contract. The wizard reads it to warn an organizer before a hard-to-reverse decision, not to enforce anything client-side.",
+    example: {
+      format: { permission: { kind: 'replaced' }, mutationClass: 'blocked_after_results' },
+    },
+  })
+  fieldPolicies?: Readonly<Record<string, unknown>>;
+}
+
+export class ProfileStageSummaryResponse {
+  @ApiProperty({ example: 1 })
+  number!: number;
+
+  @ApiProperty({ example: 'Groups' })
+  name!: string;
+
+  @ApiProperty({ example: 'round-robin' })
+  format!: string;
+}
+
+export class TournamentProfileSummaryResponse {
+  @ApiProperty({ format: 'uuid' })
+  profileId!: string;
+
+  @ApiProperty({ example: 'grupos-y-playoff' })
+  alias!: string;
+
+  @ApiProperty({ example: '1.0.0' })
+  version!: string;
+
+  @ApiProperty({
+    oneOf: localizedLabelOneOf,
+    example: 'Groups and playoff',
+    description: 'A plain string or localized label for the profile name.',
+  })
+  name!: string | LocalizedLabel;
+
+  @ApiPropertyOptional({
+    oneOf: localizedLabelOneOf,
+    example: { en: 'Round-robin groups followed by single elimination' },
+    description: 'Optional plain string or localized label for the profile description.',
+  })
+  description?: string | LocalizedLabel;
+
+  @ApiProperty({
+    type: [ProfileStageSummaryResponse],
+    description: 'Declared stages in the profile.',
+  })
+  stages!: ProfileStageSummaryResponse[];
 }
 
 export class TeamMemberResponse {
@@ -342,6 +1008,100 @@ export class TeamMemberResponse {
 
   @ApiProperty({ enum: ['player', 'substitute', 'coach', 'staff'] })
   role!: 'player' | 'substitute' | 'coach' | 'staff';
+
+  @ApiPropertyOptional({ description: 'ISO 3166-1 alpha-2 country code', example: 'AR' })
+  nationality?: string;
+
+  @ApiPropertyOptional({ format: 'uuid', description: 'object_metadata.object_id of the photo' })
+  photoObjectId?: string;
+}
+
+export class CreatePersonRequest {
+  @IsString()
+  @ApiProperty({ example: 'Elías Salomón' })
+  displayName!: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({ description: 'Suggested from displayName when omitted.' })
+  alias?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({ example: 'dni' })
+  naturalKeyKind?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({ description: 'Recognised across a later CSV import naming the same key.' })
+  naturalKeyValue?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({ format: 'date', example: '2001-05-14' })
+  birthDate?: string;
+}
+
+export class CreateTeamRequest {
+  @IsString()
+  @ApiProperty({ example: 'Talleres' })
+  name!: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({ description: 'Suggested from name when omitted.' })
+  alias?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({ format: 'uuid' })
+  clubId?: string;
+}
+
+export class UpdatePersonIdentityRequest {
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional()
+  displayName?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional()
+  alias?: string;
+}
+
+export class UpdateTeamIdentityRequest {
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional()
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional()
+  alias?: string;
+}
+
+export class PersonIdentityResponse {
+  @ApiProperty({ format: 'uuid' })
+  personId!: string;
+
+  @ApiProperty()
+  displayName!: string;
+
+  @ApiPropertyOptional()
+  alias?: string;
+}
+
+export class TeamIdentityResponse {
+  @ApiProperty({ format: 'uuid' })
+  teamId!: string;
+
+  @ApiProperty()
+  name!: string;
+
+  @ApiPropertyOptional()
+  alias?: string;
 }
 
 export class RegistrationResponse {
@@ -354,11 +1114,26 @@ export class RegistrationResponse {
   @ApiProperty({ enum: ['pending', 'accepted', 'refused', 'withdrawn', 'checked-in'] })
   status!: 'pending' | 'accepted' | 'refused' | 'withdrawn' | 'checked-in';
 
+  @ApiPropertyOptional({ description: 'Tournament-scoped, distinct entrant short label.' })
+  abbreviation?: string;
+
   @ApiPropertyOptional({ format: 'uuid' })
   teamId?: string;
 
   @ApiPropertyOptional({ format: 'uuid' })
   personId?: string;
+
+  @ApiPropertyOptional({
+    description: 'The person entrant’s display name — absent for a team entrant.',
+    example: 'Elías Salomón',
+  })
+  displayName?: string;
+
+  @ApiPropertyOptional({ description: 'ISO 3166-1 alpha-2 country code', example: 'AR' })
+  nationality?: string;
+
+  @ApiPropertyOptional({ format: 'uuid', description: 'object_metadata.object_id of the photo' })
+  photoObjectId?: string;
 
   @ApiPropertyOptional({
     isArray: true,
@@ -367,9 +1142,16 @@ export class RegistrationResponse {
       'The team entrant’s resulting membership. Populated only by a team-membership edit response.',
   })
   teamMembers?: TeamMemberResponse[];
+
+  @ApiPropertyOptional({
+    description: 'Whether this person entrant already carries a participant identity link.',
+  })
+  hasIdentityLink?: boolean;
 }
 
 export class EditTeamMembershipsRequest {
+  @IsArray()
+  @IsString({ each: true })
   @ApiProperty({
     isArray: true,
     format: 'uuid',
@@ -402,6 +1184,7 @@ export class ParticipantReportedResultResponse {
 }
 
 export class LinkParticipantIdentityRequest {
+  @IsString()
   @ApiProperty({ format: 'email' })
   email!: string;
 }
@@ -414,9 +1197,12 @@ export class ParticipantIdentityLinkResponse {
 }
 
 export class ReviewRegistrationRequest {
+  @IsString()
   @ApiProperty({ enum: ['accepted', 'refused', 'withdrawn'] })
   decision!: 'accepted' | 'refused' | 'withdrawn';
 
+  @IsOptional()
+  @IsString()
   @ApiPropertyOptional({
     description:
       'Recorded on the audit row. A refusal an entrant cannot be told about is one they will ask about.',
@@ -424,13 +1210,27 @@ export class ReviewRegistrationRequest {
   reason?: string;
 }
 
+export class SetEntrantAbbreviationRequest {
+  @IsString()
+  @ApiProperty({
+    example: 'CDI',
+    description: 'Uppercase short label, unique within this tournament.',
+  })
+  abbreviation!: string;
+}
+
 export class BulkReviewRequest {
+  @IsArray()
+  @IsString({ each: true })
   @ApiProperty({ isArray: true, format: 'uuid' })
   entrantIds!: string[];
 
+  @IsString()
   @ApiProperty({ enum: ['accepted', 'refused', 'withdrawn'] })
   decision!: 'accepted' | 'refused' | 'withdrawn';
 
+  @IsOptional()
+  @IsString()
   @ApiPropertyOptional()
   reason?: string;
 }
@@ -444,4 +1244,30 @@ export class BulkReviewResponse {
     description: 'Registrations left untouched, each with the reason — never silently skipped.',
   })
   refused!: { entrantId: string; reason: string }[];
+}
+
+export class OrganizationStorageUsageResponse {
+  @ApiProperty({
+    description: 'Total bytes of stored objects in passed status',
+    example: 148897792,
+  })
+  totalBytes!: number;
+
+  @ApiProperty({ description: 'Total number of stored objects in passed status', example: 38 })
+  objectCount!: number;
+}
+
+/** One stored object no entity currently references — a storage-usage cleanup candidate. */
+export class UnreferencedObjectResponse {
+  @ApiProperty({ format: 'uuid' })
+  objectId!: string;
+
+  @ApiProperty({ example: 'image/png' })
+  contentType!: string;
+
+  @ApiProperty({ example: 148897 })
+  sizeBytes!: number;
+
+  @ApiProperty({ format: 'date-time' })
+  createdAt!: string;
 }

@@ -3,7 +3,7 @@ import { toIsoString } from '../mapping.js';
 import type { Database } from '../schema.js';
 
 /**
- * The distributed lease that keeps one logical scheduler (0017).
+ * The distributed lease that keeps one logical scheduler.
  *
  * Every expiry comparison uses `now()` — the database's clock, not a replica's.
  * Two machines whose clocks disagree is precisely the failure this exists to

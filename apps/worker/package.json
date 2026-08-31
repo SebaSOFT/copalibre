@@ -1,6 +1,6 @@
 {
   "name": "@copalibre/worker",
-  "version": "0.5.0-beta",
+  "version": "1.0.0",
   "private": true,
   "license": "AGPL-3.0-only",
   "scripts": {
@@ -15,10 +15,11 @@
     "@copalibre/domain": "workspace:^",
     "@copalibre/object-storage": "workspace:^",
     "@copalibre/persistence": "workspace:^",
+    "@copalibre/statistics-refold": "workspace:^",
     "@copalibre/tournament-engine": "workspace:^",
     "@nestjs/common": "^11.1.28",
     "@nestjs/core": "^11.1.28",
-    "@nestjs/platform-fastify": "^11.1.28",
+    "@nestjs/platform-fastify": "^11.1.29",
     "clamscan": "^2.4.0",
     "kysely": "^0.29",
     "nodemailer": "^9.0.3",

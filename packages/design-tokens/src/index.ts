@@ -1,7 +1,7 @@
 /**
  * @copalibre/design-tokens — one token source, generated into CSS custom
  * properties for the Astro surfaces and a Tailwind theme for the React control
- * app (0019). Hand-duplicating them is how a "live" cyan ends up two shades
+ * app. Hand-duplicating them is how a "live" cyan ends up two shades
  * apart on two screens showing the same match.
  */
 
@@ -9,10 +9,13 @@ export {
   COLOR_PRIMITIVES,
   TYPOGRAPHY,
   FONT_WEIGHTS,
+  FONT_SIZE,
+  BREAKPOINTS,
   SPACING,
   RADIUS,
   MOTION,
   TOUCH_TARGET,
+  CONTROL_DENSITY_SPACING,
   type ColorPrimitive,
 } from './primitives.js';
 export {
@@ -27,11 +30,31 @@ export {
   BUTTON_VARIANTS,
   CARD_STATES,
   FOCUS_RING,
+  INPUT_TOKENS,
+  SELECT_TOKENS,
+  TEXTAREA_TOKENS,
+  CHECKBOX_TOKENS,
+  DIALOG_TOKENS,
+  PAGINATION_TOKENS,
+  TOOLBAR_DENSITY_TOKENS,
+  FORM_SECTION_TOKENS,
+  MATCH_CONSOLE_TOKENS,
   assertBadge,
   BadgeContractError,
   type BadgeSpec,
   type ButtonVariant,
   type ButtonTokens,
+  type FormControlState,
+  type FormControlTokenSet,
+  type InputTokens,
+  type SelectTokens,
+  type TextareaTokens,
+  type CheckboxTokens,
+  type DialogTokens,
+  type PaginationTokens,
+  type ToolbarDensityTokens,
+  type FormSectionTokens,
+  type MatchConsoleTokens,
 } from './components.js';
 export {
   FORBIDDEN,

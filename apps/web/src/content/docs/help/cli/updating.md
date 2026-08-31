@@ -1,14 +1,33 @@
 ---
 title: Updating
 description: The non-destructive path to updating the CopaLibre framework and its installed modules.
+roles:
+  - super-admin
 ---
+
+## Updating the copalibre CLI itself
+
+`copalibre --version` prints the installed binary's version. Re-running the install script fetches
+the latest release and replaces the binary in place — it's idempotent, checking the installed
+version first and skipping the download when it already matches:
+
+```bash
+curl -fsSL https://www.copalibre.app/install.sh | bash
+```
+
+This only replaces the `copalibre` binary. It has no effect on a running installation — see below
+for updating the framework and its modules.
 
 ## Updating the framework
 
 Recommended, non-destructive sequence:
 
 1. **Back up** before touching anything: `./copalibre backup --file backups/pre-upgrade.dump`.
-2. **Update** the checkout or image reference to the new version (do not restart services yet).
+2. **Update** the checkout or image reference to the new version (do not restart services yet). If
+   this installation was created with `copalibre init` (no checkout, see the [command
+   reference](/help/cli/commands/)), its directory is pinned to the CLI version that created it —
+   `migrate`/`upgrade-check` refuse with a clear message on a version mismatch, so update by running
+   the new version's CLI against the same directory rather than mixing CLI versions.
 3. **Check compatibility** against the new version, without restarting anything:
    ```bash
    ./copalibre upgrade-check --target-version <new-version>

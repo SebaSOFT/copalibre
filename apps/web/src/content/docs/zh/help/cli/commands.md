@@ -1,17 +1,40 @@
 ---
 title: 命令参考
 description: 每个 copalibre CLI 命令、其用法及其选项标志。
+capabilities: []
+roles:
+  - super-admin
+  - admin
 ---
 
-每个命令都以完全相同的用法文本响应 `--help`/`-h`，这些文本由 CLI 内部的同一处来源生成——本页面无法以不同于 CLI 实际执行方式的方式来描述某个命令。
+每个命令都以完全相同的用法文本响应 `--help`/`-h`，这些文本由 CLI 内部的同一处来源生成——本页面无法以不同于 CLI 实际执行方式的方式来描述某个命令。`copalibre --version` 仅输出已安装的版本号，供脚本使用。
 
 ## init
 
-`copalibre init [--file <path>]`
+`copalibre init [--module-dev]` 或 `copalibre init --kubernetes [--namespace <ns>] [--release <name>] [--context <ctx>]`
 
-写入非敏感的默认值，并列出所需的密钥。
+将一份完整的安装写入当前目录。无需源代码检出：在任意空目录中运行它，之后的每个命令都会根据它所写
+入的标记文件（`.copalibre/installation.json`）自动识别该目录——与 `.git` 标记仓库检出的方式相同。
+若目录中已存在一份安装，则拒绝再次运行。目录会固定绑定到创建它时所用的 CopaLibre 版本——并行运行
+多个版本意味着每个目录都要运行与之匹配的 CLI 版本（参见[更新](/zh/help/cli/updating/)）。
 
-- `--file <path>`：目标文件（默认 `.env`）
+若不带 `--kubernetes`，会写入 `docker-compose.yml` 和带有非敏感默认值的 `.env`，并列出之后需要在
+`.env` 中补全的必需密钥。
+
+- `--module-dev`：同时写入 `docker-compose.module-dev.yml` 和一个 `modules-dev/` 目录，挂载到
+  `api`/`worker` 中并预设 `COPALIBRE_MODULE_SOURCE_ALLOWLIST`——与 `module scaffold --output
+modules-dev/<alias>` 和 `module add <alias> --source
+file:///var/lib/copalibre/modules-dev/<alias>` 搭配使用，可在无需源代码检出的情况下针对一个正在运
+  行的自托管实例开发模块。
+
+若带 `--kubernetes`，则会改为写入一个 Helm `values.yaml` 脚手架——没有 compose 文件，也没有
+`.env`；Kubernetes 自身的 Secret/ConfigMap 机制仍是配置的权威来源。完整流程，包括将首位管理员的引
+导过程作为一次性 Helm Job 执行：见仓库中的 `docs/deployment/enterprise-kubernetes.md`。
+
+- `--kubernetes`：搭建 Helm 安装的脚手架，而非 Compose 安装
+- `--namespace <ns>`：要记录的 Kubernetes 命名空间（默认：`default`）
+- `--release <name>`：要记录的 Helm release 名称（默认：`copalibre`）
+- `--context <ctx>`：要记录的 kube-context（默认：无——需每次显式传入）
 
 ## doctor
 
@@ -80,7 +103,7 @@ CopaLibre 版本）。应用保留策略：成功备份后，删除超出 `--ret
 
 - `--target-version <semver>`：用于检查模块和迁移的目标 CopaLibre 版本
 
-如果任何已安装模块将与目标版本不再兼容，则以非零状态退出。完整流程请参阅[更新](/help/cli/updating/)。
+如果任何已安装模块将与目标版本不再兼容，则以非零状态退出。完整流程请参阅[更新](/zh/help/cli/updating/)。
 
 ## create-admin
 
@@ -88,11 +111,44 @@ CopaLibre 版本）。应用保留策略：成功备份后，删除超出 `--ret
 
 创建某个组织的第一个管理员账户。
 
+## login
+
+`copalibre login [--api-url <url>] [--token <token>]`
+
+保存一个个人访问令牌，使 `statistics-rebuild` 和 `module add/list/remove/verify` 能够通过已认证的
+HTTP 连接对远程安装实例进行操作——这是管理一个已在运行的安装实例的途径，包括在 Docker 已经运行之
+后安装或更新 CLI，且所用机器完全不需要数据库凭据。请在已登录状态下，从控制面板的偏好设置界面生成
+该令牌，然后粘贴到此处。保存前会通过一次已认证的调用校验该令牌；若令牌无效，则拒绝保存且不保存任
+何内容。
+
+- `--api-url <url>`：目标安装实例（默认：`COPALIBRE_API_URL`，`copalibre init` 已将其写入 `.env`）
+- `--token <token>`：令牌本身（默认：若通过管道传入则从 stdin 读取，否则通过一个会遮蔽每次按键的
+  交互式提示读取）
+
+将凭据保存到当前目录的 `.copalibre/credentials.json`（`0600`）——请在 `copalibre init` 所创建的
+安装目录内部运行 `login`。在同一目录中再次运行 `login` 会替换已保存的令牌，这与 `init` 的标记文
+件不同。
+
+## statistics-rebuild
+
+`copalibre statistics-rebuild --organization <alias> [--tournament <alias>]`
+
+根据源事实——已完成比赛的已记录事件、名单和手动调整——重新计算每一项折叠统计总量
+（`statistic_totals`），默认针对整个组织，也可限定为某一项赛事。
+
+- `--organization <alias>`：要为其重新计算统计数据的组织
+- `--tournament <alias>`：将重新计算限定在组织内的某一项赛事
+
+幂等：使用与事件驱动触发相同的 `refold` 及"先删除再插入"写入路径，因此连续运行两次会产生逐字节相
+同的 `statistic_totals` 行（`updated_at`/内部投影版本除外）。可用于补录统计折叠引擎出现之前记录
+的历史数据，或随时对照事实校验统计总量。需要在通过 [`login`](#login) 登录后拥有组织管理员权限。
+
 ## module
 
 `copalibre module <add|list|remove|verify>`
 
-管理已安装的项目和赛事配置文件模块。
+管理已安装的项目和赛事配置文件模块。`add`/`list`/`remove`/`verify` 需要在通过 [`login`](#login)
+登录后拥有该安装实例范围内的超级管理员权限。
 
 ### module add
 
@@ -155,4 +211,4 @@ Fork `copalibre-modules`，将本地模块复制到一个新分支，推送该�
 `copalibre mcp`
 
 启动一个本地 Model Context Protocol（MCP）服务器，使 AI 能够操作 CopaLibre。详情请参阅
-[MCP 工具详情](/help/cli/mcp/)。
+[MCP 工具详情](/zh/help/cli/mcp/)。

@@ -54,7 +54,17 @@ export {
   type CutResolution,
 } from './qualification/index.js';
 export {
+  evaluateGroupPromotion,
+  validatePromotionPlan,
+  type PromotionPlan,
+  type PromotionPlanGroup,
+  type QualifiedEntrant,
+  type GroupPromotionOutcome,
+} from './qualification/promotion.js';
+export {
   allocateSeeds,
+  drawGroups,
+  drawZones,
   type AllocationEntrant,
   type AllocationInput,
   type AllocationOutcome,
@@ -62,12 +72,16 @@ export {
 export { assertSupportedFormat, isEliminationFormat, isRoundRobinFormat } from './formats.js';
 export {
   generateFixtures,
+  generateGroupedFixtures,
   buildEliminationTree,
   buildDoubleElimination,
   buildRoundRobin,
   pruneEmptyMatches,
   seedSlotOrder,
   nextPowerOfTwo,
+  type FixtureGroupInput,
+  type GenerateGroupedFixturesInput,
+  type ScopedGeneratedFixture,
 } from './fixtures/index.js';
 export {
   computeStandings,
@@ -84,15 +98,27 @@ export {
   foldStatistics,
   aggregateTo,
   contributorsOf,
+  orderForFold,
   type CollectedFigure,
   type FigureKey,
   type ActorContext,
   type CompetitionContext,
+  type FoldInput,
+  type FoldFact,
   type StatisticAdjustment,
 } from './statistics/fold.js';
 export { tagFactsFrom, type TagEventInput } from './statistics/tags.js';
 export {
+  projectTableLayout,
+  type TableProjectionActor,
+  type TableProjectionContext,
+  type TableCell,
+  type TableRow,
+  type TableProjection,
+} from './statistics/table-projection.js';
+export {
   resolveAdvancement,
+  advanceEntrants,
   unlockedByFinalization,
   playableMatches,
   type ResolvedSlot,
@@ -104,3 +130,9 @@ export {
   type EngineMutationContext,
   type ClassifiedMutation,
 } from './mutation/index.js';
+export {
+  runEventRecordedCustomScripts,
+  type CustomHookFailure,
+  type EventRecordedHookInput,
+  type EventRecordedHookResult,
+} from './custom-hooks/event-recorded.js';

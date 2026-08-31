@@ -4,7 +4,7 @@ import {
   MessageType,
   type ExecutionContext,
 } from '@sebasoft/neuron-js';
-import type { RulesRegistry } from '../registry/rules-registry.js';
+import { parameter, type RulesRegistry } from '../registry/rules-registry.js';
 import {
   EFFECTS_STATE_KEY,
   type DeclaredEffectKind,
@@ -12,7 +12,7 @@ import {
 } from './declared-effects.js';
 
 /**
- * The effectful actions (0013-scripting-hook-surface, extended by 0016).
+ * The effectful actions.
  *
  * Each one **declares** an effect and performs none. The contract is enforced
  * by shape rather than by discipline: an action appends a draft to the
@@ -178,7 +178,7 @@ export class StopTimerAction extends AbstractAction {
 }
 
 /**
- * Declares a statistic adjustment (0016).
+ * Declares a statistic adjustment.
  *
  * A script may move a total the collectors do not produce on their own — a
  * bonus point, a deduction, a figure a discipline computes from something no
@@ -235,7 +235,7 @@ export class AdjustStatisticAction extends AbstractAction {
 }
 
 /**
- * Declares a tag (0016).
+ * Declares a tag.
  *
  * It labels and enforces nothing: a script may mark a player suspended, and the
  * organizer still decides whether they take the field. That is the whole
@@ -304,26 +304,158 @@ export function registerDeclaredEffectActions(registry: RulesRegistry): RulesReg
     NotifyAction.TYPE,
     NotifyAction,
     'Declares a notification with a stable identity; delivery is the caller’s, never the action’s',
+    {
+      parameters: [
+        parameter(
+          'title',
+          'Notification title',
+          'simple_string',
+          { type: 'string', minLength: 1 },
+          { allowExpression: true },
+        ),
+        parameter(
+          'message',
+          'Notification message',
+          'simple_string',
+          { type: 'string', minLength: 1 },
+          { allowExpression: true },
+        ),
+        parameter(
+          'severity',
+          'Notification severity',
+          'simple_string',
+          { enum: ['info', 'warning', 'critical'] },
+          { required: false },
+        ),
+        parameter(
+          'targetRole',
+          'Recipient role',
+          'simple_string',
+          { type: 'string', minLength: 1 },
+          { required: false },
+        ),
+      ],
+    },
   );
   registry.registerAction(
     StartTimerAction.TYPE,
     StartTimerAction,
     'Declares a timer starting at the causing event, so a replay reproduces the clock',
+    {
+      parameters: [
+        parameter('timerId', 'Stable timer identifier', 'simple_string', {
+          type: 'string',
+          minLength: 1,
+        }),
+        parameter(
+          'durationSeconds',
+          'Timer duration in seconds',
+          'simple_number',
+          { type: 'number', exclusiveMinimum: 0 },
+          { allowExpression: true },
+        ),
+      ],
+    },
   );
   registry.registerAction(
     StopTimerAction.TYPE,
     StopTimerAction,
     'Declares a timer stopping at the causing event',
+    {
+      parameters: [
+        parameter(
+          'timerId',
+          'Timer identifier to stop',
+          'simple_string',
+          { type: 'string', minLength: 1 },
+          { allowExpression: true },
+        ),
+      ],
+    },
   );
   registry.registerAction(
     AdjustStatisticAction.TYPE,
     AdjustStatisticAction,
     'Declares a statistic adjustment the fold applies as a fact, so a replay reproduces it',
+    {
+      parameters: [
+        parameter('collectorCode', 'Statistic collector code', 'simple_string', {
+          type: 'string',
+          minLength: 1,
+        }),
+        parameter('actorGranularity', 'Actor granularity', 'simple_string', {
+          type: 'string',
+          minLength: 1,
+        }),
+        parameter(
+          'actorId',
+          'Actor identifier',
+          'simple_string',
+          { type: 'string', minLength: 1 },
+          { allowExpression: true },
+        ),
+        parameter(
+          'delta',
+          'Signed statistic movement',
+          'simple_number',
+          { type: 'number' },
+          { allowExpression: true },
+        ),
+        parameter(
+          'reason',
+          'Human-readable reason',
+          'simple_string',
+          { type: 'string' },
+          { required: false, allowExpression: true },
+        ),
+      ],
+    },
   );
   registry.registerAction(
     ApplyTagAction.TYPE,
     ApplyTagAction,
     'Declares a tag. It labels; it refuses nothing — the organizer decides what carrying it means',
+    {
+      parameters: [
+        parameter('code', 'Tag code', 'simple_string', { type: 'string', minLength: 1 }),
+        parameter('actorGranularity', 'Actor granularity', 'simple_string', {
+          type: 'string',
+          minLength: 1,
+        }),
+        parameter(
+          'actorId',
+          'Actor identifier',
+          'simple_string',
+          { type: 'string', minLength: 1 },
+          { allowExpression: true },
+        ),
+        parameter('competitionGranularity', 'Competition granularity', 'simple_string', {
+          type: 'string',
+          minLength: 1,
+        }),
+        parameter(
+          'competitionId',
+          'Competition identifier',
+          'simple_string',
+          { type: 'string', minLength: 1 },
+          { allowExpression: true },
+        ),
+        parameter(
+          'action',
+          'Apply or lift tag',
+          'simple_string',
+          { enum: ['applied', 'lifted'] },
+          { required: false },
+        ),
+        parameter(
+          'reason',
+          'Human-readable reason',
+          'simple_string',
+          { type: 'string' },
+          { required: false, allowExpression: true },
+        ),
+      ],
+    },
   );
   return registry;
 }

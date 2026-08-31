@@ -1,9 +1,14 @@
-import type { ActorGranularity, RecordedEvent, StatisticCollector } from '@copalibre/domain';
+import {
+  isCoarser,
+  type ActorGranularity,
+  type RecordedEvent,
+  type StatisticCollector,
+} from '@copalibre/domain';
 import type { TraceNode } from '../trace/explanation-trace.js';
 import type { NotificationEvaluation, NotificationInstance } from './notification-rules.js';
 
 /**
- * Thresholds over a declared collector (0016-statistic-collectors-and-tags).
+ * Thresholds over a declared collector.
  *
  * `evaluateNotificationRule` counts events inside one match. A discipline's
  * real question is rarely bounded that way — "the fifth yellow of the
@@ -63,7 +68,7 @@ export interface CollectorThresholdInput {
  * Evaluates one threshold over an ordered event log, deterministically.
  *
  * Produces the same `NotificationInstance` the two other notification paths
- * produce, with an identity of the shape `0013` established — so delivery,
+ * produce, with an established identity shape — so delivery,
  * dedupe and the console see one thing, not a third.
  */
 export function evaluateCollectorThreshold(input: CollectorThresholdInput): NotificationEvaluation {
@@ -153,6 +158,12 @@ export function evaluateCollectorThreshold(input: CollectorThresholdInput): Noti
  * Whether a threshold can be evaluated at all: a rule about a person cannot
  * read a collector kept per team, and answering it with the team's number would
  * sanction the wrong human.
+ *
+ * Delegates to `isCoarser` rather than comparing `order.indexOf(...)`
+ * directly, so this stays correct once `official`/`venue` exist alongside the
+ * person→player→team→club chain — those two are never "coarser than" a
+ * chain-member granularity, and a raw index comparison would have gotten that
+ * wrong.
  */
 export function thresholdReadable(
   rule: CollectorThresholdRule,
@@ -160,9 +171,61 @@ export function thresholdReadable(
   order: readonly ActorGranularity[],
 ): boolean {
   if (rule.collectorCode !== collector.code) return false;
-  const wanted = order.indexOf(rule.actorGranularity);
-  const kept = order.indexOf(collector.granularity.actor);
-  return wanted >= 0 && kept >= 0 && wanted >= kept;
+  const wanted = rule.actorGranularity;
+  const kept = collector.granularity.actor;
+  return wanted === kept || isCoarser(order, wanted, kept);
+}
+
+/**
+ * The collector-threshold rules a compiled ruleset configures, read
+ * the same defensive way `notificationRulesFrom` reads its sibling field: a
+ * malformed entry is skipped rather than throwing, since one bad rule must
+ * not stop a match from being operated.
+ */
+export function collectorThresholdRulesFrom(config: unknown): readonly CollectorThresholdRule[] {
+  if (typeof config !== 'object' || config === null) return [];
+  const declared = (config as { collectorThresholdRules?: unknown }).collectorThresholdRules;
+  if (!Array.isArray(declared)) return [];
+
+  return declared.filter(isCollectorThresholdRule);
+}
+
+function isCollectorThresholdRule(candidate: unknown): candidate is CollectorThresholdRule {
+  if (typeof candidate !== 'object' || candidate === null) return false;
+  const rule = candidate as Partial<CollectorThresholdRule>;
+  return (
+    typeof rule.id === 'string' &&
+    typeof rule.version === 'number' &&
+    typeof rule.collectorCode === 'string' &&
+    typeof rule.actorGranularity === 'string' &&
+    typeof rule.threshold === 'object' &&
+    rule.threshold !== null &&
+    typeof rule.action === 'object' &&
+    rule.action !== null
+  );
+}
+
+/**
+ * Sums a collector's contribution across an event log, grouped by actor — the
+ * same fold `evaluateCollectorThreshold` runs internally over its own `events`
+ * input, exposed so a caller can supply the result as `carriedIn`: a baseline
+ * computed over events *outside* the ones being evaluated, such as a
+ * stage's other matches, ahead of the general fold engine that would
+ * otherwise provide.
+ */
+export function foldCollectorTotals(
+  collector: StatisticCollector,
+  events: readonly RecordedEvent[],
+  actorOf: (event: RecordedEvent) => string | undefined,
+): Readonly<Record<string, number>> {
+  const totals: Record<string, number> = {};
+  for (const event of events) {
+    if (!watches(collector, event)) continue;
+    const actorId = actorOf(event);
+    if (actorId === undefined) continue;
+    totals[actorId] = (totals[actorId] ?? 0) + contribution(collector, event);
+  }
+  return totals;
 }
 
 function watches(collector: StatisticCollector, event: RecordedEvent): boolean {

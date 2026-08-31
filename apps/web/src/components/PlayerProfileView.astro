@@ -1,0 +1,234 @@
+---
+import type { IntlShape } from 'react-intl';
+import type { PublicPersonProfileResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
+import { messages } from '../lib/i18n/public-messages.en.ts';
+import { personPhotoUrl } from '../lib/public-api-client.ts';
+import PersonPhotoImage from './PersonPhotoImage.astro';
+
+interface Props {
+  readonly profile: PublicPersonProfileResponse;
+  readonly intl: IntlShape;
+  readonly organizationAlias: string;
+}
+
+const { profile, intl, organizationAlias } = Astro.props;
+---
+
+<article class="cl-player-profile">
+  <header class="cl-player-profile__header">
+    <PersonPhotoImage
+      alt={intl.formatMessage(messages.playerProfilePhotoAlt, { name: profile.displayName })}
+      placeholderAlt={intl.formatMessage(messages.playerProfilePhotoPlaceholderAlt)}
+      src={profile.photoObjectId ? personPhotoUrl(organizationAlias, profile.personId) : undefined}
+    />
+    <div class="cl-player-profile__identity">
+      <h2 class="cl-player-profile__name">{profile.displayName}</h2>
+      {profile.alias && <span class="cl-player-profile__alias">@{profile.alias}</span>}
+      <div class="cl-player-profile__meta">
+        {
+          profile.nationality && (
+            <span class="cl-player-profile__tag">
+              {intl.formatMessage(messages.playerProfileNationality, {
+                country: profile.nationality,
+              })}
+            </span>
+          )
+        }
+        {
+          profile.age !== undefined && (
+            <span class="cl-player-profile__tag">
+              {intl.formatMessage(messages.playerProfileAge, { age: profile.age })}
+            </span>
+          )
+        }
+      </div>
+    </div>
+  </header>
+
+  <section class="cl-player-profile__section" aria-labelledby="player-stats-heading">
+    <h3 id="player-stats-heading" class="cl-player-profile__section-title">
+      {intl.formatMessage(messages.playerProfileCareerStatsHeading)}
+    </h3>
+    {
+      profile.careerStatistics.length === 0 && (
+        <p class="cl-player-profile__empty">{intl.formatMessage(messages.playerProfileNoStats)}</p>
+      )
+    }
+    {
+      profile.careerStatistics.length > 0 && (
+        <div class="cl-player-profile__stats-grid">
+          {profile.careerStatistics.map((discipline) => (
+            <div class="cl-player-profile__discipline-stats">
+              {discipline.disciplineName && (
+                <h4 class="cl-player-profile__discipline-title">{discipline.disciplineName}</h4>
+              )}
+              <dl class="cl-player-profile__stat-list">
+                {discipline.statistics.map((stat) => (
+                  <div class="cl-player-profile__stat-item">
+                    <dt class="cl-player-profile__stat-label">{stat.label}</dt>
+                    <dd class="cl-player-profile__stat-value">{stat.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          ))}
+        </div>
+      )
+    }
+  </section>
+
+  <section class="cl-player-profile__section" aria-labelledby="player-history-heading">
+    <h3 id="player-history-heading" class="cl-player-profile__section-title">
+      {intl.formatMessage(messages.playerProfileHistoryHeading)}
+    </h3>
+    {
+      profile.competitionHistory.length === 0 && (
+        <p class="cl-player-profile__empty">
+          {intl.formatMessage(messages.playerProfileNoHistory)}
+        </p>
+      )
+    }
+    {
+      profile.competitionHistory.length > 0 && (
+        <div
+          aria-labelledby="player-history-heading"
+          class="cl-player-profile__history-table-container"
+          role="region"
+          tabindex="0"
+        >
+          <table class="cl-player-profile__history-table">
+            <thead>
+              <tr>
+                <th scope="col">Tournament</th>
+                <th scope="col">Team</th>
+                <th scope="col">Role</th>
+              </tr>
+            </thead>
+            <tbody>
+              {profile.competitionHistory.map((item) => (
+                <tr>
+                  <td>
+                    <strong>{item.tournamentName}</strong>
+                  </td>
+                  <td>
+                    {item.teamName}
+                    {item.entrantAbbreviation && (
+                      <span class="cl-player-profile__abbr"> ({item.entrantAbbreviation})</span>
+                    )}
+                  </td>
+                  <td class="cl-player-profile__role">{item.role}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )
+    }
+  </section>
+</article>
+
+<style>
+  .cl-player-profile {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    min-width: 0;
+  }
+  .cl-player-profile__header {
+    border-bottom: 1px solid var(--cl-color-border, #e5e7eb);
+    padding-bottom: 16px;
+  }
+  .cl-player-profile__name {
+    margin: 0 0 4px 0;
+    font-size: var(--cl-font-size-xl);
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  }
+  .cl-player-profile__alias {
+    color: var(--cl-color-text-subtle, #6b7280);
+    font-size: var(--cl-font-size-sm);
+  }
+  .cl-player-profile__meta {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+  .cl-player-profile__tag {
+    display: inline-block;
+    background: var(--cl-color-surface-subtle, #f3f4f6);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: var(--cl-font-size-sm);
+    font-weight: 500;
+  }
+  .cl-player-profile__section-title {
+    margin: 0 0 12px 0;
+    font-size: var(--cl-font-size-md);
+    font-weight: 600;
+  }
+  .cl-player-profile__empty {
+    color: var(--cl-color-text-subtle, #6b7280);
+    font-style: italic;
+    margin: 0;
+  }
+  .cl-player-profile__stat-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+    margin: 0;
+  }
+  .cl-player-profile__stat-item {
+    background: var(--cl-color-surface-subtle, #f3f4f6);
+    padding: 12px;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .cl-player-profile__stat-label {
+    font-size: var(--cl-font-size-xs);
+    color: var(--cl-color-text-subtle, #6b7280);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .cl-player-profile__stat-value {
+    font-size: var(--cl-font-size-xl);
+    font-weight: 700;
+    margin: 0;
+  }
+  .cl-player-profile__history-table-container {
+    overflow-x: auto;
+    scrollbar-gutter: stable;
+    border-bottom: 2px solid var(--cl-color-border, #e5e7eb);
+  }
+  .cl-player-profile__history-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: var(--cl-font-size-sm);
+    min-width: 32rem;
+  }
+  .cl-player-profile__history-table th,
+  .cl-player-profile__history-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--cl-color-border, #e5e7eb);
+  }
+  .cl-player-profile__history-table th {
+    background: var(--cl-color-surface-subtle, #f3f4f6);
+    font-weight: 600;
+  }
+  .cl-player-profile__abbr {
+    color: var(--cl-color-text-subtle, #6b7280);
+  }
+  .cl-player-profile__role {
+    text-transform: capitalize;
+  }
+
+  /* BREAKPOINTS.sm: a single stats column remains usable at 200% zoom. */
+  @media (max-width: 375px) {
+    .cl-player-profile__stat-list {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>

@@ -1,8 +1,12 @@
 import {
   Alias,
   compileEffectiveRuleset,
+  evaluateCustomScriptsMutation,
+  resolveLabel,
   transitionTournament,
+  validateHookScriptAttachment,
   type DisciplineDescriptor,
+  type HookScriptAttachment,
   type MatchRuleset,
   type OverrideSet,
   type StageConfiguration,
@@ -21,6 +25,7 @@ export interface CreateTournamentInput {
   readonly alias: string;
   readonly name: string;
   readonly descriptor: DisciplineDescriptor;
+  readonly profile?: { readonly profileId: string; readonly version: string };
   readonly actor: string;
   readonly authorizationContext: string;
 }
@@ -30,6 +35,7 @@ export interface CreateRulesetInput {
   readonly organizationId: string;
   readonly descriptor: DisciplineDescriptor;
   readonly overrides: OverrideSet;
+  readonly customScripts?: readonly HookScriptAttachment[];
   readonly actor: string;
   readonly authorizationContext: string;
   readonly reason?: string;
@@ -58,7 +64,7 @@ export class TournamentRepository {
         descriptor_id: descriptor.descriptorId,
         alias: descriptor.alias,
         version: descriptor.version,
-        name: descriptor.name,
+        name: resolveLabel(descriptor.name, 'en'),
         document: JSON.stringify(descriptor),
         created_at: new Date(),
       })
@@ -136,7 +142,7 @@ export class TournamentRepository {
   }
 
   /**
-   * Every installed discipline, newest version of each (0023).
+   * Every installed discipline, newest version of each.
    *
    * The wizard reads its options from here rather than from a list in the
    * client: a hardcoded list is a list that disagrees with the installation the
@@ -168,7 +174,7 @@ export class TournamentRepository {
 
   /**
    * Tournament aliases (started or finished) naming this exact descriptor
-   * version — 0036's `module remove` safety check, distinct from
+   * version — the `module remove` safety check, distinct from
    * `retirableDescriptorVersions`'s catalogue-retirement question: this asks
    * whether *deleting the row* would orphan a reference a tournament record
    * still names, not whether the version is worth keeping in a browsable
@@ -219,6 +225,8 @@ export class TournamentRepository {
         name: input.name,
         descriptor_id: input.descriptor.descriptorId,
         descriptor_version: input.descriptor.version,
+        profile_id: input.profile?.profileId ?? null,
+        profile_version: input.profile?.version ?? null,
         ruleset_id: null,
         status: 'draft',
         created_at: new Date(),
@@ -250,6 +258,76 @@ export class TournamentRepository {
   }
 
   /**
+   * Whether a tournament has any recorded match result, and how many
+   * entrants it currently has accepted — the two facts a tournament-settings
+   * edit's mutation classification needs, computed together since both are
+   * cheap single-table reads.
+   */
+  async settingsMutationContext(
+    tournamentId: string,
+  ): Promise<{ readonly hasRecordedResults: boolean; readonly acceptedEntrantCount: number }> {
+    const [recordedMatch, acceptedRows] = await Promise.all([
+      this.db
+        .selectFrom('matches')
+        .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
+        .innerJoin('stages', 'stages.stage_id', 'fixtures.stage_id')
+        .innerJoin('seasons', 'seasons.season_id', 'stages.season_id')
+        .select('match_id')
+        .where('seasons.tournament_id', '=', tournamentId)
+        .where('matches.result', 'is not', null)
+        .limit(1)
+        .executeTakeFirst(),
+      this.db
+        .selectFrom('entrants')
+        .select('entrant_id')
+        .where('tournament_id', '=', tournamentId)
+        .where('status', '=', 'accepted')
+        .execute(),
+    ]);
+    return {
+      hasRecordedResults: recordedMatch !== undefined,
+      acceptedEntrantCount: acceptedRows.length,
+    };
+  }
+
+  /** Renames a tournament — its name carries no structural consequence, so this is always permitted. */
+  async renameTournament(
+    uow: UnitOfWork,
+    input: {
+      readonly tournamentId: string;
+      readonly organizationId: string;
+      readonly name: string;
+      readonly actor: string;
+      readonly authorizationContext: string;
+    },
+  ): Promise<Tournament> {
+    const row = await uow.tx
+      .updateTable('tournaments')
+      .set({ name: input.name })
+      .where('tournament_id', '=', input.tournamentId)
+      .returningAll()
+      .executeTakeFirst();
+    if (!row) {
+      throw new NotFoundError(`Tournament ${input.tournamentId} does not exist`, {
+        tournamentId: input.tournamentId,
+      });
+    }
+    const tournament = toTournament(row);
+
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'tournament',
+      entityId: input.tournamentId,
+      action: 'tournament.renamed',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      resultingState: { name: input.name },
+    });
+
+    return tournament;
+  }
+
+  /**
    * Creates a tournament ruleset version. The effective ruleset is compiled
    * before any INSERT: a forbidden/inherited/unknown override or an undeclared
    * deep merge fails here, not in the database.
@@ -258,10 +336,72 @@ export class TournamentRepository {
     uow: UnitOfWork,
     input: CreateRulesetInput,
   ): Promise<{ readonly ruleset: TournamentRuleset; readonly effective: MatchRuleset }> {
+    if (typeof input.overrides['registration.capacity'] === 'number') {
+      const newCapacity = input.overrides['registration.capacity'] as number;
+      const acceptedRows = await uow.tx
+        .selectFrom('entrants')
+        .select('entrant_id')
+        .where('tournament_id', '=', input.tournamentId)
+        .where('status', '=', 'accepted')
+        .execute();
+      if (newCapacity < acceptedRows.length) {
+        throw new InvariantViolationError(
+          `Cannot reduce tournament capacity to ${newCapacity}: tournament already has ${acceptedRows.length} accepted entrants.`,
+          { tournamentId: input.tournamentId, newCapacity, acceptedCount: acceptedRows.length },
+        );
+      }
+    }
+
     const previous = await this.latestRulesetVersion(uow.tx, input.tournamentId);
     const version = previous + 1;
     const rulesetId =
       previous === 0 ? newId() : await this.rulesetIdFor(uow.tx, input.tournamentId);
+
+    if (input.customScripts) {
+      for (const attachment of input.customScripts) {
+        const valid = validateHookScriptAttachment(attachment);
+        if (!valid.ok) {
+          throw new InvariantViolationError(valid.error.message, {
+            hook: attachment.hook,
+          });
+        }
+      }
+    }
+
+    if (previous > 0 && input.customScripts !== undefined) {
+      const recordedMatch = await uow.tx
+        .selectFrom('matches')
+        .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
+        .innerJoin('stages', 'stages.stage_id', 'fixtures.stage_id')
+        .innerJoin('seasons', 'seasons.season_id', 'stages.season_id')
+        .select('match_id')
+        .where('seasons.tournament_id', '=', input.tournamentId)
+        .where('matches.result', 'is not', null)
+        .limit(1)
+        .executeTakeFirst();
+      const mutationResult = evaluateCustomScriptsMutation({
+        hasRecordedResults: recordedMatch !== undefined,
+      });
+      if (!mutationResult.ok) {
+        throw new InvariantViolationError(mutationResult.error.message, {
+          fieldPath: 'customScripts',
+        });
+      }
+    }
+
+    let customScriptsToPersist = input.customScripts ?? [];
+    if (input.customScripts === undefined && previous > 0) {
+      const previousRow = await uow.tx
+        .selectFrom('tournament_rulesets')
+        .select('custom_scripts')
+        .where('ruleset_id', '=', rulesetId)
+        .where('version', '=', previous)
+        .executeTakeFirst();
+      if (previousRow?.custom_scripts) {
+        const raw = previousRow.custom_scripts;
+        customScriptsToPersist = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      }
+    }
 
     const candidate: TournamentRuleset = {
       rulesetId,
@@ -272,6 +412,7 @@ export class TournamentRepository {
         version: input.descriptor.version,
       },
       overrides: input.overrides,
+      customScripts: customScriptsToPersist,
     };
 
     const compiled = compileEffectiveRuleset(input.descriptor, candidate);
@@ -290,6 +431,7 @@ export class TournamentRepository {
         descriptor_id: input.descriptor.descriptorId,
         descriptor_version: input.descriptor.version,
         overrides: JSON.stringify(input.overrides),
+        custom_scripts: JSON.stringify(customScriptsToPersist),
         created_at: new Date(),
       })
       .execute();
@@ -308,7 +450,11 @@ export class TournamentRepository {
       actor: input.actor,
       authorizationContext: input.authorizationContext,
       previousState: previous === 0 ? undefined : { version: previous },
-      resultingState: { version, overrides: { ...input.overrides } },
+      resultingState: {
+        version,
+        overrides: { ...input.overrides },
+        customScripts: customScriptsToPersist,
+      },
       reason: input.reason,
     });
     await uow.publishEvent({
@@ -374,6 +520,82 @@ export class TournamentRepository {
     return configuration;
   }
 
+  /**
+   * Versions a stage's configuration the way `createStageConfiguration` writes
+   * `version: 1` — merges the changed field(s) into the current version's
+   * `overrides` and inserts a new row, never mutating a prior version in
+   * place. Requires an existing configuration; a stage with none yet is
+   * created via `createStageConfiguration` instead.
+   */
+  async updateStageConfiguration(
+    uow: UnitOfWork,
+    input: {
+      readonly stageId: string;
+      readonly organizationId: string;
+      readonly changedOverrides: OverrideSet;
+      readonly actor: string;
+      readonly authorizationContext: string;
+    },
+  ): Promise<StageConfiguration> {
+    const previous = await uow.tx
+      .selectFrom('stage_configurations')
+      .selectAll()
+      .where('stage_id', '=', input.stageId)
+      .orderBy('version', 'desc')
+      .limit(1)
+      .executeTakeFirst();
+    if (!previous) {
+      throw new NotFoundError(`Stage ${input.stageId} has no configuration to edit`, {
+        stageId: input.stageId,
+      });
+    }
+
+    const rawPrevious = previous.overrides;
+    const previousOverrides =
+      typeof rawPrevious === 'string' ? JSON.parse(rawPrevious) : (rawPrevious ?? {});
+    const mergedOverrides = { ...previousOverrides, ...input.changedOverrides };
+    const version = previous.version + 1;
+    const stageConfigurationId = newId();
+    const configuration: StageConfiguration = {
+      stageConfigurationId,
+      stageId: input.stageId,
+      version,
+      rulesetId: previous.ruleset_id,
+      overrides: mergedOverrides,
+    };
+
+    await uow.tx
+      .insertInto('stage_configurations')
+      .values({
+        stage_configuration_id: stageConfigurationId,
+        stage_id: input.stageId,
+        version,
+        ruleset_id: previous.ruleset_id,
+        overrides: JSON.stringify(mergedOverrides),
+        created_at: new Date(),
+      })
+      .execute();
+
+    await uow.tx
+      .updateTable('stages')
+      .set({ stage_configuration_id: stageConfigurationId })
+      .where('stage_id', '=', input.stageId)
+      .execute();
+
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'stage-configuration',
+      entityId: stageConfigurationId,
+      action: 'stage-configuration.updated',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      previousState: { version: previous.version, overrides: previousOverrides },
+      resultingState: { version, overrides: mergedOverrides },
+    });
+
+    return configuration;
+  }
+
   async publish(
     uow: UnitOfWork,
     input: {
@@ -422,7 +644,7 @@ export class TournamentRepository {
   }
 
   /**
-   * Archives a tournament (0033): `finished` → `archived` only. The state
+   * Archives a tournament: `finished` → `archived` only. The state
    * machine itself refuses every other starting state, so this never needs
    * its own separate "is this actually done?" check — `transitionTournament`
    * is the single source of truth `publish` predates and does not yet use.
@@ -483,7 +705,7 @@ export class TournamentRepository {
   }
 
   /**
-   * Every non-archived tournament in an organization (0033) — the shared
+   * Every non-archived tournament in an organization — the shared
    * "active only" filter every listing method is meant to go through. No
    * other listing method exists in this repository yet, so this is the
    * first one built with the filter in place, not a retrofit.
@@ -494,6 +716,21 @@ export class TournamentRepository {
       .selectAll()
       .where('organization_id', '=', organizationId)
       .where('status', '!=', 'archived')
+      .orderBy('created_at', 'desc')
+      .execute();
+    return rows.map(toTournament);
+  }
+
+  /**
+   * Published, started, finished, or archived tournaments in an organization
+   * (public read surface).
+   */
+  async listPublishedByOrganization(organizationId: string): Promise<readonly Tournament[]> {
+    const rows = await this.db
+      .selectFrom('tournaments')
+      .selectAll()
+      .where('organization_id', '=', organizationId)
+      .where('status', 'in', ['published', 'started', 'finished', 'archived'])
       .orderBy('created_at', 'desc')
       .execute();
     return rows.map(toTournament);
@@ -532,25 +769,58 @@ export class TournamentRepository {
       .limit(1)
       .executeTakeFirst();
 
-    return row
-      ? {
-          rulesetId: row.ruleset_id,
-          tournamentId: row.tournament_id,
-          version: row.version,
-          descriptorRef: {
-            descriptorId: row.descriptor_id,
-            version: row.descriptor_version,
-          },
-          overrides: row.overrides as Record<string, unknown>,
-        }
-      : undefined;
+    if (!row) return undefined;
+
+    const rawOverrides = row.overrides;
+    const overrides =
+      typeof rawOverrides === 'string' ? JSON.parse(rawOverrides) : (rawOverrides ?? {});
+    const rawScripts = row.custom_scripts;
+    const customScripts = rawScripts
+      ? typeof rawScripts === 'string'
+        ? JSON.parse(rawScripts)
+        : rawScripts
+      : [];
+
+    return {
+      rulesetId: row.ruleset_id,
+      tournamentId: row.tournament_id,
+      version: row.version,
+      descriptorRef: {
+        descriptorId: row.descriptor_id,
+        version: row.descriptor_version,
+      },
+      overrides: overrides as Record<string, unknown>,
+      customScripts: customScripts as readonly HookScriptAttachment[],
+    };
+  }
+
+  async findLatestStageConfiguration(stageId: string): Promise<StageConfiguration | undefined> {
+    const row = await this.db
+      .selectFrom('stage_configurations')
+      .selectAll()
+      .where('stage_id', '=', stageId)
+      .orderBy('version', 'desc')
+      .limit(1)
+      .executeTakeFirst();
+
+    if (!row) return undefined;
+    const rawOverrides = row.overrides;
+    const overrides =
+      typeof rawOverrides === 'string' ? JSON.parse(rawOverrides) : (rawOverrides ?? {});
+    return {
+      stageConfigurationId: row.stage_configuration_id,
+      stageId: row.stage_id,
+      version: row.version,
+      rulesetId: row.ruleset_id,
+      overrides: overrides as Record<string, unknown>,
+    };
   }
 
   /**
    * Reads through the caller's own executor rather than `this.db`: called
    * from inside `createRuleset`'s open transaction, and a second connection
    * acquisition against the same underlying connection deadlocks under
-   * SQLite's single-connection test dialect (0040) — Postgres's pool masked
+   * SQLite's single-connection test dialect — Postgres's pool masked
    * this because a "second" connection was always available to hand out.
    */
   private async latestRulesetVersion(

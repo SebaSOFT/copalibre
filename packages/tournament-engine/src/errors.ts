@@ -50,9 +50,21 @@ export class DrawError extends EngineError {
 
 /**
  * A fixture graph routed a placement match into another match's slot. Placement
- * results feed stage standings only (0009), so this is a malformed graph rather
+ * results feed stage standings only, so this is a malformed graph rather
  * than a rejectable input — it is thrown, not returned.
  */
 export class PlacementAdvancementError extends EngineError {
   readonly code = 'PLACEMENT_HAS_NO_ADVANCEMENT_EDGE';
+}
+
+/**
+ * A `collector`-sourced collector names another `collector`-sourced collector.
+ * `validateCollectors` only refuses a cycle; a two-level chain that
+ * never cycles is still refused here, at fold time, because resolving it would
+ * need a topological sort for a case that has never had a real discipline
+ * behind it — a discipline author sees the limitation immediately instead of a
+ * silent zero.
+ */
+export class StatisticFoldError extends EngineError {
+  readonly code = 'STATISTIC_FOLD_INVALID';
 }

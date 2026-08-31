@@ -18,7 +18,7 @@ describe('suggesting an alias from a name', () => {
   it('produces something Alias accepts, which is the whole point', () => {
     for (const name of ['Casa de Italia', 'Ñuñorco', '9 de Julio', 'Peñarol (Reserva)']) {
       const suggestion = suggestAlias(name) ?? '';
-      expect(Alias.create('participant', suggestion).ok).toBe(true);
+      expect(Alias.create('club', suggestion).ok).toBe(true);
       expect(isSuggestable(name)).toBe(true);
     }
   });
@@ -35,7 +35,7 @@ describe('suggesting an alias from a name', () => {
     const suggestion = suggestAlias('A'.repeat(200)) ?? '';
 
     expect(suggestion.length).toBeLessThanOrEqual(64);
-    expect(Alias.create('participant', suggestion).ok).toBe(true);
+    expect(Alias.create('club', suggestion).ok).toBe(true);
   });
 });
 
@@ -62,5 +62,16 @@ describe('a name somebody already used', () => {
 
   it('suggests nothing when the name yields nothing', () => {
     expect(suggestAvailableAlias('...', [])).toBeUndefined();
+  });
+
+  it('stays within the alias length limit when the base is already at it', () => {
+    const base = 'a'.repeat(64);
+    const suggestion = suggestAvailableAlias('A'.repeat(64), [base]);
+
+    expect(suggestion).toBeDefined();
+    if (!suggestion) return;
+    expect(suggestion.length).toBeLessThanOrEqual(64);
+    expect(suggestion).not.toBe(base);
+    expect(Alias.create('club', suggestion).ok).toBe(true);
   });
 });

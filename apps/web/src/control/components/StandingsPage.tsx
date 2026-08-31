@@ -1,150 +1,296 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
+import { EntrantName } from '../../components/EntrantName.js';
+import type {
+  TableLayoutSummaryResponse,
+  TableProjectionResponseData,
+  TableRowResponseData,
+} from '../lib/api-client.js';
 import {
   distributionBars,
-  standingsColumns,
-  toRowViews,
-  type EntrantNames,
-  type StandingsData,
-} from '../lib/standings.js';
+  nextSort,
+  sortRows,
+  tableColumns,
+  tableLayoutTabs,
+  tiebreakIndicator,
+  type ActiveSort,
+} from '../lib/table-projections.js';
 import { messages } from '../i18n/messages.en.js';
+import { Button } from './ui/atoms/button.js';
+import { FormField } from './ui/molecules/form-field.js';
+import { ListScreenTemplate } from './ui/templates/list-screen-template.js';
+import { DataTable, type DataTableColumn } from './ui/organisms/data-table.js';
 
 /**
- * A5 — standings with an expandable, engine-sourced tiebreak trace (0024).
+ * A5 — every declared table layout (group standings, top scorers, goalkeeper
+ * rankings, …) behind one tab bar, rendering whichever columns the active
+ * layout's own API response carries. Cells arrive pre-formatted; this
+ * component sorts and lays out, and formats nothing of its own.
  *
- * The trace lines are rendered exactly as received. This component has no
- * formatter of its own and must not grow one: the screen's promise is that an
- * operator is reading the engine's own reasoning, and a second formatter is a
- * second answer to the question of why somebody finished second.
+ * The tiebreak trace only applies to a `group-phase` layout — the one target
+ * this endpoint's rows have a rank a comparator chain actually produced —
+ * fetched lazily per row, the same way it always was.
  */
 export function StandingsPage({
-  standings,
-  names = {},
+  layouts,
+  activeLayoutCode,
+  onSelectLayout,
+  projection,
+  status,
   tournamentName,
   organizationAlias,
   onExpand,
+  onExportCsv,
+  groupSelector,
 }: {
-  readonly standings: StandingsData;
-  readonly names?: EntrantNames;
+  readonly layouts: readonly TableLayoutSummaryResponse[];
+  readonly activeLayoutCode?: string;
+  readonly onSelectLayout?: (code: string) => void;
+  readonly projection?: TableProjectionResponseData;
+  /** A load-in-progress or load-failure message; absent once `projection` is ready. */
+  readonly status?: string;
   readonly tournamentName: string;
   readonly organizationAlias: string;
-  /** Fetches one row's trace lines; called the first time a row is expanded. */
+  /** Fetches one row's trace lines; called the first time a `group-phase` row is expanded. */
   readonly onExpand?: (entrantId: string) => Promise<readonly string[]>;
+  readonly onExportCsv?: () => void;
+  /** Scopes a `group-phase` table to one group; absent for a single-implicit-group stage. */
+  readonly groupSelector?: {
+    readonly options: readonly { readonly groupId: string; readonly label: string }[];
+    readonly selectedGroupId?: string;
+    readonly onSelect: (groupId: string) => void;
+  };
 }): React.JSX.Element {
   const intl = useIntl();
   const [traces, setTraces] = useState<Readonly<Record<string, readonly string[]>>>({});
   const [pending, setPending] = useState<readonly string[]>([]);
-  const columns = standingsColumns(standings.rows);
-  const rows = toRowViews(standings.rows, names);
-  const bars = distributionBars(standings.rows, { names });
+  const [sort, setSort] = useState<ActiveSort | undefined>(undefined);
 
-  const expand = (entrantId: string): void => {
-    if (traces[entrantId] !== undefined || pending.includes(entrantId)) return;
-    setPending((current) => [...current, entrantId]);
-    void Promise.resolve(onExpand?.(entrantId) ?? [])
-      .then((lines) => setTraces((current) => ({ ...current, [entrantId]: lines })))
+  const tabs = tableLayoutTabs(layouts, intl.locale);
+  const columns = useMemo(() => {
+    if (!projection) return [];
+    const base = tableColumns(projection.columns, intl.locale);
+    // The one column the declared grain changes the unit of — relabelled only
+    // under series grain; match grain keeps the discipline's own wording,
+    // which already reads as counting matches by convention.
+    if (projection.grain !== 'series' || projection.countColumnCode === undefined) return base;
+    return base.map((column) =>
+      column.code === projection.countColumnCode
+        ? {
+            ...column,
+            label: intl.formatMessage(messages.standingsColumnSeriesLabel),
+            shortLabel: intl.formatMessage(messages.standingsColumnSeriesShortLabel),
+          }
+        : column,
+    );
+  }, [projection, intl]);
+  const rows = projection ? sortRows(projection.rows, sort) : [];
+  const nameColumnCode = projection?.columns.find((column) =>
+    ['entrant-name', 'actor-name'].includes(column.code),
+  )?.code;
+  const primaryNameColumn = columns[0]?.code;
+  const bars = projection
+    ? distributionBars(projection, { nameColumnCode: nameColumnCode ?? primaryNameColumn })
+    : [];
+  const isGroupPhase = projection?.target === 'group-phase';
+
+  const expand = (actorId: string): void => {
+    if (traces[actorId] !== undefined || pending.includes(actorId)) return;
+    setPending((current) => [...current, actorId]);
+    void Promise.resolve(onExpand?.(actorId) ?? [])
+      .then((lines) => setTraces((current) => ({ ...current, [actorId]: lines })))
       .catch(() =>
         setTraces((current) => ({
           ...current,
-          [entrantId]: [intl.formatMessage(messages.standingsTraceFetchFailed)],
+          [actorId]: [intl.formatMessage(messages.standingsTraceFetchFailed)],
         })),
       )
-      .finally(() => setPending((current) => current.filter((id) => id !== entrantId)));
+      .finally(() => setPending((current) => current.filter((id) => id !== actorId)));
   };
 
-  return (
-    <section aria-label={intl.formatMessage(messages.standingsSectionLabel)} style={stackStyle}>
-      <header style={headerStyle}>
-        <div>
-          <p style={metaStyle}>
-            {organizationAlias} &gt; {tournamentName}
-          </p>
-          <h1 style={titleStyle}>
-            <FormattedMessage {...messages.standingsTitle} />
-          </h1>
-        </div>
-        <p style={smallStyle}>
-          {intl.formatMessage(messages.standingsProjectionVersion, {
-            version: standings.projectionVersion,
-          })}
-          {standings.fullyResolved ? '' : intl.formatMessage(messages.standingsUnresolvedTie)}
-        </p>
-      </header>
+  const dataTableColumns: readonly DataTableColumn<TableRowResponseData>[] = useMemo(() => {
+    if (!projection) return [];
+    const baseCols: DataTableColumn<TableRowResponseData>[] = columns.map((column) => ({
+      key: column.code,
+      header: (
+        <button
+          className="cl-focusable"
+          onClick={() => setSort(nextSort(sort, column.code))}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            color: 'inherit',
+            font: 'inherit',
+            padding: 0,
+            cursor: 'pointer',
+          }}
+          title={column.label}
+          type="button"
+        >
+          {column.shortLabel}
+          {sort?.columnCode === column.code ? (sort.direction === 'desc' ? ' ▾' : ' ▴') : ''}
+        </button>
+      ),
+      render: (row: TableRowResponseData) => {
+        const cell = row.cells[column.code];
+        const isEntrantName = row.entrantName !== undefined && cell?.formatted === row.entrantName;
+        return isEntrantName ? (
+          <EntrantName abbreviation={row.entrantAbbreviation} fullName={row.entrantName} />
+        ) : (
+          (cell?.formatted ?? '—')
+        );
+      },
+    }));
 
-      <PointsDistribution bars={bars} />
-
-      <div className="cl-card cl-chamfer cl-chamfer--control" style={tableStyle}>
-        <div style={{ ...gridStyle(columns.length), ...tableHeaderStyle }}>
-          <span>#</span>
-          <span>
-            <FormattedMessage {...messages.standingsParticipant} />
-          </span>
-          {columns.map((column) => (
-            <span key={column.code} title={column.label}>
-              {column.shortLabel}
+    if (isGroupPhase) {
+      baseCols.push({
+        key: 'tiebreak',
+        header: <FormattedMessage {...messages.standingsTiebreak} />,
+        render: (row: TableRowResponseData) => {
+          const indicator = tiebreakIndicator(row);
+          return indicator.kind === 'none' ? (
+            <span>—</span>
+          ) : (
+            <span className="cl-badge">
+              <span aria-hidden="true">{indicator.icon}</span>{' '}
+              {intl.formatMessage(messages.standingsSharedRank)}
             </span>
+          );
+        },
+      });
+    }
+
+    return baseCols;
+  }, [projection, columns, sort, isGroupPhase, intl]);
+
+  const breadcrumbNode = (
+    <span>
+      {organizationAlias} &gt; {tournamentName}
+      {projection && (
+        <>
+          {' · '}
+          {intl.formatMessage(messages.standingsProjectionVersion, {
+            version: projection.projectionVersion,
+          })}
+        </>
+      )}
+    </span>
+  );
+
+  const titleNode = <FormattedMessage {...messages.standingsTitle} />;
+
+  const toolbarNode = (
+    <div className="cl-platform-form-grid">
+      {tabs.length > 1 && (
+        <div role="tablist" className="cl-table-toolbar__filters">
+          {tabs.map((tab) => (
+            <Button
+              aria-selected={tab.code === activeLayoutCode}
+              key={tab.code}
+              onClick={() => onSelectLayout?.(tab.code)}
+              role="tab"
+              type="button"
+              variant={tab.code === activeLayoutCode ? 'primary' : 'secondary'}
+            >
+              {tab.label}
+            </Button>
           ))}
-          <span>
-            <FormattedMessage {...messages.standingsTiebreak} />
-          </span>
         </div>
+      )}
 
-        {rows.map((row) => (
-          <details
-            className="cl-focusable"
-            key={row.entrantId}
-            onToggle={(event) => {
-              if (event.currentTarget.open) expand(row.entrantId);
-            }}
-            style={rowStyle}
+      {groupSelector && (
+        <FormField id="standings-group" label={intl.formatMessage(messages.standingsGroupSelector)}>
+          <select
+            aria-label={intl.formatMessage(messages.standingsGroupSelector)}
+            className="cl-select cl-select--default cl-focusable"
+            id="standings-group"
+            onChange={(event) => groupSelector.onSelect(event.target.value)}
+            value={groupSelector.selectedGroupId ?? ''}
           >
-            <summary style={{ ...gridStyle(columns.length), ...summaryStyle }}>
-              <strong>{row.rank}</strong>
-              <span>
-                <strong>{row.name}</strong>
-                {row.abbreviation === undefined ? null : (
-                  <small style={smallStyle}>{row.abbreviation}</small>
-                )}
-              </span>
-              {columns.map((column) => (
-                <span key={column.code}>{row.statistics[column.code] ?? '—'}</span>
-              ))}
-              <span>
-                {row.indicator.kind === 'none' ? (
-                  <span style={smallStyle}>—</span>
-                ) : (
-                  // Icon and text together: the printed sheet on the venue wall
-                  // is grayscale, and so is a colour-blind operator's screen.
-                  <span className="cl-badge">
-                    <span aria-hidden="true">{row.indicator.icon}</span>{' '}
-                    {row.indicator.label && intl.formatMessage(row.indicator.label)}
-                  </span>
-                )}
-              </span>
-            </summary>
+            {groupSelector.options.map((option) => (
+              <option key={option.groupId} value={option.groupId}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </FormField>
+      )}
+    </div>
+  );
 
-            <div style={detailStyle}>
-              {row.expandable ? (
-                <TiebreakTrace
-                  lines={traces[row.entrantId]}
-                  loading={pending.includes(row.entrantId)}
-                />
-              ) : (
-                <p style={smallStyle}>
-                  <FormattedMessage {...messages.standingsNoTiebreak} />
-                </p>
-              )}
+  const listingNode = (
+    <div className="cl-platform-sections">
+      {tabs.length === 0 && status === undefined && (
+        <p className="cl-list-screen__empty">
+          <FormattedMessage {...messages.standingsNoLayouts} />
+        </p>
+      )}
+
+      {status !== undefined && <p className="cl-inline-alert">{status}</p>}
+
+      {projection && (
+        <>
+          {projection.grain !== undefined && (
+            <p className="cl-form-field__help" data-testid="standings-grain-statement">
+              <FormattedMessage
+                {...(projection.grain === 'series'
+                  ? messages.standingsGrainSeries
+                  : messages.standingsGrainMatch)}
+              />
+            </p>
+          )}
+
+          <PointsDistribution bars={bars} />
+
+          {onExportCsv && (
+            <div>
+              <Button onClick={onExportCsv} type="button" variant="secondary">
+                <FormattedMessage {...messages.standingsExportCsv} />
+              </Button>
             </div>
-          </details>
-        ))}
+          )}
 
-        {rows.length === 0 && (
-          <p style={emptyStyle}>
-            <FormattedMessage {...messages.standingsNoResultsYet} />
-          </p>
-        )}
-      </div>
-    </section>
+          <DataTable
+            ariaLabel={intl.formatMessage(messages.standingsSectionLabel)}
+            columns={dataTableColumns}
+            emptyMessage={intl.formatMessage(messages.standingsNoResultsYet)}
+            renderRowDetail={
+              isGroupPhase
+                ? (row) => (
+                    <details
+                      className="cl-focusable"
+                      onToggle={(event) => {
+                        if (event.currentTarget.open) expand(row.actorId);
+                      }}
+                    >
+                      <summary style={{ cursor: 'pointer' }}>
+                        <FormattedMessage {...messages.standingsTiebreak} />
+                      </summary>
+                      <div style={{ padding: 'var(--cl-space-2) 0' }}>
+                        <TiebreakTrace
+                          lines={traces[row.actorId]}
+                          loading={pending.includes(row.actorId)}
+                        />
+                      </div>
+                    </details>
+                  )
+                : undefined
+            }
+            rowKey={(row) => row.actorId}
+            rows={rows}
+          />
+        </>
+      )}
+    </div>
+  );
+
+  return (
+    <ListScreenTemplate
+      breadcrumb={breadcrumbNode}
+      listing={listingNode}
+      title={titleNode}
+      toolbar={toolbarNode}
+    />
   );
 }
 
@@ -164,36 +310,37 @@ export function TiebreakTrace({
   const intl = useIntl();
   if (loading) {
     return (
-      <p style={smallStyle}>
+      <p className="cl-form-field__help">
         <FormattedMessage {...messages.standingsTraceLoading} />
       </p>
     );
   }
   if (lines === undefined) {
     return (
-      <p style={smallStyle}>
+      <p className="cl-form-field__help">
         <FormattedMessage {...messages.standingsTraceOpenRow} />
       </p>
     );
   }
   if (lines.length === 0) {
     return (
-      <p style={smallStyle}>
+      <p className="cl-form-field__help">
         <FormattedMessage {...messages.standingsTraceNoComparators} />
       </p>
     );
   }
 
   return (
-    <div aria-label={intl.formatMessage(messages.standingsTraceAriaLabel)} style={traceStyle}>
-      <h2 style={traceTitleStyle}>
+    <div
+      aria-label={intl.formatMessage(messages.standingsTraceAriaLabel)}
+      className="cl-platform-sections"
+    >
+      <h2 className="cl-label">
         <FormattedMessage {...messages.standingsTraceTitle} />
       </h2>
-      <ol style={traceListStyle}>
+      <ol className="cl-platform-update-list">
         {lines.map((line, index) => (
-          <li key={`${index}-${line}`} style={traceLineStyle}>
-            {line}
-          </li>
+          <li key={`${index}-${line}`}>{line}</li>
         ))}
       </ol>
     </div>
@@ -201,17 +348,18 @@ export function TiebreakTrace({
 }
 
 /**
- * Top-five distribution bars.
+ * Top-five distribution bars, scaled against the active layout's own
+ * primary sort metric.
  *
- * CSS widths, no charting library: the bars are a comparison of five numbers,
- * and a dependency that ships a canvas renderer to draw five rectangles is
- * weight an operator on venue Wi-Fi pays for on every load.
+ * CSS widths, no charting library: the bars are a comparison of five
+ * numbers, and a dependency that ships a canvas renderer to draw five
+ * rectangles is weight an operator on venue Wi-Fi pays for on every load.
  */
 export function PointsDistribution({
   bars,
 }: {
   readonly bars: readonly {
-    readonly entrantId: string;
+    readonly actorId: string;
     readonly label: string;
     readonly value: number;
     readonly widthPercent: number;
@@ -222,128 +370,54 @@ export function PointsDistribution({
     <div
       aria-label={intl.formatMessage(messages.standingsDistributionAriaLabel)}
       className="cl-card cl-chamfer"
-      style={chartStyle}
     >
-      <h2 style={chartTitleStyle}>
-        {intl.formatMessage(messages.standingsDistributionTitle, { count: bars.length })}
-      </h2>
-      {bars.map((bar) => (
-        <div key={bar.entrantId} style={barRowStyle}>
-          <span style={barLabelStyle}>{bar.label}</span>
-          <span style={barTrackStyle}>
-            <span aria-hidden="true" style={{ ...barFillStyle, width: `${bar.widthPercent}%` }} />
-          </span>
-          <strong style={barValueStyle}>{bar.value}</strong>
-        </div>
-      ))}
-      {bars.length === 0 && (
-        <p style={smallStyle}>
-          <FormattedMessage {...messages.standingsDistributionEmpty} />
-        </p>
-      )}
+      <header className="cl-card__header">
+        <h2 className="cl-card__title">
+          {intl.formatMessage(messages.standingsDistributionTitle, { count: bars.length })}
+        </h2>
+      </header>
+      <div className="cl-card__content">
+        {bars.map((bar) => (
+          <div
+            key={bar.actorId}
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'minmax(6rem, 1fr) 4fr 3rem',
+              gap: 'var(--cl-space-3)',
+              alignItems: 'center',
+            }}
+          >
+            <span>{bar.label}</span>
+            <span
+              style={{
+                display: 'block',
+                height: 12,
+                background: 'var(--cl-surface-raised)',
+                border: '1px solid var(--cl-border-muted)',
+              }}
+            >
+              <span
+                aria-hidden="true"
+                style={{
+                  display: 'block',
+                  height: '100%',
+                  background: 'var(--cl-state-live)',
+                  transition: 'width 400ms ease-out',
+                  width: `${bar.widthPercent}%`,
+                }}
+              />
+            </span>
+            <strong style={{ fontFamily: 'var(--cl-font-mono)', textAlign: 'right' }}>
+              {bar.value}
+            </strong>
+          </div>
+        ))}
+        {bars.length === 0 && (
+          <p className="cl-card__description">
+            <FormattedMessage {...messages.standingsDistributionEmpty} />
+          </p>
+        )}
+      </div>
     </div>
   );
 }
-
-function gridStyle(columnCount: number): React.CSSProperties {
-  return {
-    display: 'grid',
-    gridTemplateColumns: `3rem 2fr repeat(${columnCount}, 3.5rem) 10rem`,
-    gap: 'var(--cl-space-3)',
-    alignItems: 'center',
-  };
-}
-
-const stackStyle: React.CSSProperties = { display: 'grid', gap: 'var(--cl-space-6)' };
-const headerStyle: React.CSSProperties = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'end',
-  gap: 'var(--cl-space-4)',
-  flexWrap: 'wrap',
-};
-const metaStyle: React.CSSProperties = {
-  margin: 0,
-  color: 'var(--cl-state-live)',
-  fontFamily: 'var(--cl-font-mono)',
-  fontSize: '0.75rem',
-  textTransform: 'uppercase',
-};
-const titleStyle: React.CSSProperties = {
-  margin: 0,
-  fontFamily: 'var(--cl-font-display)',
-  fontSize: '3rem',
-  textTransform: 'uppercase',
-};
-const smallStyle: React.CSSProperties = {
-  color: 'var(--cl-text-muted)',
-  fontFamily: 'var(--cl-font-mono)',
-  fontSize: '0.75rem',
-};
-const tableStyle: React.CSSProperties = { display: 'grid', gap: 0, padding: 0, overflow: 'hidden' };
-const tableHeaderStyle: React.CSSProperties = {
-  padding: 'var(--cl-space-3) var(--cl-space-4)',
-  borderBottom: '1px solid var(--cl-border-muted)',
-  color: 'var(--cl-text-muted)',
-  fontFamily: 'var(--cl-font-mono)',
-  textTransform: 'uppercase',
-  fontSize: '0.75rem',
-};
-const rowStyle: React.CSSProperties = { borderBottom: '1px solid var(--cl-border-muted)' };
-const summaryStyle: React.CSSProperties = { padding: 'var(--cl-space-4)', cursor: 'pointer' };
-const detailStyle: React.CSSProperties = {
-  padding: '0 var(--cl-space-4) var(--cl-space-4) var(--cl-space-6)',
-};
-const emptyStyle: React.CSSProperties = { padding: 'var(--cl-space-4)' };
-const traceStyle: React.CSSProperties = { display: 'grid', gap: 'var(--cl-space-2)' };
-const traceTitleStyle: React.CSSProperties = {
-  margin: 0,
-  fontFamily: 'var(--cl-font-mono)',
-  fontSize: '0.75rem',
-  textTransform: 'uppercase',
-  color: 'var(--cl-text-muted)',
-};
-const traceListStyle: React.CSSProperties = {
-  margin: 0,
-  paddingLeft: 'var(--cl-space-5)',
-  display: 'grid',
-  gap: 'var(--cl-space-1)',
-};
-const traceLineStyle: React.CSSProperties = {
-  fontFamily: 'var(--cl-font-mono)',
-  fontSize: '0.8125rem',
-  whiteSpace: 'pre-wrap',
-};
-const chartStyle: React.CSSProperties = { display: 'grid', gap: 'var(--cl-space-3)' };
-const chartTitleStyle: React.CSSProperties = {
-  margin: 0,
-  fontFamily: 'var(--cl-font-mono)',
-  fontSize: '0.75rem',
-  textTransform: 'uppercase',
-  color: 'var(--cl-text-muted)',
-};
-const barRowStyle: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'minmax(6rem, 1fr) 4fr 3rem',
-  gap: 'var(--cl-space-3)',
-  alignItems: 'center',
-};
-const barLabelStyle: React.CSSProperties = { fontSize: '0.875rem' };
-const barTrackStyle: React.CSSProperties = {
-  display: 'block',
-  height: 12,
-  background: 'var(--cl-surface-raised)',
-  border: '1px solid var(--cl-border-muted)',
-};
-const barFillStyle: React.CSSProperties = {
-  display: 'block',
-  height: '100%',
-  background: 'var(--cl-state-live)',
-  // Animates the value, not the layout: the row's height never changes, so a
-  // table below it does not jump while the chart settles.
-  transition: 'width 400ms ease-out',
-};
-const barValueStyle: React.CSSProperties = {
-  fontFamily: 'var(--cl-font-mono)',
-  textAlign: 'right',
-};

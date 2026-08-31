@@ -5,7 +5,7 @@ import { ControlApp } from './ControlApp.js';
 const STATIC_NOT_FOUND_ID = 'static-not-found';
 
 /**
- * The site's global 404 fallback, made SPA-aware for `/control/**` (0061).
+ * The site's global 404 fallback, made SPA-aware for `/control/**`.
  *
  * A static build's 404 page is the one place that reliably runs for *any*
  * unmatched path on *any* static host, with no host-specific rewrite rule
@@ -13,7 +13,7 @@ const STATIC_NOT_FOUND_ID = 'static-not-found';
  * production deployments already, but `astro preview` (what local e2e runs
  * against) and third-party static hosts a self-hoster might use have no such
  * rule, and only ever serve this one file for a miss. Checking the path here
- * makes the control panel's client-side routing (0061) work everywhere a
+ * makes the control panel's client-side routing work everywhere a
  * static site can be hosted, not only behind this repo's own example proxy
  * config.
  *

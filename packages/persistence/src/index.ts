@@ -18,8 +18,12 @@ export {
 
 export {
   withTransaction,
+  recordAuditRefusal,
+  recordAuditRead,
   type UnitOfWork,
   type AuditEntry,
+  type AuditRefusalEntry,
+  type AuditReadEntry,
   type OutboxEvent,
 } from './transaction.js';
 
@@ -33,7 +37,13 @@ export {
   isSchemaReady,
 } from './migrations/index.js';
 
-export { AuditReader, type AuditRecord } from './audit.js';
+export {
+  AuditReader,
+  isRefusal,
+  type AuditRecord,
+  type AuditPage,
+  type AuditPageOptions,
+} from './audit.js';
 export { OutboxReader, type OutboxRecord } from './outbox.js';
 
 export {
@@ -48,7 +58,14 @@ export {
   type CreateOrganizationInvitationInput,
   type DeleteOrganizationRoleInput,
   type PrincipalOrganizationMembership,
+  type RescindOrganizationInvitationInput,
 } from './repositories/organization-access-repository.js';
+export {
+  InstallationRoleRepository,
+  type CreateSuperAdminInput,
+  type ChangeInstallationRoleStatusInput,
+  type DeleteInstallationRoleInput,
+} from './repositories/installation-role-repository.js';
 export { IdentityPrincipalRepository } from './repositories/identity-principal-repository.js';
 export {
   DisplayTokenRepository,
@@ -57,6 +74,22 @@ export {
   type IssueDisplayTokenInput,
   type RevokeDisplayTokenInput,
 } from './repositories/display-token-repository.js';
+export {
+  PersonalAccessTokenRepository,
+  hashToken,
+  generateTokenString,
+  type PersonalAccessToken,
+  type PatScope,
+  type CreatePatInput,
+  type RevokePatInput,
+  type RevokeActivePatsInput,
+} from './repositories/personal-access-token-repository.js';
+export {
+  AuthVerificationTokenRepository,
+  type AuthVerificationToken,
+  type CreateVerificationTokenInput,
+  type VerificationKind,
+} from './repositories/auth-verification-token-repository.js';
 export {
   ParticipantReportRepository,
   EVIDENCE_VALIDATION_REQUESTED_EVENT,
@@ -83,13 +116,22 @@ export {
   type ParticipantTeamMembership,
 } from './repositories/enrollment-repository.js';
 export { CompetitionRepository } from './repositories/competition-repository.js';
-export { ScheduleRepository, type SchedulePreview } from './repositories/schedule-repository.js';
+export {
+  ScheduleRepository,
+  type SchedulePreview,
+  type ScheduleAssignmentDetail,
+} from './repositories/schedule-repository.js';
 export { MatchAssignmentRepository } from './repositories/match-assignment-repository.js';
 export {
   MatchCommandIdempotencyRepository,
   type StoredMatchCommandResponse,
 } from './repositories/match-command-idempotency-repository.js';
-export { PersonRepository } from './repositories/person-repository.js';
+export {
+  PersonRepository,
+  type PersonCompetitionHistoryItem,
+  type PersonCareerStatisticTotal,
+  type PersonCareerDisciplineTotals,
+} from './repositories/person-repository.js';
 export {
   CsvImportRepository,
   hashSource,
@@ -142,6 +184,12 @@ export {
   type TotalsQuery,
   type ReadTotal,
 } from './repositories/statistic-repository.js';
+export { CollectorThresholdConsumptionRepository } from './repositories/collector-threshold-consumption-repository.js';
+export {
+  DeclaredEffectRepository,
+  type DeclaredEffectRecord,
+  type RecordDeclaredEffectInput,
+} from './repositories/declared-effect-repository.js';
 /** Re-exported so an API layer can tell a caller's conflict from a fault. */
 export { ScheduleConflictError } from '@copalibre/domain';
 export {
@@ -167,6 +215,7 @@ export {
   type ObjectMetadata,
   type ObjectStorageMetadataProfile,
   type ObjectStorageMetadataStatus,
+  type OrganizationStorageUsage,
 } from './repositories/object-metadata-repository.js';
 
 export {

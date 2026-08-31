@@ -71,7 +71,12 @@ different attribution.
 
 ### Requirement: Validation is identical at import and in review
 The same validation SHALL run when importing a module and when a pull request proposes one: manifest
-and artifact schema, registry references, ruleset compilation, and asset limits.
+and artifact schema, registry references, ruleset compilation, and asset limits. A discipline's
+background image assets SHALL be validated as JPEG only, with a maximum dimension of 2560×1440
+(1440p), a maximum file size of 2 MiB per file, and a count between 1 and 10. Each descriptor image
+reference SHALL use the deterministic `modules/<alias>/<version>/<asset-path>` key and correspond
+one-to-one with a manifest asset whose kind is `background`; other existing asset kinds retain their
+own declared validation policy.
 
 #### Scenario: A pull request proposing an uncompilable descriptor fails review
 - **WHEN** a proposed discipline parses but produces an invalid effective ruleset
@@ -82,8 +87,24 @@ and artifact schema, registry references, ruleset compilation, and asset limits.
 - **THEN** validation fails identifying the unregistered identifier
 
 #### Scenario: Assets exceeding declared limits are rejected
-- **WHEN** a module includes an asset outside the permitted formats, dimensions or size
-- **THEN** validation fails identifying the offending asset
+- **WHEN** a discipline module includes a background image asset that is not JPEG, exceeds 2560×1440, or
+  exceeds 2 MiB
+- **THEN** validation fails identifying the offending asset and which limit it exceeded
+
+#### Scenario: A discipline's background image count outside 1-10 is rejected
+- **WHEN** a discipline module declares zero background images with `images` present as an empty array,
+  or declares more than 10
+- **THEN** validation fails identifying the `images` field and the count limit
+
+#### Scenario: The same limits apply at CLI import and at community-repository review
+- **WHEN** a discipline module with an oversized or wrong-format background image is submitted to the
+  community repository, and separately when the same module is imported locally with `module add`
+- **THEN** both paths reject it identically, naming the same offending asset and limit
+
+#### Scenario: Descriptor references and manifest backgrounds disagree
+- **WHEN** a discipline's `images` contains a key without a corresponding `background` manifest asset,
+  or the manifest declares a background absent from `images`
+- **THEN** validation fails identifying the unmatched key or asset before any upload or database write
 
 ### Requirement: Core version compatibility is declared and enforced
 A module SHALL declare the CopaLibre versions it supports as a semver range, and installation SHALL
@@ -168,3 +189,22 @@ pull request against the upstream repository.
 - **WHEN** `copalibre module submit` runs against a local module package
 - **THEN** the local package's `manifest.json`/`artifact.json`/`assets/` are copied, not moved or
   edited, and remain usable for a further local `module add --source` install afterward
+
+### Requirement: A module may be authored through a guided surface as well as scaffolded
+A module package MAY be produced by a guided authoring surface in addition to `module scaffold`. A
+package produced either way SHALL be indistinguishable to validation, installation and submission: the
+same validation applies, the same install path runs, and the same submission flow contributes it.
+
+#### Scenario: An authored package validates identically to a scaffolded one
+- **WHEN** `module validate-local` is run against a package produced by the authoring surface
+- **THEN** it reports validity on exactly the same terms it reports for a scaffolded package
+
+#### Scenario: Authoring adds no second install mechanism
+- **WHEN** a module authored through the surface is installed
+- **THEN** it installs through the path `module add` uses, and no authored-module-specific install code
+  path exists
+
+#### Scenario: An authored package submits through the existing flow
+- **WHEN** an authored package is contributed upstream
+- **THEN** `module submit`'s behavior applies unchanged, including that the local package is copied
+  rather than moved and remains installable afterward

@@ -5,7 +5,7 @@ import { winConditionScript } from './win-condition-scripts.js';
 /**
  * Tennis descriptor builder — the nested-scoring reference implementation.
  *
- * Tennis is the discipline that broke the pre-0009 model: one match produces
+ * Tennis is the discipline that broke the previous model: one match produces
  * three levels of score at once (matches, sets, games), and a single scalar
  * could carry none of them. It declares a statistic at every level it scores
  * at, which is what lets a profile bind `primary-scoring → matches-won`,
@@ -22,7 +22,7 @@ export function tennisDescriptor(overrides?: Partial<DisciplineDescriptor>): Dis
   return {
     descriptorId: '01890000-0000-7000-8000-00000000t001',
     alias: 'tennis',
-    version: '1.0.0',
+    version: '1.2.0',
     name: 'Tennis',
     attribution: {
       author: 'CopaLibre',
@@ -93,15 +93,25 @@ export function tennisDescriptor(overrides?: Partial<DisciplineDescriptor>): Dis
     ]),
     defaults: {
       format: 'round-robin',
-      registration: { publicOpen: false, requiresCheckIn: false },
+      registration: {
+        publicOpen: false,
+        requiresCheckIn: false,
+        region: null,
+        capacity: null,
+      },
       scoring: { pointsPerWin: 2, pointsPerDraw: 0, pointsPerLoss: 0 },
       // Cascades matches → sets → games, which is exactly the three-way tie the
-      // pre-0009 accounting could not break.
+      // previous accounting could not break.
       tiebreakers: ['matches-won', 'sets-won', 'games-won'],
       segments: { bestOf: 3, tiebreakInFinalSet: true },
     },
     fieldPolicies: {
       format: { permission: { kind: 'replaced' }, mutationClass: 'blocked_after_results' },
+      'registration.region': { permission: { kind: 'replaced' }, mutationClass: 'safe' },
+      'registration.capacity': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'requires_rebuild',
+      },
       'registration.publicOpen': { permission: { kind: 'replaced' }, mutationClass: 'safe' },
       'registration.requiresCheckIn': {
         permission: { kind: 'replaced' },
@@ -112,6 +122,14 @@ export function tennisDescriptor(overrides?: Partial<DisciplineDescriptor>): Dis
         mutationClass: 'requires_rebuild',
       },
       'scoring.pointsPerWin': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'blocked_after_results',
+      },
+      'scoring.pointsPerDraw': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'blocked_after_results',
+      },
+      'scoring.pointsPerLoss': {
         permission: { kind: 'replaced' },
         mutationClass: 'blocked_after_results',
       },

@@ -1,0 +1,16 @@
+{
+  "locale": "fr",
+  "generatedAt": "2026-08-25T00:17:29.041Z",
+  "flaggedCount": 1,
+  "entries": [
+    {
+      "key": "control.zoneGroup.seed",
+      "englishSource": "Draw seed",
+      "currentTranslation": "Graine du tirage",
+      "concern": "\"Graine du tirage\" is a literal botanical translation of \"seed\" (graine = plant seed). The catalogue itself uses the correct \"tête de série\" in control.seeding.toggleLockAriaLabel — internally inconsistent; glossary requires \"tête de série\".",
+      "proposedReplacement": "Tête de série du tirage",
+      "glossaryHits": ["seed", "seeding", "draw"],
+      "status": "unconfirmed"
+    }
+  ]
+}

@@ -6,8 +6,13 @@ import {
   type ControlApiClient,
   type RegistrationResponse,
 } from '../lib/api-client.js';
+import { controlLinkClick } from '../lib/control-navigation.js';
 import { controlTokenStore } from '../session/token-store.js';
+import { AbbreviationReviewSection } from './AbbreviationReviewSection.js';
 import { RegistrationReviewPage, type ReviewRegistrationRow } from './RegistrationReviewPage.js';
+import { Button } from './ui/atoms/button.js';
+import { Card } from './ui/atoms/card.js';
+import { FormField } from './ui/molecules/form-field.js';
 import { messages } from '../i18n/messages.en.js';
 
 type LoadStatus = 'loading' | 'ready' | 'failed';
@@ -33,13 +38,17 @@ export function RegistrationReviewRoute({
       }),
     [client],
   );
+  const csvApi = api as Required<
+    Pick<ControlApiClient, 'createCsvImport' | 'fetchCsvImport' | 'commitCsvImport'>
+  >;
+
   const [rows, setRows] = useState<readonly ReviewRegistrationRow[]>([]);
   const [status, setStatus] = useState<LoadStatus>('loading');
   const [csv, setCsv] = useState<CsvImportPreviewResponse>();
   const [csvStatus, setCsvStatus] = useState('');
-  const csvApi = api as Required<
-    Pick<ControlApiClient, 'createCsvImport' | 'fetchCsvImport' | 'commitCsvImport'>
-  >;
+  const [abbreviationCandidates, setAbbreviationCandidates] = useState<
+    readonly RegistrationResponse[]
+  >([]);
 
   useEffect(() => {
     let live = true;
@@ -66,6 +75,25 @@ export function RegistrationReviewRoute({
     };
   }, [api, organizationAlias, tournamentAlias, intl]);
 
+  useEffect(() => {
+    let live = true;
+    const listEntrantsNeedingAbbreviation = api.listEntrantsNeedingAbbreviation;
+    (listEntrantsNeedingAbbreviation
+      ? listEntrantsNeedingAbbreviation(organizationAlias, tournamentAlias)
+      : Promise.resolve([])
+    )
+      .then((loaded) => {
+        if (live) setAbbreviationCandidates(loaded);
+      })
+      .catch(() => {
+        // A quiet, empty-by-default section (design.md) — a failed load
+        // just leaves it empty rather than adding a second error state.
+      });
+    return () => {
+      live = false;
+    };
+  }, [api, organizationAlias, tournamentAlias]);
+
   if (status === 'loading' && rows.length === 0) {
     return (
       <p className="cl-inline-alert">
@@ -83,14 +111,28 @@ export function RegistrationReviewRoute({
 
   return (
     <>
-      <section
-        aria-label={intl.formatMessage(messages.registrationImportSection)}
-        className="cl-card cl-chamfer cl-chamfer--control"
+      <a
+        className="cl-focusable"
+        href={`/control/${organizationAlias}/tournaments/${tournamentAlias}/settings`}
+        onClick={controlLinkClick(
+          `/control/${organizationAlias}/tournaments/${tournamentAlias}/settings`,
+        )}
       >
-        <label>
-          <FormattedMessage {...messages.registrationCsvLabel} />
+        <FormattedMessage {...messages.tournamentSettingsLink} />
+      </a>
+      <Card
+        aria-label={intl.formatMessage(messages.registrationImportSection)}
+        className="cl-chamfer cl-chamfer--control"
+      >
+        <FormField
+          id="registration-csv-file"
+          label={intl.formatMessage(messages.registrationCsvLabel)}
+        >
           <input
             accept=".csv,text/csv"
+            aria-label={intl.formatMessage(messages.registrationCsvLabel)}
+            className="cl-input cl-input--default cl-focusable"
+            id="registration-csv-file"
             onChange={(event) => {
               const file = event.currentTarget.files?.[0];
               if (!file) return;
@@ -120,7 +162,7 @@ export function RegistrationReviewRoute({
             }}
             type="file"
           />
-        </label>
+        </FormField>
         {csvStatus && <p className="cl-inline-alert">{csvStatus}</p>}
         {csv?.preview && (
           <div>
@@ -142,7 +184,7 @@ export function RegistrationReviewRoute({
                   })}
                 </p>
               ))}
-            <button
+            <Button
               disabled={!csv.preview.valid || csv.status !== 'review-ready'}
               onClick={() =>
                 void csvApi
@@ -155,10 +197,29 @@ export function RegistrationReviewRoute({
               type="button"
             >
               <FormattedMessage {...messages.registrationConfirmImport} />
-            </button>
+            </Button>
           </div>
         )}
-      </section>
+      </Card>
+      <AbbreviationReviewSection
+        onSetAbbreviation={
+          api.setEntrantAbbreviation &&
+          ((entrantId, abbreviation) =>
+            api
+              .setEntrantAbbreviation?.(organizationAlias, tournamentAlias, entrantId, {
+                abbreviation,
+              })
+              .then(() => {
+                setAbbreviationCandidates((current) =>
+                  current.filter((row) => row.entrantId !== entrantId),
+                );
+              }))
+        }
+        rows={abbreviationCandidates.map((row) => ({
+          entrantId: row.entrantId,
+          displayName: row.displayName ?? row.teamId ?? row.personId ?? row.entrantId,
+        }))}
+      />
       <RegistrationReviewPage
         organizationAlias={organizationAlias}
         tournamentName={tournamentAlias}
@@ -186,6 +247,106 @@ export function RegistrationReviewRoute({
               ),
             )
         }
+        onSetNationality={
+          api.setPersonNationality &&
+          ((personId, nationality) =>
+            api.setPersonNationality?.(organizationAlias, personId, nationality).then((next) => {
+              setRows((current) =>
+                current.map((row) =>
+                  row.personId === personId
+                    ? { ...row, nationality: next.nationality ?? undefined }
+                    : row,
+                ),
+              );
+            }))
+        }
+        onUploadPhoto={
+          api.uploadPersonPhoto &&
+          ((personId, request) =>
+            api.uploadPersonPhoto?.(organizationAlias, personId, request).then((next) => {
+              setRows((current) =>
+                current.map((row) =>
+                  row.personId === personId ? { ...row, photoObjectId: next.objectId } : row,
+                ),
+              );
+            }))
+        }
+        onAddPerson={
+          api.createPerson &&
+          ((request) =>
+            api.createPerson?.(organizationAlias, tournamentAlias, request).then((created) => {
+              setRows((current) => [
+                ...current,
+                toReviewRow(
+                  created,
+                  intl.formatMessage(messages.registrationContactUnavailable),
+                  intl.formatMessage(messages.registrationExperienceUnrecorded),
+                ),
+              ]);
+            }))
+        }
+        onAddTeam={
+          api.createTeam &&
+          ((request) =>
+            api.createTeam?.(organizationAlias, tournamentAlias, request).then((created) => {
+              setRows((current) => [
+                ...current,
+                toReviewRow(
+                  created,
+                  intl.formatMessage(messages.registrationContactUnavailable),
+                  intl.formatMessage(messages.registrationExperienceUnrecorded),
+                ),
+              ]);
+            }))
+        }
+        onEditPersonIdentity={
+          api.updatePersonIdentity &&
+          ((personId, request) =>
+            api
+              .updatePersonIdentity?.(organizationAlias, tournamentAlias, personId, request)
+              .then((next) => {
+                setRows((current) =>
+                  current.map((row) =>
+                    row.personId === personId ? { ...row, displayName: next.displayName } : row,
+                  ),
+                );
+              }))
+        }
+        onEditTeamIdentity={
+          api.updateTeamIdentity &&
+          ((teamId, request) =>
+            api
+              .updateTeamIdentity?.(organizationAlias, tournamentAlias, teamId, request)
+              .then((next) => {
+                setRows((current) =>
+                  current.map((row) =>
+                    row.teamId === teamId ? { ...row, displayName: next.name } : row,
+                  ),
+                );
+              }))
+        }
+        onLinkIdentity={
+          api.linkParticipantIdentity &&
+          ((personId, request) =>
+            api.linkParticipantIdentity?.(organizationAlias, personId, request).then(() => {
+              setRows((current) =>
+                current.map((row) =>
+                  row.personId === personId ? { ...row, hasIdentityLink: true } : row,
+                ),
+              );
+            }))
+        }
+        onUnlinkIdentity={
+          api.unlinkParticipantIdentity &&
+          ((personId) =>
+            api.unlinkParticipantIdentity?.(organizationAlias, personId).then(() => {
+              setRows((current) =>
+                current.map((row) =>
+                  row.personId === personId ? { ...row, hasIdentityLink: false } : row,
+                ),
+              );
+            }))
+        }
       />
     </>
   );
@@ -196,13 +357,20 @@ function toReviewRow(
   contactUnavailableLabel: string,
   experienceUnrecordedLabel: string,
 ): ReviewRegistrationRow {
-  const displayName = row.teamId ?? row.personId ?? row.entrantId;
+  // The API now supplies a person entrant's real displayName; a team
+  // entrant still has none to show, so this placeholder stays the fallback.
+  const displayName = row.displayName ?? row.teamId ?? row.personId ?? row.entrantId;
   return {
     entrantId: row.entrantId,
     displayName,
     status: row.status,
     submittedAt: '',
     contactEmail: contactUnavailableLabel,
+    ...(row.personId === undefined ? {} : { personId: row.personId }),
+    ...(row.teamId === undefined ? {} : { teamId: row.teamId }),
+    ...(row.nationality === undefined ? {} : { nationality: row.nationality }),
+    ...(row.photoObjectId === undefined ? {} : { photoObjectId: row.photoObjectId }),
+    ...(row.hasIdentityLink === undefined ? {} : { hasIdentityLink: row.hasIdentityLink }),
     // RegistrationResponse identifies the entrant, not its members. Do not
     // present the team identifier as a person until the API supplies members.
     teamMembers: [],

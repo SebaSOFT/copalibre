@@ -1,6 +1,7 @@
 import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import sharp from 'sharp';
 import { validateModulePackage, validateModulePackageOrThrow } from './validate.js';
 import { ModuleValidationError } from './errors.js';
 import {
@@ -44,6 +45,28 @@ describe('validateModulePackage', () => {
 
     const result = await validateModulePackage(directory, OPTIONS);
     expect(result.ok).toBe(true);
+  });
+
+  it('accepts a discipline module using locale-map labels', async () => {
+    const directory = await makeModuleDirectory(
+      validManifest(),
+      validDisciplineDocument({ name: { en: 'Orbital Frisbee', es: 'Frisbee Orbital' } }),
+    );
+    directories.push(directory);
+
+    const result = await validateModulePackage(directory, OPTIONS);
+    expect(result.ok).toBe(true);
+  });
+
+  it('rejects a discipline module whose locale-map label omits the required en key', async () => {
+    const directory = await makeModuleDirectory(
+      validManifest(),
+      validDisciplineDocument({ name: { es: 'Frisbee Orbital' } }),
+    );
+    directories.push(directory);
+
+    const result = await validateModulePackage(directory, OPTIONS);
+    expect(result.ok).toBe(false);
   });
 
   it('rejects a manifest declaring an unknown kind', async () => {
@@ -96,6 +119,391 @@ describe('validateModulePackage', () => {
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.failures.some((failure) => failure.stage === 'registry-reference')).toBe(true);
+    }
+  });
+
+  it('accepts an event effect awarding to a payload field the event declares', async () => {
+    const directory = await makeModuleDirectory(
+      validManifest(),
+      validDisciplineDocument({
+        eventDefinitions: [
+          {
+            code: 'goal',
+            label: 'Goal',
+            category: 'positive',
+            permittedSegmentTypes: ['half'],
+            actorRequirement: 'person',
+            payloadSchema: { type: 'object', properties: { assistedBy: { type: 'string' } } },
+            effects: [
+              {
+                kind: 'statistic',
+                statisticCode: 'assists',
+                delta: 1,
+                awardTo: { payloadField: 'assistedBy' },
+              },
+            ],
+          },
+        ],
+        statistics: [
+          { code: 'points', label: 'Points', aggregation: 'sum' },
+          { code: 'assists', label: 'Assists', aggregation: 'sum' },
+        ],
+      }),
+    );
+    directories.push(directory);
+
+    const result = await validateModulePackage(directory, OPTIONS);
+    expect(result.ok).toBe(true);
+  });
+
+  it('rejects an event effect awarding to a payload field the event does not declare', async () => {
+    const directory = await makeModuleDirectory(
+      validManifest(),
+      validDisciplineDocument({
+        eventDefinitions: [
+          {
+            code: 'goal',
+            label: 'Goal',
+            category: 'positive',
+            permittedSegmentTypes: ['half'],
+            actorRequirement: 'person',
+            payloadSchema: { type: 'object' },
+            effects: [
+              {
+                kind: 'statistic',
+                statisticCode: 'assists',
+                delta: 1,
+                awardTo: { payloadField: 'assistedBy' },
+              },
+            ],
+          },
+        ],
+        statistics: [
+          { code: 'points', label: 'Points', aggregation: 'sum' },
+          { code: 'assists', label: 'Assists', aggregation: 'sum' },
+        ],
+      }),
+    );
+    directories.push(directory);
+
+    const result = await validateModulePackage(directory, OPTIONS);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.failures.some((failure) => failure.stage === 'payload-field-reference')).toBe(
+        true,
+      );
+    }
+  });
+
+  it('rejects a discipline declaring the same tag code twice', async () => {
+    const expelled = { code: 'expelled', label: 'Expelled', appliesTo: ['person'] };
+    const directory = await makeModuleDirectory(
+      validManifest(),
+      validDisciplineDocument({ tags: [expelled, expelled] }),
+    );
+    directories.push(directory);
+
+    const result = await validateModulePackage(directory, OPTIONS);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.failures.some((failure) => failure.stage === 'tags')).toBe(true);
+    }
+  });
+
+  it('rejects a discipline declaring duplicate collector codes', async () => {
+    const duplicate = {
+      code: 'points',
+      label: 'Points',
+      source: { kind: 'participation' },
+      measure: { kind: 'count' },
+      granularity: { actor: 'person', competition: 'match' },
+    };
+    const directory = await makeModuleDirectory(
+      validManifest(),
+      validDisciplineDocument({ collectors: [duplicate, duplicate] }),
+    );
+    directories.push(directory);
+
+    const result = await validateModulePackage(directory, OPTIONS);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.failures.some((failure) => failure.stage === 'collectors')).toBe(true);
+    }
+  });
+
+  it('rejects a tag effect targeting a payload field the event does not declare', async () => {
+    const directory = await makeModuleDirectory(
+      validManifest(),
+      validDisciplineDocument({
+        eventDefinitions: [
+          {
+            code: 'kill',
+            label: 'Kill',
+            category: 'positive',
+            permittedSegmentTypes: ['half'],
+            actorRequirement: 'person',
+            payloadSchema: { type: 'object' },
+            effects: [
+              {
+                kind: 'tag',
+                tagCode: 'eliminated',
+                action: 'applied',
+                target: { payloadField: 'victimId' },
+              },
+            ],
+          },
+        ],
+        tags: [{ code: 'eliminated', label: 'Eliminated', appliesTo: ['person'] }],
+      }),
+    );
+    directories.push(directory);
+
+    const result = await validateModulePackage(directory, OPTIONS);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.failures.some((failure) => failure.stage === 'payload-field-reference')).toBe(
+        true,
+      );
+    }
+  });
+
+  it('accepts a roster-role-snapshot effect writing a declared field and naming a declared role', async () => {
+    const directory = await makeModuleDirectory(
+      validManifest(),
+      validDisciplineDocument({
+        eventDefinitions: [
+          {
+            code: 'goal',
+            label: 'Goal',
+            category: 'positive',
+            permittedSegmentTypes: ['half'],
+            actorRequirement: 'person',
+            payloadSchema: { type: 'object', properties: { goalkeeperId: { type: 'string' } } },
+            effects: [
+              {
+                kind: 'roster-role-snapshot',
+                payloadField: 'goalkeeperId',
+                role: 'goalkeeper',
+                side: 'every-other-side',
+              },
+            ],
+          },
+        ],
+        rosterRoles: [{ code: 'goalkeeper', label: 'Goalkeeper' }],
+      }),
+    );
+    directories.push(directory);
+
+    const result = await validateModulePackage(directory, OPTIONS);
+    expect(result.ok).toBe(true);
+  });
+
+  it('rejects a roster-role-snapshot effect writing a payload field the event does not declare', async () => {
+    const directory = await makeModuleDirectory(
+      validManifest(),
+      validDisciplineDocument({
+        eventDefinitions: [
+          {
+            code: 'goal',
+            label: 'Goal',
+            category: 'positive',
+            permittedSegmentTypes: ['half'],
+            actorRequirement: 'person',
+            payloadSchema: { type: 'object' },
+            effects: [
+              {
+                kind: 'roster-role-snapshot',
+                payloadField: 'goalkeeperId',
+                role: 'goalkeeper',
+                side: 'every-other-side',
+              },
+            ],
+          },
+        ],
+        rosterRoles: [{ code: 'goalkeeper', label: 'Goalkeeper' }],
+      }),
+    );
+    directories.push(directory);
+
+    const result = await validateModulePackage(directory, OPTIONS);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.failures.some((failure) => failure.stage === 'payload-field-reference')).toBe(
+        true,
+      );
+    }
+  });
+
+  it('rejects a roster-role-snapshot effect naming a role the discipline does not declare', async () => {
+    const directory = await makeModuleDirectory(
+      validManifest(),
+      validDisciplineDocument({
+        eventDefinitions: [
+          {
+            code: 'goal',
+            label: 'Goal',
+            category: 'positive',
+            permittedSegmentTypes: ['half'],
+            actorRequirement: 'person',
+            payloadSchema: { type: 'object', properties: { goalkeeperId: { type: 'string' } } },
+            effects: [
+              {
+                kind: 'roster-role-snapshot',
+                payloadField: 'goalkeeperId',
+                role: 'goalkeeper',
+                side: 'every-other-side',
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    directories.push(directory);
+
+    const result = await validateModulePackage(directory, OPTIONS);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.failures.some((failure) => failure.stage === 'payload-field-reference')).toBe(
+        true,
+      );
+    }
+  });
+
+  it('accepts personPayloadFields naming payload properties the event declares', async () => {
+    const directory = await makeModuleDirectory(
+      validManifest(),
+      validDisciplineDocument({
+        eventDefinitions: [
+          {
+            code: 'substitution',
+            label: 'Substitution',
+            category: 'neutral',
+            permittedSegmentTypes: ['half'],
+            actorRequirement: 'side',
+            payloadSchema: {
+              type: 'object',
+              properties: { playerOutId: { type: 'string' }, playerInId: { type: 'string' } },
+              required: ['playerOutId', 'playerInId'],
+            },
+            personPayloadFields: ['playerOutId', 'playerInId'],
+          },
+        ],
+      }),
+    );
+    directories.push(directory);
+
+    const result = await validateModulePackage(directory, OPTIONS);
+    expect(result.ok).toBe(true);
+  });
+
+  it('rejects personPayloadFields naming a payload property the event does not declare', async () => {
+    const directory = await makeModuleDirectory(
+      validManifest(),
+      validDisciplineDocument({
+        eventDefinitions: [
+          {
+            code: 'substitution',
+            label: 'Substitution',
+            category: 'neutral',
+            permittedSegmentTypes: ['half'],
+            actorRequirement: 'side',
+            payloadSchema: { type: 'object' },
+            personPayloadFields: ['playerOutId'],
+          },
+        ],
+      }),
+    );
+    directories.push(directory);
+
+    const result = await validateModulePackage(directory, OPTIONS);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.failures.some((failure) => failure.stage === 'payload-field-reference')).toBe(
+        true,
+      );
+    }
+  });
+
+  it('accepts a non-event-sourced collector and a string actorSource, neither needing a payload field check', async () => {
+    const directory = await makeModuleDirectory(
+      validManifest(),
+      validDisciplineDocument({
+        eventDefinitions: [
+          {
+            code: 'goal',
+            label: 'Goal',
+            category: 'positive',
+            permittedSegmentTypes: ['half'],
+            actorRequirement: 'person',
+            payloadSchema: { type: 'object' },
+            effects: [{ kind: 'statistic', statisticCode: 'points', delta: 1 }],
+          },
+        ],
+        collectors: [
+          {
+            code: 'appearances',
+            label: 'Appearances',
+            source: { kind: 'participation' },
+            measure: { kind: 'count' },
+            granularity: { actor: 'person', competition: 'match' },
+          },
+          {
+            code: 'points-conceded',
+            label: 'Points conceded',
+            source: {
+              kind: 'event',
+              definitionCodes: ['goal'],
+              actorSource: 'every-other-side',
+            },
+            measure: { kind: 'count' },
+            granularity: { actor: 'person', competition: 'match' },
+          },
+        ],
+      }),
+    );
+    directories.push(directory);
+
+    const result = await validateModulePackage(directory, OPTIONS);
+    expect(result.ok).toBe(true);
+  });
+
+  it('rejects a collector extracting its actor from a payload field the watched event does not declare', async () => {
+    const directory = await makeModuleDirectory(
+      validManifest(),
+      validDisciplineDocument({
+        eventDefinitions: [
+          {
+            code: 'kill',
+            label: 'Kill',
+            category: 'positive',
+            permittedSegmentTypes: ['half'],
+            actorRequirement: 'person',
+            payloadSchema: { type: 'object' },
+          },
+        ],
+        collectors: [
+          {
+            code: 'deaths',
+            label: 'Deaths',
+            source: {
+              kind: 'event',
+              definitionCodes: ['kill'],
+              actorSource: { payloadField: 'victimId' },
+            },
+            measure: { kind: 'count' },
+            granularity: { actor: 'person', competition: 'match' },
+          },
+        ],
+      }),
+    );
+    directories.push(directory);
+
+    const result = await validateModulePackage(directory, OPTIONS);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.failures.some((failure) => failure.stage === 'payload-field-reference')).toBe(
+        true,
+      );
     }
   });
 
@@ -203,6 +611,81 @@ describe('validateModulePackage', () => {
 
     const result = await validateModulePackage(directory, OPTIONS);
     expect(result.ok).toBe(true);
+  });
+
+  it('accepts a discipline background whose deterministic key matches the manifest', async () => {
+    const path = 'background-01.jpg';
+    const directory = await makeModuleDirectory(
+      validManifest({ assets: [{ path, kind: 'background' }] }),
+      validDisciplineDocument({
+        images: [{ key: `modules/orbital-frisbee/1.0.0/${path}` }],
+      }),
+    );
+    directories.push(directory);
+    await mkdir(join(directory, 'assets'));
+    await writeFile(
+      join(directory, 'assets', path),
+      await sharp({
+        create: {
+          width: 16,
+          height: 9,
+          channels: 3,
+          background: { r: 18, g: 61, b: 43 },
+        },
+      })
+        .jpeg()
+        .toBuffer(),
+    );
+
+    await expect(validateModulePackage(directory, OPTIONS)).resolves.toMatchObject({ ok: true });
+  });
+
+  it('rejects a discipline image reference that does not match its manifest background', async () => {
+    const directory = await makeModuleDirectory(
+      validManifest({ assets: [] }),
+      validDisciplineDocument({
+        images: [{ key: 'modules/orbital-frisbee/1.0.0/background-01.jpg' }],
+      }),
+    );
+    directories.push(directory);
+
+    const result = await validateModulePackage(directory, OPTIONS);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.failures).toEqual(
+        expect.arrayContaining([expect.objectContaining({ stage: 'asset', field: 'images' })]),
+      );
+    }
+  });
+
+  it('returns the identical wrong-format failure through operator import and community review', async () => {
+    const path = 'background-01.jpg';
+    const directory = await makeModuleDirectory(
+      validManifest({ assets: [{ path, kind: 'background' }] }),
+      validDisciplineDocument({
+        images: [{ key: `modules/orbital-frisbee/1.0.0/${path}` }],
+      }),
+    );
+    directories.push(directory);
+    await mkdir(join(directory, 'assets'));
+    await writeFile(join(directory, 'assets', path), Buffer.from(ONE_PIXEL_PNG_BASE64, 'base64'));
+
+    const operatorImport = await validateModulePackage(directory, OPTIONS);
+    const communityReview = await communityRepositoryReview(directory);
+
+    expect(operatorImport.ok).toBe(false);
+    expect(communityReview).toEqual(operatorImport);
+    if (!communityReview.ok) {
+      expect(communityReview.failures).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            stage: 'asset',
+            field: path,
+            message: expect.stringContaining('JPEG'),
+          }),
+        ]),
+      );
+    }
   });
 
   it('rejects an asset over the configured size limit', async () => {
@@ -463,4 +946,221 @@ describe('validateModulePackage', () => {
       expect(result.failures.some((failure) => failure.field === 'requiresCopalibre')).toBe(true);
     }
   });
+
+  describe('table layout references', () => {
+    const VALID_LAYOUT = {
+      code: 'group-standings',
+      target: 'group-phase',
+      label: 'Group Standings',
+      entityGranularity: 'team',
+      defaultSort: [{ columnCode: 'points', direction: 'desc' }],
+      columns: [
+        {
+          code: 'points',
+          header: 'Points',
+          source: { kind: 'collector', code: 'points' },
+          format: 'number',
+        },
+      ],
+    };
+
+    it('accepts a column sourced from a declared statistic', async () => {
+      const directory = await makeModuleDirectory(
+        validManifest(),
+        validDisciplineDocument({ tableLayouts: [VALID_LAYOUT] }),
+      );
+      directories.push(directory);
+
+      const result = await validateModulePackage(directory, OPTIONS);
+      expect(result.ok).toBe(true);
+    });
+
+    it('rejects a collector-sourced column naming a code the discipline declares nowhere', async () => {
+      const directory = await makeModuleDirectory(
+        validManifest(),
+        validDisciplineDocument({
+          tableLayouts: [
+            {
+              ...VALID_LAYOUT,
+              columns: [
+                {
+                  code: 'goals',
+                  header: 'Goals',
+                  source: { kind: 'collector', code: 'player-goals' },
+                  format: 'number',
+                },
+              ],
+            },
+          ],
+        }),
+      );
+      directories.push(directory);
+
+      const result = await validateModulePackage(directory, OPTIONS);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(
+          result.failures.some(
+            (failure) =>
+              failure.stage === 'table-layout-reference' &&
+              failure.message.includes('player-goals'),
+          ),
+        ).toBe(true);
+      }
+    });
+
+    it('rejects a composite column whose numerator or denominator names an undeclared code', async () => {
+      const directory = await makeModuleDirectory(
+        validManifest(),
+        validDisciplineDocument({
+          tableLayouts: [
+            {
+              ...VALID_LAYOUT,
+              columns: [
+                {
+                  code: 'penalties',
+                  header: 'Penalties',
+                  source: {
+                    kind: 'composite',
+                    numerator: 'penalties-scored',
+                    denominator: 'penalties-taken',
+                  },
+                  format: 'fraction',
+                },
+              ],
+            },
+          ],
+        }),
+      );
+      directories.push(directory);
+
+      const result = await validateModulePackage(directory, OPTIONS);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(
+          result.failures.filter((failure) => failure.stage === 'table-layout-reference'),
+        ).toHaveLength(2);
+      }
+    });
+
+    it('rejects a qualification filter naming an undeclared minSamples collector', async () => {
+      const directory = await makeModuleDirectory(
+        validManifest(),
+        validDisciplineDocument({
+          tableLayouts: [
+            {
+              ...VALID_LAYOUT,
+              filter: { minSamples: { collectorCode: 'player-appearances', min: 3 } },
+            },
+          ],
+        }),
+      );
+      directories.push(directory);
+
+      const result = await validateModulePackage(directory, OPTIONS);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(
+          result.failures.some(
+            (failure) =>
+              failure.stage === 'table-layout-reference' &&
+              failure.message.includes('player-appearances'),
+          ),
+        ).toBe(true);
+      }
+    });
+
+    it('accepts a computed column expression built only from permitted nodes', async () => {
+      const directory = await makeModuleDirectory(
+        validManifest(),
+        validDisciplineDocument({
+          tableLayouts: [
+            {
+              ...VALID_LAYOUT,
+              columns: [
+                ...VALID_LAYOUT.columns,
+                {
+                  code: 'ratio',
+                  header: 'Ratio',
+                  source: { kind: 'computed', expression: 'points / max(points, 1)' },
+                  format: 'decimal-2',
+                },
+              ],
+            },
+          ],
+        }),
+      );
+      directories.push(directory);
+
+      const result = await validateModulePackage(directory, OPTIONS);
+      expect(result.ok).toBe(true);
+    });
+
+    it('rejects a computed column expression using a ternary, which the evaluator refuses', async () => {
+      const directory = await makeModuleDirectory(
+        validManifest(),
+        validDisciplineDocument({
+          tableLayouts: [
+            {
+              ...VALID_LAYOUT,
+              columns: [
+                ...VALID_LAYOUT.columns,
+                {
+                  code: 'ratio',
+                  header: 'Ratio',
+                  source: { kind: 'computed', expression: 'points > 0 ? points : 1' },
+                  format: 'decimal-2',
+                },
+              ],
+            },
+          ],
+        }),
+      );
+      directories.push(directory);
+
+      const result = await validateModulePackage(directory, OPTIONS);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.failures.some((failure) => failure.stage === 'table-layout-reference')).toBe(
+          true,
+        );
+      }
+    });
+
+    it('rejects a template column interpolating an invalid expression', async () => {
+      const directory = await makeModuleDirectory(
+        validManifest(),
+        validDisciplineDocument({
+          tableLayouts: [
+            {
+              ...VALID_LAYOUT,
+              columns: [
+                ...VALID_LAYOUT.columns,
+                {
+                  code: 'summary',
+                  header: 'Summary',
+                  source: { kind: 'template', template: '{{ points > 0 ? points : 1 }} pts' },
+                  format: 'text',
+                },
+              ],
+            },
+          ],
+        }),
+      );
+      directories.push(directory);
+
+      const result = await validateModulePackage(directory, OPTIONS);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.failures.some((failure) => failure.stage === 'table-layout-reference')).toBe(
+          true,
+        );
+      }
+    });
+  });
 });
+
+/** Test double for scripts/validate-module-repository.mjs, which delegates to this same entry point. */
+function communityRepositoryReview(directory: string) {
+  return validateModulePackage(directory, OPTIONS);
+}

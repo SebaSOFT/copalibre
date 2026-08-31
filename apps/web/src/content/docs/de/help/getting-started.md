@@ -1,6 +1,16 @@
 ---
 title: Ihr erstes Turnier
 description: Der anfängliche Ablauf zum Erstellen und Veröffentlichen eines Turniers.
+capabilities:
+  - platform/native-auth
+  - control-web/control-web-shell
+roles:
+  - admin
+  - club-admin
+  - referee
+  - broadcaster
+  - viewer
+  - super-admin
 ---
 
 ## Turnier erstellen
@@ -20,5 +30,5 @@ Veröffentlichen Sie eine geprüfte Konfiguration, bevor Sie den Spielplan erzeu
 
 ## Hilfe pro Bildschirm
 
-Jeder Bildschirm im [Kontrollpanel](/help/control/) hat seine eigene Hilfeseite, erreichbar über
+Jeder Bildschirm im [Kontrollpanel](/de/help/control/) hat seine eigene Hilfeseite, erreichbar über
 den Link „Was ist dieser Bildschirm?“ in seiner Seitenleiste.

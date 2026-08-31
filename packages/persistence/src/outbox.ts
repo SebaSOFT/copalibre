@@ -5,10 +5,10 @@ import type { Database } from './schema.js';
 /**
  * Read side of the transactional outbox. Writes go through
  * UnitOfWork.publishEvent; *consumption* (relay, projection recalculation,
- * dead-lettering) is phase 0009's scope — this phase only guarantees the row
+ * dead-lettering) is outside this component's scope — it only guarantees the row
  * exists in the same commit as the mutation that caused it.
  *
- * Field names here are the camelCase SSE envelope the events tier (phase 0010)
+ * Field names here are the camelCase SSE envelope the events tier
  * emits; the snake_case column mapping lives in this package by design.
  */
 export interface OutboxRecord {
@@ -26,7 +26,7 @@ export interface OutboxRecord {
 export class OutboxReader {
   constructor(private readonly db: Kysely<Database>) {}
 
-  /** Oldest unconsumed events first — the shape phase 0009's relay polls. */
+  /** Oldest unconsumed events first — the shape the relay polls. */
   async pending(limit = 100): Promise<readonly OutboxRecord[]> {
     const rows = await this.db
       .selectFrom('outbox_events')

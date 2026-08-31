@@ -1,6 +1,6 @@
 /**
  * Spanish translations, keyed to match `public-messages.en.ts`'s IDs exactly
- * (0055). Reproduces today's pre-extraction wording so the `/es/` variant
+ *. Reproduces today's pre-extraction wording so the `/es/` variant
  * reads exactly as the site did before this change.
  */
 export const messages: Record<string, string> = {
@@ -17,6 +17,12 @@ export const messages: Record<string, string> = {
   'publicWeb.resultState.tbd': 'A DEFINIR',
   'publicWeb.resultState.cancelled': 'CANCELADO',
 
+  'publicWeb.resultReason.administrativeLoss': 'DERROTA ADM.',
+  'publicWeb.resultReason.walkover': 'W/O',
+  'publicWeb.resultReason.forfeitAbandonment': 'ABANDONO',
+  'publicWeb.resultReason.disqualified': 'DESCALIFICADO',
+  'publicWeb.resultReason.didNotFinish': 'NO TERMINÓ',
+
   'publicWeb.legend.heading': 'Referencias',
 
   'publicWeb.ruleset.heading': 'Reglamento',
@@ -26,6 +32,10 @@ export const messages: Record<string, string> = {
   'publicWeb.standings.team': 'Equipo',
   'publicWeb.standings.played': 'PJ',
   'publicWeb.standings.points': 'Pts',
+  'publicWeb.standings.grain.series': 'Esta tabla cuenta un resultado por serie.',
+  'publicWeb.standings.grain.match': 'Esta tabla cuenta un resultado por partido jugado.',
+  'publicWeb.standings.column.series.label': 'Series',
+  'publicWeb.standings.column.series.shortLabel': 'S',
 
   'publicWeb.hero.liveCount': '{count} EN VIVO',
   'publicWeb.hero.noLiveMatches': 'SIN PARTIDOS EN VIVO',
@@ -40,6 +50,14 @@ export const messages: Record<string, string> = {
   'publicWeb.ticker.empty': 'Todavía no hay partidos programados.',
 
   'publicWeb.series.ariaLabel': 'Serie al mejor de {bestOf}: {home} a {away}',
+  'publicWeb.series.gameWonHome': 'Partido {number}: ganado por el local',
+  'publicWeb.series.gameWonAway': 'Partido {number}: ganado por el visitante',
+  'publicWeb.series.gameCurrent': 'Partido {number}: en juego',
+  'publicWeb.series.gameUpcoming': 'Partido {number}: por jugarse',
+  'publicWeb.series.gameNotRequired': 'Partido {number}: no se jugará',
+  'publicWeb.series.pending': 'Serie indefinida {home}–{away}',
+  'publicWeb.series.decided': '{winner} ganó la serie',
+  'publicWeb.series.aggregate': 'Global {home}–{away}',
 
   'publicWeb.live.usingLastKnown': 'Mostrando el último estado conocido.',
 
@@ -51,4 +69,49 @@ export const messages: Record<string, string> = {
   'publicWeb.livePage.leadersHeading': 'Líderes',
 
   'publicWeb.bracketPage.title': 'Llave',
+
+  'publicWeb.playerProfile.heading': 'Perfil del Jugador',
+  'publicWeb.playerProfile.age': 'Edad: {age}',
+  'publicWeb.playerProfile.nationality': 'Nacionalidad: {country}',
+  'publicWeb.playerProfile.historyHeading': 'Historial de Competiciones',
+  'publicWeb.playerProfile.careerStatsHeading': 'Estadísticas de Carrera',
+  'publicWeb.playerProfile.noHistory': 'No hay historial de competiciones registrado.',
+  'publicWeb.playerProfile.noStats': 'No hay estadísticas de carrera registradas.',
+  'publicWeb.playerProfile.close': 'Cerrar',
+  'publicWeb.playerProfile.photoAlt': '{name}',
+  'publicWeb.playerProfile.photoPlaceholderAlt': 'Sin foto cargada',
+
+  'publicWeb.tournamentsPage.title': 'Torneos',
+  'publicWeb.tournamentsPage.liveHeading': 'En Vivo y Activos',
+  'publicWeb.tournamentsPage.upcomingHeading': 'Próximos',
+  'publicWeb.tournamentsPage.finishedHeading': 'Finalizados y Archivo',
+  'publicWeb.tournamentsPage.empty': 'No se encontraron torneos publicados.',
+  'publicWeb.tournamentsPage.champion': 'Campeón',
+  'publicWeb.tournamentsPage.runnerUp': 'Subcampeón',
+  'publicWeb.tournamentsPage.viewDetails': 'Ver torneo',
+  'publicWeb.orgPage.featuredHeading': 'Destacado',
+  'publicWeb.orgPage.clubsHeading': 'Clubes',
+  'publicWeb.orgPage.noClubs': 'Todavía no hay clubes registrados.',
+  'publicWeb.orgPage.emblemAlt': 'Escudo de {name}',
+  'publicWeb.orgPage.emblemPlaceholderAlt': 'Sin escudo cargado',
+  'publicWeb.orgPage.notFoundTitle': 'Organización no encontrada',
+  'publicWeb.orgPage.notFoundBody': 'No existe ninguna organización en esta dirección.',
+
+  'publicWeb.matchesView.pageTitle': 'Partidos',
+  'publicWeb.matchesView.filterAll': 'Todos',
+  'publicWeb.matchesView.filterLive': 'En vivo',
+  'publicWeb.matchesView.filterUpcoming': 'Próximos',
+  'publicWeb.matchesView.filterFinal': 'Finalizados',
+  'publicWeb.matchesView.empty': 'Todavía no hay partidos en este alcance.',
+  'publicWeb.matchesView.clockAriaLabel': 'Tiempo transcurrido: {time}',
+  'publicWeb.matchesView.venueAriaLabel': 'Cancha: {venue}',
+  'publicWeb.matchesView.latestEventAriaLabel': 'Último evento: {event}',
+  'publicWeb.matchesView.zoneGroupAriaLabel': 'Zona/grupo: {scope}',
+  'publicWeb.matchesView.positionInGroup': '{group} — posición #{position}',
+  'publicWeb.matchesView.position': 'Posición #{position}',
+  'publicWeb.matchesView.decidedBy': 'Decidido por: {factor}',
+  'publicWeb.matchesView.decidedByAriaLabel':
+    'El factor decisivo entre posiciones empatadas. Un organizador autorizado puede ver la explicación completa en el panel de control.',
+  'publicWeb.matchesView.fullTraceHeading': 'Traza completa del comparador de posiciones',
+  'publicWeb.matchesView.seeAll': 'Ver todos los partidos',
 };

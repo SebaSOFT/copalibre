@@ -1,17 +1,16 @@
 import { readFileSync } from 'node:fs';
 
 /**
- * Asserts the built output over the built output (0020).
+ * Asserts the built output over the built output.
  *
  * The claims worth checking here are about what the *build* produced — that the
  * page is complete without JavaScript, that the sitemap advertises no operator
  * route — and a unit test over the model cannot see any of them. This is the
  * cheap half of section 7 that needs no browser.
  *
- * English is the primary locale (0055): the unprefixed path carries English
+ * English is the primary locale: the unprefixed path carries English
  * chrome, and every other supported language carries the same content
- * translated under its own `/{locale}/` prefix (0056 populated the five
- * beyond 0055's Spanish; 0057 added Mandarin). `describeSlot`'s bracket-slot
+ * translated under its own `/{locale}/` prefix. `describeSlot`'s bracket-slot
  * labels ("Ganador del N") stay Spanish regardless of locale — a documented,
  * deliberate exception (`lib/bracket.ts`), not a bug here.
  */
@@ -40,6 +39,10 @@ check(
   'the sitemap lists the tournament',
   sitemap.includes('/liga-mendocina/tournaments/apertura-2026'),
 );
+check(
+  'the sitemap lists the published match report',
+  sitemap.includes('/liga-mendocina/tournaments/apertura-2026/stages/1/matches/1'),
+);
 
 const NON_PRIMARY_LOCALES = [
   { locale: 'es', name: 'Spanish' },
@@ -55,6 +58,10 @@ for (const { locale, name } of NON_PRIMARY_LOCALES) {
   check(
     `the sitemap lists the ${name} tournament variant`,
     sitemap.includes(`/${locale}/liga-mendocina/tournaments/apertura-2026`),
+  );
+  check(
+    `the sitemap lists the ${name} match-report variant`,
+    sitemap.includes(`/${locale}/liga-mendocina/tournaments/apertura-2026/stages/1/matches/1`),
   );
 }
 

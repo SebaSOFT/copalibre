@@ -6,11 +6,11 @@ import {
   zoomOut,
   type CanvasMatch,
 } from '../lib/bracket-canvas.js';
-import { Button } from './ui/button.js';
+import { Button } from './ui/atoms/button.js';
 import { messages } from '../i18n/messages.en.js';
 
 /**
- * A6 — the bracket canvas (0024).
+ * A6 — the bracket canvas.
  *
  * Draws the engine's structure and nothing else. Connectors come from the slot
  * sources the engine declared, so a losers' bracket that takes an entrant from
@@ -18,7 +18,7 @@ import { messages } from '../i18n/messages.en.js';
  * knows what a losers' bracket is.
  *
  * Per-slot labels (`describeSlot` in `lib/bracket-canvas.ts`: "Bye", "Winner
- * of <match>", "Loser of <match>") are not yet extracted (0053) — they embed a
+ * of <match>", "Loser of <match>") are not yet extracted — they embed a
  * dynamic match ID and need ICU interpolation at the point they are computed,
  * a genuinely different pattern from this file's static chrome; tracked as a
  * follow-up rather than rushed here.
@@ -158,14 +158,14 @@ const nodeHeaderStyle: React.CSSProperties = {
   justifyContent: 'space-between',
   alignItems: 'center',
   fontFamily: 'var(--cl-font-mono)',
-  fontSize: '0.6875rem',
+  fontSize: 'var(--cl-font-size-xs)',
   color: 'var(--cl-text-muted)',
 };
 const slotStyle: React.CSSProperties = {
   display: 'flex',
   justifyContent: 'space-between',
   gap: 'var(--cl-space-2)',
-  fontSize: '0.8125rem',
+  fontSize: 'var(--cl-font-size-sm)',
 };
 const pendingSlotStyle: React.CSSProperties = {
   ...slotStyle,
@@ -177,5 +177,5 @@ const scoreStyle: React.CSSProperties = { fontFamily: 'var(--cl-font-mono)' };
 const mutedStyle: React.CSSProperties = {
   color: 'var(--cl-text-muted)',
   fontFamily: 'var(--cl-font-mono)',
-  fontSize: '0.75rem',
+  fontSize: 'var(--cl-font-size-xs)',
 };

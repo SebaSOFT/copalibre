@@ -2,6 +2,9 @@
   "alias": "grupos-y-playoff",
   "version": "1.0.0",
   "name": "Groups and playoff",
+  "description": {
+    "en": "Round-robin groups followed by a single-elimination playoff, with configurable scoring and tiebreaks."
+  },
   "attribution": {
     "author": "CopaLibre",
     "licence": "AGPL-3.0-only",

@@ -1,6 +1,10 @@
 ---
 title: Funções e permissões
 description: O que cada função de organização concede e como funciona o fluxo de convite.
+capabilities:
+  - control-web/roles-permissions
+roles:
+  - admin
 ---
 
 ## Para que serve esta tela

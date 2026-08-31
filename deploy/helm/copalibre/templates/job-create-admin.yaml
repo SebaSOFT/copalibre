@@ -1,0 +1,39 @@
+{{- if .Values.createAdmin.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "copalibre.fullname" . }}-create-admin-{{ .Release.Revision }}
+  labels:
+    {{- include "copalibre.labels" . | nindent 4 }}
+    app.kubernetes.io/component: create-admin
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: copalibre
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: create-admin
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: create-admin
+          image: '{{ .Values.image.repository }}:{{ .Values.image.tag }}'
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: PRODUCT_ROLE
+              value: create-admin
+          envFrom:
+            - configMapRef:
+                name: {{ include "copalibre.fullname" . }}-env
+            - secretRef:
+                name: {{ include "copalibre.fullname" . }}-secret
+          args:
+            - --organization-alias
+            - {{ .Values.createAdmin.organizationAlias | quote }}
+            - --organization-name
+            - {{ .Values.createAdmin.organizationName | quote }}
+            - --email
+            - {{ .Values.createAdmin.email | quote }}
+{{- end }}

@@ -19,7 +19,7 @@ const { title } = Astro.props;
     <style>
       /**
        * No header, no nav, no footer, no skip link: this surface has no
-       * pointer and no keyboard (0031). Full-bleed body, safe-area padding
+       * pointer and no keyboard. Full-bleed body, safe-area padding
        * sized for a screen watched from 5-10m rather than an arm's length.
        */
       html,
@@ -85,7 +85,7 @@ const { title } = Astro.props;
         font-family: var(--cl-font-display);
         font-weight: var(--cl-weight-semibold);
         text-transform: uppercase;
-        font-size: clamp(1.25rem, 3vmin, 2.5rem);
+        font-size: clamp(var(--cl-font-size-lg), 3vmin, calc(var(--cl-font-size-lg) * 2));
         letter-spacing: 0.05em;
       }
       .tv-match__sides {
@@ -98,17 +98,30 @@ const { title } = Astro.props;
         align-items: baseline;
         justify-content: space-between;
         gap: 3vmin;
+        min-width: 0;
       }
       .tv-match__name {
+        min-width: 0;
+        overflow: hidden;
         font-family: var(--cl-font-display);
         font-weight: var(--cl-weight-medium);
-        font-size: clamp(1.5rem, 5vmin, 5rem);
+        font-size: clamp(var(--cl-font-size-xl), 5vmin, calc(var(--cl-font-size-3xl) * 2));
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
       .tv-match__score {
         font-family: var(--cl-font-display);
         font-weight: var(--cl-weight-bold);
-        font-size: clamp(2rem, 9vmin, 9rem);
+        font-size: clamp(var(--cl-font-size-2xl), 9vmin, calc(var(--cl-font-size-3xl) * 4));
         font-variant-numeric: tabular-nums;
+        flex-shrink: 0;
+      }
+
+      /* BREAKPOINTS token md: keep a single scorecard column on tablet-sized panels. */
+      @media (max-width: 768px) {
+        .tv-dashboard__matches {
+          grid-template-columns: minmax(0, 1fr);
+        }
       }
     </style>
   </head>

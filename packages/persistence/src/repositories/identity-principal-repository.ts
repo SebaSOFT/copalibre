@@ -9,6 +9,7 @@ import { newId } from '../ids.js';
 import { toIdentityPrincipal } from '../mapping.js';
 import type { Database } from '../schema.js';
 import type { UnitOfWork } from '../transaction.js';
+import { SYSTEM_ORGANIZATION } from '../relay/scheduled-jobs.js';
 
 interface OidcIdentity {
   readonly subjectId: string;
@@ -20,6 +21,64 @@ interface OidcIdentity {
 /** Maps replaceable OIDC credentials onto installation-owned UUIDv7 principals. */
 export class IdentityPrincipalRepository {
   constructor(private readonly db: Kysely<Database>) {}
+
+  async findByEmail(email: string): Promise<IdentityPrincipal | undefined> {
+    const row = await this.db
+      .selectFrom('identity_principals')
+      .selectAll()
+      .where('email', '=', normaliseEmail(email))
+      .executeTakeFirst();
+    return row ? toIdentityPrincipal(row) : undefined;
+  }
+
+  async create(
+    uow: UnitOfWork,
+    input: {
+      readonly email: string;
+      readonly passwordHash?: string;
+      readonly name?: string;
+      readonly picture?: string;
+      readonly actor?: string;
+      readonly authorizationContext?: string;
+    },
+  ): Promise<IdentityPrincipal> {
+    const email = normaliseEmail(input.email);
+    const existing = await uow.tx
+      .selectFrom('identity_principals')
+      .selectAll()
+      .where('email', '=', email)
+      .executeTakeFirst();
+
+    if (existing) {
+      throw new InvariantViolationError('Email is already registered');
+    }
+
+    const row = await uow.tx
+      .insertInto('identity_principals')
+      .values({
+        principal_id: newId(),
+        email,
+        password_hash: input.passwordHash ?? null,
+        name: input.name ?? null,
+        picture: input.picture ?? null,
+        created_at: new Date(),
+        updated_at: new Date(),
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const principal = toIdentityPrincipal(row);
+    await uow.recordAudit({
+      organizationId: SYSTEM_ORGANIZATION,
+      entityType: 'identity-principal',
+      entityId: principal.principalId,
+      action: 'identity.principal-registered',
+      actor: input.actor ?? `principal:${principal.principalId}`,
+      authorizationContext: input.authorizationContext ?? 'self-service:signup',
+      resultingState: { email },
+    });
+    return principal;
+  }
 
   async findByOidcSubject(subjectId: string): Promise<IdentityPrincipal | undefined> {
     const row = await this.db
@@ -56,6 +115,21 @@ export class IdentityPrincipalRepository {
           personId: row.person_id,
         }
       : undefined;
+  }
+
+  /** Which of these persons already carry an identity link — for a list screen's per-row action gate. */
+  async linkedPersonIds(
+    organizationId: string,
+    personIds: readonly string[],
+  ): Promise<ReadonlySet<string>> {
+    if (personIds.length === 0) return new Set();
+    const rows = await this.db
+      .selectFrom('participant_identity_links')
+      .select('person_id')
+      .where('organization_id', '=', organizationId)
+      .where('person_id', 'in', personIds)
+      .execute();
+    return new Set(rows.map((row) => row.person_id));
   }
 
   /** Admins may pre-link a participant before their first OIDC login. */
@@ -113,6 +187,58 @@ export class IdentityPrincipalRepository {
 
     return {
       principalId: principal.principalId,
+      organizationId: input.organizationId,
+      personId: input.personId,
+    };
+  }
+
+  /**
+   * Removes a participant identity link, freeing the person to be linked
+   * again — a hard delete, following `PersonRepository.dismiss`'s shape for a
+   * row nothing downstream foreign-keys against. Unlike `dismiss`, a missing
+   * link is refused rather than silently accepted: an unlink attempted
+   * against a person with no link is a genuine input error worth naming,
+   * where `dismiss`'s no-op guards against an already-processed retry.
+   */
+  async unlinkParticipant(
+    uow: UnitOfWork,
+    input: {
+      readonly organizationId: string;
+      readonly personId: string;
+      readonly actor: string;
+      readonly authorizationContext: string;
+    },
+  ): Promise<ParticipantIdentityLink> {
+    const existing = await uow.tx
+      .selectFrom('participant_identity_links')
+      .selectAll()
+      .where('organization_id', '=', input.organizationId)
+      .where('person_id', '=', input.personId)
+      .executeTakeFirst();
+    if (!existing) {
+      throw new NotFoundError('This participant has no identity link to remove', {
+        personId: input.personId,
+      });
+    }
+
+    await uow.tx
+      .deleteFrom('participant_identity_links')
+      .where('organization_id', '=', input.organizationId)
+      .where('person_id', '=', input.personId)
+      .execute();
+
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'participant-identity-link',
+      entityId: existing.principal_id,
+      action: 'participant.identity-unlinked',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      previousState: { principalId: existing.principal_id, personId: input.personId },
+    });
+
+    return {
+      principalId: existing.principal_id,
       organizationId: input.organizationId,
       personId: input.personId,
     };
@@ -184,7 +310,17 @@ export class IdentityPrincipalRepository {
       })
       .returningAll()
       .executeTakeFirstOrThrow();
-    return toIdentityPrincipal(created);
+    const principal = toIdentityPrincipal(created);
+    await uow.recordAudit({
+      organizationId: SYSTEM_ORGANIZATION,
+      entityType: 'identity-principal',
+      entityId: principal.principalId,
+      action: 'identity.principal-registered',
+      actor: `principal:${principal.principalId}`,
+      authorizationContext: 'self-service:oidc-first-login',
+      resultingState: { email },
+    });
+    return principal;
   }
 
   private async findOrCreateByEmail(uow: UnitOfWork, email: string): Promise<IdentityPrincipal> {

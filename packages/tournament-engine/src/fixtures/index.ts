@@ -1,5 +1,11 @@
 import type { TournamentFormat } from '@copalibre/domain';
-import { err, ok, type Result } from '@copalibre/domain';
+import {
+  err,
+  ok,
+  type Result,
+  validateSeriesDeclaration,
+  SeriesConfigurationError,
+} from '@copalibre/domain';
 import { InvalidEntrantsError, UnsupportedFormatError } from '../errors.js';
 import { assertNoPlacementEdges } from '../advancement/index.js';
 import { assertSupportedFormat } from '../formats.js';
@@ -14,6 +20,12 @@ export { buildDoubleElimination } from './double-elimination.js';
 export { buildRoundRobin } from './round-robin.js';
 export { buildPlacementStage, roundSeed, type PlacementOptions } from './placement.js';
 export { pruneEmptyMatches } from './prune.js';
+export {
+  generateGroupedFixtures,
+  type FixtureGroupInput,
+  type GenerateGroupedFixturesInput,
+  type ScopedGeneratedFixture,
+} from './grouped.js';
 
 /**
  * The single generation entry point. Pure: entrants + seeds + format in, fixture
@@ -22,9 +34,23 @@ export { pruneEmptyMatches } from './prune.js';
  */
 export function generateFixtures(
   input: GenerateFixturesInput,
-): Result<FixtureGraph, UnsupportedFormatError | InvalidEntrantsError> {
+): Result<FixtureGraph, UnsupportedFormatError | InvalidEntrantsError | SeriesConfigurationError> {
   const format = assertSupportedFormat(input.format);
   if (!format.ok) return err(format.error);
+
+  if (input.series !== undefined) {
+    if (input.format === 'free-for-all' || input.format === 'heats') {
+      return err(
+        new UnsupportedFormatError('Series configuration is not supported for placement formats', {
+          format: input.format,
+        }),
+      );
+    }
+    const seriesValidation = validateSeriesDeclaration(input.series);
+    if (!seriesValidation.ok) {
+      return err(seriesValidation.error);
+    }
+  }
 
   const invalid = validateEntrants(input.entrants);
   if (invalid) return err(invalid);
@@ -53,19 +79,19 @@ function buildFor(
 ): readonly GeneratedMatch[] {
   switch (format) {
     case 'single-elimination':
-      return buildEliminationTree(input.entrants, 'SE', 'winners').matches;
+      return buildEliminationTree(input.entrants, 'SE', 'winners', input.series).matches;
     case 'double-elimination':
-      return buildDoubleElimination(input.entrants).matches;
+      return buildDoubleElimination(input.entrants, input.series).matches;
     case 'round-robin':
     case 'round-robin-single-leg':
-      return buildRoundRobin(input.entrants);
+      return buildRoundRobin(input.entrants, { series: input.series });
     case 'league':
       // A league is a round robin whose points/tiebreak configuration differs;
       // the fixture shape is identical, so the difference lives in the ruleset,
       // not here (tournament-engine decision record).
-      return buildRoundRobin(input.entrants, { idPrefix: 'LG' });
+      return buildRoundRobin(input.entrants, { idPrefix: 'LG', series: input.series });
     case 'round-robin-home-away':
-      return buildRoundRobin(input.entrants, { homeAndAway: true });
+      return buildRoundRobin(input.entrants, { homeAndAway: true, series: input.series });
     case 'free-for-all':
     case 'heats':
       // Placement stages carry no advancement edges, so nothing downstream

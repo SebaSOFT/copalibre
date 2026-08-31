@@ -1,4 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsArray, IsInt, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 
 /** Wire DTOs are camelCase, per the naming-conventions casing rule. */
 
@@ -51,6 +53,15 @@ export class StandingsResponse {
     example: ['Rule 1 (Puntos): a=13, b=13 → Tie not fully resolved by Puntos'],
   })
   trace!: string[];
+
+  @ApiPropertyOptional({
+    description:
+      'Whether these rows count one result per series or one per played match. Absent when the ' +
+      'stage declares no series at all — there is only one unit a single-match stage can be ' +
+      'counted in.',
+    enum: ['series', 'match'],
+  })
+  grain?: 'series' | 'match';
 }
 
 export class TiebreakTraceResponse {
@@ -67,9 +78,14 @@ export class TiebreakTraceResponse {
 
 export class SeedAssignmentResponse {
   @ApiProperty({ description: '1-based seed', example: 3 })
+  // Also reached as a request element via PublishSeedingRequest.seeds, so
+  // these rules run under the global pipe; outbound serialization is
+  // never validated.
+  @IsInt()
   seed!: number;
 
   @ApiProperty({ format: 'uuid' })
+  @IsString()
   entrantId!: string;
 }
 
@@ -88,6 +104,19 @@ export class BracketSlotResponse {
 
   @ApiPropertyOptional({ description: 'Score recorded for this side, when the match is finalized' })
   score?: number;
+
+  @ApiPropertyOptional({
+    description: 'Why this side’s result is what it is; absent means an ordinarily played result',
+    enum: [
+      'played',
+      'administrative-loss',
+      'walkover',
+      'forfeit-abandonment',
+      'disqualified',
+      'did-not-finish',
+    ],
+  })
+  resultReason?: string;
 }
 
 export class BracketMatchResponse {
@@ -139,6 +168,12 @@ export class PublishSeedingRequest {
     isArray: true,
     description: 'The full seed order, not a delta — a partial order is an ambiguous bracket',
   })
+  // Handler folds an omitted list to [] and rejects it semantically, so the
+  // field stays runtime-optional here.
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SeedAssignmentResponse)
   seeds!: SeedAssignmentResponse[];
 }
 

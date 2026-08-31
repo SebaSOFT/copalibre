@@ -1,6 +1,8 @@
 import { createHash } from 'node:crypto';
 import {
   AuditReader,
+  EnrollmentRepository,
+  InvariantViolationError,
   OrganizationAccessRepository,
   OrganizationRepository,
   withTransaction,
@@ -212,7 +214,7 @@ describe('organization invitation acceptance (integration)', () => {
   });
 });
 
-describe('listing every organization a principal belongs to (0063)', () => {
+describe('listing every organization a principal belongs to', () => {
   let scratch: ScratchDatabase;
   let orgAlpha: string;
   let orgBeta: string;
@@ -436,6 +438,163 @@ describe('listing every organization a principal belongs to (0063)', () => {
     );
 
     await expect(access.listOrganizationsForPrincipal(assignment.principalId)).resolves.toEqual([]);
+  });
+});
+
+describe('role-granting hierarchy and last-admin floor invariant (integration)', () => {
+  let scratch: ScratchDatabase;
+  let organizationId: string;
+
+  beforeAll(async () => {
+    scratch = await createMigratedDatabase('organization-access-rbac');
+    const organization = await withTransaction(scratch.db, (uow) =>
+      new OrganizationRepository(scratch.db).create(uow, {
+        alias: 'liga-rbac',
+        name: 'Liga RBAC',
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      }),
+    );
+    organizationId = organization.organizationId;
+  });
+
+  afterAll(async () => scratch.drop());
+
+  async function invite(
+    access: OrganizationAccessRepository,
+    input: {
+      readonly recipientEmail: string;
+      readonly role: 'admin' | 'club-admin' | 'referee' | 'broadcaster' | 'viewer';
+      readonly grantorContext?: { isSuperAdmin: boolean; organizationAdminOf?: string };
+      readonly clubId?: string;
+    },
+  ) {
+    const token = input.recipientEmail;
+    await withTransaction(scratch.db, (uow) =>
+      access.createInvitation(uow, {
+        organizationId,
+        recipientEmail: input.recipientEmail,
+        role: input.role,
+        status: 'active',
+        token,
+        tokenHash: hash(token),
+        expiresAt: '2099-08-04T00:00:00.000Z',
+        actor: 'user:test',
+        authorizationContext: 'copalibre.control',
+        ...(input.grantorContext ? { grantorContext: input.grantorContext } : {}),
+        ...(input.clubId ? { clubId: input.clubId } : {}),
+      }),
+    );
+    return withTransaction(scratch.db, (uow) =>
+      access.acceptInvitation(uow, {
+        tokenHash: hash(token),
+        subjectId: `oidc-${input.recipientEmail}`,
+        verifiedEmail: input.recipientEmail,
+        actor: `user:${input.recipientEmail}`,
+        authorizationContext: 'copalibre.invite.accept',
+      }),
+    );
+  }
+
+  it('bootstraps the first admin with no grantor context', async () => {
+    const access = new OrganizationAccessRepository(scratch.db);
+    await expect(
+      invite(access, { recipientEmail: 'rbac-admin@example.test', role: 'admin' }),
+    ).resolves.toMatchObject({ role: 'admin', status: 'active' });
+  });
+
+  it('lets a super-admin grantor invite a club-admin', async () => {
+    const access = new OrganizationAccessRepository(scratch.db);
+    const club = await withTransaction(scratch.db, (uow) =>
+      new EnrollmentRepository(scratch.db).createClub(uow, {
+        organizationId,
+        name: 'Club RBAC',
+        alias: 'club-rbac',
+        actor: 'user:test',
+        authorizationContext: 'copalibre.control',
+      }),
+    );
+    await expect(
+      invite(access, {
+        recipientEmail: 'rbac-club-admin@example.test',
+        role: 'club-admin',
+        grantorContext: { isSuperAdmin: true },
+        clubId: club.clubId,
+      }),
+    ).resolves.toMatchObject({ role: 'club-admin', clubId: club.clubId });
+  });
+
+  it("refuses an organization admin's grant crossing into another organization", async () => {
+    const access = new OrganizationAccessRepository(scratch.db);
+    await expect(
+      invite(access, {
+        recipientEmail: 'rbac-cross-org@example.test',
+        role: 'referee',
+        grantorContext: { isSuperAdmin: false, organizationAdminOf: 'some-other-org-id' },
+      }),
+    ).rejects.toThrow(InvariantViolationError);
+  });
+
+  it('lets an organization admin grantor invite a referee within their own organization', async () => {
+    const access = new OrganizationAccessRepository(scratch.db);
+    await expect(
+      invite(access, {
+        recipientEmail: 'rbac-org-admin-referee@example.test',
+        role: 'referee',
+        grantorContext: { isSuperAdmin: false, organizationAdminOf: organizationId },
+      }),
+    ).resolves.toMatchObject({ role: 'referee' });
+  });
+
+  it('refuses demoting the last active admin, then allows it once a second admin exists', async () => {
+    const access = new OrganizationAccessRepository(scratch.db);
+    const admin = (await access.listAssignments(organizationId)).find(
+      (row) => row.email === 'rbac-admin@example.test',
+    );
+    if (!admin) throw new Error('Expected the bootstrap admin assignment');
+
+    await expect(
+      withTransaction(scratch.db, (uow) =>
+        access.changeAssignment(uow, {
+          organizationId,
+          assignmentId: admin.assignmentId,
+          role: 'viewer',
+          status: 'active',
+          actor: 'user:test',
+          authorizationContext: 'copalibre.control',
+        }),
+      ),
+    ).rejects.toThrow(InvariantViolationError);
+
+    const secondAdmin = await invite(access, {
+      recipientEmail: 'rbac-second-admin@example.test',
+      role: 'admin',
+      grantorContext: { isSuperAdmin: true },
+    });
+
+    await expect(
+      withTransaction(scratch.db, (uow) =>
+        access.changeAssignment(uow, {
+          organizationId,
+          assignmentId: admin.assignmentId,
+          role: 'viewer',
+          status: 'active',
+          actor: 'user:test',
+          authorizationContext: 'copalibre.control',
+        }),
+      ),
+    ).resolves.toMatchObject({ role: 'viewer' });
+
+    await expect(
+      withTransaction(scratch.db, (uow) =>
+        access.deleteAssignment(uow, {
+          organizationId,
+          assignmentId: secondAdmin.assignmentId,
+          actor: 'user:test',
+          authorizationContext: 'copalibre.control',
+        }),
+      ),
+    ).rejects.toThrow(InvariantViolationError);
   });
 });
 

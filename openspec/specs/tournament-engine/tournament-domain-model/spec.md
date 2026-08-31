@@ -4,7 +4,9 @@
 Provides the single, framework-free source of truth for what a tournament, its configuration, and
 its recorded facts are, so every consuming package and app shares identical domain rules instead of
 re-deriving them.
+
 ## Requirements
+
 ### Requirement: Framework-free domain package
 `packages/domain` SHALL contain no import of `@nestjs/*` or `fastify`, so it can be consumed by any
 process role (`api`, `worker`, `events`, `scheduler`) and by future non-Node consumers without
@@ -17,7 +19,12 @@ pulling in an HTTP framework.
 ### Requirement: Configuration inheritance hierarchy
 The domain SHALL model configuration as `DisciplineDescriptor → TournamentRuleset →
 StageConfiguration → MatchRuleset`, where each level may only override fields the level above
-explicitly marks as overridable.
+explicitly marks as overridable. This applies uniformly to every overridable field, including the win
+condition (see the win-condition requirement below): a field policy of `merged` SHALL always mean an
+actual merge by the declared strategy, never a silent full replacement, regardless of which override
+path resolves that field. A `union-list` merge SHALL recognize two array elements as the same entry
+whenever they are structurally equal, independent of the order their source document declared their
+keys in.
 
 #### Scenario: Compiling an effective ruleset from a valid override chain
 - **WHEN** a `TournamentRuleset` overrides only fields its `DisciplineDescriptor` marks `replaced` or `merged`
@@ -30,6 +37,12 @@ explicitly marks as overridable.
 #### Scenario: Rejecting an unspecified deep merge
 - **WHEN** an override targets a field with no declared merge strategy
 - **THEN** compilation fails rather than silently deep-merging
+
+#### Scenario: A union-list merge recognizes a duplicate regardless of key order
+- **WHEN** an override for a `union-list` field supplies an array element that is structurally identical
+  to one already present, but whose object keys were declared in a different order in the source
+  document
+- **THEN** the merged result contains that entry once, not twice
 
 ### Requirement: Mutation classification on configuration fields
 Every configurable field SHALL declare a mutation class of `safe`, `requires_rebuild`, or
@@ -104,7 +117,8 @@ determines whether a tournament profile may replace it.
 
 ### Requirement: Started tournaments freeze their modules
 A tournament SHALL have a `started` status, entered through a validated transition, after which its
-discipline and profile versions cannot change.
+discipline and profile versions cannot change. This freeze applies for every status reachable only
+through `started` — `finished` and `archived` included — not to `started` alone.
 
 #### Scenario: Starting the first match starts the tournament
 - **WHEN** the first match of a tournament begins
@@ -118,6 +132,11 @@ discipline and profile versions cannot change.
 - **WHEN** a caller attempts to change the discipline or profile version of a started tournament
 - **THEN** the change is refused as `blocked_after_results`, directing the caller to the audited
   correction workflow
+
+#### Scenario: A module version change is refused on an archived tournament
+- **WHEN** a caller attempts to change the discipline or profile version of an `archived` tournament
+- **THEN** the change is refused the same way it would be for a `started` or `finished` tournament,
+  because archiving never lifts a freeze that already applied
 
 ### Requirement: The outcome type carries per-side statistics
 `RecordedOutcome` SHALL model a side as an entrant with a map of declared statistic values and an
@@ -149,6 +168,19 @@ to replace it only where the descriptor's field policy permits.
 - **WHEN** a profile attempts to replace a win condition whose field policy forbids override
 - **THEN** compilation fails identifying the locked path
 
+#### Scenario: A profile merges a win condition where policy declares a merge strategy
+- **WHEN** a discipline marks its win condition `merged` with a declared strategy and a profile supplies
+  an override
+- **THEN** the effective win condition is the result of applying that strategy to the discipline's win
+  condition and the profile's override — never the profile's override standing in wholesale for the
+  discipline's
+
+#### Scenario: A win-condition merge that can't apply its declared strategy fails explicitly
+- **WHEN** a win condition's declared merge strategy cannot apply to the discipline's and profile's
+  values (e.g. an `append-list` strategy where neither value is an array)
+- **THEN** resolving the effective win condition fails, naming the field, rather than falling back to
+  either value silently
+
 ### Requirement: A submitted rule script is validated against what the runtime demands
 The descriptor schema SHALL accept only rule scripts the evaluation runtime can execute, so a module
 cannot pass installation and fail when a rule is first reached.
@@ -163,9 +195,9 @@ cannot pass installation and fail when a rule is first reached.
 - **THEN** it installs, and the rule fires unconditionally as specified
 
 ### Requirement: The competition and participation hierarchies are explicit
-The domain SHALL model the competition hierarchy — organization, tournament, season, stage, fixture,
-match, segment — and the participation hierarchy — club, team, person, and a person's membership in a
-team — as distinct levels, rather than collapsing ones that later phases key on.
+The domain SHALL model the competition hierarchy — organization, tournament, season, stage, zone,
+group, fixture, match, segment — and the participation hierarchy — club, team, person, and a person's
+membership in a team — as distinct levels, rather than collapsing ones that later phases key on.
 
 #### Scenario: A stage belongs to an edition, not to the competition as a whole
 - **WHEN** a tournament is run in more than one season
@@ -182,3 +214,50 @@ team — as distinct levels, rather than collapsing ones that later phases key o
 - **THEN** the season exists with one implicit edition rather than the stage attaching to the
   tournament, so every reader sees one shape
 
+#### Scenario: A zone groups a stage's entrants without merging into the stage itself
+- **WHEN** a stage is split into more than one zone (e.g. "Zona Norte" and "Zona Sur")
+- **THEN** each zone is its own addressable level, distinct from the stage and from any other zone,
+  and a question about one zone's fixtures never silently includes another's
+
+#### Scenario: A group is the round-robin pool a group-type phase needs
+- **WHEN** a zone in a round-robin-type stage is split into more than one group
+- **THEN** each group's fixtures and standings are computed independently, and no fixture is generated
+  between entrants of different groups
+
+#### Scenario: A stage with no explicit zone or group still has one of each
+- **WHEN** a stage's fixtures are generated without an operator ever creating a zone or a group
+- **THEN** the stage has exactly one implicit zone and that zone exactly one implicit group, and every
+  reader — old or new — sees the same fixture graph and standings it would have before zones and groups
+  existed
+
+### Requirement: A match states that it was never required
+The match status vocabulary SHALL carry a terminal value meaning the match was generated and scheduled
+but is no longer needed, distinct from both a match awaiting play and a match that concluded. A match
+in that state SHALL accept no lifecycle command and SHALL contribute nothing to accounting, and the slot
+it had occupied SHALL remain readable from the fact that anulled it, even though it no longer holds it.
+
+#### Scenario: A status vocabulary that says what happened
+- **WHEN** the status of a match anulled by an early series decision is read
+- **THEN** it states the not-required value, distinguishable without inference from a match still to be
+  played and from a match that finished
+
+#### Scenario: A lifecycle command against a not-required match is refused
+- **WHEN** any match lifecycle command is issued against a not-required match
+- **THEN** it is refused, and the match's status is unchanged
+
+### Requirement: A series declaration is part of the configuration hierarchy
+The series a fixture is settled by SHALL be declared through the existing configuration inheritance
+hierarchy — discipline descriptor, tournament ruleset, stage configuration — and SHALL resolve by the
+same precedence every other configuration field resolves by. A discipline whose competitions are
+conventionally decided over several matches SHALL be able to declare that as its default, and a
+tournament or a stage SHALL be able to override it.
+
+#### Scenario: A discipline default is overridden by a stage
+- **WHEN** a discipline declares a two-match aggregate series by default and a stage declares a
+  best-of-five
+- **THEN** the effective configuration for that stage is the best-of-five, by the precedence the
+  hierarchy already defines
+
+#### Scenario: A tournament with no series declaration anywhere
+- **WHEN** no level of the hierarchy declares a series
+- **THEN** the effective configuration settles every fixture by a single match

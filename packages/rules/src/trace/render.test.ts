@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 import { resolveTiebreak, type TiebreakPipeline } from '../tiebreak/pipeline.js';
-import { hasTraceFor, lineOf, traceForEntrant, traceLines } from './render.js';
+import { decidingFactorLabel, hasTraceFor, lineOf, traceForEntrant, traceLines } from './render.js';
 import type { TraceNode } from './explanation-trace.js';
 
 const pipeline: TiebreakPipeline = {
@@ -130,5 +130,33 @@ describe('traceForEntrant', () => {
       'pipeline-exhausted',
     );
     expect(traceForEntrant(trace, 'a').map((node) => node.id)).not.toContain('pipeline-exhausted');
+  });
+});
+
+describe('decidingFactorLabel', () => {
+  const values = {
+    a: { points: 6, 'head-to-head': 1, 'score-difference': 4 },
+    b: { points: 6, 'head-to-head': 0, 'score-difference': 9 },
+    c: { points: 3, 'head-to-head': 0, 'score-difference': 1 },
+  };
+
+  it('names the comparator that separated a tie-broken row', () => {
+    const { trace } = resolveTiebreak(pipeline, ['a', 'b', 'c'], values);
+
+    expect(decidingFactorLabel(trace, 'a')).toBe('Rule 2 (Head to head)');
+  });
+
+  it('returns undefined for a row the first comparator already separated', () => {
+    const { trace } = resolveTiebreak(pipeline, ['a', 'b', 'c'], values);
+
+    expect(decidingFactorLabel(trace, 'c')).toBeUndefined();
+  });
+
+  it('returns undefined when every comparator left the row tied', () => {
+    const tied = { a: { points: 6 }, b: { points: 6 } };
+    const { trace, fullyResolved } = resolveTiebreak(pipeline, ['a', 'b'], tied);
+
+    expect(fullyResolved).toBe(false);
+    expect(decidingFactorLabel(trace, 'a')).toBeUndefined();
   });
 });

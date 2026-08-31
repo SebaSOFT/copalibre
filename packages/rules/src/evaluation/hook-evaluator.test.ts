@@ -1,4 +1,9 @@
-import { drawRecords, evaluateAtHook, type HookEvaluationInput } from './hook-evaluator.js';
+import {
+  drawRecords,
+  evaluateAtHook,
+  validateHookScriptDocument,
+  type HookEvaluationInput,
+} from './hook-evaluator.js';
 import { registerCopalibreVocabulary } from './vocabulary.js';
 import {
   remainingSeconds,
@@ -337,8 +342,15 @@ describe('the context is data, and only the hook’s data', () => {
     if (!operand) throw new Error('the fixture lost its first operand');
     operand.value = '{{ roster.secretBudget }}';
 
+    const saveValidation = validateHookScriptDocument(
+      registry(),
+      'score.changed',
+      nosy as unknown as RuleScript,
+    );
     const decision = evaluateAtHook(registry(), input({ script: nosy as unknown as RuleScript }));
 
+    expect(saveValidation.ok).toBe(false);
+    if (!saveValidation.ok) expect(saveValidation.error.message).toContain('roster.secretBudget');
     expect(decision.ok).toBe(false);
     if (decision.ok) return;
     expect(decision.error.message).toContain('roster.secretBudget');

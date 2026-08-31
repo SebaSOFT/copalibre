@@ -13,11 +13,15 @@ const HELP_CONTENT_DIRECTORY = resolve(SOURCE_DIRECTORY, '../content/docs/help/c
 /**
  * Reads the real `ControlRoutes.tsx` source and the real content directory —
  * the delta spec's "a screen without a matching help page fails the build"
- * scenario (0043) — rather than a hardcoded duplicate of either that could
+ * scenario — rather than a hardcoded duplicate of either that could
  * drift out of sync with the file it is meant to check.
  */
-describe('every control-panel route links to a real help page (0043)', () => {
-  const helpPaths = [...CONTROL_ROUTES_SOURCE.matchAll(/helpPath="([\w-]+)"/g)].map(
+describe('every control-panel route links to a real help page', () => {
+  // Empty is not a special case: a declared-but-empty helpPath is a route
+  // that opted out of documentation, and that opt-out is exactly what this
+  // change closes (openspec 0162) — it must fail the same way a missing
+  // path does, not be invisible to the check that catches a missing one.
+  const helpPaths = [...CONTROL_ROUTES_SOURCE.matchAll(/helpPath="([\w-]*)"/g)].map(
     (match) => match[1],
   );
 
@@ -25,9 +29,13 @@ describe('every control-panel route links to a real help page (0043)', () => {
     expect(helpPaths.length).toBeGreaterThan(0);
   });
 
-  it.each(helpPaths)('helpPath="%s" resolves to a real content file', (helpPath) => {
-    expect(existsSync(resolve(HELP_CONTENT_DIRECTORY, `${helpPath}.md`))).toBe(true);
-  });
+  it.each(helpPaths)(
+    'helpPath="%s" is declared and resolves to a real content file',
+    (helpPath) => {
+      expect(helpPath).not.toBe('');
+      expect(existsSync(resolve(HELP_CONTENT_DIRECTORY, `${helpPath}.md`))).toBe(true);
+    },
+  );
 });
 
 describe('ControlShell requires helpPath', () => {

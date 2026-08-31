@@ -2,7 +2,7 @@ import type { MessageDescriptor } from 'react-intl';
 import { messages } from '../i18n/messages.en.js';
 
 /**
- * The pending participant reports/disputes queue's view model (0032).
+ * The pending participant reports/disputes queue's view model.
  *
  * Deliberately thin: unlike registration review, there is no bulk action and
  * no filter to preserve across a re-render — "pending reports/disputes
@@ -40,7 +40,7 @@ export const KIND_LABEL: Readonly<Record<ReportKind, MessageDescriptor>> = {
  * Present tense, so an operator reads the queue as work still to do. Returns
  * `undefined` (not a formatted fallback string) when the row has no reason —
  * the caller renders `messages.reportGenericSummary` via `useIntl()` in that
- * case (0053; this function stays `intl`-free and testable without a React
+ * case; this function stays `intl`-free and testable without a React
  * context).
  */
 export function summaryOf(row: ReportRow): string | undefined {

@@ -14,6 +14,100 @@ describe('discipline descriptor schema', () => {
     expect(result.ok).toBe(true);
   });
 
+  it('accepts an optional localized description and still accepts its absence', () => {
+    expect(
+      validateDisciplineDescriptorDocument(
+        asDocument({ description: { en: 'Association football', es: 'Fútbol asociación' } }),
+      ).ok,
+    ).toBe(true);
+    expect(validateDisciplineDescriptorDocument(asDocument()).ok).toBe(true);
+  });
+
+  it('accepts a descriptor declaring descriptions on a statistic, an event definition, a scoring input, an event-workflow option, and a format', () => {
+    const result = validateDisciplineDescriptorDocument(
+      asDocument({
+        statistics: [
+          { code: 'points', label: 'Points', aggregation: 'sum', description: 'Match points' },
+        ],
+        eventDefinitions: [
+          {
+            code: 'goal',
+            label: 'Goal',
+            description: 'Awards one point to the scoring side',
+            category: 'positive',
+            permittedSegmentTypes: ['half'],
+            actorRequirement: 'person',
+            payloadSchema: { type: 'object', properties: {} },
+            workflow: {
+              kind: 'outcome-choice',
+              options: [
+                {
+                  definitionCode: 'goal-confirmed',
+                  label: 'Confirmed',
+                  description: 'The goal stands and the score updates',
+                },
+              ],
+            },
+          },
+          {
+            code: 'goal-confirmed',
+            label: 'Confirmed',
+            category: 'neutral',
+            permittedSegmentTypes: ['half'],
+            actorRequirement: 'none',
+            payloadSchema: { type: 'object', properties: {} },
+          },
+        ],
+        scoringInputs: [
+          { code: 'goals', label: 'Goals', source: 'event-derived', description: 'Goals scored' },
+        ],
+        formatDescriptions: { 'round-robin': 'Every entrant plays every other entrant once' },
+      }),
+    );
+
+    expect(result.ok).toBe(true);
+  });
+
+  it('accepts a descriptor declaring none of the new descriptions, unchanged', () => {
+    const result = validateDisciplineDescriptorDocument(asDocument());
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.statistics[0]?.description).toBeUndefined();
+    expect(result.value.formatDescriptions).toBeUndefined();
+  });
+
+  it('accepts between one and ten optional object-storage image references', () => {
+    expect(
+      validateDisciplineDescriptorDocument(
+        asDocument({ images: [{ key: 'modules/football/1.1.0/football-01.jpg' }] }),
+      ).ok,
+    ).toBe(true);
+    expect(
+      validateDisciplineDescriptorDocument(
+        asDocument({
+          images: Array.from({ length: 10 }, (_, index) => ({
+            key: `modules/football/1.1.0/football-${String(index + 1).padStart(2, '0')}.jpg`,
+          })),
+        }),
+      ).ok,
+    ).toBe(true);
+  });
+
+  it('rejects empty, oversized, or malformed image reference arrays', () => {
+    expect(validateDisciplineDescriptorDocument(asDocument({ images: [] })).ok).toBe(false);
+    expect(
+      validateDisciplineDescriptorDocument(
+        asDocument({
+          images: Array.from({ length: 11 }, (_, index) => ({ key: `image-${index}` })),
+        }),
+      ).ok,
+    ).toBe(false);
+    expect(
+      validateDisciplineDescriptorDocument(asDocument({ images: [{ key: '', url: '/image.jpg' }] }))
+        .ok,
+    ).toBe(false);
+  });
+
   it('rejects a document missing a required member', () => {
     const withoutStatistics = asDocument() as Record<string, unknown>;
     delete withoutStatistics.statistics;
@@ -64,8 +158,93 @@ describe('discipline descriptor schema', () => {
     expect(result.error.details?.code).toBe('points');
   });
 
+  it('rejects a duplicated roster role code', () => {
+    const result = validateDisciplineDescriptorDocument(
+      asDocument({
+        rosterRoles: [
+          { code: 'captain', label: 'Captain' },
+          { code: 'captain', label: 'Capitán' },
+        ],
+      }),
+    );
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.message).toContain('more than once');
+    expect(result.error.details?.code).toBe('captain');
+  });
+
+  it('rejects a duplicated column code within one table', () => {
+    const result = validateDisciplineDescriptorDocument(
+      asDocument({
+        tableLayouts: [
+          {
+            code: 'group-standings-default',
+            target: 'group-phase',
+            label: { en: 'Group Standings' },
+            entityGranularity: 'team',
+            defaultSort: [{ columnCode: 'points', direction: 'desc' }],
+            columns: [
+              {
+                code: 'points',
+                header: { en: 'Points' },
+                source: { kind: 'collector', code: 'points' },
+                format: 'number',
+              },
+              {
+                code: 'points',
+                header: { en: 'Pts' },
+                source: { kind: 'collector', code: 'points' },
+                format: 'number',
+              },
+            ],
+          },
+        ],
+      }),
+    );
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.message).toContain('more than once');
+    expect(result.error.details?.table).toBe('group-standings-default');
+    expect(result.error.details?.code).toBe('points');
+  });
+
+  it('accepts the same column code reused across two different tables', () => {
+    const column = {
+      code: 'points',
+      header: { en: 'Points' },
+      source: { kind: 'collector', code: 'points' },
+      format: 'number',
+    };
+    const result = validateDisciplineDescriptorDocument(
+      asDocument({
+        tableLayouts: [
+          {
+            code: 'group-standings',
+            target: 'group-phase',
+            label: { en: 'Group Standings' },
+            entityGranularity: 'team',
+            defaultSort: [{ columnCode: 'points', direction: 'desc' }],
+            columns: [column],
+          },
+          {
+            code: 'team-ranking-table',
+            target: 'team-ranking',
+            label: { en: 'Team Ranking' },
+            entityGranularity: 'team',
+            defaultSort: [{ columnCode: 'points', direction: 'desc' }],
+            columns: [column],
+          },
+        ],
+      }),
+    );
+
+    expect(result.ok).toBe(true);
+  });
+
   describe('winCondition as a rule script', () => {
-    it('rejects the pre-0009 enumerated string', () => {
+    it('rejects the previous enumerated string', () => {
       const result = validateDisciplineDescriptorDocument(
         asDocument({ winCondition: 'higher-score-wins' }),
       );
@@ -122,7 +301,7 @@ describe('discipline descriptor schema', () => {
     ])('rejects at installation a rule that omits %s', (_label, rule) => {
       // Neuron's validateScript demands both arrays. Accepting the document and
       // failing at evaluation would let a module install and break during a
-      // match, which is the worst place to find out (0013).
+      // match, which is the worst place to find out.
       const result = validateDisciplineDescriptorDocument(
         asDocument({ winCondition: { id: 'half-declared', rules: [rule] } }),
       );
@@ -181,11 +360,65 @@ describe('discipline descriptor schema', () => {
       expect(withEffect({ kind: 'score', side: 'opponent', delta: 1 }).ok).toBe(false);
     });
 
+    it('accepts a statistic effect declaring awardTo, in every shape', () => {
+      expect(
+        withEffect({ kind: 'statistic', statisticCode: 'fouls', delta: 1, awardTo: 'actor' }).ok,
+      ).toBe(true);
+      expect(
+        withEffect({
+          kind: 'statistic',
+          statisticCode: 'goals-against',
+          delta: 1,
+          awardTo: 'every-other-side',
+        }).ok,
+      ).toBe(true);
+      expect(
+        withEffect({
+          kind: 'statistic',
+          statisticCode: 'assists',
+          delta: 1,
+          awardTo: { payloadField: 'assistedBy' },
+        }).ok,
+      ).toBe(true);
+    });
+
+    it('accepts a tag effect declaring target, but not every-other-side', () => {
+      expect(withEffect({ kind: 'tag', tagCode: 'expelled', action: 'applied' }).ok).toBe(true);
+      expect(
+        withEffect({ kind: 'tag', tagCode: 'expelled', action: 'applied', target: 'actor' }).ok,
+      ).toBe(true);
+      expect(
+        withEffect({
+          kind: 'tag',
+          tagCode: 'eliminated',
+          action: 'applied',
+          target: { payloadField: 'victimId' },
+        }).ok,
+      ).toBe(true);
+    });
+
     it.each([
       ['an unknown kind', { kind: 'summon-var', delta: 1 }],
       ['a score with no recipient', { kind: 'score', delta: 1 }],
       ['a score awarding to nobody named', { kind: 'score', awardTo: 'referee', delta: 1 }],
       ['a statistic naming no code', { kind: 'statistic', delta: 1 }],
+      [
+        'a statistic awardTo naming an empty payload field',
+        { kind: 'statistic', statisticCode: 'assists', delta: 1, awardTo: { payloadField: '' } },
+      ],
+      [
+        'a statistic awardTo of every-other-side spelled as a payload object with an extra member',
+        {
+          kind: 'statistic',
+          statisticCode: 'assists',
+          delta: 1,
+          awardTo: { payloadField: 'x', extra: 1 },
+        },
+      ],
+      [
+        'a tag target of every-other-side, which names no one actor',
+        { kind: 'tag', tagCode: 'expelled', action: 'applied', target: 'every-other-side' },
+      ],
       ['a penalty of no duration', { kind: 'timed-penalty', durationSeconds: 0, affects: 'side' }],
       ['a transition of no name', { kind: 'match-state', transition: '' }],
       ['an effect carrying an undeclared member', { kind: 'match-state', transition: 'x', y: 1 }],
@@ -224,6 +457,32 @@ describe('discipline descriptor schema', () => {
       ]) {
         expect(withCollector({ ...goals, source }).ok).toBe(true);
       }
+    });
+
+    it('accepts an event-sourced collector declaring actorSource, in every shape', () => {
+      for (const actorSource of ['primary', 'every-other-side', { payloadField: 'victimId' }]) {
+        expect(
+          withCollector({
+            ...goals,
+            source: { kind: 'event', definitionCodes: ['strike'], actorSource },
+          }).ok,
+        ).toBe(true);
+      }
+    });
+
+    it('rejects actorSource on a non-event source, and an empty payload field', () => {
+      expect(
+        withCollector({
+          ...goals,
+          source: { kind: 'statistic', statisticCode: 'strikes', actorSource: 'primary' },
+        }).ok,
+      ).toBe(false);
+      expect(
+        withCollector({
+          ...goals,
+          source: { kind: 'event', definitionCodes: ['strike'], actorSource: { payloadField: '' } },
+        }).ok,
+      ).toBe(false);
     });
 
     it('accepts a ceiling, and a measure over a field', () => {
@@ -266,6 +525,24 @@ describe('discipline descriptor schema', () => {
       // loses none, and that is what the granularity already says.
       expect(withCollector({ ...goals, resetOn: 'segment' }).ok).toBe(false);
     });
+
+    describe('cadence', () => {
+      it('accepts a descriptor declaring none, absent reading as on-finalize', () => {
+        expect(withCollector(goals).ok).toBe(true);
+      });
+
+      it.each(['on-finalize', 'live'])('accepts a declared "%s" cadence', (kind) => {
+        expect(withCollector({ ...goals, cadence: { kind } }).ok).toBe(true);
+      });
+
+      it('rejects an unknown cadence kind', () => {
+        expect(withCollector({ ...goals, cadence: { kind: 'hourly' } }).ok).toBe(false);
+      });
+
+      it('rejects a cadence carrying an undeclared member', () => {
+        expect(withCollector({ ...goals, cadence: { kind: 'live', every: 1 } }).ok).toBe(false);
+      });
+    });
   });
 
   it('rejects a format outside the MVP list', () => {
@@ -277,5 +554,100 @@ describe('discipline descriptor schema', () => {
 
   it('rejects a non-object document', () => {
     expect(validateDisciplineDescriptorDocument('a descriptor').ok).toBe(false);
+  });
+
+  describe('localized labels', () => {
+    it('still accepts a plain-string label and name, unmodified', () => {
+      // The reference descriptor already uses plain strings throughout; this
+      // is what keeps every previously authored module valid forever.
+      expect(validateDisciplineDescriptorDocument(asDocument()).ok).toBe(true);
+    });
+
+    it('accepts a locale-map label requiring only en', () => {
+      const result = validateDisciplineDescriptorDocument(asDocument({ name: { en: 'Football' } }));
+      expect(result.ok).toBe(true);
+    });
+
+    it('accepts a locale-map label with additional supported languages', () => {
+      const result = validateDisciplineDescriptorDocument(
+        asDocument({
+          statistics: [
+            { code: 'strikes', label: { en: 'Strikes', es: 'Golpes' }, aggregation: 'sum' },
+          ],
+        }),
+      );
+      expect(result.ok).toBe(true);
+    });
+
+    it('rejects a locale-map label missing the required en key', () => {
+      const result = validateDisciplineDescriptorDocument(asDocument({ name: { es: 'Fútbol' } }));
+      expect(result.ok).toBe(false);
+    });
+
+    it('rejects a locale-map label with an unsupported language key', () => {
+      const result = validateDisciplineDescriptorDocument(
+        asDocument({ name: { en: 'Football', xx: 'Nope' } }),
+      );
+      expect(result.ok).toBe(false);
+    });
+  });
+
+  describe('series declaration', () => {
+    it('accepts a valid best-of series declaration', () => {
+      const result = validateDisciplineDescriptorDocument(
+        asDocument({
+          series: { span: 5, resolutionClass: 'best-of', neutralGround: false },
+        }),
+      );
+      expect(result.ok).toBe(true);
+    });
+
+    it('accepts a valid aggregate series declaration', () => {
+      const result = validateDisciplineDescriptorDocument(
+        asDocument({
+          series: { span: 2, resolutionClass: 'aggregate' },
+        }),
+      );
+      expect(result.ok).toBe(true);
+    });
+
+    it('refuses a declaration naming both a class and a script and names the offending field', () => {
+      const result = validateDisciplineDescriptorDocument(
+        asDocument({
+          series: {
+            span: 5,
+            resolutionClass: 'best-of',
+            resolutionScript: { id: 'custom-series', rules: [] },
+          },
+        }),
+      );
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.error.details?.field).toBe('series.resolutionScript');
+      expect(result.error.message).toContain('both a resolution class and a resolution script');
+    });
+
+    it('refuses an even-span best-of and names the offending field', () => {
+      const result = validateDisciplineDescriptorDocument(
+        asDocument({
+          series: { span: 4, resolutionClass: 'best-of' },
+        }),
+      );
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.error.details?.field).toBe('series.span');
+      expect(result.error.message).toContain('odd span');
+    });
+
+    it('refuses a series with span less than 2', () => {
+      const result = validateDisciplineDescriptorDocument(
+        asDocument({
+          series: { span: 1, resolutionClass: 'best-of' },
+        }),
+      );
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.error.details?.field).toBe('series.span');
+    });
   });
 });

@@ -61,6 +61,19 @@ describe('applyMatchCommand', () => {
     },
   );
 
+  it.each(['start', 'pause', 'resume', 'finalize'] as const)(
+    'refuses %s once the match is not-required',
+    (command: MatchCommand) => {
+      const result = applyMatchCommand({ matchId: 'm-1', status: 'not-required' }, command, {
+        state: 'completed',
+      });
+
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.error.code).toBe('MATCH_OPERATION_INVALID');
+    },
+  );
+
   it('refuses to start a match twice', () => {
     expect(applyMatchCommand({ matchId: 'm-1', status: 'in-progress' }, 'start').ok).toBe(false);
   });

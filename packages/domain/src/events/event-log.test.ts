@@ -74,6 +74,50 @@ describe('a side is an entrant', () => {
   });
 });
 
+describe('an event may carry an optional note', () => {
+  it('records the note regardless of discipline or event definition', () => {
+    const log = new EventLog(fixtureDescriptor());
+
+    const result = log.record(strikeInput({ notes: 'Reviewed by table official' }));
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.notes).toBe('Reviewed by table official');
+  });
+
+  it('leaves the note absent when the caller does not supply one', () => {
+    const log = new EventLog(fixtureDescriptor());
+
+    const result = log.record(strikeInput());
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.notes).toBeUndefined();
+  });
+});
+
+describe('an event may carry a snapshot of the active segment clock', () => {
+  it('records segmentElapsedSeconds when the caller supplies one', () => {
+    const log = new EventLog(fixtureDescriptor());
+
+    const result = log.record(strikeInput({ segmentElapsedSeconds: 842 }));
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.segmentElapsedSeconds).toBe(842);
+  });
+
+  it('leaves segmentElapsedSeconds absent for a non-timed segment, which never supplies one', () => {
+    const log = new EventLog(fixtureDescriptor());
+
+    const result = log.record(strikeInput());
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.segmentElapsedSeconds).toBeUndefined();
+  });
+});
+
 describe('EventLog', () => {
   it('records a valid event and assigns a monotonic sequence', () => {
     const log = new EventLog(fixtureDescriptor());
@@ -150,6 +194,42 @@ describe('EventLog', () => {
       strikeInput({ definitionCode: 'pause', personId: undefined, payload: {} }),
     );
     expect(result.ok).toBe(true);
+  });
+
+  it('records a declared outcome independently of its workflow choice', () => {
+    const descriptor = fixtureDescriptor({
+      eventDefinitions: [
+        ...fixtureDescriptor().eventDefinitions,
+        {
+          code: 'outcome-decision',
+          label: 'Outcome decision',
+          category: 'neutral',
+          permittedSegmentTypes: ['half'],
+          actorRequirement: 'none',
+          payloadSchema: { type: 'object' },
+          workflow: {
+            kind: 'outcome-choice',
+            options: [{ definitionCode: 'outcome-recorded', label: 'Outcome recorded' }],
+          },
+        },
+        {
+          code: 'outcome-recorded',
+          label: 'Outcome recorded',
+          category: 'neutral',
+          permittedSegmentTypes: ['half'],
+          actorRequirement: 'none',
+          payloadSchema: { type: 'object' },
+        },
+      ],
+    });
+    const log = new EventLog(descriptor);
+
+    const result = log.record(
+      strikeInput({ definitionCode: 'outcome-recorded', personId: undefined, payload: {} }),
+    );
+
+    expect(result.ok).toBe(true);
+    expect(log.list()).toHaveLength(1);
   });
 
   it('exposes an append-only view — mutating the list does not alter the log', () => {

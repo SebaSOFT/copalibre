@@ -4,7 +4,9 @@
 Deterministically turns a tournament's entrant list and format selection into a fixture graph,
 computes standings with a full explanation trace, and advances the competition as results arrive —
 for exactly the six MVP formats, no more.
+
 ## Requirements
+
 ### Requirement: Only the six MVP formats are supported
 The engine SHALL generate fixtures only for single elimination, double elimination, round robin,
 league, round robin single-leg, and round robin home-and-away. It SHALL reject any other format
@@ -16,11 +18,34 @@ selection rather than approximating it.
 
 ### Requirement: Deterministic fixture generation
 Given the same entrant list, seed assignment, and format, the engine SHALL generate the identical
-fixture graph on every run.
+fixture graph on every run. This holds per group: two entrants in different groups of the same stage
+never generate a fixture between them, and generation for one group is independent of every other
+group's entrant list, seed assignment, and result.
 
 #### Scenario: Repeated generation is identical
 - **WHEN** fixtures are generated twice from the same entrant list, seeds, and format
 - **THEN** both generated fixture graphs are structurally identical, including bye placement
+
+#### Scenario: Grouped generation never crosses group boundaries
+- **WHEN** a stage's zone is split into more than one group
+- **THEN** every generated fixture's two entrants (or every placement match's slots) belong to the
+  same group, and no fixture is ever generated between entrants of different groups
+
+### Requirement: A stage with no explicit zone or group still generates unchanged
+
+Fixture generation SHALL resolve a stage's implicit zone and that zone's implicit group when an
+operator has created neither, and generation through that implicit pair SHALL be indistinguishable
+from generation before zones and groups existed.
+
+#### Scenario: Duel format generation is unaffected by the implicit default
+- **WHEN** each of the six duel formats is generated for a stage with no explicit zone or group
+- **THEN** the generated fixture graph is byte-for-byte identical to what the same entrant list, seed
+  order, and format produced before zones and groups existed
+
+#### Scenario: Placement format generation is unaffected by the implicit default
+- **WHEN** either placement format is generated for a stage with no explicit zone or group
+- **THEN** the generated fixture graph is byte-for-byte identical to what the same entrant list and
+  format produced before zones and groups existed
 
 ### Requirement: Double-elimination bracket layout is structurally correct
 The engine SHALL generate a double-elimination bracket with a distinct winners bracket, losers
@@ -45,7 +70,10 @@ engine, showing each tiebreak parameter's value and the first comparator that re
 
 ### Requirement: Advancement is deterministic and format-aware
 Given a recorded match result, the engine SHALL deterministically compute which downstream
-fixture(s) unlock, correctly for each of the six MVP formats' advancement rules.
+fixture(s) unlock, correctly for each of the six MVP formats' advancement rules. Where a fixture is
+settled by a series, the advancement edge SHALL read the series resolution rather than any single
+match result, so a `winner-of` edge is populated once — when the series is decided — and not by the
+first match of it.
 
 #### Scenario: Round-robin advancement recomputes standings, not fixtures
 - **WHEN** a round-robin match result is recorded
@@ -54,6 +82,16 @@ fixture(s) unlock, correctly for each of the six MVP formats' advancement rules.
 #### Scenario: Elimination advancement populates the next round's slot
 - **WHEN** a single- or double-elimination match result is recorded
 - **THEN** the engine populates the correct slot of the downstream fixture that depends on this match's winner (and loser, for double elimination)
+
+#### Scenario: A series does not advance on its first match
+- **WHEN** the first match of a best-of-five series is finalized
+- **THEN** no downstream slot is populated, because the series that the advancement edge depends on is
+  not yet decided
+
+#### Scenario: A decided series populates the downstream slot once
+- **WHEN** a best-of-five series becomes decided
+- **THEN** the downstream fixture's slot is populated with the series winner exactly once, and the
+  later anulling of the unplayed matches populates nothing further
 
 ### Requirement: Fixture regeneration respects mutation classification
 Any operation that would alter already-generated fixtures SHALL be classified `safe`,
@@ -164,3 +202,72 @@ read from those fixtures as before, unaffected by later registration changes.
   afterward
 - **THEN** the stage's entrant pool continues to reflect its generated fixtures, not the tournament's
   current registration list
+
+### Requirement: Generating a fixture materializes the match it holds
+Generating a stage's fixtures SHALL create, in the same transaction, the match each fixture holds,
+numbered from 1 within that fixture. A generated fixture SHALL NOT exist without the match it is a cross
+for, so every surface that names a match names a real one and every playable unit exists to be scheduled.
+
+#### Scenario: Generation produces a match per fixture
+- **WHEN** a stage's fixtures are generated
+- **THEN** each generated fixture holds exactly one match, numbered 1, created in the same transaction as
+  the fixture
+
+#### Scenario: A fixture holds each match number once
+- **WHEN** the match numbered 1 of a fixture is requested a second time
+- **THEN** the fixture's existing match is returned rather than a second one being created, and the
+  fixture still holds exactly one match
+
+#### Scenario: Every surface reads a real match identifier
+- **WHEN** a projection reports a generated fixture's match
+- **THEN** it reports that match's own identifier, not the fixture's identifier standing in for one
+
+### Requirement: Regeneration replaces matches only while none has progressed
+Regenerating a stage's fixtures SHALL replace the matches those fixtures held along with the fixtures
+themselves, and the schedule assignments those matches held. It SHALL refuse when any of those matches has
+progressed beyond being scheduled — a recorded result, or a status other than scheduled — directing the
+operator to the audited correction workflow, exactly as the mutation classification it already enforces
+requires.
+
+#### Scenario: Regeneration before any match starts succeeds
+- **WHEN** a stage whose matches are all still scheduled is reseeded
+- **THEN** the previous fixtures, their matches, and their schedule assignments are replaced by the newly
+  generated ones, and each new fixture again holds exactly one match with no assignment
+
+#### Scenario: Regeneration after a match has started is refused
+- **WHEN** a stage is reseeded and one of its matches is in progress or has a recorded result
+- **THEN** the regeneration is refused and no fixture, match, or assignment of that stage is altered
+
+#### Scenario: Regeneration frees the slots its matches held
+- **WHEN** a stage whose matches are placed in slots is reseeded
+- **THEN** those slots become free, and the schedules holding them are otherwise unchanged
+
+### Requirement: Generation is deterministic over series
+Generating a stage whose fixtures declare a series SHALL be deterministic in the same sense
+single-match generation already is: the same entrants, seeds, format and series declaration SHALL
+produce the identical set of matches, in the same play order, with the same home-side alternation, on
+every run. Series generation SHALL respect group boundaries exactly as single-match generation does.
+
+#### Scenario: Repeated series generation is identical
+- **WHEN** fixtures for a stage declaring a best-of-five series are generated twice from the same
+  entrants, seeds and format
+- **THEN** both runs produce structurally identical fixtures, including each fixture's match count,
+  match numbering, and home-side assignment per match
+
+#### Scenario: Series generation never crosses group boundaries
+- **WHEN** a stage declaring a series is split into more than one group
+- **THEN** every match of every generated series joins two entrants of the same group
+
+### Requirement: The supported-format list is unchanged by series
+A series SHALL NOT be a stage format. The set of formats the engine advertises and generates SHALL be
+exactly what it was before series existed, and a series SHALL be declared on top of a supported duel
+format rather than in place of one.
+
+#### Scenario: The advertised format list gains no entry
+- **WHEN** the supported-format list is queried after series are available
+- **THEN** it contains exactly the same formats it contained before, and no series-named entry
+
+#### Scenario: A series is declared on top of a duel format
+- **WHEN** a stage declares the double-elimination format together with a best-of-three series
+- **THEN** the stage generates a double-elimination bracket whose every fixture holds three matches,
+  and the bracket structure is the one that format already generates

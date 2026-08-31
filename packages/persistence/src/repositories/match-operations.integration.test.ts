@@ -10,7 +10,7 @@ import { InvariantViolationError } from '../errors.js';
 import { newId } from '../ids.js';
 
 /**
- * The integrity promise of 0014, against a real database: a result cannot be
+ * The integrity promise, against a real database: a result cannot be
  * overwritten, a correction keeps what it replaced, an appointment covers one
  * match, and a started downstream stage is not rebuilt behind anyone's back.
  */
@@ -209,7 +209,7 @@ describe('match operations (integration)', () => {
     });
   });
 
-  it('retains a cited report/dispute id as supporting evidence in the audit trail (0032)', async () => {
+  it('retains a cited report/dispute id as supporting evidence in the audit trail', async () => {
     const { match } = await playableMatch('cites-report');
     const competition = new CompetitionRepository(scratch.db);
     await withTransaction(scratch.db, (uow) =>

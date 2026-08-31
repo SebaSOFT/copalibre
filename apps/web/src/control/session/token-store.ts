@@ -1,5 +1,5 @@
 /**
- * Where the access token lives (0022): memory, and nowhere else.
+ * Where the access token lives: memory, and nowhere else.
  *
  * `localStorage` and `sessionStorage` are readable by any script that reaches
  * the page, and a cookie that JavaScript can set is a cookie XSS can read. A
@@ -22,6 +22,28 @@ export interface TokenStore {
   isExpired(now?: number): boolean;
 }
 
+/** RFC 9068 access-token scopes used only for client-side presentation guards. */
+export function accessTokenScopes(token: string | undefined): readonly string[] {
+  if (!token) return [];
+  const payload = token.split('.')[1];
+  if (!payload) return [];
+  try {
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+    const parsed = JSON.parse(atob(padded)) as { readonly scp?: unknown };
+    if (typeof parsed.scp === 'string') return parsed.scp.split(/\s+/).filter(Boolean);
+    if (Array.isArray(parsed.scp))
+      return parsed.scp.filter((scope): scope is string => typeof scope === 'string');
+  } catch {
+    // Opaque/malformed tokens expose no presentation scopes; API authorization remains authoritative.
+  }
+  return [];
+}
+
+export function accessTokenHasScope(token: string | undefined, scope: string): boolean {
+  return accessTokenScopes(token).includes(scope);
+}
+
 export function createTokenStore(now: () => number = Date.now): TokenStore {
   let token: string | undefined;
   let expiresAt = 0;
@@ -41,10 +63,10 @@ export function createTokenStore(now: () => number = Date.now): TokenStore {
 }
 
 /**
- * The one instance every control-panel screen actually uses (0062): written
+ * The one instance every control-panel screen actually uses: written
  * by the `/control/callback` screen on a successful login, read by every
  * screen's `ControlApiClient` and by `ControlApp`'s route guard. A
- * module-level singleton rather than a React context — 0061's `ControlApp`
+ * module-level singleton rather than a React context — `ControlApp`
  * already re-renders on every navigation, which is when the guard re-checks;
  * every other consumer only ever needs to *read* the current token at
  * request time, never re-render when it changes.

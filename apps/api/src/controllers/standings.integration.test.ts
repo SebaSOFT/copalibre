@@ -1,6 +1,8 @@
 import { Module, type INestApplication } from '@nestjs/common';
-import { APP_GUARD, Reflector } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
+import { ApiExceptionFilter } from '../http/error-contract.js';
+import { createApiValidationPipe } from '../http/validation.js';
 import { Test } from '@nestjs/testing';
 import type { DisciplineDescriptor } from '@copalibre/domain';
 import {
@@ -21,7 +23,7 @@ import { SeedingController, toBracketMatch } from './seeding.controller.js';
 import { StandingsController } from './standings.controller.js';
 
 /**
- * Standings and seeding through the real HTTP stack (0024).
+ * Standings and seeding through the real HTTP stack.
  *
  * The two things worth proving with a database attached: the projection version
  * a client keys off is served, and a reseed after a result exists is refused
@@ -89,6 +91,7 @@ describe('standings and seeding routes (integration)', () => {
       providers: [
         { provide: DATABASE, useValue: scratch.db },
         { provide: TokenVerifier, useValue: new FakeTokenVerifier(() => organizationId) },
+        { provide: APP_FILTER, useClass: ApiExceptionFilter },
         { provide: APP_GUARD, useClass: JwtAuthGuard },
         Reflector,
       ],
@@ -97,6 +100,7 @@ describe('standings and seeding routes (integration)', () => {
 
     const moduleRef = await Test.createTestingModule({ imports: [TestModule] }).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    app.useGlobalPipes(createApiValidationPipe());
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
 
@@ -228,6 +232,30 @@ describe('standings and seeding routes (integration)', () => {
     expect((await request({ method: 'GET', url: `${base}/standings` })).statusCode).toBe(401);
   });
 
+  it('records no audit entry for ordinary browsing of standings or a bracket (task 3.3)', async () => {
+    // Scoped to this stage's own aggregate, not a table-wide row count: an
+    // unrelated sibling test's fire-and-forget refusal recording (task 2.1
+    // is deliberately not awaited by its caller) can still be landing when
+    // this test starts, and a whole-table count races against it. The
+    // stage's own setup already wrote a couple of entries (stage.created,
+    // fixtures.generated); the count must simply not grow.
+    const before = await scratch.db
+      .selectFrom('audit_log')
+      .select((eb) => eb.fn.countAll<string>().as('count'))
+      .where('entity_id', '=', stageId)
+      .executeTakeFirstOrThrow();
+
+    await request({ method: 'GET', url: `${base}/standings`, token: 'organizer' });
+    await request({ method: 'GET', url: `${base}/seeding`, token: 'organizer' });
+
+    const after = await scratch.db
+      .selectFrom('audit_log')
+      .select((eb) => eb.fn.countAll<string>().as('count'))
+      .where('entity_id', '=', stageId)
+      .executeTakeFirstOrThrow();
+    expect(after.count).toBe(before.count);
+  });
+
   it('serves an empty trace for a row no comparator separated', async () => {
     const response = await request({
       method: 'GET',
@@ -331,6 +359,33 @@ describe('standings and seeding routes (integration)', () => {
     expect(pairs.size).toBe(6);
   });
 
+  it('400s a seed order that is not an array, before reaching the controller', async () => {
+    const response = await request({
+      method: 'POST',
+      url: `${base}/seeding`,
+      token: 'organizer',
+      payload: { seeds: 'primero' },
+    });
+    expect(response.statusCode).toBe(400);
+  });
+
+  it('rejects an extra undocumented property with 400 when publishing seed order', async () => {
+    const reversed = [...entrantIds].reverse();
+    const response = await request({
+      method: 'POST',
+      url: `${base}/seeding`,
+      token: 'organizer',
+      payload: {
+        seeds: reversed.map((entrantId, index) => ({ seed: index + 1, entrantId })),
+        unexpectedField: 'dropped',
+      },
+    });
+    expect(response.statusCode).toBe(400);
+    const body = response.json();
+    expect(body.errorCode).toBe('bad-request');
+    expect(body.message).toContain('property unexpectedField should not exist');
+  });
+
   it('refuses a seed order that places an entrant twice', async () => {
     const response = await request({
       method: 'POST',
@@ -376,7 +431,7 @@ describe('standings and seeding routes (integration)', () => {
     const [winner = '', runnerUp = ''] = entrantIds;
     const competition = new CompetitionRepository(scratch.db);
     // A prior test republished this stage's seed order, which replaces its
-    // fixtures wholesale (0040) — `firstFixtureId` no longer names a live row,
+    // fixtures wholesale — `firstFixtureId` no longer names a live row,
     // so this reads the current one instead of trusting the captured id.
     const currentFixture = await scratch.db
       .selectFrom('fixtures')
@@ -436,6 +491,20 @@ describe('standings and seeding routes (integration)', () => {
       .orderBy('fixture_id')
       .execute();
     expect(after).toEqual(before);
+
+    // The refusal itself is recorded — who attempted it, and why (openspec
+    // 0166, task 6.1) — through the central exception filter, with no code
+    // added at this route.
+    const refusal = await scratch.db
+      .selectFrom('audit_log')
+      .selectAll()
+      .where('organization_id', '=', organizationId)
+      .where('action', '=', 'mutation.refused')
+      .orderBy('occurred_at', 'desc')
+      .executeTakeFirstOrThrow();
+    expect(refusal.actor).toBe('user:organizer-1');
+    expect(refusal.reason).toContain('Seeding cannot change once a result exists');
+    expect(refusal.resulting_state).toBeNull();
   });
 
   it('serves the published materialised standings when one exists', async () => {
@@ -503,10 +572,12 @@ describe('standings and seeding routes (integration)', () => {
       [
         {
           matchId: 'persisted-winners',
+          fixtureId: 'fixture-winners',
           round: 1,
           position: 1,
           status: 'finalized',
           scores: [2, 0],
+          games: [{ matchId: 'persisted-winners', number: 1, status: 'finalized', scores: [2, 0] }],
         },
       ],
       { ambiguousPositions: new Set(['1:1']) },

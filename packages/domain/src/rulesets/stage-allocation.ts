@@ -2,7 +2,7 @@ import { DomainError } from '../errors.js';
 import { err, ok, type Result } from '../result.js';
 
 /**
- * How a stage's seed order is decided (0010-stage-qualification-and-seeding).
+ * How a stage's seed order is decided.
  *
  * Phase 7 generates fixtures from a caller-supplied seed order and never asks
  * where it came from. This declares where: the prior stage's qualification cut,

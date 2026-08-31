@@ -3,6 +3,7 @@ import PublicLayout from '../../../../../layouts/PublicLayout.astro';
 import ResultLegend from '../../../../../components/ResultLegend.astro';
 import StateBadge from '../../../../../components/StateBadge.astro';
 import { LiveMatchHero } from '../../../../../components/LiveMatchHero.tsx';
+import { EntrantName } from '../../../../../components/EntrantName.tsx';
 import { buildOverview, displayName } from '../../../../../lib/overview.ts';
 import {
   fetchLive,
@@ -15,13 +16,13 @@ import { messages } from '../../../../../lib/i18n/public-messages.en.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 
 /**
- * B2, the live dashboard (0021).
+ * B2, the live dashboard.
  *
  * Nothing here is discipline-specific: no minimap, no possession arrow, no
  * period clock that assumes halves. A shared template that knows one sport is a
  * template every other sport has to fight.
  *
- * `[[locale]]` mirrors the tournament overview page (0055) — see its comment.
+ * `[[locale]]` mirrors the tournament overview page — see its comment.
  */
 export const prerender = false;
 
@@ -39,26 +40,33 @@ if (!overviewData || !dashboard) {
 }
 
 const model = buildOverview(mapOverviewResponse(overviewData));
+const localePrefix = locale ? `/${locale}` : '';
+const reportPath = (stageNumber: number, matchNumber: number) =>
+  `${localePrefix}${model.canonicalPath}/stages/${stageNumber}/matches/${matchNumber}`;
 ---
 
 <PublicLayout
   title={`${intl.formatMessage(messages.livePageTitle)} — ${displayName(model)}`}
   canonicalPath={`${model.canonicalPath}/live`}
   intl={intl}
+  disciplineImages={overviewData.disciplineImages}
 >
   <h1>{intl.formatMessage(messages.livePageTitle)}</h1>
   {/* Server-rendered first, so the page is right before any script runs. */}
   <section>
     {
       dashboard.matches.map((match) => (
-        <article class="cl-card cl-chamfer">
-          <StateBadge state={match.state} intl={intl} />
-          {match.sides.map((side) => (
-            <p>
-              {side.abbreviation ?? side.name} {side.score}
-            </p>
-          ))}
-        </article>
+        <a href={reportPath(match.stageNumber, match.matchNumber)}>
+          <article class="cl-card cl-chamfer">
+            <StateBadge state={match.state} intl={intl} />
+            {match.sides.map((side) => (
+              <p>
+                <EntrantName client:load fullName={side.name} abbreviation={side.abbreviation} />{' '}
+                {side.score}
+              </p>
+            ))}
+          </article>
+        </a>
       ))
     }
   </section>
@@ -70,14 +78,34 @@ const model = buildOverview(mapOverviewResponse(overviewData));
         .filter((match) => match.state === 'upcoming')
         .map((match) => (
           <li>
-            {match.home.name} vs {match.away.name} —{' '}
-            <time datetime={match.startsAt}>{match.startsAt}</time>
+            {match.matchNumber === undefined ? (
+              <>
+                {match.home.name} vs {match.away.name} —{' '}
+                <time datetime={match.startsAt}>{match.startsAt}</time>
+              </>
+            ) : (
+              <a href={reportPath(match.stageNumber, match.matchNumber)}>
+                {match.home.name} vs {match.away.name} —{' '}
+                <time datetime={match.startsAt}>{match.startsAt}</time>
+              </a>
+            )}
           </li>
         ))
     }
   </ul>
 
   <h2>{intl.formatMessage(messages.livePageLeadersHeading)}</h2>
+  {
+    model.standingsGrain !== undefined && (
+      <p class="cl-standings-grain">
+        {intl.formatMessage(
+          model.standingsGrain === 'series'
+            ? messages.standingsGrainSeries
+            : messages.standingsGrainMatch,
+        )}
+      </p>
+    )
+  }
   <table>
     <thead
       ><tr
@@ -92,7 +120,9 @@ const model = buildOverview(mapOverviewResponse(overviewData));
           <tr>
             <>
               <td>{row.position}</td>
-              <td>{row.abbreviation ?? row.name}</td>
+              <td>
+                <EntrantName client:load fullName={row.name} abbreviation={row.abbreviation} />
+              </td>
               <td>{row.points}</td>
             </>
           </tr>

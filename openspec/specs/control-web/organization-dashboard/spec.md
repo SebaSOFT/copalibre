@@ -3,7 +3,9 @@
 ## Purpose
 Gives authenticated organizers a single overview of their organization's tournament activity and a
 recent-activity audit trail, as the control application's landing screen.
+
 ## Requirements
+
 ### Requirement: Dashboard summarizes tournament status counts
 The organization dashboard SHALL display counts of active tournaments, pending registrations, and
 matches scheduled for the current day.
@@ -36,3 +38,56 @@ authenticated user has a role in.
 - **WHEN** a user with a role only in organization A views the dashboard
 - **THEN** no tournament or activity data belonging to organization B is present in the response
 
+### Requirement: The dashboard lists the organization's real tournaments
+
+The control panel dashboard SHALL list the tournaments actually belonging to the signed-in organizer's
+organization, read from current backend state. It SHALL NOT render sample or fabricated tournaments
+under any condition, including when the organization has none.
+
+#### Scenario: An organizer sees their own tournaments
+- **WHEN** an authorized organizer opens the dashboard
+- **THEN** the tournament list shows their organization's tournaments
+
+#### Scenario: An organization with no tournaments shows an empty state
+- **WHEN** an organization has no tournaments
+- **THEN** the dashboard states that there are none, rather than showing sample data
+
+### Requirement: An authorized organizer can trigger a statistics rebuild and see its outcome
+
+The control panel SHALL let an authorized organization administrator trigger a statistics rebuild,
+optionally scoped to one tournament, after an explicit confirmation, and SHALL report the number of
+matches processed. It SHALL state that a rebuild recomputes from recorded events and that matches played
+without a recorded roster contribute no player-level figures.
+
+#### Scenario: Triggering a rebuild
+- **WHEN** an authorized administrator confirms a rebuild
+- **THEN** the rebuild runs and the number of matches processed is reported
+
+#### Scenario: Scoping a rebuild to one tournament
+- **WHEN** an administrator selects a single tournament before confirming
+- **THEN** only that tournament is rebuilt
+
+#### Scenario: A non-administrator is refused
+- **WHEN** a subject without organization-administrator authorization attempts a rebuild
+- **THEN** it is refused
+
+#### Scenario: A rebuild is never triggered without confirmation
+- **WHEN** an administrator activates the rebuild control
+- **THEN** nothing runs until the action is explicitly confirmed
+
+### Requirement: Organization admins see their storage usage
+An organization's administration area SHALL display that organization's total stored-object bytes and
+object count, human-readable, sourced from the object-storage usage query — read-only, no quota or
+enforcement implied.
+
+#### Scenario: An admin sees a human-readable total
+- **WHEN** an organization administrator with 38 successfully stored objects totaling 142 MB opens the
+  organization's administration area
+- **THEN** the storage usage summary reads a human-readable figure equivalent to "142 MB across 38
+  files", not a raw byte count
+
+#### Scenario: A non-administrator does not see the organization's storage usage
+- **WHEN** a caller without the organization's admin role requests the organization's settings/
+  administration view
+- **THEN** the storage usage summary is not present, matching the same role gate as the rest of that
+  view

@@ -1,6 +1,8 @@
 import {
   Abbreviation,
   Alias,
+  abbreviationOf,
+  deriveEntrantAbbreviation,
   suggestAvailableAlias,
   validateAttributes,
   type Club,
@@ -41,9 +43,9 @@ export class EnrollmentRepository {
   constructor(private readonly db: Kysely<Database>) {}
 
   /**
-   * Creates a club (0037).
+   * Creates a club.
    *
-   * The table has existed since `0004` with nothing to write to it — clubs
+   * The table has existed with nothing to write to it — clubs
    * arrived through imports and fixtures. It gets a write path now because the
    * abbreviation has to be settable somewhere, and validated before any SQL runs
    * rather than by a check constraint that can only say "no".
@@ -64,7 +66,7 @@ export class EnrollmentRepository {
     // named "Talleres" is ordinary, and making the second one's organizer
     // invent a suffix by hand is not.
     const alias = input.alias ?? (await this.suggestClubAlias(input.organizationId, input.name));
-    assertAlias(alias);
+    assertClubAlias(alias);
 
     const clubId = newId();
     const row = await uow.tx
@@ -75,6 +77,7 @@ export class EnrollmentRepository {
         alias: alias ?? null,
         name: input.name,
         abbreviation: input.abbreviation ?? null,
+        emblem_object_id: null,
         created_at: new Date(),
       })
       .returningAll()
@@ -123,10 +126,11 @@ export class EnrollmentRepository {
       readonly name?: string;
       readonly alias?: string;
       readonly abbreviation?: string | null;
+      readonly emblemObjectId?: string;
     } & Omit<AuditContext, 'organizationId'>,
   ): Promise<Club> {
     if (input.abbreviation !== null) assertAbbreviation(input.abbreviation);
-    assertAlias(input.alias);
+    assertClubAlias(input.alias);
 
     const previous = await this.findClub(input.clubId);
     const row = await uow.tx
@@ -135,6 +139,7 @@ export class EnrollmentRepository {
         ...(input.name === undefined ? {} : { name: input.name }),
         ...(input.alias === undefined ? {} : { alias: input.alias }),
         ...(input.abbreviation === undefined ? {} : { abbreviation: input.abbreviation }),
+        ...(input.emblemObjectId === undefined ? {} : { emblem_object_id: input.emblemObjectId }),
       })
       .where('club_id', '=', input.clubId)
       .returningAll()
@@ -163,6 +168,17 @@ export class EnrollmentRepository {
     return row ? toClub(row) : undefined;
   }
 
+  /** Every club of an organization, for a management screen listing. */
+  async listClubs(organizationId: string): Promise<readonly Club[]> {
+    const rows = await this.db
+      .selectFrom('clubs')
+      .selectAll()
+      .where('organization_id', '=', organizationId)
+      .orderBy('name')
+      .execute();
+    return rows.map(toClub);
+  }
+
   async createTeam(
     uow: UnitOfWork,
     input: {
@@ -177,7 +193,18 @@ export class EnrollmentRepository {
     assertAbbreviation(input.abbreviation);
     const alias =
       input.alias ?? (await this.suggestTeamAlias(uow.tx, input.organizationId, input.name));
-    assertAlias(alias);
+    assertEntrantAlias(alias);
+    // Only reachable with an explicit alias: a suggested one is already
+    // disambiguated against every alias this organization holds.
+    if (input.alias !== undefined) {
+      const claimed = await this.findTeamByAlias(input.organizationId, alias);
+      if (claimed) {
+        throw new InvariantViolationError('Another team already uses this alias', {
+          alias,
+          conflictsWith: claimed.teamId,
+        });
+      }
+    }
 
     const teamId = newId();
     const row = await uow.tx
@@ -219,16 +246,28 @@ export class EnrollmentRepository {
       readonly teamId: string;
       readonly organizationId: string;
       readonly name?: string;
+      readonly alias?: string;
       readonly abbreviation?: string | null;
     } & Omit<AuditContext, 'organizationId'>,
   ): Promise<Team> {
     if (input.abbreviation !== null) assertAbbreviation(input.abbreviation);
+    if (input.alias !== undefined) {
+      assertEntrantAlias(input.alias);
+      const claimed = await this.findTeamByAlias(input.organizationId, input.alias);
+      if (claimed && claimed.teamId !== input.teamId) {
+        throw new InvariantViolationError('Another team already uses this alias', {
+          alias: input.alias,
+          conflictsWith: claimed.teamId,
+        });
+      }
+    }
 
     const previous = await this.findTeam(input.teamId);
     const row = await uow.tx
       .updateTable('teams')
       .set({
         ...(input.name === undefined ? {} : { name: input.name }),
+        ...(input.alias === undefined ? {} : { alias: input.alias }),
         ...(input.abbreviation === undefined ? {} : { abbreviation: input.abbreviation }),
       })
       .where('team_id', '=', input.teamId)
@@ -247,6 +286,62 @@ export class EnrollmentRepository {
       resultingState: { ...team },
     });
     return team;
+  }
+
+  /**
+   * Removes a team that has never been used for anything — no entrant
+   * registration, no rostered player. Either reference refuses the removal
+   * by name, an up-front check rather than a caught foreign-key-violation
+   * error (design.md, mirroring `PersonRepository.remove`). Requires the
+   * caller to have already confirmed the team exists and belongs to this
+   * organization, matching `updateTeam`'s own contract.
+   */
+  async removeTeam(
+    uow: UnitOfWork,
+    input: { readonly teamId: string } & AuditContext,
+  ): Promise<void> {
+    const entrant = await uow.tx
+      .selectFrom('entrants')
+      .innerJoin('tournaments', 'tournaments.tournament_id', 'entrants.tournament_id')
+      .select('tournaments.name as tournament_name')
+      .where('entrants.team_id', '=', input.teamId)
+      .limit(1)
+      .executeTakeFirst();
+    if (entrant) {
+      throw new InvariantViolationError(
+        `Cannot remove: registered as an entrant in "${entrant.tournament_name}"`,
+        { teamId: input.teamId, reason: 'entrant-registration' },
+      );
+    }
+
+    const player = await uow.tx
+      .selectFrom('players')
+      .select('player_id')
+      .where('team_id', '=', input.teamId)
+      .limit(1)
+      .executeTakeFirst();
+    if (player) {
+      throw new InvariantViolationError('Cannot remove: has a player on its roster', {
+        teamId: input.teamId,
+        reason: 'roster-membership',
+      });
+    }
+
+    const deleted = await uow.tx
+      .deleteFrom('teams')
+      .where('team_id', '=', input.teamId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'team',
+      entityId: input.teamId,
+      action: 'team.removed',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      previousState: { ...toTeam(deleted) },
+    });
   }
 
   async findTeam(teamId: string): Promise<Team | undefined> {
@@ -313,7 +408,7 @@ export class EnrollmentRepository {
   }
 
   /**
-   * The aliases a `team-membership` CSV import (0065) may reference: only
+   * The aliases a `team-membership` CSV import may reference: only
    * teams already registered as entrants in this tournament, never every team
    * in the organization. A team-membership row names a team that already
    * exists in the draw — this is what a worker resolves before validation, so
@@ -335,7 +430,7 @@ export class EnrollmentRepository {
    * Reads through the caller's own executor rather than `this.db`: called
    * from inside `createTeam`'s open transaction, and a second connection
    * acquisition against the same underlying connection deadlocks under
-   * SQLite's single-connection test dialect (0040's `createRuleset` fix is
+   * SQLite's single-connection test dialect (`createRuleset` fix is
    * the same bug, same reason).
    */
   private async suggestTeamAlias(
@@ -359,10 +454,12 @@ export class EnrollmentRepository {
     input: {
       readonly tournamentId: string;
       readonly entrantRef: Entrant['entrantRef'];
+      readonly abbreviation?: string;
       readonly seed?: number;
     } & AuditContext,
   ): Promise<Entrant> {
     const entrantId = newId();
+    const abbreviation = await this.resolveRegistrationAbbreviation(uow.tx, input);
     const row = await uow.tx
       .insertInto('entrants')
       .values({
@@ -371,6 +468,7 @@ export class EnrollmentRepository {
         entrant_kind: input.entrantRef.kind,
         person_id: input.entrantRef.kind === 'person' ? input.entrantRef.personId : null,
         team_id: input.entrantRef.kind === 'team' ? input.entrantRef.teamId : null,
+        abbreviation: abbreviation ?? null,
         seed: input.seed ?? null,
         status: 'pending',
         created_at: new Date(),
@@ -399,6 +497,83 @@ export class EnrollmentRepository {
     return entrant;
   }
 
+  /** Explicit officer override for a tournament-scoped entrant label. */
+  async setEntrantAbbreviation(
+    uow: UnitOfWork,
+    input: {
+      readonly entrantId: string;
+      readonly abbreviation: string;
+    } & AuditContext,
+  ): Promise<Entrant> {
+    assertAbbreviation(input.abbreviation);
+    const beforeRow = await uow.tx
+      .selectFrom('entrants')
+      .selectAll()
+      .where('entrant_id', '=', input.entrantId)
+      .executeTakeFirst();
+    if (!beforeRow) {
+      throw new InvariantViolationError(`Entrant ${input.entrantId} does not exist`, {
+        entrantId: input.entrantId,
+      });
+    }
+    const before = toEntrant(beforeRow);
+    if (
+      !(await this.isEntrantAbbreviationAvailable(
+        uow.tx,
+        before.tournamentId,
+        input.abbreviation,
+        input.entrantId,
+      ))
+    ) {
+      throw new InvariantViolationError(
+        `Abbreviation "${input.abbreviation}" is already used by another entrant in this tournament`,
+        { abbreviation: input.abbreviation, tournamentId: before.tournamentId },
+      );
+    }
+
+    const row = await uow.tx
+      .updateTable('entrants')
+      .set({ abbreviation: input.abbreviation })
+      .where('entrant_id', '=', input.entrantId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    const entrant = toEntrant(row);
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'entrant',
+      entityId: input.entrantId,
+      action: 'entrant.abbreviation-set',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      previousState: { abbreviation: before.abbreviation ?? null },
+      resultingState: { abbreviation: entrant.abbreviation },
+    });
+    await uow.publishEvent({
+      organizationId: input.organizationId,
+      stream: `tournament:${entrant.tournamentId}`,
+      entityId: input.entrantId,
+      eventType: 'entrant.abbreviation-set',
+      projectionVersion: 1,
+      payload: {
+        entrantId: input.entrantId,
+        tournamentId: entrant.tournamentId,
+        abbreviation: entrant.abbreviation,
+      },
+    });
+    return entrant;
+  }
+
+  async listEntrantsNeedingAbbreviation(tournamentId: string): Promise<readonly Entrant[]> {
+    const rows = await this.db
+      .selectFrom('entrants')
+      .selectAll()
+      .where('tournament_id', '=', tournamentId)
+      .where('abbreviation', 'is', null)
+      .orderBy('created_at')
+      .execute();
+    return rows.map(toEntrant);
+  }
+
   async setEntrantStatus(
     uow: UnitOfWork,
     input: {
@@ -407,12 +582,17 @@ export class EnrollmentRepository {
       readonly reason?: string;
     } & AuditContext,
   ): Promise<Entrant> {
-    const before = await this.findEntrant(input.entrantId);
-    if (!before) {
+    const rowBefore = await uow.tx
+      .selectFrom('entrants')
+      .selectAll()
+      .where('entrant_id', '=', input.entrantId)
+      .executeTakeFirst();
+    if (!rowBefore) {
       throw new InvariantViolationError(`Entrant ${input.entrantId} does not exist`, {
         entrantId: input.entrantId,
       });
     }
+    const before = toEntrant(rowBefore);
 
     const row = await uow.tx
       .updateTable('entrants')
@@ -649,6 +829,84 @@ export class EnrollmentRepository {
     return rows.map(toEntrant);
   }
 
+  private async resolveRegistrationAbbreviation(
+    executor: Kysely<Database> | Transaction<Database>,
+    input: {
+      readonly tournamentId: string;
+      readonly entrantRef: Entrant['entrantRef'];
+      readonly abbreviation?: string;
+    },
+  ): Promise<string | undefined> {
+    if (input.abbreviation !== undefined) {
+      const explicit = Abbreviation.create(input.abbreviation);
+      if (
+        explicit.ok &&
+        (await this.isEntrantAbbreviationAvailable(
+          executor,
+          input.tournamentId,
+          explicit.value.toString(),
+        ))
+      ) {
+        return explicit.value.toString();
+      }
+    }
+
+    const candidate = await this.derivedEntrantAbbreviation(executor, input.entrantRef);
+    if (candidate === undefined) return undefined;
+    return (await this.isEntrantAbbreviationAvailable(executor, input.tournamentId, candidate))
+      ? candidate
+      : undefined;
+  }
+
+  private async derivedEntrantAbbreviation(
+    executor: Kysely<Database> | Transaction<Database>,
+    entrantRef: Entrant['entrantRef'],
+  ): Promise<string | undefined> {
+    if (entrantRef.kind === 'person') {
+      const person = await executor
+        .selectFrom('persons')
+        .select('display_name')
+        .where('person_id', '=', entrantRef.personId)
+        .executeTakeFirst();
+      return person ? deriveEntrantAbbreviation(person.display_name) : undefined;
+    }
+
+    const team = await executor
+      .selectFrom('teams')
+      .leftJoin('clubs', 'clubs.club_id', 'teams.club_id')
+      .select([
+        'teams.name as name',
+        'teams.abbreviation as team_abbreviation',
+        'clubs.abbreviation as club_abbreviation',
+      ])
+      .where('teams.team_id', '=', entrantRef.teamId)
+      .executeTakeFirst();
+    return team
+      ? deriveEntrantAbbreviation(
+          team.name,
+          team.team_abbreviation ?? undefined,
+          team.club_abbreviation ?? undefined,
+        )
+      : undefined;
+  }
+
+  private async isEntrantAbbreviationAvailable(
+    executor: Kysely<Database> | Transaction<Database>,
+    tournamentId: string,
+    abbreviation: string,
+    excludingEntrantId?: string,
+  ): Promise<boolean> {
+    let query = executor
+      .selectFrom('entrants')
+      .select('entrant_id')
+      .where('tournament_id', '=', tournamentId)
+      .where('abbreviation', '=', abbreviation);
+    if (excludingEntrantId !== undefined) {
+      query = query.where('entrant_id', '!=', excludingEntrantId);
+    }
+    return (await query.executeTakeFirst()) === undefined;
+  }
+
   /** Entrants owned by one participant, never a whole tournament's registration list. */
   async listParticipantEntrants(
     organizationId: string,
@@ -691,6 +949,70 @@ export class EnrollmentRepository {
     }));
   }
 
+  /**
+   * Every player row for a set of teams, keyed by team then person.
+   *
+   * A match roster resolves several entrants at once, and each entrant may
+   * carry a dozen players — a lookup per person would be a query per roster
+   * member. One query over every team a match's entrants name, grouped in
+   * memory, is the batch this and `refold` both need.
+   */
+  async playersByTeams(
+    teamIds: readonly string[],
+  ): Promise<ReadonlyMap<string, readonly { personId: string; playerId: string; role: string }[]>> {
+    if (teamIds.length === 0) return new Map();
+    const rows = await this.db
+      .selectFrom('players')
+      .select(['team_id', 'person_id', 'player_id', 'role'])
+      .where('team_id', 'in', teamIds)
+      .execute();
+
+    const byTeam = new Map<string, { personId: string; playerId: string; role: string }[]>();
+    for (const row of rows) {
+      const forTeam = byTeam.get(row.team_id) ?? [];
+      forTeam.push({ personId: row.person_id, playerId: row.player_id, role: row.role });
+      byTeam.set(row.team_id, forTeam);
+    }
+    return byTeam;
+  }
+
+  /**
+   * The team each of a set of players belongs to — a `player`-grain
+   * figure's `actorId` is a `player_id`, and rolling it up to `team`/`club`
+   * needs this hop; `listParticipantTeamMemberships` is keyed by person, not
+   * by the player row a stored figure already names.
+   */
+  async teamsOfPlayers(playerIds: readonly string[]): Promise<ReadonlyMap<string, string>> {
+    if (playerIds.length === 0) return new Map();
+    const rows = await this.db
+      .selectFrom('players')
+      .select(['player_id', 'team_id'])
+      .where('player_id', 'in', playerIds)
+      .execute();
+
+    return new Map(rows.map((row) => [row.player_id, row.team_id]));
+  }
+
+  /**
+   * The club fielding each of a set of teams, the symmetric read
+   * `listParticipantTeamMemberships` does not offer: that method starts from
+   * a person, this one starts from the team a fold already resolved.
+   */
+  async clubsOfTeams(teamIds: readonly string[]): Promise<ReadonlyMap<string, string>> {
+    if (teamIds.length === 0) return new Map();
+    const rows = await this.db
+      .selectFrom('teams')
+      .select(['team_id', 'club_id'])
+      .where('team_id', 'in', teamIds)
+      .execute();
+
+    const byTeam = new Map<string, string>();
+    for (const row of rows) {
+      if (row.club_id !== null) byTeam.set(row.team_id, row.club_id);
+    }
+    return byTeam;
+  }
+
   /** Published match results for this participant's individual registrations. */
   async listParticipantReportedResults(
     organizationId: string,
@@ -726,7 +1048,7 @@ export class EnrollmentRepository {
 
   /**
    * Whether this participant is a party to this match — the ownership check a
-   * report or dispute submission needs (0032), extracted from
+   * report or dispute submission needs, extracted from
    * `listParticipantReportedResults`'s join so it is a real, reusable check
    * rather than logic that only exists inlined inside a read listing. A
    * roster is match-scoped and does not by itself grant this: the check is
@@ -763,9 +1085,10 @@ export class EnrollmentRepository {
 
   /**
    * Entrant id to display name/abbreviation, for a surface that shows people
-   * rather than ids (0067's public overview/live/bracket projections).
+   * rather than ids (public overview/live/bracket projections).
    *
-   * A person entrant has no abbreviation; only a team can carry one (0037).
+   * An entrant's own abbreviation wins in tournament scope; a team or club
+   * label remains the fallback for legacy entrants without one.
    * An entrant id this installation does not recognise is simply absent from
    * the returned map — the caller decides what to show for that, this method
    * does not invent a label.
@@ -778,7 +1101,7 @@ export class EnrollmentRepository {
 
     const entrants = await this.db
       .selectFrom('entrants')
-      .select(['entrant_id', 'entrant_kind', 'person_id', 'team_id'])
+      .select(['entrant_id', 'entrant_kind', 'person_id', 'team_id', 'abbreviation'])
       .where('entrant_id', 'in', entrantIds)
       .execute();
 
@@ -801,7 +1124,13 @@ export class EnrollmentRepository {
         ? []
         : this.db
             .selectFrom('teams')
-            .select(['team_id', 'name', 'abbreviation'])
+            .leftJoin('clubs', 'clubs.club_id', 'teams.club_id')
+            .select([
+              'teams.team_id as team_id',
+              'teams.name as name',
+              'teams.abbreviation as team_abbreviation',
+              'clubs.abbreviation as club_abbreviation',
+            ])
             .where('team_id', 'in', teamIds)
             .execute(),
     ]);
@@ -813,20 +1142,126 @@ export class EnrollmentRepository {
       if (entrant.entrant_kind === 'team' && entrant.team_id !== null) {
         const team = teamById.get(entrant.team_id);
         if (team) {
+          const abbreviation =
+            entrant.abbreviation ??
+            abbreviationOf(
+              { abbreviation: team.team_abbreviation ?? undefined },
+              { abbreviation: team.club_abbreviation ?? undefined },
+            );
           names.set(entrant.entrant_id, {
             name: team.name,
-            ...(team.abbreviation === null ? {} : { abbreviation: team.abbreviation }),
+            ...(abbreviation === undefined ? {} : { abbreviation }),
           });
         }
         continue;
       }
       if (entrant.person_id !== null) {
         const person = personById.get(entrant.person_id);
-        if (person) names.set(entrant.entrant_id, { name: person.display_name });
+        if (person) {
+          names.set(entrant.entrant_id, {
+            name: person.display_name,
+            ...(entrant.abbreviation === null ? {} : { abbreviation: entrant.abbreviation }),
+          });
+        }
       }
     }
 
     return names;
+  }
+
+  /**
+   * Resolves entrants into display names, abbreviations, club IDs, and emblem
+   * object IDs for winner/runner-up podium presentation.
+   */
+  async resolveEntrantPodiumDetails(entrantIds: readonly string[]): Promise<
+    ReadonlyMap<
+      string,
+      {
+        readonly name: string;
+        readonly abbreviation?: string;
+        readonly clubId?: string;
+        readonly emblemObjectId?: string;
+      }
+    >
+  > {
+    const details = new Map<
+      string,
+      { name: string; abbreviation?: string; clubId?: string; emblemObjectId?: string }
+    >();
+    if (entrantIds.length === 0) return details;
+
+    const entrants = await this.db
+      .selectFrom('entrants')
+      .select(['entrant_id', 'entrant_kind', 'person_id', 'team_id', 'abbreviation'])
+      .where('entrant_id', 'in', entrantIds)
+      .execute();
+
+    const personIds = entrants
+      .map((entrant) => entrant.person_id)
+      .filter((id): id is string => id !== null);
+    const teamIds = entrants
+      .map((entrant) => entrant.team_id)
+      .filter((id): id is string => id !== null);
+
+    const [persons, teams] = await Promise.all([
+      personIds.length === 0
+        ? []
+        : this.db
+            .selectFrom('persons')
+            .select(['person_id', 'display_name'])
+            .where('person_id', 'in', personIds)
+            .execute(),
+      teamIds.length === 0
+        ? []
+        : this.db
+            .selectFrom('teams')
+            .leftJoin('clubs', 'clubs.club_id', 'teams.club_id')
+            .select([
+              'teams.team_id as team_id',
+              'teams.name as name',
+              'teams.abbreviation as team_abbreviation',
+              'teams.club_id as club_id',
+              'clubs.abbreviation as club_abbreviation',
+              'clubs.emblem_object_id as emblem_object_id',
+            ])
+            .where('team_id', 'in', teamIds)
+            .execute(),
+    ]);
+
+    const personById = new Map(persons.map((person) => [person.person_id, person]));
+    const teamById = new Map(teams.map((team) => [team.team_id, team]));
+
+    for (const entrant of entrants) {
+      if (entrant.entrant_kind === 'team' && entrant.team_id !== null) {
+        const team = teamById.get(entrant.team_id);
+        if (team) {
+          const abbreviation =
+            entrant.abbreviation ??
+            abbreviationOf(
+              { abbreviation: team.team_abbreviation ?? undefined },
+              { abbreviation: team.club_abbreviation ?? undefined },
+            );
+          details.set(entrant.entrant_id, {
+            name: team.name,
+            ...(abbreviation === undefined ? {} : { abbreviation }),
+            ...(team.club_id === null ? {} : { clubId: team.club_id }),
+            ...(team.emblem_object_id === null ? {} : { emblemObjectId: team.emblem_object_id }),
+          });
+        }
+        continue;
+      }
+      if (entrant.person_id !== null) {
+        const person = personById.get(entrant.person_id);
+        if (person) {
+          details.set(entrant.entrant_id, {
+            name: person.display_name,
+            ...(entrant.abbreviation === null ? {} : { abbreviation: entrant.abbreviation }),
+          });
+        }
+      }
+    }
+
+    return details;
   }
 }
 
@@ -845,10 +1280,19 @@ function assertAbbreviation(value: string | undefined): void {
   }
 }
 
-/** Refuses a malformed alias with the reason, rather than with a unique-index error. */
-function assertAlias(value: string | undefined): void {
+/** Refuses a malformed club alias with the reason, rather than with a unique-index error. */
+function assertClubAlias(value: string | undefined): void {
   if (value === undefined) return;
-  const alias = Alias.create('participant', value);
+  const alias = Alias.create('club', value);
+  if (!alias.ok) {
+    throw new InvariantViolationError(alias.error.message, { alias: value });
+  }
+}
+
+/** Refuses a malformed team alias with the reason, rather than with a unique-index error. */
+function assertEntrantAlias(value: string | undefined): void {
+  if (value === undefined) return;
+  const alias = Alias.create('entrant', value);
   if (!alias.ok) {
     throw new InvariantViolationError(alias.error.message, { alias: value });
   }

@@ -7,7 +7,7 @@ import { err, ok, type Result } from '../result.js';
  * per installation, everything else is unique within its organization.
  * Source: chaos-vault 2026-07-28-copalibre-naming-conventions.md.
  */
-export type AliasScope = 'organization' | 'tournament' | 'circuit' | 'participant';
+export type AliasScope = 'organization' | 'tournament' | 'circuit' | 'entrant' | 'club' | 'venue';
 
 const ALIAS_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const MAX_ALIAS_LENGTH = 64;
@@ -48,7 +48,7 @@ export class Alias {
 
   /**
    * Pure uniqueness key. Two aliases collide if and only if their keys are
-   * equal; persistence (phase 0004) enforces the key with a unique index.
+   * equal; persistence enforces the key with a unique index.
    * Non-organization scopes require the owning organization's identifier.
    */
   uniquenessKey(organizationId?: string): Result<string, InvalidAliasError> {

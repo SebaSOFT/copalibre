@@ -3,7 +3,7 @@ import { err, ok, type Result } from '../result.js';
 import { isActorGranularity, type ActorGranularity } from './hierarchies.js';
 
 /**
- * A number moved by hand or by declaration, recorded as a fact (0016).
+ * A number moved by hand or by declaration, recorded as a fact.
  *
  * The tempting implementation is an increment against a stored total. It works
  * until the first correction, at which point recomputation from the log erases

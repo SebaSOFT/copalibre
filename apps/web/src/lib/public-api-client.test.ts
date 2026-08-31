@@ -3,9 +3,17 @@ import {
   fetchOverview,
   fetchLive,
   fetchBracket,
+  fetchMatchesView,
+  fetchMatchReport,
+  fetchOrganizationTournaments,
+  fetchPublicTableLayouts,
+  fetchPublicTableProjection,
   mapOverviewResponse,
   mapLiveResponse,
   mapBracketResponse,
+  mapMatchesViewResponse,
+  organizationEmblemUrl,
+  clubEmblemUrl,
 } from './public-api-client.js';
 
 describe('public-api-client', () => {
@@ -134,6 +142,271 @@ describe('public-api-client', () => {
       );
     });
   });
+
+  describe('fetchMatchesView', () => {
+    it('reads the unfiltered tournament scope with no query string', async () => {
+      const mockData = { matches: [] };
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockData,
+      } as unknown as Response);
+
+      const result = await fetchMatchesView('org1', 'tourney1');
+      expect(result).toEqual(mockData);
+      expect(fetch).toHaveBeenCalledWith(
+        'http://api.test/organizations/org1/tournaments/tourney1/matches-view',
+      );
+    });
+
+    it('combines every given filter into the query string', async () => {
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ matches: [] }),
+      } as unknown as Response);
+
+      await fetchMatchesView('org1', 'tourney1', {
+        stageNumber: 2,
+        groupId: 'group-1',
+        state: 'live',
+      });
+      expect(fetch).toHaveBeenCalledWith(
+        'http://api.test/organizations/org1/tournaments/tourney1/matches-view?stageNumber=2&groupId=group-1&state=live',
+      );
+    });
+
+    it('returns undefined on 404', async () => {
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+      } as unknown as Response);
+
+      const result = await fetchMatchesView('org1', 'tourney1');
+      expect(result).toBeUndefined();
+    });
+  });
+
+  describe('mapMatchesViewResponse', () => {
+    it('maps every field through, including series and deciding factor', () => {
+      const response = {
+        matches: [
+          {
+            matchId: 'm1',
+            stageNumber: 1,
+            matchNumber: 1,
+            round: 1,
+            status: 'final',
+            homeName: 'Norte',
+            awayName: 'Sur',
+            homeScore: 2,
+            awayScore: 1,
+            zoneName: 'Group B',
+            homePosition: 1,
+            decidingFactor: 'Rule 2 (Head-to-head)',
+          },
+        ],
+      };
+      const result = mapMatchesViewResponse(
+        response as unknown as Parameters<typeof mapMatchesViewResponse>[0],
+      );
+      expect(result.matches).toEqual([
+        {
+          matchId: 'm1',
+          stageNumber: 1,
+          matchNumber: 1,
+          state: 'final',
+          homeName: 'Norte',
+          homeAbbreviation: undefined,
+          homeScore: 2,
+          awayName: 'Sur',
+          awayAbbreviation: undefined,
+          awayScore: 1,
+          clockSeconds: undefined,
+          venueName: undefined,
+          latestEvent: undefined,
+          zoneName: 'Group B',
+          groupName: undefined,
+          homePosition: 1,
+          awayPosition: undefined,
+          series: undefined,
+          decidingFactor: 'Rule 2 (Head-to-head)',
+        },
+      ]);
+    });
+  });
+
+  describe('fetchMatchReport', () => {
+    it('reads one stage-scoped match report', async () => {
+      const mockData = { matchNumber: 3 };
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockData,
+      } as unknown as Response);
+
+      expect(await fetchMatchReport('org1', 'tourney1', 2, 3)).toEqual(mockData);
+      expect(fetch).toHaveBeenCalledWith(
+        'http://api.test/organizations/org1/tournaments/tourney1/stages/2/matches/3',
+      );
+    });
+
+    it('returns undefined for an unknown report', async () => {
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+      } as unknown as Response);
+
+      expect(await fetchMatchReport('org1', 'tourney1', 2, 3)).toBeUndefined();
+    });
+  });
+  describe('fetchPublicTableLayouts', () => {
+    it('returns parsed json on 200', async () => {
+      const mockData = { layouts: [] };
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockData,
+      } as unknown as Response);
+
+      const result = await fetchPublicTableLayouts('org1', 'tourney1');
+      expect(result).toEqual(mockData);
+      expect(fetch).toHaveBeenCalledWith(
+        'http://api.test/organizations/org1/tournaments/tourney1/public/tables',
+      );
+    });
+
+    it('returns undefined on 404', async () => {
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+      } as unknown as Response);
+
+      expect(await fetchPublicTableLayouts('org1', 'tourney1')).toBeUndefined();
+    });
+  });
+
+  describe('fetchPublicTableProjection', () => {
+    it('reads a tournament-wide layout when no stage number is given', async () => {
+      const mockData = { layoutCode: 'top-scorers', rows: [] };
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockData,
+      } as unknown as Response);
+
+      const result = await fetchPublicTableProjection('org1', 'tourney1', 'top-scorers');
+      expect(result).toEqual(mockData);
+      expect(fetch).toHaveBeenCalledWith(
+        'http://api.test/organizations/org1/tournaments/tourney1/public/tables/top-scorers',
+      );
+    });
+
+    it('reads a stage-scoped layout when a stage number is given', async () => {
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ layoutCode: 'group-standings-default', rows: [] }),
+      } as unknown as Response);
+
+      await fetchPublicTableProjection('org1', 'tourney1', 'group-standings-default', 2);
+      expect(fetch).toHaveBeenCalledWith(
+        'http://api.test/organizations/org1/tournaments/tourney1/stages/2/public/tables/group-standings-default',
+      );
+    });
+
+    it('reads a tournament-wide layout with clubId when supplied', async () => {
+      const mockData = { layoutCode: 'top-scorers', rows: [] };
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockData,
+      } as unknown as Response);
+
+      const result = await fetchPublicTableProjection(
+        'org1',
+        'tourney1',
+        'top-scorers',
+        undefined,
+        'club-123',
+      );
+      expect(result).toEqual(mockData);
+      expect(fetch).toHaveBeenCalledWith(
+        'http://api.test/organizations/org1/tournaments/tourney1/public/tables/top-scorers?clubId=club-123',
+      );
+    });
+
+    it('reads a stage-scoped layout with clubId when supplied', async () => {
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ layoutCode: 'group-standings-default', rows: [] }),
+      } as unknown as Response);
+
+      await fetchPublicTableProjection(
+        'org1',
+        'tourney1',
+        'group-standings-default',
+        2,
+        'club-123',
+      );
+      expect(fetch).toHaveBeenCalledWith(
+        'http://api.test/organizations/org1/tournaments/tourney1/stages/2/public/tables/group-standings-default?clubId=club-123',
+      );
+    });
+
+    it('returns undefined on 404', async () => {
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+      } as unknown as Response);
+
+      expect(await fetchPublicTableProjection('org1', 'tourney1', 'nonexistent')).toBeUndefined();
+    });
+  });
+
+  describe('fetchOrganizationTournaments', () => {
+    it('returns parsed json on 200, including the clubs list and organization emblem', async () => {
+      const mockData = {
+        organizationAlias: 'org1',
+        organizationName: 'Org One',
+        organizationEmblemObjectId: 'object-1',
+        tournaments: [],
+        clubs: [{ clubId: 'club-1', name: 'Club One' }],
+      };
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockData,
+      } as unknown as Response);
+
+      const result = await fetchOrganizationTournaments('org1');
+      expect(result).toEqual(mockData);
+      expect(fetch).toHaveBeenCalledWith('http://api.test/organizations/org1/public/tournaments');
+    });
+
+    it('returns undefined on 404', async () => {
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+      } as unknown as Response);
+
+      expect(await fetchOrganizationTournaments('unknown-org')).toBeUndefined();
+    });
+  });
+
+  describe('emblem URL builders', () => {
+    it('builds a same-origin organization emblem URL', () => {
+      expect(organizationEmblemUrl('liga-mendocina')).toBe('/organizations/liga-mendocina/emblem');
+    });
+
+    it('builds a same-origin club emblem URL', () => {
+      expect(clubEmblemUrl('liga-mendocina', 'club-1')).toBe(
+        '/organizations/liga-mendocina/clubs/club-1/emblem',
+      );
+    });
+  });
+
   describe('mapOverviewResponse', () => {
     it('maps correctly', () => {
       const response = {
@@ -203,6 +476,31 @@ describe('public-api-client', () => {
       expect(result.matches[0].home.name).toBe('TBD');
       expect(result.matches[0].startsAt).toBe('');
       expect(result.standings[0].played).toBe(0);
+    });
+
+    it('carries the standings grain through, omitting it when the response names none (0160)', () => {
+      const withoutGrain = mapOverviewResponse({
+        organizationAlias: 'org',
+        tournamentAlias: 't',
+        organizationName: 'Org',
+        tournamentName: 'T',
+        ruleset: {},
+        matches: [],
+        standingsPreview: [],
+      } as unknown as Parameters<typeof mapOverviewResponse>[0]);
+      expect('standingsGrain' in withoutGrain).toBe(false);
+
+      const withGrain = mapOverviewResponse({
+        organizationAlias: 'org',
+        tournamentAlias: 't',
+        organizationName: 'Org',
+        tournamentName: 'T',
+        ruleset: {},
+        matches: [],
+        standingsPreview: [],
+        standingsGrain: 'series',
+      } as unknown as Parameters<typeof mapOverviewResponse>[0]);
+      expect(withGrain.standingsGrain).toBe('series');
     });
   });
 

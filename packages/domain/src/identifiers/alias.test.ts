@@ -45,7 +45,7 @@ describe('Alias', () => {
   });
 
   it('requires an organizationId for non-organization scopes', () => {
-    const alias = unwrap(Alias.create('participant', 'jugador-uno'));
+    const alias = unwrap(Alias.create('entrant', 'jugador-uno'));
     const result = alias.uniquenessKey();
     expect(result.ok).toBe(false);
   });

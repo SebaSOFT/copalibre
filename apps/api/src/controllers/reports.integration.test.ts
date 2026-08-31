@@ -1,7 +1,9 @@
 import { createHash } from 'node:crypto';
 import { Module, type INestApplication } from '@nestjs/common';
-import { APP_GUARD, Reflector } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
+import { ApiExceptionFilter } from '../http/error-contract.js';
+import { createApiValidationPipe } from '../http/validation.js';
 import { Test } from '@nestjs/testing';
 import { winConditionScript, type DisciplineDescriptor } from '@copalibre/domain';
 import type { ObjectStorageAdapter } from '@copalibre/object-storage';
@@ -29,7 +31,7 @@ import { ParticipantReportsController, ReportReviewController } from './reports.
 
 /**
  * The report/dispute submission and review endpoints through the real HTTP
- * stack (0032, tasks 6.1, 6.2, 6.4) — including `OrganizationAccessGuard`,
+ * stack — including `OrganizationAccessGuard`,
  * which no prior integration suite in this repo exercised for a participant
  * token: it is the guard that resolves `subject.participantPersonId` from a
  * real `participant_identity_links` row, and `enforceReportSubmission`
@@ -187,8 +189,8 @@ describe('report/dispute submission and review (integration)', () => {
     }
 
     // The operator subject FakeTokenVerifier calls "organizer" needs a real,
-    // active admin role assignment — RequireOrganizationRole checks one, not
-    // the subject's scopes.
+    // active admin role assignment — the capability guard resolves one
+    // through rolesForCapability, not the subject's scopes.
     const organizerToken = 'organizer-invite-token';
     await withTransaction(db, async (uow) => {
       const access = new OrganizationAccessRepository(db);
@@ -264,6 +266,7 @@ describe('report/dispute submission and review (integration)', () => {
         { provide: DATABASE, useValue: db },
         { provide: TokenVerifier, useClass: FakeTokenVerifier },
         { provide: OBJECT_STORAGE, useValue: new FakeObjectStorage() },
+        { provide: APP_FILTER, useClass: ApiExceptionFilter },
         { provide: APP_GUARD, useClass: JwtAuthGuard },
         { provide: APP_GUARD, useClass: OrganizationAccessGuard },
         Reflector,
@@ -273,6 +276,7 @@ describe('report/dispute submission and review (integration)', () => {
 
     const moduleRef = await Test.createTestingModule({ imports: [TestModule] }).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    app.useGlobalPipes(createApiValidationPipe());
     await app.init();
     await app.getHttpAdapter().getInstance().ready();
   });
@@ -353,6 +357,32 @@ describe('report/dispute submission and review (integration)', () => {
     });
 
     expect(response.statusCode).toBe(401);
+  });
+
+  it('400s a report with no proposed result, before reaching the controller', async () => {
+    const response = await inject({
+      method: 'POST',
+      url: reportsPath(),
+      headers: { authorization: 'Bearer participant-a' },
+      payload: {},
+    });
+    expect(response.statusCode).toBe(400);
+  });
+
+  it('rejects an extra undocumented property with 400 when submitting a dispute', async () => {
+    const response = await inject({
+      method: 'POST',
+      url: disputesPath(),
+      headers: { authorization: 'Bearer participant-a' },
+      payload: {
+        reason: 'The recorded score does not match what happened',
+        unexpectedField: 'dropped',
+      },
+    });
+    expect(response.statusCode).toBe(400);
+    const body = response.json();
+    expect(body.errorCode).toBe('bad-request');
+    expect(body.message).toContain('property unexpectedField should not exist');
   });
 
   it('lets an operator list and dismiss a pending report without changing the result (7.2-adjacent, 6.4)', async () => {

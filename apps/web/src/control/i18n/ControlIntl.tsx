@@ -15,10 +15,10 @@ import { messages as zhMessages } from './messages.zh.js';
 
 /**
  * No control-panel route fetches the organization's own record before
- * rendering — only its alias, from the URL. `'es'` matches 0051's database
+ * rendering — only its alias, from the URL. `'es'` matches the database
  * default for every organization created before this feature, so this
  * placeholder resolves to the same language a real fetch would for the
- * common case today; a real fetch is a natural, separate follow-up (0053
+ * common case today; a real fetch is a natural, separate follow-up
  * design.md).
  */
 const ORGANIZATION_PRIMARY_LANGUAGE_PLACEHOLDER = 'es';
@@ -33,7 +33,7 @@ const CATALOGS: Partial<Record<SupportedLanguage, Record<string, string>>> = {
   zh: zhMessages,
 };
 
-/** Resolves the active interface language and provides its message catalog (0053). */
+/** Resolves the active interface language and provides its message catalog. */
 export function activeControlLanguage(): SupportedLanguage {
   return resolveLanguage({
     storedPreference: readStoredLanguagePreference(),
@@ -44,7 +44,7 @@ export function activeControlLanguage(): SupportedLanguage {
 
 /**
  * Wraps every control-panel route — mounted only in `ControlShell` and
- * `Dashboard.tsx`, the two real route-mount points (0053 design.md).
+ * `Dashboard.tsx`, the two real route-mount points.
  */
 export function ControlIntl({
   locale,

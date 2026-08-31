@@ -18,7 +18,7 @@ const realGitProcesses: ProcessRunner = {
   },
 };
 
-describe('scaffoldModule (0049)', () => {
+describe('scaffoldModule', () => {
   it.each(['discipline', 'tournament-profile'] as const)(
     'produces a %s package that passes validateModulePackage unmodified',
     async (kind) => {
@@ -41,6 +41,13 @@ describe('scaffoldModule (0049)', () => {
           runningCopalibreVersion: '1.0.0',
         });
         expect(validation.ok).toBe(true);
+
+        if (kind === 'discipline') {
+          const artifact = JSON.parse(
+            await readFile(join(result.moduleDirectory, 'artifact.json'), 'utf8'),
+          ) as Record<string, unknown>;
+          expect(artifact.images).toBeUndefined();
+        }
 
         const readme = await readFile(join(result.repositoryDirectory, 'README.md'), 'utf8');
         expect(readme).toContain(alias);

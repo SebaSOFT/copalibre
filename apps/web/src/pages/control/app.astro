@@ -1,10 +1,11 @@
 ---
 import { ControlApp } from '../../control/components/ControlApp.tsx';
 import '@copalibre/design-tokens/generated/copalibre.css';
+import '../../styles/control.css';
 
 /**
  * The one built file serving every authenticated control-panel screen
- * (0061). Replaces eight separate per-screen Astro pages, each of which
+ *. Replaces eight separate per-screen Astro pages, each of which
  * mounted its own React root and reloaded the page to reach another —
  * `ControlApp` resolves the real screen from the browser's own URL at
  * runtime, so no per-organization/per-tournament `getStaticPaths()`
@@ -21,7 +22,7 @@ import '@copalibre/design-tokens/generated/copalibre.css';
  *
  * `client:only` rather than a server render: these screens are behind
  * authentication, and rendering server-side would mean the server holding a
- * session — the opposite of what an in-memory client token buys (0022).
+ * session — the opposite of what an in-memory client token buys.
  */
 ---
 

@@ -8,11 +8,9 @@ import {
   parseControlPath,
   publicPath,
   publicStreamPath,
-  resolveAlias,
   tvPath,
   tvStreamPath,
   viewQuery,
-  type AliasRedirect,
 } from './index.js';
 
 const BASE = { organizationAlias: 'liga-mendocina', tournamentAlias: 'apertura-2026' };
@@ -25,6 +23,10 @@ describe('canonical public paths', () => {
     [
       { ...BASE, stageNumber: 2, matchNumber: 7 },
       '/liga-mendocina/tournaments/apertura-2026/stages/2/matches/7',
+    ],
+    [
+      { ...BASE, stageNumber: 2, roundNumber: 3, matchNumber: 7 },
+      '/liga-mendocina/tournaments/apertura-2026/stages/2/rounds/3/matches/7',
     ],
     [
       { ...BASE, participantAlias: 'casa-de-italia' },
@@ -64,7 +66,7 @@ describe('every surface from one input', () => {
     expect(() => publicStreamPath({ organizationAlias: 'liga-mendocina' })).toThrow(RouteError);
   });
 
-  it('derives the TV stream the same way as the TV page (0031)', () => {
+  it('derives the TV stream the same way as the TV page', () => {
     expect(tvStreamPath(BASE)).toBe('/events/tv/liga-mendocina/tournaments/apertura-2026');
   });
 
@@ -132,60 +134,14 @@ describe('view state is a query, never a path', () => {
     expect(viewQuery({})).toBe('');
   });
 
-  it('carries the TV overlay mode for chroma-key capture (0031)', () => {
+  it('carries the TV overlay mode for chroma-key capture', () => {
     expect(viewQuery({ viewMode: 'overlay' })).toBe('?mode=overlay');
   });
 });
 
-describe('a renamed alias', () => {
-  const current = new Set(['clausura-2026']);
-  const redirects: readonly AliasRedirect[] = [
-    { organizationId: 'org-1', oldAlias: 'apertura-2026', newAlias: 'clausura-2026' },
-    { organizationId: 'org-2', oldAlias: 'apertura-2026', newAlias: 'otra-cosa' },
-  ];
-
-  it('redirects permanently to the canonical alias', () => {
-    // The old URL is on a poster, in a WhatsApp message and on a federation
-    // page; 404 there is all three pointing at nothing.
-    expect(resolveAlias('org-1', 'apertura-2026', current, redirects)).toEqual({
-      kind: 'redirect',
-      to: 'clausura-2026',
-      status: 301,
-    });
-  });
-
-  it('says nothing about a current alias', () => {
-    expect(resolveAlias('org-1', 'clausura-2026', current, redirects)).toEqual({ kind: 'current' });
-  });
-
-  it('never resolves across organizations', () => {
-    // Two organizations both used "apertura"; crossing them hands a spectator
-    // somebody else's competition.
-    expect(resolveAlias('org-3', 'apertura-2026', current, redirects)).toEqual({ kind: 'unknown' });
-  });
-
-  it('follows a chain of renames', () => {
-    const chain: readonly AliasRedirect[] = [
-      { organizationId: 'org-1', oldAlias: 'a', newAlias: 'b' },
-      { organizationId: 'org-1', oldAlias: 'b', newAlias: 'c' },
-    ];
-
-    expect(resolveAlias('org-1', 'a', new Set(['c']), chain)).toMatchObject({ to: 'c' });
-  });
-
-  it('gives up on a cycle rather than looping', () => {
-    const cycle: readonly AliasRedirect[] = [
-      { organizationId: 'org-1', oldAlias: 'a', newAlias: 'b' },
-      { organizationId: 'org-1', oldAlias: 'b', newAlias: 'a' },
-    ];
-
-    expect(resolveAlias('org-1', 'a', new Set(['z']), cycle)).toEqual({ kind: 'unknown' });
-  });
-
-  it('is unknown when nothing matches', () => {
-    expect(resolveAlias('org-1', 'nunca-existio', current, redirects)).toEqual({ kind: 'unknown' });
-  });
-});
+// Alias-redirect resolution moved to packages/domain/src/aliasing.ts,
+// tests moved with it to packages/domain/src/aliasing.test.ts. This package
+// no longer exports resolveAlias/AliasRedirect/AliasResolution.
 
 describe('what a crawler is told', () => {
   const sitemap = buildSitemap('https://copalibre.test/', [
@@ -224,13 +180,34 @@ describe('parseControlPath', () => {
   it.each([
     ['/control/callback', { screen: 'callback' }],
     // A real organization alias that merely starts with the reserved word
-    // stays an ordinary dashboard, not the callback screen (0062).
+    // stays an ordinary dashboard, not the callback screen.
     ['/control/callback-league', { screen: 'dashboard', organizationAlias: 'callback-league' }],
     ['/control/liga-mendocina', { screen: 'dashboard', organizationAlias: 'liga-mendocina' }],
+    ['/control/login', { screen: 'login' }],
+    ['/control/forgot-password', { screen: 'forgot-password' }],
+    ['/control/reset-password', { screen: 'reset-password' }],
+    ['/control/platform', { screen: 'platformAdministration' }],
     ['/control/liga-mendocina/roles', { screen: 'roles', organizationAlias: 'liga-mendocina' }],
+    [
+      '/control/liga-mendocina/preferences',
+      { screen: 'preferences', organizationAlias: 'liga-mendocina' },
+    ],
     [
       '/control/liga-mendocina/tournaments/new',
       { screen: 'newTournament', organizationAlias: 'liga-mendocina' },
+    ],
+    ['/control/liga-mendocina/clubs', { screen: 'clubs', organizationAlias: 'liga-mendocina' }],
+    [
+      '/control/liga-mendocina/resources',
+      { screen: 'resources', organizationAlias: 'liga-mendocina' },
+    ],
+    [
+      '/control/liga-mendocina/persons/00000000-0000-7000-8000-000000000001',
+      {
+        screen: 'personProfile',
+        organizationAlias: 'liga-mendocina',
+        personId: '00000000-0000-7000-8000-000000000001',
+      },
     ],
     [
       '/control/liga-mendocina/tournaments/apertura-2026/registrations',
@@ -241,13 +218,46 @@ describe('parseControlPath', () => {
       },
     ],
     [
+      '/control/liga-mendocina/tournaments/apertura-2026/settings',
+      {
+        screen: 'tournamentSettings',
+        organizationAlias: 'liga-mendocina',
+        tournamentAlias: 'apertura-2026',
+      },
+    ],
+    [
+      '/control/liga-mendocina/tournaments/apertura-2026/ruleset',
+      {
+        screen: 'tournamentRuleset',
+        organizationAlias: 'liga-mendocina',
+        tournamentAlias: 'apertura-2026',
+      },
+    ],
+    [
       '/control/liga-mendocina/tournaments/apertura-2026/reports',
       { screen: 'reports', organizationAlias: 'liga-mendocina', tournamentAlias: 'apertura-2026' },
+    ],
+    [
+      '/control/liga-mendocina/tournaments/apertura-2026/matches-view',
+      {
+        screen: 'matchesView',
+        organizationAlias: 'liga-mendocina',
+        tournamentAlias: 'apertura-2026',
+      },
     ],
     [
       '/control/liga-mendocina/tournaments/apertura-2026/matches/00000000-0000-7000-8000-000000000001',
       {
         screen: 'matchConsole',
+        organizationAlias: 'liga-mendocina',
+        tournamentAlias: 'apertura-2026',
+        matchId: '00000000-0000-7000-8000-000000000001',
+      },
+    ],
+    [
+      '/control/liga-mendocina/tournaments/apertura-2026/matches/00000000-0000-7000-8000-000000000001/load',
+      {
+        screen: 'loadMatchData',
         organizationAlias: 'liga-mendocina',
         tournamentAlias: 'apertura-2026',
         matchId: '00000000-0000-7000-8000-000000000001',
@@ -271,6 +281,34 @@ describe('parseControlPath', () => {
         stageNumber: 2,
       },
     ],
+    [
+      '/control/liga-mendocina/tournaments/apertura-2026/stages/1/zones',
+      {
+        screen: 'zoneGroups',
+        organizationAlias: 'liga-mendocina',
+        tournamentAlias: 'apertura-2026',
+        stageNumber: 1,
+      },
+    ],
+    [
+      '/control/liga-mendocina/tournaments/apertura-2026/stages/1/zones/2/promotion',
+      {
+        screen: 'promotionPlan',
+        organizationAlias: 'liga-mendocina',
+        tournamentAlias: 'apertura-2026',
+        stageNumber: 1,
+        zoneNumber: 2,
+      },
+    ],
+    [
+      '/control/liga-mendocina/tournaments/apertura-2026/stages/1/schedule',
+      {
+        screen: 'schedule',
+        organizationAlias: 'liga-mendocina',
+        tournamentAlias: 'apertura-2026',
+        stageNumber: 1,
+      },
+    ],
   ] as const)('matches %s', (pathname, expected) => {
     expect(parseControlPath(pathname)).toEqual(expected);
   });
@@ -286,6 +324,7 @@ describe('parseControlPath', () => {
     ['/control/liga-mendocina/tournaments/apertura-2026/stages/1'],
     ['/control/liga-mendocina/tournaments/apertura-2026/stages/1/unknown'],
     ['/control/liga-mendocina/tournaments/apertura-2026/matches'],
+    ['/control/liga-mendocina/persons'],
   ])('finds no match for %s', (pathname) => {
     expect(parseControlPath(pathname)).toBeUndefined();
   });

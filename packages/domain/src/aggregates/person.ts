@@ -1,8 +1,9 @@
 import { DomainError } from '../errors.js';
 import { err, ok, type Result } from '../result.js';
+import { isValidCountryCode } from '../countries.js';
 
 /**
- * A person and their memberships (0015-competition-identity-and-seasons).
+ * A person and their memberships.
  *
  * `Participant` was both: the human, and the human as a member of a team. That
  * made "the same person plays for two teams" inexpressible — they entered
@@ -39,6 +40,12 @@ export interface Person {
    * creation is a model whose operators invent fake ones.
    */
   readonly naturalKey?: NaturalKey;
+  /** ISO 3166-1 alpha-2 country code. Absent until an operator records one. */
+  readonly nationality?: string;
+  /** ISO 8601 calendar date (YYYY-MM-DD); absent until supplied. */
+  readonly birthDate?: string;
+  /** Object-storage reference; absent until a photo is uploaded. */
+  readonly photoObjectId?: string;
 }
 
 export type PlayerRole = 'player' | 'substitute' | 'coach' | 'staff';
@@ -77,6 +84,20 @@ export function sameNaturalKey(left: NaturalKey, right: NaturalKey): boolean {
   );
 }
 
+/**
+ * Calculates completed full years of age as of a reference date (defaults to UTC today).
+ */
+export function ageAt(birthDate: string, asOf: string | Date = new Date()): number {
+  const birth = new Date(`${birthDate.slice(0, 10)}T00:00:00.000Z`);
+  const target = typeof asOf === 'string' ? new Date(asOf) : asOf;
+  let age = target.getUTCFullYear() - birth.getUTCFullYear();
+  const monthDiff = target.getUTCMonth() - birth.getUTCMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && target.getUTCDate() < birth.getUTCDate())) {
+    age--;
+  }
+  return Math.max(0, age);
+}
+
 export function validatePerson(person: Person): Result<Person, PersonError> {
   if (person.displayName.trim() === '') {
     return err(new PersonError('A person needs a name', { personId: person.personId }));
@@ -99,6 +120,49 @@ export function validatePerson(person: Person): Result<Person, PersonError> {
     }
   }
 
+  if (person.nationality !== undefined && !isValidCountryCode(person.nationality)) {
+    return err(
+      new PersonError(`"${person.nationality}" is not a valid ISO 3166-1 alpha-2 country code`, {
+        personId: person.personId,
+      }),
+    );
+  }
+
+  if (person.birthDate !== undefined) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(person.birthDate)) {
+      return err(
+        new PersonError(`"${person.birthDate}" is not a valid ISO date (YYYY-MM-DD)`, {
+          personId: person.personId,
+        }),
+      );
+    }
+    const parsed = new Date(`${person.birthDate}T00:00:00.000Z`);
+    if (Number.isNaN(parsed.getTime())) {
+      return err(
+        new PersonError(`"${person.birthDate}" is not a valid date`, {
+          personId: person.personId,
+        }),
+      );
+    }
+    const now = new Date();
+    if (parsed.getTime() > now.getTime()) {
+      return err(
+        new PersonError('A birth date cannot be in the future', {
+          personId: person.personId,
+        }),
+      );
+    }
+    const oldestAllowed = new Date();
+    oldestAllowed.setUTCFullYear(oldestAllowed.getUTCFullYear() - 130);
+    if (parsed.getTime() < oldestAllowed.getTime()) {
+      return err(
+        new PersonError('A birth date cannot be more than 130 years in the past', {
+          personId: person.personId,
+        }),
+      );
+    }
+  }
+
   return ok(person);
 }
 
@@ -113,7 +177,7 @@ export function isDuplicateMembership(left: Player, right: Player): boolean {
 }
 
 /**
- * The squad a discipline's constraint applies to (0015).
+ * The squad a discipline's constraint applies to.
  *
  * A club fielding a football and a futsal side has two teams, and "between five
  * and eleven players" is a claim about one of them. Selecting by discipline is

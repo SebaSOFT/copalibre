@@ -10,6 +10,8 @@ import type { TraceNode } from '@copalibre/rules';
 import { AllocationError } from '../errors.js';
 import type { SeededEntrant } from '../types.js';
 
+export { drawGroups, drawZones } from './draw.js';
+
 /**
  * Turning "who advanced" into "who plays whom" — the seam between stages.
  *

@@ -1,6 +1,11 @@
 ---
 title: Sorteggio e teste di serie
 description: Cosa sono le teste di serie, i bye, e i vincoli di sorteggio che questa schermata rispetta.
+capabilities:
+  - tournament-engine/bracket-seeding-builder
+  - tournament-engine/draw-constraints
+roles:
+  - admin
 ---
 
 ## A cosa serve questa schermata

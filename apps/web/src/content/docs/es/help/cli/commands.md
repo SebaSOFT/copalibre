@@ -1,19 +1,47 @@
 ---
 title: Referencia de comandos
 description: Cada comando del CLI copalibre, su uso y sus flags.
+capabilities: []
+roles:
+  - super-admin
+  - admin
 ---
 
 Cada comando responde `--help`/`-h` con este mismo texto de uso, generado desde una única fuente
 en el propio CLI — esta página no puede describir un comando distinto de lo que el CLI realmente
-hace.
+hace. `copalibre --version` imprime solo la versión instalada, para scripts.
 
 ## init
 
-`copalibre init [--file <ruta>]`
+`copalibre init [--module-dev]` o `copalibre init --kubernetes [--namespace <ns>] [--release
+<nombre>] [--context <ctx>]`
 
-Escribe valores por defecto no secretos y lista los secretos requeridos.
+Escribe una instalación completa en el directorio actual. No requiere un checkout del código
+fuente: ejecutalo en cualquier directorio vacío, y cada comando posterior detecta automáticamente
+ese directorio a partir del marcador (`.copalibre/installation.json`) que escribe, de la misma
+forma en que `.git` marca un checkout de repositorio. Se niega a ejecutarse de nuevo en un
+directorio que ya contiene una instalación. Un directorio queda fijado a la versión de CopaLibre
+con la que `init` lo creó — ejecutar varias versiones en paralelo implica ejecutar la versión de
+CLI correspondiente por directorio (ver [actualización](/es/help/cli/updating/)).
 
-- `--file <ruta>`: archivo destino (por defecto `.env`)
+Sin `--kubernetes`, escribe `docker-compose.yml` y `.env` con valores por defecto no secretos, y
+lista los secretos requeridos para completar en `.env` después.
+
+- `--module-dev`: también escribe `docker-compose.module-dev.yml` y un directorio `modules-dev/`,
+  montado en `api`/`worker` con `COPALIBRE_MODULE_SOURCE_ALLOWLIST` preconfigurado — se combina con
+  `module scaffold --output modules-dev/<alias>` y `module add <alias> --source
+file:///var/lib/copalibre/modules-dev/<alias>` para desarrollar un módulo contra una instancia
+  autoalojada en ejecución, sin checkout del código fuente.
+
+Con `--kubernetes`, escribe un scaffold de `values.yaml` de Helm en su lugar — sin archivo de
+compose, sin `.env`; el propio mecanismo de Secret/ConfigMap de Kubernetes sigue siendo autoritativo
+para la configuración. Flujo completo, incluyendo el bootstrap del primer administrador como un Job
+de Helm de un solo uso: `docs/deployment/enterprise-kubernetes.md` en el repositorio.
+
+- `--kubernetes`: scaffolds una instalación de Helm en lugar de una de Compose
+- `--namespace <ns>`: namespace de Kubernetes a registrar (por defecto: `default`)
+- `--release <nombre>`: nombre del release de Helm a registrar (por defecto: `copalibre`)
+- `--context <ctx>`: kube-context a registrar (por defecto: ninguno — pasarlo explícitamente cada vez)
 
 ## doctor
 
@@ -95,7 +123,7 @@ actualizar.
 - `--target-version <semver>`: versión de CopaLibre contra la que verificar módulos y migraciones
 
 Termina con código de salida distinto de cero si algún módulo instalado dejaría de ser compatible
-con la versión objetivo. Ver [actualización](/help/cli/updating/) para la secuencia completa.
+con la versión objetivo. Ver [actualización](/es/help/cli/updating/) para la secuencia completa.
 
 ## create-admin
 
@@ -103,11 +131,51 @@ con la versión objetivo. Ver [actualización](/help/cli/updating/) para la secu
 
 Crea la primera cuenta de administrador de una organización.
 
+## login
+
+`copalibre login [--api-url <url>] [--token <token>]`
+
+Guarda un token de acceso personal para que `statistics-rebuild` y `module add/list/remove/verify`
+puedan correr contra una instalación remota mediante una conexión HTTP autenticada — el camino para
+administrar una instalación ya en ejecución, incluyendo instalar o actualizar el CLI después de que
+Docker ya está corriendo, desde una máquina que nunca necesita credenciales de base de datos. Genere
+el token desde la pantalla de preferencias del panel de control mientras ya está logueado, y péguelo
+aquí. Valida el token con una llamada autenticada antes de guardarlo; se niega y no guarda nada si
+el token es inválido.
+
+- `--api-url <url>`: instalación destino (por defecto: `COPALIBRE_API_URL`, que `copalibre init` ya
+  escribe en `.env`)
+- `--token <token>`: el token en sí (por defecto: se lee de stdin si viene por pipe, o un prompt
+  interactivo que enmascara cada tecla)
+
+Guarda la credencial en `.copalibre/credentials.json` (`0600`) del directorio actual — ejecute
+`login` desde dentro del directorio de instalación que creó `copalibre init`. Volver a ejecutar
+`login` en el mismo directorio reemplaza el token guardado, a diferencia del marcador de `init`.
+
+## statistics-rebuild
+
+`copalibre statistics-rebuild --organization <alias> [--tournament <alias>]`
+
+Recalcula cada total estadístico plegado (`statistic_totals`) a partir de los hechos de origen —
+eventos registrados de partidos finalizados, planteles y ajustes manuales — para toda la
+organización por defecto, o acotado a un torneo.
+
+- `--organization <alias>`: organización para la que recalcular las estadísticas
+- `--tournament <alias>`: acota el recálculo a un torneo dentro de la organización
+
+Idempotente: usa el mismo `refold` y la misma ruta de escritura de borrar-e-insertar que el disparo
+por eventos, así que ejecutarlo dos veces seguidas produce filas de `statistic_totals` idénticas
+byte a byte (salvo `updated_at`/la versión interna de proyección). Útil para completar el historial
+registrado antes de que existiera el motor de plegado, o para verificar los totales contra los
+hechos en cualquier momento. Requiere autoridad de administrador de la organización una vez logueado
+mediante [`login`](#login).
+
 ## module
 
 `copalibre module <add|list|remove|verify>`
 
-Gestiona los módulos de disciplina y perfil de torneo instalados.
+Gestiona los módulos de disciplina y perfil de torneo instalados. `add`/`list`/`remove`/`verify`
+requieren autoridad de super-admin de la instalación una vez logueado mediante [`login`](#login).
 
 ### module add
 
@@ -175,4 +243,4 @@ pull request.
 `copalibre mcp`
 
 Arranca un servidor local del Model Context Protocol (MCP) sobre stdio, para que una IA pueda operar
-CopaLibre. Ver el [detalle de herramientas MCP](/help/cli/mcp/).
+CopaLibre. Ver el [detalle de herramientas MCP](/es/help/cli/mcp/).

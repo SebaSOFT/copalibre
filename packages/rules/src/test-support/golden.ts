@@ -3,7 +3,7 @@ import { join } from 'node:path';
 
 /**
  * Golden-fixture harness: deterministic evaluations (facts + rule version →
- * output + trace) are compared against committed JSON snapshots. Phase 0006's
+ * output + trace) are compared against committed JSON snapshots. The generator's
  * format-specific standings tests reuse this harness.
  *
  * Update fixtures intentionally with: UPDATE_GOLDEN=1 yarn workspace

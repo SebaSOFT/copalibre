@@ -8,8 +8,8 @@ import type { StageConfiguration, TournamentRuleset } from './tournament-ruleset
 /**
  * Compiles DisciplineDescriptor defaults + the permitted override chain into
  * one validated, immutable MatchRuleset. This is the single compilation
- * entry point — fixture generation (phase 0006), the rules engine (0003), and
- * live match operations (0008) all call it and never re-implement it.
+ * entry point — fixture generation, the rules engine, and
+ * live match operations all call it and never re-implement it.
  */
 export function compileEffectiveRuleset(
   descriptor: DisciplineDescriptor,
@@ -86,10 +86,11 @@ function applyOverrideLayer(
           getAtPath(config, field),
           value,
           field,
-          violations,
         );
-        if (merged !== MERGE_FAILED) {
-          setAtPath(config, field, merged);
+        if (merged.ok) {
+          setAtPath(config, field, merged.value);
+        } else {
+          violations.push(merged.error);
         }
         break;
       }
@@ -98,51 +99,67 @@ function applyOverrideLayer(
   return config;
 }
 
-const MERGE_FAILED = Symbol('merge-failed');
-
-function mergeWithStrategy(
+/**
+ * Applies one named merge strategy to a current/override value pair, or
+ * reports why it couldn't. Shared by `compileEffectiveRuleset`'s `defaults`
+ * override path and `compile-profile.ts`'s win-condition override path, so
+ * the two can't independently decide what "merged" means the way they once
+ * did.
+ */
+export function mergeWithStrategy(
   strategy: MergeStrategyName,
   current: unknown,
   override: unknown,
   field: string,
-  violations: PolicyViolation[],
-): unknown {
+): Result<unknown, PolicyViolation> {
   switch (strategy) {
     case 'append-list':
       if (Array.isArray(current) && Array.isArray(override)) {
-        return [...current, ...structuredClone(override)];
+        return ok([...current, ...structuredClone(override)]);
       }
       break;
     case 'union-list':
       if (Array.isArray(current) && Array.isArray(override)) {
-        const seen = new Set(current.map((v) => JSON.stringify(v)));
-        const additions = override.filter((v) => !seen.has(JSON.stringify(v)));
-        return [...current, ...structuredClone(additions)];
+        const seen = new Set(current.map((v) => canonicalJson(v)));
+        const additions = override.filter((v) => !seen.has(canonicalJson(v)));
+        return ok([...current, ...structuredClone(additions)]);
       }
       break;
     case 'shallow-object':
       if (isPlainObject(current) && isPlainObject(override)) {
-        return { ...current, ...structuredClone(override) };
+        return ok({ ...current, ...structuredClone(override) });
       }
       break;
     default:
-      violations.push({
+      return err({
         field,
         reason: 'unknown-merge-strategy',
         message: `Merge strategy "${String(strategy)}" is not a defined strategy`,
       });
-      return MERGE_FAILED;
   }
-  violations.push({
+  return err({
     field,
     reason: 'missing-merge-strategy',
     message: `Strategy "${strategy}" cannot merge the value shapes at "${field}"`,
   });
-  return MERGE_FAILED;
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Key-sorted JSON serialization, so two object-shaped elements that differ only
+ * in key order dedupe as equal in `union-list`'s membership check — a bare
+ * `JSON.stringify` treats `{a:1,b:2}` and `{b:2,a:1}` as distinct.
+ */
+function canonicalJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+  if (value !== null && typeof value === 'object') {
+    const keys = Object.keys(value as Record<string, unknown>).sort();
+    return `{${keys.map((k) => `${JSON.stringify(k)}:${canonicalJson((value as Record<string, unknown>)[k])}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
 }
 
 function getAtPath(config: Record<string, unknown>, dotPath: string): unknown {

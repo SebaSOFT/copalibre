@@ -1,6 +1,11 @@
 ---
 title: Il CLI copalibre
 description: Installazione, aggiornamento e riferimento dei comandi del CLI copalibre.
+capabilities:
+  - platform/api-auth-contract
+roles:
+  - super-admin
+  - admin
 ---
 
 Il CLI `copalibre` gestisce un'installazione autogestita: installa, valida la configurazione, avvia
@@ -8,7 +13,7 @@ i processi, gestisce i moduli e esegue backup/ripristino dei dati. Ogni invocazi
 `--help`/`-h` — sia senza comando (`copalibre --help`) che dopo qualsiasi comando (`copalibre doctor
 --help`) — per mostrare il suo uso esatto senza eseguire alcun effetto reale.
 
-- [Installazione](/help/cli/installation/)
-- [Aggiornamento](/help/cli/updating/)
-- [Riferimento comandi](/help/cli/commands/)
-- [MCP per l'IA](/help/cli/mcp/)
+- [Installazione](/it/help/cli/installation/)
+- [Aggiornamento](/it/help/cli/updating/)
+- [Riferimento comandi](/it/help/cli/commands/)
+- [MCP per l'IA](/it/help/cli/mcp/)

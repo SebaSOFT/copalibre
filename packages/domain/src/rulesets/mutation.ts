@@ -14,6 +14,12 @@ export interface MutationContext {
   readonly hasRecordedResults: boolean;
   /** Fixtures already generated under the field's scope. */
   readonly generatedFixtures?: readonly FixtureRef[];
+  /** Previous value before mutation. */
+  readonly previousValue?: unknown;
+  /** New proposed value. */
+  readonly nextValue?: unknown;
+  /** Entrants currently accepted into the tournament — only meaningful for `registration.capacity`. */
+  readonly acceptedEntrantCount?: number;
 }
 
 export type MutationDecision =
@@ -21,7 +27,7 @@ export type MutationDecision =
   | {
       readonly allowed: true;
       readonly mutationClass: 'requires_rebuild';
-      /** What becomes invalid — reported, never rebuilt here (that is phase 0006's concern). */
+      /** What becomes invalid — reported, never rebuilt here. */
       readonly invalidates: readonly FixtureRef[];
     }
   | { readonly allowed: true; readonly mutationClass: 'blocked_after_results' };
@@ -31,7 +37,7 @@ export type MutationDecision =
  * decision record's contract: `safe` applies without side effects,
  * `requires_rebuild` reports which generated data becomes invalid,
  * `blocked_after_results` is unavailable once a valid result exists — the only
- * remaining path is the audited correction workflow (phase 0008).
+ * remaining path is the audited correction workflow.
  */
 export function evaluateMutation(
   policies: ConfigFieldPolicies,
@@ -41,6 +47,53 @@ export function evaluateMutation(
   const policy = policies[fieldPath];
   if (!policy) {
     return err(new MutationBlockedError(`No field policy declares "${fieldPath}"`, { fieldPath }));
+  }
+
+  // Value-aware series span policy: shortening is blocked_after_results, lengthening before results is requires_rebuild
+  if (
+    fieldPath === 'series.span' &&
+    typeof context.previousValue === 'number' &&
+    typeof context.nextValue === 'number'
+  ) {
+    if (context.nextValue < context.previousValue) {
+      if (context.hasRecordedResults) {
+        return err(
+          new MutationBlockedError(
+            `Field "${fieldPath}" is blocked after results; use the audited correction workflow`,
+            { fieldPath },
+          ),
+        );
+      }
+      return ok({ allowed: true, mutationClass: 'blocked_after_results' });
+    }
+    return ok({
+      allowed: true,
+      mutationClass: 'requires_rebuild',
+      invalidates: context.generatedFixtures ?? [],
+    });
+  }
+
+  // Value-aware capacity policy: a reduction below the currently accepted-entrant
+  // count is incoherent with the existing record — refused outright, regardless of
+  // whether a match result exists, because the incoherence is with the entrant
+  // count, not with a played match.
+  if (
+    fieldPath === 'registration.capacity' &&
+    typeof context.nextValue === 'number' &&
+    typeof context.acceptedEntrantCount === 'number' &&
+    context.nextValue < context.acceptedEntrantCount
+  ) {
+    return err(
+      new MutationBlockedError(
+        `Field "${fieldPath}" cannot be reduced to ${context.nextValue}: ` +
+          `${context.acceptedEntrantCount} entrant(s) are already accepted`,
+        {
+          fieldPath,
+          nextValue: context.nextValue,
+          acceptedEntrantCount: context.acceptedEntrantCount,
+        },
+      ),
+    );
   }
 
   switch (policy.mutationClass) {
@@ -63,4 +116,22 @@ export function evaluateMutation(
       }
       return ok({ allowed: true, mutationClass: 'blocked_after_results' });
   }
+}
+
+/**
+ * Evaluates whether custom scripts mutation is permitted on a tournament:
+ * safe when no match results have been recorded yet, blocked_after_results once one exists.
+ */
+export function evaluateCustomScriptsMutation(
+  context: MutationContext,
+): Result<MutationDecision, MutationBlockedError> {
+  if (context.hasRecordedResults) {
+    return err(
+      new MutationBlockedError(
+        'Custom scripts are blocked after results; use the audited correction workflow',
+        { fieldPath: 'customScripts' },
+      ),
+    );
+  }
+  return ok({ allowed: true, mutationClass: 'safe' });
 }

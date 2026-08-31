@@ -1,4 +1,6 @@
 import {
+  cadenceOf,
+  isLiveCadence,
   readableAt,
   validateCollectors,
   type CollectorVocabulary,
@@ -8,6 +10,7 @@ import {
 const vocabulary: CollectorVocabulary = {
   eventCodes: ['goal', 'yellow-card', 'green-card', 'save', 'foul'],
   statisticCodes: ['goals-for', 'possession'],
+  tagCodes: ['captain', 'suspended'],
 };
 
 function collector(overrides: Partial<StatisticCollector> = {}): StatisticCollector {
@@ -90,6 +93,53 @@ describe('what a declaration is refused for', () => {
 
   it('refuses two collectors sharing a code, which would make read order decide the answer', () => {
     expect(validate([collector(), collector({ label: 'Otra cosa' })]).ok).toBe(false);
+  });
+});
+
+describe('requiresTag', () => {
+  it('accepts an event-sourced collector requiring a declared tag', () => {
+    const result = validate([collector({ requiresTag: { code: 'captain' } })]);
+    expect(result.ok).toBe(true);
+  });
+
+  it('accepts a statistic-sourced collector requiring a declared tag', () => {
+    const result = validate([
+      collector({
+        source: { kind: 'statistic', statisticCode: 'goals-for' },
+        requiresTag: { code: 'captain' },
+      }),
+    ]);
+    expect(result.ok).toBe(true);
+  });
+
+  it('refuses a tag code the discipline does not declare', () => {
+    const result = validate([collector({ requiresTag: { code: 'ghost-tag' } })]);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.message).toContain('ghost-tag');
+  });
+
+  it('refuses requiresTag on a participation-sourced collector', () => {
+    const result = validate([
+      collector({ source: { kind: 'participation' }, requiresTag: { code: 'captain' } }),
+    ]);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.message).toContain('participation');
+  });
+
+  it('refuses requiresTag on a collector-sourced collector', () => {
+    const result = validate([
+      collector(),
+      collector({
+        code: 'goals-derived',
+        source: { kind: 'collector', code: 'goals' },
+        requiresTag: { code: 'captain' },
+      }),
+    ]);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.message).toContain('collector');
   });
 });
 
@@ -191,5 +241,24 @@ describe('readableAt', () => {
 
     expect(readableAt(capped, { actor: 'person', competition: 'stage' })).toBe(true);
     expect(readableAt(capped, { actor: 'person', competition: 'season' })).toBe(false);
+  });
+});
+
+describe('cadence', () => {
+  it('defaults to on-finalize when absent', () => {
+    expect(cadenceOf(collector())).toEqual({ kind: 'on-finalize' });
+    expect(isLiveCadence(collector())).toBe(false);
+  });
+
+  it('reads back a declared on-finalize cadence explicitly', () => {
+    const declared = collector({ cadence: { kind: 'on-finalize' } });
+    expect(cadenceOf(declared)).toEqual({ kind: 'on-finalize' });
+    expect(isLiveCadence(declared)).toBe(false);
+  });
+
+  it('reads back a declared live cadence', () => {
+    const live = collector({ cadence: { kind: 'live' } });
+    expect(cadenceOf(live)).toEqual({ kind: 'live' });
+    expect(isLiveCadence(live)).toBe(true);
   });
 });

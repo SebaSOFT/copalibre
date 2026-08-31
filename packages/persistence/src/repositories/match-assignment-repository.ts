@@ -7,7 +7,7 @@ import type { UnitOfWork } from '../transaction.js';
 import type { AuditContext } from './enrollment-repository.js';
 
 /**
- * Match-operating appointments (0014-live-match-operations-result-authority).
+ * Match-operating appointments.
  *
  * Reads are deliberately narrow: `forSubject` returns only the grants that
  * could bear on one match, so the policy layer decides over a handful of rows

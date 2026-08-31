@@ -26,6 +26,28 @@ export interface AuthenticatedSubject {
   readonly principalId?: string;
   /** Participant record linked to this principal in the requested organization. */
   readonly participantPersonId?: string;
+  /**
+   * Who this caller may grant roles as, resolved once by
+   * `OrganizationAccessGuard` so controllers do not each re-derive it.
+   * Shape mirrors `@copalibre/domain`'s `GrantorContext` without importing it
+   * (this package stays framework/domain-free).
+   */
+  readonly grantorContext?: {
+    readonly isSuperAdmin: boolean;
+    readonly organizationAdminOf?: string;
+  };
+  /**
+   * The resource this caller's active assignment narrows their authority to,
+   * resolved once by `OrganizationAccessGuard` from the assignment's
+   * `clubId`/`tournamentId` — present only for a club-admin or
+   * tournament-admin assignment respectively. The policy layer's ownership
+   * check reads this to refuse an action against a different club or
+   * tournament than the one named.
+   */
+  readonly resourceScope?: {
+    readonly clubId?: string;
+    readonly tournamentId?: string;
+  };
 }
 
 /** Fastify request augmented by the JWT guard. */

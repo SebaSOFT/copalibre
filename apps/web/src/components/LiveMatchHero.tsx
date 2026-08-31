@@ -1,17 +1,18 @@
 import { useEffect, useState } from 'react';
 import { RealtimeClient } from '@copalibre/realtime';
+import { EntrantName } from './EntrantName.js';
 import { applyEvent, markConnected, type LiveDashboard } from '../lib/live-state.js';
 import { presentState, type ResultStateLabels } from '../lib/result-state.js';
 
 /**
- * The one interactive island on the public live screen (0021).
+ * The one interactive island on the public live screen.
  *
  * It starts from what the server already rendered and patches it. If the stream
  * never connects, the props are still the truth — which is why this component
  * takes a full dashboard rather than fetching one.
  *
  * `usingLastKnownText` and `resultStateLabels` arrive pre-formatted from the
- * parent `.astro` page (0055) rather than this file importing the catalog or
+ * parent `.astro` page rather than this file importing the catalog or
  * `react-intl`'s formatting machinery itself — the one deliberate exception to
  * how every other public-web string is resolved, so this client bundle stays
  * free of build-time-only Node dependencies.
@@ -58,7 +59,7 @@ export function LiveMatchHero({
             <div aria-live="polite">
               {match.sides.map((side) => (
                 <p key={side.entrantId}>
-                  <span>{side.abbreviation ?? side.name}</span>
+                  <EntrantName abbreviation={side.abbreviation} fullName={side.name} />
                   <span className="cl-stat-tile__value">{side.score}</span>
                 </p>
               ))}

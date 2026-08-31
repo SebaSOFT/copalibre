@@ -10,6 +10,9 @@
       "path": "../../packages/auth/tsconfig.json"
     },
     {
+      "path": "../../packages/module-distribution/tsconfig.json"
+    },
+    {
       "path": "../../packages/object-storage/tsconfig.json"
     },
     {
@@ -17,6 +20,12 @@
     },
     {
       "path": "../../packages/rules/tsconfig.json"
+    },
+    {
+      "path": "../seed/tsconfig.json"
+    },
+    {
+      "path": "../../packages/statistics-refold/tsconfig.json"
     },
     {
       "path": "../../packages/tournament-engine/tsconfig.json"

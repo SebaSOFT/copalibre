@@ -1,4 +1,9 @@
-import { publicIntl, resultStateLabels } from './public-intl.js';
+import {
+  matchCardLabels,
+  publicIntl,
+  resultReasonLabels,
+  resultStateLabels,
+} from './public-intl.js';
 import { messages } from './public-messages.en.js';
 import { messages as esMessages } from './public-messages.es.js';
 import { messages as frMessages } from './public-messages.fr.js';
@@ -18,7 +23,7 @@ const NON_ENGLISH_CATALOGS = {
   Mandarin: zhMessages,
 };
 
-describe('public-web message-catalog completeness (0055 task 7.3, 0056 task 8.1, 0057 task 4.6)', () => {
+describe('public-web message-catalog completeness', () => {
   const englishIds = Object.values(messages)
     .map((descriptor) => descriptor.id)
     .sort();
@@ -46,7 +51,7 @@ describe('public-web message-catalog completeness (0055 task 7.3, 0056 task 8.1,
   );
 });
 
-describe('publicIntl formats real translated text, not an English fallback (0055 task 7.4, 0056 task 8.2, 0057 task 4.6)', () => {
+describe('publicIntl formats real translated text, not an English fallback', () => {
   it('renders Spanish chrome for a plain string', () => {
     const intl = publicIntl('es');
     expect(intl.formatMessage(messages.legendHeading)).toBe('Referencias');
@@ -111,5 +116,29 @@ describe('publicIntl formats real translated text, not an English fallback (0055
     expect(labels.live).toBe('EN VIVO');
     expect(labels.tbd).toBe('A DEFINIR');
     expect(labels.cancelled).toBe('CANCELADO');
+  });
+
+  it('resolves every non-played result-reason label at once', () => {
+    const labels = resultReasonLabels(publicIntl('es'));
+    expect(labels.walkover).toBe('W/O');
+    expect(labels.disqualified).toBe('DESCALIFICADO');
+    expect(labels['administrative-loss']).toBe('DERROTA ADM.');
+    expect(labels['forfeit-abandonment']).toBe('ABANDONO');
+    expect(labels['did-not-finish']).toBe('NO TERMINÓ');
+
+    const en = resultReasonLabels(publicIntl('en'));
+    expect(en.walkover).toBe('W/O');
+  });
+
+  it('resolves matches-view labels as unfilled {placeholder} templates, not formatted values', () => {
+    // These must stay raw templates, never functions: MatchCard mounts on
+    // the public site via `client:load`, and Astro JSON-serializes island
+    // props, which a function does not survive.
+    const labels = matchCardLabels(publicIntl('es'));
+    expect(labels.clockAriaLabel).toBe('Tiempo transcurrido: {time}');
+    expect(labels.decidedBy).toBe('Decidido por: {factor}');
+    expect(labels.seriesAriaLabel).toBe('Serie al mejor de {bestOf}: {home} a {away}');
+    expect(labels.filters.live).toBe('En vivo');
+    expect(labels.state.final).toBe('FINAL');
   });
 });

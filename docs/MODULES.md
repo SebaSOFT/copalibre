@@ -38,6 +38,43 @@ resolution is frozen onto the compiled snapshot. Consequences:
 Semver on a discipline or profile identifies a **release**. It is not a compatibility contract; that
 is what capabilities are for.
 
+## The same mechanism, two real disciplines apart
+
+`football.json` — timed segments, a scoring event with a rich payload:
+
+```jsonc
+"segmentTypes": [{ "name": "half", "timed": true, "defaultDurationSeconds": 2700 }],
+"eventDefinitions": [{
+  "code": "goal", "category": "positive", "actorRequirement": "person",
+  "payloadSchema": { "properties": { "assistedBy": { "type": "string" }, "penalty": { "type": "boolean" } } }
+}]
+```
+
+`tennis.json` — untimed, set-based segments; statistics with no event log behind them at all:
+
+```jsonc
+"segmentTypes": [{ "name": "set", "timed": false }, { "name": "tiebreak", "timed": false }],
+"statistics": [{ "code": "matches-won", "aggregation": "sum" }]
+```
+
+Same descriptor shape, genuinely different sports: one drives its statistics from event effects
+recorded during play; the other declares a statistic no event definition ever touches, populated
+some other way a discipline is free to choose.
+
+**Illustrative only — no esports discipline ships in `packages/module-catalogue/` today.** The
+same mechanism applied to a round-based team FPS would look like this:
+
+```jsonc
+// Illustrative only — no esports discipline ships in packages/module-catalogue/ today.
+// Shows the same mechanism applied to a round-based team FPS.
+"segmentTypes": [{ "name": "round", "timed": true, "defaultDurationSeconds": 120 }],
+"eventDefinitions": [{
+  "code": "elimination", "category": "positive", "actorRequirement": "person",
+  "payloadSchema": { "properties": { "victimId": { "type": "string" } } }
+}],
+"statistics": [{ "code": "kills", "aggregation": "sum" }, { "code": "objectives-captured", "aggregation": "sum" }]
+```
+
 ## Canonical statistic codes
 
 Strongly suggested, never enforced. Converging on these names means most profiles satisfy most
@@ -96,7 +133,28 @@ Packaging, `copalibre module add`, asset handling and the module-repository CI a
 5. `copalibre module submit <path>` — forks `copalibre-modules`, pushes the module on a new branch,
    and opens a pull request for a human reviewer.
 
+Against a self-hosted instance with no source checkout, `copalibre init --module-dev` sets this up
+without hand-managing the allowlist: it writes a `modules-dev/` directory bind-mounted into `api`/
+`worker` at `/var/lib/copalibre/modules-dev`, with `COPALIBRE_MODULE_SOURCE_ALLOWLIST` already
+pointed at it. Scaffold with `--output modules-dev/<alias>`, then `copalibre module add <alias>
+--source file:///var/lib/copalibre/modules-dev/<alias>` — no per-invocation environment variable
+needed.
+
+`--module-dev` is Compose-only — the Helm chart (`copalibre init --kubernetes`) has no equivalent
+values group, since a `hostPath` volume only reaches a laptop's filesystem when the pod is
+guaranteed to run on that one machine, true for a local single-node `kind`/`minikube` cluster but
+never a real multi-node one. Developing a module against a local `kind`/`minikube` cluster anyway is
+a manual patch, not a chart feature — see
+[`docs/deployment/enterprise-kubernetes.md`](deployment/enterprise-kubernetes.md#kubernetes-hosted-module-development-kindminikube-only)
+for the recipe.
+
 All five steps are also exposed as MCP tools (`copalibre_module_scaffold`,
 `copalibre_module_validate_local`, `copalibre_module_submit`) — see [`docs/MCP.md`](MCP.md) — so an
 AI agent can drive this whole flow: read a sport's rules, ask the operator any details it needs, and
 build, validate, and submit the module without shelling out to the CLI.
+
+An installation's own platform administration console offers a third path that needs neither a
+checkout nor hand-edited JSON: a guided wizard (`DescriptorBuilderWizard`/`ProfileBuilderWizard`)
+walks a super-admin through the same discipline/profile shape field by field, installing the result
+directly — the right route for a one-off local sport or format that never needs to go through
+`copalibre-modules` review.

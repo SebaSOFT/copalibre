@@ -20,7 +20,7 @@ export type MutationFeedback =
  * Returns a message descriptor (plus any ICU interpolation values), not a
  * formatted string — this stays a plain, `intl`-free function testable
  * without a React context; the caller formats via `useIntl().formatMessage()`
- * (0053).
+ *.
  */
 export function mutationFeedback(input: {
   readonly mutationClass: MutationClass;

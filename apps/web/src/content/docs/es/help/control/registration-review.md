@@ -1,6 +1,11 @@
 ---
 title: Revisión de inscripciones
 description: Qué hace aceptar, rechazar o retirar una inscripción, y cómo importar participantes por CSV.
+capabilities:
+  - control-web/registration-review
+roles:
+  - admin
+  - club-admin
 ---
 
 ## Para qué sirve esta pantalla
@@ -19,6 +24,11 @@ estado resultante y quién la tomó.
   corrija el archivo y se vuelva a intentar.
 - **Revisión masiva**: aplica la misma decisión a varias inscripciones a la vez; cada una queda
   auditada por separado, no como un solo evento agregado.
+- **Participantes que necesitan una abreviatura**: un participante que coincide con todos los demás en
+  cada etiqueta corta derivada automáticamente queda registrado sin una asignada, y de otro modo es
+  invisible — esta sección lista esos participantes y te permite asignarles una directamente. Un valor
+  ya usado por otro participante del torneo se rechaza en el momento, nombrando el conflicto; un
+  participante resuelto desaparece de la lista.
 
 ## Qué NO hace esta pantalla
 

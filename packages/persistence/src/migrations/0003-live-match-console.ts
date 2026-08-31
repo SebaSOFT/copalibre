@@ -1,7 +1,7 @@
 import { sql, type Kysely } from 'kysely';
 import type { Migration } from 'kysely/migration';
 
-/** Durable clock state and idempotent finalization introduced by change 0025. */
+/** Durable clock state and idempotent finalization. */
 export const liveMatchConsole: Migration = {
   async up(db: Kysely<unknown>): Promise<void> {
     await db.schema

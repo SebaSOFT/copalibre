@@ -1,6 +1,10 @@
 ---
 title: MCP para IA
 description: Cómo una IA puede operar CopaLibre mediante copalibre mcp.
+capabilities: []
+roles:
+  - super-admin
+  - admin
 ---
 
 `copalibre mcp` arranca un servidor [Model Context Protocol](https://modelcontextprotocol.io) local,

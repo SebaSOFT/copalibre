@@ -1,6 +1,18 @@
 ---
 title: Tournament authoring
 description: What the tournament-creation wizard configures and what each field means.
+capabilities:
+  - control-web/tournament-authoring
+  - tournament-engine/discipline-driven-results
+  - tournament-engine/tournament-fixture-engine
+  - tournament-engine/tournament-profile
+  - tournament-engine/tournament-domain-model
+  - tournament-engine/competition-identity
+  - tournament-engine/rules-engine
+  - tournament-engine/scripting-hook-surface
+  - tournament-engine/placement-stage-format
+roles:
+  - admin
 ---
 
 ## What this screen is for

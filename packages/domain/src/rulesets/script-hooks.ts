@@ -2,12 +2,12 @@ import { DomainError } from '../errors.js';
 import { err, ok, type Result } from '../result.js';
 
 /**
- * Where a script may run (0013-scripting-hook-surface).
+ * Where a script may run.
  *
- * 0010 needed hook points for the draw and defined them inside
+ * Hook points for the draw were defined inside
  * `draw-constraints.ts`, as a detail of one feature. Four evaluations now
  * attach scripts — eligibility and advancement guards, the win condition,
- * notification rules and draw constraints — and 0014 adds match control,
+ * notification rules and draw constraints — and match control adds
  * timers and alerts. One taxonomy, owned by the core, is what stops each of
  * those growing a private one.
  *
@@ -79,7 +79,7 @@ export const ENVIRONMENT_CONTEXT_PATHS = [
  * `sides.N.home` is `true`, `false`, or `null` where the concept does not
  * apply — neutral ground, a free-for-all heat. Home advantage is a property of
  * a side, not of a match: it is what venue assignment reads when it decides
- * whose ground a fixture is played at (0012), and that decision is per side.
+ * whose ground a fixture is played at, and that decision is per side.
  */
 const MATCH_CONTEXT_PATHS = [
   'match.id',
@@ -149,7 +149,7 @@ const EVENT_CONTEXT_PATHS = [
 ] as const;
 
 /**
- * Running totals for the declared collectors (0016), keyed by collector code.
+ * Running totals for the declared collectors, keyed by collector code.
  *
  * Published so a rule reasons about "the fifth yellow" without fetching
  * anything: a script has no I/O, and a threshold that had to be told its own
@@ -184,12 +184,19 @@ const ALERT_CONTEXT_PATHS = [
 ] as const;
 
 /**
- * 0010 places the proposed assignment under `draw`, shaped by the caller rather
+ * The proposed assignment lives under `draw`, shaped by the caller rather
  * than by a published contract. The subtree is published as a whole until the
  * phase that pins it does so; a wildcard is the honest statement of what the
  * hook currently guarantees.
  */
 const DRAW_CONTEXT_PATHS = ['draw.*'] as const;
+
+const SERIES_CONTEXT_PATHS = [
+  'series.span',
+  'series.neutralGround',
+  'series.sides.*',
+  'series.matches.*',
+] as const;
 
 /** Guards place their facts at the context root, likewise caller-shaped. */
 const GUARD_CONTEXT_PATHS = ['*'] as const;
@@ -202,7 +209,7 @@ interface HookDefinition {
 
 /**
  * The taxonomy. The `draw.*`, `seed.*`, `schedule.*`, `entrant.*` and
- * `stage.advance` entries keep the identifiers 0010 gave them, so every
+ * `stage.advance` entries keep their identifiers, so every
  * constraint declared before this change validates and evaluates unchanged.
  */
 const HOOK_DEFINITIONS = {
@@ -303,7 +310,7 @@ const HOOK_DEFINITIONS = {
       ...ENVIRONMENT_CONTEXT_PATHS,
     ],
     polarity: 'permissive',
-    evaluation: { status: 'declared', ownedBy: '0014' },
+    evaluation: { status: 'evaluated', by: '0133' },
   },
   'stage.started': {
     context: [...STAGE_LIFECYCLE_CONTEXT_PATHS, ...ENVIRONMENT_CONTEXT_PATHS],
@@ -323,6 +330,11 @@ const HOOK_DEFINITIONS = {
       ownedBy: '0023',
       note: 'What an operator configures an alert from is the console phase’s open gate',
     },
+  },
+  'series.resolved': {
+    context: [...SERIES_CONTEXT_PATHS, ...ENVIRONMENT_CONTEXT_PATHS],
+    polarity: 'permissive',
+    evaluation: { status: 'evaluated', by: '0158' },
   },
 } as const satisfies Record<string, HookDefinition>;
 

@@ -1,7 +1,11 @@
 {
   "alias": "football",
-  "version": "1.0.0",
-  "name": "Football",
+  "version": "1.3.0",
+  "name": { "en": "Football", "es": "Fútbol" },
+  "description": {
+    "en": "Team discipline with timed halves, goal scoring, set pieces, cards, and player statistics."
+  },
+  "images": [{ "key": "modules/football/1.3.0/football-01.jpg" }],
   "attribution": {
     "author": "CopaLibre",
     "licence": "AGPL-3.0-only",
@@ -10,28 +14,100 @@
   "participantTypes": ["team"],
   "rosterConstraints": { "minPlayers": 11, "maxPlayers": 11, "maxSubstitutes": 12 },
   "segmentTypes": [
-    { "name": "half", "label": "Half", "timed": true, "defaultDurationSeconds": 2700 },
-    { "name": "extra-time", "label": "Extra time", "timed": true, "defaultDurationSeconds": 900 }
+    {
+      "name": "half",
+      "label": { "en": "Half", "es": "Tiempo" },
+      "timed": true,
+      "defaultDurationSeconds": 2700
+    },
+    {
+      "name": "extra-time",
+      "label": { "en": "Extra time", "es": "Tiempo suplementario" },
+      "timed": true,
+      "defaultDurationSeconds": 900
+    },
+    {
+      "name": "penalty-shootout",
+      "label": { "en": "Penalty shootout", "es": "Tanda de penales" },
+      "timed": false
+    }
   ],
   "eventDefinitions": [
     {
       "code": "goal",
-      "label": "Goal",
+      "label": { "en": "Goal", "es": "Gol" },
       "category": "positive",
       "permittedSegmentTypes": ["half", "extra-time"],
       "actorRequirement": "person",
       "payloadSchema": {
         "type": "object",
-        "properties": { "assistedBy": { "type": "string" }, "penalty": { "type": "boolean" } }
+        "properties": {
+          "assistedBy": { "type": "string" },
+          "penalty": { "type": "boolean" },
+          "goalkeeperId": { "type": "string" }
+        }
       },
       "effects": [
         { "kind": "score", "awardTo": "actor", "delta": 1 },
-        { "kind": "statistic", "statisticCode": "goals-for", "delta": 1 }
+        { "kind": "statistic", "statisticCode": "goals-for", "delta": 1 },
+        {
+          "kind": "statistic",
+          "statisticCode": "goals-against",
+          "delta": 1,
+          "awardTo": "every-other-side"
+        },
+        {
+          "kind": "statistic",
+          "statisticCode": "assists",
+          "delta": 1,
+          "awardTo": { "payloadField": "assistedBy" }
+        },
+        {
+          "kind": "roster-role-snapshot",
+          "payloadField": "goalkeeperId",
+          "role": "goalkeeper",
+          "side": "every-other-side"
+        }
       ]
     },
     {
+      "code": "own-goal",
+      "label": { "en": "Own goal", "es": "Gol en contra" },
+      "category": "negative",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "person",
+      "payloadSchema": { "type": "object", "properties": {} },
+      "effects": [
+        { "kind": "score", "awardTo": "every-other-side", "delta": 1 },
+        {
+          "kind": "statistic",
+          "statisticCode": "goals-for",
+          "delta": 1,
+          "awardTo": "every-other-side"
+        },
+        { "kind": "statistic", "statisticCode": "goals-against", "delta": 1 },
+        { "kind": "statistic", "statisticCode": "player-own-goals", "delta": 1 }
+      ]
+    },
+    {
+      "code": "substitution",
+      "label": { "en": "Substitution", "es": "Cambio" },
+      "category": "neutral",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "side",
+      "payloadSchema": {
+        "type": "object",
+        "properties": {
+          "playerOutId": { "type": "string" },
+          "playerInId": { "type": "string" }
+        },
+        "required": ["playerOutId", "playerInId"]
+      },
+      "personPayloadFields": ["playerOutId", "playerInId"]
+    },
+    {
       "code": "yellow-card",
-      "label": "Yellow card",
+      "label": { "en": "Yellow card", "es": "Tarjeta amarilla" },
       "category": "negative",
       "permittedSegmentTypes": ["half", "extra-time"],
       "actorRequirement": "person",
@@ -39,17 +115,248 @@
     },
     {
       "code": "red-card",
-      "label": "Red card",
+      "label": { "en": "Red card", "es": "Tarjeta roja" },
       "category": "negative",
       "permittedSegmentTypes": ["half", "extra-time"],
       "actorRequirement": "person",
       "payloadSchema": { "type": "object", "properties": { "reason": { "type": "string" } } }
     },
     {
-      "code": "segment-point",
-      "label": "Segment point",
+      "code": "foul",
+      "label": { "en": "Foul", "es": "Falta" },
       "category": "neutral",
       "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "side",
+      "payloadSchema": { "type": "object", "properties": {} },
+      "workflow": {
+        "kind": "outcome-choice",
+        "options": [
+          {
+            "definitionCode": "foul-play-on",
+            "label": { "en": "Play on", "es": "Ley de ventaja" },
+            "description": {
+              "en": "No stoppage; play continues under advantage",
+              "es": "No hay corte; el juego continúa bajo ley de ventaja"
+            }
+          },
+          {
+            "definitionCode": "free-kick-awarded",
+            "label": { "en": "Free kick", "es": "Tiro libre" },
+            "description": {
+              "en": "Stops play and restarts it with a free kick for the fouled side",
+              "es": "Detiene el juego y lo reinicia con un tiro libre para el equipo afectado"
+            }
+          },
+          {
+            "definitionCode": "penalty-awarded",
+            "label": { "en": "Penalty", "es": "Penal" },
+            "description": {
+              "en": "Stops play and restarts it with a penalty kick for the fouled side",
+              "es": "Detiene el juego y lo reinicia con un penal para el equipo afectado"
+            }
+          },
+          {
+            "definitionCode": "yellow-card",
+            "label": { "en": "Yellow card", "es": "Tarjeta amarilla" },
+            "description": {
+              "en": "Cautions the player; a second yellow in the match becomes a red card",
+              "es": "Amonesta al jugador; una segunda amarilla en el partido se convierte en roja"
+            }
+          },
+          {
+            "definitionCode": "red-card",
+            "label": { "en": "Red card", "es": "Tarjeta roja" },
+            "description": {
+              "en": "Sends the player off; their side plays the rest of the match a player short",
+              "es": "Expulsa al jugador; su equipo juega el resto del partido con uno menos"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "code": "foul-play-on",
+      "label": { "en": "Foul (play on)", "es": "Falta (ley de ventaja)" },
+      "category": "neutral",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "side",
+      "payloadSchema": { "type": "object", "properties": {} }
+    },
+    {
+      "code": "free-kick-awarded",
+      "label": { "en": "Free kick awarded", "es": "Tiro libre otorgado" },
+      "category": "neutral",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "side",
+      "payloadSchema": { "type": "object", "properties": {} }
+    },
+    {
+      "code": "penalty-awarded",
+      "label": { "en": "Penalty awarded", "es": "Penal otorgado" },
+      "category": "neutral",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "side",
+      "payloadSchema": { "type": "object", "properties": {} }
+    },
+    {
+      "code": "throw-in",
+      "label": { "en": "Throw-in", "es": "Saque de banda" },
+      "category": "neutral",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "side",
+      "payloadSchema": { "type": "object", "properties": {} },
+      "workflow": {
+        "kind": "outcome-choice",
+        "options": [
+          {
+            "definitionCode": "throw-in-taken",
+            "label": { "en": "Taken", "es": "Ejecutado" },
+            "description": {
+              "en": "The throw-in is taken and play resumes",
+              "es": "El saque de banda se ejecuta y el juego se reanuda"
+            }
+          },
+          {
+            "definitionCode": "foul-throw",
+            "label": {
+              "en": "Foul throw (awarded to opponent)",
+              "es": "Saque incorrecto (para el rival)"
+            },
+            "description": {
+              "en": "The throw is disallowed and the opposing side takes it instead",
+              "es": "El saque se anula y lo ejecuta el equipo rival"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "code": "throw-in-taken",
+      "label": { "en": "Throw-in taken", "es": "Saque de banda ejecutado" },
+      "category": "neutral",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "side",
+      "payloadSchema": { "type": "object", "properties": {} }
+    },
+    {
+      "code": "foul-throw",
+      "label": { "en": "Foul throw", "es": "Saque de banda incorrecto" },
+      "category": "neutral",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "side",
+      "payloadSchema": { "type": "object", "properties": {} }
+    },
+    {
+      "code": "offside",
+      "label": { "en": "Offside", "es": "Fuera de juego" },
+      "category": "neutral",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "side",
+      "payloadSchema": { "type": "object", "properties": {} }
+    },
+    {
+      "code": "var-review",
+      "label": { "en": "VAR review", "es": "Revisión VAR" },
+      "category": "neutral",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "side",
+      "payloadSchema": { "type": "object", "properties": {} },
+      "workflow": {
+        "kind": "outcome-choice",
+        "options": [
+          {
+            "definitionCode": "var-play-stands",
+            "label": { "en": "Play stands", "es": "Se mantiene la decisión" },
+            "description": {
+              "en": "The on-field decision is confirmed and nothing changes",
+              "es": "Se confirma la decisión en el campo y no cambia nada"
+            }
+          },
+          {
+            "definitionCode": "var-goal-disallowed",
+            "label": { "en": "Goal disallowed", "es": "Gol anulado" },
+            "description": {
+              "en": "Reverses a previously recorded goal and its score, statistics, and effects",
+              "es": "Revierte un gol registrado previamente junto con su marcador, estadísticas y efectos"
+            }
+          },
+          {
+            "definitionCode": "var-penalty-overturned",
+            "label": { "en": "Penalty overturned", "es": "Penal revocado" },
+            "description": {
+              "en": "Cancels the awarded penalty; play resumes without it",
+              "es": "Cancela el penal otorgado; el juego se reanuda sin él"
+            }
+          },
+          {
+            "definitionCode": "red-card",
+            "label": { "en": "Card upgraded", "es": "Tarjeta elevada a roja" },
+            "description": {
+              "en": "Sends the player off; their side plays the rest of the match a player short",
+              "es": "Expulsa al jugador; su equipo juega el resto del partido con uno menos"
+            }
+          },
+          {
+            "definitionCode": "var-card-rescinded",
+            "label": { "en": "Card rescinded", "es": "Tarjeta anulada" },
+            "description": {
+              "en": "Removes a previously shown card from the record",
+              "es": "Elimina del registro una tarjeta mostrada previamente"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "code": "var-play-stands",
+      "label": { "en": "VAR (play stands)", "es": "VAR (se mantiene la decisión)" },
+      "category": "neutral",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "side",
+      "payloadSchema": { "type": "object", "properties": {} }
+    },
+    {
+      "code": "var-goal-disallowed",
+      "label": { "en": "VAR (goal disallowed)", "es": "VAR (gol anulado)" },
+      "category": "neutral",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "side",
+      "payloadSchema": { "type": "object", "properties": {} }
+    },
+    {
+      "code": "var-penalty-overturned",
+      "label": { "en": "VAR (penalty overturned)", "es": "VAR (penal revocado)" },
+      "category": "neutral",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "side",
+      "payloadSchema": { "type": "object", "properties": {} }
+    },
+    {
+      "code": "var-card-rescinded",
+      "label": { "en": "VAR (card rescinded)", "es": "VAR (tarjeta anulada)" },
+      "category": "neutral",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "side",
+      "payloadSchema": { "type": "object", "properties": {} }
+    },
+    {
+      "code": "stoppage-time-announced",
+      "label": { "en": "Stoppage time announced", "es": "Tiempo añadido anunciado" },
+      "category": "neutral",
+      "permittedSegmentTypes": ["half", "extra-time"],
+      "actorRequirement": "none",
+      "payloadSchema": {
+        "type": "object",
+        "properties": {
+          "minutes": { "type": "number" }
+        }
+      }
+    },
+    {
+      "code": "segment-point",
+      "label": { "en": "Segment point", "es": "Punto de parcial" },
+      "category": "neutral",
+      "permittedSegmentTypes": ["half", "extra-time", "penalty-shootout"],
       "actorRequirement": "none",
       "payloadSchema": {
         "type": "object",
@@ -65,9 +372,9 @@
     },
     {
       "code": "match-point",
-      "label": "Match point",
+      "label": { "en": "Match point", "es": "Punto de partido" },
       "category": "neutral",
-      "permittedSegmentTypes": ["half", "extra-time"],
+      "permittedSegmentTypes": ["half", "extra-time", "penalty-shootout"],
       "actorRequirement": "none",
       "payloadSchema": {
         "type": "object",
@@ -83,9 +390,9 @@
     },
     {
       "code": "margin-required",
-      "label": "Margin required",
+      "label": { "en": "Margin required", "es": "Margen requerido" },
       "category": "neutral",
-      "permittedSegmentTypes": ["half", "extra-time"],
+      "permittedSegmentTypes": ["half", "extra-time", "penalty-shootout"],
       "actorRequirement": "none",
       "payloadSchema": {
         "type": "object",
@@ -101,9 +408,9 @@
     },
     {
       "code": "tiebreak-entered",
-      "label": "Tiebreak entered",
+      "label": { "en": "Tiebreak entered", "es": "Ingreso a desempate" },
       "category": "neutral",
-      "permittedSegmentTypes": ["half", "extra-time"],
+      "permittedSegmentTypes": ["half", "extra-time", "penalty-shootout"],
       "actorRequirement": "none",
       "payloadSchema": {
         "type": "object",
@@ -119,15 +426,277 @@
     }
   ],
   "statistics": [
-    { "code": "goals-for", "label": "Goals for", "aggregation": "sum" },
-    { "code": "goals-against", "label": "Goals against", "aggregation": "sum" },
-    { "code": "wins", "label": "Wins", "aggregation": "sum" },
-    { "code": "draws", "label": "Draws", "aggregation": "sum" },
-    { "code": "losses", "label": "Losses", "aggregation": "sum" },
-    { "code": "points", "label": "Points", "aggregation": "sum" },
-    { "code": "played", "label": "Played", "aggregation": "count" }
+    {
+      "code": "goals-for",
+      "label": { "en": "Goals for", "es": "Goles a favor" },
+      "aggregation": "sum"
+    },
+    {
+      "code": "goals-against",
+      "label": { "en": "Goals against", "es": "Goles en contra" },
+      "aggregation": "sum"
+    },
+    {
+      "code": "player-own-goals",
+      "label": { "en": "Own goals", "es": "Goles en contra" },
+      "aggregation": "sum"
+    },
+    { "code": "assists", "label": { "en": "Assists", "es": "Asistencias" }, "aggregation": "sum" },
+    { "code": "wins", "label": { "en": "Wins", "es": "Victorias" }, "aggregation": "sum" },
+    { "code": "draws", "label": { "en": "Draws", "es": "Empates" }, "aggregation": "sum" },
+    { "code": "losses", "label": { "en": "Losses", "es": "Derrotas" }, "aggregation": "sum" },
+    { "code": "points", "label": { "en": "Points", "es": "Puntos" }, "aggregation": "sum" },
+    { "code": "played", "label": { "en": "Played", "es": "Jugados" }, "aggregation": "count" }
   ],
-  "scoringInputs": [{ "code": "goals", "label": "Goals", "source": "event-derived" }],
+  "rosterRoles": [
+    { "code": "goalkeeper", "label": { "en": "Goalkeeper", "es": "Arquero" }, "badge": "GK" },
+    { "code": "captain", "label": { "en": "Captain", "es": "Capitán" }, "badge": "C" }
+  ],
+  "collectors": [
+    {
+      "code": "player-goals",
+      "label": { "en": "Goals", "es": "Goles" },
+      "source": { "kind": "event", "definitionCodes": ["goal"], "actorSource": "primary" },
+      "measure": { "kind": "count" },
+      "granularity": { "actor": "person", "competition": "match" }
+    },
+    {
+      "code": "player-assists",
+      "label": { "en": "Assists", "es": "Asistencias" },
+      "source": {
+        "kind": "event",
+        "definitionCodes": ["goal"],
+        "actorSource": { "payloadField": "assistedBy" }
+      },
+      "measure": { "kind": "count" },
+      "granularity": { "actor": "person", "competition": "match" }
+    },
+    {
+      "code": "player-appearances",
+      "label": { "en": "Appearances", "es": "Partidos jugados" },
+      "source": { "kind": "participation" },
+      "measure": { "kind": "count" },
+      "granularity": { "actor": "person", "competition": "match" }
+    },
+    {
+      "code": "player-yellow-cards",
+      "label": { "en": "Yellow cards", "es": "Tarjetas amarillas" },
+      "source": { "kind": "event", "definitionCodes": ["yellow-card"], "actorSource": "primary" },
+      "measure": { "kind": "count" },
+      "granularity": { "actor": "person", "competition": "match" }
+    },
+    {
+      "code": "player-red-cards",
+      "label": { "en": "Red cards", "es": "Tarjetas rojas" },
+      "source": { "kind": "event", "definitionCodes": ["red-card"], "actorSource": "primary" },
+      "measure": { "kind": "count" },
+      "granularity": { "actor": "person", "competition": "match" }
+    },
+    {
+      "code": "goalkeeper-goals-conceded",
+      "label": { "en": "Goals conceded", "es": "Goles recibidos" },
+      "source": {
+        "kind": "event",
+        "definitionCodes": ["goal"],
+        "actorSource": { "payloadField": "goalkeeperId" }
+      },
+      "measure": { "kind": "count" },
+      "granularity": { "actor": "person", "competition": "match" }
+    }
+  ],
+  "tableLayouts": [
+    {
+      "code": "group-standings-default",
+      "target": "group-phase",
+      "label": { "en": "Group Standings", "es": "Tabla de Posiciones" },
+      "entityGranularity": "team",
+      "defaultSort": [
+        { "columnCode": "points", "direction": "desc" },
+        { "columnCode": "gd", "direction": "desc" }
+      ],
+      "columns": [
+        {
+          "code": "rank",
+          "header": { "en": "Pos", "es": "#" },
+          "source": { "kind": "rank" },
+          "format": "number"
+        },
+        {
+          "code": "name",
+          "header": { "en": "Team", "es": "Equipo" },
+          "source": { "kind": "entrant-name" },
+          "format": "text"
+        },
+        {
+          "code": "played",
+          "header": { "en": "P", "es": "PJ" },
+          "source": { "kind": "collector", "code": "played" },
+          "format": "number"
+        },
+        {
+          "code": "wins",
+          "header": { "en": "W", "es": "PG" },
+          "source": { "kind": "collector", "code": "wins" },
+          "format": "number"
+        },
+        {
+          "code": "draws",
+          "header": { "en": "D", "es": "PE" },
+          "source": { "kind": "collector", "code": "draws" },
+          "format": "number"
+        },
+        {
+          "code": "losses",
+          "header": { "en": "L", "es": "PP" },
+          "source": { "kind": "collector", "code": "losses" },
+          "format": "number"
+        },
+        {
+          "code": "gf",
+          "header": { "en": "GF", "es": "GF" },
+          "source": { "kind": "collector", "code": "goals-for" },
+          "format": "number"
+        },
+        {
+          "code": "ga",
+          "header": { "en": "GA", "es": "GC" },
+          "source": { "kind": "collector", "code": "goals-against" },
+          "format": "number"
+        },
+        {
+          "code": "gd",
+          "header": { "en": "GD", "es": "Dif" },
+          "source": { "kind": "computed", "expression": "gf - ga" },
+          "format": "number"
+        },
+        {
+          "code": "points",
+          "header": { "en": "Pts", "es": "Pts" },
+          "source": { "kind": "collector", "code": "points" },
+          "format": "number"
+        }
+      ]
+    },
+    {
+      "code": "top-scorers",
+      "target": "player-ranking",
+      "label": { "en": "Top Scorers", "es": "Tabla de Goleadores" },
+      "entityGranularity": "person",
+      "defaultSort": [
+        { "columnCode": "goals", "direction": "desc" },
+        { "columnCode": "goals-per-match", "direction": "desc" }
+      ],
+      "columns": [
+        {
+          "code": "rank",
+          "header": { "en": "Rank", "es": "Pos" },
+          "source": { "kind": "rank" },
+          "format": "number"
+        },
+        {
+          "code": "player",
+          "header": { "en": "Player", "es": "Jugador" },
+          "source": { "kind": "actor-name" },
+          "format": "text"
+        },
+        {
+          "code": "team",
+          "header": { "en": "Team", "es": "Equipo" },
+          "source": { "kind": "team-name" },
+          "format": "text"
+        },
+        {
+          "code": "goals",
+          "header": { "en": "Goals", "es": "Goles" },
+          "source": { "kind": "collector", "code": "player-goals" },
+          "format": "number"
+        },
+        {
+          "code": "played",
+          "header": { "en": "Matches", "es": "PJ" },
+          "source": { "kind": "collector", "code": "player-appearances" },
+          "format": "number"
+        },
+        {
+          "code": "goals-per-match",
+          "header": { "en": "Goals/M", "es": "Goles/PJ" },
+          "source": { "kind": "computed", "expression": "goals / max(played, 1)" },
+          "format": "decimal-2"
+        },
+        {
+          "code": "assists",
+          "header": { "en": "Assists", "es": "Asistencias" },
+          "source": { "kind": "collector", "code": "player-assists" },
+          "format": "number"
+        },
+        {
+          "code": "cards",
+          "header": { "en": "Y/R Cards", "es": "Tarjetas A/R" },
+          "source": {
+            "kind": "composite",
+            "numerator": "player-yellow-cards",
+            "denominator": "player-red-cards"
+          },
+          "format": "fraction"
+        }
+      ]
+    },
+    {
+      "code": "goalkeeper-zamora",
+      "target": "player-ranking",
+      "label": { "en": "Goalkeeper Rankings (Zamora)", "es": "Valla Menos Vencida" },
+      "entityGranularity": "person",
+      "filter": {
+        "requiresRole": "goalkeeper",
+        "minSamples": { "collectorCode": "player-appearances", "min": 3 }
+      },
+      "defaultSort": [
+        { "columnCode": "ratio", "direction": "asc" },
+        { "columnCode": "conceded", "direction": "asc" }
+      ],
+      "columns": [
+        {
+          "code": "rank",
+          "header": { "en": "Rank", "es": "Pos" },
+          "source": { "kind": "rank" },
+          "format": "number"
+        },
+        {
+          "code": "goalkeeper",
+          "header": { "en": "Goalkeeper", "es": "Arquero" },
+          "source": { "kind": "actor-name" },
+          "format": "text"
+        },
+        {
+          "code": "team",
+          "header": { "en": "Team", "es": "Equipo" },
+          "source": { "kind": "team-name" },
+          "format": "text"
+        },
+        {
+          "code": "conceded",
+          "header": { "en": "Goals Conceded", "es": "Goles Recibidos" },
+          "source": { "kind": "collector", "code": "goalkeeper-goals-conceded" },
+          "format": "number"
+        },
+        {
+          "code": "played",
+          "header": { "en": "Matches", "es": "PJ" },
+          "source": { "kind": "collector", "code": "player-appearances" },
+          "format": "number"
+        },
+        {
+          "code": "ratio",
+          "header": { "en": "Goals/Match", "es": "Promedio" },
+          "source": { "kind": "computed", "expression": "conceded / max(played, 1)" },
+          "format": "decimal-2"
+        }
+      ]
+    }
+  ],
+  "scoringInputs": [
+    { "code": "goals", "label": { "en": "Goals", "es": "Goles" }, "source": "event-derived" }
+  ],
   "availableFormats": [
     "league",
     "round-robin",
@@ -166,13 +735,19 @@
   },
   "defaults": {
     "format": "round-robin",
-    "registration": { "publicOpen": false, "requiresCheckIn": false },
+    "registration": {
+      "publicOpen": false,
+      "requiresCheckIn": false,
+      "region": null,
+      "capacity": null
+    },
     "scoring": { "pointsPerWin": 3, "pointsPerDraw": 1, "pointsPerLoss": 0 },
     "tiebreakers": ["points", "score-difference", "goals-for"],
     "segments": { "regulationCount": 2, "overtimeEnabled": false },
     "venuePolicy": { "neutralGround": false }
   },
   "fieldPolicies": {
+    "tableLayouts": { "permission": { "kind": "replaced" }, "mutationClass": "safe" },
     "format": { "permission": { "kind": "replaced" }, "mutationClass": "blocked_after_results" },
     "registration.publicOpen": { "permission": { "kind": "replaced" }, "mutationClass": "safe" },
     "registration.requiresCheckIn": {
@@ -180,6 +755,11 @@
       "mutationClass": "requires_rebuild"
     },
     "registration.checkInClosesAt": {
+      "permission": { "kind": "replaced" },
+      "mutationClass": "requires_rebuild"
+    },
+    "registration.region": { "permission": { "kind": "replaced" }, "mutationClass": "safe" },
+    "registration.capacity": {
       "permission": { "kind": "replaced" },
       "mutationClass": "requires_rebuild"
     },
@@ -200,6 +780,19 @@
       "mutationClass": "requires_rebuild"
     },
     "venuePolicy.neutralGround": { "permission": { "kind": "inherited" }, "mutationClass": "safe" },
-    "winCondition": { "permission": { "kind": "replaced" }, "mutationClass": "requires_rebuild" }
+    "winCondition": { "permission": { "kind": "replaced" }, "mutationClass": "requires_rebuild" },
+    "series.span": { "permission": { "kind": "replaced" }, "mutationClass": "requires_rebuild" },
+    "series.resolutionClass": {
+      "permission": { "kind": "replaced" },
+      "mutationClass": "blocked_after_results"
+    },
+    "series.neutralGround": {
+      "permission": { "kind": "replaced" },
+      "mutationClass": "requires_rebuild"
+    },
+    "series.standingsAccounting": {
+      "permission": { "kind": "replaced" },
+      "mutationClass": "requires_rebuild"
+    }
   }
 }

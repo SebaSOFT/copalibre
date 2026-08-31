@@ -4,7 +4,9 @@
 Provides the authenticated operator application shell — component vocabulary, session model, API and
 SSE clients, and license-compliance bookkeeping — that every control-web screen in later phases is
 built inside.
+
 ## Requirements
+
 ### Requirement: JWT access token held in memory only
 The control application SHALL hold the JWT access token in memory only and SHALL NOT persist it in
 `localStorage`, `sessionStorage`, or a cookie.
@@ -85,11 +87,30 @@ return the operator to their original destination after a successful callback.
 
 ### Requirement: Owned component layer, not Chakra UI
 The control application SHALL use the owned shadcn/ui-style component source and Radix Primitives for
-its interactive UI, and SHALL NOT include Chakra UI as a production dependency.
+its interactive UI, and SHALL NOT include Chakra UI as a production dependency. This owned layer SHALL
+span all five Atomic Design tiers — atoms, molecules, organisms, templates under
+`apps/web/src/control/components/ui/`, and the page/route components that consume them — not only
+badge/button/card; any Control-web screen, present at the time this requirement changes or added at any
+later point, SHALL compose its form controls, tabular listings, cards, modals, and operation feedback
+from this owned layer rather than defining a new one-off inline style object for a pattern the layer
+already covers. New Control-web screens SHALL compose atoms/molecules/organisms/templates from the
+owned layer and reuse an existing template when their shape matches an existing template family.
 
 #### Scenario: No Chakra dependency in production build
 - **WHEN** the control application's production dependency list is inspected
 - **THEN** it contains no Chakra UI package
+
+#### Scenario: A screen's form controls and tabular data come from the owned layer
+- **WHEN** any Control-web screen under `apps/web/src/control/components/` is inspected, regardless of
+  when it was added
+- **THEN** its labeled inputs, selects, tabular listings, cards, and modals are composed from the owned
+  component layer's atoms/molecules/organisms/templates, not a screen-local inline style object
+  duplicating one of them
+
+#### Scenario: New route debuts after this change
+- **WHEN** a developer adds a new Control-web route
+- **THEN** the route composes from the owned atomic design layer and reuses an existing template when
+  its shape matches an existing template family
 
 ### Requirement: Third-party notice inventory stays current
 Every copied shadcn/ui component file or direct Radix dependency added to the control application
@@ -105,7 +126,7 @@ notice.
 Every user-facing control-panel string (labels, buttons, validation messages, status words) SHALL be
 sourced from a message catalog keyed by a stable ID, never hardcoded inline, so a screen's interface
 language can change without touching its logic. The active language SHALL resolve via the platform's
-client-side language-preference order (0051): an explicit stored preference, then a supported browser
+client-side language-preference order: an explicit stored preference, then a supported browser
 language, then English — with an explicit switcher available to change the stored preference.
 Organizer-entered content (tournament names, participant names, organization names) is never
 translated by this mechanism.
@@ -129,7 +150,7 @@ translated by this mechanism.
 
 ### Requirement: Control-panel chrome is available in all eight supported interface languages
 
-The control panel's message catalog (0053) SHALL have populated content for every language in the
+The control panel's message catalog SHALL have populated content for every language in the
 platform's supported-language contract (English, Spanish, French, Portuguese, Italian, German,
 Russian, Mandarin Chinese), not just English and Spanish, so the language switcher changes chrome for
 any selection rather than silently falling back to English for any of its non-English options.
@@ -172,8 +193,6 @@ SHALL use client-side navigation, not a plain browser-navigated anchor.
 - **THEN** the screen matching that URL renders correctly, exactly as it would after client-side
   navigation to the same URL
 
-
-
 ### Requirement: A default post-login landing resolves to a useful destination
 
 When `/control/callback` completes with no specific destination requested (a bare or bookmarked visit
@@ -206,3 +225,22 @@ land them on a useful destination rather than an unreachable default path.
 - **WHEN** an operator is redirected to login from a specific protected screen and completes
   authentication successfully
 - **THEN** they land on that original screen directly, with no organization-membership lookup performed
+
+### Requirement: Control web renders dynamic table layouts and rankings
+
+The control web shell and tournament screens SHALL render declared table layouts (group standings, player rankings, goalkeeper leaderboards, and schedule summaries) dynamically from the table projection API rather than static column definitions.
+
+#### Scenario: Standings page renders columns from the declared layout
+- **WHEN** an operator views a stage standings page for a football tournament
+- **THEN** the rendered table columns (`PJ, PG, PE, PP, GF, GC, Dif, Pts`) match the effective table layout configuration for that stage
+
+#### Scenario: Operator toggles between declared tournament ranking views
+- **WHEN** an operator navigates between Top Scorers and Goalkeeper rankings
+- **THEN** each view renders its corresponding declared columns, formatted fractions, and multi-column sort rankings
+
+### Requirement: Extended tier ownership
+- The five-tier ownership rule SHALL apply to every Control-web screen, including list, form, and detail surfaces, not only the initially migrated admin screens.
+
+#### Scenario: Legacy list screen is modernized
+- **WHEN** a legacy hand-rolled list screen is refactored
+- **THEN** the screen uses `ListScreenTemplate` and `DataTable` instead of bespoke grid markup.

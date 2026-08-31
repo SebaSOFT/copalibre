@@ -1,14 +1,17 @@
 import semver from 'semver';
 import {
   compileEffectiveRuleset,
+  validateCollectors,
   validateDisciplineDescriptorDocument,
+  validateTagDeclarations,
   validateTournamentProfileDocument,
   type DisciplineDescriptor,
   type DisciplineDescriptorDocument,
+  type PayloadJsonSchema,
   type TournamentProfileDocument,
 } from '@copalibre/domain';
 import { loadDefaultModuleCatalogue } from '@copalibre/module-catalogue';
-import type { RuleScript } from '@copalibre/rules';
+import { splitTemplate, validateExpression, type RuleScript } from '@copalibre/rules';
 import { validateModuleAssets } from './assets.js';
 import { ModuleValidationError, type ModuleValidationFailure } from './errors.js';
 import { validateModuleManifest, type ModuleManifest } from './manifest.js';
@@ -27,7 +30,7 @@ export interface ValidateModulePackageOptions {
 
 /**
  * The single validation entry point (task 2.6): manifest schema, artifact
- * schema, registry references (which already covers 0013's expression
+ * schema, registry references (which already covers the expression
  * checks via `validateScriptReferences` — never reimplemented here),
  * `compileEffectiveRuleset`, asset limits, `requiresCopalibre`, and reserved
  * aliases. The CLI (`copalibre module add`/`verify`) and the module
@@ -109,6 +112,50 @@ export async function validateModulePackage(
     const references = registry.validateDescriptorReferences(descriptor);
     if (!references.ok) {
       failures.push({ stage: 'registry-reference', message: references.error.message });
+    }
+
+    const tags = validateTagDeclarations(descriptor.tags ?? []);
+    if (!tags.ok) {
+      failures.push({ stage: 'tags', message: tags.error.message });
+    }
+
+    // Semantic collector checks — structurally valid per the ajv schema
+    // already, but a duplicate code, a circular collector-of-collector chain,
+    // an unregistered event/statistic/tag reference, or a ceiling under its
+    // own floor is a relationship between collectors (or between a collector
+    // and the discipline's own tags), not a property of one collector alone.
+    const collectors = validateCollectors(descriptor.collectors ?? [], {
+      eventCodes: descriptor.eventDefinitions.map((definition) => definition.code),
+      statisticCodes: descriptor.statistics.map((statistic) => statistic.code),
+      tagCodes: (descriptor.tags ?? []).map((tag) => tag.code),
+    });
+    if (!collectors.ok) {
+      failures.push({ stage: 'collectors', message: collectors.error.message });
+    }
+
+    for (const message of validatePayloadFieldReferences(descriptor)) {
+      failures.push({ stage: 'payload-field-reference', message });
+    }
+
+    for (const message of validateTableLayoutReferences(descriptor)) {
+      failures.push({ stage: 'table-layout-reference', message });
+    }
+
+    const expectedImageKeys = manifest.assets
+      .filter((asset) => asset.kind === 'background')
+      .map((asset) => `modules/${manifest.alias}/${manifest.version}/${asset.path}`)
+      .sort();
+    const declaredImageKeys = (descriptor.images ?? []).map((reference) => reference.key).sort();
+    if (
+      expectedImageKeys.length !== declaredImageKeys.length ||
+      expectedImageKeys.some((key, index) => key !== declaredImageKeys[index])
+    ) {
+      failures.push({
+        stage: 'asset',
+        field: 'images',
+        message:
+          'discipline images must match manifest background assets one-to-one using deterministic object keys',
+      });
     }
 
     // No override layer exists yet for a bare descriptor — compileEffectiveRuleset
@@ -202,4 +249,154 @@ export async function validateModulePackageOrThrow(
 
 function fieldFrom(details: Record<string, unknown> | undefined): string | undefined {
   return typeof details?.field === 'string' ? details.field : undefined;
+}
+
+/**
+ * An `awardTo`/`target`/`actorSource` naming `{ payloadField }` is only
+ * resolvable if the event that produces the fact actually declares that
+ * property — the ajv schema checks the shape (`descriptor-schema.ts`
+ * change), not whether the name means anything. An effect's own event
+ * definition is unambiguous; a collector's `actorSource` is checked against
+ * every event `definitionCodes` names (a collector watching more than one
+ * event must have the field on all of them), and skipped when
+ * `definitionCodes` is absent — there is no bounded set of schemas to check
+ * a collector watching every event in the discipline against.
+ */
+function validatePayloadFieldReferences(descriptor: DisciplineDescriptor): readonly string[] {
+  const messages: string[] = [];
+
+  for (const definition of descriptor.eventDefinitions) {
+    for (const effect of definition.effects ?? []) {
+      if (effect.kind === 'statistic' && typeof effect.awardTo === 'object') {
+        if (!declaresProperty(definition.payloadSchema, effect.awardTo.payloadField)) {
+          messages.push(
+            `Event "${definition.code}"'s statistic effect for "${effect.statisticCode}" ` +
+              `awards to payload field "${effect.awardTo.payloadField}", which its own ` +
+              'payloadSchema does not declare',
+          );
+        }
+      }
+      if (effect.kind === 'tag' && typeof effect.target === 'object') {
+        if (!declaresProperty(definition.payloadSchema, effect.target.payloadField)) {
+          messages.push(
+            `Event "${definition.code}"'s tag effect for "${effect.tagCode}" targets payload ` +
+              `field "${effect.target.payloadField}", which its own payloadSchema does not declare`,
+          );
+        }
+      }
+      if (effect.kind === 'roster-role-snapshot') {
+        if (!declaresProperty(definition.payloadSchema, effect.payloadField)) {
+          messages.push(
+            `Event "${definition.code}"'s roster-role-snapshot effect writes payload field ` +
+              `"${effect.payloadField}", which its own payloadSchema does not declare`,
+          );
+        }
+        if (!(descriptor.rosterRoles ?? []).some((role) => role.code === effect.role)) {
+          messages.push(
+            `Event "${definition.code}"'s roster-role-snapshot effect names role ` +
+              `"${effect.role}", which this discipline does not declare in rosterRoles`,
+          );
+        }
+      }
+    }
+    for (const field of definition.personPayloadFields ?? []) {
+      if (!declaresProperty(definition.payloadSchema, field)) {
+        messages.push(
+          `Event "${definition.code}"'s personPayloadFields names "${field}", which its own ` +
+            'payloadSchema does not declare',
+        );
+      }
+    }
+  }
+
+  const definitionsByCode = new Map(
+    descriptor.eventDefinitions.map((definition) => [definition.code, definition]),
+  );
+  for (const collector of descriptor.collectors ?? []) {
+    if (collector.source.kind !== 'event' || typeof collector.source.actorSource !== 'object') {
+      continue;
+    }
+    const payloadField = collector.source.actorSource.payloadField;
+    for (const code of collector.source.definitionCodes ?? []) {
+      const definition = definitionsByCode.get(code);
+      // An unregistered event code is already reported by validateCollectors.
+      if (definition && !declaresProperty(definition.payloadSchema, payloadField)) {
+        messages.push(
+          `Collector "${collector.code}" extracts its actor from payload field ` +
+            `"${payloadField}", which event "${code}"'s payloadSchema does not declare`,
+        );
+      }
+    }
+  }
+
+  return messages;
+}
+
+/**
+ * A table layout's `collector`/`composite` column sources name a code the
+ * discipline must actually produce a figure for — either a declared
+ * collector or a declared statistic (a result-recorded value, per
+ * `discipline-driven-results`), the same two vocabularies every other
+ * figure-reading concern in this codebase already resolves against.
+ * `computed`/`template` expressions are vetted the same way any other
+ * Neuron-JS expression is — at install time, not at first table read.
+ */
+function validateTableLayoutReferences(descriptor: DisciplineDescriptor): readonly string[] {
+  const messages: string[] = [];
+  const knownCodes = new Set([
+    ...(descriptor.collectors ?? []).map((collector) => collector.code),
+    ...descriptor.statistics.map((statistic) => statistic.code),
+  ]);
+
+  for (const layout of descriptor.tableLayouts ?? []) {
+    const minSamplesCode = layout.filter?.minSamples?.collectorCode;
+    if (minSamplesCode !== undefined && !knownCodes.has(minSamplesCode)) {
+      messages.push(
+        `Table layout "${layout.code}"'s qualification filter names "${minSamplesCode}", which ` +
+          'this discipline declares neither as a collector nor as a statistic',
+      );
+    }
+
+    for (const column of layout.columns) {
+      const codes: readonly string[] =
+        column.source.kind === 'collector'
+          ? [column.source.code]
+          : column.source.kind === 'composite'
+            ? [column.source.numerator, column.source.denominator]
+            : [];
+      for (const code of codes) {
+        if (!knownCodes.has(code)) {
+          messages.push(
+            `Table layout "${layout.code}"'s column "${column.code}" names "${code}", which this ` +
+              'discipline declares neither as a collector nor as a statistic',
+          );
+        }
+      }
+
+      const expressions =
+        column.source.kind === 'computed'
+          ? [column.source.expression]
+          : column.source.kind === 'template'
+            ? splitTemplate(column.source.template)
+                .filter((segment) => segment.kind === 'expression')
+                .map((segment) => segment.source)
+            : [];
+      for (const expression of expressions) {
+        const validated = validateExpression(expression);
+        if (!validated.ok) {
+          messages.push(
+            `Table layout "${layout.code}"'s column "${column.code}" declares an invalid ` +
+              `expression: ${validated.error.message}`,
+          );
+        }
+      }
+    }
+  }
+
+  return messages;
+}
+
+function declaresProperty(schema: PayloadJsonSchema, field: string): boolean {
+  const properties = (schema as { properties?: unknown }).properties;
+  return typeof properties === 'object' && properties !== null && field in properties;
 }

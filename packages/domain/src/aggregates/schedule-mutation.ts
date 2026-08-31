@@ -3,7 +3,7 @@ import { err, ok, type Result } from '../result.js';
 import type { FixtureRef, MutationDecision } from '../rulesets/mutation.js';
 
 /**
- * What kind of change a reschedule is (0012-resource-scheduling-and-conflicts).
+ * What kind of change a reschedule is.
  *
  * `evaluateMutation` classifies a change to a *configuration field* against the
  * policy a discipline declared for it. A reschedule has no field and no policy:
@@ -17,10 +17,12 @@ import type { FixtureRef, MutationDecision } from '../rulesets/mutation.js';
 export interface ScheduleMutationContext {
   /** The schedule this change replaces was visible to the public surface. */
   readonly published: boolean;
-  /** The match has begun, whether or not it has a result yet. */
+  /** The match being rescheduled has begun, whether or not it has a result yet. */
   readonly matchStarted?: boolean;
-  /** A result exists for the match. */
+  /** A result exists for the match being rescheduled. */
   readonly matchConcluded?: boolean;
+  /** Already-published matches the change would move, which must be re-previewed. */
+  readonly affectedPublishedMatches?: readonly string[];
   /** Already-published fixtures the change would move, which must be re-previewed. */
   readonly affectedPublishedFixtures?: readonly FixtureRef[];
 }
@@ -28,12 +30,12 @@ export interface ScheduleMutationContext {
 /**
  * A reschedule is:
  *
- * - **blocked** once the match started, because a fixture that is being played
+ * - **blocked** once the match started, because a match that is being played
  *   or has been played has a time and a place *as a fact*, not as a plan. The
  *   audited correction workflow is the only path, exactly as it is for a result.
  * - **safe** while the schedule is a draft nobody has seen. Nothing downstream
  *   can be surprised by a change to something never published.
- * - **requires_rebuild** once published, reporting which fixtures move — because
+ * - **requires_rebuild** once published, reporting which matches move — because
  *   a spectator holding a time, a notification already sent, and a downstream
  *   view all referenced the old slot.
  */
@@ -58,9 +60,17 @@ export function classifyScheduleMutation(
     return ok({ allowed: true, mutationClass: 'safe' });
   }
 
+  const invalidates: readonly FixtureRef[] = context.affectedPublishedFixtures
+    ? context.affectedPublishedFixtures
+    : (context.affectedPublishedMatches ?? []).map((matchId) => ({
+        fixtureId: matchId,
+        stageId: '',
+        hasResult: false,
+      }));
+
   return ok({
     allowed: true,
     mutationClass: 'requires_rebuild',
-    invalidates: context.affectedPublishedFixtures ?? [],
+    invalidates,
   });
 }

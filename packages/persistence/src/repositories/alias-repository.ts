@@ -1,4 +1,4 @@
-import { resolveAlias, type AliasRedirect, type AliasResolution } from '@copalibre/routing';
+import { resolveAlias, type AliasRedirect, type AliasResolution } from '@copalibre/domain';
 import type { Kysely } from 'kysely';
 import { newId } from '../ids.js';
 import type { Database } from '../schema.js';
@@ -6,7 +6,7 @@ import type { UnitOfWork } from '../transaction.js';
 import type { AuditContext } from './enrollment-repository.js';
 
 /**
- * Alias resolution for page handlers (0020).
+ * Alias resolution for page handlers.
  *
  * The decision itself is `@copalibre/routing`'s and pure; this supplies the two
  * facts it needs — which aliases are current and which were renamed — both

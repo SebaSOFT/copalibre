@@ -4,27 +4,38 @@ import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fa
 import { Test } from '@nestjs/testing';
 import {
   newId,
+  ObjectMetadataRepository,
   OrganizationRepository,
   withTransaction,
   type Database,
 } from '@copalibre/persistence';
 import { createMigratedDatabase } from '../../../../packages/persistence/src/test-support/scratch-database.js';
 import type { Kysely } from 'kysely';
+import type { ObjectStorageAdapter } from '@copalibre/object-storage';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 import { OrganizationAccessGuard } from '../auth/organization-access.guard.js';
 import type { AuthenticatedSubject } from '../auth/request-context.js';
 import { TokenVerifier } from '../auth/token-verifier.js';
 import { DATABASE } from '../database.token.js';
+import { OBJECT_STORAGE } from '../object-storage.token.js';
 import { OrganizationAccessController } from './organization-access.controller.js';
 import { OrganizationsController } from './organizations.controller.js';
 import { ParticipantsController } from './participants.controller.js';
+
+/** Never actually invoked in these access-guard tests — DI just needs something to inject. */
+const noopObjectStorage: ObjectStorageAdapter = {
+  profile: 'filesystem',
+  put: () => Promise.reject(new Error('not used')),
+  get: () => Promise.reject(new Error('not used')),
+  delete: () => Promise.reject(new Error('not used')),
+};
 
 const subjects: Record<string, AuthenticatedSubject> = {
   admin: { subjectId: 'oidc-admin', scopes: ['copalibre.control'] },
   inactive: { subjectId: 'oidc-inactive', scopes: ['copalibre.control'] },
   participant: { subjectId: 'oidc-participant', scopes: ['copalibre.participant'] },
   // Verifies fine but never accepted an invitation — no `identity_principals`
-  // row at all (0063: `GET /organizations?mine=true` must still answer 200
+  // row at all (`GET /organizations?mine=true` must still answer 200
   // with an empty list for this subject, not 403).
   noPrincipal: { subjectId: 'oidc-no-principal', scopes: ['copalibre.control'] },
 };
@@ -53,6 +64,7 @@ describe('organization access guards (integration)', () => {
       controllers: [OrganizationAccessController, OrganizationsController, ParticipantsController],
       providers: [
         { provide: DATABASE, useValue: scratch.db },
+        { provide: OBJECT_STORAGE, useValue: noopObjectStorage },
         {
           provide: TokenVerifier,
           useValue: {
@@ -108,7 +120,7 @@ describe('organization access guards (integration)', () => {
     expect(response.json()).toHaveLength(2);
   });
 
-  describe('GET /organizations?mine=true (0063)', () => {
+  describe('GET /organizations?mine=true', () => {
     it('lists exactly the organizations with an active assignment, with roles', async () => {
       const response = await request('admin', '/organizations?mine=true');
       expect(response.statusCode).toBe(200);
@@ -143,7 +155,7 @@ describe('organization access guards (integration)', () => {
     });
   });
 
-  describe('organization settings (0051)', () => {
+  describe('organization settings', () => {
     it('lets the active organization admin update the primary language', async () => {
       const response = await patch('admin', `/organizations/liga-segura/settings`, {
         primaryLanguage: 'fr',
@@ -181,6 +193,46 @@ describe('organization access guards (integration)', () => {
         payload: payload as never,
       });
     }
+  });
+
+  describe('organization storage usage', () => {
+    it('lets the active organization admin view storage usage', async () => {
+      const repo = new ObjectMetadataRepository(scratch.db);
+      const passed = await withTransaction(scratch.db, (uow) =>
+        repo.save(uow, {
+          organizationId,
+          profile: 'filesystem',
+          storageKey: `${organizationId}/photo.png`,
+          contentType: 'image/png',
+          sizeBytes: 1048576, // 1 MB
+          uploadedBy: 'user:admin',
+        }),
+      );
+      await repo.markPassed(passed.objectId);
+
+      const response = await request('admin', `/organizations/liga-segura/storage-usage`);
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual({
+        totalBytes: 1048576,
+        objectCount: 1,
+      });
+    });
+
+    it('refuses an inactive organization user with 403', async () => {
+      const response = await request('inactive', `/organizations/liga-segura/storage-usage`);
+      expect(response.statusCode).toBe(403);
+    });
+
+    it('refuses a participant token with 403', async () => {
+      const response = await request('participant', `/organizations/liga-segura/storage-usage`);
+      expect(response.statusCode).toBe(403);
+    });
+
+    it('refuses an unknown organization alias with 403', async () => {
+      const response = await request('admin', `/organizations/no-such-org/storage-usage`);
+      expect(response.statusCode).toBe(403);
+      expect(response.json().message).toContain('Requested organization does not exist');
+    });
   });
 
   function request(token: string, url: string) {

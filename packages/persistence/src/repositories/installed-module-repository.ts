@@ -6,7 +6,7 @@ import type { UnitOfWork } from '../transaction.js';
 import type { AuditContext } from './enrollment-repository.js';
 
 export type InstalledModuleKind = 'discipline' | 'tournament-profile';
-export type ModuleSourceKind = 'curated' | 'alternate';
+export type ModuleSourceKind = 'curated' | 'alternate' | 'authored';
 
 export interface InstalledModule {
   readonly moduleId: string;
@@ -33,7 +33,7 @@ export interface InstalledModuleAsset {
 }
 
 /**
- * Community-installed modules (0036) — separate from
+ * Community-installed modules — separate from
  * `TournamentRepository`/`TournamentProfileRepository`, which own the
  * versioned artifact rows themselves. This tracks *that a module was
  * installed*, from where, and by whom it is attributed — the facts the

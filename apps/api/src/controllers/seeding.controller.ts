@@ -1,17 +1,19 @@
 import {
   Body,
-  ConflictException,
   Controller,
   Get,
   HttpCode,
   Inject,
-  NotFoundException,
   Param,
   ParseIntPipe,
   Post,
   Req,
-  UnprocessableEntityException,
 } from '@nestjs/common';
+import {
+  ConflictException,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '../http/error-contract.js';
 import {
   ApiBearerAuth,
   ApiConflictResponse,
@@ -42,7 +44,7 @@ import {
 import type { Kysely } from 'kysely';
 import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
-import { RequireOrganizationRole } from '../auth/access-requirement.js';
+import { RequireOrganizationCapability } from '../auth/access-requirement.js';
 import { ProblemResponse } from '../dto/organization.dto.js';
 import {
   BracketMatchResponse,
@@ -51,10 +53,11 @@ import {
   SeedingResponse,
 } from '../dto/standings.dto.js';
 import { resolveTournament } from './standings.controller.js';
+import { readStageSeries } from './stage-series.js';
 import { DATABASE } from '../database.token.js';
 
 /**
- * Seeding and the bracket the engine builds from it (0024).
+ * Seeding and the bracket the engine builds from it.
  *
  * The bracket is generated here rather than read out of the fixtures table
  * because the persisted rows carry a round and two entrants and nothing about
@@ -71,7 +74,7 @@ export class SeedingController {
 
   @Get('seeding')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-seeding')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'The stage’s seed order and its generated bracket',
@@ -114,7 +117,7 @@ export class SeedingController {
   @Post('seeding')
   @HttpCode(200)
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-seeding')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Publish a seed order',
@@ -133,7 +136,7 @@ export class SeedingController {
     @Body() body: PublishSeedingRequest,
     @Req() request: RequestWithSubject,
   ): Promise<SeedingClassificationResponse> {
-    const { stageId, organizationId, record } = await this.stage(
+    const { stageId, tournamentId, organizationId, record } = await this.stage(
       organizationAlias,
       tournamentAlias,
       stageNumber,
@@ -142,7 +145,9 @@ export class SeedingController {
 
     const seeds = body.seeds ?? [];
     if (seeds.length === 0) {
-      throw new UnprocessableEntityException('A seed order must name every entrant');
+      throw new UnprocessableEntityException('A seed order must name every entrant', {
+        errorCode: 'seeding-unprocessable-entity',
+      });
     }
     validateSeedOrder(seeds, record.entrantIds);
 
@@ -159,7 +164,7 @@ export class SeedingController {
     // open since before the first result still has the button enabled, and the
     // only place that can be told is the one the request lands in.
     if (classification.mutationClass === 'blocked_after_results') {
-      throw new ConflictException(classification.reason);
+      throw new ConflictException(classification.reason, { errorCode: 'seeding-conflict' });
     }
 
     const orderedEntrantIds = [...seeds]
@@ -168,6 +173,14 @@ export class SeedingController {
     const newGraph = this.graphOf(record.format, orderedEntrantIds);
     const fixtures = resolvedFixtureInputs(newGraph);
 
+    // A stage declaring a series materializes its whole span up front, so every game of a
+    // best-of-five is a real match with its own id from the moment the bracket exists — that
+    // is what the schedule builder places in slots, and what the engine later anulls if the
+    // series decides early. A stage declaring none passes no `matchCount` at all and gets the
+    // one match per fixture it has always got.
+    const declaration = await readStageSeries(this.db, { tournamentId, stageId });
+    const seriesSpan = declaration === undefined ? {} : { matchCount: declaration.span };
+
     const competition = new CompetitionRepository(this.db);
     try {
       await withTransaction(this.db, (uow) =>
@@ -175,6 +188,7 @@ export class SeedingController {
           ? competition.replaceFixtures(uow, {
               stageId,
               fixtures,
+              ...seriesSpan,
               organizationId,
               actor: actorOf(request),
               authorizationContext: authorizationContextOf(request),
@@ -182,13 +196,15 @@ export class SeedingController {
           : competition.createFixtures(uow, {
               stageId,
               fixtures,
+              ...seriesSpan,
               organizationId,
               actor: actorOf(request),
               authorizationContext: authorizationContextOf(request),
             }),
       );
     } catch (error) {
-      if (error instanceof InvariantViolationError) throw new ConflictException(error.message);
+      if (error instanceof InvariantViolationError)
+        throw new ConflictException(error.message, { errorCode: 'seeding-conflict' });
       throw error;
     }
 
@@ -205,12 +221,15 @@ export class SeedingController {
       format: format as FixtureGraph['format'],
       entrants: entrantIds.map((entrantId, index) => ({ entrantId, seed: index + 1 })),
     });
-    if (!generated.ok) throw new UnprocessableEntityException(generated.error.message);
+    if (!generated.ok)
+      throw new UnprocessableEntityException(generated.error.message, {
+        errorCode: 'seeding-unprocessable-entity',
+      });
     return generated.value;
   }
 
   /**
-   * Resolves the stage plus its effective seeding record (0066).
+   * Resolves the stage plus its effective seeding record.
    *
    * `StageReadModel.stageRecord` derives `entrantIds` from the stage's own matches — correct once a
    * bracket exists, but a stage with none yet (freshly created, never seeded) has no matches to read,
@@ -230,6 +249,7 @@ export class SeedingController {
     request: RequestWithSubject,
   ): Promise<{
     readonly stageId: string;
+    readonly tournamentId: string;
     readonly organizationId: string;
     readonly record: NonNullable<Awaited<ReturnType<StageReadModel['stageRecord']>>>;
   }> {
@@ -243,20 +263,31 @@ export class SeedingController {
       tournament.tournamentId,
     );
     const stage = stages.find((candidate) => candidate.number === stageNumber);
-    if (!stage) throw new NotFoundException(`No stage ${stageNumber} in "${tournamentAlias}"`);
+    if (!stage)
+      throw new NotFoundException(`No stage ${stageNumber} in "${tournamentAlias}"`, {
+        errorCode: 'seeding-not-found',
+      });
 
     const record = await new StageReadModel(this.db).stageRecord(stage.stageId);
-    if (!record) throw new NotFoundException(`No stage ${stageNumber} in "${tournamentAlias}"`);
+    if (!record)
+      throw new NotFoundException(`No stage ${stageNumber} in "${tournamentAlias}"`, {
+        errorCode: 'seeding-not-found',
+      });
 
     const effectiveRecord = record.hasGeneratedFixtures
       ? record
       : { ...record, entrantIds: await acceptedEntrantIds(this.db, tournament.tournamentId) };
 
-    return { stageId: stage.stageId, organizationId, record: effectiveRecord };
+    return {
+      stageId: stage.stageId,
+      tournamentId: tournament.tournamentId,
+      organizationId,
+      record: effectiveRecord,
+    };
   }
 }
 
-/** The tournament's currently accepted registrations, in registration order (0066). */
+/** The tournament's currently accepted registrations, in registration order. */
 async function acceptedEntrantIds(
   db: Kysely<Database>,
   tournamentId: string,
@@ -302,6 +333,9 @@ export function toBracketMatch(
       ...(slot.kind === 'entrant' ? { entrantId: slot.entrantId } : {}),
       ...(slot.kind === 'winner-of' || slot.kind === 'loser-of' ? { matchId: slot.matchId } : {}),
       ...(recorded?.scores?.[index] === undefined ? {} : { score: recorded.scores[index] }),
+      ...(recorded?.resultReasons?.[index] === undefined
+        ? {}
+        : { resultReason: recorded.resultReasons[index] }),
     })),
   };
 }
@@ -311,7 +345,9 @@ function validateSeedOrder(
   expectedEntrantIds: readonly string[],
 ): void {
   if (seeds.length !== expectedEntrantIds.length) {
-    throw new UnprocessableEntityException('A seed order must name every entrant exactly once');
+    throw new UnprocessableEntityException('A seed order must name every entrant exactly once', {
+      errorCode: 'seeding-unprocessable-entity',
+    });
   }
 
   const expectedEntrants = new Set(expectedEntrantIds);
@@ -319,16 +355,25 @@ function validateSeedOrder(
   const seenSeeds = new Set<number>();
   for (const entry of seeds) {
     if (!Number.isInteger(entry.seed) || entry.seed < 1 || entry.seed > expectedEntrantIds.length) {
-      throw new UnprocessableEntityException('Seed numbers must form the full 1-based stage order');
+      throw new UnprocessableEntityException(
+        'Seed numbers must form the full 1-based stage order',
+        { errorCode: 'seeding-unprocessable-entity' },
+      );
     }
     if (!expectedEntrants.has(entry.entrantId)) {
-      throw new UnprocessableEntityException('A seed order may only name entrants in this stage');
+      throw new UnprocessableEntityException('A seed order may only name entrants in this stage', {
+        errorCode: 'seeding-unprocessable-entity',
+      });
     }
     if (seenEntrants.has(entry.entrantId)) {
-      throw new UnprocessableEntityException('A seed order may not place an entrant twice');
+      throw new UnprocessableEntityException('A seed order may not place an entrant twice', {
+        errorCode: 'seeding-unprocessable-entity',
+      });
     }
     if (seenSeeds.has(entry.seed)) {
-      throw new UnprocessableEntityException('A seed number may only appear once');
+      throw new UnprocessableEntityException('A seed number may only appear once', {
+        errorCode: 'seeding-unprocessable-entity',
+      });
     }
     seenEntrants.add(entry.entrantId);
     seenSeeds.add(entry.seed);

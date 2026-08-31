@@ -4,6 +4,7 @@ import { err, ok, type Result } from '../result.js';
 import {
   describe,
   fieldOf,
+  LOCALIZED_LABEL_SCHEMA,
   moduleDocumentAjv,
   RULE_SCRIPT_SCHEMA_ID,
   type JsonSchemaDocument,
@@ -29,7 +30,8 @@ export const TOURNAMENT_PROFILE_SCHEMA: JsonSchemaDocument = Object.freeze({
   properties: {
     alias: { type: 'string', pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$', maxLength: 64 },
     version: { type: 'string', minLength: 1 },
-    name: { type: 'string', minLength: 1 },
+    name: LOCALIZED_LABEL_SCHEMA,
+    description: LOCALIZED_LABEL_SCHEMA,
     attribution: {
       type: 'object',
       required: ['author', 'licence'],

@@ -1,7 +1,7 @@
 import { COLOR_PRIMITIVES, type ColorPrimitive } from './primitives.js';
 
 /**
- * Semantic state tokens (0019).
+ * Semantic state tokens.
  *
  * A component names a *state*, never a colour. `live` moving from cyan to
  * something else is then one line here rather than a search across three

@@ -44,12 +44,40 @@ describe('discipline test builders', () => {
       expect(football.statistics.map((statistic) => statistic.code)).toEqual([
         'goals-for',
         'goals-against',
+        'player-own-goals',
+        'assists',
+        'yellow-cards',
+        'red-cards',
         'wins',
         'draws',
         'losses',
         'points',
         'played',
       ]);
+    });
+
+    it('declares player-ranking table layouts for top scorers, assists, and cards', () => {
+      expect(football.tableLayouts?.map((layout) => layout.code)).toEqual([
+        'top-scorers',
+        'assists',
+        'cards',
+      ]);
+      const topScorers = football.tableLayouts?.find((layout) => layout.code === 'top-scorers');
+      expect(topScorers?.target).toBe('player-ranking');
+      expect(topScorers?.entityGranularity).toBe('person');
+      const cards = football.tableLayouts?.find((layout) => layout.code === 'cards');
+      expect(cards?.defaultSort).toEqual([
+        { columnCode: 'red-cards', direction: 'desc' },
+        { columnCode: 'yellow-cards', direction: 'desc' },
+      ]);
+    });
+
+    it('declares organization-granularity collector for career goals', () => {
+      const careerGoals = football.collectors?.find(
+        (collector) => collector.code === 'career-goals',
+      );
+      expect(careerGoals).toBeDefined();
+      expect(careerGoals?.granularity).toEqual({ actor: 'person', competition: 'organization' });
     });
 
     it('counts matches played rather than summing them', () => {
@@ -75,7 +103,7 @@ describe('discipline test builders', () => {
       );
     });
 
-    it('satisfies a three-level tiebreak binding, the defect that motivated 0009', () => {
+    it('satisfies a three-level tiebreak binding that requires declarative accounting', () => {
       const binding = bindCapabilities(tennis, {
         profileId: '01890000-0000-7000-8000-00000000p001',
         alias: 'club-ladder',

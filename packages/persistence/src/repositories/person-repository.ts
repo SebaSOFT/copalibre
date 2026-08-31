@@ -1,6 +1,7 @@
 import type { Kysely } from 'kysely';
 import {
   Alias,
+  isValidCountryCode,
   normaliseNaturalKey,
   suggestAvailableAlias,
   validatePerson,
@@ -16,7 +17,7 @@ import type { UnitOfWork } from '../transaction.js';
 import type { AuditContext } from './enrollment-repository.js';
 
 /**
- * People and their memberships (0015-competition-identity-and-seasons).
+ * People and their memberships.
  *
  * The one behaviour worth stating: registering somebody who is already known
  * **recognises** them rather than creating a second row. That is what a natural
@@ -40,6 +41,7 @@ export class PersonRepository {
       readonly displayName: string;
       readonly alias?: string;
       readonly naturalKey?: NaturalKey;
+      readonly birthDate?: string;
     } & AuditContext,
   ): Promise<{ readonly person: Person; readonly recognised: boolean }> {
     if (input.naturalKey) {
@@ -49,9 +51,20 @@ export class PersonRepository {
 
     const alias =
       input.alias ?? (await this.suggestPersonAlias(input.organizationId, input.displayName));
-    const validatedAlias = Alias.create('participant', alias);
+    const validatedAlias = Alias.create('entrant', alias);
     if (!validatedAlias.ok) {
       throw new InvariantViolationError(validatedAlias.error.message, { alias });
+    }
+    // Only reachable with an explicit alias: a suggested one is already
+    // disambiguated against every alias this organization holds.
+    if (input.alias !== undefined) {
+      const claimed = await this.findByAlias(input.organizationId, alias);
+      if (claimed) {
+        throw new InvariantViolationError('Another person already uses this alias', {
+          alias,
+          conflictsWith: claimed.personId,
+        });
+      }
     }
 
     const person: Person = {
@@ -60,6 +73,7 @@ export class PersonRepository {
       displayName: input.displayName,
       alias,
       ...(input.naturalKey === undefined ? {} : { naturalKey: input.naturalKey }),
+      ...(input.birthDate === undefined ? {} : { birthDate: input.birthDate }),
     };
 
     const valid = validatePerson(person);
@@ -77,6 +91,9 @@ export class PersonRepository {
         natural_key_normalised: person.naturalKey
           ? normaliseNaturalKey(person.naturalKey.value)
           : null,
+        nationality: null,
+        birth_date: person.birthDate ?? null,
+        photo_object_id: null,
         created_at: new Date(),
       })
       .execute();
@@ -94,6 +111,61 @@ export class PersonRepository {
     });
 
     return { person, recognised: false };
+  }
+
+  /**
+   * Corrects a person's own display name and/or alias — a misspelling caught
+   * after registration, not a new person. Neither field is required: an
+   * absent one is left as it was.
+   */
+  async updateIdentity(
+    uow: UnitOfWork,
+    input: {
+      readonly personId: string;
+      readonly organizationId: string;
+      readonly displayName?: string;
+      readonly alias?: string;
+    } & AuditContext,
+  ): Promise<Person> {
+    const previous = await this.findPerson(input.personId);
+    if (input.alias !== undefined) {
+      const validatedAlias = Alias.create('entrant', input.alias);
+      if (!validatedAlias.ok) {
+        throw new InvariantViolationError(validatedAlias.error.message, { alias: input.alias });
+      }
+      const claimed = await this.findByAlias(input.organizationId, input.alias);
+      if (claimed && claimed.personId !== input.personId) {
+        throw new InvariantViolationError('Another person already uses this alias', {
+          alias: input.alias,
+          conflictsWith: claimed.personId,
+        });
+      }
+    }
+
+    const row = await uow.tx
+      .updateTable('persons')
+      .set({
+        ...(input.displayName === undefined ? {} : { display_name: input.displayName }),
+        ...(input.alias === undefined ? {} : { alias: input.alias }),
+      })
+      .where('person_id', '=', input.personId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const person = toPerson(row);
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'person',
+      entityId: input.personId,
+      action: 'person.identity-updated',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      ...(previous === undefined
+        ? {}
+        : { previousState: { displayName: previous.displayName, alias: previous.alias ?? null } }),
+      resultingState: { displayName: person.displayName, alias: person.alias ?? null },
+    });
+    return person;
   }
 
   /**
@@ -140,6 +212,128 @@ export class PersonRepository {
     });
 
     return toPerson(row);
+  }
+
+  /** Sets or clears a person's nationality — an operator correcting or removing it. */
+  async setNationality(
+    uow: UnitOfWork,
+    input: {
+      readonly personId: string;
+      readonly organizationId: string;
+      readonly nationality: string | null;
+    } & AuditContext,
+  ): Promise<Person> {
+    if (input.nationality !== null && !isValidCountryCode(input.nationality)) {
+      throw new InvariantViolationError(
+        `"${input.nationality}" is not a valid ISO 3166-1 alpha-2 country code`,
+        { personId: input.personId },
+      );
+    }
+
+    const previous = await this.findPerson(input.personId);
+    const row = await uow.tx
+      .updateTable('persons')
+      .set({ nationality: input.nationality })
+      .where('person_id', '=', input.personId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const person = toPerson(row);
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'person',
+      entityId: input.personId,
+      action: 'person.nationality-set',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      ...(previous === undefined
+        ? {}
+        : { previousState: { nationality: previous.nationality ?? null } }),
+      resultingState: { nationality: person.nationality ?? null },
+    });
+    return person;
+  }
+
+  /**
+   * Attaches an uploaded photo's object-storage reference, in the same
+   * transaction as the `object_metadata` insert.
+   */
+  async setPhoto(
+    uow: UnitOfWork,
+    input: {
+      readonly personId: string;
+      readonly organizationId: string;
+      readonly photoObjectId: string;
+    } & AuditContext,
+  ): Promise<Person> {
+    const row = await uow.tx
+      .updateTable('persons')
+      .set({ photo_object_id: input.photoObjectId })
+      .where('person_id', '=', input.personId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const person = toPerson(row);
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'person',
+      entityId: input.personId,
+      action: 'person.photo-set',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      resultingState: { photoObjectId: person.photoObjectId },
+    });
+    return person;
+  }
+
+  /** Sets or clears a person's birth date (ISO date YYYY-MM-DD). */
+  async setBirthDate(
+    uow: UnitOfWork,
+    input: {
+      readonly personId: string;
+      readonly organizationId: string;
+      readonly birthDate: string | null;
+    } & AuditContext,
+  ): Promise<Person> {
+    const previous = await this.findPerson(input.personId);
+    if (!previous) {
+      throw new InvariantViolationError(`No person "${input.personId}" exists`, {
+        personId: input.personId,
+      });
+    }
+
+    if (input.birthDate !== null) {
+      const candidate: Person = {
+        ...previous,
+        birthDate: input.birthDate,
+      };
+      const validation = validatePerson(candidate);
+      if (!validation.ok) {
+        throw new InvariantViolationError(validation.error.message, validation.error.details);
+      }
+    }
+
+    const row = await uow.tx
+      .updateTable('persons')
+      .set({ birth_date: input.birthDate })
+      .where('person_id', '=', input.personId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const person = toPerson(row);
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'person',
+      entityId: input.personId,
+      action: 'person.birth-date-set',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      ...(previous === undefined
+        ? {}
+        : { previousState: { birthDate: previous.birthDate ?? null } }),
+      resultingState: { birthDate: person.birthDate ?? null },
+    });
+    return person;
   }
 
   async findByNaturalKey(
@@ -288,7 +482,7 @@ export class PersonRepository {
   }
 
   /**
-   * Removes a membership (0064).
+   * Removes a membership.
    *
    * Hard delete, not a `deleted_at` flag: `players` carries none, and its
    * `players_person_team_unique(person_id, team_id)` constraint already
@@ -322,6 +516,90 @@ export class PersonRepository {
     });
   }
 
+  /**
+   * Removes a person who has never been used for anything — no entrant
+   * registration, no roster membership, no identity link, no submitted
+   * report. Any one of those references refuses the removal by name, an
+   * up-front check rather than a caught foreign-key-violation error, so the
+   * refusal says which of four unrelated tables is blocking (design.md).
+   * Requires the caller to have already confirmed the person exists and
+   * belongs to this organization, matching `updateIdentity`'s own contract.
+   */
+  async remove(
+    uow: UnitOfWork,
+    input: { readonly personId: string } & AuditContext,
+  ): Promise<void> {
+    const entrant = await uow.tx
+      .selectFrom('entrants')
+      .innerJoin('tournaments', 'tournaments.tournament_id', 'entrants.tournament_id')
+      .select('tournaments.name as tournament_name')
+      .where('entrants.person_id', '=', input.personId)
+      .limit(1)
+      .executeTakeFirst();
+    if (entrant) {
+      throw new InvariantViolationError(
+        `Cannot remove: registered as an entrant in "${entrant.tournament_name}"`,
+        { personId: input.personId, reason: 'entrant-registration' },
+      );
+    }
+
+    const player = await uow.tx
+      .selectFrom('players')
+      .innerJoin('teams', 'teams.team_id', 'players.team_id')
+      .select('teams.name as team_name')
+      .where('players.person_id', '=', input.personId)
+      .limit(1)
+      .executeTakeFirst();
+    if (player) {
+      throw new InvariantViolationError(`Cannot remove: rostered on team "${player.team_name}"`, {
+        personId: input.personId,
+        reason: 'roster-membership',
+      });
+    }
+
+    const link = await uow.tx
+      .selectFrom('participant_identity_links')
+      .select('principal_id')
+      .where('person_id', '=', input.personId)
+      .limit(1)
+      .executeTakeFirst();
+    if (link) {
+      throw new InvariantViolationError('Cannot remove: has an identity link — unlink first', {
+        personId: input.personId,
+        reason: 'identity-link',
+      });
+    }
+
+    const report = await uow.tx
+      .selectFrom('participant_reports')
+      .select('report_id')
+      .where('submitted_by_person_id', '=', input.personId)
+      .limit(1)
+      .executeTakeFirst();
+    if (report) {
+      throw new InvariantViolationError('Cannot remove: has submitted a participant report', {
+        personId: input.personId,
+        reason: 'participant-report',
+      });
+    }
+
+    const deleted = await uow.tx
+      .deleteFrom('persons')
+      .where('person_id', '=', input.personId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'person',
+      entityId: input.personId,
+      action: 'person.removed',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      previousState: { ...toPerson(deleted) },
+    });
+  }
+
   /** Every team this human plays for — the question the split exists to answer. */
   async playersOf(personId: string): Promise<readonly Player[]> {
     const rows = await this.db
@@ -351,6 +629,166 @@ export class PersonRepository {
       .execute();
     return rows.map(toPerson);
   }
+
+  /**
+   * Chronological list of tournaments and teams a person has been entered under
+   * within an organization.
+   */
+  async competitionHistory(
+    organizationId: string,
+    personId: string,
+  ): Promise<readonly PersonCompetitionHistoryItem[]> {
+    const rows = await this.db
+      .selectFrom('players')
+      .innerJoin('teams', 'teams.team_id', 'players.team_id')
+      .innerJoin('entrants', 'entrants.team_id', 'teams.team_id')
+      .innerJoin('tournaments', 'tournaments.tournament_id', 'entrants.tournament_id')
+      .select([
+        'tournaments.tournament_id as tournamentId',
+        'tournaments.name as tournamentName',
+        'tournaments.alias as tournamentAlias',
+        'tournaments.descriptor_id as descriptorId',
+        'tournaments.descriptor_version as descriptorVersion',
+        'tournaments.created_at as tournamentCreatedAt',
+        'teams.team_id as teamId',
+        'teams.name as teamName',
+        'players.role as role',
+        'entrants.entrant_id as entrantId',
+        'entrants.abbreviation as entrantAbbreviation',
+      ])
+      .where('players.person_id', '=', personId)
+      .where('tournaments.organization_id', '=', organizationId)
+      .where('tournaments.status', '!=', 'draft')
+      .orderBy('tournaments.created_at', 'asc')
+      .execute();
+
+    return rows.map((r) => ({
+      tournamentId: r.tournamentId,
+      tournamentName: r.tournamentName,
+      tournamentAlias: r.tournamentAlias,
+      disciplineRef: { descriptorId: r.descriptorId, version: r.descriptorVersion },
+      teamId: r.teamId,
+      teamName: r.teamName,
+      role: r.role as PlayerRole,
+      entrantId: r.entrantId,
+      entrantName: r.teamName,
+      entrantAbbreviation: r.entrantAbbreviation ?? undefined,
+      createdAt: new Date(r.tournamentCreatedAt),
+    }));
+  }
+
+  /**
+   * Organization-wide collector totals for a person, grouped by discipline.
+   */
+  async careerTotals(
+    organizationId: string,
+    personId: string,
+  ): Promise<readonly PersonCareerDisciplineTotals[]> {
+    const rows = await this.db
+      .selectFrom('statistic_totals')
+      .select(['collector_code'])
+      .select((eb) => eb.fn.sum<number>('value').as('value'))
+      .select((eb) => eb.fn.sum<number>('samples').as('samples'))
+      .where('organization_id', '=', organizationId)
+      .where('actor_id', '=', personId)
+      .where('actor_granularity', '=', 'person')
+      .where('competition_granularity', '=', 'organization')
+      .groupBy('collector_code')
+      .execute();
+
+    if (rows.length === 0) return [];
+
+    const valueByCollector = new Map<string, { value: number; samples: number }>();
+    for (const r of rows) {
+      valueByCollector.set(r.collector_code, {
+        value: Number(r.value ?? 0),
+        samples: Number(r.samples ?? 0),
+      });
+    }
+
+    const descriptorRows = await this.db
+      .selectFrom('discipline_descriptors')
+      .select(['descriptor_id as descriptorId', 'name', 'document'])
+      .execute();
+
+    const result: PersonCareerDisciplineTotals[] = [];
+    const claimedCollectors = new Set<string>();
+
+    for (const descRow of descriptorRows) {
+      const descriptor =
+        typeof descRow.document === 'string' ? JSON.parse(descRow.document) : descRow.document;
+      const orgCollectors: Array<{ code: string }> = (descriptor.collectors ?? []).filter(
+        (c: { granularity?: { actor: string; competition: string } }) =>
+          c.granularity?.actor === 'person' && c.granularity?.competition === 'organization',
+      );
+      if (orgCollectors.length > 0) {
+        const disciplineTotals: PersonCareerStatisticTotal[] = [];
+        for (const c of orgCollectors) {
+          const stats = valueByCollector.get(c.code);
+          if (stats) {
+            disciplineTotals.push({
+              collectorCode: c.code,
+              value: stats.value,
+              samples: stats.samples,
+            });
+            claimedCollectors.add(c.code);
+          }
+        }
+        if (disciplineTotals.length > 0) {
+          result.push({
+            descriptorId: descRow.descriptorId,
+            disciplineName: descRow.name,
+            totals: disciplineTotals,
+          });
+        }
+      }
+    }
+
+    const unclaimed: PersonCareerStatisticTotal[] = [];
+    for (const [code, stats] of valueByCollector.entries()) {
+      if (!claimedCollectors.has(code)) {
+        unclaimed.push({
+          collectorCode: code,
+          value: stats.value,
+          samples: stats.samples,
+        });
+      }
+    }
+    if (unclaimed.length > 0) {
+      result.push({
+        descriptorId: 'default',
+        totals: unclaimed,
+      });
+    }
+
+    return result;
+  }
+}
+
+export interface PersonCompetitionHistoryItem {
+  readonly tournamentId: string;
+  readonly tournamentName: string;
+  readonly tournamentAlias: string;
+  readonly disciplineRef: { readonly descriptorId: string; readonly version: string };
+  readonly teamId: string;
+  readonly teamName: string;
+  readonly role: PlayerRole;
+  readonly entrantId?: string;
+  readonly entrantName?: string;
+  readonly entrantAbbreviation?: string;
+  readonly createdAt: Date;
+}
+
+export interface PersonCareerStatisticTotal {
+  readonly collectorCode: string;
+  readonly value: number;
+  readonly samples: number;
+}
+
+export interface PersonCareerDisciplineTotals {
+  readonly descriptorId: string;
+  readonly disciplineName?: string;
+  readonly totals: readonly PersonCareerStatisticTotal[];
 }
 
 function nextAlias(prefix: string, aliases: readonly string[]): string {
@@ -366,9 +804,20 @@ interface PersonRow {
   readonly display_name: string;
   readonly natural_key_kind: string | null;
   readonly natural_key_value: string | null;
+  readonly nationality?: string | null;
+  readonly birth_date?: string | Date | null;
+  readonly photo_object_id?: string | null;
 }
 
 function toPerson(row: PersonRow): Person {
+  let birthDate: string | undefined = undefined;
+  if (row.birth_date !== null && row.birth_date !== undefined) {
+    if (typeof row.birth_date === 'string') {
+      birthDate = row.birth_date.slice(0, 10);
+    } else if (row.birth_date instanceof Date) {
+      birthDate = row.birth_date.toISOString().slice(0, 10);
+    }
+  }
   return {
     personId: row.person_id,
     organizationId: row.organization_id,
@@ -377,6 +826,13 @@ function toPerson(row: PersonRow): Person {
     ...(row.natural_key_kind === null || row.natural_key_value === null
       ? {}
       : { naturalKey: { kind: row.natural_key_kind, value: row.natural_key_value } }),
+    ...(row.nationality === null || row.nationality === undefined
+      ? {}
+      : { nationality: row.nationality }),
+    ...(birthDate === undefined ? {} : { birthDate }),
+    ...(row.photo_object_id === null || row.photo_object_id === undefined
+      ? {}
+      : { photoObjectId: row.photo_object_id }),
   };
 }
 

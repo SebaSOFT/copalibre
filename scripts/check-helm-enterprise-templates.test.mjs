@@ -129,3 +129,36 @@ test('default install renders no HPA, PodDisruptionBudget, NetworkPolicy, Ingres
   assert.ok(byKind(docs, 'Deployment').length > 0);
   assert.equal(byKind(docs, 'Secret').length, 1);
 });
+
+test('createAdmin Job renders nothing when createAdmin.enabled is not set', () => {
+  const docs = helmTemplate();
+  const jobs = byKind(docs, 'Job').filter((job) => job.metadata.name.includes('create-admin'));
+  assert.deepEqual(jobs, []);
+});
+
+test('createAdmin Job renders a well-formed one-shot Job naming the release image, PRODUCT_ROLE, and CLI args', () => {
+  const docs = helmTemplate([
+    ['createAdmin.enabled', 'true'],
+    ['createAdmin.organizationAlias', 'my-league'],
+    ['createAdmin.organizationName', 'My League'],
+    ['createAdmin.email', 'admin@example.com'],
+  ]);
+  const [job] = byKind(docs, 'Job').filter((job) => job.metadata.name.includes('create-admin'));
+  assert.ok(job);
+  assert.equal(job.spec.backoffLimit, 0);
+  assert.equal(job.spec.template.spec.restartPolicy, 'Never');
+  const [container] = job.spec.template.spec.containers;
+  assert.equal(container.image, 'copalibre:local');
+  assert.deepEqual(
+    container.env.find((entry) => entry.name === 'PRODUCT_ROLE'),
+    { name: 'PRODUCT_ROLE', value: 'create-admin' },
+  );
+  assert.deepEqual(container.args, [
+    '--organization-alias',
+    'my-league',
+    '--organization-name',
+    'My League',
+    '--email',
+    'admin@example.com',
+  ]);
+});

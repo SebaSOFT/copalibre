@@ -1,5 +1,5 @@
 /**
- * Primitive values (0019). The only place a raw hex appears outside
+ * Primitive values. The only place a raw hex appears outside
  * documentation; everything else names a semantic or component token.
  *
  * Values come from chaos-vault's `copalibre-visual-identity.md`. CopaLibre is
@@ -43,6 +43,33 @@ export const FONT_WEIGHTS = {
 } as const;
 
 /**
+ * Tailwind's default type-scale progression, from compact metadata to display
+ * text. Reusing its established steps keeps existing component sizes close to
+ * their current values while replacing ad hoc choices with one named scale.
+ */
+export const FONT_SIZE = {
+  xs: '0.75rem',
+  sm: '0.875rem',
+  base: '1rem',
+  md: '1.125rem',
+  lg: '1.25rem',
+  xl: '1.5rem',
+  '2xl': '1.875rem',
+  '3xl': '2.25rem',
+} as const;
+
+/**
+ * Viewport widths from the visual-identity doctrine's screenshot acceptance
+ * gate: small phone, tablet, small laptop, and desktop.
+ */
+export const BREAKPOINTS = {
+  sm: '375px',
+  md: '768px',
+  lg: '1024px',
+  xl: '1440px',
+} as const;
+
+/**
  * A 4px scale (resolves design.md's open question).
  *
  * Four rather than eight because operator tables are dense and an 8px floor
@@ -68,8 +95,11 @@ export const RADIUS = {
   sm: '2px',
   md: '4px',
   /** The chamfer's cut, not a corner radius: see `generate/css.ts`. */
-  chamfer: '10px',
-  'chamfer-control': '6px',
+  chamfer: '14px',
+  'chamfer-control': '8px',
+  /** Same cut size as `chamfer` — the framed-image border matches it visually. */
+  'image-frame': '14px',
+  'image-frame-control': '8px',
 } as const;
 
 /**
@@ -89,3 +119,17 @@ export const MOTION = {
 
 /** Minimum interactive target; the identity doc's accessibility gate. */
 export const TOUCH_TARGET = '44px';
+
+/**
+ * Control-web's data-density composition: the same 4px `SPACING`
+ * scale, mapped to the step an operator screen actually needs at each named
+ * gap. No new spacing value is introduced here — every value below is an
+ * existing member of `SPACING`, selected for a denser composition than the
+ * marketing surfaces use, not a second scale.
+ */
+export const CONTROL_DENSITY_SPACING = {
+  'section-gap': SPACING['6'],
+  'row-gap': SPACING['2'],
+  'field-gap': SPACING['3'],
+  'inline-gap': SPACING['1'],
+} as const;

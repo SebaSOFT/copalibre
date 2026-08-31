@@ -3,7 +3,7 @@ import { err, ok, type Result } from '../result.js';
 
 /**
  * The things a fixture needs besides two entrants: somewhere to play and
- * someone to officiate (0012-resource-scheduling-and-conflicts).
+ * someone to officiate.
  *
  * Both are *referenceable entities* rather than free text on the fixture,
  * because the whole point of this phase is detecting that two fixtures want the
@@ -29,6 +29,14 @@ export interface Venue {
   readonly concurrentCapacity: number;
   /** Free-form, for an operator to read; never parsed. */
   readonly address?: string;
+  /**
+   * Free-form, operator-entered key/value details describing what kind of
+   * resource this is — physical (address, playing surface) or virtual (server
+   * address, region, current map). Never parsed, validated, or acted on;
+   * accommodates both without a `kind` discriminant forcing a shape neither
+   * this catalogue's disciplines nor a future one is committed to.
+   */
+  readonly details?: Readonly<Record<string, string>>;
 }
 
 export type OfficialRole = 'referee' | 'assistant' | 'table-official' | 'observer';
@@ -56,9 +64,8 @@ export interface TimeWindow {
 }
 
 export interface ResourceAssignment {
-  readonly fixtureId: string;
-  readonly window: TimeWindow;
-  readonly venueId?: string;
+  readonly matchId: string;
+  readonly slotId: string;
   readonly officialIds?: readonly string[];
 }
 

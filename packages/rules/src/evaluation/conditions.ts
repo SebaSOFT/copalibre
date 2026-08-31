@@ -4,15 +4,15 @@ import {
   type ConditionOptions,
   type ExecutionContext,
 } from '@sebasoft/neuron-js';
-import type { RulesRegistry } from '../registry/rules-registry.js';
+import { parameter, type RulesRegistry } from '../registry/rules-registry.js';
 
 /**
- * The condition vocabulary beyond arithmetic (0013-scripting-hook-surface).
+ * The condition vocabulary beyond arithmetic.
  *
  * Until this change the whole vocabulary was Neuron's `compare_two_numbers`: a
  * rule language whose only test is a numeric comparison covers thresholds and
  * nothing else. Every phase that needed expressiveness added an *action*
- * instead, which is why 0009's win condition reads as `winSegment` and
+ * instead, which is why the win condition reads as `winSegment` and
  * `requireMargin` rather than as conditions over a score.
  *
  * Four are added, each because a stated rule needs it — "if the entrant's
@@ -225,7 +225,7 @@ export class ValueInSetCondition extends AbstractCondition<CopalibreConditionOpt
  * It reads `options.path` off the state rather than a parameter's value,
  * because a parameter's `getValue` returns `null` both for "no such path" and
  * for "recorded as null", and this condition exists precisely to tell those
- * apart. A `null` reads as *not present* — 0009's "evaluated, does not apply" —
+ * apart. A `null` reads as *not present* — "evaluated, does not apply" —
  * while the message records that the question was asked.
  */
 export class ValueExistsCondition extends AbstractCondition<CopalibreConditionOptions> {
@@ -300,26 +300,109 @@ export function registerCopalibreConditions(registry: RulesRegistry): RulesRegis
     CompareTwoNumbersCondition.TYPE,
     CompareTwoNumbersCondition,
     'Compares two numbers (or two strings); options.onMissing declares what an absent operand means',
+    {
+      parameters: [
+        parameter(
+          'op1',
+          'Left operand',
+          'simple_number',
+          { type: 'number' },
+          { allowExpression: true },
+        ),
+        parameter('comp', 'Comparison operator', 'comparator', { enum: ORDERING_COMPARATORS }),
+        parameter(
+          'op2',
+          'Right operand',
+          'simple_number',
+          { type: 'number' },
+          { allowExpression: true },
+        ),
+      ],
+    },
   );
   registry.registerCondition(
     CompareTwoStringsCondition.TYPE,
     CompareTwoStringsCondition,
     'Compares two strings by equality or codepoint ordering; options.caseSensitive declares folding',
+    {
+      parameters: [
+        parameter(
+          'op1',
+          'Left text operand',
+          'simple_string',
+          { type: 'string' },
+          { allowExpression: true },
+        ),
+        parameter('comp', 'Comparison operator', 'comparator', { enum: ORDERING_COMPARATORS }),
+        parameter(
+          'op2',
+          'Right text operand',
+          'simple_string',
+          { type: 'string' },
+          { allowExpression: true },
+        ),
+      ],
+      optionsSchema: {
+        type: 'object',
+        properties: {
+          caseSensitive: { type: 'boolean' },
+          onMissing: { enum: ['error', 'false', 'true'] },
+        },
+        additionalProperties: false,
+      },
+    },
   );
   registry.registerCondition(
     ValueInSetCondition.TYPE,
     ValueInSetCondition,
     'Tests membership of the list declared in options.values',
+    {
+      parameters: [
+        parameter('value', 'Value to find', 'simple_string', {}, { allowExpression: true }),
+      ],
+      optionsSchema: {
+        type: 'object',
+        required: ['values'],
+        properties: {
+          values: { type: 'array' },
+          caseSensitive: { type: 'boolean' },
+          onMissing: { enum: ['error', 'false', 'true'] },
+        },
+        additionalProperties: false,
+      },
+    },
   );
   registry.registerCondition(
     ValueExistsCondition.TYPE,
     ValueExistsCondition,
     'Tests whether options.path was recorded at all, distinguishing absent from zero, empty and null',
+    {
+      parameters: [],
+      optionsSchema: {
+        type: 'object',
+        required: ['path'],
+        properties: { path: { type: 'string', minLength: 1 } },
+        additionalProperties: false,
+      },
+    },
   );
   registry.registerCondition(
     CompareTwoInstantsCondition.TYPE,
     CompareTwoInstantsCondition,
     'Compares two instants (epoch milliseconds or ISO-8601) as time, never as text',
+    {
+      parameters: [
+        {
+          ...parameter('op1', 'Left instant', 'simple_number', {}, { allowExpression: true }),
+          parameterTypes: ['simple_number', 'simple_string'],
+        },
+        parameter('comp', 'Comparison operator', 'comparator', { enum: ORDERING_COMPARATORS }),
+        {
+          ...parameter('op2', 'Right instant', 'simple_number', {}, { allowExpression: true }),
+          parameterTypes: ['simple_number', 'simple_string'],
+        },
+      ],
+    },
   );
   return registry;
 }

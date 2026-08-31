@@ -3,7 +3,9 @@
 ## Purpose
 Gives a competition the three identities it has been missing: the edition a tournament is being run
 as, the human behind a player, and the discipline a team plays.
+
 ## Requirements
+
 ### Requirement: A season is an edition of a tournament
 A tournament SHALL represent the recurring competition and a season one running of it, with stages
 belonging to the season, so editions relate to one another as data rather than as similar names.
@@ -93,7 +95,9 @@ The abbreviation SHALL NOT be derived from the name, and SHALL NOT be substitute
 ### Requirement: A club is reachable by a path identifier that may be suggested
 A club SHALL be able to carry an alias, unique within its organization, and the system SHALL be able
 to suggest one from the club's name — which the abbreviation is deliberately never derived from,
-because an alias is a transformation and an abbreviation is a choice.
+because an alias is a transformation and an abbreviation is a choice. Every suggestion the system
+offers SHALL itself be a valid alias — never a value that would fail the same validation an organizer's
+own input is subject to.
 
 #### Scenario: An alias is suggested from the name
 - **WHEN** a club named "Club Atlético San Martín" is created without an alias
@@ -107,3 +111,134 @@ because an alias is a transformation and an abbreviation is a choice.
 - **WHEN** an organizer supplies an alias
 - **THEN** it is validated and stored as given, and nothing is suggested over it
 
+#### Scenario: A near-maximum-length name still gets a valid suggested suffix
+- **WHEN** a club's folded name is already at the platform's alias length limit, and an organization
+  already has a club whose alias equals that full-length base
+- **THEN** the second club is offered a suggestion that still satisfies the length limit, not a
+  suggestion that exceeds it
+
+### Requirement: A person may declare a nationality
+
+A person SHALL be able to carry an optional nationality, stored as an ISO 3166-1 alpha-2 country code.
+A person without one is valid and unaffected by every existing requirement.
+
+#### Scenario: A person is registered with a nationality
+- **WHEN** a person is registered supplying a nationality code
+- **THEN** the code is stored and returned on every subsequent read of that person
+
+#### Scenario: A person is registered without a nationality
+- **WHEN** a person is registered with no nationality supplied
+- **THEN** registration succeeds and the person's nationality reads as absent, not a default or a guess
+
+#### Scenario: An invalid country code is refused
+- **WHEN** a nationality is supplied that is not a valid ISO 3166-1 alpha-2 code
+- **THEN** the write is rejected, naming the invalid code
+
+### Requirement: A person may carry an optional photo
+
+A person SHALL be able to carry an optional photo, stored as an object-storage reference rather than
+inline bytes. A person without one is valid; every surface that displays a person's photo SHALL show a
+placeholder rather than a broken image or an empty gap.
+
+#### Scenario: A photo is attached to a person
+- **WHEN** an operator uploads a photo for a person
+- **THEN** the person's photo reference is stored and resolvable to the uploaded image on every
+  subsequent read
+
+#### Scenario: A person's photo is replaced
+- **WHEN** an operator uploads a new photo for a person who already has one
+- **THEN** the stored reference is replaced and the previous image is no longer referenced from that
+  person
+
+#### Scenario: A person with no photo shows a placeholder
+- **WHEN** a person's profile is displayed and no photo was ever uploaded
+- **THEN** a placeholder image renders in its place, distinguishable from a real photo
+
+### Requirement: A club may carry an optional emblem
+
+A club SHALL be able to carry an optional emblem (crest/shield), stored as an object-storage reference.
+A club without one is valid; every surface that displays a club's emblem SHALL show a placeholder
+rather than a broken image or an empty gap.
+
+#### Scenario: An emblem is attached to a club
+- **WHEN** an organizer uploads an emblem for a club
+- **THEN** the club's emblem reference is stored and resolvable to the uploaded image on every
+  subsequent read
+
+#### Scenario: A club with no emblem shows a placeholder
+- **WHEN** a club's emblem is displayed and none was ever uploaded
+- **THEN** a placeholder image renders in its place, distinguishable from a real emblem
+
+### Requirement: An entrant carries a tournament-scoped, guaranteed-distinct abbreviation
+
+An entrant SHALL be able to carry a short label, in the same format as a club's or team's own
+abbreviation, distinct from every other entrant's label within the same tournament. This is a separate
+guarantee from a club's or team's own abbreviation, which remains organizer-chosen and
+collision-tolerant exactly as before — an entrant's label is what a tournament-scoped surface (a group
+table, a bracket cell, a match header) shows, and it is resolved automatically, as a default, only when
+nothing usable was explicitly supplied.
+
+#### Scenario: An unambiguous name resolves automatically on registration
+- **WHEN** a team registers for a tournament and no other registered entrant's label would collide
+  with a candidate derived from its name
+- **THEN** the entrant registers with that label already set, with no separate step required
+
+#### Scenario: A colliding name registers without a label, flagged for an officer
+- **WHEN** a team's derived candidate label matches an entrant already registered in the same
+  tournament
+- **THEN** the entrant registers successfully with no label set, and appears among the tournament's
+  entrants still needing one, rather than the system inventing a second candidate on its own
+
+#### Scenario: A usable explicitly supplied label is never overridden by derivation
+- **WHEN** a registration request or CSV-import row supplies a label that has valid format and is free
+  within the tournament
+- **THEN** that label is stored exactly as given, and no derived candidate is computed or considered
+
+#### Scenario: An unusable registration label falls back to one derived proposal
+- **WHEN** a registration request or CSV-import row supplies an empty, malformed, or tournament-colliding
+  label
+- **THEN** the system treats that input as absent and tries its ordinary derived candidate once; if that
+  candidate is also unavailable, the entrant registers without a label and needs officer resolution
+
+#### Scenario: A set label changes only through an explicit, audited request
+- **WHEN** an officer sets a new valid, tournament-free label for an entrant at any tournament lifecycle
+  point
+- **THEN** the label changes, its prior and resulting states are audited, and no automatic derivation runs
+
+#### Scenario: A duplicate label is refused, not merely reported
+- **WHEN** an officer explicitly sets an entrant's label to one another entrant in the same tournament
+  already carries
+- **THEN** the request is refused, naming the conflict — unlike a club's or team's own abbreviation,
+  where a shared value is reported but never refused
+
+#### Scenario: The same label is legal across different tournaments
+- **WHEN** two entrants in two different tournaments carry the identical label
+- **THEN** neither registration nor label change is affected by the other tournament's usage
+
+### Requirement: A person may declare a birth date, exposed publicly only as a computed age
+
+A person SHALL be able to carry an optional birth date. A person without one is valid and unaffected
+by every existing requirement. A surface that may read public competition data SHALL NOT receive the
+raw birth date; it SHALL receive, at most, an age computed from it.
+
+#### Scenario: A person is registered with a birth date
+- **WHEN** a person is registered supplying a birth date
+- **THEN** the date is stored and returned to an authorized (non-public) reader on every subsequent
+  read of that person
+
+#### Scenario: A person is registered without a birth date
+- **WHEN** a person is registered with no birth date supplied
+- **THEN** registration succeeds and the person's birth date reads as absent, not a default or a guess
+
+#### Scenario: An implausible birth date is refused
+- **WHEN** a birth date in the future is supplied
+- **THEN** the write is rejected, naming the reason
+
+#### Scenario: A public read receives a computed age, never the birth date
+- **WHEN** a surface that may read public competition data requests a person who has a birth date set
+- **THEN** it receives a computed age and does not receive the birth date itself, extending the same
+  boundary that already withholds a natural key from such a surface
+
+#### Scenario: A public read of a person with no birth date shows no age
+- **WHEN** a surface that may read public competition data requests a person with no birth date set
+- **THEN** no age is present in what it receives, rather than a default or a guess

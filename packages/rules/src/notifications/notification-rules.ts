@@ -230,7 +230,7 @@ function meets(
 
 /**
  * `{{key}}` substitution over the firing's own values, split by the same
- * splitter the expression parameters use (0013) so a message is not a second
+ * splitter the expression parameters use so a message is not a second
  * little language. A key nobody published keeps its placeholder, which is how
  * an operator sees that a template names something the rule does not carry.
  */
@@ -245,7 +245,7 @@ function renderTemplate(template: string, values: Readonly<Record<string, unknow
 }
 
 /**
- * The notification rules a compiled ruleset configures (0014).
+ * The notification rules a compiled ruleset configures.
  *
  * They live in the ruleset's open config rather than in a column, because what
  * a discipline alerts on is discipline configuration — and a malformed entry is

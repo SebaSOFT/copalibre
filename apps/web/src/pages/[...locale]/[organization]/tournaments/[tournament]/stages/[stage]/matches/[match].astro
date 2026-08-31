@@ -1,0 +1,142 @@
+---
+import PublicLayout from '../../../../../../../../layouts/PublicLayout.astro';
+import { buildMatchReport } from '../../../../../../../../lib/match-report.ts';
+import { fetchMatchReport } from '../../../../../../../../lib/public-api-client.ts';
+import { publicIntl } from '../../../../../../../../lib/i18n/public-intl.ts';
+import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
+
+export const prerender = false;
+
+const { locale, organization, tournament, stage, match } = Astro.params;
+const resolvedLocale: SupportedLanguage = isSupportedLanguage(locale) ? locale : 'en';
+const intl = publicIntl(resolvedLocale);
+const stageNumber = Number(stage);
+const matchNumber = Number(match);
+
+if (
+  !Number.isSafeInteger(stageNumber) ||
+  stageNumber < 1 ||
+  !Number.isSafeInteger(matchNumber) ||
+  matchNumber < 1
+) {
+  return Astro.rewrite('/404');
+}
+
+const response = await fetchMatchReport(organization!, tournament!, stageNumber, matchNumber);
+if (!response) {
+  return Astro.rewrite('/404');
+}
+
+const model = buildMatchReport(response);
+---
+
+<PublicLayout
+  title={`${model.home.name} vs ${model.away.name} — ${model.tournamentName}`}
+  canonicalPath={Astro.url.pathname}
+  intl={intl}
+  disciplineImages={response.disciplineImages}
+>
+  <article>
+    <header>
+      <p>Stage {model.stageNumber} · Round {model.round} · Match {model.matchNumber}</p>
+      <h1>
+        {model.home.abbreviation ?? model.home.name}
+        {model.home.score ?? '—'} – {model.away.score ?? '—'}
+        {model.away.abbreviation ?? model.away.name}
+      </h1>
+      <p>{model.status}</p>
+      {
+        model.scheduledAt ? (
+          <p>
+            <time datetime={model.scheduledAt}>{model.scheduledAt}</time>
+            {model.venueName ? ` · ${model.venueName}` : ''}
+          </p>
+        ) : (
+          <p>Schedule not yet available.</p>
+        )
+      }
+    </header>
+
+    <section aria-labelledby="officials-heading">
+      <h2 id="officials-heading">Officials</h2>
+      {
+        !model.schedulePublished ? (
+          <p>Schedule has not yet been published.</p>
+        ) : model.officials.length === 0 ? (
+          <p>No officials assigned.</p>
+        ) : (
+          <ul>
+            {model.officials.map((official) => (
+              <li>
+                {official.name} — {official.roles.join(', ')}
+              </li>
+            ))}
+          </ul>
+        )
+      }
+    </section>
+
+    <section aria-labelledby="rosters-heading">
+      <h2 id="rosters-heading">Rosters</h2>
+      {
+        model.home.roster.length === 0 && model.away.roster.length === 0 ? (
+          <p>Rosters are not yet available.</p>
+        ) : (
+          <div>
+            {[model.home, model.away].map((side) => (
+              <section>
+                <h3>{side.name}</h3>
+                {side.roster.length === 0 ? (
+                  <p>Roster not yet available.</p>
+                ) : (
+                  <table>
+                    <thead>
+                      <tr>
+                        <th scope="col">No.</th>
+                        <th scope="col">Player</th>
+                        <th scope="col">Roles</th>
+                        <th scope="col">On field</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {side.roster.map((member) => (
+                        <tr>
+                          <td>{member.number ?? '—'}</td>
+                          <td>{member.name}</td>
+                          <td>{member.roles?.join(', ') ?? '—'}</td>
+                          <td>{member.onField ? 'Yes' : 'No'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </section>
+            ))}
+          </div>
+        )
+      }
+    </section>
+
+    <section aria-labelledby="timeline-heading">
+      <h2 id="timeline-heading">Event timeline</h2>
+      {
+        model.timeline.length === 0 ? (
+          <p>Events are not yet available.</p>
+        ) : (
+          <ol>
+            {model.timeline.map((group) => (
+              <li data-workflow-group={group.kind === 'workflow' ? 'true' : undefined}>
+                {group.events.map((event) => (
+                  <p>
+                    <time datetime={event.occurredAt}>{event.occurredAt}</time> — {event.label}
+                    {event.actor ? ` · ${event.actor}` : ''}
+                  </p>
+                ))}
+              </li>
+            ))}
+          </ol>
+        )
+      }
+    </section>
+  </article>
+</PublicLayout>

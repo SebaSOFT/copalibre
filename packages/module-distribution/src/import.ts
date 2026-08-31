@@ -78,7 +78,7 @@ interface AssetUploadRecord {
   readonly kind: 'background' | 'logo';
   readonly contentType: string;
   readonly sizeBytes: number;
-  /** Which storage profile held this — `packages/object-storage`'s reference no longer carries a per-object bucket name (0041). */
+  /** Which storage profile held this — `packages/object-storage`'s reference no longer carries a per-object bucket name. */
   readonly storageBucket: string;
   readonly storageKey: string;
 }

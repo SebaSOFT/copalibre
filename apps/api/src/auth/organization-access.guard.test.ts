@@ -96,6 +96,60 @@ describe('OrganizationAccessGuard', () => {
     expect(request.subject?.principalId).toBe('01800000-0000-7000-8000-000000000001');
   });
 
+  it("resolves resourceScope from a club-admin assignment's clubId", async () => {
+    jest.spyOn(OrganizationAccessRepository.prototype, 'findAssignment').mockResolvedValue({
+      assignmentId: '01800000-0000-7000-8000-000000000002',
+      organizationId: 'org-b',
+      principalId: '01800000-0000-7000-8000-000000000001',
+      email: 'club-admin@example.test',
+      role: 'club-admin',
+      status: 'active',
+      clubId: 'club-1',
+    });
+    Reflect.defineMetadata(
+      ACCESS_REQUIREMENT_KEY,
+      { kind: 'organization-capability', capability: 'org.manage-clubs' },
+      handler,
+    );
+    const request: RequestWithSubject & { params: Record<string, string> } = {
+      headers: {},
+      params: { organizationAlias: 'org-b' },
+      subject: {
+        subjectId: 'oidc-club-admin',
+        organizationId: 'org-b',
+        scopes: ['copalibre.control'],
+      },
+    };
+    const guard = new OrganizationAccessGuard(reflector, {} as Database as never);
+
+    await expect(guard.canActivate(contextFor(request))).resolves.toBe(true);
+    expect(request.subject?.resourceScope).toEqual({ clubId: 'club-1' });
+  });
+
+  it('leaves resourceScope empty for an unscoped admin assignment', async () => {
+    jest.spyOn(OrganizationAccessRepository.prototype, 'findAssignment').mockResolvedValue({
+      assignmentId: '01800000-0000-7000-8000-000000000002',
+      organizationId: 'org-b',
+      principalId: '01800000-0000-7000-8000-000000000001',
+      email: 'admin@example.test',
+      role: 'admin',
+      status: 'active',
+    });
+    const request: RequestWithSubject & { params: Record<string, string> } = {
+      headers: {},
+      params: { organizationAlias: 'org-b' },
+      subject: {
+        subjectId: 'oidc-admin',
+        organizationId: 'org-b',
+        scopes: ['copalibre.control'],
+      },
+    };
+    const guard = new OrganizationAccessGuard(reflector, {} as Database as never);
+
+    await expect(guard.canActivate(contextFor(request))).resolves.toBe(true);
+    expect(request.subject?.resourceScope).toEqual({});
+  });
+
   it('does not reopen organization bootstrap after a historical soft-deleted assignment', async () => {
     Reflect.defineMetadata(
       ACCESS_REQUIREMENT_KEY,
@@ -217,7 +271,7 @@ describe('OrganizationAccessGuard', () => {
 
     // A caller who authenticated but never accepted an invitation is not
     // refused: this route's whole point is answering "zero organizations",
-    // and that is a 200 with an empty list, not a 403 (0063 design.md).
+    // and that is a 200 with an empty list, not a 403.
     await expect(guard.canActivate(contextFor(request))).resolves.toBe(true);
     expect(request.subject?.principalId).toBeUndefined();
   });

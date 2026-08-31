@@ -1,6 +1,10 @@
 ---
 title: Roles and permissions
 description: What each organization role grants and how the invitation flow works.
+capabilities:
+  - control-web/roles-permissions
+roles:
+  - admin
 ---
 
 ## What this screen is for
@@ -16,6 +20,14 @@ tournaments, who can operate live matches, who can only view.
   no access yet.
 - **Active member**: someone who already accepted their invitation and has current access with the
   assigned role.
+
+## Rescinding a pending invitation
+
+Sent an invitation to the wrong address, or changed your mind before it was accepted? Rescind it from
+the pending-invitations list — the same authority the invitation itself required to send is required
+to rescind it. Rescinding takes effect immediately: the invitation's link stops working for
+acceptance right away, regardless of its stated expiry, and it drops off the pending list. An
+invitation already accepted cannot be rescinded — at that point, remove the member's role instead.
 
 ## What to check before removing a role
 

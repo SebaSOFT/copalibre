@@ -1,38 +1,50 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import {
   ControlApiError,
   createControlApiClient,
   type ControlApiClient,
+  type TableLayoutSummaryResponse,
+  type TableProjectionResponseData,
 } from './lib/api-client.js';
 import type { CanvasMatch } from './lib/bracket-canvas.js';
-import type { StandingsData } from './lib/standings.js';
 import { SeedingControlRoute, StandingsControlRoute } from './components/ControlRoutes.js';
 import { SeedingBuilderPage } from './components/SeedingBuilderPage.js';
-import { StandingsPage } from './components/StandingsPage.js';
 import { withIntl } from './i18n/test-support.js';
 
-const standings: StandingsData = {
-  stageId: 'stage-1',
-  projectionVersion: 7,
-  fullyResolved: false,
+const groupPhaseLayout: TableLayoutSummaryResponse = {
+  code: 'group-standings-default',
+  target: 'group-phase',
+  label: 'Group Standings',
+  entityGranularity: 'team',
+};
+
+const projection: TableProjectionResponseData = {
+  layoutCode: groupPhaseLayout.code,
+  target: groupPhaseLayout.target,
+  label: groupPhaseLayout.label,
+  columns: [
+    { code: 'name', header: 'Team', format: 'text' },
+    { code: 'points', header: 'Points', format: 'number' },
+  ],
+  defaultSort: [{ columnCode: 'points', direction: 'desc' }],
   rows: [
     {
-      rank: 1,
+      actorId: 'tll',
       entrantId: 'tll',
+      rank: 1,
       sharedRank: false,
-      statistics: { played: 2, points: 6, 'goals-for': 5 },
-      tieBroken: false,
+      cells: { name: { raw: 'tll', formatted: 'tll' }, points: { raw: 6, formatted: '6' } },
     },
     {
-      rank: 2,
+      actorId: 'ind',
       entrantId: 'ind',
+      rank: 2,
       sharedRank: true,
-      statistics: { played: 2, points: 3, 'goals-for': 2 },
-      tieBroken: true,
+      cells: { name: { raw: 'ind', formatted: 'ind' }, points: { raw: 3, formatted: '3' } },
     },
   ],
-  trace: ['Rule 1 (Puntos): tll=6, ind=3 → Puntos resolvió el desempate'],
+  projectionVersion: 7,
 };
 
 const matches: readonly CanvasMatch[] = [
@@ -59,101 +71,15 @@ const matches: readonly CanvasMatch[] = [
 ];
 
 function openRow(entrantId: string): HTMLDetailsElement {
-  const row = screen
-    .getAllByText(entrantId)
-    .map((node) => node.closest('details'))
-    .find((node): node is HTMLDetailsElement => node !== null) as HTMLDetailsElement;
+  const tr = screen.getAllByText(entrantId)[0]?.closest('tr');
+  const detailTr = tr?.nextElementSibling;
+  const row = (detailTr?.querySelector('details') ??
+    tr?.querySelector('details') ??
+    document.querySelector('details')) as HTMLDetailsElement;
   row.open = true;
   fireEvent(row, new Event('toggle'));
   return row;
 }
-
-describe('StandingsPage', () => {
-  it('shows the projection version and the tiebreak indicator with text, not colour', () => {
-    render(
-      withIntl(
-        <StandingsPage
-          organizationAlias="liga-mendocina"
-          standings={standings}
-          tournamentName="Apertura"
-        />,
-      ),
-    );
-
-    expect(screen.getByText(/Projection v7/)).toBeTruthy();
-    expect(screen.getByText(/unresolved tie/)).toBeTruthy();
-    expect(screen.getByText('Shared position')).toBeTruthy();
-  });
-
-  it('says so plainly on a row no comparator touched', () => {
-    render(
-      withIntl(
-        <StandingsPage
-          organizationAlias="liga-mendocina"
-          standings={standings}
-          tournamentName="Apertura"
-        />,
-      ),
-    );
-    openRow('tll');
-
-    expect(screen.getByText(/No tiebreak comparator/)).toBeTruthy();
-  });
-
-  it('fetches a row’s trace once, on first expand', async () => {
-    const onExpand = jest.fn(async () => ['Rule 2 (A favor): ind=2 → resuelto']);
-    render(
-      withIntl(
-        <StandingsPage
-          onExpand={onExpand as unknown as (entrantId: string) => Promise<readonly string[]>}
-          organizationAlias="liga-mendocina"
-          standings={standings}
-          tournamentName="Apertura"
-        />,
-      ),
-    );
-
-    const row = openRow('ind');
-    await screen.findByText('Rule 2 (A favor): ind=2 → resuelto');
-
-    // Collapsing and reopening must not re-fetch: the trace of a finished
-    // calculation does not change while the operator reads it.
-    fireEvent(row, new Event('toggle'));
-    fireEvent(row, new Event('toggle'));
-    await waitFor(() => expect(onExpand).toHaveBeenCalledTimes(1));
-  });
-
-  it('reports a trace it could not retrieve instead of rendering an empty panel', async () => {
-    render(
-      withIntl(
-        <StandingsPage
-          onExpand={() => Promise.reject(new Error('offline'))}
-          organizationAlias="liga-mendocina"
-          standings={standings}
-          tournamentName="Apertura"
-        />,
-      ),
-    );
-    openRow('ind');
-
-    expect(await screen.findByText(/Could not retrieve the rules engine trace/)).toBeTruthy();
-  });
-
-  it('renders an empty stage without pretending it has rows', () => {
-    render(
-      withIntl(
-        <StandingsPage
-          organizationAlias="liga-mendocina"
-          standings={{ ...standings, rows: [], trace: [] }}
-          tournamentName="Apertura"
-        />,
-      ),
-    );
-
-    expect(screen.getByText(/There are no results in this stage yet/)).toBeTruthy();
-    expect(screen.getByText('No data to chart.')).toBeTruthy();
-  });
-});
 
 describe('SeedingBuilderPage', () => {
   const seeds = [
@@ -267,7 +193,7 @@ describe('SeedingBuilderPage', () => {
       ),
     );
 
-    // describeSlot (lib/bracket-canvas.ts) is not yet extracted (0053, documented
+    // describeSlot (lib/bracket-canvas.ts) is not yet extracted (documented
     // follow-up) — its dynamic match-ID interpolation stays Spanish regardless of locale.
     expect(screen.getByText('TBD · Ganador del WB-R1-M1')).toBeTruthy();
     expect(screen.getByText('BO3')).toBeTruthy();
@@ -319,8 +245,10 @@ function stubClient(overrides: Partial<ControlApiClient>): ControlApiClient {
     listRegistrations: () => Promise.resolve([]),
     bulkReview: () => Promise.reject(new Error('not used')),
     reviewRegistration: () => Promise.reject(new Error('not used')),
-    fetchStandings: () => Promise.resolve(standings),
+    fetchStandings: () => Promise.reject(new Error('not used')),
     fetchTiebreakTrace: () => Promise.resolve({ entrantId: 'ind', lines: ['linea'] }),
+    fetchTableLayouts: () => Promise.resolve([groupPhaseLayout]),
+    fetchTableProjection: () => Promise.resolve(projection),
     fetchSeeding: () =>
       Promise.resolve({
         stageId: 'stage-1',
@@ -364,6 +292,9 @@ describe('control routes', () => {
     );
 
     await screen.findByText('Posiciones');
+    // Both the distribution chart's bar label and the table row repeat the
+    // entrant name; either is proof the projection loaded.
+    await screen.findAllByText('ind');
     openRow('ind');
     expect(await screen.findByText('linea')).toBeTruthy();
   });
@@ -371,7 +302,7 @@ describe('control routes', () => {
   it('reports a standings load it could not complete', async () => {
     render(
       <StandingsControlRoute
-        client={stubClient({ fetchStandings: () => Promise.reject(new Error('down')) })}
+        client={stubClient({ fetchTableProjection: () => Promise.reject(new Error('down')) })}
         organizationAlias="liga-mendocina"
         stageNumber={1}
         tournamentAlias="apertura"
@@ -379,6 +310,82 @@ describe('control routes', () => {
     );
 
     expect(await screen.findByText('No se pudieron cargar las posiciones.')).toBeTruthy();
+  });
+
+  it('reports a table-layout list it could not complete', async () => {
+    render(
+      <StandingsControlRoute
+        client={stubClient({ fetchTableLayouts: () => Promise.reject(new Error('down')) })}
+        organizationAlias="liga-mendocina"
+        stageNumber={1}
+        tournamentAlias="apertura"
+      />,
+    );
+
+    expect(await screen.findByText('No se pudieron cargar las tablas.')).toBeTruthy();
+  });
+
+  it('offers a group selector for a stage with more than one group and scopes the table to the selected one', async () => {
+    const zones: readonly {
+      readonly zoneId: string;
+      readonly stageId: string;
+      readonly number: number;
+      readonly name: string;
+    }[] = [{ zoneId: 'zone-1', stageId: 'stage-1', number: 1, name: 'Zona 1' }];
+    const groups: readonly {
+      readonly groupId: string;
+      readonly zoneId: string;
+      readonly number: number;
+      readonly name: string;
+    }[] = [
+      { groupId: 'group-a', zoneId: 'zone-1', number: 1, name: 'Grupo A' },
+      { groupId: 'group-b', zoneId: 'zone-1', number: 2, name: 'Grupo B' },
+    ];
+    const projectionRequests: unknown[] = [];
+    render(
+      <StandingsControlRoute
+        client={stubClient({
+          listZones: () => Promise.resolve(zones),
+          listGroups: () => Promise.resolve(groups),
+          fetchTableProjection: (_org, _tournament, _layoutCode, scope) => {
+            projectionRequests.push(scope);
+            return Promise.resolve(projection);
+          },
+        })}
+        organizationAlias="liga-mendocina"
+        stageNumber={1}
+        tournamentAlias="apertura"
+      />,
+    );
+
+    const selector = await screen.findByRole('combobox', { name: 'Grupo' });
+    expect(screen.getByRole('option', { name: 'Grupo A' })).toBeTruthy();
+    expect(screen.getByRole('option', { name: 'Grupo B' })).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.change(selector, { target: { value: 'group-b' } });
+    });
+
+    expect(projectionRequests).toContainEqual({ stageNumber: 1, groupId: 'group-b' });
+  });
+
+  it('shows no group selector for a single-implicit-group stage', async () => {
+    render(
+      <StandingsControlRoute
+        client={stubClient({
+          listZones: () =>
+            Promise.resolve([{ zoneId: 'zone-1', stageId: 'stage-1', number: 1, name: 'Zona 1' }]),
+          listGroups: () =>
+            Promise.resolve([{ groupId: 'group-1', zoneId: 'zone-1', number: 1, name: 'Grupo 1' }]),
+        })}
+        organizationAlias="liga-mendocina"
+        stageNumber={1}
+        tournamentAlias="apertura"
+      />,
+    );
+
+    await screen.findAllByText('ind');
+    expect(screen.queryByRole('combobox', { name: 'Grupo' })).toBeNull();
   });
 
   it('shows the server’s own refusal when a reseed is blocked', async () => {
@@ -468,7 +475,7 @@ describe('control routes', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Publicar sembrado' }));
     });
 
-    expect(await screen.findByText(/sembrado guardado/)).toBeTruthy();
+    expect((await screen.findByRole('status')).textContent).toContain('Sin fixtures generados');
     // Once on load, once to refresh after the confirmed publish.
     expect(fetchSeeding).toHaveBeenCalledTimes(2);
   });
@@ -485,9 +492,106 @@ describe('control routes', () => {
 
     expect(await screen.findByText('No se pudo cargar el sembrado.')).toBeTruthy();
   });
+
+  it('pre-fills from a resolved promotion plan when the stage has no seeds yet', async () => {
+    render(
+      <SeedingControlRoute
+        client={stubClient({
+          fetchSeeding: () =>
+            Promise.resolve({
+              stageId: 'stage-2',
+              format: 'single-elimination',
+              seeds: [],
+              matches: [],
+              hasRecordedResults: false,
+            }),
+          fetchPromotionPlansTargetingStage: () =>
+            Promise.resolve([
+              {
+                zoneNumber: 1,
+                zoneId: 'zone-1',
+                combined: [
+                  { entrantId: 'tll', groupId: 'group-1', rank: 1 },
+                  { entrantId: 'ind', groupId: 'group-2', rank: 1 },
+                ],
+              },
+            ]),
+        })}
+        organizationAlias="liga-mendocina"
+        stageNumber={2}
+        tournamentAlias="apertura"
+      />,
+    );
+
+    await screen.findByText('Sembrado');
+    const seedList = screen.getByRole('list', { name: 'Orden de siembra' });
+    const rows = within(seedList)
+      .getAllByRole('listitem')
+      .map((row) => row.textContent);
+    expect(rows).toEqual([expect.stringContaining('tll'), expect.stringContaining('ind')]);
+  });
+
+  it('does not override an already-recorded seed order with a matching promotion plan', async () => {
+    const fetchPromotionPlansTargetingStage =
+      jest.fn<NonNullable<ControlApiClient['fetchPromotionPlansTargetingStage']>>();
+    render(
+      <SeedingControlRoute
+        client={stubClient({
+          fetchSeeding: () =>
+            Promise.resolve({
+              stageId: 'stage-2',
+              format: 'single-elimination',
+              seeds: [{ seed: 1, entrantId: 'tll' }],
+              matches,
+              hasRecordedResults: false,
+            }),
+          fetchPromotionPlansTargetingStage,
+        })}
+        organizationAlias="liga-mendocina"
+        stageNumber={2}
+        tournamentAlias="apertura"
+      />,
+    );
+
+    await screen.findByText('Sembrado');
+    const seedList = screen.getByRole('list', { name: 'Orden de siembra' });
+    expect(
+      within(seedList)
+        .getAllByRole('listitem')
+        .map((row) => row.textContent),
+    ).toEqual([expect.stringContaining('tll')]);
+    // Existing seeds are the API's own signal not to look further — the
+    // reverse lookup is never even called (design.md: no override, ever).
+    expect(fetchPromotionPlansTargetingStage).not.toHaveBeenCalled();
+  });
+
+  it('starts empty when no promotion plan targets the stage', async () => {
+    render(
+      <SeedingControlRoute
+        client={stubClient({
+          fetchSeeding: () =>
+            Promise.resolve({
+              stageId: 'stage-2',
+              format: 'single-elimination',
+              seeds: [],
+              matches: [],
+              hasRecordedResults: false,
+            }),
+          fetchPromotionPlansTargetingStage: () => Promise.resolve([]),
+        })}
+        organizationAlias="liga-mendocina"
+        stageNumber={2}
+        tournamentAlias="apertura"
+      />,
+    );
+
+    await screen.findByText('Sembrado');
+    const seedList = screen.getByRole('list', { name: 'Orden de siembra' });
+    expect(within(seedList).queryAllByRole('listitem')).toEqual([]);
+  });
 });
 
-describe('control api client, 0024 endpoints', () => {
+describe('control api client endpoints', () => {
   it('addresses the stage routes and never puts the token in the URL', async () => {
     const calls: { url: string; init?: RequestInit }[] = [];
     const client = createControlApiClient({

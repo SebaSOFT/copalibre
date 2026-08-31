@@ -1,6 +1,18 @@
 ---
 title: Создание турнира
 description: Что настраивает мастер создания турнира и что означает каждое поле.
+capabilities:
+  - control-web/tournament-authoring
+  - tournament-engine/discipline-driven-results
+  - tournament-engine/tournament-fixture-engine
+  - tournament-engine/tournament-profile
+  - tournament-engine/tournament-domain-model
+  - tournament-engine/competition-identity
+  - tournament-engine/rules-engine
+  - tournament-engine/scripting-hook-surface
+  - tournament-engine/placement-stage-format
+roles:
+  - admin
 ---
 
 ## Назначение экрана

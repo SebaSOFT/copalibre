@@ -1,7 +1,7 @@
 import type { EventEnvelope } from './envelope.js';
 
 /**
- * The SSE wire format, written and read in one place (0018).
+ * The SSE wire format, written and read in one place.
  *
  * The authenticated path cannot use native `EventSource` — it has no way to
  * send an `Authorization` header, and CopaLibre's access token lives in memory

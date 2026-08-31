@@ -1,7 +1,7 @@
 import { Alias, type AliasScope } from './alias.js';
 
 /**
- * Deriving an alias from a name (0037).
+ * Deriving an alias from a name.
  *
  * The abbreviation is deliberately never derived; the alias is, and the
  * difference is worth stating because the two look like the same problem.
@@ -76,14 +76,26 @@ export function suggestAvailableAlias(
   if (!used.has(base)) return base;
 
   for (let suffix = 2; suffix <= limit; suffix += 1) {
-    const candidate = `${base}-${suffix}`;
+    // `base` is already at most 64 characters (suggestAlias's own limit), but
+    // `${base}-${suffix}` can exceed it. Truncating the *base* to make room for
+    // the suffix — not the concatenated string from the right — keeps the
+    // suffix intact; slicing the whole string would drop exactly the digits
+    // that make this suggestion distinct from `base` whenever `base` is
+    // already at the limit.
+    const suffixText = `-${suffix}`;
+    const truncatedBase: string = base.slice(0, 64 - suffixText.length).replace(/-+$/g, '');
+    // A truncation with nothing left of the base, or that collapses back to
+    // the bare, already-taken base, is skipped rather than returned malformed.
+    if (truncatedBase.length === 0) continue;
+    const candidate: string = `${truncatedBase}${suffixText}`;
+    if (candidate === base) continue;
     if (!used.has(candidate)) return candidate;
   }
   return undefined;
 }
 
 /** Whether a suggestion would survive `Alias.create`, for a caller that wants to check. */
-export function isSuggestable(name: string, scope: AliasScope = 'participant'): boolean {
+export function isSuggestable(name: string, scope: AliasScope = 'club'): boolean {
   const suggestion = suggestAlias(name);
   return suggestion !== undefined && Alias.create(scope, suggestion).ok;
 }

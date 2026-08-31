@@ -2,17 +2,30 @@ import { useEffect, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { parseControlPath } from '@copalibre/routing';
 import {
+  AuditTrailControlRoute,
+  ClubManagementControlRoute,
+  LoadMatchDataControlRoute,
   MatchConsoleControlRoute,
+  MatchesViewControlRoute,
+  PersonProfileControlRoute,
+  PlatformAdministrationControlRoute,
+  PreferencesControlRoute,
+  PromotionPlanControlRoute,
   RegistrationReviewControlRoute,
+  TournamentSettingsControlRoute,
+  TournamentRulesetControlRoute,
   ReportReviewControlRoute,
   RolesPermissionsControlRoute,
+  ScheduleControlRoute,
   SeedingControlRoute,
   StandingsControlRoute,
   TournamentAuthoringControlRoute,
+  VenueManagementControlRoute,
+  ZoneGroupControlRoute,
 } from './ControlRoutes.js';
-import { Dashboard } from './Dashboard.js';
-import { buildDashboard } from '../lib/dashboard.js';
-import { sampleDashboardData } from '../lib/sample.js';
+
+import { LoginRoute, ForgotPasswordRoute, ResetPasswordRoute } from './NativeAuthRoutes.js';
+import { DashboardRoute } from './DashboardRoute.js';
 import {
   controlLinkClick,
   loginRedirectUrl,
@@ -22,15 +35,16 @@ import {
 import { createControlApiClient, type MyOrganizationResponse } from '../lib/api-client.js';
 import { completeOidcLogin } from '../session/oidc-callback.js';
 import { DEFAULT_RETURN_TO } from '../session/oidc-login.js';
-import { controlTokenStore } from '../session/token-store.js';
+import { accessTokenHasScope, controlTokenStore } from '../session/token-store.js';
 import { activeControlLanguage, ControlIntl } from '../i18n/ControlIntl.js';
 import { messages } from '../i18n/messages.en.js';
 import type { SupportedLanguage } from '../../lib/language-preference.js';
+import { ToastProvider } from './ToastProvider.js';
 
 /**
- * The one persistent root for every control-panel screen (0061), now also
+ * The one persistent root for every control-panel screen, now also
  * the one place that owns the session: guards every screen except the
- * `callback` route itself, and completes the OIDC exchange there (0062).
+ * `callback` route itself, and completes the OIDC exchange there.
  * Resolves the real browser path on every render — mount, back/forward, and
  * client-side navigation alike — and mounts the matching screen from
  * `ControlRoutes.tsx`, unchanged. Replaces eight separate Astro pages that
@@ -45,44 +59,109 @@ export function ControlApp(): React.JSX.Element | null {
     document.title = titleFor(route);
   }, [route]);
 
+  const isPublicRoute =
+    route?.screen === 'callback' ||
+    route?.screen === 'login' ||
+    route?.screen === 'forgot-password' ||
+    route?.screen === 'reset-password';
+  const isUnauthorizedPlatformRoute =
+    route?.screen === 'platformAdministration' &&
+    !accessTokenHasScope(controlTokenStore.read(), 'copalibre.super-admin');
+
   // Guarded here, once, rather than per screen: ControlApp is every
   // authenticated screen's one mount point, so this covers all eight by
   // construction. The callback screen is exempt — it is what establishes
   // the session, not something that requires one.
   useEffect(() => {
-    if (route === undefined || route.screen === 'callback') return;
+    if (route === undefined || isPublicRoute) return;
     if (controlTokenStore.read() === undefined) {
-      // A real navigation: /control/ (login) is a genuinely separate page
+      // A real navigation: /control/login is a genuinely separate page
       // from this shell, so there is nothing in memory here to lose.
       window.location.assign(loginRedirectUrl(path));
     }
-  }, [route, path]);
+  }, [route, path, isPublicRoute]);
+
+  useEffect(() => {
+    if (!isUnauthorizedPlatformRoute || controlTokenStore.read() === undefined) return;
+    window.location.assign('/control/login');
+  }, [isUnauthorizedPlatformRoute]);
 
   if (route === undefined) return <NotFound path={path} />;
   if (route.screen === 'callback') return <CompletingLogin />;
+  if (route.screen === 'login')
+    return (
+      <ControlIntl locale={activeControlLanguage()}>
+        <ToastProvider>
+          <LoginRoute />
+        </ToastProvider>
+      </ControlIntl>
+    );
+  if (route.screen === 'forgot-password')
+    return (
+      <ControlIntl locale={activeControlLanguage()}>
+        <ToastProvider>
+          <ForgotPasswordRoute />
+        </ToastProvider>
+      </ControlIntl>
+    );
+  if (route.screen === 'reset-password')
+    return (
+      <ControlIntl locale={activeControlLanguage()}>
+        <ToastProvider>
+          <ResetPasswordRoute />
+        </ToastProvider>
+      </ControlIntl>
+    );
   // Synchronous guard for the render that happens before the effect above
   // runs — without it, a protected screen would flash unauthenticated
   // before the redirect fires.
   if (controlTokenStore.read() === undefined) return null;
+  if (isUnauthorizedPlatformRoute) return null;
 
   switch (route.screen) {
+    case 'platformAdministration':
+      return <PlatformAdministrationControlRoute />;
     case 'dashboard':
-      return (
-        <Dashboard
-          model={buildDashboard(sampleDashboardData())}
-          organizationAlias={route.organizationAlias}
-        />
-      );
+      return <DashboardRoute organizationAlias={route.organizationAlias} />;
     case 'roles':
       return <RolesPermissionsControlRoute organizationAlias={route.organizationAlias} />;
+    case 'auditTrail':
+      return <AuditTrailControlRoute organizationAlias={route.organizationAlias} />;
+    case 'preferences':
+      return <PreferencesControlRoute organizationAlias={route.organizationAlias} />;
     case 'newTournament':
       return <TournamentAuthoringControlRoute organizationAlias={route.organizationAlias} />;
+    case 'clubs':
+      return <ClubManagementControlRoute organizationAlias={route.organizationAlias} />;
+    case 'resources':
+      return <VenueManagementControlRoute organizationAlias={route.organizationAlias} />;
+    case 'personProfile':
+      return (
+        <PersonProfileControlRoute
+          organizationAlias={route.organizationAlias}
+          personId={route.personId}
+        />
+      );
     case 'registrations':
       return (
         <RegistrationReviewControlRoute
           // Sample-data literal from the replaced .astro file, preserved
-          // verbatim — making it real is 0021's concern, not this change's.
+          // verbatim — making it real remains separate work.
           now="2026-08-01T19:00:00.000Z"
+          organizationAlias={route.organizationAlias}
+          tournamentAlias={route.tournamentAlias}
+        />
+      );
+    case 'tournamentSettings':
+      return (
+        <TournamentSettingsControlRoute
+          organizationAlias={route.organizationAlias}
+          tournamentAlias={route.tournamentAlias}
+        />
+      );
+    case 'tournamentRuleset':
+      return (
+        <TournamentRulesetControlRoute
           organizationAlias={route.organizationAlias}
           tournamentAlias={route.tournamentAlias}
         />
@@ -94,9 +173,24 @@ export function ControlApp(): React.JSX.Element | null {
           tournamentAlias={route.tournamentAlias}
         />
       );
+    case 'matchesView':
+      return (
+        <MatchesViewControlRoute
+          organizationAlias={route.organizationAlias}
+          tournamentAlias={route.tournamentAlias}
+        />
+      );
     case 'matchConsole':
       return (
         <MatchConsoleControlRoute
+          matchId={route.matchId}
+          organizationAlias={route.organizationAlias}
+          tournamentAlias={route.tournamentAlias}
+        />
+      );
+    case 'loadMatchData':
+      return (
+        <LoadMatchDataControlRoute
           matchId={route.matchId}
           organizationAlias={route.organizationAlias}
           tournamentAlias={route.tournamentAlias}
@@ -118,6 +212,31 @@ export function ControlApp(): React.JSX.Element | null {
           tournamentAlias={route.tournamentAlias}
         />
       );
+    case 'zoneGroups':
+      return (
+        <ZoneGroupControlRoute
+          organizationAlias={route.organizationAlias}
+          stageNumber={route.stageNumber}
+          tournamentAlias={route.tournamentAlias}
+        />
+      );
+    case 'promotionPlan':
+      return (
+        <PromotionPlanControlRoute
+          organizationAlias={route.organizationAlias}
+          stageNumber={route.stageNumber}
+          tournamentAlias={route.tournamentAlias}
+          zoneNumber={route.zoneNumber}
+        />
+      );
+    case 'schedule':
+      return (
+        <ScheduleControlRoute
+          organizationAlias={route.organizationAlias}
+          stageNumber={route.stageNumber}
+          tournamentAlias={route.tournamentAlias}
+        />
+      );
   }
 }
 
@@ -134,18 +253,52 @@ function titleFor(route: ReturnType<typeof parseControlPath>): string {
       return `Panel — ${route.organizationAlias}`;
     case 'roles':
       return `Roles y permisos - ${route.organizationAlias}`;
+    case 'auditTrail':
+      return `Registro de auditoría — ${route.organizationAlias}`;
     case 'newTournament':
       return `Crear torneo — ${route.organizationAlias}`;
+    case 'clubs':
+      return `Clubes — ${route.organizationAlias}`;
+    case 'resources':
+      return `Canchas y árbitros — ${route.organizationAlias}`;
+    case 'personProfile':
+      return `Perfil de la persona — ${route.organizationAlias}`;
     case 'registrations':
       return `Inscripciones — ${route.tournamentAlias}`;
+    case 'tournamentSettings':
+      return `Configuración del torneo — ${route.tournamentAlias}`;
+    case 'tournamentRuleset':
+      return `Reglamento del torneo — ${route.tournamentAlias}`;
     case 'reports':
       return `Reportes y disputas — ${route.tournamentAlias}`;
+    case 'matchesView':
+      return `Partidos — ${route.tournamentAlias}`;
     case 'matchConsole':
       return `Operar partido — ${route.tournamentAlias}`;
+    case 'loadMatchData':
+      return `Cargar datos del partido — ${route.tournamentAlias}`;
     case 'seeding':
       return `Sembrado — ${route.tournamentAlias}`;
     case 'standings':
       return `Posiciones — ${route.tournamentAlias}`;
+    case 'zoneGroups':
+      return `Zonas y grupos — ${route.tournamentAlias}`;
+    case 'promotionPlan':
+      return `Plan de promoción — ${route.tournamentAlias}`;
+    case 'schedule':
+      return `Horario — ${route.tournamentAlias}`;
+    case 'login':
+      return 'Iniciar sesión — CopaLibre';
+    case 'forgot-password':
+      return 'Recuperar contraseña — CopaLibre';
+    case 'reset-password':
+      return 'Restablecer contraseña — CopaLibre';
+    case 'platformAdministration':
+      return 'Administración de plataforma — CopaLibre';
+    case 'preferences':
+      return 'Preferencias personales — CopaLibre';
+    default:
+      return 'Control — CopaLibre';
   }
 }
 
@@ -164,14 +317,14 @@ type LandingState =
   | { readonly kind: 'error'; readonly message: string };
 
 /**
- * The `/control/callback` screen (0062): completes the PKCE exchange, writes
+ * The `/control/callback` screen: completes the PKCE exchange, writes
  * the session, then hands off to `returnTo` via `navigateControl` — never a
  * real navigation, which would discard the token just written.
  *
  * A guard-redirected login (a real `returnTo`, set by `ControlApp`'s own
- * guard) is handled exactly as 0062 left it: navigate straight there, no
+ * guard) is handled by navigating straight there, with no
  * lookup. Only the *default* `returnTo` (`DEFAULT_RETURN_TO`, used when login
- * began with nothing to return to) triggers the 0063 organization lookup —
+ * began with nothing to return to) triggers the organization lookup —
  * `/control/` itself has no `ControlRoute`, so navigating there unconditionally
  * used to strand the operator on the "not found" screen.
  */
@@ -229,7 +382,7 @@ function CompletingLogin(): React.JSX.Element {
 
 /**
  * What a default (no real destination) login lands on once the organization
- * lookup resolves to zero or more-than-one organization (0063) — exactly one
+ * lookup resolves to zero or more-than-one organization — exactly one
  * organization never reaches here, `CompletingLogin` navigates straight to it.
  * Colocated with `CompletingLogin`/`NotFound` rather than a new `ControlRoute`:
  * it is a transient render on `/control/callback`, not a screen that needs its
@@ -299,6 +452,10 @@ function roleMessage(role: MyOrganizationResponse['role']) {
   switch (role) {
     case 'admin':
       return messages.rolesRoleAdmin;
+    case 'club-admin':
+      return messages.rolesRoleClubAdmin;
+    case 'tournament-admin':
+      return messages.rolesRoleTournamentAdmin;
     case 'referee':
       return messages.rolesRoleReferee;
     case 'broadcaster':

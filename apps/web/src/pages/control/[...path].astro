@@ -1,0 +1,33 @@
+---
+import { ControlApp } from '../../control/components/ControlApp.tsx';
+import '@copalibre/design-tokens/generated/copalibre.css';
+import '../../styles/control.css';
+
+/**
+ * Same shell as app.astro, reached via this dynamic route instead of
+ * the static-host `try_files` fallback it relies on. Without this file, any
+ * `/control/**` path without its own built page (login callback, per-org
+ * screens, ...) falls through to `[...locale]/[organization].astro`
+ * — a bare `/{locale?}/{organization}` catch-all that would otherwise treat
+ * "control" as a locale or organization alias. A static first segment
+ * outranks that route's leading rest param in Astro's routing priority, so
+ * this one wins whenever Caddy's own `/control/*` handling isn't in front
+ * (this app's own dev/preview server, `web-ssr` reached directly, tests).
+ */
+export const prerender = false;
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/copalibre-logo.svg" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>CopaLibre</title>
+  </head>
+  <body>
+    <ControlApp client:only="react" />
+    <noscript>El panel de control necesita JavaScript. Las páginas públicas no.</noscript>
+  </body>
+</html>

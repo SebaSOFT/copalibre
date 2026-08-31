@@ -1,6 +1,11 @@
 ---
 title: 抽签与种子排位
 description: 种子、轮空以及此界面遵循的抽签约束是什么。
+capabilities:
+  - tournament-engine/bracket-seeding-builder
+  - tournament-engine/draw-constraints
+roles:
+  - admin
 ---
 
 ## 此界面的用途

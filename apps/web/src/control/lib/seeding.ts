@@ -1,5 +1,5 @@
 /**
- * Seed assignment: locks and the constrained shuffle (0024).
+ * Seed assignment: locks and the constrained shuffle.
  *
  * Pure functions over an array, deliberately: "did the locked seeds move?" is a
  * question that must be answerable without a browser, because the answer is the

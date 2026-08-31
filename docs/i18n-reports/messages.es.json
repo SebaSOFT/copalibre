@@ -1,0 +1,80 @@
+{
+  "locale": "es",
+  "generatedAt": "2026-08-25T00:17:28.998Z",
+  "flaggedCount": 8,
+  "entries": [
+    {
+      "key": "control.zoneGroup.seed",
+      "englishSource": "Draw seed",
+      "currentTranslation": "Semilla de sorteo",
+      "concern": "\"Semilla de sorteo\" is a literal agricultural/botanical translation of the sports term \"seed\" (semilla = plant seed). The catalogue itself gets this right elsewhere (control.seeding.toggleLockAriaLabel uses \"siembra\"/\"cabeza de serie\" register); glossary requires \"cabeza de serie\".",
+      "proposedReplacement": "Cabeza de serie del sorteo",
+      "glossaryHits": ["seed", "seeding", "draw"],
+      "status": "confirmed"
+    },
+    {
+      "key": "control.zoneGroup.assignZonesHeading",
+      "englishSource": "Assign entrants to zones",
+      "currentTranslation": "Asignar entrantes a zonas",
+      "concern": "\"entrantes\" is an unusual calque of English \"entrants\" (in everyday Spanish \"entrante\" more commonly means \"incoming\" or a food starter). The catalogue itself uses the glossary-correct \"Participante\" in control.scheduleBuilder.entrantColumn — internally inconsistent.",
+      "proposedReplacement": "Asignar participantes a zonas",
+      "glossaryHits": ["entrant", "zone"],
+      "status": "confirmed"
+    },
+    {
+      "key": "control.zoneGroup.assignGroupsHeading",
+      "englishSource": "Assign entrants to groups",
+      "currentTranslation": "Asignar entrantes a grupos",
+      "concern": "Same \"entrantes\" calque inconsistency as assignZonesHeading.",
+      "proposedReplacement": "Asignar participantes a grupos",
+      "glossaryHits": ["entrant", "zone", "group"],
+      "status": "confirmed"
+    },
+    {
+      "key": "control.zoneGroup.previewResult",
+      "englishSource": "Preview ready — {count} entrant(s) assigned.",
+      "currentTranslation": "Previsualización lista — {count} entrante(s) asignado(s).",
+      "concern": "Same \"entrante(s)\" calque inconsistency.",
+      "proposedReplacement": "Previsualización lista — {count} participante(s) asignado(s).",
+      "glossaryHits": ["entrant"],
+      "status": "confirmed"
+    },
+    {
+      "key": "control.promotion.perGroupAdvance",
+      "englishSource": "Entrants advancing per group",
+      "currentTranslation": "Entrantes que avanzan por grupo",
+      "concern": "Same \"Entrantes\" calque inconsistency.",
+      "proposedReplacement": "Participantes que avanzan por grupo",
+      "glossaryHits": ["entrant", "group"],
+      "status": "confirmed"
+    },
+    {
+      "key": "control.abbreviationReview.sectionLabel",
+      "englishSource": "Entrants needing an abbreviation",
+      "currentTranslation": "Entrantes que necesitan una abreviatura",
+      "concern": "Same \"Entrantes\" calque inconsistency.",
+      "proposedReplacement": "Participantes que necesitan una abreviatura",
+      "glossaryHits": ["entrant"],
+      "status": "confirmed"
+    },
+    {
+      "key": "control.abbreviationReview.title",
+      "englishSource": "Entrants needing an abbreviation",
+      "currentTranslation": "Entrantes que necesitan una abreviatura",
+      "concern": "Same \"Entrantes\" calque inconsistency.",
+      "proposedReplacement": "Participantes que necesitan una abreviatura",
+      "glossaryHits": ["entrant"],
+      "status": "confirmed"
+    },
+    {
+      "key": "control.abbreviationReview.empty",
+      "englishSource": "Every entrant already has an abbreviation.",
+      "currentTranslation": "Todos los entrantes ya tienen una abreviatura.",
+      "concern": "Same \"entrantes\" calque inconsistency.",
+      "proposedReplacement": "Todos los participantes ya tienen una abreviatura.",
+      "glossaryHits": ["entrant"],
+      "status": "confirmed"
+    }
+  ],
+  "confirmedBy": "Sebastian Dieguez (project maintainer, session 2026-08-24)"
+}

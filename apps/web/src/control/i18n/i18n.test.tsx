@@ -3,6 +3,7 @@ import { IntlProvider } from 'react-intl';
 import { StandingsPage } from '../components/StandingsPage.js';
 import { SeedingBuilderPage } from '../components/SeedingBuilderPage.js';
 import { RolesPermissionsPage } from '../components/RolesPermissionsPage.js';
+import { ToastProvider } from '../components/ToastProvider.js';
 import { activeControlLanguage } from './ControlIntl.js';
 import { messages } from './messages.en.js';
 import { messages as esMessages } from './messages.es.js';
@@ -12,9 +13,26 @@ import { messages as itMessages } from './messages.it.js';
 import { messages as deMessages } from './messages.de.js';
 import { messages as ruMessages } from './messages.ru.js';
 import { messages as zhMessages } from './messages.zh.js';
-import type { StandingsData } from '../lib/standings.js';
+import type { TableLayoutSummaryResponse, TableProjectionResponseData } from '../lib/api-client.js';
 
-/** Every non-English catalog (0053 Spanish, 0054 the remaining five, 0057 Mandarin), keyed like `ControlIntl`'s `CATALOGS`. */
+const EMPTY_LAYOUT: TableLayoutSummaryResponse = {
+  code: 'group-standings-default',
+  target: 'group-phase',
+  label: 'Group Standings',
+  entityGranularity: 'team',
+};
+
+const EMPTY_PROJECTION: TableProjectionResponseData = {
+  layoutCode: EMPTY_LAYOUT.code,
+  target: EMPTY_LAYOUT.target,
+  label: EMPTY_LAYOUT.label,
+  columns: [{ code: 'name', header: 'Team', format: 'text' }],
+  defaultSort: [],
+  rows: [],
+  projectionVersion: 3,
+};
+
+/** Every non-English catalog, keyed like `ControlIntl`'s `CATALOGS`. */
 const NON_ENGLISH_CATALOGS: Record<string, Record<string, string>> = {
   es: esMessages,
   fr: frMessages,
@@ -29,12 +47,12 @@ const NON_ENGLISH_CATALOGS: Record<string, Record<string, string>> = {
 function withLanguage(locale: string, children: React.ReactNode): React.JSX.Element {
   return (
     <IntlProvider defaultLocale="en" locale={locale} messages={NON_ENGLISH_CATALOGS[locale]}>
-      {children}
+      <ToastProvider>{children}</ToastProvider>
     </IntlProvider>
   );
 }
 
-describe('message-catalog completeness (0053 task 6.4, widened to all eight languages by 0054/0057)', () => {
+describe('message-catalog completeness', () => {
   const englishIds = Object.values(messages)
     .map((descriptor) => descriptor.id)
     .sort();
@@ -57,7 +75,7 @@ describe('message-catalog completeness (0053 task 6.4, widened to all eight lang
   });
 });
 
-describe('activeControlLanguage resolution (0053, task 6.3)', () => {
+describe('activeControlLanguage resolution', () => {
   afterEach(() => localStorage.clear());
 
   it('resolves to Spanish by default, matching the organizationPrimaryLanguage placeholder', () => {
@@ -75,22 +93,16 @@ describe('activeControlLanguage resolution (0053, task 6.3)', () => {
   });
 });
 
-describe('Spanish catalog reproduces pre-extraction wording (0053, task 6.2)', () => {
-  const standings: StandingsData = {
-    stageId: 'stage-1',
-    projectionVersion: 3,
-    fullyResolved: false,
-    rows: [],
-    trace: [],
-  };
-
+describe('Spanish catalog reproduces pre-extraction wording', () => {
   it('StandingsPage', () => {
     render(
       withLanguage(
         'es',
         <StandingsPage
+          activeLayoutCode={EMPTY_LAYOUT.code}
+          layouts={[EMPTY_LAYOUT]}
           organizationAlias="liga-mendocina"
-          standings={standings}
+          projection={EMPTY_PROJECTION}
           tournamentName="Apertura"
         />,
       ),
@@ -98,7 +110,6 @@ describe('Spanish catalog reproduces pre-extraction wording (0053, task 6.2)', (
 
     expect(screen.getByText('Posiciones')).toBeTruthy();
     expect(screen.getByText(/Proyección v3/)).toBeTruthy();
-    expect(screen.getByText(/empate sin resolver/)).toBeTruthy();
     expect(screen.getByText('Todavía no hay resultados en esta fase.')).toBeTruthy();
   });
 
@@ -144,15 +155,7 @@ describe('Spanish catalog reproduces pre-extraction wording (0053, task 6.2)', (
   });
 });
 
-describe('Non-English catalogs render real translated text, not an English fallback (0054 task 7.2, extended by 0057)', () => {
-  const standings: StandingsData = {
-    stageId: 'stage-1',
-    projectionVersion: 3,
-    fullyResolved: false,
-    rows: [],
-    trace: [],
-  };
-
+describe('Non-English catalogs render real translated text, not an English fallback', () => {
   const expectedTitleAndEmptyState: Record<string, [string, string]> = {
     fr: ['Classement', 'Il n’y a pas encore de résultats dans cette phase.'],
     pt: ['Classificação', 'Ainda não há resultados nesta fase.'],
@@ -169,8 +172,10 @@ describe('Non-English catalogs render real translated text, not an English fallb
         withLanguage(
           lang,
           <StandingsPage
+            activeLayoutCode={EMPTY_LAYOUT.code}
+            layouts={[EMPTY_LAYOUT]}
             organizationAlias="liga-mendocina"
-            standings={standings}
+            projection={EMPTY_PROJECTION}
             tournamentName="Apertura"
           />,
         ),

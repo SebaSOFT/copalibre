@@ -2,12 +2,17 @@ import type {
   Club,
   Entrant,
   EntrantAttribute,
+  Fixture,
+  Group,
   Match,
   Official,
   ResourceAssignment,
+  Schedule,
+  ScheduleSlot,
   Venue,
   Organization,
   IdentityPrincipal,
+  InstallationRoleAssignment,
   OrganizationInvitation,
   OrganizationRoleAssignment,
   RecordedEvent,
@@ -16,25 +21,32 @@ import type {
   SupportedLanguage,
   Team,
   Tournament,
+  Zone,
 } from '@copalibre/domain';
 import type { Selectable } from 'kysely';
 import type {
   ClubsTable,
   EntrantAttributesTable,
   EntrantsTable,
-  FixtureSchedulesTable,
+  FixturesTable,
+  GroupsTable,
   OfficialsTable,
   VenuesTable,
+  SchedulesTable,
+  ScheduleSlotsTable,
+  MatchScheduleAssignmentsTable,
   MatchEventsTable,
   MatchesTable,
   OrganizationsTable,
   IdentityPrincipalsTable,
+  InstallationRoleAssignmentsTable,
   OrganizationInvitesTable,
   OrganizationRoleAssignmentsTable,
   SegmentsTable,
   StagesTable,
   TeamsTable,
   TournamentsTable,
+  ZonesTable,
 } from './schema.js';
 
 /**
@@ -48,18 +60,18 @@ import type {
 export type OrganizationRow = Selectable<OrganizationsTable>;
 export type IdentityPrincipalRow = Selectable<IdentityPrincipalsTable>;
 export type OrganizationRoleAssignmentRow = Selectable<OrganizationRoleAssignmentsTable>;
+export type InstallationRoleAssignmentRow = Selectable<InstallationRoleAssignmentsTable>;
 export type OrganizationInviteRow = Selectable<OrganizationInvitesTable>;
 export type TournamentRow = Selectable<TournamentsTable>;
 export type TeamRow = Selectable<TeamsTable>;
 export type EntrantRow = Selectable<EntrantsTable>;
 export type StageRow = Selectable<StagesTable>;
+export type ZoneRow = Selectable<ZonesTable>;
+export type GroupRow = Selectable<GroupsTable>;
+export type FixtureRow = Selectable<FixturesTable>;
 export type EntrantAttributeRow = Selectable<EntrantAttributesTable>;
 export type VenueRow = Selectable<VenuesTable>;
 export type OfficialRow = Selectable<OfficialsTable>;
-type ScheduleRow = Pick<
-  Selectable<FixtureSchedulesTable>,
-  'fixture_id' | 'venue_id' | 'starts_at' | 'duration_minutes'
->;
 export type MatchRow = Selectable<MatchesTable>;
 export type SegmentRow = Selectable<SegmentsTable>;
 export type MatchEventRow = Selectable<MatchEventsTable>;
@@ -71,6 +83,7 @@ export function toOrganization(row: OrganizationRow): Organization {
     name: row.name,
     primaryLanguage: row.primary_language as SupportedLanguage,
     timezone: row.timezone,
+    emblemObjectId: row.emblem_object_id ?? undefined,
   };
 }
 
@@ -84,6 +97,20 @@ export function toOrganizationRoleAssignment(
     email: row.email,
     role: row.role as OrganizationRoleAssignment['role'],
     status: row.status as OrganizationRoleAssignment['status'],
+    ...(row.deleted_at === null ? {} : { deletedAt: toIsoString(row.deleted_at) }),
+    ...(row.club_id === null ? {} : { clubId: row.club_id }),
+    ...(row.tournament_id === null ? {} : { tournamentId: row.tournament_id }),
+  };
+}
+
+export function toInstallationRoleAssignment(
+  row: InstallationRoleAssignmentRow,
+): InstallationRoleAssignment {
+  return {
+    assignmentId: row.assignment_id,
+    principalId: row.principal_id,
+    role: row.role as InstallationRoleAssignment['role'],
+    status: row.status as InstallationRoleAssignment['status'],
     ...(row.deleted_at === null ? {} : { deletedAt: toIsoString(row.deleted_at) }),
   };
 }
@@ -106,6 +133,8 @@ export function toOrganizationInvitation(row: OrganizationInviteRow): Organizati
     role: row.role as OrganizationInvitation['role'],
     status: row.status as OrganizationInvitation['status'],
     expiresAt: toIsoString(row.expires_at),
+    ...(row.club_id === null ? {} : { clubId: row.club_id }),
+    ...(row.tournament_id === null ? {} : { tournamentId: row.tournament_id }),
   };
 }
 
@@ -119,8 +148,17 @@ export function toTournament(row: TournamentRow): Tournament {
       descriptorId: row.descriptor_id,
       version: row.descriptor_version,
     },
+    ...(row.profile_id && row.profile_version
+      ? {
+          profileRef: {
+            profileId: row.profile_id,
+            version: row.profile_version,
+          },
+        }
+      : {}),
     rulesetId: row.ruleset_id ?? undefined,
     status: row.status as Tournament['status'],
+    ...(row.started_at === null ? {} : { startedAt: toIsoString(row.started_at) }),
     ...(row.archived_at === null ? {} : { archivedAt: toIsoString(row.archived_at) }),
   };
 }
@@ -146,6 +184,7 @@ export function toClub(row: ClubRow): Club {
     alias: row.alias ?? undefined,
     name: row.name,
     abbreviation: row.abbreviation ?? undefined,
+    emblemObjectId: row.emblem_object_id ?? undefined,
   };
 }
 
@@ -157,6 +196,7 @@ export function toEntrant(row: EntrantRow): Entrant {
       row.entrant_kind === 'team'
         ? { kind: 'team', teamId: row.team_id as string }
         : { kind: 'person', personId: row.person_id as string },
+    abbreviation: row.abbreviation ?? undefined,
     seed: row.seed ?? undefined,
     status: row.status as Entrant['status'],
   };
@@ -176,6 +216,7 @@ export function toVenue(row: VenueRow): Venue {
     name: row.name,
     concurrentCapacity: row.concurrent_capacity,
     ...(row.address === null ? {} : { address: row.address }),
+    ...(row.details === null ? {} : { details: row.details }),
   };
 }
 
@@ -188,19 +229,45 @@ export function toOfficial(row: OfficialRow): Official {
   };
 }
 
+export type ScheduleRow = Selectable<SchedulesTable>;
+export type ScheduleSlotRow = Selectable<ScheduleSlotsTable>;
+export type MatchScheduleAssignmentRow = Selectable<MatchScheduleAssignmentsTable>;
+
+export function toSchedule(row: ScheduleRow, venueIds: readonly string[]): Schedule {
+  return {
+    scheduleId: row.schedule_id,
+    organizationId: row.organization_id,
+    name: row.name,
+    startsAt: Number(row.starts_at),
+    endsAt: Number(row.ends_at),
+    slotMinutes: row.slot_minutes,
+    turnaroundMinutes: row.turnaround_minutes,
+    venueIds,
+  };
+}
+
+export function toScheduleSlot(row: ScheduleSlotRow): ScheduleSlot {
+  return {
+    slotId: row.slot_id,
+    scheduleId: row.schedule_id,
+    venueId: row.venue_id,
+    startsAt: Number(row.starts_at),
+  };
+}
+
 /**
  * `starts_at` is a bigint, which pg hands back as a string to avoid losing
  * precision. Converting here keeps that a storage detail: the domain has only
  * ever seen an epoch number.
  */
 export function toResourceAssignment(
-  row: ScheduleRow,
-  officialIds: readonly string[],
+  row: Pick<MatchScheduleAssignmentRow, 'match_id' | 'slot_id'> &
+    Partial<MatchScheduleAssignmentRow>,
+  officialIds: readonly string[] = [],
 ): ResourceAssignment {
   return {
-    fixtureId: row.fixture_id,
-    window: { startsAt: Number(row.starts_at), durationMinutes: row.duration_minutes },
-    ...(row.venue_id === null ? {} : { venueId: row.venue_id }),
+    matchId: row.match_id,
+    slotId: row.slot_id,
     ...(officialIds.length === 0 ? {} : { officialIds }),
   };
 }
@@ -213,6 +280,36 @@ export function toStage(row: StageRow): Stage {
     name: row.name,
     format: row.format as Stage['format'],
     stageConfigurationId: row.stage_configuration_id ?? undefined,
+  };
+}
+
+export function toZone(row: ZoneRow): Zone {
+  return {
+    zoneId: row.zone_id,
+    stageId: row.stage_id,
+    number: row.number,
+    name: row.name,
+  };
+}
+
+export function toGroup(row: GroupRow): Group {
+  return {
+    groupId: row.group_id,
+    zoneId: row.zone_id,
+    number: row.number,
+    name: row.name,
+  };
+}
+
+export function toFixture(row: FixtureRow): Fixture {
+  return {
+    fixtureId: row.fixture_id,
+    stageId: row.stage_id,
+    ...(row.zone_id === null ? {} : { zoneId: row.zone_id }),
+    ...(row.group_id === null ? {} : { groupId: row.group_id }),
+    round: row.round,
+    ...(row.home_entrant_id === null ? {} : { homeEntrantId: row.home_entrant_id }),
+    ...(row.away_entrant_id === null ? {} : { awayEntrantId: row.away_entrant_id }),
   };
 }
 
@@ -251,6 +348,8 @@ export function toRecordedEvent(row: MatchEventRow): RecordedEvent {
     side: row.side ?? undefined,
     personId: row.person_id ?? undefined,
     payload: row.payload as Record<string, unknown>,
+    notes: row.notes ?? undefined,
+    segmentElapsedSeconds: row.segment_elapsed_seconds ?? undefined,
   };
 }
 

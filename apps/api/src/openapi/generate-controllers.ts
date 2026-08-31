@@ -1,4 +1,7 @@
 import { HealthController } from '../health.controller.js';
+import { AdminModulesController } from '../controllers/admin-modules.controller.js';
+import { AdminStatisticsController } from '../controllers/admin-statistics.controller.js';
+import { AuthoredModulesController } from '../controllers/authored-modules.controller.js';
 import { DataExportController } from '../controllers/data-export.controller.js';
 import { DataImportExportController } from '../controllers/data-import-export.controller.js';
 import { InstallationBootstrapController } from '../controllers/installation-bootstrap.controller.js';
@@ -6,6 +9,7 @@ import { MatchControlController } from '../controllers/match-control.controller.
 import { OrganizationsController } from '../controllers/organizations.controller.js';
 import {
   DisciplinesController,
+  EntrantsController,
   RegistrationsController,
 } from '../controllers/registrations.controller.js';
 import { SchedulesController } from '../controllers/schedules.controller.js';
@@ -13,8 +17,15 @@ import { SeedingController } from '../controllers/seeding.controller.js';
 import { StagesController } from '../controllers/stages.controller.js';
 import { DisplayTokenController } from '../controllers/broadcast.controller.js';
 import { StandingsController } from '../controllers/standings.controller.js';
+import { TableProjectionsController } from '../controllers/table-projections.controller.js';
 import { TournamentsController } from '../controllers/tournaments.controller.js';
+import { TournamentProfilesController } from '../controllers/tournament-profiles.controller.js';
+import { ZonesGroupsController } from '../controllers/zones-groups.controller.js';
+import { ClubsController } from '../controllers/clubs.controller.js';
+import { ResourcesController } from '../controllers/resources.controller.js';
+import { AuditTrailController } from '../controllers/audit-trail.controller.js';
 import {
+  InstallationRoleController,
   InvitationAcceptanceController,
   OrganizationAccessController,
 } from '../controllers/organization-access.controller.js';
@@ -26,7 +37,20 @@ import {
   ParticipantReportsController,
   ReportReviewController,
 } from '../controllers/reports.controller.js';
-import { PublicProjectionsController } from '../controllers/public-projections.controller.js';
+import {
+  PublicProjectionsController,
+  PublicTournamentListingController,
+} from '../controllers/public-projections.controller.js';
+import {
+  NativeAuthController,
+  PersonalAccessTokenController,
+} from '../controllers/auth.controller.js';
+import {
+  ClubMediaController,
+  OrganizationMediaController,
+  PersonMediaController,
+} from '../controllers/identity-media.controller.js';
+import { PublicObjectsController } from '../controllers/public-objects.controller.js';
 
 /**
  * The controllers the OpenAPI artifact is generated from.
@@ -40,22 +64,40 @@ export const OPENAPI_CONTROLLERS = [
   HealthController,
   OrganizationsController,
   TournamentsController,
+  TournamentProfilesController,
   RegistrationsController,
+  EntrantsController,
   DisciplinesController,
   SchedulesController,
   MatchControlController,
   DataImportExportController,
   DataExportController,
   StandingsController,
+  TableProjectionsController,
   SeedingController,
   StagesController,
   DisplayTokenController,
   OrganizationAccessController,
   InvitationAcceptanceController,
+  InstallationRoleController,
   ParticipantsController,
   ParticipantIdentityLinksController,
   ParticipantReportsController,
   ReportReviewController,
   InstallationBootstrapController,
+  PublicTournamentListingController,
   PublicProjectionsController,
+  PublicObjectsController,
+  NativeAuthController,
+  PersonalAccessTokenController,
+  AdminStatisticsController,
+  AdminModulesController,
+  AuthoredModulesController,
+  PersonMediaController,
+  ClubMediaController,
+  OrganizationMediaController,
+  ClubsController,
+  ResourcesController,
+  AuditTrailController,
+  ZonesGroupsController,
 ] as const;

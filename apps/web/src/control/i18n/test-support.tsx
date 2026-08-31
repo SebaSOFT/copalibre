@@ -1,8 +1,9 @@
 import { IntlProvider } from 'react-intl';
+import { ToastProvider } from '../components/ToastProvider.js';
 
 /**
  * Test-only: every control-panel leaf component now calls `useIntl()`/
- * `FormattedMessage`, which throw without an ancestor `IntlProvider` (0053).
+ * `FormattedMessage`, which throw without an ancestor `IntlProvider`.
  * Production code gets this from `ControlShell`/`Dashboard.tsx`'s
  * `ControlIntl`; a unit test that mounts a leaf component directly needs its
  * own. English needs no `messages` prop — `defaultMessage` already covers it.
@@ -10,7 +11,7 @@ import { IntlProvider } from 'react-intl';
 export function withIntl(children: React.ReactNode): React.JSX.Element {
   return (
     <IntlProvider defaultLocale="en" locale="en">
-      {children}
+      <ToastProvider>{children}</ToastProvider>
     </IntlProvider>
   );
 }

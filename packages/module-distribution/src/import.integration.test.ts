@@ -1,5 +1,6 @@
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import sharp from 'sharp';
 import type { ObjectStorageAdapter } from '@copalibre/object-storage';
 import {
   InstalledModuleRepository,
@@ -35,8 +36,10 @@ const ONE_PIXEL_PNG_BASE64 =
 class FakeObjectStorage implements ObjectStorageAdapter {
   readonly profile = 'filesystem' as const;
   private readonly objects = new Map<string, Uint8Array>();
+  putCount = 0;
 
   async put(key: string, body: Uint8Array): Promise<{ key: string }> {
+    this.putCount += 1;
     this.objects.set(key, body);
     return { key };
   }
@@ -45,6 +48,9 @@ class FakeObjectStorage implements ObjectStorageAdapter {
   }
   async delete(reference: { key: string }): Promise<void> {
     this.objects.delete(reference.key);
+  }
+  keys(): readonly string[] {
+    return [...this.objects.keys()].sort();
   }
 }
 
@@ -148,6 +154,56 @@ describe('importValidatedModule (integration)', () => {
     expect(assets[0]?.path).toBe('logo.png');
     expect(assets[0]?.storageBucket).toBe('filesystem');
   });
+
+  it.each<readonly [string, () => Promise<Buffer>]>([
+    ['wrong-format', async () => Buffer.from(ONE_PIXEL_PNG_BASE64, 'base64')],
+    [
+      'oversized-dimensions',
+      async () =>
+        sharp({
+          create: {
+            width: 2561,
+            height: 1440,
+            channels: 3,
+            background: { r: 18, g: 61, b: 43 },
+          },
+        })
+          .jpeg()
+          .toBuffer(),
+    ],
+  ])(
+    'refuses a %s background before upload and leaves no partial state',
+    async (_case, makeBytes) => {
+      const alias = `orbital-frisbee-${newId()}`;
+      const path = 'background-01.jpg';
+      const directory = await makeModuleDirectory(
+        validManifest({ alias, assets: [{ path, kind: 'background' }] }),
+        validDisciplineDocument({
+          alias,
+          images: [{ key: `modules/${alias}/1.0.0/${path}` }],
+        }),
+      );
+      directories.push(directory);
+      await mkdir(join(directory, 'assets'));
+      await writeFile(join(directory, 'assets', path), await makeBytes());
+      const storage = new FakeObjectStorage();
+
+      await expect(
+        (async () => {
+          const validated = await validateModulePackageOrThrow(directory, OPTIONS);
+          await importValidatedModule(db, storage, directory, validated, {
+            source: CURATED_MODULE_REPOSITORY,
+            actor: 'integration-test',
+          });
+        })(),
+      ).rejects.toThrow();
+
+      expect(storage.putCount).toBe(0);
+      expect(storage.keys()).toEqual([]);
+      expect(await new InstalledModuleRepository(db).findByAlias(alias)).toEqual([]);
+      expect(await new TournamentRepository(db).findDescriptorVersionsByAlias(alias)).toEqual([]);
+    },
+  );
 
   it('leaves no row or asset behind when the object-storage upload fails (7.2)', async () => {
     const alias = `orbital-frisbee-${newId()}`;

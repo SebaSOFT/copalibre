@@ -1,6 +1,5 @@
 /**
- * Explicit injection token for the object-storage adapter (0032, adapter
- * itself replaced by `@copalibre/object-storage` in 0041).
+ * Explicit injection token for the object-storage adapter.
  *
  * Never `undefined`: `objectStorageConfigFromEnv` always resolves to either
  * a configured S3-compatible endpoint or the local-filesystem fallback

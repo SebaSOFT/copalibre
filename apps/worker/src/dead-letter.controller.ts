@@ -3,7 +3,7 @@ import type { DeadLetter, RelayMetrics } from '@copalibre/persistence';
 import { RelayService } from './relay.service.js';
 
 /**
- * The operator's view of what failed (0017).
+ * The operator's view of what failed.
  *
  * A dead letter is *inspected*, never dropped: a queue that discards what it
  * cannot process is a queue that loses a finalized match and tells nobody. And

@@ -3,6 +3,8 @@ import {
   emailDeliveryConfigFromEnv,
   invitationEmailHandler,
   invitationMessage,
+  passwordResetEmailHandler,
+  passwordResetMessage,
   sendEmail,
   type EmailDeliveryConfig,
   type FetchLike,
@@ -117,6 +119,55 @@ describe('invitation email delivery', () => {
     const { fetcher } = fetchRecorder(503);
     await expect(
       sendEmail(base, invitationMessage(base, job().payload as never), fetcher),
+    ).rejects.toThrow('HTTP 503');
+  });
+});
+
+function passwordResetJob(): ClaimedJob {
+  return {
+    eventId: 'event-2',
+    organizationId: '00000000-0000-0000-0000-000000000000',
+    stream: 'principal:01800000-0000-7000-8000-000000000003',
+    entityId: '01800000-0000-7000-8000-000000000004',
+    eventType: 'password-reset-requested',
+    projectionVersion: 1,
+    payload: {
+      verificationId: '01800000-0000-7000-8000-000000000004',
+      recipientEmail: 'operator@example.test',
+      token: 'opaque-reset-token',
+      expiresAt: '2026-08-13T21:00:00.000Z',
+    },
+    createdAt: '2026-08-13T20:00:00.000Z',
+    attempts: 1,
+    claimedBy: 'worker-1',
+    failures: [],
+  };
+}
+
+describe('password-reset email delivery', () => {
+  it('sends a reset link pointing at /control/reset-password with no token logged elsewhere', async () => {
+    const { fetcher, calls } = fetchRecorder();
+    await sendEmail(base, passwordResetMessage(base, passwordResetJob().payload as never), fetcher);
+
+    expect(calls).toHaveLength(1);
+    const request = calls.at(0);
+    if (!request) throw new Error('Expected an email delivery request');
+    const body = JSON.parse(String(request.body));
+    expect(body).toMatchObject({ to: ['operator@example.test'], from: base.from });
+    expect(body.html).toContain('/control/reset-password');
+    expect(body.html).toContain('token=opaque-reset-token');
+  });
+
+  it('registers a retryable handler for the password-reset outbox event', async () => {
+    const { fetcher, calls } = fetchRecorder();
+    await passwordResetEmailHandler(base, fetcher)(passwordResetJob());
+    expect(calls).toHaveLength(1);
+  });
+
+  it('propagates provider rejection to the outbox relay', async () => {
+    const { fetcher } = fetchRecorder(503);
+    await expect(
+      sendEmail(base, passwordResetMessage(base, passwordResetJob().payload as never), fetcher),
     ).rejects.toThrow('HTTP 503');
   });
 });

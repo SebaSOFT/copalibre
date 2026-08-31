@@ -2,10 +2,13 @@
 import PublicLayout from '../../../../../../layouts/PublicLayout.astro';
 import BracketView from '../../../../../../components/BracketView.astro';
 import ResultLegend from '../../../../../../components/ResultLegend.astro';
+import StandingsPreview from '../../../../../../components/StandingsPreview.astro';
 import { buildOverview, displayName } from '../../../../../../lib/overview.ts';
 import {
   fetchBracket,
   fetchOverview,
+  fetchPublicTableLayouts,
+  fetchPublicTableProjection,
   mapOverviewResponse,
   mapBracketResponse,
 } from '../../../../../../lib/public-api-client.ts';
@@ -16,7 +19,7 @@ import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 /**
  * B3, the public bracket. Double elimination is the shape it must survive.
  *
- * `[[locale]]` mirrors the tournament overview page (0055) — see its comment.
+ * `[[locale]]` mirrors the tournament overview page — see its comment.
  */
 export const prerender = false;
 
@@ -38,14 +41,59 @@ if (!overviewData || !bracketData) {
 }
 
 const model = buildOverview(mapOverviewResponse(overviewData));
+const localePrefix = locale ? `/${locale}` : '';
+const stagePath = `${localePrefix}${model.canonicalPath}/stages/${stageNumber}`;
+const activeClubId = Astro.url.searchParams.get('clubId') ?? undefined;
+
+// This stage's own group-phase table (e.g. a round-robin group's standings),
+// when its discipline declares one — an elimination stage naturally has
+// none, and the bracket above is its own ranking.
+const layoutsResponse = await fetchPublicTableLayouts(organization!, tournament!);
+const groupPhaseLayout = layoutsResponse?.layouts.find((one) => one.target === 'group-phase');
+const standingsProjection = groupPhaseLayout
+  ? await fetchPublicTableProjection(
+      organization!,
+      tournament!,
+      groupPhaseLayout.code,
+      stageNumber,
+      activeClubId,
+    )
+  : undefined;
 ---
 
 <PublicLayout
   title={`${intl.formatMessage(messages.bracketPageTitle)} — ${displayName(model)}`}
   canonicalPath={model.canonicalPath}
   intl={intl}
+  disciplineImages={overviewData.disciplineImages}
 >
   <h1>{intl.formatMessage(messages.bracketPageTitle)}</h1>
-  <BracketView matches={bracketData.matches} intl={intl} />
+  <p>
+    <a href={`${localePrefix}${model.canonicalPath}/matches?stageNumber=${stageNumber}`}>
+      {intl.formatMessage(messages.matchesViewSeeAll)}
+    </a>
+  </p>
+  <BracketView
+    intl={intl}
+    localePrefix={localePrefix}
+    matches={bracketData.matches}
+    organizationAlias={organization!}
+    stageNumber={stageNumber}
+    tournamentAlias={tournament!}
+  />
   <ResultLegend intl={intl} />
+  {
+    standingsProjection && (
+      <StandingsPreview
+        activeClubId={activeClubId}
+        canonicalPath={stagePath}
+        clubs={model.clubs}
+        intl={intl}
+        layout={groupPhaseLayout}
+        organizationAlias={organization}
+        projection={standingsProjection}
+        tournamentAlias={tournament}
+      />
+    )
+  }
 </PublicLayout>

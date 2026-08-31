@@ -2,7 +2,7 @@ import { sql, type Kysely } from 'kysely';
 import type { Migration } from 'kysely/migration';
 
 /**
- * The object-storage capability's own metadata registry (0041): one row per
+ * The object-storage capability's own metadata registry: one row per
  * object stored through `@copalibre/object-storage`'s adapter, pointing at
  * its profile-agnostic storage key — no object bytes live in this database.
  * `status` is the async media-processing job's tracking field (pending until

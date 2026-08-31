@@ -1,6 +1,6 @@
 {
   "name": "@copalibre/realtime",
-  "version": "0.5.0-beta",
+  "version": "1.0.0",
   "private": true,
   "license": "AGPL-3.0-only",
   "type": "module",

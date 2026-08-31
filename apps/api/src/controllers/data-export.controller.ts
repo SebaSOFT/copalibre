@@ -1,4 +1,5 @@
-import { Controller, Get, Header, Inject, NotFoundException, Param, Req } from '@nestjs/common';
+import { Controller, Get, Header, Inject, Param, Req } from '@nestjs/common';
+import { NotFoundException } from '../http/error-contract.js';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiProduces, ApiTags } from '@nestjs/swagger';
 import { escapeCsvFormulaCell, stringifyCsv } from '@copalibre/domain';
 import {
@@ -7,11 +8,12 @@ import {
   type Database,
 } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
-import { RequireOrganizationRole } from '../auth/access-requirement.js';
+import { RequireOrganizationCapability } from '../auth/access-requirement.js';
 import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
 import { DATABASE } from '../database.token.js';
 import { enforcePolicy } from '../policy/resource-policy.js';
+import { recordSensitiveRead } from '../http/sensitive-read-audit.js';
 
 @ApiTags('data-import-export')
 @Controller('organizations/:organizationAlias/tournaments/:tournamentAlias/exports')
@@ -21,7 +23,7 @@ export class DataExportController {
   @Get('participants/:target')
   @Header('Content-Type', 'text/csv; charset=utf-8')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-tournament-data')
   @ApiBearerAuth()
   @ApiProduces('text/csv')
   @ApiOperation({ summary: 'Export re-importable participant CSV by stable alias' })
@@ -35,7 +37,23 @@ export class DataExportController {
     @Param('target') target: string,
     @Req() request: RequestWithSubject,
   ): Promise<string> {
-    const tournamentId = await this.resolve(organizationAlias, tournamentAlias, request);
+    const { organizationId, tournamentId } = await this.resolve(
+      organizationAlias,
+      tournamentAlias,
+      request,
+    );
+    const csv = await this.participantsCsv(tournamentId, target);
+    await recordSensitiveRead(this.db, {
+      organizationId,
+      entityType: 'tournament',
+      entityId: tournamentId,
+      action: 'export.participants-downloaded',
+      subject: request.subject,
+    });
+    return csv;
+  }
+
+  private async participantsCsv(tournamentId: string, target: string): Promise<string> {
     if (target === 'individual') {
       const rows = await this.db
         .selectFrom('entrants')
@@ -77,13 +95,15 @@ export class DataExportController {
         })),
       );
     }
-    throw new NotFoundException('Participant export target must be individual or team');
+    throw new NotFoundException('Participant export target must be individual or team', {
+      errorCode: 'data-export-not-found',
+    });
   }
 
   @Get('results')
   @Header('Content-Type', 'text/csv; charset=utf-8')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-tournament-data')
   @ApiBearerAuth()
   @ApiProduces('text/csv')
   @ApiOperation({ summary: 'Export calculated match results by participant alias' })
@@ -96,7 +116,11 @@ export class DataExportController {
     @Param('tournamentAlias') tournamentAlias: string,
     @Req() request: RequestWithSubject,
   ): Promise<string> {
-    const tournamentId = await this.resolve(organizationAlias, tournamentAlias, request);
+    const { organizationId, tournamentId } = await this.resolve(
+      organizationAlias,
+      tournamentAlias,
+      request,
+    );
     const aliases = await aliasesForTournament(this.db, tournamentId);
     const rows = await this.db
       .selectFrom('matches')
@@ -108,19 +132,27 @@ export class DataExportController {
       .where('matches.result', 'is not', null)
       .orderBy('matches.number')
       .execute();
-    return stringifyCsv(
+    const csv = stringifyCsv(
       ['matchNumber', 'result'],
       rows.map((row) => ({
         matchNumber: row.matchNumber,
         result: JSON.stringify(replaceEntrantIds(row.result ?? {}, aliases)),
       })),
     );
+    await recordSensitiveRead(this.db, {
+      organizationId,
+      entityType: 'tournament',
+      entityId: tournamentId,
+      action: 'export.results-downloaded',
+      subject: request.subject,
+    });
+    return csv;
   }
 
   @Get('standings')
   @Header('Content-Type', 'text/csv; charset=utf-8')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-tournament-data')
   @ApiBearerAuth()
   @ApiProduces('text/csv')
   @ApiOperation({ summary: 'Export calculated standings by participant alias' })
@@ -133,7 +165,11 @@ export class DataExportController {
     @Param('tournamentAlias') tournamentAlias: string,
     @Req() request: RequestWithSubject,
   ): Promise<string> {
-    const tournamentId = await this.resolve(organizationAlias, tournamentAlias, request);
+    const { organizationId, tournamentId } = await this.resolve(
+      organizationAlias,
+      tournamentAlias,
+      request,
+    );
     const aliases = await aliasesForTournament(this.db, tournamentId);
     const rows = await this.db
       .selectFrom('materialised_standings')
@@ -141,6 +177,13 @@ export class DataExportController {
       .where('tournament_id', '=', tournamentId)
       .orderBy('created_at', 'desc')
       .execute();
+    await recordSensitiveRead(this.db, {
+      organizationId,
+      entityType: 'tournament',
+      entityId: tournamentId,
+      action: 'export.standings-downloaded',
+      subject: request.subject,
+    });
     return stringifyCsv(
       ['stageId', 'standings'],
       rows.map((row) => ({
@@ -154,10 +197,12 @@ export class DataExportController {
     organizationAlias: string,
     tournamentAlias: string,
     request: RequestWithSubject,
-  ): Promise<string> {
+  ): Promise<{ readonly organizationId: string; readonly tournamentId: string }> {
     const organization = await new OrganizationRepository(this.db).findByAlias(organizationAlias);
     if (!organization)
-      throw new NotFoundException(`No organization with alias "${organizationAlias}"`);
+      throw new NotFoundException(`No organization with alias "${organizationAlias}"`, {
+        errorCode: 'data-export-not-found',
+      });
     enforcePolicy({
       plane: 'admin-control',
       subject: request.subject,
@@ -167,8 +212,19 @@ export class DataExportController {
       organizationAlias,
       tournamentAlias,
     );
-    if (!tournament) throw new NotFoundException(`No tournament "${tournamentAlias}"`);
-    return tournament.tournamentId;
+    if (!tournament)
+      throw new NotFoundException(`No tournament "${tournamentAlias}"`, {
+        errorCode: 'data-export-not-found',
+      });
+    enforcePolicy({
+      plane: 'admin-control',
+      subject: request.subject,
+      resource: {
+        organizationId: organization.organizationId,
+        ownerTournamentId: tournament.tournamentId,
+      },
+    });
+    return { organizationId: organization.organizationId, tournamentId: tournament.tournamentId };
   }
 }
 

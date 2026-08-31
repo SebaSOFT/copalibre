@@ -1,4 +1,4 @@
-import type { TournamentProfile } from '@copalibre/domain';
+import { resolveLabel, type TournamentProfile } from '@copalibre/domain';
 import type { Kysely } from 'kysely';
 import type { Database } from '../schema.js';
 import type { UnitOfWork } from '../transaction.js';
@@ -31,7 +31,7 @@ export class TournamentProfileRepository {
         profile_id: profile.profileId,
         alias: profile.alias,
         version: profile.version,
-        name: profile.name,
+        name: resolveLabel(profile.name, 'en'),
         document: JSON.stringify(profile),
         created_at: new Date(),
       })
@@ -44,7 +44,7 @@ export class TournamentProfileRepository {
         profileId: profile.profileId,
         alias: profile.alias,
         version: profile.version,
-        name: profile.name,
+        name: resolveLabel(profile.name, 'en'),
       };
     }
 
@@ -76,7 +76,7 @@ export class TournamentProfileRepository {
       profileId: profile.profileId,
       alias: profile.alias,
       version: profile.version,
-      name: profile.name,
+      name: resolveLabel(profile.name, 'en'),
     };
   }
 
@@ -119,5 +119,32 @@ export class TournamentProfileRepository {
       .where('profile_id', '=', profileId)
       .execute();
     return rows.map((row) => row.version);
+  }
+
+  /**
+   * Every installed profile, newest version of each.
+   */
+  async listProfiles(): Promise<
+    readonly {
+      readonly profileId: string;
+      readonly version: string;
+      readonly document: TournamentProfile;
+    }[]
+  > {
+    const rows = await this.db
+      .selectFrom('tournament_profiles')
+      .select(['profile_id', 'version', 'document'])
+      .orderBy('profile_id')
+      .orderBy('version', 'desc')
+      .execute();
+
+    const newest = new Map<string, (typeof rows)[number]>();
+    for (const row of rows) if (!newest.has(row.profile_id)) newest.set(row.profile_id, row);
+
+    return [...newest.values()].map((row) => ({
+      profileId: row.profile_id,
+      version: row.version,
+      document: row.document as unknown as TournamentProfile,
+    }));
   }
 }

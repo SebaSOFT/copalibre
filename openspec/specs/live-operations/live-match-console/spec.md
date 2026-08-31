@@ -90,7 +90,10 @@ SHALL return the recorded outcome; reuse of that key with a different request SH
 Any optimistically displayed score, statistic, timer, or match-state update SHALL reconcile with the
 next authoritative versioned match projection delivered through the durable event stream. If no newer
 projection arrives within a bounded timeout, the console SHALL show stale state and refetch the
-projection rather than trusting the optimistic value indefinitely.
+projection rather than trusting the optimistic value indefinitely. When a durably queued set of actions
+is replayed after a reconnection, the same reconciliation SHALL apply to the resulting state: the
+console SHALL NOT continue displaying an optimistic value the authoritative projection has superseded,
+whether that projection resulted from one mutation or from an entire replayed queue.
 
 #### Scenario: Optimistic update reconciles
 - **WHEN** the console optimistically updates state after an event is recorded
@@ -100,6 +103,11 @@ projection rather than trusting the optimistic value indefinitely.
 #### Scenario: Reconciliation expires
 - **WHEN** an optimistic mutation is not reconciled before the configured timeout
 - **THEN** the console marks its state stale and requests a fresh authoritative projection
+
+#### Scenario: A drained queue reconciles to the authoritative outcome
+- **WHEN** a reconnection drains a queue of several actions, some accepted and one refused
+- **THEN** the console's displayed state reflects the authoritative projection resulting from exactly
+  what the server accepted, not an optimistic guess that assumed every queued action would succeed
 
 ### Requirement: Match-scoped capability-based authorization
 Only an active organization `admin` or `referee` identity SHALL reach match control, and every event
@@ -124,3 +132,218 @@ shown as unavailable and SHALL NOT be replaced with an estimated or placeholder 
 #### Scenario: Telemetry source is unavailable
 - **WHEN** no telemetry source provides packet-loss data for a match
 - **THEN** the packet-loss tile is labelled unavailable rather than displaying a fabricated value
+
+### Requirement: Match console renders tactile dual jersey number grids
+
+The match console (Screen A2) SHALL render side-by-side interactive jersey number button grids for competing entrants, displaying jersey numbers, names, tactical roles, and active on-field status.
+
+#### Scenario: Operator selects an active player via jersey button
+- **WHEN** an operator taps a player's jersey button (e.g. `[ #10 Palmer ]`) on Team B's grid
+- **THEN** the console sets the selected entrant side to Team B and the primary actor to the corresponding player ID
+
+#### Scenario: Ambient field selection assigns the primary actor and a secondary payload field
+- **WHEN** an operator taps a primary player's jersey, switches to a declared secondary field via a chip row (e.g. `assistedBy` for a goal), and taps a teammate's jersey
+- **THEN** the recorded event payload sets `personId` to the primary player and `payload.assistedBy` to the selected teammate
+
+#### Scenario: Substitutes on the bench are visually distinguished
+- **WHEN** viewing the team jersey grid
+- **THEN** players with `onField: false` are rendered in a distinct bench section with a visual substitute indicator
+
+### Requirement: The console provides a roster-selection step that produces what the jersey grid renders
+
+The match console SHALL provide a roster-selection step, reachable before event recording begins and
+re-openable while the match is in progress, offering each side's registered players as candidates and
+capturing per member a shirt number, the roster roles the discipline declares, and a starter-or-bench
+state. The selection SHALL be the source of the tactile jersey grid's contents and of the console's
+person-attribution eligibility.
+
+#### Scenario: Selecting each side's roster before recording events
+- **WHEN** an operator opens a scheduled match's console and chooses the roster-selection step
+- **THEN** each side offers that entrant's registered players as candidates, and a submitted selection
+  becomes the jersey grid's contents
+
+#### Scenario: A match with no roster selected is stated, not shown as an empty grid
+- **WHEN** an operator opens the console for a match whose roster has never been selected
+- **THEN** the console states that no roster is selected and offers the selection step, rather than
+  rendering an empty jersey grid
+
+#### Scenario: Starters and substitutes are distinguished at selection
+- **WHEN** an operator marks some members as starters and others as substitutes
+- **THEN** starters are recorded on-field and substitutes off-field, which is the state the console's
+  existing substitution handling then swaps during the match
+
+#### Scenario: A refused selection preserves the operator's entered data
+- **WHEN** a submitted selection is refused
+- **THEN** the console surfaces the refusal against the offending member and keeps the rest of the
+  entered selection in place
+
+#### Scenario: Re-opening the step during a match shows the current selection
+- **WHEN** an operator re-opens the roster-selection step after events have been recorded
+- **THEN** the current selection is shown for revision, not an empty form
+
+### Requirement: A dedicated screen loads match data without a live console session
+
+The console SHALL offer a "load match data" screen, distinct from the live match console, for entering
+a match's roster, ordered event list, and result in one review-then-submit action, with no requirement
+to step through segment clocks or record events in real time.
+
+#### Scenario: An operator transcribes a scoresheet after the fact
+- **WHEN** an operator opens the load-match-data screen for a scheduled match with no prior console
+  activity
+- **THEN** they can enter the roster, build an ordered event list, and review it before submitting,
+  with no live clock or active-segment requirement anywhere in the flow
+
+#### Scenario: A rejected submission is correctable, not lost
+- **WHEN** a submission is rejected because one event entry is invalid
+- **THEN** the screen retains the operator's entered data (roster and every event, including the
+  invalid one) so it can be corrected and resubmitted, rather than requiring the whole entry to be
+  redone
+
+#### Scenario: The live console is unaffected
+- **WHEN** an operator uses the live match console for a different match, or the same match before this
+  screen exists in their workflow
+- **THEN** its real-time behavior is unchanged — this screen is an additional path, not a modification
+  of the existing one
+
+### Requirement: The load-match-data screen accepts a CSV import as an alternative to manual entry
+
+The load-match-data screen SHALL accept a CSV file describing one match's roster, ordered events, and
+result, parsing it into the same structured submission manual entry produces. Imported content SHALL load
+into the screen's event-list builder for review before submission, and SHALL be submitted through the same
+batch endpoint under the same validation and the same all-or-nothing transaction. Parse and validation
+problems SHALL be reported for every offending row at once, before anything is submitted.
+
+#### Scenario: Importing a well-formed file
+- **WHEN** an operator imports a CSV describing a match's roster, events and result
+- **THEN** the content loads into the event-list builder for review, and submitting it records the match
+  exactly as the same content entered by hand would
+
+#### Scenario: A malformed file reports every bad row
+- **WHEN** an imported CSV has problems in several rows
+- **THEN** every offending row is reported at once, and nothing is submitted
+
+#### Scenario: An import is reviewable before it commits
+- **WHEN** an operator imports a file
+- **THEN** nothing is written until the operator submits the reviewed content
+
+#### Scenario: An import is subject to identical validation
+- **WHEN** an imported batch contains an event the discipline's definitions reject
+- **THEN** it is refused exactly as the same event entered by hand would be, and no part of the match is
+  written
+
+### Requirement: Every mutating console command carries a durable idempotency key
+
+The console SHALL generate a client-side idempotency key for every mutating command it sends — event
+recording, clock adjustment, timer resolution, roster selection, and finalization — and the server
+SHALL persist that key atomically with the command's recorded outcome. A retry carrying the same key
+and the same request SHALL return the previously recorded outcome without re-applying the command.
+Reuse of that key with a different request SHALL be rejected.
+
+#### Scenario: A retried event recording is not double-recorded
+- **WHEN** a client retries the same event-recording request with the same idempotency key, because the
+  first response was lost
+- **THEN** exactly one event is recorded, and both responses identify that same outcome
+
+#### Scenario: A retried roster selection is not double-applied
+- **WHEN** a client retries the same roster-selection request with the same idempotency key
+- **THEN** the roster is set exactly once, and both responses identify that same outcome
+
+#### Scenario: Reusing a key with a different request is rejected
+- **WHEN** a client reuses an idempotency key already recorded against a different request for any
+  mutating console command
+- **THEN** the system rejects the new request without applying it
+
+### Requirement: The console durably queues an action it cannot send
+
+When a mutating console command cannot be sent — the client is offline, or the send attempt fails for a
+network reason — the console SHALL persist that action in a durable, client-local queue instead of only
+reporting an error and discarding it. The queue SHALL treat a brief connectivity loss and a sustained
+one identically; there SHALL be no separate mechanism for a short blip versus an extended outage.
+
+#### Scenario: Losing connectivity mid-action queues it
+- **WHEN** an operator submits a mutating command while the client has no network connectivity
+- **THEN** the action is durably queued rather than reported as a plain failure and discarded
+
+#### Scenario: A short blip and a sustained outage queue identically
+- **WHEN** connectivity is lost for a few seconds, or for many minutes
+- **THEN** in both cases the console's queuing and later replay behavior is the same
+
+### Requirement: A queued action survives a page refresh
+
+An action durably queued by the console SHALL remain queued across a page reload, or the console tab
+being closed and reopened, and the console SHALL resume attempting to send it once reachable again.
+In-progress input that the operator had not yet attempted to submit — a selection, typed text, or an
+open workflow choice awaiting confirmation — is not required to survive a refresh.
+
+#### Scenario: A refresh does not lose a queued action
+- **WHEN** an operator refreshes the page while an action is queued and unsent
+- **THEN** reopening the console shows that action still queued, and the console resumes attempting to
+  send it
+
+#### Scenario: Unsubmitted draft input is not restored after a refresh
+- **WHEN** an operator refreshes the page while in the middle of composing an action that was never
+  submitted
+- **THEN** that in-progress input is not restored — unchanged from today's behavior
+
+### Requirement: A reconnection replays the queue through the same validation a live action already goes through
+
+On regaining connectivity, the console SHALL replay every durably queued action, in the order it was
+originally attempted, against its normal authorized command endpoint — the same endpoint and validation
+a live console action already goes through. No separate merge or conflict-resolution logic SHALL apply.
+An action the server would accept from a live console SHALL be accepted from the queue. An action the
+server would refuse from a live console — including a finalize whose target match is no longer eligible,
+or is already finalized with a different result, or whose target match was anulled by a series decision
+taken while the operator was offline — SHALL be refused from the queue, surfaced against that specific
+queued item, and SHALL NOT prevent the remaining queued actions from being attempted. A refusal caused
+by a series decision SHALL name that series result, so the operator is told why the match they recorded
+against will never be played.
+
+#### Scenario: Queued events from one operator replay alongside events recorded by others
+- **WHEN** a reconnection replays queued event-recording actions for a match that also received other
+  events, recorded by other operators, while this operator was offline
+- **THEN** the queued events are recorded in their original order, alongside the events recorded by
+  others, with no event lost or silently dropped
+
+#### Scenario: A queued action refused by live validation is refused from the queue too
+- **WHEN** a queued roster selection is replayed for a match that was finalized while its operator was
+  offline
+- **THEN** the queued action is refused exactly as a live submission would be, and the refusal is
+  surfaced against that specific queued item
+
+#### Scenario: A conflicting queued finalize is refused, not merged
+- **WHEN** a queued finalize action is replayed for a match already finalized with a different result
+- **THEN** the queued finalize is refused and surfaced for the operator to resolve explicitly — never
+  automatically resubmitted or silently merged with the existing result
+
+#### Scenario: One refused item does not block the rest of the queue
+- **WHEN** one queued action among several is refused during replay
+- **THEN** the remaining queued actions are still attempted, in order
+
+#### Scenario: A queued action against a match anulled by a series decision is refused, naming the series
+- **WHEN** a queued action is replayed for a match that became not-required because its series was
+  decided while the operator was offline
+- **THEN** the action is refused and surfaced against that queued item, naming the series result that
+  anulled the match, and the operator's recorded work is neither applied nor discarded
+
+#### Scenario: The operator can still see what they recorded
+- **WHEN** a queued action is refused because its match was anulled
+- **THEN** the queued item and its contents remain visible to the operator, so they can decide whether
+  it belongs elsewhere — for example as a correction to an earlier match of the same series
+
+### Requirement: Sync status is always visible while the console is open
+
+The console SHALL display, at all times while open — not only when a problem occurs — whether it is
+currently online or offline, how many actions are queued and not yet confirmed by the server, and when
+the queue was last successfully drained.
+
+#### Scenario: Going offline shows an offline indicator
+- **WHEN** the console loses connectivity
+- **THEN** an offline indicator becomes visible without requiring any operator action
+
+#### Scenario: A queued action is reflected in the visible count
+- **WHEN** an action is durably queued because it could not be sent
+- **THEN** the visible queued-action count increases to include it
+
+#### Scenario: A successful drain updates the last-synced time
+- **WHEN** the queue is successfully drained after a reconnection
+- **THEN** the visible last-synced time updates to reflect it

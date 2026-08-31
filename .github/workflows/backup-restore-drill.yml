@@ -31,15 +31,15 @@ jobs:
       COPALIBRE_EMAIL_FROM: backup-drill@copalibre.invalid
       COPALIBRE_SMTP_URL: smtp://host.docker.internal:1025
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: corepack enable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: yarn
       - run: yarn install --immutable
       - run: yarn typecheck
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
       # Same scope as ci.yml's "Release image build" job — this and that job
       # build the identical Dockerfile target from the identical context, so
       # sharing the cache scope means whichever ran more recently warms the

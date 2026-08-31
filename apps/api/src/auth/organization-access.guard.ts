@@ -6,6 +6,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { rolesForCapability } from '@copalibre/domain';
 import {
   IdentityPrincipalRepository,
   OrganizationAccessRepository,
@@ -14,7 +15,7 @@ import {
 } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
 import { DATABASE } from '../database.token.js';
-import type { RequestWithSubject } from './request-context.js';
+import type { AuthenticatedSubject, RequestWithSubject } from './request-context.js';
 import {
   ACCESS_REQUIREMENT_KEY,
   SUPER_ADMIN_SCOPE,
@@ -69,7 +70,7 @@ export class OrganizationAccessGuard implements CanActivate {
       // this is the one route whose whole purpose is to answer "does this
       // account have any footprint at all" — a caller who authenticated but
       // never accepted an invitation legitimately has none yet, and the
-      // correct response is an empty result, not a 403 (0063 design.md).
+      // correct response is an empty result, not a 403.
       const principal = await new IdentityPrincipalRepository(this.db).findByOidcSubject(
         subject.subjectId,
       );
@@ -116,17 +117,28 @@ export class OrganizationAccessGuard implements CanActivate {
       const access = new OrganizationAccessRepository(this.db);
       const principal = await identities.findByOidcSubject(subject.subjectId);
       if (!principal) throw new ForbiddenException('Subject has no installation principal');
-      request.subject = { ...subject, principalId: principal.principalId };
       const assignment = await access.findAssignment(organizationId, principal.principalId);
       if (!assignment || assignment.status !== 'active' || assignment.role !== 'admin') {
+        request.subject = {
+          ...subject,
+          principalId: principal.principalId,
+          grantorContext: {
+            isSuperAdmin: subject.scopes.includes(SUPER_ADMIN_SCOPE),
+          },
+        };
         throw new ForbiddenException('Subject has no active organization admin role');
       }
+      request.subject = {
+        ...subject,
+        principalId: principal.principalId,
+        grantorContext: this.resolveGrantorContext(subject, organizationId, assignment.role),
+        resourceScope: resolveResourceScope(assignment),
+      };
       return true;
     }
 
     const principal = await identities.findByOidcSubject(subject.subjectId);
     if (!principal) throw new ForbiddenException('Subject has no installation principal');
-    request.subject = { ...subject, principalId: principal.principalId };
 
     const assignment = await new OrganizationAccessRepository(this.db).findAssignment(
       organizationId,
@@ -135,10 +147,36 @@ export class OrganizationAccessGuard implements CanActivate {
     if (!assignment || assignment.status !== 'active') {
       throw new ForbiddenException('Subject has no active organization role');
     }
-    if (!requirement.roles.includes(assignment.role)) {
+    request.subject = {
+      ...subject,
+      principalId: principal.principalId,
+      grantorContext: this.resolveGrantorContext(subject, organizationId, assignment.role),
+      resourceScope: resolveResourceScope(assignment),
+    };
+    const admittedRoles =
+      requirement.kind === 'organization-capability'
+        ? rolesForCapability(requirement.capability)
+        : requirement.roles;
+    if (!admittedRoles.includes(assignment.role)) {
       throw new ForbiddenException('Subject organization role is not authorized for this route');
     }
     return true;
+  }
+
+  /**
+   * `organizationAdminOf` is set only when this caller's active role in this
+   * organization is `admin` — a `club-admin`/`referee`/`broadcaster`/`viewer`
+   * grants nothing (domain's `canGrantRole`).
+   */
+  private resolveGrantorContext(
+    subject: AuthenticatedSubject,
+    organizationId: string,
+    activeRole: string,
+  ): { isSuperAdmin: boolean; organizationAdminOf?: string } {
+    return {
+      isSuperAdmin: subject.scopes.includes(SUPER_ADMIN_SCOPE),
+      ...(activeRole === 'admin' ? { organizationAdminOf: organizationId } : {}),
+    };
   }
 
   private async resolveOrganizationId(
@@ -150,4 +188,20 @@ export class OrganizationAccessGuard implements CanActivate {
       .findByAlias(organizationAlias)
       .then((row) => row?.organizationId);
   }
+}
+
+/**
+ * The resource this assignment narrows its holder's authority to —
+ * `undefined` fields for a role with no scope of that kind (e.g. `admin`
+ * carries neither), present for a `club-admin`/`tournament-admin` assignment.
+ * Read by `resource-policy.ts`'s ownership check off `subject.resourceScope`.
+ */
+function resolveResourceScope(assignment: {
+  readonly clubId?: string;
+  readonly tournamentId?: string;
+}): { readonly clubId?: string; readonly tournamentId?: string } {
+  return {
+    ...(assignment.clubId === undefined ? {} : { clubId: assignment.clubId }),
+    ...(assignment.tournamentId === undefined ? {} : { tournamentId: assignment.tournamentId }),
+  };
 }

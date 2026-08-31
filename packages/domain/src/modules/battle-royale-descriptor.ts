@@ -8,7 +8,7 @@ import { winConditionScript } from './win-condition-scripts.js';
  * Its scoring is the shape the whole placement format exists for: points for
  * where you finished, plus points for what you did. The first half is
  * structural and comes from `placementScoring`; the second is `frags`, an
- * ordinary declared statistic that 0009's accounting already sums. Nothing in
+ * ordinary declared statistic that the accounting model already sums. Nothing in
  * the engine knows which is which — the standings add both.
  *
  * The table stops at tenth because that is what these formats actually do: a
@@ -90,13 +90,23 @@ export function battleRoyaleDescriptor(
     winCondition: winConditionScript('last-side-standing', { unit: 'placement-points' }),
     defaults: {
       format: 'free-for-all',
-      registration: { publicOpen: false, requiresCheckIn: false },
+      registration: {
+        publicOpen: false,
+        requiresCheckIn: false,
+        region: null,
+        capacity: null,
+      },
       scoring: { pointsPerWin: 0, pointsPerDraw: 0, pointsPerLoss: 0 },
       tiebreakers: ['placement-points', 'frags', 'best-placement'],
       segments: { roundsPerStage: 6, lobbySize: 20 },
     },
     fieldPolicies: {
       format: { permission: { kind: 'replaced' }, mutationClass: 'blocked_after_results' },
+      'registration.region': { permission: { kind: 'replaced' }, mutationClass: 'safe' },
+      'registration.capacity': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'requires_rebuild',
+      },
       'registration.publicOpen': { permission: { kind: 'replaced' }, mutationClass: 'safe' },
       'registration.requiresCheckIn': {
         permission: { kind: 'replaced' },
@@ -105,6 +115,18 @@ export function battleRoyaleDescriptor(
       'registration.checkInClosesAt': {
         permission: { kind: 'replaced' },
         mutationClass: 'requires_rebuild',
+      },
+      'scoring.pointsPerWin': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'blocked_after_results',
+      },
+      'scoring.pointsPerDraw': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'blocked_after_results',
+      },
+      'scoring.pointsPerLoss': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'blocked_after_results',
       },
       tiebreakers: {
         permission: { kind: 'merged', strategy: 'union-list' },

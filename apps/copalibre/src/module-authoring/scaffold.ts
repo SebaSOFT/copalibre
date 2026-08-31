@@ -79,8 +79,8 @@ each field in \`${category}/${options.alias}/artifact.json\` means.
 /**
  * Produces a tagged local Git repository in exactly the layout `fetchModule`
  * (module-distribution) already expects, so installing it locally needs no
- * new code path — `module add --source file://...` (0036) installs it
- * unmodified (0049 design).
+ * new code path — `module add --source file://...` installs it
+ * unmodified.
  */
 export async function scaffoldModule(
   options: ScaffoldOptions,
@@ -97,10 +97,18 @@ export async function scaffoldModule(
     // The shipped discipline fixtures declare `notificationRuleCapabilities:
     // ["threshold-count"]`, but nothing in @copalibre/rules currently calls
     // `registerNotificationCapability` for it — a pre-existing gap, not
-    // something this scaffold should reproduce (0049 design). An empty
+    // something this scaffold should reproduce. An empty
     // array is valid, structurally honest content: "this discipline
     // declares no notification-rule capabilities yet."
-    ...(options.kind === 'discipline' ? { notificationRuleCapabilities: [] } : {}),
+    ...(options.kind === 'discipline'
+      ? {
+          // First-party templates carry packaged image references. A scaffold
+          // has no copied asset yet, so omitting them keeps manifest and
+          // descriptor truthful until its author adds a background pair.
+          images: undefined,
+          notificationRuleCapabilities: [],
+        }
+      : {}),
   };
   const manifest: ModuleManifest = {
     kind: options.kind,

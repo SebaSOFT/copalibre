@@ -1,14 +1,9 @@
+import { Body, Controller, Delete, Get, HttpCode, Inject, Param, Post, Req } from '@nestjs/common';
 import {
-  Body,
-  Controller,
+  ConflictException,
   ForbiddenException,
-  Get,
-  Inject,
   NotFoundException,
-  Param,
-  Post,
-  Req,
-} from '@nestjs/common';
+} from '../http/error-contract.js';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -19,13 +14,14 @@ import {
 import {
   EnrollmentRepository,
   IdentityPrincipalRepository,
+  NotFoundError,
   OrganizationRepository,
   withTransaction,
   type Database,
 } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
 import {
-  RequireOrganizationRole,
+  RequireOrganizationCapability,
   RequireParticipantSelfService,
 } from '../auth/access-requirement.js';
 import type { RequestWithSubject } from '../auth/request-context.js';
@@ -101,7 +97,10 @@ export class ParticipantsController {
     request: RequestWithSubject,
   ): Promise<{ readonly organizationId: string; readonly personId: string }> {
     const organization = await new OrganizationRepository(this.db).findByAlias(alias);
-    if (!organization) throw new NotFoundException(`No organization with alias "${alias}"`);
+    if (!organization)
+      throw new NotFoundException(`No organization with alias "${alias}"`, {
+        errorCode: 'participant-not-found',
+      });
     enforcePolicy({
       plane: 'authenticated-interaction',
       subject: request.subject,
@@ -111,7 +110,10 @@ export class ParticipantsController {
       },
     });
     const personId = request.subject?.participantPersonId;
-    if (!personId) throw new ForbiddenException('Subject has no participant identity');
+    if (!personId)
+      throw new ForbiddenException('Subject has no participant identity', {
+        errorCode: 'participant-forbidden',
+      });
     return {
       organizationId: organization.organizationId,
       personId,
@@ -127,7 +129,7 @@ export class ParticipantIdentityLinksController {
 
   @Post(':personId/identity-link')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-persons')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Pre-link a participant identity by email' })
   @ApiCreatedResponse({ type: ParticipantIdentityLinkResponse })
@@ -138,7 +140,10 @@ export class ParticipantIdentityLinksController {
     @Req() request: RequestWithSubject,
   ): Promise<ParticipantIdentityLinkResponse> {
     const organization = await new OrganizationRepository(this.db).findByAlias(alias);
-    if (!organization) throw new NotFoundException(`No organization with alias "${alias}"`);
+    if (!organization)
+      throw new NotFoundException(`No organization with alias "${alias}"`, {
+        errorCode: 'participant-not-found',
+      });
     return withTransaction(this.db, (uow) =>
       new IdentityPrincipalRepository(this.db).linkParticipant(uow, {
         organizationId: organization.organizationId,
@@ -148,6 +153,46 @@ export class ParticipantIdentityLinksController {
         authorizationContext: (request.subject?.scopes ?? []).join(' '),
       }),
     );
+  }
+
+  @Delete(':personId/identity-link')
+  @HttpCode(200)
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationCapability('org.manage-persons')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Remove a participant identity link',
+    description:
+      'Frees the person to be linked again; does not delete the person record, their registrations, ' +
+      'or their roster history.',
+  })
+  @ApiOkResponse({ type: ParticipantIdentityLinkResponse })
+  async unlink(
+    @Param('organizationAlias') alias: string,
+    @Param('personId') personId: string,
+    @Req() request: RequestWithSubject,
+  ): Promise<ParticipantIdentityLinkResponse> {
+    const organization = await new OrganizationRepository(this.db).findByAlias(alias);
+    if (!organization)
+      throw new NotFoundException(`No organization with alias "${alias}"`, {
+        errorCode: 'participant-not-found',
+      });
+    try {
+      const link = await withTransaction(this.db, (uow) =>
+        new IdentityPrincipalRepository(this.db).unlinkParticipant(uow, {
+          organizationId: organization.organizationId,
+          personId,
+          actor: actorOf(request),
+          authorizationContext: (request.subject?.scopes ?? []).join(' '),
+        }),
+      );
+      return { principalId: link.principalId, personId };
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        throw new ConflictException(error.message, { errorCode: 'participant-conflict' });
+      }
+      throw error;
+    }
   }
 }
 

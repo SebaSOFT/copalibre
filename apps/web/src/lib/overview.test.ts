@@ -29,7 +29,7 @@ describe('the overview model', () => {
   });
 
   it('shows the abbreviation when there is one and the name when there is not', () => {
-    // Never a truncation invented here (0037).
+    // Never a truncation invented here.
     expect(shortLabel({ name: 'Talleres de Mendoza', abbreviation: 'TLL A' })).toBe('TLL A');
     expect(shortLabel({ name: 'Club Atlético San Martín' })).toBe('Club Atlético San Martín');
   });
@@ -52,6 +52,22 @@ describe('the overview model', () => {
         organizationAlias: '019fbdac-f248-73f9-97e8-7f06ece633d2',
       }),
     ).toThrow();
+  });
+
+  it('omits standingsGrain for a stage declaring no series, and carries it through when declared (0160)', () => {
+    expect('standingsGrain' in model).toBe(false);
+
+    const seriesGrain = buildOverview({
+      ...sampleOverview('liga-mendocina', 'apertura-2026'),
+      standingsGrain: 'series',
+    });
+    expect(seriesGrain.standingsGrain).toBe('series');
+
+    const matchGrain = buildOverview({
+      ...sampleOverview('liga-mendocina', 'apertura-2026'),
+      standingsGrain: 'match',
+    });
+    expect(matchGrain.standingsGrain).toBe('match');
   });
 });
 

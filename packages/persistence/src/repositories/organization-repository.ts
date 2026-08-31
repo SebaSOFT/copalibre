@@ -24,8 +24,10 @@ export interface CreateOrganizationInput {
 }
 
 export interface UpdateOrganizationSettingsInput {
+  readonly name?: string;
   readonly primaryLanguage?: string;
   readonly timezone?: string;
+  readonly emblemObjectId?: string;
   readonly actor: string;
   readonly authorizationContext: string;
 }
@@ -33,7 +35,7 @@ export interface UpdateOrganizationSettingsInput {
 /**
  * `Intl.DateTimeFormat` throws `RangeError` for an unknown time zone
  * identifier — the exact set of valid IANA identifiers, with no hand-copied
- * list or regex to keep in sync (0051 design).
+ * list or regex to keep in sync.
  */
 export function isValidTimeZone(value: string): boolean {
   try {
@@ -102,12 +104,23 @@ export class OrganizationRepository {
     organizationId: string,
     input: UpdateOrganizationSettingsInput,
   ): Promise<Organization> {
-    const updates: { primary_language?: SupportedLanguage; timezone?: string } = {};
+    const updates: {
+      name?: string;
+      primary_language?: SupportedLanguage;
+      timezone?: string;
+      emblem_object_id?: string;
+    } = {};
+    if (input.name !== undefined) {
+      updates.name = input.name;
+    }
     if (input.primaryLanguage !== undefined) {
       updates.primary_language = validatePrimaryLanguage(input.primaryLanguage);
     }
     if (input.timezone !== undefined) {
       updates.timezone = validateTimezone(input.timezone);
+    }
+    if (input.emblemObjectId !== undefined) {
+      updates.emblem_object_id = input.emblemObjectId;
     }
 
     const row = await uow.tx

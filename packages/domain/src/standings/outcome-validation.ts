@@ -16,7 +16,7 @@ import type { RecordedOutcome } from './outcome.js';
  * structural schema accepts any numeric statistic map; this validator closes
  * it to exactly the codes the bound descriptor declares, so a mistyped code is
  * refused at the door instead of being stored and silently ignored by
- * accounting — the failure mode 0009 exists to remove.
+ * accounting — a failure mode declarative rules remove.
  */
 
 export interface OutcomeValidationOptions {

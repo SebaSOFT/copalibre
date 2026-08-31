@@ -19,8 +19,8 @@ async function runWorkspaceScript(workspace: string, script: string): Promise<vo
 describe('help static build (integration)', () => {
   it('renders the API reference without an API process', async () => {
     // These are build-time dependencies only; no API server is started here.
-    // @copalibre/domain joined this list in 0053: language-preference.ts
-    // (0051) imports it, and 0053 is the first change to make that file
+    // @copalibre/domain joined this list in language-preference.ts
+    // imports it, and the first control-web pass makes that file
     // reachable from a real build (ControlShell's ControlIntl).
     await runWorkspaceScript('@copalibre/domain', 'build');
     await runWorkspaceScript('@copalibre/routing', 'build');

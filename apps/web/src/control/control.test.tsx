@@ -8,6 +8,7 @@ Object.defineProperty(globalThis, 'TextDecoder', { value: TextDecoder, configura
 import { createPkcePair, authorizationUrl, verifyCallbackState } from './session/pkce.js';
 import {
   FORBIDDEN_STORAGE_KEYS,
+  accessTokenHasScope,
   createTokenStore,
   reloadBehaviour,
 } from './session/token-store.js';
@@ -21,8 +22,8 @@ import { Dashboard } from './components/Dashboard.js';
 import { DeviceHeartbeat } from './components/DeviceHeartbeat.js';
 import { TournamentCard as Card } from './components/TournamentCard.js';
 import { QuickStats } from './components/QuickStats.js';
-import { Badge } from './components/ui/badge.js';
-import { Button } from './components/ui/button.js';
+import { Badge } from './components/ui/atoms/badge.js';
+import { Button } from './components/ui/atoms/button.js';
 import { withIntl } from './i18n/test-support.js';
 
 function card(overrides: Partial<TournamentCard> = {}): TournamentCard {
@@ -50,6 +51,15 @@ function entry(overrides: Partial<ActivityEntry> = {}): ActivityEntry {
 }
 
 describe('the access token is never written down', () => {
+  it('reads RFC 9068 scopes without treating malformed tokens as authorized', () => {
+    const payload = btoa(JSON.stringify({ scp: 'copalibre.control copalibre.super-admin' }))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+    expect(accessTokenHasScope(`header.${payload}.signature`, 'copalibre.super-admin')).toBe(true);
+    expect(accessTokenHasScope('opaque-test-token', 'copalibre.super-admin')).toBe(false);
+  });
+
   it('keeps the token in memory and forgets it on clear', () => {
     const store = createTokenStore(() => 1000);
     store.write('secret', 5000);
@@ -170,7 +180,7 @@ describe('what the dashboard renders', () => {
   let originalFetch: typeof fetch;
 
   beforeEach(() => {
-    // Dashboard's device-heartbeat panel (0031, 4.4) fetches on mount; a
+    // Dashboard's device-heartbeat panel fetches on mount; a
     // stub here keeps that fetch from crashing tests that never mock it
     // themselves.
     originalFetch = globalThis.fetch;
@@ -235,7 +245,7 @@ describe('what the dashboard renders', () => {
     expect(screen.getByText(/Sin actividad/)).toBeDefined();
   });
 
-  it('downloads every CSV view through the organization-scoped API', async () => {
+  it('downloads every export view through the organization-scoped API', async () => {
     const requests: string[] = [];
     const originalCreateObjectUrl = URL.createObjectURL;
     const originalRevokeObjectUrl = URL.revokeObjectURL;
@@ -245,12 +255,22 @@ describe('what the dashboard renders', () => {
     Object.defineProperty(globalThis, 'fetch', {
       configurable: true,
       value: async (url: string) => {
-        // The device-heartbeat panel also fetches on mount; only exports are
-        // this test's concern, so its own request is answered but not counted.
-        if (url.includes('/display-tokens')) {
+        // The device-heartbeat panel and the nav's own role lookup also
+        // fetch on mount; only exports are this test's concern, so their
+        // requests are answered but not counted.
+        if (url.includes('/display-tokens') || url === '/organizations?mine=true') {
           return new Response('[]', { headers: { 'content-type': 'application/json' } });
         }
         requests.push(url);
+        if (url.endsWith('/export')) {
+          return Response.json({
+            kind: 'copalibre-tournament-configuration',
+            schemaVersion: '1.0.0',
+            tournament: {},
+            ruleset: {},
+            seasons: [],
+          });
+        }
         return new Response('alias,name\nclub-atletico,Club Atletico\n');
       },
     });
@@ -267,14 +287,19 @@ describe('what the dashboard renders', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Participantes CSV' }));
       fireEvent.click(screen.getByRole('button', { name: 'Resultados CSV' }));
       fireEvent.click(screen.getByRole('button', { name: 'Posiciones CSV' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Exportar configuración JSON' }));
 
-      await waitFor(() => expect(click).toHaveBeenCalledTimes(3));
+      await waitFor(() => expect(click).toHaveBeenCalledTimes(4));
       expect(requests).toEqual([
         '/organizations/liga-mendocina/tournaments/apertura-2026/exports/participants/team',
         '/organizations/liga-mendocina/tournaments/apertura-2026/exports/results',
         '/organizations/liga-mendocina/tournaments/apertura-2026/exports/standings',
+        '/organizations/liga-mendocina/tournaments/apertura-2026/export',
       ]);
-      expect(createObjectUrl).toHaveBeenCalledTimes(3);
+      expect(createObjectUrl).toHaveBeenCalledTimes(4);
+      expect(createObjectUrl).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'application/json' }),
+      );
       expect(revokeObjectUrl).toHaveBeenCalledWith('blob:csv-export');
     } finally {
       Object.defineProperty(globalThis, 'fetch', { configurable: true, value: originalFetch });
@@ -290,7 +315,7 @@ describe('what the dashboard renders', () => {
     }
   });
 
-  it('archives a finished tournament and removes it from view (0033, 6.1)', async () => {
+  it('archives a finished tournament and removes it from view', async () => {
     Object.defineProperty(globalThis, 'fetch', {
       configurable: true,
       value: async (url: string, init?: RequestInit) => {

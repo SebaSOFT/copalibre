@@ -1,12 +1,21 @@
 ---
 title: Betrieb und Nachvollziehbarkeit
 description: Regeln für den Spielbetrieb und die Korrektur von Turnierdaten.
+capabilities:
+  - platform/async-job-processing
+  - platform/persistence-layer
+roles:
+  - super-admin
 ---
 
 ## Spielkonsole
 
 Erfassen Sie Ereignisse und die Uhr über eine autorisierte Konsole. Die öffentliche Projektion wird
-aus dauerhaften Ereignissen aktualisiert und behält eine Version für die Wiederherstellung.
+aus dauerhaften Ereignissen aktualisiert und behält eine Version für die Wiederherstellung. Jede
+Aktion wird vor dem Senden zuerst in eine lokale Warteschlange geschrieben, sodass eine
+abgebrochene Verbindung sie für einen automatischen erneuten Versuch vormerkt, statt sie zu
+verlieren — siehe [Live-Spielkonsole](/de/help/control/match-console/) für das vollständige
+Verhalten.
 
 ## Korrekturen
 

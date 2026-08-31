@@ -7,7 +7,7 @@ import starlightLlmsTxt from 'starlight-llms-txt';
 import node from '@astrojs/node';
 
 // React is wired now but only used from /control/** routes starting at
-// 0022-control-web-shell-and-org-dashboard (see openspec/changes/README.md).
+// Control-web shell and organization dashboard (see openspec/changes/README.md).
 export default defineConfig({
   site: process.env.COPALIBRE_SITE ?? 'http://localhost:4321',
   adapter: node({ mode: 'standalone' }),
@@ -21,14 +21,14 @@ export default defineConfig({
       title: 'CopaLibre Help',
       description: 'Operator documentation for self-hosted CopaLibre tournaments.',
       favicon: '/copalibre-logo.svg',
-      // This site has a real top-level 404 (0061 — SPA-aware for /control/**,
+      // This site has a real top-level 404 (SPA-aware for /control/**,
       // per public-web's no-JS baseline for a genuinely missing page).
       // Starlight injects its own 404 route by default, which otherwise
       // collides with it (a warning today, a hard error in later Astro
       // versions).
       disable404Route: true,
       logo: { src: './src/assets/copalibre-logo.svg', alt: 'CopaLibre' },
-      // English is the default (unprefixed) locale (0051): `starlight-llms-txt`
+      // English is the default (unprefixed) locale: `starlight-llms-txt`
       // sources llms.txt/llms-full.txt from whichever locale is `defaultLocale`,
       // and LLM-facing docs must stay English regardless of how many other
       // interface languages this site later supports.
@@ -57,6 +57,7 @@ export default defineConfig({
           label: 'CopaLibre',
           items: [
             'help',
+            'help/self-hosting',
             'help/getting-started',
             'help/operations',
             {
@@ -76,6 +77,28 @@ export default defineConfig({
           ],
         },
         {
+          label: 'Role manuals',
+          translations: {
+            es: 'Manuales de rol',
+            fr: 'Manuels de rôle',
+            pt: 'Manuais de função',
+            it: 'Manuali dei ruoli',
+            de: 'Rollenhandbücher',
+            ru: 'Руководства по ролям',
+            zh: '角色手册',
+          },
+          items: [
+            'help/roles',
+            'help/roles/admin',
+            'help/roles/club-admin',
+            'help/roles/tournament-admin',
+            'help/roles/referee',
+            'help/roles/broadcaster',
+            'help/roles/viewer',
+            'help/roles/super-admin',
+          ],
+        },
+        {
           label: 'Control panel',
           translations: {
             es: 'Panel de control',
@@ -89,12 +112,25 @@ export default defineConfig({
           items: [
             'help/control',
             'help/control/tournament-authoring',
+            'help/control/series',
+            'help/control/schedule',
+            'help/control/resources',
             'help/control/registration-review',
-            'help/control/report-review',
-            'help/control/standings',
+            'help/control/person-profile',
+            'help/control/clubs',
+            'help/control/zone-groups',
+            'help/control/promotion-plan',
             'help/control/seeding',
-            'help/control/roles-permissions',
+            'help/control/standings',
             'help/control/match-console',
+            'help/control/load-match-data',
+            'help/control/corrections',
+            'help/control/report-review',
+            'help/control/import-export',
+            'help/control/broadcast-surfaces',
+            'help/control/roles-permissions',
+            'help/control/platform-administration',
+            'help/control/preferences',
           ],
         },
         {
@@ -122,6 +158,7 @@ export default defineConfig({
       components: {
         Head: './src/components/starlight/HelpHead.astro',
         Search: './src/components/starlight/HelpSearch.astro',
+        PageTitle: './src/components/starlight/HelpPageTitle.astro',
       },
     }),
   ],

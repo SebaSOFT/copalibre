@@ -1,0 +1,110 @@
+---
+import PublicLayout from '../../../../../layouts/PublicLayout.astro';
+import { MatchCard } from '../../../../../components/MatchCard.tsx';
+import { matchReportUrl } from '../../../../../lib/bracket.ts';
+import {
+  fetchOverview,
+  fetchMatchesView,
+  mapOverviewResponse,
+  mapMatchesViewResponse,
+} from '../../../../../lib/public-api-client.ts';
+import { buildOverview, displayName } from '../../../../../lib/overview.ts';
+import { publicIntl, matchCardLabels } from '../../../../../lib/i18n/public-intl.ts';
+import { messages } from '../../../../../lib/i18n/public-messages.en.ts';
+import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
+
+/**
+ * The matches view (openspec 0172): a flat, filterable card grid of a
+ * tournament's matches — the whole tournament by default, or one
+ * stage/group when named via query params — richer than the ticker's own
+ * card and, unlike the bracket, equally at home for a round-robin/league
+ * stage with no advancement tree to draw. State/stage/group filters are
+ * plain query-string links, so the default (unfiltered) view and every
+ * filtered one alike are server-rendered and work with scripting off.
+ */
+export const prerender = false;
+
+const { locale, organization, tournament } = Astro.params;
+const resolvedLocale: SupportedLanguage = isSupportedLanguage(locale) ? locale : 'en';
+const intl = publicIntl(resolvedLocale);
+const labels = matchCardLabels(intl);
+const localePrefix = locale ? `/${locale}` : '';
+
+const overviewData = await fetchOverview(organization!, tournament!);
+if (!overviewData) {
+  return Astro.rewrite('/404');
+}
+const model = buildOverview(mapOverviewResponse(overviewData));
+
+const stateParam = Astro.url.searchParams.get('state');
+const state =
+  stateParam === 'live' || stateParam === 'upcoming' || stateParam === 'final' ? stateParam : 'all';
+const stageParam = Astro.url.searchParams.get('stageNumber');
+const stageNumber = stageParam ? Number(stageParam) : undefined;
+const groupId = Astro.url.searchParams.get('groupId') ?? undefined;
+
+const matchesData = await fetchMatchesView(organization!, tournament!, {
+  ...(stageNumber === undefined ? {} : { stageNumber }),
+  ...(groupId === undefined ? {} : { groupId }),
+  state,
+});
+if (!matchesData) {
+  return Astro.rewrite('/404');
+}
+const { matches } = mapMatchesViewResponse(matchesData);
+
+function filterUrl(nextState: 'all' | 'live' | 'upcoming' | 'final'): string {
+  const params = new URLSearchParams(Astro.url.search);
+  if (nextState === 'all') params.delete('state');
+  else params.set('state', nextState);
+  const query = params.toString();
+  return `${localePrefix}${model.canonicalPath}/matches${query ? `?${query}` : ''}`;
+}
+---
+
+<PublicLayout
+  title={`${intl.formatMessage(messages.matchesViewPageTitle)} — ${displayName(model)}`}
+  canonicalPath={`${model.canonicalPath}/matches`}
+  intl={intl}
+  disciplineImages={overviewData.disciplineImages}
+>
+  <h1>{intl.formatMessage(messages.matchesViewPageTitle)}</h1>
+
+  <nav aria-label={intl.formatMessage(messages.matchesViewPageTitle)}>
+    <a href={filterUrl('all')} aria-current={state === 'all' ? 'true' : undefined}
+      >{labels.filters.all}</a
+    >
+    <a href={filterUrl('live')} aria-current={state === 'live' ? 'true' : undefined}
+      >{labels.filters.live}</a
+    >
+    <a href={filterUrl('upcoming')} aria-current={state === 'upcoming' ? 'true' : undefined}
+      >{labels.filters.upcoming}</a
+    >
+    <a href={filterUrl('final')} aria-current={state === 'final' ? 'true' : undefined}
+      >{labels.filters.final}</a
+    >
+  </nav>
+
+  {
+    matches.length === 0 ? (
+      <p>{labels.empty}</p>
+    ) : (
+      <div class="cl-matches-view__grid">
+        {matches.map((match) => (
+          <MatchCard
+            client:load
+            match={match}
+            labels={labels}
+            reportUrl={matchReportUrl({
+              organizationAlias: organization!,
+              tournamentAlias: tournament!,
+              stageNumber: match.stageNumber,
+              matchNumber: match.matchNumber,
+              localePrefix,
+            })}
+          />
+        ))}
+      </div>
+    )
+  }
+</PublicLayout>

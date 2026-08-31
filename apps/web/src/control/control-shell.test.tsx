@@ -16,12 +16,12 @@ import {
   type MatchConsoleResponse,
 } from './lib/api-client.js';
 import { mutationFeedback } from './lib/mutation-feedback.js';
-import { sampleDashboardData } from './lib/sample.js';
 import { TournamentSetupWizard } from './components/TournamentSetupWizard.js';
 import { withIntl } from './i18n/test-support.js';
+import { controlTokenStore } from './session/token-store.js';
 
 /**
- * The shell, the routes and the wizard's later steps (0023).
+ * The shell, the routes and the wizard's later steps.
  *
  * The model tests cover the decisions; these cover the wiring, which is where a
  * route that renders nothing or a select that sets the wrong field hides.
@@ -50,13 +50,29 @@ function jsonResponse(body: unknown, status = 200): Response {
 }
 
 // `ControlShell` resolves its interface language through the real
-// `ControlIntl` (0053) — no stored preference in a test's jsdom environment,
+// `ControlIntl` — no stored preference in a test's jsdom environment,
 // so it falls back to the organization-primary-language placeholder ('es'),
 // exactly matching today's Spanish-only behavior. Assertions in this describe
 // block and "the control routes" below stay Spanish for that reason — only
 // tests that mount a leaf component directly, bypassing `ControlShell`, wrap
 // with `withIntl()` and assert English.
 describe('the control shell', () => {
+  afterEach(() => controlTokenStore.clear());
+
+  it('shows platform administration only when the token carries the super-admin scope', () => {
+    const payload = btoa(JSON.stringify({ scp: 'copalibre.control copalibre.super-admin' }));
+    controlTokenStore.write(`header.${payload}.signature`, Date.now() + 60_000);
+    render(
+      <ControlShell helpPath="tournament-authoring" organizationAlias="liga-mendocina">
+        <p>contenido</p>
+      </ControlShell>,
+    );
+
+    expect(
+      screen.getByRole('link', { name: 'Administración de plataforma' }).getAttribute('href'),
+    ).toBe('/control/platform');
+  });
+
   it('links every section under the organization it is showing', () => {
     render(
       <ControlShell helpPath="tournament-authoring" organizationAlias="liga-mendocina">
@@ -88,7 +104,7 @@ describe('the control shell', () => {
     expect(active.getAttribute('style')).not.toBe(other.getAttribute('style'));
   });
 
-  it('links to the matching help page, in a new tab that never loses in-progress work (0043)', () => {
+  it('links to the matching help page, in a new tab that never loses in-progress work', () => {
     render(
       <ControlShell helpPath="seeding" organizationAlias="liga-mendocina">
         <p>contenido</p>
@@ -96,9 +112,102 @@ describe('the control shell', () => {
     );
 
     const help = screen.getByRole('link', { name: '¿Qué es esta pantalla?' });
-    expect(help.getAttribute('href')).toBe('/help/control/seeding');
+    // Locale-prefixed: the test environment's default resolved
+    // language is 'es' (see the block comment above), so the link matches
+    // Starlight's own `/es/...` routing for that locale.
+    expect(help.getAttribute('href')).toBe('/es/help/control/seeding');
     expect(help.getAttribute('target')).toBe('_blank');
     expect(help.getAttribute('rel')).toBe('noopener noreferrer');
+  });
+
+  it('locale-prefixes the help link for every supported language, and leaves English unprefixed', () => {
+    const cases = [
+      ['en', '/help/control/seeding'],
+      ['es', '/es/help/control/seeding'],
+      ['fr', '/fr/help/control/seeding'],
+      ['pt', '/pt/help/control/seeding'],
+      ['it', '/it/help/control/seeding'],
+      ['de', '/de/help/control/seeding'],
+      ['ru', '/ru/help/control/seeding'],
+      ['zh', '/zh/help/control/seeding'],
+    ] as const;
+
+    for (const [locale, expectedHref] of cases) {
+      localStorage.setItem('copalibre.language', locale);
+      const { unmount } = render(
+        <ControlShell helpPath="seeding" organizationAlias="liga-mendocina">
+          <p>contenido</p>
+        </ControlShell>,
+      );
+      // Same locale-routing convention Starlight itself uses: matches
+      // `/help/control/${helpPath}` regardless of link text, which is
+      // localized per language and not what this test is about.
+      const help = screen
+        .getAllByRole('link')
+        .find((link) => link.getAttribute('href')?.includes('/help/control/seeding'));
+      expect(help?.getAttribute('href')).toBe(expectedHref);
+      unmount();
+      localStorage.removeItem('copalibre.language');
+    }
+  });
+});
+
+describe('the control shell — role-driven navigation', () => {
+  afterEach(() => controlTokenStore.clear());
+
+  function stubMyOrganizationsFetch(role: string): () => void {
+    const original = globalThis.fetch;
+    Object.defineProperty(globalThis, 'fetch', {
+      configurable: true,
+      value: async () =>
+        jsonResponse([
+          {
+            organizationId: 'org-1',
+            organizationAlias: 'liga-mendocina',
+            organizationName: 'Liga Mendocina',
+            role,
+          },
+        ]),
+    });
+    return () => {
+      Object.defineProperty(globalThis, 'fetch', { configurable: true, value: original });
+    };
+  }
+
+  it('hides the user-administration entry once a club-admin role resolves', async () => {
+    const restore = stubMyOrganizationsFetch('club-admin');
+    render(
+      <ControlShell helpPath="tournament-authoring" organizationAlias="liga-mendocina">
+        <p>contenido</p>
+      </ControlShell>,
+    );
+
+    await waitFor(() => expect(screen.queryByRole('link', { name: 'Roles' })).toBeNull());
+    restore();
+  });
+
+  it('hides the user-administration entry once a referee role resolves', async () => {
+    const restore = stubMyOrganizationsFetch('referee');
+    render(
+      <ControlShell helpPath="tournament-authoring" organizationAlias="liga-mendocina">
+        <p>contenido</p>
+      </ControlShell>,
+    );
+
+    await waitFor(() => expect(screen.queryByRole('link', { name: 'Roles' })).toBeNull());
+    restore();
+  });
+
+  it('keeps the user-administration entry for admin', async () => {
+    const restore = stubMyOrganizationsFetch('admin');
+    render(
+      <ControlShell helpPath="tournament-authoring" organizationAlias="liga-mendocina">
+        <p>contenido</p>
+      </ControlShell>,
+    );
+
+    await waitFor(() => expect(screen.getByRole('link', { name: 'Roles' })).toBeDefined());
+    restore();
   });
 });
 
@@ -159,6 +268,8 @@ describe('the control routes', () => {
       events: [],
       eventDefinitions: [],
       eligiblePersonIds: [],
+      rosters: [],
+      rosterRoles: [],
       eligibleStaffIds: [],
       entrantIds: [],
       capabilities: [],
@@ -166,12 +277,18 @@ describe('the control routes', () => {
     };
     const client: MatchConsoleApiClient = {
       fetchMatchConsole: async () => projection,
+      fetchMatchRosters: async () => [],
+      fetchRosterCandidates: async () => [],
+      setMatchRoster: async () => projection,
       adjustMatchClock: async () => projection,
       resolveMatchTimer: async () => projection,
       recordMatchEvent: async () => {
         throw new Error('not used in this test');
       },
       finalizeMatch: async () => {
+        throw new Error('not used in this test');
+      },
+      bulkLoadMatch: async () => {
         throw new Error('not used in this test');
       },
     };
@@ -209,6 +326,10 @@ function minimalControlClient(overrides: Partial<ControlApiClient>): ControlApiC
       trace: [],
     }),
     fetchTiebreakTrace: async () => ({ entrantId: 'entrant', lines: [] }),
+    fetchTableLayouts: async () => [],
+    fetchTableProjection: async () => {
+      throw new Error('fetchTableProjection not stubbed in this test');
+    },
     fetchSeeding: async () => ({
       stageId: 'stage',
       format: 'single-elimination',
@@ -272,6 +393,7 @@ describe('the wizard beyond the first step', () => {
 
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Verano' } });
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-verano' } });
+    fireEvent.click(screen.getByRole('button', { name: /Continue/i }));
     fireEvent.click(screen.getByRole('button', { name: /Continue/i }));
     fireEvent.click(screen.getByRole('button', { name: /Continue/i }));
     fireEvent.click(screen.getByRole('button', { name: /Continue/i }));
@@ -341,14 +463,19 @@ describe('the API client', () => {
     await expect(client.listDisciplines()).rejects.toThrow('502');
   });
 
-  it('carries the status on the error, so a caller can tell 409 from 500', async () => {
+  it('carries status and stable errorCode from an API error response', async () => {
     const client = createControlApiClient({
-      fetch: (async () => jsonResponse({ message: 'conflicto' }, 409)) as unknown as typeof fetch,
+      fetch: (async () =>
+        jsonResponse(
+          { message: 'conflicto', errorCode: 'conflict' },
+          409,
+        )) as unknown as typeof fetch,
     });
 
     await client.listDisciplines().catch((error: unknown) => {
       expect(error).toBeInstanceOf(ControlApiError);
       expect((error as ControlApiError).status).toBe(409);
+      expect((error as ControlApiError).errorCode).toBe('conflict');
     });
   });
 
@@ -369,6 +496,7 @@ describe('the API client', () => {
       format: 'round-robin',
       publicRegistration: true,
       requiresCheckIn: false,
+      customScripts: [],
     });
 
     expect(bodies[0]).toMatchObject({ descriptorVersion: '1.0.0', format: 'round-robin' });
@@ -440,13 +568,3 @@ function formatDescriptor(
   render(withIntl(<Probe />));
   return formatted;
 }
-
-describe('the sample data', () => {
-  it('describes one organization', () => {
-    const sample = sampleDashboardData();
-
-    expect(sample.tournaments.every((one) => one.organizationId === sample.organizationId)).toBe(
-      true,
-    );
-  });
-});

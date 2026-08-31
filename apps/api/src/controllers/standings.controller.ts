@@ -1,12 +1,5 @@
-import {
-  Controller,
-  Get,
-  Inject,
-  NotFoundException,
-  Param,
-  ParseIntPipe,
-  Req,
-} from '@nestjs/common';
+import { Controller, Get, Inject, Param, ParseIntPipe, Query, Req } from '@nestjs/common';
+import { NotFoundException } from '../http/error-contract.js';
 import {
   ApiBearerAuth,
   ApiForbiddenResponse,
@@ -24,7 +17,7 @@ import {
 import type { Kysely } from 'kysely';
 import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
-import { RequireOrganizationRole } from '../auth/access-requirement.js';
+import { RequireOrganizationCapability } from '../auth/access-requirement.js';
 import { ProblemResponse } from '../dto/organization.dto.js';
 import { StandingsResponse, TiebreakTraceResponse } from '../dto/standings.dto.js';
 import { enforcePolicy } from '../policy/resource-policy.js';
@@ -34,7 +27,7 @@ import { DATABASE } from '../database.token.js';
 import { readStandings, storedTraceLinesForEntrant } from '../standings/read.js';
 
 /**
- * Standings, with the trace that justifies them (0024).
+ * Standings, with the trace that justifies them.
  *
  * The trace is passed through exactly as the rules engine produced it. The
  * screen renders these strings and formats nothing of its own — a second
@@ -52,7 +45,7 @@ export class StandingsController {
 
   @Get('standings')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.view-internal-standings')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Ranked standings for one stage, with the calculation’s trace',
@@ -67,6 +60,7 @@ export class StandingsController {
     @Param('organizationAlias') organizationAlias: string,
     @Param('tournamentAlias') tournamentAlias: string,
     @Param('stageNumber', ParseIntPipe) stageNumber: number,
+    @Query('groupId') groupId: string | undefined,
     @Req() request: RequestWithSubject,
   ): Promise<StandingsResponse> {
     const { tournament } = await resolveTournament(this.db, {
@@ -75,19 +69,20 @@ export class StandingsController {
       request,
     });
 
-    const result = await readStandings(this.db, tournament, stageNumber);
+    const result = await readStandings(this.db, tournament, stageNumber, groupId);
     return {
       stageId: result.stageId,
       projectionVersion: result.projectionVersion,
       fullyResolved: result.fullyResolved,
       rows: result.rows,
       trace: result.trace,
+      ...(result.grain === undefined ? {} : { grain: result.grain }),
     };
   }
 
   @Get('standings/entrants/:entrantId/trace')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.view-internal-standings')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'The comparator chain that placed one entrant',
@@ -102,6 +97,7 @@ export class StandingsController {
     @Param('organizationAlias') organizationAlias: string,
     @Param('tournamentAlias') tournamentAlias: string,
     @Param('stageNumber', ParseIntPipe) stageNumber: number,
+    @Query('groupId') groupId: string | undefined,
     @Param('entrantId') entrantId: string,
     @Req() request: RequestWithSubject,
   ): Promise<TiebreakTraceResponse> {
@@ -111,9 +107,12 @@ export class StandingsController {
       request,
     });
 
-    const result = await readStandings(this.db, tournament, stageNumber);
+    const result = await readStandings(this.db, tournament, stageNumber, groupId);
     const row = result.rows.find((candidate) => candidate.entrantId === entrantId);
-    if (!row) throw new NotFoundException(`No entrant ${entrantId} in this stage’s standings`);
+    if (!row)
+      throw new NotFoundException(`No entrant ${entrantId} in this stage’s standings`, {
+        errorCode: 'standings-not-found',
+      });
 
     return {
       entrantId,
@@ -126,7 +125,7 @@ export class StandingsController {
   }
 }
 
-/** Alias resolution plus the policy check, shared by the 0024 controllers. */
+/** Alias resolution plus the policy check, shared by the standings controllers. */
 export async function resolveTournament(
   db: Kysely<Database>,
   input: {
@@ -140,7 +139,9 @@ export async function resolveTournament(
 }> {
   const organization = await new OrganizationRepository(db).findByAlias(input.organizationAlias);
   if (!organization) {
-    throw new NotFoundException(`No organization with alias "${input.organizationAlias}"`);
+    throw new NotFoundException(`No organization with alias "${input.organizationAlias}"`, {
+      errorCode: 'standings-not-found',
+    });
   }
 
   enforcePolicy({
@@ -156,8 +157,21 @@ export async function resolveTournament(
   if (!tournament) {
     throw new NotFoundException(
       `No tournament "${input.tournamentAlias}" in "${input.organizationAlias}"`,
+      { errorCode: 'standings-not-found' },
     );
   }
+
+  // A second check, now that the tournament is resolved: the first pass only
+  // refuses on organization scope, since a tournament-admin's ownership scope
+  // is a property of the tournament, not answerable before it is known.
+  enforcePolicy({
+    plane: 'admin-control',
+    subject: input.request.subject,
+    resource: {
+      organizationId: organization.organizationId,
+      ownerTournamentId: tournament.tournamentId,
+    },
+  });
 
   return { organizationId: organization.organizationId, tournament };
 }

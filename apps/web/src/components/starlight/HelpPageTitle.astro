@@ -1,0 +1,136 @@
+---
+// Starlight's own PAGE_TITLE_ID ('_top') — not part of the package's public
+// export map (only reachable from inside the package itself), so pinned
+// here rather than imported.
+const PAGE_TITLE_ID = '_top';
+
+// Renders the roles a help page declares in its own frontmatter visibly on
+// the page itself (openspec 0162's "renders its declared roles visibly, not
+// only in frontmatter" requirement) — never a control a reader's role
+// cannot reach, stated as text a screen reader announces along with the
+// title, not merely metadata a build script reads.
+const { entry, lang } = Astro.locals.starlightRoute;
+const roles = (entry.data as { roles?: readonly string[] }).roles ?? [];
+
+const HEADING: Record<string, string> = {
+  en: 'For roles:',
+  es: 'Para roles:',
+  fr: 'Pour les rôles :',
+  pt: 'Para as funções:',
+  it: 'Per i ruoli:',
+  de: 'Für Rollen:',
+  ru: 'Для ролей:',
+  zh: '适用角色：',
+};
+
+const ROLE_LABELS: Record<string, Record<string, string>> = {
+  en: {
+    admin: 'Admin',
+    'club-admin': 'Club admin',
+    referee: 'Referee',
+    broadcaster: 'Broadcaster',
+    viewer: 'Viewer',
+    'super-admin': 'Super-admin',
+  },
+  es: {
+    admin: 'Admin',
+    'club-admin': 'Admin de club',
+    referee: 'Árbitro',
+    broadcaster: 'Emisor',
+    viewer: 'Espectador',
+    'super-admin': 'Super-admin',
+  },
+  fr: {
+    admin: 'Admin',
+    'club-admin': 'Admin de club',
+    referee: 'Arbitre',
+    broadcaster: 'Diffuseur',
+    viewer: 'Spectateur',
+    'super-admin': 'Super-admin',
+  },
+  pt: {
+    admin: 'Admin',
+    'club-admin': 'Admin de clube',
+    referee: 'Árbitro',
+    broadcaster: 'Transmissor',
+    viewer: 'Espectador',
+    'super-admin': 'Super-admin',
+  },
+  it: {
+    admin: 'Admin',
+    'club-admin': 'Admin di club',
+    referee: 'Arbitro',
+    broadcaster: 'Emittente',
+    viewer: 'Spettatore',
+    'super-admin': 'Super-admin',
+  },
+  de: {
+    admin: 'Admin',
+    'club-admin': 'Vereins-Admin',
+    referee: 'Schiedsrichter',
+    broadcaster: 'Sender',
+    viewer: 'Betrachter',
+    'super-admin': 'Super-Admin',
+  },
+  ru: {
+    admin: 'Админ',
+    'club-admin': 'Админ клуба',
+    referee: 'Судья',
+    broadcaster: 'Вещатель',
+    viewer: 'Зритель',
+    'super-admin': 'Супер-админ',
+  },
+  zh: {
+    admin: '管理员',
+    'club-admin': '俱乐部管理员',
+    referee: '裁判',
+    broadcaster: '转播方',
+    viewer: '查看者',
+    'super-admin': '超级管理员',
+  },
+};
+
+const heading = HEADING[lang] ?? HEADING.en;
+const labels = ROLE_LABELS[lang] ?? ROLE_LABELS.en;
+---
+
+<h1 id={PAGE_TITLE_ID}>{entry.data.title}</h1>
+{
+  roles.length > 0 && (
+    <p class="help-page-roles">
+      <span class="help-page-roles__heading">{heading}</span>
+      {roles.map((role) => (
+        <span class="help-page-roles__badge">{labels[role] ?? role}</span>
+      ))}
+    </p>
+  )
+}
+
+<style>
+  @layer starlight.core {
+    h1 {
+      margin-top: 1rem;
+      font-size: var(--sl-text-h1);
+      line-height: var(--sl-line-height-headings);
+      font-weight: 600;
+      color: var(--sl-color-white);
+    }
+  }
+  .help-page-roles {
+    margin: 0.25rem 0 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: var(--sl-text-xs);
+  }
+  .help-page-roles__heading {
+    color: var(--sl-color-gray-3);
+  }
+  .help-page-roles__badge {
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    border: 1px solid var(--sl-color-gray-5);
+    color: var(--sl-color-gray-2);
+  }
+</style>

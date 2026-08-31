@@ -1,6 +1,11 @@
 ---
 title: Das copalibre-CLI
 description: Installation, Aktualisierung und Befehlsreferenz des copalibre-CLI.
+capabilities:
+  - platform/api-auth-contract
+roles:
+  - super-admin
+  - admin
 ---
 
 Das `copalibre`-CLI betreibt eine selbst gehostete Installation: Es installiert, validiert die
@@ -9,7 +14,7 @@ Aufruf akzeptiert `--help`/`-h` — sowohl ohne Befehl (`copalibre --help`) als 
 (`copalibre doctor --help`) — um die genaue Verwendung anzuzeigen, ohne einen echten Effekt
 auszuführen.
 
-- [Installation](/help/cli/installation/)
-- [Aktualisierung](/help/cli/updating/)
-- [Befehlsreferenz](/help/cli/commands/)
-- [MCP für KI](/help/cli/mcp/)
+- [Installation](/de/help/cli/installation/)
+- [Aktualisierung](/de/help/cli/updating/)
+- [Befehlsreferenz](/de/help/cli/commands/)
+- [MCP für KI](/de/help/cli/mcp/)

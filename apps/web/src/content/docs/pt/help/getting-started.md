@@ -1,6 +1,16 @@
 ---
 title: Seu primeiro torneio
 description: O fluxo inicial para criar e publicar um torneio.
+capabilities:
+  - platform/native-auth
+  - control-web/control-web-shell
+roles:
+  - admin
+  - club-admin
+  - referee
+  - broadcaster
+  - viewer
+  - super-admin
 ---
 
 ## Criar o torneio
@@ -19,5 +29,5 @@ classificadas de acordo com seu impacto sobre resultados existentes.
 
 ## Ajuda por tela
 
-Cada tela do [painel de controle](/help/control/) tem sua própria página de ajuda, acessível pelo
+Cada tela do [painel de controle](/pt/help/control/) tem sua própria página de ajuda, acessível pelo
 link "O que é esta tela?" em sua barra lateral.

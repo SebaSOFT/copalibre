@@ -15,6 +15,8 @@ import type { components, paths } from './generated/v1.js';
 
 /** Convenience aliases so callers don't index into `components` by hand. */
 export type OrganizationResponse = components['schemas']['OrganizationResponse'];
+export type OrganizationStorageUsageResponse =
+  components['schemas']['OrganizationStorageUsageResponse'];
 export type CreateOrganizationRequest = components['schemas']['CreateOrganizationRequest'];
 export type TournamentResponse = components['schemas']['TournamentResponse'];
 export type CreateTournamentRequest = components['schemas']['CreateTournamentRequest'];

@@ -1,9 +1,21 @@
 # Self-Hosting CopaLibre
 
-Run `./copalibre init` once from a release checkout. It writes non-secret local defaults to
-`.env` and lists values that must be supplied by the operator. Set a strong PostgreSQL password,
-an opaque `COPALIBRE_BOOTSTRAP_TOKEN`, OIDC JWKS/issuer/audience values, the public browser client ID,
-and one supported email provider configuration. Then run `./copalibre start` or
+Run `./copalibre init` once from a release checkout. It writes a complete installation into the
+current directory — `docker-compose.yml`, `.env` with non-secret local defaults, and a
+`.copalibre/installation.json` marker — and lists values that must be supplied by the operator.
+`init` doesn't require running from the checkout's own root: `cd` into any empty directory first
+(a separate data/config directory, or a second installation) and run it there; every later command
+(`doctor`, `start`, `migrate`, `upgrade-check`) auto-detects that directory afterward from the
+marker, the same way `.git` marks a checkout — no source checkout is needed for anything past the
+CLI binary itself. A directory stays pinned to the CopaLibre version that created it: running
+several versions side by side means running the matching CLI version per directory, and
+`migrate`/`upgrade-check` refuse with a clear message on a mismatch rather than risking the wrong
+migration or compose shape (see [Upgrading](#upgrading)). Re-running `init` against an existing
+installation's directory refuses rather than overwriting it. `--module-dev` additionally sets up a
+`modules-dev/` bind mount for developing a module against a running instance — see
+[`docs/MODULES.md`](MODULES.md). Set a strong PostgreSQL password, an opaque
+`COPALIBRE_BOOTSTRAP_TOKEN`, OIDC JWKS/issuer/audience values, the public browser client ID, and one
+supported email provider configuration. Then run `./copalibre start` or
 `docker compose up --detach --wait`.
 
 `docker-compose.yml` intentionally does not terminate TLS. Put Caddy or NGINX at the public edge:
@@ -12,6 +24,21 @@ web traffic to `web:4321`. The proxy must preserve forwarding headers, keep SSE 
 allow idle streams to survive heartbeats. Use `deploy/proxy/Caddyfile` or
 `deploy/proxy/nginx.conf` as the edge configuration, then verify its live address with
 `./copalibre doctor --check-proxy --proxy-url https://events.example/events/proxy-check`.
+
+## Managing An Installation Without Database Access
+
+`copalibre create-admin` always runs from any machine with no database connection, as a pure
+authenticated HTTP call against `COPALIBRE_API_URL`. `copalibre login` extends that to
+`statistics-rebuild` and `module add/list/remove/verify`: generate a personal access token from the
+control panel's preferences screen while already signed in, then run `./copalibre login --api-url
+https://api.example`, pasting the token when prompted (or `--token <token>`, or piped via stdin).
+This is also the path to installing or upgrading the CLI itself after Docker is already running.
+
+`login` stores the token in the current directory's `.copalibre/credentials.json` (`0600`) —
+alongside, but never merged into, `init`'s non-secret `installation.json` marker. Run it from
+inside the installation directory `copalibre init` created. `restore`'s post-migration schema
+check still runs directly against the database, deliberately: it may run before the API process is
+even up.
 
 ## Organization Language And Timezone
 
@@ -34,6 +61,24 @@ own language list, then English.
 The help site (`/help/`) now defaults to English, with the same content also available at `/es/`;
 generated `llms.txt`/`llms-full.txt` stay English regardless of how many interface languages the
 site later supports.
+
+## Rate Limits
+
+A few endpoints bound request volume to blunt automated abuse. Limits are counted per API
+process and reset on restart:
+
+| Endpoint group                                                                                                      | Key                                        | Limit         |
+| ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ | ------------- |
+| `POST /auth/login`, `POST /auth/forgot-password`, `POST /auth/reset-password`, `POST /installation/bootstrap/admin` | client IP, per endpoint                    | 5 per 60 s    |
+| Person photo / club emblem / organization emblem uploads; module install/verify                                     | authenticated principal, per endpoint      | 20 per 60 s   |
+| Every other route (safety net)                                                                                      | client IP, or principal when authenticated | 1000 per 60 s |
+
+Exceeding a limit returns `429` with `Retry-After` headers. If an operator troubleshooting sees
+unexpected 429s — e.g. during a bulk photo-upload session, which allows 20 uploads per principal
+per minute per endpoint — wait for the 60-second window to roll over or batch the work more slowly.
+The client IP is resolved honoring `X-Forwarded-For` (the bundled reverse proxy configuration is
+trusted), so users behind one shared office/NAT address share the unauthenticated limits between
+them.
 
 ## Persistent Data And Backups
 
@@ -62,6 +107,22 @@ pending database migrations without applying them, exiting non-zero on any modul
 Once it passes, restart with the new version — migrations apply automatically, forward-only, before
 any process role starts serving traffic (`docker-compose.yml`'s `migrate` service gates every other
 role via `depends_on: condition: service_completed_successfully`).
+
+### Personal Access Token security cutover
+
+Before deploying repaired PAT authentication, invalidate credentials issued by the earlier path.
+Run the dry run first, confirm its aggregate count, then execute the irreversible cutover using the
+release image's database configuration:
+
+```bash
+docker compose run --rm --no-deps --entrypoint node api \
+  apps/copalibre/dist/main.js revoke-legacy-personal-access-tokens --dry-run
+docker compose run --rm --no-deps --entrypoint node api \
+  apps/copalibre/dist/main.js revoke-legacy-personal-access-tokens --confirm
+```
+
+Record resulting count with deployment evidence. Only then deploy repaired PAT authentication;
+users and integrations must create replacement credentials.
 
 ## Recovering A Previous Backup
 

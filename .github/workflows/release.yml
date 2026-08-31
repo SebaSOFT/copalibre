@@ -28,18 +28,20 @@ jobs:
       contents: write
       packages: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       # apps/copalibre/package.json is the one version actually read at
       # runtime (its banner/--version output) — the single source of truth
       # this workflow reads from. Every other package.json is kept in
-      # lockstep with it by convention (0058), not re-derived here.
+      # lockstep with it by convention, not re-derived here.
       - id: version
         run: |
           version=$(node -p "require('./apps/copalibre/package.json').version")
           echo "version=$version" >> "$GITHUB_OUTPUT"
+          is_prerelease=$(node -p "Boolean(/^[0-9]+\.[0-9]+\.[0-9]+-/.test(require('./apps/copalibre/package.json').version))")
+          echo "is_prerelease=$is_prerelease" >> "$GITHUB_OUTPUT"
 
       - id: check
         run: |
@@ -57,10 +59,10 @@ jobs:
           git tag "v${{ steps.version.outputs.version }}"
           git push origin "v${{ steps.version.outputs.version }}"
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
         if: steps.check.outputs.exists != 'true'
 
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@v4
         if: steps.check.outputs.exists != 'true'
         with:
           registry: ghcr.io
@@ -70,21 +72,28 @@ jobs:
       - name: Build and push runtime image
         if: steps.check.outputs.exists != 'true'
         run: |
-          docker buildx build --target runtime --push \
-            --tag ghcr.io/sebasoft/copalibre:${{ steps.version.outputs.version }} \
-            --tag ghcr.io/sebasoft/copalibre:latest \
-            .
+          tags="--tag ghcr.io/sebasoft/copalibre:${{ steps.version.outputs.version }}"
+          if [ "${{ steps.version.outputs.is_prerelease }}" != "true" ]; then
+            tags="$tags --tag ghcr.io/sebasoft/copalibre:latest"
+          fi
+          docker buildx build --target runtime --push $tags .
 
       - name: Build and push web image
         if: steps.check.outputs.exists != 'true'
         run: |
-          docker buildx build --target web --push \
-            --tag ghcr.io/sebasoft/copalibre-web:${{ steps.version.outputs.version }} \
-            --tag ghcr.io/sebasoft/copalibre-web:latest \
-            .
+          tags="--tag ghcr.io/sebasoft/copalibre-web:${{ steps.version.outputs.version }}"
+          if [ "${{ steps.version.outputs.is_prerelease }}" != "true" ]; then
+            tags="$tags --tag ghcr.io/sebasoft/copalibre-web:latest"
+          fi
+          docker buildx build --target web --push $tags .
 
       - name: Create GitHub Release
         if: steps.check.outputs.exists != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release create "v${{ steps.version.outputs.version }}" --generate-notes
+        run: |
+          prerelease_flag=""
+          if [ "${{ steps.version.outputs.is_prerelease }}" = "true" ]; then
+            prerelease_flag="--prerelease"
+          fi
+          gh release create "v${{ steps.version.outputs.version }}" --generate-notes $prerelease_flag

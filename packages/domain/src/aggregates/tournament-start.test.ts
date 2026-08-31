@@ -124,7 +124,7 @@ describe('canChangeModuleVersion', () => {
     expect(canChangeModuleVersion(tournament({ status })).ok).toBe(true);
   });
 
-  it.each(['started', 'finished'] as const)('freezes modules once %s', (status) => {
+  it.each(['started', 'finished', 'archived'] as const)('freezes modules once %s', (status) => {
     const result = canChangeModuleVersion(tournament({ status }));
     expect(result.ok).toBe(false);
     if (!result.ok) {

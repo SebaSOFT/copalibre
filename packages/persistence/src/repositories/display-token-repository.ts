@@ -6,7 +6,7 @@ import type { Database } from '../schema.js';
 import type { UnitOfWork } from '../transaction.js';
 
 /**
- * Device-scoped, revocable authorization for `/tv/**` surfaces (0031) — never
+ * Device-scoped, revocable authorization for `/tv/**` surfaces — never
  * a person's JWT. Verification and revocation both key on the token's hash;
  * the raw token exists only transiently in the issuing controller's response.
  */

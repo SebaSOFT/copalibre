@@ -17,7 +17,7 @@ import { registerCopalibreConditions } from './conditions.js';
  */
 
 /**
- * Two parameters, two modes (0013).
+ * Two parameters, two modes.
  *
  * A field holds what the author wrote, in `value`, and `options.expression`
  * says how to read it: a literal, or an expression over the context. Flipping
@@ -25,12 +25,12 @@ import { registerCopalibreConditions } from './conditions.js';
  * untouched — `type` is precisely what the registry vets and what a module may
  * not invent.
  *
- * This replaced the `state-number`/`state-string` pair 0003 introduced for
+ * This replaced the earlier `state-number`/`state-string` pair introduced for
  * reading a dot-path out of the evaluation state. A path read is the degenerate
  * expression — `{{ facts.rosterSize }}` says exactly what
  * `state-number{path: 'facts.rosterSize'}` said — so keeping both would mean
  * two spellings of one idea and two places to look for "where does this value
- * come from". 0003's rule that `value` means a literal is what made a second
+ * come from". The rule that `value` means a literal is what made a second
  * parameter type necessary; with the mode declared, one field carries both and
  * the rule is no longer paying for itself.
  *
@@ -61,7 +61,7 @@ function expressionValue(
  * A literal number, or the number an expression resolves to.
  *
  * The stored value is `number | string` because in expression mode it is the
- * source text — the honest widening 0003 avoided by inventing a second type.
+ * source text — the honest widening avoided by inventing a second type.
  * `getValue` still narrows to a number, so every caller keeps the guarantee it
  * had.
  */
@@ -135,20 +135,27 @@ export class SetGuardOutcomeAction extends AbstractAction {
 export function registerCopalibreVocabulary(registry: RulesRegistry): RulesRegistry {
   registerCopalibreConditions(registry);
   registerDeclaredEffectActions(registry);
+  registerCopalibreParameters(registry);
+  registry.registerAction(
+    SetGuardOutcomeAction.TYPE,
+    SetGuardOutcomeAction,
+    'Writes the pass/fail guard outcome with a human-readable reason',
+  );
+  return registry;
+}
+
+export function registerCopalibreParameters(registry: RulesRegistry): RulesRegistry {
   registry.registerParameter(
     NumberParameter.TYPE,
     NumberParameter,
     'Literal number, or the number an expression resolves to when options.expression is true',
+    { valueSchema: { type: 'number' }, allowExpression: true },
   );
   registry.registerParameter(
     StringParameter.TYPE,
     StringParameter,
     'Literal string, or the text an expression resolves to when options.expression is true',
-  );
-  registry.registerAction(
-    SetGuardOutcomeAction.TYPE,
-    SetGuardOutcomeAction,
-    'Writes the pass/fail guard outcome with a human-readable reason',
+    { valueSchema: { type: 'string' }, allowExpression: true },
   );
   return registry;
 }

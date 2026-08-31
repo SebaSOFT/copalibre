@@ -2,8 +2,8 @@ import type { Kysely } from 'kysely';
 import type { Migration } from 'kysely/migration';
 
 /**
- * Every organization gains a presentation-layer language/timezone default
- * (0051). Defaults match today's de facto behavior — Spanish everywhere,
+ * Every organization gains a presentation-layer language/timezone default.
+ * Defaults match today's de facto behavior — Spanish everywhere,
  * timezone unknown — so existing rows change nothing about how they render.
  */
 export const organizationLocale: Migration = {

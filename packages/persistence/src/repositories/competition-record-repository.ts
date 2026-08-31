@@ -94,26 +94,40 @@ export class CompetitionRecordRepository {
     };
   }
 
-  /** Reads a stored compiled ruleset without consulting any descriptor row. */
-  async findCompiledRuleset(tournamentId: string): Promise<MatchRuleset | undefined> {
+  /**
+   * Reads a stored compiled ruleset without consulting any descriptor row.
+   * Stage-scoped first, when `stageId` is given: a stage that refines its
+   * tournament's ruleset has its own compiled snapshot, and a reader scoped
+   * to that stage must not silently prefer the tournament's un-overridden
+   * one. Falls back to the tournament-scoped row when the stage has none of
+   * its own, or when no `stageId` is given at all — the same "stage overrides
+   * tournament, absent stage falls through" shape `readStageSeries` already
+   * established for series declarations.
+   */
+  async findCompiledRuleset(
+    tournamentId: string,
+    stageId?: string,
+  ): Promise<MatchRuleset | undefined> {
+    if (stageId !== undefined) {
+      const stageRow = await this.db
+        .selectFrom('compiled_rulesets')
+        .selectAll()
+        .where('stage_id', '=', stageId)
+        .orderBy('compiled_at', 'desc')
+        .limit(1)
+        .executeTakeFirst();
+      if (stageRow) return toMatchRuleset(stageRow);
+    }
+
     const row = await this.db
       .selectFrom('compiled_rulesets')
       .selectAll()
       .where('tournament_id', '=', tournamentId)
+      .where('stage_id', 'is', null)
       .orderBy('compiled_at', 'desc')
       .limit(1)
       .executeTakeFirst();
-    if (!row) return undefined;
-
-    return {
-      compiledFrom: {
-        descriptorId: row.descriptor_id,
-        descriptorVersion: row.descriptor_version,
-      },
-      config: row.config as Record<string, unknown>,
-      compiledAt: toIsoString(row.compiled_at),
-      binding: (row.binding as CapabilityBinding | null) ?? undefined,
-    };
+    return row ? toMatchRuleset(row) : undefined;
   }
 
   /**
@@ -222,8 +236,8 @@ export class CompetitionRecordRepository {
       .map((row) => ({ descriptorId: row.descriptor_id, version: row.version }));
   }
 
-  async requireCompiledRuleset(tournamentId: string): Promise<MatchRuleset> {
-    const found = await this.findCompiledRuleset(tournamentId);
+  async requireCompiledRuleset(tournamentId: string, stageId?: string): Promise<MatchRuleset> {
+    const found = await this.findCompiledRuleset(tournamentId, stageId);
     if (!found) {
       throw new NotFoundError(`No compiled ruleset for tournament ${tournamentId}`, {
         tournamentId,
@@ -231,4 +245,22 @@ export class CompetitionRecordRepository {
     }
     return found;
   }
+}
+
+function toMatchRuleset(row: {
+  readonly descriptor_id: string;
+  readonly descriptor_version: string;
+  readonly config: unknown;
+  readonly compiled_at: Date;
+  readonly binding: unknown;
+}): MatchRuleset {
+  return {
+    compiledFrom: {
+      descriptorId: row.descriptor_id,
+      descriptorVersion: row.descriptor_version,
+    },
+    config: row.config as Record<string, unknown>,
+    compiledAt: toIsoString(row.compiled_at),
+    binding: (row.binding as CapabilityBinding | null) ?? undefined,
+  };
 }

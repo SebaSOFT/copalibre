@@ -1,15 +1,11 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
+import { Body, Controller, Headers, Header, Inject, Post } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import {
-  Body,
   ConflictException,
-  Controller,
   ForbiddenException,
-  Headers,
-  Header,
-  Inject,
-  Post,
   ServiceUnavailableException,
-} from '@nestjs/common';
+} from '../http/error-contract.js';
 import {
   ApiCreatedResponse,
   ApiForbiddenResponse,
@@ -26,6 +22,7 @@ import {
 } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
+import { SharedThrottle } from '../auth/shared-throttle.decorator.js';
 import { DATABASE } from '../database.token.js';
 import {
   BootstrapAdministratorRequest,
@@ -47,6 +44,12 @@ export class InstallationBootstrapController {
 
   @Post('admin')
   @Header('Cache-Control', 'no-store')
+  @Throttle({
+    // Same per-IP limit as the other unauthenticated brute-forceable
+    // endpoints: this one mints the first installation admin.
+    default: { limit: 5, ttl: 60_000 },
+  })
+  @SharedThrottle()
   @SecurityPlaneTag('public-read')
   @ApiOperation({
     summary: 'Create first organization administrator',
@@ -66,7 +69,9 @@ export class InstallationBootstrapController {
   ): Promise<BootstrapAdministratorResponse> {
     const configuredToken = process.env.COPALIBRE_BOOTSTRAP_TOKEN;
     if (!configuredToken || !token || !tokensMatch(configuredToken, token)) {
-      throw new ForbiddenException('Bootstrap token is invalid');
+      throw new ForbiddenException('Bootstrap token is invalid', {
+        errorCode: 'installation-bootstrap-forbidden',
+      });
     }
     const invitationToken = randomBytes(32).toString('base64url');
     let result: BootstrapAdministratorResult;
@@ -82,7 +87,10 @@ export class InstallationBootstrapController {
         }),
       );
     } catch (error) {
-      if (error instanceof InvariantViolationError) throw new ConflictException(error.message);
+      if (error instanceof InvariantViolationError)
+        throw new ConflictException(error.message, {
+          errorCode: 'installation-bootstrap-conflict',
+        });
       throw error;
     }
     return { ...result, setupUrl: setupUrl(invitationToken) };
@@ -101,7 +109,10 @@ function hash(value: string): string {
 
 function setupUrl(token: string): string {
   const appUrl = process.env.COPALIBRE_APP_URL;
-  if (!appUrl) throw new ServiceUnavailableException('COPALIBRE_APP_URL is not configured');
+  if (!appUrl)
+    throw new ServiceUnavailableException('COPALIBRE_APP_URL is not configured', {
+      errorCode: 'installation-bootstrap-service-unavailable',
+    });
   const url = new URL('/invitations/accept', appUrl);
   url.searchParams.set('token', token);
   return url.toString();

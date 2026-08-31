@@ -7,8 +7,12 @@ import { messages } from '../lib/i18n/public-messages.en.ts';
 interface Props {
   readonly matches: readonly BracketMatch[];
   readonly intl: IntlShape;
+  readonly organizationAlias: string;
+  readonly tournamentAlias: string;
+  readonly stageNumber: number;
+  readonly localePrefix?: string;
 }
-const { intl } = Astro.props;
+const { intl, organizationAlias, tournamentAlias, stageNumber, localePrefix = '' } = Astro.props;
 const rounds = toRounds(Astro.props.matches);
 ---
 
@@ -32,7 +36,14 @@ const rounds = toRounds(Astro.props.matches);
           {intl.formatMessage(messages.bracketRoundHeading, { round: round.roundNumber })}
         </h3>
         {round.matches.map((match) => (
-          <MatchNode match={match} intl={intl} />
+          <MatchNode
+            intl={intl}
+            localePrefix={localePrefix}
+            match={match}
+            organizationAlias={organizationAlias}
+            stageNumber={stageNumber}
+            tournamentAlias={tournamentAlias}
+          />
         ))}
       </section>
     ))

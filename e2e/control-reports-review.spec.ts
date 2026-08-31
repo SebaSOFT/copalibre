@@ -2,10 +2,10 @@ import { expect, test, type Page } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
- * The operator's pending reports/disputes queue (0032, tasks 7.1-7.2).
+ * The operator's pending reports/disputes queue.
  *
  * No participant self-service submission view exists in this codebase (a
- * real gap found while implementing 0032 — proposal.md's own file list only
+ * real gap found during implementation — the original file list only
  * commits to the operator-side queue as new control-web UI) and building one
  * was out of this change's scope; submission itself is proven end-to-end
  * against the real HTTP stack in `apps/api/src/controllers/

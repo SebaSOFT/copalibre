@@ -1,15 +1,5 @@
-import {
-  BadRequestException,
-  Body,
-  Controller,
-  Get,
-  HttpCode,
-  Inject,
-  NotFoundException,
-  Param,
-  Post,
-  Req,
-} from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Inject, Param, Post, Req } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '../http/error-contract.js';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -36,7 +26,7 @@ import {
 } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
 import {
-  RequireOrganizationRole,
+  RequireOrganizationCapability,
   RequireParticipantSelfService,
 } from '../auth/access-requirement.js';
 import type { RequestWithSubject } from '../auth/request-context.js';
@@ -54,7 +44,7 @@ import { enforceReportSubmission } from '../policy/resource-policy.js';
 import { resolveTournament } from './standings.controller.js';
 
 /**
- * Participant self-service result reporting and disputes (0032, TMS-013).
+ * Participant self-service result reporting and disputes.
  *
  * Neither endpoint here ever calls `CompetitionRepository.supersedeResult` —
  * a submission is a fact an operator may later cite in their own correction,
@@ -66,7 +56,7 @@ import { resolveTournament } from './standings.controller.js';
 const MAX_EVIDENCE_BYTES = 25 * 1024 * 1024;
 
 interface UploadedEvidence extends EvidenceReference {
-  /** Which storage profile held this — `packages/object-storage`'s reference no longer carries a per-object bucket name (0041). */
+  /** Which storage profile held this — `packages/object-storage`'s reference no longer carries a per-object bucket name. */
   readonly storageProfile: string;
   readonly key: string;
 }
@@ -122,7 +112,8 @@ export class ParticipantReportsController {
           : { winnerEntrantId: body.proposedResult.winnerEntrantId }),
       },
     });
-    if (!validated.ok) throw new BadRequestException(validated.error.message);
+    if (!validated.ok)
+      throw new BadRequestException(validated.error.message, { errorCode: 'report-bad-request' });
 
     return this.persist(organizationId, personId, validated.value, evidence, request);
   }
@@ -161,7 +152,8 @@ export class ParticipantReportsController {
       evidence,
       reason: body.reason,
     });
-    if (!validated.ok) throw new BadRequestException(validated.error.message);
+    if (!validated.ok)
+      throw new BadRequestException(validated.error.message, { errorCode: 'report-bad-request' });
 
     return this.persist(organizationId, personId, validated.value, evidence, request);
   }
@@ -180,14 +172,20 @@ export class ParticipantReportsController {
   }> {
     const organization = await new OrganizationRepository(this.db).findByAlias(organizationAlias);
     if (!organization)
-      throw new NotFoundException(`No organization with alias "${organizationAlias}"`);
+      throw new NotFoundException(`No organization with alias "${organizationAlias}"`, {
+        errorCode: 'report-not-found',
+      });
     const tournament = await new TournamentRepository(this.db).findByScopedAlias(
       organizationAlias,
       tournamentAlias,
     );
-    if (!tournament) throw new NotFoundException(`No tournament "${tournamentAlias}"`);
+    if (!tournament)
+      throw new NotFoundException(`No tournament "${tournamentAlias}"`, {
+        errorCode: 'report-not-found',
+      });
     const match = await new CompetitionRepository(this.db).findMatch(matchId);
-    if (!match) throw new NotFoundException(`No match "${matchId}"`);
+    if (!match)
+      throw new NotFoundException(`No match "${matchId}"`, { errorCode: 'report-not-found' });
 
     const personId = await enforceReportSubmission({
       subject: request.subject,
@@ -218,6 +216,7 @@ export class ParticipantReportsController {
       if (bytes.length === 0 || bytes.length > MAX_EVIDENCE_BYTES) {
         throw new BadRequestException(
           `Evidence file "${upload.filename}" is not a valid size (0 < bytes <= ${MAX_EVIDENCE_BYTES})`,
+          { errorCode: 'report-bad-request' },
         );
       }
       const key = `${organizationId}/${newId()}-${upload.filename}`;
@@ -276,7 +275,7 @@ export class ParticipantReportsController {
 }
 
 /**
- * Operator review of pending reports/disputes (0032). Never applies a
+ * Operator review of pending reports/disputes. Never applies a
  * correction itself — see `MatchControlController.correct`, which an
  * operator calls separately, optionally citing one of these by id.
  */
@@ -287,7 +286,7 @@ export class ReportReviewController {
 
   @Get()
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.review-reports')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List pending participant reports and disputes' })
   @ApiOkResponse({ type: ParticipantReportResponse, isArray: true })
@@ -308,7 +307,7 @@ export class ReportReviewController {
   @Post(':reportId/review')
   @HttpCode(200)
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.review-reports')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Mark a report or dispute reviewed or dismissed',

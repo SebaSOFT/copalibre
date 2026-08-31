@@ -3,7 +3,7 @@ import type { Migration } from 'kysely/migration';
 import type { Database } from '../schema.js';
 
 /**
- * Renames the match-specific player selection and its capability (0039).
+ * Renames the match-specific player selection and its capability.
  *
  * Capabilities are persisted as JSON, so rewriting individual rows runs
  * consistently under the PostgreSQL and SQLite persistence test dialects.

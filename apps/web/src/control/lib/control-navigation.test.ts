@@ -3,6 +3,7 @@ import { jest } from '@jest/globals';
 import type { MouseEvent } from 'react';
 import {
   controlLinkClick,
+  emitNavigationVisibilityChanged,
   loginRedirectUrl,
   navigateControl,
   useControlPath,
@@ -108,13 +109,32 @@ describe('controlLinkClick', () => {
 describe('loginRedirectUrl', () => {
   it('points at the login page with the current path as returnTo', () => {
     expect(loginRedirectUrl('/control/liga-mendocina/roles')).toBe(
-      '/control/?returnTo=%2Fcontrol%2Fliga-mendocina%2Froles',
+      '/control/login?returnTo=%2Fcontrol%2Fliga-mendocina%2Froles',
     );
   });
 
   it('encodes a path that itself carries a query string', () => {
     expect(loginRedirectUrl('/control/liga-mendocina?foo=bar')).toBe(
-      '/control/?returnTo=%2Fcontrol%2Fliga-mendocina%3Ffoo%3Dbar',
+      '/control/login?returnTo=%2Fcontrol%2Fliga-mendocina%3Ffoo%3Dbar',
     );
+  });
+});
+
+describe('emitNavigationVisibilityChanged', () => {
+  it('dispatches the synthetic navigation_visibility_changed event on window', () => {
+    const handler = jest.fn();
+    window.addEventListener('copalibre:navigation-visibility-changed', handler as EventListener);
+
+    emitNavigationVisibilityChanged({
+      routeId: 'analytics',
+      visible: false,
+      reason: 'feature-flag',
+    });
+
+    expect(handler).toHaveBeenCalledTimes(1);
+    const event = handler.mock.calls[0]?.[0] as CustomEvent;
+    expect(event.detail).toEqual({ routeId: 'analytics', visible: false, reason: 'feature-flag' });
+
+    window.removeEventListener('copalibre:navigation-visibility-changed', handler as EventListener);
   });
 });

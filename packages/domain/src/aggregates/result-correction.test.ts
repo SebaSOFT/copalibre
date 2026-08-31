@@ -93,6 +93,26 @@ describe('planCorrection', () => {
     expect(result.ok).toBe(false);
   });
 
+  it('refuses a replacement that names one entrant twice and drops another', () => {
+    const result = planCorrection(
+      request({
+        replacement: {
+          sides: [
+            { entrantId: 'entrant-atlas', statistics: { goals: 2 } },
+            { entrantId: 'entrant-atlas', statistics: { goals: 3 } },
+          ],
+          recordedAt: '2026-07-31T21:00:00.000Z',
+        },
+      }),
+      prior,
+    );
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.message).toContain('entrant-atlas');
+    expect(result.error.message).toContain('more than once');
+  });
+
   it('refuses a correction that changes nothing', () => {
     const result = planCorrection(request({ replacement: { ...prior } }), prior);
 

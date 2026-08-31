@@ -1,0 +1,12 @@
+import { Module } from '@nestjs/common';
+import { AdminModulesController } from '../controllers/admin-modules.controller.js';
+import { AdminStatisticsController } from '../controllers/admin-statistics.controller.js';
+import { AuthoredModulesController } from '../controllers/authored-modules.controller.js';
+import { CoreModule } from './core.module.js';
+
+/** The authenticated HTTP admin surface: statistics-rebuild and module management. */
+@Module({
+  imports: [CoreModule],
+  controllers: [AdminStatisticsController, AdminModulesController, AuthoredModulesController],
+})
+export class AdminModule {}

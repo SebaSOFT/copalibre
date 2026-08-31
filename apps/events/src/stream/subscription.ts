@@ -15,7 +15,7 @@ import {
 import type { Kysely } from 'kysely';
 
 /**
- * Turning a cursor into frames (0018).
+ * Turning a cursor into frames.
  *
  * The transport is not here. This decides *what* a subscriber receives — the
  * replay, the sanitisation, the expiry signal — and the controller decides how

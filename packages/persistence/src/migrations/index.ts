@@ -20,6 +20,27 @@ import { tournamentArchivedAt } from './0009-tournament-archived-at.js';
 import { communityModuleInstallation } from './0010-community-module-installation.js';
 import { objectStorageMetadata } from './0011-object-storage-metadata.js';
 import { organizationLocale } from './0012-organization-locale.js';
+import { nativeIdentity } from './0013-native-identity.js';
+import { matchEventNotes } from './0014-match-event-notes.js';
+import { collectorThresholdConsumption } from './0015-collector-threshold-consumption.js';
+import { resultReasonBackfill } from './0016-result-reason-backfill.js';
+import { matchEventSegmentElapsedSeconds } from './0017-match-event-segment-elapsed-seconds.js';
+import { matchRosterMembers } from './0018-match-roster-members.js';
+import { personClubImagesAndNationality } from './0019-person-club-images-and-nationality.js';
+import { zoneGroupAndPromotion } from './0020-zone-group-and-promotion.js';
+import { promotionPlans } from './0021-promotion-plans.js';
+import { zoneGroupEntrants } from './0022-zone-group-entrants.js';
+import { entrantAbbreviations } from './0023-entrant-abbreviations.js';
+import { personBirthDate } from './0024-person-birth-date.js';
+import { organizationEmblem } from './0025-organization-emblem.js';
+import { venueDetails } from './0026-venue-details.js';
+import { objectMetadataOrganizationIndex } from './0027-object-metadata-organization-index.js';
+import { tournamentRulesetCustomScripts } from './0028-tournament-ruleset-custom-scripts.js';
+import { rbacUserAdministration } from './0029-rbac-user-administration.js';
+import { sharedRateLimitCounters } from './0030-shared-rate-limit-counters.js';
+import { schedules } from './0031-schedules.js';
+import { roleScopeColumns } from './0032-role-scope-columns.js';
+import { organizationInviteRescission } from './0033-organization-invite-rescission.js';
 
 /**
  * Migrations are explicit, ordered, and code-defined (no filesystem scanning),
@@ -40,6 +61,27 @@ export const MIGRATIONS: Readonly<Record<string, Migration>> = {
   '0010-community-module-installation': communityModuleInstallation,
   '0011-object-storage-metadata': objectStorageMetadata,
   '0012-organization-locale': organizationLocale,
+  '0013-native-identity': nativeIdentity,
+  '0014-match-event-notes': matchEventNotes,
+  '0015-collector-threshold-consumption': collectorThresholdConsumption,
+  '0016-result-reason-backfill': resultReasonBackfill,
+  '0017-match-event-segment-elapsed-seconds': matchEventSegmentElapsedSeconds,
+  '0018-match-roster-members': matchRosterMembers,
+  '0019-person-club-images-and-nationality': personClubImagesAndNationality,
+  '0020-zone-group-and-promotion': zoneGroupAndPromotion,
+  '0021-promotion-plans': promotionPlans,
+  '0022-zone-group-entrants': zoneGroupEntrants,
+  '0023-entrant-abbreviations': entrantAbbreviations,
+  '0024-person-birth-date': personBirthDate,
+  '0025-organization-emblem': organizationEmblem,
+  '0026-venue-details': venueDetails,
+  '0027-object-metadata-organization-index': objectMetadataOrganizationIndex,
+  '0028-tournament-ruleset-custom-scripts': tournamentRulesetCustomScripts,
+  '0029-rbac-user-administration': rbacUserAdministration,
+  '0030-shared-rate-limit-counters': sharedRateLimitCounters,
+  '0031-schedules': schedules,
+  '0032-role-scope-columns': roleScopeColumns,
+  '0033-organization-invite-rescission': organizationInviteRescission,
 };
 
 /** The version `apps/api`'s readiness check expects to find applied. */

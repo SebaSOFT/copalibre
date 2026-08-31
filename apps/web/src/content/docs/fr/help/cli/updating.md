@@ -1,7 +1,23 @@
 ---
 title: Mise à jour
 description: Le chemin non destructif pour mettre à jour le framework CopaLibre et ses modules installés.
+capabilities: []
+roles:
+  - super-admin
 ---
+
+## Mettre à jour le CLI copalibre lui-même
+
+`copalibre --version` affiche la version du binaire installé. Réexécuter le script d'installation
+récupère la dernière release publiée et remplace le binaire sur place — c'est idempotent : il
+vérifie d'abord la version installée et saute le téléchargement si elle correspond déjà :
+
+```bash
+curl -fsSL https://www.copalibre.app/install.sh | bash
+```
+
+Cela ne remplace que le binaire `copalibre`. Cela n'a aucun effet sur une installation en cours
+d'exécution — voir ci-dessous pour mettre à jour le framework et ses modules.
 
 ## Mettre à jour le framework
 
@@ -9,7 +25,11 @@ Séquence recommandée, non destructive :
 
 1. **Sauvegardez** avant de toucher à quoi que ce soit : `./copalibre backup --file backups/pre-upgrade.dump`.
 2. **Mettez à jour** le checkout ou la référence d'image vers la nouvelle version (ne redémarrez pas
-   encore les services).
+   encore les services). Si cette installation a été créée avec `copalibre init` (sans checkout, voir
+   la [référence des commandes](/fr/help/cli/commands/)), son répertoire reste fixé à la version de
+   CLI qui l'a créée — `migrate`/`upgrade-check` refusent avec un message clair en cas de version
+   différente, donc mettez à jour en exécutant le CLI de la nouvelle version contre le même
+   répertoire, plutôt que de mélanger les versions de CLI.
 3. **Vérifiez la compatibilité** avec la nouvelle version, sans rien redémarrer :
    ```bash
    ./copalibre upgrade-check --target-version <nouvelle-version>
@@ -41,4 +61,4 @@ réinstaller avec une version différente est la façon de mettre à jour un mod
 cours continue de référencer la version avec laquelle il a été créé ; mettre à jour un module ne
 change jamais rétroactivement un tournoi déjà en cours.
 
-Voir la [référence des commandes](/help/cli/commands/) pour le reste des options de `module`.
+Voir la [référence des commandes](/fr/help/cli/commands/) pour le reste des options de `module`.

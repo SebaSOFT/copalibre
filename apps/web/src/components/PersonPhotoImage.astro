@@ -1,0 +1,60 @@
+---
+/**
+ * A person's profile picture, or a placeholder silhouette when none has
+ * been uploaded — the person-photo sibling of `EmblemImage.astro`.
+ * Framed the same way (`.cl-image-frame`, `object-fit: cover`), with a
+ * distinct placeholder icon since a person isn't an emblem.
+ */
+interface Props {
+  readonly src?: string;
+  readonly alt: string;
+  readonly placeholderAlt: string;
+  readonly size?: number;
+}
+
+const { src, alt, placeholderAlt, size = 96 } = Astro.props;
+---
+
+<div class="cl-image-frame cl-person-photo-frame" style={`width: ${size}px`}>
+  {
+    src ? (
+      <img src={src} alt={alt} />
+    ) : (
+      <svg
+        class="cl-person-photo-placeholder"
+        role="img"
+        viewBox="0 0 96 96"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <title>{placeholderAlt}</title>
+        <rect
+          fill="none"
+          height="92"
+          rx="4"
+          stroke="currentColor"
+          stroke-width="2"
+          width="92"
+          x="2"
+          y="2"
+        />
+        <circle cx="48" cy="38" fill="none" r="16" stroke="currentColor" stroke-width="2" />
+        <path
+          d="M16 86c0-17.673 14.327-30 32-30s32 12.327 32 30"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        />
+      </svg>
+    )
+  }
+</div>
+
+<style>
+  .cl-person-photo-frame {
+    flex-shrink: 0;
+  }
+
+  .cl-person-photo-placeholder {
+    color: var(--cl-text-muted, #94a3b8);
+  }
+</style>

@@ -7,7 +7,7 @@ import type { UnitOfWork } from '../transaction.js';
 import type { AuditContext } from './enrollment-repository.js';
 
 /**
- * Tag facts (0016-statistic-collectors-and-tags).
+ * Tag facts.
  *
  * The repository writes and reads; it does not decide. **There is no update and
  * no delete** — lifting a tag is a second fact, not the removal of the first —

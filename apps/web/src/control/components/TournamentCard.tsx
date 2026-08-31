@@ -3,7 +3,7 @@ import { LIFECYCLE_PRESENTATION, type TournamentCard as CardModel } from '../lib
 import { messages } from '../i18n/messages.en.js';
 
 /**
- * One tournament on the dashboard (0022).
+ * One tournament on the dashboard.
  *
  * The accent bar is the state's colour and the badge is its word. Both, always
  * — an operator scanning twenty cards in a noisy venue is exactly the person a

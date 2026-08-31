@@ -1,0 +1,135 @@
+{
+  "alias": "track-sprint",
+  "version": "1.0.0",
+  "name": { "en": "Track sprint" },
+  "description": {
+    "en": "Individual placement discipline: athletes race once, finishing position and time decide the result — no two sides, no clock on the match itself."
+  },
+  "attribution": {
+    "author": "CopaLibre",
+    "licence": "AGPL-3.0-only",
+    "sourceUrl": "https://github.com/SebaSOFT/copalibre"
+  },
+  "participantTypes": ["individual"],
+  "rosterConstraints": { "minPlayers": 1, "maxPlayers": 1 },
+  "segmentTypes": [{ "name": "race", "label": { "en": "Race" }, "timed": false }],
+  "eventDefinitions": [
+    {
+      "code": "false-start",
+      "label": { "en": "False start" },
+      "description": {
+        "en": "Records a false start against the athlete; current rules disqualify on the first one, applied via the disqualified event, not automatically here."
+      },
+      "category": "negative",
+      "permittedSegmentTypes": ["race"],
+      "actorRequirement": "person",
+      "payloadSchema": { "type": "object", "properties": {} },
+      "effects": [{ "kind": "statistic", "statisticCode": "false-starts", "delta": 1 }]
+    },
+    {
+      "code": "disqualified",
+      "label": { "en": "Disqualified" },
+      "description": {
+        "en": "Removes the athlete from contention for this race; recorded as a result reason on the outcome, not as a score effect."
+      },
+      "category": "negative",
+      "permittedSegmentTypes": ["race"],
+      "actorRequirement": "person",
+      "payloadSchema": { "type": "object", "properties": { "reason": { "type": "string" } } }
+    },
+    {
+      "code": "finish",
+      "label": { "en": "Finish" },
+      "description": {
+        "en": "Marks that the athlete finished the race. The measured time itself is entered as a match statistic at finalization, not carried on this event — see this discipline's transcription notes."
+      },
+      "category": "neutral",
+      "permittedSegmentTypes": ["race"],
+      "actorRequirement": "person",
+      "payloadSchema": { "type": "object", "properties": {} }
+    }
+  ],
+  "statistics": [
+    { "code": "time-seconds", "label": { "en": "Time (s)" }, "aggregation": "min" },
+    { "code": "false-starts", "label": { "en": "False starts" }, "aggregation": "sum" },
+    { "code": "placement-points", "label": { "en": "Placement points" }, "aggregation": "sum" },
+    { "code": "played", "label": { "en": "Races" }, "aggregation": "count" }
+  ],
+  "scoringInputs": [
+    { "code": "time-seconds", "label": { "en": "Time" }, "source": "operator-entered" }
+  ],
+  "placementScoring": {
+    "statisticCode": "placement-points",
+    "table": [
+      { "placement": 1, "points": 8 },
+      { "placement": 2, "points": 7 },
+      { "placement": 3, "points": 6 },
+      { "placement": 4, "points": 5 },
+      { "placement": 5, "points": 4 },
+      { "placement": 6, "points": 3 },
+      { "placement": 7, "points": 2 },
+      { "placement": 8, "points": 1 }
+    ],
+    "beyondTable": 0
+  },
+  "availableFormats": ["free-for-all", "heats"],
+  "notificationRuleCapabilities": ["threshold-count"],
+  "winCondition": {
+    "id": "track-sprint-win-condition",
+    "rules": [
+      {
+        "id": "close-match-rule",
+        "type": "simple_rule",
+        "options": {},
+        "conditions": [],
+        "actions": [
+          {
+            "id": "close-match",
+            "type": "winMatch",
+            "options": {},
+            "params": [
+              {
+                "id": "unit",
+                "name": "unit",
+                "type": "simple_string",
+                "value": "placement-points",
+                "options": {}
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "defaults": {
+    "format": "heats",
+    "registration": {
+      "publicOpen": false,
+      "requiresCheckIn": true,
+      "region": null,
+      "capacity": null
+    },
+    "tiebreakers": ["time-seconds"]
+  },
+  "fieldPolicies": {
+    "format": { "permission": { "kind": "replaced" }, "mutationClass": "blocked_after_results" },
+    "registration.publicOpen": { "permission": { "kind": "replaced" }, "mutationClass": "safe" },
+    "registration.requiresCheckIn": {
+      "permission": { "kind": "forbidden" },
+      "mutationClass": "requires_rebuild"
+    },
+    "registration.checkInClosesAt": {
+      "permission": { "kind": "replaced" },
+      "mutationClass": "requires_rebuild"
+    },
+    "registration.region": { "permission": { "kind": "replaced" }, "mutationClass": "safe" },
+    "registration.capacity": {
+      "permission": { "kind": "replaced" },
+      "mutationClass": "requires_rebuild"
+    },
+    "tiebreakers": {
+      "permission": { "kind": "merged", "strategy": "union-list" },
+      "mutationClass": "requires_rebuild"
+    }
+  }
+}

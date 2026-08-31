@@ -1,6 +1,9 @@
 ---
 title: MCP for AI
 description: How an AI can operate CopaLibre through copalibre mcp.
+roles:
+  - super-admin
+  - admin
 ---
 
 `copalibre mcp` starts a local [Model Context Protocol](https://modelcontextprotocol.io) server,

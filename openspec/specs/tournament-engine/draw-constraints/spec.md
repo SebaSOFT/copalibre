@@ -4,7 +4,6 @@
 Lets an operator impose domain knowledge the results cannot supply — keep these apart, spread those
 around — on how entrants are drawn into groups and paired into rounds, declaratively for the common
 shapes and by script for the rest, with a draw that stays reproducible and explains its failures.
-
 ## Requirements
 ### Requirement: Separation constraints keep matching entrants apart
 A constraint SHALL be declarable that entrants sharing an attribute value must not share a group, or
@@ -83,3 +82,19 @@ rather than retrying indefinitely or relaxing a constraint silently.
 #### Scenario: No constraint is silently relaxed
 - **WHEN** a draw cannot satisfy every constraint
 - **THEN** no partially-constrained draw is committed
+
+### Requirement: A named round resolves only against a power-of-two bracket
+
+Resolving a conventional round name (e.g. `quarter-final`, `round-of-16`) to a 1-based round number
+SHALL require the bracket size it is resolved against to be a power of two, since every such name
+denotes a specific halving depth.
+
+#### Scenario: A non-power-of-two bracket size is refused
+- **WHEN** a round name is resolved against a bracket size that is not a power of two
+- **THEN** resolution fails, naming the size, rather than returning a fractional round number
+
+#### Scenario: A power-of-two bracket size resolves to an integer round
+- **WHEN** a round name is resolved against a bracket size that is a power of two and at least as large
+  as the round requires
+- **THEN** resolution succeeds with a whole-number, 1-based round
+

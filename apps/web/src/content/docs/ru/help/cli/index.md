@@ -1,6 +1,11 @@
 ---
 title: CLI copalibre
 description: Установка, обновление и справочник команд CLI copalibre.
+capabilities:
+  - platform/api-auth-contract
+roles:
+  - super-admin
+  - admin
 ---
 
 CLI `copalibre` управляет самостоятельно размещённой установкой: устанавливает, проверяет
@@ -9,7 +14,7 @@ CLI `copalibre` управляет самостоятельно размещён
 любой команды (`copalibre doctor --help`) — чтобы показать точное использование без выполнения
 реального действия.
 
-- [Установка](/help/cli/installation/)
-- [Обновление](/help/cli/updating/)
-- [Справочник команд](/help/cli/commands/)
-- [MCP для ИИ](/help/cli/mcp/)
+- [Установка](/ru/help/cli/installation/)
+- [Обновление](/ru/help/cli/updating/)
+- [Справочник команд](/ru/help/cli/commands/)
+- [MCP для ИИ](/ru/help/cli/mcp/)

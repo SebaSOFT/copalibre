@@ -1,7 +1,7 @@
 import type { TraceNode } from './explanation-trace.js';
 
 /**
- * The one place a trace becomes text (0024).
+ * The one place a trace becomes text.
  *
  * The Standings screen promises an operator that what they read is what the
  * engine decided. If the screen formats comparator values into sentences of its
@@ -95,28 +95,61 @@ function valueText(value: unknown): string {
  *
  * The **first** comparator observes everybody, because everybody starts in one
  * undifferentiated group; being separated by it is being ranked, not being
- * tie-broken. So an entrant only has a trace worth expanding once a *second*
- * comparator had to look at it, which is exactly the case the screen calls a
- * resolved tie.
+ * tie-broken. So an entrant only has a *comparator* trace worth expanding once
+ * a *second* comparator had to look at it, which is exactly the case the
+ * screen calls a resolved tie. An `aggregation` node is a different kind of
+ * fact — what decided the row's own result, under series-grain accounting —
+ * and is never a screening step every entrant passes through by default, so
+ * it always surfaces when present, with no tie-count threshold to clear.
  */
 export function traceForEntrant(
   trace: readonly TraceNode[],
   entrantId: string,
   options: { readonly stillTied?: boolean } = {},
 ): readonly TraceNode[] {
-  const observed = trace.filter(
-    (node) => node.values !== undefined && Object.hasOwn(node.values, entrantId),
-  );
-  if (observed.length < 2) return [];
+  const concernsEntrant = (node: TraceNode): boolean =>
+    node.values !== undefined && Object.hasOwn(node.values, entrantId);
+
+  const aggregation = trace.filter((node) => node.kind === 'aggregation' && concernsEntrant(node));
+
+  const observed = trace.filter((node) => node.kind === 'comparator' && concernsEntrant(node));
+  if (observed.length < 2) return aggregation;
 
   // The exhaustion notice belongs to the entrants it still applies to. Shown on
   // a row the pipeline did separate, it would say the opposite of what happened.
-  if (options.stillTied !== true) return observed;
-  const exhausted = trace.filter((node) => node.values === undefined);
-  return [...observed, ...exhausted];
+  if (options.stillTied !== true) return [...aggregation, ...observed];
+  const exhausted = trace.filter((node) => node.kind === 'comparator' && node.values === undefined);
+  return [...aggregation, ...observed, ...exhausted];
 }
 
 /** Whether a row has a tiebreak trace to expand at all. */
 export function hasTraceFor(trace: readonly TraceNode[], entrantId: string): boolean {
   return traceForEntrant(trace, entrantId).length > 0;
+}
+
+/**
+ * The one comparator that actually separated this entrant from a tied group,
+ * named for a spectator-facing summary that isn't the full trace.
+ *
+ * The pipeline stops examining an entrant once a comparator has split it out
+ * (`resolveTiebreak` only keeps evaluating still-tied groups), so the last
+ * `comparator`-kind node whose own `outcome` shows it discriminated something
+ * (`'resolved'` or `'partially-resolved'`, never `'tied-proceed'` or the
+ * `'unresolved-tie'` exhaustion notice) is the one whose split actually
+ * decided this entrant — an earlier node only re-confirmed the tie persisted.
+ * `undefined` when the entrant never needed a second comparator at all (the
+ * ordinary case: the first comparator already ranked everyone) or when every
+ * comparator that looked at it left it tied (the pipeline exhausted without
+ * resolving it).
+ */
+export function decidingFactorLabel(
+  trace: readonly TraceNode[],
+  entrantId: string,
+): string | undefined {
+  const decisive = traceForEntrant(trace, entrantId).filter(
+    (node) =>
+      node.kind === 'comparator' &&
+      (node.outcome === 'resolved' || node.outcome === 'partially-resolved'),
+  );
+  return decisive.at(-1)?.label;
 }

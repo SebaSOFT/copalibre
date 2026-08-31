@@ -4,6 +4,7 @@ import {
   tagScopeFor,
   tagsAt,
   validateTagDeclaration,
+  validateTagDeclarations,
   type TagDeclaration,
   type TagFact,
 } from './tags.js';
@@ -31,6 +32,29 @@ function fact(overrides: Partial<TagFact> = {}): TagFact {
     ...overrides,
   };
 }
+
+describe('every declaration validated together', () => {
+  it('accepts distinct codes', () => {
+    const result = validateTagDeclarations([declaration(), declaration({ code: 'captain' })]);
+    expect(result.ok).toBe(true);
+  });
+
+  it('refuses a code declared more than once', () => {
+    const result = validateTagDeclarations([declaration(), declaration()]);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.message).toContain('suspended');
+  });
+
+  it('refuses an individually-invalid declaration, same as validateTagDeclaration alone', () => {
+    const result = validateTagDeclarations([declaration({ appliesTo: [] })]);
+    expect(result.ok).toBe(false);
+  });
+
+  it('accepts an empty list', () => {
+    expect(validateTagDeclarations([]).ok).toBe(true);
+  });
+});
 
 describe('a tag is declared like a collector', () => {
   it('accepts a declaration naming published granularities', () => {

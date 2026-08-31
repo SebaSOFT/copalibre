@@ -1,8 +1,7 @@
 import { parseArgs } from 'node:util';
-import type { ModuleKind } from '@copalibre/module-distribution';
+import { submitModule, type ModuleKind } from '@copalibre/module-distribution';
 import { systemProcessRunner } from '../process-runner.js';
 import { scaffoldModule } from './scaffold.js';
-import { submitModule } from './submit.js';
 import { validateLocalModule } from './validate-local.js';
 
 const MODULE_KINDS: readonly ModuleKind[] = ['discipline', 'tournament-profile'];
@@ -16,7 +15,7 @@ function runningCopalibreVersion(environment: NodeJS.ProcessEnv): string {
   return environment.COPALIBRE_VERSION ?? '0.0.0';
 }
 
-/** `copalibre module scaffold <discipline|tournament-profile> <alias>` (0049). */
+/** `copalibre module scaffold <discipline|tournament-profile> <alias>`. */
 export async function moduleScaffoldCommand(arguments_: readonly string[]): Promise<number> {
   const parsed = parseArgs({
     args: [...arguments_],
@@ -58,7 +57,7 @@ export async function moduleScaffoldCommand(arguments_: readonly string[]): Prom
   return 0;
 }
 
-/** `copalibre module validate-local <path>` (0049). */
+/** `copalibre module validate-local <path>`. */
 export async function moduleValidateLocalCommand(
   arguments_: readonly string[],
   environment: NodeJS.ProcessEnv,
@@ -70,7 +69,7 @@ export async function moduleValidateLocalCommand(
   return result.ok ? 0 : 1;
 }
 
-/** `copalibre module submit <path>` (0049). */
+/** `copalibre module submit <path>`. */
 export async function moduleSubmitCommand(arguments_: readonly string[]): Promise<number> {
   const parsed = parseArgs({
     args: [...arguments_],

@@ -28,7 +28,7 @@ import { createMigratedDatabase } from '../../persistence/src/test-support/scrat
 import { computeStandings } from './standings/index.js';
 
 /**
- * The 0009 contract end to end: an N-sided result recorded under the codes its
+ * The contract end to end: an N-sided result recorded under the codes its
  * discipline declares, materialised into standings inside the finalising
  * transaction, still readable once the module that defined it is gone, and its
  * segment thresholds reaching an ordinary notification rule.

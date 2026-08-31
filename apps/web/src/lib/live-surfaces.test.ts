@@ -1,8 +1,15 @@
 import type { EventEnvelope } from '@copalibre/realtime';
 import { decide, presentState, resultLegend, type ResultStateLabels } from './result-state.js';
-import { describeSlot, isResolved, toNode, toRounds } from './bracket.js';
+import { describeSlot, isResolved, matchReportUrl, toNode, toRounds } from './bracket.js';
 import { sampleBracket } from './bracket-sample.js';
-import { seriesDecided, seriesScore, seriesSegments } from './series.js';
+import {
+  seriesDecided,
+  seriesPending,
+  seriesScore,
+  seriesSegments,
+  toSeriesInput,
+  type PublicSeriesState,
+} from './series.js';
 import { applyEvent, applyEvents, markConnected } from './live-state.js';
 import { sampleDashboard } from './live-sample.js';
 
@@ -62,7 +69,7 @@ describe('a bracket that is not a tree', () => {
     expect(describeSlot({ kind: 'loser-of', matchNumber: 1 })).toBe('Perdedor del 1');
     expect(describeSlot({ kind: 'seed', seed: 4 })).toBe('Sembrado 4');
     expect(describeSlot({ kind: 'entrant', name: 'Casa de Italia', abbreviation: 'C I' })).toBe(
-      'C I',
+      'Casa de Italia',
     );
     expect(describeSlot({ kind: 'entrant', name: 'Casa de Italia' })).toBe('Casa de Italia');
   });
@@ -77,6 +84,16 @@ describe('a bracket that is not a tree', () => {
     expect(node.badge.label).toBe('TBD');
   });
 
+  it('retains an entrant’s full and compact labels for responsive rendering', () => {
+    const match = matches.find((candidate) => candidate.branch === 'winners');
+    if (!match) throw new Error('the sample bracket has no winners match');
+
+    expect(toNode(match, LABELS).slots[0]).toMatchObject({
+      fullName: 'Talleres de Mendoza',
+      abbreviation: 'TLL A',
+    });
+  });
+
   it('carries scores onto a decided node', () => {
     const [decided] = matches;
     if (!decided) throw new Error('the sample bracket is empty');
@@ -84,6 +101,64 @@ describe('a bracket that is not a tree', () => {
 
     expect(node.slots[0]?.score).toBe(3);
     expect(node.slots[0]?.pending).toBe(false);
+  });
+
+  it('carries an unusual resultReason onto a slot and omits played/absent ones', () => {
+    const [decided] = matches;
+    if (!decided) throw new Error('the sample bracket is empty');
+    const node = toNode({ ...decided, resultReasons: ['walkover', 'played'] }, LABELS);
+
+    expect(node.slots[0]?.resultReason).toBe('walkover');
+    expect(node.slots[1]?.resultReason).toBeUndefined();
+  });
+
+  it('omits resultReason entirely when the match declares none', () => {
+    const [decided] = matches;
+    if (!decided) throw new Error('the sample bracket is empty');
+    const node = toNode(decided, LABELS);
+
+    expect(node.slots[0]?.resultReason).toBeUndefined();
+  });
+
+  it('links a played match card to its report page', () => {
+    const [decided] = matches;
+    if (!decided) throw new Error('the sample bracket is empty');
+
+    expect(
+      matchReportUrl({
+        organizationAlias: 'liga-mendocina',
+        tournamentAlias: 'apertura-2026',
+        stageNumber: 1,
+        matchNumber: decided.matchNumber,
+      }),
+    ).toBe(`/liga-mendocina/tournaments/apertura-2026/stages/1/matches/${decided.matchNumber}`);
+  });
+
+  it('links an undetermined match card too, by its own match number', () => {
+    const final = matches.find((match) => match.branch === 'final');
+    if (!final) throw new Error('the sample bracket has no grand final');
+    expect(isResolved(final)).toBe(false);
+
+    expect(
+      matchReportUrl({
+        organizationAlias: 'liga-mendocina',
+        tournamentAlias: 'apertura-2026',
+        stageNumber: 1,
+        matchNumber: final.matchNumber,
+      }),
+    ).toBe(`/liga-mendocina/tournaments/apertura-2026/stages/1/matches/${final.matchNumber}`);
+  });
+
+  it('prefixes the locale segment and encodes the alias when given', () => {
+    expect(
+      matchReportUrl({
+        organizationAlias: 'liga mendocina',
+        tournamentAlias: 'apertura-2026',
+        stageNumber: 1,
+        matchNumber: 3,
+        localePrefix: '/es',
+      }),
+    ).toBe('/es/liga%20mendocina/tournaments/apertura-2026/stages/1/matches/3');
   });
 });
 
@@ -120,6 +195,146 @@ describe('the series bar', () => {
     });
     expect(seriesDecided({ bestOf: 3, results: ['home', 'home'] })).toBe(true);
     expect(seriesDecided({ bestOf: 5, results: ['home', 'home'] })).toBe(false);
+  });
+
+  it('marks a game that will not be played, in its own position (0159 task 4.5)', () => {
+    // Not the same as `upcoming`, and not appended on the end: game five of a series decided
+    // in four is the fifth segment, because that is where a spectator looks for it.
+    expect(
+      seriesSegments({
+        bestOf: 5,
+        results: ['home', 'away', 'home', 'home'],
+        notRequired: [5],
+      }),
+    ).toEqual(['won-home', 'won-away', 'won-home', 'won-home', 'not-required']);
+  });
+
+  it('distinguishes a game that will not be played from one merely upcoming', () => {
+    const segments = seriesSegments({
+      bestOf: 5,
+      results: ['home', 'home', 'home'],
+      notRequired: [4, 5],
+    });
+    expect(segments.slice(3)).toEqual(['not-required', 'not-required']);
+    expect(segments).not.toContain('upcoming');
+  });
+});
+
+describe('wiring the series bar to a projection (0159 tasks 4.2, 4.3, 4.4)', () => {
+  function state(overrides: Partial<PublicSeriesState> = {}): PublicSeriesState {
+    return {
+      span: 5,
+      resolutionClass: 'best-of',
+      games: [],
+      homeGamesWon: 0,
+      awayGamesWon: 0,
+      status: 'undecided',
+      explanation: '',
+      ...overrides,
+    };
+  }
+
+  it('shows the full span after one game, one won and the rest still to play', () => {
+    const input = toSeriesInput(
+      state({
+        games: [
+          { number: 1, status: 'finalized', winner: 'home' },
+          { number: 2, status: 'scheduled' },
+          { number: 3, status: 'scheduled' },
+          { number: 4, status: 'scheduled' },
+          { number: 5, status: 'scheduled' },
+        ],
+        homeGamesWon: 1,
+      }),
+    );
+
+    expect(seriesSegments(input)).toEqual([
+      'won-home',
+      'upcoming',
+      'upcoming',
+      'upcoming',
+      'upcoming',
+    ]);
+  });
+
+  it('reads games in play order, not in the order they were finalized', () => {
+    const input = toSeriesInput(
+      state({
+        games: [
+          { number: 3, status: 'finalized', winner: 'away' },
+          { number: 1, status: 'finalized', winner: 'home' },
+          { number: 2, status: 'finalized', winner: 'home' },
+          { number: 4, status: 'scheduled' },
+          { number: 5, status: 'scheduled' },
+        ],
+      }),
+    );
+
+    expect(input.results).toEqual(['home', 'home', 'away']);
+  });
+
+  it('marks a series decided early, its surplus games no longer required', () => {
+    const input = toSeriesInput(
+      state({
+        status: 'decided',
+        winner: 'home',
+        games: [
+          { number: 1, status: 'finalized', winner: 'home' },
+          { number: 2, status: 'finalized', winner: 'home' },
+          { number: 3, status: 'finalized', winner: 'home' },
+          { number: 4, status: 'not-required' },
+          { number: 5, status: 'not-required' },
+        ],
+      }),
+    );
+
+    expect(seriesSegments(input)).toEqual([
+      'won-home',
+      'won-home',
+      'won-home',
+      'not-required',
+      'not-required',
+    ]);
+  });
+
+  it('carries an aggregate tie’s two legs and its summed score', () => {
+    const tie = state({
+      span: 2,
+      resolutionClass: 'aggregate',
+      status: 'decided',
+      winner: 'away',
+      aggregateScores: [2, 3],
+      games: [
+        { number: 1, status: 'finalized', winner: 'home', scores: [2, 1] },
+        { number: 2, status: 'finalized', winner: 'away', scores: [0, 2] },
+      ],
+    });
+
+    expect(toSeriesInput(tie).bestOf).toBe(2);
+    expect(tie.aggregateScores).toEqual([2, 3]);
+    // Both legs remain readable individually: a 2-1 and a 0-2 is a different story from a
+    // 1-0 and a 1-3, and the aggregate alone hides which it was.
+    expect(tie.games.map((game) => game.scores)).toEqual([
+      [2, 1],
+      [0, 2],
+    ]);
+    expect(seriesPending(tie)).toBe(false);
+  });
+
+  it('holds a series at two games to one pending, with no winner', () => {
+    const twoOne = state({
+      games: [
+        { number: 1, status: 'finalized', winner: 'home' },
+        { number: 2, status: 'finalized', winner: 'away' },
+        { number: 3, status: 'finalized', winner: 'home' },
+        { number: 4, status: 'scheduled' },
+        { number: 5, status: 'scheduled' },
+      ],
+    });
+
+    expect(seriesPending(twoOne)).toBe(true);
+    expect(twoOne.winner).toBeUndefined();
+    expect(seriesScore(toSeriesInput(twoOne))).toEqual({ home: 2, away: 1 });
   });
 });
 

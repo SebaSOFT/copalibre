@@ -3,16 +3,20 @@ import {
   Body,
   Controller,
   Delete,
-  ForbiddenException,
   Get,
   HttpCode,
   Inject,
-  NotFoundException,
   Param,
   Patch,
   Post,
   Req,
 } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} from '../http/error-contract.js';
+import { InvariantViolationError, NotFoundError } from '@copalibre/persistence';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -20,7 +24,9 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
+import { ORGANIZATION_ROLES } from '@copalibre/domain';
 import {
+  InstallationRoleRepository,
   OrganizationAccessRepository,
   OrganizationRepository,
   withTransaction,
@@ -30,7 +36,9 @@ import type { Kysely } from 'kysely';
 import {
   AllowInvitationAcceptance,
   RequireOrganizationBootstrapOrAdmin,
-  RequireOrganizationRole,
+  RequireOrganizationCapability,
+  RequireSuperAdmin,
+  SUPER_ADMIN_SCOPE,
 } from '../auth/access-requirement.js';
 import type { RequestWithSubject } from '../auth/request-context.js';
 import { RequireScopes } from '../auth/required-scopes.js';
@@ -38,10 +46,15 @@ import { SecurityPlaneTag } from '../auth/security-plane.js';
 import { DATABASE } from '../database.token.js';
 import {
   AcceptInvitationRequest,
+  ChangeInstallationRoleStatusRequest,
   ChangeOrganizationRoleRequest,
+  CreateSuperAdminRequest,
+  GrantableRolesResponse,
+  InstallationSuperAdminResponse,
   InviteOrganizationUserRequest,
   OrganizationInvitationResponse,
   OrganizationRoleResponse,
+  PendingOrganizationInvitationResponse,
 } from '../dto/organization.dto.js';
 
 const INVITATION_TTL_MS = 24 * 60 * 60 * 1000;
@@ -53,7 +66,7 @@ export class OrganizationAccessController {
 
   @Get('roles')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-users')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List active organization role assignments' })
   @ApiOkResponse({ type: OrganizationRoleResponse, isArray: true })
@@ -62,6 +75,43 @@ export class OrganizationAccessController {
   ): Promise<readonly OrganizationRoleResponse[]> {
     const organization = await this.organization(alias);
     return new OrganizationAccessRepository(this.db).listAssignments(organization.organizationId);
+  }
+
+  @Get('roles/grantable')
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationCapability('org.manage-users')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: "The caller's grantable roles in this organization, per the role-granting hierarchy",
+  })
+  @ApiOkResponse({ type: GrantableRolesResponse })
+  grantable(@Req() request: RequestWithSubject): GrantableRolesResponse {
+    const grantorContext = request.subject?.grantorContext;
+    const isSuperAdmin = grantorContext?.isSuperAdmin ?? false;
+    const roles: GrantableRolesResponse['roles'] = isSuperAdmin
+      ? ['super-admin', ...ORGANIZATION_ROLES]
+      : grantorContext?.organizationAdminOf
+        ? [...ORGANIZATION_ROLES]
+        : [];
+    return { roles };
+  }
+
+  @Get('invitations')
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationCapability('org.manage-users')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'List pending organization invitations',
+    description: 'Not yet accepted, not rescinded, not expired.',
+  })
+  @ApiOkResponse({ type: PendingOrganizationInvitationResponse, isArray: true })
+  async listInvitations(
+    @Param('organizationAlias') alias: string,
+  ): Promise<readonly PendingOrganizationInvitationResponse[]> {
+    const organization = await this.organization(alias);
+    return new OrganizationAccessRepository(this.db).listPendingInvitations(
+      organization.organizationId,
+    );
   }
 
   @Post('invitations')
@@ -86,19 +136,53 @@ export class OrganizationAccessController {
         recipientEmail: body.email,
         role: body.role,
         status: body.status,
+        ...(body.tournamentId === undefined ? {} : { tournamentId: body.tournamentId }),
+        ...(body.clubId === undefined ? {} : { clubId: body.clubId }),
         token,
         tokenHash: hash(token),
         expiresAt: new Date(Date.now() + INVITATION_TTL_MS).toISOString(),
         actor: actorOf(request),
         authorizationContext: (request.subject?.scopes ?? []).join(' '),
+        grantorContext: request.subject?.grantorContext,
       }),
-    );
+    ).catch(rethrowAsHttp);
+    return { invitationId: invitation.invitationId, expiresAt: invitation.expiresAt };
+  }
+
+  @Delete('invitations/:invitationId')
+  @HttpCode(200)
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationBootstrapOrAdmin()
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Rescind a pending organization invitation',
+    description:
+      'Requires the same role-granting authority the invitation itself required. Takes effect ' +
+      "immediately — the token stops resolving from this point on, regardless of the invitation's " +
+      'stated expiry.',
+  })
+  @ApiOkResponse({ type: OrganizationInvitationResponse })
+  async rescindInvitation(
+    @Param('organizationAlias') alias: string,
+    @Param('invitationId') invitationId: string,
+    @Req() request: RequestWithSubject,
+  ): Promise<OrganizationInvitationResponse> {
+    const organization = await this.organization(alias);
+    const invitation = await withTransaction(this.db, (uow) =>
+      new OrganizationAccessRepository(this.db).rescindInvitation(uow, {
+        organizationId: organization.organizationId,
+        invitationId,
+        actor: actorOf(request),
+        authorizationContext: (request.subject?.scopes ?? []).join(' '),
+        grantorContext: request.subject?.grantorContext,
+      }),
+    ).catch(rethrowAsHttp);
     return { invitationId: invitation.invitationId, expiresAt: invitation.expiresAt };
   }
 
   @Patch('roles/:assignmentId')
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-users')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Change an organization role or active status' })
   @ApiOkResponse({ type: OrganizationRoleResponse })
@@ -115,16 +199,19 @@ export class OrganizationAccessController {
         assignmentId,
         role: body.role,
         status: body.status,
+        ...(body.tournamentId === undefined ? {} : { tournamentId: body.tournamentId }),
+        ...(body.clubId === undefined ? {} : { clubId: body.clubId }),
         actor: actorOf(request),
         authorizationContext: (request.subject?.scopes ?? []).join(' '),
+        grantorContext: request.subject?.grantorContext,
       }),
-    );
+    ).catch(rethrowAsHttp);
   }
 
   @Delete('roles/:assignmentId')
   @HttpCode(200)
   @SecurityPlaneTag('admin-control')
-  @RequireOrganizationRole('admin')
+  @RequireOrganizationCapability('org.manage-users')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Soft-delete an organization role assignment' })
   @ApiOkResponse({ type: OrganizationRoleResponse })
@@ -141,12 +228,15 @@ export class OrganizationAccessController {
         actor: actorOf(request),
         authorizationContext: (request.subject?.scopes ?? []).join(' '),
       }),
-    );
+    ).catch(rethrowAsHttp);
   }
 
   private async organization(alias: string) {
     const organization = await new OrganizationRepository(this.db).findByAlias(alias);
-    if (!organization) throw new NotFoundException(`No organization with alias "${alias}"`);
+    if (!organization)
+      throw new NotFoundException(`No organization with alias "${alias}"`, {
+        errorCode: 'organization-access-not-found',
+      });
     return organization;
   }
 }
@@ -170,20 +260,117 @@ export class InvitationAcceptanceController {
   ): Promise<OrganizationRoleResponse> {
     const subject = request.subject;
     if (!subject?.email || subject.emailVerified !== true) {
-      throw new ForbiddenException('Invitation acceptance requires a verified OIDC email');
+      throw new ForbiddenException('Invitation acceptance requires a verified OIDC email', {
+        errorCode: 'organization-access-forbidden',
+      });
     }
     const verifiedEmail = subject.email;
+    try {
+      return await withTransaction(this.db, (uow) =>
+        new OrganizationAccessRepository(this.db).acceptInvitation(uow, {
+          tokenHash: hash(body.token),
+          subjectId: subject.subjectId,
+          verifiedEmail,
+          ...(subject.name === undefined ? {} : { name: subject.name }),
+          ...(subject.picture === undefined ? {} : { picture: subject.picture }),
+          actor: actorOf(request),
+          authorizationContext: subject.scopes.join(' '),
+        }),
+      );
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        throw new NotFoundException(error.message, { errorCode: 'organization-access-not-found' });
+      }
+      if (error instanceof InvariantViolationError) {
+        throw new ConflictException(error.message, { errorCode: 'organization-access-conflict' });
+      }
+      throw error;
+    }
+  }
+}
+
+/**
+ * Installation-level super-admin management: the console surface for
+ * `installation_role_assignments`, gated entirely by pre-existing
+ * super-admin authority — never by a role this controller itself grants.
+ */
+@ApiTags('organization-access')
+@Controller('installation/super-admins')
+export class InstallationRoleController {
+  constructor(@Inject(DATABASE) private readonly db: Kysely<Database>) {}
+
+  @Get()
+  @SecurityPlaneTag('admin-control')
+  @RequireSuperAdmin()
+  @RequireScopes(SUPER_ADMIN_SCOPE)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List active installation super-admins' })
+  @ApiOkResponse({ type: InstallationSuperAdminResponse, isArray: true })
+  async list(): Promise<readonly InstallationSuperAdminResponse[]> {
+    return new InstallationRoleRepository(this.db).listActiveSuperAdmins();
+  }
+
+  @Post()
+  @SecurityPlaneTag('admin-control')
+  @RequireSuperAdmin()
+  @RequireScopes(SUPER_ADMIN_SCOPE)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Grant installation super-admin to a principal' })
+  @ApiCreatedResponse({ type: InstallationSuperAdminResponse })
+  async create(
+    @Body() body: CreateSuperAdminRequest,
+    @Req() request: RequestWithSubject,
+  ): Promise<InstallationSuperAdminResponse> {
     return withTransaction(this.db, (uow) =>
-      new OrganizationAccessRepository(this.db).acceptInvitation(uow, {
-        tokenHash: hash(body.token),
-        subjectId: subject.subjectId,
-        verifiedEmail,
-        ...(subject.name === undefined ? {} : { name: subject.name }),
-        ...(subject.picture === undefined ? {} : { picture: subject.picture }),
+      new InstallationRoleRepository(this.db).createSuperAdmin(uow, {
+        principalId: body.principalId,
         actor: actorOf(request),
-        authorizationContext: subject.scopes.join(' '),
+        authorizationContext: (request.subject?.scopes ?? []).join(' '),
       }),
     );
+  }
+
+  @Patch(':assignmentId')
+  @SecurityPlaneTag('admin-control')
+  @RequireSuperAdmin()
+  @RequireScopes(SUPER_ADMIN_SCOPE)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Change an installation super-admin assignment's active status" })
+  @ApiOkResponse({ type: InstallationSuperAdminResponse })
+  async changeStatus(
+    @Param('assignmentId') assignmentId: string,
+    @Body() body: ChangeInstallationRoleStatusRequest,
+    @Req() request: RequestWithSubject,
+  ): Promise<InstallationSuperAdminResponse> {
+    return withTransaction(this.db, (uow) =>
+      new InstallationRoleRepository(this.db).changeStatus(uow, {
+        assignmentId,
+        status: body.status,
+        actor: actorOf(request),
+        authorizationContext: (request.subject?.scopes ?? []).join(' '),
+      }),
+    ).catch(rethrowAsHttp);
+  }
+
+  @Delete(':assignmentId')
+  @HttpCode(200)
+  @SecurityPlaneTag('admin-control')
+  @RequireSuperAdmin()
+  @RequireScopes(SUPER_ADMIN_SCOPE)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Soft-delete an installation super-admin assignment' })
+  @ApiOkResponse({ type: InstallationSuperAdminResponse })
+  async remove(
+    @Param('assignmentId') assignmentId: string,
+    @Req() request: RequestWithSubject,
+  ): Promise<InstallationSuperAdminResponse> {
+    return withTransaction(this.db, (uow) =>
+      new InstallationRoleRepository(this.db).deleteAssignment(uow, {
+        assignmentId,
+        actor: actorOf(request),
+        authorizationContext: (request.subject?.scopes ?? []).join(' '),
+      }),
+    ).catch(rethrowAsHttp);
   }
 }
 
@@ -193,4 +380,20 @@ function hash(value: string): string {
 
 function actorOf(request: RequestWithSubject): string {
   return `user:${request.subject?.principalId ?? request.subject?.subjectId ?? 'unknown'}`;
+}
+
+/**
+ * `InvariantViolationError`'s `details.reason` distinguishes a role-grant-
+ * hierarchy denial (403 — the caller is never allowed to do this) from a
+ * floor-invariant refusal (409 — allowed in general, refused only because it
+ * would leave the organization/installation without an admin/super-admin).
+ */
+function rethrowAsHttp(error: unknown): never {
+  if (error instanceof InvariantViolationError) {
+    if (error.details?.reason === 'grant-denied') {
+      throw new ForbiddenException(error.message, { errorCode: 'organization-access-forbidden' });
+    }
+    throw new ConflictException(error.message, { errorCode: 'organization-access-conflict' });
+  }
+  throw error;
 }

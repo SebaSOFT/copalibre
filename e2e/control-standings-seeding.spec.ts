@@ -2,53 +2,91 @@ import { expect, test, type Page } from '@playwright/test';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
- * A5 and A6 in a real browser (0024).
+ * A5 and A6 in a real browser.
  *
- * The API is stubbed at `window.fetch`, as the 0023 specs do: what these
+ * The API is stubbed at `window.fetch`, as the other control-panel e2e specs do: what these
  * assert is the screen — that a tied row opens its engine trace, that a locked
  * seed survives a randomize, that both halves of a double-elimination bracket
  * render with named placeholders, and that a refused reseed says so in the
  * server's own words.
  */
 
-const STAGE = '/organizations/liga-mendocina/tournaments/apertura-2026/stages/1';
+const TOURNAMENT = '/organizations/liga-mendocina/tournaments/apertura-2026';
+const STAGE = `${TOURNAMENT}/stages/1`;
 
-const standingsFixture = {
-  stageId: 'stage-001',
-  projectionVersion: 12,
-  fullyResolved: true,
-  rows: [
+/** The declared layouts a tab bar reads — one 'group-phase' layout is enough for this spec. */
+const tableLayoutsFixture = {
+  layouts: [
     {
-      rank: 1,
-      entrantId: 'Deportivo Norte',
-      sharedRank: false,
-      statistics: { played: 6, points: 13, 'goals-for': 28 },
-      tieBroken: true,
-    },
-    {
-      rank: 2,
-      entrantId: 'Atlético Sur',
-      sharedRank: false,
-      statistics: { played: 6, points: 13, 'goals-for': 24 },
-      tieBroken: true,
-    },
-    {
-      rank: 3,
-      entrantId: 'Club Cometa',
-      sharedRank: false,
-      statistics: { played: 6, points: 4, 'goals-for': 9 },
-      tieBroken: false,
+      code: 'group-standings-default',
+      target: 'group-phase',
+      label: 'Group Standings',
+      entityGranularity: 'team',
     },
   ],
-  trace: ['Rule 1 (Puntos): Deportivo Norte=13, Atlético Sur=13 → sin resolver'],
 };
 
-const traceFixture = {
-  entrantId: 'Deportivo Norte',
-  lines: [
-    'Rule 1 (Puntos): Deportivo Norte=13, Atlético Sur=13 → Tie not fully resolved by Puntos; proceed to next comparator',
-    'Rule 2 (A favor): Deportivo Norte=28, Atlético Sur=24 → A favor resolved the tie',
+const groupStandingsProjectionFixture = {
+  layoutCode: 'group-standings-default',
+  target: 'group-phase',
+  label: 'Group Standings',
+  columns: [
+    { code: 'name', header: 'Team', format: 'text' },
+    { code: 'points', header: 'Points', format: 'number' },
   ],
+  defaultSort: [{ columnCode: 'points', direction: 'desc' }],
+  rows: [
+    {
+      actorId: 'Deportivo Norte',
+      entrantId: 'Deportivo Norte',
+      rank: 1,
+      sharedRank: true,
+      cells: {
+        name: { raw: 'Deportivo Norte', formatted: 'Deportivo Norte' },
+        points: { raw: 13, formatted: '13' },
+      },
+    },
+    {
+      actorId: 'Atlético Sur',
+      entrantId: 'Atlético Sur',
+      rank: 1,
+      sharedRank: true,
+      cells: {
+        name: { raw: 'Atlético Sur', formatted: 'Atlético Sur' },
+        points: { raw: 13, formatted: '13' },
+      },
+    },
+    {
+      actorId: 'Club Cometa',
+      entrantId: 'Club Cometa',
+      rank: 3,
+      sharedRank: false,
+      cells: {
+        name: { raw: 'Club Cometa', formatted: 'Club Cometa' },
+        points: { raw: 4, formatted: '4' },
+      },
+    },
+  ],
+  projectionVersion: 12,
+};
+
+/**
+ * Per-entrant trace, keyed the way the server actually answers each row's
+ * lazy fetch — 'Club Cometa' isn't tied with anyone, so its own real answer
+ * is an empty comparator chain, not the leaders' trace repeated.
+ */
+const traceByEntrant: Record<
+  string,
+  { readonly entrantId: string; readonly lines: readonly string[] }
+> = {
+  'Deportivo Norte': {
+    entrantId: 'Deportivo Norte',
+    lines: [
+      'Rule 1 (Puntos): Deportivo Norte=13, Atlético Sur=13 → Tie not fully resolved by Puntos; proceed to next comparator',
+      'Rule 2 (A favor): Deportivo Norte=28, Atlético Sur=24 → A favor resolved the tie',
+    ],
+  },
+  'Club Cometa': { entrantId: 'Club Cometa', lines: [] },
 };
 
 /** A double-elimination stage: winners, losers and a grand final. */
@@ -131,11 +169,11 @@ async function mockControlApi(
   options: { readonly reseedBlocked?: boolean } = {},
 ): Promise<void> {
   await page.addInitScript(
-    ({ stage, standings, trace, seeding, reseedBlocked, tokenEndpoint }) => {
+    ({ tournament, stage, layouts, projection, trace, seeding, reseedBlocked, tokenEndpoint }) => {
       // `addInitScript` re-runs on every navigation, including a reload, so a
       // plain closure variable would not survive one — sessionStorage does,
       // letting a GET after a reload reflect what the server would have
-      // actually persisted (0040) rather than resetting to the page's
+      // actually persisted rather than resetting to the page's
       // starting fixture.
       const STORAGE_KEY = 'e2e-current-seeding';
       const readCurrent = (): typeof seeding => {
@@ -154,8 +192,15 @@ async function mockControlApi(
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
 
-        if (url === `${stage}/standings`) return Response.json(standings);
-        if (url.startsWith(`${stage}/standings/entrants/`)) return Response.json(trace);
+        if (url === `${tournament}/tables`) return Response.json(layouts);
+        if (url === `${stage}/tables/group-standings-default`) return Response.json(projection);
+        if (url.startsWith(`${stage}/standings/entrants/`) && url.endsWith('/trace')) {
+          const withoutTrace = url.slice(0, -'/trace'.length);
+          const entrantId = decodeURIComponent(
+            withoutTrace.slice(withoutTrace.lastIndexOf('/') + 1),
+          );
+          return Response.json(trace[entrantId] ?? { entrantId, lines: [] });
+        }
         if (url === `${stage}/seeding` && method === 'GET') return Response.json(readCurrent());
         if (url === `${stage}/seeding` && method === 'POST') {
           if (reseedBlocked) {
@@ -180,9 +225,11 @@ async function mockControlApi(
       };
     },
     {
+      tournament: TOURNAMENT,
       stage: STAGE,
-      standings: standingsFixture,
-      trace: traceFixture,
+      layouts: tableLayoutsFixture,
+      projection: groupStandingsProjectionFixture,
+      trace: traceByEntrant,
       seeding: seedingFixture,
       reseedBlocked: options.reseedBlocked ?? false,
       tokenEndpoint: TOKEN_ENDPOINT,
@@ -199,19 +246,39 @@ test('expands a tied standings row and shows the engine’s trace', async ({ pag
   await page.waitForURL(`**${target}`);
 
   await expect(page.getByText('Proyección v12')).toBeVisible();
-  await page.locator('summary').filter({ hasText: 'Deportivo Norte' }).click();
+  await page.locator('tr', { hasText: 'Deportivo Norte' }).locator('+ tr summary').click();
 
   const trace = page.getByLabel('Traza de desempate');
   await expect(trace).toBeVisible();
-  for (const line of traceFixture.lines) {
+  for (const line of traceByEntrant['Deportivo Norte'].lines) {
     await expect(trace.getByText(line, { exact: true })).toBeVisible();
   }
 
-  // The row nobody had to break a tie for offers no trace at all.
-  await page.locator('summary').filter({ hasText: 'Club Cometa' }).click();
-  await expect(
-    page.getByText('Ningún comparador de desempate intervino en esta posición.'),
-  ).toBeVisible();
+  // The row nobody had to break a tie for fetches its own real (empty) trace
+  // — every row is a candidate to expand now, not only the ones a
+  // precomputed flag marked in advance.
+  await page.locator('tr', { hasText: 'Club Cometa' }).locator('+ tr summary').click();
+  await expect(page.getByText('El motor no registró comparadores.')).toBeVisible();
+});
+
+test('scrolls standings horizontally at 375px without page overflow', async ({ page }) => {
+  await mockControlApi(page);
+
+  await page.setViewportSize({ width: 375, height: 667 });
+  const target = '/control/liga-mendocina/tournaments/apertura-2026/stages/1/standings';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  const tableRegion = page.locator('.cl-data-table');
+  await expect(tableRegion).toBeVisible();
+  const hasScroll = await tableRegion.evaluate((el) => el.scrollWidth >= el.clientWidth);
+  expect(hasScroll).toBe(true);
+
+  const bodyOverflow = await page.evaluate(
+    () => document.body.scrollWidth <= document.documentElement.clientWidth,
+  );
+  expect(bodyOverflow).toBe(true);
 });
 
 test('keeps locked seeds through a randomize', async ({ page }) => {
@@ -271,15 +338,20 @@ test('a published seed order survives a page reload', async ({ page }) => {
   const shuffled = await seedList.getByRole('listitem').allTextContents();
 
   await page.getByRole('button', { name: 'Publicar sembrado' }).click();
-  await expect(page.getByRole('alert')).toContainText('sembrado guardado');
+  await expect(page.getByRole('status')).toContainText('Reseeding regenerates the fixture graph');
 
-  await page.reload();
-  // The session is in-memory only (0062) and a reload discards it, same as a
+  // The session is in-memory only and a reload discards it, same as a
   // real browser refresh — log back in to return to this screen so the
-  // assertion below is about the persisted seed order, not the session.
-  await seedLoginTransaction(page, target);
-  await page.goto(loginCallbackUrl());
-  await page.waitForURL(`**${target}`);
+  // assertion below is about the persisted seed order, not the session. Retry
+  // the sequence because the app's own login redirect can race callback navigation.
+  await expect(async () => {
+    await page.reload();
+    await seedLoginTransaction(page, target);
+    await page.goto(loginCallbackUrl(), { timeout: 5000 }).catch((error: Error) => {
+      if (!error.message.includes('is interrupted by another navigation')) throw error;
+    });
+    await page.waitForURL(`**${target}`, { timeout: 5000 });
+  }).toPass();
   await expect(seedList.getByRole('listitem')).toHaveCount(shuffled.length);
   const afterReload = await seedList.getByRole('listitem').allTextContents();
   expect(afterReload).toEqual(shuffled);

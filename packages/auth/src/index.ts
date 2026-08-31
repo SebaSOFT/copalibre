@@ -1,6 +1,6 @@
 /**
  * @copalibre/auth — JWT verification shared by every process role that has to
- * authenticate a person (0005, extracted in 0018).
+ * authenticate a person.
  *
  * It moved out of `apps/api` when `apps/events` needed the same verification
  * for its authenticated stream. Duplicating it would have been two

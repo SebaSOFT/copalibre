@@ -1,7 +1,7 @@
 import type { SubscriptionService, SubscriptionQuery } from './subscription.js';
 
 /**
- * The polling loop behind one open SSE connection (0018).
+ * The polling loop behind one open SSE connection.
  *
  * It polls the outbox rather than waiting on a notification. `LISTEN/NOTIFY`
  * would be lower latency and would also mean an event published while this

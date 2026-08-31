@@ -4,7 +4,7 @@ import type { OutboxRecord } from '../outbox.js';
 import type { Database } from '../schema.js';
 
 /**
- * Reading the outbox as a stream (0018-realtime-sse-contract).
+ * Reading the outbox as a stream.
  *
  * The same rows the worker consumes, read a second time for a different
  * purpose: the relay asks "what has nobody processed", a subscriber asks "what

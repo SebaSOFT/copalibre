@@ -1,12 +1,20 @@
 ---
 title: Operación y trazabilidad
 description: Reglas para operar partidos y corregir datos de torneo.
+capabilities:
+  - platform/async-job-processing
+  - platform/persistence-layer
+roles:
+  - super-admin
 ---
 
 ## Consola de partido
 
 Registre eventos y reloj desde consola autorizada. La proyección pública se actualiza desde eventos
-durables y conserva versión para recuperación.
+durables y conserva versión para recuperación. Toda acción se escribe primero en una cola local
+antes de enviarse, así una conexión cortada la deja en cola para reintento automático en vez de
+perderla — ver [Consola de partido en vivo](/es/help/control/match-console/) para el comportamiento
+completo.
 
 ## Correcciones
 

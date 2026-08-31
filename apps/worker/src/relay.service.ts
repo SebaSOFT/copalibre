@@ -12,7 +12,7 @@ import { JobDispatcher } from './jobs/dispatcher.js';
 import { runRelayPass, type PassResult } from './jobs/relay-runner.js';
 
 /**
- * The loop around `runRelayPass` (0017).
+ * The loop around `runRelayPass`.
  *
  * Everything interesting is in the pass; this owns only the timer, the worker's
  * identity and the shutdown. Polling rather than `LISTEN/NOTIFY`: a notification

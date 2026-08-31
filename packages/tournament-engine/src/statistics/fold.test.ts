@@ -1,4 +1,9 @@
-import type { EventDefinition, RecordedEvent, StatisticCollector } from '@copalibre/domain';
+import {
+  footballDescriptor,
+  type EventDefinition,
+  type RecordedEvent,
+  type StatisticCollector,
+} from '@copalibre/domain';
 import {
   aggregateTo,
   contributorsOf,
@@ -66,6 +71,7 @@ function fold(overrides: Partial<Parameters<typeof foldStatistics>[0]> = {}) {
     events: [],
     roster: [],
     actorOf,
+    entrantIds: ['en-atlas', 'en-boca'],
     context: CONTEXT,
     ...overrides,
   });
@@ -595,5 +601,354 @@ describe('a declared delta and a hand adjustment both reproduce on a replay', ()
     // Neither is an increment against a stored number, so recomputation is the
     // mechanism rather than the thing that would erase them.
     expect(second).toEqual(first);
+  });
+});
+
+describe('a collector-sourced collector', () => {
+  it('folds another collector’s own figures, in the order the caller supplies', () => {
+    const figures = fold({
+      collectors: [
+        collector({ code: 'goals', granularity: { actor: 'team', competition: 'match' } }),
+        collector({
+          code: 'goals-doubled',
+          source: { kind: 'collector', code: 'goals' },
+          measure: { kind: 'sum', field: 'unused' },
+          granularity: { actor: 'team', competition: 'match' },
+        }),
+      ],
+      events: [
+        event({ sequence: 1, side: 'en-atlas', personId: 'pe-1' }),
+        event({ sequence: 2, side: 'en-atlas', personId: 'pe-1' }),
+      ],
+    });
+
+    // `goals` counted two events; `goals-doubled` sums `goals`'s own value,
+    // which is 2 — a derived figure reads the source, not the raw events.
+    expect(figures.find((f) => f.collectorCode === 'goals')?.value).toBe(2);
+    expect(figures.find((f) => f.collectorCode === 'goals-doubled')?.value).toBe(2);
+  });
+
+  it('counts one occurrence per source figure under a count measure', () => {
+    const figures = fold({
+      collectors: [
+        collector({ code: 'goals' }),
+        collector({
+          code: 'scorers',
+          source: { kind: 'collector', code: 'goals' },
+          measure: { kind: 'count' },
+        }),
+      ],
+      events: [
+        event({ sequence: 1, side: 'en-atlas', personId: 'pe-1' }),
+        event({ sequence: 2, side: 'en-boca', personId: 'pe-2' }),
+      ],
+    });
+
+    expect(figures.filter((f) => f.collectorCode === 'scorers')).toHaveLength(2);
+    expect(figures.find((f) => f.collectorCode === 'scorers' && f.actorId === 'pe-1')?.value).toBe(
+      1,
+    );
+  });
+
+  it('produces nothing for a source collector nobody declared', () => {
+    const figures = fold({
+      collectors: [collector({ code: 'derived', source: { kind: 'collector', code: 'ghost' } })],
+      events: [event({ sequence: 1, side: 'en-atlas', personId: 'pe-1' })],
+    });
+
+    expect(figures).toEqual([]);
+  });
+
+  it('refuses a collector-sourced collector naming another collector-sourced one', () => {
+    expect(() =>
+      fold({
+        collectors: [
+          collector({ code: 'goals' }),
+          collector({ code: 'first-derived', source: { kind: 'collector', code: 'goals' } }),
+          collector({
+            code: 'second-derived',
+            source: { kind: 'collector', code: 'first-derived' },
+          }),
+        ],
+        events: [event({ sequence: 1, side: 'en-atlas', personId: 'pe-1' })],
+      }),
+    ).toThrow(/first-derived/);
+  });
+});
+
+describe('the filter seam', () => {
+  it('excludes a fact the predicate returns false for', () => {
+    const figures = fold({
+      events: [
+        event({ sequence: 1, side: 'en-atlas', personId: 'pe-1' }),
+        event({ sequence: 2, side: 'en-atlas', personId: 'pe-9' }),
+      ],
+      filter: (_fact, actorId) => actorId === 'pe-1',
+    });
+
+    expect(figures).toEqual([expect.objectContaining({ actorId: 'pe-1', value: 1 })]);
+  });
+
+  it('excludes a participation fact the predicate returns false for', () => {
+    const figures = fold({
+      collectors: [
+        collector({
+          code: 'played',
+          source: { kind: 'participation' },
+          measure: { kind: 'count' },
+        }),
+      ],
+      roster: [
+        { ...ATLAS, role: 'player' },
+        { ...BOCA, role: 'player' },
+      ],
+      filter: (_fact, actorId) => actorId !== 'pe-2',
+    });
+
+    expect(figures.map((f) => f.actorId)).toEqual(['pe-1']);
+  });
+
+  it('leaves every previously-tested case unchanged when omitted', () => {
+    const withoutFilter = fold({
+      events: [event({ sequence: 1, side: 'en-atlas', personId: 'pe-1' })],
+    });
+    const withUndefinedFilter = fold({
+      events: [event({ sequence: 1, side: 'en-atlas', personId: 'pe-1' })],
+      filter: undefined,
+    });
+
+    expect(withUndefinedFilter).toEqual(withoutFilter);
+  });
+});
+
+describe('target attribution', () => {
+  const RIVER: ActorContext = {
+    personId: 'pe-3',
+    playerId: 'pl-3',
+    teamId: 'tm-river',
+    clubId: 'cl-river',
+  };
+  const threeSideActorOf = (entrantId: string): ActorContext | undefined =>
+    entrantId === 'en-atlas'
+      ? ATLAS
+      : entrantId === 'en-boca'
+        ? BOCA
+        : entrantId === 'en-river'
+          ? RIVER
+          : undefined;
+
+  describe('a statistic effect awarding to a payload-declared target', () => {
+    const definitions = [
+      {
+        code: 'goal',
+        label: 'Gol',
+        category: 'positive',
+        actorRequirement: 'person',
+        payloadSchema: { type: 'object', properties: { assistedBy: { type: 'string' } } },
+        effects: [
+          { kind: 'statistic', statisticCode: 'goals', delta: 1 },
+          {
+            kind: 'statistic',
+            statisticCode: 'assists',
+            delta: 1,
+            awardTo: { payloadField: 'assistedBy' },
+          },
+        ],
+      },
+    ] as unknown as readonly EventDefinition[];
+    const assists = collector({
+      code: 'assists',
+      source: { kind: 'statistic', statisticCode: 'assists' },
+      granularity: { actor: 'person', competition: 'match' },
+    });
+
+    it('credits the person named in the payload, not the primary actor', () => {
+      const figures = fold({
+        collectors: [assists],
+        definitions,
+        events: [
+          event({
+            sequence: 1,
+            side: 'en-atlas',
+            personId: 'pe-1',
+            payload: { assistedBy: 'pe-9' },
+          }),
+        ],
+      });
+
+      expect(figures).toEqual([
+        expect.objectContaining({ collectorCode: 'assists', actorId: 'pe-9', value: 1 }),
+      ]);
+    });
+
+    it('produces no figure when the payload field is absent, rather than an empty actor id', () => {
+      const figures = fold({
+        collectors: [assists],
+        definitions,
+        events: [event({ sequence: 1, side: 'en-atlas', personId: 'pe-1', payload: {} })],
+      });
+
+      expect(figures).toEqual([]);
+    });
+  });
+
+  describe('a statistic effect awarding to every-other-side', () => {
+    const definitions = [
+      {
+        code: 'own-goal',
+        label: 'Gol en contra',
+        category: 'negative',
+        actorRequirement: 'person',
+        payloadSchema: { type: 'object' },
+        effects: [
+          { kind: 'statistic', statisticCode: 'goals-against', delta: 1, awardTo: 'actor' },
+          {
+            kind: 'statistic',
+            statisticCode: 'goals-for',
+            delta: 1,
+            awardTo: 'every-other-side',
+          },
+        ],
+      },
+    ] as unknown as readonly EventDefinition[];
+    const goalsFor = collector({
+      code: 'goals-for',
+      source: { kind: 'statistic', statisticCode: 'goals-for' },
+      granularity: { actor: 'team', competition: 'match' },
+    });
+
+    it('credits every other side the full delta, not a split share, in a 3-entrant match', () => {
+      const figures = fold({
+        collectors: [goalsFor],
+        definitions,
+        events: [
+          event({ sequence: 1, definitionCode: 'own-goal', side: 'en-atlas', personId: 'pe-1' }),
+        ],
+        actorOf: threeSideActorOf,
+        entrantIds: ['en-atlas', 'en-boca', 'en-river'],
+      });
+
+      expect(figures).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ actorId: 'tm-boca', value: 1 }),
+          expect.objectContaining({ actorId: 'tm-river', value: 1 }),
+        ]),
+      );
+      expect(figures.find((f) => f.actorId === 'tm-atlas')).toBeUndefined();
+      expect(figures).toHaveLength(2);
+    });
+  });
+
+  describe('an event-sourced collector declaring actorSource', () => {
+    const definitions = [
+      {
+        code: 'kill',
+        label: 'Kill',
+        category: 'positive',
+        actorRequirement: 'person',
+        payloadSchema: { type: 'object', properties: { victimId: { type: 'string' } } },
+      },
+    ] as unknown as readonly EventDefinition[];
+
+    it('defaults to primary, exactly today’s behavior', () => {
+      const kills = collector({
+        code: 'kills',
+        source: { kind: 'event', definitionCodes: ['kill'] },
+        granularity: { actor: 'person', competition: 'match' },
+      });
+      const figures = fold({
+        collectors: [kills],
+        definitions,
+        events: [
+          event({ sequence: 1, definitionCode: 'kill', side: 'en-atlas', personId: 'pe-1' }),
+        ],
+      });
+
+      expect(figures).toEqual([
+        expect.objectContaining({ collectorCode: 'kills', actorId: 'pe-1', value: 1 }),
+      ]);
+    });
+
+    it('extracts the actor from a payload field, for a victim-scoped collector', () => {
+      const deaths = collector({
+        code: 'deaths',
+        source: {
+          kind: 'event',
+          definitionCodes: ['kill'],
+          actorSource: { payloadField: 'victimId' },
+        },
+        granularity: { actor: 'person', competition: 'match' },
+      });
+      const figures = fold({
+        collectors: [deaths],
+        definitions,
+        events: [
+          event({
+            sequence: 1,
+            definitionCode: 'kill',
+            side: 'en-atlas',
+            personId: 'pe-1',
+            payload: { victimId: 'pe-9' },
+          }),
+        ],
+      });
+
+      expect(figures).toEqual([
+        expect.objectContaining({ collectorCode: 'deaths', actorId: 'pe-9', value: 1 }),
+      ]);
+    });
+
+    it('credits every other side for every-other-side, full delta each', () => {
+      const teamKills = collector({
+        code: 'opponent-kills-conceded',
+        source: { kind: 'event', definitionCodes: ['kill'], actorSource: 'every-other-side' },
+        granularity: { actor: 'team', competition: 'match' },
+      });
+      const figures = fold({
+        collectors: [teamKills],
+        definitions,
+        events: [
+          event({ sequence: 1, definitionCode: 'kill', side: 'en-atlas', personId: 'pe-1' }),
+        ],
+        actorOf: threeSideActorOf,
+        entrantIds: ['en-atlas', 'en-boca', 'en-river'],
+      });
+
+      expect(figures.map((f) => f.actorId).sort()).toEqual(['tm-boca', 'tm-river']);
+      expect(figures.every((f) => f.value === 1)).toBe(true);
+    });
+  });
+
+  describe('goals-against, against the real football descriptor', () => {
+    it('credits the conceding side, not just an own goal, so gd = gf - ga is correct for a normal goal', () => {
+      const goal = footballDescriptor().eventDefinitions.find((d) => d.code === 'goal');
+      if (!goal) throw new Error('football descriptor no longer declares a "goal" event');
+
+      const goalsFor = collector({
+        code: 'goals-for',
+        source: { kind: 'statistic', statisticCode: 'goals-for' },
+        granularity: { actor: 'team', competition: 'match' },
+      });
+      const goalsAgainst = collector({
+        code: 'goals-against',
+        source: { kind: 'statistic', statisticCode: 'goals-against' },
+        granularity: { actor: 'team', competition: 'match' },
+      });
+
+      const figures = fold({
+        collectors: [goalsFor, goalsAgainst],
+        definitions: [goal],
+        events: [
+          event({ sequence: 1, definitionCode: 'goal', side: 'en-atlas', personId: 'pe-1' }),
+        ],
+      });
+
+      expect(figures).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ collectorCode: 'goals-for', actorId: 'tm-atlas', value: 1 }),
+          expect.objectContaining({ collectorCode: 'goals-against', actorId: 'tm-boca', value: 1 }),
+        ]),
+      );
+    });
   });
 });

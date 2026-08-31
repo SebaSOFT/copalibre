@@ -12,7 +12,7 @@ import { err, ok, type Result } from '../result.js';
 /**
  * A recorded match event is a timestamped domain fact. The event log is the
  * source input for calculation and later audit — append-only, never edited in
- * place (corrections are a supersession workflow, phase 0008).
+ * place (corrections are a supersession workflow).
  */
 export interface RecordedEvent {
   readonly eventId: string;
@@ -26,7 +26,7 @@ export interface RecordedEvent {
    * The entrant this event belongs to, named the way `OutcomeSide` names one.
    *
    * It was `'home' | 'away'` until this correction, which is the positional
-   * fiction 0009 removed from results and 0013 refused to reintroduce in the
+   * fiction removed from results and not reintroduced in the
    * hook context, where being at home is a property *of a side*. Two slots
    * cannot say which of an eight-lane heat's entrants a card belongs to, and a
    * discipline where nobody is at home had to pick one anyway.
@@ -38,6 +38,13 @@ export interface RecordedEvent {
   /** The person, when the discipline requires one. Always inside `side`. */
   readonly personId?: string;
   readonly payload: Readonly<Record<string, unknown>>;
+  /**
+   * Optional free-text operator note, independent of the discipline
+   * and its `payloadSchema` — available on any event, any discipline.
+   */
+  readonly notes?: string;
+  /** The active segment's running clock at the moment this event was recorded, when the segment is timed. */
+  readonly segmentElapsedSeconds?: number;
 }
 
 export interface RecordEventInput {
@@ -50,6 +57,8 @@ export interface RecordEventInput {
   readonly side?: string;
   readonly personId?: string;
   readonly payload?: Readonly<Record<string, unknown>>;
+  /** Optional free-text operator note, available regardless of discipline. */
+  readonly notes?: string;
   /**
    * The entrants contesting this match. When given, a recorded side must be one
    * of them — an event attributed to an entrant that is not playing is a
@@ -57,6 +66,8 @@ export interface RecordEventInput {
    * becomes a fact.
    */
   readonly entrantIds?: readonly string[];
+  /** The active segment's running clock at the moment this event is recorded, when the segment is timed. */
+  readonly segmentElapsedSeconds?: number;
 }
 
 export class EventLog {
@@ -105,6 +116,8 @@ export class EventLog {
       side: input.side,
       personId: input.personId,
       payload: Object.freeze({ ...payload }),
+      notes: input.notes,
+      segmentElapsedSeconds: input.segmentElapsedSeconds,
     });
     this.events.push(event);
     return ok(event);

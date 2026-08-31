@@ -1,5 +1,5 @@
 /**
- * Canonical URL construction (0020).
+ * Canonical URL construction.
  *
  * Every surface derives from one input by prefix substitution, so the public
  * page, the control console, the TV overlay and the SSE stream for the same
@@ -77,7 +77,9 @@ export function publicPath(input: RouteInput): string {
   validateRouteInput(input);
 
   const segments = [input.organizationAlias];
-  if (input.tournamentAlias !== undefined) segments.push('tournaments', input.tournamentAlias);
+  if (input.tournamentAlias !== undefined) {
+    segments.push('tournaments', input.tournamentAlias);
+  }
   if (input.stageNumber !== undefined) segments.push('stages', String(input.stageNumber));
   if (input.roundNumber !== undefined) segments.push('rounds', String(input.roundNumber));
   if (input.matchNumber !== undefined) segments.push('matches', String(input.matchNumber));
@@ -115,7 +117,7 @@ export function publicStreamPath(input: RouteInput): string {
 }
 
 /**
- * The `/tv/**` SSE endpoint (0031) — same derivation as `publicStreamPath`,
+ * The `/tv/**` SSE endpoint — same derivation as `publicStreamPath`,
  * so the kiosk page and the stream it opens cannot name different tournaments.
  */
 export function tvStreamPath(input: RouteInput): string {

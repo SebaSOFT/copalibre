@@ -4,7 +4,22 @@ set -eu
 # The CLI is deliberately distributed with the source/release checkout. A
 # release archive starts from no installed dependencies, so install before
 # compiling the workspace references it executes.
+#
+# Every subcommand's actual working directory stays whatever the caller
+# invoked this script from — docs/self-hosting.md documents `cd`-ing into an
+# empty directory first and running this script from there (e.g.
+# `cd my-league && /path/to/checkout/copalibre init`), so a fresh install
+# writes into that directory, not the checkout. Only the yarn/build tooling
+# itself needs to run pinned to this script's own directory, since that's
+# where the workspace actually lives.
+CDPATH=''
+SCRIPT_DIR=$(cd -- "$(dirname -- "$0")" && pwd)
+
 corepack enable
-corepack yarn install --immutable
-corepack yarn typecheck
-exec node --env-file-if-exists=.env apps/copalibre/dist/main.js "$@"
+(
+  cd "$SCRIPT_DIR" &&
+    corepack yarn install --immutable &&
+    corepack yarn typecheck &&
+    node apps/copalibre/scripts/build-assets.mjs
+)
+exec node --env-file-if-exists=.env "$SCRIPT_DIR/apps/copalibre/dist/main.js" "$@"

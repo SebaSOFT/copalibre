@@ -145,7 +145,7 @@ describe('placement stages (integration)', () => {
     // Each lobby is recorded N-sided with placements; the engine turns those
     // into points the table can add. Frags vary per entrant so the field is
     // genuinely separable — two symmetric lobbies would tie by construction,
-    // and 0010 refuses to break a tie that spans the cut line.
+    // and the stage transition refuses to break a tie that spans the cut line.
     const fragsOf = new Map(entrants.map((entrant, index) => [entrant.entrantId, 40 - index]));
     const outcomes: RecordedOutcome[] = [];
     for (const match of graph.value.matches) {

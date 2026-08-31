@@ -1,7 +1,7 @@
 import { homePath, publicPath, type RouteInput } from './paths.js';
 
 /**
- * What a crawler is told about (0020).
+ * What a crawler is told about.
  *
  * The sitemap is built from the *builder*, not from a list somebody maintains,
  * so a route that cannot be constructed cannot be advertised. `/control` and

@@ -10,7 +10,9 @@ import { CompetitionRepository } from './competition-repository.js';
 import { PersonRepository } from './person-repository.js';
 import { OrganizationRepository } from './organization-repository.js';
 import { EnrollmentRepository } from './enrollment-repository.js';
+import { ObjectMetadataRepository } from './object-metadata-repository.js';
 import { AliasRepository } from './alias-repository.js';
+import { ScheduleRepository } from './schedule-repository.js';
 import { TournamentRepository } from './tournament-repository.js';
 
 const AUDIT = { actor: 'user:organizer-1', authorizationContext: 'scope:tournament.write' };
@@ -384,7 +386,132 @@ describe('repositories (integration)', () => {
     });
   });
 
-  it('lists only aliases of teams registered as entrants in the given tournament (0065)', async () => {
+  it('resolves entrant abbreviations once, rejects duplicate officer changes, and lists unresolved entrants', async () => {
+    const disciplineDescriptor = descriptor();
+    const ids = await withTransaction(scratch.db, async (uow) => {
+      await tournaments.saveDescriptor(uow, disciplineDescriptor, { organizationId, ...AUDIT });
+      const tournament = await tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-abreviaturas',
+        name: 'Copa Abreviaturas',
+        descriptor: disciplineDescriptor,
+        ...AUDIT,
+      });
+      const otherTournament = await tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-abreviaturas-otra',
+        name: 'Copa Abreviaturas Otra',
+        descriptor: disciplineDescriptor,
+        ...AUDIT,
+      });
+      const people = await Promise.all(
+        ['Casa de Italia', 'Elección Explícita', 'Entrada Malformada', 'Club Órbita'].map(
+          async (displayName) =>
+            new PersonRepository(scratch.db).register(uow, {
+              organizationId,
+              displayName,
+              ...AUDIT,
+            }),
+        ),
+      );
+      const [casaDeItalia, explicitChoice, malformedEntry, clubOrbita] = people;
+      if (!casaDeItalia || !explicitChoice || !malformedEntry || !clubOrbita) {
+        throw new Error('Expected four participants');
+      }
+      const first = await participants.registerEntrant(uow, {
+        tournamentId: tournament.tournamentId,
+        entrantRef: { kind: 'person', personId: casaDeItalia.person.personId },
+        organizationId,
+        ...AUDIT,
+      });
+      const colliding = await participants.registerEntrant(uow, {
+        tournamentId: tournament.tournamentId,
+        entrantRef: { kind: 'person', personId: casaDeItalia.person.personId },
+        organizationId,
+        ...AUDIT,
+      });
+      const explicit = await participants.registerEntrant(uow, {
+        tournamentId: tournament.tournamentId,
+        entrantRef: { kind: 'person', personId: explicitChoice.person.personId },
+        abbreviation: 'CUSTOM',
+        organizationId,
+        ...AUDIT,
+      });
+      const malformed = await participants.registerEntrant(uow, {
+        tournamentId: tournament.tournamentId,
+        entrantRef: { kind: 'person', personId: malformedEntry.person.personId },
+        abbreviation: 'not valid',
+        organizationId,
+        ...AUDIT,
+      });
+      const collidingInput = await participants.registerEntrant(uow, {
+        tournamentId: tournament.tournamentId,
+        entrantRef: { kind: 'person', personId: clubOrbita.person.personId },
+        abbreviation: 'CI',
+        organizationId,
+        ...AUDIT,
+      });
+      const other = await participants.registerEntrant(uow, {
+        tournamentId: otherTournament.tournamentId,
+        entrantRef: { kind: 'person', personId: clubOrbita.person.personId },
+        organizationId,
+        ...AUDIT,
+      });
+      return {
+        tournamentId: tournament.tournamentId,
+        first: first.entrantId,
+        colliding: colliding.entrantId,
+        explicit: explicit.entrantId,
+        malformed: malformed.entrantId,
+        collidingInput: collidingInput.entrantId,
+        other: other.entrantId,
+      };
+    });
+
+    expect((await participants.findEntrant(ids.first))?.abbreviation).toBe('CI');
+    expect((await participants.findEntrant(ids.colliding))?.abbreviation).toBeUndefined();
+    expect((await participants.findEntrant(ids.explicit))?.abbreviation).toBe('CUSTOM');
+    expect((await participants.findEntrant(ids.malformed))?.abbreviation).toBe('EM');
+    expect((await participants.findEntrant(ids.collidingInput))?.abbreviation).toBe('CO');
+    expect((await participants.findEntrant(ids.other))?.abbreviation).toBe('CO');
+    expect(
+      (await participants.listEntrantsNeedingAbbreviation(ids.tournamentId)).map(
+        (entrant) => entrant.entrantId,
+      ),
+    ).toEqual([ids.colliding]);
+    await expect(
+      withTransaction(scratch.db, (uow) =>
+        participants.setEntrantAbbreviation(uow, {
+          entrantId: ids.colliding,
+          abbreviation: 'CI',
+          organizationId,
+          ...AUDIT,
+        }),
+      ),
+    ).rejects.toThrow('already used by another entrant');
+    await withTransaction(scratch.db, (uow) =>
+      participants.setEntrantAbbreviation(uow, {
+        entrantId: ids.colliding,
+        abbreviation: 'C I 2',
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+
+    expect(
+      (await participants.listEntrantsNeedingAbbreviation(ids.tournamentId)).map(
+        (entrant) => entrant.entrantId,
+      ),
+    ).toEqual([]);
+    const audit = await new AuditReader(scratch.db).historyFor('entrant', ids.colliding);
+    expect(audit.at(-1)).toMatchObject({
+      action: 'entrant.abbreviation-set',
+      previousState: { abbreviation: null },
+      resultingState: { abbreviation: 'C I 2' },
+    });
+  });
+
+  it('lists only aliases of teams registered as entrants in the given tournament', async () => {
     const disciplineDescriptor = descriptor();
     const { tournamentId, otherTournamentId, registeredAlias, unregisteredAlias } =
       await withTransaction(scratch.db, async (uow) => {
@@ -554,9 +681,9 @@ describe('repositories (integration)', () => {
     expect(audit.map((entry) => entry.action)).toContain('fixtures.regenerated');
   });
 
-  it('refuses to replace fixtures once a match has been created against one of them', async () => {
+  it('replaces fixtures when matches are scheduled, and refuses once a match has started', async () => {
     const disciplineDescriptor = descriptor();
-    const { stageId, fixtureId, entrantId } = await withTransaction(scratch.db, async (uow) => {
+    const { stageId, entrantId } = await withTransaction(scratch.db, async (uow) => {
       await tournaments.saveDescriptor(uow, disciplineDescriptor, { organizationId, ...AUDIT });
       const tournament = await tournaments.create(uow, {
         organizationId,
@@ -591,15 +718,48 @@ describe('repositories (integration)', () => {
         ...AUDIT,
       });
       if (!fixture) throw new Error('fixture was not created');
-      await competition.createMatch(uow, {
-        fixtureId: fixture.fixtureId,
-        number: 1,
-        organizationId,
-        ...AUDIT,
-      });
-      return { stageId: stage.stageId, fixtureId: fixture.fixtureId, entrantId: entrant.entrantId };
+      return { stageId: stage.stageId, entrantId: entrant.entrantId };
     });
 
+    // 1. Matches are materialized and scheduled; replacing fixtures succeeds
+    const replaced = await withTransaction(scratch.db, (uow) =>
+      competition.replaceFixtures(uow, {
+        stageId,
+        fixtures: [{ round: 1, homeEntrantId: entrantId }],
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+    expect(replaced).toHaveLength(1);
+    const newFixture = replaced[0];
+    if (!newFixture) throw new Error('no fixture replaced');
+    const newFixtureId = newFixture.fixtureId;
+
+    // Verify exactly one match was created for the new fixture
+    const matchesAfterReplace = await scratch.db
+      .selectFrom('matches')
+      .selectAll()
+      .where('fixture_id', '=', newFixtureId)
+      .execute();
+    expect(matchesAfterReplace).toHaveLength(1);
+    const firstMatch = matchesAfterReplace[0];
+    if (!firstMatch) throw new Error('no match created');
+    expect(firstMatch.status).toBe('scheduled');
+
+    // 2. Start the match (status -> in-progress)
+    const matchId = firstMatch.match_id;
+    await withTransaction(scratch.db, (uow) =>
+      competition.applyCommand(uow, {
+        matchId,
+        command: 'start',
+        status: 'in-progress',
+        grantedBy: 'official:1',
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+
+    // 3. Now replacing fixtures must be refused
     await expect(
       withTransaction(scratch.db, (uow) =>
         competition.replaceFixtures(uow, {
@@ -611,13 +771,73 @@ describe('repositories (integration)', () => {
       ),
     ).rejects.toBeInstanceOf(InvariantViolationError);
 
-    // Nothing was touched: the original fixture is still exactly there.
+    // Nothing was touched: the fixture is still there.
     const remaining = await scratch.db
       .selectFrom('fixtures')
       .selectAll()
       .where('stage_id', '=', stageId)
       .execute();
-    expect(remaining.map((row) => row.fixture_id)).toEqual([fixtureId]);
+    expect(remaining.map((row) => row.fixture_id)).toEqual([newFixtureId]);
+  });
+
+  it('createMatch is idempotent and createFixtures materializes match 1', async () => {
+    const disciplineDescriptor = descriptor();
+    const { fixtureId } = await withTransaction(scratch.db, async (uow) => {
+      await tournaments.saveDescriptor(uow, disciplineDescriptor, { organizationId, ...AUDIT });
+      const tournament = await tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-idempotent-match',
+        name: 'Copa Idempotent Match',
+        descriptor: disciplineDescriptor,
+        ...AUDIT,
+      });
+      const stage = await competition.createStageInTournament(uow, {
+        tournamentId: tournament.tournamentId,
+        number: 1,
+        name: 'Stage 1',
+        format: 'round-robin',
+        organizationId,
+        ...AUDIT,
+      });
+      const [fixture] = await competition.createFixtures(uow, {
+        stageId: stage.stageId,
+        fixtures: [{ round: 1 }],
+        organizationId,
+        ...AUDIT,
+      });
+      if (!fixture) throw new Error('fixture was not created');
+      return { fixtureId: fixture.fixtureId };
+    });
+
+    // createFixtures already materialized match 1
+    const initialMatches = await scratch.db
+      .selectFrom('matches')
+      .selectAll()
+      .where('fixture_id', '=', fixtureId)
+      .execute();
+    expect(initialMatches).toHaveLength(1);
+    const firstInitial = initialMatches[0];
+    if (!firstInitial) throw new Error('no initial match');
+    expect(firstInitial.number).toBe(1);
+    const initialMatchId = firstInitial.match_id;
+
+    // createMatch for match 1 returns existing match and does NOT insert or audit again
+    const secondCall = await withTransaction(scratch.db, (uow) =>
+      competition.createMatch(uow, {
+        fixtureId,
+        number: 1,
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+    expect(secondCall.matchId).toBe(initialMatchId);
+
+    const matchesAfter = await scratch.db
+      .selectFrom('matches')
+      .selectAll()
+      .where('fixture_id', '=', fixtureId)
+      .execute();
+    expect(matchesAfter).toHaveLength(1);
   });
 
   it('refuses to replace fixtures with an empty set', async () => {
@@ -631,6 +851,271 @@ describe('repositories (integration)', () => {
         }),
       ),
     ).rejects.toBeInstanceOf(InvariantViolationError);
+  });
+
+  it('persists explicit zones/groups and reuses a stage implicit scope', async () => {
+    const descriptorDocument = descriptor();
+    const result = await withTransaction(scratch.db, async (uow) => {
+      await tournaments.saveDescriptor(uow, descriptorDocument, { organizationId, ...AUDIT });
+      const tournament = await tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-zonas',
+        name: 'Copa Zonas',
+        descriptor: descriptorDocument,
+        ...AUDIT,
+      });
+      const explicitStage = await competition.createStageInTournament(uow, {
+        tournamentId: tournament.tournamentId,
+        number: 1,
+        name: 'Fase explícita',
+        format: 'round-robin',
+        organizationId,
+        ...AUDIT,
+      });
+      const zone = await competition.createZone(uow, {
+        stageId: explicitStage.stageId,
+        number: 1,
+        name: 'Zona Norte',
+        organizationId,
+        ...AUDIT,
+      });
+      const group = await competition.createGroup(uow, {
+        zoneId: zone.zoneId,
+        number: 1,
+        name: 'Grupo A',
+        organizationId,
+        ...AUDIT,
+      });
+      const implicitStage = await competition.createStageInTournament(uow, {
+        tournamentId: tournament.tournamentId,
+        number: 2,
+        name: 'Fase implícita',
+        format: 'round-robin',
+        organizationId,
+        ...AUDIT,
+      });
+      const first = await competition.createFixtures(uow, {
+        stageId: implicitStage.stageId,
+        fixtures: [{ round: 1 }],
+        organizationId,
+        ...AUDIT,
+      });
+      const second = await competition.createFixtures(uow, {
+        stageId: implicitStage.stageId,
+        fixtures: [{ round: 2 }],
+        organizationId,
+        ...AUDIT,
+      });
+      return { explicitStage, zone, group, first, second };
+    });
+
+    await expect(competition.listZonesOfStage(result.explicitStage.stageId)).resolves.toEqual([
+      result.zone,
+    ]);
+    await expect(competition.listGroupsOfZone(result.zone.zoneId)).resolves.toEqual([result.group]);
+    expect(result.first[0]?.zoneId).toBe(result.second[0]?.zoneId);
+    expect(result.first[0]?.groupId).toBe(result.second[0]?.groupId);
+  });
+
+  it('upserts a zone promotion plan and records its declared rule in the audit trail', async () => {
+    const descriptorDocument = descriptor();
+    const result = await withTransaction(scratch.db, async (uow) => {
+      await tournaments.saveDescriptor(uow, descriptorDocument, { organizationId, ...AUDIT });
+      const tournament = await tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-promocion',
+        name: 'Copa Promoción',
+        descriptor: descriptorDocument,
+        ...AUDIT,
+      });
+      const source = await competition.createStageInTournament(uow, {
+        tournamentId: tournament.tournamentId,
+        number: 1,
+        name: 'Grupos',
+        format: 'round-robin',
+        organizationId,
+        ...AUDIT,
+      });
+      const destination = await competition.createStageInTournament(uow, {
+        tournamentId: tournament.tournamentId,
+        number: 2,
+        name: 'Final',
+        format: 'single-elimination',
+        organizationId,
+        ...AUDIT,
+      });
+      const zone = await competition.createZone(uow, {
+        stageId: source.stageId,
+        number: 1,
+        name: 'Zona Norte',
+        organizationId,
+        ...AUDIT,
+      });
+      const first = await competition.createPromotionPlan(uow, {
+        zoneId: zone.zoneId,
+        nextStageId: destination.stageId,
+        plan: { perGroupAdvance: 2, combination: { mode: 'group-order' } },
+        organizationId,
+        ...AUDIT,
+      });
+      const replacement = await competition.createPromotionPlan(uow, {
+        zoneId: zone.zoneId,
+        nextStageId: destination.stageId,
+        plan: { perGroupAdvance: 1, combination: { mode: 'group-order' } },
+        organizationId,
+        ...AUDIT,
+      });
+      return { zone, first, replacement };
+    });
+
+    expect(result.replacement.promotionPlanId).toBe(result.first.promotionPlanId);
+    await expect(competition.findPromotionPlan(result.zone.zoneId)).resolves.toMatchObject({
+      promotionPlanId: result.first.promotionPlanId,
+      zoneId: result.zone.zoneId,
+      plan: { perGroupAdvance: 1, combination: { mode: 'group-order' } },
+    });
+    const audits = await scratch.db
+      .selectFrom('audit_log')
+      .select('action')
+      .where('entity_id', '=', result.zone.zoneId)
+      .where('action', '=', 'promotion-plan.saved')
+      .execute();
+    expect(audits).toHaveLength(2);
+  });
+
+  it('records automatic draw metadata and leaves manual placement metadata empty', async () => {
+    const descriptorDocument = descriptor();
+    const result = await withTransaction(scratch.db, async (uow) => {
+      await tournaments.saveDescriptor(uow, descriptorDocument, { organizationId, ...AUDIT });
+      const tournament = await tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-sorteo-zonas',
+        name: 'Copa Sorteo Zonas',
+        descriptor: descriptorDocument,
+        ...AUDIT,
+      });
+      const entrantIds: string[] = [];
+      for (const name of ['Andes', 'Caucete', 'Pocito', 'Rawson']) {
+        const team = await participants.createTeam(uow, { organizationId, name, ...AUDIT });
+        const entrant = await participants.registerEntrant(uow, {
+          tournamentId: tournament.tournamentId,
+          entrantRef: { kind: 'team', teamId: team.teamId },
+          organizationId,
+          ...AUDIT,
+        });
+        entrantIds.push(entrant.entrantId);
+      }
+      const stage = await competition.createStageInTournament(uow, {
+        tournamentId: tournament.tournamentId,
+        number: 1,
+        name: 'Fase de sorteo',
+        format: 'round-robin',
+        organizationId,
+        ...AUDIT,
+      });
+      const constraints = [
+        {
+          kind: 'separation' as const,
+          hook: 'draw.assign-group' as const,
+          attribute: 'region',
+          scope: 'group' as const,
+        },
+      ];
+      const zones = await competition.assignZones(uow, {
+        stageId: stage.stageId,
+        assignment: {
+          groups: {
+            [entrantIds[0] as string]: 1,
+            [entrantIds[1] as string]: 2,
+            [entrantIds[2] as string]: 1,
+            [entrantIds[3] as string]: 2,
+          },
+        },
+        constraints,
+        zoneCount: 2,
+        seed: 91,
+        organizationId,
+        ...AUDIT,
+      });
+      const automaticGroups = await competition.assignGroups(uow, {
+        zoneId: zones.entities[0]?.zoneId as string,
+        assignment: {
+          groups: {
+            [entrantIds[0] as string]: 1,
+            [entrantIds[2] as string]: 2,
+          },
+        },
+        constraints,
+        groupCount: 2,
+        seed: 92,
+        organizationId,
+        ...AUDIT,
+      });
+      const manualGroups = await competition.assignGroupsManually(uow, {
+        zoneId: zones.entities[1]?.zoneId as string,
+        assignment: {
+          groups: {
+            [entrantIds[1] as string]: 1,
+            [entrantIds[3] as string]: 2,
+          },
+        },
+        groupCount: 2,
+        organizationId,
+        ...AUDIT,
+      });
+      return { zones, automaticGroups, manualGroups, entrantIds };
+    });
+
+    const zoneRows = await scratch.db
+      .selectFrom('zones')
+      .select(['draw_seed', 'draw_constraints'])
+      .where(
+        'zone_id',
+        'in',
+        result.zones.entities.map((zone) => zone.zoneId),
+      )
+      .orderBy('number')
+      .execute();
+    const automaticRows = await scratch.db
+      .selectFrom('groups')
+      .select(['draw_seed', 'draw_constraints'])
+      .where(
+        'group_id',
+        'in',
+        result.automaticGroups.entities.map((group) => group.groupId),
+      )
+      .execute();
+    const manualRows = await scratch.db
+      .selectFrom('groups')
+      .select(['draw_seed', 'draw_constraints'])
+      .where(
+        'group_id',
+        'in',
+        result.manualGroups.entities.map((group) => group.groupId),
+      )
+      .execute();
+
+    expect(zoneRows).toEqual(
+      expect.arrayContaining([expect.objectContaining({ draw_constraints: expect.any(Array) })]),
+    );
+    expect(zoneRows.map((row) => Number(row.draw_seed))).toEqual([91, 91]);
+    expect(automaticRows).toEqual(
+      expect.arrayContaining([expect.objectContaining({ draw_constraints: expect.any(Array) })]),
+    );
+    expect(automaticRows.map((row) => Number(row.draw_seed))).toEqual([92, 92]);
+    expect(manualRows).toEqual([
+      { draw_seed: null, draw_constraints: null },
+      { draw_seed: null, draw_constraints: null },
+    ]);
+    await expect(
+      competition.listEntrantIdsOfZone(result.zones.entities[0]?.zoneId as string),
+    ).resolves.toEqual([result.entrantIds[0], result.entrantIds[2]].sort());
+    await expect(
+      competition.listEntrantIdsOfGroup(result.automaticGroups.entities[0]?.groupId as string),
+    ).resolves.toEqual([result.entrantIds[0]]);
+    await expect(
+      competition.listEntrantIdsOfGroup(result.manualGroups.entities[1]?.groupId as string),
+    ).resolves.toEqual([result.entrantIds[3]]);
   });
 });
 
@@ -907,6 +1392,43 @@ describe('short labels (integration)', () => {
     // The override survives storage, which is what makes two sides of one club
     // distinguishable on a board with room for five characters.
     expect((await participants.findTeam(team.teamId))?.abbreviation).toBe('TLL A');
+  });
+
+  it('round-trips a club emblem reference', async () => {
+    const participants = new EnrollmentRepository(scratch.db);
+
+    const club = await withTransaction(scratch.db, (uow) =>
+      participants.createClub(uow, {
+        organizationId,
+        name: 'Deportivo Godoy Cruz',
+        ...AUDIT_CONTEXT,
+      }),
+    );
+    expect(club.emblemObjectId).toBeUndefined();
+
+    const objectMetadata = await withTransaction(scratch.db, (uow) =>
+      new ObjectMetadataRepository(scratch.db).save(uow, {
+        organizationId,
+        profile: 'filesystem',
+        storageKey: `${organizationId}/emblem.svg`,
+        contentType: 'image/svg+xml',
+        sizeBytes: 512,
+        uploadedBy: AUDIT_CONTEXT.actor,
+      }),
+    );
+
+    const updated = await withTransaction(scratch.db, (uow) =>
+      participants.updateClub(uow, {
+        clubId: club.clubId,
+        organizationId,
+        emblemObjectId: objectMetadata.objectId,
+        ...AUDIT_CONTEXT,
+      }),
+    );
+    expect(updated.emblemObjectId).toBe(objectMetadata.objectId);
+    expect((await participants.findClub(club.clubId))?.emblemObjectId).toBe(
+      objectMetadata.objectId,
+    );
   });
 
   it('suggests an alias from the name when none is given', async () => {
@@ -1200,6 +1722,7 @@ describe('public overview projection (integration)', () => {
       const teamEntrant = await participants.registerEntrant(uow, {
         tournamentId: tournament.tournamentId,
         entrantRef: { kind: 'team', teamId: team.teamId },
+        abbreviation: 'TOUR',
         organizationId,
         ...AUDIT,
       });
@@ -1226,9 +1749,9 @@ describe('public overview projection (integration)', () => {
 
     expect(names.get(teamEntrantId)).toEqual({
       name: 'Talleres de Mendoza',
-      abbreviation: 'TLL A',
+      abbreviation: 'TOUR',
     });
-    expect(names.get(personEntrantId)).toEqual({ name: 'Ana Pérez' });
+    expect(names.get(personEntrantId)).toEqual({ name: 'Ana Pérez', abbreviation: 'AP' });
     expect(names.has(unknownEntrantId)).toBe(false);
   });
 
@@ -1285,7 +1808,6 @@ describe('public overview projection (integration)', () => {
             round: 1,
             homeEntrantId: homeEntrant.entrantId,
             awayEntrantId: awayEntrant.entrantId,
-            scheduledAt: '2026-08-01T20:00:00.000Z',
           },
         ],
         organizationId,
@@ -1298,6 +1820,34 @@ describe('public overview projection (integration)', () => {
         organizationId,
         ...AUDIT,
       });
+
+      const schedulesRepo = new ScheduleRepository(scratch.db);
+      const venue = await schedulesRepo.createVenue(uow, {
+        organizationId,
+        alias: 'court-overview',
+        name: 'Cancha Overview',
+        concurrentCapacity: 1,
+        ...AUDIT,
+      });
+      const sched = await schedulesRepo.createSchedule(uow, {
+        organizationId,
+        name: 'Horario Overview',
+        startsAt: Date.parse('2026-08-01T20:00:00.000Z'),
+        endsAt: Date.parse('2026-08-01T22:00:00.000Z'),
+        slotMinutes: 90,
+        turnaroundMinutes: 15,
+        venueIds: [venue.venueId],
+        ...AUDIT,
+      });
+      const slots = await schedulesRepo.listScheduleSlots(sched.scheduleId, uow);
+      const firstSlot = slots[0];
+      if (!firstSlot) throw new Error('no slot created');
+      await schedulesRepo.publishSchedule(uow, {
+        organizationId,
+        assignments: [{ matchId: match.matchId, slotId: firstSlot.slotId }],
+        ...AUDIT,
+      });
+
       await competition.recordResult(uow, {
         matchId: match.matchId,
         result: {
@@ -1343,5 +1893,108 @@ describe('public overview projection (integration)', () => {
     });
     expect(scheduled).toMatchObject({ stageNumber: 2, round: 1, status: 'scheduled' });
     expect(scheduled?.scheduledAt).toBeUndefined();
+  });
+
+  it('creates multi-match fixtures, supports replaceFixtures with matchCount, and anulls surplus matches', async () => {
+    const competition = new CompetitionRepository(scratch.db);
+    const tournaments = new TournamentRepository(scratch.db);
+
+    const tournament = await withTransaction(scratch.db, async (uow) => {
+      const d = descriptor();
+      await tournaments.saveDescriptor(uow, d, { organizationId, ...AUDIT });
+      return tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-multi-match-repo',
+        name: 'Copa Multi-Match Repo',
+        descriptor: d,
+        ...AUDIT,
+      });
+    });
+
+    const stage = await withTransaction(scratch.db, (uow) =>
+      competition.createStageInTournament(uow, {
+        tournamentId: tournament.tournamentId,
+        number: 1,
+        name: 'Knockout',
+        format: 'single-elimination',
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+
+    // Create fixture with matchCount: 3
+    const fixtures = await withTransaction(scratch.db, (uow) =>
+      competition.createFixtures(uow, {
+        stageId: stage.stageId,
+        matchCount: 3,
+        fixtures: [{ round: 1 }],
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+
+    const fixture = fixtures[0];
+    if (!fixture) throw new Error('no fixture created');
+    const matches = await scratch.db
+      .selectFrom('matches')
+      .selectAll()
+      .where('fixture_id', '=', fixture.fixtureId)
+      .orderBy('number')
+      .execute();
+
+    expect(matches).toHaveLength(3);
+    expect(matches.map((m) => m.number)).toEqual([1, 2, 3]);
+    expect(matches.every((m) => m.status === 'scheduled')).toBe(true);
+
+    // Replace fixtures with matchCount: 5
+    const replacedFixtures = await withTransaction(scratch.db, (uow) =>
+      competition.replaceFixtures(uow, {
+        stageId: stage.stageId,
+        matchCount: 5,
+        fixtures: [{ round: 1 }],
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+
+    const replacedFixture = replacedFixtures[0];
+    if (!replacedFixture) throw new Error('no replaced fixture');
+    const replacedMatches = await scratch.db
+      .selectFrom('matches')
+      .selectAll()
+      .where('fixture_id', '=', replacedFixture.fixtureId)
+      .orderBy('number')
+      .execute();
+
+    expect(replacedMatches).toHaveLength(5);
+    expect(replacedMatches.map((m) => m.number)).toEqual([1, 2, 3, 4, 5]);
+
+    // Anull surplus matches 4 and 5
+    const anulled = await withTransaction(scratch.db, (uow) =>
+      competition.anullSurplusMatches(uow, {
+        fixtureId: replacedFixture.fixtureId,
+        anulledMatchNumbers: [4, 5],
+        organizationId,
+        ...AUDIT,
+      }),
+    );
+
+    expect(anulled).toHaveLength(2);
+    expect(anulled.map((m) => m.status)).toEqual(['not-required', 'not-required']);
+
+    const finalMatches = await scratch.db
+      .selectFrom('matches')
+      .selectAll()
+      .where('fixture_id', '=', replacedFixture.fixtureId)
+      .orderBy('number')
+      .execute();
+
+    expect(finalMatches.map((m) => m.status)).toEqual([
+      'scheduled',
+      'scheduled',
+      'scheduled',
+      'not-required',
+      'not-required',
+    ]);
   });
 });

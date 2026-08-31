@@ -1,0 +1,720 @@
+import { createServer, type Server } from 'node:http';
+import { expect, test, type Page } from '@playwright/test';
+import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
+
+/**
+ * A5 (Control Web) and B2 (public tournament page) rendering declared table
+ * layouts dynamically — the discipline's own columns (GF/GC/Dif), a
+ * composite fraction cell ("4/5"), switching between declared layouts, and
+ * exporting the active one as CSV.
+ */
+
+const ORGANIZATION = 'liga-mendocina';
+const TOURNAMENT_ALIAS = 'apertura-2026';
+const TOURNAMENT = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
+const STAGE = `${TOURNAMENT}/stages/1`;
+const RESPONSIVE_WIDTHS = [375, 768, 1024, 1440, 188] as const;
+
+/** A real, tiny, decodable PNG (1×1) — for the framed player-photo GET below. */
+const ONE_PIXEL_PNG_BASE64 =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+
+const layoutsFixture = {
+  layouts: [
+    {
+      code: 'group-standings-default',
+      target: 'group-phase',
+      label: 'Group Standings',
+      entityGranularity: 'team',
+    },
+    {
+      code: 'top-scorers',
+      target: 'player-ranking',
+      label: 'Top Scorers',
+      entityGranularity: 'person',
+    },
+  ],
+};
+
+const groupStandingsFixture = {
+  layoutCode: 'group-standings-default',
+  target: 'group-phase',
+  label: 'Group Standings',
+  columns: [
+    { code: 'name', header: 'Team', format: 'text' },
+    { code: 'gf', header: 'GF', format: 'number' },
+    { code: 'ga', header: 'GA', shortHeader: 'GC', format: 'number' },
+    { code: 'gd', header: 'GD', shortHeader: 'Dif', format: 'number' },
+  ],
+  defaultSort: [{ columnCode: 'gd', direction: 'desc' }],
+  rows: [
+    {
+      actorId: 'Talleres',
+      entrantId: 'Talleres',
+      rank: 1,
+      sharedRank: false,
+      cells: {
+        name: { formatted: 'Talleres' },
+        gf: { raw: 12, formatted: '12' },
+        ga: { raw: 3, formatted: '3' },
+        gd: { raw: 9, formatted: '9' },
+      },
+    },
+    {
+      actorId: 'Independiente',
+      entrantId: 'Independiente',
+      rank: 2,
+      sharedRank: false,
+      cells: {
+        name: { formatted: 'Independiente' },
+        gf: { raw: 6, formatted: '6' },
+        ga: { raw: 5, formatted: '5' },
+        gd: { raw: 1, formatted: '1' },
+      },
+    },
+  ],
+  projectionVersion: 3,
+};
+
+const topScorersFixture = {
+  layoutCode: 'top-scorers',
+  target: 'player-ranking',
+  label: 'Top Scorers',
+  columns: [
+    { code: 'player', header: 'Player', format: 'text' },
+    { code: 'goals', header: 'Goals', format: 'number' },
+    { code: 'cards', header: 'Y/R Cards', format: 'fraction' },
+  ],
+  defaultSort: [{ columnCode: 'goals', direction: 'desc' }],
+  rows: [
+    {
+      actorId: 'p-1',
+      entityId: 'p-1',
+      rank: 1,
+      sharedRank: false,
+      cells: {
+        player: { formatted: 'Goleador Uno' },
+        goals: { raw: 9, formatted: '9' },
+        cards: { formatted: '4/5', numerator: 4, denominator: 5 },
+      },
+    },
+    {
+      actorId: 'p-2',
+      entityId: 'p-2',
+      rank: 2,
+      sharedRank: false,
+      cells: {
+        player: { formatted: 'Goleador Dos' },
+        goals: { raw: 5, formatted: '5' },
+        cards: { formatted: '1/0', numerator: 1, denominator: 0 },
+      },
+    },
+  ],
+  projectionVersion: 3,
+};
+
+// Same table, filtered to club-independiente: p-2 keeps rank 2, not
+// renumbered to 1 by the whole-table-rank rule.
+const topScorersFilteredToIndependiente = {
+  ...topScorersFixture,
+  rows: [topScorersFixture.rows[1]],
+};
+
+const playerProfileFixture = {
+  personId: 'p-1',
+  displayName: 'Goleador Uno',
+  nationality: 'AR',
+  age: 28,
+  photoObjectId: 'photo-1',
+  competitionHistory: [
+    {
+      tournamentId: 't-1',
+      tournamentName: 'Apertura 2026',
+      tournamentAlias: TOURNAMENT_ALIAS,
+      teamId: 'tm-1',
+      teamName: 'Talleres',
+      role: 'player',
+      entrantAbbreviation: 'TAL',
+      disciplineDescriptorId: 'football',
+      disciplineDescriptorVersion: '1.2.0',
+    },
+  ],
+  careerStatistics: [
+    {
+      disciplineDescriptorId: 'football',
+      disciplineName: 'Football',
+      statistics: [{ code: 'career-goals', label: 'Career goals', value: 9 }],
+    },
+  ],
+};
+
+// A person with no recorded roster history: both lists come back
+// empty, and the surface must state that absence rather than render
+// nothing or a zero.
+const playerProfileFixtureNoStats = {
+  personId: 'p-2',
+  displayName: 'Goleador Dos',
+  nationality: 'AR',
+  age: 24,
+  competitionHistory: [],
+  careerStatistics: [],
+};
+
+const liveFixture = {
+  matches: [
+    {
+      matchId: 'm-1',
+      stageNumber: 1,
+      matchNumber: 1,
+      state: 'live',
+      projectionVersion: 1,
+      sides: [
+        { entrantId: 'Talleres', name: 'Talleres', abbreviation: 'TAL', score: 2 },
+        { entrantId: 'Independiente', name: 'Independiente', abbreviation: 'IND', score: 1 },
+      ],
+    },
+  ],
+};
+
+async function mockControlApi(page: Page): Promise<void> {
+  await page.addInitScript(
+    ({ tournament, stage, layouts, groupStandings, topScorers, tokenEndpoint }) => {
+      window.fetch = async (input) => {
+        const url = String(input);
+
+        if (url === tokenEndpoint) {
+          return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
+        }
+        if (url === `${tournament}/tables`) return Response.json(layouts);
+        if (url === `${stage}/tables/group-standings-default`) return Response.json(groupStandings);
+        if (url === `${tournament}/tables/top-scorers`) return Response.json(topScorers);
+        if (url === `${stage}/tables/group-standings-default/csv`) {
+          return new Response('name,gf,ga,gd\nTalleres,12,3,9\nIndependiente,6,5,1\n', {
+            headers: { 'content-type': 'text/csv; charset=utf-8' },
+          });
+        }
+        if (url === `${tournament}/tables/top-scorers/csv`) {
+          return new Response('player,goals,cards\nGoleador Uno,9,4/5\n', {
+            headers: { 'content-type': 'text/csv; charset=utf-8' },
+          });
+        }
+
+        return new Response('Not found', { status: 404 });
+      };
+    },
+    {
+      tournament: TOURNAMENT,
+      stage: STAGE,
+      layouts: layoutsFixture,
+      groupStandings: groupStandingsFixture,
+      topScorers: topScorersFixture,
+      tokenEndpoint: TOKEN_ENDPOINT,
+    },
+  );
+}
+
+test('A5: renders the discipline’s own GF/GC/Dif columns, switches to a fraction-cell layout, and exports CSV', async ({
+  page,
+}) => {
+  await mockControlApi(page);
+
+  const target = `/control/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/1/standings`;
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  // The discipline's own declared columns, not a hardcoded control-web list.
+  await expect(page.getByRole('button', { name: 'GF' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'GC' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Dif' })).toBeVisible();
+  // Table cells specifically — the distribution chart above repeats the
+  // same leader's name and value as its own bar label.
+  const table = page.locator('.cl-chamfer--control');
+  await expect(table.getByText('Talleres')).toBeVisible();
+  await expect(table.getByText('9', { exact: true })).toBeVisible();
+
+  // Switching tabs reads a different declared layout, including a composite
+  // fraction cell no group-standings column ever produces.
+  await page.getByRole('tab', { name: 'Top Scorers' }).click();
+  await expect(table.getByText('Goleador Uno')).toBeVisible();
+  await expect(table.getByText('4/5')).toBeVisible();
+
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'Exportar CSV' }).click(),
+  ]);
+  expect(download.suggestedFilename()).toBe(`${TOURNAMENT_ALIAS}-top-scorers.csv`);
+  const csvPath = await download.path();
+  expect(csvPath).toBeTruthy();
+});
+
+/**
+ * The public tournament page (B2) is server-rendered — its data fetch runs
+ * inside the Astro preview process, not the browser, so `window.fetch`
+ * mocking cannot reach it. A tiny local HTTP server standing in for the API
+ * at the same address `COPALIBRE_API_INTERNAL_URL` defaults to is the only
+ * way to control what an SSR page like this one renders in this harness.
+ */
+test.describe('B2: public tournament page', () => {
+  let apiServer: Server;
+
+  test.beforeAll(async () => {
+    const overview = {
+      organizationAlias: ORGANIZATION,
+      organizationName: 'Liga Mendocina',
+      tournamentAlias: TOURNAMENT_ALIAS,
+      tournamentName: 'Apertura 2026',
+      seasonName: 'Apertura 2026',
+      matches: [
+        {
+          stageNumber: 1,
+          round: 1,
+          matchNumber: 1,
+          status: 'final',
+          homeEntrantId: 'Talleres',
+          homeName: 'Talleres',
+          homeAbbreviation: 'TAL',
+          awayEntrantId: 'Independiente',
+          awayName: 'Independiente',
+          awayAbbreviation: 'IND',
+          homeScore: 2,
+          awayScore: 1,
+          scheduledAt: '2026-01-01T00:00:00.000Z',
+        },
+      ],
+      clubs: [
+        { clubId: 'club-talleres', name: 'Club Atlético Talleres' },
+        { clubId: 'club-independiente', name: 'Club Atlético Independiente' },
+      ],
+      ruleset: {},
+    };
+    const finishedReport = {
+      organizationAlias: ORGANIZATION,
+      organizationName: 'Liga Mendocina',
+      tournamentAlias: TOURNAMENT_ALIAS,
+      tournamentName: 'Apertura 2026',
+      stageNumber: 1,
+      round: 1,
+      matchNumber: 1,
+      status: 'final',
+      homeEntrantId: 'Talleres',
+      homeName: 'Talleres',
+      homeAbbreviation: 'TAL',
+      homeScore: 2,
+      awayEntrantId: 'Independiente',
+      awayName: 'Independiente',
+      awayAbbreviation: 'IND',
+      awayScore: 1,
+      scheduledAt: '2026-01-01T00:00:00.000Z',
+      venueName: 'Estadio Central',
+      schedulePublished: true,
+      officials: [{ name: 'Marta Referee', roles: ['referee'] }],
+      rosters: {
+        home: [
+          {
+            personId: 'person-home',
+            number: 9,
+            name: 'Sofía Gómez',
+            roles: ['forward'],
+            onField: true,
+          },
+        ],
+        away: [],
+      },
+      timeline: [
+        {
+          eventId: 'event-goal',
+          definitionCode: 'goal',
+          label: 'Goal',
+          occurredAt: '2026-01-01T00:10:00.000Z',
+          side: 'home',
+          personId: 'person-home',
+          payload: {},
+        },
+      ],
+    };
+    const upcomingReport = {
+      ...finishedReport,
+      matchNumber: 2,
+      status: 'upcoming',
+      scheduledAt: '2026-01-02T18:00:00.000Z',
+      officials: [],
+      rosters: { home: [], away: [] },
+      timeline: [],
+    };
+
+    const bracketFixture = {
+      matches: [
+        {
+          matchId: 'm-1',
+          bracket: 'winner',
+          round: 1,
+          position: 1,
+          status: 'final',
+          slots: [
+            { kind: 'entrant', name: 'Talleres', abbreviation: 'TAL', score: 2 },
+            { kind: 'entrant', name: 'Independiente', abbreviation: 'IND', score: 1 },
+          ],
+        },
+        {
+          matchId: 'm-2',
+          bracket: 'winner',
+          round: 2,
+          position: 2,
+          status: 'upcoming',
+          slots: [
+            { kind: 'winner-of', matchId: '1' },
+            { kind: 'winner-of', matchId: '3' },
+          ],
+        },
+      ],
+    };
+
+    const organizationTournaments = {
+      organizationAlias: ORGANIZATION,
+      organizationName: 'Liga Mendocina',
+      clubs: [
+        { clubId: 'club-talleres', name: 'Club Atlético Talleres', abbreviation: 'TAL' },
+        { clubId: 'club-independiente', name: 'Club Atlético Independiente', abbreviation: 'IND' },
+      ],
+      tournaments: [
+        {
+          tournamentId: 't-live',
+          alias: 'torneo-relampago-2026',
+          name: 'Torneo Relámpago 2026',
+          status: 'live',
+          discipline: { disciplineId: 'disc-fb', name: 'Football' },
+          dates: { startedAt: '2026-01-01T00:00:00.000Z' },
+        },
+        {
+          tournamentId: 't-upcoming',
+          alias: 'clausura-2026',
+          name: 'Clausura 2026',
+          status: 'upcoming',
+          discipline: { disciplineId: 'disc-fb', name: 'Football' },
+          dates: {},
+        },
+        {
+          tournamentId: 't-finished',
+          alias: 'apertura-2026',
+          name: 'Apertura 2026',
+          status: 'finished',
+          discipline: { disciplineId: 'disc-fb', name: 'Football' },
+          dates: { startedAt: '2026-01-01T00:00:00.000Z', archivedAt: '2026-02-01T00:00:00.000Z' },
+          winners: [
+            {
+              champion: {
+                entrantId: 'Talleres',
+                name: 'Club Atlético Talleres',
+                abbreviation: 'TAL',
+              },
+              runnerUp: {
+                entrantId: 'Independiente',
+                name: 'Club Atlético Independiente',
+                abbreviation: 'IND',
+              },
+            },
+          ],
+        },
+      ],
+    };
+
+    apiServer = createServer((req, res) => {
+      res.setHeader('content-type', 'application/json');
+      if (req.url === `/organizations/${ORGANIZATION}/public/tournaments`) {
+        res.end(JSON.stringify(organizationTournaments));
+        return;
+      }
+      if (req.url === `${TOURNAMENT}/overview`) {
+        res.end(JSON.stringify(overview));
+        return;
+      }
+      if (req.url === `${TOURNAMENT}/live`) {
+        res.end(JSON.stringify(liveFixture));
+        return;
+      }
+      if (req.url === `${TOURNAMENT}/public/tables`) {
+        res.end(JSON.stringify(layoutsFixture));
+        return;
+      }
+      if (req.url === `${STAGE}/public/tables/group-standings-default`) {
+        res.end(JSON.stringify(groupStandingsFixture));
+        return;
+      }
+      if (req.url === `${TOURNAMENT}/public/tables/top-scorers`) {
+        res.end(JSON.stringify(topScorersFixture));
+        return;
+      }
+      if (req.url === `${TOURNAMENT}/public/tables/top-scorers?clubId=club-talleres`) {
+        res.end(JSON.stringify(topScorersFixture));
+        return;
+      }
+      if (req.url === `${TOURNAMENT}/public/tables/top-scorers?clubId=club-independiente`) {
+        res.end(JSON.stringify(topScorersFilteredToIndependiente));
+        return;
+      }
+      if (req.url === `${STAGE}/bracket`) {
+        res.end(JSON.stringify(bracketFixture));
+        return;
+      }
+      if (req.url === `${STAGE}/matches/1`) {
+        res.end(JSON.stringify(finishedReport));
+        return;
+      }
+      if (req.url === `${STAGE}/matches/2`) {
+        res.end(JSON.stringify(upcomingReport));
+        return;
+      }
+      if (req.url === `${TOURNAMENT}/persons/p-1/public/profile`) {
+        res.end(JSON.stringify(playerProfileFixture));
+        return;
+      }
+      if (req.url === `${TOURNAMENT}/persons/p-2/public/profile`) {
+        res.end(JSON.stringify(playerProfileFixtureNoStats));
+        return;
+      }
+      res.statusCode = 404;
+      res.end(JSON.stringify({ message: 'not found' }));
+    });
+    await new Promise<void>((resolve) => apiServer.listen(3001, '127.0.0.1', resolve));
+  });
+
+  test.afterAll(async () => {
+    await new Promise<void>((resolve) => apiServer.close(() => resolve()));
+  });
+
+  test('renders the discipline’s own GF/GC/Dif columns for a spectator', async ({ page }) => {
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+
+    await expect(page.getByRole('heading', { name: 'Group Standings' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'GF' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'GC' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Dif' })).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'Talleres' })).toBeVisible();
+  });
+
+  for (const path of [
+    `/${ORGANIZATION}`,
+    `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`,
+    `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/live`,
+    `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/players/p-1`,
+    `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/1`,
+    `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/1/matches/1`,
+  ]) {
+    test(`${path} stays visible without page overflow at responsive reference widths`, async ({
+      page,
+    }) => {
+      for (const width of RESPONSIVE_WIDTHS) {
+        await page.setViewportSize({ width, height: 900 });
+        await page.goto(path);
+        await expect(page.locator('main').first()).toBeVisible();
+        await expect
+          .poll(() =>
+            page.evaluate(() => document.body.scrollWidth <= document.documentElement.clientWidth),
+          )
+          .toBe(true);
+      }
+    });
+  }
+
+  test('switches a constrained entrant name to its persisted abbreviation with a tooltip', async ({
+    page,
+  }) => {
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+
+    const entrantName = page.getByTestId('entrant-name').first();
+    await expect(entrantName).toBeVisible({ timeout: 15_000 });
+    await expect(
+      page.locator('astro-island').filter({ has: entrantName }).first(),
+    ).not.toHaveAttribute('ssr', '', { timeout: 15_000 });
+    await entrantName.evaluate((element) => {
+      element.setAttribute('style', 'display: block; min-width: 0; width: 1px');
+    });
+
+    await expect(entrantName.getByTitle('Talleres')).toHaveText('TAL');
+  });
+
+  test('renders finished match report header, officials, roster, and timeline', async ({
+    page,
+  }) => {
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/1/matches/1`);
+
+    await expect(page.getByRole('heading', { name: /TAL.*2.*1.*IND/ })).toBeVisible();
+    await expect(page.getByText('Marta Referee — referee')).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'Sofía Gómez' })).toBeVisible();
+    await expect(page.getByText('Goal')).toBeVisible();
+  });
+
+  test('renders upcoming match report empty roster and timeline states', async ({ page }) => {
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/1/matches/2`);
+
+    await expect(page.getByText('No officials assigned.')).toBeVisible();
+    await expect(page.getByText('Rosters are not yet available.')).toBeVisible();
+    await expect(page.getByText('Events are not yet available.')).toBeVisible();
+  });
+
+  test('a bracket match card links to its report page', async ({ page }) => {
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/1`);
+
+    // The played match (position 1, matchNumber 1) links to the report
+    // already asserted above (same fixture, same header).
+    await page.locator('a:has(article[data-match="1"])').click();
+    await expect(page.getByRole('heading', { name: /TAL.*2.*1.*IND/ })).toBeVisible();
+
+    // Still linked though its own slots are winner-of placeholders: the
+    // report page renders correctly for a not-yet-played match.
+    await page.goBack();
+    await page.locator('a:has(article[data-match="2"])').click();
+    await page.waitForURL(`**/stages/1/matches/2`);
+  });
+
+  test('filters the leaderboard to one club by URL, keeps whole-table ranks, and clears', async ({
+    page,
+  }) => {
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+
+    // Click Top Scorers tab
+    await page.getByRole('tab', { name: 'Top Scorers' }).click();
+    await expect(page.getByRole('heading', { name: 'Top Scorers' })).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'Goleador Uno' })).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'Goleador Dos' })).toBeVisible();
+
+    // Click the club filter — the interaction named as its motivation,
+    // wired up here for the first time. The pill is a rendered club
+    // emblem (placeholder, in this fixture) plus its name, both inside the
+    // one filtering link.
+    const independienteFilter = page.getByRole('link', { name: 'Club Atlético Independiente' });
+    await independienteFilter.click();
+    await page.waitForURL(/clubId=club-independiente/);
+
+    // Only that club's player, with the same row data the unfiltered table
+    // showed for them — not recomputed as if they led a smaller table (the
+    // already-accepted whole-table-rank rule; verified server-side by
+    // table-projections.integration.test.ts, which this fixture mirrors).
+    const filteredRow = page.getByRole('row').filter({ hasText: 'Goleador Dos' });
+    await expect(filteredRow).toBeVisible();
+    await expect(filteredRow.getByRole('cell', { name: '5' })).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'Goleador Uno' })).toHaveCount(0);
+
+    // A linked filtered table renders filtered without further interaction
+    // (public-web-shell's own scenario for this) — reload the same URL.
+    await page.reload();
+    await expect(page.getByRole('cell', { name: 'Goleador Dos' })).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'Goleador Uno' })).toHaveCount(0);
+
+    // Clearing the filter restores every entrant. Exact match: "All" is
+    // otherwise a substring of "Talleres" among this page's other links.
+    await page.getByRole('link', { name: 'All', exact: true }).click();
+    await expect(page.getByRole('cell', { name: 'Goleador Uno' })).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'Goleador Dos' })).toBeVisible();
+    await expect(page).not.toHaveURL(/clubId=/);
+
+    // Matches / ticker is unaffected throughout.
+    await expect(page.getByRole('heading', { name: 'Matches' })).toBeVisible();
+  });
+
+  test('opens player career popup on leaderboard player click and allows standalone navigation', async ({
+    page,
+  }) => {
+    // The `<img>` tag's own GET goes through the network stack, not any
+    // in-page fetch mock — this stands in for the real photo-serving route
+    // A real photo renders framed on the public page.
+    await page.route(`**/organizations/${ORGANIZATION}/persons/p-1/photo`, (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'image/png',
+        body: Buffer.from(ONE_PIXEL_PNG_BASE64, 'base64'),
+      }),
+    );
+
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+
+    // Switch to Top Scorers tab
+    await page.getByRole('tab', { name: 'Top Scorers' }).click();
+    const playerLink = page.getByRole('link', { name: 'Goleador Uno' });
+    await expect(playerLink).toBeVisible();
+
+    // Click player name to open modal popup
+    await playerLink.click();
+    const dialog = page.locator('#cl-player-dialog');
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByText('AR', { exact: true })).toBeVisible();
+    await expect(dialog.getByText('Age: 28')).toBeVisible();
+    await expect(dialog.getByText('Career Statistics')).toBeVisible();
+    await expect(dialog.getByText('Competition History')).toBeVisible();
+
+    // Close modal
+    await dialog.getByRole('button', { name: 'Close dialog' }).click();
+    await expect(dialog).not.toBeVisible();
+
+    // Direct standalone URL navigation
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/players/p-1`);
+    await expect(page.getByRole('heading', { name: 'Goleador Uno' })).toBeVisible();
+    await expect(page.getByText('Age: 28')).toBeVisible();
+    await expect(page.locator('.cl-image-frame img')).toBeVisible();
+  });
+
+  test('states an absence, not zeroes, for a player with no roster history', async ({ page }) => {
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+
+    await page.getByRole('tab', { name: 'Top Scorers' }).click();
+    const playerLink = page.getByRole('link', { name: 'Goleador Dos' });
+    await expect(playerLink).toBeVisible();
+
+    await playerLink.click();
+    const dialog = page.locator('#cl-player-dialog');
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByText('Career Statistics', { exact: true })).toBeVisible();
+    await expect(dialog.getByText('No career statistics recorded.')).toBeVisible();
+    await expect(dialog.getByText('Competition History', { exact: true })).toBeVisible();
+    await expect(dialog.getByText('No competition history recorded.')).toBeVisible();
+    await dialog.getByRole('button', { name: 'Close dialog' }).click();
+
+    // The standalone profile page states the same absence (PlayerProfileView.astro
+    // already did — this confirms it still does).
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/players/p-2`);
+    await expect(page.getByRole('heading', { name: 'Goleador Dos' })).toBeVisible();
+    await expect(page.getByText('No career statistics recorded.')).toBeVisible();
+    await expect(page.getByText('No competition history recorded.')).toBeVisible();
+
+    // No photo was uploaded for this player: the frame
+    // renders the placeholder, not a broken image or an empty gap.
+    await expect(page.getByRole('img', { name: 'No photo uploaded' })).toBeVisible();
+  });
+
+  test('renders organization tournament listing with live, upcoming, and finished podium', async ({
+    page,
+  }) => {
+    await page.goto(`/${ORGANIZATION}`);
+
+    await expect(page.getByRole('heading', { name: 'Liga Mendocina' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Live & Active' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Upcoming' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Finished & Archive' })).toBeVisible();
+
+    // Featured block names the live tournament — it also appears in
+    // its normal "Live & Active" section below, so both the heading and the
+    // now-doubled tournament link are the evidence.
+    await expect(page.getByRole('heading', { name: 'Featured' })).toBeVisible();
+
+    // Check Live tournament
+    await expect(page.getByRole('link', { name: 'Torneo Relámpago 2026' }).first()).toBeVisible();
+
+    // Check Finished tournament & Podium
+    await expect(page.getByRole('link', { name: 'Apertura 2026' }).first()).toBeVisible();
+    await expect(page.getByText('Club Atlético Talleres (TAL)')).toBeVisible();
+    await expect(page.getByText('Club Atlético Independiente (IND)')).toBeVisible();
+    await expect(page.getByText('Champion')).toBeVisible();
+    await expect(page.getByText('Runner-up')).toBeVisible();
+
+    // Club grid.
+    await expect(page.getByRole('heading', { name: 'Clubs' })).toBeVisible();
+    await expect(page.getByText('Club Atlético Talleres').first()).toBeVisible();
+    await expect(page.getByText('Club Atlético Independiente').first()).toBeVisible();
+  });
+
+  test('the former organization tournament listing path is no longer served', async ({ page }) => {
+    const response = await page.goto(`/${ORGANIZATION}/tournaments`);
+    expect(response?.status()).toBe(404);
+  });
+});

@@ -3,7 +3,7 @@ import { err, ok, type Result } from '../result.js';
 
 /**
  * A participant's self-service result report or dispute (TMS-013,
- * 0032-participant-reporting-and-disputes).
+ * participant reporting and disputes).
  *
  * The decision record that deferred this past MVP is explicit: "Authorized
  * operator corrections with audit history are MVP scope." So this is not a

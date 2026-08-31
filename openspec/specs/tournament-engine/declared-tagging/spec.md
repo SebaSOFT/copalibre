@@ -52,3 +52,24 @@ effect SHALL read the tag where that decision already lives.
 - **WHEN** one tournament treats a tag as disqualifying and another does not
 - **THEN** both are expressible without changing the tag, because the consequence lives with each
   competition rather than with the label
+
+### Requirement: Officials and venues are taggable actor granularities
+
+The actor hierarchy SHALL publish `official` and `venue` as taggable granularities, in addition to
+`person`, `player`, `team`, and `club`. Neither participates in the `person → player → team → club`
+roll-up chain: a total or tag declared at `official` or `venue` granularity has no coarser reading.
+
+#### Scenario: A referee carries a tag
+
+- **WHEN** a tag declared for the `official` granularity is applied to a specific official
+- **THEN** the application succeeds and the tag reads as applying to that official
+
+#### Scenario: A venue carries a tag
+
+- **WHEN** a tag declared for the `venue` granularity is applied to a specific venue
+- **THEN** the application succeeds and the tag reads as applying to that venue
+
+#### Scenario: Officials and venues do not roll up into the club hierarchy
+
+- **WHEN** a caller asks whether `club` is coarser than `official`, or than `venue`
+- **THEN** the answer is "not comparable," not a value derived from incidental declaration order

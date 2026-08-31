@@ -1,13 +1,15 @@
 import { checkReadinessAgainst } from '../test-support/readiness-probe.js';
 import { createScratchDatabase, type ScratchDatabase } from '../test-support/scratch-database.js';
-import type { Kysely } from 'kysely';
+import { sql, type Kysely } from 'kysely';
 import {
+  createMigrator,
   EXPECTED_SCHEMA_VERSION,
   migrateDownOneStep,
   migrateToLatest,
   readAppliedSchemaVersion,
 } from './index.js';
 import { rosterTerminology } from './0004-roster-terminology.js';
+import { resultReasonBackfill } from './0016-result-reason-backfill.js';
 
 interface LegacyRosterSchema {
   match_lineups: {
@@ -15,6 +17,13 @@ interface LegacyRosterSchema {
     readonly entrant_id: string;
     readonly person_ids: string;
     readonly updated_at: Date;
+  };
+}
+
+interface MinimalMatchesSchema {
+  matches: {
+    readonly match_id: string;
+    result: string | null;
   };
 }
 
@@ -90,6 +99,7 @@ describe('migrations (integration)', () => {
     expect(afterUp).toContain('installed_modules');
     expect(afterUp).toContain('module_assets');
     expect(afterUp).toContain('object_metadata');
+    expect(afterUp).toContain('installation_role_assignments');
     expect(afterUpTables.find((table) => table.name === 'tournaments')?.columns).toEqual(
       expect.arrayContaining([expect.objectContaining({ name: 'archived_at' })]),
     );
@@ -97,8 +107,307 @@ describe('migrations (integration)', () => {
       expect.arrayContaining([
         expect.objectContaining({ name: 'primary_language' }),
         expect.objectContaining({ name: 'timezone' }),
+        expect.objectContaining({ name: 'emblem_object_id' }),
       ]),
     );
+    expect(afterUpTables.find((table) => table.name === 'match_events')?.columns).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'notes' }),
+        expect.objectContaining({ name: 'segment_elapsed_seconds' }),
+      ]),
+    );
+    expect(afterUpTables.find((table) => table.name === 'match_rosters')?.columns).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'roster_members' })]),
+    );
+    expect(afterUpTables.find((table) => table.name === 'match_rosters')?.columns).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'person_ids' })]),
+    );
+    expect(afterUp).toContain('collector_threshold_consumption');
+    expect(afterUp).toContain('zones');
+    expect(afterUp).toContain('groups');
+    expect(afterUp).toContain('promotion_plans');
+    expect(afterUp).toContain('zone_entrants');
+    expect(afterUp).toContain('group_entrants');
+    expect(afterUpTables.find((table) => table.name === 'fixtures')?.columns).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'zone_id' }),
+        expect.objectContaining({ name: 'group_id' }),
+      ]),
+    );
+    expect(afterUpTables.find((table) => table.name === 'persons')?.columns).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'nationality' }),
+        expect.objectContaining({ name: 'birth_date' }),
+        expect.objectContaining({ name: 'photo_object_id' }),
+      ]),
+    );
+    expect(afterUpTables.find((table) => table.name === 'clubs')?.columns).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'emblem_object_id' })]),
+    );
+    expect(afterUpTables.find((table) => table.name === 'entrants')?.columns).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'abbreviation' })]),
+    );
+    expect(afterUpTables.find((table) => table.name === 'venues')?.columns).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'details' })]),
+    );
+    expect(afterUp).toContain('declared_effects');
+    expect(afterUp).toContain('shared_rate_limit_counters');
+    expect(afterUp).toContain('schedules');
+    expect(afterUp).toContain('schedule_venues');
+    expect(afterUp).toContain('schedule_slots');
+    expect(afterUp).toContain('match_schedule_assignments');
+    expect(afterUp).toContain('match_schedule_officials');
+    expect(afterUp).not.toContain('fixture_schedules');
+    expect(afterUp).not.toContain('fixture_schedule_officials');
+    expect(afterUpTables.find((table) => table.name === 'fixtures')?.columns).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'scheduled_at' })]),
+    );
+    const customScriptsColumn = afterUpTables
+      .find((table) => table.name === 'tournament_rulesets')
+      ?.columns.find((column) => column.name === 'custom_scripts');
+    expect(customScriptsColumn).toMatchObject({ name: 'custom_scripts', isNullable: false });
+    const defaultExpression =
+      scratch.dialect === 'postgres'
+        ? (
+            await sql<{ column_default: string }>`
+              select column_default
+              from information_schema.columns
+              where table_name = 'tournament_rulesets' and column_name = 'custom_scripts'
+            `.execute(scratch.db)
+          ).rows[0]?.column_default
+        : (
+            await sql<{ dflt_value: string }>`
+              select dflt_value from pragma_table_info('tournament_rulesets')
+              where name = 'custom_scripts'
+            `.execute(scratch.db)
+          ).rows[0]?.dflt_value;
+    expect(defaultExpression).toContain('[]');
+    expect(
+      afterUpTables.find((table) => table.name === 'organization_role_assignments')?.columns,
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'club_id' }),
+        expect.objectContaining({ name: 'tournament_id' }),
+      ]),
+    );
+    expect(afterUpTables.find((table) => table.name === 'organization_invites')?.columns).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'club_id' }),
+        expect.objectContaining({ name: 'tournament_id' }),
+        expect.objectContaining({ name: 'rescinded_at' }),
+      ]),
+    );
+
+    const inviteRescissionDown = await migrateDownOneStep(scratch.db);
+    expect(inviteRescissionDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe('0032-role-scope-columns');
+    const afterInviteRescissionDownTables = await scratch.db.introspection.getTables();
+    expect(
+      afterInviteRescissionDownTables.find((table) => table.name === 'organization_invites')
+        ?.columns,
+    ).not.toEqual(expect.arrayContaining([expect.objectContaining({ name: 'rescinded_at' })]));
+
+    const roleScopeColumnsDown = await migrateDownOneStep(scratch.db);
+    expect(roleScopeColumnsDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe('0031-schedules');
+    const afterRoleScopeColumnsDownTables = await scratch.db.introspection.getTables();
+    expect(
+      afterRoleScopeColumnsDownTables.find(
+        (table) => table.name === 'organization_role_assignments',
+      )?.columns,
+    ).not.toEqual(expect.arrayContaining([expect.objectContaining({ name: 'club_id' })]));
+
+    const schedulesDown = await migrateDownOneStep(scratch.db);
+    expect(schedulesDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe(
+      '0030-shared-rate-limit-counters',
+    );
+    const afterSchedulesDownTables = await scratch.db.introspection.getTables();
+    const afterSchedulesDown = afterSchedulesDownTables.map((t) => t.name);
+    expect(afterSchedulesDown).not.toContain('schedules');
+    expect(afterSchedulesDown).not.toContain('schedule_venues');
+    expect(afterSchedulesDown).not.toContain('schedule_slots');
+    expect(afterSchedulesDown).not.toContain('match_schedule_assignments');
+    expect(afterSchedulesDown).not.toContain('match_schedule_officials');
+    expect(afterSchedulesDown).toContain('fixture_schedules');
+    expect(afterSchedulesDown).toContain('fixture_schedule_officials');
+    expect(afterSchedulesDownTables.find((table) => table.name === 'fixtures')?.columns).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'scheduled_at' })]),
+    );
+
+    const sharedCountersDown = await migrateDownOneStep(scratch.db);
+    expect(sharedCountersDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe(
+      '0029-rbac-user-administration',
+    );
+    const afterSharedCountersDown = (await scratch.db.introspection.getTables()).map((t) => t.name);
+    expect(afterSharedCountersDown).not.toContain('shared_rate_limit_counters');
+
+    const rbacDown = await migrateDownOneStep(scratch.db);
+    expect(rbacDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe(
+      '0028-tournament-ruleset-custom-scripts',
+    );
+
+    const customScriptsDown = await migrateDownOneStep(scratch.db);
+    expect(customScriptsDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe(
+      '0027-object-metadata-organization-index',
+    );
+
+    const afterCustomScriptsDownTables = await scratch.db.introspection.getTables();
+    expect(afterCustomScriptsDownTables.map((table) => table.name)).not.toContain(
+      'declared_effects',
+    );
+    expect(
+      afterCustomScriptsDownTables.find((table) => table.name === 'tournament_rulesets')?.columns,
+    ).not.toEqual(expect.arrayContaining([expect.objectContaining({ name: 'custom_scripts' })]));
+
+    const objectMetadataIndexDown = await migrateDownOneStep(scratch.db);
+    expect(objectMetadataIndexDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe('0026-venue-details');
+
+    const venueDetailsDown = await migrateDownOneStep(scratch.db);
+    expect(venueDetailsDown.error).toBeUndefined();
+
+    const afterVenueDetailsDownTables = await scratch.db.introspection.getTables();
+    expect(
+      afterVenueDetailsDownTables.find((table) => table.name === 'venues')?.columns,
+    ).not.toEqual(expect.arrayContaining([expect.objectContaining({ name: 'details' })]));
+
+    const organizationEmblemDown = await migrateDownOneStep(scratch.db);
+    expect(organizationEmblemDown.error).toBeUndefined();
+
+    const afterOrganizationEmblemDownTables = await scratch.db.introspection.getTables();
+    expect(
+      afterOrganizationEmblemDownTables.find((table) => table.name === 'organizations')?.columns,
+    ).not.toEqual(expect.arrayContaining([expect.objectContaining({ name: 'emblem_object_id' })]));
+
+    const personBirthDateDown = await migrateDownOneStep(scratch.db);
+    expect(personBirthDateDown.error).toBeUndefined();
+
+    const afterPersonBirthDateDownTables = await scratch.db.introspection.getTables();
+    expect(
+      afterPersonBirthDateDownTables.find((table) => table.name === 'persons')?.columns,
+    ).not.toEqual(expect.arrayContaining([expect.objectContaining({ name: 'birth_date' })]));
+
+    const entrantAbbreviationsDown = await migrateDownOneStep(scratch.db);
+    expect(entrantAbbreviationsDown.error).toBeUndefined();
+
+    const afterEntrantAbbreviationsDownTables = await scratch.db.introspection.getTables();
+    expect(
+      afterEntrantAbbreviationsDownTables.find((table) => table.name === 'entrants')?.columns,
+    ).not.toEqual(expect.arrayContaining([expect.objectContaining({ name: 'abbreviation' })]));
+
+    const membershipDown = await migrateDownOneStep(scratch.db);
+    expect(membershipDown.error).toBeUndefined();
+
+    const afterMembershipDown = (await scratch.db.introspection.getTables()).map(
+      (table) => table.name,
+    );
+    expect(afterMembershipDown).not.toContain('zone_entrants');
+    expect(afterMembershipDown).not.toContain('group_entrants');
+    expect(afterMembershipDown).toContain('promotion_plans');
+
+    const promotionPlansDown = await migrateDownOneStep(scratch.db);
+    expect(promotionPlansDown.error).toBeUndefined();
+
+    const afterPromotionPlansDownTables = await scratch.db.introspection.getTables();
+    const afterPromotionPlansDown = afterPromotionPlansDownTables.map((table) => table.name);
+    expect(afterPromotionPlansDown).not.toContain('promotion_plans');
+    expect(afterPromotionPlansDown).toContain('zones');
+    expect(afterPromotionPlansDown).toContain('groups');
+
+    const zoneGroupAndPromotionDown = await migrateDownOneStep(scratch.db);
+    expect(zoneGroupAndPromotionDown.error).toBeUndefined();
+
+    const afterZoneGroupAndPromotionDownTables = await scratch.db.introspection.getTables();
+    const afterZoneGroupAndPromotionDown = afterZoneGroupAndPromotionDownTables.map(
+      (table) => table.name,
+    );
+    expect(afterZoneGroupAndPromotionDown).not.toContain('zones');
+    expect(afterZoneGroupAndPromotionDown).not.toContain('groups');
+    expect(
+      afterZoneGroupAndPromotionDownTables.find((table) => table.name === 'fixtures')?.columns,
+    ).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'zone_id' }),
+        expect.objectContaining({ name: 'group_id' }),
+      ]),
+    );
+
+    const personClubImagesAndNationalityDown = await migrateDownOneStep(scratch.db);
+    expect(personClubImagesAndNationalityDown.error).toBeUndefined();
+
+    const afterPersonClubImagesAndNationalityDownTables =
+      await scratch.db.introspection.getTables();
+    expect(
+      afterPersonClubImagesAndNationalityDownTables.find((table) => table.name === 'persons')
+        ?.columns,
+    ).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'nationality' }),
+        expect.objectContaining({ name: 'photo_object_id' }),
+      ]),
+    );
+    expect(
+      afterPersonClubImagesAndNationalityDownTables.find((table) => table.name === 'clubs')
+        ?.columns,
+    ).not.toEqual(expect.arrayContaining([expect.objectContaining({ name: 'emblem_object_id' })]));
+
+    const matchRosterMembersDown = await migrateDownOneStep(scratch.db);
+    expect(matchRosterMembersDown.error).toBeUndefined();
+
+    const afterMatchRosterMembersDownTables = await scratch.db.introspection.getTables();
+    expect(
+      afterMatchRosterMembersDownTables.find((table) => table.name === 'match_rosters')?.columns,
+    ).not.toEqual(expect.arrayContaining([expect.objectContaining({ name: 'roster_members' })]));
+    expect(
+      afterMatchRosterMembersDownTables.find((table) => table.name === 'match_rosters')?.columns,
+    ).toEqual(expect.arrayContaining([expect.objectContaining({ name: 'person_ids' })]));
+
+    const matchEventSegmentElapsedSecondsDown = await migrateDownOneStep(scratch.db);
+    expect(matchEventSegmentElapsedSecondsDown.error).toBeUndefined();
+
+    const afterSegmentElapsedSecondsDownTables = await scratch.db.introspection.getTables();
+    expect(
+      afterSegmentElapsedSecondsDownTables.find((table) => table.name === 'match_events')?.columns,
+    ).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'segment_elapsed_seconds' })]),
+    );
+
+    // 0016 is a data-only backfill (no schema change); its own up/down
+    // behavior is exercised separately below, against seeded rows — here it
+    // only needs to not error mid-sequence.
+    const resultReasonBackfillDown = await migrateDownOneStep(scratch.db);
+    expect(resultReasonBackfillDown.error).toBeUndefined();
+
+    const collectorThresholdConsumptionDown = await migrateDownOneStep(scratch.db);
+    expect(collectorThresholdConsumptionDown.error).toBeUndefined();
+
+    const afterCollectorThresholdConsumptionDown = (await scratch.db.introspection.getTables()).map(
+      (table) => table.name,
+    );
+    expect(afterCollectorThresholdConsumptionDown).not.toContain('collector_threshold_consumption');
+
+    const matchEventNotesDown = await migrateDownOneStep(scratch.db);
+    expect(matchEventNotesDown.error).toBeUndefined();
+
+    const afterMatchEventNotesDownTables = await scratch.db.introspection.getTables();
+    expect(
+      afterMatchEventNotesDownTables.find((table) => table.name === 'match_events')?.columns,
+    ).not.toEqual(expect.arrayContaining([expect.objectContaining({ name: 'notes' })]));
+
+    const nativeIdentityDown = await migrateDownOneStep(scratch.db);
+    expect(nativeIdentityDown.error).toBeUndefined();
+
+    const afterNativeIdentityDownTables = await scratch.db.introspection.getTables();
+    const afterNativeIdentityDownTableNames = afterNativeIdentityDownTables.map((t) => t.name);
+    expect(afterNativeIdentityDownTableNames).not.toContain('auth_verification_tokens');
+    expect(afterNativeIdentityDownTableNames).not.toContain('personal_access_tokens');
+    expect(
+      afterNativeIdentityDownTables.find((table) => table.name === 'identity_principals')?.columns,
+    ).not.toEqual(expect.arrayContaining([expect.objectContaining({ name: 'password_hash' })]));
 
     const organizationLocaleDown = await migrateDownOneStep(scratch.db);
     expect(organizationLocaleDown.error).toBeUndefined();
@@ -218,6 +527,63 @@ describe('migrations (integration)', () => {
     }
   });
 
+  it('0029 accepts club-admin as an organization role and creates installation_role_assignments', async () => {
+    await migrateToLatest(scratch.db);
+
+    await scratch.db
+      .insertInto('organizations')
+      .values({
+        organization_id: '01900000-0000-7000-8000-000000000001',
+        alias: 'club-admin-check',
+        name: 'Club Admin Check',
+        primary_language: 'es',
+        timezone: 'UTC',
+        created_at: new Date(),
+      })
+      .execute();
+    await scratch.db
+      .insertInto('identity_principals')
+      .values({
+        principal_id: '01900000-0000-7000-8000-000000000002',
+        email: 'club-admin-check@example.test',
+        created_at: new Date(),
+        updated_at: new Date(),
+      })
+      .execute();
+
+    await expect(
+      scratch.db
+        .insertInto('organization_role_assignments')
+        .values({
+          assignment_id: '01900000-0000-7000-8000-000000000003',
+          organization_id: '01900000-0000-7000-8000-000000000001',
+          principal_id: '01900000-0000-7000-8000-000000000002',
+          email: 'club-admin-check@example.test',
+          role: 'club-admin',
+          status: 'active',
+          created_at: new Date(),
+          updated_at: new Date(),
+          deleted_at: null,
+        })
+        .execute(),
+    ).resolves.toBeDefined();
+
+    await expect(
+      scratch.db
+        .insertInto('installation_role_assignments')
+        .values({
+          assignment_id: '01900000-0000-7000-8000-000000000004',
+          principal_id: '01900000-0000-7000-8000-000000000002',
+          role: 'super-admin',
+          status: 'active',
+          created_at: new Date(),
+          updated_at: new Date(),
+          deleted_at: null,
+        })
+        .execute(),
+    ).resolves.toBeDefined();
+  });
+
   it('re-applies cleanly after a down migration', async () => {
     await migrateToLatest(scratch.db);
     await migrateDownOneStep(scratch.db);
@@ -295,6 +661,191 @@ describe('migrations (integration)', () => {
       .select('capabilities')
       .executeTakeFirstOrThrow();
     expect(assignmentAfterDown.capabilities).toEqual(['match.record-event', 'match.select-lineup']);
+  });
+
+  it('backfills an explicit resultReason and reverses only what it added (0076/0016)', async () => {
+    await scratch.db.schema
+      .createTable('matches')
+      .addColumn('match_id', 'uuid', (column) => column.primaryKey())
+      .addColumn('result', 'jsonb')
+      .execute();
+
+    const legacyDb = scratch.db as unknown as Kysely<MinimalMatchesSchema>;
+    const legacyMatchId = '00000000-0000-7000-8000-000000000005';
+    const alreadyExplicitMatchId = '00000000-0000-7000-8000-000000000006';
+    const otherReasonMatchId = '00000000-0000-7000-8000-000000000007';
+
+    await legacyDb
+      .insertInto('matches')
+      .values([
+        {
+          match_id: legacyMatchId,
+          result: JSON.stringify({
+            sides: [
+              { entrantId: 'e-1', statistics: {} },
+              { entrantId: 'e-2', statistics: {} },
+            ],
+          }),
+        },
+        {
+          match_id: alreadyExplicitMatchId,
+          result: JSON.stringify({
+            sides: [
+              { entrantId: 'e-1', statistics: {}, resultReason: 'played' },
+              { entrantId: 'e-2', statistics: {}, resultReason: 'played' },
+            ],
+          }),
+        },
+        {
+          match_id: otherReasonMatchId,
+          result: JSON.stringify({
+            sides: [
+              { entrantId: 'e-1', statistics: {} },
+              { entrantId: 'e-2', statistics: {}, resultReason: 'walkover' },
+            ],
+          }),
+        },
+      ])
+      .execute();
+
+    await resultReasonBackfill.up(scratch.db);
+
+    const afterUp = await scratch.db.selectFrom('matches').select(['match_id', 'result']).execute();
+    const sidesOf = (matchId: string): readonly { readonly resultReason?: string }[] =>
+      (
+        afterUp.find((row) => row.match_id === matchId)?.result as unknown as {
+          sides: readonly { readonly resultReason?: string }[];
+        } | null
+      )?.sides ?? [];
+
+    expect(sidesOf(legacyMatchId).every((side) => side.resultReason === 'played')).toBe(true);
+    expect(sidesOf(otherReasonMatchId).map((side) => side.resultReason)).toEqual([
+      'played',
+      'walkover',
+    ]);
+
+    if (!resultReasonBackfill.down) {
+      throw new Error('Result reason backfill migration must support rollback.');
+    }
+    await resultReasonBackfill.down(scratch.db);
+
+    const afterDown = await scratch.db
+      .selectFrom('matches')
+      .select(['match_id', 'result'])
+      .execute();
+    const sidesOfDown = (matchId: string): readonly { readonly resultReason?: string }[] =>
+      (
+        afterDown.find((row) => row.match_id === matchId)?.result as unknown as {
+          sides: readonly { readonly resultReason?: string }[];
+        } | null
+      )?.sides ?? [];
+
+    // Backfilled row reverts to no explicit reason — matches its pre-migration shape.
+    expect(sidesOfDown(legacyMatchId).every((side) => side.resultReason === undefined)).toBe(true);
+    // A row that already carried an explicit 'played' before `up` ran is
+    // indistinguishable from one the migration added it to — `down` strips it
+    // too, the documented, accepted limitation of this reversal.
+    expect(
+      sidesOfDown(alreadyExplicitMatchId).every((side) => side.resultReason === undefined),
+    ).toBe(true);
+    // A real non-played reason is never touched by `down`.
+    expect(sidesOfDown(otherReasonMatchId).map((side) => side.resultReason)).toEqual([
+      undefined,
+      'walkover',
+    ]);
+  });
+
+  it('refuses 0031-schedules migration when legacy fixture_schedules has null venue_id', async () => {
+    const migrator = createMigrator(scratch.db);
+    await migrator.migrateTo('0030-shared-rate-limit-counters');
+
+    const orgId = '11111111-1111-7111-8111-111111111111';
+    const tournamentId = '22222222-2222-7222-8222-222222222222';
+    const seasonId = '33333333-3333-7333-8333-333333333333';
+    const stageId = '44444444-4444-7444-8444-444444444444';
+    const fixtureId = '55555555-5555-7555-8555-555555555555';
+    const scheduleId = '66666666-6666-7666-8666-666666666666';
+
+    await scratch.db
+      .insertInto('organizations')
+      .values({
+        organization_id: orgId,
+        alias: 'test-org',
+        name: 'Test Org',
+        primary_language: 'es',
+        timezone: 'UTC',
+        created_at: new Date(),
+      })
+      .execute();
+
+    const descriptorId = '00000000-0000-7000-8000-000000000001';
+    await scratch.db
+      .insertInto('discipline_descriptors')
+      .values({
+        descriptor_id: descriptorId,
+        version: '1.0.0',
+        alias: 'disc-1',
+        name: 'Disc 1',
+        document: JSON.stringify({}),
+        created_at: new Date(),
+      })
+      .execute();
+
+    await scratch.db
+      .insertInto('tournaments')
+      .values({
+        tournament_id: tournamentId,
+        organization_id: orgId,
+        descriptor_id: descriptorId,
+        descriptor_version: '1.0.0',
+        alias: 'tour-1',
+        name: 'Tour 1',
+        status: 'active',
+        created_at: new Date(),
+      })
+      .execute();
+
+    await scratch.db
+      .insertInto('seasons')
+      .values({
+        season_id: seasonId,
+        tournament_id: tournamentId,
+        ordinal: 1,
+        name: 'Season 1',
+        created_at: new Date(),
+      })
+      .execute();
+
+    await scratch.db
+      .insertInto('stages')
+      .values({
+        stage_id: stageId,
+        season_id: seasonId,
+        number: 1,
+        name: 'Stage 1',
+        format: 'round-robin',
+        created_at: new Date(),
+      })
+      .execute();
+
+    await scratch.db
+      .insertInto('fixtures')
+      .values({
+        fixture_id: fixtureId,
+        stage_id: stageId,
+        round: 1,
+        created_at: new Date(),
+      })
+      .execute();
+
+    await sql`
+      INSERT INTO fixture_schedules (fixture_schedule_id, fixture_id, venue_id, starts_at, duration_minutes, published, created_at)
+      VALUES (${scheduleId}, ${fixtureId}, NULL, '1700000000000', 60, false, ${new Date()})
+    `.execute(scratch.db);
+
+    const result = await migrator.migrateToLatest();
+    expect(result.error).toBeDefined();
+    expect(String(result.error)).toContain('fixture_schedules row(s) with NULL venue_id');
   });
 });
 

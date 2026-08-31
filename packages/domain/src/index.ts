@@ -44,6 +44,7 @@ export {
 } from './identifiers/abbreviation.js';
 export {
   abbreviationOf,
+  deriveEntrantAbbreviation,
   labelCollisions,
   type LabelledSide,
   type LabelCollision,
@@ -89,6 +90,8 @@ export type {
   EventEffect,
   EventWorkflow,
   EventDefinition,
+  ScoreAward,
+  TargetAttribution,
 } from './descriptors/event-definition.js';
 export {
   MVP_FORMATS,
@@ -105,10 +108,24 @@ export {
   type StatisticDefinition,
   type PlacementPoints,
   type ScoringInputDefinition,
+  type RosterRoleDeclaration,
   type DisciplineDescriptor,
   type DisciplineDescriptorDocument,
   type RuleScript,
 } from './descriptors/discipline-descriptor.js';
+export type {
+  TableTarget,
+  ColumnSource,
+  ColumnFormat,
+  TableSortRule,
+  TableQualificationFilter,
+  TableColumnDefinition,
+  TableLayoutDefinition,
+} from './descriptors/table-layout.js';
+export {
+  resolveEffectiveTableLayouts,
+  findTableLayout,
+} from './descriptors/table-layout-resolution.js';
 export {
   segmentThresholdEventDefinitions,
   SEGMENT_THRESHOLD_EVENT_CODES,
@@ -131,15 +148,19 @@ export {
   RULE_SCRIPT_SCHEMA,
   type JsonSchemaDocument,
 } from './descriptors/descriptor-schema.js';
+export { DESCRIPTOR_FIELD_EXPLANATIONS } from './descriptors/descriptor-field-explanations.js';
 export {
   TOURNAMENT_PROFILE_SCHEMA,
   validateTournamentProfileDocument,
 } from './profiles/profile-schema.js';
 
-export type {
-  DescriptorRef,
-  TournamentRuleset,
-  StageConfiguration,
+export {
+  TOURNAMENT_CUSTOM_SCRIPT_HOOKS,
+  validateHookScriptAttachment,
+  type DescriptorRef,
+  type TournamentRuleset,
+  type StageConfiguration,
+  type HookScriptAttachment,
 } from './rulesets/tournament-ruleset.js';
 export type { CompilationProvenance, MatchRuleset } from './rulesets/match-ruleset.js';
 export {
@@ -157,11 +178,15 @@ export {
 export {
   validateCollectors,
   readableAt,
+  cadenceOf,
+  isLiveCadence,
   CollectorError,
   type StatisticCollector,
   type CollectorSource,
+  type CollectorActorSource,
   type CollectorMeasure,
   type CollectorGranularity,
+  type CollectorCadence,
   type CollectorVocabulary,
   type ValidatedCollectors,
   type InertCollector,
@@ -175,6 +200,8 @@ export {
   granularitiesAbove,
   isCoarser,
   actorOfEntrant,
+  actorOfOfficial,
+  actorOfVenue,
   requireGranularities,
   HierarchyError,
   type CompetitionGranularity,
@@ -183,6 +210,7 @@ export {
 } from './statistics/hierarchies.js';
 export {
   validateTagDeclaration,
+  validateTagDeclarations,
   checkTagApplication,
   tagScopeFor,
   tagsAt,
@@ -200,6 +228,7 @@ export {
 } from './statistics/adjustment.js';
 export {
   validatePerson,
+  ageAt,
   normaliseNaturalKey,
   sameNaturalKey,
   isDuplicateMembership,
@@ -213,19 +242,40 @@ export {
 export {
   ORGANIZATION_ROLES,
   ORGANIZATION_MEMBER_STATUSES,
+  INSTALLATION_ROLES,
+  TOURNAMENT_SCOPED_ROLES,
+  CLUB_SCOPED_ROLES,
   canCreateOrganizationInvitation,
+  canGrantRole,
+  isTournamentScopedRole,
+  isClubScopedRole,
+  wouldLeaveOrganizationWithoutAdmin,
+  wouldLeaveInstallationWithoutSuperAdmin,
   isOrganizationMemberStatus,
   isOrganizationRole,
   normaliseEmail,
   validateOrganizationInvitation,
   OrganizationAccessError,
+  type GrantorContext,
   type IdentityPrincipal,
+  type InstallationRole,
+  type InstallationRoleAssignment,
   type OrganizationInvitation,
   type OrganizationMemberStatus,
   type OrganizationRole,
   type OrganizationRoleAssignment,
   type ParticipantIdentityLink,
 } from './aggregates/organization-access.js';
+export {
+  ORGANIZATION_CAPABILITIES,
+  capabilitiesForRole,
+  inheritedFrom,
+  inheritsFrom,
+  isOrganizationCapability,
+  rolesForCapability,
+  type OrganizationCapability,
+} from './aggregates/role-capabilities.js';
+export { AUDIT_ACTIONS, isAuditAction, type AuditAction } from './audit/audit-actions.js';
 export {
   validateSeason,
   competitionName,
@@ -234,6 +284,20 @@ export {
   IMPLICIT_SEASON_NAME,
   type Season,
 } from './aggregates/season.js';
+export {
+  validateZone,
+  isImplicitZone,
+  ZoneError,
+  IMPLICIT_ZONE_NAME,
+  type Zone,
+} from './aggregates/zone.js';
+export {
+  validateGroup,
+  isImplicitGroup,
+  GroupError,
+  IMPLICIT_GROUP_NAME,
+  type Group,
+} from './aggregates/group.js';
 export {
   planCorrection,
   CorrectionError,
@@ -266,6 +330,7 @@ export {
   type TimerEventCodes,
 } from './aggregates/match-operations.js';
 export { foldLiveScores, type LiveScore } from './events/live-score.js';
+export { foldRosterLineup, soleMemberWithRole } from './events/roster-lineup.js';
 export {
   authorizeMatchCommand,
   validateAssignment,
@@ -310,12 +375,15 @@ export {
 export { compileEffectiveRuleset } from './rulesets/compiler.js';
 export {
   evaluateMutation,
+  evaluateCustomScriptsMutation,
   type FixtureRef,
   type MutationContext,
   type MutationDecision,
 } from './rulesets/mutation.js';
 
 export { SUPPORTED_LANGUAGES, isSupportedLanguage, type SupportedLanguage } from './i18n.js';
+export { ISO_3166_ALPHA_2_CODES, isValidCountryCode } from './countries.js';
+export { resolveLabel, isLocalizedLabel, type LocalizedLabel } from './i18n-label.js';
 export type { Organization, Club } from './aggregates/organization.js';
 export {
   hasStarted,
@@ -378,6 +446,14 @@ export {
   type ResourceAssignment,
 } from './aggregates/resource.js';
 export {
+  computeSlotCountPerVenue,
+  generateScheduleSlots,
+  validateSchedule,
+  ScheduleError,
+  type Schedule,
+  type ScheduleSlot,
+} from './aggregates/schedule.js';
+export {
   classifyScheduleMutation,
   type ScheduleMutationContext,
 } from './aggregates/schedule-mutation.js';
@@ -388,8 +464,21 @@ export {
   type ConflictKind,
   type ScheduleConflict,
   type ScheduleContext,
+  type SlotInfo,
   type RestRule,
 } from './aggregates/schedule-conflict.js';
+export {
+  validateSeriesDeclaration,
+  resolveSeries,
+  SeriesConfigurationError,
+  type SeriesDeclaration,
+  type SeriesResolutionClass,
+  type SeriesAccountingGrain,
+  type SeriesResolutionStatus,
+  type SeriesResolutionResult,
+  type SeriesTraceNode,
+  type ResolveSeriesInput,
+} from './aggregates/series.js';
 export type {
   Stage,
   Fixture,
@@ -398,6 +487,8 @@ export type {
   MatchResult,
   Match,
   Segment,
+  MatchRosterMember,
+  MatchRoster,
 } from './aggregates/competition.js';
 
 export {
@@ -410,6 +501,7 @@ export {
   type OutcomeContributor,
   type RecordedOutcome,
   type OutcomeValidationOptions,
+  type ResultReason,
 } from './standings/index.js';
 
 export {
@@ -425,3 +517,5 @@ export {
  */
 export { fixtureDescriptor } from './test-support/fixture-descriptor.js';
 export { fixtureProfile } from './test-support/fixture-profile.js';
+
+export { resolveAlias, type AliasRedirect, type AliasResolution } from './aliasing.js';

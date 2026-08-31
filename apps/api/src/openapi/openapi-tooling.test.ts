@@ -353,6 +353,35 @@ describe('breaking-change edge cases', () => {
   });
 });
 
+/**
+ * Every controller reachable from a root module, walking `imports`
+ * transitively (`AppModule` itself declares none directly anymore — its
+ * feature modules do — and a feature module may share a common import, so
+ * this dedupes by module class rather than assuming a flat, one-level graph).
+ */
+function controllersReachableFrom(
+  rootModule: NewableFunction,
+): readonly { readonly name: string }[] {
+  const visitedModules = new Set<NewableFunction>();
+  const controllers: { readonly name: string }[] = [];
+
+  const visit = (moduleClass: NewableFunction): void => {
+    if (visitedModules.has(moduleClass)) return;
+    visitedModules.add(moduleClass);
+
+    const ownControllers = (Reflect.getMetadata('controllers', moduleClass) ?? []) as {
+      readonly name: string;
+    }[];
+    controllers.push(...ownControllers);
+
+    const imports = (Reflect.getMetadata('imports', moduleClass) ?? []) as NewableFunction[];
+    for (const imported of imports) visit(imported);
+  };
+
+  visit(rootModule);
+  return controllers;
+}
+
 describe('the generator serves what the app serves', () => {
   it('lists every controller AppModule registers', async () => {
     // The generator keeps its own controller list so it can run without a
@@ -362,9 +391,7 @@ describe('the generator serves what the app serves', () => {
     const { AppModule } = await import('../app.module.js');
     const { OPENAPI_CONTROLLERS } = await import('./generate-controllers.js');
 
-    const registered = (Reflect.getMetadata('controllers', AppModule) ?? []) as {
-      readonly name: string;
-    }[];
+    const registered = controllersReachableFrom(AppModule);
 
     expect(registered.map((controller) => controller.name).sort()).toEqual(
       OPENAPI_CONTROLLERS.map((controller) => controller.name).sort(),

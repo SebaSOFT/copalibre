@@ -11,17 +11,40 @@ export interface CommandHelp {
 }
 
 /**
- * Single source of truth for top-level `copalibre` command help (0044). Both
- * `cli-runner.ts`'s `--help`/`-h` handling and the `/help/cli/commands.md` docs
+ * Single source of truth for top-level `copalibre` command help. Both
+ * `cli.ts`'s `--help`/`-h` handling and the `/help/cli/commands.md` docs
  * page are checked against this table, so the CLI's own help output, the docs
  * page, and the real command set cannot silently drift apart from each other.
  */
 export const COMMAND_HELP: readonly CommandHelp[] = [
   {
     name: 'init',
-    summary: 'Write non-secret local defaults and list required secrets',
-    usage: 'copalibre init [--file <path>]',
-    flags: [{ flag: '--file <path>', description: 'Target env file (default: .env)' }],
+    summary: 'Write a new installation into the current directory — no checkout required',
+    usage:
+      'copalibre init [--module-dev] | copalibre init --kubernetes [--namespace <ns>] ' +
+      '[--release <name>] [--context <ctx>]',
+    flags: [
+      {
+        flag: '--module-dev',
+        description: 'Also write docker-compose.module-dev.yml, for local module development',
+      },
+      {
+        flag: '--kubernetes',
+        description: 'Scaffold a Helm values.yaml instead of a compose installation',
+      },
+      {
+        flag: '--namespace <ns>',
+        description: 'Kubernetes namespace to record (default: "default")',
+      },
+      {
+        flag: '--release <name>',
+        description: 'Helm release name to record (default: "copalibre")',
+      },
+      {
+        flag: '--context <ctx>',
+        description: 'kube-context to record (default: none — supply explicitly each time)',
+      },
+    ],
   },
   {
     name: 'doctor',
@@ -101,9 +124,45 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
       'copalibre create-admin --organization-alias <alias> --organization-name <name> --email <email>',
   },
   {
+    name: 'login',
+    summary: 'Store a personal access token so statistics-rebuild/module work without DATABASE_URL',
+    usage: 'copalibre login [--api-url <url>] [--token <token>]',
+    flags: [
+      {
+        flag: '--api-url <url>',
+        description: 'Target installation (default: COPALIBRE_API_URL)',
+      },
+      {
+        flag: '--token <token>',
+        description: 'Personal access token (default: piped stdin, or an interactive prompt)',
+      },
+    ],
+  },
+  {
+    name: 'statistics-rebuild',
+    summary: 'Recompute every folded statistic total from source facts',
+    usage: 'copalibre statistics-rebuild --organization <alias> [--tournament <alias>]',
+    flags: [
+      { flag: '--organization <alias>', description: 'Organization to rebuild statistics for' },
+      {
+        flag: '--tournament <alias>',
+        description: 'Narrow the rebuild to one tournament within the organization',
+      },
+    ],
+  },
+  {
+    name: 'revoke-legacy-personal-access-tokens',
+    summary: 'Revoke every currently active personal access token as a security cutover',
+    usage: 'copalibre revoke-legacy-personal-access-tokens (--confirm | --dry-run)',
+    flags: [
+      { flag: '--dry-run', description: 'Show the number of active tokens without changing any' },
+      { flag: '--confirm', description: 'Required to revoke every active token' },
+    ],
+  },
+  {
     name: 'module',
     summary: 'Manage installed discipline and tournament-profile modules',
-    usage: 'copalibre module <add|list|remove|verify>',
+    usage: 'copalibre module <add|list|remove|verify|scaffold|validate-local|submit>',
   },
   {
     name: 'mcp',
@@ -113,7 +172,7 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
 ];
 
 /**
- * `copalibre module <subcommand>` help table (0044). Kept separate from
+ * `copalibre module <subcommand>` help table. Kept separate from
  * `COMMAND_HELP` because these only exist under the `module` command, not at
  * the top level.
  */
@@ -194,6 +253,10 @@ export function renderTopLevelHelp(): string {
     '',
     'Commands:',
     ...COMMAND_HELP.map((command) => `  ${command.name.padEnd(14)}${command.summary}`),
+    '',
+    'Global options:',
+    '  --help, -h    Show this help (also accepted after any command)',
+    '  --version     Print the installed version',
     '',
     "Run 'copalibre <command> --help' for details on a specific command.",
   ];

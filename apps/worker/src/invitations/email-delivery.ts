@@ -21,6 +21,13 @@ interface InvitationPayload {
   readonly expiresAt: string;
 }
 
+interface PasswordResetPayload {
+  readonly verificationId: string;
+  readonly recipientEmail: string;
+  readonly token: string;
+  readonly expiresAt: string;
+}
+
 export interface EmailMessage {
   readonly to: string;
   readonly subject: string;
@@ -174,6 +181,39 @@ export function invitationEmailHandler(
   };
 }
 
+/** Creates the queued password-reset email without persisting or logging its token. */
+export function passwordResetMessage(
+  config: EmailDeliveryConfig,
+  payload: PasswordResetPayload,
+): EmailMessage {
+  const url = new URL('/control/reset-password', config.appUrl);
+  url.searchParams.set('token', payload.token);
+  const expiresAt = new Date(payload.expiresAt).toISOString();
+  const text = [
+    'A password reset was requested for your CopaLibre account.',
+    `Reset your password: ${url.toString()}`,
+    `This link expires at ${expiresAt}.`,
+    'If you did not request this, you can ignore this email.',
+  ].join('\n');
+  return {
+    to: payload.recipientEmail,
+    subject: 'CopaLibre password reset',
+    text,
+    html: `<p>A password reset was requested for your CopaLibre account.</p><p><a href="${url.toString()}">Reset your password</a></p><p>This link expires at ${expiresAt}.</p><p>If you did not request this, you can ignore this email.</p>`,
+  };
+}
+
+export function passwordResetEmailHandler(
+  config: EmailDeliveryConfig,
+  fetcher: FetchLike = fetch,
+): JobHandler {
+  return async (job) => {
+    const payload = payloadOf<PasswordResetPayload>(job);
+    assertPasswordResetPayload(payload);
+    await sendEmail(config, passwordResetMessage(config, payload), fetcher);
+  };
+}
+
 async function request(
   fetcher: FetchLike,
   url: string,
@@ -197,6 +237,17 @@ function assertInvitationPayload(payload: InvitationPayload): void {
     typeof payload.expiresAt !== 'string'
   ) {
     throw new Error('organization.invite.requested payload is invalid');
+  }
+}
+
+function assertPasswordResetPayload(payload: PasswordResetPayload): void {
+  if (
+    typeof payload.verificationId !== 'string' ||
+    typeof payload.recipientEmail !== 'string' ||
+    typeof payload.token !== 'string' ||
+    typeof payload.expiresAt !== 'string'
+  ) {
+    throw new Error('password-reset-requested payload is invalid');
   }
 }
 

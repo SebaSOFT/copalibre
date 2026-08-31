@@ -1,4 +1,4 @@
-import type { TournamentFormat } from '@copalibre/domain';
+import type { TournamentFormat, SeriesDeclaration } from '@copalibre/domain';
 import type { PlacementOptions } from './fixtures/placement.js';
 
 /**
@@ -6,7 +6,7 @@ import type { PlacementOptions } from './fixtures/placement.js';
  *
  * Slots are declarative (`winner-of`/`loser-of` a match) rather than mutated
  * pointers, so advancement is recomputed from structure — which is what lets the
- * correction workflow (phase 0009) replay deterministically after a result is
+ * correction workflow replay deterministically after a result is
  * superseded instead of unwinding imperative writes.
  */
 
@@ -37,6 +37,10 @@ export interface DuelMatch extends GeneratedMatchBase {
   readonly slotB: SlotSource;
   /** For round-robin home/away, which side is at home. Absent when not applicable. */
   readonly homeSlot?: 'A' | 'B';
+  /** 1-based match number within the fixture series (1..N). When omitted, represents match 1. */
+  readonly matchNumber?: number;
+  /** Series configuration if this match is part of a multi-match series. */
+  readonly series?: SeriesDeclaration;
   /**
    * Only present on double-elimination grand finals: generated conditionally,
    * played solely when the losers-bracket champion wins the first grand final.
@@ -48,7 +52,7 @@ export interface DuelMatch extends GeneratedMatchBase {
  * N sides producing an ordering, not a winner: an FFA lobby, a swimming heat,
  * an athletics final. It feeds stage standings and nothing else — qualification
  * is by result across all heats, so "winner of heat 3" is not a thing a slot
- * may source from (0009 design, "Placement matches carry no advancement edges").
+ * may source from. Placement matches carry no advancement edges.
  */
 export interface PlacementMatch extends GeneratedMatchBase {
   readonly shape: 'placement';
@@ -80,7 +84,7 @@ export interface FixtureGraph {
   readonly format: TournamentFormat;
   readonly entrantCount: number;
   readonly matches: readonly GeneratedMatch[];
-  /** Rounds per bracket, for UI layout (phase 0018 renders from this). */
+  /** Rounds per bracket, for UI layout. */
   readonly rounds: readonly {
     readonly bracket: BracketKind;
     readonly round: number;
@@ -101,4 +105,6 @@ export interface GenerateFixturesInput {
   readonly homeAndAway?: boolean;
   /** Placement formats only: rounds, lobby size, and the draw that fills them. */
   readonly placement?: PlacementOptions;
+  /** Series configuration for multi-match fixtures. */
+  readonly series?: SeriesDeclaration;
 }

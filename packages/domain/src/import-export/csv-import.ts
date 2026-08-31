@@ -7,7 +7,7 @@ export const MAX_CSV_IMPORT_BYTES = 4 * 1024 * 1024;
 export type ParticipantImportTarget = ParticipantType;
 
 /**
- * `team-membership` (0065) attaches CSV rows' people onto an already-
+ * `team-membership` attaches CSV rows' people onto an already-
  * registered team's persistent membership — it does not register a new
  * entrant, so it is deliberately not folded into `ParticipantType`: that type
  * gates which entrant *kinds* a discipline accepts, an axis this target has
@@ -45,7 +45,7 @@ const ROSTER_COLUMNS = ['matchAlias', 'entrantAlias', 'playerAlias'] as const;
  *
  * `knownTeamAliases` is meaningful only for `target: 'team-membership'`: the
  * worker resolves it from the tournament's already-registered team entrants
- * before calling this function (0065), so a row naming an unregistered team
+ * before calling this function, so a row naming an unregistered team
  * fails here, in the reviewed preview, rather than silently at commit.
  */
 export function validateCsvImport(input: {
@@ -125,7 +125,7 @@ function validateRow(
   const alias = values.alias?.trim();
   if (!alias) {
     errors.push({ column: 'alias', message: 'Alias is required' });
-  } else if (!Alias.create('participant', alias).ok) {
+  } else if (!Alias.create('entrant', alias).ok) {
     errors.push({ column: 'alias', message: 'Alias must be lowercase kebab-case' });
   }
 
@@ -149,7 +149,7 @@ function validateRow(
     const teamAlias = values.teamAlias?.trim();
     if (!teamAlias) {
       errors.push({ column: 'teamAlias', message: 'teamAlias is required' });
-    } else if (!Alias.create('participant', teamAlias).ok) {
+    } else if (!Alias.create('entrant', teamAlias).ok) {
       errors.push({ column: 'teamAlias', message: 'teamAlias must be lowercase kebab-case' });
     } else if (!knownTeamAliases.includes(teamAlias)) {
       errors.push({

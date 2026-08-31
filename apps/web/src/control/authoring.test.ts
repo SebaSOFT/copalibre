@@ -1,15 +1,24 @@
 import {
+  addCustomRule,
+  canAddCustomRule,
   canContinue,
+  elementOptionsKey,
   formatsFor,
   initialWizard,
+  mutationClassOf,
   nextStep,
+  parameterValueKey,
   previousStep,
   progress,
+  removeCustomRule,
+  resolveDecisionDescription,
+  reversibilityMessageKey,
   stepProblems,
   toCreateRequest,
   type DisciplineOption,
   type WizardState,
 } from './lib/wizard.js';
+import type { HookScriptVocabulary } from './lib/api-client.js';
 import {
   LOCK_EXPLANATION,
   initialReview,
@@ -37,6 +46,47 @@ const DISCIPLINES: readonly DisciplineOption[] = [
     supportedFormats: ['placement'],
   },
 ];
+
+/** A discipline offering a real placement format, for the series refusal. */
+const PLACEMENT_DISCIPLINES: readonly DisciplineOption[] = [
+  {
+    descriptorId: 'd-placement',
+    version: '1.0.0',
+    name: 'Atletismo',
+    supportedFormats: ['free-for-all', 'heats'],
+  },
+];
+
+const HOOK_VOCABULARY: HookScriptVocabulary = {
+  hooks: ['event.recorded'],
+  entries: [
+    {
+      kind: 'action',
+      type: 'notify',
+      description: 'Declare notification',
+      authoring: {
+        parameters: [
+          {
+            name: 'title',
+            description: 'Notification title',
+            required: true,
+            parameterTypes: ['simple_string'],
+            allowExpression: true,
+            valueSchema: { type: 'string', minLength: 1 },
+          },
+          {
+            name: 'message',
+            description: 'Notification message',
+            required: true,
+            parameterTypes: ['simple_string'],
+            allowExpression: true,
+            valueSchema: { type: 'string', minLength: 1 },
+          },
+        ],
+      },
+    },
+  ],
+};
 
 function wizard(overrides: Partial<WizardState> = {}): WizardState {
   return { ...initialWizard(), ...overrides };
@@ -93,7 +143,7 @@ describe('the wizard gates each step', () => {
     expect(previousStep(wizard({ step: 'discipline' }))).toBe('name');
     expect(previousStep(wizard())).toBe('name');
     expect(nextStep(wizard({ step: 'window' }))).toBe('window');
-    expect(progress(wizard())).toBe(25);
+    expect(progress(wizard())).toBe(20);
     expect(progress(wizard({ step: 'window' }))).toBe(100);
   });
 
@@ -119,11 +169,285 @@ describe('the wizard gates each step', () => {
       format: 'round-robin',
       publicRegistration: true,
       requiresCheckIn: true,
+      customScripts: [],
     });
   });
 
   it('refuses to submit an incomplete wizard', () => {
     expect(() => toCreateRequest(wizard())).toThrow('not complete');
+  });
+
+  describe('series declaration (0159)', () => {
+    const complete = {
+      alias: 'copa-verano',
+      name: 'Copa Verano',
+      descriptorId: 'd-football',
+      descriptorVersion: '1.2.0',
+      format: 'round-robin',
+    } as const;
+
+    it('submits a declared series alongside the rest of the request', () => {
+      const request = toCreateRequest(
+        wizard({
+          ...complete,
+          seriesEnabled: true,
+          seriesSpan: 5,
+          seriesResolutionClass: 'best-of',
+          seriesNeutralGround: true,
+        }),
+      );
+
+      expect(request.series).toEqual({
+        span: 5,
+        resolutionClass: 'best-of',
+        neutralGround: true,
+      });
+    });
+
+    it('omits neutralGround rather than sending false, so an untouched toggle adds nothing', () => {
+      const request = toCreateRequest(
+        wizard({
+          ...complete,
+          seriesEnabled: true,
+          seriesSpan: 3,
+          seriesResolutionClass: 'best-of',
+        }),
+      );
+
+      expect(request.series).toEqual({ span: 3, resolutionClass: 'best-of' });
+    });
+
+    it('drops a series left configured but switched back off', () => {
+      const request = toCreateRequest(
+        wizard({
+          ...complete,
+          seriesEnabled: false,
+          seriesSpan: 5,
+          seriesResolutionClass: 'best-of',
+        }),
+      );
+
+      expect('series' in request).toBe(false);
+    });
+
+    it('preselects match grain, sending no standingsAccounting key when untouched (0160)', () => {
+      expect(initialWizard().seriesStandingsAccounting).toBe('match');
+
+      const request = toCreateRequest(
+        wizard({
+          ...complete,
+          seriesEnabled: true,
+          seriesSpan: 3,
+          seriesResolutionClass: 'best-of',
+        }),
+      );
+
+      // Byte-identical to the request a wizard authored before this control
+      // existed: no `standingsAccounting` key, not one explicitly set to `match`.
+      expect(request.series).toEqual({ span: 3, resolutionClass: 'best-of' });
+    });
+
+    it('sends standingsAccounting only once the operator declares series grain (0160)', () => {
+      const request = toCreateRequest(
+        wizard({
+          ...complete,
+          seriesEnabled: true,
+          seriesSpan: 5,
+          seriesResolutionClass: 'best-of',
+          seriesStandingsAccounting: 'series',
+        }),
+      );
+
+      expect(request.series).toEqual({
+        span: 5,
+        resolutionClass: 'best-of',
+        standingsAccounting: 'series',
+      });
+    });
+
+    it('refuses a series on a placement format, naming the two-sides reason', () => {
+      const problems = stepProblems(
+        wizard({
+          ...complete,
+          step: 'format',
+          descriptorId: 'd-placement',
+          format: 'free-for-all',
+          seriesEnabled: true,
+          seriesSpan: 3,
+          seriesResolutionClass: 'best-of',
+        }),
+        PLACEMENT_DISCIPLINES,
+      ).map((problem) => problem.id);
+
+      expect(problems).toContain('control.wizard.problem.seriesOnPlacementFormat');
+    });
+
+    it('refuses an even-span best-of but accepts the same span as an aggregate', () => {
+      const evenBestOf = wizard({
+        ...complete,
+        step: 'format',
+        seriesEnabled: true,
+        seriesSpan: 4,
+        seriesResolutionClass: 'best-of',
+      });
+      expect(stepProblems(evenBestOf, DISCIPLINES).map((p) => p.id)).toContain(
+        'control.wizard.problem.seriesEvenBestOf',
+      );
+      expect(canContinue(evenBestOf, DISCIPLINES)).toBe(false);
+
+      // The same even span is coherent for the classes the refusal points at.
+      expect(canContinue({ ...evenBestOf, seriesResolutionClass: 'aggregate' }, DISCIPLINES)).toBe(
+        true,
+      );
+    });
+
+    it('refuses a span below two', () => {
+      const problems = stepProblems(
+        wizard({
+          ...complete,
+          step: 'format',
+          seriesEnabled: true,
+          seriesSpan: 1,
+          seriesResolutionClass: 'best-of',
+        }),
+        DISCIPLINES,
+      ).map((problem) => problem.id);
+
+      expect(problems).toContain('control.wizard.problem.seriesSpan');
+    });
+
+    it('leaves the format step unblocked when no series is declared', () => {
+      expect(canContinue(wizard({ ...complete, step: 'format' }), DISCIPLINES)).toBe(true);
+    });
+  });
+
+  it('validates schema-driven parameters and composes multiple conditionless rules', () => {
+    const titleKey = parameterValueKey('action', 'notify', 'title');
+    const messageKey = parameterValueKey('action', 'notify', 'message');
+    let state = wizard({
+      step: 'rules',
+      customRuleEnabled: true,
+      customRuleActionType: 'notify',
+      customRuleValues: { [titleKey]: 'Match update' },
+    });
+    expect(canContinue(state, DISCIPLINES, HOOK_VOCABULARY)).toBe(false);
+
+    state = {
+      ...state,
+      customRuleValues: { ...state.customRuleValues, [messageKey]: '{{ event.definitionCode }}' },
+    };
+    expect(canContinue(state, DISCIPLINES, HOOK_VOCABULARY)).toBe(true);
+    state = addCustomRule(state, HOOK_VOCABULARY);
+    expect(state.customRules).toHaveLength(1);
+
+    state = {
+      ...state,
+      customRuleActionType: 'notify',
+      customRuleValues: { [titleKey]: 'Second', [messageKey]: 'Second rule' },
+      alias: 'copa-reglas',
+      name: 'Copa Reglas',
+      descriptorId: 'd-football',
+      descriptorVersion: '1.2.0',
+      format: 'round-robin',
+    };
+    const scripts = toCreateRequest(state, HOOK_VOCABULARY).customScripts;
+    expect(scripts).toHaveLength(1);
+    expect(scripts[0]?.script['rules'] as readonly unknown[] | undefined).toHaveLength(2);
+  });
+
+  it('guards adding incomplete drafts and removes only the selected saved rule', () => {
+    const incomplete = wizard({ customRuleEnabled: true });
+    expect(canAddCustomRule(incomplete, HOOK_VOCABULARY)).toBe(false);
+    expect(() => addCustomRule(incomplete, HOOK_VOCABULARY)).toThrow('not complete');
+
+    const saved = wizard({
+      customRules: [
+        { actionType: 'notify', values: {}, options: {} },
+        { actionType: 'startTimer', values: {}, options: {} },
+      ],
+    });
+    expect(removeCustomRule(saved, 0).customRules).toEqual([
+      { actionType: 'startTimer', values: {}, options: {} },
+    ]);
+  });
+
+  it('serializes numeric schemas, optional blanks, and non-object option JSON safely', () => {
+    const vocabulary: HookScriptVocabulary = {
+      hooks: ['event.recorded'],
+      entries: [
+        {
+          kind: 'condition',
+          type: 'configured',
+          description: 'Configured condition',
+          authoring: { parameters: [], optionsSchema: {} },
+        },
+        {
+          kind: 'action',
+          type: 'startTimer',
+          description: 'Start timer',
+          authoring: {
+            parameters: [
+              {
+                name: 'timerId',
+                description: 'Timer identifier',
+                required: true,
+                parameterTypes: ['simple_string'],
+                allowExpression: false,
+                valueSchema: { type: 'string', minLength: 1 },
+              },
+              {
+                name: 'durationSeconds',
+                description: 'Duration',
+                required: true,
+                parameterTypes: ['simple_number'],
+                allowExpression: false,
+                valueSchema: { type: 'number', exclusiveMinimum: 0 },
+              },
+              {
+                name: 'label',
+                description: 'Optional label',
+                required: false,
+                parameterTypes: ['simple_string'],
+                allowExpression: false,
+                valueSchema: { type: 'string' },
+              },
+            ],
+          },
+        },
+      ],
+    };
+    const timerKey = parameterValueKey('action', 'startTimer', 'timerId');
+    const durationKey = parameterValueKey('action', 'startTimer', 'durationSeconds');
+    const state = wizard({
+      alias: 'copa-reglas',
+      name: 'Copa Reglas',
+      descriptorId: 'd-football',
+      descriptorVersion: '1.2.0',
+      format: 'round-robin',
+      customRuleEnabled: true,
+      customRuleConditionType: 'configured',
+      customRuleActionType: 'startTimer',
+      customRuleValues: { [timerKey]: 'discipline-clock', [durationKey]: '30' },
+      customRuleOptions: {
+        [elementOptionsKey('condition', 'configured')]: '"primitive"',
+      },
+    });
+
+    expect(canAddCustomRule(state, vocabulary)).toBe(true);
+    const scripts = toCreateRequest(state, vocabulary).customScripts;
+    const rules = scripts[0]?.script['rules'] as
+      | readonly {
+          conditions: readonly unknown[];
+          actions: readonly { params: readonly unknown[] }[];
+        }[]
+      | undefined;
+    expect(rules?.[0]?.conditions).toEqual([
+      expect.objectContaining({ type: 'configured', options: {} }),
+    ]);
+    expect(rules?.[0]?.actions[0]?.params).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'durationSeconds', value: 30 })]),
+    );
+    expect(rules?.[0]?.actions[0]?.params).toHaveLength(2);
   });
 });
 
@@ -243,5 +567,60 @@ describe('mutation-classification feedback', () => {
     expect(mutationFeedback({ mutationClass: 'safe', hasRecordedResults: true })).toEqual({
       kind: 'none',
     });
+  });
+});
+
+describe('decision description resolution (openspec 0161)', () => {
+  it('resolves the descriptor-declared description over the platform catalogue for the same field', () => {
+    expect(resolveDecisionDescription('Decides the tie on total goals', 'Platform text')).toBe(
+      'Decides the tie on total goals',
+    );
+  });
+
+  it('falls back to the platform catalogue when the descriptor declares none', () => {
+    expect(resolveDecisionDescription(undefined, 'Platform text')).toBe('Platform text');
+  });
+
+  it('resolves to nothing when neither the descriptor nor the catalogue declares one', () => {
+    expect(resolveDecisionDescription(undefined, undefined)).toBeUndefined();
+  });
+
+  it('reads the mutation class from the field policy at its dot-path', () => {
+    const policies = {
+      format: {
+        permission: { kind: 'replaced' as const },
+        mutationClass: 'blocked_after_results' as const,
+      },
+    };
+    expect(mutationClassOf(policies, 'format')).toBe('blocked_after_results');
+    expect(mutationClassOf(policies, 'series.span')).toBeUndefined();
+    expect(mutationClassOf(undefined, 'format')).toBeUndefined();
+  });
+
+  it('derives the reversibility message key from the mutation class rather than authoring one per field', () => {
+    expect(reversibilityMessageKey('blocked_after_results')).toBe('blockedAfterResults');
+    expect(reversibilityMessageKey('requires_rebuild')).toBe('requiresRebuild');
+    expect(reversibilityMessageKey('safe')).toBeUndefined();
+    expect(reversibilityMessageKey(undefined)).toBeUndefined();
+  });
+
+  it('tracks a change to the declared mutation class with no copy edit', () => {
+    // The same field, before and after a hypothetical policy change from
+    // requires_rebuild to blocked_after_results — the rendered sentence key
+    // follows the policy automatically.
+    const before = {
+      format: {
+        permission: { kind: 'replaced' as const },
+        mutationClass: 'requires_rebuild' as const,
+      },
+    };
+    const after = {
+      format: {
+        permission: { kind: 'replaced' as const },
+        mutationClass: 'blocked_after_results' as const,
+      },
+    };
+    expect(reversibilityMessageKey(mutationClassOf(before, 'format'))).toBe('requiresRebuild');
+    expect(reversibilityMessageKey(mutationClassOf(after, 'format'))).toBe('blockedAfterResults');
   });
 });

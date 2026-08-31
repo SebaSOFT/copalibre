@@ -1,6 +1,18 @@
 ---
 title: Création de tournoi
 description: Ce que configure l'assistant de création de tournoi et ce que signifie chaque champ.
+capabilities:
+  - control-web/tournament-authoring
+  - tournament-engine/discipline-driven-results
+  - tournament-engine/tournament-fixture-engine
+  - tournament-engine/tournament-profile
+  - tournament-engine/tournament-domain-model
+  - tournament-engine/competition-identity
+  - tournament-engine/rules-engine
+  - tournament-engine/scripting-hook-surface
+  - tournament-engine/placement-stage-format
+roles:
+  - admin
 ---
 
 ## À quoi sert cet écran

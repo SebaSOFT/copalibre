@@ -1,6 +1,11 @@
 ---
 title: Жеребьёвка и посев
 description: Что такое посевные позиции, пропуски раунда и ограничения жеребьёвки, которые соблюдает этот экран.
+capabilities:
+  - tournament-engine/bracket-seeding-builder
+  - tournament-engine/draw-constraints
+roles:
+  - admin
 ---
 
 ## Назначение экрана

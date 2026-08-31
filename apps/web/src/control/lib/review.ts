@@ -1,7 +1,7 @@
 import { messages } from '../i18n/messages.en.js';
 
 /**
- * The registration review table's state (0023).
+ * The registration review table's state.
  *
  * The selection and the filter are a model rather than component state so the
  * awkward parts — "select all" after a filter, a selected row that the filter
@@ -16,6 +16,14 @@ export interface RegistrationRow {
   readonly displayName: string;
   readonly status: RegistrationStatus;
   readonly submittedAt: string;
+  /** Present for a person-kind entrant; absent for a team entrant. */
+  readonly personId?: string;
+  /** Present for a team-kind entrant; absent for a person entrant. */
+  readonly teamId?: string;
+  readonly nationality?: string;
+  readonly photoObjectId?: string;
+  /** Whether this person entrant already carries a participant identity link (openspec 0170). */
+  readonly hasIdentityLink?: boolean;
 }
 
 export interface ReviewState {

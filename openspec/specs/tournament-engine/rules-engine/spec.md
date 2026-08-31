@@ -261,3 +261,76 @@ with no actions, and SHALL apply the guard exception consistently.
 #### Scenario: An unconditional rule is a valid way to express "always"
 - **WHEN** a rule declares an empty condition list
 - **THEN** its actions run, and the trace records that it fired unconditionally
+
+### Requirement: A tournament may attach custom scripts to published hooks
+A `TournamentRuleset` SHALL always carry a `customScripts` collection containing zero or more
+organizer-authored rule scripts. This change supports attachment to `event.recorded`, distinct from and
+evaluated alongside the discipline descriptor's behavior for the causing event.
+
+#### Scenario: An existing ruleset has no custom scripts
+- **WHEN** a ruleset created before this capability is read after migration
+- **THEN** its `customScripts` collection is present and empty
+
+#### Scenario: A custom script attaches to the event-recorded hook
+- **WHEN** an organizer attaches a rule script to the `event.recorded` hook on their `TournamentRuleset`
+- **THEN** the script is evaluated whenever an event is recorded in that tournament, receiving the same
+  context the hook already publishes to the descriptor's own scripts
+
+#### Scenario: A custom script cannot attach to an unsupported hook
+- **WHEN** a custom script names any hook other than `event.recorded`, including another declared hook
+  from the wider taxonomy
+- **THEN** attaching it is refused, naming the unsupported hook and listing the custom-script hooks this
+  release evaluates
+
+#### Scenario: A custom script is vetted exactly as a descriptor script is
+- **WHEN** a custom script is saved
+- **THEN** the hook-specific registry validates every element reference, required parameter, parameter
+  type, JSON-Schema-constrained value, and expression against its declarative definitions
+- **AND** guard, result, and draw actions unavailable on this surface are refused as unregistered
+
+#### Scenario: A tournament's custom scripts are a safe mutation
+- **WHEN** an organizer adds, edits, or removes a custom script on a tournament with no recorded result
+- **THEN** the mutation is classified `safe` and takes effect immediately
+
+#### Scenario: A custom script cannot be edited once results depend on it
+- **WHEN** an organizer attempts to edit or remove a custom script on a tournament where a match result
+  already exists that the script could have influenced
+- **THEN** the edit is blocked, consistent with the `blocked_after_results` mutation class
+
+### Requirement: The registry vocabulary is introspectable
+The system SHALL expose the hook-specific registry's supported hooks and registered conditions,
+declared-effect actions, and parameters through a read-only contract. Each element SHALL include stable
+identifier, description, and declarative parameter definitions with JSON Schemas, so an authoring
+surface renders the exact structure backend validation accepts rather than a hand-maintained copy.
+
+#### Scenario: The exposed vocabulary matches what validation accepts
+- **WHEN** the vocabulary introspection contract is read
+- **THEN** every hook and entry it lists is accepted by hook-script save validation with values matching
+  its schemas
+- **AND** no hook, element, or named parameter accepted by that validation is missing from the contract
+
+#### Scenario: A core release adding a new registry entry needs no separate documentation step
+- **WHEN** a new condition or action type is registered in a future core release
+- **THEN** it appears automatically when its registration is included in the hook-specific factory
+  without a second frontend update
+
+### Requirement: Event-hook effects are atomic and idempotent
+The system SHALL evaluate matching `event.recorded` custom scripts synchronously within the causing
+event's transaction. It SHALL durably record each declared effect by stable identity before
+materializing it, so event, audit, effects, projections, and outbox cannot diverge and replay cannot
+duplicate an effect.
+
+#### Scenario: A matching rule declares effects
+- **WHEN** a valid match event reaches `event.recorded` and a custom rule succeeds
+- **THEN** event and each newly declared effect commit in one transaction
+- **AND** notification, timer, statistic-adjustment, and tag effects use their existing durable paths
+
+#### Scenario: The same cause is evaluated again
+- **WHEN** replay evaluates the same script version, rule, action, hook, and event cause
+- **THEN** stable effect identity prevents a second materialization
+
+#### Scenario: Runtime evaluation fails
+- **WHEN** a saved script encounters a value-dependent or missing-context failure at runtime
+- **THEN** valid match event remains recorded
+- **AND** no partial effect from that script is materialized
+- **AND** audit and outbox record `rule.evaluation-failed` with script, hook, cause, and explanation

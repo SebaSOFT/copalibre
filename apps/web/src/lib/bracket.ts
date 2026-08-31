@@ -1,7 +1,9 @@
+import type { ResultReason } from '@copalibre/domain';
 import { presentState, type ResultState, type ResultStateLabels } from './result-state.js';
+import type { PublicSeriesState } from './series.js';
 
 /**
- * The bracket, as a list of rounds rather than a tree (0021).
+ * The bracket, as a list of rounds rather than a tree.
  *
  * A tree can only describe single elimination. Double elimination has a losers'
  * bracket whose matches take entrants from two different places, and a grand
@@ -23,7 +25,15 @@ export interface BracketMatch {
   readonly branch: string;
   readonly slots: readonly SlotSource[];
   readonly scores?: readonly (number | undefined)[];
+  /** Parallel to `scores` — why a side's result is what it is. */
+  readonly resultReasons?: readonly (ResultReason | undefined)[];
   readonly state: ResultState;
+  /**
+   * Present only on a cross a series settles. Absent everywhere else, which is what keeps a
+   * single-match cross rendering exactly as it did before series existed — no bar, no score,
+   * no indication of any kind.
+   */
+  readonly series?: PublicSeriesState;
 }
 
 export interface BracketRound {
@@ -34,7 +44,12 @@ export interface BracketRound {
 
 export interface NodeSlotView {
   readonly label: string;
+  /** Entrant labels retain full and compact forms for responsive rendering. */
+  readonly fullName?: string;
+  readonly abbreviation?: string;
   readonly score?: number;
+  /** Absent, or `played`, renders nothing — only an unusual reason is shown. */
+  readonly resultReason?: Exclude<ResultReason, 'played'>;
   readonly state: ResultState;
   /** True while the entrant is not known yet: rendered dashed, never blank. */
   readonly pending: boolean;
@@ -78,10 +93,18 @@ export function toNode(match: BracketMatch, labels: ResultStateLabels): MatchNod
     badge: presentState(match.state, labels),
     slots: match.slots.map((slot, index) => {
       const score = match.scores?.[index];
+      const resultReason = match.resultReasons?.[index];
       const pending = slot.kind !== 'entrant';
       return {
         label: describeSlot(slot),
+        ...(slot.kind === 'entrant'
+          ? {
+              fullName: slot.name,
+              ...(slot.abbreviation === undefined ? {} : { abbreviation: slot.abbreviation }),
+            }
+          : {}),
         ...(score === undefined ? {} : { score }),
+        ...(resultReason === undefined || resultReason === 'played' ? {} : { resultReason }),
         state: pending ? 'tbd' : match.state,
         pending,
       };
@@ -90,9 +113,9 @@ export function toNode(match: BracketMatch, labels: ResultStateLabels): MatchNod
 }
 
 /**
- * Not extracted to the message catalog (0055) — same shape as the control
+ * Not extracted to the message catalog — same shape as the control
  * panel's own deferred `describeSlot` (`apps/web/src/control/lib/bracket-
- * canvas.ts`, 0053 task 4.4): pure geometry computation with a dynamic match/
+ * canvas.ts`): pure geometry computation with a dynamic match/
  * seed number and no `intl` in scope at the call site, a genuinely different
  * pattern from this module's other extractions; tracked as a follow-up
  * alongside that one rather than solved differently here.
@@ -100,7 +123,7 @@ export function toNode(match: BracketMatch, labels: ResultStateLabels): MatchNod
 export function describeSlot(slot: SlotSource): string {
   switch (slot.kind) {
     case 'entrant':
-      return slot.abbreviation ?? slot.name;
+      return slot.name;
     case 'winner-of':
       return `Ganador del ${slot.matchNumber}`;
     case 'loser-of':
@@ -113,4 +136,22 @@ export function describeSlot(slot: SlotSource): string {
 /** Whether every entrant of a match is known; a grand final rarely is, early. */
 export function isResolved(match: BracketMatch): boolean {
   return match.slots.every((slot) => slot.kind === 'entrant');
+}
+
+/**
+ * A bracket card's own report page — resolved or not. The report
+ * page already renders correctly for a not-yet-played match, so this needs
+ * nothing about the match beyond its number.
+ */
+export function matchReportUrl(input: {
+  readonly organizationAlias: string;
+  readonly tournamentAlias: string;
+  readonly stageNumber: number;
+  readonly matchNumber: number;
+  readonly localePrefix?: string;
+}): string {
+  const { organizationAlias, tournamentAlias, stageNumber, matchNumber, localePrefix = '' } = input;
+  return `${localePrefix}/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(
+    tournamentAlias,
+  )}/stages/${stageNumber}/matches/${matchNumber}`;
 }

@@ -49,6 +49,7 @@ function projection(input: { readonly capabilities?: readonly string[] } = {}) {
         actorRequirement: 'side',
         payloadSchema: { type: 'object' },
         display: {},
+        secondaryActorFields: [],
       },
       {
         code: 'penalty',
@@ -58,6 +59,7 @@ function projection(input: { readonly capabilities?: readonly string[] } = {}) {
         actorRequirement: 'side',
         payloadSchema: { type: 'object' },
         display: {},
+        secondaryActorFields: [],
         workflow: {
           kind: 'outcome-choice',
           options: [
@@ -74,6 +76,7 @@ function projection(input: { readonly capabilities?: readonly string[] } = {}) {
         actorRequirement: 'side',
         payloadSchema: { type: 'object' },
         display: {},
+        secondaryActorFields: [],
       },
       {
         code: 'penalty-missed',
@@ -83,9 +86,86 @@ function projection(input: { readonly capabilities?: readonly string[] } = {}) {
         actorRequirement: 'side',
         payloadSchema: { type: 'object' },
         display: {},
+        secondaryActorFields: [],
+      },
+      // Real football.json vocabulary, not an invented fixture: an
+      // official presses "Falta", then picks its outcome — play on, a
+      // restart, or a card, the last two reusing the discipline's existing
+      // card events rather than declaring foul-scoped copies.
+      {
+        code: 'foul',
+        label: 'Falta',
+        category: 'neutral',
+        permittedSegmentTypes: ['half'],
+        actorRequirement: 'side',
+        payloadSchema: { type: 'object' },
+        display: {},
+        secondaryActorFields: [],
+        workflow: {
+          kind: 'outcome-choice',
+          options: [
+            { definitionCode: 'foul-play-on', label: 'Ley de ventaja' },
+            { definitionCode: 'free-kick-awarded', label: 'Tiro libre' },
+            { definitionCode: 'penalty-awarded', label: 'Penal' },
+            { definitionCode: 'yellow-card', label: 'Tarjeta amarilla' },
+            { definitionCode: 'red-card', label: 'Tarjeta roja' },
+          ],
+        },
+      },
+      {
+        code: 'foul-play-on',
+        label: 'Falta (ley de ventaja)',
+        category: 'neutral',
+        permittedSegmentTypes: ['half'],
+        actorRequirement: 'side',
+        payloadSchema: { type: 'object' },
+        display: {},
+        secondaryActorFields: [],
+      },
+      {
+        code: 'free-kick-awarded',
+        label: 'Tiro libre otorgado',
+        category: 'neutral',
+        permittedSegmentTypes: ['half'],
+        actorRequirement: 'side',
+        payloadSchema: { type: 'object' },
+        display: {},
+        secondaryActorFields: [],
+      },
+      {
+        code: 'penalty-awarded',
+        label: 'Penal otorgado',
+        category: 'neutral',
+        permittedSegmentTypes: ['half'],
+        actorRequirement: 'side',
+        payloadSchema: { type: 'object' },
+        display: {},
+        secondaryActorFields: [],
+      },
+      {
+        code: 'yellow-card',
+        label: 'Tarjeta amarilla',
+        category: 'negative',
+        permittedSegmentTypes: ['half'],
+        actorRequirement: 'side',
+        payloadSchema: { type: 'object' },
+        display: {},
+        secondaryActorFields: [],
+      },
+      {
+        code: 'red-card',
+        label: 'Tarjeta roja',
+        category: 'negative',
+        permittedSegmentTypes: ['half'],
+        actorRequirement: 'side',
+        payloadSchema: { type: 'object' },
+        display: {},
+        secondaryActorFields: [],
       },
     ],
     eligiblePersonIds: [],
+    rosters: [],
+    rosterRoles: [],
     eligibleStaffIds: [],
     entrantIds: ['entrant-a', 'entrant-b'],
     capabilities: input.capabilities ?? [
@@ -256,6 +336,30 @@ test('branches a penalty into its descriptor-declared final outcome', async ({ p
     );
 });
 
+test('records a foul, chooses a card outcome, and shows it in the ledger', async ({ page }) => {
+  await mockMatchConsole(page);
+  const target = `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await page.getByRole('button', { name: 'Falta', exact: true }).click();
+  await expect(page.getByLabel('Resultado del evento')).toBeVisible();
+  await page.getByRole('button', { name: 'Tarjeta amarilla' }).last().click();
+
+  await expect
+    .poll(() => capturedRequests(page))
+    .toContainEqual(
+      expect.objectContaining({
+        url: `${matchPath}/events`,
+        body: expect.objectContaining({ definitionCode: 'yellow-card' }),
+      }),
+    );
+  // The chosen outcome is what lands in the timeline — the preliminary
+  // "foul" trigger is never itself submitted (design.md).
+  await expect(page.getByLabel('Ledger y estado')).toContainText('yellow-card');
+});
+
 test('renders clock and declared timer resolution from refreshed authoritative state', async ({
   page,
 }) => {
@@ -271,8 +375,8 @@ test('renders clock and declared timer resolution from refreshed authoritative s
   await page.getByRole('button', { name: 'Resolver' }).click();
   await expect(page.getByText('Sin timers activos.')).toBeVisible();
   await page.reload();
-  await page.waitForURL('**/control/?returnTo=**');
-  // The session is in-memory only (0062) and a reload discards it, same as a
+  await page.waitForURL('**/control/login?returnTo=**');
+  // The session is in-memory only and a reload discards it, same as a
   // real browser refresh — log back in to return to this screen so the
   // assertion below is about the persisted match state, not the session.
   await seedLoginTransaction(page, target);
@@ -292,7 +396,11 @@ test('guards duplicate finalization and retries a lost response with the same ke
 
   await page.getByRole('button', { name: 'Finalizar partido' }).click();
   await page.getByRole('button', { name: 'Confirmar finalización' }).dblclick();
-  await expect(page.getByText('network lost')).toBeVisible();
+  // A lost response is a network-level failure, not a refusal — the
+  // queue leaves it queued silently (no error banner); the retry below is
+  // exactly that silent-requeue path, the same key reused, now getting
+  // through.
+  await expect(page.getByText('1 acción en cola')).toBeVisible();
   await page.getByRole('button', { name: 'Confirmar finalización' }).click();
   await expect(page.getByText('FINALIZED')).toBeVisible();
 

@@ -1,11 +1,11 @@
 /**
- * Note (0067): This sample data now backs only `apps/web/src/pages/tv/**` routes
+ * Note: This sample data now backs only `apps/web/src/pages/tv/**` routes
  * and unit test fixtures, not the main public tournament overview pages.
  */
 import type { OverviewInput } from './overview.js';
 
 /**
- * Sample data for the overview until `0021` wires the read models (0020).
+ * Sample data for the overview until read models are wired.
  *
  * Kept in one named place rather than inlined in the template, so replacing it
  * is a deletion rather than an archaeology exercise — and so nobody mistakes it

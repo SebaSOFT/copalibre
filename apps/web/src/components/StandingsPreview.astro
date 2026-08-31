@@ -1,37 +1,514 @@
 ---
 import type { IntlShape } from 'react-intl';
-import { shortLabel, type OverviewModel } from '../lib/overview.ts';
+import type {
+  TableLayoutSummaryResponse,
+  TableProjectionResponse,
+} from '@copalibre/api/src/dto/table-projections.dto.js';
+import { localizedText } from '../lib/localized-label.ts';
 import { messages } from '../lib/i18n/public-messages.en.ts';
+import { clubEmblemUrl } from '../lib/public-api-client.ts';
+import type { ClubView } from '../lib/overview.ts';
+import EmblemImage from './EmblemImage.astro';
 
 interface Props {
-  readonly model: OverviewModel;
+  /** The declared layouts for building the tab strip. */
+  readonly layouts?: readonly TableLayoutSummaryResponse[];
+  /** The declared layout this projection came from — its own label replaces the generic heading. */
+  readonly layout?: TableLayoutSummaryResponse;
+  readonly projection?: TableProjectionResponse;
+  readonly activeLayoutCode?: string;
+  readonly activeClubId?: string;
+  readonly clubs?: readonly ClubView[];
   readonly intl: IntlShape;
+  readonly canonicalPath?: string;
+  readonly organizationAlias?: string;
+  readonly tournamentAlias?: string;
 }
-const { model, intl } = Astro.props;
+const {
+  layouts = [],
+  layout,
+  projection,
+  activeLayoutCode,
+  activeClubId,
+  clubs = [],
+  intl,
+  canonicalPath = '',
+  organizationAlias,
+  tournamentAlias,
+} = Astro.props;
+
+const effectiveLayoutCode = activeLayoutCode ?? layout?.code;
+const heading = layout
+  ? localizedText(layout.label, intl.locale)
+  : intl.formatMessage(messages.standingsHeading);
+const rawColumns = projection?.columns ?? [];
+const rows = projection?.rows ?? [];
+// Relabelled only under series grain — match grain keeps the discipline's own
+// wording for the column, which already reads as counting matches.
+const columns =
+  projection?.grain === 'series' && projection.countColumnCode !== undefined
+    ? rawColumns.map((column) =>
+        column.code === projection.countColumnCode
+          ? {
+              ...column,
+              header: intl.formatMessage(messages.standingsColumnSeriesLabel),
+              shortHeader: intl.formatMessage(messages.standingsColumnSeriesShortLabel),
+            }
+          : column,
+      )
+    : rawColumns;
+const isPlayerRanking =
+  layout?.target === 'player-ranking' ||
+  layout?.entityGranularity === 'person' ||
+  layout?.entityGranularity === 'player';
 ---
 
-<section aria-labelledby="standings-heading">
-  <h2 id="standings-heading">{intl.formatMessage(messages.standingsHeading)}</h2>
-  {model.standings.length === 0 && <p>{intl.formatMessage(messages.standingsEmpty)}</p>}
-  <table>
-    <thead>
-      <tr
-        ><th scope="col">#</th><th scope="col">{intl.formatMessage(messages.standingsTeam)}</th><th
-          scope="col">{intl.formatMessage(messages.standingsPlayed)}</th
-        ><th scope="col">{intl.formatMessage(messages.standingsPoints)}</th></tr
-      >
-    </thead>
-    <tbody>
-      {
-        model.standings.map((row) => (
-          <tr>
-            <td>{row.position}</td>
-            <td>{shortLabel(row)}</td>
-            <td class="cl-stat-tile__value">{row.played}</td>
-            <td class="cl-stat-tile__value">{row.points}</td>
-          </tr>
-        ))
-      }
-    </tbody>
-  </table>
+<section aria-labelledby="standings-heading" class="cl-standings-section">
+  <h2 id="standings-heading">{heading}</h2>
+
+  {
+    projection?.grain !== undefined && (
+      <p class="cl-standings-grain">
+        {intl.formatMessage(
+          projection.grain === 'series'
+            ? messages.standingsGrainSeries
+            : messages.standingsGrainMatch,
+        )}
+      </p>
+    )
+  }
+
+  {
+    layouts.length > 1 && (
+      <nav class="cl-table-tabs" aria-label="Table Layouts">
+        <ul role="tablist">
+          {layouts.map((l) => {
+            const isActive = l.code === effectiveLayoutCode;
+            const tabUrl = `${canonicalPath}?tab=${encodeURIComponent(l.code)}${activeClubId ? `&clubId=${encodeURIComponent(activeClubId)}` : ''}`;
+            return (
+              <li role="presentation">
+                <a
+                  role="tab"
+                  aria-selected={isActive ? 'true' : 'false'}
+                  class={`cl-table-tab ${isActive ? 'cl-table-tab--active' : ''}`}
+                  href={tabUrl}
+                  data-layout-code={l.code}
+                >
+                  {localizedText(l.label, intl.locale)}
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+    )
+  }
+
+  {
+    clubs.length > 0 && (
+      <div class="cl-club-filter" role="group" aria-label="Filter by club">
+        <span class="cl-club-filter__label">Club:</span>
+        <a
+          href={`${canonicalPath}${effectiveLayoutCode ? `?tab=${encodeURIComponent(effectiveLayoutCode)}` : ''}`}
+          class={`cl-club-filter__btn ${!activeClubId ? 'cl-club-filter__btn--active' : ''}`}
+          aria-pressed={!activeClubId ? 'true' : 'false'}
+          data-club-filter="all"
+        >
+          All
+        </a>
+        {clubs.map((club) => {
+          const isClubActive = club.clubId === activeClubId;
+          const clubUrl = `${canonicalPath}?${effectiveLayoutCode ? `tab=${encodeURIComponent(effectiveLayoutCode)}&` : ''}clubId=${encodeURIComponent(club.clubId)}`;
+          return (
+            <a
+              href={clubUrl}
+              class={`cl-club-filter__btn ${isClubActive ? 'cl-club-filter__btn--active' : ''}`}
+              aria-pressed={isClubActive ? 'true' : 'false'}
+              data-club-filter={club.clubId}
+              title={club.name}
+            >
+              {
+                // The interaction 0103 named as its motivation: a rendered
+                // club emblem, clickable to filter — this link is that
+                // click target. Every club gets one (placeholder or real),
+                // matching the organization page's own club grid.
+                organizationAlias && (
+                  <EmblemImage
+                    alt={intl.formatMessage(messages.orgPageEmblemAlt, { name: club.name })}
+                    placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
+                    size={20}
+                    src={
+                      club.emblemObjectId
+                        ? clubEmblemUrl(organizationAlias, club.clubId)
+                        : undefined
+                    }
+                  />
+                )
+              }
+              {club.name}
+            </a>
+          );
+        })}
+      </div>
+    )
+  }
+
+  <div class="cl-table-container">
+    {rows.length === 0 && <p>{intl.formatMessage(messages.standingsEmpty)}</p>}
+    {
+      rows.length > 0 && (
+        <table>
+          <thead>
+            <tr>
+              {columns.map((column) => (
+                <th scope="col" title={localizedText(column.header, intl.locale)}>
+                  {localizedText(column.shortHeader ?? column.header, intl.locale)}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr>
+                {columns.map((column) => {
+                  const isPlayerNameCell =
+                    isPlayerRanking &&
+                    (column.code === 'person' ||
+                      column.code === 'player' ||
+                      column.code === 'entrant' ||
+                      column.code === 'name');
+                  const cellFormatted = row.cells[column.code]?.formatted ?? '—';
+                  const playerPageUrl = `${canonicalPath}/players/${row.actorId}`;
+                  const apiProfileUrl =
+                    organizationAlias && tournamentAlias && row.actorId
+                      ? `/api/player-profile?organization=${encodeURIComponent(organizationAlias)}&tournament=${encodeURIComponent(tournamentAlias)}&personId=${encodeURIComponent(row.actorId)}`
+                      : playerPageUrl;
+
+                  return (
+                    <td class="cl-stat-tile__value">
+                      {isPlayerNameCell && row.actorId ? (
+                        <a
+                          href={playerPageUrl}
+                          class="cl-player-link"
+                          data-player-id={row.actorId}
+                          data-profile-url={apiProfileUrl}
+                        >
+                          {cellFormatted}
+                        </a>
+                      ) : (
+                        cellFormatted
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )
+    }
+  </div>
+
+  <dialog id="cl-player-dialog" class="cl-player-dialog" aria-labelledby="cl-player-dialog-title">
+    <div class="cl-player-dialog__content">
+      <div class="cl-player-dialog__header">
+        <h3 id="cl-player-dialog-title" class="cl-player-dialog__title">Player Profile</h3>
+        <button
+          type="button"
+          class="cl-player-dialog__close"
+          aria-label="Close dialog"
+          data-close-dialog>✕</button
+        >
+      </div>
+      <div id="cl-player-dialog-body" class="cl-player-dialog__body" aria-live="polite">
+        <p class="cl-player-dialog__loading">Loading player details...</p>
+      </div>
+    </div>
+  </dialog>
 </section>
+
+<script>
+  function initPlayerDialog() {
+    const dialog = document.getElementById('cl-player-dialog') as HTMLDialogElement | null;
+    if (!dialog) return;
+
+    const body = document.getElementById('cl-player-dialog-body');
+    const title = document.getElementById('cl-player-dialog-title');
+    const closeBtn = dialog.querySelector('[data-close-dialog]');
+
+    closeBtn?.addEventListener('click', () => dialog.close());
+    dialog.addEventListener('click', (e) => {
+      if (e.target === dialog) dialog.close();
+    });
+
+    document.querySelectorAll<HTMLAnchorElement>('.cl-player-link').forEach((link) => {
+      link.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const profileUrl = link.dataset.profileUrl || link.href;
+        if (body) body.innerHTML = '<p class="cl-player-dialog__loading">Loading...</p>';
+        if (typeof dialog.showModal === 'function') {
+          dialog.showModal();
+        }
+
+        try {
+          interface HistoryItem {
+            tournamentName: string;
+            teamName: string;
+            role: string;
+            entrantAbbreviation?: string;
+          }
+          interface StatItem {
+            label: string;
+            value: number;
+          }
+          interface DisciplineTotals {
+            statistics?: StatItem[];
+          }
+          interface ProfileData {
+            displayName?: string;
+            nationality?: string;
+            age?: number;
+            careerStatistics?: DisciplineTotals[];
+            competitionHistory?: HistoryItem[];
+          }
+
+          const res = await fetch(profileUrl);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data: ProfileData = await res.json();
+          if (title) title.textContent = data.displayName || 'Player Profile';
+          if (body) {
+            const metaTags = [
+              data.nationality
+                ? `<span class="cl-player-profile__tag">${data.nationality}</span>`
+                : '',
+              data.age !== undefined
+                ? `<span class="cl-player-profile__tag">Age: ${data.age}</span>`
+                : '',
+            ]
+              .filter(Boolean)
+              .join(' ');
+
+            const statsItems = (data.careerStatistics || [])
+              .flatMap((d: DisciplineTotals) =>
+                (d.statistics || []).map(
+                  (s: StatItem) => `
+                  <div class="cl-stat-item">
+                    <span class="cl-stat-label">${s.label}</span>
+                    <strong class="cl-stat-val">${s.value}</strong>
+                  </div>
+                `,
+                ),
+              )
+              .join('');
+
+            const historyRows = (data.competitionHistory || [])
+              .map(
+                (h: HistoryItem) => `
+                <tr>
+                  <td><strong>${h.tournamentName}</strong></td>
+                  <td>${h.teamName}${h.entrantAbbreviation ? ` (${h.entrantAbbreviation})` : ''}</td>
+                  <td>${h.role}</td>
+                </tr>
+              `,
+              )
+              .join('');
+
+            // An absence is stated, never rendered as zero — a person
+            // with no recorded roster history gets an explicit "none
+            // recorded" line, the same wording PlayerProfileView.astro (the
+            // standalone profile page) already used for this.
+            body.innerHTML = `
+              <div class="cl-modal-profile">
+                ${metaTags ? `<div class="cl-modal-meta">${metaTags}</div>` : ''}
+                <h4 class="cl-modal-section-title">Career Statistics</h4>
+                ${statsItems ? `<div class="cl-modal-stats-grid">${statsItems}</div>` : '<p class="cl-modal-empty">No career statistics recorded.</p>'}
+                <h4 class="cl-modal-section-title">Competition History</h4>
+                ${historyRows ? `<table class="cl-modal-history-table"><thead><tr><th>Tournament</th><th>Team</th><th>Role</th></tr></thead><tbody>${historyRows}</tbody></table>` : '<p class="cl-modal-empty">No competition history recorded.</p>'}
+              </div>
+            `;
+          }
+        } catch {
+          if (body) {
+            body.innerHTML = '<p class="cl-inline-alert">Unable to load player details.</p>';
+          }
+        }
+      });
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initPlayerDialog);
+  } else {
+    initPlayerDialog();
+  }
+</script>
+
+<style>
+  .cl-table-tabs ul {
+    display: flex;
+    gap: 8px;
+    list-style: none;
+    padding: 0;
+    margin: 0 0 16px 0;
+    border-bottom: 1px solid var(--cl-color-border, #e5e7eb);
+    overflow-x: auto;
+  }
+  .cl-table-tab {
+    display: inline-block;
+    padding: 8px 16px;
+    text-decoration: none;
+    color: inherit;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+  }
+  .cl-table-tab--active {
+    border-bottom-color: var(--cl-color-primary, #2563eb);
+    color: var(--cl-color-primary, #2563eb);
+  }
+  .cl-standings-grain {
+    margin: 0 0 12px 0;
+    font-size: var(--cl-font-size-sm);
+    color: var(--cl-color-text-subtle, #6b7280);
+  }
+  .cl-club-filter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .cl-club-filter__label {
+    font-size: var(--cl-font-size-sm);
+    font-weight: 600;
+    color: var(--cl-color-text-subtle, #6b7280);
+  }
+  .cl-club-filter__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: var(--cl-font-size-sm);
+    text-decoration: none;
+    background: var(--cl-color-surface-subtle, #f3f4f6);
+    color: inherit;
+  }
+  .cl-club-filter__btn--active {
+    background: var(--cl-color-primary, #2563eb);
+    color: #ffffff;
+  }
+  .cl-player-link {
+    color: var(--cl-color-primary, #2563eb);
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .cl-player-link:hover {
+    text-decoration: underline;
+  }
+  .cl-player-dialog {
+    border: none;
+    border-radius: 12px;
+    padding: 0;
+    max-width: 600px;
+    width: 90vw;
+    box-shadow:
+      0 20px 25px -5px rgba(0, 0, 0, 0.1),
+      0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    background: var(--cl-color-surface, #ffffff);
+    color: inherit;
+  }
+  .cl-player-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+  }
+  .cl-player-dialog__content {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  .cl-player-dialog__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--cl-color-border, #e5e7eb);
+    padding-bottom: 12px;
+  }
+  .cl-player-dialog__title {
+    margin: 0;
+    font-size: var(--cl-font-size-lg);
+    font-weight: 700;
+  }
+  .cl-player-dialog__close {
+    background: none;
+    border: none;
+    font-size: var(--cl-font-size-lg);
+    cursor: pointer;
+    padding: 4px 8px;
+    color: var(--cl-color-text-subtle, #6b7280);
+    border-radius: 4px;
+  }
+  .cl-player-dialog__close:hover {
+    background: var(--cl-color-surface-subtle, #f3f4f6);
+  }
+  .cl-player-profile__tag {
+    display: inline-block;
+    background: var(--cl-color-surface-subtle, #f3f4f6);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: var(--cl-font-size-sm);
+    font-weight: 500;
+  }
+  .cl-modal-meta {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .cl-modal-section-title {
+    margin: 16px 0 8px 0;
+    font-size: var(--cl-font-size-base);
+    font-weight: 600;
+  }
+  .cl-modal-empty {
+    color: var(--cl-color-text-subtle, #6b7280);
+    font-style: italic;
+    margin: 0;
+  }
+  .cl-modal-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .cl-stat-item {
+    background: var(--cl-color-surface-subtle, #f3f4f6);
+    padding: 10px;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+  }
+  .cl-stat-label {
+    font-size: var(--cl-font-size-xs);
+    color: var(--cl-color-text-subtle, #6b7280);
+  }
+  .cl-stat-val {
+    font-size: var(--cl-font-size-lg);
+    font-weight: 700;
+  }
+  .cl-modal-history-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--cl-font-size-sm);
+    text-align: left;
+  }
+  .cl-modal-history-table th,
+  .cl-modal-history-table td {
+    padding: 8px;
+    border-bottom: 1px solid var(--cl-color-border, #e5e7eb);
+  }
+  .cl-modal-history-table th {
+    background: var(--cl-color-surface-subtle, #f3f4f6);
+  }
+</style>

@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 /**
- * The `/tv/**` kiosk and overlay surface (0031, tasks 8.1-8.3).
+ * The `/tv/**` kiosk and overlay surface.
  *
  * Every scenario here is about the property that makes this surface
  * different from the public web: nobody is present to click anything, so a
@@ -139,7 +139,7 @@ test('resumes rendering after a simulated power cycle, with no login prompt (8.3
 }) => {
   await mockOpenStream(page);
   await page.goto(`${TV_PATH}?token=kiosk-token`);
-  await expect(page.getByText('TLL A')).toBeVisible();
+  await expect(page.getByText('Talleres de Mendoza')).toBeVisible();
 
   // A power cycle clears everything volatile; the display token survives
   // only because it lives in the device's launch URL, never in storage.
@@ -150,6 +150,6 @@ test('resumes rendering after a simulated power cycle, with no login prompt (8.3
   await page.context().clearCookies();
   await page.reload();
 
-  await expect(page.getByText('TLL A')).toBeVisible();
+  await expect(page.getByText('Talleres de Mendoza')).toBeVisible();
   await expect(page.getByText(/iniciar sesión|log in|contraseña|password/i)).toHaveCount(0);
 });

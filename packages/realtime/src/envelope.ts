@@ -1,5 +1,5 @@
 /**
- * The event envelope, and what a public stream is allowed to say (0018).
+ * The event envelope, and what a public stream is allowed to say.
  *
  * One shape for both streams and both transports. The architecture doc keeps a
  * single public SSE channel for the public web, the bracket views and the

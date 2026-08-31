@@ -1,16 +1,18 @@
 import { useEffect, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
+import type { OrganizationRole } from '@copalibre/domain';
 import { ActivityLog } from './ActivityLog.js';
 import { DeviceHeartbeat } from './DeviceHeartbeat.js';
 import { QuickStats } from './QuickStats.js';
 import { TournamentCard } from './TournamentCard.js';
-import { SIDENAV, type DashboardModel } from '../lib/dashboard.js';
+import { visibleSidenav, type DashboardModel } from '../lib/dashboard.js';
 import { createControlApiClient, type DisplayTokenResponse } from '../lib/api-client.js';
 import { activeControlLanguage, ControlIntl } from '../i18n/ControlIntl.js';
 import { LanguageSwitcher } from '../i18n/LanguageSwitcher.js';
 import { messages } from '../i18n/messages.en.js';
 import { controlLinkClick } from '../lib/control-navigation.js';
 import { controlTokenStore } from '../session/token-store.js';
+import { Button } from './ui/atoms/button.js';
 import {
   writeStoredLanguagePreference,
   type SupportedLanguage,
@@ -21,7 +23,7 @@ interface DeviceEntry {
   readonly token: DisplayTokenResponse;
 }
 
-/** A1, the organization dashboard (0022). */
+/** A1, the organization dashboard. */
 export function Dashboard({
   model,
   organizationAlias,
@@ -69,15 +71,48 @@ function DashboardBody({
       link.click();
       URL.revokeObjectURL(link.href);
     });
+  const downloadConfiguration = (tournamentAlias: string) =>
+    void api
+      .downloadTournamentConfiguration?.(organizationAlias, tournamentAlias)
+      .then((configuration) => {
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(
+          new Blob([`${JSON.stringify(configuration, null, 2)}\n`], { type: 'application/json' }),
+        );
+        link.download = `${tournamentAlias}-configuration.json`;
+        link.click();
+        URL.revokeObjectURL(link.href);
+      });
 
   const [devices, setDevices] = useState<readonly DeviceEntry[]>([]);
   const [now, setNow] = useState(() => Date.now());
   const [archivedAliases, setArchivedAliases] = useState<ReadonlySet<string>>(new Set());
+  const [role, setRole] = useState<OrganizationRole | undefined>(undefined);
+  useEffect(() => {
+    let cancelled = false;
+    createControlApiClient({
+      fetch: globalThis.fetch.bind(globalThis),
+      accessToken: () => controlTokenStore.read(),
+    })
+      .listMyOrganizations()
+      .then((organizations) => {
+        if (cancelled) return;
+        const mine = organizations.find((one) => one.organizationAlias === organizationAlias);
+        setRole(mine?.role);
+      })
+      .catch(() => {
+        // Same presentation-guard fallback as ControlShell: a failed lookup
+        // leaves every entry visible rather than blocking the dashboard.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [organizationAlias]);
   const visibleTournaments = model.tournaments.filter((card) => !archivedAliases.has(card.alias));
   const archive = (tournamentAlias: string) =>
     void api.archiveTournament?.(organizationAlias, tournamentAlias).then(() => {
       // Removed from view rather than re-fetched: this dashboard's tournament
-      // list is still build-time sample data (0033), so a live "active only"
+      // list is still build-time sample data, so a live "active only"
       // re-query isn't possible yet — the operator sees the result of their
       // own action immediately either way.
       setArchivedAliases((current) => new Set([...current, tournamentAlias]));
@@ -112,7 +147,7 @@ function DashboardBody({
     <div className="cl-control">
       <nav aria-label={intl.formatMessage(messages.shellSections)}>
         <ul>
-          {SIDENAV.map((item) => (
+          {visibleSidenav(role).map((item) => (
             <li key={item.id}>
               <a
                 className="cl-focusable"
@@ -125,18 +160,19 @@ function DashboardBody({
           ))}
         </ul>
         <LanguageSwitcher onChange={onLocaleChange} value={locale} />
-        <button
+        <Button
           onClick={() => {
             controlTokenStore.clear();
             // A real navigation: /control/ (login) is a separate page from
-            // this shell (0062), same boundary as the unauthenticated-visit
+            // this shell, same boundary as the unauthenticated-visit
             // guard.
             window.location.assign('/control/');
           }}
           type="button"
+          variant="secondary"
         >
           <FormattedMessage {...messages.shellLogout} />
-        </button>
+        </Button>
       </nav>
 
       <main>
@@ -150,20 +186,43 @@ function DashboardBody({
           {visibleTournaments.map((card) => (
             <div key={card.tournamentId}>
               <TournamentCard card={card} />
-              <p>
-                <button onClick={() => download(card.alias, 'participants/team')} type="button">
+              <p style={{ display: 'flex', gap: 'var(--cl-space-2)', flexWrap: 'wrap' }}>
+                <Button
+                  onClick={() => download(card.alias, 'participants/team')}
+                  type="button"
+                  variant="secondary"
+                >
                   <FormattedMessage {...messages.dashboardParticipantsCsv} />
-                </button>
-                <button onClick={() => download(card.alias, 'results')} type="button">
+                </Button>
+                <Button
+                  onClick={() => download(card.alias, 'results')}
+                  type="button"
+                  variant="secondary"
+                >
                   <FormattedMessage {...messages.dashboardResultsCsv} />
-                </button>
-                <button onClick={() => download(card.alias, 'standings')} type="button">
+                </Button>
+                <Button
+                  onClick={() => download(card.alias, 'standings')}
+                  type="button"
+                  variant="secondary"
+                >
                   <FormattedMessage {...messages.dashboardStandingsCsv} />
-                </button>
+                </Button>
+                <Button
+                  onClick={() => downloadConfiguration(card.alias)}
+                  type="button"
+                  variant="secondary"
+                >
+                  <FormattedMessage {...messages.dashboardConfigurationJson} />
+                </Button>
                 {card.lifecycle === 'finished' && (
-                  <button onClick={() => archive(card.alias)} type="button">
+                  <Button
+                    onClick={() => archive(card.alias)}
+                    type="button"
+                    variant="destructive-outline"
+                  >
                     <FormattedMessage {...messages.dashboardArchive} />
-                  </button>
+                  </Button>
                 )}
               </p>
             </div>

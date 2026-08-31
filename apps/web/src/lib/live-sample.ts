@@ -1,5 +1,5 @@
 /**
- * Note (0067): This sample data now backs only `apps/web/src/pages/tv/**` routes
+ * Note: This sample data now backs only `apps/web/src/pages/tv/**` routes
  * and unit test fixtures, not the main public live page.
  */
 import type { LiveDashboard } from './live-state.js';
@@ -10,6 +10,7 @@ export function sampleDashboard(): LiveDashboard {
     matches: [
       {
         matchId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        stageNumber: 1,
         matchNumber: 1,
         state: 'live',
         projectionVersion: 3,

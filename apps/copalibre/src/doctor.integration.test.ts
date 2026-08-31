@@ -21,7 +21,7 @@ describe('copalibre doctor command (integration)', () => {
         'FAIL secret:COPALIBRE_BOOTSTRAP_TOKEN: COPALIBRE_BOOTSTRAP_TOKEN is required',
       );
       expect(result.stdout).toContain('FAIL oidc-config:');
-      // Only the startup banner (0042) — no stray diagnostic noise beyond it.
+      // Only the startup banner — no stray diagnostic noise beyond it.
       expect(result.stderr).toBe(renderBanner());
     } finally {
       await rm(dataDirectory, { force: true, recursive: true });
@@ -29,7 +29,7 @@ describe('copalibre doctor command (integration)', () => {
   });
 
   /**
-   * The object-storage round-trip check (0041 task 6.4) — against real
+   * The object-storage round-trip check — against real
    * infrastructure both times: real MinIO with wrong credentials for the S3
    * profile, a real read-only directory for the filesystem profile. Neither
    * scenario is reachable through `objectStorageConfigFromEnv`'s unit tests

@@ -1,6 +1,16 @@
 ---
 title: Votre premier tournoi
 description: Le flux initial pour créer et publier un tournoi.
+capabilities:
+  - platform/native-auth
+  - control-web/control-web-shell
+roles:
+  - admin
+  - club-admin
+  - referee
+  - broadcaster
+  - viewer
+  - super-admin
 ---
 
 ## Créer le tournoi
@@ -20,5 +30,5 @@ classés selon leur impact sur les résultats existants.
 
 ## Aide par écran
 
-Chaque écran du [panneau de contrôle](/help/control/) a sa propre page d'aide, accessible depuis
+Chaque écran du [panneau de contrôle](/fr/help/control/) a sa propre page d'aide, accessible depuis
 le lien « Qu'est-ce que cet écran ? » dans sa barre latérale.

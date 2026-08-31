@@ -54,3 +54,72 @@ configured endpoint or filesystem profile, not only that the configured URL is r
   actually write to (wrong credentials, missing bucket, read-only mount)
 - **THEN** doctor reports a clear failure naming the object-storage check, rather than passing on
   reachability alone
+
+### Requirement: A capability may mark an object kind as publicly servable
+
+An object-storage caller SHALL be able to expose a reference-checked read endpoint for a declared
+public object kind (e.g. a person photo, a club emblem, a discipline's background image), distinct from
+the default — every other stored object (report evidence, module assets not declared public) remains
+reachable only through its owning capability's own authorized path, never through an unauthenticated
+read. A discipline background SHALL use `GET /objects/discipline-background-image?key=...`, and that
+endpoint SHALL serve only keys referenced by an installed discipline descriptor.
+
+#### Scenario: A publicly servable object is retrievable by reference without authentication
+- **WHEN** an anonymous client requests a stored object of a kind marked publicly servable, by its
+  storage reference
+- **THEN** the object's bytes and content type are returned, with no organization membership or
+  capability check
+
+#### Scenario: A non-public object kind refuses the same unauthenticated path
+- **WHEN** an anonymous client requests a stored object of a kind not marked publicly servable (e.g.
+  report evidence) through the public-serve path
+- **THEN** the request is rejected; that object remains reachable only through its own capability's
+  authorized endpoint
+
+#### Scenario: A stored but unreferenced object is not public
+- **WHEN** an anonymous client supplies a valid storage key that no installed discipline descriptor
+  references to the discipline-background endpoint
+- **THEN** the endpoint returns not-found without reading or exposing that object
+
+#### Scenario: An unknown or deleted reference returns not-found, not an error
+- **WHEN** a public-serve request names a storage reference that does not resolve to a stored object
+- **THEN** the response is a not-found result, not a server error
+
+#### Scenario: A discipline's background image is publicly servable
+- **WHEN** an anonymous client requests a discipline's background image by its storage reference, on a
+  public tournament page for that discipline
+- **THEN** the image's bytes and content type are returned without authentication, the same way a club
+  emblem or person photo already is
+
+### Requirement: Per-organization storage usage is queryable
+The system SHALL be able to report, for a given organization, the total bytes and object count of every
+successfully processed stored object belonging to it, without requiring a schema migration beyond the
+existing `object_metadata` record.
+
+#### Scenario: Usage reflects only successfully processed objects
+- **WHEN** an organization has objects in `pending`, `passed`, and `failed` status
+- **THEN** the reported total bytes and object count include only the `passed` objects
+
+#### Scenario: An organization with no stored objects reports zero
+- **WHEN** an organization has never had an object stored
+- **THEN** the usage report returns zero bytes and zero objects, not an error
+
+### Requirement: An unreferenced stored object can be deleted
+The system SHALL let an authorized operator delete a stored object that no entity currently references,
+freeing its storage and removing its metadata record. An object still referenced by an entity — an
+organization's current emblem, a person's current photo — SHALL NOT be deletable while that reference
+stands; deletion SHALL be refused, naming what still references it.
+
+#### Scenario: An unused upload is deleted
+- **WHEN** an operator deletes an object that no entity currently references — for example, an emblem
+  that was replaced and is no longer the organization's current one
+- **THEN** the object is removed from storage and its metadata record no longer appears in the
+  organization's storage usage
+
+#### Scenario: A referenced object cannot be deleted
+- **WHEN** an operator attempts to delete an object that is an entity's current emblem or photo
+- **THEN** the deletion is refused, naming the entity that still references it
+
+#### Scenario: Storage usage reflects a deletion
+- **WHEN** an unreferenced object is deleted
+- **THEN** the organization's storage usage total decreases by that object's size

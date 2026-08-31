@@ -1,6 +1,6 @@
 {
   "name": "@copalibre/rules",
-  "version": "0.5.0-beta",
+  "version": "1.0.0",
   "private": true,
   "license": "AGPL-3.0-only",
   "main": "dist/index.js",
@@ -13,6 +13,7 @@
   "dependencies": {
     "@copalibre/domain": "workspace:^",
     "@sebasoft/neuron-js": "0.6.1",
+    "ajv": "^8.20.0",
     "jsep": "^1.4.0",
     "pure-rand": "^8.4.2",
     "uuid": "^14.0.1"

@@ -134,6 +134,81 @@ describe('admin-control plane', () => {
       evaluateAdminControl(organizer, { organizationId: 'org-1' }, { destructive: false }).allowed,
     ).toBe(true);
   });
+
+  describe('club and tournament ownership scope', () => {
+    const clubAdmin = subject({
+      subjectId: 'club-admin-1',
+      scopes: ['copalibre.control'],
+      resourceScope: { clubId: 'club-1' },
+    });
+    const tournamentAdmin = subject({
+      subjectId: 'tournament-admin-1',
+      scopes: ['copalibre.control'],
+      resourceScope: { tournamentId: 'tournament-1' },
+    });
+
+    it('allows a club-admin acting on the club they administer', () => {
+      expect(
+        evaluateAdminControl(clubAdmin, { organizationId: 'org-1', ownerClubId: 'club-1' }).allowed,
+      ).toBe(true);
+    });
+
+    it('denies a club-admin acting on a club they do not administer', () => {
+      const decision = evaluateAdminControl(clubAdmin, {
+        organizationId: 'org-1',
+        ownerClubId: 'club-2',
+      });
+      expect(decision).toEqual({
+        allowed: false,
+        reason: 'subject is not scoped to administer this club',
+      });
+    });
+
+    it('does not narrow an unscoped organizer to any one club', () => {
+      expect(
+        evaluateAdminControl(organizer, { organizationId: 'org-1', ownerClubId: 'club-1' }).allowed,
+      ).toBe(true);
+    });
+
+    it('does not engage club scope on a resource that has no club owner', () => {
+      expect(evaluateAdminControl(clubAdmin, { organizationId: 'org-1' }).allowed).toBe(true);
+    });
+
+    it('allows a tournament-admin acting within the tournament their assignment names', () => {
+      expect(
+        evaluateAdminControl(tournamentAdmin, {
+          organizationId: 'org-1',
+          ownerTournamentId: 'tournament-1',
+        }).allowed,
+      ).toBe(true);
+    });
+
+    it('denies a tournament-admin acting on a different tournament in the same organization', () => {
+      const decision = evaluateAdminControl(tournamentAdmin, {
+        organizationId: 'org-1',
+        ownerTournamentId: 'tournament-2',
+      });
+      expect(decision).toEqual({
+        allowed: false,
+        reason: 'subject is not scoped to administer this tournament',
+      });
+    });
+
+    it('evaluates club and tournament scope independently', () => {
+      const both = subject({
+        subjectId: 'both-1',
+        scopes: ['copalibre.control'],
+        resourceScope: { clubId: 'club-1', tournamentId: 'tournament-1' },
+      });
+      expect(
+        evaluateAdminControl(both, {
+          organizationId: 'org-1',
+          ownerClubId: 'club-1',
+          ownerTournamentId: 'tournament-2',
+        }),
+      ).toEqual({ allowed: false, reason: 'subject is not scoped to administer this tournament' });
+    });
+  });
 });
 
 describe('integration plane', () => {

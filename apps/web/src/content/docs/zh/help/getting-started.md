@@ -1,6 +1,16 @@
 ---
 title: 你的第一项赛事
 description: 创建并发布一项赛事的初始流程。
+capabilities:
+  - platform/native-auth
+  - control-web/control-web-shell
+roles:
+  - admin
+  - club-admin
+  - referee
+  - broadcaster
+  - viewer
+  - super-admin
 ---
 
 ## 创建赛事
@@ -17,4 +27,4 @@ description: 创建并发布一项赛事的初始流程。
 
 ## 分屏帮助
 
-[控制面板](/help/control/) 中的每个界面都有专属的帮助页面，可通过侧边栏中的“这是什么界面？”链接访问。
+[控制面板](/zh/help/control/) 中的每个界面都有专属的帮助页面，可通过侧边栏中的“这是什么界面？”链接访问。

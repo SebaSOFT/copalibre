@@ -1,7 +1,24 @@
 ---
 title: Aktualisierung
 description: Der nicht destruktive Weg zur Aktualisierung des CopaLibre-Frameworks und seiner installierten Module.
+capabilities: []
+roles:
+  - super-admin
 ---
+
+## Das copalibre-CLI selbst aktualisieren
+
+`copalibre --version` gibt die Version der installierten Binärdatei aus. Ein erneutes Ausführen des
+Installationsskripts holt die neueste veröffentlichte Release und ersetzt die Binärdatei an Ort und
+Stelle — es ist idempotent: prüft zuerst die installierte Version und überspringt den Download, wenn
+sie bereits übereinstimmt:
+
+```bash
+curl -fsSL https://www.copalibre.app/install.sh | bash
+```
+
+Dies ersetzt nur die `copalibre`-Binärdatei. Es hat keine Auswirkung auf eine laufende Installation —
+siehe unten zur Aktualisierung des Frameworks und seiner Module.
 
 ## Das Framework aktualisieren
 
@@ -9,7 +26,11 @@ Empfohlene, nicht destruktive Reihenfolge:
 
 1. **Sichern Sie**, bevor Sie irgendetwas anfassen: `./copalibre backup --file backups/pre-upgrade.dump`.
 2. **Aktualisieren** Sie den Checkout oder die Image-Referenz auf die neue Version (starten Sie die
-   Dienste noch nicht neu).
+   Dienste noch nicht neu). Wurde diese Installation mit `copalibre init` erstellt (kein Checkout,
+   siehe die [Befehlsreferenz](/de/help/cli/commands/)), bleibt ihr Verzeichnis an die CLI-Version
+   gebunden, mit der es erstellt wurde — `migrate`/`upgrade-check` verweigern bei einer
+   Versionsabweichung mit einer klaren Meldung, also aktualisieren Sie, indem Sie das CLI der neuen
+   Version gegen dasselbe Verzeichnis ausführen, statt CLI-Versionen zu mischen.
 3. **Prüfen Sie die Kompatibilität** mit der neuen Version, ohne etwas neu zu starten:
    ```bash
    ./copalibre upgrade-check --target-version <neue-version>
@@ -43,4 +64,4 @@ installierten Moduls — die Neuinstallation mit einer anderen Version ist die A
 aktualisieren. Ein bereits gestartetes Turnier referenziert weiterhin die Version, mit der es
 erstellt wurde; die Aktualisierung eines Moduls ändert niemals rückwirkend ein laufendes Turnier.
 
-Siehe die [Befehlsreferenz](/help/cli/commands/) für die restlichen Optionen von `module`.
+Siehe die [Befehlsreferenz](/de/help/cli/commands/) für die restlichen Optionen von `module`.

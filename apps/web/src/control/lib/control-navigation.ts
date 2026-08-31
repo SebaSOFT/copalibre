@@ -2,7 +2,7 @@ import type { MouseEvent } from 'react';
 import { useSyncExternalStore } from 'react';
 
 /**
- * Client-side navigation between control-panel screens (0061).
+ * Client-side navigation between control-panel screens.
  *
  * `window.location.pathname` modeled as external state via
  * `useSyncExternalStore` — the browser owns it, React only reads it. Plain
@@ -12,6 +12,24 @@ import { useSyncExternalStore } from 'react';
  */
 
 const NAVIGATED_EVENT = 'copalibre:control-navigated';
+export const NAVIGATION_VISIBILITY_CHANGED_EVENT = 'copalibre:navigation-visibility-changed';
+
+export interface NavigationVisibilityDetail {
+  readonly routeId: string;
+  readonly visible: boolean;
+  readonly reason?: string;
+}
+
+/**
+ * Emits a synthetic `navigation_visibility_changed` event when an admin route
+ * is shown or hidden by feature flag.
+ */
+export function emitNavigationVisibilityChanged(detail: NavigationVisibilityDetail): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(
+    new CustomEvent<NavigationVisibilityDetail>(NAVIGATION_VISIBILITY_CHANGED_EVENT, { detail }),
+  );
+}
 
 /** Pushes a new control-panel path without reloading the page. */
 export function navigateControl(path: string): void {
@@ -21,12 +39,12 @@ export function navigateControl(path: string): void {
 }
 
 /**
- * Where an unauthenticated visit to `path` sends the operator (0062) — a
+ * Where an unauthenticated visit to `path` sends the operator — a
  * pure function so the redirect target is testable without a real
  * `window.location.assign` (jsdom's `Location.assign` isn't mockable).
  */
 export function loginRedirectUrl(path: string): string {
-  return `/control/?returnTo=${encodeURIComponent(path)}`;
+  return `/control/login?returnTo=${encodeURIComponent(path)}`;
 }
 
 /**

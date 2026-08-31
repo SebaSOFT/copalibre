@@ -1,6 +1,8 @@
 import { Module, type INestApplication } from '@nestjs/common';
-import { APP_GUARD, Reflector } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
+import { ApiExceptionFilter } from '../http/error-contract.js';
+import { createApiValidationPipe } from '../http/validation.js';
 import { Test } from '@nestjs/testing';
 import type { DisciplineDescriptor } from '@copalibre/domain';
 import {
@@ -19,7 +21,7 @@ import { SeedingController } from './seeding.controller.js';
 import { StagesController } from './stages.controller.js';
 
 /**
- * Stage creation through the real HTTP stack (0066).
+ * Stage creation through the real HTTP stack.
  *
  * The proof that matters here is end-to-end: an operator with only accepted
  * registrations and no stage yet can reach a real generated bracket entirely through
@@ -61,7 +63,7 @@ function descriptor(): DisciplineDescriptor {
   return {
     descriptorId: '01890000-0000-7000-8000-0000000066a1',
     version: '1.0.0',
-    name: 'Liga de prueba (0066)',
+    name: 'Liga de prueba',
     attribution: { author: 'CopaLibre', licence: 'AGPL-3.0-only' },
     participantTypes: ['team'],
     rosterConstraints: { minPlayers: 1, maxPlayers: 11 },
@@ -69,12 +71,23 @@ function descriptor(): DisciplineDescriptor {
     eventDefinitions: [],
     statistics: [{ code: 'points', label: 'Puntos', aggregation: 'sum' }],
     scoringInputs: [],
-    availableFormats: ['round-robin'],
+    // 'free-for-all' is declared alongside 'round-robin' so a series-on-placement
+    // refusal (task 1.2) can be proven without a second descriptor fixture.
+    availableFormats: ['round-robin', 'free-for-all'],
     notificationRuleCapabilities: [],
     winCondition: {},
     defaults: {},
     fieldPolicies: {
       format: { permission: { kind: 'replaced' }, mutationClass: 'requires_rebuild' },
+      'series.span': { permission: { kind: 'replaced' }, mutationClass: 'requires_rebuild' },
+      'series.resolutionClass': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'blocked_after_results',
+      },
+      'series.neutralGround': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'requires_rebuild',
+      },
     },
   } as unknown as DisciplineDescriptor;
 }
@@ -97,6 +110,7 @@ describe('stage creation routes (integration)', () => {
       providers: [
         { provide: DATABASE, useValue: scratch.db },
         { provide: TokenVerifier, useValue: new FakeTokenVerifier(() => organizationId) },
+        { provide: APP_FILTER, useClass: ApiExceptionFilter },
         { provide: APP_GUARD, useClass: JwtAuthGuard },
         Reflector,
       ],
@@ -105,6 +119,7 @@ describe('stage creation routes (integration)', () => {
 
     const moduleRef = await Test.createTestingModule({ imports: [TestModule] }).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    app.useGlobalPipes(createApiValidationPipe());
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
 
@@ -210,6 +225,15 @@ describe('stage creation routes (integration)', () => {
     expect(body).toMatchObject({ number: 1, name: 'Stage 1', format: 'round-robin' });
     expect(typeof body.stageId).toBe('string');
     expect(typeof body.seasonId).toBe('string');
+    // Task 1.1: declaring no series is the default and stays untouched — no
+    // `series` key at all, and no stage_configuration row is written for it.
+    expect(body.series).toBeUndefined();
+    const row = await scratch.db
+      .selectFrom('stages')
+      .select('stage_configuration_id')
+      .where('stage_id', '=', body.stageId)
+      .executeTakeFirstOrThrow();
+    expect(row.stage_configuration_id).toBeNull();
   });
 
   it('creates the next stage as the sequential default number', async () => {
@@ -242,6 +266,41 @@ describe('stage creation routes (integration)', () => {
     });
 
     expect(response.statusCode).toBe(400);
+  });
+
+  it('400s a stage whose number is not an integer, before reaching the controller', async () => {
+    const response = await request({
+      method: 'POST',
+      url: base,
+      token: 'organizer',
+      payload: { number: 'primera' },
+    });
+    expect(response.statusCode).toBe(400);
+  });
+
+  it('rejects an extra undocumented property with 400 when creating a stage', async () => {
+    const before = await new CompetitionRepository(scratch.db).listStagesOfTournament(tournamentId);
+    const response = await request({
+      method: 'POST',
+      url: base,
+      token: 'organizer',
+      payload: { unexpectedField: 'dropped' },
+    });
+    expect(response.statusCode).toBe(400);
+    const body = response.json();
+    expect(body.errorCode).toBe('bad-request');
+    expect(body.message).toContain('property unexpectedField should not exist');
+    const after = await new CompetitionRepository(scratch.db).listStagesOfTournament(tournamentId);
+    expect(after).toHaveLength(before.length);
+  });
+
+  it('404s a fixtures listing for a stage number that does not exist', async () => {
+    const response = await request({
+      method: 'GET',
+      url: `${base}/999/fixtures`,
+      token: 'organizer',
+    });
+    expect(response.statusCode).toBe(404);
   });
 
   it('401s without a token and 403s a token scoped to another organization', async () => {
@@ -303,6 +362,22 @@ describe('stage creation routes (integration)', () => {
         expect(acceptedEntrantIds).toContain(fixture.home_entrant_id);
       }
 
+      // The schedule builder's own read: real fixture ids, distinct from the
+      // bracket graph's node ids, resolvable from the stage number alone.
+      const fixturesResponse = await request({
+        method: 'GET',
+        url: `${base}/${stageNumber}/fixtures`,
+        token: 'organizer',
+      });
+      expect(fixturesResponse.statusCode).toBe(200);
+      const fixturesBody = fixturesResponse.json();
+      expect(fixturesBody.stageId).toBe(stageId);
+      expect(fixturesBody.fixtures.length).toBe(fixtures.length);
+      for (const fixture of fixturesBody.fixtures) {
+        expect(typeof fixture.fixtureId).toBe('string');
+        expect(acceptedEntrantIds).toContain(fixture.homeEntrantId);
+      }
+
       const after = await request({ method: 'GET', url: seedingUrl, token: 'organizer' });
       expect(after.statusCode).toBe(200);
       const afterBody = after.json();
@@ -354,4 +429,231 @@ describe('stage creation routes (integration)', () => {
       expect(publish.statusCode).toBe(422);
     },
   );
+
+  describe('series declaration (0159)', () => {
+    const seriesTournamentAlias = 'apertura-0066-series';
+    const seriesBase = `/organizations/${organizationAlias}/tournaments/${seriesTournamentAlias}/stages`;
+    let seriesTournamentId = '';
+    let homeEntrantId = '';
+    let awayEntrantId = '';
+
+    beforeAll(async () => {
+      const discipline = descriptor();
+      const enrollment = new EnrollmentRepository(scratch.db);
+
+      await withTransaction(scratch.db, async (uow) => {
+        const tournament = await new TournamentRepository(scratch.db).create(uow, {
+          organizationId,
+          alias: seriesTournamentAlias,
+          name: 'Apertura con series',
+          descriptor: discipline,
+          ...AUDIT,
+        });
+        seriesTournamentId = tournament.tournamentId;
+        await new TournamentRepository(scratch.db).createRuleset(uow, {
+          tournamentId: tournament.tournamentId,
+          organizationId,
+          descriptor: discipline,
+          overrides: { format: 'round-robin' },
+          ...AUDIT,
+        });
+
+        const boca = await enrollment.createTeam(uow, { organizationId, name: 'Boca', ...AUDIT });
+        const bocaEntrant = await enrollment.registerEntrant(uow, {
+          tournamentId: tournament.tournamentId,
+          entrantRef: { kind: 'team', teamId: boca.teamId },
+          organizationId,
+          ...AUDIT,
+        });
+        homeEntrantId = bocaEntrant.entrantId;
+
+        const river = await enrollment.createTeam(uow, { organizationId, name: 'River', ...AUDIT });
+        const riverEntrant = await enrollment.registerEntrant(uow, {
+          tournamentId: tournament.tournamentId,
+          entrantRef: { kind: 'team', teamId: river.teamId },
+          organizationId,
+          ...AUDIT,
+        });
+        awayEntrantId = riverEntrant.entrantId;
+      });
+
+      for (const entrantId of [homeEntrantId, awayEntrantId]) {
+        await withTransaction(scratch.db, (uow) =>
+          enrollment.setEntrantStatus(uow, {
+            entrantId,
+            status: 'accepted',
+            organizationId,
+            ...AUDIT,
+          }),
+        );
+      }
+    });
+
+    it('persists a declared series as stage-configuration overrides and echoes it back (task 1.1)', async () => {
+      const response = await request({
+        method: 'POST',
+        url: seriesBase,
+        token: 'organizer',
+        payload: { series: { span: 5, resolutionClass: 'best-of' } },
+      });
+      expect(response.statusCode).toBe(201);
+      const body = response.json();
+      expect(body.series).toEqual({ span: 5, resolutionClass: 'best-of' });
+
+      const row = await scratch.db
+        .selectFrom('stages')
+        .innerJoin(
+          'stage_configurations',
+          'stage_configurations.stage_configuration_id',
+          'stages.stage_configuration_id',
+        )
+        .select('stage_configurations.overrides')
+        .where('stages.stage_id', '=', body.stageId)
+        .executeTakeFirstOrThrow();
+      const overrides =
+        typeof row.overrides === 'string' ? JSON.parse(row.overrides) : row.overrides;
+      expect(overrides).toEqual({ 'series.span': 5, 'series.resolutionClass': 'best-of' });
+    });
+
+    it('refuses a series on a placement-format stage before storing anything (task 1.2)', async () => {
+      const before = await new CompetitionRepository(scratch.db).listStagesOfTournament(
+        seriesTournamentId,
+      );
+      const response = await request({
+        method: 'POST',
+        url: seriesBase,
+        token: 'organizer',
+        payload: { format: 'free-for-all', series: { span: 3, resolutionClass: 'best-of' } },
+      });
+      expect(response.statusCode).toBe(400);
+      expect(response.json().message).toContain('two sides');
+      const after = await new CompetitionRepository(scratch.db).listStagesOfTournament(
+        seriesTournamentId,
+      );
+      expect(after).toHaveLength(before.length);
+    });
+
+    it('refuses an even-span best-of, naming aggregate and points-per-leg (task 1.3)', async () => {
+      const response = await request({
+        method: 'POST',
+        url: seriesBase,
+        token: 'organizer',
+        payload: { series: { span: 4, resolutionClass: 'best-of' } },
+      });
+      expect(response.statusCode).toBe(400);
+      const message = response.json().message as string;
+      expect(message).toContain('aggregate');
+      expect(message).toContain('points-per-leg');
+    });
+
+    it(
+      'previews a series mutation’s classification without applying it, and blocks a ' +
+        'shortening naming the audited correction workflow once a result exists (task 1.4)',
+      async () => {
+        const created = await request({
+          method: 'POST',
+          url: seriesBase,
+          token: 'organizer',
+          payload: { series: { span: 5, resolutionClass: 'best-of' } },
+        });
+        expect(created.statusCode).toBe(201);
+        const { stageId, number: stageNumber } = created.json();
+        const previewUrl = `${seriesBase}/${stageNumber}/series/preview`;
+
+        const lengthen = await request({
+          method: 'POST',
+          url: previewUrl,
+          token: 'organizer',
+          payload: { span: 7, resolutionClass: 'best-of' },
+        });
+        expect(lengthen.statusCode).toBe(200);
+        const lengthenFields = lengthen.json().fields as {
+          field: string;
+          mutationClass?: string;
+          invalidatedFixtureCount?: number;
+          blocked?: boolean;
+        }[];
+        const spanPreview = lengthenFields.find((f) => f.field === 'series.span');
+        expect(spanPreview).toMatchObject({ mutationClass: 'requires_rebuild' });
+        // No fixtures generated yet for this stage — nothing to invalidate.
+        expect(spanPreview?.invalidatedFixtureCount).toBe(0);
+        const classPreview = lengthenFields.find((f) => f.field === 'series.resolutionClass');
+        expect(classPreview).toMatchObject({ mutationClass: 'blocked_after_results' });
+        expect(classPreview?.blocked).toBeUndefined();
+
+        // Generate and publish fixtures, then finalize one result, so the stage
+        // genuinely `hasRecordedResults` for the next preview.
+        const seedingUrl = `${seriesBase}/${stageNumber}/seeding`;
+        const seedingPreview = await request({
+          method: 'GET',
+          url: seedingUrl,
+          token: 'organizer',
+        });
+        await request({
+          method: 'POST',
+          url: seedingUrl,
+          token: 'organizer',
+          payload: { seeds: seedingPreview.json().seeds },
+        });
+        const fixtureRow = await scratch.db
+          .selectFrom('fixtures')
+          .select('fixture_id')
+          .where('stage_id', '=', stageId)
+          .executeTakeFirstOrThrow();
+        const matchRow = await scratch.db
+          .selectFrom('matches')
+          .select('match_id')
+          .where('fixture_id', '=', fixtureRow.fixture_id)
+          .executeTakeFirstOrThrow();
+
+        const competition = new CompetitionRepository(scratch.db);
+        await withTransaction(scratch.db, (uow) =>
+          competition.recordResult(uow, {
+            matchId: matchRow.match_id,
+            result: {
+              sides: [
+                { entrantId: homeEntrantId, statistics: { points: 3 } },
+                { entrantId: awayEntrantId, statistics: { points: 0 } },
+              ],
+              winnerEntrantId: homeEntrantId,
+              recordedAt: new Date().toISOString(),
+            },
+            organizationId,
+            ...AUDIT,
+          }),
+        );
+
+        const shorten = await request({
+          method: 'POST',
+          url: previewUrl,
+          token: 'organizer',
+          payload: { span: 3, resolutionClass: 'best-of' },
+        });
+        expect(shorten.statusCode).toBe(200);
+        const shortenFields = shorten.json().fields as {
+          field: string;
+          blocked?: boolean;
+          reason?: string;
+        }[];
+        const shortenSpan = shortenFields.find((f) => f.field === 'series.span');
+        expect(shortenSpan?.blocked).toBe(true);
+        expect(shortenSpan?.reason).toContain('audited correction workflow');
+
+        // A classification consulted and found blocking, but returned as a
+        // 200 decision rather than thrown, is still recorded — the one
+        // refusal shape the central exception filter cannot see (openspec
+        // 0166, task 2.2).
+        const refusal = await scratch.db
+          .selectFrom('audit_log')
+          .selectAll()
+          .where('entity_type', '=', 'stage-series')
+          .where('entity_id', '=', stageId)
+          .where('action', '=', 'mutation.refused')
+          .executeTakeFirst();
+        expect(refusal).toBeDefined();
+        expect(refusal?.reason).toContain('audited correction workflow');
+        expect(refusal?.resulting_state).toBeNull();
+      },
+    );
+  });
 });

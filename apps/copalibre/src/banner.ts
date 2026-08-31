@@ -1,16 +1,21 @@
 import { readFileSync } from 'node:fs';
+import { getAsset, isSea } from 'node:sea';
 
 /**
  * A fixed monogram evoking the chamfered "CL" mark (`apps/web/public/
  * copalibre-logo.svg`) — hand-authored once, not generated (design.md:
- * this is a constant, not a general text-to-ASCII-art problem).
+ * this is a constant, not a general text-to-ASCII-art problem). Printed on
+ * every invocation (`renderBanner`), so it stays this small deliberately —
+ * see `readLogoText`/`renderFullLogo` for the larger, `--version`-only mark.
  */
 const MARK = `
-  ____   /
- /       |
-|        |
-|        |
- \\____   |____
+   _____
+  ___   \\
+ /      |
+|       |
+|      |
+ \\___  |____
+  ____/
 `;
 
 interface PackageManifest {
@@ -18,19 +23,50 @@ interface PackageManifest {
   readonly license: string;
 }
 
+export interface ReadPackageManifestDependencies {
+  readonly isSea?: () => boolean;
+  readonly getAsset?: (key: string, encoding: string) => string;
+}
+
 /**
- * Reads `apps/copalibre/package.json` at process start via `fs.readFileSync`
- * + `JSON.parse` rather than a static JSON import (design.md): no
- * `resolveJsonModule`/import-attribute change to the shared tsconfig for one
- * call site, and the same relative path resolves correctly from both
- * `src/banner.ts` under ts-jest and the compiled `dist/banner.js` at
- * runtime — `dist/` sits one level under `apps/copalibre/`, the same depth
- * as `src/`.
+ * Reads `apps/copalibre/package.json`: `sea.getAsset()` when running as a
+ * packaged single-executable binary (`import.meta.url` isn't meaningful once
+ * bundled to CJS, so `build-binary.mjs`'s SEA config embeds `package.json`
+ * as an asset), otherwise `fs.readFileSync` against the real file —
+ * `dist/` sits one level under `apps/copalibre/`, the same depth as `src/`,
+ * so the same relative path resolves correctly from both `src/banner.ts`
+ * under ts-jest and the compiled `dist/banner.js`. Exported (unlike
+ * `renderBanner`/`readCopalibreVersion`, which stay zero-argument) so both
+ * branches are directly unit-testable without mocking the `node:sea` module.
  */
-function readPackageManifest(): PackageManifest {
+export function readPackageManifest(
+  dependencies: ReadPackageManifestDependencies = {},
+): PackageManifest {
+  const isSeaFunction = dependencies.isSea ?? isSea;
+  const getAssetFunction = dependencies.getAsset ?? getAsset;
+  if (isSeaFunction()) {
+    return JSON.parse(getAssetFunction('package.json', 'utf8')) as PackageManifest;
+  }
   const packageJsonUrl = new URL('../package.json', import.meta.url);
   const raw = readFileSync(packageJsonUrl, 'utf8');
   return JSON.parse(raw) as PackageManifest;
+}
+
+/**
+ * Reads `docs/LOGO.txt`, the single source for the larger, `--version`-only
+ * mark — same SEA-asset-vs-filesystem branching as
+ * `readPackageManifest`, so the source text lives in exactly one place
+ * (it previously also lived as a hand-copied constant here, which
+ * could silently drift from the file it was copied from).
+ */
+export function readLogoText(dependencies: ReadPackageManifestDependencies = {}): string {
+  const isSeaFunction = dependencies.isSea ?? isSea;
+  const getAssetFunction = dependencies.getAsset ?? getAsset;
+  if (isSeaFunction()) {
+    return getAssetFunction('logo.txt', 'utf8');
+  }
+  const logoUrl = new URL('../../../docs/LOGO.txt', import.meta.url);
+  return readFileSync(logoUrl, 'utf8');
 }
 
 /** Product self-identification printed on every invocation (task 1.1/2.1). */
@@ -39,7 +75,13 @@ export function renderBanner(): string {
   return `${MARK}  CopaLibre v${version} · ${license}\n\n`;
 }
 
-/** The running CopaLibre version, for callers that need it outside the banner (0046). */
+/** The larger mark, `--version`-only — see `readLogoText`. */
+export function renderFullLogo(): string {
+  const { version, license } = readPackageManifest();
+  return `${readLogoText()}\n  CopaLibre v${version} · ${license}\n\n`;
+}
+
+/** The running CopaLibre version, for callers that need it outside the banner. */
 export function readCopalibreVersion(): string {
   return readPackageManifest().version;
 }

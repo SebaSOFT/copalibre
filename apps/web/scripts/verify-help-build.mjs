@@ -76,17 +76,17 @@ check(
   llmsFullTxt.includes('copalibre init') && llmsFullTxt.includes('copalibre mcp'),
 );
 check(
-  'llms-full.txt stays English-only as more locales are added (0051)',
+  'llms-full.txt stays English-only as more locales are added',
   !llmsFullTxt.includes('Panel de control') && !llmsFullTxt.includes('Referencia de comandos'),
 );
 
 const esGettingStarted = readOutput('es/help/getting-started/index.html');
 check(
-  'the Spanish locale still builds and is reachable at /es/ (0051)',
+  'the Spanish locale still builds and is reachable at /es/',
   esGettingStarted.includes('En esta página'),
 );
 
-// Seven-language parity (0052): each new locale's own root heading confirms
+// Seven-language parity: each new locale's own root heading confirms
 // its content built and is reachable under its own prefix, not just that the
 // build didn't crash.
 const LOCALE_HEADINGS = {
@@ -99,13 +99,49 @@ const LOCALE_HEADINGS = {
 };
 for (const [locale, heading] of Object.entries(LOCALE_HEADINGS)) {
   const page = readOutput(`${locale}/help/index.html`);
-  check(
-    `the ${locale} locale builds and is reachable at /${locale}/ (0052)`,
-    page.includes(heading),
-  );
+  check(`the ${locale} locale builds and is reachable at /${locale}/`, page.includes(heading));
 }
 
-const TOTAL_CHECKS = 27;
+// openspec 0163: the agent-facing authoring contract is a separate pipeline
+// from the operator help site's llms.txt/llms-full.txt (starlight-llms-txt
+// reads only src/content/docs/, never src/authoring-docs/), so the two must
+// never mix — proven here against the real built output, not merely
+// asserted by the separation of the two source trees.
+const llmsAuthoringTxt = existsSync(join(DIST, 'llms-authoring.txt'))
+  ? readOutput('llms-authoring.txt')
+  : '';
+check('llms-authoring.txt exists', llmsAuthoringTxt.length > 0);
+check(
+  'llms-authoring.txt contains the descriptor-authoring content, not a placeholder',
+  llmsAuthoringTxt.includes('copalibre_descriptor_validate') &&
+    llmsAuthoringTxt.includes('requireMargin') &&
+    llmsAuthoringTxt.includes('basketball'),
+);
+check(
+  'llms.txt and llms-full.txt carry none of the authoring-only content',
+  !llmsTxt.includes('llms-authoring') &&
+    !llmsFullTxt.includes('basketball') &&
+    !llmsFullTxt.includes('track-sprint') &&
+    !llmsFullTxt.includes('requireMargin') &&
+    !llmsFullTxt.includes('copalibre_descriptor_validate'),
+);
+check(
+  'the descriptor schema is served at its stable URL as valid JSON',
+  (() => {
+    if (!existsSync(join(DIST, 'schemas/discipline-descriptor.schema.json'))) return false;
+    const schema = JSON.parse(readOutput('schemas/discipline-descriptor.schema.json'));
+    return Array.isArray(schema.required) && schema.required.includes('alias');
+  })(),
+);
+check(
+  'the authoring guide pages are individually served',
+  existsSync(join(DIST, 'authoring/index.md')) &&
+    existsSync(join(DIST, 'authoring/descriptor-reference.md')) &&
+    existsSync(join(DIST, 'authoring/transcriptions/basketball.descriptor.json')) &&
+    existsSync(join(DIST, 'authoring/transcriptions/track-sprint.descriptor.json')),
+);
+
+const TOTAL_CHECKS = 32;
 if (failures.length > 0) {
   process.stderr.write(
     `Help build failed:\n${failures.map((failure) => `  - ${failure}`).join('\n')}\n`,

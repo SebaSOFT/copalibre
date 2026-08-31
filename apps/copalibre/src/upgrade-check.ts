@@ -19,7 +19,7 @@ export interface UpgradeCheckReport {
 }
 
 /**
- * Pure combination step (0045): no database access, so it is unit-testable
+ * Pure combination step: no database access, so it is unit-testable
  * without a real or fake `Kysely` instance. `runUpgradeCheck` below supplies
  * its two inputs from the real database.
  */
@@ -38,7 +38,7 @@ export function evaluateUpgrade(
   return { moduleFailures, pendingMigrations, ok: moduleFailures.length === 0 };
 }
 
-/** Migrations not yet applied, without applying any of them (0045). */
+/** Migrations not yet applied, without applying any of them. */
 async function pendingMigrationNames(db: Kysely<Database>): Promise<readonly string[]> {
   const migrations = await createMigrator(db).getMigrations();
   return migrations
@@ -48,7 +48,7 @@ async function pendingMigrationNames(db: Kysely<Database>): Promise<readonly str
 
 /**
  * Opens its own database connection and closes it before returning, mirroring
- * `moduleVerify`'s self-contained style in `module-commands.ts` (0045).
+ * `moduleVerify`'s self-contained style in `module-commands.ts`.
  */
 export async function runUpgradeCheck(
   targetVersion: string,

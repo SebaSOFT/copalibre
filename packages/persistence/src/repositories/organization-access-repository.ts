@@ -1,9 +1,14 @@
 import {
   canCreateOrganizationInvitation,
+  canGrantRole,
+  isClubScopedRole,
   isOrganizationMemberStatus,
   isOrganizationRole,
+  isTournamentScopedRole,
   normaliseEmail,
   validateOrganizationInvitation,
+  wouldLeaveOrganizationWithoutAdmin,
+  type GrantorContext,
   type OrganizationInvitation,
   type OrganizationMemberStatus,
   type OrganizationRole,
@@ -28,10 +33,20 @@ export interface CreateOrganizationInvitationInput extends AccessAuditContext {
   readonly recipientEmail: string;
   readonly role: OrganizationRole;
   readonly status: OrganizationMemberStatus;
+  /** Required exactly when `role` is club-scoped (`isClubScopedRole`); absent otherwise. */
+  readonly clubId?: string;
+  /** Required exactly when `role` is tournament-scoped (`isTournamentScopedRole`); absent otherwise. */
+  readonly tournamentId?: string;
   readonly tokenHash: string;
   /** Used only in the trusted outbox payload sent to the SMTP delivery adapter. */
   readonly token: string;
   readonly expiresAt: string;
+  /**
+   * Who is inviting, resolved by the caller. Omitted only by the
+   * installation-bootstrap path, which has no organization yet and is
+   * already gated by `canCreateOrganizationInvitation`'s first-assignment rule.
+   */
+  readonly grantorContext?: GrantorContext;
 }
 
 export interface AcceptOrganizationInvitationInput extends AccessAuditContext {
@@ -48,11 +63,23 @@ export interface ChangeOrganizationRoleInput extends AccessAuditContext {
   readonly assignmentId: string;
   readonly role: OrganizationRole;
   readonly status: OrganizationMemberStatus;
+  /** Required exactly when `role` is club-scoped (`isClubScopedRole`); absent otherwise. */
+  readonly clubId?: string;
+  /** Required exactly when `role` is tournament-scoped (`isTournamentScopedRole`); absent otherwise. */
+  readonly tournamentId?: string;
+  readonly grantorContext?: GrantorContext;
 }
 
 export interface DeleteOrganizationRoleInput extends AccessAuditContext {
   readonly organizationId: string;
   readonly assignmentId: string;
+}
+
+export interface RescindOrganizationInvitationInput extends AccessAuditContext {
+  readonly organizationId: string;
+  readonly invitationId: string;
+  /** Omitted only where the caller's authority is already established some other way. */
+  readonly grantorContext?: GrantorContext;
 }
 
 /** One organization a principal has an active, non-deleted role in, with that role. */
@@ -155,9 +182,22 @@ export class OrganizationAccessRepository {
       role: input.role,
       status: input.status,
       expiresAt: input.expiresAt,
+      ...(input.clubId === undefined ? {} : { clubId: input.clubId }),
+      ...(input.tournamentId === undefined ? {} : { tournamentId: input.tournamentId }),
     });
     if (!checked.ok)
       throw new InvariantViolationError(checked.error.message, checked.error.details);
+
+    if (input.grantorContext) {
+      const authorized = canGrantRole(
+        input.grantorContext,
+        checked.value.role,
+        input.organizationId,
+      );
+      if (!authorized.ok) {
+        throw new InvariantViolationError(authorized.error.message, { reason: 'grant-denied' });
+      }
+    }
 
     const firstAssignment = await uow.tx
       .selectFrom('organization_role_assignments')
@@ -183,6 +223,9 @@ export class OrganizationAccessRepository {
         accepted_at: null,
         accepted_principal_id: null,
         created_at: new Date(),
+        club_id: checked.value.clubId ?? null,
+        tournament_id: checked.value.tournamentId ?? null,
+        rescinded_at: null,
       })
       .returningAll()
       .executeTakeFirstOrThrow();
@@ -213,6 +256,85 @@ export class OrganizationAccessRepository {
     return invitation;
   }
 
+  /** Pending invitations: not yet accepted, not rescinded, not expired — what the roles-permissions screen lists. */
+  async listPendingInvitations(organizationId: string): Promise<readonly OrganizationInvitation[]> {
+    const rows = await this.db
+      .selectFrom('organization_invites')
+      .selectAll()
+      .where('organization_id', '=', organizationId)
+      .where('accepted_at', 'is', null)
+      .where('rescinded_at', 'is', null)
+      .where('expires_at', '>', new Date())
+      .orderBy('created_at', 'desc')
+      .execute();
+    return rows.map(toOrganizationInvitation);
+  }
+
+  /**
+   * Withdraws a pending invitation before it is accepted, following
+   * `deleteAssignment`'s shape: lock the row, refuse based on current state,
+   * write the terminal marker, audit with prior state. Requires the same
+   * role-granting authority `createInvitation` required for this invitation's
+   * role, so an org-admin cannot be blocked from correcting their own
+   * club-admin's invitation mistake, and a club-admin (who cannot invite at
+   * all) cannot rescind anything.
+   */
+  async rescindInvitation(
+    uow: UnitOfWork,
+    input: RescindOrganizationInvitationInput,
+  ): Promise<OrganizationInvitation> {
+    const current = await lockRowsForMutation(
+      this.db,
+      uow.tx
+        .selectFrom('organization_invites')
+        .selectAll()
+        .where('organization_id', '=', input.organizationId)
+        .where('invitation_id', '=', input.invitationId),
+    ).executeTakeFirst();
+    if (!current) throw new NotFoundError('Organization invitation was not found');
+
+    if (current.accepted_at !== null) {
+      throw new InvariantViolationError(
+        'Organization invitation was already accepted; it can no longer be rescinded',
+      );
+    }
+    if (current.rescinded_at !== null) {
+      throw new InvariantViolationError('Organization invitation was already rescinded');
+    }
+
+    if (input.grantorContext) {
+      const authorized = canGrantRole(
+        input.grantorContext,
+        current.role as OrganizationRole,
+        input.organizationId,
+      );
+      if (!authorized.ok) {
+        throw new InvariantViolationError(authorized.error.message, { reason: 'grant-denied' });
+      }
+    }
+
+    const rescindedAt = new Date();
+    const row = await uow.tx
+      .updateTable('organization_invites')
+      .set({ rescinded_at: rescindedAt })
+      .where('invitation_id', '=', input.invitationId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const invitation = toOrganizationInvitation(row);
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'organization-invitation',
+      entityId: input.invitationId,
+      action: 'organization.invitation-rescinded',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      previousState: { ...toOrganizationInvitation(current) },
+      resultingState: { ...invitation },
+    });
+    return invitation;
+  }
+
   async acceptInvitation(
     uow: UnitOfWork,
     input: AcceptOrganizationInvitationInput,
@@ -229,6 +351,9 @@ export class OrganizationAccessRepository {
     const now = input.now ?? new Date();
     if (invitation.accepted_at !== null) {
       throw new InvariantViolationError('Organization invitation was already accepted');
+    }
+    if (invitation.rescinded_at !== null) {
+      throw new InvariantViolationError('Organization invitation was rescinded');
     }
     if (invitation.expires_at <= now) {
       throw new InvariantViolationError('Organization invitation expired');
@@ -278,6 +403,8 @@ export class OrganizationAccessRepository {
             status: invitation.status,
             updated_at: now,
             deleted_at: null,
+            club_id: invitation.club_id,
+            tournament_id: invitation.tournament_id,
           })
           .where('assignment_id', '=', existingAssignment.assignment_id)
           .returningAll()
@@ -294,6 +421,8 @@ export class OrganizationAccessRepository {
             created_at: now,
             updated_at: now,
             deleted_at: null,
+            club_id: invitation.club_id,
+            tournament_id: invitation.tournament_id,
           })
           .returningAll()
           .executeTakeFirstOrThrow();
@@ -338,6 +467,24 @@ export class OrganizationAccessRepository {
     if (!isOrganizationRole(input.role) || !isOrganizationMemberStatus(input.status)) {
       throw new InvariantViolationError('Unknown organization role or member status');
     }
+    const clubScoped = isClubScopedRole(input.role);
+    if (clubScoped && input.clubId === undefined) {
+      throw new InvariantViolationError(`The "${input.role}" role requires naming a club`);
+    }
+    if (!clubScoped && input.clubId !== undefined) {
+      throw new InvariantViolationError(
+        `A club may only be named when the role is club-scoped, not "${input.role}"`,
+      );
+    }
+    const tournamentScoped = isTournamentScopedRole(input.role);
+    if (tournamentScoped && input.tournamentId === undefined) {
+      throw new InvariantViolationError(`The "${input.role}" role requires naming a tournament`);
+    }
+    if (!tournamentScoped && input.tournamentId !== undefined) {
+      throw new InvariantViolationError(
+        `A tournament may only be named when the role is tournament-scoped, not "${input.role}"`,
+      );
+    }
     const current = await lockRowsForMutation(
       this.db,
       uow.tx
@@ -349,9 +496,34 @@ export class OrganizationAccessRepository {
     ).executeTakeFirst();
     if (!current) throw new NotFoundError('Organization role assignment was not found');
 
+    if (input.grantorContext) {
+      const authorized = canGrantRole(input.grantorContext, input.role, input.organizationId);
+      if (!authorized.ok) {
+        throw new InvariantViolationError(authorized.error.message, { reason: 'grant-denied' });
+      }
+    }
+
+    const demotedFromAdmin =
+      current.role === 'admin' &&
+      current.status === 'active' &&
+      (input.role !== 'admin' || input.status !== 'active');
+    if (demotedFromAdmin) {
+      await this.assertOrganizationAdminFloorInvariant(
+        uow,
+        input.organizationId,
+        input.assignmentId,
+      );
+    }
+
     const row = await uow.tx
       .updateTable('organization_role_assignments')
-      .set({ role: input.role, status: input.status, updated_at: new Date() })
+      .set({
+        role: input.role,
+        status: input.status,
+        updated_at: new Date(),
+        club_id: input.clubId ?? null,
+        tournament_id: input.tournamentId ?? null,
+      })
       .where('assignment_id', '=', input.assignmentId)
       .returningAll()
       .executeTakeFirstOrThrow();
@@ -392,6 +564,14 @@ export class OrganizationAccessRepository {
     ).executeTakeFirst();
     if (!current) throw new NotFoundError('Organization role assignment was not found');
 
+    if (current.role === 'admin' && current.status === 'active') {
+      await this.assertOrganizationAdminFloorInvariant(
+        uow,
+        input.organizationId,
+        input.assignmentId,
+      );
+    }
+
     const deletedAt = new Date();
     const row = await uow.tx
       .updateTable('organization_role_assignments')
@@ -411,5 +591,29 @@ export class OrganizationAccessRepository {
       resultingState: { ...deleted },
     });
     return deleted;
+  }
+
+  /** Refuses within the same transaction as the write, avoiding a TOCTOU race. */
+  private async assertOrganizationAdminFloorInvariant(
+    uow: UnitOfWork,
+    organizationId: string,
+    excludingAssignmentId: string,
+  ): Promise<void> {
+    const row = await uow.tx
+      .selectFrom('organization_role_assignments')
+      .select((eb) => eb.fn.countAll<string>().as('count'))
+      .where('organization_id', '=', organizationId)
+      .where('role', '=', 'admin')
+      .where('status', '=', 'active')
+      .where('deleted_at', 'is', null)
+      .where('assignment_id', '!=', excludingAssignmentId)
+      .executeTakeFirstOrThrow();
+    const remaining = Number(row.count);
+    if (wouldLeaveOrganizationWithoutAdmin(remaining)) {
+      throw new InvariantViolationError(
+        'The organization must always keep at least one active admin',
+        { reason: 'floor-invariant' },
+      );
+    }
   }
 }

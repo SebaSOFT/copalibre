@@ -1,5 +1,5 @@
 /**
- * The retry policy (0017-worker-scheduler-async-jobs).
+ * The retry policy.
  *
  * Pure arithmetic, kept away from the loop that uses it, because "how long
  * until the next attempt" is the one part of a relay somebody will want to

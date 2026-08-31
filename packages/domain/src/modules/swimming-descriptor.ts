@@ -13,7 +13,7 @@ import { winConditionScript } from './win-condition-scripts.js';
  * It therefore declares no placement points at all. Position inside a heat is
  * recorded because it is a fact worth keeping, but the statistic the cut ranks
  * on is `best-time`, aggregated with `min` — the fastest swim, not the sum of
- * them, which is what 0009's declared aggregation modes exist to express.
+ * them, which is what declared aggregation modes exist to express.
  */
 export function swimmingDescriptor(
   overrides?: Partial<DisciplineDescriptor>,
@@ -71,13 +71,23 @@ export function swimmingDescriptor(
     winCondition: winConditionScript('fastest-time', { unit: 'best-time' }),
     defaults: {
       format: 'heats',
-      registration: { publicOpen: false, requiresCheckIn: false },
+      registration: {
+        publicOpen: false,
+        requiresCheckIn: false,
+        region: null,
+        capacity: null,
+      },
       scoring: { pointsPerWin: 0, pointsPerDraw: 0, pointsPerLoss: 0 },
       tiebreakers: ['best-time'],
       segments: { lanesPerHeat: 8 },
     },
     fieldPolicies: {
       format: { permission: { kind: 'replaced' }, mutationClass: 'blocked_after_results' },
+      'registration.region': { permission: { kind: 'replaced' }, mutationClass: 'safe' },
+      'registration.capacity': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'requires_rebuild',
+      },
       'registration.publicOpen': { permission: { kind: 'replaced' }, mutationClass: 'safe' },
       'registration.requiresCheckIn': {
         permission: { kind: 'replaced' },
@@ -86,6 +96,18 @@ export function swimmingDescriptor(
       'registration.checkInClosesAt': {
         permission: { kind: 'replaced' },
         mutationClass: 'requires_rebuild',
+      },
+      'scoring.pointsPerWin': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'blocked_after_results',
+      },
+      'scoring.pointsPerDraw': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'blocked_after_results',
+      },
+      'scoring.pointsPerLoss': {
+        permission: { kind: 'replaced' },
+        mutationClass: 'blocked_after_results',
       },
       tiebreakers: {
         permission: { kind: 'merged', strategy: 'union-list' },

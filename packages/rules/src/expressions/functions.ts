@@ -1,5 +1,5 @@
 /**
- * The functions an expression may call (0013-scripting-hook-surface).
+ * The functions an expression may call.
  *
  * Core-owned, exactly like actions and conditions: a module composes functions
  * it cannot introduce, and a new one is a core release. `handlebars-helpers` is
@@ -24,7 +24,7 @@
  * **No value** — `undefined` — is how every partial case answers: no arguments,
  * a logarithm of zero, a negative square root, a division by nothing. The
  * consuming condition then applies its declared missing-value behaviour, which
- * is the choice 0010 made for a zero denominator and for the same reason: an
+ * is the choice for a zero denominator and for the same reason: an
  * infinity silently ranks first.
  */
 

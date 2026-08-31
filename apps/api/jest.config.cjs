@@ -1,5 +1,6 @@
 const base = require('../../jest.config.base.cjs');
 const esmExtensionMapper = require('../../jest.esm-mapper.cjs');
+const generateJestWorkspaceMapper = require('../../scripts/generate-jest-workspace-mapper.cjs');
 
 module.exports = {
   ...base,
@@ -7,13 +8,7 @@ module.exports = {
   testPathIgnorePatterns: ['/node_modules/', '\\.integration\\.test\\.ts$'],
   moduleNameMapper: {
     ...esmExtensionMapper,
-    '^@copalibre/auth$': '<rootDir>/../../packages/auth/src/index.ts',
-    '^@copalibre/domain$': '<rootDir>/../../packages/domain/src/index.ts',
-    '^@copalibre/object-storage$': '<rootDir>/../../packages/object-storage/src/index.ts',
-    '^@copalibre/routing$': '<rootDir>/../../packages/routing/src/index.ts',
-    '^@copalibre/persistence$': '<rootDir>/../../packages/persistence/src/index.ts',
-    '^@copalibre/rules$': '<rootDir>/../../packages/rules/src/index.ts',
-    '^@copalibre/tournament-engine$': '<rootDir>/../../packages/tournament-engine/src/index.ts',
+    ...generateJestWorkspaceMapper(__dirname),
   },
   collectCoverageFrom: [
     'src/auth/**/*.ts',
@@ -21,6 +16,8 @@ module.exports = {
     'src/openapi/contract-lint.ts',
     'src/openapi/breaking-change.ts',
     'src/openapi/collect-planes.ts',
+    '!src/**/*.test.ts',
+    '!src/**/*.integration.test.ts',
   ],
   coverageThreshold: {
     global: { lines: 90, branches: 85, functions: 90, statements: 90 },

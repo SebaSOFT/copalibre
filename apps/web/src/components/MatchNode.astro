@@ -1,29 +1,95 @@
 ---
 import type { IntlShape } from 'react-intl';
+import { EntrantName } from './EntrantName.tsx';
 import StateBadge from './StateBadge.astro';
-import { toNode, type BracketMatch } from '../lib/bracket.ts';
-import { resultStateLabels } from '../lib/i18n/public-intl.ts';
+import SeriesStateBar from './SeriesStateBar.astro';
+import { matchReportUrl, toNode, type BracketMatch } from '../lib/bracket.ts';
+import { toSeriesInput } from '../lib/series.ts';
+import { resultReasonLabels, resultStateLabels } from '../lib/i18n/public-intl.ts';
 
 interface Props {
   readonly match: BracketMatch;
   readonly intl: IntlShape;
+  readonly organizationAlias: string;
+  readonly tournamentAlias: string;
+  readonly stageNumber: number;
+  readonly localePrefix?: string;
 }
-const { intl } = Astro.props;
+const { intl, organizationAlias, tournamentAlias, stageNumber, localePrefix = '' } = Astro.props;
 const node = toNode(Astro.props.match, resultStateLabels(intl));
+const reasonLabels = resultReasonLabels(intl);
+// Every card links, resolved or not — 0102's report page already
+// renders correctly for a not-yet-played match, so a winner-of/loser-of
+// placeholder still points somewhere real, not a dead end.
+const reportUrl = matchReportUrl({
+  organizationAlias,
+  tournamentAlias,
+  stageNumber,
+  matchNumber: node.matchNumber,
+  localePrefix,
+});
+
+// Absent on every cross settled by a single match, which is what keeps those rendering
+// exactly as they did before series existed — no bar, no aggregate, no indication at all.
+const series = Astro.props.match.series;
+const seriesInput = series === undefined ? undefined : toSeriesInput(series);
+const legScores =
+  series === undefined
+    ? []
+    : series.games.filter((game) => game.scores !== undefined && game.status === 'finalized');
 ---
 
-<article class="cl-card cl-chamfer" data-match={node.matchNumber}>
-  <StateBadge state={node.state} intl={intl} />
-  <ol>
+<a href={reportUrl}>
+  <article class="cl-card cl-chamfer" data-match={node.matchNumber}>
+    <StateBadge state={node.state} intl={intl} />
+    <ol>
+      {
+        node.slots.map((slot) => (
+          <li class={slot.pending ? 'cl-slot--pending' : 'cl-slot'}>
+            {/* Named, never blank: a blank cell reads as a bug, "Ganador del 3"
+                tells a spectator what has to happen first. */}
+            {slot.fullName === undefined ? (
+              <span>{slot.label}</span>
+            ) : (
+              <EntrantName abbreviation={slot.abbreviation} client:load fullName={slot.fullName} />
+            )}
+            {slot.resultReason && (
+              // A walkover 0-10 must not read like an actual 10-goal win — the
+              // reason a result looks the way it does is shown, not just the
+              // number.
+              <span class="cl-badge">{reasonLabels[slot.resultReason]}</span>
+            )}
+            <span class="cl-stat-tile__value">{slot.score ?? '—'}</span>
+          </li>
+        ))
+      }
+    </ol>
     {
-      node.slots.map((slot) => (
-        <li class={slot.pending ? 'cl-slot--pending' : 'cl-slot'}>
-          {/* Named, never blank: a blank cell reads as a bug, "Ganador del 3"
-              tells a spectator what has to happen first. */}
-          <span>{slot.label}</span>
-          <span class="cl-stat-tile__value">{slot.score ?? '—'}</span>
-        </li>
-      ))
+      series !== undefined && seriesInput !== undefined && (
+        <SeriesStateBar
+          aggregateScores={
+            series.resolutionClass === 'aggregate' ? series.aggregateScores : undefined
+          }
+          awayName={node.slots[1]?.fullName ?? node.slots[1]?.label}
+          homeName={node.slots[0]?.fullName ?? node.slots[0]?.label}
+          intl={intl}
+          series={seriesInput}
+          winner={series.winner}
+        />
+      )
     }
-  </ol>
-</article>
+    {
+      /* Each leg's own score alongside the aggregate: a 1-0 and a 1-2 that sums to 2-2 is a
+         different story from a 0-0 and a 2-2, and the aggregate alone hides which it was. */
+      series?.resolutionClass === 'aggregate' && legScores.length > 0 && (
+        <ol class="cl-series__legs">
+          {legScores.map((game) => (
+            <li>
+              {game.scores?.[0] ?? 0} — {game.scores?.[1] ?? 0}
+            </li>
+          ))}
+        </ol>
+      )
+    }
+  </article>
+</a>

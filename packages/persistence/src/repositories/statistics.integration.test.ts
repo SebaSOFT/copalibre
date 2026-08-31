@@ -11,7 +11,7 @@ import { TagRepository } from './tag-repository.js';
 import { createMigratedDatabase, type ScratchDatabase } from '../test-support/scratch-database.js';
 
 /**
- * Folded figures against a real database (0016).
+ * Folded figures against a real database.
  *
  * The promise under test is narrow and load-bearing: **every total is a fold**.
  * Nothing here increments a stored number, a correction recomputes rather than
@@ -641,6 +641,52 @@ describe('tags (integration)', () => {
 
     expect(inScope.map((one) => one.actorId)).toEqual(['pe-scoped']);
     expect(elsewhere).toEqual([]);
+  });
+
+  it('records and reads a tag on an official actor', async () => {
+    const tags = new TagRepository(scratch.db);
+    const applied = fact({
+      code: 'certified',
+      actorGranularity: 'official',
+      actorId: 'of-1',
+      actor: 'user:federation-1',
+    });
+
+    await withTransaction(scratch.db, (uow) =>
+      tags.record(uow, { organizationId, fact: applied, ...AUDIT }),
+    );
+
+    const facts = await tags.factsFor({
+      organizationId,
+      actorGranularity: 'official',
+      actorId: 'of-1',
+    });
+
+    expect(facts).toHaveLength(1);
+    expect(facts[0]?.actorGranularity).toBe('official');
+  });
+
+  it('records and reads a tag on a venue actor', async () => {
+    const tags = new TagRepository(scratch.db);
+    const applied = fact({
+      code: 'poor-lighting',
+      actorGranularity: 'venue',
+      actorId: 've-1',
+      actor: 'user:operator-1',
+    });
+
+    await withTransaction(scratch.db, (uow) =>
+      tags.record(uow, { organizationId, fact: applied, ...AUDIT }),
+    );
+
+    const facts = await tags.factsFor({
+      organizationId,
+      actorGranularity: 'venue',
+      actorId: 've-1',
+    });
+
+    expect(facts).toHaveLength(1);
+    expect(facts[0]?.actorGranularity).toBe('venue');
   });
 
   it('exposes no way to refuse anything on account of a tag', () => {

@@ -1,7 +1,23 @@
 ---
 title: Atualização
 description: O caminho não destrutivo para atualizar o framework CopaLibre e seus módulos instalados.
+capabilities: []
+roles:
+  - super-admin
 ---
+
+## Atualizar o próprio CLI copalibre
+
+`copalibre --version` imprime a versão do binário instalado. Executar o script de instalação
+novamente busca a última release publicada e substitui o binário no lugar — é idempotente: verifica
+primeiro a versão instalada e pula o download se ela já corresponder:
+
+```bash
+curl -fsSL https://www.copalibre.app/install.sh | bash
+```
+
+Isso substitui apenas o binário `copalibre`. Não tem efeito sobre uma instalação em execução — veja
+abaixo para atualizar o framework e seus módulos.
 
 ## Atualizar o framework
 
@@ -9,7 +25,11 @@ Sequência recomendada, não destrutiva:
 
 1. **Faça backup** antes de mexer em qualquer coisa: `./copalibre backup --file backups/pre-upgrade.dump`.
 2. **Atualize** o checkout ou a referência da imagem para a nova versão (não reinicie os serviços
-   ainda).
+   ainda). Se esta instalação foi criada com `copalibre init` (sem checkout, veja a
+   [referência de comandos](/pt/help/cli/commands/)), seu diretório fica fixado à versão de CLI que a
+   criou — `migrate`/`upgrade-check` recusam com uma mensagem clara em caso de incompatibilidade de
+   versão, então atualize executando o CLI da nova versão contra o mesmo diretório, em vez de
+   misturar versões de CLI.
 3. **Verifique a compatibilidade** com a nova versão, sem reiniciar nada:
    ```bash
    ./copalibre upgrade-check --target-version <nova-versao>
@@ -42,4 +62,4 @@ reinstalar com uma versão diferente é a forma de atualizar um módulo. Um torn
 continua referenciando a versão com a qual foi criado; atualizar um módulo nunca muda
 retroativamente um torneio já em andamento.
 
-Veja a [referência de comandos](/help/cli/commands/) para o restante das opções de `module`.
+Veja a [referência de comandos](/pt/help/cli/commands/) para o restante das opções de `module`.

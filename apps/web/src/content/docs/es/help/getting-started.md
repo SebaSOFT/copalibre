@@ -1,6 +1,16 @@
 ---
 title: Primer torneo
 description: Flujo inicial para crear y publicar un torneo.
+capabilities:
+  - platform/native-auth
+  - control-web/control-web-shell
+roles:
+  - admin
+  - club-admin
+  - referee
+  - broadcaster
+  - viewer
+  - super-admin
 ---
 
 ## Crear torneo
@@ -19,5 +29,5 @@ su impacto sobre resultados existentes.
 
 ## Ayuda por pantalla
 
-Cada pantalla del [panel de control](/help/control/) tiene su propia página de ayuda, accesible
+Cada pantalla del [panel de control](/es/help/control/) tiene su propia página de ayuda, accesible
 desde el enlace "¿Qué es esta pantalla?" en su barra lateral.

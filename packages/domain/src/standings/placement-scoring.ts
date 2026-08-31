@@ -10,14 +10,14 @@ import type { RecordedOutcome } from './outcome.js';
  * kind of value: the comparator pipeline, the qualification cut and the
  * standings table then read it with no special case, exactly as they read
  * `frags` or `goals-for`. That is the whole reason placement scoring belongs
- * here rather than in the ranking code — 0009 established that accounting folds
+ * here rather than in the ranking code — accounting folds
  * what the discipline declares, and this declares one more thing.
  */
 
 /**
  * Fills in each side's placement points, leaving every other statistic alone.
  *
- * A value the recorder already supplied wins, on the same principle 0009
+ * A value the recorder already supplied wins, on the same principle
  * applied to derived statistics: a discipline that computes its own placement
  * points has a reason, and the engine does not second-guess a recorded fact.
  */
@@ -77,7 +77,7 @@ export function pointsFor(descriptor: DisciplineDescriptor, placement: number): 
 /**
  * Two sides sharing a position share the position's points, rather than the
  * runner-up's. Whether the following position is then skipped is the
- * discipline-dependent question 0009 left open; awarding the tied position's
+ * discipline-dependent question; awarding the tied position's
  * own value is the part every convention agrees on.
  */
 export function validatePlacementTable(

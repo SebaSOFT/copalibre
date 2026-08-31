@@ -7,7 +7,7 @@ import type { EventDefinition } from './event-definition.js';
  * closing the set" and "one point from closing the match" are ordinary events:
  * deuce, set point, match point and tiebreak-entered notifications reuse the
  * phase-3 event-triggered notification rules rather than needing a second
- * mechanism (0009 design). The codes are core-owned like the action registry —
+ * mechanism. The codes are core-owned like the action registry —
  * a discipline includes them, it does not invent them.
  */
 
@@ -39,7 +39,7 @@ export function segmentThresholdEventDefinitions(
     code,
     label: LABELS[code],
     // Neutral: a threshold states where the score is, and category must never
-    // imply an effect — effects are configured explicitly or not at all (0002).
+    // imply an effect — effects are configured explicitly or not at all.
     category: 'neutral',
     permittedSegmentTypes: [...permittedSegmentTypes],
     actorRequirement: 'none',

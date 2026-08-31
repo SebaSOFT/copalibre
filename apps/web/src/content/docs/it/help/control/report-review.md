@@ -1,6 +1,10 @@
 ---
 title: Revisione segnalazioni e controversie
 description: Cosa sono le segnalazioni/controversie dei partecipanti e cosa fa revisionarle.
+capabilities:
+  - control-web/participant-reporting
+roles:
+  - admin
 ---
 
 ## A cosa serve questa schermata

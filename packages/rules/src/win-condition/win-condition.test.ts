@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import {
   bestOfFiveWinCondition,
   fixtureDescriptor,
@@ -403,6 +404,92 @@ describe('win-condition script validation', () => {
   it('accepts the seeded descriptors', () => {
     for (const descriptor of [footballDescriptor(), tennisDescriptor()]) {
       expect(registry().validateDescriptorReferences(descriptor).ok).toBe(true);
+    }
+  });
+
+  it('evaluates win conditions sourced directly from the JSON catalogue', async () => {
+    const tennisRaw = JSON.parse(
+      await readFile(
+        new URL('../../../module-catalogue/disciplines/tennis.json', import.meta.url),
+        'utf-8',
+      ),
+    );
+    const footballRaw = JSON.parse(
+      await readFile(
+        new URL('../../../module-catalogue/disciplines/football.json', import.meta.url),
+        'utf-8',
+      ),
+    );
+
+    // Tennis best-of-five from uiMetadata.winConditions
+    const bestOfFiveEntry = tennisRaw.uiMetadata?.winConditions?.find(
+      (entry: { id: string }) => entry.id === 'tennis-best-of-five',
+    );
+    expect(bestOfFiveEntry).toBeDefined();
+
+    const bestOfFiveScript = asRuleScript(bestOfFiveEntry.script ?? bestOfFiveEntry);
+    const twoSetsProgress = match([set(6, 4), set(6, 4)]);
+    const threeSetsProgress = match([set(6, 4), set(6, 4), set(6, 4)]);
+
+    const twoSetsDecision = evaluateWinCondition(registry(), {
+      script: bestOfFiveScript,
+      ruleVersion: { id: 'tennis-best-of-five', version: 1 },
+      progress: twoSetsProgress,
+    });
+    expect(twoSetsDecision.ok && twoSetsDecision.value.matchClosed).toBe(false);
+
+    const threeSetsDecision = evaluateWinCondition(registry(), {
+      script: bestOfFiveScript,
+      ruleVersion: { id: 'tennis-best-of-five', version: 1 },
+      progress: threeSetsProgress,
+    });
+    expect(threeSetsDecision.ok && threeSetsDecision.value.matchClosed).toBe(true);
+    expect(threeSetsDecision.ok && threeSetsDecision.value.winnerEntrantId).toBe('alfa');
+
+    // Football penalty-shootout segment declared in catalogue
+    expect(
+      footballRaw.segmentTypes?.some(
+        (segment: { name: string }) => segment.name === 'penalty-shootout',
+      ),
+    ).toBe(true);
+
+    // Football penalty-shootout tiebreak-segment shape
+    const penaltyScript = asRuleScript(
+      winConditionScript('football-knockout-penalties', { unit: 'goals' }, [
+        {
+          segment: 'penalty-shootout',
+          target: 5,
+          margin: 1,
+          tiebreakAt: 5,
+          tiebreakTarget: 6,
+          tiebreakMargin: 1,
+        },
+      ]),
+    );
+
+    const shootoutProgress: MatchProgress = {
+      matchId: 'm-shootout',
+      entrantIds: ['alfa', 'bravo'],
+      totals: { alfa: { goals: 2 }, bravo: { goals: 2 } },
+      complete: true,
+      segments: [
+        {
+          type: 'penalty-shootout',
+          unit: 'penalty',
+          units: { alfa: 5, bravo: 4 },
+        },
+      ],
+    };
+
+    const shootoutDecision = evaluateWinCondition(registry(), {
+      script: penaltyScript,
+      ruleVersion: { id: 'football-knockout-penalties', version: 1 },
+      progress: shootoutProgress,
+    });
+    expect(shootoutDecision.ok).toBe(true);
+    if (shootoutDecision.ok) {
+      expect(shootoutDecision.value.segments[0]?.closed).toBe(true);
+      expect(shootoutDecision.value.segments[0]?.winnerEntrantId).toBe('alfa');
     }
   });
 });

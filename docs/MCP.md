@@ -31,6 +31,17 @@ installs it into a local development instance for a real try (via the existing
 submits it as a pull request to `copalibre-modules` — all without shelling out to the CLI. See
 [`docs/MODULES.md`](MODULES.md) for the full local-authoring sequence.
 
+**Descriptor-authoring actions** (always registered, no token required — operate purely in memory
+against modules already imported into this process, no filesystem or Git access):
+
+| Tool                            | Purpose                                                                                                                                                                                                                                        |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `copalibre_descriptor_schema`   | Returns the discipline descriptor's JSON Schema plus a field-by-field explanation of what each declaration governs — the first call before writing any descriptor JSON.                                                                        |
+| `copalibre_descriptor_validate` | Validates a candidate descriptor document against the exact validator the installation path applies (shape and cross-field checks alike, e.g. a best-of series span must be odd). Never authors a descriptor, only judges one already drafted. |
+
+Use these ahead of `copalibre_module_scaffold`/`copalibre_module_validate_local`, iteratively, while
+drafting a discipline's `artifact.json`.
+
 **Tournament-operational actions** (registered only when both `COPALIBRE_MCP_TOKEN` and
 `COPALIBRE_API_URL` are set — without them, none of these appear in the server's tool list, and no
 HTTP request is ever attempted):

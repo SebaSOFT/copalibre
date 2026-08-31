@@ -8,7 +8,7 @@ import type { ProcessRunner } from './process-runner.js';
 
 /**
  * `createBackupPacket`/`restoreBackupPacket` stage under a relative
- * `backups/` directory, matching the real Compose bind mount (0046 design).
+ * `backups/` directory, matching the real Compose bind mount.
  * Tests run inside their own temporary working directory rather than the
  * repo's real `backups/`, restoring `process.cwd()` afterwards.
  */
@@ -25,7 +25,7 @@ async function withTemporaryWorkingDirectory<T>(run: () => Promise<T>): Promise<
   }
 }
 
-describe('createBackupPacket (0046)', () => {
+describe('createBackupPacket', () => {
   it('runs pg_dump into a staging directory, packs it, and cleans up staging', async () => {
     await withTemporaryWorkingDirectory(async () => {
       const run = jest.fn<ProcessRunner['run']>(async (_command, arguments_) => {
@@ -100,7 +100,7 @@ describe('createBackupPacket (0046)', () => {
   });
 });
 
-describe('restoreBackupPacket (0046)', () => {
+describe('restoreBackupPacket', () => {
   it('extracts the packet and runs pg_restore, then cleans up staging', async () => {
     await withTemporaryWorkingDirectory(async () => {
       const setupRun = jest.fn<ProcessRunner['run']>(async (_command, arguments_) => {
@@ -173,7 +173,7 @@ describe('restoreBackupPacket (0046)', () => {
   });
 });
 
-describe('restoreBackupPacket version compatibility (0050)', () => {
+describe('restoreBackupPacket version compatibility', () => {
   it('refuses a backup newer than the running version before touching pg_restore', async () => {
     await withTemporaryWorkingDirectory(async () => {
       const setupRun = jest.fn<ProcessRunner['run']>(async (_command, arguments_) => {

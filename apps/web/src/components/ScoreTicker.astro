@@ -1,14 +1,17 @@
 ---
 import type { IntlShape } from 'react-intl';
-import { shortLabel, type OverviewModel } from '../lib/overview.ts';
+import { EntrantName } from './EntrantName.tsx';
+import type { OverviewModel } from '../lib/overview.ts';
 import { messages } from '../lib/i18n/public-messages.en.ts';
 import { resultStateLabels } from '../lib/i18n/public-intl.ts';
 
 interface Props {
   readonly model: OverviewModel;
   readonly intl: IntlShape;
+  /** Optional non-default locale segment from the enclosing public route. */
+  readonly localePrefix?: string;
 }
-const { model, intl } = Astro.props;
+const { model, intl, localePrefix = '' } = Astro.props;
 const labels = resultStateLabels(intl);
 ---
 
@@ -27,12 +30,43 @@ const labels = resultStateLabels(intl);
         <li
           class={`cl-card cl-card--${match.state === 'final' ? 'positive' : match.state === 'disputed' ? 'destructive' : match.state}`}
         >
-          <span class="cl-badge">{labels[match.state]}</span>
-          <span>{shortLabel(match.home)}</span>
-          <span class="cl-stat-tile__value">{match.home.score ?? '—'}</span>
-          <span>{shortLabel(match.away)}</span>
-          <span class="cl-stat-tile__value">{match.away.score ?? '—'}</span>
-          <time datetime={match.startsAt}>{match.startsAt}</time>
+          {match.matchNumber === undefined ? (
+            <>
+              <span class="cl-badge">{labels[match.state]}</span>
+              <EntrantName
+                abbreviation={match.home.abbreviation}
+                client:load
+                fullName={match.home.name}
+              />
+              <span class="cl-stat-tile__value">{match.home.score ?? '—'}</span>
+              <EntrantName
+                abbreviation={match.away.abbreviation}
+                client:load
+                fullName={match.away.name}
+              />
+              <span class="cl-stat-tile__value">{match.away.score ?? '—'}</span>
+              <time datetime={match.startsAt}>{match.startsAt}</time>
+            </>
+          ) : (
+            <a
+              href={`${localePrefix}${model.canonicalPath}/stages/${match.stageNumber}/matches/${match.matchNumber}`}
+            >
+              <span class="cl-badge">{labels[match.state]}</span>
+              <EntrantName
+                abbreviation={match.home.abbreviation}
+                client:load
+                fullName={match.home.name}
+              />
+              <span class="cl-stat-tile__value">{match.home.score ?? '—'}</span>
+              <EntrantName
+                abbreviation={match.away.abbreviation}
+                client:load
+                fullName={match.away.name}
+              />
+              <span class="cl-stat-tile__value">{match.away.score ?? '—'}</span>
+              <time datetime={match.startsAt}>{match.startsAt}</time>
+            </a>
+          )}
         </li>
       ))
     }

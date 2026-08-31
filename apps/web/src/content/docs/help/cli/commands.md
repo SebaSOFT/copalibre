@@ -1,19 +1,45 @@
 ---
 title: Command reference
 description: Every copalibre CLI command, its usage, and its flags.
+roles:
+  - super-admin
+  - admin
 ---
 
 Every command answers `--help`/`-h` with this exact usage text, generated from a single source
 inside the CLI itself — this page cannot describe a command differently from what the CLI actually
-does.
+does. `copalibre --version` prints the installed version alone, for scripting.
 
 ## init
 
-`copalibre init [--file <path>]`
+`copalibre init [--module-dev]` or `copalibre init --kubernetes [--namespace <ns>] [--release
+<name>] [--context <ctx>]`
 
-Writes non-secret defaults and lists the required secrets.
+Writes a complete installation into the current directory. No source checkout required: run it in
+any empty directory, and every later command auto-detects that directory from the marker
+(`.copalibre/installation.json`) it writes, the same way `.git` marks a repository checkout.
+Refuses to run again in a directory that already holds an installation. A directory stays pinned
+to the CopaLibre version that `init` created it with — running several versions side by side means
+running the matching CLI version per directory (see [updating](/help/cli/updating/)).
 
-- `--file <path>`: target file (default `.env`)
+Without `--kubernetes`, writes `docker-compose.yml` and `.env` with non-secret defaults, and lists
+the required secrets to fill into `.env` afterward.
+
+- `--module-dev`: also writes `docker-compose.module-dev.yml` and a `modules-dev/` directory,
+  bind-mounted into `api`/`worker` with `COPALIBRE_MODULE_SOURCE_ALLOWLIST` pre-set — pairs with
+  `module scaffold --output modules-dev/<alias>` and `module add <alias> --source
+file:///var/lib/copalibre/modules-dev/<alias>` to develop a module against a running self-hosted
+  instance with no source checkout.
+
+With `--kubernetes`, writes a Helm `values.yaml` scaffold instead — no compose file, no `.env`;
+Kubernetes' own Secret/ConfigMap mechanism stays authoritative for configuration. Full workflow,
+including bootstrapping the first administrator as a one-shot Helm Job:
+`docs/deployment/enterprise-kubernetes.md` in the repository.
+
+- `--kubernetes`: scaffold a Helm installation instead of a Compose one
+- `--namespace <ns>`: Kubernetes namespace to record (default: `default`)
+- `--release <name>`: Helm release name to record (default: `copalibre`)
+- `--context <ctx>`: kube-context to record (default: none — supply it explicitly each time)
 
 ## doctor
 
@@ -102,11 +128,64 @@ version. See [updating](/help/cli/updating/) for the full sequence.
 
 Creates an organization's first administrator account.
 
+## login
+
+`copalibre login [--api-url <url>] [--token <token>]`
+
+Stores a personal access token so `statistics-rebuild` and `module add/list/remove/verify` can run
+against a remote installation over an authenticated HTTP connection — the path to managing an
+already-running installation, including installing or upgrading the CLI after Docker is already
+running, from a machine that never needs database credentials at all. Generate the token from the
+control panel's preferences screen while already logged in, then paste it here. Validates the token
+with one authenticated call before storing it; refuses and stores nothing if the token is invalid.
+
+- `--api-url <url>`: target installation (default: `COPALIBRE_API_URL`, which `copalibre init`
+  already writes to `.env`)
+- `--token <token>`: the token itself (default: read from piped stdin, or an interactive prompt
+  that masks each keystroke)
+
+Stores the credential in the current directory's `.copalibre/credentials.json` (`0600`) — run
+`login` from inside the installation directory `copalibre init` created. Re-running `login` in the
+same directory replaces the stored token, unlike `init`'s marker.
+
+## statistics-rebuild
+
+`copalibre statistics-rebuild --organization <alias> [--tournament <alias>]`
+
+Recomputes every folded statistic total (`statistic_totals`) from source facts — finalized matches'
+recorded events, rosters, and hand adjustments — organization-wide by default, or narrowed to one
+tournament.
+
+- `--organization <alias>`: organization to rebuild statistics for
+- `--tournament <alias>`: narrows the rebuild to one tournament within the organization
+
+Idempotent: it drives the same `refold` and delete-then-insert write path the event-driven trigger
+uses, so running it twice in a row produces byte-identical `statistic_totals` rows (aside from
+`updated_at`/the internal projection version). Use it to backfill history recorded before the fold
+engine existed, or to verify totals against the facts at any time. Requires organization-administrator
+authority once logged in via [`login`](#login).
+
+## revoke-legacy-personal-access-tokens
+
+`copalibre revoke-legacy-personal-access-tokens (--confirm | --dry-run)`
+
+Performs one irreversible security cutover for currently active Personal Access Tokens (PATs).
+Run `--dry-run`, verify resulting aggregate count, then run with `--confirm`. Command writes one
+audit record per revoked credential and prints aggregate counts only.
+
+- `--dry-run`: shows active-token count without changing credentials
+- `--confirm`: required to revoke active credentials
+
+Perform and verify this cutover before deploying repaired PAT authentication. Existing integrations
+must create replacement credentials afterward; repeating completed cutover reports zero newly
+revoked credentials.
+
 ## module
 
 `copalibre module <add|list|remove|verify>`
 
-Manages installed discipline and tournament-profile modules.
+Manages installed discipline and tournament-profile modules. `add`/`list`/`remove`/`verify` require
+installation-wide super-admin authority once logged in via [`login`](#login).
 
 ### module add
 

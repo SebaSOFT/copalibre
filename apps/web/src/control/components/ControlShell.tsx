@@ -1,15 +1,19 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
-import { SIDENAV } from '../lib/dashboard.js';
+import type { OrganizationRole } from '@copalibre/domain';
+import { visibleSidenav } from '../lib/dashboard.js';
 import { activeControlLanguage, ControlIntl } from '../i18n/ControlIntl.js';
 import { LanguageSwitcher } from '../i18n/LanguageSwitcher.js';
 import { messages } from '../i18n/messages.en.js';
 import { controlLinkClick } from '../lib/control-navigation.js';
-import { controlTokenStore } from '../session/token-store.js';
+import { createControlApiClient } from '../lib/api-client.js';
+import { accessTokenHasScope, controlTokenStore } from '../session/token-store.js';
 import {
   writeStoredLanguagePreference,
   type SupportedLanguage,
 } from '../../lib/language-preference.js';
+import { ToastProvider } from './ToastProvider.js';
+import { Button } from './ui/atoms/button.js';
 
 export function ControlShell({
   organizationAlias,
@@ -17,10 +21,10 @@ export function ControlShell({
   helpPath,
   children,
 }: {
-  readonly organizationAlias: string;
-  /** A `SIDENAV` item's stable `id`, e.g. `'roles'` — never its display label (0053). */
+  readonly organizationAlias?: string;
+  /** A `SIDENAV` item's stable `id`, e.g. `'roles'` — never its display label. */
   readonly active?: string;
-  /** Slug under `/help/control/`, e.g. `'seeding'` — required so a screen can never ship with no matching help page linked (0043). */
+  /** Slug under `/help/control/`, e.g. `'seeding'` — required so a screen can never ship with no matching help page linked. */
   readonly helpPath: string;
   readonly children: React.ReactNode;
 }): React.JSX.Element {
@@ -28,18 +32,20 @@ export function ControlShell({
 
   return (
     <ControlIntl locale={locale}>
-      <ControlShellChrome
-        active={active}
-        helpPath={helpPath}
-        locale={locale}
-        onLocaleChange={(next) => {
-          writeStoredLanguagePreference(next);
-          setLocale(next);
-        }}
-        organizationAlias={organizationAlias}
-      >
-        {children}
-      </ControlShellChrome>
+      <ToastProvider>
+        <ControlShellChrome
+          active={active}
+          helpPath={helpPath}
+          locale={locale}
+          onLocaleChange={(next) => {
+            writeStoredLanguagePreference(next);
+            setLocale(next);
+          }}
+          organizationAlias={organizationAlias}
+        >
+          {children}
+        </ControlShellChrome>
+      </ToastProvider>
     </ControlIntl>
   );
 }
@@ -52,7 +58,7 @@ function ControlShellChrome({
   onLocaleChange,
   children,
 }: {
-  readonly organizationAlias: string;
+  readonly organizationAlias?: string;
   readonly active: string;
   readonly helpPath: string;
   readonly locale: SupportedLanguage;
@@ -60,15 +66,44 @@ function ControlShellChrome({
   readonly children: React.ReactNode;
 }): React.JSX.Element {
   const intl = useIntl();
+  const isSuperAdmin = accessTokenHasScope(controlTokenStore.read(), 'copalibre.super-admin');
+  const [role, setRole] = useState<OrganizationRole | undefined>(undefined);
+  useEffect(() => {
+    if (!organizationAlias) return;
+    let cancelled = false;
+    createControlApiClient({
+      fetch: globalThis.fetch.bind(globalThis),
+      accessToken: () => controlTokenStore.read(),
+    })
+      .listMyOrganizations()
+      .then((organizations) => {
+        if (cancelled) return;
+        const mine = organizations.find((one) => one.organizationAlias === organizationAlias);
+        setRole(mine?.role);
+      })
+      .catch(() => {
+        // Nav visibility is a presentation guard; a failed lookup leaves
+        // every entry visible rather than blocking the shell from rendering.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [organizationAlias]);
+  // Same locale-prefix routing Starlight's own pages already use for every
+  // locale but the default: the root/English pages are unprefixed.
+  const helpLocalePrefix = locale === 'en' ? '' : `/${locale}`;
   const logout = (): void => {
     controlTokenStore.clear();
     // A real navigation: /control/ (login) is a separate page from this
-    // shell (0062), same boundary as the unauthenticated-visit guard.
+    // shell, same boundary as the unauthenticated-visit guard.
     window.location.assign('/control/');
   };
   return (
-    <div className="cl-control" style={shellStyle}>
-      <nav aria-label={intl.formatMessage(messages.shellSections)} style={navStyle}>
+    // data-density scopes the denser Control-web spacing composition,
+    // design.md Decision 4) to every screen under this shell — never the
+    // public/marketing Astro surfaces, which never render this component.
+    <div className="cl-control" data-density="control">
+      <nav aria-label={intl.formatMessage(messages.shellSections)} className="cl-control__nav">
         <div style={brandStyle}>
           <div style={brandMarkRowStyle}>
             <img src="/copalibre-logo.svg" alt="" width="24" height="24" />
@@ -78,54 +113,57 @@ function ControlShellChrome({
         </div>
         <a
           className="cl-focusable"
-          href={`/help/control/${helpPath}`}
+          href={`${helpLocalePrefix}/help/control/${helpPath}`}
           target="_blank"
           rel="noopener noreferrer"
           style={helpLinkStyle}
         >
           <FormattedMessage {...messages.shellWhatIsThisScreen} />
         </a>
-        <ul style={navListStyle}>
-          {SIDENAV.map((item) => (
-            <li key={item.id}>
+        <ul className="cl-control__nav-list">
+          {organizationAlias &&
+            visibleSidenav(role).map((item) => (
+              <li key={item.id}>
+                <a
+                  className="cl-focusable"
+                  href={`/control/${organizationAlias}${item.path}`}
+                  onClick={controlLinkClick(`/control/${organizationAlias}${item.path}`)}
+                  style={{
+                    ...navLinkStyle,
+                    ...(item.id === active ? navLinkActiveStyle : {}),
+                  }}
+                >
+                  {intl.formatMessage(item.label)}
+                </a>
+              </li>
+            ))}
+          {isSuperAdmin && (
+            <li>
               <a
                 className="cl-focusable"
-                href={`/control/${organizationAlias}${item.path}`}
-                onClick={controlLinkClick(`/control/${organizationAlias}${item.path}`)}
+                href="/control/platform"
+                onClick={controlLinkClick('/control/platform')}
                 style={{
                   ...navLinkStyle,
-                  ...(item.id === active ? navLinkActiveStyle : {}),
+                  ...(active === 'platform' ? navLinkActiveStyle : {}),
                 }}
               >
-                {intl.formatMessage(item.label)}
+                {intl.formatMessage(messages.navPlatformAdministration)}
               </a>
             </li>
-          ))}
+          )}
         </ul>
         <LanguageSwitcher onChange={onLocaleChange} value={locale} />
-        <button className="cl-focusable" onClick={logout} style={logoutButtonStyle} type="button">
+        <Button onClick={logout} style={logoutButtonStyle} type="button" variant="secondary">
           <FormattedMessage {...messages.shellLogout} />
-        </button>
+        </Button>
       </nav>
-      <main style={mainStyle}>{children}</main>
+      <main className="cl-control__main">
+        <div className="cl-control-screen">{children}</div>
+      </main>
     </div>
   );
 }
-
-const shellStyle: React.CSSProperties = {
-  minHeight: '100vh',
-  display: 'grid',
-  gridTemplateColumns: 'minmax(180px, 240px) 1fr',
-  background: 'var(--cl-surface-base)',
-  color: 'var(--cl-text-primary)',
-  fontFamily: 'var(--cl-font-body)',
-};
-
-const navStyle: React.CSSProperties = {
-  borderRight: '1px solid var(--cl-border-muted)',
-  background: 'var(--cl-surface-panel)',
-  padding: 'var(--cl-space-4)',
-};
 
 const brandStyle: React.CSSProperties = {
   display: 'grid',
@@ -145,7 +183,7 @@ const brandMarkRowStyle: React.CSSProperties = {
 const metaStyle: React.CSSProperties = {
   color: 'var(--cl-text-muted)',
   fontFamily: 'var(--cl-font-mono)',
-  fontSize: '0.75rem',
+  fontSize: 'var(--cl-font-size-xs)',
 };
 
 const helpLinkStyle: React.CSSProperties = {
@@ -154,15 +192,7 @@ const helpLinkStyle: React.CSSProperties = {
   color: 'var(--cl-text-muted)',
   textDecoration: 'none',
   fontFamily: 'var(--cl-font-mono)',
-  fontSize: '0.7rem',
-};
-
-const navListStyle: React.CSSProperties = {
-  listStyle: 'none',
-  margin: 'var(--cl-space-4) 0 0',
-  padding: 0,
-  display: 'grid',
-  gap: 'var(--cl-space-2)',
+  fontSize: 'var(--cl-font-size-xs)',
 };
 
 const navLinkStyle: React.CSSProperties = {
@@ -172,7 +202,7 @@ const navLinkStyle: React.CSSProperties = {
   textDecoration: 'none',
   fontFamily: 'var(--cl-font-mono)',
   textTransform: 'uppercase',
-  fontSize: '0.75rem',
+  fontSize: 'var(--cl-font-size-xs)',
 };
 
 const navLinkActiveStyle: React.CSSProperties = {
@@ -180,20 +210,15 @@ const navLinkActiveStyle: React.CSSProperties = {
   color: 'var(--cl-surface-base)',
 };
 
-const mainStyle: React.CSSProperties = {
-  minWidth: 0,
-  padding: 'var(--cl-space-8)',
-};
-
 const logoutButtonStyle: React.CSSProperties = {
   display: 'block',
   width: '100%',
-  minHeight: 36,
+  minHeight: 'var(--cl-touch-target)',
   marginTop: 'var(--cl-space-3)',
   background: 'transparent',
   color: 'var(--cl-text-secondary)',
   border: '1px solid var(--cl-border-muted)',
   fontFamily: 'var(--cl-font-mono)',
-  fontSize: '0.75rem',
+  fontSize: 'var(--cl-font-size-xs)',
   cursor: 'pointer',
 };

@@ -1,5 +1,5 @@
 /**
- * One place that decides how a result state looks and reads (0021).
+ * One place that decides how a result state looks and reads.
  *
  * Colour is never the only cue — the identity doc's accessibility gate — and
  * the reliable way to hold that line is to make the label impossible to omit:
@@ -7,7 +7,7 @@
  * label and the icon with it.
  *
  * The label is resolved from a caller-supplied dictionary rather than an
- * `IntlShape` directly (0055): `LiveMatchHero.tsx`, a hydrated client island,
+ * `IntlShape` directly: `LiveMatchHero.tsx`, a hydrated client island,
  * calls this too, and must never import `react-intl`'s formatting machinery
  * into the browser bundle — its parent page resolves the dictionary once at
  * build time via `resultStateLabels()` and passes it down as a plain prop.
@@ -21,7 +21,7 @@ export interface StatePresentation {
   readonly label: string;
   /** A shape, for viewers who distinguish neither the colour nor the word. */
   readonly icon: string;
-  /** The token class; `cl-state-*` maps onto 0019's semantic tokens. */
+  /** The token class; `cl-state-*` maps onto semantic tokens. */
   readonly className: string;
 }
 

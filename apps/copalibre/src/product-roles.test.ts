@@ -48,4 +48,32 @@ describe('resolveProductRole', () => {
       roleArguments: ['--down'],
     });
   });
+
+  it('accepts create-admin as a role, passing its CLI arguments through', () => {
+    expect(
+      resolveProductRole(
+        [
+          '--organization-alias',
+          'my-league',
+          '--organization-name',
+          'My League',
+          '--email',
+          'a@b.c',
+        ],
+        { PRODUCT_ROLE: 'create-admin' },
+      ),
+    ).toEqual({
+      ok: true,
+      role: 'create-admin',
+      source: 'environment',
+      roleArguments: [
+        '--organization-alias',
+        'my-league',
+        '--organization-name',
+        'My League',
+        '--email',
+        'a@b.c',
+      ],
+    });
+  });
 });

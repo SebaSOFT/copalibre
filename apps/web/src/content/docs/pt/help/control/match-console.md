@@ -1,6 +1,14 @@
 ---
 title: Console de partida ao vivo
 description: O que o console de partida faz, e o que não pode mais mudar depois de um resultado registrado.
+capabilities:
+  - live-operations/live-match-console
+  - live-operations/live-match-operations
+  - live-operations/realtime-events
+  - tournament-engine/declared-tagging
+roles:
+  - referee
+  - admin
 ---
 
 ## Para que serve esta tela
@@ -24,3 +32,26 @@ vivo para a tela pública do torneio.
 Uma vez finalizada a partida, esta tela não permite mais adicionar eventos como se a partida
 continuasse, nem recarregar o resultado diretamente. Isso é intencional: protege a integridade do
 histórico já publicado.
+
+## Trabalhando com uma conexão instável
+
+A conectividade à beira do campo cai. Esta tela foi feita para isso: registrar um evento, ajustar o
+cronômetro, selecionar uma convocação ou finalizar uma partida grava primeiro numa fila local
+durável — _antes_ mesmo de tentar enviar — para que uma queda de sinal nunca faça perder algo que
+você já fez.
+
+- **O status de sincronização** está sempre visível no topo da tela: se você está online, quantas
+  ações ainda aguardam envio, e quando a última realmente foi sincronizada.
+- **Uma ação enfileirada permanece enfileirada**, sem se perder, mesmo com conexão instável, uma
+  zona sem sinal, ou até fechando e reabrindo esta tela — reabri-la retoma o envio do que ainda
+  estiver pendente.
+- **Assim que a conectividade volta**, tudo que estava na fila é enviado automaticamente, na ordem
+  em que você fez.
+- **Uma ação recusada** — uma que o servidor também teria recusado ao vivo, como uma mudança de
+  convocação enviada depois que a partida já terminou — é exibida com clareza, com o motivo, para
+  que você saiba exatamente o que precisa da sua atenção. Ela nunca bloqueia o que ficou na fila
+  depois dela.
+
+O que esta tela não faz: recuperar uma digitação ou seleção que você nunca chegou a enviar. Se você
+estava no meio de uma edição quando a conexão caiu, essa entrada específica se perde como sempre —
+só as ações que você já tentou registrar estão protegidas.

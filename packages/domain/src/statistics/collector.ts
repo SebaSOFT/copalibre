@@ -1,4 +1,5 @@
 import type { EventCategory } from '../descriptors/event-definition.js';
+import type { LocalizedLabel } from '../i18n-label.js';
 import { DomainError } from '../errors.js';
 import { err, ok, type Result } from '../result.js';
 import {
@@ -13,7 +14,7 @@ import {
 } from './hierarchies.js';
 
 /**
- * A collector is a declaration, not a function (0016).
+ * A collector is a declaration, not a function.
  *
  * Every statistic before this one was a fold somebody wrote: outcomes per
  * entrant, events per match scope, a position mapped to points, a count toward
@@ -26,11 +27,24 @@ import {
  * module document rather than a migration.
  */
 
+/**
+ * Which actor an event-sourced collector accumulates against — `'primary'`
+ * matches `resolvedActor`'s existing behavior (the event's own actor);
+ * `'every-other-side'` and `{ payloadField }` read the same way `EventEffect`'s
+ * `awardTo` does, so a collector can watch a victim, an assist provider, or an
+ * opposing side without the event's own effects needing to name that
+ * collector at all.
+ */
+export type CollectorActorSource =
+  'primary' | 'every-other-side' | { readonly payloadField: string };
+
 export type CollectorSource =
   | {
       readonly kind: 'event';
       readonly definitionCodes?: readonly string[];
       readonly categories?: readonly EventCategory[];
+      /** Absent means `'primary'` — exactly today's behavior. */
+      readonly actorSource?: CollectorActorSource;
     }
   /** A value a finalized result already carries. */
   | { readonly kind: 'statistic'; readonly statisticCode: string }
@@ -52,9 +66,18 @@ export interface CollectorGranularity {
   readonly competition: CompetitionGranularity;
 }
 
+/**
+ * When a collector's total is kept current.
+ *
+ * A field, not a boolean: `on-finalize`/`live` leaves room for a third cadence
+ * later without a breaking rename. Absent reads as `on-finalize`, which is
+ * every collector declared before this existed.
+ */
+export type CollectorCadence = { readonly kind: 'on-finalize' } | { readonly kind: 'live' };
+
 export interface StatisticCollector {
   readonly code: string;
-  readonly label: string;
+  readonly label: string | LocalizedLabel;
   readonly source: CollectorSource;
   readonly measure: CollectorMeasure;
   /**
@@ -71,6 +94,21 @@ export interface StatisticCollector {
     readonly actor?: ActorGranularity;
     readonly competition?: CompetitionGranularity;
   };
+  /** Absent means `{ kind: 'on-finalize' }`. */
+  readonly cadence?: CollectorCadence;
+  /**
+   * The tag an acting actor must carry, at the moment the fact occurred, for
+   * that fact to count. Filtering happens at fold time, not at read
+   * time — a stored total never needs a join against tag facts to answer.
+   *
+   * Only meaningful for `event`- and `statistic`-sourced collectors, both of
+   * which have a fact with its own `occurredAt` to check tag state against.
+   * A `participation`-sourced fact (roster membership) and a
+   * `collector`-sourced fact (an already-folded figure) have no natural
+   * instant of their own, so `requiresTag` on either is refused at
+   * validation time rather than resolved against an invented one.
+   */
+  readonly requiresTag?: { readonly code: string; readonly competition?: CompetitionGranularity };
 }
 
 export class CollectorError extends DomainError {
@@ -93,7 +131,9 @@ export interface InertCollector {
 export interface CollectorVocabulary {
   readonly eventCodes: readonly string[];
   readonly statisticCodes: readonly string[];
-  /** Granularities nothing populates yet; empty since 0015. */
+  /** Tag codes a `requiresTag` may name — the discipline's own `tags`. */
+  readonly tagCodes: readonly string[];
+  /** Granularities nothing populates yet; currently empty. */
   readonly unpopulatedGranularities?: readonly (ActorGranularity | CompetitionGranularity)[];
 }
 
@@ -180,6 +220,24 @@ function validateOne(
         'granularity, which would put the ceiling under the floor',
       { code: collector.code, ceiling: ceiling.competition },
     );
+  }
+
+  if (collector.requiresTag) {
+    if (collector.source.kind !== 'event' && collector.source.kind !== 'statistic') {
+      return new CollectorError(
+        `Collector "${collector.code}" declares requiresTag, but its source is ` +
+          `"${collector.source.kind}", which has no fact-level instant to check tag state against; ` +
+          'requiresTag is only meaningful on an event- or statistic-sourced collector',
+        { code: collector.code, source: collector.source.kind },
+      );
+    }
+    if (!vocabulary.tagCodes.includes(collector.requiresTag.code)) {
+      return new CollectorError(
+        `Collector "${collector.code}" requires tag "${collector.requiresTag.code}", which this ` +
+          'discipline does not declare',
+        { code: collector.code, tagCode: collector.requiresTag.code },
+      );
+    }
   }
 
   return sourceError(collector, vocabulary, byCode);
@@ -289,4 +347,14 @@ export function readableAt(
         !isCoarser(COMPETITION_GRANULARITIES, at.competition, collector.rollsUpTo.competition)));
 
   return actorOk && competitionOk;
+}
+
+/** A collector's cadence, absent reading as `on-finalize`. */
+export function cadenceOf(collector: StatisticCollector): CollectorCadence {
+  return collector.cadence ?? { kind: 'on-finalize' };
+}
+
+/** Whether a collector folds inside the event-recording transaction, not just at match end. */
+export function isLiveCadence(collector: StatisticCollector): boolean {
+  return cadenceOf(collector).kind === 'live';
 }

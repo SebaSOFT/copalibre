@@ -4,21 +4,21 @@ import { err, ok, type Result } from '../result.js';
 import { findScriptHook, resolveHookAttachment, type ScriptHookId } from './script-hooks.js';
 
 /**
- * What an operator may impose on a draw (0010-stage-qualification-and-seeding).
+ * What an operator may impose on a draw.
  *
  * *Always put one Buenos Aires club in each group*; *never draw two San Juan
  * clubs against each other in the round of 16, because their level is far above
  * the rest*. Neither is expressible as an ordering — they are constraints over
  * attributes the operator knows and the system does not.
  *
- * Constraints attach to named **hook points**, which 0013 promoted out of this
+ * Constraints attach to named **hook points**, promoted out of this
  * file into `script-hooks.ts` once four evaluations shared them. The
  * identifiers are unchanged, so every constraint declared before that move
  * validates and evaluates exactly as it did; what remains here is what is
  * genuinely draw-specific.
  */
 
-/** The hooks a draw constraint may attach to, in the order 0010 declared them. */
+/** The hooks a draw constraint may attach to, in their declared order. */
 export const CONSTRAINT_HOOK_POINTS = [
   /** Placing an entrant into a group. */
   'draw.assign-group',
@@ -70,7 +70,7 @@ export interface DistributionConstraint {
 
 /**
  * The escape hatch: a rule script over the core-owned constraint action
- * registry, on the boundary 0009 established for win conditions — a module
+ * registry, on the boundary established for win conditions — a module
  * composes vocabulary, it does not introduce it. This keeps a constraint nobody
  * anticipated expressible without a core release, without giving up the
  * vetted-action guarantee.
@@ -181,6 +181,11 @@ export function roundNumberFor(name: string, size: number): Result<number, DrawC
         `A bracket of ${size} never plays "${name}", which needs ${entrantsInRound} entrants`,
         { name, size },
       ),
+    );
+  }
+  if (!Number.isInteger(Math.log2(size))) {
+    return err(
+      new DrawConstraintError(`A bracket size must be a power of two, not ${size}`, { name, size }),
     );
   }
   return ok(Math.log2(size) - Math.log2(entrantsInRound) + 1);

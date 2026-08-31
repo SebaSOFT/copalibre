@@ -1,6 +1,27 @@
-import { COLOR_PRIMITIVES, MOTION, SPACING, TOUCH_TARGET } from './primitives.js';
+import {
+  BREAKPOINTS,
+  COLOR_PRIMITIVES,
+  CONTROL_DENSITY_SPACING,
+  FONT_SIZE,
+  MOTION,
+  SPACING,
+  TOUCH_TARGET,
+} from './primitives.js';
 import { PROTECTED_TOKENS, SEMANTIC_COLORS, isProtected, resolveSemantic } from './semantic.js';
-import { BUTTON_VARIANTS, BadgeContractError, assertBadge } from './components.js';
+import {
+  BUTTON_VARIANTS,
+  CHECKBOX_TOKENS,
+  DIALOG_TOKENS,
+  FORM_SECTION_TOKENS,
+  INPUT_TOKENS,
+  MATCH_CONSOLE_TOKENS,
+  PAGINATION_TOKENS,
+  SELECT_TOKENS,
+  TEXTAREA_TOKENS,
+  TOOLBAR_DENSITY_TOKENS,
+  BadgeContractError,
+  assertBadge,
+} from './components.js';
 import { FORBIDDEN, formatHits, scanForForbidden } from './forbidden.js';
 import { generateCss } from './generate/css.js';
 import { generateTailwindModule, generateTailwindTheme } from './generate/tailwind.js';
@@ -34,6 +55,90 @@ describe('the token source', () => {
     expect(SPACING['1']).toBe('4px');
     expect(SPACING['4']).toBe('16px');
   });
+
+  it('defines the documented font-size scale in ascending order', () => {
+    expect(Object.entries(FONT_SIZE)).toEqual([
+      ['xs', '0.75rem'],
+      ['sm', '0.875rem'],
+      ['base', '1rem'],
+      ['md', '1.125rem'],
+      ['lg', '1.25rem'],
+      ['xl', '1.5rem'],
+      ['2xl', '1.875rem'],
+      ['3xl', '2.25rem'],
+    ]);
+  });
+
+  it('defines exactly the visual-review breakpoint widths', () => {
+    expect(Object.entries(BREAKPOINTS)).toEqual([
+      ['sm', '375px'],
+      ['md', '768px'],
+      ['lg', '1024px'],
+      ['xl', '1440px'],
+    ]);
+  });
+});
+
+describe('the form-control and dialog contracts', () => {
+  it.each([
+    ['input', INPUT_TOKENS],
+    ['select', SELECT_TOKENS],
+    ['textarea', TEXTAREA_TOKENS],
+    ['checkbox', CHECKBOX_TOKENS],
+  ])('gives %s an error state resolving to the destructive token', (_name, tokens) => {
+    expect(tokens.error.border).toBe('state-destructive');
+  });
+
+  it.each([
+    ['input', INPUT_TOKENS],
+    ['select', SELECT_TOKENS],
+    ['textarea', TEXTAREA_TOKENS],
+    ['checkbox', CHECKBOX_TOKENS],
+  ])('declares every interaction state for %s', (_name, tokens) => {
+    expect(Object.keys(tokens).sort()).toEqual(['default', 'disabled', 'error', 'focus']);
+  });
+
+  it('resolves the dialog surface and backdrop to real semantic tokens', () => {
+    expect(SEMANTIC_COLORS[DIALOG_TOKENS.surface]).toBeDefined();
+    expect(SEMANTIC_COLORS[DIALOG_TOKENS.backdrop]).toBeDefined();
+  });
+});
+
+describe('the remaining screen template token contracts', () => {
+  it('resolves pagination tokens to real semantic and touch-target tokens', () => {
+    expect(SEMANTIC_COLORS[PAGINATION_TOKENS.activeBackground]).toBeDefined();
+    expect(SEMANTIC_COLORS[PAGINATION_TOKENS.activeText]).toBeDefined();
+    expect(SEMANTIC_COLORS[PAGINATION_TOKENS.inactiveText]).toBeDefined();
+    expect(PAGINATION_TOKENS.buttonMinSize).toBe(TOUCH_TARGET);
+  });
+
+  it('resolves toolbar density tokens to real semantic colors', () => {
+    expect(SEMANTIC_COLORS[TOOLBAR_DENSITY_TOKENS.background]).toBeDefined();
+    expect(SEMANTIC_COLORS[TOOLBAR_DENSITY_TOKENS.border]).toBeDefined();
+    expect(TOOLBAR_DENSITY_TOKENS.height).toBe(TOUCH_TARGET);
+  });
+
+  it('resolves form section tokens to valid spacing and semantic colors', () => {
+    expect(SEMANTIC_COLORS[FORM_SECTION_TOKENS.headingText]).toBeDefined();
+    expect(FORM_SECTION_TOKENS.sectionGap).toBe('24px');
+    expect(FORM_SECTION_TOKENS.fieldGap).toBe('12px');
+  });
+
+  it('resolves match console tokens to real semantic colors', () => {
+    expect(SEMANTIC_COLORS[MATCH_CONSOLE_TOKENS.headerBackground]).toBeDefined();
+    expect(SEMANTIC_COLORS[MATCH_CONSOLE_TOKENS.headerBorder]).toBeDefined();
+    expect(SEMANTIC_COLORS[MATCH_CONSOLE_TOKENS.chromaLive]).toBeDefined();
+    expect(SEMANTIC_COLORS[MATCH_CONSOLE_TOKENS.chromaReferee]).toBeDefined();
+  });
+});
+
+describe('the Control-web data-density spacing subset', () => {
+  it('uses only values already in the shared spacing scale', () => {
+    const spacingValues = Object.values(SPACING);
+    for (const value of Object.values(CONTROL_DENSITY_SPACING)) {
+      expect(spacingValues).toContain(value);
+    }
+  });
 });
 
 describe('the badge contract', () => {
@@ -52,6 +157,15 @@ describe('the CSS output', () => {
   it('declares every primitive and every semantic token', () => {
     for (const name of Object.keys(COLOR_PRIMITIVES)) expect(css).toContain(`--cl-color-${name}:`);
     for (const name of Object.keys(SEMANTIC_COLORS)) expect(css).toContain(`--cl-${name}:`);
+  });
+
+  it('declares every font-size and breakpoint primitive', () => {
+    for (const [name, value] of Object.entries(FONT_SIZE)) {
+      expect(css).toContain(`--cl-font-size-${name}: ${value};`);
+    }
+    for (const [name, value] of Object.entries(BREAKPOINTS)) {
+      expect(css).toContain(`--cl-breakpoint-${name}: ${value};`);
+    }
   });
 
   it('points a semantic token at a primitive rather than repeating the hex', () => {
@@ -91,6 +205,32 @@ describe('the CSS output', () => {
   it('uses tabular figures for numbers that change', () => {
     expect(css).toContain('font-variant-numeric: tabular-nums;');
   });
+
+  it('emits a rule per form-control atom/state', () => {
+    for (const atom of ['input', 'select', 'textarea', 'checkbox']) {
+      for (const state of ['default', 'focus', 'error', 'disabled']) {
+        expect(css).toContain(`.cl-${atom}--${state} {`);
+      }
+    }
+  });
+
+  it('emits the dialog backdrop and surface rules', () => {
+    expect(css).toContain('.cl-dialog-backdrop {');
+    expect(css).toContain('.cl-dialog-surface {');
+  });
+
+  it('emits template layout rules including match console', () => {
+    expect(css).toContain('.cl-match-console-screen {');
+    expect(css).toContain('.cl-match-console-screen__header {');
+    expect(css).toContain('.cl-match-console-screen__scoreboard {');
+  });
+
+  it('scopes the Control-web density spacing under [data-density="control"]', () => {
+    expect(css).toContain('[data-density="control"] {');
+    for (const name of Object.keys(CONTROL_DENSITY_SPACING)) {
+      expect(css).toContain(`--cl-density-${name}:`);
+    }
+  });
 });
 
 describe('the Tailwind output', () => {
@@ -112,8 +252,17 @@ describe('the Tailwind output', () => {
     expect(theme.borderRadius['cl-chamfer']).toBeDefined();
   });
 
+  it('sources font sizes and screens directly from the primitives', () => {
+    expect(theme.fontSize).toEqual(FONT_SIZE);
+    expect(theme.screens).toEqual(BREAKPOINTS);
+  });
+
   it('emits a module that says it is generated', () => {
     expect(generateTailwindModule()).toContain('Do not edit by hand');
+  });
+
+  it('prefixes the density spacing subset', () => {
+    expect(theme.densitySpacing['cl-density-row-gap']).toBe(SPACING['2']);
   });
 });
 
@@ -163,6 +312,13 @@ describe('the style guide', () => {
 
   it('renders a swatch per semantic token', () => {
     for (const name of Object.keys(SEMANTIC_COLORS)) expect(html).toContain(`var(--cl-${name})`);
+  });
+
+  it('renders a labelled sample for every font-size step', () => {
+    for (const name of Object.keys(FONT_SIZE)) {
+      expect(html).toContain(`data-font-size="${name}"`);
+      expect(html).toContain(`var(--cl-font-size-${name})`);
+    }
   });
 
   it('escapes what it interpolates', () => {

@@ -107,6 +107,9 @@ tmp/
 openspec/changes/*
 apps/web/public/openapi/
 apps/web/public/vendor/
+apps/web/public/authoring/
+apps/web/public/schemas/
+apps/web/public/llms-authoring.txt
 packages/design-tokens/generated/
 
 # CodeGraph index: derived from the source, rebuilt by `codegraph init`.
