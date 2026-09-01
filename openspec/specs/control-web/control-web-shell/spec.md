@@ -244,3 +244,20 @@ The control web shell and tournament screens SHALL render declared table layouts
 #### Scenario: Legacy list screen is modernized
 - **WHEN** a legacy hand-rolled list screen is refactored
 - **THEN** the screen uses `ListScreenTemplate` and `DataTable` instead of bespoke grid markup.
+
+### Requirement: The static control-panel shell is locale-neutral before hydration
+The static HTML shell that serves every `/control/**` route before `ControlApp` hydrates (`control/[...path].astro`
+and `control/app.astro`) SHALL declare a locale-neutral `lang` attribute and locale-neutral `<noscript>`
+fallback copy, since the shell is served identically regardless of which of the eight supported interface
+languages the authenticated operator will use once the React chrome hydrates and resolves their real
+preference.
+
+#### Scenario: The shell does not hardcode a specific non-English language
+- **WHEN** the static control-panel shell is served, before `ControlApp` hydrates
+- **THEN** its `<html lang>` attribute is the platform's neutral default (English), not hardcoded to any
+  other specific language
+
+#### Scenario: The noscript fallback is not hardcoded to one language
+- **WHEN** JavaScript is disabled and the control-panel shell's `<noscript>` fallback renders
+- **THEN** its text is in the platform's neutral default language, not hardcoded to any other specific
+  language
