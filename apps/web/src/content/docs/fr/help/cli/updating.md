@@ -13,7 +13,7 @@ récupère la dernière release publiée et remplace le binaire sur place — c'
 vérifie d'abord la version installée et saute le téléchargement si elle correspond déjà :
 
 ```bash
-curl -fsSL https://www.copalibre.app/install.sh | bash
+curl -fsSL https://github.com/SebaSOFT/copalibre/releases/latest/download/install.sh | bash
 ```
 
 Cela ne remplace que le binaire `copalibre`. Cela n'a aucun effet sur une installation en cours

@@ -17,7 +17,7 @@ Silicon）以及 Windows（x86_64）。
 ## 步骤
 
 ```bash
-curl -fsSL https://www.copalibre.app/install.sh | bash
+curl -fsSL https://github.com/SebaSOFT/copalibre/releases/latest/download/install.sh | bash
 mkdir my-league && cd my-league
 copalibre init      # 将非敏感的默认值写入 .env
 ```

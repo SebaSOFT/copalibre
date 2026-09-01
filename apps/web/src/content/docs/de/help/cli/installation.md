@@ -18,7 +18,7 @@ unter Rosetta) und Windows (x86_64).
 ## Schritte
 
 ```bash
-curl -fsSL https://www.copalibre.app/install.sh | bash
+curl -fsSL https://github.com/SebaSOFT/copalibre/releases/latest/download/install.sh | bash
 mkdir meine-liga && cd meine-liga
 copalibre init      # schreibt nicht geheime Standardwerte in .env
 ```

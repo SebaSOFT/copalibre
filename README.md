@@ -23,7 +23,7 @@ discipline logic — shipped as a single multi-role Docker image driven by the `
 ## Get Started
 
 ```bash
-curl -fsSL https://www.copalibre.app/install.sh | bash
+curl -fsSL https://github.com/SebaSOFT/copalibre/releases/latest/download/install.sh | bash
 mkdir my-league && cd my-league && copalibre init
 # edit .env — see the comments copalibre init writes into it
 copalibre doctor && copalibre start
@@ -35,7 +35,7 @@ Full walkthrough, remote management, TLS, and the contributor checkout: see Full
 ### Full walkthrough
 
 ```bash
-curl -fsSL https://www.copalibre.app/install.sh | bash
+curl -fsSL https://github.com/SebaSOFT/copalibre/releases/latest/download/install.sh | bash
 mkdir my-league && cd my-league
 copalibre init      # writes a full installation (compose file, .env, marker) into the cwd
 # edit .env: PostgreSQL password, COPALIBRE_BOOTSTRAP_TOKEN, OIDC JWKS/issuer/audience,

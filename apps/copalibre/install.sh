@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Installs the standalone `copalibre` CLI binary — no Node.js, no checkout.
 #
-#   curl -fsSL https://www.copalibre.app/install.sh | bash
+#   curl -fsSL https://github.com/SebaSOFT/copalibre/releases/latest/download/install.sh | bash
 #
 # OS/arch detection (including the macOS Rosetta case) is informed by, not
 # copied from, usestrix/strix's own publicly-available install script,

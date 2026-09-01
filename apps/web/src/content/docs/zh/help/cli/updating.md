@@ -12,7 +12,7 @@ roles:
 地替换该二进制文件——该操作是幂等的：会先检查已安装的版本，若已经一致则跳过下载：
 
 ```bash
-curl -fsSL https://www.copalibre.app/install.sh | bash
+curl -fsSL https://github.com/SebaSOFT/copalibre/releases/latest/download/install.sh | bash
 ```
 
 这只会替换 `copalibre` 二进制文件，对正在运行的安装实例没有任何影响——关于更新框架及其模块，请参

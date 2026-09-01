@@ -13,7 +13,7 @@ installazione scarica l'ultima release pubblicata e sostituisce il binario al su
 idempotente: controlla prima la versione installata e salta il download se corrisponde già:
 
 ```bash
-curl -fsSL https://www.copalibre.app/install.sh | bash
+curl -fsSL https://github.com/SebaSOFT/copalibre/releases/latest/download/install.sh | bash
 ```
 
 Questo sostituisce solo il binario `copalibre`. Non ha effetto su un'installazione in esecuzione —

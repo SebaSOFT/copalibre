@@ -18,7 +18,7 @@ Rosetta) и Windows (x86_64).
 ## Шаги
 
 ```bash
-curl -fsSL https://www.copalibre.app/install.sh | bash
+curl -fsSL https://github.com/SebaSOFT/copalibre/releases/latest/download/install.sh | bash
 mkdir moya-liga && cd moya-liga
 copalibre init      # записывает несекретные значения по умолчанию в .env
 ```
