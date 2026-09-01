@@ -1,20 +1,132 @@
 ---
-// Public shell placeholder. The real public surface arrives in
-// phase 0012-public-web-astro-shell.
+import PublicLayout from '../layouts/PublicLayout.astro';
+import EmblemImage from '../components/EmblemImage.astro';
+import { fetchOrganizations, organizationEmblemUrl } from '../lib/public-api-client.ts';
+import { publicIntl } from '../lib/i18n/public-intl.ts';
+
+export const prerender = false;
+
+const intl = publicIntl('en');
+const organizations = (await fetchOrganizations()) ?? [];
 ---
 
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="icon" type="image/svg+xml" href="/copalibre-logo.svg" />
-    <title>CopaLibre</title>
-  </head>
-  <body>
-    <main>
+<PublicLayout
+  title="CopaLibre — Tournament Operations"
+  description="Self-hosted, transparent tournament management for clubs, leagues, and federations."
+  canonicalPath="/"
+  intl={intl}
+>
+  <div class="cl-home-container">
+    <header class="cl-home-header">
       <h1>CopaLibre</h1>
-      <p>Self-hosted tournament management. Public surface under construction.</p>
-    </main>
-  </body>
-</html>
+      <p>Self-hosted tournament operations.</p>
+    </header>
+
+    {
+      organizations.length === 0 ? (
+        <div class="cl-empty-state">
+          <p>No published tournaments available yet.</p>
+        </div>
+      ) : (
+        <section class="cl-org-directory" aria-label="Organizations">
+          <h2>Organizations</h2>
+          <div class="cl-org-grid">
+            {organizations.map((org) => (
+              <a href={`/${encodeURIComponent(org.alias)}`} class="cl-org-card cl-card cl-chamfer">
+                <EmblemImage
+                  src={org.emblemObjectId ? organizationEmblemUrl(org.alias) : undefined}
+                  alt={`${org.name} emblem`}
+                  placeholderAlt={`${org.name} placeholder`}
+                  size={48}
+                />
+                <div class="cl-org-info">
+                  <span class="cl-org-name">{org.name}</span>
+                  <span class="cl-org-alias">/{org.alias}</span>
+                </div>
+              </a>
+            ))}
+          </div>
+        </section>
+      )
+    }
+  </div>
+</PublicLayout>
+
+<style>
+  .cl-home-container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 32px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
+
+  .cl-home-header h1 {
+    margin: 0 0 8px;
+    font-size: 2.25rem;
+    font-weight: 700;
+  }
+
+  .cl-home-header p {
+    margin: 0;
+    color: var(--cl-text-muted, #94a3b8);
+    font-size: 1.125rem;
+  }
+
+  .cl-empty-state {
+    padding: 48px 24px;
+    text-align: center;
+    border: 1px dashed var(--cl-border-muted, #334155);
+    border-radius: 4px;
+    color: var(--cl-text-muted, #94a3b8);
+  }
+
+  .cl-org-directory h2 {
+    margin: 0 0 16px;
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+
+  .cl-org-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+
+  .cl-org-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    text-decoration: none;
+    color: inherit;
+    border: 1px solid var(--cl-border-muted, #334155);
+    background: var(--cl-surface-card, #1e293b);
+    transition: border-color 0.15s ease-in-out;
+  }
+
+  .cl-org-card:hover {
+    border-color: var(--cl-state-live, #0ea5e9);
+  }
+
+  .cl-org-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .cl-org-name {
+    font-weight: 600;
+    font-size: 1rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .cl-org-alias {
+    font-size: 0.875rem;
+    color: var(--cl-text-muted, #94a3b8);
+  }
+</style>

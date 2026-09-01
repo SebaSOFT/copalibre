@@ -38,9 +38,27 @@ const finishedTournaments = listData?.tournaments.filter((t) => t.status === 'fi
 const featured = listData ? pickFeaturedTournament(listData.tournaments) : undefined;
 
 const pageTitle = listData?.organizationName ?? intl.formatMessage(messages.orgPageNotFoundTitle);
+const structuredData = listData
+  ? {
+      '@type': 'SportsOrganization' as const,
+      name: listData.organizationName,
+      url: `${Astro.site?.toString().replace(/\/$/, '') ?? ''}${canonicalPath}`,
+      ...(listData.organizationEmblemObjectId
+        ? {
+            logo: `${Astro.site?.toString().replace(/\/$/, '') ?? ''}${organizationEmblemUrl(organization!)}`,
+          }
+        : {}),
+    }
+  : undefined;
 ---
 
-<PublicLayout title={pageTitle} canonicalPath={canonicalPath} intl={intl} noindex={!listData}>
+<PublicLayout
+  title={pageTitle}
+  canonicalPath={canonicalPath}
+  intl={intl}
+  noindex={!listData}
+  structuredData={structuredData}
+>
   {
     !listData && (
       <div class="cl-org-container">

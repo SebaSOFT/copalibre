@@ -768,6 +768,12 @@ jobs:
       # organizer — named separately so a failure says which surface broke.
       - name: Matches view (E2E)
         run: yarn test:e2e -- e2e/public-matches-view.spec.ts e2e/control-matches-view.spec.ts
+      # Public web SEO hardening (openspec 0173): homepage organization
+      # directory, canonical-path locale-prefix consistency, dynamic sitemap
+      # generation, Open Graph meta tags, and JSON-LD structured data —
+      # named separately so a failure says which surface broke.
+      - name: SEO and canonical URL hardening (E2E)
+        run: yarn test:e2e -- e2e/public-seo-and-canonical.spec.ts
       # Accelerated TV soak-test proxy. design.md describes
       # the per-PR-eligible proxy as a 2-hour run; a literal 2 hours on every
       # PR would be a severe, ongoing CI-turnaround regression this repo does

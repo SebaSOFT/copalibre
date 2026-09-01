@@ -41,15 +41,22 @@ if (!overviewData || !dashboard) {
 
 const model = buildOverview(mapOverviewResponse(overviewData));
 const localePrefix = locale ? `/${locale}` : '';
+const canonicalPath = `${localePrefix}${model.canonicalPath}/live`;
 const reportPath = (stageNumber: number, matchNumber: number) =>
   `${localePrefix}${model.canonicalPath}/stages/${stageNumber}/matches/${matchNumber}`;
+const structuredData = {
+  '@type': 'SportsEvent' as const,
+  name: `${intl.formatMessage(messages.livePageTitle)} — ${displayName(model)}`,
+  url: `${Astro.site?.toString().replace(/\/$/, '') ?? ''}${canonicalPath}`,
+};
 ---
 
 <PublicLayout
   title={`${intl.formatMessage(messages.livePageTitle)} — ${displayName(model)}`}
-  canonicalPath={`${model.canonicalPath}/live`}
+  canonicalPath={canonicalPath}
   intl={intl}
   disciplineImages={overviewData.disciplineImages}
+  structuredData={structuredData}
 >
   <h1>{intl.formatMessage(messages.livePageTitle)}</h1>
   {/* Server-rendered first, so the page is right before any script runs. */}

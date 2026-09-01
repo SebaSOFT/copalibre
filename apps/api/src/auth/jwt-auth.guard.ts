@@ -44,38 +44,48 @@ export class JwtAuthGuard implements CanActivate {
       ]) ?? 'admin-control';
 
     const request = context.switchToHttp().getRequest<RequestWithSubject>();
-
-    if (!planeRequiresAuthentication(plane)) {
-      return true;
-    }
-
     const token = extractBearerToken(request);
     if (!token) {
+      if (!planeRequiresAuthentication(plane)) {
+        return true;
+      }
       throw new UnauthorizedException('Missing bearer token');
     }
 
     let subject;
     if (token.startsWith('clpat_')) {
-      subject = await this.verifyPat(token);
+      try {
+        subject = await this.verifyPat(token);
+      } catch (err) {
+        if (!planeRequiresAuthentication(plane)) {
+          return true;
+        }
+        throw err;
+      }
     } else {
       try {
         subject = await this.verifier.verify(token);
       } catch {
+        if (!planeRequiresAuthentication(plane)) {
+          return true;
+        }
         // Deliberately opaque: the specific rejection reason is logged upstream,
         // never returned, so a caller cannot probe issuer/audience config.
         throw new UnauthorizedException('Invalid bearer token');
       }
     }
 
-    const required =
-      this.reflector.getAllAndOverride<readonly string[]>(REQUIRED_SCOPES_KEY, [
-        context.getHandler(),
-        context.getClass(),
-      ]) ?? PLANE_REQUIRED_SCOPES[plane];
-    const missing = required.filter((scope) => !subject.scopes.includes(scope));
-    if (missing.length > 0) {
-      // Authentication succeeded, authorization did not: 403, never 401.
-      throw new ForbiddenException(`Token is missing required scope: ${missing.join(', ')}`);
+    if (planeRequiresAuthentication(plane)) {
+      const required =
+        this.reflector.getAllAndOverride<readonly string[]>(REQUIRED_SCOPES_KEY, [
+          context.getHandler(),
+          context.getClass(),
+        ]) ?? PLANE_REQUIRED_SCOPES[plane];
+      const missing = required.filter((scope) => !subject.scopes.includes(scope));
+      if (missing.length > 0) {
+        // Authentication succeeded, authorization did not: 403, never 401.
+        throw new ForbiddenException(`Token is missing required scope: ${missing.join(', ')}`);
+      }
     }
 
     request.subject = subject;

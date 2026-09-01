@@ -76,16 +76,32 @@ const activeProjection = activeLayout
       activeClubId,
     )
   : undefined;
+
+const localePrefix = locale ? `/${locale}` : '';
+const canonicalPath = `${localePrefix}${model.canonicalPath}`;
+const earliestStart = overviewData.matches
+  .map((m) => m.scheduledAt)
+  .filter(Boolean)
+  .sort()[0];
+const description = intl.formatMessage(messages.tournamentPageDescription, {
+  tournament: displayName(model),
+});
+const structuredData = {
+  '@type': 'SportsEvent' as const,
+  name: displayName(model),
+  url: `${Astro.site?.toString().replace(/\/$/, '') ?? ''}${canonicalPath}`,
+  ...(earliestStart ? { startDate: earliestStart } : {}),
+  description,
+};
 ---
 
 <PublicLayout
   title={`${displayName(model)} — ${model.organizationName}`}
-  description={intl.formatMessage(messages.tournamentPageDescription, {
-    tournament: displayName(model),
-  })}
-  canonicalPath={model.canonicalPath}
+  description={description}
+  canonicalPath={canonicalPath}
   intl={intl}
   disciplineImages={overviewData.disciplineImages}
+  structuredData={structuredData}
 >
   <TournamentHero model={model} intl={intl} />
   <BroadcastStatusPanel model={model} intl={intl} />
