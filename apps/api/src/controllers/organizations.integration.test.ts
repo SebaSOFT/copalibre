@@ -65,6 +65,63 @@ describe('public-read plane', () => {
     expect(response.json()).toMatchObject({ alias: 'liga-orbital', name: 'Liga Orbital' });
   });
 
+  it('lists public organizations with at least one published tournament', async () => {
+    // Initially no published tournaments -> empty list
+    const initial = await request({ method: 'GET', url: '/organizations' });
+    expect(initial.statusCode).toBe(200);
+    expect(initial.json()).toEqual([]);
+
+    // Create a draft-only organization
+    await request({
+      method: 'POST',
+      url: '/organizations',
+      token: 'super-admin',
+      payload: { alias: 'draft-only-org', name: 'Draft Only Org' },
+    });
+
+    // Create and publish a tournament in liga-orbital
+    const descriptor = footballDescriptor();
+    await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+      new TournamentRepository(scratch.db).saveDescriptor(uow, descriptor, {
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      }),
+    );
+    await request({
+      method: 'POST',
+      url: '/organizations/liga-orbital/tournaments',
+      token: 'organizer-org1',
+      payload: {
+        alias: 'torneo-publicado',
+        name: 'Torneo Publicado',
+        descriptorId: descriptor.descriptorId,
+        descriptorVersion: descriptor.version,
+        format: 'round-robin',
+        publicRegistration: true,
+        requiresCheckIn: false,
+        customScripts: [],
+      },
+    });
+    await request({
+      method: 'POST',
+      url: '/organizations/liga-orbital/tournaments/torneo-publicado/publish',
+      token: 'organizer-org1',
+    });
+
+    const listing = await request({ method: 'GET', url: '/organizations' });
+    expect(listing.statusCode).toBe(200);
+    const orgs = listing.json();
+    expect(orgs).toHaveLength(1);
+    expect(orgs[0]).toMatchObject({
+      organizationId,
+      alias: 'liga-orbital',
+      name: 'Liga Orbital',
+      primaryLanguage: expect.any(String),
+      timezone: expect.any(String),
+    });
+  });
+
   it('404s an unknown alias', async () => {
     const response = await request({ method: 'GET', url: '/organizations/no-such-org' });
     expect(response.statusCode).toBe(404);

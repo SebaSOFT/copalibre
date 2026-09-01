@@ -60,13 +60,21 @@ function filterUrl(nextState: 'all' | 'live' | 'upcoming' | 'final'): string {
   const query = params.toString();
   return `${localePrefix}${model.canonicalPath}/matches${query ? `?${query}` : ''}`;
 }
+
+const canonicalPath = `${localePrefix}${model.canonicalPath}/matches`;
+const structuredData = {
+  '@type': 'SportsEvent' as const,
+  name: `${intl.formatMessage(messages.matchesViewPageTitle)} — ${displayName(model)}`,
+  url: `${Astro.site?.toString().replace(/\/$/, '') ?? ''}${canonicalPath}`,
+};
 ---
 
 <PublicLayout
   title={`${intl.formatMessage(messages.matchesViewPageTitle)} — ${displayName(model)}`}
-  canonicalPath={`${model.canonicalPath}/matches`}
+  canonicalPath={canonicalPath}
   intl={intl}
   disciplineImages={overviewData.disciplineImages}
+  structuredData={structuredData}
 >
   <h1>{intl.formatMessage(messages.matchesViewPageTitle)}</h1>
 

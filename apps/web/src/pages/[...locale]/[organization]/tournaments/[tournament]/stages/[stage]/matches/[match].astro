@@ -28,6 +28,12 @@ if (!response) {
 }
 
 const model = buildMatchReport(response);
+const structuredData = {
+  '@type': 'SportsEvent' as const,
+  name: `${model.home.name} vs ${model.away.name} — ${model.tournamentName}`,
+  url: `${Astro.site?.toString().replace(/\/$/, '') ?? ''}${Astro.url.pathname}`,
+  ...(model.scheduledAt ? { startDate: model.scheduledAt } : {}),
+};
 ---
 
 <PublicLayout
@@ -35,6 +41,7 @@ const model = buildMatchReport(response);
   canonicalPath={Astro.url.pathname}
   intl={intl}
   disciplineImages={response.disciplineImages}
+  structuredData={structuredData}
 >
   <article>
     <header>

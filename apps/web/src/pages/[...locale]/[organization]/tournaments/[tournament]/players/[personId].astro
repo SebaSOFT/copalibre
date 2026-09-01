@@ -28,12 +28,14 @@ if (!overviewData || !profile) {
 
 const model = buildOverview(mapOverviewResponse(overviewData));
 const title = `${profile.displayName} — ${displayName(model)}`;
+const localePrefix = locale ? `/${locale}` : '';
+const canonicalPath = `${localePrefix}${model.canonicalPath}/players/${personId}`;
 ---
 
 <PublicLayout
   title={title}
   description={intl.formatMessage(messages.playerProfileHeading)}
-  canonicalPath={`${model.canonicalPath}/players/${personId}`}
+  canonicalPath={canonicalPath}
   intl={intl}
   disciplineImages={overviewData.disciplineImages}
 >

@@ -52,8 +52,8 @@
     },
     "/organizations": {
       "get": {
-        "description": "Requires \"?mine=true\" — the only filter this endpoint supports today. Returns every organization the caller holds a non-deleted, active role assignment in, with that role. Never requires an organization to already be known, so it also answers \"does this account belong to any organization at all\".",
-        "operationId": "OrganizationsController_listMine",
+        "description": "When called without filters, returns public organizations with at least one published tournament. When called with \"?mine=true\", returns organizations the authenticated caller belongs to.",
+        "operationId": "OrganizationsController_list",
         "parameters": [],
         "responses": {
           "200": {
@@ -63,29 +63,14 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/MyOrganizationResponse"
+                    "$ref": "#/components/schemas/OrganizationResponse"
                   }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Missing or invalid bearer token",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemResponse"
                 }
               }
             }
           }
         },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "List organizations the authenticated caller belongs to",
+        "summary": "List organizations",
         "tags": [
           "organizations"
         ]
@@ -10614,64 +10599,6 @@
           "schemaVersion"
         ]
       },
-      "MyOrganizationResponse": {
-        "type": "object",
-        "properties": {
-          "organizationId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "organizationAlias": {
-            "type": "string",
-            "description": "Human-readable, URL-safe alias; globally unique per installation",
-            "example": "liga-orbital"
-          },
-          "organizationName": {
-            "type": "string",
-            "example": "Liga Orbital"
-          },
-          "role": {
-            "type": "string",
-            "enum": [
-              "admin",
-              "club-admin",
-              "tournament-admin",
-              "referee",
-              "broadcaster",
-              "viewer"
-            ],
-            "description": "The caller's active role in this organization"
-          }
-        },
-        "required": [
-          "organizationId",
-          "organizationAlias",
-          "organizationName",
-          "role"
-        ]
-      },
-      "ProblemResponse": {
-        "type": "object",
-        "properties": {
-          "statusCode": {
-            "type": "number",
-            "example": 403
-          },
-          "message": {
-            "type": "string",
-            "example": "subject may only act on their own records"
-          },
-          "errorCode": {
-            "type": "string",
-            "example": "forbidden"
-          }
-        },
-        "required": [
-          "statusCode",
-          "message",
-          "errorCode"
-        ]
-      },
       "OrganizationResponse": {
         "type": "object",
         "properties": {
@@ -10759,6 +10686,28 @@
         "required": [
           "alias",
           "name"
+        ]
+      },
+      "ProblemResponse": {
+        "type": "object",
+        "properties": {
+          "statusCode": {
+            "type": "number",
+            "example": 403
+          },
+          "message": {
+            "type": "string",
+            "example": "subject may only act on their own records"
+          },
+          "errorCode": {
+            "type": "string",
+            "example": "forbidden"
+          }
+        },
+        "required": [
+          "statusCode",
+          "message",
+          "errorCode"
         ]
       },
       "UpdateOrganizationSettingsRequest": {

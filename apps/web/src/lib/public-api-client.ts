@@ -9,6 +9,7 @@ import type {
   PublicPersonProfileResponse,
   PublicOrganizationTournamentListResponse,
 } from '@copalibre/api/src/dto/public-tournament.dto.js';
+import type { OrganizationResponse } from '@copalibre/api/src/dto/organization.dto.js';
 import type {
   TableLayoutListResponse,
   TableProjectionResponse,
@@ -31,14 +32,27 @@ function getApiBaseUrl(): string {
  * and throwing on any other non-2xx status.
  */
 async function fetchOr404<T>(url: string): Promise<T | undefined> {
-  const response = await fetch(url);
-  if (response.status === 404) {
-    return undefined;
+  try {
+    const response = await fetch(url);
+    if (response.status === 404) {
+      return undefined;
+    }
+    if (!response.ok) {
+      throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`);
+    }
+    return response.json() as Promise<T>;
+  } catch (error) {
+    if (error instanceof TypeError || (error instanceof Error && error.name === 'FetchError')) {
+      return undefined;
+    }
+    throw error;
   }
-  if (!response.ok) {
-    throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`);
-  }
-  return response.json() as Promise<T>;
+}
+
+export async function fetchOrganizations(): Promise<readonly OrganizationResponse[] | undefined> {
+  const baseUrl = getApiBaseUrl();
+  const url = `${baseUrl}/organizations`;
+  return fetchOr404<OrganizationResponse[]>(url);
 }
 
 export async function fetchOverview(

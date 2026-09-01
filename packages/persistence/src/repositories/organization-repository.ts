@@ -162,6 +162,27 @@ export class OrganizationRepository {
       .executeTakeFirst();
     return row ? toOrganization(row) : undefined;
   }
+
+  /**
+   * Organizations with at least one published, started, finished, or archived tournament
+   * (public directory / sitemap).
+   */
+  async listWithPublishedTournaments(): Promise<readonly Organization[]> {
+    const rows = await this.db
+      .selectFrom('organizations')
+      .selectAll('organizations')
+      .where(({ exists, selectFrom }) =>
+        exists(
+          selectFrom('tournaments')
+            .select('tournament_id')
+            .whereRef('tournaments.organization_id', '=', 'organizations.organization_id')
+            .where('tournaments.status', 'in', ['published', 'started', 'finished', 'archived']),
+        ),
+      )
+      .orderBy('organizations.name', 'asc')
+      .execute();
+    return rows.map(toOrganization);
+  }
 }
 
 function validatePrimaryLanguage(value: string | undefined): SupportedLanguage {

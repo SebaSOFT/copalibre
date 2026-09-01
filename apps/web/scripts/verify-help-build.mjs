@@ -8,12 +8,22 @@ const STARLIGHT_ROOT = join(ROOT, '../../../node_modules/@astrojs/starlight');
 const CUSTOM_CSS = join(ROOT, '../src/styles/help.css');
 const failures = [];
 
+const SERVER_DIST = join(ROOT, '../dist/server');
+
 function check(label, condition) {
   if (!condition) failures.push(label);
 }
 
 function readOutput(path) {
-  return readFileSync(join(DIST, path), 'utf8');
+  const clientPath = join(DIST, path);
+  if (existsSync(clientPath)) {
+    return readFileSync(clientPath, 'utf8');
+  }
+  const serverPath = join(SERVER_DIST, path);
+  if (existsSync(serverPath)) {
+    return readFileSync(serverPath, 'utf8');
+  }
+  return '';
 }
 
 function readTree(directory) {
