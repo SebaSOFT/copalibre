@@ -3,7 +3,9 @@
 ## Purpose
 Renders competition standings so every ranking and every tiebreak resolution is traceable to the
 engine's own explanation trace, never a UI-only recomputation or approximation.
+
 ## Requirements
+
 ### Requirement: Standings table renders engine-sourced ranking
 The system SHALL render a standings table (rank, participant, matches, win-draw-loss, points, and a
 tiebreak indicator) populated from the published standings projection, not from a client-side
@@ -108,3 +110,27 @@ The system SHALL evaluate declared `TableLayoutDefinition` rules dynamically aga
 - **WHEN** a layout specifies `defaultSort: [{ columnCode: 'goals', direction: 'desc' }, { columnCode: 'goals-per-match', direction: 'desc' }, { columnCode: 'penalties', direction: 'asc' }]`
 - **THEN** tied goal scorers are ordered secondarily by goals-per-match and tertiarily by fewest penalty goals
 
+### Requirement: Head-to-Head (H2H) and Match-Losses Tiebreak Scoping
+The system SHALL support declaring an evaluation scope (`overall`, `head-to-head`, or `match-losses`) on each tiebreak parameter in a tournament profile or ruleset pipeline. When evaluating a parameter scoped to `head-to-head`, the engine SHALL calculate accounting metrics strictly from recorded match outcomes played among the mutually tied participants. When evaluating a parameter scoped to `match-losses`, the engine SHALL calculate accounting metrics strictly from matches each tied participant lost.
+
+#### Scenario: Head-to-Head points resolves a tie among equal overall points
+- **GIVEN** Entrant A and Entrant B have identical overall points in a round-robin group
+- **AND** Entrant A defeated Entrant B in their direct match
+- **WHEN** the tiebreak pipeline evaluates a parameter with `id: "points"` and `scope: "head-to-head"`
+- **THEN** Entrant A is ranked above Entrant B
+- **AND** the explanation trace states that H2H points separated Entrant A and Entrant B
+
+#### Scenario: Match-losses scope filters metrics to lost matches
+- **GIVEN** Entrant A and Entrant B are tied on overall wins
+- **WHEN** evaluating a parameter with `id: "goals-conceded"` and `scope: "match-losses"`
+- **THEN** only goals conceded in matches where the respective entrant lost are summed for comparison
+
+### Requirement: Recursive Sub-Tie Resolution for Multi-Entrant Ties
+When three or more entrants are tied and a tiebreaker comparator separates a subset of them (e.g. separating the top entrant while two entrants remain tied), the engine SHALL recursively restart the evaluation of the tiebreaker pipeline strictly among the remaining tied participants.
+
+#### Scenario: Three-way tie partially resolved triggers recursive H2H sub-evaluation
+- **GIVEN** Entrants A, B, and C are tied on 6 points in a group
+- **AND** H2H goal difference ranks Entrant A 1st (+2), while Entrants B and C remain tied (+0)
+- **WHEN** the tiebreak pipeline proceeds to resolve Entrant B and Entrant C
+- **THEN** a new sub-pipeline evaluation begins strictly between Entrants B and C, evaluating their direct head-to-head match
+- **AND** the explanation trace records both the 3-way parent resolution and the nested 2-way sub-resolution
