@@ -9,6 +9,8 @@ import {
 import { buildHreflangAlternates, serializeJsonLd, type JsonLdStructuredData } from '../lib/seo.ts';
 import type { SupportedLanguage } from '@copalibre/domain';
 
+import { getLocaleHomePath } from '../lib/locale.ts';
+
 interface Props {
   readonly title: string;
   readonly description?: string;
@@ -47,6 +49,7 @@ const resolvedOgImage =
     : undefined);
 const alternates = buildHreflangAlternates(site, canonicalPath, intl.locale, localeVariants);
 const canonicalUrl = `${site}${canonicalPath}`;
+const homeUrl = getLocaleHomePath(intl.locale);
 ---
 
 <!doctype html>
@@ -92,7 +95,7 @@ const canonicalUrl = `${site}${canonicalPath}`;
     <a class="cl-focusable" href="#main">{intl.formatMessage(messages.layoutSkipToContent)}</a>
     <header>
       <nav aria-label={intl.formatMessage(messages.layoutNavAriaLabel)}>
-        <a href="/" class="cl-brand">
+        <a href={homeUrl} class="cl-brand">
           <img src="/copalibre-logo.svg" alt="" width="28" height="28" />
           CopaLibre
         </a>

@@ -109,7 +109,7 @@ describe('Modal', () => {
         Contenido
       </Modal>,
     );
-    fireEvent.click(screen.getByRole('button', { name: '×' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 

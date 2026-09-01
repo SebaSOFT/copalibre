@@ -39,7 +39,7 @@ export function Modal({
               </RadixDialog.Description>
             ) : null}
             <RadixDialog.Close asChild>
-              <button className="cl-focusable cl-modal__close" type="button">
+              <button aria-label="Close" className="cl-focusable cl-modal__close" type="button">
                 ×
               </button>
             </RadixDialog.Close>
