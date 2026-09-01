@@ -66,4 +66,17 @@ describe('module add --source allow-list (integration)', () => {
     expect(installed[0]?.sourceKind).toBe('alternate');
     expect(installed[0]?.sourceRepositoryUrl).toBe(CURATED_MODULE_REPOSITORY.repositoryUrl);
   });
+
+  it('installs a tournament profile module from the curated repository', async () => {
+    const environment = baseEnvironment();
+    const exitCode = await moduleAdd(['double-elimination-bracket'], environment);
+    expect(exitCode).toBe(0);
+
+    const installed = await new InstalledModuleRepository(db).findByAlias(
+      'double-elimination-bracket',
+    );
+    expect(installed).toHaveLength(1);
+    expect(installed[0]?.kind).toBe('tournament-profile');
+    expect(installed[0]?.sourceKind).toBe('curated');
+  });
 });

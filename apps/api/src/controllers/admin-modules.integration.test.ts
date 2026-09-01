@@ -140,6 +140,39 @@ describe('AdminModulesController (integration)', () => {
     expect(installed).toHaveLength(0);
   });
 
+  it('installs, lists, verifies, and removes a real curated tournament profile end to end', async () => {
+    const install = await inject('admin', 'POST', '/admin/modules', {
+      alias: 'double-elimination-bracket',
+    });
+    expect(install.statusCode).toBe(201);
+    expect(install.json()).toMatchObject({
+      kind: 'tournament-profile',
+      alias: 'double-elimination-bracket',
+      version: '1.0.0',
+    });
+
+    const list = await inject('admin', 'GET', '/admin/modules');
+    expect(list.statusCode).toBe(200);
+    expect(list.json()).toEqual([
+      expect.objectContaining({ alias: 'double-elimination-bracket', sourceKind: 'curated' }),
+    ]);
+
+    const verify = await inject('admin', 'POST', '/admin/modules/verify');
+    expect(verify.statusCode).toBe(200);
+    expect(verify.json()).toEqual([
+      expect.objectContaining({ alias: 'double-elimination-bracket', ok: true, failures: [] }),
+    ]);
+
+    const remove = await inject('admin', 'DELETE', '/admin/modules/double-elimination-bracket');
+    expect(remove.statusCode).toBe(200);
+    expect(remove.json()).toEqual({ alias: 'double-elimination-bracket', removedCount: 1 });
+
+    const installed = await new InstalledModuleRepository(scratch.db).findByAlias(
+      'double-elimination-bracket',
+    );
+    expect(installed).toHaveLength(0);
+  });
+
   it('refuses an unallow-listed alternate source, installing nothing', async () => {
     const response = await inject('admin', 'POST', '/admin/modules', {
       alias: 'orbital-frisbee',
