@@ -114,4 +114,9 @@ export const messages: Record<string, string> = {
     'Der entscheidende Faktor zwischen gleichstehenden Tabellenplätzen. Eine vollständige Erklärung ist für einen berechtigten Organisator im Kontrollpanel verfügbar.',
   'publicWeb.matchesView.fullTraceHeading': 'Vollständige Spur des Tabellenvergleichs',
   'publicWeb.matchesView.seeAll': 'Alle Spiele ansehen',
+
+  'publicWeb.notFound.pageTitle': 'Seite nicht gefunden — CopaLibre',
+  'publicWeb.notFound.heading': 'Seite nicht gefunden',
+  'publicWeb.notFound.body': 'An dieser Adresse existiert kein Inhalt.',
+  'publicWeb.notFound.homeLink': 'Zur Startseite',
 };

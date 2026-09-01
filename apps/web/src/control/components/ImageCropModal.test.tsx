@@ -19,7 +19,7 @@ describe('ImageCropModal', () => {
     const dialog = screen.getByRole('dialog');
     expect(dialog).toBeDefined();
     expect(screen.getByText('Adjust image')).toBeDefined();
-    expect(screen.getByRole('button', { name: '×' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Close' })).toBeDefined();
   });
 
   it('calls onCancel and never onConfirm when Cancel is clicked', () => {
@@ -35,14 +35,14 @@ describe('ImageCropModal', () => {
     expect(onConfirm).not.toHaveBeenCalled();
   });
 
-  it('calls onCancel when close button (×) is clicked', () => {
+  it('calls onCancel when close button is clicked', () => {
     const onCancel = jest.fn();
     const onConfirm = jest.fn();
     render(
       withIntl(<ImageCropModal imageSrc="blob:source" onCancel={onCancel} onConfirm={onConfirm} />),
     );
 
-    fireEvent.click(screen.getByRole('button', { name: '×' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
 
     expect(onCancel).toHaveBeenCalledTimes(1);
     expect(onConfirm).not.toHaveBeenCalled();

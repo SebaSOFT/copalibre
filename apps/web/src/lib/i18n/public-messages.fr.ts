@@ -114,4 +114,9 @@ export const messages: Record<string, string> = {
     'Le facteur décisif entre des positions à égalité. Un organisateur autorisé peut voir l’explication complète dans le panneau de contrôle.',
   'publicWeb.matchesView.fullTraceHeading': 'Trace complète du comparateur de classement',
   'publicWeb.matchesView.seeAll': 'Voir tous les matchs',
+
+  'publicWeb.notFound.pageTitle': 'Page introuvable — CopaLibre',
+  'publicWeb.notFound.heading': 'Page introuvable',
+  'publicWeb.notFound.body': 'Aucun contenu n’existe à cette adresse.',
+  'publicWeb.notFound.homeLink': 'Retour à l’accueil',
 };

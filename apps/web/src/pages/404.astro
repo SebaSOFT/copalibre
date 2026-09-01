@@ -1,29 +1,31 @@
 ---
 import { ControlOrNotFound } from '../control/components/ControlOrNotFound.tsx';
 import '@copalibre/design-tokens/generated/copalibre.css';
+import { resolvePathLocale, getLocaleHomePath } from '../lib/locale.ts';
+import { publicIntl } from '../lib/i18n/public-intl.ts';
+import { messages } from '../lib/i18n/public-messages.en.ts';
 
-/**
- * The site's one static 404 page — every static host falls back to this
- * file for an unmatched path, with no special configuration required. Its
- * own markup below is the real "not found" content for a genuinely missing
- * public page (present without JavaScript); `ControlOrNotFound`
- * additionally mounts the control-panel shell when the miss was actually a
- * `/control/**` screen this build's build-time routing can't enumerate.
- */
+export const prerender = false;
+
+const rawPath = Astro.request?.url ? new URL(Astro.request.url).pathname : Astro.url.pathname;
+const locale = resolvePathLocale(rawPath);
+const intl = publicIntl(locale);
+const homeUrl = getLocaleHomePath(locale);
 ---
 
 <!doctype html>
-<html lang="es">
+<html lang={locale}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/svg+xml" href="/copalibre-logo.svg" />
-    <title>Página no encontrada — CopaLibre</title>
+    <title>{intl.formatMessage(messages.notFoundPageTitle)}</title>
   </head>
   <body>
     <main id="static-not-found">
-      <h1>Página no encontrada</h1>
-      <p>No existe contenido en esta dirección.</p>
+      <h1>{intl.formatMessage(messages.notFoundHeading)}</h1>
+      <p>{intl.formatMessage(messages.notFoundBody)}</p>
+      <p><a href={homeUrl}>{intl.formatMessage(messages.notFoundHomeLink)}</a></p>
     </main>
     <ControlOrNotFound client:only="react" />
   </body>

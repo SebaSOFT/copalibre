@@ -10,12 +10,14 @@ import {
 import { pickFeaturedTournament } from '../../lib/organization-page.ts';
 import { publicIntl } from '../../lib/i18n/public-intl.ts';
 import { messages } from '../../lib/i18n/public-messages.en.ts';
-import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
+import { resolvePathLocale } from '../../lib/locale.ts';
+import type { SupportedLanguage } from '@copalibre/domain';
 
 export const prerender = false;
 
-const { locale, organization } = Astro.params;
-const resolvedLocale: SupportedLanguage = isSupportedLanguage(locale) ? locale : 'en';
+const { organization } = Astro.params;
+const rawPath = Astro.request?.url ? new URL(Astro.request.url).pathname : Astro.url.pathname;
+const resolvedLocale: SupportedLanguage = resolvePathLocale(rawPath);
 const intl = publicIntl(resolvedLocale);
 
 const listData = await fetchOrganizationTournaments(organization!);
