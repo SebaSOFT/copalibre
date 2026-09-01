@@ -130,6 +130,9 @@ export {
   type TiebreakPipeline,
   type EntrantValues,
   type TiebreakResolution,
+  type TiebreakScope,
+  type ScopedValuesProvider,
+  type ResolveTiebreakOptions,
 } from './tiebreak/pipeline.js';
 
 export {

@@ -95,6 +95,7 @@ export const TOURNAMENT_PROFILE_SCHEMA: JsonSchemaDocument = Object.freeze({
           label: { type: 'string', minLength: 1 },
           direction: { enum: ['higher_wins', 'lower_wins'] },
           missingValue: { enum: ['treat-as-worst', 'treat-as-zero', 'invalid'] },
+          scope: { enum: ['overall', 'head-to-head', 'match-losses'] },
         },
       },
     },

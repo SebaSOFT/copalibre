@@ -146,10 +146,21 @@ export function decidingFactorLabel(
   trace: readonly TraceNode[],
   entrantId: string,
 ): string | undefined {
-  const decisive = traceForEntrant(trace, entrantId).filter(
-    (node) =>
-      node.kind === 'comparator' &&
-      (node.outcome === 'resolved' || node.outcome === 'partially-resolved'),
-  );
+  const entrantTrace = traceForEntrant(trace, entrantId);
+  const decisive: TraceNode[] = [];
+
+  const collectDecisive = (nodes: readonly TraceNode[]): void => {
+    for (const node of nodes) {
+      if (
+        node.kind === 'comparator' &&
+        (node.outcome === 'resolved' || node.outcome === 'partially-resolved')
+      ) {
+        decisive.push(node);
+      }
+      if (node.children) collectDecisive(node.children);
+    }
+  };
+
+  collectDecisive(entrantTrace);
   return decisive.at(-1)?.label;
 }

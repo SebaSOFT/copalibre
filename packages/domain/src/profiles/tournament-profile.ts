@@ -34,6 +34,7 @@ export interface ProfileTiebreak {
   readonly label: string | LocalizedLabel;
   readonly direction: 'higher_wins' | 'lower_wins';
   readonly missingValue: 'treat-as-worst' | 'treat-as-zero' | 'invalid';
+  readonly scope?: 'overall' | 'head-to-head' | 'match-losses';
 }
 
 export interface TournamentProfileDocument {
