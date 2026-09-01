@@ -14,6 +14,8 @@ export type ComparisonDirection =
 
 export type MissingValueBehavior = 'treat-as-worst' | 'treat-as-zero' | 'invalid';
 
+export type TiebreakScope = 'overall' | 'head-to-head' | 'match-losses';
+
 /**
  * A comparator computed from two statistics rather than read from one: K/D
  * ratio, points per game, goals per match. Declared because the ratio is not a
@@ -34,6 +36,11 @@ export interface RatioDefinition {
 export interface TiebreakParameterDefinition {
   /** Stable identifier, e.g. "points", "score-difference", "head-to-head". */
   readonly id: string;
+  /**
+   * Evaluation scope for this comparator ('overall' | 'head-to-head' | 'match-losses').
+   * Defaults to 'overall' when omitted.
+   */
+  readonly scope?: TiebreakScope;
   /**
    * When present, the comparator divides these two values instead of reading
    * `id` from the entrant's values.
@@ -62,6 +69,16 @@ export interface TiebreakPipeline {
 /** Accounting values per entrant, keyed by parameter id. */
 export type EntrantValues = Readonly<Record<string, Readonly<Record<string, unknown>>>>;
 
+export type ScopedValuesProvider = (
+  scope: TiebreakScope,
+  parameter: TiebreakParameterDefinition,
+  activeGroup: readonly string[],
+) => EntrantValues;
+
+export interface ResolveTiebreakOptions {
+  readonly scopedValuesProvider?: ScopedValuesProvider;
+}
+
 export interface TiebreakResolution {
   /** Entrant ids best-first; entrants inside one group remain tied. */
   readonly rankedGroups: readonly (readonly string[])[];
@@ -81,7 +98,16 @@ export function resolveTiebreak(
   pipeline: TiebreakPipeline,
   entrantIds: readonly string[],
   values: EntrantValues,
+  options?: ResolveTiebreakOptions,
 ): TiebreakResolution {
+  if (entrantIds.length <= 1) {
+    return {
+      rankedGroups: entrantIds.length === 0 ? [] : [[...entrantIds]],
+      fullyResolved: true,
+      trace: [],
+    };
+  }
+
   let groups: (readonly string[])[] = [entrantIds];
   const trace: TraceNode[] = [];
 
@@ -91,21 +117,47 @@ export function resolveTiebreak(
     const nextGroups: (readonly string[])[] = [];
     const groupOutcomes: string[] = [];
     const observed: Record<string, unknown> = {};
+    const subTraces: TraceNode[] = [];
 
     for (const group of groups) {
       if (group.length === 1) {
         nextGroups.push(group);
         continue;
       }
-      const split = splitByParameter(group, parameter, values, observed);
-      nextGroups.push(...split);
-      groupOutcomes.push(
-        split.length === group.length
-          ? 'resolved'
-          : split.length > 1
-            ? 'partially-resolved'
-            : 'tied-proceed',
-      );
+
+      const effectiveValues =
+        options?.scopedValuesProvider && parameter.scope && parameter.scope !== 'overall'
+          ? options.scopedValuesProvider(parameter.scope, parameter, group)
+          : values;
+
+      const split = splitByParameter(group, parameter, effectiveValues, observed);
+
+      if (split.length === 1) {
+        nextGroups.push(group);
+        groupOutcomes.push('tied-proceed');
+      } else if (split.length === group.length) {
+        nextGroups.push(...split);
+        groupOutcomes.push('resolved');
+      } else {
+        // Partially split a group of >= 3 entrants
+        const isTiebreakerComparator =
+          index > 0 || (parameter.scope !== undefined && parameter.scope !== 'overall');
+
+        groupOutcomes.push('partially-resolved');
+        for (const subGroup of split) {
+          if (subGroup.length === 1) {
+            nextGroups.push(subGroup);
+          } else if (isTiebreakerComparator) {
+            // Recursive sub-tie resolution strictly between remaining tied entrants
+            const subResolution = resolveTiebreak(pipeline, subGroup, values, options);
+            nextGroups.push(...subResolution.rankedGroups);
+            subTraces.push(...subResolution.trace);
+          } else {
+            // Initial overall ranking split; proceed to next comparator in the pipeline
+            nextGroups.push(subGroup);
+          }
+        }
+      }
     }
 
     groups = nextGroups;
@@ -126,6 +178,7 @@ export function resolveTiebreak(
         : resolvedAll
           ? `${parameter.label} resolved the tie`
           : `Tie not fully resolved by ${parameter.label}; proceed to next comparator`,
+      ...(subTraces.length > 0 ? { children: subTraces } : {}),
     });
 
     if (resolvedAll) break;

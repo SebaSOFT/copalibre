@@ -686,4 +686,211 @@ describe('computeStandings', () => {
       expect(standings.trace.some((node) => node.kind === 'aggregation')).toBe(false);
     });
   });
+
+  describe('scoped tiebreaking: head-to-head and match-losses', () => {
+    const scopedDescriptor = fixtureDescriptor({
+      statistics: [
+        { code: 'score-for', label: 'Scored', aggregation: 'sum' },
+        { code: 'score-against', label: 'Conceded', aggregation: 'sum' },
+        { code: 'score-difference', label: 'Difference', aggregation: 'sum' },
+        { code: 'points', label: 'Points', aggregation: 'sum' },
+        { code: 'wins', label: 'Wins', aggregation: 'sum' },
+        { code: 'draws', label: 'Draws', aggregation: 'sum' },
+        { code: 'losses', label: 'Losses', aggregation: 'sum' },
+        { code: 'played', label: 'Played', aggregation: 'count' },
+      ],
+    });
+
+    it('ranks head-to-head winner above entrant with superior overall goal difference', () => {
+      const h2hPipeline: TiebreakPipeline = {
+        id: 'h2h-priority',
+        version: 1,
+        parameters: [
+          {
+            id: 'points',
+            label: 'Points',
+            scope: 'overall',
+            valueType: 'number',
+            direction: 'higher_wins',
+            missingValue: 'treat-as-zero',
+            source: 'calculated',
+          },
+          {
+            id: 'points',
+            label: 'Head-to-Head Points',
+            scope: 'head-to-head',
+            valueType: 'number',
+            direction: 'higher_wins',
+            missingValue: 'treat-as-zero',
+            source: 'calculated',
+          },
+          {
+            id: 'score-difference',
+            label: 'Overall Score Difference',
+            scope: 'overall',
+            valueType: 'number',
+            direction: 'higher_wins',
+            missingValue: 'treat-as-zero',
+            source: 'match-derived',
+          },
+        ],
+      };
+
+      // Alfa beat Bravo (1-0).
+      // Against Charlie and Delta:
+      // Bravo won 5-0 (vs Charlie) and 5-0 (vs Delta) -> 6 pts, overall GD +9 (10-1).
+      // Alfa won 1-0 (vs Charlie) and lost 0-1 (vs Delta) -> 6 pts, overall GD +1 (2-1).
+      const outcomes = [
+        outcome('m1', 'alfa', 1, 'bravo', 0),
+        outcome('m2', 'bravo', 5, 'charlie', 0),
+        outcome('m3', 'bravo', 5, 'delta', 0),
+        outcome('m4', 'alfa', 1, 'charlie', 0),
+        outcome('m5', 'delta', 1, 'alfa', 0),
+      ];
+
+      const standings = computeStandings(
+        scopedDescriptor,
+        ['alfa', 'bravo', 'charlie', 'delta'],
+        outcomes,
+        h2hPipeline,
+      );
+
+      // Alfa ranks 1st due to H2H victory over Bravo (even though Bravo has +9 GD vs Alfa's +1)
+      expect(standings.rows.map((r) => r.entrantId)).toEqual(['alfa', 'bravo', 'delta', 'charlie']);
+      expect(standings.rows[0]?.rank).toBe(1);
+      expect(standings.rows[1]?.rank).toBe(2);
+      expect(standings.fullyResolved).toBe(true);
+
+      // Rule 1 (overall points) tied Alfa and Bravo (6 pts each); Rule 2 (H2H points) resolved them (alfa: 3, bravo: 0)
+      const h2hNode = standings.trace.find((n) => n.label.includes('Head-to-Head Points'));
+      expect(h2hNode).toBeDefined();
+      expect(h2hNode?.outcome).toBe('resolved');
+      expect(h2hNode?.values).toMatchObject({ alfa: 3, bravo: 0 });
+    });
+
+    it('resolves 3-way partial split recursively on the surviving tied subset', () => {
+      const h2hRecursivePipeline: TiebreakPipeline = {
+        id: 'h2h-recursive',
+        version: 1,
+        parameters: [
+          {
+            id: 'points',
+            label: 'Points',
+            scope: 'overall',
+            valueType: 'number',
+            direction: 'higher_wins',
+            missingValue: 'treat-as-zero',
+            source: 'calculated',
+          },
+          {
+            id: 'score-difference',
+            label: 'H2H Score Difference',
+            scope: 'head-to-head',
+            valueType: 'number',
+            direction: 'higher_wins',
+            missingValue: 'treat-as-zero',
+            source: 'match-derived',
+          },
+        ],
+      };
+
+      // 4-team group (A, B, C, D).
+      // A, B, C all finish with 6 points (2 wins each):
+      // - A beat B (3-0)
+      // - B beat C (2-0)
+      // - C beat A (1-0)
+      // (against D: A, B, C each beat D 2-0).
+      // 3-way H2H GD among {A, B, C}:
+      // A: +3 - 1 = +2
+      // B: -3 + 2 = -1
+      // C: -2 + 1 = -1
+      // Rule 2 (H2H GD) splits A into 1st, leaving [B, C] tied (-1).
+      // Recursive resolution on [B, C] restarts pipeline strictly between B and C:
+      // - Child Rule 1 (overall points): B=6, C=6 (tied-proceed)
+      // - Child Rule 2 (H2H GD strictly between B and C from their 2-0 match): B=+2, C=-2 -> resolves B 2nd, C 3rd.
+      const outcomes = [
+        outcome('m1', 'alfa', 3, 'bravo', 0),
+        outcome('m2', 'bravo', 2, 'charlie', 0),
+        outcome('m3', 'charlie', 1, 'alfa', 0),
+        outcome('m4', 'alfa', 2, 'delta', 0),
+        outcome('m5', 'bravo', 2, 'delta', 0),
+        outcome('m6', 'charlie', 2, 'delta', 0),
+      ];
+
+      const standings = computeStandings(
+        scopedDescriptor,
+        ['alfa', 'bravo', 'charlie', 'delta'],
+        outcomes,
+        h2hRecursivePipeline,
+      );
+
+      expect(standings.rows.map((r) => r.entrantId)).toEqual(['alfa', 'bravo', 'charlie', 'delta']);
+      expect(standings.fullyResolved).toBe(true);
+
+      const h2hGDNode = standings.trace.find((n) => n.label.includes('H2H Score Difference'));
+      expect(h2hGDNode).toBeDefined();
+      expect(h2hGDNode?.values).toMatchObject({ alfa: 2, bravo: -1, charlie: -1 });
+      expect(h2hGDNode?.children).toBeDefined();
+      expect(h2hGDNode?.children?.length).toBeGreaterThan(0);
+
+      // Child trace resolved B and C
+      const childH2H = h2hGDNode?.children?.find((n) => n.label.includes('H2H Score Difference'));
+      expect(childH2H).toBeDefined();
+      expect(childH2H?.outcome).toBe('resolved');
+      expect(childH2H?.values).toMatchObject({ bravo: 2, charlie: -2 });
+    });
+
+    it('filters statistics to lost matches when scope is match-losses', () => {
+      const matchLossesPipeline: TiebreakPipeline = {
+        id: 'losses-filter',
+        version: 1,
+        parameters: [
+          {
+            id: 'wins',
+            label: 'Wins',
+            scope: 'overall',
+            valueType: 'number',
+            direction: 'higher_wins',
+            missingValue: 'treat-as-zero',
+            source: 'calculated',
+          },
+          {
+            id: 'score-against',
+            label: 'Goals Conceded in Losses',
+            scope: 'match-losses',
+            valueType: 'number',
+            direction: 'lower_wins',
+            missingValue: 'treat-as-worst',
+            source: 'match-derived',
+          },
+        ],
+      };
+
+      // Both Alfa and Bravo have 1 win and 1 loss.
+      // Alfa: won 4-0 vs Charlie, lost 1-2 vs Delta (conceded 2 in loss).
+      // Bravo: won 10-0 vs Charlie, lost 0-5 vs Delta (conceded 5 in loss).
+      const outcomes = [
+        outcome('m1', 'alfa', 4, 'charlie', 0),
+        outcome('m2', 'delta', 2, 'alfa', 1),
+        outcome('m3', 'bravo', 10, 'charlie', 0),
+        outcome('m4', 'delta', 5, 'bravo', 0),
+      ];
+
+      const standings = computeStandings(
+        scopedDescriptor,
+        ['alfa', 'bravo'],
+        outcomes,
+        matchLossesPipeline,
+      );
+
+      // Alfa conceded fewer goals in lost matches (2 vs 5)
+      expect(standings.rows.map((r) => r.entrantId)).toEqual(['alfa', 'bravo']);
+      expect(standings.fullyResolved).toBe(true);
+
+      const lossNode = standings.trace.find((n) => n.label.includes('Goals Conceded in Losses'));
+      expect(lossNode).toBeDefined();
+      expect(lossNode?.outcome).toBe('resolved');
+      expect(lossNode?.values).toEqual({ alfa: 2, bravo: 5 });
+    });
+  });
 });

@@ -119,10 +119,12 @@ describe('tennis group regression', () => {
       pipeline,
     );
 
-    const observed = standings.trace.flatMap((node) => Object.values(node.values ?? {}));
+    const allNodes = [...standings.trace, ...(standings.trace[1]?.children ?? [])];
+    const observed = allNodes.flatMap((node) => Object.values(node.values ?? {}));
     expect(observed.length).toBeGreaterThan(0);
     expect(observed).not.toContain(null);
-    expect(standings.trace.map((node) => node.id)).toEqual([
+    expect(standings.trace.map((node) => node.id)).toEqual(['matches-won', 'sets-won']);
+    expect(standings.trace[1]?.children?.map((node) => node.id)).toEqual([
       'matches-won',
       'sets-won',
       'games-won',

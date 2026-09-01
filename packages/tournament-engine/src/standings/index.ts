@@ -1,4 +1,10 @@
-import type { EntrantValues, TiebreakPipeline, TraceNode } from '@copalibre/rules';
+import type {
+  EntrantValues,
+  TiebreakPipeline,
+  TraceNode,
+  TiebreakScope,
+  TiebreakParameterDefinition,
+} from '@copalibre/rules';
 import { resolveTiebreak } from '@copalibre/rules';
 import { slotsOf, type GeneratedMatch } from '../types.js';
 import type {
@@ -429,6 +435,59 @@ function fold(aggregation: StatisticDefinition['aggregation'], acc: StatisticAcc
 }
 
 /**
+ * Per-entrant accounting derived from recorded outcomes, filtered by tiebreak scope.
+ *
+ * - 'overall': folds all stage outcomes.
+ * - 'head-to-head': filters outcomes to matches where all participating sides belong to `entrantIds`.
+ * - 'match-losses': for each entrant, folds only matches where that entrant participated and lost (was not the winner).
+ */
+export function computeScopedAccounting(
+  descriptor: DisciplineDescriptor,
+  entrantIds: readonly string[],
+  outcomes: readonly RecordedOutcome[],
+  scope: TiebreakScope = 'overall',
+  points: PointsRules = DEFAULT_POINTS,
+  options?: { readonly seriesDeclaration?: SeriesDeclaration },
+): readonly EntrantAccounting[] {
+  if (scope === 'overall') {
+    return computeAccounting(descriptor, entrantIds, outcomes, points, options);
+  }
+
+  if (scope === 'head-to-head') {
+    const entrantSet = new Set(entrantIds);
+    const h2hOutcomes = outcomes.filter(
+      (out) => out.sides.length >= 2 && out.sides.every((side) => entrantSet.has(side.entrantId)),
+    );
+    return computeAccounting(descriptor, entrantIds, h2hOutcomes, points, options);
+  }
+
+  if (scope === 'match-losses') {
+    const results: EntrantAccounting[] = [];
+    for (const entrantId of entrantIds) {
+      const lostOutcomes = outcomes.filter(
+        (out) =>
+          out.winnerEntrantId !== undefined &&
+          out.winnerEntrantId !== entrantId &&
+          out.sides.some((side) => side.entrantId === entrantId),
+      );
+      const [singleAccounting] = computeAccounting(
+        descriptor,
+        [entrantId],
+        lostOutcomes,
+        points,
+        options,
+      );
+      if (singleAccounting) {
+        results.push(singleAccounting);
+      }
+    }
+    return results;
+  }
+
+  return computeAccounting(descriptor, entrantIds, outcomes, points, options);
+}
+
+/**
  * Accounting reshaped into the `EntrantValues` the comparator pipeline reads.
  * A comparator asking for a code the discipline never declared reads nothing
  * and degrades through its own `missingValue` policy — it is not silently
@@ -451,7 +510,26 @@ export function computeStandings(
   const grain: SeriesAccountingGrain =
     seriesDeclaration?.standingsAccounting === 'series' ? 'series' : 'match';
   const byId = new Map(accounting.map((row) => [row.entrantId, row]));
-  const resolution = resolveTiebreak(pipeline, entrantIds, toEntrantValues(accounting));
+
+  const scopedValuesProvider = (
+    scope: TiebreakScope,
+    _parameter: TiebreakParameterDefinition,
+    activeGroup: readonly string[],
+  ): EntrantValues => {
+    const scopedAccounting = computeScopedAccounting(
+      descriptor,
+      activeGroup,
+      outcomes,
+      scope,
+      points,
+      options,
+    );
+    return toEntrantValues(scopedAccounting);
+  };
+
+  const resolution = resolveTiebreak(pipeline, entrantIds, toEntrantValues(accounting), {
+    scopedValuesProvider,
+  });
 
   const rows: StandingsRow[] = [];
   let rank = 1;

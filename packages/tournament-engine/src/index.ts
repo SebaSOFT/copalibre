@@ -86,6 +86,7 @@ export {
 export {
   computeStandings,
   computeAccounting,
+  computeScopedAccounting,
   toEntrantValues,
   entrantsInGraph,
   DEFAULT_POINTS,

@@ -1,5 +1,5 @@
 import { codeFor, type CapabilityBinding } from '@copalibre/domain';
-import type { TiebreakParameterDefinition, TiebreakPipeline } from './pipeline.js';
+import type { TiebreakParameterDefinition, TiebreakPipeline, TiebreakScope } from './pipeline.js';
 
 /**
  * Resolves a capability-referencing pipeline into one that reads concrete
@@ -34,6 +34,7 @@ export interface CapabilityTiebreakParameter {
   readonly label: string;
   readonly direction: TiebreakParameterDefinition['direction'];
   readonly missingValue: TiebreakParameterDefinition['missingValue'];
+  readonly scope?: TiebreakScope;
   readonly valueType?: TiebreakParameterDefinition['valueType'];
   readonly source?: TiebreakParameterDefinition['source'];
   /**
@@ -74,6 +75,7 @@ export function bindTiebreakPipeline(
         direction: parameter.direction,
         missingValue: parameter.missingValue,
         source: parameter.source ?? 'calculated',
+        ...(parameter.scope ? { scope: parameter.scope } : {}),
         ...(ratio ? { ratio } : {}),
         ...(bound ? {} : { unboundCapability: parameter.capability }),
         capability: parameter.capability,

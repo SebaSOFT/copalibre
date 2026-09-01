@@ -223,3 +223,12 @@ The owned component layer SHALL provide templates beyond `ListScreenTemplate` an
 #### Scenario: Style-guide route exposes the new template
 - **WHEN** the style-guide route lists template examples
 - **THEN** every template in the owned layer surfaces a rendered example
+
+### Requirement: The Modal organism's close control has an accessible name
+The `Modal`/`Dialog` organism's close control SHALL carry an accessible name (e.g. `aria-label`) usable
+by assistive technology, in addition to its visible glyph, so an icon-only control is never announced
+without a name.
+
+#### Scenario: The close control has an accessible name
+- **WHEN** an open `Modal`'s close control is inspected in the accessibility tree
+- **THEN** it exposes a non-empty accessible name describing its action (e.g. "Close")

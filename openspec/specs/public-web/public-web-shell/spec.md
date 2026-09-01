@@ -501,3 +501,32 @@ entries per the existing "Sitemap advertises every locale variant" requirement.
 #### Scenario: A draft tournament is absent from the sitemap
 - **WHEN** an organization has both published and draft tournaments
 - **THEN** only the published tournament's routes appear in the sitemap
+
+### Requirement: Internal navigation stays within the current locale
+Every internal link a public page renders for site-wide navigation (including the brand/logo link)
+SHALL resolve within the locale the current page is being served under, rather than always pointing at
+the unprefixed primary-locale URL.
+
+#### Scenario: The brand link stays in the visitor's locale
+- **WHEN** an anonymous visitor on a non-primary-locale page (e.g. `/es/…`) activates the brand/logo
+  link
+- **THEN** it navigates to that same locale's site root (`/es/`), not the unprefixed English root
+
+#### Scenario: The brand link is unchanged for the primary locale
+- **WHEN** an anonymous visitor on an unprefixed (English) page activates the brand/logo link
+- **THEN** it navigates to the unprefixed site root, unchanged from existing behavior
+
+### Requirement: The 404 page offers a way back into the site
+The public site's not-found page SHALL include a working link back to a reachable page (at minimum the
+current locale's site root), and SHALL render its language and copy in the locale resolved from the
+requested path, on the same terms as any other public page.
+
+#### Scenario: A missing page offers a way home
+- **WHEN** an anonymous visitor requests a public path that does not resolve to any page
+- **THEN** the rendered not-found page includes a link that leads to a working page
+
+#### Scenario: The not-found page matches the requested locale
+- **WHEN** an anonymous visitor requests an unresolved path under a non-primary locale prefix (e.g.
+  `/es/some-missing-page`)
+- **THEN** the not-found page's `<html lang>` and copy render in that locale, not a different hardcoded
+  language
