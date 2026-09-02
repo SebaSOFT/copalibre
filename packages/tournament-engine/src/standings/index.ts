@@ -431,11 +431,7 @@ export function computeAccounting(
   });
 }
 
-function setDerivedStat(
-  acc: EntrantAccumulator,
-  statCode: string,
-  val: number,
-): void {
+function setDerivedStat(acc: EntrantAccumulator, statCode: string, val: number): void {
   const statAcc = acc.stats[statCode];
   if (!statAcc) return;
   statAcc.sum = val;

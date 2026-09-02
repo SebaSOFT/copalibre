@@ -48,9 +48,7 @@ describe('buildOpponentAdjacencyGraph', () => {
     expect(charlieOpponents).toEqual([{ opponentId: 'bravo', outcome: 'draw', matchId: 'm2' }]);
 
     const deltaOpponents = graph.get('delta') ?? [];
-    expect(deltaOpponents).toEqual([
-      { opponentId: 'alfa', outcome: 'win', matchId: 'm3' },
-    ]);
+    expect(deltaOpponents).toEqual([{ opponentId: 'alfa', outcome: 'win', matchId: 'm3' }]);
   });
 
   it('skips matches with fewer than 2 sides and ignores untracked entrants', () => {
