@@ -164,3 +164,30 @@ The system SHALL support the Sonneborn-Berger tiebreaker metric, computed as the
 - **AND** Entrant B defeated the 8th-place team (3 pts) and lost to others
 - **WHEN** the pipeline evaluates `sonneborn-berger`
 - **THEN** Entrant A's score is 12 and Entrant B's score is 3, placing Entrant A ahead
+
+### Requirement: Cumulative (Progressive) Standings Evaluation
+The system SHALL support the `cumulative-score` tiebreaker metric, calculated as the sum of the cumulative running point totals after each completed round of the stage. The engine SHALL also support `cumulative-opponent-points` which weights opponents by the round they were faced.
+
+#### Scenario: Cumulative score rewards early stage performance
+- **GIVEN** Entrant A won in Round 1 (3 pts), Round 2 (6 pts), and lost in Round 3 (6 pts) -> Cumulative sum = 3 + 6 + 6 = 15
+- **AND** Entrant B lost in Round 1 (0 pts), won in Round 2 (3 pts), and won in Round 3 (6 pts) -> Cumulative sum = 0 + 3 + 6 = 9
+- **WHEN** the tiebreak pipeline evaluates `cumulative-score`
+- **THEN** Entrant A (15) ranks ahead of Entrant B (9)
+
+### Requirement: Match and Game Forfeits Accounting
+The system SHALL record match and game forfeits explicitly. Entrants with fewer forfeits SHALL be ranked ahead of entrants with more forfeits when evaluated by `match-forfeits` or `game-forfeits` comparators.
+
+#### Scenario: Entrant with normal loss ranks above entrant with forfeited match
+- **GIVEN** Entrant A and Entrant B are tied on 3 points and 1 win, 2 losses
+- **AND** Entrant B forfeited one match while Entrant A played all 3 matches
+- **WHEN** the pipeline evaluates `match-forfeits` (lower_wins)
+- **THEN** Entrant A (0 forfeits) ranks ahead of Entrant B (1 forfeit)
+
+### Requirement: Manual and Seeded Deterministic Random Tiebreaker Resolution
+The system SHALL support manual tiebreak point assignments and deterministic seeded pseudo-random resolution (`random`). When `random` is evaluated, the result SHALL be completely deterministic on replay based on a cryptographic hash of the tournament ID, stage ID, and entrant IDs.
+
+#### Scenario: Seeded random produces reproducible ordering
+- **GIVEN** Entrants A and B remain tied after all performance comparators
+- **WHEN** `random` comparator executes
+- **THEN** Entrants are ordered deterministically by their hashed values
+- **AND** recomputing standings produces the exact same rank and audit trace

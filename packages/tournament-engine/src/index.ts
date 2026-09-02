@@ -69,10 +69,18 @@ export {
   type AllocationInput,
   type AllocationOutcome,
 } from './allocation/index.js';
-export { assertSupportedFormat, isEliminationFormat, isRoundRobinFormat } from './formats.js';
+export {
+  assertSupportedFormat,
+  isEliminationFormat,
+  isRoundRobinFormat,
+  isBracketGroupsFormat,
+} from './formats.js';
 export {
   generateFixtures,
   generateGroupedFixtures,
+  generateBracketGroups,
+  resolveBracketGroupAdvancement,
+  type BracketGroupQualification,
   buildEliminationTree,
   buildDoubleElimination,
   buildRoundRobin,

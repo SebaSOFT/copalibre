@@ -14,11 +14,17 @@ import { buildDoubleElimination } from './double-elimination.js';
 import { buildPlacementStage } from './placement.js';
 import { buildRoundRobin } from './round-robin.js';
 import { buildEliminationTree } from './single-elimination.js';
+import { generateBracketGroups } from './bracket-groups.js';
 
 export { buildEliminationTree, seedSlotOrder, nextPowerOfTwo } from './single-elimination.js';
 export { buildDoubleElimination } from './double-elimination.js';
 export { buildRoundRobin } from './round-robin.js';
 export { buildPlacementStage, roundSeed, type PlacementOptions } from './placement.js';
+export {
+  generateBracketGroups,
+  resolveBracketGroupAdvancement,
+  type BracketGroupQualification,
+} from './bracket-groups.js';
 export { pruneEmptyMatches } from './prune.js';
 export {
   generateGroupedFixtures,
@@ -92,6 +98,11 @@ function buildFor(
       return buildRoundRobin(input.entrants, { idPrefix: 'LG', series: input.series });
     case 'round-robin-home-away':
       return buildRoundRobin(input.entrants, { homeAndAway: true, series: input.series });
+    case 'bracket-groups':
+      return generateBracketGroups(input.entrants, {
+        series: input.series,
+        bracketGroups: input.bracketGroups,
+      });
     case 'free-for-all':
     case 'heats':
       // Placement stages carry no advancement edges, so nothing downstream
