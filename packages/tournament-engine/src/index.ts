@@ -13,6 +13,9 @@ export type {
   FixtureGraph,
   SeededEntrant,
   GenerateFixturesInput,
+  CustomBracketDefinition,
+  CustomBracketMatchDefinition,
+  CustomBracketSlotSource,
 } from './types.js';
 export { isDuelMatch, isPlacementMatch, slotsOf } from './types.js';
 export {
@@ -23,6 +26,8 @@ export {
   QualificationError,
   DrawError,
   PlacementAdvancementError,
+  CyclicFixtureGraphError,
+  InvalidCustomBracketError,
 } from './errors.js';
 export {
   previewStageTransition,
@@ -76,6 +81,7 @@ export {
   isBracketGroupsFormat,
   isGauntletFormat,
   isSwissFormat,
+  isCustomBracketFormat,
 } from './formats.js';
 export {
   generateFixtures,
@@ -91,6 +97,8 @@ export {
   generateSwissRound1,
   generateNextSwissRoundFixtures,
   type GenerateNextSwissRoundInput,
+  generateCustomBracketFixtures,
+  validateCustomBracket,
   buildEliminationTree,
   buildDoubleElimination,
   buildRoundRobin,

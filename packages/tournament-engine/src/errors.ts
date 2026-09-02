@@ -68,3 +68,17 @@ export class PlacementAdvancementError extends EngineError {
 export class StatisticFoldError extends EngineError {
   readonly code = 'STATISTIC_FOLD_INVALID';
 }
+
+/**
+ * A custom bracket definition contains a cycle in its match dependency graph.
+ */
+export class CyclicFixtureGraphError extends EngineError {
+  readonly code = 'CYCLIC_FIXTURE_GRAPH';
+}
+
+/**
+ * A custom bracket definition is invalid (referential integrity, duplicate id, out-of-bounds seed, etc.).
+ */
+export class InvalidCustomBracketError extends EngineError {
+  readonly code = 'INVALID_CUSTOM_BRACKET';
+}

@@ -6,7 +6,11 @@ import {
   validateSeriesDeclaration,
   SeriesConfigurationError,
 } from '@copalibre/domain';
-import { InvalidEntrantsError, UnsupportedFormatError } from '../errors.js';
+import {
+  InvalidCustomBracketError,
+  InvalidEntrantsError,
+  UnsupportedFormatError,
+} from '../errors.js';
 import { assertNoPlacementEdges } from '../advancement/index.js';
 import { assertSupportedFormat } from '../formats.js';
 import type { FixtureGraph, GenerateFixturesInput, GeneratedMatch } from '../types.js';
@@ -17,6 +21,7 @@ import { buildEliminationTree } from './single-elimination.js';
 import { generateBracketGroups } from './bracket-groups.js';
 import { generateGauntlet } from './gauntlet.js';
 import { generateSwissRound1 } from './swiss.js';
+import { generateCustomBracketFixtures } from './custom-bracket.js';
 
 export { buildEliminationTree, seedSlotOrder, nextPowerOfTwo } from './single-elimination.js';
 export { buildDoubleElimination } from './double-elimination.js';
@@ -39,6 +44,7 @@ export {
   generateNextSwissRoundFixtures,
   type GenerateNextSwissRoundInput,
 } from './swiss.js';
+export { generateCustomBracketFixtures, validateCustomBracket } from './custom-bracket.js';
 export { pruneEmptyMatches } from './prune.js';
 export {
   generateGroupedFixtures,
@@ -123,6 +129,15 @@ function buildFor(
       });
     case 'swiss':
       return generateSwissRound1(input.entrants, {
+        series: input.series,
+      });
+    case 'custom-bracket':
+      if (!input.customBracket) {
+        throw new InvalidCustomBracketError(
+          'A custom-bracket format requires a customBracket definition',
+        );
+      }
+      return generateCustomBracketFixtures(input.entrants, input.customBracket, {
         series: input.series,
       });
     case 'free-for-all':
