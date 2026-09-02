@@ -159,4 +159,25 @@ export interface GenerateFixturesInput {
   readonly customBracket?: CustomBracketDefinition;
   /** FFA elimination bracket configuration. */
   readonly ffaBracket?: FFABracketOptions;
+  /** FFA league configuration. */
+  readonly ffaLeague?: FFALeagueOptions;
+}
+
+export interface FFALeagueDivision {
+  readonly divisionId: string;
+  readonly name?: string;
+  readonly entrants: readonly SeededEntrant[];
+}
+
+export interface FFALeagueOptions {
+  /** Number of rounds (match weeks / game days) to generate (default 1). */
+  readonly rounds?: number;
+  /** Maximum lobby capacity (default 16). */
+  readonly lobbySize?: number;
+  /** Explicit division partitions. */
+  readonly divisions?: readonly FFALeagueDivision[];
+  /** Number of divisions to partition entrants into if divisions are not explicitly provided (default 1). */
+  readonly divisionCount?: number;
+  /** Custom ID prefix (default 'FFA-L'). */
+  readonly idPrefix?: string;
 }

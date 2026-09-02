@@ -5,6 +5,7 @@ import {
   type Result,
   validateSeriesDeclaration,
   SeriesConfigurationError,
+  isPlacementFormat,
 } from '@copalibre/domain';
 import {
   InvalidCustomBracketError,
@@ -23,6 +24,7 @@ import { generateGauntlet } from './gauntlet.js';
 import { generateSwissRound1 } from './swiss.js';
 import { generateCustomBracketFixtures } from './custom-bracket.js';
 import { generateFFABracketFixtures } from './ffa-bracket.js';
+import { generateFFALeagueFixtures } from './ffa-league.js';
 
 export { buildEliminationTree, seedSlotOrder, nextPowerOfTwo } from './single-elimination.js';
 export { buildDoubleElimination } from './double-elimination.js';
@@ -47,6 +49,11 @@ export {
 } from './swiss.js';
 export { generateCustomBracketFixtures, validateCustomBracket } from './custom-bracket.js';
 export { generateFFABracketFixtures, type FFABracketOptions } from './ffa-bracket.js';
+export {
+  generateFFALeagueFixtures,
+  type FFALeagueOptions,
+  type FFALeagueDivision,
+} from './ffa-league.js';
 export { pruneEmptyMatches } from './prune.js';
 export {
   generateGroupedFixtures,
@@ -67,7 +74,7 @@ export function generateFixtures(
   if (!format.ok) return err(format.error);
 
   if (input.series !== undefined) {
-    if (input.format === 'free-for-all' || input.format === 'heats') {
+    if (isPlacementFormat(input.format)) {
       return err(
         new UnsupportedFormatError('Series configuration is not supported for placement formats', {
           format: input.format,
@@ -80,7 +87,14 @@ export function generateFixtures(
     }
   }
 
-  const invalid = validateEntrants(input.entrants);
+  const entrantsToValidate =
+    input.entrants.length === 0 &&
+    input.ffaLeague?.divisions &&
+    input.ffaLeague.divisions.length > 0
+      ? input.ffaLeague.divisions.flatMap((d) => d.entrants)
+      : input.entrants;
+
+  const invalid = validateEntrants(entrantsToValidate);
   if (invalid) return err(invalid);
 
   const matches = buildFor(format.value, input);
@@ -89,13 +103,13 @@ export function generateFixtures(
   // that is where the graph is built.
   assertNoPlacementEdges({
     format: format.value,
-    entrantCount: input.entrants.length,
+    entrantCount: entrantsToValidate.length,
     matches,
     rounds: [],
   });
   return ok({
     format: format.value,
-    entrantCount: input.entrants.length,
+    entrantCount: entrantsToValidate.length,
     matches,
     rounds: summariseRounds(matches),
   });
@@ -150,6 +164,14 @@ function buildFor(
         idPrefix: input.ffaBracket?.idPrefix,
         groupCount: input.ffaBracket?.groupCount,
         thresholdFinalists: input.ffaBracket?.thresholdFinalists,
+      });
+    case 'ffa-league':
+      return generateFFALeagueFixtures(format, input.entrants, {
+        rounds: input.ffaLeague?.rounds ?? input.placement?.rounds,
+        lobbySize: input.ffaLeague?.lobbySize ?? input.placement?.lobbySize,
+        divisions: input.ffaLeague?.divisions,
+        divisionCount: input.ffaLeague?.divisionCount,
+        idPrefix: input.ffaLeague?.idPrefix,
       });
     case 'free-for-all':
     case 'heats':

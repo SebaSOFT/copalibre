@@ -54,6 +54,11 @@ export function isFFABracketFormat(format: TournamentFormat): boolean {
   return format === 'ffa-bracket' || format === 'ffa-bracket-groups';
 }
 
+/** Formats using multi-round division placement league scheduling. */
+export function isFFALeagueFormat(format: TournamentFormat): boolean {
+  return format === 'ffa-league';
+}
+
 /**
  * Formats where every entrant plays a fixed set of fixtures up front. Placement
  * formats qualify: their rounds are generated at once, they simply produce an
