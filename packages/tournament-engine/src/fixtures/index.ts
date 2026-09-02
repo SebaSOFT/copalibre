@@ -15,6 +15,7 @@ import { buildPlacementStage } from './placement.js';
 import { buildRoundRobin } from './round-robin.js';
 import { buildEliminationTree } from './single-elimination.js';
 import { generateBracketGroups } from './bracket-groups.js';
+import { generateGauntlet } from './gauntlet.js';
 
 export { buildEliminationTree, seedSlotOrder, nextPowerOfTwo } from './single-elimination.js';
 export { buildDoubleElimination } from './double-elimination.js';
@@ -25,6 +26,13 @@ export {
   resolveBracketGroupAdvancement,
   type BracketGroupQualification,
 } from './bracket-groups.js';
+export {
+  generateGauntlet,
+  projectGauntletStandings,
+  computeGauntletStandings,
+  type GauntletStandingRank,
+  type GauntletStandingsResult,
+} from './gauntlet.js';
 export { pruneEmptyMatches } from './prune.js';
 export {
   generateGroupedFixtures,
@@ -102,6 +110,10 @@ function buildFor(
       return generateBracketGroups(input.entrants, {
         series: input.series,
         bracketGroups: input.bracketGroups,
+      });
+    case 'gauntlet':
+      return generateGauntlet(input.entrants, {
+        series: input.series,
       });
     case 'free-for-all':
     case 'heats':
