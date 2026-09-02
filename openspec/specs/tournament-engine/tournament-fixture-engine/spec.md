@@ -291,3 +291,21 @@ The engine SHALL support the `bracket-groups` duel format, generating an indepen
 - **WHEN** fixtures are generated
 - **THEN** 4 independent 5-match brackets are generated (total 20 matches)
 - **AND** the top 2 finishers from each group (total 8 entrants) qualify into the subsequent playoff stage
+
+### Requirement: Gauntlet (Stepladder) Format Support
+The engine SHALL support the `gauntlet` duel format, generating a linear chain of $N-1$ matches for $N$ seeded participants ($2 \le N \le 32$). Match 1 SHALL join Seed $N$ and Seed $N-1$; each subsequent Match $i$ ($2 \le i \le N-1$) SHALL join the winner of Match $i-1$ with Seed $N-i$.
+
+#### Scenario: 5-entrant Gauntlet fixture structure
+- **GIVEN** a stage with 5 seeded entrants selecting format `gauntlet`
+- **WHEN** fixtures are generated
+- **THEN** exactly 4 matches across 4 rounds are generated:
+  - Round 1 (M1): Seed 5 vs Seed 4
+  - Round 2 (M2): Winner(M1) vs Seed 3
+  - Round 3 (M3): Winner(M2) vs Seed 2
+  - Round 4 (M4 - Grand Final): Winner(M3) vs Seed 1
+
+#### Scenario: Gauntlet winner advancement
+- **GIVEN** a generated 5-entrant Gauntlet stage
+- **WHEN** Match 1 concludes with Seed 5 winning
+- **THEN** Seed 5 is populated into Slot A of Match 2 against Seed 3
+- **AND** losing entrants are ranked in reverse elimination order (Loser M1: 5th place, Loser M2: 4th place, Loser M3: 3rd place, Loser M4: 2nd place, Winner M4: 1st place)

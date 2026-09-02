@@ -1300,6 +1300,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/rounds/next": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate the next round of a Swiss stage
+         * @description Validates that all matches in the current round are finalized, calculates standings, and generates pairings for the next round.
+         */
+        post: operations["StagesController_nextRound"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/organizations/{organizationAlias}/tournaments/{tournamentAlias}/display-tokens": {
         parameters: {
             query?: never;
@@ -8419,6 +8439,61 @@ export interface operations {
                 };
             };
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    StagesController_nextRound: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                stageNumber: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StageFixturesResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
