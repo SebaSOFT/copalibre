@@ -58,7 +58,7 @@ function appendSwissMatch(
       position,
       slotA,
       slotB,
-      ...(series ? { series } : {}),
+      series,
     });
   }
 }
@@ -103,7 +103,7 @@ export function generateSwissRound1(
   for (let i = 0; i < k; i++) {
     const t = top[i];
     const b = bottom[i];
-    if (t && b) {
+    if (t !== undefined && b !== undefined) {
       appendSwissMatch(
         matches,
         `${prefix}-R1-M${i + 1}`,
@@ -149,17 +149,17 @@ export function generateNextSwissRoundFixtures(
   const prefix = options?.idPrefix ?? 'SWISS';
   const series = options?.series;
 
+  const duelMatches = previousMatches.filter(isDuelMatch);
+
   // 1. History extraction: Rematches and prior byes
   const playedPairs = new Set<string>();
   const hadBye = new Set<string>();
 
-  for (const m of previousMatches) {
-    if (isDuelMatch(m)) {
-      if (m.slotA.kind === 'entrant' && m.slotB.kind === 'entrant') {
-        playedPairs.add(pairKey(m.slotA.entrantId, m.slotB.entrantId));
-      } else if (m.slotA.kind === 'entrant' && m.slotB.kind === 'bye') {
-        hadBye.add(m.slotA.entrantId);
-      }
+  for (const m of duelMatches) {
+    if (m.slotA.kind === 'entrant' && m.slotB.kind === 'entrant') {
+      playedPairs.add(pairKey(m.slotA.entrantId, m.slotB.entrantId));
+    } else if (m.slotA.kind === 'entrant' && m.slotB.kind === 'bye') {
+      hadBye.add(m.slotA.entrantId);
     }
   }
 
@@ -182,8 +182,8 @@ export function generateNextSwissRoundFixtures(
   }
 
   // Count bye walkovers if not in outcomes
-  for (const m of previousMatches) {
-    if (isDuelMatch(m) && m.slotA.kind === 'entrant' && m.slotB.kind === 'bye') {
+  for (const m of duelMatches) {
+    if (m.slotA.kind === 'entrant' && m.slotB.kind === 'bye') {
       const entrantId = m.slotA.entrantId;
       const alreadyHasOutcome = outcomes.some(
         (o) => o.matchId === m.id && o.winnerEntrantId === entrantId,
@@ -198,8 +198,8 @@ export function generateNextSwissRoundFixtures(
   const buchholz = new Map<string, number>();
   for (const e of entrants) {
     let sum = 0;
-    for (const m of previousMatches) {
-      if (isDuelMatch(m) && m.slotA.kind === 'entrant' && m.slotB.kind === 'entrant') {
+    for (const m of duelMatches) {
+      if (m.slotA.kind === 'entrant' && m.slotB.kind === 'entrant') {
         if (m.slotA.entrantId === e.entrantId) {
           sum += scores.get(m.slotB.entrantId) ?? 0;
         } else if (m.slotB.entrantId === e.entrantId) {
@@ -216,17 +216,18 @@ export function generateNextSwissRoundFixtures(
 
   if (entrants.length % 2 === 1) {
     const eligibleForBye = entrants.filter((e) => !hadBye.has(e.entrantId));
-    const pool = eligibleForBye.length > 0 ? eligibleForBye : [...entrants];
+    const pool = eligibleForBye.length > 0 ? eligibleForBye : entrants;
 
-    pool.sort((a, b) => {
+    const sortedPool = [...pool].sort((a, b) => {
       const scoreDiff = (scores.get(a.entrantId) ?? 0) - (scores.get(b.entrantId) ?? 0);
       if (scoreDiff !== 0) return scoreDiff;
       return b.seed - a.seed; // lowest seed (highest number) first
     });
 
-    byeEntrant = pool[0];
-    if (byeEntrant) {
-      activeEntrants = entrants.filter((e) => e.entrantId !== byeEntrant?.entrantId);
+    const firstCandidate = sortedPool[0];
+    if (firstCandidate !== undefined) {
+      byeEntrant = firstCandidate;
+      activeEntrants = entrants.filter((e) => e.entrantId !== firstCandidate.entrantId);
     }
   }
 
@@ -287,13 +288,8 @@ function solveSwissPairings(
   remaining: readonly SwissPlayer[],
   playedPairs: ReadonlySet<string>,
 ): [SwissPlayer, SwissPlayer][] | null {
-  if (remaining.length === 0) return [];
-  if (remaining.length < 2) return null;
-
   const first = remaining[0];
-  if (!first) return null;
-
-  // Candidates: all other remaining players who haven't played `first`
+  if (first === undefined) return [];
   const rest = remaining.slice(1);
   const eligible = rest.filter(
     (p) => !playedPairs.has(pairKey(first.entrant.entrantId, p.entrant.entrantId)),
@@ -308,7 +304,6 @@ function solveSwissPairings(
     const distB = Math.abs(first.score - b.score);
     if (distA !== distB) return distA - distB;
 
-    // In same score group, prioritize the half-split target
     if (targetOpponent) {
       if (a === targetOpponent) return -1;
       if (b === targetOpponent) return 1;

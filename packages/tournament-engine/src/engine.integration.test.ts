@@ -99,7 +99,7 @@ describe('tournament engine (integration)', () => {
       .executeTakeFirstOrThrow();
 
     const result = generateFixtures({
-      format: 'swiss' as never,
+      format: 'unsupported-format' as never,
       entrants: [1, 2].map((seed) => ({ entrantId: `e${seed}`, seed })),
     });
     expect(result.ok).toBe(false);

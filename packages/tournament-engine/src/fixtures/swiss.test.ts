@@ -375,6 +375,50 @@ describe('swiss system format', () => {
         expect(byeMatchR2.slotB).toEqual({ kind: 'bye' });
       }
     });
+
+    it('falls back to all entrants if all participants have already received a bye', () => {
+      const entrants3 = [
+        { entrantId: 'x1', seed: 1 },
+        { entrantId: 'x2', seed: 2 },
+        { entrantId: 'x3', seed: 3 },
+      ];
+      const prevMatches = [
+        {
+          id: 'M1',
+          shape: 'duel' as const,
+          bracket: 'winners' as const,
+          round: 1,
+          position: 1,
+          slotA: { kind: 'entrant' as const, entrantId: 'x1', seed: 1 },
+          slotB: { kind: 'bye' as const },
+        },
+        {
+          id: 'M2',
+          shape: 'duel' as const,
+          bracket: 'winners' as const,
+          round: 2,
+          position: 1,
+          slotA: { kind: 'entrant' as const, entrantId: 'x2', seed: 2 },
+          slotB: { kind: 'bye' as const },
+        },
+        {
+          id: 'M3',
+          shape: 'duel' as const,
+          bracket: 'winners' as const,
+          round: 3,
+          position: 1,
+          slotA: { kind: 'entrant' as const, entrantId: 'x3', seed: 3 },
+          slotB: { kind: 'bye' as const },
+        },
+      ];
+      const res = generateNextSwissRoundFixtures({
+        round: 4,
+        entrants: entrants3,
+        previousMatches: prevMatches,
+        outcomes: [],
+      });
+      expect(res).toHaveLength(2);
+    });
   });
 
   describe('Draws, floaters, and series in round 2', () => {
