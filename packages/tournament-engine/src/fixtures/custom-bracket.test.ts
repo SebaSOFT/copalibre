@@ -1,9 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 import { resolveAdvancement } from '../advancement/index.js';
-import {
-  CyclicFixtureGraphError,
-  InvalidCustomBracketError,
-} from '../errors.js';
+import { CyclicFixtureGraphError, InvalidCustomBracketError } from '../errors.js';
 import {
   assertSupportedFormat,
   isBracketGroupsFormat,
@@ -14,11 +11,7 @@ import {
   isSwissFormat,
 } from '../formats.js';
 import { generateCustomBracketFixtures, generateFixtures, validateCustomBracket } from './index.js';
-import type {
-  CustomBracketDefinition,
-  DuelMatch,
-  SeededEntrant,
-} from '../types.js';
+import type { CustomBracketDefinition, DuelMatch, SeededEntrant } from '../types.js';
 
 describe('Custom Bracket (Declarative DAG) Format', () => {
   const entrants8: SeededEntrant[] = [
