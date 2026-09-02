@@ -10,7 +10,8 @@ import type { PlacementOptions } from './fixtures/placement.js';
  * superseded instead of unwinding imperative writes.
  */
 
-export type BracketKind = 'winners' | 'losers' | 'grand-final' | 'round-robin' | 'placement';
+export type BracketKind =
+  'winners' | 'losers' | 'grand-final' | 'round-robin' | 'placement' | 'bracket-groups';
 
 /** Where a match's participant comes from. */
 export type SlotSource =
@@ -98,6 +99,12 @@ export interface SeededEntrant {
   readonly seed: number;
 }
 
+export interface BracketGroupsOptions {
+  readonly idPrefix?: string;
+  readonly groupSize?: number;
+  readonly seedingMethod?: 'snake' | 'sequential';
+}
+
 export interface GenerateFixturesInput {
   readonly format: TournamentFormat;
   readonly entrants: readonly SeededEntrant[];
@@ -107,4 +114,6 @@ export interface GenerateFixturesInput {
   readonly placement?: PlacementOptions;
   /** Series configuration for multi-match fixtures. */
   readonly series?: SeriesDeclaration;
+  /** Bracket groups (GSL dual tournament) configuration. */
+  readonly bracketGroups?: BracketGroupsOptions;
 }

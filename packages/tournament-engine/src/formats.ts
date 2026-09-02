@@ -27,11 +27,18 @@ export function isEliminationFormat(format: TournamentFormat): boolean {
   return format === 'single-elimination' || format === 'double-elimination';
 }
 
+/** Formats using dual-tournament bracket groups (GSL format). */
+export function isBracketGroupsFormat(format: TournamentFormat): boolean {
+  return format === 'bracket-groups';
+}
+
 /**
  * Formats where every entrant plays a fixed set of fixtures up front. Placement
  * formats qualify: their rounds are generated at once, they simply produce an
  * ordering rather than a winner.
  */
 export function isRoundRobinFormat(format: TournamentFormat): boolean {
-  return !isEliminationFormat(format) && !isPlacementFormat(format);
+  return (
+    !isEliminationFormat(format) && !isPlacementFormat(format) && !isBracketGroupsFormat(format)
+  );
 }
