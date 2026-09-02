@@ -309,3 +309,23 @@ The engine SHALL support the `gauntlet` duel format, generating a linear chain o
 - **WHEN** Match 1 concludes with Seed 5 winning
 - **THEN** Seed 5 is populated into Slot A of Match 2 against Seed 3
 - **AND** losing entrants are ranked in reverse elimination order (Loser M1: 5th place, Loser M2: 4th place, Loser M3: 3rd place, Loser M4: 2nd place, Winner M4: 1st place)
+
+### Requirement: Swiss System Dynamic Round Pairing Generation
+The engine SHALL support the `swiss` format. Initial generation SHALL produce Round 1 fixtures pairing the top seed half against the bottom seed half ($1 \text{ vs } N/2+1$, $2 \text{ vs } N/2+2$, etc.). Subsequent rounds SHALL be generated dynamically on request once the prior round is complete, grouping participants into score brackets and finding optimal non-repeat pairings.
+
+#### Scenario: Round 1 seed split
+- **GIVEN** a Swiss stage with 8 seeded entrants
+- **WHEN** Round 1 fixtures are generated
+- **THEN** 4 matches are created pairing Seed 1 vs Seed 5, 2 vs 6, 3 vs 7, and 4 vs 8
+
+#### Scenario: Round 2 groups participants by record
+- **GIVEN** 4 winners (1-0) and 4 losers (0-1) from Round 1
+- **WHEN** Round 2 is generated
+- **THEN** 2 matches pair the 1-0 entrants together and 2 matches pair the 0-1 entrants together
+- **AND** no pair repeats a match already played in Round 1
+
+#### Scenario: Odd participant receives a bye
+- **GIVEN** a Swiss stage with 7 active entrants
+- **WHEN** a round is generated
+- **THEN** 3 matches (6 entrants) and 1 bye (1 entrant) are generated
+- **AND** the bye awards a walkover win to the lowest-ranked entrant who has not previously received a bye
