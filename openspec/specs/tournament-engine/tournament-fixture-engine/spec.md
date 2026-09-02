@@ -347,3 +347,18 @@ The engine SHALL support the `custom-bracket` format, generating a fixture graph
 - **GIVEN** a custom bracket definition where Match A references winner-of(Match B) and Match B references winner-of(Match A)
 - **WHEN** fixture generation is attempted
 - **THEN** generation is rejected with an explicit `CyclicFixtureGraphError` before persistence
+
+### Requirement: FFA Elimination Brackets Format Support
+The engine SHALL support the `ffa-bracket` and `ffa-bracket-groups` placement formats. Given $N$ entrants, a lobby capacity of $M$, and an advancement count of $K$ ($K < M$), the engine SHALL generate a multi-round knockout fixture tree where the top $K$ finishers from each match advance to downstream round matches.
+
+#### Scenario: 64-player Battle Royale bracket (4 lobbies of 16 -> 1 lobby of 16)
+- **GIVEN** 64 entrants, lobby size 16, and advancing count 4 selecting format `ffa-bracket`
+- **WHEN** fixtures are generated
+- **THEN** Round 1 generates 4 matches (M1, M2, M3, M4) with 16 seeded entrants each
+- **AND** Round 2 generates 1 Grand Final match (M5) with 16 slots sourced from top-4 finishers of M1–M4
+
+#### Scenario: Anti-colocation slot distribution
+- **GIVEN** Round 1 match M1 has advancing finishers at ranks 1, 2, 3, 4
+- **AND** Round 2 has 2 downstream matches (M5 and M6)
+- **WHEN** slots are wired
+- **THEN** Rank 1 and 3 are mapped to M5, while Rank 2 and 4 are mapped to M6, distributing advancing players across different lobbies
