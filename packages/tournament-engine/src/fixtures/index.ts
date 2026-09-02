@@ -16,6 +16,7 @@ import { buildRoundRobin } from './round-robin.js';
 import { buildEliminationTree } from './single-elimination.js';
 import { generateBracketGroups } from './bracket-groups.js';
 import { generateGauntlet } from './gauntlet.js';
+import { generateSwissRound1 } from './swiss.js';
 
 export { buildEliminationTree, seedSlotOrder, nextPowerOfTwo } from './single-elimination.js';
 export { buildDoubleElimination } from './double-elimination.js';
@@ -33,6 +34,11 @@ export {
   type GauntletStandingRank,
   type GauntletStandingsResult,
 } from './gauntlet.js';
+export {
+  generateSwissRound1,
+  generateNextSwissRoundFixtures,
+  type GenerateNextSwissRoundInput,
+} from './swiss.js';
 export { pruneEmptyMatches } from './prune.js';
 export {
   generateGroupedFixtures,
@@ -113,6 +119,10 @@ function buildFor(
       });
     case 'gauntlet':
       return generateGauntlet(input.entrants, {
+        series: input.series,
+      });
+    case 'swiss':
+      return generateSwissRound1(input.entrants, {
         series: input.series,
       });
     case 'free-for-all':

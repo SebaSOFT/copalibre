@@ -75,6 +75,7 @@ export {
   isRoundRobinFormat,
   isBracketGroupsFormat,
   isGauntletFormat,
+  isSwissFormat,
 } from './formats.js';
 export {
   generateFixtures,
@@ -87,6 +88,9 @@ export {
   computeGauntletStandings,
   type GauntletStandingRank,
   type GauntletStandingsResult,
+  generateSwissRound1,
+  generateNextSwissRoundFixtures,
+  type GenerateNextSwissRoundInput,
   buildEliminationTree,
   buildDoubleElimination,
   buildRoundRobin,

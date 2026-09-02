@@ -39,6 +39,11 @@ export function isBracketGroupsFormat(format: TournamentFormat): boolean {
   return format === 'bracket-groups';
 }
 
+/** Formats using dynamic round-by-round Swiss pairing. */
+export function isSwissFormat(format: TournamentFormat): boolean {
+  return format === 'swiss';
+}
+
 /**
  * Formats where every entrant plays a fixed set of fixtures up front. Placement
  * formats qualify: their rounds are generated at once, they simply produce an
@@ -46,6 +51,9 @@ export function isBracketGroupsFormat(format: TournamentFormat): boolean {
  */
 export function isRoundRobinFormat(format: TournamentFormat): boolean {
   return (
-    !isEliminationFormat(format) && !isPlacementFormat(format) && !isBracketGroupsFormat(format)
+    !isEliminationFormat(format) &&
+    !isPlacementFormat(format) &&
+    !isBracketGroupsFormat(format) &&
+    !isSwissFormat(format)
   );
 }

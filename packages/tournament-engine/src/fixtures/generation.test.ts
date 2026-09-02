@@ -42,7 +42,7 @@ describe('format guard', () => {
     expect(generateFixtures({ format, entrants: entrants(4) }).ok).toBe(true);
   });
 
-  it.each(['swiss', 'ladder', 'battle-royale', ''])('rejects "%s"', (format) => {
+  it.each(['ladder', 'battle-royale', ''])('rejects "%s"', (format) => {
     const result = generateFixtures({
       format: format as TournamentFormat,
       entrants: entrants(4),

@@ -39,6 +39,11 @@ import {
   type TournamentRuleset,
 } from '@copalibre/domain';
 import {
+  generateNextSwissRoundFixtures,
+  isDuelMatch,
+  type GeneratedMatch,
+} from '@copalibre/tournament-engine';
+import {
   CompetitionRecordRepository,
   CompetitionRepository,
   InvariantViolationError,
@@ -867,6 +872,151 @@ export class StagesController {
         };
       }),
     };
+  }
+
+  @Post(':stageNumber/rounds/next')
+  @HttpCode(200)
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationCapability('org.operate-match')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Generate the next round of a Swiss stage',
+    description:
+      'Validates that all matches in the current round are finalized, calculates standings, and generates pairings for the next round.',
+  })
+  @ApiOkResponse({ type: StageFixturesResponse })
+  @ApiConflictResponse({ type: ProblemResponse })
+  @ApiUnauthorizedResponse({ type: ProblemResponse })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  @ApiNotFoundResponse({ type: ProblemResponse })
+  async nextRound(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('stageNumber', ParseIntPipe) stageNumber: number,
+    @Req() request: RequestWithSubject,
+  ): Promise<StageFixturesResponse> {
+    const { tournament, organizationId } = await resolveTournament(this.db, {
+      organizationAlias,
+      tournamentAlias,
+      request,
+    });
+
+    const competition = new CompetitionRepository(this.db);
+    const stages = await competition.listStagesOfTournament(tournament.tournamentId);
+    const stage = stages.find((candidate) => candidate.number === stageNumber);
+    if (!stage)
+      throw new NotFoundException(`No stage ${stageNumber} in "${tournamentAlias}"`, {
+        errorCode: 'stage-not-found',
+      });
+
+    if (stage.format !== 'swiss') {
+      throw new ConflictException('Only Swiss stages support dynamic round generation', {
+        errorCode: 'stage-not-swiss',
+      });
+    }
+
+    const fixtures = await competition.listFixturesOfStage(stage.stageId);
+    if (fixtures.length === 0) {
+      throw new ConflictException('Stage has no initial fixtures generated', {
+        errorCode: 'stage-no-fixtures',
+      });
+    }
+
+    const matches = await competition.listMatchesForStage(stage.stageId);
+    const currentRound = Math.max(...fixtures.map((f) => f.round));
+    const currentRoundFixtureIds = new Set(
+      fixtures.filter((f) => f.round === currentRound).map((f) => f.fixtureId),
+    );
+    const currentRoundMatches = matches.filter((m) => currentRoundFixtureIds.has(m.fixtureId));
+
+    const uncompleted = currentRoundMatches.filter(
+      (m) => m.status !== 'finalized' && m.status !== 'forfeited',
+    );
+    if (uncompleted.length > 0) {
+      throw new ConflictException(
+        `Round ${currentRound} has ${uncompleted.length} match(es) that are not completed`,
+        { errorCode: 'stage-round-incomplete' },
+      );
+    }
+
+    const readModel = new StageReadModel(this.db);
+    const stageRecord = await readModel.stageRecord(stage.stageId);
+    const entrantIds = stageRecord?.entrantIds ?? [];
+    if (entrantIds.length < 2) {
+      throw new ConflictException('Stage has fewer than 2 entrants', {
+        errorCode: 'stage-insufficient-entrants',
+      });
+    }
+
+    const previousMatches: GeneratedMatch[] = fixtures.map((f, idx) => ({
+      id: `SWISS-R${f.round}-M${idx + 1}`,
+      shape: 'duel' as const,
+      bracket: 'winners' as const,
+      round: f.round,
+      position: idx + 1,
+      slotA: f.homeEntrantId
+        ? {
+            kind: 'entrant' as const,
+            entrantId: f.homeEntrantId,
+            seed: entrantIds.indexOf(f.homeEntrantId) + 1,
+          }
+        : { kind: 'bye' as const },
+      slotB: f.awayEntrantId
+        ? {
+            kind: 'entrant' as const,
+            entrantId: f.awayEntrantId,
+            seed: entrantIds.indexOf(f.awayEntrantId) + 1,
+          }
+        : { kind: 'bye' as const },
+    }));
+
+    const outcomes = await readModel.outcomes(stage.stageId);
+    const nextRoundNumber = currentRound + 1;
+    const seededEntrants = entrantIds.map((entrantId, index) => ({
+      entrantId,
+      seed: index + 1,
+    }));
+
+    const declaration = await readStageSeries(this.db, {
+      tournamentId: tournament.tournamentId,
+      stageId: stage.stageId,
+    });
+    const seriesSpan = declaration === undefined ? {} : { matchCount: declaration.span };
+
+    const nextMatches = generateNextSwissRoundFixtures({
+      round: nextRoundNumber,
+      entrants: seededEntrants,
+      previousMatches,
+      outcomes,
+      options: declaration ? { series: declaration } : undefined,
+    });
+
+    const newFixtures = nextMatches
+      .filter((m) => isDuelMatch(m) && (m.matchNumber === undefined || m.matchNumber === 1))
+      .map((m) => {
+        if (!isDuelMatch(m)) return undefined;
+        return {
+          round: nextRoundNumber,
+          homeEntrantId: m.slotA.kind === 'entrant' ? m.slotA.entrantId : undefined,
+          awayEntrantId: m.slotB.kind === 'entrant' ? m.slotB.entrantId : undefined,
+          zoneId: fixtures[0]?.zoneId,
+          groupId: fixtures[0]?.groupId,
+        };
+      })
+      .filter((f): f is NonNullable<typeof f> => f !== undefined);
+
+    await withTransaction(this.db, (uow) =>
+      competition.createFixtures(uow, {
+        stageId: stage.stageId,
+        fixtures: newFixtures,
+        ...seriesSpan,
+        organizationId,
+        actor: actorOf(request),
+        authorizationContext: authorizationContextOf(request),
+      }),
+    );
+
+    return this.fixtures(organizationAlias, tournamentAlias, stageNumber, request);
   }
 
   /**
