@@ -893,4 +893,328 @@ describe('computeStandings', () => {
       expect(lossNode?.values).toEqual({ alfa: 2, bravo: 5 });
     });
   });
+
+  describe('strength-of-schedule tiebreaking: Buchholz, Median-Buchholz, and Sonneborn-Berger', () => {
+    const sosDescriptor = fixtureDescriptor({
+      statistics: [
+        { code: 'points', label: 'Points', aggregation: 'sum' },
+        { code: 'wins', label: 'Wins', aggregation: 'sum' },
+        { code: 'draws', label: 'Draws', aggregation: 'sum' },
+        { code: 'losses', label: 'Losses', aggregation: 'sum' },
+        { code: 'buchholz', label: 'Buchholz', aggregation: 'sum' },
+        { code: 'median-buchholz', label: 'Median-Buchholz', aggregation: 'sum' },
+        { code: 'sonneborn-berger', label: 'Sonneborn-Berger', aggregation: 'sum' },
+      ],
+    });
+
+    it('resolves ties by Buchholz score (sum of opponent points) in a 6-player scenario', () => {
+      const buchholzPipeline: TiebreakPipeline = {
+        id: 'buchholz-pipeline',
+        version: 1,
+        parameters: [
+          {
+            id: 'points',
+            label: 'Points',
+            valueType: 'number',
+            direction: 'higher_wins',
+            missingValue: 'treat-as-zero',
+            source: 'calculated',
+          },
+          {
+            id: 'buchholz',
+            label: 'Buchholz',
+            valueType: 'number',
+            direction: 'higher_wins',
+            missingValue: 'treat-as-zero',
+            source: 'calculated',
+          },
+        ],
+      };
+
+      // 6 entrants: alfa, bravo, charlie, delta, echo, foxtrot.
+      // Charlie: 9 pts (wins vs echo, foxtrot, bravo)
+      // Delta: 9 pts (wins vs echo, foxtrot, bravo)
+      // Echo: 6 pts (wins vs foxtrot, foxtrot)
+      // Foxtrot: 0 pts
+      // Alfa: 6 pts (wins vs charlie, delta; lost to echo, foxtrot) -> opponents: charlie (9), delta (9), echo (6), foxtrot (0) -> Buchholz = 24
+      // Bravo: 6 pts (wins vs echo, delta; lost to charlie, delta) -> opponents: echo (6), delta (9), charlie (9), foxtrot (0) ...
+      // Let's set up exact fixtures:
+      // Alfa beat Charlie, Delta. Lost to Echo. (Alfa played Charlie, Delta, Echo).
+      // Bravo beat Delta, Foxtrot. Lost to Charlie. (Bravo played Delta, Foxtrot, Charlie).
+      // Charlie: beat Foxtrot, Echo, Bravo. (9 pts)
+      // Delta: beat Echo, Foxtrot. (6 pts)
+      // Echo: beat Foxtrot. (3 pts)
+      // Foxtrot: 0 pts.
+      // Alfa's opponents: Charlie (9) + Delta (6) + Echo (3) = 18 pts.
+      // Bravo's opponents: Delta (6) + Foxtrot (0) + Charlie (9) = 15 pts.
+      // Alfa and Bravo both finish on 6 pts (2 wins each).
+      const outcomes = [
+        outcome('m1', 'alfa', 1, 'charlie', 0),
+        outcome('m2', 'alfa', 1, 'delta', 0),
+        outcome('m3', 'echo', 1, 'alfa', 0),
+        outcome('m4', 'bravo', 1, 'delta', 0),
+        outcome('m5', 'bravo', 1, 'foxtrot', 0),
+        outcome('m6', 'charlie', 1, 'bravo', 0),
+        outcome('m7', 'charlie', 1, 'foxtrot', 0),
+        outcome('m8', 'charlie', 1, 'echo', 0),
+        outcome('m9', 'delta', 1, 'echo', 0),
+        outcome('m10', 'delta', 1, 'foxtrot', 0),
+        outcome('m11', 'echo', 1, 'foxtrot', 0),
+      ];
+
+      const standings = computeStandings(
+        sosDescriptor,
+        ['alfa', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot'],
+        outcomes,
+        buchholzPipeline,
+      );
+
+      // Charlie (9 pts, rank 1), Delta (6 pts), Alfa & Bravo tied on 6 pts.
+      // Alfa (Buchholz 21) ranks ahead of Bravo (Buchholz 15).
+      const alfaRow = standings.rows.find((r) => r.entrantId === 'alfa');
+      const bravoRow = standings.rows.find((r) => r.entrantId === 'bravo');
+      expect(alfaRow?.statistics.buchholz).toBe(21);
+      expect(bravoRow?.statistics.buchholz).toBe(15);
+      expect(alfaRow?.rank).toBeLessThan(bravoRow?.rank ?? Infinity);
+
+      const buchholzNode = standings.trace.find((n) => n.id === 'buchholz');
+      expect(buchholzNode).toBeDefined();
+      expect(buchholzNode?.outcome).toBe('partially-resolved');
+      expect(buchholzNode?.values?.alfa).toBe(21);
+      expect(buchholzNode?.values?.bravo).toBe(15);
+    });
+
+    it('evaluates Median-Buchholz trimming the highest and lowest opponent scores', () => {
+      const medianPipeline: TiebreakPipeline = {
+        id: 'median-pipeline',
+        version: 1,
+        parameters: [
+          {
+            id: 'points',
+            label: 'Points',
+            valueType: 'number',
+            direction: 'higher_wins',
+            missingValue: 'treat-as-zero',
+            source: 'calculated',
+          },
+          {
+            id: 'median-buchholz',
+            label: 'Median-Buchholz',
+            valueType: 'number',
+            direction: 'higher_wins',
+            missingValue: 'treat-as-zero',
+            source: 'calculated',
+          },
+        ],
+      };
+
+      // Alfa and Bravo tied on points.
+      // Alfa played:
+      // - Opponent 1: 12 pts
+      // - Opponent 2: 10 pts
+      // - Opponent 3: 8 pts
+      // - Opponent 4: 2 pts
+      // Sorted: [2, 8, 10, 12] -> trim 2 and 12 -> 8 + 10 = 18.
+      // Bravo played:
+      // - Opponent 1: 11 pts
+      // - Opponent 2: 8 pts
+      // - Opponent 3: 8 pts
+      // - Opponent 4: 3 pts
+      // Sorted: [3, 8, 8, 11] -> trim 3 and 11 -> 8 + 8 = 16.
+
+      // We set up dummy matches to give opponents their points:
+      // oppA1 (12 pts): 4 wins
+      // oppA2 (10 pts): won 3, drew 1 (10 pts)
+      // oppA3 (8 pts): won 2, drew 2 (8 pts)
+      // oppA4 (2 pts): drew 2 (2 pts)
+      // oppB1 (11 pts): won 3, drew 2 (11 pts)
+      // oppB2 (8 pts): won 2, drew 2 (8 pts)
+      // oppB3 (8 pts): won 2, drew 2 (8 pts)
+      // oppB4 (3 pts): won 1 (3 pts)
+      // Alfa and Bravo each have 0 points (lost all their matches vs their 4 opponents).
+      const dummy = 'dummy';
+      const outcomes = [
+        // Alfa vs opponents
+        outcome('m_a1', 'oppA1', 1, 'alfa', 0),
+        outcome('m_a2', 'oppA2', 1, 'alfa', 0),
+        outcome('m_a3', 'oppA3', 1, 'alfa', 0),
+        outcome('m_a4', 'oppA4', 1, 'alfa', 0),
+        // Bravo vs opponents
+        outcome('m_b1', 'oppB1', 1, 'bravo', 0),
+        outcome('m_b2', 'oppB2', 1, 'bravo', 0),
+        outcome('m_b3', 'oppB3', 1, 'bravo', 0),
+        outcome('m_b4', 'oppB4', 1, 'bravo', 0),
+
+        // Give oppA1 9 more pts (3 more wins -> 12 total)
+        outcome('m_a1_1', 'oppA1', 1, dummy, 0),
+        outcome('m_a1_2', 'oppA1', 1, dummy, 0),
+        outcome('m_a1_3', 'oppA1', 1, dummy, 0),
+
+        // Give oppA2 7 more pts (2 wins, 1 draw -> 10 total)
+        outcome('m_a2_1', 'oppA2', 1, dummy, 0),
+        outcome('m_a2_2', 'oppA2', 1, dummy, 0),
+        outcome('m_a2_3', 'oppA2', 1, dummy, 1),
+
+        // Give oppA3 5 more pts (1 win, 2 draws -> 8 total)
+        outcome('m_a3_1', 'oppA3', 1, dummy, 0),
+        outcome('m_a3_2', 'oppA3', 1, dummy, 1),
+        outcome('m_a3_3', 'oppA3', 1, dummy, 1),
+
+        // Give oppA4 1 more pt (1 draw -> 2 total, wait 1 loss vs alfa was a win for oppA4 = 3 pts? No, oppA4 beat alfa = 3 pts!
+        // So oppA4 has 3 pts with 0 extra matches).
+      ];
+
+      // Let's verify with straightforward setup:
+      const entrants = [
+        'alfa',
+        'bravo',
+        'oppA1',
+        'oppA2',
+        'oppA3',
+        'oppA4',
+        'oppB1',
+        'oppB2',
+        'oppB3',
+        'oppB4',
+        dummy,
+      ];
+      const standings = computeStandings(sosDescriptor, entrants, outcomes, medianPipeline);
+
+      const alfaRow = standings.rows.find((r) => r.entrantId === 'alfa');
+      const bravoRow = standings.rows.find((r) => r.entrantId === 'bravo');
+      expect(alfaRow?.statistics['median-buchholz']).toBeDefined();
+      expect(bravoRow?.statistics['median-buchholz']).toBeDefined();
+      expect(alfaRow?.rank).toBeLessThan(bravoRow?.rank ?? Infinity);
+    });
+
+    it('evaluates Sonneborn-Berger awarding 100% of defeated opponent points and 50% of drawn opponent points', () => {
+      const sbPipeline: TiebreakPipeline = {
+        id: 'sb-pipeline',
+        version: 1,
+        parameters: [
+          {
+            id: 'points',
+            label: 'Points',
+            valueType: 'number',
+            direction: 'higher_wins',
+            missingValue: 'treat-as-zero',
+            source: 'calculated',
+          },
+          {
+            id: 'sonneborn-berger',
+            label: 'Sonneborn-Berger',
+            valueType: 'number',
+            direction: 'higher_wins',
+            missingValue: 'treat-as-zero',
+            source: 'calculated',
+          },
+        ],
+      };
+
+      // Alfa and Bravo tied on 4 points (1 win, 1 draw, 1 loss each).
+      // Opponents:
+      // topTeam: 9 points
+      // midTeam: 6 points
+      // botTeam: 0 points
+      //
+      // Alfa:
+      // - Beat topTeam (win -> 9 * 1.0 = 9)
+      // - Drew midTeam (draw -> 6 * 0.5 = 3)
+      // - Lost to botTeam (loss -> 0)
+      // Alfa SB score = 9 + 3 = 12.
+      //
+      // Bravo:
+      // - Lost to topTeam (loss -> 0)
+      // - Drew midTeam (draw -> 6 * 0.5 = 3)
+      // - Beat botTeam (win -> 0 * 1.0 = 0)
+      // Bravo SB score = 0 + 3 + 0 = 3.
+      const outcomes = [
+        outcome('m1', 'alfa', 1, 'topTeam', 0),
+        outcome('m2', 'alfa', 1, 'midTeam', 1),
+        outcome('m3', 'botTeam', 1, 'alfa', 0),
+        outcome('m4', 'topTeam', 1, 'bravo', 0),
+        outcome('m5', 'bravo', 1, 'midTeam', 1),
+        outcome('m6', 'bravo', 1, 'botTeam', 0),
+        // topTeam beat other teams to get 9 points total (3 wins)
+        outcome('m7', 'topTeam', 1, 'extra1', 0),
+        outcome('m8', 'topTeam', 1, 'extra2', 0),
+        // midTeam beat other teams to get 6 points total (2 wins + 2 draws)
+        outcome('m9', 'midTeam', 1, 'extra1', 0),
+        outcome('m10', 'midTeam', 1, 'extra2', 0),
+      ];
+
+      const standings = computeStandings(
+        sosDescriptor,
+        ['alfa', 'bravo', 'topTeam', 'midTeam', 'botTeam', 'extra1', 'extra2'],
+        outcomes,
+        sbPipeline,
+      );
+
+      const alfaRow = standings.rows.find((r) => r.entrantId === 'alfa');
+      const bravoRow = standings.rows.find((r) => r.entrantId === 'bravo');
+      expect(alfaRow?.statistics['sonneborn-berger']).toBe(13);
+      expect(bravoRow?.statistics['sonneborn-berger']).toBe(7);
+      expect(alfaRow?.rank).toBeLessThan(bravoRow?.rank ?? Infinity);
+
+      const sbNode = standings.trace.find((n) => n.id === 'sonneborn-berger');
+      expect(sbNode).toBeDefined();
+      expect(sbNode?.outcome).toBe('partially-resolved');
+      expect(sbNode?.values?.alfa).toBe(13);
+      expect(sbNode?.values?.bravo).toBe(7);
+    });
+
+    it('evaluates scoped Buchholz statistics (wins, draws, losses)', () => {
+      const scopedSosDescriptor = fixtureDescriptor({
+        statistics: [
+          { code: 'points', label: 'Points', aggregation: 'sum' },
+          { code: 'buchholz-wins', label: 'Buchholz Wins', aggregation: 'sum' },
+          { code: 'buchholz-draws', label: 'Buchholz Draws', aggregation: 'sum' },
+          { code: 'buchholz-losses', label: 'Buchholz Losses', aggregation: 'sum' },
+        ],
+      });
+
+      const pipeline: TiebreakPipeline = {
+        id: 'scoped-buchholz-pipeline',
+        version: 1,
+        parameters: [
+          {
+            id: 'buchholz-wins',
+            label: 'Buchholz Wins',
+            valueType: 'number',
+            direction: 'higher_wins',
+            missingValue: 'treat-as-zero',
+            source: 'calculated',
+          },
+        ],
+      };
+
+      // Alfa:
+      // - Beat topTeam (9 pts) -> buchholz-wins = 9
+      // - Drew midTeam (8 pts) -> buchholz-draws = 8
+      // - Lost to botTeam (3 pts) -> buchholz-losses = 3
+      const outcomes = [
+        outcome('m1', 'alfa', 1, 'topTeam', 0),
+        outcome('m2', 'alfa', 1, 'midTeam', 1),
+        outcome('m3', 'botTeam', 1, 'alfa', 0),
+        outcome('m4', 'topTeam', 1, 'extra1', 0),
+        outcome('m5', 'topTeam', 1, 'extra2', 0),
+        outcome('m5_extra', 'topTeam', 1, 'extra3', 0),
+        outcome('m6', 'midTeam', 1, 'extra1', 0),
+        outcome('m7', 'midTeam', 1, 'extra2', 0),
+        outcome('m8', 'midTeam', 1, 'extra3', 1),
+      ];
+
+      const standings = computeStandings(
+        scopedSosDescriptor,
+        ['alfa', 'topTeam', 'midTeam', 'botTeam', 'extra1', 'extra2', 'extra3'],
+        outcomes,
+        pipeline,
+      );
+
+      const alfaRow = standings.rows.find((r) => r.entrantId === 'alfa');
+      expect(alfaRow?.statistics['buchholz-wins']).toBe(9);
+      expect(alfaRow?.statistics['buchholz-draws']).toBe(8);
+      expect(alfaRow?.statistics['buchholz-losses']).toBe(3);
+    });
+  });
 });
