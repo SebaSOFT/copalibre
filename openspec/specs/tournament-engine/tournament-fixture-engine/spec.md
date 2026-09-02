@@ -329,3 +329,21 @@ The engine SHALL support the `swiss` format. Initial generation SHALL produce Ro
 - **WHEN** a round is generated
 - **THEN** 3 matches (6 entrants) and 1 bye (1 entrant) are generated
 - **AND** the bye awards a walkover win to the lowest-ranked entrant who has not previously received a bye
+
+### Requirement: Custom Bracket (Declarative DAG) Format Support
+The engine SHALL support the `custom-bracket` format, generating a fixture graph from a user-supplied list of match definitions. The engine SHALL validate before generation that:
+1. Every match identifier is unique within the stage.
+2. The graph contains no cycles (strict DAG).
+3. Every `winner-of` and `loser-of` reference targets an existing match identifier in an earlier round or preceding topological order.
+4. Every `entrant` seed is within the entrant capacity bounds.
+
+#### Scenario: Valid custom DAG generates cleanly
+- **GIVEN** a custom bracket definition declaring 7 matches with custom consolation branch labels
+- **WHEN** fixtures are generated
+- **THEN** the fixture graph is generated with exact round, position, and branch metadata
+- **AND** advancement edges resolve upon match completion per the declared links
+
+#### Scenario: Cyclic reference is rejected
+- **GIVEN** a custom bracket definition where Match A references winner-of(Match B) and Match B references winner-of(Match A)
+- **WHEN** fixture generation is attempted
+- **THEN** generation is rejected with an explicit `CyclicFixtureGraphError` before persistence
